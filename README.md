@@ -1,5 +1,5 @@
 # Darwin
-Official library to manage datasets along with v7 Darwin annotation platform ["https://darwin.v7labs.com"].
+Official library to manage datasets along with v7 Darwin annotation platform [https://darwin.v7labs.com](https://darwin.v7labs.com).
 
 Support tested for python3.7.
 
@@ -13,7 +13,7 @@ pip install git+https://github.com/v7labs/darwin-cli
 You can now type `darwin` in your terminal and access the command line interface.
 
 ### Development
-After cloning the repo:
+After cloning the repository:
 
 ```
 pip install --editable .
@@ -21,22 +21,20 @@ pip install --editable .
 
 ## Usage
 
-### Authenticate
-After installing darwin you first need to authenticate yourself against the server. 
-
-If you do not have a darwin account signup for free at https://darwin.v7labs.com
-```bash
-$ darwin authenticate
-Username (email address): simon@v7labs.com
-Password: *******
-Project directory [~/.darwin/projects]: 
-Projects directory created /Users/simon/.darwin/projects
-Authentication succeeded.
-```
-
 ### As a library
 
 Darwin can be used as a python library to download / upload and list datasets.
+
+To access darwin you first need to authenticate, this can be done once through the cli (see the `Authentication`) or directly in python, see the example below.
+
+
+*Login without ~/.darwin/config.yaml file*
+```python
+from darwin.client import Client
+
+client = Client.login(email="simon@v7labs.com", password="*********")
+```
+
 
 *Print out remote & local datasets*
 ```python
@@ -73,74 +71,91 @@ for _ in progress:
     print("file synced")
 ```
 
-*Login without ~/.darwin/config.yaml file*
-```python
-from darwin.client import Client
-
-client = Client.login(email="simon@v7labs.com", password="*********")
-...
-```
-
-
 ### Command line
 
 `darwin` is also accessible as a command line tool.
 
 
 ### Authentication
-It requires username (email address) and password. Please, register at ["https://darwin.v7labs.com"].
+A username (email address) and password is required to authenticate. If you do not already have a Darwin account, register for free at [https://darwin.v7labs.com](https://darwin.v7labs.com).
 ```
-darwin authenticate
-```
-
-### Create a new project (from images/videos)
-Creates an empty project remotely to which a dataset can be uploaded afterwards (see `upload`).
-
-```
-darwin create {my_project_name}
+$ darwin authenticate
+Username (email address): simon@v7labs.com
+Password: *******
+Project directory [~/.darwin/projects]: 
+Projects directory created /Users/simon/.darwin/projects
+Authentication succeeded.
 ```
 
-### Local projects
-Lists a summary of local existing projects
+### Create a new dataset (from images/videos)
+Creates an empty dataset remotely.
+
 ```
-darwin local
+$ darwin create example-dataset
+Dataset 'example-project' has been created.
+Access at https://darwin.v7labs.com/datasets/example-project
+```
+
+### Upload data to a [remote] project (images/videos)
+Uploads data to an existing remote project. It takes the project name and a single image (or directory) with images/videos to upload as parameters. 
+
+The `-e/--exclude` argument allows to indicate file extension/s to be ignored from the data_dir.
+
+For videos, the frame rate extraction rate can be specified by adding `--fps <frame_rate>`
+
+To recursively upload all files in a directory tree add the `-r` flag.
+
+Supported extensions:
+-  Video files: [`.mp4`, `.bpm`, `.mov` formats].
+-  Image files [`.jpg`, `.jpeg`, `.png` formats].
+
+```
+$ darwin upload example-dataset -r path/to/images
+Uploading: 100%|████████████████████████████████████████████████████████| 3/3 [00:01<00:00,  2.29it/s]
+```
+
+
+### Remote projects
+Lists a summary of remote projects accessible by the current user.
+
+```
+$ darwin remote
+NAME                 IMAGES     PROGRESS     ID
+example-project           3         0.0%     89
 ```
 
 ### Pull a [remote] project
 Downloads a remote project, images and annotations, in the projects directory (specified in the authentication process [default: `~/.darwin/projects`]).
 
 ```
-darwin pull {my_project_name}
+$ darwin pull example-project
+Pulling project example-project:latest
+Downloading: 100%|████████████████████████████████████████████████████████| 3/3 [00:03<00:00,  4.11it/s]
 ```
 
-### Remote projects
-Lists a summary of remote existing projects
 
+### Local projects
+Lists a summary of local existing projects
 ```
-darwin remote
-```
-
-### Remove [remote] projects
-Removes a local project, located under the projects directory. If the remote flag `-r`/`--remote` is added, it removes the project from the server.
-
-```
-darwin remove
+$ darwin local
+NAME                IMAGES     SYNC DATE          SIZE
+example-project          3         today      800.2 kB
 ```
 
-### Upload data to a [remote] project (images/videos)
-Uploads data to an existing remote project. It accepts `data_path` a single image/video file or a data folder with images and/or videos. The `-e/--exclude` argument allows to indicate file extension/s to be ignored from the data_dir.
-
-When the "frames per second" argument is explicit `-fps`, it splits the video/s in that many images per second of recording.
-
-To recursively upload all files in a directory tree add the `-r` flag.
-
-Supported extensions:
-    -  Video files: [`.mp4`, `.bpm`, `.mov` formats].
-    -  Image files [`.jpg`, `.jpeg`, `.png` formats].
+### Remove projects
+Removes a local project, located under the projects directory.
 
 ```
-darwin upload {my_project_name} {my_data_dir}
-darwin upload {my_project_name} {my_data_dir} -exclude {extensions_to_include}
+$ darwin remove example-project
+About to deleting example-project locally.
+Do you want to continue? [y/N] y
+```
+
+To delete the project on the server add the `-r` /`--remote` flag
+```
+$ darwin remove example-project --remote
+About to deleting example-project on darwin.
+Do you want to continue? [y/N] y
 ```
 
 ## Table of Arguments
