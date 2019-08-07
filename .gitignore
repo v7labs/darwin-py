@@ -1,0 +1,15 @@
+__pycache__/
+.pytest_cache/
+
+/.vscode/
+
+output/
+data/
+
+*.png
+*.jpeg
+*.jpg 
+*.bpm
+*.mov
+*.mp4
+*.txt
