@@ -11,6 +11,7 @@ setuptools.setup(
     description="Command line interface for Darwin",
     long_description=long_description,
     long_description_content_type="text/markdown",
+    url="https://github.com/v7labs/darwin-cli",
     install_requires=[
         "argcomplete",
         "docutils",
@@ -21,5 +22,7 @@ setuptools.setup(
         "tqdm",
         "factory_boy",
     ],
+    packages=["darwin"],
     entry_points={"console_scripts": ["darwin=darwin.cli:main"]},
+    classifiers=["Programming Language :: Python :: 3"],
 )
