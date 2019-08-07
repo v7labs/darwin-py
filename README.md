@@ -4,17 +4,11 @@ Official library to manage datasets along with v7 Darwin annotation platform ["h
 Support tested for python3.7.
 
 ## Installation
-[Using `pip install`.] Create and enter an Anaconda [] python 3.7 environment:
-
-```
-conda create --name py37 python=3.7
-conda activate py37
-```
 
 ### Standard
 
 ```
-python3.7 -m pip install git+https://github.com/v7labs/darwin-cli
+pip install git+https://github.com/v7labs/darwin-cli
 ```
 You can now type `darwin` in your terminal and access the command line interface.
 
@@ -22,7 +16,7 @@ You can now type `darwin` in your terminal and access the command line interface
 After cloning the repo:
 
 ```
-python3.7 -m pip install --editable .
+pip install --editable .
 ```
 
 ## Usage
@@ -96,41 +90,41 @@ client = Client.login(email="simon@v7labs.com", password="*********")
 ### Authentication
 It requires username (email address) and password. Please, register at ["https://darwin.v7labs.com"].
 ```
-python3.7 -m darwin.cli authenticate
+darwin authenticate
 ```
 
 ### Create a new project (from images/videos)
 Creates an empty project remotely to which a dataset can be uploaded afterwards (see `upload`).
 
 ```
-python3.7 -m darwin.cli create {my_project_name}
+darwin create {my_project_name}
 ```
 
 ### Local projects
 Lists a summary of local existing projects
 ```
-python3.7 -m darwin.cli local
+darwin local
 ```
 
 ### Pull a [remote] project
-Downloads a remote project --images and annotations (`.json`)-- in the projects directory (specified in the authentication process [default: `~/.darwin/projects`]).
+Downloads a remote project, images and annotations, in the projects directory (specified in the authentication process [default: `~/.darwin/projects`]).
 
 ```
-python3.7 -m darwin.cli pull {my_project_name}
+darwin pull {my_project_name}
 ```
 
 ### Remote projects
 Lists a summary of remote existing projects
 
 ```
-python3.7 -m darwin.cli remote
+darwin remote
 ```
 
 ### Remove [remote] projects
-Removes (archives) a remote project. If the local flag `-l`/`--local` is added, it removes the local directory of the project, located under the projects directory (specified in the authentication process [default: `~/.darwin/projects`]).
+Removes a local project, located under the projects directory. If the remote flag `-r`/`--remote` is added, it removes the project from the server.
 
 ```
-python3.7 -m darwin.cli remote
+darwin remove
 ```
 
 ### Upload data to a [remote] project (images/videos)
@@ -138,20 +132,15 @@ Uploads data to an existing remote project. It accepts `data_path` a single imag
 
 When the "frames per second" argument is explicit `-fps`, it splits the video/s in that many images per second of recording.
 
+To recursively upload all files in a directory tree add the `-r` flag.
+
 Supported extensions:
     -  Video files: [`.mp4`, `.bpm`, `.mov` formats].
     -  Image files [`.jpg`, `.jpeg`, `.png` formats].
 
 ```
-python3.7 -m darwin.cli upload {my_project_name} {my_data_dir}
-python3.7 -m darwin.cli upload {my_project_name} {my_data_dir} -exclude {extensions_to_include}
-```
-
-### Project report 
-Prints a summary of the project annotations.
-
-```
-python3.7 -m darwin.cli report {my_project_name}
+darwin upload {my_project_name} {my_data_dir}
+darwin upload {my_project_name} {my_data_dir} -exclude {extensions_to_include}
 ```
 
 ## Table of Arguments
