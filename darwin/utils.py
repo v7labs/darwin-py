@@ -7,9 +7,7 @@ def urljoin(*parts):
 
 
 def is_project_dir(project_path: Path) -> bool:
-    return (project_path / "annotations").exists() and (
-        project_path / "images"
-    ).exists()
+    return (project_path / "annotations").exists() and (project_path / "images").exists()
 
 
 def prompt(msg: str, default: Optional[str] = None) -> str:
