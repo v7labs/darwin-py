@@ -21,53 +21,77 @@ pip install --editable .
 
 ## Usage
 
+Darwin can be used as a python library or as a command line tool.
+Main functions are:
+
+- Authentication
+- Listing local and remote a dataset
+- Creating and removing a dataset 
+- Uploading data to a remote dataset
+- Download data locally from a remote dataset
+
 ### As a library
 
 Darwin can be used as a python library to download / upload and list datasets.
 
 To access darwin you first need to authenticate, this can be done once through the cli (see the `Authentication`) or directly in python, see the example below.
 
+#### Authentication 
+Authenticate without ~/.darwin/config.yaml file (which gets generated with CLI)
 
-*Login without ~/.darwin/config.yaml file*
 ```python
 from darwin.client import Client
 
 client = Client.login(email="simon@v7labs.com", password="*********")
 ```
 
+#### Local projects
+Print a list of local existing projects
 
-*Print out remote & local datasets*
 ```python
 from darwin.client import Client
 
 client = Client.default()
-
-for dataset in client.list_remote_datasets():
-    print(dataset.name, dataset.image_count)
-
 for dataset in client.list_local_datasets():
-    print(dataset.name, dataset.image_count)
+    print(dataset.slug, dataset.image_count)
 ```
 
-*Upload files to a remote dataset*
+#### Remote projects
+Print a list of remote projects accessible by the current user.
+
+```python
+from darwin.client import Client
+
+client = Client.default()
+for dataset in client.list_remote_datasets():
+    print(dataset.slug, dataset.image_count)
+```
+
+#### Upload data to a [remote] project (images/videos)
+
+Uploads data to an existing remote project.
+It takes the dataset slug and a list of file names of images/videos to upload as parameters.
+
 ```python
 from darwin.client import Client
 
 client = Client.default()
 dataset = client.get_remote_dataset(slug="example-dataset")
 progress = dataset.upload_files(["test.png", "test.mp4"])
-for _ in progress:
+for _ in progress():
     print("file uploaded")
 ```
 
-*Sync remote dataset to local machine*
+#### Pull a [remote] project
+
+Downloads a remote project, images and annotations, in the projects directory (specified in the authentication process [default: ~/.darwin/projects]).
 ```python
 from darwin.client import Client
 
 client = Client.default()
 dataset = client.get_remote_dataset(slug="example-dataset")
 progress, _count = dataset.pull()
-for _ in progress:
+for _ in progress():
     print("file synced")
 ```
 
@@ -76,7 +100,7 @@ for _ in progress:
 `darwin` is also accessible as a command line tool.
 
 
-### Authentication
+#### Authentication
 A username (email address) and password is required to authenticate. If you do not already have a Darwin account, register for free at [https://darwin.v7labs.com](https://darwin.v7labs.com).
 ```
 $ darwin authenticate
@@ -87,7 +111,7 @@ Projects directory created /Users/simon/.darwin/projects
 Authentication succeeded.
 ```
 
-### Create a new dataset (from images/videos)
+#### Create a new dataset (from images/videos)
 Creates an empty dataset remotely.
 
 ```
@@ -96,7 +120,7 @@ Dataset 'example-project' has been created.
 Access at https://darwin.v7labs.com/datasets/example-project
 ```
 
-### Upload data to a [remote] project (images/videos)
+#### Upload data to a [remote] project (images/videos)
 Uploads data to an existing remote project. It takes the project name and a single image (or directory) with images/videos to upload as parameters. 
 
 The `-e/--exclude` argument allows to indicate file extension/s to be ignored from the data_dir.
@@ -114,8 +138,7 @@ $ darwin upload example-dataset -r path/to/images
 Uploading: 100%|████████████████████████████████████████████████████████| 3/3 [00:01<00:00,  2.29it/s]
 ```
 
-
-### Remote projects
+#### Remote projects
 Lists a summary of remote projects accessible by the current user.
 
 ```
@@ -124,7 +147,7 @@ NAME                 IMAGES     PROGRESS     ID
 example-project           3         0.0%     89
 ```
 
-### Pull a [remote] project
+#### Pull a [remote] project
 Downloads a remote project, images and annotations, in the projects directory (specified in the authentication process [default: `~/.darwin/projects`]).
 
 ```
@@ -133,8 +156,7 @@ Pulling project example-project:latest
 Downloading: 100%|████████████████████████████████████████████████████████| 3/3 [00:03<00:00,  4.11it/s]
 ```
 
-
-### Local projects
+#### Local projects
 Lists a summary of local existing projects
 ```
 $ darwin local
@@ -142,7 +164,7 @@ NAME                IMAGES     SYNC DATE          SIZE
 example-project          3         today      800.2 kB
 ```
 
-### Remove projects
+#### Remove projects
 Removes a local project, located under the projects directory.
 
 ```
