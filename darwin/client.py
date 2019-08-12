@@ -5,16 +5,10 @@ from typing import Dict, Optional
 import requests
 
 from darwin.config import Config
-from darwin.dataset import RemoteDataset, LocalDataset
-from darwin.exceptions import (
-    InsufficientStorage,
-    InvalidLogin,
-    MissingConfig,
-    NameTaken,
-    NotFound,
-    Unauthenticated,
-    ValidationError,
-)
+from darwin.dataset import LocalDataset, RemoteDataset
+from darwin.exceptions import (InsufficientStorage, InvalidLogin,
+                               MissingConfig, NameTaken, NotFound,
+                               Unauthenticated, ValidationError)
 from darwin.team import Team
 from darwin.utils import is_project_dir, urljoin
 
