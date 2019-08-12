@@ -296,4 +296,4 @@ def name_taken(code, body):
 
 def validation_error(code, body):
     if code == 422:
-        raise ValidationError
+        raise ValidationError(body)
