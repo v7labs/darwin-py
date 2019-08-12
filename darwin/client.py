@@ -115,7 +115,7 @@ class Client:
                 "Authorization": f"Bearer {self._token}",
             }
 
-    def get(self, endpoint: str, retry: bool = True, raw: bool = False):
+    def get(self, endpoint: str, retry: bool = False, raw: bool = False):
         self._ensure_authenticated()
         response = requests.get(
             urljoin(self._url, endpoint), headers=self._get_headers()
@@ -123,7 +123,7 @@ class Client:
 
         if response.status_code == 401:
             self._refresh_access_token()
-            return self.get(endpoint, retry=False)
+            return self.get(endpoint, retry=retry)
 
         if response.status_code != 200:
             print("TODO, fix me get", response.json(), response.status_code)
@@ -132,7 +132,7 @@ class Client:
             return response
         return response.json()
 
-    def put(self, endpoint: str, payload: Dict, retry: bool = True):
+    def put(self, endpoint: str, payload: Dict, retry: bool = False):
         self._ensure_authenticated()
         response = requests.put(
             urljoin(self._url, endpoint), json=payload, headers=self._get_headers()
@@ -140,7 +140,7 @@ class Client:
 
         if response.status_code == 401:
             self._refresh_access_token()
-            return self.put(endpoint, payload, retry=False)
+            return self.put(endpoint, payload, retry=retry)
         if response.status_code == 429:
             error_code = response.json()["errors"]["code"]
             if error_code == "INSUFFICIENT_REMAINING_STORAGE":
