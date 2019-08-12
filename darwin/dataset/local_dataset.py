@@ -12,8 +12,7 @@ class LocalDataset:
     def __init__(self, project_path: Path, client: darwin.client.Client):
         self.project_path = project_path
         self.name = project_path.name
-        # TODO is this intended? both name and slug get 'project_path.name'
-        self.slug = project_path.name
+        self.slug = project_path.name   # Change to slug as soon as available
         self._client = client
 
     @property
