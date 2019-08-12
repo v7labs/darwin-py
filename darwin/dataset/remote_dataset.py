@@ -6,9 +6,10 @@ from pathlib import Path
 from typing import List, Optional
 
 import darwin
-
-from darwin.dataset.download_manager import download_all_images_from_annotations
-from darwin.dataset.upload_manager import _split_on_file_type, upload_file_to_s3
+from darwin.dataset.download_manager import \
+    download_all_images_from_annotations
+from darwin.dataset.upload_manager import (_split_on_file_type,
+                                           upload_file_to_s3)
 from darwin.utils import urljoin
 
 
@@ -79,7 +80,3 @@ class RemoteDataset:
 
     def remove(self):
         self._client.put(f"projects/{self.project_id}/archive", payload={})
-
-
-
-
