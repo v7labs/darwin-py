@@ -1,18 +1,14 @@
 import os.path
-import sys
-from itertools import chain
 from pathlib import Path
 from typing import List
 
 import humanize
-import requests
-import yaml
+from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS, SUPPORTED_VIDEO_EXTENSIONS
 from tqdm import tqdm
 
-import darwin.utils as utils
 from darwin.client import Client
 from darwin.config import Config
-from darwin.dataset import SUPPORTED_IMAGE_EXTENSIONS, SUPPORTED_VIDEO_EXTENSIONS
+
 from darwin.exceptions import (
     InvalidLogin,
     MissingConfig,
@@ -24,11 +20,6 @@ from darwin.exceptions import (
 from darwin.table import Table
 
 
-def error(message):
-    print(f"Error: {message}")
-    sys.exit(1)
-
-
 def load_client(offline: bool = False):
     try:
         client = Client.default()
@@ -36,11 +27,11 @@ def load_client(offline: bool = False):
             client._ensure_authenticated()
         return client
     except MissingConfig:
-        error("Authenticate first")
+        raise Exception("Authenticate first")
     except InvalidLogin:
-        error("Please re-authenticate")
+        raise Exception("Please re-authenticate")
     except Unauthenticated:
-        error("Please re-authenticate")
+        raise Exception("Please re-authenticate")
 
 
 def authenticate(email: str, password: str, projects_dir: str) -> Config:
@@ -49,7 +40,7 @@ def authenticate(email: str, password: str, projects_dir: str) -> Config:
     try:
         client = Client.login(email=email, password=password)
     except InvalidLogin:
-        error("Invalid credentials")
+        raise Exception("Invalid credentials")
     config_path = Path.home() / ".darwin" / "config.yaml"
     config_path.parent.mkdir(exist_ok=True)
 
@@ -89,27 +80,16 @@ def set_team(team_slug: str):
     try:
         client.set_team(slug=team_slug)
     except NotFound:
-        error(f"Unknown team '{team_slug}'")
+        raise Exception(f"Unknown team '{team_slug}'")
     config_path = Path.home() / ".darwin" / "config.yaml"
     config = Config(config_path)
     config.write("token", client._token)
     config.write("refresh_token", client._refresh_token)
 
 
-def continue_request():
-    """Asks for explicit approval from the user. """
-    approval = input("Do you want to continue? [Y/n] ")
-    if approval not in ["Y", "y", ""]:
-        return False
-    return True
-
-
 def secure_continue_request():
-    """Asks for explicit approval from the user. """
-    approval = input("Do you want to continue? [y/N] ")
-    if approval not in ["Y", "y"]:
-        return False
-    return True
+    """Asks for explicit approval from the user. Empty string not accepted"""
+    return input("Do you want to continue? [y/N] ") in ["Y", "y"]
 
 
 def create_dataset(dataset_name: str):
@@ -120,9 +100,9 @@ def create_dataset(dataset_name: str):
     try:
         dataset = client.create_dataset(name=dataset_name)
     except NameTaken:
-        error(f"Dataset name '{dataset_name}' is already taken.")
+        raise Exception(f"Dataset name '{dataset_name}' is already taken.")
     except ValidationError:
-        error(f"Dataset name '{dataset_name}' is not valid.")
+        raise Exception(f"Dataset name '{dataset_name}' is not valid.")
 
     print(f"Dataset '{dataset_name}' has been created.\nAccess at {dataset.url}")
 
@@ -151,9 +131,9 @@ def path(project_slug: str) -> Path:
     try:
         local_dataset = client.get_local_dataset(slug=project_slug)
     except NotFound:
-        error(
-            f"Project '{project_slug}' does not exist locally. Use 'darwin remote' to see all the available projects, and 'darwin pull' to pull them."
-        )
+        raise Exception(f"Project '{project_slug}' does not exist locally. "
+                        f"Use 'darwin remote' to see all the available projects, "
+                        f"and 'darwin pull' to pull them.")
     return local_dataset.project_path
 
 
@@ -163,7 +143,7 @@ def url(project_slug: str) -> Path:
     try:
         remote_dataset = client.get_remote_dataset(slug=project_slug)
     except NotFound:
-        error(f"Project '{project_slug}' does not exist.")
+        raise Exception(f"Project '{project_slug}' does not exist.")
     return remote_dataset.url
 
 
@@ -173,11 +153,10 @@ def pull_project(project_slug: str):
     try:
         dataset = client.get_remote_dataset(slug=project_slug)
     except NotFound:
-        error(
-            f"project '{project_slug}' does not exist at {client._url}. Use 'darwin remote' to list all the remote projects."
-        )
+        raise Exception(f"project '{project_slug}' does not exist at {client._url}. "
+                        f"Use 'darwin remote' to list all the remote projects.")
     except Unauthenticated:
-        error(f"please re-authenticate")
+        raise Exception(f"please re-authenticate")
     print(f"Pulling project {project_slug}:latest")
     progress, count = dataset.pull()
     for _ in tqdm(progress(), total=count, desc="Downloading"):
@@ -214,7 +193,7 @@ def remove_remote_project(project_slug: str):
     try:
         dataset = client.get_remote_dataset(slug=project_slug)
     except NotFound:
-        error(f"No dataset with name '{project_slug}'")
+        raise Exception(f"No dataset with name '{project_slug}'")
 
     print(f"About to deleting {dataset.name} on darwin.")
     if not secure_continue_request():
@@ -230,7 +209,7 @@ def remove_local_project(project_slug: str):
     try:
         dataset = client.get_local_dataset(slug=project_slug)
     except NotFound:
-        error(f"No dataset with name '{project_slug}'")
+        raise Exception(f"No dataset with name '{project_slug}'")
 
     print(f"About to deleting {dataset.name} locally.")
     if not secure_continue_request():
@@ -241,43 +220,41 @@ def remove_local_project(project_slug: str):
 
 
 def upload_data(
-    project_slug: str,
-    files: List[str],
-    extensions_to_exclude: List[str],
-    fps: int,
-    recursive: bool,
+        project_slug: str,
+        files: List[str],
+        extensions_to_exclude: List[str],
+        fps: int,
+        recursive: bool,
 ):
     client = load_client()
     try:
         dataset = client.get_remote_dataset(slug=project_slug)
     except NotFound:
-        error(f"No dataset with name '{project_slug}'")
+        raise Exception(f"No dataset with name '{project_slug}'")
 
     files_to_upload = []
     try:
         for path in files:
             files_to_upload += find_files(Path(path), recursive, extensions_to_exclude)
     except FileNotFoundError as fnf:
-        error(f"File '{fnf.filename}' not found")
+        raise Exception(f"File '{fnf.filename}' not found")
 
     if not files_to_upload:
         print("No files to upload, check your path and exclusion filters")
         return
 
     for _ in tqdm(
-        dataset.upload_files(files_to_upload, fps=fps),
-        total=len(files_to_upload),
-        desc="Uploading",
+            dataset.upload_files(files_to_upload, fps=fps),
+            total=len(files_to_upload),
+            desc="Uploading",
     ):
         pass
 
 
 def find_files(root: Path, recursive: bool, exclude: List[str]) -> List[Path]:
     if not root.is_dir():
-        if (
-            root.suffix in SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
-            and root.suffix not in exclude
-        ):
+        if (root.suffix in SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
+            and root.suffix not in exclude):
             return [root]
         else:
             return []
@@ -288,17 +265,13 @@ def find_files(root: Path, recursive: bool, exclude: List[str]) -> List[Path]:
             if recursive:
                 files += find_files(file, recursive, exclude)
         else:
-            if (
-                file.suffix in SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
-                and file.suffix not in exclude
-            ):
+            if (file.suffix in SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
+                and file.suffix not in exclude):
                 files += [file]
     return files
 
 
 # Low-level helper functions
-
-
 def _to_video_file(file_name: str, fps: List) -> dict:
     json = {"original_filename": file_name, "fps": int(fps)}
     return json
