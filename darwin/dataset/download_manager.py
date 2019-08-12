@@ -1,3 +1,4 @@
+import functools
 import json
 import time
 from pathlib import Path
@@ -8,27 +9,52 @@ import requests
 from darwin.utils import urljoin
 
 
-def download_all_images_from_annotations(
-    api_url: str, annotations_path: Path, images_path: str, annotation_format="json"
-):
-    """Helper function: downloads an image given a .json annotation path. """
-    Path(images_path).mkdir(exist_ok=True)
+def download_all_images_from_annotations(api_url: str, annotations_path: Path,
+                                         images_path: Path, annotation_format:str="json"):
+    """Helper function: downloads the all images corresponding to a project.
 
+    Parameters
+    ----------
+    api_url : str
+        Url of the darwin API (e.g. 'https://darwin.v7labs.com/api/')
+    annotations_path : Path
+        Path where the annotations are located
+    images_path : Path
+        Path where to download the images
+    annotation_format : str
+        Format of the annotations. Currently only JSON and xml are expected
+
+    Returns
+    -------
+    generator : function
+        Generator for doing the actual downloads,
+    count : int
+        The files count
+    """
+    Path(images_path).mkdir(exist_ok=True)
     if annotation_format not in ["json", "xml"]:
         print(f"Annotation format {annotation_format} not supported")
         return
-
-    # return both the count and a generator for doing the actual downloads
     count = sum(1 for _ in annotations_path.glob(f"*.{annotation_format}"))
-    generator = lambda: (
-        download_image_from_annotation(api_url, annotation_path, images_path, annotation_format)
-        for annotation_path in annotations_path.glob(f"*.{annotation_format}")
-    )
+    generator = lambda: (functools.partial(download_image_from_annotation, api_url, annotation_path, images_path, annotation_format)
+                         for annotation_path in annotations_path.glob(f"*.{annotation_format}"))
     return generator, count
 
 
 def download_image_from_annotation(api_url: str, annotation_path: Path, images_path: str, annotation_format: str):
-    """Helper function: downloads the all images corresponsing to a project. """
+    """Helper function: dispatcher of functions to download an image given an annotation
+
+    Parameters
+    ----------
+    api_url : str
+        Url of the darwin API (e.g. 'https://darwin.v7labs.com/api/')
+    annotations_path : Path
+        Path where the annotation is located
+    images_path : Path
+        Path where to download the image
+    annotation_format : str
+        Format of the annotations. Currently only JSON is supported
+    """
     if annotation_format == "json":
         download_image_from_json_annotation(api_url, annotation_path, images_path)
     elif annotation_format == "xml":
@@ -37,17 +63,35 @@ def download_image_from_annotation(api_url: str, annotation_path: Path, images_p
         # download_image_from_xml_annotation(annotation_path, images_path)
 
 
-def download_image_from_json_annotation(api_url: str, annotation_path: Path, images_path: str):
-    """Helper function: downloads an image given a .json annotation path. """
-    Path(images_path).mkdir(exist_ok=True)
+def download_image_from_json_annotation(api_url: str, annotation_path: Path, image_path: str):
+    """Helper function: downloads an image given a .json annotation path.
+
+    Parameters
+    ----------
+    api_url : str
+        Url of the darwin API (e.g. 'https://darwin.v7labs.com/api/')
+    annotation_path : Path
+        Path where the annotation is located
+    image_path : Path
+        Path where to download the image
+    """
+    Path(image_path).mkdir(exist_ok=True)
     with open(str(annotation_path), "r") as file:
         parsed = json.loads(file.read())
-        path = Path(images_path) / f"{annotation_path.stem}.png"
+        path = Path(image_path) / f"{annotation_path.stem}.png"
         download_image(urljoin(api_url.replace("api/", ""), parsed["image"]["url"]), path)
 
 
 def download_image(url: str, path: Path, verbose: Optional[bool] = False):
-    """Helper function: downloads one image from url. """
+    """Helper function: downloads one image from url.
+
+    Parameters
+    ----------
+    url : str
+        Url of the image to download
+    path : Path
+        Path where to download the image, with filename
+    """
     if path.exists():
         return
     if verbose:
