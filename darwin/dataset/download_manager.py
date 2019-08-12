@@ -21,17 +21,13 @@ def download_all_images_from_annotations(
     # return both the count and a generator for doing the actual downloads
     count = sum(1 for _ in annotations_path.glob(f"*.{annotation_format}"))
     generator = lambda: (
-        download_image_from_annotation(
-            api_url, annotation_path, images_path, annotation_format
-        )
+        download_image_from_annotation(api_url, annotation_path, images_path, annotation_format)
         for annotation_path in annotations_path.glob(f"*.{annotation_format}")
     )
     return generator, count
 
 
-def download_image_from_annotation(
-    api_url: str, annotation_path: Path, images_path: str, annotation_format: str
-):
+def download_image_from_annotation(api_url: str, annotation_path: Path, images_path: str, annotation_format: str):
     """Helper function: downloads the all images corresponsing to a project. """
     if annotation_format == "json":
         download_image_from_json_annotation(api_url, annotation_path, images_path)
@@ -44,7 +40,7 @@ def download_image_from_annotation(
 def download_image_from_json_annotation(api_url: str, annotation_path: Path, images_path: str):
     """Helper function: downloads an image given a .json annotation path. """
     Path(images_path).mkdir(exist_ok=True)
-    with open(annotation_path, "r") as file:
+    with open(str(annotation_path), "r") as file:
         parsed = json.loads(file.read())
         path = Path(images_path) / f"{annotation_path.stem}.png"
         download_image(urljoin(api_url.replace("api/", ""), parsed["image"]["url"]), path)
@@ -62,7 +58,7 @@ def download_image(url: str, path: Path, verbose: Optional[bool] = False):
         response = requests.get(url, stream=True)
         # Correct status: download image
         if response.status_code == 200:
-            with open(path, "wb") as file:
+            with open(str(path), "wb") as file:
                 for chunk in response:
                     file.write(chunk)
             return
@@ -72,3 +68,4 @@ def download_image(url: str, path: Path, verbose: Optional[bool] = False):
         # Timeout
         if time.time() -  start > TIMEOUT:
             raise Exception(f"Timeout url request ({url}) after {TIMEOUT} seconds.")
+        time.sleep(1)
