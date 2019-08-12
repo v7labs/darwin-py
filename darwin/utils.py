@@ -1,6 +1,8 @@
 from pathlib import Path
 from typing import Optional
 
+SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpeg", ".jpg"]
+SUPPORTED_VIDEO_EXTENSIONS = [".bpm", ".mov", ".mp4"]
 
 def urljoin(*parts):
     return "/".join(part.strip("/") for part in parts)
