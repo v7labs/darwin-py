@@ -1,5 +1,6 @@
 import functools
 import json
+import os
 import time
 from pathlib import Path
 from typing import Optional
@@ -64,7 +65,9 @@ def download_image_from_annotation(api_url: str, annotation_path: Path, images_p
 
 
 def download_image_from_json_annotation(api_url: str, annotation_path: Path, image_path: str):
-    """Helper function: downloads an image given a .json annotation path.
+    """
+    Helper function: downloads an image given a .json annotation path
+    and renames the json after the image filename
 
     Parameters
     ----------
@@ -76,11 +79,14 @@ def download_image_from_json_annotation(api_url: str, annotation_path: Path, ima
         Path where to download the image
     """
     Path(image_path).mkdir(exist_ok=True)
+
     with open(str(annotation_path), "r") as file:
         parsed = json.loads(file.read())
-        path = Path(image_path) / f"{annotation_path.stem}.png"
+        image_file_name = Path(parsed['image']['filename'])
+        path = Path(image_path) / image_file_name
         download_image(urljoin(api_url.replace("api/", ""), parsed["image"]["url"]), path)
-
+    # Rename the current JSON file to match the image filename
+    os.rename(annotation_path, annotation_path.parent / f"{image_file_name.stem}.json" )
 
 def download_image(url: str, path: Path, verbose: Optional[bool] = False):
     """Helper function: downloads one image from url.
