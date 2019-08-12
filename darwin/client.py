@@ -42,7 +42,7 @@ class Client:
         return Client.from_config(config_path)
 
     @classmethod
-    def from_config(cls, config_path: str):
+    def from_config(cls, config_path: Path):
         config_path = Path(config_path)
         if not config_path.exists():
             raise MissingConfig()
