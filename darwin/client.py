@@ -28,11 +28,11 @@ class Client:
         base_url: str,
         projects_dir: str,
     ):
-        self._token = token
-        self._refresh_token = refresh_token
-        self._url = api_url
-        self._base_url = base_url
-        self._team = None
+        self.token = token
+        self.refresh_token = refresh_token
+        self.url = api_url
+        self.base_url = base_url
+        self.team = None
         # TODO: read this from config
         self.project_dir = projects_dir
 
@@ -88,17 +88,17 @@ class Client:
 
     def _refresh_access_token(self):
         response = requests.get(
-            urljoin(self._url, "/refresh"), headers=self._get_headers(refresh=True)
+            urljoin(self.url, "/refresh"), headers=self._get_headers(refresh=True)
         )
         if response.status_code != 200:
             raise Unauthenticated()
 
         data = response.json()
-        self._token = data["token"]
+        self.token = data["token"]
 
     def _ensure_authenticated(self):
-        if self._token is None:
-            if self._refresh_token is None:
+        if self.token is None:
+            if self.refresh_token is None:
                 raise Unauthenticated()
             else:
                 self._refresh_access_token()
@@ -107,18 +107,18 @@ class Client:
         if refresh:
             return {
                 "Content-Type": "application/json",
-                "Authorization": f"Bearer {self._refresh_token}",
+                "Authorization": f"Bearer {self.refresh_token}",
             }
         else:
             return {
                 "Content-Type": "application/json",
-                "Authorization": f"Bearer {self._token}",
+                "Authorization": f"Bearer {self.token}",
             }
 
     def get(self, endpoint: str, retry: bool = False, raw: bool = False):
         self._ensure_authenticated()
         response = requests.get(
-            urljoin(self._url, endpoint), headers=self._get_headers()
+            urljoin(self.url, endpoint), headers=self._get_headers()
         )
 
         if response.status_code == 401:
@@ -135,7 +135,7 @@ class Client:
     def put(self, endpoint: str, payload: Dict, retry: bool = False):
         self._ensure_authenticated()
         response = requests.put(
-            urljoin(self._url, endpoint), json=payload, headers=self._get_headers()
+            urljoin(self.url, endpoint), json=payload, headers=self._get_headers()
         )
 
         if response.status_code == 401:
@@ -158,7 +158,7 @@ class Client:
             error_handlers = []
         self._ensure_authenticated()
         response = requests.post(
-            urljoin(self._url, endpoint),
+            urljoin(self.url, endpoint),
             json=payload,
             headers=self._get_headers(refresh=refresh),
         )
@@ -201,8 +201,8 @@ class Client:
         data = self.post(
             "/users/select_team", {"team_id": matching_team[0].id}, refresh=True
         )
-        self._token = data["token"]
-        self._refresh_token = data["refresh_token"]
+        self.token = data["token"]
+        self.refresh_token = data["refresh_token"]
 
     def list_remote_datasets(self):
         projects = self.get("/projects/")
