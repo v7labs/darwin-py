@@ -5,7 +5,7 @@ from typing import Dict, Optional
 import requests
 
 from darwin.config import Config
-from darwin.dataset import RemoteDataset
+from darwin.dataset import RemoteDataset, LocalDataset
 from darwin.exceptions import (
     InsufficientStorage,
     InvalidLogin,
@@ -15,7 +15,6 @@ from darwin.exceptions import (
     Unauthenticated,
     ValidationError,
 )
-from darwin.dataset.local_dataset import LocalDataset
 from darwin.team import Team
 from darwin.utils import is_project_dir, urljoin
 
