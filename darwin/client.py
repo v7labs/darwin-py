@@ -5,7 +5,7 @@ from typing import Dict, Optional
 import requests
 
 from darwin.config import Config
-from darwin.dataset import Dataset, LocalDataset
+from darwin.dataset import RemoteDataset
 from darwin.exceptions import (
     InsufficientStorage,
     InvalidLogin,
@@ -15,6 +15,7 @@ from darwin.exceptions import (
     Unauthenticated,
     ValidationError,
 )
+from darwin.dataset.local_dataset import LocalDataset
 from darwin.team import Team
 from darwin.utils import is_project_dir, urljoin
 
@@ -207,7 +208,7 @@ class Client:
     def list_remote_datasets(self):
         projects = self.get("/projects/")
         for project in projects:
-            yield Dataset(
+            yield RemoteDataset(
                 project["name"],
                 slug=project["slug"],
                 dataset_id=project["dataset_id"],
@@ -233,7 +234,7 @@ class Client:
         # TODO: swap project_id for dataset_id when the backend has gotten ride of project_id
         if project_id:
             project = self.get(f"/projects/{project_id}")
-            return Dataset(
+            return RemoteDataset(
                 project["name"],
                 slug=project["slug"],
                 dataset_id=project["dataset_id"],
@@ -278,7 +279,7 @@ class Client:
             {"name": name, "team_id": team.id},
             error_handlers=[name_taken, validation_error],
         )
-        return Dataset(
+        return RemoteDataset(
             project["name"],
             slug=project["slug"],
             dataset_id=project["dataset_id"],
