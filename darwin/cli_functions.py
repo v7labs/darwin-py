@@ -3,21 +3,14 @@ from pathlib import Path
 from typing import List
 
 import humanize
-from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS, SUPPORTED_VIDEO_EXTENSIONS
 from tqdm import tqdm
 
 from darwin.client import Client
 from darwin.config import Config
-
-from darwin.exceptions import (
-    InvalidLogin,
-    MissingConfig,
-    NameTaken,
-    NotFound,
-    Unauthenticated,
-    ValidationError,
-)
+from darwin.exceptions import (InvalidLogin, MissingConfig, NameTaken,
+                               NotFound, Unauthenticated, ValidationError)
 from darwin.table import Table
+from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS, SUPPORTED_VIDEO_EXTENSIONS
 
 
 def load_client(offline: bool = False):
