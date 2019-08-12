@@ -150,14 +150,12 @@ class Client:
             print("TODO, fix me put", response, response.status_code)
         return response.json()
 
-    def post(
-        self,
-        endpoint: str,
-        payload: Dict = {},
-        retry: bool = True,
-        refresh=False,
-        error_handlers=[],
-    ):
+    def post(self, endpoint: str, payload: Dict = None, retry: bool = False,
+             refresh=False, error_handlers=None,):
+        if payload is None:
+            payload = {}
+        if error_handlers is None:
+            error_handlers = []
         self._ensure_authenticated()
         response = requests.post(
             urljoin(self._url, endpoint),
@@ -167,7 +165,7 @@ class Client:
 
         if response.status_code == 401:
             self._refresh_access_token()
-            return self.post(endpoint, payload=payload, retry=False)
+            return self.post(endpoint, payload=payload, retry=retry)
 
         if response.status_code != 200:
             for error_handler in error_handlers:
