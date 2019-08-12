@@ -12,16 +12,12 @@ def main():
     if args.command == "help":
         print(parser.description)
         print("\nCommands:\n")
-        subparsers_actions = [
-            action
-            for action in parser._actions
-            if isinstance(action, argparse._SubParsersAction)
-        ]
+        subparsers_actions = [action
+                              for action in parser._actions
+                              if isinstance(action, argparse._SubParsersAction)]
         for subparsers_action in subparsers_actions:
             # get all subparsers and print help
-            for choice in sorted(
-                subparsers_action._choices_actions, key=lambda x: x.dest
-            ):
+            for choice in sorted(subparsers_action._choices_actions, key=lambda x: x.dest):
                 print("    {:<19} {}".format(choice.dest, choice.help))
 
     # Authenticate user
@@ -77,9 +73,7 @@ def main():
 
     # Upload new data to a project (remotely)
     elif args.command == "upload":
-        f.upload_data(
-            args.project_name, args.files, args.exclude, args.fps, args.recursive
-        )
+        f.upload_data(args.project_name, args.files, args.exclude, args.fps, args.recursive)
 
     elif args.command == "version":
         print("0.0.1")
