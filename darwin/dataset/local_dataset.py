@@ -1,13 +1,14 @@
-import darwin
+from __future__ import annotations
+
 import datetime
 import shutil
 from pathlib import Path
-
+import darwin
 from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS
 
 
 class LocalDataset:
-    def __init__(self, project_path: Path, client):
+    def __init__(self, project_path: Path, client: darwin.client.Client):
         self.project_path = project_path
         self.name = project_path.name
         # TODO is this intended? both name and slug get 'project_path.name'
