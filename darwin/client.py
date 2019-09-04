@@ -42,6 +42,16 @@ class Client:
         return Client.from_config(config_path)
 
     @classmethod
+    def from_token(cls, token: str):
+        return cls(
+            token=token,
+            refresh_token=None,
+            api_url=Client.default_api_url(),
+            base_url=Client.default_base_url(),
+            projects_dir=".",
+        )
+
+    @classmethod
     def from_config(cls, config_path: str):
         config_path = Path(config_path)
         if not config_path.exists():
