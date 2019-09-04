@@ -98,11 +98,13 @@ class Dataset:
             )
             yield
 
-    def pull(self):
-        """Downloads a rermote project (images and annotations) in the projects directory. """
-        response = self._client.get(
-            f"/datasets/{self.dataset_id}/export?format=json", raw=True
-        )
+    def pull(self, image_status: Optional[str]):
+        """Downloads a remote project (images and annotations) in the projects directory. """
+        query = f"/datasets/{self.dataset_id}/export?format=json"
+        if image_status is not None:
+            query += f"&image_status={image_status}"
+
+        response = self._client.get(query, raw=True)
         zip_file = io.BytesIO(response.content)
         if zipfile.is_zipfile(zip_file):
             z = zipfile.ZipFile(zip_file)
