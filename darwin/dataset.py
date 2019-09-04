@@ -101,7 +101,7 @@ class Dataset:
     def pull(self, image_status: str = None):
         """Downloads a remote project (images and annotations) in the projects directory. """
         query = f"/datasets/{self.dataset_id}/export?format=json"
-        if image_status:
+        if image_status is not None:
             query += f"&image_status={image_status}"
 
         response = self._client.get(query, raw=True)
