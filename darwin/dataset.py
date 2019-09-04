@@ -98,7 +98,7 @@ class Dataset:
             )
             yield
 
-    def pull(self, image_status: str = None):
+    def pull(self, image_status: Optional[str]):
         """Downloads a remote project (images and annotations) in the projects directory. """
         query = f"/datasets/{self.dataset_id}/export?format=json"
         if image_status is not None:
