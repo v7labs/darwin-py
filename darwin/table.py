@@ -7,25 +7,21 @@ class Table(object):
     R = True
     L = False
 
-    def __init__(
-        self, columns: List[str], alignments: List[bool], column_margin: int = 5
-    ):
+    def __init__(self, columns: List[str], alignments: List[bool], column_margin: int = 5):
         if len(columns) == 0:
             raise Exception("No columns specified")
         if len(columns) != len(alignments):
             raise Exception("Columns and alignments should have the same length")
         self.alignments = alignments
         self.column_margin = column_margin
-        self.table = {column: [] for column in columns}
+        self.table: dict = {column: [] for column in columns}
         self.default_size = 50
 
     def add_row(self, row: Dict):
         """Appends row to table. The function raises an Exception when the row keys do not match with table columns."""
 
         if list(row.keys()) != list(self.table.keys()):
-            raise Exception(
-                "Specified line should have same fields as the table columns"
-            )
+            raise Exception("Specified line should have same fields as the table columns")
         for column, value in row.items():
             self.table[str(column)].append(str(value))
 
