@@ -12,26 +12,16 @@ class Options(object):
         )
 
         subparsers = self.parser.add_subparsers(dest="command")
-        parse_help = subparsers.add_parser(
-            "help", help="Show this help message and exit."
-        )
+        parse_help = subparsers.add_parser("help", help="Show this help message and exit.")
 
         # AUTHENTICATE
-        parser_authenticate = subparsers.add_parser(
-            "authenticate", help="Authenticate the user. "
-        )
+        parser_authenticate = subparsers.add_parser("authenticate", help="Authenticate the user. ")
 
         # SELECT TEAM
         parser_create = subparsers.add_parser("team", help="List or pick teams. ")
+        parser_create.add_argument("team_name", nargs="?", type=str, help="Team name to use. ")
         parser_create.add_argument(
-            "team_name", nargs="?", type=str, help="Team name to use. "
-        )
-        parser_create.add_argument(
-            "-l",
-            "--list",
-            action="store_true",
-            required=False,
-            help="Lists all teams. ",
+            "-l", "--list", action="store_true", required=False, help="Lists all teams. "
         )
 
         # PROJECT CREATE
@@ -48,9 +38,7 @@ class Options(object):
         parser_path.add_argument("project_name", help="Name of the local project. ")
 
         # PROJECT URL
-        parser_url = subparsers.add_parser(
-            "url", help="Prints the url of a remote project. "
-        )
+        parser_url = subparsers.add_parser("url", help="Prints the url of a remote project. ")
         parser_url.add_argument("project_name", help="Name of the remote project. ")
 
         # PROJECT PULL
@@ -66,9 +54,7 @@ class Options(object):
         parser_remove = subparsers.add_parser(
             "remove", help="Remove a remote or remote and local projects. "
         )
-        parser_remove.add_argument(
-            "project_name", type=str, help="Remote project name to delete. "
-        )
+        parser_remove.add_argument("project_name", type=str, help="Remote project name to delete. ")
         parser_remove.add_argument(
             "-r",
             "--remote",
