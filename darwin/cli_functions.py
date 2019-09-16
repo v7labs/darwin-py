@@ -159,7 +159,7 @@ def pull_project(project_slug: str):
         dataset = client.get_remote_dataset(slug=project_slug)
     except NotFound:
         error(
-            f"project '{project_slug}' does not exist at {client._url}. "
+            f"project '{project_slug}' does not exist at {client.url}. "
             f"Use 'darwin remote' to list all the remote projects."
         )
     except Unauthenticated:
