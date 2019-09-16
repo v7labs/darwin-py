@@ -79,24 +79,18 @@ class Dataset:
             f"/datasets/{self.dataset_id}",
             {
                 "image_filenames": images,
-                "videos": [
-                    {"fps": fps, "original_filename": video} for video in videos
-                ],
+                "videos": [{"fps": fps, "original_filename": video} for video in videos],
             },
         )
 
         for image_file in data["image_data"]:
             metadata = upload_file_to_s3(self._client, image_file)
-            self._client.put(
-                f"/dataset_images/{metadata['id']}/confirm_upload", payload={}
-            )
+            self._client.put(f"/dataset_images/{metadata['id']}/confirm_upload", payload={})
             yield
 
         for video_file in data["video_data"]:
             metadata = upload_file_to_s3(self._client, video_file)
-            self._client.put(
-                f"/dataset_videos/{metadata['id']}/confirm_upload", payload={}
-            )
+            self._client.put(f"/dataset_videos/{metadata['id']}/confirm_upload", payload={})
             yield
 
     def pull(self, image_status: Optional[str] = None):
@@ -195,9 +189,7 @@ def download_all_images_from_annotations(
     # return both the count and a generator for doing the actual downloads
     count = sum(1 for _ in annotations_path.glob(f"*.{annotation_format}"))
     generator = lambda: (
-        download_image_from_annotation(
-            api_url, annotation_path, images_path, annotation_format
-        )
+        download_image_from_annotation(api_url, annotation_path, images_path, annotation_format)
         for annotation_path in annotations_path.glob(f"*.{annotation_format}")
     )
     return generator, count
@@ -215,17 +207,13 @@ def download_image_from_annotation(
         # download_image_from_xml_annotation(annotation_path, images_path)
 
 
-def download_image_from_json_annotation(
-    api_url: str, annotation_path: Path, images_path: Path
-):
+def download_image_from_json_annotation(api_url: str, annotation_path: Path, images_path: Path):
     """Helper function: downloads an image given a .json annotation path. """
     Path(images_path).mkdir(exist_ok=True)
     with open(annotation_path, "r") as file:
         parsed = json.loads(file.read())
         path = Path(images_path) / f"{annotation_path.stem}.png"
-        download_image(
-            urljoin(api_url.replace("api/", ""), parsed["image"]["url"]), path
-        )
+        download_image(urljoin(api_url.replace("api/", ""), parsed["image"]["url"]), path)
 
 
 def download_image(url: str, path: Path, verbose: Optional[bool] = False):

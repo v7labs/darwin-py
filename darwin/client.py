@@ -21,12 +21,7 @@ from darwin.utils import is_project_dir, urljoin
 
 class Client:
     def __init__(
-        self,
-        token: str,
-        refresh_token: str,
-        api_url: str,
-        base_url: str,
-        projects_dir: str,
+        self, token: str, refresh_token: str, api_url: str, base_url: str, projects_dir: str
     ):
         self._token = token
         self._refresh_token = refresh_token
@@ -112,16 +107,11 @@ class Client:
                 "Authorization": f"Bearer {self._refresh_token}",
             }
         else:
-            return {
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {self._token}",
-            }
+            return {"Content-Type": "application/json", "Authorization": f"Bearer {self._token}"}
 
     def get(self, endpoint: str, retry: bool = True, raw: bool = False):
         self._ensure_authenticated()
-        response = requests.get(
-            urljoin(self._url, endpoint), headers=self._get_headers()
-        )
+        response = requests.get(urljoin(self._url, endpoint), headers=self._get_headers())
 
         if response.status_code == 401:
             self._refresh_access_token()
@@ -162,9 +152,7 @@ class Client:
     ):
         self._ensure_authenticated()
         response = requests.post(
-            urljoin(self._url, endpoint),
-            json=payload,
-            headers=self._get_headers(refresh=refresh),
+            urljoin(self._url, endpoint), json=payload, headers=self._get_headers(refresh=refresh)
         )
 
         if response.status_code == 401:
@@ -202,9 +190,7 @@ class Client:
         if not matching_team:
             raise NotFound
 
-        data = self.post(
-            "/users/select_team", {"team_id": matching_team[0].id}, refresh=True
-        )
+        data = self.post("/users/select_team", {"team_id": matching_team[0].id}, refresh=True)
         self._token = data["token"]
         self._refresh_token = data["refresh_token"]
 
@@ -249,9 +235,7 @@ class Client:
         if slug:
             # TODO: when the backend have support for slug fetching update this.
             matching_datasets = [
-                dataset
-                for dataset in self.list_remote_datasets()
-                if dataset.slug == slug
+                dataset for dataset in self.list_remote_datasets() if dataset.slug == slug
             ]
             if not matching_datasets:
                 raise NotFound
@@ -266,9 +250,7 @@ class Client:
     def get_local_dataset(self, *, slug: str):
         if slug:
             matching_datasets = [
-                dataset
-                for dataset in self.list_local_datasets()
-                if dataset.slug == slug
+                dataset for dataset in self.list_local_datasets() if dataset.slug == slug
             ]
             if not matching_datasets:
                 raise NotFound
