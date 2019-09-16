@@ -42,8 +42,8 @@ class Client:
         return Client.from_config(config_path)
 
     @classmethod
-    def from_config(cls, config_path: str):
-        config_path = Path(config_path)
+    def from_config(cls, config_path_str: str):
+        config_path: Path = Path(config_path_str)
         if not config_path.exists():
             raise MissingConfig()
         config = Config(config_path)
@@ -56,9 +56,11 @@ class Client:
         )
 
     @classmethod
-    def login(cls, email: str, password: str, projects_dir: Optional[str] = None):
-        if not projects_dir:
+    def login(cls, email: str, password: str, projects_dir_str: Optional[str] = None):
+        if projects_dir_str is None:
             projects_dir = Path.home() / ".darwin" / "projects"
+        else:
+            projects_dir = Path(projects_dir_str)
         api_url = Client.default_api_url()
         response = requests.post(
             urljoin(api_url, "/users/authenticate"),
@@ -73,7 +75,7 @@ class Client:
             refresh_token=data["refresh_token"],
             api_url=api_url,
             base_url=Client.default_base_url(),
-            projects_dir=projects_dir,
+            projects_dir=str(projects_dir),
         )
 
     @staticmethod

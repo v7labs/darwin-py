@@ -16,7 +16,7 @@ class Table(object):
             raise Exception("Columns and alignments should have the same length")
         self.alignments = alignments
         self.column_margin = column_margin
-        self.table = {column: [] for column in columns}
+        self.table: dict = {column: [] for column in columns}
         self.default_size = 50
 
     def add_row(self, row: Dict):
