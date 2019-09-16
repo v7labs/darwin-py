@@ -129,9 +129,7 @@ def create_dataset(dataset_name: str):
 
 def local():
     """Lists synced projects, stored in the specified path. """
-    table = Table(
-        ["name", "images", "sync date", "size"], [Table.L, Table.R, Table.R, Table.R]
-    )
+    table = Table(["name", "images", "sync date", "size"], [Table.L, Table.R, Table.R, Table.R])
     client = load_client(offline=True)
     for dataset in client.list_local_datasets():
         table.add_row(
@@ -190,9 +188,7 @@ def remote():
     """Lists remote projects with its annotation progress"""
     client = load_client()
     # TODO: add listing open datasets
-    table = Table(
-        ["name", "images", "progress", "id"], [Table.L, Table.R, Table.R, Table.R]
-    )
+    table = Table(["name", "images", "progress", "id"], [Table.L, Table.R, Table.R, Table.R])
     for dataset in client.list_remote_datasets():
         table.add_row(
             {
@@ -241,11 +237,7 @@ def remove_local_project(project_slug: str):
 
 
 def upload_data(
-    project_slug: str,
-    files: List[str],
-    extensions_to_exclude: List[str],
-    fps: int,
-    recursive: bool,
+    project_slug: str, files: List[str], extensions_to_exclude: List[str], fps: int, recursive: bool
 ):
     client = load_client()
     try:
@@ -265,9 +257,7 @@ def upload_data(
         return
 
     for _ in tqdm(
-        dataset.upload_files(files_to_upload, fps=fps),
-        total=len(files_to_upload),
-        desc="Uploading",
+        dataset.upload_files(files_to_upload, fps=fps), total=len(files_to_upload), desc="Uploading"
     ):
         pass
 
