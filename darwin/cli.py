@@ -12,9 +12,9 @@ def main():
     if args.command == "help":
         print(parser.description)
         print("\nCommands:\n")
-        subparsers_actions = [action
-                              for action in parser._actions
-                              if isinstance(action, argparse._SubParsersAction)]
+        subparsers_actions = [
+            action for action in parser._actions if isinstance(action, argparse._SubParsersAction)
+        ]
         for subparsers_action in subparsers_actions:
             # get all subparsers and print help
             for choice in sorted(subparsers_action._choices_actions, key=lambda x: x.dest):

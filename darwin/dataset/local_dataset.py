@@ -3,13 +3,17 @@ from __future__ import annotations
 import datetime
 import shutil
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import darwin
 from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS
 
 
+if TYPE_CHECKING:
+    from darwin.client import Client
+
 class LocalDataset:
-    def __init__(self, project_path: Path, client: darwin.client.Client):
+    def __init__(self, project_path: Path, client: "Client"):
         self.project_path = project_path
         self.name = project_path.name
         self.slug = project_path.name   # Change to slug as soon as available

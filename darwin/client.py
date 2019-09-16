@@ -15,12 +15,7 @@ from darwin.utils import is_project_dir, urljoin
 
 class Client:
     def __init__(
-        self,
-        token: str,
-        refresh_token: str,
-        api_url: str,
-        base_url: str,
-        projects_dir: str,
+        self, token: str, refresh_token: str, api_url: str, base_url: str, projects_dir: str
     ):
         self.token = token
         self.refresh_token = refresh_token
@@ -37,7 +32,6 @@ class Client:
 
     @classmethod
     def from_config(cls, config_path: Path):
-        config_path = Path(config_path)
         if not config_path.exists():
             raise MissingConfig()
         config = Config(config_path)
@@ -50,9 +44,11 @@ class Client:
         )
 
     @classmethod
-    def login(cls, email: str, password: str, projects_dir: Optional[str] = None):
-        if not projects_dir:
+    def login(cls, email: str, password: str, projects_dir_str: Optional[str] = None):
+        if projects_dir_str is None:
             projects_dir = Path.home() / ".darwin" / "projects"
+        else:
+            projects_dir = Path(projects_dir_str)
         api_url = Client.default_api_url()
         response = requests.post(
             urljoin(api_url, "/users/authenticate"),
@@ -67,7 +63,7 @@ class Client:
             refresh_token=data["refresh_token"],
             api_url=api_url,
             base_url=Client.default_base_url(),
-            projects_dir=projects_dir,
+            projects_dir=str(projects_dir),
         )
 
     @staticmethod
@@ -104,16 +100,11 @@ class Client:
                 "Authorization": f"Bearer {self.refresh_token}",
             }
         else:
-            return {
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {self.token}",
-            }
+            return {"Content-Type": "application/json", "Authorization": f"Bearer {self._token}"}
 
     def get(self, endpoint: str, retry: bool = False, raw: bool = False):
         self._ensure_authenticated()
-        response = requests.get(
-            urljoin(self.url, endpoint), headers=self._get_headers()
-        )
+        response = requests.get(urljoin(self._url, endpoint), headers=self._get_headers())
 
         if response.status_code == 401:
             self._refresh_access_token()
@@ -152,9 +143,7 @@ class Client:
             error_handlers = []
         self._ensure_authenticated()
         response = requests.post(
-            urljoin(self.url, endpoint),
-            json=payload,
-            headers=self._get_headers(refresh=refresh),
+            urljoin(self._url, endpoint), json=payload, headers=self._get_headers(refresh=refresh)
         )
 
         if response.status_code == 401:
@@ -192,11 +181,9 @@ class Client:
         if not matching_team:
             raise NotFound
 
-        data = self.post(
-            "/users/select_team", {"team_id": matching_team[0].id}, refresh=True
-        )
-        self.token = data["token"]
-        self.refresh_token = data["refresh_token"]
+        data = self.post("/users/select_team", {"team_id": matching_team[0].id}, refresh=True)
+        self._token = data["token"]
+        self._refresh_token = data["refresh_token"]
 
     def list_remote_datasets(self):
         projects = self.get("/projects/")
@@ -239,9 +226,7 @@ class Client:
         if slug:
             # TODO: when the backend have support for slug fetching update this.
             matching_datasets = [
-                dataset
-                for dataset in self.list_remote_datasets()
-                if dataset.slug == slug
+                dataset for dataset in self.list_remote_datasets() if dataset.slug == slug
             ]
             if not matching_datasets:
                 raise NotFound
@@ -256,9 +241,7 @@ class Client:
     def get_local_dataset(self, *, slug: str):
         if slug:
             matching_datasets = [
-                dataset
-                for dataset in self.list_local_datasets()
-                if dataset.slug == slug
+                dataset for dataset in self.list_local_datasets() if dataset.slug == slug
             ]
             if not matching_datasets:
                 raise NotFound

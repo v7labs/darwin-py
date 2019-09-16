@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List
+from typing import TYPE_CHECKING, List
 
 import requests
 
@@ -7,6 +7,8 @@ import darwin
 from darwin.exceptions import UnsupportedFileType
 from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS, SUPPORTED_VIDEO_EXTENSIONS
 
+if TYPE_CHECKING:
+    from darwin.client import Client
 
 def _split_on_file_type(files: List[str]):
     images = []
@@ -22,7 +24,7 @@ def _split_on_file_type(files: List[str]):
     return images, videos
 
 
-def upload_file_to_s3(client, file: requests.Response) -> dict:
+def upload_file_to_s3(client: "Client", file: requests.Response) -> dict:
     """Helper function: upload data to AWS S3"""
     key = file["key"]
     file_path = file["original_filename"]

@@ -48,10 +48,10 @@ def authenticate(email: str, password: str, projects_dir: str) -> Config:
         "base_url": client._base_url,
         "projects_dir": projects_dir,
     }
-    Config(config_path, default_config)
 
     Path(projects_dir).mkdir(parents=True, exist_ok=True)
     print(f"Projects directory created {projects_dir}")
+    return Config(config_path, default_config)
 
 
 def current_team():
@@ -106,9 +106,7 @@ def create_dataset(dataset_name: str):
 
 def local():
     """Lists synced projects, stored in the specified path. """
-    table = Table(
-        ["name", "images", "sync date", "size"], [Table.L, Table.R, Table.R, Table.R]
-    )
+    table = Table(["name", "images", "sync date", "size"], [Table.L, Table.R, Table.R, Table.R])
     client = load_client(offline=True)
     for dataset in client.list_local_datasets():
         table.add_row(
@@ -166,9 +164,7 @@ def remote():
     """Lists remote projects with its annotation progress"""
     client = load_client()
     # TODO: add listing open datasets
-    table = Table(
-        ["name", "images", "progress", "id"], [Table.L, Table.R, Table.R, Table.R]
-    )
+    table = Table(["name", "images", "progress", "id"], [Table.L, Table.R, Table.R, Table.R])
     for dataset in client.list_remote_datasets():
         table.add_row(
             {
@@ -217,11 +213,7 @@ def remove_local_project(project_slug: str):
 
 
 def upload_data(
-        project_slug: str,
-        files: List[str],
-        extensions_to_exclude: List[str],
-        fps: int,
-        recursive: bool,
+    project_slug: str, files: List[str], extensions_to_exclude: List[str], fps: int, recursive: bool
 ):
     client = load_client()
     try:
@@ -229,7 +221,7 @@ def upload_data(
     except NotFound:
         raise error(f"No dataset with name '{project_slug}'")
 
-    files_to_upload = []
+    files_to_upload: List[Path] = []
     try:
         for path in files:
             files_to_upload += find_files(Path(path), recursive, extensions_to_exclude)
@@ -241,9 +233,7 @@ def upload_data(
         return
 
     for _ in tqdm(
-            dataset.upload_files(files_to_upload, fps=fps),
-            total=len(files_to_upload),
-            desc="Uploading",
+        dataset.upload_files(files_to_upload, fps=fps), total=len(files_to_upload), desc="Uploading"
     ):
         pass
 
@@ -256,7 +246,7 @@ def find_files(root: Path, recursive: bool, exclude: List[str]) -> List[Path]:
         else:
             return []
 
-    files = []
+    files: List[Path] = []
     for file in root.iterdir():
         if file.is_dir():
             if recursive:
@@ -266,9 +256,3 @@ def find_files(root: Path, recursive: bool, exclude: List[str]) -> List[Path]:
                 and file.suffix not in exclude):
                 files += [file]
     return files
-
-
-# Low-level helper functions
-def _to_video_file(file_name: str, fps: List) -> dict:
-    json = {"original_filename": file_name, "fps": int(fps)}
-    return json
