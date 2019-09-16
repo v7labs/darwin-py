@@ -1,24 +1,25 @@
-from __future__ import annotations
-
 import datetime
 import io
 import json
 import shutil
 import zipfile
 from pathlib import Path
-from typing import List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 import requests
 
 from darwin.exceptions import UnsupportedFileType
 from darwin.utils import urljoin
 
+if TYPE_CHECKING:
+    from darwin.client import Client
+
 SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpeg", ".jpg"]
 SUPPORTED_VIDEO_EXTENSIONS = [".bpm", ".mov", ".mp4"]
 
 
 class LocalDataset:
-    def __init__(self, project_path: Path, client: Client):
+    def __init__(self, project_path: Path, client: "Client"):
         self.project_path = project_path
         self.name = project_path.name
         self.slug = project_path.name
@@ -55,7 +56,7 @@ class Dataset:
         project_id: int,
         image_count: int = 0,
         progress: int = 0,
-        client: Client,
+        client: "Client",
     ):
         self.name = name
         self.slug = slug or name
@@ -146,7 +147,7 @@ def split_on_file_type(files: List[str]):
     return images, videos
 
 
-def upload_file_to_s3(client: Client, file: requests.Response) -> str:
+def upload_file_to_s3(client: "Client", file: Dict[str, Any]) -> Dict[str, Any]:
     """Helper function: upload data to AWS S3"""
     key = file["key"]
     file_path = file["original_filename"]
@@ -157,8 +158,8 @@ def upload_file_to_s3(client: Client, file: requests.Response) -> str:
     end_point = response["postEndpoint"]
 
     s3_response = upload_to_s3(signature, end_point, file_path)
-    if not str(s3_response.status_code).startswith("2"):
-        process_response(s3_response)
+    # if not str(s3_response.status_code).startswith("2"):
+    #     process_response(s3_response)
 
     if s3_response.status_code == 400:
         print(f"Detail: Bad request when uploading to AWS S3 -- file: {file_path}")
@@ -182,10 +183,10 @@ def upload_to_s3(signature, end_point, file_path=None):
 
 
 def download_all_images_from_annotations(
-    api_url: str, annotations_path: str, images_path: str, annotation_format="json"
+    api_url: str, annotations_path: Path, images_path: Path, annotation_format="json"
 ):
     """Helper function: downloads an image given a .json annotation path. """
-    Path(images_path).mkdir(exist_ok=True)
+    images_path.mkdir(exist_ok=True)
 
     if annotation_format not in ["json", "xml"]:
         print(f"Annotation format {annotation_format} not supported")
@@ -203,7 +204,7 @@ def download_all_images_from_annotations(
 
 
 def download_image_from_annotation(
-    api_url: str, annotation_path: str, images_path: str, annotation_format: str
+    api_url: str, annotation_path: Path, images_path: Path, annotation_format: str
 ):
     """Helper function: downloads the all images corresponsing to a project. """
     if annotation_format == "json":
@@ -215,7 +216,7 @@ def download_image_from_annotation(
 
 
 def download_image_from_json_annotation(
-    api_url: str, annotation_path: str, images_path: str
+    api_url: str, annotation_path: Path, images_path: Path
 ):
     """Helper function: downloads an image given a .json annotation path. """
     Path(images_path).mkdir(exist_ok=True)
