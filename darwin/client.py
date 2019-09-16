@@ -100,11 +100,11 @@ class Client:
                 "Authorization": f"Bearer {self.refresh_token}",
             }
         else:
-            return {"Content-Type": "application/json", "Authorization": f"Bearer {self._token}"}
+            return {"Content-Type": "application/json", "Authorization": f"Bearer {self.token}"}
 
     def get(self, endpoint: str, retry: bool = False, raw: bool = False):
         self._ensure_authenticated()
-        response = requests.get(urljoin(self._url, endpoint), headers=self._get_headers())
+        response = requests.get(urljoin(self.url, endpoint), headers=self._get_headers())
 
         if response.status_code == 401:
             self._refresh_access_token()
@@ -143,7 +143,7 @@ class Client:
             error_handlers = []
         self._ensure_authenticated()
         response = requests.post(
-            urljoin(self._url, endpoint), json=payload, headers=self._get_headers(refresh=refresh)
+            urljoin(self.url, endpoint), json=payload, headers=self._get_headers(refresh=refresh)
         )
 
         if response.status_code == 401:

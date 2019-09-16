@@ -24,11 +24,11 @@ def load_client(offline: bool = False):
             client._ensure_authenticated()
         return client
     except MissingConfig:
-        raise error("Authenticate first")
+        error("Authenticate first")
     except InvalidLogin:
-        raise error("Please re-authenticate")
+        error("Please re-authenticate")
     except Unauthenticated:
-        raise error("Please re-authenticate")
+        error("Please re-authenticate")
 
 
 def authenticate(email: str, password: str, projects_dir: str) -> Config:
@@ -37,15 +37,15 @@ def authenticate(email: str, password: str, projects_dir: str) -> Config:
     try:
         client = Client.login(email=email, password=password)
     except InvalidLogin:
-        raise error("Invalid credentials")
+        error("Invalid credentials")
     config_path = Path.home() / ".darwin" / "config.yaml"
     config_path.parent.mkdir(exist_ok=True)
 
     default_config = {
-        "token": client._token,
-        "refresh_token": client._refresh_token,
-        "api_endpoint": client._url,
-        "base_url": client._base_url,
+        "token": client.token,
+        "refresh_token": client.refresh_token,
+        "api_endpoint": client.url,
+        "base_url": client.base_url,
         "projects_dir": projects_dir,
     }
 
@@ -77,7 +77,7 @@ def set_team(team_slug: str):
     try:
         client.set_team(slug=team_slug)
     except NotFound:
-        raise error(f"Unknown team '{team_slug}'")
+        error(f"Unknown team '{team_slug}'")
     config_path = Path.home() / ".darwin" / "config.yaml"
     config = Config(config_path)
     config.write("token", client._token)
@@ -97,9 +97,9 @@ def create_dataset(dataset_name: str):
     try:
         dataset = client.create_dataset(name=dataset_name)
     except NameTaken:
-        raise error(f"Dataset name '{dataset_name}' is already taken.")
+        error(f"Dataset name '{dataset_name}' is already taken.")
     except ValidationError:
-        raise error(f"Dataset name '{dataset_name}' is not valid.")
+        error(f"Dataset name '{dataset_name}' is not valid.")
 
     print(f"Dataset '{dataset_name}' has been created.\nAccess at {dataset.url}")
 
@@ -126,7 +126,7 @@ def path(project_slug: str) -> Path:
     try:
         local_dataset = client.get_local_dataset(slug=project_slug)
     except NotFound:
-        raise error(f"Project '{project_slug}' does not exist locally. "
+        error(f"Project '{project_slug}' does not exist locally. "
                         f"Use 'darwin remote' to see all the available projects, "
                         f"and 'darwin pull' to pull them.")
     return local_dataset.project_path
@@ -138,7 +138,7 @@ def url(project_slug: str) -> Path:
     try:
         remote_dataset = client.get_remote_dataset(slug=project_slug)
     except NotFound:
-        raise error(f"Project '{project_slug}' does not exist.")
+        error(f"Project '{project_slug}' does not exist.")
     return remote_dataset.url
 
 
@@ -148,10 +148,10 @@ def pull_project(project_slug: str):
     try:
         dataset = client.get_remote_dataset(slug=project_slug)
     except NotFound:
-        raise error(f"project '{project_slug}' does not exist at {client._url}. "
+        error(f"project '{project_slug}' does not exist at {client._url}. "
                         f"Use 'darwin remote' to list all the remote projects.")
     except Unauthenticated:
-        raise error(f"please re-authenticate")
+        error(f"please re-authenticate")
     print(f"Pulling project {project_slug}:latest")
     progress, count = dataset.pull()
     for _ in tqdm(progress(), total=count, desc="Downloading"):
@@ -186,7 +186,7 @@ def remove_remote_project(project_slug: str):
     try:
         dataset = client.get_remote_dataset(slug=project_slug)
     except NotFound:
-        raise error(f"No dataset with name '{project_slug}'")
+        error(f"No dataset with name '{project_slug}'")
 
     print(f"About to deleting {dataset.name} on darwin.")
     if not secure_continue_request():
@@ -202,7 +202,7 @@ def remove_local_project(project_slug: str):
     try:
         dataset = client.get_local_dataset(slug=project_slug)
     except NotFound:
-        raise error(f"No dataset with name '{project_slug}'")
+        error(f"No dataset with name '{project_slug}'")
 
     print(f"About to deleting {dataset.name} locally.")
     if not secure_continue_request():
@@ -219,14 +219,14 @@ def upload_data(
     try:
         dataset = client.get_remote_dataset(slug=project_slug)
     except NotFound:
-        raise error(f"No dataset with name '{project_slug}'")
+        error(f"No dataset with name '{project_slug}'")
 
     files_to_upload: List[Path] = []
     try:
         for path in files:
             files_to_upload += find_files(Path(path), recursive, extensions_to_exclude)
     except FileNotFoundError as fnf:
-        raise error(f"File '{fnf.filename}' not found")
+        error(f"File '{fnf.filename}' not found")
 
     if not files_to_upload:
         print("No files to upload, check your path and exclusion filters")
