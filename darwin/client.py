@@ -6,9 +6,15 @@ import requests
 
 from darwin.config import Config
 from darwin.dataset import LocalDataset, RemoteDataset
-from darwin.exceptions import (InsufficientStorage, InvalidLogin,
-                               MissingConfig, NameTaken, NotFound,
-                               Unauthenticated, ValidationError)
+from darwin.exceptions import (
+    InsufficientStorage,
+    InvalidLogin,
+    MissingConfig,
+    NameTaken,
+    NotFound,
+    Unauthenticated,
+    ValidationError,
+)
 from darwin.team import Team
 from darwin.utils import is_project_dir, urljoin
 
@@ -135,8 +141,14 @@ class Client:
             print("TODO, fix me put", response, response.status_code)
         return response.json()
 
-    def post(self, endpoint: str, payload: Dict = None, retry: bool = False,
-             refresh=False, error_handlers=None,):
+    def post(
+        self,
+        endpoint: str,
+        payload: Dict = None,
+        retry: bool = False,
+        refresh=False,
+        error_handlers=None,
+    ):
         if payload is None:
             payload = {}
         if error_handlers is None:

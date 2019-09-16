@@ -91,7 +91,8 @@ from darwin.client import Client
 client = Client.default()
 dataset = client.get_remote_dataset(slug="example-dataset")
 progress, _count = dataset.pull()
-for _ in progress():
+for f in progress():
+    f()
     print("file synced")
 ```
 

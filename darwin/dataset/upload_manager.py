@@ -10,6 +10,7 @@ from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS, SUPPORTED_VIDEO_EXTENSIONS
 if TYPE_CHECKING:
     from darwin.client import Client
 
+
 def _split_on_file_type(files: List[str]):
     images = []
     videos = []
@@ -18,7 +19,7 @@ def _split_on_file_type(files: List[str]):
         if suffix in SUPPORTED_IMAGE_EXTENSIONS:
             images.append(str(file_path))
         elif suffix in SUPPORTED_VIDEO_EXTENSIONS:
-                videos.append(str(file_path))
+            videos.append(str(file_path))
         else:
             raise UnsupportedFileType(file_path)
     return images, videos

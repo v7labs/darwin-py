@@ -8,14 +8,22 @@ from tqdm import tqdm
 
 from darwin.client import Client
 from darwin.config import Config
-from darwin.exceptions import (InvalidLogin, MissingConfig, NameTaken,
-                               NotFound, Unauthenticated, ValidationError)
+from darwin.exceptions import (
+    InvalidLogin,
+    MissingConfig,
+    NameTaken,
+    NotFound,
+    Unauthenticated,
+    ValidationError,
+)
 from darwin.table import Table
 from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS, SUPPORTED_VIDEO_EXTENSIONS
+
 
 def error(message):
     print(f"Error: {message}")
     sys.exit(1)
+
 
 def load_client(offline: bool = False):
     try:
@@ -126,9 +134,11 @@ def path(project_slug: str) -> Path:
     try:
         local_dataset = client.get_local_dataset(slug=project_slug)
     except NotFound:
-        error(f"Project '{project_slug}' does not exist locally. "
-                        f"Use 'darwin remote' to see all the available projects, "
-                        f"and 'darwin pull' to pull them.")
+        error(
+            f"Project '{project_slug}' does not exist locally. "
+            f"Use 'darwin remote' to see all the available projects, "
+            f"and 'darwin pull' to pull them."
+        )
     return local_dataset.project_path
 
 
@@ -143,19 +153,21 @@ def url(project_slug: str) -> Path:
 
 
 def pull_project(project_slug: str):
-    """Downloads a rermote project (images and annotations) in the projects directory. """
+    """Downloads a remote project (images and annotations) in the projects directory. """
     client = load_client()
     try:
         dataset = client.get_remote_dataset(slug=project_slug)
     except NotFound:
-        error(f"project '{project_slug}' does not exist at {client._url}. "
-                        f"Use 'darwin remote' to list all the remote projects.")
+        error(
+            f"project '{project_slug}' does not exist at {client._url}. "
+            f"Use 'darwin remote' to list all the remote projects."
+        )
     except Unauthenticated:
         error(f"please re-authenticate")
     print(f"Pulling project {project_slug}:latest")
     progress, count = dataset.pull()
-    for _ in tqdm(progress(), total=count, desc="Downloading"):
-        pass
+    for f in tqdm(progress(), total=count, desc="Downloading"):
+        f()
 
     return dataset.local()
 
@@ -240,8 +252,10 @@ def upload_data(
 
 def find_files(root: Path, recursive: bool, exclude: List[str]) -> List[Path]:
     if not root.is_dir():
-        if (root.suffix in SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
-            and root.suffix not in exclude):
+        if (
+            root.suffix in SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
+            and root.suffix not in exclude
+        ):
             return [root]
         else:
             return []
@@ -252,7 +266,9 @@ def find_files(root: Path, recursive: bool, exclude: List[str]) -> List[Path]:
             if recursive:
                 files += find_files(file, recursive, exclude)
         else:
-            if (file.suffix in SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
-                and file.suffix not in exclude):
+            if (
+                file.suffix in SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
+                and file.suffix not in exclude
+            ):
                 files += [file]
     return files

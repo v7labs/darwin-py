@@ -10,8 +10,9 @@ import requests
 from darwin.utils import urljoin
 
 
-def download_all_images_from_annotations(api_url: str, annotations_path: Path,
-                                         images_path: Path, annotation_format:str="json"):
+def download_all_images_from_annotations(
+    api_url: str, annotations_path: Path, images_path: Path, annotation_format: str = "json"
+):
     """Helper function: downloads the all images corresponding to a project.
 
     Parameters
@@ -37,12 +38,18 @@ def download_all_images_from_annotations(api_url: str, annotations_path: Path,
         print(f"Annotation format {annotation_format} not supported")
         return
     count = sum(1 for _ in annotations_path.glob(f"*.{annotation_format}"))
-    generator = lambda: (functools.partial(download_image_from_annotation, api_url, annotation_path, images_path, annotation_format)
-                         for annotation_path in annotations_path.glob(f"*.{annotation_format}"))
+    generator = lambda: (
+        functools.partial(
+            download_image_from_annotation, api_url, annotation_path, images_path, annotation_format
+        )
+        for annotation_path in annotations_path.glob(f"*.{annotation_format}")
+    )
     return generator, count
 
 
-def download_image_from_annotation(api_url: str, annotation_path: Path, images_path: str, annotation_format: str):
+def download_image_from_annotation(
+    api_url: str, annotation_path: Path, images_path: str, annotation_format: str
+):
     """Helper function: dispatcher of functions to download an image given an annotation
 
     Parameters
@@ -82,11 +89,12 @@ def download_image_from_json_annotation(api_url: str, annotation_path: Path, ima
 
     with open(str(annotation_path), "r") as file:
         parsed = json.loads(file.read())
-        image_file_name = Path(parsed['image']['filename'])
+        image_file_name = Path(parsed["image"]["filename"])
         path = Path(image_path) / image_file_name
         download_image(urljoin(api_url.replace("api/", ""), parsed["image"]["url"]), path)
     # Rename the current JSON file to match the image filename
-    os.rename(annotation_path, annotation_path.parent / f"{image_file_name.stem}.json" )
+    os.rename(annotation_path, annotation_path.parent / f"{image_file_name.stem}.json")
+
 
 def download_image(url: str, path: Path, verbose: Optional[bool] = False):
     """Helper function: downloads one image from url.
@@ -116,6 +124,6 @@ def download_image(url: str, path: Path, verbose: Optional[bool] = False):
         if 400 <= response.status_code <= 499:
             raise Exception(response.status_code, response.json())
         # Timeout
-        if time.time() -  start > TIMEOUT:
+        if time.time() - start > TIMEOUT:
             raise Exception(f"Timeout url request ({url}) after {TIMEOUT} seconds.")
         time.sleep(1)
