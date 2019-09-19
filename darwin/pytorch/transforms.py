@@ -1,5 +1,8 @@
 import numpy as np
 import torch
+import random
+
+from torchvision.transforms import functional as F
 
 from darwin.pytorch.utils import convert_polygon_to_mask
 
@@ -15,6 +18,28 @@ class Compose(object):
             return image, target
         else:
             return image
+
+
+class RandomHorizontalFlip(object):
+    def __init__(self, prob):
+        self.prob = prob
+
+    def __call__(self, image, target):
+        if random.random() < self.prob:
+            height, width = image.shape[-2:]
+            image = image.flip(-1)
+            bbox = target["boxes"]
+            bbox[:, [0, 2]] = width - bbox[:, [2, 0]]
+            target["boxes"] = bbox
+            if "masks" in target:
+                target["masks"] = target["masks"].flip(-1)
+        return image, target
+
+
+class ToTensor(object):
+    def __call__(self, image, target):
+        image = F.to_tensor(image)
+        return image, target
 
 
 class ConvertPolysToMask(object):
