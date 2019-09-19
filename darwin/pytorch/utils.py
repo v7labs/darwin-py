@@ -1,6 +1,7 @@
 import os
 import errno
 import torch
+import shutil
 import numpy as np
 import matplotlib.pyplot as plt
 import json
@@ -169,14 +170,14 @@ def fetch_darwin_dataset(
     train, validation, and test.
 
     Input:
-        dataset_name: Name of the dataset in Darwin
-        client: Darwin's client
+        dataset_name: name of the dataset in Darwin
+        client: Darwin client
         val_percentage: percentage of images used in the validation set
-        test_percentage: percentage of images used in the validation set
-        image_status: only pull images with this status
+        test_percentage: percentage of images used in the test set
+        image_status: only pull images with under this status
         force_fetching: discard local dataset and pull again from Darwin
         force_resplit: discard previous split and create a new one
-        split_seed: fix random's seed
+        split_seed: fix seed for random split creation
 
     Output:
         root: local path to the dataset
@@ -186,10 +187,21 @@ def fetch_darwin_dataset(
         client = Client.default()
 
     # Get data
+    dataset = None
     local_datasets = {dataset.slug: dataset for dataset in client.list_local_datasets()}
     if dataset_name in local_datasets:
-        dataset = local_datasets[dataset_name]
-    else:
+        if force_fetching:
+            # Remove the local copy of the dataset
+            dbpath = os.path.join(client.project_dir,  dataset_name)
+            try:
+                shutil.rmtree(dbpath)
+            except PermissionError:
+                print('Could not remove dataset in {dbpath}. Permission denied. \
+                      Remove it manually or disable force_fetching.')
+        else:
+            dataset = local_datasets[dataset_name]
+
+    if dataset is None:  # Could not find it locally or force_fetching is True
         remote_datasets = [dataset.slug for dataset in client.list_remote_datasets()]
         if dataset_name in remote_datasets:
             dataset = client.get_remote_dataset(slug=dataset_name)
@@ -198,7 +210,7 @@ def fetch_darwin_dataset(
                 for _ in progress():
                     pbar.update()
         else:
-            raise ValueError(f"could not find dataset {dataset_name}")
+            raise ValueError(f"Could not find dataset {dataset_name} in Darwin.")
 
     # Find annotations and create folders
     root = Path(client.project_dir) / dataset_name
@@ -268,7 +280,7 @@ def visualize_mask_output(image, masks, classes, colors, threshold=0.5):
 
 def get_colors(n, name='hsv'):
     '''
-    It return n distintc RGB colors using a mapping function that maps each index in 0, 1, ..., n-1 to a distinct
+    Returns N distintc RGB colors using a mapping function that maps each index in 0, 1, ..., n-1 to a distinct
     RGB color; the keyword argument name must be a standard mpl colormap name.
     '''
     colors = list(map(plt.cm.get_cmap(name, n), range(n)))
