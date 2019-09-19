@@ -1,10 +1,12 @@
 import os
+import errno
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
 import json
 from pycocotools import mask as coco_mask
 from pathlib import Path
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 from tqdm import tqdm
 
 from darwin.client import Client
@@ -47,6 +49,15 @@ def _is_pil_image(img):
         return isinstance(img, (Image.Image, accimage.Image))
     else:
         return isinstance(img, Image.Image)
+
+
+def mkdirs(path: Path):
+    if not path.exists():
+        try:
+            os.makedirs(path)
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise
 
 
 def convert_polygon_to_mask(segmentations, height, width):
@@ -117,8 +128,16 @@ def extract_classes(files):
     return classes, idx_to_classes
 
 
-def fetch_darwin_dataset(db_name, client=None, val_perc=0.1, test_perc=0, image_status="done",
-                         force_resplit=False, split_seed=None, **kwargs):
+def fetch_darwin_dataset(
+    db_name,
+    client: Optional = None,
+    val_perc: Optional[float] = 0.1,
+    test_perc: Optional[float] = 0,
+    image_status: Optional[str] = "done",
+    force_resplit: Optional[bool] = False,
+    split_seed: Optional[int] = None,
+    **kwargs
+):
     if client is None:
         client = Client.default()
 
@@ -131,7 +150,7 @@ def fetch_darwin_dataset(db_name, client=None, val_perc=0.1, test_perc=0, image_
         if db_name in remote_datasets:
             dataset = client.get_remote_dataset(slug=db_name)
             progress, _count = dataset.pull(image_status=image_status)
-            with tqdm(total=_count, desc=f"Downloading dataset {db_name}") as pbar:
+            with tqdm(total=_count, desc=f"Downloading '{db_name}' dataset") as pbar:
                 for _ in progress():
                     pbar.update()
         else:
@@ -143,8 +162,7 @@ def fetch_darwin_dataset(db_name, client=None, val_perc=0.1, test_perc=0, image_
     annot_files = [f for f in annot_path.glob('*.json')]
     num_images = len(annot_files)
     lists_path = root / "lists"
-    if not lists_path.exists():
-        os.makedirs(lists_path)
+    mkdirs(lists_path)
 
     # Extract classes
     fname = lists_path / "classes.txt"
@@ -161,7 +179,7 @@ def fetch_darwin_dataset(db_name, client=None, val_perc=0.1, test_perc=0, image_
     split_id = f"split_val{val_perc}_test{test_perc}"
     split_path = lists_path / split_id
     if not split_path.exists() or force_resplit:
-        os.makedirs(split_path)
+        mkdirs(split_path)
         num_train = int(num_images * (1 - (val_perc + test_perc)))
         num_test = int(num_images * test_perc)
         num_val = num_images - num_train - num_test
@@ -172,15 +190,15 @@ def fetch_darwin_dataset(db_name, client=None, val_perc=0.1, test_perc=0, image_
         test_idx = indices[num_train+num_val:]
 
         # Write files
-        with open(lists_path / 'train.txt', 'w') as f:
+        with open(split_path / 'train.txt', 'w') as f:
             for i in train_idx:
                 f.write(f"{annot_files[i].stem}\n")
         if num_val > 0:
-            with open(lists_path / 'val.txt', 'w') as f:
+            with open(split_path / 'val.txt', 'w') as f:
                 for i in val_idx:
                     f.write(f"{annot_files[i].stem}\n")
         if num_test > 0:
-            with open(lists_path / 'test.txt', 'w') as f:
+            with open(split_path / 'test.txt', 'w') as f:
                 for i in test_idx:
                     f.write(f"{annot_files[i].stem}\n")
 

@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 
-from utils import convert_polygon_to_mask
+from darwin.pytorch.utils import convert_polygon_to_mask
 
 
 class Compose(object):

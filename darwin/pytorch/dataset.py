@@ -7,14 +7,35 @@ import json
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from darwin.client import Client
-from utils import load_pil_image, convert_polygon_to_sequence, polygon_area, fetch_darwin_dataset
+from darwin.pytorch.utils import load_pil_image, convert_polygon_to_sequence, polygon_area, fetch_darwin_dataset
 
 
-def get_dataset(db_name, image_set="train", transforms=None, poly_to_mask=False, **kwargs):
-    root, split_id = fetch_darwin_dataset(db_name, **kwargs)
+def get_dataset(
+    dataset_id: str,
+    image_set: Optional[str] = "train",
+    transforms: Optional = None,
+    poly_to_mask: Optional[bool] = False,
+    client: Optional[Client] = None,
+    **kwargs
+):
+    '''
+    Pulls locally a dataset from Darwin and returns a Dataset class that can be used with a Pytorch dataloader
+
+    Input:
+    - dataset_id: Identifier of the dataset
+    - image_set: Split set [train, val, test]
+    - transforms: List of Pytorch's transforms
+    - poly_to_mask: if True converts the polygons into masks
+    - client: Darwin's client
+
+    Output:
+    - Pytorch's dataset
+    '''
+
+    root, split_id = fetch_darwin_dataset(dataset_id, client, **kwargs)
 
     if poly_to_mask:
-        import transforms as T
+        import darwin.pytorch.transforms as T
         trfs = [T.ConvertPolysToMask()]
         if transforms is not None:
             trfs.append(transforms)
