@@ -221,6 +221,10 @@ def fetch_darwin_dataset(
 
     # Create split
     split_id = f"split_val{val_percentage}_test{test_percentage}"
+    if split_seed is not None:
+        np.random.seed(split_seed)
+        split_id += f"_seed{split_seed}"
+
     split_path = lists_path / split_id
     if not split_path.exists() or force_resplit:
         mkdirs(split_path)
