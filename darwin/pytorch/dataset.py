@@ -29,9 +29,12 @@ def get_dataset(
         client: Darwin's client
         val_percentage: percentage of images used in the validation set
         test_percentage: percentage of images used in the validation set
+        force_fetching: discard local dataset and pull again from Darwin
+        force_resplit: discard previous split and create a new one
+        split_seed: fix seed for random split creation
 
     Output:
-        Pytorch dataset
+        Dataset class
     '''
 
     root, split_id = fetch_darwin_dataset(dataset_name, client, **kwargs)
@@ -109,7 +112,8 @@ class Dataset(object):
             h = np.max(ycoords) - y
             new_obj["bbox"] = [x, y, w, h]
             area = polygon_area(xcoords, ycoords)
-            assert area <= w * h, f"polygon's area should be smaller that bbox's area. Failed {area} <= {w*h}"
+            if area <= w * h:
+                raise ValueError(f"polygon's area should be <= bbox's area. Failed {area} <= {w*h}")
             new_obj["area"] = area
             res.append(new_obj)
 
