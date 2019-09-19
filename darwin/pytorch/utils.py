@@ -110,6 +110,10 @@ def polygon_area(x, y):
     return 0.5 * np.abs(np.dot(x, np.roll(y, 1)) - np.dot(y, np.roll(x, 1)))
 
 
+def collate_fn(batch):
+    return tuple(zip(*batch))
+
+
 def extract_classes(files):
     classes = {}
     idx_to_classes = {}
