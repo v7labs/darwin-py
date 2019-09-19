@@ -11,7 +11,7 @@ from darwin.pytorch.utils import load_pil_image, convert_polygon_to_sequence, po
 
 
 def get_dataset(
-    dataset_id: str,
+    dataset_name: str,
     image_set: Optional[str] = "train",
     transforms: Optional = None,
     poly_to_mask: Optional[bool] = False,
@@ -22,17 +22,19 @@ def get_dataset(
     Pulls locally a dataset from Darwin and returns a Dataset class that can be used with a Pytorch dataloader
 
     Input:
-    - dataset_id: Identifier of the dataset
-    - image_set: Split set [train, val, test]
-    - transforms: List of Pytorch's transforms
-    - poly_to_mask: if True converts the polygons into masks
-    - client: Darwin's client
+        dataset_name: Identifier of the dataset in Darwin
+        image_set: Split set [train, val, test]
+        transforms: List of Pytorch's transforms
+        poly_to_mask: if True converts the polygons into masks
+        client: Darwin's client
+        val_percentage: percentage of images used in the validation set
+        test_percentage: percentage of images used in the validation set
 
     Output:
-    - Pytorch's dataset
+        Pytorch dataset
     '''
 
-    root, split_id = fetch_darwin_dataset(dataset_id, client, **kwargs)
+    root, split_id = fetch_darwin_dataset(dataset_name, client, **kwargs)
 
     if poly_to_mask:
         import darwin.pytorch.transforms as T

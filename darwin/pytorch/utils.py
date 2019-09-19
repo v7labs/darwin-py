@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import json
 from pycocotools import mask as coco_mask
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import List, Optional
 from tqdm import tqdm
 
 from darwin.client import Client
@@ -22,8 +22,11 @@ def load_pil_image(path):
     '''
     Loads a PIL image and converts it into RGB.
 
-    Input: path to the image file
-    Output: PIL's Image
+    Input:
+        path: path to the image file
+
+    Output:
+        PIL Image
     '''
     pic = Image.open(path)
     if pic.mode == "RGB":
@@ -60,12 +63,17 @@ def mkdirs(path: Path):
                 raise
 
 
-def convert_polygon_to_mask(segmentations, height, width):
+def convert_polygon_to_mask(segmentations: List[float], height: int, width: int):
     '''
     Converts a polygon represented as a sequence of coordinates into a mask.
 
-    Input: list of float values -> [x1, y1, x2, y2, ..., xn, yn]
-    Output: PyTorch's tensor
+    Input:
+        segmentations: list of float values -> [x1, y1, x2, y2, ..., xn, yn]
+        height: image's height
+        width: image's width
+
+    Output:
+        torch.tensor
     '''
     masks = []
     for polygons in segmentations:
@@ -83,12 +91,15 @@ def convert_polygon_to_mask(segmentations, height, width):
     return masks
 
 
-def convert_polygon_to_sequence(polygon):
+def convert_polygon_to_sequence(polygon: List):
     '''
     Converts a sequence of dictionaries of (x,y) into an array of coordinates.
 
-    Input: list of dictionaries -> [{x: x1, y:y1}, ..., {x: xn, y:yn}]
-    Output: list of float values -> [x1, y1, x2, y2, ..., xn, yn]
+    Input:
+        polygon: list of dictionaries -> [{x: x1, y:y1}, ..., {x: xn, y:yn}]
+
+    Output:
+        list of float values -> [x1, y1, x2, y2, ..., xn, yn]
     '''
     path = []
     if len(polygon) == 0:
@@ -114,7 +125,18 @@ def collate_fn(batch):
     return tuple(zip(*batch))
 
 
-def extract_classes(files):
+def extract_classes(files: List):
+    '''
+    Given a list of GT json files, extracts all classes and an mapping image index to classes
+
+    Input:
+        files: list of json files with the GT information of each image
+
+    Output:
+        classes: list of classes in the GT
+        idx_to_classes: mapping image index to classes that can be used to know all the classes
+                        in a given image index
+    '''
     classes = {}
     idx_to_classes = {}
     for i, fname in enumerate(files):
@@ -133,35 +155,53 @@ def extract_classes(files):
 
 
 def fetch_darwin_dataset(
-    db_name,
-    client: Optional = None,
-    val_perc: Optional[float] = 0.1,
-    test_perc: Optional[float] = 0,
+    dataset_name: str,
+    client: Optional[Client] = None,
+    val_percentage: Optional[float] = 0.1,
+    test_percentage: Optional[float] = 0,
     image_status: Optional[str] = "done",
+    force_fetching: Optional[bool] = False,
     force_resplit: Optional[bool] = False,
-    split_seed: Optional[int] = None,
-    **kwargs
+    split_seed: Optional[int] = None
 ):
+    '''
+    Pull locally a dataset from Darwin (if needed) and create splits for
+    train, validation, and test.
+
+    Input:
+        dataset_name: Name of the dataset in Darwin
+        client: Darwin's client
+        val_percentage: percentage of images used in the validation set
+        test_percentage: percentage of images used in the validation set
+        image_status: only pull images with this status
+        force_fetching: discard local dataset and pull again from Darwin
+        force_resplit: discard previous split and create a new one
+        split_seed: fix random's seed
+
+    Output:
+        root: local path to the dataset
+        split_path: relative path to the selected train/val/test split
+    '''
     if client is None:
         client = Client.default()
 
     # Get data
     local_datasets = {dataset.slug: dataset for dataset in client.list_local_datasets()}
-    if db_name in local_datasets:
-        dataset = local_datasets[db_name]
+    if dataset_name in local_datasets:
+        dataset = local_datasets[dataset_name]
     else:
         remote_datasets = [dataset.slug for dataset in client.list_remote_datasets()]
-        if db_name in remote_datasets:
-            dataset = client.get_remote_dataset(slug=db_name)
+        if dataset_name in remote_datasets:
+            dataset = client.get_remote_dataset(slug=dataset_name)
             progress, _count = dataset.pull(image_status=image_status)
-            with tqdm(total=_count, desc=f"Downloading '{db_name}' dataset") as pbar:
+            with tqdm(total=_count, desc=f"Downloading '{dataset_name}' dataset") as pbar:
                 for _ in progress():
                     pbar.update()
         else:
-            raise ValueError(f"could not find dataset {db_name}")
+            raise ValueError(f"could not find dataset {dataset_name}")
 
     # Find annotations and create folders
-    root = Path(client.project_dir) / db_name
+    root = Path(client.project_dir) / dataset_name
     annot_path = root / "annotations"
     annot_files = [f for f in annot_path.glob('*.json')]
     num_images = len(annot_files)
@@ -180,12 +220,12 @@ def fetch_darwin_dataset(
                 f.write(f"{c}\n")
 
     # Create split
-    split_id = f"split_val{val_perc}_test{test_perc}"
+    split_id = f"split_val{val_percentage}_test{test_percentage}"
     split_path = lists_path / split_id
     if not split_path.exists() or force_resplit:
         mkdirs(split_path)
-        num_train = int(num_images * (1 - (val_perc + test_perc)))
-        num_test = int(num_images * test_perc)
+        num_train = int(num_images * (1 - (val_percentage + test_percentage)))
+        num_test = int(num_images * test_percentage)
         num_val = num_images - num_train - num_test
 
         indices = np.random.permutation(num_images)
