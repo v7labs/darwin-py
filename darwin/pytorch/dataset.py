@@ -67,11 +67,11 @@ class Dataset(object):
 
         path_to_lists = root / "lists"
         if split_id is not None:
-            path_to_lists = split_id
+            path_to_lists /= split_id
         file_partition = path_to_lists / f"{image_set}.txt"
 
         if not file_partition.exists():
-            raise FileNotFoundError("Could not find partition {image_set} in {path_to_lists}")
+            raise FileNotFoundError("Could not find partition {image_set} in {path_to_lists}. (Is the percentage larger than 0?)")
         stems = [e.strip() for e in open(file_partition)]
 
         exts = ["jpg", "jpeg", "png"]
@@ -113,8 +113,8 @@ class Dataset(object):
             seg = np.array(new_obj["segmentation"][0])
             xcoords = seg[0::2]
             ycoords = seg[1::2]
-            x = np.max(0, np.min(xcoords) - 1)
-            y = np.max(0, np.min(ycoords) - 1)
+            x = np.max((0, np.min(xcoords) - 1))
+            y = np.max((0, np.min(ycoords) - 1))
             w = (np.max(xcoords) - x) + 1
             h = (np.max(ycoords) - y) + 1
             new_obj["bbox"] = [x, y, w, h]
