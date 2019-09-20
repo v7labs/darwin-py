@@ -21,7 +21,7 @@ class Compose(object):
 
 
 class RandomHorizontalFlip(object):
-    def __init__(self, prob):
+    def __init__(self, prob=0.5):
         self.prob = prob
 
     def __call__(self, image, target):
