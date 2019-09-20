@@ -192,7 +192,7 @@ def fetch_darwin_dataset(
     if dataset_name in local_datasets:
         if force_fetching:
             # Remove the local copy of the dataset
-            dbpath = os.path.join(client.project_dir,  dataset_name)
+            dbpath = Path(client.project_dir,  dataset_name)
             try:
                 shutil.rmtree(dbpath)
             except PermissionError:
