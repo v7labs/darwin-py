@@ -126,7 +126,7 @@ def collate_fn(batch):
     return tuple(zip(*batch))
 
 
-def extract_classes(files: List):
+def extract_classes(files: List, anno_type='polygon'):
     '''
     Given a list of GT json files, extracts all classes and an mapping image index to classes
 
@@ -145,6 +145,8 @@ def extract_classes(files: List):
             d = json.load(f)
             idx_to_classes[i] = []
             for a in d["annotations"]:
+                if anno_type not in a:
+                    continue
                 cls_name = a["name"]
                 try:
                     classes[cls_name].add(i)
@@ -220,14 +222,24 @@ def fetch_darwin_dataset(
     lists_path = root / "lists"
     mkdirs(lists_path)
 
-    # Extract classes
-    fname = lists_path / "classes.txt"
+    # Extract classes from mask annotations
+    fname = lists_path / "classes_masks.txt"
     if not fname.exists():
         # Extract list of classes
-        classes, idx_to_classes = extract_classes(annot_files)
+        classes, idx_to_classes = extract_classes(annot_files, anno_type="polygon")
         classes_names = [k for k in classes.keys()]
         classes_names.insert(0, '__background__')
-        with open(lists_path / 'classes.txt', 'w') as f:
+        with open(fname, 'w') as f:
+            for c in classes_names:
+                f.write(f"{c}\n")
+
+    # Extract classes from tags
+    fname = lists_path / "classes_tags.txt"
+    if not fname.exists():
+        # Extract list of classes
+        classes, idx_to_classes = extract_classes(annot_files, anno_type="tag")
+        classes_names = [k for k in classes.keys()]
+        with open(fname, 'w') as f:
             for c in classes_names:
                 f.write(f"{c}\n")
 

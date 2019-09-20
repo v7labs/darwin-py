@@ -75,7 +75,6 @@ class Dataset(object):
         self.root = root
         self.transforms = transforms
         self.image_set = image_set
-        self.classes = [e.strip() for e in open(root / 'lists/classes.txt')]
 
         if self.image_set not in ["train", "val", "test"]:
             raise ValueError("Unknown partition {self.image_set}")
@@ -172,13 +171,36 @@ class Dataset(object):
 
 
 class ClassificationDataset(Dataset):
+    def __init__(
+        self,
+        root: Path,
+        image_set: str,
+        split_id: Optional[str] = None,
+        transforms=None
+    ):
+        super(ClassificationDataset, self).__init__(root, image_set, split_id, transforms)
+        self.classes = [e.strip() for e in open(root / 'lists/classes_tags.txt')]
+
     def _load_anno_and_remap(self, idx: int):
         with open(self.annotations[idx]) as f:
             anno = json.load(f)['annotations']
-        raise NotImplementedError
+            for obj in anno:
+                if "tag" in obj:
+                    target = {"category_id": self.classes.index(obj["name"])}
+        return target
 
 
 class InstanceSegmentationDataset(Dataset):
+    def __init__(
+        self,
+        root: Path,
+        image_set: str,
+        split_id: Optional[str] = None,
+        transforms=None
+    ):
+        super(InstanceSegmentationDataset, self).__init__(root, image_set, split_id, transforms)
+        self.classes = [e.strip() for e in open(root / 'lists/classes_masks.txt')]
+
     def _load_anno_and_remap(self, idx: int):
         with open(self.annotations[idx]) as f:
             anno = json.load(f)['annotations']
@@ -212,6 +234,18 @@ class InstanceSegmentationDataset(Dataset):
 
 
 class SemanticSegmentationDataset(Dataset):
+    def __init__(
+        self,
+        root: Path,
+        image_set: str,
+        split_id: Optional[str] = None,
+        transforms=None
+    ):
+        super(SemanticSegmentationDataset, self).__init__(root, image_set, split_id, transforms)
+        self.classes = [e.strip() for e in open(root / 'lists/classes_masks.txt')]
+        if self.classes[0] == "__background__":
+            self.classes = self.classes[1:]
+
     def _load_anno_and_remap(self, idx: int):
         with open(self.annotations[idx]) as f:
             anno = json.load(f)['annotations']
