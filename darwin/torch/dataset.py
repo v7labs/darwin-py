@@ -4,10 +4,10 @@ import torch
 import random
 from pathlib import Path
 import json
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import Optional
 
 from darwin.client import Client
-from darwin.pytorch.utils import load_pil_image, convert_polygon_to_sequence, polygon_area, fetch_darwin_dataset
+from darwin.torch.utils import load_pil_image, convert_polygon_to_sequence, polygon_area, fetch_darwin_dataset
 
 
 def get_dataset(
@@ -40,7 +40,7 @@ def get_dataset(
     root, split_id = fetch_darwin_dataset(dataset_name, client, **kwargs)
 
     if poly_to_mask:
-        import darwin.pytorch.transforms as T
+        import darwin.torch.transforms as T
         trfs = [T.ConvertPolysToMask()]
         if transforms is not None:
             trfs.append(transforms)
@@ -98,7 +98,7 @@ class Dataset(object):
 
         return img, target
 
-    def _load_anno_and_remap(self, idx):
+    def _load_anno_and_remap(self, idx: int):
         with open(self.annotations[idx]) as f:
             anno = json.load(f)['annotations']
 
@@ -140,8 +140,8 @@ class Dataset(object):
 
     def __add__(self, db):
         if self.classes != db.classes:
-            raise ValueError('Operation dataset_a + dataset_b could not be computed: list of classes should match. \
-                             Use dataset_a.extend(dataset_b, extend=True to combine both lists of classes')
+            raise ValueError('Operation dataset_a + dataset_b could not be computed: classes should match. \
+                             Use dataset_a.extend(dataset_b, extend_classes=True) to combine both lists of classes')
         self.orig_imgs = self.images
         self.images += db.images
         self.orig_annotations = self.annotations
@@ -150,7 +150,7 @@ class Dataset(object):
 
     def extended(self, db, extend_classes=False):
         if self.classes != db.classes and not extend_classes:
-            raise ValueError('Operation dataset_a + dataset_b could not be computed: list of classes should match. \
+            raise ValueError('Operation dataset_a + dataset_b could not be computed: classes should match. \
                              Use flag extend_classes=True to combine both lists of classes.')
         elif self.classes != db.classes and extend_classes:
             self.orig_classes = self.classes

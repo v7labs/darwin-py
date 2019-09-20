@@ -5,7 +5,7 @@ import PIL
 
 from torchvision.transforms import functional as F
 
-from darwin.pytorch.utils import convert_polygon_to_mask
+from darwin.torch.utils import convert_polygon_to_mask
 
 
 class Compose(object):
