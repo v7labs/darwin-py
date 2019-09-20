@@ -106,14 +106,15 @@ class Dataset(object):
             seg = np.array(new_obj["segmentation"][0])
             xcoords = seg[0::2]
             ycoords = seg[1::2]
-            x = np.min(xcoords)
-            y = np.min(ycoords)
-            w = np.max(xcoords) - x
-            h = np.max(ycoords) - y
+            x = np.max(0, np.min(xcoords) - 1)
+            y = np.max(0, np.min(ycoords) - 1)
+            w = (np.max(xcoords) - x) + 1
+            h = (np.max(ycoords) - y) + 1
             new_obj["bbox"] = [x, y, w, h]
             area = polygon_area(xcoords, ycoords)
-            if area <= w * h:
-                raise ValueError(f"polygon's area should be <= bbox's area. Failed {area} <= {w*h}")
+            bbox_area = w * h
+            if area <= bbox_area:
+                raise ValueError(f"polygon's area should be <= bbox's area. Failed {area} <= {bbox_area}")
             new_obj["area"] = area
             res.append(new_obj)
 
@@ -131,7 +132,28 @@ class Dataset(object):
         self.annotations = [self.annotations[i] for i in indices]
 
     def __add__(self, db):
+        if self.classes != db.classes:
+            raise ValueError('Operation dataset_a + dataset_b could not be computed: list of classes should match. \
+                             Use dataset_a.extend(dataset_b, extend=True to combine both lists of classes')
+        self.orig_imgs = self.images
         self.images += db.images
+        self.orig_annotations = self.annotations
+        self.annotations += db.annotations
+        return self
+
+    def extended(self, db, extend_classes=False):
+        if self.classes != db.classes and not extend_classes:
+            raise ValueError('Operation dataset_a + dataset_b could not be computed: list of classes should match. \
+                             Use flag extend_classes=True to combine both lists of classes.')
+        elif self.classes != db.classes and extend_classes:
+            self.orig_classes = self.classes
+            for c in db.classes:
+                if c not in self.classes:
+                    self.classes.append(c)
+
+        self.orig_imgs = self.images
+        self.images += db.images
+        self.orig_annotations = self.annotations
         self.annotations += db.annotations
         return self
 
