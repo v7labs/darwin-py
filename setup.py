@@ -11,7 +11,7 @@ setuptools.setup(
     description="Library and command line interface for darwin.v7labs.com",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/v7labs/darwin-lib",
+    url="https://github.com/v7labs/darwin-py",
     install_requires=[
         "argcomplete",
         "docutils",
