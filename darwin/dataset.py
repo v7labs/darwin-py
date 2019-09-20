@@ -74,24 +74,27 @@ class Dataset:
         """Helper function: upload images to an existing remote dataset. """
         if not filenames:
             return
-        images, videos = split_on_file_type(filenames)
-        data = self._client.put(
-            f"/datasets/{self.dataset_id}",
-            {
-                "image_filenames": images,
-                "videos": [{"fps": fps, "original_filename": video} for video in videos],
-            },
-        )
 
-        for image_file in data["image_data"]:
-            metadata = upload_file_to_s3(self._client, image_file)
-            self._client.put(f"/dataset_images/{metadata['id']}/confirm_upload", payload={})
-            yield
+        for filenames_chunk in chunk(filenames, 100):
+            images, videos = split_on_file_type(filenames_chunk)
+            data = self._client.put(
+                f"/datasets/{self.dataset_id}",
+                {
+                    "image_filenames": [Path(image).name for image in images],
+                    "videos": [
+                        {"fps": fps, "original_filename": Path(video).name} for video in videos
+                    ],
+                },
+            )
+            for image_file in data["image_data"]:
+                metadata = upload_file_to_s3(self._client, image_file, images)
+                self._client.put(f"/dataset_images/{metadata['id']}/confirm_upload", payload={})
+                yield
 
-        for video_file in data["video_data"]:
-            metadata = upload_file_to_s3(self._client, video_file)
-            self._client.put(f"/dataset_videos/{metadata['id']}/confirm_upload", payload={})
-            yield
+            for video_file in data["video_data"]:
+                metadata = upload_file_to_s3(self._client, video_file, videos)
+                self._client.put(f"/dataset_videos/{metadata['id']}/confirm_upload", payload={})
+                yield
 
     def pull(self, image_status: Optional[str] = None):
         """Downloads a remote project (images and annotations) in the projects directory. """
@@ -141,13 +144,15 @@ def split_on_file_type(files: List[str]):
     return images, videos
 
 
-def upload_file_to_s3(client: "Client", file: Dict[str, Any]) -> Dict[str, Any]:
+def upload_file_to_s3(
+    client: "Client", file: Dict[str, Any], full_path: List[str]
+) -> Dict[str, Any]:
     """Helper function: upload data to AWS S3"""
     key = file["key"]
-    file_path = file["original_filename"]
+    file_path = [path for path in full_path if Path(path).name == file["original_filename"]][0]
     image_id = file["id"]
 
-    response = sign_upload(client, image_id, key, file_path)
+    response = sign_upload(client, image_id, key, Path(file_path).suffix)
     signature = response["signature"]
     end_point = response["postEndpoint"]
 
@@ -161,11 +166,10 @@ def upload_file_to_s3(client: "Client", file: Dict[str, Any]) -> Dict[str, Any]:
     return {"key": key, "id": image_id}
 
 
-def sign_upload(client, image_id, key, file_path):
-    file_format = Path(file_path).suffix
+def sign_upload(client, image_id, key, file_suffix):
     return client.post(
         f"/dataset_images/{image_id}/sign_upload?key={key}",
-        payload={"filePath": file_path, "contentType": f"image/{file_format}"},
+        payload={"contentType": f"image/{file_suffix}"},
     )
 
 
@@ -234,3 +238,28 @@ def download_image(url: str, path: Path, verbose: Optional[bool] = False):
 
 class FailedToDownloadImage(Exception):
     pass
+
+
+def chunk(items, size):
+    """ Chunks paths in batches of size. 
+    No batch has any duplicates with regards to file name.
+    This is needed due to a limitation in the upload api.
+    """
+    current_list = []
+    current_names = set()
+    left_over = []
+    for item in items:
+        name = Path(item).name
+        if name in current_names:
+            left_over.append(item)
+        else:
+            current_list.append(item)
+            current_names.add(name)
+        if len(current_list) >= size:
+            yield current_list
+            current_list = []
+            current_names = set()
+    if left_over:
+        yield from chunk(left_over, size)
+    if current_list:
+        yield current_list
