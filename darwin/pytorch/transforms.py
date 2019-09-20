@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 import random
-from PIL import Image
+import PIL
 
 from torchvision.transforms import functional as F
 
@@ -27,10 +27,10 @@ class RandomHorizontalFlip(object):
 
     def __call__(self, image, target):
         if random.random() < self.prob:
-            if isinstance(image, Image):
+            if type(image) == PIL.JpegImagePlugin.JpegImageFile:
                 width, height = image.size
-                image = image.transpose(Image.FLIP_LEFT_RIGHT)
-            elif isinstance(image, torch.tensor):
+                image = image.transpose(PIL.Image.FLIP_LEFT_RIGHT)
+            elif type(image) == torch.Tensor:
                 height, width = image.shape[-2:]
                 image = image.flip(-1)
             else:
@@ -40,6 +40,11 @@ class RandomHorizontalFlip(object):
                 bbox = target["boxes"]
                 bbox[:, [0, 2]] = width - bbox[:, [2, 0]]
                 target["boxes"] = bbox
+
+            if "bbox" in target:
+                bbox = target["bbox"]
+                bbox[:, [0, 2]] = width - bbox[:, [2, 0]]
+                target["bbox"] = bbox
 
             if "masks" in target:
                 target["masks"] = target["masks"].flip(-1)
