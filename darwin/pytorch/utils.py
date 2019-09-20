@@ -263,26 +263,3 @@ def fetch_darwin_dataset(
                     f.write(f"{annot_files[i].stem}\n")
 
     return root, split_id
-
-
-# VISUALIZATION
-def visualize_mask_output(image, masks, classes, colors, threshold=0.5):
-    W, H = image.size
-    outmask = np.zeros((H, W, 4), dtype=np.uint8)
-    for mask, c in zip(masks, classes):
-        color = np.append(colors[c], 128)
-        outmask[mask > threshold] = color
-
-    outmask = Image.fromarray(outmask)
-    image.paste(outmask, (0, 0), outmask)
-    return image
-
-
-def get_colors(n, name='hsv'):
-    '''
-    Returns N distintc RGB colors using a mapping function that maps each index in 0, 1, ..., n-1 to a distinct
-    RGB color; the keyword argument name must be a standard mpl colormap name.
-    '''
-    colors = list(map(plt.cm.get_cmap(name, n), range(n)))
-    colors = list(map(lambda c: (np.array(c[:3])*255).astype(np.uint8), colors))
-    return colors
