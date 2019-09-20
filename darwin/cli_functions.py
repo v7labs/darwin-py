@@ -1,15 +1,11 @@
 import os.path
 import sys
-from itertools import chain
 from pathlib import Path
 from typing import List
 
 import humanize
-import requests
-import yaml
 from tqdm import tqdm
 
-import darwin.utils as utils
 from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset import SUPPORTED_IMAGE_EXTENSIONS, SUPPORTED_VIDEO_EXTENSIONS
