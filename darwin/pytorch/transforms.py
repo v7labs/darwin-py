@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import random
+from PIL import Image
 
 from torchvision.transforms import functional as F
 
@@ -26,13 +27,23 @@ class RandomHorizontalFlip(object):
 
     def __call__(self, image, target):
         if random.random() < self.prob:
-            height, width = image.shape[-2:]
-            image = image.flip(-1)
-            bbox = target["boxes"]
-            bbox[:, [0, 2]] = width - bbox[:, [2, 0]]
-            target["boxes"] = bbox
+            if isinstance(image, Image):
+                width, height = image.size
+                image = image.transpose(Image.FLIP_LEFT_RIGHT)
+            elif isinstance(image, torch.tensor):
+                height, width = image.shape[-2:]
+                image = image.flip(-1)
+            else:
+                raise ValueError("Image type {type(image)} not supported")
+
+            if "boxes" in target:
+                bbox = target["boxes"]
+                bbox[:, [0, 2]] = width - bbox[:, [2, 0]]
+                target["boxes"] = bbox
+
             if "masks" in target:
                 target["masks"] = target["masks"].flip(-1)
+
         return image, target
 
 
@@ -89,7 +100,7 @@ class ConvertPolysToMask(object):
         if keypoints is not None:
             target["keypoints"] = keypoints
 
-        # for conversion to coco api
+        # conversion to coco api
         area = torch.tensor([obj["area"] for obj in anno])
         iscrowd = torch.tensor([obj["iscrowd"] for obj in anno])
         target["area"] = area

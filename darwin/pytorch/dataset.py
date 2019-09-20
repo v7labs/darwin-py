@@ -111,11 +111,11 @@ class Dataset(object):
             w = (np.max(xcoords) - x) + 1
             h = (np.max(ycoords) - y) + 1
             new_obj["bbox"] = [x, y, w, h]
-            area = polygon_area(xcoords, ycoords)
+            poly_area = polygon_area(xcoords, ycoords)
             bbox_area = w * h
-            if area <= bbox_area:
-                raise ValueError(f"polygon's area should be <= bbox's area. Failed {area} <= {bbox_area}")
-            new_obj["area"] = area
+            if poly_area > bbox_area:
+                raise ValueError(f"polygon's area should be <= bbox's area. Failed {poly_area} <= {bbox_area}")
+            new_obj["area"] = poly_area
             res.append(new_obj)
 
         return res
