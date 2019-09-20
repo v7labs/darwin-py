@@ -53,7 +53,7 @@ class Dataset(object):
     def __init__(
         self,
         root: Path,
-        image_set: Optional[str] = "train",
+        image_set: str,
         split_id: Optional[str] = None,
         transforms=None
     ):
@@ -62,13 +62,20 @@ class Dataset(object):
         self.image_set = image_set
         self.classes = [e.strip() for e in open(root / 'lists/classes.txt')]
 
-        self.annotations, self.images = [], []
+        if self.image_set not in ["train", "val", "test"]:
+            raise ValueError("Unknown partition {self.image_set}")
+
+        path_to_lists = root / "lists"
         if split_id is not None:
-            path_to_lists = f"lists/{split_id}"
-        else:
-            path_to_lists = "lists"
-        stems = [e.strip() for e in open(root / path_to_lists / f"{image_set}.txt")]
+            path_to_lists = split_id
+        file_partition = path_to_lists / f"{image_set}.txt"
+
+        if not file_partition.exists():
+            raise FileNotFoundError("Could not find partition {image_set} in {path_to_lists}")
+        stems = [e.strip() for e in open(file_partition)]
+
         exts = ["jpg", "jpeg", "png"]
+        self.annotations, self.images = [], []
         for s in stems:
             annot_path = root / f"annotations/{s}.json"
             for ext in exts:
