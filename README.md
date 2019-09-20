@@ -8,7 +8,7 @@ Support tested for python3.7.
 ### Standard
 
 ```
-pip install git+https://github.com/v7labs/darwin-py
+pip install darwin-py
 ```
 You can now type `darwin` in your terminal and access the command line interface.
 
