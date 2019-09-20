@@ -13,19 +13,20 @@ from darwin.torch.utils import load_pil_image, convert_polygon_to_sequence, poly
 def get_dataset(
     dataset_name: str,
     image_set: Optional[str] = "train",
+    mode: Optional[str] = "raw",
     transforms: Optional = None,
     poly_to_mask: Optional[bool] = False,
     client: Optional[Client] = None,
     **kwargs
 ):
     '''
-    Pulls locally a dataset from Darwin and returns a Dataset class that can be used with a Pytorch dataloader
+    Pulls a dataset from Darwin and returns a Dataset class that can be used with a Pytorch dataloader
 
     Input:
         dataset_name: Identifier of the dataset in Darwin
         image_set: Split set [train, val, test]
+        mode: selects the dataset type (eg. image_classification, instance_segmentation)
         transforms: List of Pytorch's transforms
-        poly_to_mask: if True converts the polygons into masks
         client: Darwin's client
         val_percentage: percentage of images used in the validation set
         test_percentage: percentage of images used in the validation set
@@ -39,14 +40,28 @@ def get_dataset(
 
     root, split_id = fetch_darwin_dataset(dataset_name, client, **kwargs)
 
-    if poly_to_mask:
+    if mode == "raw":
+        dataset = Dataset(root, image_set=image_set, split_id=split_id, transforms=transforms)
+    elif mode == "classification":
+        dataset = ClassificationDataset(root, image_set=image_set, split_id=split_id, transforms=transforms)
+    elif mode == "instance_segmentation":
+        import darwin.torch.transforms as T
+        trfs = [T.ConvertPolysToInstanceMasks()]
+        if transforms is not None:
+            trfs.append(transforms)
+        transforms = T.Compose(trfs)
+        dataset = InstanceSegmentationDataset(root, image_set=image_set, split_id=split_id, transforms=transforms)
+    elif mode == "semantic_segmentation":
         import darwin.torch.transforms as T
         trfs = [T.ConvertPolysToMask()]
         if transforms is not None:
             trfs.append(transforms)
         transforms = T.Compose(trfs)
+        dataset = SemanticSegmentationDataset(root, image_set=image_set, split_id=split_id, transforms=transforms)
+    else:
+        raise ValueError("Dataset type {mode} not supported.")
 
-    return Dataset(root, image_set=image_set, split_id=split_id, transforms=transforms)
+    return dataset
 
 
 class Dataset(object):
@@ -92,7 +107,6 @@ class Dataset(object):
         img = load_pil_image(self.images[idx])
         target = self._load_anno_and_remap(idx)
 
-        target = dict(image_id=idx, annotations=target)
         if self.transforms is not None:
             img, target = self.transforms(img, target)
 
@@ -105,26 +119,7 @@ class Dataset(object):
         # Filter out unused classes
         anno = [obj for obj in anno if obj["name"] in self.classes]
 
-        res = []
-        for obj in anno:
-            new_obj = {"image_id": idx, "iscrowd": 0}
-            new_obj["category_id"] = self.classes.index(obj["name"])
-            new_obj["segmentation"] = [convert_polygon_to_sequence(obj["polygon"]["path"])]
-            seg = np.array(new_obj["segmentation"][0])
-            xcoords = seg[0::2]
-            ycoords = seg[1::2]
-            x = np.max((0, np.min(xcoords) - 1))
-            y = np.max((0, np.min(ycoords) - 1))
-            w = (np.max(xcoords) - x) + 1
-            h = (np.max(ycoords) - y) + 1
-            new_obj["bbox"] = [x, y, w, h]
-            poly_area = polygon_area(xcoords, ycoords)
-            bbox_area = w * h
-            if poly_area > bbox_area:
-                raise ValueError(f"polygon's area should be <= bbox's area. Failed {poly_area} <= {bbox_area}")
-            new_obj["area"] = poly_area
-            res.append(new_obj)
-
+        res = dict(image_id=idx, annotations=anno)
         return res
 
     def __len__(self):
@@ -174,3 +169,61 @@ class Dataset(object):
             f"  Number of images: {len(self.images)}"
             )
         return format_string
+
+
+class ClassificationDataset(Dataset):
+    def _load_anno_and_remap(self, idx: int):
+        with open(self.annotations[idx]) as f:
+            anno = json.load(f)['annotations']
+        raise NotImplementedError
+
+
+class InstanceSegmentationDataset(Dataset):
+    def _load_anno_and_remap(self, idx: int):
+        with open(self.annotations[idx]) as f:
+            anno = json.load(f)['annotations']
+
+        # Filter out unused classes
+        anno = [obj for obj in anno if obj["name"] in self.classes]
+
+        target = []
+        for obj in anno:
+            new_obj = {"image_id": idx, "iscrowd": 0}
+            new_obj["category_id"] = self.classes.index(obj["name"])
+            new_obj["segmentation"] = [convert_polygon_to_sequence(obj["polygon"]["path"])]
+            seg = np.array(new_obj["segmentation"][0])
+            xcoords = seg[0::2]
+            ycoords = seg[1::2]
+            x = np.max((0, np.min(xcoords) - 1))
+            y = np.max((0, np.min(ycoords) - 1))
+            w = (np.max(xcoords) - x) + 1
+            h = (np.max(ycoords) - y) + 1
+            new_obj["bbox"] = [x, y, w, h]
+            poly_area = polygon_area(xcoords, ycoords)
+            bbox_area = w * h
+            if poly_area > bbox_area:
+                raise ValueError(f"polygon's area should be <= bbox's area. Failed {poly_area} <= {bbox_area}")
+            new_obj["area"] = poly_area
+            target.append(new_obj)
+
+        res = dict(image_id=idx, annotations=target)
+
+        return res
+
+
+class SemanticSegmentationDataset(Dataset):
+    def _load_anno_and_remap(self, idx: int):
+        with open(self.annotations[idx]) as f:
+            anno = json.load(f)['annotations']
+
+        # Filter out unused classes
+        anno = [obj for obj in anno if obj["name"] in self.classes]
+
+        target = []
+        for obj in anno:
+            new_obj = {}
+            new_obj["category_id"] = self.classes.index(obj["name"])
+            new_obj["segmentation"] = [convert_polygon_to_sequence(obj["polygon"]["path"])]
+            target.append(new_obj)
+
+        return target

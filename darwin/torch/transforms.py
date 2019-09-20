@@ -58,7 +58,7 @@ class ToTensor(object):
         return image, target
 
 
-class ConvertPolysToMask(object):
+class ConvertPolysToInstanceMasks(object):
     def __call__(self, image, target):
         w, h = image.size
 
@@ -111,4 +111,23 @@ class ConvertPolysToMask(object):
         target["area"] = area
         target["iscrowd"] = iscrowd
 
+        return image, target
+
+
+class ConvertPolysToMask(object):
+    def __call__(self, image, anno):
+        w, h = image.size
+        segmentations = [obj["segmentation"] for obj in anno]
+        cats = [obj["category_id"] for obj in anno]
+        if segmentations:
+            masks = convert_polygon_to_mask(segmentations, h, w)
+            cats = torch.as_tensor(cats, dtype=masks.dtype)
+            # merge all instance masks into a single segmentation map
+            # with its corresponding categories
+            target, _ = (masks * cats[:, None, None]).max(dim=0)
+            # discard overlapping instances
+            target[masks.sum(0) > 1] = 255
+        else:
+            target = torch.zeros((h, w), dtype=torch.uint8)
+        target = PIL.Image.fromarray(target.numpy())
         return image, target
