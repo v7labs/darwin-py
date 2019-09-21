@@ -25,7 +25,7 @@ def get_dataset(
     Input:
         dataset_name: Identifier of the dataset in Darwin
         image_set: Split set [train, val, test]
-        mode: selects the dataset type (eg. image_classification, instance_segmentation)
+        mode: selects the dataset type [image_classification, instance_segmentation, semantic_segmentation]
         transforms: List of Pytorch's transforms
         client: Darwin's client
         val_percentage: percentage of images used in the validation set
