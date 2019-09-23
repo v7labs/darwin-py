@@ -1,13 +1,17 @@
-import os
-import numpy as np
-import torch
+import json
 import random
 from pathlib import Path
-import json
 from typing import Optional
 
+import numpy as np
+
 from darwin.client import Client
-from darwin.torch.utils import load_pil_image, convert_polygon_to_sequence, polygon_area, fetch_darwin_dataset
+from darwin.torch.utils import (
+    convert_polygon_to_sequence,
+    fetch_darwin_dataset,
+    load_pil_image,
+    polygon_area,
+)
 
 
 def get_dataset(
@@ -17,9 +21,9 @@ def get_dataset(
     transforms: Optional = None,
     poly_to_mask: Optional[bool] = False,
     client: Optional[Client] = None,
-    **kwargs
+    **kwargs,
 ):
-    '''
+    """
     Pulls a dataset from Darwin and returns a Dataset class that can be used with a PyTorch dataloader
 
     Input:
@@ -36,28 +40,36 @@ def get_dataset(
 
     Output:
         Dataset class
-    '''
+    """
 
     root, split_id = fetch_darwin_dataset(dataset_name, client, **kwargs)
 
     if mode == "raw":
         dataset = Dataset(root, image_set=image_set, split_id=split_id, transforms=transforms)
     elif mode == "classification":
-        dataset = ClassificationDataset(root, image_set=image_set, split_id=split_id, transforms=transforms)
+        dataset = ClassificationDataset(
+            root, image_set=image_set, split_id=split_id, transforms=transforms
+        )
     elif mode == "instance_segmentation":
         import darwin.torch.transforms as T
+
         trfs = [T.ConvertPolysToInstanceMasks()]
         if transforms is not None:
             trfs.append(transforms)
         transforms = T.Compose(trfs)
-        dataset = InstanceSegmentationDataset(root, image_set=image_set, split_id=split_id, transforms=transforms)
+        dataset = InstanceSegmentationDataset(
+            root, image_set=image_set, split_id=split_id, transforms=transforms
+        )
     elif mode == "semantic_segmentation":
         import darwin.torch.transforms as T
+
         trfs = [T.ConvertPolysToMask()]
         if transforms is not None:
             trfs.append(transforms)
         transforms = T.Compose(trfs)
-        dataset = SemanticSegmentationDataset(root, image_set=image_set, split_id=split_id, transforms=transforms)
+        dataset = SemanticSegmentationDataset(
+            root, image_set=image_set, split_id=split_id, transforms=transforms
+        )
     else:
         raise ValueError("Dataset type {mode} not supported.")
 
@@ -65,13 +77,7 @@ def get_dataset(
 
 
 class Dataset(object):
-    def __init__(
-        self,
-        root: Path,
-        image_set: str,
-        split_id: Optional[str] = None,
-        transforms=None
-    ):
+    def __init__(self, root: Path, image_set: str, split_id: Optional[str] = None, transforms=None):
         self.root = root
         self.transforms = transforms
         self.image_set = image_set
@@ -85,7 +91,9 @@ class Dataset(object):
         file_partition = path_to_lists / f"{image_set}.txt"
 
         if not file_partition.exists():
-            raise FileNotFoundError("Could not find partition {image_set} in {path_to_lists}. (Is the percentage larger than 0?)")
+            raise FileNotFoundError(
+                "Could not find partition {image_set} in {path_to_lists}. (Is the percentage larger than 0?)"
+            )
         stems = [e.strip() for e in open(file_partition)]
 
         exts = ["jpg", "jpeg", "png"]
@@ -113,7 +121,7 @@ class Dataset(object):
 
     def _load_anno_and_remap(self, idx: int):
         with open(self.annotations[idx]) as f:
-            anno = json.load(f)['annotations']
+            anno = json.load(f)["annotations"]
 
         # Filter out unused classes
         anno = [obj for obj in anno if obj["name"] in self.classes]
@@ -134,8 +142,10 @@ class Dataset(object):
 
     def __add__(self, db):
         if self.classes != db.classes:
-            raise ValueError('Operation dataset_a + dataset_b could not be computed: classes should match. \
-                             Use dataset_a.extend(dataset_b, extend_classes=True) to combine both lists of classes')
+            raise ValueError(
+                "Operation dataset_a + dataset_b could not be computed: classes should match. \
+                             Use dataset_a.extend(dataset_b, extend_classes=True) to combine both lists of classes"
+            )
         self.orig_imgs = self.images
         self.images += db.images
         self.orig_annotations = self.annotations
@@ -144,8 +154,10 @@ class Dataset(object):
 
     def extended(self, db, extend_classes=False):
         if self.classes != db.classes and not extend_classes:
-            raise ValueError('Operation dataset_a + dataset_b could not be computed: classes should match. \
-                             Use flag extend_classes=True to combine both lists of classes.')
+            raise ValueError(
+                "Operation dataset_a + dataset_b could not be computed: classes should match. \
+                             Use flag extend_classes=True to combine both lists of classes."
+            )
         elif self.classes != db.classes and extend_classes:
             self.orig_classes = self.classes
             for c in db.classes:
@@ -166,24 +178,18 @@ class Dataset(object):
             f"{self.__class__.__name__}():\n"
             f"  Root: {self.root}\n"
             f"  Number of images: {len(self.images)}"
-            )
+        )
         return format_string
 
 
 class ClassificationDataset(Dataset):
-    def __init__(
-        self,
-        root: Path,
-        image_set: str,
-        split_id: Optional[str] = None,
-        transforms=None
-    ):
+    def __init__(self, root: Path, image_set: str, split_id: Optional[str] = None, transforms=None):
         super(ClassificationDataset, self).__init__(root, image_set, split_id, transforms)
-        self.classes = [e.strip() for e in open(root / 'lists/classes_tags.txt')]
+        self.classes = [e.strip() for e in open(root / "lists/classes_tags.txt")]
 
     def _load_anno_and_remap(self, idx: int):
         with open(self.annotations[idx]) as f:
-            anno = json.load(f)['annotations']
+            anno = json.load(f)["annotations"]
             for obj in anno:
                 if "tag" in obj:
                     target = {"category_id": self.classes.index(obj["name"])}
@@ -191,19 +197,13 @@ class ClassificationDataset(Dataset):
 
 
 class InstanceSegmentationDataset(Dataset):
-    def __init__(
-        self,
-        root: Path,
-        image_set: str,
-        split_id: Optional[str] = None,
-        transforms=None
-    ):
+    def __init__(self, root: Path, image_set: str, split_id: Optional[str] = None, transforms=None):
         super(InstanceSegmentationDataset, self).__init__(root, image_set, split_id, transforms)
-        self.classes = [e.strip() for e in open(root / 'lists/classes_masks.txt')]
+        self.classes = [e.strip() for e in open(root / "lists/classes_masks.txt")]
 
     def _load_anno_and_remap(self, idx: int):
         with open(self.annotations[idx]) as f:
-            anno = json.load(f)['annotations']
+            anno = json.load(f)["annotations"]
 
         # Filter out unused classes
         anno = [obj for obj in anno if obj["name"] in self.classes]
@@ -224,7 +224,9 @@ class InstanceSegmentationDataset(Dataset):
             poly_area = polygon_area(xcoords, ycoords)
             bbox_area = w * h
             if poly_area > bbox_area:
-                raise ValueError(f"polygon's area should be <= bbox's area. Failed {poly_area} <= {bbox_area}")
+                raise ValueError(
+                    f"polygon's area should be <= bbox's area. Failed {poly_area} <= {bbox_area}"
+                )
             new_obj["area"] = poly_area
             target.append(new_obj)
 
@@ -234,21 +236,15 @@ class InstanceSegmentationDataset(Dataset):
 
 
 class SemanticSegmentationDataset(Dataset):
-    def __init__(
-        self,
-        root: Path,
-        image_set: str,
-        split_id: Optional[str] = None,
-        transforms=None
-    ):
+    def __init__(self, root: Path, image_set: str, split_id: Optional[str] = None, transforms=None):
         super(SemanticSegmentationDataset, self).__init__(root, image_set, split_id, transforms)
-        self.classes = [e.strip() for e in open(root / 'lists/classes_masks.txt')]
+        self.classes = [e.strip() for e in open(root / "lists/classes_masks.txt")]
         if self.classes[0] == "__background__":
             self.classes = self.classes[1:]
 
     def _load_anno_and_remap(self, idx: int):
         with open(self.annotations[idx]) as f:
-            anno = json.load(f)['annotations']
+            anno = json.load(f)["annotations"]
 
         # Filter out unused classes
         anno = [obj for obj in anno if obj["name"] in self.classes]

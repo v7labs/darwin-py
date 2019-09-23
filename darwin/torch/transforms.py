@@ -1,8 +1,7 @@
-import numpy as np
-import torch
 import random
-import PIL
 
+import PIL
+import torch
 from torchvision.transforms import functional as F
 
 from darwin.torch.utils import convert_polygon_to_mask
@@ -67,7 +66,7 @@ class ConvertPolysToInstanceMasks(object):
 
         anno = target["annotations"]
 
-        anno = [obj for obj in anno if obj.get('iscrowd', 0) == 0]
+        anno = [obj for obj in anno if obj.get("iscrowd", 0) == 0]
 
         boxes = [obj["bbox"] for obj in anno]
         # guard against no boxes via resizing
