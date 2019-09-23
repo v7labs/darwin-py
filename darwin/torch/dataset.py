@@ -20,13 +20,13 @@ def get_dataset(
     **kwargs
 ):
     '''
-    Pulls a dataset from Darwin and returns a Dataset class that can be used with a Pytorch dataloader
+    Pulls a dataset from Darwin and returns a Dataset class that can be used with a PyTorch dataloader
 
     Input:
         dataset_name: Identifier of the dataset in Darwin
         image_set: Split set [train, val, test]
         mode: selects the dataset type [image_classification, instance_segmentation, semantic_segmentation]
-        transforms: List of Pytorch's transforms
+        transforms: List of PyTorch transforms
         client: Darwin's client
         val_percentage: percentage of images used in the validation set
         test_percentage: percentage of images used in the validation set
