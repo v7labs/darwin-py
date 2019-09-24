@@ -1,36 +1,37 @@
 # PyTorch
 
 
-This is an example on how to fetch a dataset from Darwin, splitting it into 70% for training, 20% for validation, 10% test, and getting the train partition, using the function `get_dataset`:
+The library currently supports the following datasets depending on the type of model they are going to be used along with: `ClassificationDataset`, `InstanceSegmentationDataset`, `SemanticSegmentationDataset`.
+
+There exists as well an empty class `BaseDataset` type that can be customized by the user accortdingly and whose only function is to fetch the dataset passed as argument (see example below).
+
+The following script would fetch the `bird-species` dataset from Darwin, split it into: 70% for training, 20% for validation, and 10% test; and get the train partition:
 
 ```
-from darwin.torch.dataset import get_dataset
-
-db = get_dataset('bird-species', image_set="train", val_percentage=0.2, test_percentage=0.1)
-```
-
-The function `get_dataset` also accepts a list of transform as parameter using the parameter `transforms`. It also allows you to select the ground truth data you are interested in, such as `instance_segmentation`, `image_classification`, or `semantic_segmentation`. Finally, it also accepts a Darwin client as a parameter, containing your authenticating credentials in the Darwin.
-
-```
-from darwin.torch.dataset import get_dataset
 from darwin.client import Client
+from darwin.torch.dataset import ClassificationDataset, InstanceSegmentationDataset, SemanticSegmentationDataset, BaseDataset
 import darwin.torch.transforms as T
 
-trfs = T.Compose([T.RandomHorizontalFlip(), T.ToTensor()])
-client = Client(...)
+client = Client.login(email="******", password="******")
 
-db = get_dataset('bird-species', image_set="val", val_percentage=0.2, test_percentage=0.1, transforms=trfs, client=client, mode="instance_segmentation")
+trfs = [T.RandomHorizontalFlip(), T.ToTensor()]
+
+my_classification_dataset = ClassificationDataset('bird-species', image_set="val", val_percentage=0.25, transforms=trfs, client=client)
+# or
+my_instanceSeg_dataset = InstanceSegmentationDataset('bird-species', image_set="val", val_percentage=0.25, transforms=trfs, client=client)
+#or
+my_semanticSeg_dataset = SemanticSegmentationDataset('bird-species', image_set="val", val_percentage=0.25, transforms=trfs, client=client)
+#or
+my_basic_dataset = BaseDataset('bird-species', image_set="val", val_percentage=0.25, transforms=trfs, client=client)
 ```
 
-Other advanced options include: fixing the seed for random splitting using `split_seed=INT`, force re-fetching a dataset discarding the local copy using `force_fetching=True`, and force a re-split of the dataset using `force_resplit=True`.
+All dataset classes accept: [1] Darwin dataset name, [2] and [3] partition set to be loaded and validation split percentage, [4] a list of transforms, and [5] a Darwin client, containing your authenticating credentials in Darwin.
+
+Additional options include: fixing the seed for random splitting using `split_seed=INT`, force downloading/updating the dataset discarding the local copy using `force_fetching=True`, and force a re-split of the dataset using `force_resplit=True`.
 
 ```
-from darwin.torch.dataset import get_dataset
-from darwin.client import Client
-import darwin.torch.transforms as T
+my_classification_dataset = ClassificationDataset('bird-species', image_set="val", val_percentage=0.25, transforms=trfs, client=client, force_fetching=True, split_seed=42)
 
-trfs = T.Compose([T.RandomHorizontalFlip(), T.ToTensor()])
-client = Client(...)
-
-db = get_dataset('bird-species', image_set="val", val_percentage=0.25, transforms=trfs, client=client, mode="image_classification", force_fetching=True, seed=42)
+#print a data sample:
+print(my_classification_dataset.__getitem__(0)
 ```

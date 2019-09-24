@@ -12,74 +12,14 @@ from darwin.torch.utils import (
     load_pil_image,
     polygon_area,
 )
-
-
-def get_dataset(
-    dataset_name: str,
-    image_set: Optional[str] = "train",
-    mode: Optional[str] = "raw",
-    transforms: Optional = None,
-    poly_to_mask: Optional[bool] = False,
-    client: Optional[Client] = None,
-    **kwargs,
-):
-    """
-    Pulls a dataset from Darwin and returns a Dataset class that can be used with a PyTorch dataloader
-
-    Input:
-        dataset_name: Identifier of the dataset in Darwin
-        image_set: Split set [train, val, test]
-        mode: selects the dataset type [image_classification, instance_segmentation, semantic_segmentation]
-        transforms: List of PyTorch transforms
-        client: Darwin's client
-        val_percentage: percentage of images used in the validation set
-        test_percentage: percentage of images used in the validation set
-        force_fetching: discard local dataset and pull again from Darwin
-        force_resplit: discard previous split and create a new one
-        split_seed: fix seed for random split creation
-
-    Output:
-        Dataset class
-    """
-
-    root, split_id = fetch_darwin_dataset(dataset_name, client, **kwargs)
-
-    if mode == "raw":
-        dataset = Dataset(root, image_set=image_set, split_id=split_id, transforms=transforms)
-    elif mode == "classification":
-        dataset = ClassificationDataset(
-            root, image_set=image_set, split_id=split_id, transforms=transforms
-        )
-    elif mode == "instance_segmentation":
-        import darwin.torch.transforms as T
-
-        trfs = [T.ConvertPolysToInstanceMasks()]
-        if transforms is not None:
-            trfs.append(transforms)
-        transforms = T.Compose(trfs)
-        dataset = InstanceSegmentationDataset(
-            root, image_set=image_set, split_id=split_id, transforms=transforms
-        )
-    elif mode == "semantic_segmentation":
-        import darwin.torch.transforms as T
-
-        trfs = [T.ConvertPolysToMask()]
-        if transforms is not None:
-            trfs.append(transforms)
-        transforms = T.Compose(trfs)
-        dataset = SemanticSegmentationDataset(
-            root, image_set=image_set, split_id=split_id, transforms=transforms
-        )
-    else:
-        raise ValueError("Dataset type {mode} not supported.")
-
-    return dataset
+import darwin.torch.transforms as T
 
 
 class Dataset(object):
-    def __init__(self, root: Path, image_set: str, split_id: Optional[str] = None, transforms=None):
+    def __init__(self, root: Path, image_set: str, split_id: Optional[str] = None, transforms: Optional = None):
         self.root = root
-        self.transforms = transforms
+        self.transforms = T.Compose(transforms) if transforms is not None else None
+
         self.image_set = image_set
 
         if self.image_set not in ["train", "val", "test"]:
@@ -124,7 +64,8 @@ class Dataset(object):
             anno = json.load(f)["annotations"]
 
         # Filter out unused classes
-        anno = [obj for obj in anno if obj["name"] in self.classes]
+        if len(self.classes) != 0:
+            anno = [obj for obj in anno if obj["name"] in self.classes]
 
         res = dict(image_id=idx, annotations=anno)
         return res
@@ -182,8 +123,19 @@ class Dataset(object):
         return format_string
 
 
+class BaseDataset(Dataset):
+    def __init__(self, dataset_name: str, image_set: str, transforms: Optional = [], client: Optional[Client] = None, **kwargs):
+
+        root, split_id = fetch_darwin_dataset(dataset_name, client, **kwargs)
+
+        super(BaseDataset, self).__init__(root, image_set, split_id, transforms)
+        self.classes = []
+
 class ClassificationDataset(Dataset):
-    def __init__(self, root: Path, image_set: str, split_id: Optional[str] = None, transforms=None):
+    def __init__(self, dataset_name: str, image_set: str, transforms: Optional = [], client: Optional[Client] = None, **kwargs):
+
+        root, split_id = fetch_darwin_dataset(dataset_name, client, **kwargs)
+
         super(ClassificationDataset, self).__init__(root, image_set, split_id, transforms)
         self.classes = [e.strip() for e in open(root / "lists/classes_tags.txt")]
 
@@ -197,7 +149,14 @@ class ClassificationDataset(Dataset):
 
 
 class InstanceSegmentationDataset(Dataset):
-    def __init__(self, root: Path, image_set: str, split_id: Optional[str] = None, transforms=None):
+
+    TRANSFORMS = [T.ConvertPolysToInstanceMasks()]
+
+    def __init__(self, dataset_name: str, image_set: str, transforms: Optional = [], client: Optional[Client] = None, **kwargs):
+
+        root, split_id = fetch_darwin_dataset(dataset_name, client, **kwargs)
+        transforms = self.TRANSFORMS + transforms
+        
         super(InstanceSegmentationDataset, self).__init__(root, image_set, split_id, transforms)
         self.classes = [e.strip() for e in open(root / "lists/classes_masks.txt")]
 
@@ -236,7 +195,14 @@ class InstanceSegmentationDataset(Dataset):
 
 
 class SemanticSegmentationDataset(Dataset):
-    def __init__(self, root: Path, image_set: str, split_id: Optional[str] = None, transforms=None):
+
+    TRANSFORMS  = [T.ConvertPolysToMask()]
+
+    def __init__(self, dataset_name: str, image_set: str, transforms: Optional = [], client: Optional[Client] = None, **kwargs):
+
+        root, split_id = fetch_darwin_dataset(dataset_name, client, **kwargs)
+        transforms = self.TRANSFORMS + transforms
+
         super(SemanticSegmentationDataset, self).__init__(root, image_set, split_id, transforms)
         self.classes = [e.strip() for e in open(root / "lists/classes_masks.txt")]
         if self.classes[0] == "__background__":
