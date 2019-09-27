@@ -4,7 +4,9 @@ from pathlib import Path
 from typing import Optional
 
 import numpy as np
+import torch
 
+import darwin.torch.transforms as T
 from darwin.client import Client
 from darwin.torch.utils import (
     convert_polygon_to_sequence,
@@ -12,11 +14,16 @@ from darwin.torch.utils import (
     load_pil_image,
     polygon_area,
 )
-import darwin.torch.transforms as T
 
 
-class Dataset(object):
-    def __init__(self, root: Path, image_set: str, split_id: Optional[str] = None, transforms: Optional = None):
+class Dataset(torch.utils.data.Dataset):
+    def __init__(
+        self,
+        root: Path,
+        image_set: str,
+        split_id: Optional[str] = None,
+        transforms: Optional = None,
+    ):
         self.root = root
         self.transforms = T.Compose(transforms) if transforms is not None else None
 
@@ -124,15 +131,30 @@ class Dataset(object):
 
 
 class BaseDataset(Dataset):
-    def __init__(self, dataset_name: str, image_set: str, transforms: Optional = [], client: Optional[Client] = None, **kwargs):
+    def __init__(
+        self,
+        dataset_name: str,
+        image_set: str,
+        transforms: Optional = [],
+        client: Optional[Client] = None,
+        **kwargs,
+    ):
 
         root, split_id = fetch_darwin_dataset(dataset_name, client, **kwargs)
 
         super(BaseDataset, self).__init__(root, image_set, split_id, transforms)
         self.classes = []
 
+
 class ClassificationDataset(Dataset):
-    def __init__(self, dataset_name: str, image_set: str, transforms: Optional = [], client: Optional[Client] = None, **kwargs):
+    def __init__(
+        self,
+        dataset_name: str,
+        image_set: str,
+        transforms: Optional = [],
+        client: Optional[Client] = None,
+        **kwargs,
+    ):
 
         root, split_id = fetch_darwin_dataset(dataset_name, client, **kwargs)
 
@@ -152,11 +174,18 @@ class InstanceSegmentationDataset(Dataset):
 
     TRANSFORMS = [T.ConvertPolysToInstanceMasks()]
 
-    def __init__(self, dataset_name: str, image_set: str, transforms: Optional = [], client: Optional[Client] = None, **kwargs):
+    def __init__(
+        self,
+        dataset_name: str,
+        image_set: str,
+        transforms: Optional = [],
+        client: Optional[Client] = None,
+        **kwargs,
+    ):
 
         root, split_id = fetch_darwin_dataset(dataset_name, client, **kwargs)
         transforms = self.TRANSFORMS + transforms
-        
+
         super(InstanceSegmentationDataset, self).__init__(root, image_set, split_id, transforms)
         self.classes = [e.strip() for e in open(root / "lists/classes_masks.txt")]
 
@@ -196,9 +225,16 @@ class InstanceSegmentationDataset(Dataset):
 
 class SemanticSegmentationDataset(Dataset):
 
-    TRANSFORMS  = [T.ConvertPolysToMask()]
+    TRANSFORMS = [T.ConvertPolysToMask()]
 
-    def __init__(self, dataset_name: str, image_set: str, transforms: Optional = [], client: Optional[Client] = None, **kwargs):
+    def __init__(
+        self,
+        dataset_name: str,
+        image_set: str,
+        transforms: Optional = [],
+        client: Optional[Client] = None,
+        **kwargs,
+    ):
 
         root, split_id = fetch_darwin_dataset(dataset_name, client, **kwargs)
         transforms = self.TRANSFORMS + transforms
