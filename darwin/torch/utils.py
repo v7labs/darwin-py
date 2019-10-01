@@ -125,10 +125,10 @@ def extract_classes(files: List, annotation_type="polygon"):
                         in a given image index
     """
     classes = {}
-    indexes_to_classes = {}
+    indices_to_classes = {}
     for i, file_name in enumerate(files):
         with open(file_name) as f:
-            indexes_to_classes[i] = []
+            indices_to_classes[i] = []
             for a in json.load(f)["annotations"]:
                 if annotation_type not in a:
                     continue
@@ -137,9 +137,9 @@ def extract_classes(files: List, annotation_type="polygon"):
                     classes[class_name].add(i)
                 except KeyError:
                     classes[class_name] = {i}
-                if class_name not in indexes_to_classes[i]:
-                    indexes_to_classes[i].append(class_name)
-    return classes, indexes_to_classes
+                if class_name not in indices_to_classes[i]:
+                    indices_to_classes[i].append(class_name)
+    return classes, indices_to_classes
 
 
 def fetch_darwin_dataset(
@@ -156,19 +156,31 @@ def fetch_darwin_dataset(
     Pull locally a dataset from Darwin (if needed) and create splits for
     train, validation, and test.
 
-    Input:
-        dataset_name: name of the dataset in Darwin
-        client: Darwin client
-        val_percentage: percentage of images used in the validation set
-        test_percentage: percentage of images used in the test set
-        image_status: only pull images with under this status
-        force_fetching: discard local dataset and pull again from Darwin
-        force_resplit: discard previous split and create a new one
-        split_seed: fix seed for random split creation
+    Parameters
+    ----------
+    dataset_name : str
+        Name of the dataset in Darwin
+    client: Client
+        Darwin client
+    val_percentage : float
+        Percentage of images used in the validation set
+    test_percentage : float
+        Percentage of images used in the test set
+    image_status : str
+        Only pull images with under this status
+    force_fetching : bool
+        Discard local dataset and pull again from Darwin
+    force_resplit : bool
+        Discard previous split and create a new one
+    split_seed : in
+        Fix seed for random split creation
 
-    Output:
-        root: local path to the dataset
-        split_path: relative path to the selected train/val/test split
+    Returns
+    -------
+    root : Path
+    local path to the dataset
+    split_path : Path
+    relative path to the selected train/val/test split
     """
     if client is None:
         client = Client.default()
