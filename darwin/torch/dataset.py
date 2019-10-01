@@ -26,19 +26,36 @@ def get_dataset(
     """
     Pulls a dataset from Darwin and returns a Dataset class that can be used with a PyTorch dataloader
 
-    Input:
-        dataset_name: Identifier of the dataset in Darwin
-        image_set: Split set [train, val, test]
-        mode: selects the dataset type [image_classification, instance_segmentation, semantic_segmentation]
-        transforms: List of PyTorch transforms
-        client: Darwin's client
-        val_percentage: percentage of images used in the validation set
-        test_percentage: percentage of images used in the validation set
-        force_fetching: discard local dataset and pull again from Darwin
-        force_resplit: discard previous split and create a new one
-        split_seed: fix seed for random split creation
+    Parameters
+    ----------
+    dataset_name : TODO type
+        Identifier of the dataset in Darwin
+    image_set :  TODO type
+        Split set [train, val, test]
+    mode :  TODO type
+        selects the dataset type [image_classification, instance_segmentation, semantic_segmentation]
+    transforms :  TODO type
+        List of PyTorch transforms
+    poly_to_mask :
+         TODO description
+    client:  TODO type
+        Darwin's client
 
-    Output:
+    TODO these entries are not part of the parameters (in the signature) and do not exist below: remove or fix?
+    val_percentage:  TODO type
+        percentage of images used in the validation set
+    test_percentage:  TODO type
+        percentage of images used in the validation set
+    force_fetching:  TODO type
+        discard local dataset and pull again from Darwin
+    force_resplit:  TODO type
+        discard previous split and create a new one
+    split_seed:  TODO type
+        fix seed for random split creation
+
+    Returns
+    -------
+    dataset : Dataset
         Dataset class
     """
 
