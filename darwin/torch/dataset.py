@@ -102,10 +102,10 @@ class Dataset(object):
         if self.image_set not in ["train", "val", "test"]:
             raise ValueError(f"Unknown partition {self.image_set}")
 
-        path_to_lists = root / "lists"
+        path_to_lists = self.root / "lists"
         if split_id is not None:
             path_to_lists /= split_id
-        file_partition = path_to_lists / f"{image_set}.txt"
+        file_partition = path_to_lists / f"{self.image_set}.txt"
 
         if not file_partition.exists():
             raise FileNotFoundError(
@@ -116,15 +116,15 @@ class Dataset(object):
         exts = ["jpg", "jpeg", "png"]
         self.annotations, self.images = [], []
         for s in stems:
-            annot_path = root / f"annotations/{s}.json"
+            annot_path = self.root / f"annotations/{s}.json"
             for ext in exts:
-                im_path = root / f"images/{s}.{ext}"
+                im_path = self.root / f"images/{s}.{ext}"
                 if im_path.is_file():
                     self.images.append(im_path)
                     self.annotations.append(annot_path)
                     break
         if len(self.images) == 0:
-            raise ValueError(f"could not find any {exts} file in {root/'images'}")
+            raise ValueError(f"could not find any {exts} file in {self.root/'images'}")
 
     def __getitem__(self, idx: int):
         # load images ad masks
