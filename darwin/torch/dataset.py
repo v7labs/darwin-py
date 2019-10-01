@@ -100,7 +100,7 @@ class Dataset(object):
         self.image_set = image_set
 
         if self.image_set not in ["train", "val", "test"]:
-            raise ValueError("Unknown partition {self.image_set}")
+            raise ValueError(f"Unknown partition {self.image_set}")
 
         path_to_lists = root / "lists"
         if split_id is not None:
