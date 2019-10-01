@@ -112,11 +112,7 @@ def polygon_area(x, y):
     return 0.5 * np.abs(np.dot(x, np.roll(y, 1)) - np.dot(y, np.roll(x, 1)))
 
 
-def collate_fn(batch):
-    return tuple(zip(*batch))
-
-
-def extract_classes(files: List, anno_type="polygon"):
+def extract_classes(files: List, annotation_type="polygon"):
     """
     Given a list of GT json files, extracts all classes and an mapping image index to classes
 
@@ -129,22 +125,21 @@ def extract_classes(files: List, anno_type="polygon"):
                         in a given image index
     """
     classes = {}
-    idx_to_classes = {}
-    for i, fname in enumerate(files):
-        with open(fname) as f:
-            d = json.load(f)
-            idx_to_classes[i] = []
-            for a in d["annotations"]:
-                if anno_type not in a:
+    indexes_to_classes = {}
+    for i, file_name in enumerate(files):
+        with open(file_name) as f:
+            indexes_to_classes[i] = []
+            for a in json.load(f)["annotations"]:
+                if annotation_type not in a:
                     continue
-                cls_name = a["name"]
+                class_name = a["name"]
                 try:
-                    classes[cls_name].add(i)
+                    classes[class_name].add(i)
                 except KeyError:
-                    classes[cls_name] = set([i])
-                if cls_name not in idx_to_classes[i]:
-                    idx_to_classes[i].append(cls_name)
-    return classes, idx_to_classes
+                    classes[class_name] = {i}
+                if class_name not in indexes_to_classes[i]:
+                    indexes_to_classes[i].append(class_name)
+    return classes, indexes_to_classes
 
 
 def fetch_darwin_dataset(
@@ -218,7 +213,7 @@ def fetch_darwin_dataset(
     fname = lists_path / "classes_masks.txt"
     if not fname.exists():
         # Extract list of classes
-        classes, idx_to_classes = extract_classes(annot_files, anno_type="polygon")
+        classes, idx_to_classes = extract_classes(annot_files, annotation_type="polygon")
         classes_names = [k for k in classes.keys()]
         classes_names.insert(0, "__background__")
         with open(fname, "w") as f:
@@ -229,7 +224,7 @@ def fetch_darwin_dataset(
     fname = lists_path / "classes_tags.txt"
     if not fname.exists():
         # Extract list of classes
-        classes, idx_to_classes = extract_classes(annot_files, anno_type="tag")
+        classes, idx_to_classes = extract_classes(annot_files, annotation_type="tag")
         classes_names = [k for k in classes.keys()]
         with open(fname, "w") as f:
             for c in classes_names:
