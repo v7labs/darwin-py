@@ -129,14 +129,14 @@ class Dataset(object):
     def __getitem__(self, idx: int):
         # load images ad masks
         img = load_pil_image(self.images[idx])
-        target = self._load_anno_and_remap(idx)
+        target = self._load_annotations_and_remap(idx)
 
         if self.transforms is not None:
             img, target = self.transforms(img, target)
 
         return img, target
 
-    def _load_anno_and_remap(self, idx: int):
+    def _load_annotations_and_remap(self, idx: int):
         with open(self.annotations[idx]) as f:
             anno = json.load(f)["annotations"]
 
@@ -204,7 +204,7 @@ class ClassificationDataset(Dataset):
         super(ClassificationDataset, self).__init__(root, image_set, split_id, transforms)
         self.classes = [e.strip() for e in open(root / "lists/classes_tags.txt")]
 
-    def _load_anno_and_remap(self, idx: int):
+    def _load_annotations_and_remap(self, idx: int):
         with open(self.annotations[idx]) as f:
             anno = json.load(f)["annotations"]
             for obj in anno:
@@ -218,7 +218,7 @@ class InstanceSegmentationDataset(Dataset):
         super(InstanceSegmentationDataset, self).__init__(root, image_set, split_id, transforms)
         self.classes = [e.strip() for e in open(root / "lists/classes_masks.txt")]
 
-    def _load_anno_and_remap(self, idx: int):
+    def _load_annotations_and_remap(self, idx: int):
         with open(self.annotations[idx]) as f:
             anno = json.load(f)["annotations"]
 
@@ -259,7 +259,7 @@ class SemanticSegmentationDataset(Dataset):
         if self.classes[0] == "__background__":
             self.classes = self.classes[1:]
 
-    def _load_anno_and_remap(self, idx: int):
+    def _load_annotations_and_remap(self, idx: int):
         with open(self.annotations[idx]) as f:
             anno = json.load(f)["annotations"]
 
