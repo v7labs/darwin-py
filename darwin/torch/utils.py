@@ -153,8 +153,8 @@ def fetch_darwin_dataset(
     split_seed: Optional[int] = None,
 ):
     """
-    Pull locally a dataset from Darwin (if needed) and create splits for
-    train, validation, and test.
+    Pull locally a dataset from Darwin (if needed) and create lists of file names
+    for each split for train, validation, and test.
 
     Parameters
     ----------
@@ -215,9 +215,8 @@ def fetch_darwin_dataset(
 
     # Find annotations and create folders
     root = Path(client.project_dir) / dataset_name
-    annot_path = root / "annotations"
-    annot_files = [f for f in annot_path.glob("*.json")]
-    num_images = len(annot_files)
+    annotations_path = [f for f in (root / "annotations").glob("*.json")]
+    num_images = len(annotations_path)
     lists_path = root / "lists"
     os.makedirs(lists_path, exist_ok=True)
 
@@ -225,8 +224,8 @@ def fetch_darwin_dataset(
     fname = lists_path / "classes_masks.txt"
     if not fname.exists():
         # Extract list of classes
-        classes, idx_to_classes = extract_classes(annot_files, annotation_type="polygon")
-        classes_names = [k for k in classes.keys()]
+        classes, idx_to_classes = extract_classes(annotations_path, annotation_type="polygon")
+        classes_names = list(classes.keys())
         classes_names.insert(0, "__background__")
         with open(fname, "w") as f:
             for c in classes_names:
@@ -236,7 +235,7 @@ def fetch_darwin_dataset(
     fname = lists_path / "classes_tags.txt"
     if not fname.exists():
         # Extract list of classes
-        classes, idx_to_classes = extract_classes(annot_files, annotation_type="tag")
+        classes, idx_to_classes = extract_classes(annotations_path, annotation_type="tag")
         classes_names = [k for k in classes.keys()]
         with open(fname, "w") as f:
             for c in classes_names:
@@ -263,14 +262,14 @@ def fetch_darwin_dataset(
         # Write files
         with open(split_path / "train.txt", "w") as f:
             for i in train_idx:
-                f.write(f"{annot_files[i].stem}\n")
+                f.write(f"{annotations_path[i].stem}\n")
         if num_val > 0:
             with open(split_path / "val.txt", "w") as f:
                 for i in val_idx:
-                    f.write(f"{annot_files[i].stem}\n")
+                    f.write(f"{annotations_path[i].stem}\n")
         if num_test > 0:
             with open(split_path / "test.txt", "w") as f:
                 for i in test_idx:
-                    f.write(f"{annot_files[i].stem}\n")
+                    f.write(f"{annotations_path[i].stem}\n")
 
     return root, split_id
