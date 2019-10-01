@@ -80,6 +80,19 @@ def get_dataset(
 
 class Dataset(object):
     def __init__(self, root: Path, image_set: str, split_id: Optional[str] = None, transforms=None):
+        """ Creates a dataset
+
+        Parameters
+        ----------
+        root : Path
+            Path to the root folder
+        image_set : str
+            Chosen split, either 'train', 'val' or 'test'
+        split_id : str
+            String defining the splits. Created as f'split_val{val_percentage}_test{test_percentage}_seed{split_seed}'
+        transforms : [torchvision.transforms]
+            List of PyTorch transforms
+        """
         self.root = root
         self.image_set = image_set
         self.transforms = transforms
