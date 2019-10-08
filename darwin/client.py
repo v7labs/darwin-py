@@ -39,7 +39,7 @@ class Client:
     @classmethod
     def default(cls):
         config_path = Path.home() / ".darwin" / "config.yaml"
-        return Client.from_config(config_path)
+        return Client.from_config(Client, config_path)
 
     @classmethod
     def from_token(cls, token: str, projects_dir: Optional[str] = None):
