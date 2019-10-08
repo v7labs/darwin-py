@@ -8,7 +8,7 @@ Support tested for python3.7.
 ### Standard
 
 ```
-pip install git+https://github.com/v7labs/darwin-cli
+pip install darwin-py
 ```
 You can now type `darwin` in your terminal and access the command line interface.
 
@@ -135,7 +135,7 @@ Supported extensions:
 
 ```
 $ darwin upload example-dataset -r path/to/images
-Uploading: 100%|████████████████████████████████████████████████████████| 3/3 [00:01<00:00,  2.29it/s]
+Uploading: 100%|########################################################| 3/3 [00:01<00:00,  2.29it/s]
 ```
 
 #### Remote projects
@@ -153,7 +153,7 @@ Downloads a remote project, images and annotations, in the projects directory (s
 ```
 $ darwin pull example-project
 Pulling project example-project:latest
-Downloading: 100%|████████████████████████████████████████████████████████| 3/3 [00:03<00:00,  4.11it/s]
+Downloading: 100%|########################################################| 3/3 [00:03<00:00,  4.11it/s]
 ```
 
 #### Local projects
