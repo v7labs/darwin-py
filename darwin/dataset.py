@@ -114,7 +114,7 @@ class Dataset:
             z.extractall(annotations_dir)
             annotation_format = "json"
             return download_all_images_from_annotations(
-                self._client._url, annotations_dir, images_dir, annotation_format
+                self._client._base_url, annotations_dir, images_dir, annotation_format
             )
 
     def local(self):
@@ -181,7 +181,7 @@ def upload_to_s3(signature, end_point, file_path=None):
 
 
 def download_all_images_from_annotations(
-    api_url: str, annotations_path: Path, images_path: Path, annotation_format="json"
+    base_url: str, annotations_path: Path, images_path: Path, annotation_format="json"
 ):
     """Helper function: downloads an image given a .json annotation path. """
     images_path.mkdir(exist_ok=True)
@@ -193,31 +193,31 @@ def download_all_images_from_annotations(
     # return both the count and a generator for doing the actual downloads
     count = sum(1 for _ in annotations_path.glob(f"*.{annotation_format}"))
     generator = lambda: (
-        download_image_from_annotation(api_url, annotation_path, images_path, annotation_format)
+        download_image_from_annotation(base_url, annotation_path, images_path, annotation_format)
         for annotation_path in annotations_path.glob(f"*.{annotation_format}")
     )
     return generator, count
 
 
 def download_image_from_annotation(
-    api_url: str, annotation_path: Path, images_path: Path, annotation_format: str
+    base_url: str, annotation_path: Path, images_path: Path, annotation_format: str
 ):
     """Helper function: downloads the all images corresponsing to a project. """
     if annotation_format == "json":
-        download_image_from_json_annotation(api_url, annotation_path, images_path)
+        download_image_from_json_annotation(base_url, annotation_path, images_path)
     elif annotation_format == "xml":
         print("sorry can't let you do that dave")
         # TODO: fix me
         # download_image_from_xml_annotation(annotation_path, images_path)
 
 
-def download_image_from_json_annotation(api_url: str, annotation_path: Path, images_path: Path):
+def download_image_from_json_annotation(base_url: str, annotation_path: Path, images_path: Path):
     """Helper function: downloads an image given a .json annotation path. """
     Path(images_path).mkdir(exist_ok=True)
     with open(annotation_path, "r") as file:
         parsed = json.loads(file.read())
         path = Path(images_path) / f"{annotation_path.stem}.png"
-        download_image(urljoin(api_url.replace("api/", ""), parsed["image"]["url"]), path)
+        download_image(urljoin(base_url, parsed["image"]["url"]), path)
 
 
 def download_image(url: str, path: Path, verbose: Optional[bool] = False):
