@@ -23,7 +23,7 @@ class Client:
     def __init__(
         self,
         token: str,
-        refresh_token: str,
+        refresh_token: Optional[str],
         api_url: str,
         base_url: str,
         projects_dir: str,
@@ -47,7 +47,7 @@ class Client:
             projects_dir = Path.home() / ".darwin" / "projects"
         return cls(
             token=token,
-            refresh_token=token,
+            refresh_token=None,
             api_url=Client.default_api_url(),
             base_url=Client.default_base_url(),
             projects_dir=projects_dir,
