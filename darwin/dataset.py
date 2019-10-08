@@ -1,24 +1,25 @@
-from __future__ import annotations
-
 import datetime
 import io
 import json
 import shutil
 import zipfile
 from pathlib import Path
-from typing import List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 import requests
 
 from darwin.exceptions import UnsupportedFileType
 from darwin.utils import urljoin
 
+if TYPE_CHECKING:
+    from darwin.client import Client
+
 SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpeg", ".jpg"]
 SUPPORTED_VIDEO_EXTENSIONS = [".bpm", ".mov", ".mp4"]
 
 
 class LocalDataset:
-    def __init__(self, project_path: Path, client: Client):
+    def __init__(self, project_path: Path, client: "Client"):
         self.project_path = project_path
         self.name = project_path.name
         self.slug = project_path.name
@@ -55,7 +56,7 @@ class Dataset:
         project_id: int,
         image_count: int = 0,
         progress: int = 0,
-        client: Client,
+        client: "Client",
     ):
         self.name = name
         self.slug = slug or name
@@ -73,36 +74,35 @@ class Dataset:
         """Helper function: upload images to an existing remote dataset. """
         if not filenames:
             return
-        images, videos = split_on_file_type(filenames)
-        data = self._client.put(
-            f"/datasets/{self.dataset_id}",
-            {
-                "image_filenames": images,
-                "videos": [
-                    {"fps": fps, "original_filename": video} for video in videos
-                ],
-            },
-        )
 
-        for image_file in data["image_data"]:
-            metadata = upload_file_to_s3(self._client, image_file)
-            self._client.put(
-                f"/dataset_images/{metadata['id']}/confirm_upload", payload={}
+        for filenames_chunk in chunk(filenames, 100):
+            images, videos = split_on_file_type(filenames_chunk)
+            data = self._client.put(
+                f"/datasets/{self.dataset_id}",
+                {
+                    "image_filenames": [Path(image).name for image in images],
+                    "videos": [
+                        {"fps": fps, "original_filename": Path(video).name} for video in videos
+                    ],
+                },
             )
-            yield
+            for image_file in data["image_data"]:
+                metadata = upload_file_to_s3(self._client, image_file, images)
+                self._client.put(f"/dataset_images/{metadata['id']}/confirm_upload", payload={})
+                yield
 
-        for video_file in data["video_data"]:
-            metadata = upload_file_to_s3(self._client, video_file)
-            self._client.put(
-                f"/dataset_videos/{metadata['id']}/confirm_upload", payload={}
-            )
-            yield
+            for video_file in data["video_data"]:
+                metadata = upload_file_to_s3(self._client, video_file, videos)
+                self._client.put(f"/dataset_videos/{metadata['id']}/confirm_upload", payload={})
+                yield
 
-    def pull(self):
-        """Downloads a rermote project (images and annotations) in the projects directory. """
-        response = self._client.get(
-            f"/datasets/{self.dataset_id}/export?format=json", raw=True
-        )
+    def pull(self, image_status: Optional[str] = None):
+        """Downloads a remote project (images and annotations) in the projects directory. """
+        query = f"/datasets/{self.dataset_id}/export?format=json"
+        if image_status is not None:
+            query += f"&image_status={image_status}"
+
+        response = self._client.get(query, raw=True)
         zip_file = io.BytesIO(response.content)
         if zipfile.is_zipfile(zip_file):
             z = zipfile.ZipFile(zip_file)
@@ -144,19 +144,21 @@ def split_on_file_type(files: List[str]):
     return images, videos
 
 
-def upload_file_to_s3(client: Client, file: requests.Response) -> str:
+def upload_file_to_s3(
+    client: "Client", file: Dict[str, Any], full_path: List[str]
+) -> Dict[str, Any]:
     """Helper function: upload data to AWS S3"""
     key = file["key"]
-    file_path = file["original_filename"]
+    file_path = [path for path in full_path if Path(path).name == file["original_filename"]][0]
     image_id = file["id"]
 
-    response = sign_upload(client, image_id, key, file_path)
+    response = sign_upload(client, image_id, key, Path(file_path).suffix)
     signature = response["signature"]
     end_point = response["postEndpoint"]
 
     s3_response = upload_to_s3(signature, end_point, file_path)
-    if not str(s3_response.status_code).startswith("2"):
-        process_response(s3_response)
+    # if not str(s3_response.status_code).startswith("2"):
+    #     process_response(s3_response)
 
     if s3_response.status_code == 400:
         print(f"Detail: Bad request when uploading to AWS S3 -- file: {file_path}")
@@ -164,11 +166,10 @@ def upload_file_to_s3(client: Client, file: requests.Response) -> str:
     return {"key": key, "id": image_id}
 
 
-def sign_upload(client, image_id, key, file_path):
-    file_format = Path(file_path).suffix
+def sign_upload(client, image_id, key, file_suffix):
     return client.post(
         f"/dataset_images/{image_id}/sign_upload?key={key}",
-        payload={"filePath": file_path, "contentType": f"image/{file_format}"},
+        payload={"contentType": f"image/{file_suffix}"},
     )
 
 
@@ -180,10 +181,10 @@ def upload_to_s3(signature, end_point, file_path=None):
 
 
 def download_all_images_from_annotations(
-    base_url: str, annotations_path: str, images_path: str, annotation_format="json"
+    base_url: str, annotations_path: Path, images_path: Path, annotation_format="json"
 ):
     """Helper function: downloads an image given a .json annotation path. """
-    Path(images_path).mkdir(exist_ok=True)
+    images_path.mkdir(exist_ok=True)
 
     if annotation_format not in ["json", "xml"]:
         print(f"Annotation format {annotation_format} not supported")
@@ -192,16 +193,14 @@ def download_all_images_from_annotations(
     # return both the count and a generator for doing the actual downloads
     count = sum(1 for _ in annotations_path.glob(f"*.{annotation_format}"))
     generator = lambda: (
-        download_image_from_annotation(
-            base_url, annotation_path, images_path, annotation_format
-        )
+        download_image_from_annotation(base_url, annotation_path, images_path, annotation_format)
         for annotation_path in annotations_path.glob(f"*.{annotation_format}")
     )
     return generator, count
 
 
 def download_image_from_annotation(
-    base_url: str, annotation_path: str, images_path: str, annotation_format: str
+    base_url: str, annotation_path: Path, images_path: Path, annotation_format: str
 ):
     """Helper function: downloads the all images corresponsing to a project. """
     if annotation_format == "json":
@@ -212,9 +211,7 @@ def download_image_from_annotation(
         # download_image_from_xml_annotation(annotation_path, images_path)
 
 
-def download_image_from_json_annotation(
-    base_url: str, annotation_path: str, images_path: str
-):
+def download_image_from_json_annotation(base_url: str, annotation_path: Path, images_path: Path):
     """Helper function: downloads an image given a .json annotation path. """
     Path(images_path).mkdir(exist_ok=True)
     with open(annotation_path, "r") as file:
@@ -241,3 +238,28 @@ def download_image(url: str, path: Path, verbose: Optional[bool] = False):
 
 class FailedToDownloadImage(Exception):
     pass
+
+
+def chunk(items, size):
+    """ Chunks paths in batches of size. 
+    No batch has any duplicates with regards to file name.
+    This is needed due to a limitation in the upload api.
+    """
+    current_list = []
+    current_names = set()
+    left_over = []
+    for item in items:
+        name = Path(item).name
+        if name in current_names:
+            left_over.append(item)
+        else:
+            current_list.append(item)
+            current_names.add(name)
+        if len(current_list) >= size:
+            yield current_list
+            current_list = []
+            current_names = set()
+    if left_over:
+        yield from chunk(left_over, size)
+    if current_list:
+        yield current_list
