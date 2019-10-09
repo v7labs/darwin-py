@@ -1,9 +1,8 @@
 from pathlib import Path
-from typing import TYPE_CHECKING, List
+from typing import Dict, Any, List, TYPE_CHECKING
 
 import requests
 
-import darwin
 from darwin.exceptions import UnsupportedFileType
 from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS, SUPPORTED_VIDEO_EXTENSIONS
 
@@ -25,20 +24,21 @@ def _split_on_file_type(files: List[str]):
     return images, videos
 
 
-def upload_file_to_s3(client: "Client", file: requests.Response) -> dict:
+def upload_file_to_s3(
+    client: "Client", file: Dict[str, Any], full_path: List[str]
+) -> Dict[str, Any]:
     """Helper function: upload data to AWS S3"""
     key = file["key"]
-    file_path = file["original_filename"]
+    file_path = [path for path in full_path if Path(path).name == file["original_filename"]][0]
     image_id = file["id"]
 
-    response = sign_upload(client, image_id, key, file_path)
+    response = sign_upload(client, image_id, key, Path(file_path).suffix)
     signature = response["signature"]
     end_point = response["postEndpoint"]
 
     s3_response = upload_to_s3(signature, end_point, file_path)
-    if not str(s3_response.status_code).startswith("2"):
-        # TODO fix the import
-        process_response(s3_response)
+    # if not str(s3_response.status_code).startswith("2"):
+    #     process_response(s3_response)
 
     if s3_response.status_code == 400:
         print(f"Detail: Bad request when uploading to AWS S3 -- file: {file_path}")
