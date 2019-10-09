@@ -20,6 +20,8 @@ setuptools.setup(
         "requests",
         "sh",
         "tqdm",
+        "torch",
+        "torchvision",
         "factory_boy",
     ],
     packages=["darwin"],
