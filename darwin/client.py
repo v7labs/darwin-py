@@ -34,10 +34,22 @@ class Client:
     @classmethod
     def default(cls):
         config_path = Path.home() / ".darwin" / "config.yaml"
-        return Client.from_config(config_path)
+        return Client.from_config(Client, config_path)
 
     @classmethod
-    def from_config(cls, config_path: Path):
+    def from_token(cls, token: str, projects_dir: Optional[str] = None):
+        if not projects_dir:
+            projects_dir = Path.home() / ".darwin" / "projects"
+        return cls(
+            token=token,
+            refresh_token=None,
+            api_url=Client.default_api_url(),
+            base_url=Client.default_base_url(),
+            projects_dir=projects_dir,
+        )
+
+    def from_config(cls, config_path_str: str):
+        config_path = Path(config_path_str)
         if not config_path.exists():
             raise MissingConfig()
         config = Config(config_path)
@@ -247,8 +259,16 @@ class Client:
             print("Sorry, no support for name yet")
             raise NotImplementedError
         if dataset_id:
-            print("Sorry, no support for dataset_id yet")
-            raise NotImplementedError
+            project = self.get(f"/datasets/{dataset_id}/project")
+            return Dataset(
+                project["name"],
+                slug=project["slug"],
+                dataset_id=project["dataset_id"],
+                project_id=project["id"],
+                image_count=project["num_images"],
+                progress=project["progress"],
+                client=self,
+            )
 
     def get_local_dataset(self, *, slug: str):
         if slug:

@@ -16,15 +16,15 @@ if TYPE_CHECKING:
 
 class RemoteDataset:
     def __init__(
-        self,
-        name: str,
-        *,
-        slug: Optional[str] = None,
-        dataset_id: int,
-        project_id: int,
-        image_count: int = 0,
-        progress: int = 0,
-        client: "Client",
+            self,
+            name: str,
+            *,
+            slug: Optional[str] = None,
+            dataset_id: int,
+            project_id: int,
+            image_count: int = 0,
+            progress: int = 0,
+            client: "Client",
     ):
         self.name = name
         self.slug = slug or name
@@ -42,14 +42,13 @@ class RemoteDataset:
         """Helper function: upload images to an existing remote dataset. """
         if not filenames:
             return
-        images, videos = _split_on_file_type(filenames)
-        data = self._client.put(
-            endpoint=f"/datasets/{self.dataset_id}",
-            payload={
-                "image_filenames": images,
-                "videos": [{"fps": fps, "original_filename": video} for video in videos],
-            },
-        )
+        for filenames_chunk in RemoteDataset.chunk(filenames, 100):
+            images, videos = _split_on_file_type(filenames_chunk)
+            data = self._client.put(
+                endpoint=f"/datasets/{self.dataset_id}",
+                payload={"image_filenames": images,
+                         "videos": [{"fps": fps, "original_filename": video} for video in videos]}
+            )
 
         for image_file in data["image_data"]:
             metadata = upload_file_to_s3(self._client, image_file)
@@ -89,3 +88,28 @@ class RemoteDataset:
 
     def remove(self):
         self._client.put(f"projects/{self.project_id}/archive", payload={})
+
+    @staticmethod
+    def chunk(items, size):
+        """ Chunks paths in batches of size.
+        No batch has any duplicates with regards to file name.
+        This is needed due to a limitation in the upload api.
+        """
+        current_list = []
+        current_names = set()
+        left_over = []
+        for item in items:
+            name = Path(item).name
+            if name in current_names:
+                left_over.append(item)
+            else:
+                current_list.append(item)
+                current_names.add(name)
+            if len(current_list) >= size:
+                yield current_list
+                current_list = []
+                current_names = set()
+        if left_over:
+            yield from chunk(left_over, size)
+        if current_list:
+            yield current_list
