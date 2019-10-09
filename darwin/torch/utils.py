@@ -195,10 +195,8 @@ def fetch_darwin_dataset(
             try:
                 shutil.rmtree(dbpath)
             except PermissionError:
-                print(
-                    "Could not remove dataset in {dbpath}. Permission denied. \
-                      Remove it manually or disable force_fetching."
-                )
+                print(f"Could not remove dataset in {dbpath}. Permission denied. \
+                      Remove it manually or disable force_fetching.")
         else:
             dataset = local_datasets[dataset_name]
 
