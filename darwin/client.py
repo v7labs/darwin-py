@@ -5,7 +5,7 @@ from typing import Dict, Optional
 import requests
 
 from darwin.config import Config
-from darwin.dataset import Dataset, LocalDataset
+from darwin.dataset import LocalDataset, RemoteDataset
 from darwin.exceptions import (
     InsufficientStorage,
     InvalidLogin,
@@ -21,18 +21,13 @@ from darwin.utils import is_project_dir, urljoin
 
 class Client:
     def __init__(
-        self,
-        token: str,
-        refresh_token: Optional[str],
-        api_url: str,
-        base_url: str,
-        projects_dir: str,
+        self, token: str, refresh_token: str, api_url: str, base_url: str, projects_dir: str
     ):
-        self._token = token
-        self._refresh_token = refresh_token
-        self._url = api_url
-        self._base_url = base_url
-        self._team = None
+        self.token = token
+        self.refresh_token = refresh_token
+        self.url = api_url
+        self.base_url = base_url
+        self.team = None
         # TODO: read this from config
         self.project_dir = projects_dir
 
@@ -101,17 +96,17 @@ class Client:
 
     def _refresh_access_token(self):
         response = requests.get(
-            urljoin(self._url, "/refresh"), headers=self._get_headers(refresh=True)
+            urljoin(self.url, "/refresh"), headers=self._get_headers(refresh=True)
         )
         if response.status_code != 200:
             raise Unauthenticated()
 
         data = response.json()
-        self._token = data["token"]
+        self.token = data["token"]
 
     def _ensure_authenticated(self):
-        if self._token is None:
-            if self._refresh_token is None:
+        if self.token is None:
+            if self.refresh_token is None:
                 raise Unauthenticated()
             else:
                 self._refresh_access_token()
@@ -120,18 +115,18 @@ class Client:
         if refresh:
             return {
                 "Content-Type": "application/json",
-                "Authorization": f"Bearer {self._refresh_token}",
+                "Authorization": f"Bearer {self.refresh_token}",
             }
         else:
-            return {"Content-Type": "application/json", "Authorization": f"Bearer {self._token}"}
+            return {"Content-Type": "application/json", "Authorization": f"Bearer {self.token}"}
 
-    def get(self, endpoint: str, retry: bool = True, raw: bool = False):
+    def get(self, endpoint: str, retry: bool = False, raw: bool = False):
         self._ensure_authenticated()
-        response = requests.get(urljoin(self._url, endpoint), headers=self._get_headers())
+        response = requests.get(urljoin(self.url, endpoint), headers=self._get_headers())
 
         if response.status_code == 401:
             self._refresh_access_token()
-            return self.get(endpoint, retry=False)
+            return self.get(endpoint, retry=retry)
 
         if response.status_code != 200:
             print("TODO, fix me get", response.json(), response.status_code)
@@ -140,15 +135,15 @@ class Client:
             return response
         return response.json()
 
-    def put(self, endpoint: str, payload: Dict, retry: bool = True):
+    def put(self, endpoint: str, payload: Dict, retry: bool = False):
         self._ensure_authenticated()
         response = requests.put(
-            urljoin(self._url, endpoint), json=payload, headers=self._get_headers()
+            urljoin(self.url, endpoint), json=payload, headers=self._get_headers()
         )
 
         if response.status_code == 401:
             self._refresh_access_token()
-            return self.put(endpoint, payload, retry=False)
+            return self.put(endpoint, payload, retry=retry)
         if response.status_code == 429:
             error_code = response.json()["errors"]["code"]
             if error_code == "INSUFFICIENT_REMAINING_STORAGE":
@@ -161,19 +156,23 @@ class Client:
     def post(
         self,
         endpoint: str,
-        payload: Dict = {},
-        retry: bool = True,
+        payload: Optional[Dict] = None,
+        retry: bool = False,
         refresh=False,
-        error_handlers=[],
+        error_handlers: Optional[list] = None,
     ):
+        if payload is None:
+            payload = {}
+        if error_handlers is None:
+            error_handlers = []
         self._ensure_authenticated()
         response = requests.post(
-            urljoin(self._url, endpoint), json=payload, headers=self._get_headers(refresh=refresh)
+            urljoin(self.url, endpoint), json=payload, headers=self._get_headers(refresh=refresh)
         )
 
         if response.status_code == 401:
             self._refresh_access_token()
-            return self.post(endpoint, payload=payload, retry=False)
+            return self.post(endpoint, payload=payload, retry=retry)
 
         if response.status_code != 200:
             for error_handler in error_handlers:
@@ -213,7 +212,7 @@ class Client:
     def list_remote_datasets(self):
         projects = self.get("/projects/")
         for project in projects:
-            yield Dataset(
+            yield RemoteDataset(
                 project["name"],
                 slug=project["slug"],
                 dataset_id=project["dataset_id"],
@@ -239,7 +238,7 @@ class Client:
         # TODO: swap project_id for dataset_id when the backend has gotten ride of project_id
         if project_id:
             project = self.get(f"/projects/{project_id}")
-            return Dataset(
+            return RemoteDataset(
                 project["name"],
                 slug=project["slug"],
                 dataset_id=project["dataset_id"],
@@ -288,7 +287,7 @@ class Client:
             {"name": name, "team_id": team.id},
             error_handlers=[name_taken, validation_error],
         )
-        return Dataset(
+        return RemoteDataset(
             project["name"],
             slug=project["slug"],
             dataset_id=project["dataset_id"],
@@ -306,4 +305,4 @@ def name_taken(code, body):
 
 def validation_error(code, body):
     if code == 422:
-        raise ValidationError
+        raise ValidationError(body)
