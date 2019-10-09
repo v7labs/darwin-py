@@ -159,7 +159,7 @@ class Client:
         payload: Optional[Dict] = None,
         retry: bool = False,
         refresh=False,
-        error_handlers=None,
+        error_handlers: Optional[list] = None,
     ):
         if payload is None:
             payload = {}
