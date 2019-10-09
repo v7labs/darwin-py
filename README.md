@@ -8,7 +8,7 @@ Support tested for python3.7.
 ### Standard
 
 ```
-pip install git+https://github.com/v7labs/darwin-cli
+pip install darwin-py
 ```
 You can now type `darwin` in your terminal and access the command line interface.
 
@@ -91,7 +91,8 @@ from darwin.client import Client
 client = Client.default()
 dataset = client.get_remote_dataset(slug="example-dataset")
 progress, _count = dataset.pull()
-for _ in progress():
+for f in progress():
+    f()
     print("file synced")
 ```
 

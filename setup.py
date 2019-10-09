@@ -4,14 +4,14 @@ with open("README.md", "r") as f:
     long_description = f.read()
 
 setuptools.setup(
-    name="darwin",
-    version="0.0.1",
+    name="darwin-py",
+    version="0.0.2",
     author="V7",
     author_email="info@v7labs.com",
-    description="Command line interface for Darwin",
+    description="Library and command line interface for darwin.v7labs.com",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/v7labs/darwin-cli",
+    url="https://github.com/v7labs/darwin-py",
     install_requires=[
         "argcomplete",
         "docutils",
@@ -24,8 +24,10 @@ setuptools.setup(
         "torch",
         "torchvision",
         "factory_boy",
+        "requests",
     ],
     packages=["darwin"],
     entry_points={"console_scripts": ["darwin=darwin.cli:main"]},
-    classifiers=["Programming Language :: Python :: 3"],
+    classifiers=["Programming Language :: Python :: 3", "License :: OSI Approved :: MIT License"],
+    python_requires=">=3.6",
 )
