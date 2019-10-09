@@ -1,5 +1,5 @@
 import darwin.exceptions
-from darwin.client import Client
-from darwin.dataset import Dataset, LocalDataset
-from darwin.team import Team
-import torch
+from .client import Client
+from .dataset import Dataset, LocalDataset
+from .team import Team
+from .torch import get_dataset, ClassificationDataset, InstanceSegmentationDataset, SemanticSegmentationDataset
