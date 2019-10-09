@@ -156,7 +156,7 @@ class Client:
     def post(
         self,
         endpoint: str,
-        payload: Dict = None,
+        payload: Optional[Dict] = None,
         retry: bool = False,
         refresh=False,
         error_handlers=None,
