@@ -16,6 +16,7 @@ setuptools.setup(
         "argcomplete",
         "docutils",
         "humanize",
+        "pycocotools",
         "pyyaml>=5.1",
         "requests",
         "sh",
