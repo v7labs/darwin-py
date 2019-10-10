@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import multiprocessing as mp
+import shutil
 import zipfile
 from pathlib import Path
 from typing import List, Optional, TYPE_CHECKING
@@ -92,8 +93,12 @@ class RemoteDataset:
             project_dir = Path(self._client.project_dir) / self.slug
             images_dir = project_dir / "images"
             annotations_dir = project_dir / "annotations"
-            annotations_dir.mkdir(parents=True, exist_ok=True)
-
+            if annotations_dir.exists():
+                try:
+                    shutil.rmtree(annotations_dir)
+                except PermissionError:
+                    print(f"Could not remove dataset in {annotations_dir}. Permission denied.")
+            annotations_dir.mkdir(parents=True, exist_ok=False)
             z.extractall(annotations_dir)
             annotation_format = "json"
             progress, count = download_all_images_from_annotations(
