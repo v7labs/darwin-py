@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import io
-
+import multiprocessing as mp
 import zipfile
 from pathlib import Path
 from typing import List, Optional, TYPE_CHECKING
+
+from tqdm import tqdm
 
 import darwin
 from darwin.dataset.download_manager import download_all_images_from_annotations
@@ -100,11 +102,16 @@ class RemoteDataset:
             # If blocking is selected, download the dataset on the file system
             if blocking:
                 if multi_threaded:
-                    import multiprocessing as mp
+                    pbar = tqdm(total=count)
+                    def update(*a):
+                        pbar.update()
                     with mp.Pool(mp.cpu_count()) as pool:
-                        pool.map(RemoteDataset._f, progress())
+                        for f in progress():
+                            pool.apply_async(RemoteDataset._f, args=(f,), callback=update)
+                        pool.close()
+                        pool.join()
                 else:
-                    for f in progress():
+                    for f in tqdm(progress(), total=count, desc="Downloading"):
                         f()
                 return None, count
             else:
