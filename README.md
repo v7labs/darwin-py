@@ -85,15 +85,12 @@ for _ in progress():
 #### Pull a [remote] project
 
 Downloads a remote project, images and annotations, in the projects directory (specified in the authentication process [default: ~/.darwin/projects]).
+
 ```python
 from darwin.client import Client
 
 client = Client.default()
-dataset = client.get_remote_dataset(slug="example-dataset")
-progress, _count = dataset.pull()
-for f in progress():
-    f()
-    print("file synced")
+dataset = client.get_remote_dataset(slug="example-dataset").pull()
 ```
 
 ### Command line
