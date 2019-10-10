@@ -97,8 +97,7 @@ class RemoteDataset:
                 try:
                     shutil.rmtree(annotations_dir)
                 except PermissionError:
-                    print(f"Could not remove dataset in {annotations_dir}. Permission denied."
-                          f"Remove it manually or disable force_fetching.")
+                    print(f"Could not remove dataset in {annotations_dir}. Permission denied.")
             annotations_dir.mkdir(parents=True, exist_ok=False)
             z.extractall(annotations_dir)
             annotation_format = "json"
