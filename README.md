@@ -90,7 +90,8 @@ Downloads a remote project, images and annotations, in the projects directory (s
 from darwin.client import Client
 
 client = Client.default()
-dataset = client.get_remote_dataset(slug="example-dataset").pull()
+dataset = client.get_remote_dataset(slug="example-dataset")
+dataset.pull()
 ```
 
 
