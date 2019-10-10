@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import io
+
 import zipfile
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Optional
+from typing import List, Optional, TYPE_CHECKING
 
 import darwin
 from darwin.dataset.download_manager import download_all_images_from_annotations
@@ -60,8 +61,28 @@ class RemoteDataset:
             self._client.put(f"/dataset_videos/{metadata['id']}/confirm_upload", payload={})
             yield
 
-    def pull(self):
-        """Downloads a remote project (images and annotations) in the projects directory. """
+    @staticmethod
+    def _f(x):
+        """Support function for pool.map() in pull()"""
+        x()
+
+    def pull(self, blocking:Optional[bool] = True, multi_threaded : Optional[bool] = True):
+        """Downloads a remote project (images and annotations) in the projects directory.
+
+        Parameters
+        ----------
+        blocking : bool
+            If False, the dataset is not donwloaded and a generator function is returned instead
+        multi_threaded : bool
+            Uses multiprocessing to download the dataset in parallel. If blocking is False this has no effect.
+
+        Returns
+        -------
+        generator : function
+            Generator for doing the actual downloads. This is None if blocking is True
+        count : int
+            The files count
+        """
         response = self._client.get(f"/datasets/{self.dataset_id}/export?format=json", raw=True)
         zip_file = io.BytesIO(response.content)
         if zipfile.is_zipfile(zip_file):
@@ -73,9 +94,20 @@ class RemoteDataset:
 
             z.extractall(annotations_dir)
             annotation_format = "json"
-            return download_all_images_from_annotations(
+            progress, count = download_all_images_from_annotations(
                 self._client.url, annotations_dir, images_dir, annotation_format
             )
+            # If blocking is selected, download the dataset on the file system
+            if blocking:
+                if multi_threaded:
+                    import multiprocessing as mp
+                    with mp.Pool(mp.cpu_count()) as pool:
+                        pool.map(RemoteDataset._f, progress())
+                else:
+                    for f in progress():
+                        f()
+
+            return progress if not blocking else None, count
 
     def local(self):
         return darwin.dataset.LocalDataset(
