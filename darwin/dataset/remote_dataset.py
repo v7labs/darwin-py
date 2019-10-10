@@ -107,9 +107,8 @@ class RemoteDataset:
                     for f in progress():
                         f()
                 return None, count
-            return progress
-
-            return progress if not blocking else None, count
+            else:
+                return progress, count
 
     def local(self):
         return darwin.dataset.LocalDataset(
