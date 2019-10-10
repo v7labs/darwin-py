@@ -66,7 +66,7 @@ class RemoteDataset:
         """Support function for pool.map() in pull()"""
         x()
 
-    def pull(self, blocking:Optional[bool] = True, multi_threaded : Optional[bool] = True):
+    def pull(self, blocking: Optional[bool] = True, multi_threaded: Optional[bool] = True):
         """Downloads a remote project (images and annotations) in the projects directory.
 
         Parameters
