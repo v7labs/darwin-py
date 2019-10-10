@@ -157,17 +157,14 @@ def pull_project(project_slug: str):
     client = load_client()
     try:
         dataset = client.get_remote_dataset(slug=project_slug)
+        print(f"Pulling project {project_slug}:latest")
+        dataset.pull()
+        return dataset.local()
     except NotFound:
         error(f"project '{project_slug}' does not exist at {client.url}. "
               f"Use 'darwin remote' to list all the remote projects.")
     except Unauthenticated:
         error(f"please re-authenticate")
-    print(f"Pulling project {project_slug}:latest")
-    progress, count = dataset.pull(blocking=False)
-    for f in tqdm(progress(), total=count, desc="Downloading"):
-        f()
-
-    return dataset.local()
 
 
 def remote():
