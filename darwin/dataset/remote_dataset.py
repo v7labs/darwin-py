@@ -106,6 +106,8 @@ class RemoteDataset:
                 else:
                     for f in progress():
                         f()
+                return None, count
+            return progress
 
             return progress if not blocking else None, count
 
