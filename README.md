@@ -93,6 +93,7 @@ client = Client.default()
 dataset = client.get_remote_dataset(slug="example-dataset").pull()
 ```
 
+
 ### Command line
 
 `darwin` is also accessible as a command line tool.
