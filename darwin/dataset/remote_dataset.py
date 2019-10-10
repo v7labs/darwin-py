@@ -61,7 +61,7 @@ class RemoteDataset:
             yield
 
     def pull(self):
-        """Downloads a rermote project (images and annotations) in the projects directory. """
+        """Downloads a remote project (images and annotations) in the projects directory. """
         response = self._client.get(f"/datasets/{self.dataset_id}/export?format=json", raw=True)
         zip_file = io.BytesIO(response.content)
         if zipfile.is_zipfile(zip_file):
