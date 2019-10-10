@@ -94,11 +94,9 @@ dataset = client.get_remote_dataset(slug="example-dataset")
 dataset.pull()
 ```
 
-
 ### Command line
 
 `darwin` is also accessible as a command line tool.
-
 
 #### Authentication
 A username (email address) and password is required to authenticate. If you do not already have a Darwin account, register for free at [https://darwin.v7labs.com](https://darwin.v7labs.com).
