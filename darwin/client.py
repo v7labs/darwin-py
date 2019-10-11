@@ -48,6 +48,7 @@ class Client:
             projects_dir=projects_dir,
         )
 
+    @classmethod
     def from_config(cls, config_path_str: str):
         config_path = Path(config_path_str)
         if not config_path.exists():
