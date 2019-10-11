@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 import io
+import multiprocessing as mp
+import shutil
 import zipfile
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Optional
+from typing import List, Optional, TYPE_CHECKING
+
+from tqdm import tqdm
 
 import darwin
 from darwin.dataset.download_manager import download_all_images_from_annotations
@@ -60,8 +64,28 @@ class RemoteDataset:
             self._client.put(f"/dataset_videos/{metadata['id']}/confirm_upload", payload={})
             yield
 
-    def pull(self):
-        """Downloads a rermote project (images and annotations) in the projects directory. """
+    @staticmethod
+    def _f(x):
+        """Support function for pool.map() in pull()"""
+        x()
+
+    def pull(self, blocking: Optional[bool] = True, multi_threaded: Optional[bool] = True):
+        """Downloads a remote project (images and annotations) in the projects directory.
+
+        Parameters
+        ----------
+        blocking : bool
+            If False, the dataset is not donwloaded and a generator function is returned instead
+        multi_threaded : bool
+            Uses multiprocessing to download the dataset in parallel. If blocking is False this has no effect.
+
+        Returns
+        -------
+        generator : function
+            Generator for doing the actual downloads. This is None if blocking is True
+        count : int
+            The files count
+        """
         response = self._client.get(f"/datasets/{self.dataset_id}/export?format=json", raw=True)
         zip_file = io.BytesIO(response.content)
         if zipfile.is_zipfile(zip_file):
@@ -69,13 +93,34 @@ class RemoteDataset:
             project_dir = Path(self._client.project_dir) / self.slug
             images_dir = project_dir / "images"
             annotations_dir = project_dir / "annotations"
-            annotations_dir.mkdir(parents=True, exist_ok=True)
-
+            if annotations_dir.exists():
+                try:
+                    shutil.rmtree(annotations_dir)
+                except PermissionError:
+                    print(f"Could not remove dataset in {annotations_dir}. Permission denied.")
+            annotations_dir.mkdir(parents=True, exist_ok=False)
             z.extractall(annotations_dir)
             annotation_format = "json"
-            return download_all_images_from_annotations(
+            progress, count = download_all_images_from_annotations(
                 self._client.url, annotations_dir, images_dir, annotation_format
             )
+            # If blocking is selected, download the dataset on the file system
+            if blocking:
+                if multi_threaded:
+                    pbar = tqdm(total=count)
+                    def update(*a):
+                        pbar.update()
+                    with mp.Pool(mp.cpu_count()) as pool:
+                        for f in progress():
+                            pool.apply_async(RemoteDataset._f, args=(f,), callback=update)
+                        pool.close()
+                        pool.join()
+                else:
+                    for f in tqdm(progress(), total=count, desc="Downloading"):
+                        f()
+                return None, count
+            else:
+                return progress, count
 
     def local(self):
         return darwin.dataset.LocalDataset(
