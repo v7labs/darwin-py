@@ -159,6 +159,6 @@ class RemoteDataset:
                 current_list = []
                 current_names = set()
         if left_over:
-            yield from chunk(left_over, size)
+            yield from RemoteDataset.chunk(left_over, size)
         if current_list:
             yield current_list
