@@ -157,19 +157,14 @@ def pull_project(project_slug: str):
     client = load_client()
     try:
         dataset = client.get_remote_dataset(slug=project_slug)
+        print(f"Pulling project {project_slug}:latest")
+        dataset.pull()
+        return dataset.local()
     except NotFound:
-        error(
-            f"project '{project_slug}' does not exist at {client.url}. "
-            f"Use 'darwin remote' to list all the remote projects."
-        )
+        error(f"project '{project_slug}' does not exist at {client.url}. "
+              f"Use 'darwin remote' to list all the remote projects.")
     except Unauthenticated:
         error(f"please re-authenticate")
-    print(f"Pulling project {project_slug}:latest")
-    progress, count = dataset.pull()
-    for f in tqdm(progress(), total=count, desc="Downloading"):
-        f()
-
-    return dataset.local()
 
 
 def remote():
@@ -225,7 +220,7 @@ def remove_local_project(project_slug: str):
 
 
 def upload_data(
-    project_slug: str, files: List[str], extensions_to_exclude: List[str], fps: int, recursive: bool
+        project_slug: str, files: List[str], extensions_to_exclude: List[str], fps: int, recursive: bool
 ):
     client = load_client()
     try:
@@ -245,7 +240,7 @@ def upload_data(
         return
 
     for _ in tqdm(
-        dataset.upload_files(files_to_upload, fps=fps), total=len(files_to_upload), desc="Uploading"
+            dataset.upload_files(files_to_upload, fps=fps), total=len(files_to_upload), desc="Uploading"
     ):
         pass
 
@@ -253,8 +248,8 @@ def upload_data(
 def find_files(root: Path, recursive: bool, exclude: List[str]) -> List[Path]:
     if not root.is_dir():
         if (
-            root.suffix in SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
-            and root.suffix not in exclude
+                root.suffix in SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
+                and root.suffix not in exclude
         ):
             return [root]
         else:
@@ -267,8 +262,8 @@ def find_files(root: Path, recursive: bool, exclude: List[str]) -> List[Path]:
                 files += find_files(file, recursive, exclude)
         else:
             if (
-                file.suffix in SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
-                and file.suffix not in exclude
+                    file.suffix in SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
+                    and file.suffix not in exclude
             ):
                 files += [file]
     return files
