@@ -86,6 +86,7 @@ class RemoteDataset:
         count : int
             The files count
         """
+        annotation_format = "json"
         response = self._client.get(f"/datasets/{self.dataset_id}/export?format=json", raw=True)
         zip_file = io.BytesIO(response.content)
         if zipfile.is_zipfile(zip_file):
@@ -100,7 +101,10 @@ class RemoteDataset:
                     print(f"Could not remove dataset in {annotations_dir}. Permission denied.")
             annotations_dir.mkdir(parents=True, exist_ok=False)
             z.extractall(annotations_dir)
-            annotation_format = "json"
+            # Rename all json files pre-pending 'V7_' in front of them.
+            # This is necessary to avoid overriding them in a later stage.
+            for annotation_path in annotations_dir.glob(f"*.{annotation_format}"):
+                annotation_path.rename(annotation_path.parent / f"V7_{annotation_path.name}")
             progress, count = download_all_images_from_annotations(
                 self._client.url, annotations_dir, images_dir, annotation_format
             )
