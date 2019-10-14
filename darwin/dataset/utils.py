@@ -205,8 +205,6 @@ def split_dataset(
 
     Returns
     -------
-    split_path : Path
-        Local path to the split folder
     splits : dict
         Keys are the different splits (random, tags, ...) and values are the relative file names
     """
@@ -289,5 +287,5 @@ def split_dataset(
         _write_to_file(annotation_files, val_path, val_indices)
         _write_to_file(annotation_files, test_path, test_indices)
 
-    return split_path, splits
+    return splits
 
