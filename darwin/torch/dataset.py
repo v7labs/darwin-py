@@ -1,158 +1,90 @@
 import json
-import random
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 
 import numpy as np
 
-from darwin.client import Client
+import darwin.torch.transforms as T
 from darwin.torch.utils import (
     convert_polygon_to_sequence,
-    fetch_darwin_dataset,
     load_pil_image,
     polygon_area,
 )
 
-def get_dataset(
-        dataset_name: str,
-        image_set: Optional[str] = "train",
-        mode: Optional[str] = "raw",
-        transforms: Optional = None,
-        client: Optional[Client] = None,
-        **kwargs,
-):
-    """
-    Pulls a dataset from Darwin and returns a Dataset class that can be used with a PyTorch dataloader
-
-    Parameters
-    ----------
-    dataset_name : str
-        Identifier of the dataset in Darwin
-    image_set : str
-        Split set, values must be either 'train', 'val' or 'test'
-    mode : str
-        selects the dataset type [image_classification, instance_segmentation, semantic_segmentation]
-    transforms :  [torchvision.transforms]
-        List of PyTorch transforms
-    client:  Client
-        Darwin's client
-
-    Returns
-    -------
-    Dataset
-        Dataset class
-    """
-
-    root, split_id = fetch_darwin_dataset(dataset_name, client, **kwargs)
-
-    if mode == "raw":
-        return Dataset(
-            root=root, image_set=image_set, split_id=split_id, transforms=transforms
-        )
-
-    if mode == "classification":
-        return ClassificationDataset(
-            root=root, image_set=image_set, split_id=split_id, transforms=transforms
-        )
-
-    if mode == "instance_segmentation":
-        import darwin.torch.transforms as T
-        if transforms is None:
-            transforms = []
-        transforms.insert(0, T.ConvertPolysToInstanceMasks())
-        transforms = T.Compose(transforms)
-        return InstanceSegmentationDataset(
-            root=root, image_set=image_set, split_id=split_id, transforms=transforms
-        )
-
-    if mode == "semantic_segmentation":
-        import darwin.torch.transforms as T
-        if transforms is None:
-            transforms = []
-        transforms.insert(0, T.ConvertPolysToMask())
-        transforms = T.Compose(transforms)
-        return SemanticSegmentationDataset(
-            root=root, image_set=image_set, split_id=split_id, transforms=transforms
-        )
-
-    raise ValueError("Dataset type {mode} not supported.")
-
-
 class Dataset(object):
-    def __init__(self, root: Path, image_set: str, split_id: Optional[str] = None, transforms=None):
+    def __init__(self, dataset, split: Path, transforms: Optional[List] = None):
         """ Creates a dataset
 
         Parameters
         ----------
-        root : Path
-            Path to the root folder
-        image_set : str
-            Chosen split, either 'train', 'val' or 'test'
-        split_id : str
-            String defining the splits. Created as f'split_val{val_percentage}_test{test_percentage}_seed{split_seed}'
-        transforms : [torchvision.transforms]
+        dataset : TODO
+            Dataset to load
+        split : Path
+            Path to the *.txt file containing the list of files for this split.
+        transforms : list[torchvision.transforms]
             List of PyTorch transforms
         """
-        self.root = root
-        self.image_set = image_set
+        self.dataset = dataset
+        self.split = split
         self.transforms = transforms
         self.images_path = []
         self.annotations_path = []
         self.classes = None
+        self.original_classes = None
         self.original_images_path = None
         self.original_annotations_path = None
-        self.original_classes = None
 
-        if self.image_set not in ["train", "val", "test"]:
-            raise ValueError(f"Unknown partition {self.image_set}")
+        #Compose the transform if necessary
+        if self.transforms is not None:
+            self.transforms = T.Compose(transforms)
 
-        path_to_lists = self.root / "lists"
-        if split_id is not None:
-            path_to_lists /= split_id
-        file_partition = path_to_lists / f"{self.image_set}.txt"
-
-        if not file_partition.exists():
-            raise FileNotFoundError(
-                "Could not find partition {image_set} in {path_to_lists}. (Is the percentage larger than 0?)"
-            )
-
+        # Populate internal lists of annotations and images paths
+        if not self.split.exists():
+            raise FileNotFoundError(f"Could not find partition {self.split}"
+                                    f" in {self.dataset.local_path}.")
         extensions = ["jpg", "jpeg", "png"]
-        stems = [e.strip() for e in open(str(file_partition))]
+        stems = (e.strip() for e in open(str(self.split)))
         for stem in stems:
-            annotation_path = self.root / f"annotations/{stem}.json"
+            annotation_path = self.dataset.local_path / f"annotations/{stem}.json"
             for extension in extensions:
-                image_path = self.root / f"images/{stem}.{extension}"
+                image_path = self.dataset.local_path / f"images/{stem}.{extension}"
                 if image_path.is_file():
                     self.images_path.append(image_path)
                     self.annotations_path.append(annotation_path)
                     break
         if len(self.images_path) == 0:
-            raise ValueError(f"could not find any {extensions} file in {self.root/'images'}")
+            raise ValueError(f"Could not find any {extensions} file"
+                             f" in {self.dataset.local_path/'images'}")
         if len(self.images_path) != len(self.annotations_path):
-            raise ValueError(f"some annotations ({len(self.annotations_path)}) "
+            raise ValueError(f"Some annotations ({len(self.annotations_path)}) "
                              f"do not have a corresponding image ({len(self.images_path)})")
+        assert len(self.images_path) == len(self.annotations_path)
 
-    def subsample(self, perc: float):
-        num = int(len(self.annotations_path) * perc)
-        #TODO warning this does not protect from x-contamination! See PR
-        indices = random.sample(range(len(self.annotations_path)), num)
+    def extend(self, ds, extend_classes: bool = False):
+        """Extends the current dataset with another one
+
+        Parameters
+        ----------
+        ds : Dataset
+            Dataset to merge
+        extend_classes : bool
+            Extend the current set of classes by merging with the passed dataset ones
+
+        Returns
+        -------
+        Dataset
+            self
+        """
+        if self.classes != ds.classes and not extend_classes:
+            raise ValueError(f"Operation dataset_a + dataset_b could not be computed: classes "
+                             f"should match. Use flag extend_classes=True to combine both lists "
+                             f"of classes.")
+        self.classes = list(set(self.classes).union(set(ds.classes)))
+
         self.original_images_path = self.images_path
-        self.images_path = [self.images_path[i] for i in indices]
+        self.images_path += ds.images_path
         self.original_annotations_path = self.annotations_path
-        self.annotations_path = [self.annotations_path[i] for i in indices]
-
-    def extend(self, db, extend_classes=False):
-        if self.classes != db.classes and not extend_classes:
-            raise ValueError(
-                "Operation dataset_a + dataset_b could not be computed: classes should match. \
-                             Use flag extend_classes=True to combine both lists of classes."
-            )
-        self.classes = list(set(self.classes).union(set(db.classes)))
-
-        self.original_images_path = self.images_path
-        self.images_path += db.images
-        self.original_annotations_path = self.annotations_path
-        self.annotations_path += db.annotations
+        self.annotations_path += ds.annotations_path
         return self
 
     def _map_annotation(self, index: int):
@@ -172,79 +104,86 @@ class Dataset(object):
         """
         with open(str(self.annotations_path[index])) as f:
             annotation = json.load(f)["annotations"]
-
-        if self.classes is None:
-            raise ValueError(f"No classes have been specified yet (self.classes is still none!).")
-
         # Filter out unused classes
         annotation = [a for a in annotation if a["name"] in self.classes]
         return {"image_id": index,
                 "annotations": annotation}
 
-    def __getitem__(self, index: int):
-        # load images and masks
-        img = load_pil_image(self.images_path[index])
-        target = self._map_annotation(index)
+    def __add__(self, ds):
+        """Adds the passed dataset to the current one
 
-        if self.transforms is not None:
-            img, target = self.transforms(img, target)
+        Parameters
+        ----------
+        ds : Dataset
+            Dataset to merge
 
-        return img, target
-
-    def __add__(self, db):
-        if self.classes != db.classes:
+        Returns
+        -------
+        Dataset
+            self
+        """
+        if self.classes != ds.classes:
             raise ValueError(
-                "Operation dataset_a + dataset_b could not be computed: classes should match. \
-                             Use dataset_a.extend(dataset_b, extend_classes=True) to combine both lists of classes"
+                f"Operation dataset_a + dataset_b could not be computed: classes should match."
+                f"Use dataset_a.extend(dataset_b, extend_classes=True) to combine both lists of classes"
             )
         self.original_images_path = self.images_path
-        self.images_path += db.images
+        self.images_path += ds.images_path
         self.original_annotations_path = self.annotations_path
-        self.annotations_path += db.annotations
+        self.annotations_path += ds.annotations_path
         return self
 
-    def __mul__(self, percentage: float):
-        self.subsample(percentage)
+    def __getitem__(self, index: int):
+        # Load images and masks
+        img = load_pil_image(self.images_path[index])
+        target = self._map_annotation(index)
+        if self.transforms is not None:
+            img, target = self.transforms(img, target)
+        return img, target
 
     def __len__(self):
         return len(self.images_path)
 
     def __str__(self):
-        format_string = (
-            f"{self.__class__.__name__}():\n"
-            f"  Root: {self.root}\n"
-            f"  Number of images: {len(self.images_path)}"
-        )
-        return format_string
+        return (f"{self.__class__.__name__}():\n"
+                f"  Root: {self.dataset.local_path}\n"
+                f"  Number of images: {len(self.images_path)}")
 
 
 class ClassificationDataset(Dataset):
-    def __init__(self, root: Path, image_set: str, split_id: Optional[str] = None, transforms=None):
-        super(ClassificationDataset, self).__init__(root, image_set, split_id, transforms)
-        self.classes = [e.strip() for e in open(str(root / "lists/classes_tags.txt"))]
+    def __init__(self, dataset, split: Path, transforms: Optional[List] = None):
+        """See superclass for documentation"""
+        super().__init__(dataset=dataset, split=split, transforms=transforms)
+        self.classes = [e.strip() for e in open(str(self.dataset.local_path / "lists/classes_tags.txt"))]
 
     def _map_annotation(self, index: int):
+        """See superclass for documentation"""
         with open(str(self.annotations_path[index])) as f:
             annotation = json.load(f)["annotations"]
-            for obj in annotation:
-                if "tag" in obj:
-                    return {"category_id": self.classes.index(obj["name"])}
+        return {"category_id": [self.classes.index(a["name"]) for a in annotation if "tag" in a]}
 
 
 class InstanceSegmentationDataset(Dataset):
-    def __init__(self, root: Path, image_set: str, split_id: Optional[str] = None, transforms=None):
-        super(InstanceSegmentationDataset, self).__init__(root, image_set, split_id, transforms)
-        self.classes = [e.strip() for e in open(str(root / "lists/classes_masks.txt"))]
+    def __init__(self, dataset, split: Path, transforms: Optional[List] = None):
+        """See superclass for documentation"""
+        super().__init__(dataset=dataset, split=split, transforms=transforms)
+        self.classes = [e.strip() for e in open(str(self.dataset.local_path / "lists/classes_masks.txt"))]
+        # Prepend the default transform to convert polygons to instance masks
+        if self.transforms is None:
+            self.transforms = []
+        self.transforms.insert(0, T.ConvertPolysToInstanceMasks())
+        self.transforms = T.Compose(transforms)
 
     def _map_annotation(self, index: int):
+        """See superclass for documentation"""
         with open(str(self.annotations_path[index])) as f:
-            anno = json.load(f)["annotations"]
+            annotation = json.load(f)["annotations"]
 
         # Filter out unused classes
-        anno = [obj for obj in anno if obj["name"] in self.classes]
+        annotation = [a for a in annotation if a["name"] in self.classes]
 
         target = []
-        for obj in anno:
+        for obj in annotation:
             new_obj = {"image_id": index,
                        "iscrowd": 0,
                        "category_id": self.classes.index(obj["name"]),
@@ -274,13 +213,20 @@ class InstanceSegmentationDataset(Dataset):
 
 
 class SemanticSegmentationDataset(Dataset):
-    def __init__(self, root: Path, image_set: str, split_id: Optional[str] = None, transforms=None):
-        super(SemanticSegmentationDataset, self).__init__(root, image_set, split_id, transforms)
-        self.classes = [e.strip() for e in open(str(root / "lists/classes_masks.txt"))]
+    def __init__(self, dataset, split: Path, transforms: Optional[List] = None):
+        """See superclass for documentation"""
+        super().__init__(dataset=dataset, split=split, transforms=transforms)
+        self.classes = [e.strip() for e in open(str(self.dataset.local_path / "lists/classes_masks.txt"))]
         if self.classes[0] == "__background__":
             self.classes = self.classes[1:]
+        # Prepend the default transform to convert polygons to mask
+        if self.transforms is None:
+            self.transforms = []
+        self.transforms.insert(0, T.ConvertPolysToMask())
+        self.transforms = T.Compose(transforms)
 
     def _map_annotation(self, index: int):
+        """See superclass for documentation"""
         with open(str(self.annotations_path[index])) as f:
             annotation = json.load(f)["annotations"]
 
