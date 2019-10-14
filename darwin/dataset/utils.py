@@ -209,7 +209,7 @@ def split_dataset(
         Keys are the different splits (random, tags, ...) and values are the relative file names
     """
     assert dataset is not None
-    annotation_path = Path(dataset.local_path / "annotations")
+    annotation_path = dataset.local_path / "annotations"
     assert annotation_path.exists()
     annotation_files = list(annotation_path.glob("*.json"))
 
