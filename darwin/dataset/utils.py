@@ -94,7 +94,7 @@ def _write_to_file(annotation_files: List, file_path: Path, split_idx: Iterable)
     split_idx : Iterable
         Indices of files for this split
     """
-    with open(str(file_path), "w") as f:
+    with file_path.open() as f:
         for i in split_idx:
             f.write(f"{annotation_files[i].stem}\n")
 
@@ -209,7 +209,7 @@ def split_dataset(
         Keys are the different splits (random, tags, ...) and values are the relative file names
     """
     assert dataset is not None
-    annotation_path = Path(dataset.local_path / "annotations")
+    annotation_path = dataset.local_path / "annotations"
     assert annotation_path.exists()
     annotation_files = list(annotation_path.glob("*.json"))
 
