@@ -180,7 +180,7 @@ def _stratify_samples(idx_to_classes, split_seed, test_percentage, val_percentag
     return list(set(X_train)), list(set(X_val)), list(set(X_test))
 
 def split_dataset(
-        root: Path,
+        dataset,
         val_percentage: Optional[float] = 0.1,
         test_percentage: Optional[float] = 0.2,
         force_resplit: Optional[bool] = False,
@@ -192,8 +192,8 @@ def split_dataset(
 
     Parameters
     ----------
-    root : Path
-        Path of the dataset on the file system
+    dataset : TODO
+        Dataset to split
     val_percentage : float
         Percentage of images used in the validation set
     test_percentage : float
@@ -210,13 +210,13 @@ def split_dataset(
     splits : dict
         Keys are the different splits (random, tags, ...) and values are the relative file names
     """
-    assert root.exists()
-    annotation_path = Path(root / "annotations")
+    assert dataset is not None
+    annotation_path = Path(dataset.local_path / "annotations")
     assert annotation_path.exists()
     annotation_files = list(annotation_path.glob("*.json"))
 
     # Extract list of classes and create respective files
-    lists_path = root / "lists"
+    lists_path = dataset.local_path / "lists"
     lists_path.mkdir(parents=True, exist_ok=True)
     idx_to_classes_polygon = make_class_list(
         "classes_polygon.txt", annotation_files, lists_path, "polygon", force_resplit, add_background=True
