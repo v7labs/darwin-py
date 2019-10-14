@@ -46,26 +46,30 @@ class Dataset(object):
         stems = (e.strip() for e in split.open())
         for stem in stems:
             annotation_path = self.dataset.local_path / f"annotations/{stem}.json"
-            for extension in extensions:
-                image_path = self.dataset.local_path / f"images/{stem}.{extension}"
-                if image_path.is_file():
-                    self.images_path.append(image_path)
-                    self.annotations_path.append(annotation_path)
-                    break
+            images = [image for image in self.dataset.local_path.glob(f"images/{stem}.*") if image.suffix in extensions]
+            if len(images) < 1:
+                raise ValueError(f"Annotation ({annotation_path}) does"
+                                 f" not have a corresponding image")
+            if len(images) > 1:
+                raise ValueError(f"Image ({stem}) is present with multiple extensions."
+                                 f" This is forbidden.")
+            assert len(images) == 1
+            image_path = images[0]
+            self.images_path.append(image_path)
+            self.annotations_path.append(annotation_path)
+
         if len(self.images_path) == 0:
             raise ValueError(f"Could not find any {extensions} file"
                              f" in {self.dataset.local_path/'images'}")
-        if len(self.images_path) != len(self.annotations_path):
-            raise ValueError(f"Some annotations ({len(self.annotations_path)}) "
-                             f"do not have a corresponding image ({len(self.images_path)})")
+
         assert len(self.images_path) == len(self.annotations_path)
 
-    def extend(self, ds, extend_classes: bool = False):
+    def extend(self, dataset, extend_classes: bool = False):
         """Extends the current dataset with another one
 
         Parameters
         ----------
-        ds : Dataset
+        dataset : Dataset
             Dataset to merge
         extend_classes : bool
             Extend the current set of classes by merging with the passed dataset ones
@@ -75,16 +79,16 @@ class Dataset(object):
         Dataset
             self
         """
-        if self.classes != ds.classes and not extend_classes:
+        if self.classes != dataset.classes and not extend_classes:
             raise ValueError(f"Operation dataset_a + dataset_b could not be computed: classes "
                              f"should match. Use flag extend_classes=True to combine both lists "
                              f"of classes.")
-        self.classes = list(set(self.classes).union(set(ds.classes)))
+        self.classes = list(set(self.classes).union(set(dataset.classes)))
 
         self.original_images_path = self.images_path
-        self.images_path += ds.images_path
+        self.images_path += dataset.images_path
         self.original_annotations_path = self.annotations_path
-        self.annotations_path += ds.annotations_path
+        self.annotations_path += dataset.annotations_path
         return self
 
     def _map_annotation(self, index: int):
@@ -102,19 +106,19 @@ class Dataset(object):
         dict
         A new dictionary containing the index and the filtered annotation
         """
-        with open(str(self.annotations_path[index])) as f:
+        with self.annotations_path[index].open() as f:
             annotation = json.load(f)["annotations"]
         # Filter out unused classes
         annotation = [a for a in annotation if a["name"] in self.classes]
         return {"image_id": index,
                 "annotations": annotation}
 
-    def __add__(self, ds):
+    def __add__(self, dataset):
         """Adds the passed dataset to the current one
 
         Parameters
         ----------
-        ds : Dataset
+        dataset : Dataset
             Dataset to merge
 
         Returns
@@ -122,15 +126,15 @@ class Dataset(object):
         Dataset
             self
         """
-        if self.classes != ds.classes:
+        if self.classes != dataset.classes:
             raise ValueError(
                 f"Operation dataset_a + dataset_b could not be computed: classes should match."
                 f"Use dataset_a.extend(dataset_b, extend_classes=True) to combine both lists of classes"
             )
         self.original_images_path = self.images_path
-        self.images_path += ds.images_path
+        self.images_path += dataset.images_path
         self.original_annotations_path = self.annotations_path
-        self.annotations_path += ds.annotations_path
+        self.annotations_path += dataset.annotations_path
         return self
 
     def __getitem__(self, index: int):
@@ -158,7 +162,7 @@ class ClassificationDataset(Dataset):
 
     def _map_annotation(self, index: int):
         """See superclass for documentation"""
-        with open(str(self.annotations_path[index])) as f:
+        with self.annotations_path[index].open() as f:
             annotation = json.load(f)["annotations"]
         return {"category_id": [self.classes.index(a["name"]) for a in annotation if "tag" in a]}
 
@@ -176,7 +180,7 @@ class InstanceSegmentationDataset(Dataset):
 
     def _map_annotation(self, index: int):
         """See superclass for documentation"""
-        with open(str(self.annotations_path[index])) as f:
+        with self.annotations_path[index].open() as f:
             annotation = json.load(f)["annotations"]
 
         # Filter out unused classes
@@ -227,7 +231,7 @@ class SemanticSegmentationDataset(Dataset):
 
     def _map_annotation(self, index: int):
         """See superclass for documentation"""
-        with open(str(self.annotations_path[index])) as f:
+        with self.annotations_path[index].open() as f:
             annotation = json.load(f)["annotations"]
 
         # Filter out unused classes

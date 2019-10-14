@@ -224,12 +224,17 @@ def split_dataset(
     )
 
     # Create split id, path and final split paths
-    assert val_percentage is not None
-    assert test_percentage is not None
-    assert split_seed is not None
-    assert 0 < val_percentage < 1.0
-    assert 0 <= test_percentage < 1.0
-    assert val_percentage + test_percentage < 1.0
+    if val_percentage is None or not 0 < val_percentage < 1.0:
+        raise ValueError(f"The validation percentage is invalid ({val_percentage}). "
+                         f"Must be between 0 and 1.0")
+    if test_percentage is None or not 0 <= test_percentage < 1.0:
+        raise ValueError(f"The test percentage is invalid ({test_percentage}). "
+                         f"Must be between 0 and 1.0")
+    if split_seed is None:
+        raise ValueError(f"The split seed is invalid ({split_seed}).")
+    if not val_percentage + test_percentage < 1.0:
+        raise ValueError(f"The validation ({val_percentage}) + test ({test_percentage}) percentages "
+                         f"must be lower than 1.0 (is {val_percentage + test_percentage})")
     split_id = f'split_v{int(val_percentage*100)}_t{int(test_percentage*100)}_s{split_seed}'
     split_path = lists_path / split_id
 
@@ -260,9 +265,9 @@ def split_dataset(
         _write_to_file(annotation_files, test_path, test_indices)
 
         # STRATIFIED SPLIT ON POLYGONS
-        train_path = Path(split_path / "stratified_polygon_train.txt")
-        val_path = Path(split_path / "stratified_polygon_split_val.txt")
-        test_path = Path(split_path / "stratified_polygon_test.txt")
+        train_path = split_path / "stratified_polygon_train.txt"
+        val_path = split_path / "stratified_polygon_split_val.txt"
+        test_path = split_path / "stratified_polygon_test.txt"
         splits['polygon'] = {'train': train_path, 'val': val_path, 'test': test_path}
         # Stratify
         train_indices, val_indices, test_indices = _stratify_samples(
@@ -274,9 +279,9 @@ def split_dataset(
         _write_to_file(annotation_files, test_path, test_indices)
 
         # STRATIFIED SPLIT ON TAGS
-        train_path = Path(split_path / "stratified_tags_train.txt")
-        val_path = Path(split_path / "stratified_tags_val.txt")
-        test_path = Path(split_path / "stratified_tags_test.txt")
+        train_path = split_path / "stratified_tags_train.txt"
+        val_path = split_path / "stratified_tags_val.txt"
+        test_path = split_path / "stratified_tags_test.txt"
         splits['tags'] = {'train': train_path, 'val': val_path, 'test': test_path}
         # Stratify
         train_indices, val_indices, test_indices = _stratify_samples(
