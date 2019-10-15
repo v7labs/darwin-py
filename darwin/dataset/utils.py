@@ -29,8 +29,8 @@ def extract_classes(annotation_files: List, annotation_type: str):
     """
     classes = defaultdict(set)
     indices_to_classes = defaultdict(set)
-    for i, file_name in enumerate(annotation_files):
-        with open(file_name) as f:
+    for i, filename in enumerate(annotation_files):
+        with open(filename) as f:
             for annotation in json.load(f)["annotations"]:
                 if annotation_type not in annotation:
                     continue
@@ -40,7 +40,7 @@ def extract_classes(annotation_files: List, annotation_type: str):
     return classes, indices_to_classes
 
 def make_class_list(
-        file_name: str,
+        filename: str,
         annotation_files: List,
         lists_path: Path,
         annotation_type: str,
@@ -52,7 +52,7 @@ def make_class_list(
 
     Parameters
     ----------
-    file_name : str
+    filename : str
         Name of the file where to store the results
     annotation_files : list
         List of json files with the GT information of each image
@@ -71,13 +71,13 @@ def make_class_list(
     Dictionary where keys are image indices and values are all classes
     contained in that image
     """
-    fname = lists_path / file_name
-    if not fname.exists() or force_resplit:
+    filename = lists_path / filename
+    if not filename.exists() or force_resplit:
         classes, idx_to_classes = extract_classes(annotation_files, annotation_type=annotation_type)
         classes_names = list(classes.keys())
         if add_background:
             classes_names.insert(0, "__background__")
-        with open(str(fname), "w") as f:
+        with filename.open() as f:
             for c in classes_names:
                 f.write(f"{c}\n")
         return idx_to_classes
