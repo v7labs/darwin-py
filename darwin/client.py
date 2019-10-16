@@ -48,6 +48,7 @@ class Client:
             projects_dir=projects_dir,
         )
 
+    @classmethod
     def from_config(cls, config_path_str: str):
         config_path = Path(config_path_str)
         if not config_path.exists():
@@ -235,6 +236,21 @@ class Client:
         dataset_id: Optional[int] = None,
         project_id: Optional[int] = None,
     ):
+        """
+        TODO
+
+        Parameters
+        ----------
+        name
+        slug
+        dataset_id
+        project_id
+
+        Returns
+        -------
+        RemoteDataset
+
+        """
         # TODO: swap project_id for dataset_id when the backend has gotten ride of project_id
         if project_id:
             project = self.get(f"/projects/{project_id}")
@@ -260,7 +276,7 @@ class Client:
             raise NotImplementedError
         if dataset_id:
             project = self.get(f"/datasets/{dataset_id}/project")
-            return Dataset(
+            return RemoteDataset(
                 project["name"],
                 slug=project["slug"],
                 dataset_id=project["dataset_id"],
