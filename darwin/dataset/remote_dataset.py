@@ -91,9 +91,8 @@ class RemoteDataset:
         zip_file = io.BytesIO(response.content)
         if zipfile.is_zipfile(zip_file):
             z = zipfile.ZipFile(zip_file)
-            project_dir = Path(self._client.project_dir) / self.slug
-            images_dir = project_dir / "images"
-            annotations_dir = project_dir / "annotations"
+            images_dir = self.local_path / "images"
+            annotations_dir = self.local_path / "annotations"
             if annotations_dir.exists():
                 try:
                     shutil.rmtree(annotations_dir)
@@ -128,7 +127,7 @@ class RemoteDataset:
 
     def local(self):
         return darwin.dataset.LocalDataset(
-            project_path=Path(self._client.project_dir) / self.slug, client=self._client
+            project_path=self.local_path, client=self._client
         )
 
     @property
@@ -137,6 +136,10 @@ class RemoteDataset:
 
     def remove(self):
         self._client.put(f"projects/{self.project_id}/archive", payload={})
+
+    @property
+    def local_path(self):
+        return Path(self._client.project_dir) / self.slug
 
     @staticmethod
     def chunk(items, size):
