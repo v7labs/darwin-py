@@ -17,7 +17,7 @@ class Dataset(object):
 
         Parameters
         ----------
-        dataset : TODO
+        dataset : DarwinDataset
             Dataset to load
         split : Path
             Path to the *.txt file containing the list of files for this split.

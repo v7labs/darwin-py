@@ -2,10 +2,13 @@ import json
 import os
 from collections import defaultdict
 from pathlib import Path
-from typing import List, Optional, Iterable
+from typing import List, Optional, Iterable, Generator
 from sklearn.model_selection import train_test_split
+from tqdm import tqdm
+import multiprocessing as mp
 
 import numpy as np
+
 
 def extract_classes(annotation_files: List, annotation_type: str):
     """
@@ -38,6 +41,7 @@ def extract_classes(annotation_files: List, annotation_type: str):
                 indices_to_classes[i].add(class_name)
                 classes[class_name].add(i)
     return classes, indices_to_classes
+
 
 def make_class_list(
         file_name: str,
@@ -82,6 +86,7 @@ def make_class_list(
                 f.write(f"{c}\n")
         return idx_to_classes
 
+
 def _write_to_file(annotation_files: List, file_path: Path, split_idx: Iterable):
     """Support function for writing split indices to file
 
@@ -97,6 +102,7 @@ def _write_to_file(annotation_files: List, file_path: Path, split_idx: Iterable)
     with open(str(file_path), "w") as f:
         for i in split_idx:
             f.write(f"{annotation_files[i].stem}\n")
+
 
 def remove_cross_contamination(X_a: np.ndarray, X_b: np.ndarray, y_a: np.ndarray, y_b: np.ndarray):
     """
@@ -137,6 +143,7 @@ def remove_cross_contamination(X_a: np.ndarray, X_b: np.ndarray, y_a: np.ndarray
                 X_b = X_b[keep_locations]
                 y_b = y_b[keep_locations]
     return X_a, X_b, y_a, y_b
+
 
 def _stratify_samples(idx_to_classes, split_seed, test_percentage, val_percentage):
     """Splits the list of indices into train, val and test according to their labels (stratified)
@@ -179,6 +186,7 @@ def _stratify_samples(idx_to_classes, split_seed, test_percentage, val_percentag
     # mistakes in the class balancing between validation and test sets.
     return list(set(X_train)), list(set(X_val)), list(set(X_test))
 
+
 def split_dataset(
         dataset,
         val_percentage: Optional[float] = 0.1,
@@ -192,7 +200,7 @@ def split_dataset(
 
     Parameters
     ----------
-    dataset : TODO
+    dataset : DarwinDataset
         Dataset to split
     val_percentage : float
         Percentage of images used in the validation set
@@ -289,3 +297,37 @@ def split_dataset(
 
     return splits
 
+
+def _f(x):
+    """Support function for pool.map() in _exhaust_generator()"""
+    if callable(x):
+        x()
+
+
+def exhaust_generator(progress: Generator, count : int, multi_threaded : bool):
+    """Exhausts the generator passed as parameter. Can be done multi threaded if desired
+
+    Parameters
+    ----------
+    progress : Generator
+        Generator to exhaust
+    count : int
+        Size of the generator
+    multi_threaded : bool
+        Flag for multi-threaded enabled operations
+    """
+    if multi_threaded:
+        pbar = tqdm(total=count)
+
+        def update(*a):
+            pbar.update()
+
+        with mp.Pool(mp.cpu_count()) as pool:
+            for f in progress:
+                pool.apply_async(_f, args=(f,), callback=update)
+            pool.close()
+            pool.join()
+    else:
+        for f in tqdm(progress, total=count, desc="Progress"):
+            if callable(f):
+                f()

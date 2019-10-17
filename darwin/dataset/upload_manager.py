@@ -1,13 +1,11 @@
+import functools
 from pathlib import Path
-from typing import Dict, Any, List, TYPE_CHECKING
+from typing import Any, Dict, List, Optional
 
 import requests
 
 from darwin.exceptions import UnsupportedFileType
 from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS, SUPPORTED_VIDEO_EXTENSIONS
-
-if TYPE_CHECKING:
-    from darwin.client import Client
 
 
 def _split_on_file_type(files: List[str]):
@@ -24,8 +22,92 @@ def _split_on_file_type(files: List[str]):
     return images, videos
 
 
+def add_files_to_dataset(
+        client: 'Client',
+        dataset_id: str,
+        filenames: List[Path],
+        fps: Optional[int] = 1
+):
+    """Helper function: upload images to an existing remote dataset
+
+    Parameters
+    ----------
+    client : Client
+        The client to use to communicate with the server
+    dataset_id : str
+        ID of the dataset to add the files to
+    filenames : list[Path]
+        List of filenames to upload
+    fps : int
+        Number of file per seconds to upload
+
+    Returns
+    -------
+
+    """
+    if not filenames:
+        return
+
+    for filenames_chunk in chunk(filenames, 100):
+        images, videos = _split_on_file_type(filenames_chunk)
+        data = client.put(
+            f"/datasets/{dataset_id}",
+            {
+                "image_filenames": [Path(image).name for image in images],
+                "videos": [
+                    {"fps": fps, "original_filename": Path(video).name} for video in videos
+                ],
+            },
+        )
+        # generator = lambda: (
+        #     functools.partial(
+        #         client.put,
+        #         f"/dataset_images/{upload_file_to_s3(client, image_file, images)['id']}/confirm_upload",
+        #         {}
+        #     )
+        #     for image_file in data["image_data"]
+        # )
+        # yield generator
+        for image_file in data["image_data"]:
+            metadata = upload_file_to_s3(client, image_file, images)
+            client.put(f"/dataset_images/{metadata['id']}/confirm_upload", payload={})
+            yield
+
+        for video_file in data["video_data"]:
+            metadata = upload_file_to_s3(client, video_file, videos)
+            client.put(f"/dataset_videos/{metadata['id']}/confirm_upload", payload={})
+            yield
+
+
+def chunk(items, size):
+    """ Chunks paths in batches of size.
+    No batch has any duplicates with regards to file name.
+    This is needed due to a limitation in the upload api.
+    """
+    current_list = []
+    current_names = set()
+    left_over = []
+    for item in items:
+        name = Path(item).name
+        if name in current_names:
+            left_over.append(item)
+        else:
+            current_list.append(item)
+            current_names.add(name)
+        if len(current_list) >= size:
+            yield current_list
+            current_list = []
+            current_names = set()
+    if left_over:
+        yield from chunk(left_over, size)
+    if current_list:
+        yield current_list
+
+
 def upload_file_to_s3(
-    client: "Client", file: Dict[str, Any], full_path: List[str]
+        client: 'Client',
+        file: Dict[str, Any],
+        full_path: List[str]
 ) -> Dict[str, Any]:
     """Helper function: upload data to AWS S3"""
     key = file["key"]
@@ -46,7 +128,39 @@ def upload_file_to_s3(
     return {"key": key, "id": image_id}
 
 
+def upload_to_s3(signature, end_point, file_path=None):
+    """
+
+    Parameters
+    ----------
+    signature
+    end_point
+    file_path
+
+    Returns
+    -------
+    requests.Response
+    Response of the post request
+    """
+    test = {"file": open(file_path, "rb")}
+    return requests.post("http:" + end_point, data=signature, files=test)
+
+
+
 def sign_upload(client, image_id, key, file_path):
+    """
+
+    Parameters
+    ----------
+    client
+    image_id
+    key
+    file_path
+
+    Returns
+    -------
+
+    """
     file_format = Path(file_path).suffix
     return client.post(
         f"/dataset_images/{image_id}/sign_upload?key={key}",
@@ -54,8 +168,4 @@ def sign_upload(client, image_id, key, file_path):
     )
 
 
-def upload_to_s3(signature, end_point, file_path=None):
-    test = {}
-    test["file"] = open(file_path, "rb")
-    response = requests.post("http:" + end_point, data=signature, files=test)
-    return response
+

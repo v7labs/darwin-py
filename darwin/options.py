@@ -74,12 +74,6 @@ class Options(object):
             help="[Remote] Project name: to list all the existing projects, type 'darwin remote'. ",
         )
         parser_upload.add_argument("files", type=str, nargs="+", help="Files to upload")
-        parser_upload.add_argument(
-            "-r",
-            "--recursive",
-            action="store_true",
-            help="recursively traverse folders for files to upload",
-        )
 
         parser_upload.add_argument(
             "-e",

@@ -36,6 +36,7 @@ def main():
             f.list_teams()
         else:
             f.current_team()
+
     # Create new project
     elif args.command == "create":
         f.create_dataset(args.project_name)
@@ -49,6 +50,7 @@ def main():
         path = f.path(args.project_name)
         print(path)
 
+    # Print the url of a remote project
     elif args.command == "url":
         url = f.url(args.project_name)
         print(url)
@@ -66,15 +68,13 @@ def main():
     # Remove a project (remotely)
     elif args.command == "remove":
         project_name = args.project_name
-        if args.remote:
-            f.remove_remote_project(project_name)
-        else:
-            f.remove_local_project(project_name)
+        f.remove_remote_project(project_name)
 
     # Upload new data to a project (remotely)
     elif args.command == "upload":
         f.upload_data(args.project_name, args.files, args.exclude, args.fps, args.recursive)
 
+    # Version
     elif args.command == "version":
         print("0.0.1")
 
