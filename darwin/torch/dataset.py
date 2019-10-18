@@ -1,16 +1,18 @@
 import json
 from pathlib import Path
 from typing import List, Optional
+import multiprocessing as mp
 
 import numpy as np
+import torch.utils.data as data
 
 import darwin.torch.transforms as T
-import torch.utils.data as data
 from darwin.torch.utils import (
     convert_polygon_to_sequence,
     load_pil_image,
     polygon_area,
 )
+
 
 class Dataset(data.Dataset):
     def __init__(self, root: Path, split: Path, transforms: Optional[List] = None):
@@ -114,8 +116,13 @@ class Dataset(data.Dataset):
         return {"image_id": index,
                 "annotations": annotation}
 
-    def measure_mean_std(self, **kwargs):
+    def measure_mean_std(self, multi_threaded: Optional[bool] = True, **kwargs):
         """Computes mean and std of train images, given the train loader
+
+        Parameters
+        ----------
+        multi_threaded : bool
+            Uses multiprocessing to download the dataset in parallel.
 
         Returns
         -------
@@ -124,7 +131,31 @@ class Dataset(data.Dataset):
         std : ndarray[double]
             Standard deviation (for each channel) of all pixels of the images in the input folder
         """
-        raise NotImplementedError
+        if multi_threaded:
+            # Set up a pool of workers
+            with mp.Pool(mp.cpu_count()) as pool:
+                # Online mean
+                results = pool.map(self._return_mean, self.images_path)
+                mean = np.sum(np.array(results), axis=0)  / len(self.images_path)
+                # Online image_classification deviation
+                results = pool.starmap(self._return_std, [[item, mean] for item in  self.images_path])
+                std_sum = np.sum(np.array([item[0] for item in results]), axis=0)
+                total_pixel_count = np.sum(np.array([item[1] for item in results]))
+                std = np.sqrt(std_sum / total_pixel_count)
+                # Shut down the pool
+                pool.close()
+                pool.join()
+            return mean, std
+        else:
+            # Online mean
+            results = [self._return_mean(f) for f in  self.images_path]
+            mean = np.sum(np.array(results), axis=0) / len(self.images_path)
+            # Online image_classification deviation
+            results = [self._return_std(f, mean) for f in  self.images_path]
+            std_sum = np.sum(np.array([item[0] for item in results]), axis=0)
+            total_pixel_count = np.sum(np.array([item[1] for item in results]))
+            std = np.sqrt(std_sum / total_pixel_count)
+            return mean, std
 
     def measure_weights(self, **kwargs):
         """Computes the class balancing weights (not the frequencies!!) given the train loader
@@ -134,7 +165,23 @@ class Dataset(data.Dataset):
         class_weights : ndarray[double]
             Weight for each class in the train set (one for each class)
         """
-        raise NotImplementedError
+        raise NotImplementedError("Base class Dataset does not have an implementation for this")
+
+    # Loads an image with OpenCV and returns the channel wise means of the image.
+    @staticmethod
+    def _return_mean(image_path):
+        img = np.array(load_pil_image(image_path))
+        mean = np.array([np.mean(img[:, :, 0]), np.mean(img[:, :, 1]), np.mean(img[:, :, 2])])
+        return mean / 255.0
+
+    # Loads an image with OpenCV and returns the channel wise std of the image.
+    @staticmethod
+    def _return_std(image_path, mean):
+        img = np.array(load_pil_image(image_path)) / 255.0
+        m2 = np.square(np.array(
+            [img[:, :, 0] - mean[0], img[:, :, 1] - mean[1], img[:, :, 2] - mean[2]]
+        ))
+        return np.sum(np.sum(m2, axis=1), 1), m2.size / 3.0
 
     def __add__(self, dataset):
         """Adds the passed dataset to the current one
@@ -181,7 +228,7 @@ class ClassificationDataset(Dataset):
     def __init__(self, root, split: Path, transforms: Optional[List] = None):
         """See superclass for documentation"""
         super().__init__(root=root, split=split, transforms=transforms)
-        self.classes = [e.strip() for e in open(str(self.root / "lists/classes_tags.txt"))]
+        self.classes = [e.strip() for e in open(str(self.root / "lists/classes_tag.txt"))]
 
     def _map_annotation(self, index: int):
         """See superclass for documentation"""
@@ -189,6 +236,34 @@ class ClassificationDataset(Dataset):
             annotation = json.load(f)["annotations"]
         return {"category_id": [self.classes.index(a["name"]) for a in annotation if "tag" in a]}
 
+    def measure_weights(self, **kwargs):
+        """Computes the class balancing weights (not the frequencies!!) given the train loader
+        Get the weights proportional to the inverse of their class frequencies.
+        The vector sums up to 1
+
+        Returns
+        -------
+        class_weights : ndarray[double]
+            Weight for each class in the train set (one for each class) as a 1D array normalized
+        """
+        # Collect all the labels by iterating over the whole dataset
+        labels = []
+        for sample in self:
+            tags = np.unique(sample[1]['category_id'])
+            if tags.size > 1:
+                raise ValueError(f"Multiple tags defined for this image ({tags}). "
+                                 f"This is not valid in a classification dataset.")
+            if tags.size == 0:
+                raise ValueError(f"No tags defined for this image ({sample[0].filename}). "
+                                 f"This is not valid in a classification dataset.")
+            labels.append(tags[0])
+        class_support = np.unique(labels, return_counts=True)[1]
+        class_frequencies = class_support / len(labels)
+        # Class weights are the inverse of the class frequencies
+        class_weights = 1 / class_frequencies
+        # Normalize vector to sum up to 1.0 (in case the Loss function does not do it)
+        class_weights /= class_weights.sum()
+        return class_weights
 
 class InstanceSegmentationDataset(Dataset):
     def __init__(self, root, split: Path, transforms: Optional[List] = None):

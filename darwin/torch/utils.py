@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import List
 
 import numpy as np
@@ -10,20 +11,24 @@ try:
 except ImportError:
     accimage = None
 
-def load_pil_image(path):
+def load_pil_image(path: Path):
     """
     Loads a PIL image and converts it into RGB.
 
-    Input:
-        path: path to the image file
+    Parameters
+    ----------
+    path: Path
+        Path to the image file
 
-    Output:
-        PIL Image
+    Returns
+    -------
+    PIL Image
+        Values between 0 and 255
     """
     pic = Image.open(path)
     if pic.mode == "RGB":
         pass
-    elif pic.mode in ("CMYK", "RGBA"):
+    elif pic.mode in ("CMYK", "RGBA", "P"):
         pic = pic.convert("RGB")
     elif pic.mode == "I":
         img = (np.divide(np.array(pic, np.int32), 2 ** 16 - 1) * 255).astype(np.uint8)

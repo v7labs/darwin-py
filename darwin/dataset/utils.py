@@ -224,11 +224,11 @@ def split_dataset(
     # Extract list of classes and create respective files
     lists_path = dataset.local_path / "lists"
     lists_path.mkdir(parents=True, exist_ok=True)
+    idx_to_classes_tag = make_class_list(
+        "classes_tag.txt", annotation_files, lists_path, "tag", force_resplit
+    )
     idx_to_classes_polygon = make_class_list(
         "classes_polygon.txt", annotation_files, lists_path, "polygon", force_resplit, add_background=True
-    )
-    idx_to_classes_tags = make_class_list(
-        "classes_tags.txt", annotation_files, lists_path, "tag", force_resplit
     )
 
     # Create split id, path and final split paths
@@ -241,16 +241,29 @@ def split_dataset(
     split_id = f'split_v{int(val_percentage*100)}_t{int(test_percentage*100)}_s{split_seed}'
     split_path = lists_path / split_id
 
+    # Prepared the folder and paths for the splits
     splits = {}
+    splits['random'] = {
+        'train': Path(split_path / "random_train.txt"),
+        'val': Path(split_path / "random_val.txt"),
+        'test':  Path(split_path / "random_test.txt")
+    }
+    splits['stratified_tag'] = {
+        'train': Path(split_path / "stratified_tag_train.txt"),
+        'val': Path(split_path / "stratified_tag_val.txt"),
+        'test': Path(split_path / "stratified_tag_test.txt")
+    }
+    splits['stratified_polygon'] = {
+        'train': Path(split_path / "stratified_polygon_train.txt"),
+        'val': Path(split_path / "stratified_polygon_val.txt"),
+        'test': Path(split_path / "stratified_polygon_test.txt")
+    }
+
     # Do the actual split
     if not split_path.exists() or force_resplit:
         os.makedirs(str(split_path), exist_ok=True)
 
         # RANDOM SPLIT
-        train_path = Path(split_path / "random_train.txt")
-        val_path = Path(split_path / "random_val.txt")
-        test_path = Path(split_path / "random_test.txt")
-        splits['random'] = {'train': train_path, 'val':val_path, 'test':test_path}
         # Compute split sizes
         dataset_size = sum(1 for _ in annotation_files)
         val_size = int(dataset_size * val_percentage)
@@ -263,37 +276,29 @@ def split_dataset(
         val_indices = indices[train_size : train_size + val_size]
         test_indices = indices[train_size + val_size :]
         # Write files
-        _write_to_file(annotation_files, train_path, train_indices)
-        _write_to_file(annotation_files, val_path, val_indices)
-        _write_to_file(annotation_files, test_path, test_indices)
+        _write_to_file(annotation_files, splits['random']['train'], train_indices)
+        _write_to_file(annotation_files, splits['random']['val'], val_indices)
+        _write_to_file(annotation_files, splits['random']['test'], test_indices)
+
+        # STRATIFIED SPLIT ON TAGS
+        # Stratify
+        train_indices, val_indices, test_indices = _stratify_samples(
+            idx_to_classes_tag, split_seed, test_percentage, val_percentage
+        )
+        # Write files
+        _write_to_file(annotation_files, splits['stratified_tag']['train'], train_indices)
+        _write_to_file(annotation_files, splits['stratified_tag']['val'], val_indices)
+        _write_to_file(annotation_files, splits['stratified_tag']['test'], test_indices)
 
         # STRATIFIED SPLIT ON POLYGONS
-        train_path = Path(split_path / "stratified_polygon_train.txt")
-        val_path = Path(split_path / "stratified_polygon_val.txt")
-        test_path = Path(split_path / "stratified_polygon_test.txt")
-        splits['polygon'] = {'train': train_path, 'val': val_path, 'test': test_path}
         # Stratify
         train_indices, val_indices, test_indices = _stratify_samples(
             idx_to_classes_polygon, split_seed, test_percentage, val_percentage
         )
         # Write files
-        _write_to_file(annotation_files, train_path, train_indices)
-        _write_to_file(annotation_files, val_path, val_indices)
-        _write_to_file(annotation_files, test_path, test_indices)
-
-        # STRATIFIED SPLIT ON TAGS
-        train_path = Path(split_path / "stratified_tags_train.txt")
-        val_path = Path(split_path / "stratified_tags_val.txt")
-        test_path = Path(split_path / "stratified_tags_test.txt")
-        splits['tags'] = {'train': train_path, 'val': val_path, 'test': test_path}
-        # Stratify
-        train_indices, val_indices, test_indices = _stratify_samples(
-            idx_to_classes_tags, split_seed, test_percentage, val_percentage
-        )
-        # Write files
-        _write_to_file(annotation_files, train_path, train_indices)
-        _write_to_file(annotation_files, val_path, val_indices)
-        _write_to_file(annotation_files, test_path, test_indices)
+        _write_to_file(annotation_files, splits['stratified_polygon']['train'], train_indices)
+        _write_to_file(annotation_files, splits['stratified_polygon']['val'], val_indices)
+        _write_to_file(annotation_files, splits['stratified_polygon']['test'], test_indices)
 
     return splits
 
