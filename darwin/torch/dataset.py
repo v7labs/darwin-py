@@ -12,19 +12,19 @@ from darwin.torch.utils import (
 )
 
 class Dataset(object):
-    def __init__(self, dataset, split: Path, transforms: Optional[List] = None):
+    def __init__(self, root: Path, split: Path, transforms: Optional[List] = None):
         """ Creates a dataset
 
         Parameters
         ----------
-        dataset : DarwinDataset
-            Dataset to load
+        root : Path
+            Path to the location of the dataset on the file system
         split : Path
             Path to the *.txt file containing the list of files for this split.
         transforms : list[torchvision.transforms]
             List of PyTorch transforms
         """
-        self.dataset = dataset
+        self.root = root
         self.split = split
         self.transforms = transforms
         self.images_path = []
@@ -41,12 +41,12 @@ class Dataset(object):
         # Populate internal lists of annotations and images paths
         if not self.split.exists():
             raise FileNotFoundError(f"Could not find partition {self.split}"
-                                    f" in {self.dataset.local_path}.")
+                                    f" in {self.root}.")
         extensions = ["jpg", "jpeg", "png"]
         stems = (e.strip() for e in split.open())
         for stem in stems:
-            annotation_path = self.dataset.local_path / f"annotations/{stem}.json"
-            images = [image for image in self.dataset.local_path.glob(f"images/{stem}.*") if image.suffix in extensions]
+            annotation_path = self.root / f"annotations/{stem}.json"
+            images = [image for image in self.root.glob(f"images/{stem}.*") if image.suffix in extensions]
             if len(images) < 1:
                 raise ValueError(f"Annotation ({annotation_path}) does"
                                  f" not have a corresponding image")
@@ -60,7 +60,7 @@ class Dataset(object):
 
         if len(self.images_path) == 0:
             raise ValueError(f"Could not find any {extensions} file"
-                             f" in {self.dataset.local_path/'images'}")
+                             f" in {self.root / 'images'}")
 
         assert len(self.images_path) == len(self.annotations_path)
 
@@ -150,15 +150,15 @@ class Dataset(object):
 
     def __str__(self):
         return (f"{self.__class__.__name__}():\n"
-                f"  Root: {self.dataset.local_path}\n"
+                f"  Root: {self.root}\n"
                 f"  Number of images: {len(self.images_path)}")
 
 
 class ClassificationDataset(Dataset):
-    def __init__(self, dataset, split: Path, transforms: Optional[List] = None):
+    def __init__(self, root, split: Path, transforms: Optional[List] = None):
         """See superclass for documentation"""
-        super().__init__(dataset=dataset, split=split, transforms=transforms)
-        self.classes = [e.strip() for e in open(str(self.dataset.local_path / "lists/classes_tags.txt"))]
+        super().__init__(root=root, split=split, transforms=transforms)
+        self.classes = [e.strip() for e in open(str(self.root / "lists/classes_tags.txt"))]
 
     def _map_annotation(self, index: int):
         """See superclass for documentation"""
@@ -168,10 +168,10 @@ class ClassificationDataset(Dataset):
 
 
 class InstanceSegmentationDataset(Dataset):
-    def __init__(self, dataset, split: Path, transforms: Optional[List] = None):
+    def __init__(self, root, split: Path, transforms: Optional[List] = None):
         """See superclass for documentation"""
-        super().__init__(dataset=dataset, split=split, transforms=transforms)
-        self.classes = [e.strip() for e in open(str(self.dataset.local_path / "lists/classes_masks.txt"))]
+        super().__init__(root=root, split=split, transforms=transforms)
+        self.classes = [e.strip() for e in open(str(self.root / "lists/classes_masks.txt"))]
         # Prepend the default transform to convert polygons to instance masks
         if self.transforms is None:
             self.transforms = []
@@ -217,10 +217,10 @@ class InstanceSegmentationDataset(Dataset):
 
 
 class SemanticSegmentationDataset(Dataset):
-    def __init__(self, dataset, split: Path, transforms: Optional[List] = None):
+    def __init__(self, root, split: Path, transforms: Optional[List] = None):
         """See superclass for documentation"""
-        super().__init__(dataset=dataset, split=split, transforms=transforms)
-        self.classes = [e.strip() for e in open(str(self.dataset.local_path / "lists/classes_masks.txt"))]
+        super().__init__(root=root, split=split, transforms=transforms)
+        self.classes = [e.strip() for e in open(str(self.root / "lists/classes_masks.txt"))]
         if self.classes[0] == "__background__":
             self.classes = self.classes[1:]
         # Prepend the default transform to convert polygons to mask
