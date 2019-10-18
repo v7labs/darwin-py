@@ -248,8 +248,9 @@ class ClassificationDataset(Dataset):
         """
         # Collect all the labels by iterating over the whole dataset
         labels = []
-        for sample in self:
-            tags = np.unique(sample[1]['category_id'])
+        for i, _ in enumerate(self.images_path):
+            target = self._map_annotation(i)
+            tags = np.unique(target['category_id'])
             if tags.size > 1:
                 raise ValueError(f"Multiple tags defined for this image ({tags}). "
                                  f"This is not valid in a classification dataset.")
@@ -265,11 +266,12 @@ class ClassificationDataset(Dataset):
         class_weights /= class_weights.sum()
         return class_weights
 
+
 class InstanceSegmentationDataset(Dataset):
     def __init__(self, root, split: Path, transforms: Optional[List] = None):
         """See superclass for documentation"""
         super().__init__(root=root, split=split, transforms=transforms)
-        self.classes = [e.strip() for e in open(str(self.root / "lists/classes_masks.txt"))]
+        self.classes = [e.strip() for e in open(str(self.root / "lists/classes_polygon.txt"))]
         # Prepend the default transform to convert polygons to instance masks
         if self.transforms is None:
             self.transforms = []
@@ -310,15 +312,38 @@ class InstanceSegmentationDataset(Dataset):
 
             target.append(new_obj)
 
-        return {'image_id':index,
-                'annotations':target}
+        return {'image_id': index,
+                'annotations': target}
+
+    def measure_weights(self, **kwargs):
+        """Computes the class balancing weights (not the frequencies!!) given the train loader
+        Get the weights proportional to the inverse of their class frequencies.
+        The vector sums up to 1
+
+        Returns
+        -------
+        class_weights : ndarray[double]
+            Weight for each class in the train set (one for each class) as a 1D array normalized
+        """
+        # Collect all the labels by iterating over the whole dataset
+        labels = []
+        for i, _ in enumerate(self.images_path):
+            target = self._map_annotation(i)
+            labels.extend([a['category_id'] for a in target['annotations']])
+        class_support = np.unique(labels, return_counts=True)[1]
+        class_frequencies = class_support / len(labels)
+        # Class weights are the inverse of the class frequencies
+        class_weights = 1 / class_frequencies
+        # Normalize vector to sum up to 1.0 (in case the Loss function does not do it)
+        class_weights /= class_weights.sum()
+        return class_weights
 
 
 class SemanticSegmentationDataset(Dataset):
     def __init__(self, root, split: Path, transforms: Optional[List] = None):
         """See superclass for documentation"""
         super().__init__(root=root, split=split, transforms=transforms)
-        self.classes = [e.strip() for e in open(str(self.root / "lists/classes_masks.txt"))]
+        self.classes = [e.strip() for e in open(str(self.root / "lists/classes_polygon.txt"))]
         if self.classes[0] == "__background__":
             self.classes = self.classes[1:]
         # Prepend the default transform to convert polygons to mask
@@ -339,4 +364,28 @@ class SemanticSegmentationDataset(Dataset):
         for obj in annotation:
             target.append({"category_id": self.classes.index(obj["name"]),
                            "segmentation": [convert_polygon_to_sequence(obj["polygon"]["path"])]})
-        return target
+        return {'image_id': index,
+                'annotations': target}
+
+    def measure_weights(self, **kwargs):
+        """Computes the class balancing weights (not the frequencies!!) given the train loader
+        Get the weights proportional to the inverse of their class frequencies.
+        The vector sums up to 1
+
+        Returns
+        -------
+        class_weights : ndarray[double]
+            Weight for each class in the train set (one for each class) as a 1D array normalized
+        """
+        # Collect all the labels by iterating over the whole dataset
+        labels = []
+        for i, _ in enumerate(self.images_path):
+            target = self._map_annotation(i)
+            labels.extend([a['category_id'] for a in target['annotations']])
+        class_support = np.unique(labels, return_counts=True)[1]
+        class_frequencies = class_support / len(labels)
+        # Class weights are the inverse of the class frequencies
+        class_weights = 1 / class_frequencies
+        # Normalize vector to sum up to 1.0 (in case the Loss function does not do it)
+        class_weights /= class_weights.sum()
+        return class_weights
