@@ -114,6 +114,28 @@ class Dataset(torch.utils.data.Dataset):
         return {"image_id": index,
                 "annotations": annotation}
 
+    def measure_mean_std(self, **kwargs):
+        """Computes mean and std of train images, given the train loader
+
+        Returns
+        -------
+        mean : ndarray[double]
+            Mean value (for each channel) of all pixels of the images in the input folder
+        std : ndarray[double]
+            Standard deviation (for each channel) of all pixels of the images in the input folder
+        """
+        raise NotImplementedError
+
+    def measure_weights(self, **kwargs):
+        """Computes the class balancing weights (not the frequencies!!) given the train loader
+
+        Returns
+        -------
+        class_weights : ndarray[double]
+            Weight for each class in the train set (one for each class)
+        """
+        raise NotImplementedError
+
     def __add__(self, dataset):
         """Adds the passed dataset to the current one
 
