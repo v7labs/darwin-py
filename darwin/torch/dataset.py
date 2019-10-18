@@ -5,13 +5,14 @@ from typing import List, Optional
 import numpy as np
 
 import darwin.torch.transforms as T
+import torch.utils.data.Dataset
 from darwin.torch.utils import (
     convert_polygon_to_sequence,
     load_pil_image,
     polygon_area,
 )
 
-class Dataset(object):
+class Dataset(torch.utils.data.Dataset):
     def __init__(self, root: Path, split: Path, transforms: Optional[List] = None):
         """ Creates a dataset
 
