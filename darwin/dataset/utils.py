@@ -269,7 +269,7 @@ def split_dataset(
 
         # STRATIFIED SPLIT ON POLYGONS
         train_path = Path(split_path / "stratified_polygon_train.txt")
-        val_path = Path(split_path / "stratified_polygon_split_val.txt")
+        val_path = Path(split_path / "stratified_polygon_val.txt")
         test_path = Path(split_path / "stratified_polygon_test.txt")
         splits['polygon'] = {'train': train_path, 'val': val_path, 'test': test_path}
         # Stratify
