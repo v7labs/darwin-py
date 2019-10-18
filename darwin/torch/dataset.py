@@ -43,7 +43,7 @@ class Dataset(data.Dataset):
         if not self.split.exists():
             raise FileNotFoundError(f"Could not find partition {self.split}"
                                     f" in {self.root}.")
-        extensions = ["jpg", "jpeg", "png"]
+        extensions = [".jpg", ".jpeg", ".png"]
         stems = (e.strip() for e in split.open())
         for stem in stems:
             annotation_path = self.root / f"annotations/{stem}.json"
