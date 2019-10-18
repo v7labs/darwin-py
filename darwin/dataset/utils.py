@@ -224,7 +224,7 @@ def split_dataset(
     assert annotation_path.exists()
     annotation_files = list(annotation_path.glob("*.json"))
 
-    # Extract list of classes and create respective files
+    # Prepare the lists folder
     lists_path = dataset.local_path / "lists"
     lists_path.mkdir(parents=True, exist_ok=True)
 
@@ -238,7 +238,7 @@ def split_dataset(
     split_id = f'split_v{int(val_percentage*100)}_t{int(test_percentage*100)}_s{split_seed}'
     split_path = lists_path / split_id
 
-    # Prepared the folder and paths for the splits
+    # Prepare the return value with the paths of the splits
     splits = {}
     splits['random'] = {
         'train': Path(split_path / "random_train.txt"),
@@ -252,6 +252,10 @@ def split_dataset(
         'train': Path(split_path / "stratified_polygon_train.txt"),
         'val': Path(split_path / "stratified_polygon_val.txt")
     }
+    if test_percentage > 0.0:
+        splits['random']['test'] = Path(split_path) / "random_test.txt"
+        splits['stratified_tag']['test'] = Path(split_path / "stratified_tag_test.txt")
+        splits['stratified_polygon']['test'] = Path(split_path / "stratified_polygon_test.txt")
 
     # Do the actual split
     if not split_path.exists() or force_resplit:
@@ -273,7 +277,6 @@ def split_dataset(
         _write_to_file(annotation_files, splits['random']['train'], train_indices)
         _write_to_file(annotation_files, splits['random']['val'], val_indices)
         if test_percentage > 0.0:
-            splits['random']['test'] = Path(split_path) / "random_test.txt"
             _write_to_file(annotation_files, splits['random']['test'], test_indices)
 
         # STRATIFIED SPLIT ON TAGS
@@ -288,7 +291,6 @@ def split_dataset(
         _write_to_file(annotation_files, splits['stratified_tag']['train'], train_indices)
         _write_to_file(annotation_files, splits['stratified_tag']['val'], val_indices)
         if test_percentage > 0.0:
-            splits['stratified_tag']['test'] = Path(split_path / "stratified_tag_test.txt")
             _write_to_file(annotation_files, splits['stratified_tag']['test'], test_indices)
 
         # STRATIFIED SPLIT ON POLYGONS
@@ -304,7 +306,6 @@ def split_dataset(
         _write_to_file(annotation_files, splits['stratified_polygon']['train'], train_indices)
         _write_to_file(annotation_files, splits['stratified_polygon']['val'], val_indices)
         if test_percentage > 0.0:
-            splits['stratified_polygon']['test'] = Path(split_path / "stratified_polygon_test.txt")
             _write_to_file(annotation_files, splits['stratified_polygon']['test'], test_indices)
 
     return splits
