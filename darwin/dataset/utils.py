@@ -76,15 +76,14 @@ def make_class_list(
     contained in that image
     """
     fname = lists_path / file_name
-    if not fname.exists() or force_resplit:
-        classes, idx_to_classes = extract_classes(annotation_files, annotation_type=annotation_type)
-        classes_names = list(classes.keys())
-        if add_background:
-            classes_names.insert(0, "__background__")
-        with open(str(fname), "w") as f:
-            for c in classes_names:
-                f.write(f"{c}\n")
-        return idx_to_classes
+    classes, idx_to_classes = extract_classes(annotation_files, annotation_type=annotation_type)
+    classes_names = list(classes.keys())
+    if add_background:
+        classes_names.insert(0, "__background__")
+    with open(str(fname), "w") as f:
+        for c in classes_names:
+            f.write(f"{c}\n")
+    return idx_to_classes
 
 
 def _write_to_file(annotation_files: List, file_path: Path, split_idx: Iterable):
@@ -224,12 +223,6 @@ def split_dataset(
     # Extract list of classes and create respective files
     lists_path = dataset.local_path / "lists"
     lists_path.mkdir(parents=True, exist_ok=True)
-    idx_to_classes_tag = make_class_list(
-        "classes_tag.txt", annotation_files, lists_path, "tag", force_resplit
-    )
-    idx_to_classes_polygon = make_class_list(
-        "classes_polygon.txt", annotation_files, lists_path, "polygon", force_resplit, add_background=True
-    )
 
     # Create split id, path and final split paths
     assert val_percentage is not None
@@ -282,6 +275,9 @@ def split_dataset(
 
         # STRATIFIED SPLIT ON TAGS
         # Stratify
+        idx_to_classes_tag = make_class_list(
+            "classes_tag.txt", annotation_files, lists_path, "tag", force_resplit
+        )
         train_indices, val_indices, test_indices = _stratify_samples(
             idx_to_classes_tag, split_seed, test_percentage, val_percentage
         )
@@ -292,6 +288,10 @@ def split_dataset(
 
         # STRATIFIED SPLIT ON POLYGONS
         # Stratify
+        idx_to_classes_polygon = make_class_list(
+            "classes_polygon.txt", annotation_files, lists_path, "polygon", force_resplit,
+            add_background=True
+        )
         train_indices, val_indices, test_indices = _stratify_samples(
             idx_to_classes_polygon, split_seed, test_percentage, val_percentage
         )
