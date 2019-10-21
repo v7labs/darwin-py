@@ -1,8 +1,5 @@
-import random
-
 import PIL
 import torch
-from torchvision.transforms import functional as F
 
 from darwin.torch.utils import convert_polygon_to_mask
 

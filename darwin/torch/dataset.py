@@ -1,7 +1,7 @@
 import json
+import multiprocessing as mp
 from pathlib import Path
 from typing import List, Optional
-import multiprocessing as mp
 
 import numpy as np
 import torch.utils.data as data
