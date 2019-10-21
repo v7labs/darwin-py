@@ -234,7 +234,7 @@ class ClassificationDataset(Dataset):
         """See superclass for documentation"""
         with self.annotations_path[index].open() as f:
             annotation = json.load(f)["annotations"]
-        return {"category_id": [self.classes.index(a["name"]) for a in annotation if "tag" in a]}
+        return {"category_id": np.array([self.classes.index(a["name"]) for a in annotation if "tag" in a])}
 
     def measure_weights(self, **kwargs):
         """Computes the class balancing weights (not the frequencies!!) given the train loader
@@ -275,7 +275,7 @@ class InstanceSegmentationDataset(Dataset):
         # Prepend the default transform to convert polygons to instance masks
         if self.transform is None:
             self.transform = []
-        self.transform.insert(0, T.ConvertPolysToInstanceMasks())
+        self.transform.insert(0, T.ConvertPolygonToInstanceMasks())
         self.transform = T.Compose(transform)
 
     def _map_annotation(self, index: int):
@@ -291,7 +291,7 @@ class InstanceSegmentationDataset(Dataset):
             new_obj = {"image_id": index,
                        "iscrowd": 0,
                        "category_id": self.classes.index(obj["name"]),
-                       "segmentation": [convert_polygon_to_sequence(obj["polygon"]["path"])]}
+                       "segmentation": np.array([convert_polygon_to_sequence(obj["polygon"]["path"])])}
 
             seg = np.array(new_obj["segmentation"][0])
             xcoords = seg[0::2]
@@ -349,7 +349,7 @@ class SemanticSegmentationDataset(Dataset):
         # Prepend the default transform to convert polygons to mask
         if self.transform is None:
             self.transform = []
-        self.transform.insert(0, T.ConvertPolysToMask())
+        self.transform.insert(0, T.ConvertPolygonToMask())
         self.transform = T.Compose(transform)
 
     def _map_annotation(self, index: int):
@@ -363,7 +363,7 @@ class SemanticSegmentationDataset(Dataset):
         target = []
         for obj in annotation:
             target.append({"category_id": self.classes.index(obj["name"]),
-                           "segmentation": [convert_polygon_to_sequence(obj["polygon"]["path"])]})
+                           "segmentation": np.array([convert_polygon_to_sequence(obj["polygon"]["path"])])})
         return {'image_id': index,
                 'annotations': target}
 

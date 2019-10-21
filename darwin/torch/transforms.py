@@ -20,44 +20,7 @@ class Compose(object):
             return image
 
 
-class RandomHorizontalFlip(object):
-    def __init__(self, prob=0.5):
-        self.prob = prob
-
-    def __call__(self, image, target):
-        if random.random() < self.prob:
-            if type(image) == PIL.JpegImagePlugin.JpegImageFile:
-                width, height = image.size
-                image = image.transpose(PIL.Image.FLIP_LEFT_RIGHT)
-            elif type(image) == torch.Tensor:
-                height, width = image.shape[-2:]
-                image = image.flip(-1)
-            else:
-                raise ValueError("Image type {type(image)} not supported")
-
-            if "boxes" in target:
-                bbox = target["boxes"]
-                bbox[:, [0, 2]] = width - bbox[:, [2, 0]]
-                target["boxes"] = bbox
-
-            if "bbox" in target:
-                bbox = target["bbox"]
-                bbox[:, [0, 2]] = width - bbox[:, [2, 0]]
-                target["bbox"] = bbox
-
-            if "masks" in target:
-                target["masks"] = target["masks"].flip(-1)
-
-        return image, target
-
-
-class ToTensor(object):
-    def __call__(self, image, target):
-        image = F.to_tensor(image)
-        return image, target
-
-
-class ConvertPolysToInstanceMasks(object):
+class ConvertPolygonToInstanceMasks(object):
     def __call__(self, image, target):
         w, h = image.size
 
@@ -113,11 +76,11 @@ class ConvertPolysToInstanceMasks(object):
         return image, target
 
 
-class ConvertPolysToMask(object):
-    def __call__(self, image, anno):
+class ConvertPolygonToMask(object):
+    def __call__(self, image, annotation):
         w, h = image.size
-        segmentations = [obj["segmentation"] for obj in anno]
-        cats = [obj["category_id"] for obj in anno]
+        segmentations = [obj["segmentation"] for obj in annotation]
+        cats = [obj["category_id"] for obj in annotation]
         if segmentations:
             masks = convert_polygon_to_mask(segmentations, h, w)
             cats = torch.as_tensor(cats, dtype=masks.dtype)
