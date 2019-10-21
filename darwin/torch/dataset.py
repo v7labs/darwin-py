@@ -231,10 +231,25 @@ class ClassificationDataset(Dataset):
         self.classes = [e.strip() for e in open(str(self.root / "lists/classes_tag.txt"))]
 
     def _map_annotation(self, index: int):
-        """See superclass for documentation"""
+        """See superclass for documentation
+
+        Notes
+        -----
+        The return value is a dict with the following fields:
+            category_id : int
+                The single label of the image selected. For classification is it not allowed
+                to have different tags on a image.
+        """
         with self.annotations_path[index].open() as f:
             annotation = json.load(f)["annotations"]
-        return {"category_id": np.array([self.classes.index(a["name"]) for a in annotation if "tag" in a])}
+            tags = [self.classes.index(a["name"]) for a in annotation if "tag" in a]
+            if len(tags) > 1:
+                raise ValueError(f"Multiple tags defined for this image ({tags}). "
+                                 f"This is not valid in a classification dataset.")
+            if len(tags) == 0:
+                raise ValueError(f"No tags defined for this image ({self.annotations_path[index]})."
+                                 f"This is not valid in a classification dataset.")
+        return {"category_id": tags[0]}
 
     def measure_weights(self, **kwargs):
         """Computes the class balancing weights (not the frequencies!!) given the train loader
@@ -250,14 +265,7 @@ class ClassificationDataset(Dataset):
         labels = []
         for i, filename in enumerate(self.images_path):
             target = self._map_annotation(i)
-            tags = np.unique(target['category_id'])
-            if tags.size > 1:
-                raise ValueError(f"Multiple tags defined for this image ({tags}). "
-                                 f"This is not valid in a classification dataset.")
-            if tags.size == 0:
-                raise ValueError(f"No tags defined for this image ({filename}). "
-                                 f"This is not valid in a classification dataset.")
-            labels.append(tags[0])
+            labels.append(target['category_id'])
         class_support = np.unique(labels, return_counts=True)[1]
         class_frequencies = class_support / len(labels)
         # Class weights are the inverse of the class frequencies
@@ -279,7 +287,21 @@ class InstanceSegmentationDataset(Dataset):
         self.transform = T.Compose(transform)
 
     def _map_annotation(self, index: int):
-        """See superclass for documentation"""
+        """See superclass for documentation
+
+        Notes
+        -----
+        The return value is a dict with the following fields:
+            TODO complete documentation
+            image_id :
+            annotations : list
+                List of annotations, where each annotation is a dict with:
+                image_id :
+                iscrowd :
+                category_id :
+                segmentation :
+                area :
+        """
         with self.annotations_path[index].open() as f:
             annotation = json.load(f)["annotations"]
 
@@ -353,7 +375,18 @@ class SemanticSegmentationDataset(Dataset):
         self.transform = T.Compose(transform)
 
     def _map_annotation(self, index: int):
-        """See superclass for documentation"""
+        """See superclass for documentation
+
+        Notes
+        -----
+        The return value is a dict with the following fields:
+            TODO complete documentation
+            image_id :
+            annotations : list
+                List of annotations, where each annotation is a dict with:
+                category_id :
+                segmentation :
+        """
         with self.annotations_path[index].open() as f:
             annotation = json.load(f)["annotations"]
 
