@@ -15,7 +15,7 @@ from darwin.torch.utils import (
 
 
 class Dataset(data.Dataset):
-    def __init__(self, root: Path, split: Path, transforms: Optional[List] = None):
+    def __init__(self, root: Path, split: Path, transform: Optional[List] = None):
         """ Creates a dataset
 
         Parameters
@@ -24,12 +24,12 @@ class Dataset(data.Dataset):
             Path to the location of the dataset on the file system
         split : Path
             Path to the *.txt file containing the list of files for this split.
-        transforms : list[torchvision.transforms]
+        transform : list[torchvision.transforms]
             List of PyTorch transforms
         """
         self.root = root
         self.split = split
-        self.transforms = transforms
+        self.transform = transform
         self.images_path = []
         self.annotations_path = []
         self.classes = None
@@ -38,8 +38,8 @@ class Dataset(data.Dataset):
         self.original_annotations_path = None
 
         #Compose the transform if necessary
-        if self.transforms is not None:
-            self.transforms = T.Compose(transforms)
+        if self.transform is not None:
+            self.transform = T.Compose(transform)
 
         # Populate internal lists of annotations and images paths
         if not self.split.exists():
@@ -211,8 +211,8 @@ class Dataset(data.Dataset):
         # Load images and masks
         img = load_pil_image(self.images_path[index])
         target = self._map_annotation(index)
-        if self.transforms is not None:
-            img, target = self.transforms(img, target)
+        if self.transform is not None:
+            img, target = self.transform(img, target)
         return img, target
 
     def __len__(self):
@@ -225,9 +225,9 @@ class Dataset(data.Dataset):
 
 
 class ClassificationDataset(Dataset):
-    def __init__(self, root, split: Path, transforms: Optional[List] = None):
+    def __init__(self, root, split: Path, transform: Optional[List] = None):
         """See superclass for documentation"""
-        super().__init__(root=root, split=split, transforms=transforms)
+        super().__init__(root=root, split=split, transform=transform)
         self.classes = [e.strip() for e in open(str(self.root / "lists/classes_tag.txt"))]
 
     def _map_annotation(self, index: int):
@@ -248,14 +248,14 @@ class ClassificationDataset(Dataset):
         """
         # Collect all the labels by iterating over the whole dataset
         labels = []
-        for i, _ in enumerate(self.images_path):
+        for i, filename in enumerate(self.images_path):
             target = self._map_annotation(i)
             tags = np.unique(target['category_id'])
             if tags.size > 1:
                 raise ValueError(f"Multiple tags defined for this image ({tags}). "
                                  f"This is not valid in a classification dataset.")
             if tags.size == 0:
-                raise ValueError(f"No tags defined for this image ({sample[0].filename}). "
+                raise ValueError(f"No tags defined for this image ({filename}). "
                                  f"This is not valid in a classification dataset.")
             labels.append(tags[0])
         class_support = np.unique(labels, return_counts=True)[1]
@@ -268,15 +268,15 @@ class ClassificationDataset(Dataset):
 
 
 class InstanceSegmentationDataset(Dataset):
-    def __init__(self, root, split: Path, transforms: Optional[List] = None):
+    def __init__(self, root, split: Path, transform: Optional[List] = None):
         """See superclass for documentation"""
-        super().__init__(root=root, split=split, transforms=transforms)
+        super().__init__(root=root, split=split, transform=transform)
         self.classes = [e.strip() for e in open(str(self.root / "lists/classes_polygon.txt"))]
         # Prepend the default transform to convert polygons to instance masks
-        if self.transforms is None:
-            self.transforms = []
-        self.transforms.insert(0, T.ConvertPolysToInstanceMasks())
-        self.transforms = T.Compose(transforms)
+        if self.transform is None:
+            self.transform = []
+        self.transform.insert(0, T.ConvertPolysToInstanceMasks())
+        self.transform = T.Compose(transform)
 
     def _map_annotation(self, index: int):
         """See superclass for documentation"""
@@ -340,17 +340,17 @@ class InstanceSegmentationDataset(Dataset):
 
 
 class SemanticSegmentationDataset(Dataset):
-    def __init__(self, root, split: Path, transforms: Optional[List] = None):
+    def __init__(self, root, split: Path, transform: Optional[List] = None):
         """See superclass for documentation"""
-        super().__init__(root=root, split=split, transforms=transforms)
+        super().__init__(root=root, split=split, transform=transform)
         self.classes = [e.strip() for e in open(str(self.root / "lists/classes_polygon.txt"))]
         if self.classes[0] == "__background__":
             self.classes = self.classes[1:]
         # Prepend the default transform to convert polygons to mask
-        if self.transforms is None:
-            self.transforms = []
-        self.transforms.insert(0, T.ConvertPolysToMask())
-        self.transforms = T.Compose(transforms)
+        if self.transform is None:
+            self.transform = []
+        self.transform.insert(0, T.ConvertPolysToMask())
+        self.transform = T.Compose(transform)
 
     def _map_annotation(self, index: int):
         """See superclass for documentation"""
