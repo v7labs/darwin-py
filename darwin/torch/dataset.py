@@ -321,7 +321,7 @@ class InstanceSegmentationDataset(Dataset):
                     The single label of the image selected.
                 segmentation : ndarray(1,)
                     Array of points [x,y,x,y,x,y ...] composing the polygon enclosing the object
-                bbox : ndarray(1,)
+                boxes : ndarray(1,)
                     Coordinates of the bounding box enclosing the instance as [x, y, w, h]
                 area : float
                     Area of the polygon
@@ -347,17 +347,17 @@ class InstanceSegmentationDataset(Dataset):
             h = (np.max(y_coords) - y) + 1
             # Compute the area of the polygon
             poly_area = polygon_area(x_coords, y_coords)
-            bbox_area = w * h
-            if poly_area > bbox_area:
+            boxes_area = w * h
+            if poly_area > boxes_area:
                 raise ValueError(
-                    f"polygon's area should be <= bbox's area. Failed {poly_area} <= {bbox_area}"
+                    f"polygon's area should be <= bbox's area. Failed {poly_area} <= {boxes_area}"
                 )
             # Create and append the new entry for this annotation
             target.append({
                 "iscrowd": 0,
                 "category_id": self.classes.index(annotation["name"]),
                 "segmentation": [sequence],  # List type is used for backward compatibility
-                "bbox": [x, y, w, h],
+                "boxes": [x, y, w, h],
                 "area": poly_area,
             })
 
