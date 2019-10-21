@@ -76,26 +76,30 @@ def convert_polygon_to_mask(segmentations: List[float], height: int, width: int)
         masks = torch.zeros((0, height, width), dtype=torch.uint8)
     return masks
 
-def convert_polygon_to_sequence(polygon: List):
+def convert_polygon_to_sequence(polygon: List[dict]):
     """
     Converts a sequence of dictionaries of (x,y) into an array of coordinates.
 
-    Input:
-        polygon: list of dictionaries -> [{x: x1, y:y1}, ..., {x: xn, y:yn}]
+    Parameters
+    ----------
+    polygon: list[dict]
+        List of coordinates in the format [{x: x1, y:y1}, ..., {x: xn, y:yn}]
 
-    Output:
-        list of float values -> [x1, y1, x2, y2, ..., xn, yn]
+    Returns
+    -------
+    ndarray[float]
+        Array of coordinates in the format [x1, y1, x2, y2, ..., xn, yn]
     """
-    path = []
-    if len(polygon) == 0:
-        return path
-    elif isinstance(polygon[0], dict):
-        for e in polygon:
-            path.append(e["x"])
-            path.append(e["y"])
-        return path
-    else:
-        return polygon
+    if not polygon:
+        raise ValueError("Empty polygon provided")
+    if isinstance(polygon[0], dict):
+        path = []
+        for point in polygon:
+            path.append(point["x"])
+            path.append(point["y"])
+        return np.array(path)
+    raise ValueError("Unknown input format")
+
 
 def polygon_area(x, y):
     """

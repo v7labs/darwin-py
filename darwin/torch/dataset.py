@@ -13,7 +13,8 @@ from darwin.torch.utils import (
     polygon_area,
 )
 
-
+####################################################################################################
+# Dataset
 class Dataset(data.Dataset):
     def __init__(self, root: Path, split: Path, transform: Optional[List] = None):
         """ Creates a dataset
@@ -36,9 +37,10 @@ class Dataset(data.Dataset):
         self.original_classes = None
         self.original_images_path = None
         self.original_annotations_path = None
+        self.convert_polygons = None
 
         #Compose the transform if necessary
-        if self.transform is not None:
+        if self.transform is not None and isinstance(self.transform, list):
             self.transform = T.Compose(transform)
 
         # Populate internal lists of annotations and images paths
@@ -167,6 +169,28 @@ class Dataset(data.Dataset):
         """
         raise NotImplementedError("Base class Dataset does not have an implementation for this")
 
+    @staticmethod
+    def _compute_weights(labels: np.ndarray):
+        """Given an array of labels computes the weights normalized
+
+        Parameters
+        ----------
+        labels : ndarray[int]
+            Array of labels
+
+        Returns
+        -------
+        ndarray[float]
+            Array of weights (one for each unique class) which are the inverse of their frequency
+        """
+        class_support = np.unique(labels, return_counts=True)[1]
+        class_frequencies = class_support / len(labels)
+        # Class weights are the inverse of the class frequencies
+        class_weights = 1 / class_frequencies
+        # Normalize vector to sum up to 1.0 (in case the Loss function does not do it)
+        class_weights /= class_weights.sum()
+        return class_weights
+
     # Loads an image with OpenCV and returns the channel wise means of the image.
     @staticmethod
     def _return_mean(image_path):
@@ -211,6 +235,8 @@ class Dataset(data.Dataset):
         # Load images and masks
         img = load_pil_image(self.images_path[index])
         target = self._map_annotation(index)
+        if self.convert_polygons is not None:
+            img, target = self.convert_polygons(img, target)
         if self.transform is not None:
             img, target = self.transform(img, target)
         return img, target
@@ -224,6 +250,8 @@ class Dataset(data.Dataset):
                 f"  Number of images: {len(self.images_path)}")
 
 
+####################################################################################################
+# ClassificationDataset
 class ClassificationDataset(Dataset):
     def __init__(self, root, split: Path, transform: Optional[List] = None):
         """See superclass for documentation"""
@@ -237,8 +265,7 @@ class ClassificationDataset(Dataset):
         -----
         The return value is a dict with the following fields:
             category_id : int
-                The single label of the image selected. For classification is it not allowed
-                to have different tags on a image.
+                The single label of the image selected.
         """
         with self.annotations_path[index].open() as f:
             annotation = json.load(f)["annotations"]
@@ -266,25 +293,17 @@ class ClassificationDataset(Dataset):
         for i, filename in enumerate(self.images_path):
             target = self._map_annotation(i)
             labels.append(target['category_id'])
-        class_support = np.unique(labels, return_counts=True)[1]
-        class_frequencies = class_support / len(labels)
-        # Class weights are the inverse of the class frequencies
-        class_weights = 1 / class_frequencies
-        # Normalize vector to sum up to 1.0 (in case the Loss function does not do it)
-        class_weights /= class_weights.sum()
-        return class_weights
+        return self.compute_weights(labels)
 
 
+####################################################################################################
+# InstanceSegmentationDataset
 class InstanceSegmentationDataset(Dataset):
     def __init__(self, root, split: Path, transform: Optional[List] = None):
         """See superclass for documentation"""
         super().__init__(root=root, split=split, transform=transform)
         self.classes = [e.strip() for e in open(str(self.root / "lists/classes_polygon.txt"))]
-        # Prepend the default transform to convert polygons to instance masks
-        if self.transform is None:
-            self.transform = []
-        self.transform.insert(0, T.ConvertPolygonToInstanceMasks())
-        self.transform = T.Compose(transform)
+        self.convert_polygons = T.ConvertPolygonsToInstanceMasks()
 
     def _map_annotation(self, index: int):
         """See superclass for documentation
@@ -292,47 +311,55 @@ class InstanceSegmentationDataset(Dataset):
         Notes
         -----
         The return value is a dict with the following fields:
-            TODO complete documentation
-            image_id :
-            annotations : list
+            image_id : int
+                Index of the image inside the dataset
+            annotations : list[Dict]
                 List of annotations, where each annotation is a dict with:
-                image_id :
-                iscrowd :
-                category_id :
-                segmentation :
-                area :
+                iscrowd : int
+                    Flag to denote where the annotation more than one instance (can be 0 or 1)
+                category_id : int
+                    The single label of the image selected.
+                segmentation : ndarray(1,)
+                    Array of points [x,y,x,y,x,y ...] composing the polygon enclosing the object
+                bbox : ndarray(1,)
+                    Coordinates of the bounding box enclosing the instance as [x, y, w, h]
+                area : float
+                    Area of the polygon
         """
         with self.annotations_path[index].open() as f:
-            annotation = json.load(f)["annotations"]
+            annotations = json.load(f)["annotations"]
 
         # Filter out unused classes
-        annotation = [a for a in annotation if a["name"] in self.classes]
+        annotations = [a for a in annotations if a["name"] in self.classes]
 
         target = []
-        for obj in annotation:
-            new_obj = {"image_id": index,
-                       "iscrowd": 0,
-                       "category_id": self.classes.index(obj["name"]),
-                       "segmentation": np.array([convert_polygon_to_sequence(obj["polygon"]["path"])])}
-
-            seg = np.array(new_obj["segmentation"][0])
-            xcoords = seg[0::2]
-            ycoords = seg[1::2]
-            x = np.max((0, np.min(xcoords) - 1))
-            y = np.max((0, np.min(ycoords) - 1))
-            w = (np.max(xcoords) - x) + 1
-            h = (np.max(ycoords) - y) + 1
-            new_obj["bbox"] = [x, y, w, h]
-
-            poly_area = polygon_area(xcoords, ycoords)
+        for annotation in annotations:
+            assert "name" in annotation
+            assert "polygon" in annotation
+            # Extract the sequence of coordinates from the polygon annotation
+            sequence = convert_polygon_to_sequence(annotation["polygon"]["path"])
+            # Compute the bbox of the polygon
+            x_coords = sequence[0::2]
+            y_coords = sequence[1::2]
+            x = np.max((0, np.min(x_coords) - 1))
+            y = np.max((0, np.min(y_coords) - 1))
+            w = (np.max(x_coords) - x) + 1
+            h = (np.max(y_coords) - y) + 1
+            # Compute the area of the polygon
+            poly_area = polygon_area(x_coords, y_coords)
             bbox_area = w * h
             if poly_area > bbox_area:
                 raise ValueError(
                     f"polygon's area should be <= bbox's area. Failed {poly_area} <= {bbox_area}"
                 )
-            new_obj["area"] = poly_area
-
-            target.append(new_obj)
+            # Create and append the new entry for this annotation
+            target.append({
+                "iscrowd": 0,
+                "category_id": self.classes.index(annotation["name"]),
+                "segmentation": [sequence],  # List type is used for backward compatibility
+                "bbox": [x, y, w, h],
+                "area": poly_area,
+            })
 
         return {'image_id': index,
                 'annotations': target}
@@ -351,16 +378,11 @@ class InstanceSegmentationDataset(Dataset):
         labels = []
         for i, _ in enumerate(self.images_path):
             target = self._map_annotation(i)
-            labels.extend([a['category_id'] for a in target['annotations']])
-        class_support = np.unique(labels, return_counts=True)[1]
-        class_frequencies = class_support / len(labels)
-        # Class weights are the inverse of the class frequencies
-        class_weights = 1 / class_frequencies
-        # Normalize vector to sum up to 1.0 (in case the Loss function does not do it)
-        class_weights /= class_weights.sum()
-        return class_weights
+            labels.append([a['category_id'] for a in target['annotations']])
+        return self.compute_weights(labels)
 
-
+####################################################################################################
+# SemanticSegmentationDataset
 class SemanticSegmentationDataset(Dataset):
     def __init__(self, root, split: Path, transform: Optional[List] = None):
         """See superclass for documentation"""
@@ -368,11 +390,7 @@ class SemanticSegmentationDataset(Dataset):
         self.classes = [e.strip() for e in open(str(self.root / "lists/classes_polygon.txt"))]
         if self.classes[0] == "__background__":
             self.classes = self.classes[1:]
-        # Prepend the default transform to convert polygons to mask
-        if self.transform is None:
-            self.transform = []
-        self.transform.insert(0, T.ConvertPolygonToMask())
-        self.transform = T.Compose(transform)
+        self.convert_polygons = T.ConvertPolygonToMask()
 
     def _map_annotation(self, index: int):
         """See superclass for documentation
@@ -415,10 +433,4 @@ class SemanticSegmentationDataset(Dataset):
         for i, _ in enumerate(self.images_path):
             target = self._map_annotation(i)
             labels.extend([a['category_id'] for a in target['annotations']])
-        class_support = np.unique(labels, return_counts=True)[1]
-        class_frequencies = class_support / len(labels)
-        # Class weights are the inverse of the class frequencies
-        class_weights = 1 / class_frequencies
-        # Normalize vector to sum up to 1.0 (in case the Loss function does not do it)
-        class_weights /= class_weights.sum()
-        return class_weights
+        return self.compute_weights(labels)
