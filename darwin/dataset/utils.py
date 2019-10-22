@@ -170,7 +170,7 @@ def _stratify_samples(idx_to_classes, split_seed, test_percentage, val_percentag
     file_indices, labels = zip(*expanded_list)
     X_train, X_tmp, y_train, y_tmp = remove_cross_contamination(
         *train_test_split(np.array(file_indices), np.array(labels),
-                          test_size=val_percentage + test_percentage,
+                          test_size=int((val_percentage + test_percentage)*100)/100,
                           random_state=split_seed,
                           stratify=labels)
     )
@@ -180,7 +180,7 @@ def _stratify_samples(idx_to_classes, split_seed, test_percentage, val_percentag
 
     X_val, X_test, y_val, y_test = remove_cross_contamination(
         *train_test_split(X_tmp, y_tmp,
-                          test_size=test_percentage / (val_percentage + test_percentage),
+                          test_size=(test_percentage*100 / (val_percentage + test_percentage))/100,
                           random_state=split_seed,
                           stratify=y_tmp)
     )

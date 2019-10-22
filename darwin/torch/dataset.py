@@ -378,7 +378,7 @@ class InstanceSegmentationDataset(Dataset):
         labels = []
         for i, _ in enumerate(self.images_path):
             target = self._map_annotation(i)
-            labels.append([a['category_id'] for a in target['annotations']])
+            labels.extend([a['category_id'] for a in target['annotations']])
         return self._compute_weights(labels)
 
 ####################################################################################################
