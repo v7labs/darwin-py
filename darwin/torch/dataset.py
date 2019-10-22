@@ -13,7 +13,7 @@ from darwin.torch.utils import (
     polygon_area,
 )
 
-####################################################################################################
+#############################################################################################4#######
 # Dataset
 class Dataset(data.Dataset):
     def __init__(self, root: Path, split: Path, transform: Optional[List] = None):
@@ -293,7 +293,7 @@ class ClassificationDataset(Dataset):
         for i, filename in enumerate(self.images_path):
             target = self._map_annotation(i)
             labels.append(target['category_id'])
-        return self.compute_weights(labels)
+        return self._compute_weights(labels)
 
 
 ####################################################################################################
@@ -379,7 +379,7 @@ class InstanceSegmentationDataset(Dataset):
         for i, _ in enumerate(self.images_path):
             target = self._map_annotation(i)
             labels.append([a['category_id'] for a in target['annotations']])
-        return self.compute_weights(labels)
+        return self._compute_weights(labels)
 
 ####################################################################################################
 # SemanticSegmentationDataset
@@ -433,4 +433,4 @@ class SemanticSegmentationDataset(Dataset):
         for i, _ in enumerate(self.images_path):
             target = self._map_annotation(i)
             labels.extend([a['category_id'] for a in target['annotations']])
-        return self.compute_weights(labels)
+        return self._compute_weights(labels)
