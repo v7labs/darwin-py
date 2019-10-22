@@ -102,7 +102,7 @@ client = Client.default()
 client.create_dataset(name="This Is My New Dataset")
 ```
 
-Whereas dataset removal is handled directly by the dataset themselves:
+Whereas dataset removal is handled directly by the dataset itself:
 
 ```python
 from darwin.client import Client
