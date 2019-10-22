@@ -3,7 +3,6 @@ import os
 from collections import defaultdict
 from pathlib import Path
 from typing import List, Optional, Iterable, Generator
-from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 import multiprocessing as mp
 
@@ -164,6 +163,8 @@ def _stratify_samples(idx_to_classes, split_seed, test_percentage, val_percentag
     X_train, X_val, X_test : list
         List of indices of the images for each split
     """
+    # Import locally sklearn as to prevent making it a requirement globally for darwin-py
+    from sklearn.model_selection import train_test_split
     # Expand the list of files with all the classes
     expanded_list = [(k, c) for k, v in idx_to_classes.items() for c in v]
     # Stratify
