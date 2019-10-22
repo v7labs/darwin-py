@@ -70,10 +70,10 @@ class Client:
         Dictionary which contains the server response
         """
         self.ensure_authenticated()
-        response = requests.get(urljoin(self.url, endpoint), headers=self.__get_headers())
+        response = requests.get(urljoin(self.url, endpoint), headers=self._get_headers())
 
         if response.status_code == 401 and retry:
-            self.__refresh_access_token()
+            self._refresh_access_token()
             return self.get(endpoint=endpoint, retry=False)
 
         if response.status_code != 200:
@@ -103,11 +103,11 @@ class Client:
         """
         self.ensure_authenticated()
         response = requests.put(
-            urljoin(self.url, endpoint), json=payload, headers=self.__get_headers()
+            urljoin(self.url, endpoint), json=payload, headers=self._get_headers()
         )
 
         if response.status_code == 401 and retry:
-            self.__refresh_access_token()
+            self._refresh_access_token()
             return self.put(endpoint=endpoint, payload=payload, retry=False)
         if response.status_code == 429:
             error_code = response.json()["errors"]["code"]
@@ -152,11 +152,11 @@ class Client:
             error_handlers = []
         self.ensure_authenticated()
         response = requests.post(
-            urljoin(self.url, endpoint), json=payload, headers=self.__get_headers(refresh=refresh)
+            urljoin(self.url, endpoint), json=payload, headers=self._get_headers(refresh=refresh)
         )
 
         if response.status_code == 401 and retry:
-            self.__refresh_access_token()
+            self._refresh_access_token()
             return self.post(endpoint, payload=payload, retry=False)
 
         if response.status_code != 200:
@@ -339,23 +339,36 @@ class Client:
 
     def ensure_authenticated(self):
         """Ensure the client is authenticated"""
-        if self.token is None:
-            if self.refresh_token is None:
-                raise Unauthenticated()
-            else:
-                self.__refresh_access_token()
+        if self.refresh_token is not None:
+            self._refresh_access_token()
+
 
     @classmethod
-    def default(cls):
+    def default(cls, projects_dir: Optional[Path] = None):
         """Factory method to use the configuration file to init the client
+
+        Parameters
+        ----------
+        projects_dir : Path
+            Path where the client should be initialized from (aka the root path)
 
         Returns
         -------
         Client
         The inited client
         """
-        config_path = Path.home() / ".darwin" / "config.yaml"
-        return Client.from_config(config_path)
+        # This functionality is currently suspended in favour of unauthenticated requests
+        # config_path = Path.home() / ".darwin" / "config.yaml"
+        # return Client.from_config(config_path)
+        if not projects_dir:
+            projects_dir = Path.home() / ".darwin" / "projects"
+        return cls(
+            token=None, #Unauthenticated requests
+            refresh_token=None,
+            api_url=Client.default_api_url(),
+            base_url=Client.default_base_url(),
+            projects_dir=projects_dir,
+        )
 
     @classmethod
     def from_token(cls, token: str, projects_dir: Optional[Path] = None):
@@ -445,10 +458,10 @@ class Client:
             projects_dir=projects_dir,
         )
 
-    def __refresh_access_token(self):
+    def _refresh_access_token(self):
         """Create and sets a new token"""
         response = requests.get(
-            urljoin(self.url, "/refresh"), headers=self.__get_headers(refresh=True)
+            urljoin(self.url, "/refresh"), headers=self._get_headers(refresh=True)
         )
         if response.status_code != 200:
             raise Unauthenticated()
@@ -456,7 +469,7 @@ class Client:
         data = response.json()
         self.token = data["token"]
 
-    def __get_headers(self, refresh: bool = False):
+    def _get_headers(self, refresh: bool = False):
         """Get the headers of the API calls to the backend.
 
         Parameters
@@ -473,8 +486,10 @@ class Client:
             return {"Content-Type": "application/json",
                     "Authorization": f"Bearer {self.refresh_token}"}
         else:
-            return {"Content-Type": "application/json",
-                    "Authorization": f"Bearer {self.token}"}
+            header = {"Content-Type": "application/json"}
+            if self.token is not None:
+                header["Authorization"] = f"Bearer {self.token}"
+            return header
 
     @staticmethod
     def default_api_url():
