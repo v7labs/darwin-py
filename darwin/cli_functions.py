@@ -190,7 +190,7 @@ def remove_remote_project(project_slug: str):
             print("Cancelled.")
             return
 
-        dataset.remove()
+        dataset.remove_remote()
     except NotFound:
         _error(f"No dataset with name '{project_slug}'")
 

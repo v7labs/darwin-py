@@ -163,7 +163,7 @@ class RemoteDataset:
             else:
                 return progress, count
 
-    def remove(self):
+    def remove_remote(self):
         """Archives (soft-deletion) the remote dataset"""
         self.client.put(f"projects/{self.project_id}/archive", payload={})
 

@@ -109,7 +109,7 @@ from darwin.client import Client
 
 client = Client.default()
 dataset = client.get_remote_dataset(slug="this-is-my-new-dataset")
-dataset.remove()
+dataset.remove_remote()
 ```
 
 
