@@ -105,7 +105,7 @@ def create_dataset(name: str):
 
 def local():
     """Lists synced projects, stored in the specified path. """
-    table = Table(["name", "images", "sync date", "size"], [Table.L, Table.R, Table.R, Table.R])
+    table = Table(["name", "images", "sync_date", "size"], [Table.L, Table.R, Table.R, Table.R])
     client = _load_client(offline=True)
     for project_path in client.list_local_datasets():
         table.add_row({

@@ -74,6 +74,7 @@ def add_files_to_dataset(
             yield
 
         for video_file in data["video_data"]:
+            print(client, video_file, videos)
             metadata = upload_file_to_s3(client, video_file, videos)
             client.put(f"/dataset_videos/{metadata['id']}/confirm_upload", payload={})
             yield
@@ -113,7 +114,6 @@ def upload_file_to_s3(
     key = file["key"]
     file_path = [path for path in full_path if Path(path).name == file["original_filename"]][0]
     image_id = file["id"]
-
     response = sign_upload(client, image_id, key, Path(file_path).suffix)
     signature = response["signature"]
     end_point = response["postEndpoint"]
