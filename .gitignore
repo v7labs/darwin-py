@@ -6,6 +6,7 @@ __pycache__/
 
 output/
 data/
+darwin_py.egg-info/
 
 *.png
 *.jpeg
@@ -14,4 +15,3 @@ data/
 *.mov
 *.mp4
 *.txt
-*PKG-INFO
