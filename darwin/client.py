@@ -455,7 +455,7 @@ class Client:
             refresh_token=data["refresh_token"],
             api_url=api_url,
             base_url=Client.default_base_url(),
-            projects_dir=projects_dir,
+            projects_dir=str(projects_dir),
         )
 
     def _refresh_access_token(self):

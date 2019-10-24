@@ -242,7 +242,8 @@ def _load_client(offline: bool = False):
     The client requested
     """
     try:
-        client = Client.default()
+        config_dir = Path.home() / ".darwin" / "config.yaml"
+        client = Client.from_config(config_dir)
         if not offline:
             client.ensure_authenticated()
         return client
