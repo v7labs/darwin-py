@@ -6,7 +6,7 @@ __pycache__/
 
 output/
 data/
-darwin_py.egg-info/
+darwin_py.egg-info/PKG-INFO
 
 *.png
 *.jpeg
