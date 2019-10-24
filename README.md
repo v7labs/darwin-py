@@ -201,7 +201,7 @@ Do you want to continue? [y/N] y
 Uploads data to an existing remote project.
 It takes the project name and a single image (or directory) with images/videos to upload as parameters. 
 
-The `-e/--exclude` argument allows to indicate file extension/s to be ignored from the data_dir.
+The `-e/--exclude` argument allows to indicate file extension/s to be ignored from the data_dir. E.g.: `-e .jpg`
 
 For videos, the frame rate extraction rate can be specified by adding `--fps <frame_rate>`
 

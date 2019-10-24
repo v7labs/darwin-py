@@ -88,6 +88,7 @@ def chunk(items, size):
     current_names = set()
     left_over = []
     for item in items:
+        print("item", item)
         name = Path(item).name
         if name in current_names:
             left_over.append(item)

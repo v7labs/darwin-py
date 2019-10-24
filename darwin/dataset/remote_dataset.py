@@ -100,6 +100,9 @@ class RemoteDataset:
             )
             if not files_to_upload:
                 raise NotFound("No files to upload, check your path and exclusion filters")
+        elif extensions_to_exclude is not None:
+            # Filter files
+            files_to_upload = find_files(files_list=files_to_upload, exclude=extensions_to_exclude)
 
         count = len(files_to_upload)
         progress = add_files_to_dataset(
