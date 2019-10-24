@@ -124,6 +124,6 @@ def make_configuration_file(client: 'Client') -> Config:
         "refresh_token": client.refresh_token,
         "api_endpoint": client.url,
         "base_url": client.base_url,
-        "projects_dir": client.projects_dir,
+        "projects_dir": str(client.projects_dir),
     }
     return Config(config_path, default_config)

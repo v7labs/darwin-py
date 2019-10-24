@@ -36,10 +36,10 @@ def add_files_to_dataset(
         The client to use to communicate with the server
     dataset_id : str
         ID of the dataset to add the files to
-    filenames : list[Path]
-        List of filenames to upload
-    fps : int
-        Number of file per seconds to upload
+    filenames : list[Path]sign_upload
+        List of filenames to uploadsign_upload
+    fps : intsign_upload
+        Number of file per seconds to uploadsign_upload
 
     Returns
     -------
@@ -74,7 +74,6 @@ def add_files_to_dataset(
             yield
 
         for video_file in data["video_data"]:
-            print(client, video_file, videos)
             metadata = upload_file_to_s3(client, video_file, videos)
             client.put(f"/dataset_videos/{metadata['id']}/confirm_upload", payload={})
             yield
