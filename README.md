@@ -241,7 +241,6 @@ Downloading: 100%|########################################################| 3/3 
 |                 | `-r` `--remote`          | str                | True      |
 | `url`           | `project_name`           | str                |           |
 | `upload`        | `project_name`           | str                | True      |
-|                 | `data_dir`               | str                | True      |
+|                 | `files`                  | str                | True      |
 |                 | `-e`, `--exclude`        | str                |           |
 |                 | `--fps`                  | int                |           |
-|                 | `-r`, `--recursive`      |                    |           |
