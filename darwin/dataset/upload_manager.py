@@ -36,11 +36,10 @@ def add_files_to_dataset(
         The client to use to communicate with the server
     dataset_id : str
         ID of the dataset to add the files to
-    filenames : list[Path]sign_upload
-        List of filenames to uploadsign_upload
-    fps : intsign_upload
-        Number of file per seconds to uploadsign_upload
-
+    filenames : list[Path]
+        List of filenames to upload
+    fps : int
+        Number of file per seconds to upload
     Returns
     -------
 
@@ -88,7 +87,6 @@ def chunk(items, size):
     current_names = set()
     left_over = []
     for item in items:
-        print("item", item)
         name = Path(item).name
         if name in current_names:
             left_over.append(item)

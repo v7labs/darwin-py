@@ -101,7 +101,7 @@ def find_files(
         for file in root.iterdir():
             if file.is_dir():
                 if recursive:
-                    files += find_files(file, recursive, exclude)
+                    files += find_files(root=file, recursive=recursive, exclude=exclude)
             else:
                 if (file.suffix in SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
                         and file.suffix not in exclude):
