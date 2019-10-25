@@ -77,11 +77,12 @@ def make_class_list(
     fname = lists_path / file_name
     classes, idx_to_classes = extract_classes(annotation_files, annotation_type=annotation_type)
     classes_names = list(classes.keys())
-    if add_background:
-        classes_names.insert(0, "__background__")
-    with open(str(fname), "w") as f:
-        for c in classes_names:
-            f.write(f"{c}\n")
+    if len(classes_names) > 0:
+        if add_background:
+            classes_names.insert(0, "__background__")
+        with open(str(fname), "w") as f:
+            for c in classes_names:
+                f.write(f"{c}\n")
     return idx_to_classes
 
 
@@ -272,8 +273,8 @@ def split_dataset(
         np.random.seed(split_seed)
         indices = np.random.permutation(dataset_size)
         train_indices = indices[:train_size]
-        val_indices = indices[train_size : train_size + val_size]
-        test_indices = indices[train_size + val_size :]
+        val_indices = indices[train_size:train_size + val_size]
+        test_indices = indices[train_size + val_size:]
         # Write files
         _write_to_file(annotation_files, splits['random']['train'], train_indices)
         _write_to_file(annotation_files, splits['random']['val'], val_indices)
@@ -285,14 +286,15 @@ def split_dataset(
         idx_to_classes_tag = make_class_list(
             "classes_tag.txt", annotation_files, lists_path, "tag", force_resplit
         )
-        train_indices, val_indices, test_indices = _stratify_samples(
-            idx_to_classes_tag, split_seed, test_percentage, val_percentage
-        )
-        # Write files
-        _write_to_file(annotation_files, splits['stratified_tag']['train'], train_indices)
-        _write_to_file(annotation_files, splits['stratified_tag']['val'], val_indices)
-        if test_percentage > 0.0:
-            _write_to_file(annotation_files, splits['stratified_tag']['test'], test_indices)
+        if len(idx_to_classes_tag) > 0:
+            train_indices, val_indices, test_indices = _stratify_samples(
+                idx_to_classes_tag, split_seed, test_percentage, val_percentage
+            )
+            # Write files
+            _write_to_file(annotation_files, splits['stratified_tag']['train'], train_indices)
+            _write_to_file(annotation_files, splits['stratified_tag']['val'], val_indices)
+            if test_percentage > 0.0:
+                _write_to_file(annotation_files, splits['stratified_tag']['test'], test_indices)
 
         # STRATIFIED SPLIT ON POLYGONS
         # Stratify
@@ -300,14 +302,15 @@ def split_dataset(
             "classes_polygon.txt", annotation_files, lists_path, "polygon", force_resplit,
             add_background=True
         )
-        train_indices, val_indices, test_indices = _stratify_samples(
-            idx_to_classes_polygon, split_seed, test_percentage, val_percentage
-        )
-        # Write files
-        _write_to_file(annotation_files, splits['stratified_polygon']['train'], train_indices)
-        _write_to_file(annotation_files, splits['stratified_polygon']['val'], val_indices)
-        if test_percentage > 0.0:
-            _write_to_file(annotation_files, splits['stratified_polygon']['test'], test_indices)
+        if len(idx_to_classes_polygon) > 0:
+            train_indices, val_indices, test_indices = _stratify_samples(
+                idx_to_classes_polygon, split_seed, test_percentage, val_percentage
+            )
+            # Write files
+            _write_to_file(annotation_files, splits['stratified_polygon']['train'], train_indices)
+            _write_to_file(annotation_files, splits['stratified_polygon']['val'], val_indices)
+            if test_percentage > 0.0:
+                _write_to_file(annotation_files, splits['stratified_polygon']['test'], test_indices)
 
     return splits
 
@@ -318,7 +321,7 @@ def _f(x):
         x()
 
 
-def exhaust_generator(progress: Generator, count : int, multi_threaded : bool):
+def exhaust_generator(progress: Generator, count: int, multi_threaded: bool):
     """Exhausts the generator passed as parameter. Can be done multi threaded if desired
 
     Parameters
