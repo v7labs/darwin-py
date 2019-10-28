@@ -59,7 +59,7 @@ def main():
     elif args.command == "pull":
         project_name = args.project_name
         local_dataset = f.pull_project(project_name)
-        print(f"Project {project_name} downloaded at {local_dataset.project_path}. ")
+        print(f"Project {project_name} downloaded at {local_dataset.local_path}. ")
 
     # List existing projects (remotely)
     elif args.command == "remote":
@@ -72,7 +72,7 @@ def main():
 
     # Upload new data to a project (remotely)
     elif args.command == "upload":
-        f.upload_data(args.project_name, args.files, args.exclude, args.fps, args.recursive)
+        f.upload_data(args.project_name, args.files, args.exclude, args.fps)
 
     # Version
     elif args.command == "version":

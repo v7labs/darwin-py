@@ -40,7 +40,6 @@ def add_files_to_dataset(
         List of filenames to upload
     fps : int
         Number of file per seconds to upload
-
     Returns
     -------
 
@@ -113,7 +112,6 @@ def upload_file_to_s3(
     key = file["key"]
     file_path = [path for path in full_path if Path(path).name == file["original_filename"]][0]
     image_id = file["id"]
-
     response = sign_upload(client, image_id, key, Path(file_path).suffix)
     signature = response["signature"]
     end_point = response["postEndpoint"]

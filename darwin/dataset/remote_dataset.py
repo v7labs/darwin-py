@@ -100,6 +100,9 @@ class RemoteDataset:
             )
             if not files_to_upload:
                 raise NotFound("No files to upload, check your path and exclusion filters")
+        elif extensions_to_exclude is not None:
+            # Filter files
+            files_to_upload = find_files(files_list=files_to_upload, exclude=extensions_to_exclude)
 
         count = len(files_to_upload)
         progress = add_files_to_dataset(
@@ -115,8 +118,12 @@ class RemoteDataset:
         else:
             return progress, count
 
-
-    def pull(self, blocking: Optional[bool] = True, multi_threaded: Optional[bool] = True):
+    def pull(
+        self,
+        blocking: Optional[bool] = True,
+        multi_threaded: Optional[bool] = True,
+        only_done_images: Optional[bool] = True
+    ):
         """Downloads a remote project (images and annotations) in the projects directory.
 
         Parameters
@@ -125,6 +132,8 @@ class RemoteDataset:
             If False, the dataset is not downloaded and a generator function is returned instead
         multi_threaded : bool
             Uses multiprocessing to download the dataset in parallel. If blocking is False this has no effect.
+        only_done_images: bool
+            If False, it will also download images without annotations or that have not been marked as Done
 
         Returns
         -------
@@ -134,7 +143,10 @@ class RemoteDataset:
             The files count
         """
         annotation_format = "json"
-        response = self.client.get(f"/datasets/{self.dataset_id}/export?format=json", raw=True)
+        query = f"/datasets/{self.dataset_id}/export?format={annotation_format}"
+        if only_done_images:
+            query += f"&image_status=done"
+        response = self.client.get(query, raw=True)
         zip_file = io.BytesIO(response.content)
         if zipfile.is_zipfile(zip_file):
             z = zipfile.ZipFile(zip_file)

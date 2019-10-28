@@ -57,7 +57,8 @@ def prompt(msg: str, default: Optional[str] = None) -> str:
 
 
 def find_files(
-        root: Path,
+        root: Optional[Path] = None,
+        files_list: Optional[List[str]] = None,
         recursive: bool = True,
         exclude: Optional[List[str]] = None
 ) -> List[Path]:
@@ -80,22 +81,32 @@ def find_files(
     """
     if exclude is None:
         exclude = []
-    if not root.is_dir():
-        if (root.suffix in SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
-                and root.suffix not in exclude):
-            return [root]
-        else:
-            return []
-    files: List[Path] = []
-    for file in root.iterdir():
-        if file.is_dir():
-            if recursive:
-                files += find_files(file, recursive, exclude)
-        else:
+    if files_list is not None:
+        files: List[Path] = []
+        for file in files_list:
+            file = Path(file)
             if (file.suffix in SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
                     and file.suffix not in exclude):
                 files += [file]
-    return files
+        return files
+    if root is not None:
+        if not root.is_dir():
+            # print ("TODO: when are we supposed to enter here")
+            if (root.suffix in SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
+                    and root.suffix not in exclude):
+                return [root]
+            else:
+                return []
+        files: List[Path] = []
+        for file in root.iterdir():
+            if file.is_dir():
+                if recursive:
+                    files += find_files(root=file, recursive=recursive, exclude=exclude)
+            else:
+                if (file.suffix in SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
+                        and file.suffix not in exclude):
+                    files += [file]
+        return files
 
 
 def secure_continue_request():
@@ -124,6 +135,6 @@ def make_configuration_file(client: 'Client') -> Config:
         "refresh_token": client.refresh_token,
         "api_endpoint": client.url,
         "base_url": client.base_url,
-        "projects_dir": client.projects_dir,
+        "projects_dir": str(client.projects_dir),
     }
     return Config(config_path, default_config)
