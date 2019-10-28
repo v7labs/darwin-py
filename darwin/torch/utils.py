@@ -5,11 +5,15 @@ import numpy as np
 import torch
 from PIL import Image
 from pycocotools import mask as coco_mask
+import json
+import itertools
+from detectron2.structures import BoxMode
 
 try:
     import accimage
 except ImportError:
     accimage = None
+
 
 def load_pil_image(path: Path):
     """
@@ -43,11 +47,13 @@ def load_pil_image(path: Path):
         raise TypeError(f"unsupported image type {pic.mode}")
     return pic
 
+
 def _is_pil_image(img):
     if accimage is not None:
         return isinstance(img, (Image.Image, accimage.Image))
     else:
         return isinstance(img, Image.Image)
+
 
 def convert_polygon_to_mask(segmentations: List[float], height: int, width: int):
     """
@@ -75,6 +81,7 @@ def convert_polygon_to_mask(segmentations: List[float], height: int, width: int)
     else:
         masks = torch.zeros((0, height, width), dtype=torch.uint8)
     return masks
+
 
 def convert_polygon_to_sequence(polygon: List[dict]):
     """
@@ -107,3 +114,76 @@ def polygon_area(x, y):
     for x and y coordinates.
     """
     return 0.5 * np.abs(np.dot(x, np.roll(y, 1)) - np.dot(y, np.roll(x, 1)))
+
+
+def get_darwin_dicts(root, split, classes_file):
+    if isinstance(root, str):
+        root = Path(root)
+    split = root / 'lists' / split
+    classes = [e.strip() for e in open(root / "lists" / classes_file)]
+    if classes[0] == "__background__":
+        classes = classes[1:]
+    extensions = [".jpg", ".jpeg", ".png"]
+    stems = (e.strip() for e in split.open())
+    images_path = []
+    annotations_path = []
+
+    for stem in stems:
+        annotation_path = root / f"annotations/{stem}.json"
+        images = [image for image in root.glob(f"images/{stem}.*") if image.suffix in extensions]
+        if len(images) < 1:
+            raise ValueError(f"Annotation ({annotation_path}) does"
+                             f" not have a corresponding image")
+        if len(images) > 1:
+            raise ValueError(f"Image ({stem}) is present with multiple extensions."
+                             f" This is forbidden.")
+        assert len(images) == 1
+        image_path = images[0]
+        images_path.append(image_path)
+        annotations_path.append(annotation_path)
+
+    if len(images_path) == 0:
+        raise ValueError(f"Could not find any {extensions} file"
+                         f" in {root / 'images'}")
+
+    assert len(images_path) == len(annotations_path)
+
+    dataset_dicts = []
+    for im_path, annot_path in zip(images_path, annotations_path):
+        record = {}
+
+        with annot_path.open() as f:
+            data = json.load(f)
+
+        height, width = data["image"]["height"], data["image"]["width"]
+        annotations = data["annotations"]
+
+        filename = im_path
+        record["file_name"] = str(filename)
+        record["height"] = height
+        record["width"] = width
+
+        objs = []
+        for obj in annotations:
+            px, py = [], []
+            if "polygon" not in obj:
+                continue
+            for point in obj["polygon"]["path"]:
+                px.append(point["x"])
+                py.append(point["y"])
+            poly = [(x, y) for x, y in zip(px, py)]
+            poly = list(itertools.chain.from_iterable(poly))
+
+            category_id = classes.index(obj["name"])
+
+            obj = {
+                "bbox": [np.min(px), np.min(py), np.max(px), np.max(py)],
+                "bbox_mode": BoxMode.XYXY_ABS,
+                "segmentation": [poly],
+                "category_id": category_id,
+                "iscrowd": 0
+            }
+            objs.append(obj)
+        record["annotations"] = objs
+        dataset_dicts.append(record)
+    return dataset_dicts

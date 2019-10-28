@@ -96,6 +96,11 @@ class Dataset(data.Dataset):
         self.annotations_path += dataset.annotations_path
         return self
 
+    def get_height_and_width(self, index: int):
+        with self.annotations_path[index].open() as f:
+            data = json.load(f)["image"]
+            return data["height"], data["width"]
+
     def _map_annotation(self, index: int):
         """
         Load an annotation and filter out the extra classes according to what
