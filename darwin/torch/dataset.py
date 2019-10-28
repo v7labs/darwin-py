@@ -13,8 +13,7 @@ from darwin.torch.utils import (
     polygon_area,
 )
 
-#############################################################################################4#######
-# Dataset
+
 class Dataset(data.Dataset):
     def __init__(self, root: Path, split: Path, transform: Optional[List] = None):
         """ Creates a dataset
@@ -39,7 +38,7 @@ class Dataset(data.Dataset):
         self.original_annotations_path = None
         self.convert_polygons = None
 
-        #Compose the transform if necessary
+        # Compose the transform if necessary
         if self.transform is not None and isinstance(self.transform, list):
             self.transform = T.Compose(transform)
 
@@ -143,9 +142,9 @@ class Dataset(data.Dataset):
             with mp.Pool(mp.cpu_count()) as pool:
                 # Online mean
                 results = pool.map(self._return_mean, self.images_path)
-                mean = np.sum(np.array(results), axis=0)  / len(self.images_path)
+                mean = np.sum(np.array(results), axis=0) / len(self.images_path)
                 # Online image_classification deviation
-                results = pool.starmap(self._return_std, [[item, mean] for item in  self.images_path])
+                results = pool.starmap(self._return_std, [[item, mean] for item in self.images_path])
                 std_sum = np.sum(np.array([item[0] for item in results]), axis=0)
                 total_pixel_count = np.sum(np.array([item[1] for item in results]))
                 std = np.sqrt(std_sum / total_pixel_count)
@@ -155,10 +154,10 @@ class Dataset(data.Dataset):
             return mean, std
         else:
             # Online mean
-            results = [self._return_mean(f) for f in  self.images_path]
+            results = [self._return_mean(f) for f in self.images_path]
             mean = np.sum(np.array(results), axis=0) / len(self.images_path)
             # Online image_classification deviation
-            results = [self._return_std(f, mean) for f in  self.images_path]
+            results = [self._return_std(f, mean) for f in self.images_path]
             std_sum = np.sum(np.array([item[0] for item in results]), axis=0)
             total_pixel_count = np.sum(np.array([item[1] for item in results]))
             std = np.sqrt(std_sum / total_pixel_count)
@@ -254,9 +253,9 @@ class Dataset(data.Dataset):
                 f"  Root: {self.root}\n"
                 f"  Number of images: {len(self.images_path)}")
 
-
 ####################################################################################################
-# ClassificationDataset
+
+
 class ClassificationDataset(Dataset):
     def __init__(self, root, split: Path, transform: Optional[List] = None):
         """See superclass for documentation"""
@@ -302,7 +301,8 @@ class ClassificationDataset(Dataset):
 
 
 ####################################################################################################
-# InstanceSegmentationDataset
+
+
 class InstanceSegmentationDataset(Dataset):
     def __init__(self, root, split: Path, transform: Optional[List] = None):
         """See superclass for documentation"""
@@ -343,6 +343,9 @@ class InstanceSegmentationDataset(Dataset):
             assert "polygon" in annotation
             # Extract the sequence of coordinates from the polygon annotation
             sequence = convert_polygon_to_sequence(annotation["polygon"]["path"])
+            if len(sequence) / 2 < 3:
+                # Discard polygons with less than three points
+                continue
             # Compute the bbox of the polygon
             x_coords = sequence[0::2]
             y_coords = sequence[1::2]
@@ -387,7 +390,8 @@ class InstanceSegmentationDataset(Dataset):
         return self._compute_weights(labels)
 
 ####################################################################################################
-# SemanticSegmentationDataset
+
+
 class SemanticSegmentationDataset(Dataset):
     def __init__(self, root, split: Path, transform: Optional[List] = None):
         """See superclass for documentation"""
@@ -418,8 +422,12 @@ class SemanticSegmentationDataset(Dataset):
 
         target = []
         for obj in annotation:
+            sequence = convert_polygon_to_sequence(annotation["polygon"]["path"])
+            if len(sequence) / 2 < 3:
+                # Discard polygons with less than three points
+                continue
             target.append({"category_id": self.classes.index(obj["name"]),
-                           "segmentation": np.array([convert_polygon_to_sequence(obj["polygon"]["path"])])})
+                           "segmentation": np.array([sequence])})
         return {'image_id': index,
                 'annotations': target}
 
