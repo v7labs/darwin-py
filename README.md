@@ -62,7 +62,7 @@ previously saved:
 ```python
 from darwin.client import Client
 
-client = Client.default()
+client = Client.local()
 ```
 
 
@@ -73,7 +73,7 @@ Print a list of local existing projects
 ```python
 from darwin.client import Client
 
-client = Client.default()
+client = Client.local()
 for p in client.list_local_datasets():
     print(p.name)
 ```
@@ -85,7 +85,7 @@ authenticated.
 ```python
 from darwin.client import Client
 
-client = Client.default()
+client = Client.local()
 for dataset in client.list_remote_datasets():
     print(dataset.slug, dataset.image_count)
 ```
@@ -98,7 +98,7 @@ Dataset creation is handled by the client:
 ```python
 from darwin.client import Client
 
-client = Client.default()
+client = Client.local()
 client.create_dataset(name="This Is My New Dataset")
 ```
 
@@ -107,7 +107,7 @@ Whereas dataset removal is handled directly by the dataset itself:
 ```python
 from darwin.client import Client
 
-client = Client.default()
+client = Client.local()
 dataset = client.get_remote_dataset(slug="this-is-my-new-dataset")
 dataset.remove_remote()
 ```
@@ -122,7 +122,7 @@ files to the remote dataset.
 ```python
 from darwin.client import Client
 
-client = Client.default()
+client = Client.local()
 dataset = client.get_remote_dataset(slug="example-dataset")
 progress = dataset.push()
 ```
@@ -133,7 +133,7 @@ To download a remote project, images and annotations, in the projects directory
 ```python
 from darwin.client import Client
 
-client = Client.default()
+client = Client.local()
 dataset = client.get_remote_dataset(slug="example-dataset")
 dataset.pull()
 ```
