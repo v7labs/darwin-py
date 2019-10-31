@@ -5,11 +5,14 @@ import numpy as np
 import torch
 from PIL import Image
 from pycocotools import mask as coco_mask
+import json
+import itertools
 
 try:
     import accimage
 except ImportError:
     accimage = None
+
 
 def load_pil_image(path: Path):
     """
@@ -43,11 +46,13 @@ def load_pil_image(path: Path):
         raise TypeError(f"unsupported image type {pic.mode}")
     return pic
 
+
 def _is_pil_image(img):
     if accimage is not None:
         return isinstance(img, (Image.Image, accimage.Image))
     else:
         return isinstance(img, Image.Image)
+
 
 def convert_polygon_to_mask(segmentations: List[float], height: int, width: int):
     """
@@ -75,6 +80,7 @@ def convert_polygon_to_mask(segmentations: List[float], height: int, width: int)
     else:
         masks = torch.zeros((0, height, width), dtype=torch.uint8)
     return masks
+
 
 def convert_polygon_to_sequence(polygon: List[dict]):
     """

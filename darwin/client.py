@@ -344,7 +344,7 @@ class Client:
 
 
     @classmethod
-    def default(cls, projects_dir: Optional[Path] = None):
+    def local(cls, projects_dir: Optional[Path] = None):
         """Factory method to use the configuration file to init the client
 
         Parameters
