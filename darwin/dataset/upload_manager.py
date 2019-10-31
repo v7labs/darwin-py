@@ -1,3 +1,5 @@
+import itertools
+import functools
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -60,16 +62,39 @@ def add_files_to_dataset(
         #     )
         #     for image_file in data["image_data"]
         # )
-        # yield generator
-        for image_file in data["image_data"]:
-            metadata = upload_file_to_s3(client, image_file, images)
-            client.put(f"/dataset_images/{metadata['id']}/confirm_upload", payload={})
-            yield
+        # yield
+        
+        image_generator = lambda: (
+            functools.partial(
+                client.put,
+                f"/dataset_images/{upload_file_to_s3(client, image_file, images)['id']}/confirm_upload",
+                payload={}
+            )
+            for image_file in data["image_data"]
+        )
 
-        for video_file in data["video_data"]:
-            metadata = upload_file_to_s3(client, video_file, videos)
-            client.put(f"/dataset_videos/{metadata['id']}/confirm_upload", payload={})
-            yield
+        video_generator = lambda: (
+            functools.partial(
+                client.put,
+                f"/dataset_videos/{upload_file_to_s3(client, video_file, videos)['id']}/confirm_upload",
+                payload={}
+            )
+            for video_file in data["video_data"]
+        )
+
+        generator = itertools.chain(image_generator(), video_generator())
+        
+        return generator, len(filenames)
+
+        # for image_file in data["image_data"]:
+        #     metadata = upload_file_to_s3(client, image_file, images)
+        #     client.put(f"/dataset_images/{metadata['id']}/confirm_upload", payload={})
+        #     # yield
+
+        # for video_file in data["video_data"]:
+        #     metadata = upload_file_to_s3(client, video_file, videos)
+        #     client.put(f"/dataset_videos/{metadata['id']}/confirm_upload", payload={})
+        #     # yield
 
 
 def chunk(items, size):

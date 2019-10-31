@@ -103,8 +103,7 @@ class RemoteDataset:
             # Filter files
             files_to_upload = find_files(files_list=files_to_upload, exclude=extensions_to_exclude)
 
-        count = len(files_to_upload)
-        progress = add_files_to_dataset(
+        progress, count = add_files_to_dataset(
             client=self.client, dataset_id=str(self.dataset_id), filenames=files_to_upload, fps=fps
         )
 
