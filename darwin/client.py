@@ -21,12 +21,12 @@ from darwin.utils import is_project_dir, urljoin
 
 class Client:
     def __init__(
-            self,
-            token: str,
-            api_url: str,
-            base_url: str,
-            projects_dir: Path,
-            refresh_token: Optional[str] = None   #TODO verify nothing breaks
+        self,
+        token: str,
+        api_url: str,
+        base_url: str,
+        projects_dir: Path,
+        refresh_token: Optional[str] = None,  # TODO verify nothing breaks
     ):
         """Initializes a Client object. Clients are responsible for holding the logic and for
         interacting with the remote hosts.
@@ -119,12 +119,12 @@ class Client:
         return response.json()
 
     def post(
-            self,
-            endpoint: str,
-            payload: Optional[Dict] = None,
-            retry: bool = False,
-            refresh: bool = False,
-            error_handlers: Optional[list] = None,
+        self,
+        endpoint: str,
+        payload: Optional[Dict] = None,
+        retry: bool = False,
+        refresh: bool = False,
+        error_handlers: Optional[list] = None,
     ):
         """Post something new on the server trough HTTP
 
@@ -176,10 +176,14 @@ class Client:
         data = self.get("/users/token_info")
         teams = []
         for row in data["teams"]:
-            teams.append(Team(id=row["id"],
-                              name=row["name"],
-                              slug=row["slug"],
-                              selected=data["selected_team"]["id"] == row["id"],))
+            teams.append(
+                Team(
+                    id=row["id"],
+                    name=row["name"],
+                    slug=row["slug"],
+                    selected=data["selected_team"]["id"] == row["id"],
+                )
+            )
         return teams
 
     def current_team(self):
@@ -240,16 +244,16 @@ class Client:
                 project_id=project["id"],
                 image_count=project["num_images"],
                 progress=project["progress"],
-                client=self
+                client=self,
             )
 
     def get_remote_dataset(
-            self,
-            *,
-            project_id: Optional[int] = None,
-            slug: Optional[str] = None,
-            name: Optional[str] = None,
-            dataset_id: Optional[int] = None,
+        self,
+        *,
+        project_id: Optional[int] = None,
+        slug: Optional[str] = None,
+        name: Optional[str] = None,
+        dataset_id: Optional[int] = None,
     ):
         """Get a remote dataset based on the parameter passed. You can only choose one of the
         possible parameters and calling this method with multiple ones will result in an
@@ -272,8 +276,9 @@ class Client:
             Initialized dataset
         """
         if sum(x is not None for x in [name, slug, dataset_id, project_id]) > 1:
-            raise ValueError("Too many values provided. Please choose only 1 way of "
-                             "getting the dataset.")
+            raise ValueError(
+                "Too many values provided. Please choose only 1 way of " "getting the dataset."
+            )
         # TODO: swap project_id for dataset_id when the backend has gotten ride of project_id
         if project_id:
             project = self.get(f"/projects/{project_id}")
@@ -342,7 +347,6 @@ class Client:
         if self.refresh_token is not None:
             self._refresh_access_token()
 
-
     @classmethod
     def local(cls, projects_dir: Optional[Path] = None):
         """Factory method to use the configuration file to init the client
@@ -363,7 +367,7 @@ class Client:
         if not projects_dir:
             projects_dir = Path.home() / ".darwin" / "projects"
         return cls(
-            token=None, #Unauthenticated requests
+            token=None,  # Unauthenticated requests
             refresh_token=None,
             api_url=Client.default_api_url(),
             base_url=Client.default_base_url(),
@@ -483,8 +487,10 @@ class Client:
         Contains the Content-Type and Authorization token
         """
         if refresh:
-            return {"Content-Type": "application/json",
-                    "Authorization": f"Bearer {self.refresh_token}"}
+            return {
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {self.refresh_token}",
+            }
         else:
             header = {"Content-Type": "application/json"}
             if self.token is not None:

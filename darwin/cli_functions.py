@@ -108,16 +108,18 @@ def local():
     table = Table(["name", "images", "sync_date", "size"], [Table.L, Table.R, Table.R, Table.R])
     client = _load_client(offline=True)
     for project_path in client.list_local_datasets():
-        table.add_row({
-            'name': project_path.name,
-            'images': sum(1 for _ in find_files(project_path)),
-            'sync_date': humanize.naturaldate(
-                datetime.datetime.fromtimestamp(project_path.stat().st_mtime)
-            ),
-            'size': humanize.naturalsize(
-                sum(p.stat().st_size for p in find_files(project_path))
-            )
-        })
+        table.add_row(
+            {
+                "name": project_path.name,
+                "images": sum(1 for _ in find_files(project_path)),
+                "sync_date": humanize.naturaldate(
+                    datetime.datetime.fromtimestamp(project_path.stat().st_mtime)
+                ),
+                "size": humanize.naturalsize(
+                    sum(p.stat().st_size for p in find_files(project_path))
+                ),
+            }
+        )
     print(table)
 
 
@@ -129,9 +131,11 @@ def path(dataset_slug: str) -> Path:
             if dataset_slug == p.name:
                 return p
     except NotFound:
-        _error(f"Project '{dataset_slug}' does not exist locally. "
-               f"Use 'darwin remote' to see all the available projects, "
-               f"and 'darwin pull' to pull them.")
+        _error(
+            f"Project '{dataset_slug}' does not exist locally. "
+            f"Use 'darwin remote' to see all the available projects, "
+            f"and 'darwin pull' to pull them."
+        )
 
 
 def url(project_slug: str) -> Path:
@@ -144,7 +148,6 @@ def url(project_slug: str) -> Path:
         _error(f"Project '{project_slug}' does not exist.")
 
 
-
 def pull_project(project_slug: str):
     """Downloads a remote project (images and annotations) in the projects directory. """
     client = _load_client()
@@ -154,8 +157,10 @@ def pull_project(project_slug: str):
         dataset.pull()
         return dataset
     except NotFound:
-        _error(f"project '{project_slug}' does not exist at {client.url}. "
-               f"Use 'darwin remote' to list all the remote projects.")
+        _error(
+            f"project '{project_slug}' does not exist at {client.url}. "
+            f"Use 'darwin remote' to list all the remote projects."
+        )
     except Unauthenticated:
         _error(f"please re-authenticate")
 
@@ -196,10 +201,10 @@ def remove_remote_project(project_slug: str):
 
 
 def upload_data(
-        project_slug: str,
-        files: Optional[List[str]],
-        extensions_to_exclude: Optional[List[str]],
-        fps: Optional[int],
+    project_slug: str,
+    files: Optional[List[str]],
+    extensions_to_exclude: Optional[List[str]],
+    fps: Optional[int],
 ):
     """Uploads the files provided as parameter to the remote dataset selected
 
@@ -220,7 +225,6 @@ def upload_data(
         dataset.push(extensions_to_exclude=extensions_to_exclude, fps=fps, files_to_upload=files)
     except NotFound:
         _error(f"No dataset with name '{project_slug}'")
-
 
 
 def _error(message):

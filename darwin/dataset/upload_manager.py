@@ -1,4 +1,3 @@
-import functools
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -23,10 +22,7 @@ def _split_on_file_type(files: List[str]):
 
 
 def add_files_to_dataset(
-        client: 'Client',
-        dataset_id: str,
-        filenames: List[Path],
-        fps: Optional[int] = 1
+    client: "Client", dataset_id: str, filenames: List[Path], fps: Optional[int] = 1
 ):
     """Helper function: upload images to an existing remote dataset
 
@@ -53,9 +49,7 @@ def add_files_to_dataset(
             f"/datasets/{dataset_id}",
             {
                 "image_filenames": [Path(image).name for image in images],
-                "videos": [
-                    {"fps": fps, "original_filename": Path(video).name} for video in videos
-                ],
+                "videos": [{"fps": fps, "original_filename": Path(video).name} for video in videos],
             },
         )
         # generator = lambda: (
@@ -104,15 +98,13 @@ def chunk(items, size):
 
 
 def upload_file_to_s3(
-        client: 'Client',
-        file: Dict[str, Any],
-        full_path: List[str]
+    client: "Client", file: Dict[str, Any], full_path: List[str]
 ) -> Dict[str, Any]:
     """Helper function: upload data to AWS S3"""
     key = file["key"]
     file_path = [path for path in full_path if Path(path).name == file["original_filename"]][0]
     image_id = file["id"]
-    response = sign_upload(client, image_id, key, Path(file_path).suffix)
+    response = sign_upload(client, image_id, key, Path(file_path))
     signature = response["signature"]
     end_point = response["postEndpoint"]
 
@@ -144,7 +136,6 @@ def upload_to_s3(signature, end_point, file_path=None):
     return requests.post("http:" + end_point, data=signature, files=test)
 
 
-
 def sign_upload(client, image_id, key, file_path):
     """
 
@@ -160,10 +151,13 @@ def sign_upload(client, image_id, key, file_path):
 
     """
     file_format = Path(file_path).suffix
-    return client.post(
-        f"/dataset_images/{image_id}/sign_upload?key={key}",
-        payload={"filePath": file_path, "contentType": f"image/{file_format}"},
-    )
-
-
-
+    if file_format in SUPPORTED_IMAGE_EXTENSIONS:
+        return client.post(
+            f"/dataset_images/{image_id}/sign_upload?key={key}",
+            payload={"filePath": str(file_path), "contentType": f"image/{file_format}"},
+        )
+    elif file_format in SUPPORTED_VIDEO_EXTENSIONS:
+        return client.post(
+            f"/dataset_videos/{image_id}/sign_upload?key={key}",
+            payload={"filePath": str(file_path), "contentType": f"video/{file_format}"},
+        )

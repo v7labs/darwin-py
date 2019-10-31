@@ -1,14 +1,15 @@
 from pathlib import Path
+from typing import TYPE_CHECKING, List, Optional
 
 from darwin.config import Config
 
 SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpeg", ".jpg"]
 SUPPORTED_VIDEO_EXTENSIONS = [".bpm", ".mov", ".mp4"]
 
-from typing import List, TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from darwin.client import Client
+
 
 def urljoin(*parts):
     """Take as input an unpacked list of strings and joins them to form an URL"""
@@ -57,10 +58,10 @@ def prompt(msg: str, default: Optional[str] = None) -> str:
 
 
 def find_files(
-        root: Optional[Path] = None,
-        files_list: Optional[List[str]] = None,
-        recursive: bool = True,
-        exclude: Optional[List[str]] = None
+    root: Optional[Path] = None,
+    files_list: Optional[List[str]] = None,
+    recursive: bool = True,
+    exclude: Optional[List[str]] = None,
 ) -> List[Path]:
     """Retrieve a list of all files belonging to supported extensions. The exploration can be made
     recursive and a list of files can be excluded if desired.
@@ -85,15 +86,19 @@ def find_files(
         files: List[Path] = []
         for file in files_list:
             file = Path(file)
-            if (file.suffix in SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
-                    and file.suffix not in exclude):
+            if (
+                file.suffix in SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
+                and file.suffix not in exclude
+            ):
                 files += [file]
         return files
     if root is not None:
         if not root.is_dir():
             # print ("TODO: when are we supposed to enter here")
-            if (root.suffix in SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
-                    and root.suffix not in exclude):
+            if (
+                root.suffix in SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
+                and root.suffix not in exclude
+            ):
                 return [root]
             else:
                 return []
@@ -103,8 +108,10 @@ def find_files(
                 if recursive:
                     files += find_files(root=file, recursive=recursive, exclude=exclude)
             else:
-                if (file.suffix in SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
-                        and file.suffix not in exclude):
+                if (
+                    file.suffix in SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
+                    and file.suffix not in exclude
+                ):
                     files += [file]
         return files
 
@@ -114,7 +121,7 @@ def secure_continue_request():
     return input("Do you want to continue? [y/N] ") in ["Y", "y"]
 
 
-def make_configuration_file(client: 'Client') -> Config:
+def make_configuration_file(client: "Client") -> Config:
     """Authenticate user against the server and creates a configuration file for it
 
     Parameters

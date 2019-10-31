@@ -3,30 +3,29 @@ import multiprocessing as mp
 import shutil
 import zipfile
 from pathlib import Path
-from typing import List, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, List, Optional
 
+from darwin.dataset.download_manager import download_all_images_from_annotations
 from darwin.dataset.upload_manager import add_files_to_dataset
 from darwin.dataset.utils import exhaust_generator
 from darwin.exceptions import NotFound
+from darwin.utils import find_files, urljoin
 
 if TYPE_CHECKING:
-    from darwin.client import Client
-
-from darwin.dataset.download_manager import download_all_images_from_annotations
-from darwin.utils import urljoin, find_files
+    pass
 
 
 class RemoteDataset:
     def __init__(
-            self,
-            *,
-            name: Optional[str],
-            slug: Optional[str] = None,
-            dataset_id: Optional[int],
-            project_id: Optional[int],
-            image_count: Optional[int] = 0,
-            progress: Optional[int] = 0,
-            client: Optional["Client"],
+        self,
+        *,
+        name: Optional[str],
+        slug: Optional[str] = None,
+        dataset_id: Optional[int],
+        project_id: Optional[int],
+        image_count: Optional[int] = 0,
+        progress: Optional[int] = 0,
+        client: Optional["Client"],
     ):
         """Inits a DarwinDataset.
         This class manages the remote and local versions of a dataset hosted on Darwin.
@@ -61,12 +60,12 @@ class RemoteDataset:
         self.client = client
 
     def push(
-            self,
-            blocking: Optional[bool] = True,
-            multi_threaded: Optional[bool] = True,
-            extensions_to_exclude: Optional[List[str]] = None,
-            fps: Optional[int] = mp.cpu_count(),
-            files_to_upload: Optional[List[Path]] = None,
+        self,
+        blocking: Optional[bool] = True,
+        multi_threaded: Optional[bool] = True,
+        extensions_to_exclude: Optional[List[str]] = None,
+        fps: Optional[int] = mp.cpu_count(),
+        files_to_upload: Optional[List[Path]] = None,
     ):
         """Uploads a local project (images ONLY) in the projects directory.
 
@@ -96,7 +95,7 @@ class RemoteDataset:
             if not self.local_path.exists():
                 raise NotFound("Dataset location not found. Check your path.")
             files_to_upload = find_files(
-                self.local_path / 'images', recursive=True, exclude=extensions_to_exclude
+                self.local_path / "images", recursive=True, exclude=extensions_to_exclude
             )
             if not files_to_upload:
                 raise NotFound("No files to upload, check your path and exclusion filters")
@@ -111,9 +110,7 @@ class RemoteDataset:
 
         # If blocking is selected, upload the dataset remotely
         if blocking:
-            exhaust_generator(
-                progress=progress, count=count, multi_threaded=multi_threaded
-            )
+            exhaust_generator(progress=progress, count=count, multi_threaded=multi_threaded)
             return None, count
         else:
             return progress, count
@@ -122,7 +119,7 @@ class RemoteDataset:
         self,
         blocking: Optional[bool] = True,
         multi_threaded: Optional[bool] = True,
-        only_done_images: Optional[bool] = True
+        only_done_images: Optional[bool] = True,
     ):
         """Downloads a remote project (images and annotations) in the projects directory.
 
@@ -168,9 +165,7 @@ class RemoteDataset:
             )
             # If blocking is selected, download the dataset on the file system
             if blocking:
-                exhaust_generator(
-                    progress=progress(), count=count, multi_threaded=multi_threaded
-                )
+                exhaust_generator(progress=progress(), count=count, multi_threaded=multi_threaded)
                 return None, count
             else:
                 return progress, count
@@ -188,5 +183,3 @@ class RemoteDataset:
     def local_path(self) -> Path:
         """Returns a Path to the local dataset"""
         return Path(self.client.projects_dir) / self.slug
-
-

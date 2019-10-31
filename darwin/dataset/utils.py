@@ -1,12 +1,12 @@
 import json
+import multiprocessing as mp
 import os
 from collections import defaultdict
 from pathlib import Path
-from typing import List, Optional, Iterable, Generator
-from tqdm import tqdm
-import multiprocessing as mp
+from typing import Generator, Iterable, List, Optional
 
 import numpy as np
+from tqdm import tqdm
 
 
 def extract_classes(annotation_files: List, annotation_type: str):
@@ -43,12 +43,12 @@ def extract_classes(annotation_files: List, annotation_type: str):
 
 
 def make_class_list(
-        file_name: str,
-        annotation_files: List,
-        lists_path: Path,
-        annotation_type: str,
-        force_resplit: Optional[bool] = False,
-        add_background: Optional[bool] = False
+    file_name: str,
+    annotation_files: List,
+    lists_path: Path,
+    annotation_type: str,
+    force_resplit: Optional[bool] = False,
+    add_background: Optional[bool] = False,
 ):
     """
     Support function to extract classes and save the output to file
@@ -166,25 +166,32 @@ def _stratify_samples(idx_to_classes, split_seed, test_percentage, val_percentag
     """
     # Import locally sklearn as to prevent making it a requirement globally for darwin-py
     from sklearn.model_selection import train_test_split
+
     # Expand the list of files with all the classes
     expanded_list = [(k, c) for k, v in idx_to_classes.items() for c in v]
     # Stratify
     file_indices, labels = zip(*expanded_list)
     X_train, X_tmp, y_train, y_tmp = remove_cross_contamination(
-        *train_test_split(np.array(file_indices), np.array(labels),
-                          test_size=int((val_percentage + test_percentage)*100)/100,
-                          random_state=split_seed,
-                          stratify=labels)
+        *train_test_split(
+            np.array(file_indices),
+            np.array(labels),
+            test_size=int((val_percentage + test_percentage) * 100) / 100,
+            random_state=split_seed,
+            stratify=labels,
+        )
     )
 
     if test_percentage == 0.0:
         return list(set(X_train)), list(set(X_tmp)), None
 
     X_val, X_test, y_val, y_test = remove_cross_contamination(
-        *train_test_split(X_tmp, y_tmp,
-                          test_size=(test_percentage*100 / (val_percentage + test_percentage))/100,
-                          random_state=split_seed,
-                          stratify=y_tmp)
+        *train_test_split(
+            X_tmp,
+            y_tmp,
+            test_size=(test_percentage * 100 / (val_percentage + test_percentage)) / 100,
+            random_state=split_seed,
+            stratify=y_tmp,
+        )
     )
     # Remove duplicates within the same set
     # NOTE: doing that earlier (e.g. in remove_cross_contamination()) would produce mathematical
@@ -193,11 +200,11 @@ def _stratify_samples(idx_to_classes, split_seed, test_percentage, val_percentag
 
 
 def split_dataset(
-        dataset,
-        val_percentage: Optional[float] = 0.1,
-        test_percentage: Optional[float] = 0.2,
-        force_resplit: Optional[bool] = False,
-        split_seed: Optional[int] = 42,
+    dataset,
+    val_percentage: Optional[float] = 0.1,
+    test_percentage: Optional[float] = 0.2,
+    force_resplit: Optional[bool] = False,
+    split_seed: Optional[int] = 42,
 ):
     """
     Given a local a dataset (pulled from Darwin) creates lists of file names
@@ -237,27 +244,27 @@ def split_dataset(
     assert 0 < val_percentage < 1.0
     assert 0 <= test_percentage < 1.0
     assert val_percentage + test_percentage < 1.0
-    split_id = f'split_v{int(val_percentage*100)}_t{int(test_percentage*100)}_s{split_seed}'
+    split_id = f"split_v{int(val_percentage*100)}_t{int(test_percentage*100)}_s{split_seed}"
     split_path = lists_path / split_id
 
     # Prepare the return value with the paths of the splits
     splits = {}
-    splits['random'] = {
-        'train': Path(split_path / "random_train.txt"),
-        'val': Path(split_path / "random_val.txt"),
+    splits["random"] = {
+        "train": Path(split_path / "random_train.txt"),
+        "val": Path(split_path / "random_val.txt"),
     }
-    splits['stratified_tag'] = {
-        'train': Path(split_path / "stratified_tag_train.txt"),
-        'val': Path(split_path / "stratified_tag_val.txt"),
+    splits["stratified_tag"] = {
+        "train": Path(split_path / "stratified_tag_train.txt"),
+        "val": Path(split_path / "stratified_tag_val.txt"),
     }
-    splits['stratified_polygon'] = {
-        'train': Path(split_path / "stratified_polygon_train.txt"),
-        'val': Path(split_path / "stratified_polygon_val.txt")
+    splits["stratified_polygon"] = {
+        "train": Path(split_path / "stratified_polygon_train.txt"),
+        "val": Path(split_path / "stratified_polygon_val.txt"),
     }
     if test_percentage > 0.0:
-        splits['random']['test'] = Path(split_path) / "random_test.txt"
-        splits['stratified_tag']['test'] = Path(split_path / "stratified_tag_test.txt")
-        splits['stratified_polygon']['test'] = Path(split_path / "stratified_polygon_test.txt")
+        splits["random"]["test"] = Path(split_path) / "random_test.txt"
+        splits["stratified_tag"]["test"] = Path(split_path / "stratified_tag_test.txt")
+        splits["stratified_polygon"]["test"] = Path(split_path / "stratified_polygon_test.txt")
 
     # Do the actual split
     if not split_path.exists() or force_resplit:
@@ -273,13 +280,13 @@ def split_dataset(
         np.random.seed(split_seed)
         indices = np.random.permutation(dataset_size)
         train_indices = indices[:train_size]
-        val_indices = indices[train_size:train_size + val_size]
-        test_indices = indices[train_size + val_size:]
+        val_indices = indices[train_size : train_size + val_size]
+        test_indices = indices[train_size + val_size :]
         # Write files
-        _write_to_file(annotation_files, splits['random']['train'], train_indices)
-        _write_to_file(annotation_files, splits['random']['val'], val_indices)
+        _write_to_file(annotation_files, splits["random"]["train"], train_indices)
+        _write_to_file(annotation_files, splits["random"]["val"], val_indices)
         if test_percentage > 0.0:
-            _write_to_file(annotation_files, splits['random']['test'], test_indices)
+            _write_to_file(annotation_files, splits["random"]["test"], test_indices)
 
         # STRATIFIED SPLIT ON TAGS
         # Stratify
@@ -291,26 +298,30 @@ def split_dataset(
                 idx_to_classes_tag, split_seed, test_percentage, val_percentage
             )
             # Write files
-            _write_to_file(annotation_files, splits['stratified_tag']['train'], train_indices)
-            _write_to_file(annotation_files, splits['stratified_tag']['val'], val_indices)
+            _write_to_file(annotation_files, splits["stratified_tag"]["train"], train_indices)
+            _write_to_file(annotation_files, splits["stratified_tag"]["val"], val_indices)
             if test_percentage > 0.0:
-                _write_to_file(annotation_files, splits['stratified_tag']['test'], test_indices)
+                _write_to_file(annotation_files, splits["stratified_tag"]["test"], test_indices)
 
         # STRATIFIED SPLIT ON POLYGONS
         # Stratify
         idx_to_classes_polygon = make_class_list(
-            "classes_polygon.txt", annotation_files, lists_path, "polygon", force_resplit,
-            add_background=True
+            "classes_polygon.txt",
+            annotation_files,
+            lists_path,
+            "polygon",
+            force_resplit,
+            add_background=True,
         )
         if len(idx_to_classes_polygon) > 0:
             train_indices, val_indices, test_indices = _stratify_samples(
                 idx_to_classes_polygon, split_seed, test_percentage, val_percentage
             )
             # Write files
-            _write_to_file(annotation_files, splits['stratified_polygon']['train'], train_indices)
-            _write_to_file(annotation_files, splits['stratified_polygon']['val'], val_indices)
+            _write_to_file(annotation_files, splits["stratified_polygon"]["train"], train_indices)
+            _write_to_file(annotation_files, splits["stratified_polygon"]["val"], val_indices)
             if test_percentage > 0.0:
-                _write_to_file(annotation_files, splits['stratified_polygon']['test'], test_indices)
+                _write_to_file(annotation_files, splits["stratified_polygon"]["test"], test_indices)
 
     return splits
 
