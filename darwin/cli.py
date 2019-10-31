@@ -71,7 +71,7 @@ def main():
         f.remove_remote_project(project_name)
 
     # Upload new data to a project (remotely)
-    elif args.command == "upload":
+    elif args.command == "push":
         f.upload_data(args.project_name, args.files, args.exclude, args.fps)
 
     # Version

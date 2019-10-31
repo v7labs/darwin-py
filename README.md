@@ -210,7 +210,7 @@ Supported extensions:
 -  Image files [`.jpg`, `.jpeg`, `.png` formats].
 
 ```
-$ darwin upload example-dataset -r path/to/images
+$ darwin push example-dataset -r path/to/images
 Uploading: 100%|########################################################| 3/3 [00:01<00:00,  2.29it/s]
 ```
 
@@ -240,7 +240,7 @@ Downloading: 100%|########################################################| 3/3 
 | `remove`        | `project_name`           | str                | True      |
 |                 | `-r` `--remote`          | str                | True      |
 | `url`           | `project_name`           | str                |           |
-| `upload`        | `project_name`           | str                | True      |
+| `push`          | `project_name`           | str                | True      |
 |                 | `files`                  | str                | True      |
 |                 | `-e`, `--exclude`        | str                |           |
 |                 | `--fps`                  | int                |           |

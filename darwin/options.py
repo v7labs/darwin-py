@@ -64,18 +64,18 @@ class Options(object):
             help="Indicates that the project deletion should be performed on darwin. ",
         )
 
-        # PROJECT UPLOAD
-        parser_upload = subparsers.add_parser(
-            "upload", help="Upload data to an existing (remote) project. "
+        # PROJECT PUSH
+        parser_push = subparsers.add_parser(
+            "push", help="Upload data to an existing (remote) project. "
         )
-        parser_upload.add_argument(
+        parser_push.add_argument(
             "project_name",
             type=str,
             help="[Remote] Project name: to list all the existing projects, type 'darwin remote'. ",
         )
-        parser_upload.add_argument("files", type=str, nargs="+", help="Files to upload")
+        parser_push.add_argument("files", type=str, nargs="+", help="Files to upload")
 
-        parser_upload.add_argument(
+        parser_push.add_argument(
             "-e",
             "--exclude",
             type=str,
@@ -83,7 +83,7 @@ class Options(object):
             default="",
             help="Excludes the files with the specified extension/s if a data folder is provided as data path. ",
         )
-        parser_upload.add_argument(
+        parser_push.add_argument(
             "-f",
             "--fps",
             type=int,
