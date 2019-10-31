@@ -5,8 +5,6 @@ import numpy as np
 import torch
 from PIL import Image
 from pycocotools import mask as coco_mask
-import json
-import itertools
 
 try:
     import accimage

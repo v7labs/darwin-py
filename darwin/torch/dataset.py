@@ -7,11 +7,7 @@ import numpy as np
 import torch.utils.data as data
 
 import darwin.torch.transforms as T
-from darwin.torch.utils import (
-    convert_polygon_to_sequence,
-    load_pil_image,
-    polygon_area,
-)
+from darwin.torch.utils import convert_polygon_to_sequence, load_pil_image, polygon_area
 
 
 class Dataset(data.Dataset):
@@ -44,27 +40,29 @@ class Dataset(data.Dataset):
 
         # Populate internal lists of annotations and images paths
         if not self.split.exists():
-            raise FileNotFoundError(f"Could not find partition {self.split}"
-                                    f" in {self.root}.")
+            raise FileNotFoundError(f"Could not find partition {self.split}" f" in {self.root}.")
         extensions = [".jpg", ".jpeg", ".png"]
         stems = (e.strip() for e in split.open())
         for stem in stems:
             annotation_path = self.root / f"annotations/{stem}.json"
-            images = [image for image in self.root.glob(f"images/{stem}.*") if image.suffix in extensions]
+            images = [
+                image for image in self.root.glob(f"images/{stem}.*") if image.suffix in extensions
+            ]
             if len(images) < 1:
-                raise ValueError(f"Annotation ({annotation_path}) does"
-                                 f" not have a corresponding image")
+                raise ValueError(
+                    f"Annotation ({annotation_path}) does" f" not have a corresponding image"
+                )
             if len(images) > 1:
-                raise ValueError(f"Image ({stem}) is present with multiple extensions."
-                                 f" This is forbidden.")
+                raise ValueError(
+                    f"Image ({stem}) is present with multiple extensions." f" This is forbidden."
+                )
             assert len(images) == 1
             image_path = images[0]
             self.images_path.append(image_path)
             self.annotations_path.append(annotation_path)
 
         if len(self.images_path) == 0:
-            raise ValueError(f"Could not find any {extensions} file"
-                             f" in {self.root / 'images'}")
+            raise ValueError(f"Could not find any {extensions} file" f" in {self.root / 'images'}")
 
         assert len(self.images_path) == len(self.annotations_path)
 
@@ -84,9 +82,11 @@ class Dataset(data.Dataset):
             self
         """
         if self.classes != dataset.classes and not extend_classes:
-            raise ValueError(f"Operation dataset_a + dataset_b could not be computed: classes "
-                             f"should match. Use flag extend_classes=True to combine both lists "
-                             f"of classes.")
+            raise ValueError(
+                f"Operation dataset_a + dataset_b could not be computed: classes "
+                f"should match. Use flag extend_classes=True to combine both lists "
+                f"of classes."
+            )
         self.classes = list(set(self.classes).union(set(dataset.classes)))
 
         self.original_images_path = self.images_path
@@ -119,8 +119,7 @@ class Dataset(data.Dataset):
             annotation = json.load(f)["annotations"]
         # Filter out unused classes
         annotation = [a for a in annotation if a["name"] in self.classes]
-        return {"image_id": index,
-                "annotations": annotation}
+        return {"image_id": index, "annotations": annotation}
 
     def measure_mean_std(self, multi_threaded: Optional[bool] = True, **kwargs):
         """Computes mean and std of train images, given the train loader
@@ -144,7 +143,9 @@ class Dataset(data.Dataset):
                 results = pool.map(self._return_mean, self.images_path)
                 mean = np.sum(np.array(results), axis=0) / len(self.images_path)
                 # Online image_classification deviation
-                results = pool.starmap(self._return_std, [[item, mean] for item in self.images_path])
+                results = pool.starmap(
+                    self._return_std, [[item, mean] for item in self.images_path]
+                )
                 std_sum = np.sum(np.array([item[0] for item in results]), axis=0)
                 total_pixel_count = np.sum(np.array([item[1] for item in results]))
                 std = np.sqrt(std_sum / total_pixel_count)
@@ -206,9 +207,9 @@ class Dataset(data.Dataset):
     @staticmethod
     def _return_std(image_path, mean):
         img = np.array(load_pil_image(image_path)) / 255.0
-        m2 = np.square(np.array(
-            [img[:, :, 0] - mean[0], img[:, :, 1] - mean[1], img[:, :, 2] - mean[2]]
-        ))
+        m2 = np.square(
+            np.array([img[:, :, 0] - mean[0], img[:, :, 1] - mean[1], img[:, :, 2] - mean[2]])
+        )
         return np.sum(np.sum(m2, axis=1), 1), m2.size / 3.0
 
     def __add__(self, dataset):
@@ -249,9 +250,12 @@ class Dataset(data.Dataset):
         return len(self.images_path)
 
     def __str__(self):
-        return (f"{self.__class__.__name__}():\n"
-                f"  Root: {self.root}\n"
-                f"  Number of images: {len(self.images_path)}")
+        return (
+            f"{self.__class__.__name__}():\n"
+            f"  Root: {self.root}\n"
+            f"  Number of images: {len(self.images_path)}"
+        )
+
 
 ####################################################################################################
 
@@ -275,11 +279,15 @@ class ClassificationDataset(Dataset):
             annotation = json.load(f)["annotations"]
             tags = [self.classes.index(a["name"]) for a in annotation if "tag" in a]
             if len(tags) > 1:
-                raise ValueError(f"Multiple tags defined for this image ({tags}). "
-                                 f"This is not valid in a classification dataset.")
+                raise ValueError(
+                    f"Multiple tags defined for this image ({tags}). "
+                    f"This is not valid in a classification dataset."
+                )
             if len(tags) == 0:
-                raise ValueError(f"No tags defined for this image ({self.annotations_path[index]})."
-                                 f"This is not valid in a classification dataset.")
+                raise ValueError(
+                    f"No tags defined for this image ({self.annotations_path[index]})."
+                    f"This is not valid in a classification dataset."
+                )
         return {"category_id": tags[0]}
 
     def measure_weights(self, **kwargs):
@@ -296,7 +304,7 @@ class ClassificationDataset(Dataset):
         labels = []
         for i, filename in enumerate(self.images_path):
             target = self._map_annotation(i)
-            labels.append(target['category_id'])
+            labels.append(target["category_id"])
         return self._compute_weights(labels)
 
 
@@ -361,16 +369,17 @@ class InstanceSegmentationDataset(Dataset):
                     f"polygon's area should be <= bbox's area. Failed {poly_area} <= {bbox_area}"
                 )
             # Create and append the new entry for this annotation
-            target.append({
-                "iscrowd": 0,
-                "category_id": self.classes.index(annotation["name"]),
-                "segmentation": [sequence],  # List type is used for backward compatibility
-                "bbox": [x, y, w, h],
-                "area": poly_area,
-            })
+            target.append(
+                {
+                    "iscrowd": 0,
+                    "category_id": self.classes.index(annotation["name"]),
+                    "segmentation": [sequence],  # List type is used for backward compatibility
+                    "bbox": [x, y, w, h],
+                    "area": poly_area,
+                }
+            )
 
-        return {'image_id': index,
-                'annotations': target}
+        return {"image_id": index, "annotations": target}
 
     def measure_weights(self, **kwargs):
         """Computes the class balancing weights (not the frequencies!!) given the train loader
@@ -386,8 +395,9 @@ class InstanceSegmentationDataset(Dataset):
         labels = []
         for i, _ in enumerate(self.images_path):
             target = self._map_annotation(i)
-            labels.extend([a['category_id'] for a in target['annotations']])
+            labels.extend([a["category_id"] for a in target["annotations"]])
         return self._compute_weights(labels)
+
 
 ####################################################################################################
 
@@ -426,10 +436,13 @@ class SemanticSegmentationDataset(Dataset):
             if len(sequence) / 2 < 3:
                 # Discard polygons with less than three points
                 continue
-            target.append({"category_id": self.classes.index(obj["name"]),
-                           "segmentation": np.array([sequence])})
-        return {'image_id': index,
-                'annotations': target}
+            target.append(
+                {
+                    "category_id": self.classes.index(obj["name"]),
+                    "segmentation": np.array([sequence]),
+                }
+            )
+        return {"image_id": index, "annotations": target}
 
     def measure_weights(self, **kwargs):
         """Computes the class balancing weights (not the frequencies!!) given the train loader
@@ -445,5 +458,5 @@ class SemanticSegmentationDataset(Dataset):
         labels = []
         for i, _ in enumerate(self.images_path):
             target = self._map_annotation(i)
-            labels.extend([a['category_id'] for a in target['annotations']])
+            labels.extend([a["category_id"] for a in target["annotations"]])
         return self._compute_weights(labels)
