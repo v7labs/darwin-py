@@ -223,6 +223,6 @@ def upload_annotations(
                  })
             payload = {"annotations": payload_annotations}
             # Compose the endpoint
-            endpoint = f"dataset_images/{image_mapping[data['image']['filename']]}/annotations"
+            endpoint = f"dataset_images/{image_mapping[data['image']['original_filename']]}/annotations"
             response = client.put(endpoint=endpoint, payload=payload, retry=True)
             print(response)
