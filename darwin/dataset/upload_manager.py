@@ -2,7 +2,7 @@ import functools
 import itertools
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-
+import json
 import requests
 
 from darwin.exceptions import UnsupportedFileType
@@ -167,3 +167,62 @@ def sign_upload(client, image_id, key, file_path):
             f"/dataset_videos/{image_id}/sign_upload?key={key}",
             payload={"filePath": str(file_path), "contentType": f"video/{file_format}"},
         )
+
+
+def upload_annotations(
+        client: "Client",
+        image_mapping: Path,
+        class_mapping: Path,
+        annotations_path: Path
+):
+    """Experimental feature to upload annotations from the front end
+
+    Parameters
+    ----------
+    client: Client
+        Client authenticated to the team where the put request will be made
+    image_mapping: Path
+        Path to the json file which contains the mapping between `original file names`
+        and `dataset image id` which are required in the put request to compose the endpoint
+    class_mapping: Path
+        Path to the json file which contains the mapping between `class name` and `class id` which
+        is required in the put request to compose the payload
+    annotations_path: Path
+        Path to the folder which contains all the json files representing the annotations to add
+
+    Notes
+    -----
+        This function is experimental and the json files `image_mapping` and `class_mapping` can
+        actually only be retrieved from the backend at the moment.
+    """
+
+    # Read and prepare the image id mappings in a dict format {'class name': 'class id'}
+    with open(str(image_mapping)) as json_file:
+        image_mapping = {str(cm['original_filename']): cm['id'] for cm in json.load(json_file)}
+
+    # Read and prepare the class mappings in a dict format {'class name': 'class id'}
+    with open(str(class_mapping)) as json_file:
+        class_mapping = {str(cm['name']): cm['id'] for cm in json.load(json_file)}
+
+    # For each annotation found in the folder send out a request
+    for f in annotations_path.glob(f"*.json"):
+        with open(str(f)) as json_file:
+            # Read the annotation json file
+            data = json.load(json_file)
+            # Compose the payload
+            payload_annotations = []
+            for annotation in data['annotations']:
+                # Replace the class names with class id as provided by the mapping
+                class_id = class_mapping[annotation['name']]
+                # Remove the name
+                del (annotation['name'])
+                # Compose the list of annotations as the payload wants
+                payload_annotations.append({
+                    'annotation_class_id':  class_id,
+                    'data': annotation
+                 })
+            payload = {"annotations": payload_annotations}
+            # Compose the endpoint
+            endpoint = f"dataset_images/{image_mapping[data['image']['filename']]}/annotations"
+            response = client.put(endpoint=endpoint, payload=payload, retry=True)
+            print(response)
