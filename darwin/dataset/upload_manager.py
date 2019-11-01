@@ -205,7 +205,7 @@ def upload_annotations(
         class_mapping = {str(cm['name']): cm['id'] for cm in json.load(json_file)}
 
     # For each annotation found in the folder send out a request
-    for f in annotations_path.glob(f"*.json"):
+    for f in annotations_path.glob("*.json"):
         with open(str(f)) as json_file:
             # Read the annotation json file
             data = json.load(json_file)
