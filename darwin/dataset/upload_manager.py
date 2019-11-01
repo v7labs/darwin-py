@@ -197,16 +197,16 @@ def upload_annotations(
     """
 
     # Read and prepare the image id mappings in a dict format {'class name': 'class id'}
-    with open(str(image_mapping)) as json_file:
+    with image_mapping.open() as json_file:
         image_mapping = {str(cm['original_filename']): cm['id'] for cm in json.load(json_file)}
 
     # Read and prepare the class mappings in a dict format {'class name': 'class id'}
-    with open(str(class_mapping)) as json_file:
+    with class_mapping.open() as json_file:
         class_mapping = {str(cm['name']): cm['id'] for cm in json.load(json_file)}
 
     # For each annotation found in the folder send out a request
     for f in annotations_path.glob(f"*.json"):
-        with open(str(f)) as json_file:
+        with f.open() as json_file:
             # Read the annotation json file
             data = json.load(json_file)
             # Compose the payload
