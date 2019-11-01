@@ -28,7 +28,8 @@ def download_all_images_from_annotations(
 
     Returns
     -------
-    generator : function
+    generator :
+    function
         Generator for doing the actual downloads,
     count : int
         The files count
