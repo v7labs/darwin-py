@@ -94,7 +94,7 @@ def download_image_from_json_annotation(api_url: str, annotation_path: Path, ima
         path = Path(image_path) / image_file_name
         download_image(urljoin(api_url.replace("api/", ""), parsed["image"]["url"]), path)
     # Rename the current JSON file to match the image filename
-    os.rename(str(annotation_path), annotation_path.parent / f"{image_file_name.stem}.json")
+    annotation_path.rename(annotation_path.parent / f"{image_file_name.stem}.json")
 
 
 def download_image(url: str, path: Path, verbose: Optional[bool] = False):
