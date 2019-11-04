@@ -73,7 +73,7 @@ class RemoteDataset:
         Parameters
         ----------
         blocking : bool
-            If False, the dataset is not downloaded and a generator function is returned instead
+            If False, the dataset is not uploaded and a generator function is returned instead
         multi_threaded : bool
             Uses multiprocessing to download the dataset in parallel.
             If blocking is False this has no effect.
