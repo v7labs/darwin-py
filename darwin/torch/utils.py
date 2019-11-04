@@ -80,7 +80,7 @@ def convert_polygon_to_mask(segmentations: List[float], height: int, width: int)
     return masks
 
 
-def convert_polygon_to_sequence(polygon: List[dict]):
+def convert_polygon_to_sequence(polygon: List[dict]) -> np.ndarray:
     """
     Converts a sequence of dictionaries of (x,y) into an array of coordinates.
 
@@ -105,7 +105,7 @@ def convert_polygon_to_sequence(polygon: List[dict]):
     raise ValueError("Unknown input format")
 
 
-def polygon_area(x, y):
+def polygon_area(x: np.ndarray, y: np.ndarray) -> float:
     """
     Returns the area of the input polygon, represented with two numpy arrays
     for x and y coordinates.
