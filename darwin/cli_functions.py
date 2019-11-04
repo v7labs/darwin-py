@@ -218,6 +218,13 @@ def upload_data(
         List of extension to exclude from the file scan (which is done only if files is None)
     fps : int
         Number of files per second to upload
+
+    Returns
+    -------
+    generator : function
+            Generator for doing the actual uploads. This is None if blocking is True
+    count : int
+        The files count
     """
     client = _load_client()
     try:
