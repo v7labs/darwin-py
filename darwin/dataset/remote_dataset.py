@@ -124,9 +124,9 @@ class RemoteDataset:
 
     def pull(
         self,
-        blocking: Optional[bool] = True,
-        multi_threaded: Optional[bool] = True,
-        only_done_images: Optional[bool] = True,
+        blocking: bool = True,
+        multi_threaded: bool = True,
+        only_done_images: bool = True,
     ):
         """Downloads a remote project (images and annotations) in the projects directory.
 
