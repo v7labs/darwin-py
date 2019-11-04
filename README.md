@@ -127,6 +127,8 @@ dataset = client.get_remote_dataset(slug="example-dataset")
 progress = dataset.push()
 ```
 
+Note that `dataset.push()` takes an optional parameter `source_folder` with which is possible
+to specify another location from which fetch the images to upload.
 To download a remote project, images and annotations, in the projects directory 
 (specified in the authentication process [default: ~/.darwin/projects]).
 
