@@ -75,7 +75,7 @@ class RemoteDataset:
         blocking : bool
             If False, the dataset is not uploaded and a generator function is returned instead
         multi_threaded : bool
-            Uses multiprocessing to download the dataset in parallel.
+            Uses multiprocessing to upload the dataset in parallel.
             If blocking is False this has no effect.
         extensions_to_exclude : list[str]
             List of extensions to exclude
