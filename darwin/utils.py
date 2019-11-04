@@ -3,8 +3,8 @@ from typing import TYPE_CHECKING, List, Optional
 
 from darwin.config import Config
 
-SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpeg", ".jpg"]
-SUPPORTED_VIDEO_EXTENSIONS = [".bpm", ".mov", ".mp4"]
+SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpeg", ".jpg", ".PNG", ".JPEG", ".JPG"]
+SUPPORTED_VIDEO_EXTENSIONS = [".bpm", ".mov", ".mp4", ".BPM", ".MOV", ".MP4"]
 
 
 if TYPE_CHECKING:
@@ -60,7 +60,7 @@ def prompt(msg: str, default: Optional[str] = None) -> str:
 def find_files(
     root: Optional[Path] = None,
     files_list: Optional[List[str]] = None,
-    recursive: bool = True,
+    recursive: Optional[bool] = True,
     exclude: Optional[List[str]] = None,
 ) -> List[Path]:
     """Retrieve a list of all files belonging to supported extensions. The exploration can be made
@@ -70,6 +70,8 @@ def find_files(
     ----------
     root : Path
         Path to the root folder to explore
+    files_list: list[str]
+        List of files that will be filtered with the supported file extensions and returned
     recursive : bool
         Flag for recursive search
     exclude : list[str]
@@ -78,42 +80,30 @@ def find_files(
     Returns
     -------
     list[Path]
-    List of all files belonging to supported extensions
+    List of all files belonging to supported extensions. Can't return None.
     """
-    if exclude is None:
-        exclude = []
+    if files_list is None and root is None:
+        raise ValueError(f"Invalid combined value for root (None) and files_list (None)")
+
+    # Init the return value
+    files = []
     if files_list is not None:
-        files: List[Path] = []
-        for file in files_list:
-            file = Path(file)
-            if (
-                file.suffix in SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
-                and file.suffix not in exclude
-            ):
-                files += [file]
-        return files
+        files.extend([Path(f) for f in files_list
+                      if Path(f).suffix in SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS])
+
     if root is not None:
         if not root.is_dir():
-            # print ("TODO: when are we supposed to enter here")
-            if (
-                root.suffix in SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
-                and root.suffix not in exclude
-            ):
-                return [root]
-            else:
-                return []
-        files: List[Path] = []
-        for file in root.iterdir():
-            if file.is_dir():
-                if recursive:
-                    files += find_files(root=file, recursive=recursive, exclude=exclude)
-            else:
-                if (
-                    file.suffix in SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
-                    and file.suffix not in exclude
-                ):
-                    files += [file]
-        return files
+            raise ValueError(f"Root is not a directory ({root}).")
+        # Scan for files at the chosen directory
+        base = "**/*." if recursive else "*."
+        pattern = [base + extension
+                   for extension in SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS]
+        files.extend([f for f in root.glob(p)] for p in pattern)
+
+    # Filter the list and return it
+    if exclude is None:
+        exclude = []
+    return [f for f in files if f not in exclude]
 
 
 def secure_continue_request():
