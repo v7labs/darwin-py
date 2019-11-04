@@ -500,14 +500,12 @@ class Client:
     @staticmethod
     def default_api_url():
         """Returns the default api url"""
-        return os.getenv("DARWIN_API_URL", "https://darwin.v7labs.com/api/")
+        return f"{Client.default_base_url()}/api"
 
     @staticmethod
     def default_base_url():
         """Returns the default base url"""
-        if os.getenv("DARWIN_BASE_URL"):
-            return os.getenv("DARWIN_BASE_URL")
-        return Client.default_api_url().replace("/api", "")
+        return os.getenv('DARWIN_BASE_URL', 'https://darwin.v7labs.com/')
 
 
 def name_taken(code, body):

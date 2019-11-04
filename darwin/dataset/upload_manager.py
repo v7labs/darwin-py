@@ -61,7 +61,7 @@ def add_files_to_dataset(
         raise ValueError(f"Invalid list of file names ({filenames}")
 
     generators = []
-    for filenames_chunk in chunk_filenames(filenames, 10):
+    for filenames_chunk in chunk_filenames(filenames, 2):
         images, videos = _split_on_file_type(filenames_chunk)
         data = client.put(
             endpoint = f"/datasets/{dataset_id}",
@@ -73,17 +73,18 @@ def add_files_to_dataset(
             raise ValueError(f"There are errors in the put request: {data['errors']['detail']}")
 
         if images:
-            generators.append(lambda: (
+            g = (lambda images: (
                 functools.partial(
                     client.put,
-                    f"/dataset_images/{upload_file_to_s3(client, image_file, images)['id']}/confirm_upload",
+                    endpoint=f"/dataset_images/{upload_file_to_s3(client, image_file, images)['id']}/confirm_upload",
                     payload={},
                 )
                 for image_file in data["image_data"]
             ))
+            generators.append(g(images))
 
         if videos:
-            generators.append(lambda: (
+            g = (lambda videos: (
                 functools.partial(
                     client.put,
                     f"/dataset_videos/{upload_file_to_s3(client, video_file, videos)['id']}/confirm_upload",
@@ -91,8 +92,10 @@ def add_files_to_dataset(
                 )
                 for video_file in data["video_data"]
             ))
+            generators.append(g(videos))
     assert generators
-    return itertools.chain(*[g() for g in generators]), len(filenames)
+    generator =  itertools.chain(*generators)
+    return generator, len(filenames)
 
 
 def chunk_filenames(files: List[Path], size: int):
@@ -136,11 +139,16 @@ def chunk_filenames(files: List[Path], size: int):
 
 
 def upload_file_to_s3(
-        client: "Client", file: Dict[str, Any], full_path: List[str]
+        client: "Client",
+        file: Dict[str, Any],
+        full_path: List[str]
 ) -> Dict[str, Any]:
     """Helper function: upload data to AWS S3"""
     key = file["key"]
-    file_path = [path for path in full_path if Path(path).name == file["original_filename"]][0]
+    file_path = [path for path in full_path if Path(path).name == file["original_filename"]]
+    if len(file_path) != 1:
+        print("hello")
+    file_path = file_path[0]
     image_id = file["id"]
     response = sign_upload(client, image_id, key, Path(file_path))
     signature = response["signature"]
