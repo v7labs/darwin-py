@@ -54,7 +54,7 @@ class Dataset(data.Dataset):
                 )
             if len(images) > 1:
                 raise ValueError(
-                    f"Image ({stem}) is present with multiple extensions." f" This is forbidden."
+                    f"Image ({stem}) is present with multiple extensions. This is forbidden."
                 )
             assert len(images) == 1
             image_path = images[0]
