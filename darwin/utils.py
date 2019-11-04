@@ -95,15 +95,15 @@ def find_files(
         if not root.is_dir():
             raise ValueError(f"Root is not a directory ({root}).")
         # Scan for files at the chosen directory
-        base = "**/*." if recursive else "*."
+        base = "**/*" if recursive else "*"
         pattern = [base + extension
                    for extension in SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS]
-        files.extend([f for f in root.glob(p)] for p in pattern)
+        files.extend([f for p in pattern for f in root.glob(p)])
 
     # Filter the list and return it
     if exclude is None:
         exclude = []
-    return [f for f in files if f not in exclude]
+    return [f for f in files if f.name not in exclude and f not in exclude]
 
 
 def secure_continue_request():
