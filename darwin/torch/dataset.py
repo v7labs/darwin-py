@@ -430,7 +430,7 @@ class SemanticSegmentationDataset(Dataset):
         target = []
         for obj in annotation:
             sequence = convert_polygon_to_sequence(annotation["polygon"]["path"])
-            if len(sequence) / 2 < 3:
+            if len(sequence) < 6:  # sequence = [x1, y1, x2, y2, ..., xn, yn]
                 # Discard polygons with less than three points
                 continue
             target.append(
