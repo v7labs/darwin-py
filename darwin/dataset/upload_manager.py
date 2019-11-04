@@ -37,7 +37,7 @@ def add_files_to_dataset(
     filenames : list[Path]
         List of filenames to upload
     fps : int
-        Number of file per seconds to upload
+        Frame rate to split videos in.
     Returns
     -------
 
