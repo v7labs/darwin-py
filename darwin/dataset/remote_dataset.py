@@ -61,10 +61,10 @@ class RemoteDataset:
 
     def push(
         self,
-        blocking: Optional[bool] = True,
-        multi_threaded: Optional[bool] = True,
+        blocking: bool = True,
+        multi_threaded: bool = True,
         extensions_to_exclude: Optional[List[str]] = None,
-        fps: Optional[int] = mp.cpu_count(),
+        fps: int = 1,
         files_to_upload: Optional[List[Path]] = None,
         source_folder: Optional[Path] = None,
     ):
@@ -80,7 +80,7 @@ class RemoteDataset:
         extensions_to_exclude : list[str]
             List of extensions to exclude
         fps : int
-            Number of file per seconds to upload
+            Frame rate to split videos in
         files_to_upload : list[Path]
             List of files to upload
         source_folder: Path

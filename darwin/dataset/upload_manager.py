@@ -24,7 +24,7 @@ def _split_on_file_type(files: List[str]):
 
 
 def add_files_to_dataset(
-    client: "Client", dataset_id: str, filenames: List[Path], fps: Optional[int] = 1
+    client: "Client", dataset_id: str, filenames: List[Path], fps: int = 1
 ):
     """Helper function: upload images to an existing remote dataset
 
