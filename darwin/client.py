@@ -354,8 +354,9 @@ class Client:
             self._refresh_access_token()
 
     @classmethod
-    def local(cls, projects_dir: Optional[Path] = None):
-        """Factory method to use the configuration file to init the client
+    def anonymous(cls, projects_dir: Optional[Path] = None):
+        """Factory method to create a client with anonymous access privileges.
+        This client can only fetch open datasets given their dataset id.
 
         Parameters
         ----------
@@ -367,9 +368,6 @@ class Client:
         Client
         The inited client
         """
-        # This functionality is currently suspended in favour of unauthenticated requests
-        # config_path = Path.home() / ".darwin" / "config.yaml"
-        # return Client.from_config(config_path)
         if not projects_dir:
             projects_dir = Path.home() / ".darwin" / "projects"
         return cls(
@@ -379,6 +377,19 @@ class Client:
             base_url=Client.default_base_url(),
             projects_dir=projects_dir,
         )
+
+    @classmethod
+    def lohhhcal(cls):
+        """Factory method to use the default configuration file to init the client
+
+        Returns
+        -------
+        Client
+        The inited client
+        """
+        config_path = Path.home() / ".darwin" / "config.yaml"
+        return Client.from_config(config_path)
+
 
     @classmethod
     def from_token(cls, token: str, projects_dir: Optional[Path] = None):
