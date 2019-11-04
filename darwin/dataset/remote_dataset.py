@@ -66,6 +66,7 @@ class RemoteDataset:
         extensions_to_exclude: Optional[List[str]] = None,
         fps: Optional[int] = mp.cpu_count(),
         files_to_upload: Optional[List[Path]] = None,
+        source_folder: Optional[Path] = None,
     ):
         """Uploads a local project (images ONLY) in the projects directory.
 
@@ -82,6 +83,9 @@ class RemoteDataset:
             Number of file per seconds to upload
         files_to_upload : list[Path]
             List of files to upload
+        source_folder: Path
+            Path to the source folder where to scan for files.
+            If not specified self.local_path / "images" is used instead
 
         Returns
         -------
@@ -92,11 +96,15 @@ class RemoteDataset:
         """
         if files_to_upload is None:
             # Collect files in the default dataset location
-            if not self.local_path.exists():
-                raise NotFound("Dataset location not found. Check your path.")
+            # NOTE: this part will anyway change in PR#28
+            if source_folder is None:
+                source_folder = self.local_path / "images"
+            if not source_folder.exists():
+                raise NotFound(f"Dataset location not found. Check your path ({source_folder})")
             files_to_upload = find_files(
-                self.local_path / "images", recursive=True, exclude=extensions_to_exclude
+                source_folder, recursive=True, exclude=extensions_to_exclude
             )
+
             if not files_to_upload:
                 raise NotFound("No files to upload, check your path and exclusion filters")
         elif extensions_to_exclude is not None:

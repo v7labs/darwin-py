@@ -121,7 +121,7 @@ def secure_continue_request():
     return input("Do you want to continue? [y/N] ") in ["Y", "y"]
 
 
- def persist_client_configuration(client: "Client", config_path: Optional[Path] = None) -> Config:
+def persist_client_configuration(client: "Client", config_path: Optional[Path] = None) -> Config:
     """Authenticate user against the server and creates a configuration file for it
 
     Parameters
