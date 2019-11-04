@@ -379,7 +379,7 @@ class Client:
         )
 
     @classmethod
-    def lohhhcal(cls):
+    def local(cls):
         """Factory method to use the default configuration file to init the client
 
         Returns
