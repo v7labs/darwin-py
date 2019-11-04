@@ -65,7 +65,7 @@ class RemoteDataset:
         multi_threaded: Optional[bool] = True,
         extensions_to_exclude: Optional[List[str]] = None,
         fps: Optional[int] = mp.cpu_count(),
-        files_to_upload: Optional[List[Path]] = None,
+        files_to_upload: Optional[List[str]] = None,
     ):
         """Uploads a local project (images ONLY) in the projects directory.
 
@@ -90,18 +90,18 @@ class RemoteDataset:
         count : int
             The files count
         """
-        if files_to_upload is None:
-            # Collect files in the default dataset location
-            if not self.local_path.exists():
+        if files_to_upload is None and not self.local_path.exists():
                 raise NotFound("Dataset location not found. Check your path.")
-            files_to_upload = find_files(
-                self.local_path / "images", recursive=True, exclude=extensions_to_exclude
-            )
-            if not files_to_upload:
-                raise NotFound("No files to upload, check your path and exclusion filters")
-        elif extensions_to_exclude is not None:
-            # Filter files
-            files_to_upload = find_files(files_list=files_to_upload, exclude=extensions_to_exclude)
+
+        files_to_upload = find_files(
+            root = self.local_path / "images",
+            files_list = files_to_upload,
+            recursive = True,
+            exclude = extensions_to_exclude
+        )
+
+        if not files_to_upload:
+            raise NotFound("No files to upload, check your path and exclusion filters")
 
         progress, count = add_files_to_dataset(
             client=self.client, dataset_id=str(self.dataset_id), filenames=files_to_upload, fps=fps
