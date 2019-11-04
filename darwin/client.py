@@ -390,7 +390,6 @@ class Client:
         config_path = Path.home() / ".darwin" / "config.yaml"
         return Client.from_config(config_path)
 
-
     @classmethod
     def from_token(cls, token: str, projects_dir: Optional[Path] = None):
         """Factory method to create a client from the token passed as parameter
