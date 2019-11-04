@@ -50,7 +50,7 @@ class Dataset(data.Dataset):
             ]
             if len(images) < 1:
                 raise ValueError(
-                    f"Annotation ({annotation_path}) does" f" not have a corresponding image"
+                    f"Annotation ({annotation_path}) does not have a corresponding image"
                 )
             if len(images) > 1:
                 raise ValueError(
