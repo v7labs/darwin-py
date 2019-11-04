@@ -24,7 +24,7 @@ class RemoteDataset:
         dataset_id: Optional[int],
         project_id: Optional[int],
         image_count: Optional[int] = 0,
-        progress: Optional[int] = 0,
+        progress: Optional[float] = 0,
         client: Optional["Client"],
     ):
         """Inits a DarwinDataset.
@@ -46,8 +46,8 @@ class RemoteDataset:
             [Deprecated] will be removed in next iteration
         image_count : int
             Dataset size (number of images)
-        progress : int
-            TODO this is not clear, as it should be a float for how it is handled and its never really used
+        progress : float
+            How much of the dataset has been annotated 0.0 to 1.0 (1.0 == 100%)
         client : Client
             Client to use for interaction with the server
         """
