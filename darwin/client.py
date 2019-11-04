@@ -275,9 +275,15 @@ class Client:
         RemoteDataset
             Initialized dataset
         """
-        if sum(x is not None for x in [name, slug, dataset_id, project_id]) > 1:
+        num_args = sum(x is not None for x in [name, slug, dataset_id, project_id])
+        if num_args > 1:
             raise ValueError(
-                "Too many values provided. Please choose only 1 way of " "getting the dataset."
+                f"Too many values provided ({num_args})."
+                f" Please choose only 1 way of getting the remote dataset."
+            )
+        elif num_args == 0:
+            raise ValueError(
+                f"No values provided. Please select 1 way of getting the remote dataset."
             )
         # TODO: swap project_id for dataset_id when the backend has gotten ride of project_id
         if project_id:
