@@ -328,8 +328,6 @@ class InstanceSegmentationDataset(Dataset):
                 Index of the image inside the dataset
             annotations : list[Dict]
                 List of annotations, where each annotation is a dict with:
-                iscrowd : int
-                    Flag to denote where the annotation more than one instance (can be 0 or 1)
                 category_id : int
                     The single label of the image selected.
                 segmentation : ndarray(1,)
@@ -371,7 +369,6 @@ class InstanceSegmentationDataset(Dataset):
             # Create and append the new entry for this annotation
             target.append(
                 {
-                    "iscrowd": 0,
                     "category_id": self.classes.index(annotation["name"]),
                     "segmentation": [sequence],  # List type is used for backward compatibility
                     "bbox": [x, y, w, h],
