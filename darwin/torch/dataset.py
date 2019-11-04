@@ -40,7 +40,7 @@ class Dataset(data.Dataset):
 
         # Populate internal lists of annotations and images paths
         if not self.split.exists():
-            raise FileNotFoundError(f"Could not find partition {self.split}" f" in {self.root}.")
+            raise FileNotFoundError(f"Could not find partition file: {self.split}")
         extensions = [".jpg", ".jpeg", ".png"]
         stems = (e.strip() for e in split.open())
         for stem in stems:
@@ -121,7 +121,7 @@ class Dataset(data.Dataset):
         annotation = [a for a in annotation if a["name"] in self.classes]
         return {"image_id": index, "annotations": annotation}
 
-    def measure_mean_std(self, multi_threaded: Optional[bool] = True, **kwargs):
+    def measure_mean_std(self, multi_threaded: bool = True, **kwargs):
         """Computes mean and std of train images, given the train loader
 
         Parameters
@@ -264,7 +264,7 @@ class ClassificationDataset(Dataset):
     def __init__(self, root, split: Path, transform: Optional[List] = None):
         """See superclass for documentation"""
         super().__init__(root=root, split=split, transform=transform)
-        self.classes = [e.strip() for e in open(str(self.root / "lists/classes_tag.txt"))]
+        self.classes = [e.strip() for e in (self.root / "lists/classes_tag.txt").read_text()]
 
     def _map_annotation(self, index: int):
         """See superclass for documentation
@@ -315,7 +315,7 @@ class InstanceSegmentationDataset(Dataset):
     def __init__(self, root, split: Path, transform: Optional[List] = None):
         """See superclass for documentation"""
         super().__init__(root=root, split=split, transform=transform)
-        self.classes = [e.strip() for e in open(str(self.root / "lists/classes_polygon.txt"))]
+        self.classes = [e.strip() for e in (self.root / "lists/classes_polygon.txt").read_text().split("\n")]
         self.convert_polygons = T.ConvertPolygonsToInstanceMasks()
 
     def _map_annotation(self, index: int):
@@ -362,10 +362,8 @@ class InstanceSegmentationDataset(Dataset):
             # Compute the area of the polygon
             poly_area = polygon_area(x_coords, y_coords)
             bbox_area = w * h
-            if poly_area > bbox_area:
-                raise ValueError(
-                    f"polygon's area should be <= bbox's area. Failed {poly_area} <= {bbox_area}"
-                )
+            assert poly_area <= bbox_area
+
             # Create and append the new entry for this annotation
             target.append(
                 {
@@ -403,7 +401,7 @@ class SemanticSegmentationDataset(Dataset):
     def __init__(self, root, split: Path, transform: Optional[List] = None):
         """See superclass for documentation"""
         super().__init__(root=root, split=split, transform=transform)
-        self.classes = [e.strip() for e in open(str(self.root / "lists/classes_polygon.txt"))]
+        self.classes = [e.strip() for e in (self.root / "lists/classes_polygon.txt").read_text().split("\n")]
         if self.classes[0] == "__background__":
             self.classes = self.classes[1:]
         self.convert_polygons = T.ConvertPolygonToMask()

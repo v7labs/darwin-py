@@ -17,7 +17,7 @@ from darwin.exceptions import (
     ValidationError,
 )
 from darwin.table import Table
-from darwin.utils import find_files, make_configuration_file, secure_continue_request
+from darwin.utils import find_files, persist_client_configuration, secure_continue_request
 
 
 def authenticate(email: str, password: str, projects_dir: Path) -> Config:
@@ -46,7 +46,7 @@ def authenticate(email: str, password: str, projects_dir: Path) -> Config:
         client = Client.login(email=email, password=password, projects_dir=projects_dir)
         config_path = Path.home() / ".darwin" / "config.yaml"
         config_path.parent.mkdir(exist_ok=True)
-        return make_configuration_file(client)
+        return persist_client_configuration(client)
 
     except InvalidLogin:
         _error("Invalid credentials")
