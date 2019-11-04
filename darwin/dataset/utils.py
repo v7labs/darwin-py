@@ -238,12 +238,17 @@ def split_dataset(
     lists_path.mkdir(parents=True, exist_ok=True)
 
     # Create split id, path and final split paths
-    assert val_percentage is not None
-    assert test_percentage is not None
-    assert split_seed is not None
-    assert 0 < val_percentage < 1.0
-    assert 0 <= test_percentage < 1.0
-    assert val_percentage + test_percentage < 1.0
+    if val_percentage is None or not 0 < val_percentage < 1.0:
+        raise ValueError(f"Invalid validation percentage ({val_percentage}). "
+                         f"Must be > 0 and < 1.0")
+    if test_percentage is None or not 0 <= test_percentage < 1.0:
+        raise ValueError(f"Invalid test percentage ({test_percentage}). "
+                         f"Must be > 0 and < 1.0")
+    if not val_percentage + test_percentage < 1.0:
+        raise ValueError(f"Invalid combination of validation ({val_percentage}) "
+                         f"and test ({test_percentage}) percentages. Their sum must be < 1.0")
+    if split_seed is None:
+        raise ValueError("Seed is None")
     split_id = f"split_v{int(val_percentage*100)}_t{int(test_percentage*100)}_s{split_seed}"
     split_path = lists_path / split_id
 
