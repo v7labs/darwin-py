@@ -186,7 +186,7 @@ class Client:
             )
         return teams
 
-    def current_team(self):
+    def current_team(self) -> Team:
         """Returns the currently selected team
 
         Returns
