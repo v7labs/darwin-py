@@ -116,7 +116,7 @@ def find_files(
         return files
 
 
-def secure_continue_request():
+def secure_continue_request() -> bool:
     """Asks for explicit approval from the user. Empty string not accepted"""
     return input("Do you want to continue? [y/N] ") in ["Y", "y"]
 
