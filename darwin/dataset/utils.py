@@ -47,7 +47,6 @@ def make_class_list(
     annotation_files: List,
     lists_path: Path,
     annotation_type: str,
-    force_resplit: Optional[bool] = False,
     add_background: Optional[bool] = False,
 ):
     """
@@ -291,7 +290,7 @@ def split_dataset(
         # STRATIFIED SPLIT ON TAGS
         # Stratify
         idx_to_classes_tag = make_class_list(
-            "classes_tag.txt", annotation_files, lists_path, "tag", force_resplit
+            "classes_tag.txt", annotation_files, lists_path, "tag",
         )
         if len(idx_to_classes_tag) > 0:
             train_indices, val_indices, test_indices = _stratify_samples(
@@ -310,7 +309,6 @@ def split_dataset(
             annotation_files,
             lists_path,
             "polygon",
-            force_resplit,
             add_background=True,
         )
         if len(idx_to_classes_polygon) > 0:
