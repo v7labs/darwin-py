@@ -47,7 +47,6 @@ def make_class_list(
     annotation_files: List,
     lists_path: Path,
     annotation_type: str,
-    force_resplit: Optional[bool] = False,
     add_background: Optional[bool] = False,
 ):
     """
