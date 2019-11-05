@@ -47,8 +47,7 @@ def make_class_list(
     annotation_files: List,
     lists_path: Path,
     annotation_type: str,
-    force_resplit: Optional[bool] = False,
-    add_background: Optional[bool] = False,
+        add_background: Optional[bool] = False,
 ):
     """
     Support function to extract classes and save the output to file
@@ -63,8 +62,6 @@ def make_class_list(
         Path to the lists folder
     annotation_type : str
         Type of annotations to use, e.g. 'tag' or 'polygon'
-    force_resplit : bool
-        Force the creation of the output file, should the list already exist
     add_background : bool
         Add the '__background__' class to the list of classes
 
@@ -296,7 +293,7 @@ def split_dataset(
         # STRATIFIED SPLIT ON TAGS
         # Stratify
         idx_to_classes_tag = make_class_list(
-            "classes_tag.txt", annotation_files, lists_path, "tag", force_resplit
+            "classes_tag.txt", annotation_files, lists_path, "tag"
         )
         if len(idx_to_classes_tag) > 0:
             train_indices, val_indices, test_indices = _stratify_samples(
@@ -315,7 +312,6 @@ def split_dataset(
             annotation_files,
             lists_path,
             "polygon",
-            force_resplit,
             add_background=True,
         )
         if len(idx_to_classes_polygon) > 0:
@@ -352,7 +348,7 @@ def exhaust_generator(progress: Generator, count: int, multi_threaded: bool):
     if multi_threaded:
         pbar = tqdm(total=count)
 
-        def update(*a):
+        def update():
             pbar.update()
 
         with mp.Pool(mp.cpu_count()) as pool:

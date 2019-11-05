@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from darwin.client import Client
 
 
-def urljoin(*parts) -> str:
+def urljoin(*parts: str) -> str:
     """Take as input an unpacked list of strings and joins them to form an URL"""
     return "/".join(part.strip("/") for part in parts)
 

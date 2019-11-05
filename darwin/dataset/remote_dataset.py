@@ -1,9 +1,8 @@
 import io
-import multiprocessing as mp
 import shutil
 import zipfile
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Optional
+from typing import List, Optional, TYPE_CHECKING
 
 from darwin.dataset.download_manager import download_all_images_from_annotations
 from darwin.dataset.upload_manager import add_files_to_dataset
@@ -19,13 +18,13 @@ class RemoteDataset:
     def __init__(
         self,
         *,
-        name: Optional[str],
+        name: str,
         slug: Optional[str] = None,
-        dataset_id: Optional[int],
-        project_id: Optional[int],
-        image_count: Optional[int] = 0,
-        progress: Optional[float] = 0,
-        client: Optional["Client"],
+        dataset_id: int,
+        project_id: int,
+        image_count: int = 0,
+        progress: float = 0,
+        client: "Client",
     ):
         """Inits a DarwinDataset.
         This class manages the remote and local versions of a dataset hosted on Darwin.
@@ -184,7 +183,7 @@ class RemoteDataset:
     @property
     def remote_path(self) -> Path:
         """Returns an URL specifying the location of the remote dataset"""
-        return urljoin(self.client.base_url, f"/datasets/{self.project_id}")
+        return Path(urljoin(self.client.base_url, f"/datasets/{self.project_id}"))
 
     @property
     def local_path(self) -> Path:

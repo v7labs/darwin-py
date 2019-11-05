@@ -1,7 +1,7 @@
 import json
 import multiprocessing as mp
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Union, Collection
 
 import numpy as np
 import torch.utils.data as data
@@ -175,7 +175,7 @@ class Dataset(data.Dataset):
         raise NotImplementedError("Base class Dataset does not have an implementation for this")
 
     @staticmethod
-    def _compute_weights(labels: np.ndarray):
+    def _compute_weights(labels: Collection):
         """Given an array of labels computes the weights normalized
 
         Parameters
@@ -290,7 +290,7 @@ class ClassificationDataset(Dataset):
                 )
         return {"category_id": tags[0]}
 
-    def measure_weights(self, **kwargs):
+    def measure_weights(self, **kwargs) -> np.ndarray:
         """Computes the class balancing weights (not the frequencies!!) given the train loader
         Get the weights proportional to the inverse of their class frequencies.
         The vector sums up to 1
@@ -427,7 +427,7 @@ class SemanticSegmentationDataset(Dataset):
 
         target = []
         for obj in annotation:
-            sequence = convert_polygon_to_sequence(annotation["polygon"]["path"])
+            sequence = convert_polygon_to_sequence(obj["polygon"]["path"])
             if len(sequence) < 6:  # sequence = [x1, y1, x2, y2, ..., xn, yn]
                 # Discard polygons with less than three points
                 continue

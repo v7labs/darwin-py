@@ -20,7 +20,7 @@ from darwin.table import Table
 from darwin.utils import find_files, persist_client_configuration, secure_continue_request
 
 
-def authenticate(email: str, password: str, projects_dir: Path) -> Config:
+def authenticate(email: str, password: str, projects_dir: str) -> Config:
     """Authenticate user against the server and creates a configuration file for it
 
     Parameters
@@ -29,7 +29,7 @@ def authenticate(email: str, password: str, projects_dir: Path) -> Config:
         Email to use for the client login
     password : str
         Password to use for the client login
-    projects_dir : Path
+    projects_dir : str
          String where the client should be initialized from
 
     Returns
@@ -38,7 +38,7 @@ def authenticate(email: str, password: str, projects_dir: Path) -> Config:
     A configuration object to handle YAML files
     """
     # Resolve the home folder if the project_dir starts with ~ or ~user
-    projects_dir = Path(os.path.expanduser(str(projects_dir)))
+    projects_dir = Path(os.path.expanduser(projects_dir))
     Path(projects_dir).mkdir(parents=True, exist_ok=True)
     print(f"Projects directory created {projects_dir}")
 

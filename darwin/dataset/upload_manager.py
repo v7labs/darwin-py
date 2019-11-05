@@ -138,7 +138,8 @@ def upload_to_s3(signature, end_point, file_path=None):
     requests.Response
     Response of the post request
     """
-    return requests.post("http:" + end_point, data=signature, files={"file": open(file_path, "rb")})
+    with open(file_path, "rb") as file:
+        return requests.post("http:" + end_point, data=signature, files={"file": file})
 
 
 def sign_upload(client, image_id, key, file_path):

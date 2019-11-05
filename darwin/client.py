@@ -22,7 +22,7 @@ from darwin.utils import is_project_dir, urljoin
 class Client:
     def __init__(
         self,
-        token: str,
+        token: Optional[str],
         api_url: str,
         base_url: str,
         projects_dir: Path,
