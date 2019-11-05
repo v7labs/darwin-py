@@ -11,7 +11,7 @@ from darwin.exceptions import NotFound
 from darwin.utils import find_files, urljoin
 
 if TYPE_CHECKING:
-    pass
+    from darwin.client import Client
 
 
 class RemoteDataset:
@@ -188,4 +188,7 @@ class RemoteDataset:
     @property
     def local_path(self) -> Path:
         """Returns a Path to the local dataset"""
-        return Path(self.client.projects_dir) / self.slug
+        if self.slug is not None:
+            return Path(self.client.projects_dir) / self.slug
+        else:
+            return Path(self.client.projects_dir)

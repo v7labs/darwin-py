@@ -1,13 +1,14 @@
 import functools
 import itertools
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
 import requests
 
 from darwin.exceptions import UnsupportedFileType
 from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS, SUPPORTED_VIDEO_EXTENSIONS
-
+if TYPE_CHECKING:
+    from darwin.client import Client
 
 def _split_on_file_type(files: List[str]):
     images = []

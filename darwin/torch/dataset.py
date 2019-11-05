@@ -26,12 +26,12 @@ class Dataset(data.Dataset):
         self.root = root
         self.split = split
         self.transform = transform
-        self.images_path = []
-        self.annotations_path = []
+        self.images_path: List[Path] = []
+        self.annotations_path: List[Path] = []
         self.classes = None
         self.original_classes = None
-        self.original_images_path = None
-        self.original_annotations_path = None
+        self.original_images_path: Optional[List[Path]] = None
+        self.original_annotations_path: Optional[List[Path]] = None
         self.convert_polygons = None
 
         # Compose the transform if necessary
@@ -118,10 +118,11 @@ class Dataset(data.Dataset):
         with self.annotations_path[index].open() as f:
             annotation = json.load(f)["annotations"]
         # Filter out unused classes
-        annotation = [a for a in annotation if a["name"] in self.classes]
+        if self.classes is not None:
+            annotation = [a for a in annotation if a["name"] in self.classes]
         return {"image_id": index, "annotations": annotation}
 
-    def measure_mean_std(self, multi_threaded: bool = True, **kwargs):
+    def measure_mean_std(self, multi_threaded: bool = True):
         """Computes mean and std of train images, given the train loader
 
         Parameters
@@ -341,7 +342,8 @@ class InstanceSegmentationDataset(Dataset):
             annotations = json.load(f)["annotations"]
 
         # Filter out unused classes
-        annotations = [a for a in annotations if a["name"] in self.classes]
+        if self.classes is not None:
+            annotations = [a for a in annotations if a["name"] in self.classes]
 
         target = []
         for annotation in annotations:
@@ -423,7 +425,8 @@ class SemanticSegmentationDataset(Dataset):
             annotation = json.load(f)["annotations"]
 
         # Filter out unused classes
-        annotation = [obj for obj in annotation if obj["name"] in self.classes]
+        if self.classes is not None:
+            annotation = [obj for obj in annotation if obj["name"] in self.classes]
 
         target = []
         for obj in annotation:
