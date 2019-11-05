@@ -320,7 +320,7 @@ class Client:
                 client=self,
             )
 
-    def create_dataset(self, name: str):
+    def create_dataset(self, name: str) -> RemoteDataset:
         """Create a remote dataset
 
         Parameters
