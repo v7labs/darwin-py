@@ -61,7 +61,7 @@ def find_files(
     root: Optional[Path] = None,
     files_list: Optional[List[str]] = None,
     recursive: Optional[bool] = True,
-    exclude: Optional[List[str]] = None,
+    files_to_exclude: Optional[List[str]] = None,
 ) -> List[Path]:
     """Retrieve a list of all files belonging to supported extensions. The exploration can be made
     recursive and a list of files can be excluded if desired.
@@ -74,7 +74,7 @@ def find_files(
         List of files that will be filtered with the supported file extensions and returned
     recursive : bool
         Flag for recursive search
-    exclude : list[str]
+    files_to_exclude : list[str]
         List of files to exclude from the search
 
     Returns
@@ -101,9 +101,9 @@ def find_files(
         files.extend([f for p in pattern for f in root.glob(p)])
 
     # Filter the list and return it
-    if exclude is None:
-        exclude = []
-    return [f for f in files if f.name not in exclude and f not in exclude]
+    if files_to_exclude is None:
+        files_to_exclude = []
+    return [f for f in files if f.name not in files_to_exclude and str(f) not in files_to_exclude]
 
 
 def secure_continue_request():

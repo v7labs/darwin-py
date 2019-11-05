@@ -329,7 +329,7 @@ def split_dataset(
 def _f(x):
     """Support function for pool.map() in _exhaust_generator()"""
     if callable(x):
-        x()
+        return x()
 
 
 def exhaust_generator(progress: Generator, count: int, multi_threaded: bool):
@@ -343,7 +343,13 @@ def exhaust_generator(progress: Generator, count: int, multi_threaded: bool):
         Size of the generator
     multi_threaded : bool
         Flag for multi-threaded enabled operations
+
+    Returns
+    -------
+    List[dict]
+        List of responses from the generator execution
     """
+    responses = []
     if multi_threaded:
         pbar = tqdm(total=count)
 
@@ -352,10 +358,10 @@ def exhaust_generator(progress: Generator, count: int, multi_threaded: bool):
 
         with mp.Pool(mp.cpu_count()) as pool:
             for f in progress:
-                pool.apply_async(_f, args=(f,), callback=update)
+                responses.append(pool.apply_async(_f, args=(f,), callback=update))
             pool.close()
             pool.join()
     else:
         for f in tqdm(progress, total=count, desc="Progress"):
-            if callable(f):
-                f()
+            responses.append(_f(f))
+    return responses
