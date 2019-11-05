@@ -186,7 +186,7 @@ class Client:
             )
         return teams
 
-    def current_team(self):
+    def current_team(self) -> Team:
         """Returns the currently selected team
 
         Returns
@@ -216,7 +216,7 @@ class Client:
         self.token = data["token"]
         self.refresh_token = data["refresh_token"]
 
-    def list_local_datasets(self):
+    def list_local_datasets(self) -> Iterator[Path]:
         """Returns a list of all local folders who are detected as dataset.
 
         Returns
@@ -228,7 +228,7 @@ class Client:
             if project_path.is_dir() and is_project_dir(project_path):
                 yield Path(project_path)
 
-    def list_remote_datasets(self):
+    def list_remote_datasets(self) -> Iterator[RemoteDataset]:
         """Returns a list of all available datasets with the team currently authenticated against
 
         Returns
@@ -254,7 +254,7 @@ class Client:
         slug: Optional[str] = None,
         name: Optional[str] = None,
         dataset_id: Optional[int] = None,
-    ):
+    ) -> RemoteDataset:
         """Get a remote dataset based on the parameter passed. You can only choose one of the
         possible parameters and calling this method with multiple ones will result in an
         error.
@@ -320,7 +320,7 @@ class Client:
                 client=self,
             )
 
-    def create_dataset(self, name: str):
+    def create_dataset(self, name: str) -> RemoteDataset:
         """Create a remote dataset
 
         Parameters
