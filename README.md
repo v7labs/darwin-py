@@ -51,9 +51,9 @@ client = Client.login(email="simon@v7labs.com", password="*********")
 Then, persist the configuration file with:
 
 ```python
-from darwin.utils import make_configuration_file
+from darwin.utils import persist_client_configuration
 
-make_configuration_file(client)   
+persist_client_configuration(client)   
 ```
 
 Afterwards, calling the creation of Client with default parameters will load the configurations

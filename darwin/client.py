@@ -26,7 +26,7 @@ class Client:
         api_url: str,
         base_url: str,
         projects_dir: Path,
-        refresh_token: Optional[str] = None,  # TODO verify nothing breaks
+        refresh_token: Optional[str] = None,
     ):
         """Initializes a Client object. Clients are responsible for holding the logic and for
         interacting with the remote hosts.

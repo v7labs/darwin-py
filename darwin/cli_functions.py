@@ -204,7 +204,7 @@ def upload_data(
     project_slug: str,
     files: Optional[List[str]],
     extensions_to_exclude: Optional[List[str]],
-    fps: Optional[int],
+    fps: int,
 ):
     """Uploads the files provided as parameter to the remote dataset selected
 
@@ -217,7 +217,7 @@ def upload_data(
     extensions_to_exclude : list[str]
         List of extension to exclude from the file scan (which is done only if files is None)
     fps : int
-        Number of files per second to upload
+        Frame rate to split videos in
 
     Returns
     -------
