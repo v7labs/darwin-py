@@ -228,7 +228,7 @@ class Client:
             if project_path.is_dir() and is_project_dir(project_path):
                 yield Path(project_path)
 
-    def list_remote_datasets(self):
+    def list_remote_datasets(self) -> Iterator[RemoteDataset]:
         """Returns a list of all available datasets with the team currently authenticated against
 
         Returns
