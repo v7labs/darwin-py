@@ -254,7 +254,7 @@ class Client:
         slug: Optional[str] = None,
         name: Optional[str] = None,
         dataset_id: Optional[int] = None,
-    ):
+    ) -> RemoteDataset:
         """Get a remote dataset based on the parameter passed. You can only choose one of the
         possible parameters and calling this method with multiple ones will result in an
         error.
