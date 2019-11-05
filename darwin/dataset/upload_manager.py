@@ -306,7 +306,7 @@ def upload_annotations(
         actually only be retrieved from the backend at the moment.
     """
 
-    # Read and prepare the image id mappings in a dict format {'class name': 'class id'}
+    # Read and prepare the image id mappings in a dict format {'original filename': 'image id'}
     with image_mapping.open() as json_file:
         image_mapping = {cm['original_filename']: cm['id'] for cm in json.load(json_file)}
 
