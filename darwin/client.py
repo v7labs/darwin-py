@@ -216,7 +216,7 @@ class Client:
         self.token = data["token"]
         self.refresh_token = data["refresh_token"]
 
-    def list_local_datasets(self):
+    def list_local_datasets(self) -> Iterator[Path]:
         """Returns a list of all local folders who are detected as dataset.
 
         Returns
