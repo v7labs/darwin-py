@@ -1,9 +1,8 @@
 import io
-import multiprocessing as mp
 import shutil
 import zipfile
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Optional
+from typing import List, Optional, TYPE_CHECKING
 
 from darwin.dataset.download_manager import download_all_images_from_annotations
 from darwin.dataset.upload_manager import add_files_to_dataset
@@ -12,20 +11,20 @@ from darwin.exceptions import NotFound
 from darwin.utils import find_files, urljoin
 
 if TYPE_CHECKING:
-    pass
+    from darwin.client import Client
 
 
 class RemoteDataset:
     def __init__(
         self,
         *,
-        name: Optional[str],
+        name: str,
         slug: Optional[str] = None,
-        dataset_id: Optional[int],
-        project_id: Optional[int],
-        image_count: Optional[int] = 0,
-        progress: Optional[int] = 0,
-        client: Optional["Client"],
+        dataset_id: int,
+        project_id: int,
+        image_count: int = 0,
+        progress: float = 0,
+        client: "Client",
     ):
         """Inits a DarwinDataset.
         This class manages the remote and local versions of a dataset hosted on Darwin.
@@ -46,8 +45,8 @@ class RemoteDataset:
             [Deprecated] will be removed in next iteration
         image_count : int
             Dataset size (number of images)
-        progress : int
-            TODO this is not clear, as it should be a float for how it is handled and its never really used
+        progress : float
+            How much of the dataset has been annotated 0.0 to 1.0 (1.0 == 100%)
         client : Client
             Client to use for interaction with the server
         """
@@ -61,27 +60,31 @@ class RemoteDataset:
 
     def push(
         self,
-        blocking: Optional[bool] = True,
-        multi_threaded: Optional[bool] = True,
+        blocking: bool = True,
+        multi_threaded: bool = True,
         extensions_to_exclude: Optional[List[str]] = None,
-        fps: Optional[int] = mp.cpu_count(),
-        files_to_upload: Optional[List[str]] = None,
+        fps: int = 1,
+        files_to_upload: Optional[List[Path]] = None,
+        source_folder: Optional[Path] = None,
     ):
         """Uploads a local project (images ONLY) in the projects directory.
 
         Parameters
         ----------
         blocking : bool
-            If False, the dataset is not downloaded and a generator function is returned instead
+            If False, the dataset is not uploaded and a generator function is returned instead
         multi_threaded : bool
-            Uses multiprocessing to download the dataset in parallel.
+            Uses multiprocessing to upload the dataset in parallel.
             If blocking is False this has no effect.
         extensions_to_exclude : list[str]
             List of extensions to exclude
         fps : int
-            Number of file per seconds to upload
+            Frame rate to split videos in
         files_to_upload : list[Path]
             List of files to upload
+        source_folder: Path
+            Path to the source folder where to scan for files.
+            If not specified self.local_path / "images" is used instead
 
         Returns
         -------
@@ -116,9 +119,9 @@ class RemoteDataset:
 
     def pull(
         self,
-        blocking: Optional[bool] = True,
-        multi_threaded: Optional[bool] = True,
-        only_done_images: Optional[bool] = True,
+        blocking: bool = True,
+        multi_threaded: bool = True,
+        only_done_images: bool = True,
     ):
         """Downloads a remote project (images and annotations) in the projects directory.
 
@@ -176,9 +179,12 @@ class RemoteDataset:
     @property
     def remote_path(self) -> Path:
         """Returns an URL specifying the location of the remote dataset"""
-        return urljoin(self.client.base_url, f"/datasets/{self.project_id}")
+        return Path(urljoin(self.client.base_url, f"/datasets/{self.project_id}"))
 
     @property
     def local_path(self) -> Path:
         """Returns a Path to the local dataset"""
-        return Path(self.client.projects_dir) / self.slug
+        if self.slug is not None:
+            return Path(self.client.projects_dir) / self.slug
+        else:
+            return Path(self.client.projects_dir)

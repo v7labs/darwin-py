@@ -51,9 +51,9 @@ client = Client.login(email="simon@v7labs.com", password="*********")
 Then, persist the configuration file with:
 
 ```python
-from darwin.utils import make_configuration_file
+from darwin.utils import persist_client_configuration
 
-make_configuration_file(client)   
+persist_client_configuration(client)   
 ```
 
 Afterwards, calling the creation of Client with default parameters will load the configurations
@@ -127,6 +127,8 @@ dataset = client.get_remote_dataset(slug="example-dataset")
 progress = dataset.push()
 ```
 
+Note that `dataset.push()` takes an optional parameter `source_folder` with which is possible
+to specify another location from which fetch the images to upload.
 To download a remote project, images and annotations, in the projects directory 
 (specified in the authentication process [default: ~/.darwin/projects]).
 

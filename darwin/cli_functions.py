@@ -17,10 +17,10 @@ from darwin.exceptions import (
     ValidationError,
 )
 from darwin.table import Table
-from darwin.utils import find_files, make_configuration_file, secure_continue_request
+from darwin.utils import find_files, persist_client_configuration, secure_continue_request
 
 
-def authenticate(email: str, password: str, projects_dir: Path) -> Config:
+def authenticate(email: str, password: str, projects_dir: str) -> Config:
     """Authenticate user against the server and creates a configuration file for it
 
     Parameters
@@ -29,7 +29,7 @@ def authenticate(email: str, password: str, projects_dir: Path) -> Config:
         Email to use for the client login
     password : str
         Password to use for the client login
-    projects_dir : Path
+    projects_dir : str
          String where the client should be initialized from
 
     Returns
@@ -38,7 +38,7 @@ def authenticate(email: str, password: str, projects_dir: Path) -> Config:
     A configuration object to handle YAML files
     """
     # Resolve the home folder if the project_dir starts with ~ or ~user
-    projects_dir = Path(os.path.expanduser(str(projects_dir)))
+    projects_dir = Path(os.path.expanduser(projects_dir))
     Path(projects_dir).mkdir(parents=True, exist_ok=True)
     print(f"Projects directory created {projects_dir}")
 
@@ -46,7 +46,7 @@ def authenticate(email: str, password: str, projects_dir: Path) -> Config:
         client = Client.login(email=email, password=password, projects_dir=projects_dir)
         config_path = Path.home() / ".darwin" / "config.yaml"
         config_path.parent.mkdir(exist_ok=True)
-        return make_configuration_file(client)
+        return persist_client_configuration(client)
 
     except InvalidLogin:
         _error("Invalid credentials")
@@ -204,7 +204,7 @@ def upload_data(
     project_slug: str,
     files: Optional[List[str]],
     extensions_to_exclude: Optional[List[str]],
-    fps: Optional[int],
+    fps: int,
 ):
     """Uploads the files provided as parameter to the remote dataset selected
 
@@ -217,7 +217,14 @@ def upload_data(
     extensions_to_exclude : list[str]
         List of extension to exclude from the file scan (which is done only if files is None)
     fps : int
-        Number of files per second to upload
+        Frame rate to split videos in
+
+    Returns
+    -------
+    generator : function
+            Generator for doing the actual uploads. This is None if blocking is True
+    count : int
+        The files count
     """
     client = _load_client()
     try:
