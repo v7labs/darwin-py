@@ -101,8 +101,7 @@ def find_files(
         files.extend([f for p in pattern for f in root.glob(p)])
 
     # Filter the list and return it
-    if files_to_exclude is None:
-        files_to_exclude = []
+    files_to_exclude = set() if files_to_exclude is None else set(files_to_exclude)
     return [f for f in files if f.name not in files_to_exclude and str(f) not in files_to_exclude]
 
 

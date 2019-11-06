@@ -77,8 +77,12 @@ class Client:
             return self.get(endpoint=endpoint, retry=False)
 
         if response.status_code != 200:
-            print(f"Client get request response ({response.json()}) with unexpected status "
-                  f"({response.status_code}). Client ({self})")
+            print(
+                f"Client get request response ({response.json()}) with unexpected status "
+                f"({response.status_code}). "
+                f"Client: ({self})"
+                f"Request: (endpoint={endpoint})"
+            )
 
         if raw:
             return response
@@ -116,8 +120,12 @@ class Client:
                 raise InsufficientStorage()
 
         if response.status_code != 200:
-            print(f"Client put request response ({response.json()}) with unexpected status "
-                  f"({response.status_code}). Client ({self})")
+            print(
+                f"Client put request response ({response.json()}) with unexpected status "
+                f"({response.status_code}). "
+                f"Client: ({self})"
+                f"Request: (endpoint={endpoint}, payload={payload})"
+            )
         return response.json()
 
     def post(
@@ -164,8 +172,12 @@ class Client:
         if response.status_code != 200:
             for error_handler in error_handlers:
                 error_handler(response.status_code, response.json())
-            print(f"Client post request response ({response.json()}) with unexpected status "
-                  f"({response.status_code}). Client ({self})")
+            print(
+                f"Client post request response ({response.json()}) with unexpected status "
+                f"({response.status_code}). "
+                f"Client: ({self})"
+                f"Request: (endpoint={endpoint}, payload={payload})"
+            )
         return response.json()
 
     def list_teams(self):

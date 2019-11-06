@@ -112,9 +112,9 @@ class RemoteDataset:
             if not responses_path.exists():
                 raise NotFound("Dataset location not found. Check your path.")
             with responses_path.open() as f:
-                responses = json.load(f)
+                logged_responses = json.load(f)
             files_to_exclude.extend([response['file_path']
-                                     for response in responses
+                                     for response in logged_responses
                                      if response['s3_response_status_code'].startswith("2")])
 
         files_to_upload = find_files(
@@ -139,6 +139,8 @@ class RemoteDataset:
             # Log responses to file
             if responses:
                 responses = [{k: str(v) for k, v in response.items()} for response in responses ]
+                if resume:
+                    responses.extend(logged_responses)
                 with responses_path.open('w') as f:
                     json.dump(responses, f)
             return None, count
