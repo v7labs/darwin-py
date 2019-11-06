@@ -9,7 +9,7 @@ from darwin.dataset.upload_manager import add_files_to_dataset
 from darwin.dataset.utils import exhaust_generator
 from darwin.exceptions import NotFound
 from darwin.utils import find_files, urljoin
-
+import json
 if TYPE_CHECKING:
     from darwin.client import Client
 
@@ -62,10 +62,11 @@ class RemoteDataset:
         self,
         blocking: bool = True,
         multi_threaded: bool = True,
-        extensions_to_exclude: Optional[List[str]] = None,
         fps: int = 1,
-        files_to_upload: Optional[List[Path]] = None,
+        files_to_exclude: Optional[List[str]] = None,
+        files_to_upload: Optional[List[str]] = None,
         source_folder: Optional[Path] = None,
+        resume: bool = False,
     ):
         """Uploads a local project (images ONLY) in the projects directory.
 
@@ -76,15 +77,17 @@ class RemoteDataset:
         multi_threaded : bool
             Uses multiprocessing to upload the dataset in parallel.
             If blocking is False this has no effect.
-        extensions_to_exclude : list[str]
-            List of extensions to exclude
-        fps : int
-            Frame rate to split videos in
+        files_to_exclude : list[str]
+            List of files to exclude from the file scan (which is done only if files is None)
         files_to_upload : list[Path]
             List of files to upload
+        fps : int
+            Number of file per seconds to upload
         source_folder: Path
             Path to the source folder where to scan for files.
             If not specified self.local_path / "images" is used instead
+        resume : bool
+            Flag for signalling the resuming of a push
 
         Returns
         -------
@@ -93,18 +96,35 @@ class RemoteDataset:
         count : int
             The files count
         """
-        if files_to_upload is None and not self.local_path.exists():
+        # Resolving where to look for images
+        if source_folder is None:
+            source_folder = self.local_path / "images"
+        # This is where the responses from the upload function will be saved/load for resume
+        responses_path = source_folder.parent / "upload_responses.json"
+        # Init optional parameters
+        if files_to_exclude is None:
+            files_to_exclude = []
+        if files_to_upload is None and not source_folder.exists():
+            raise NotFound("Dataset location not found. Check your path.")
+
+        if resume:
+            if not responses_path.exists():
                 raise NotFound("Dataset location not found. Check your path.")
+            with responses_path.open() as f:
+                logged_responses = json.load(f)
+            files_to_exclude.extend([response['file_path']
+                                     for response in logged_responses
+                                     if response['s3_response_status_code'].startswith("2")])
 
         files_to_upload = find_files(
-            root = self.local_path / "images",
+            root = source_folder,
             files_list = files_to_upload,
             recursive = True,
-            exclude = extensions_to_exclude
+            files_to_exclude= files_to_exclude
         )
 
         if not files_to_upload:
-            raise NotFound("No files to upload, check your path and exclusion filters")
+            raise NotFound("No files to upload, check your path, exclusion filters and resume flag")
 
         progress, count = add_files_to_dataset(
             client=self.client, dataset_id=str(self.dataset_id), filenames=files_to_upload, fps=fps
@@ -112,10 +132,20 @@ class RemoteDataset:
 
         # If blocking is selected, upload the dataset remotely
         if blocking:
-            exhaust_generator(progress=progress, count=count, multi_threaded=multi_threaded)
+            responses = exhaust_generator(
+                progress=progress, count=count, multi_threaded=multi_threaded
+            )
+            # Log responses to file
+            if responses:
+                responses = [{k: str(v) for k, v in response.items()} for response in responses ]
+                if resume:
+                    responses.extend(logged_responses)
+                with responses_path.open('w') as f:
+                    json.dump(responses, f)
             return None, count
         else:
             return progress, count
+
 
     def pull(
         self,

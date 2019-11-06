@@ -22,11 +22,11 @@ from darwin.utils import is_project_dir, urljoin
 class Client:
     def __init__(
         self,
-        token: Optional[str],
+        token: str,
         api_url: str,
         base_url: str,
         projects_dir: Path,
-        refresh_token: Optional[str] = None,
+        refresh_token: Optional[str] = None,  # TODO verify nothing breaks
     ):
         """Initializes a Client object. Clients are responsible for holding the logic and for
         interacting with the remote hosts.
@@ -77,7 +77,12 @@ class Client:
             return self.get(endpoint=endpoint, retry=False)
 
         if response.status_code != 200:
-            print("TODO, fix me get", response.json(), response.status_code)
+            print(
+                f"Client get request response ({response.json()}) with unexpected status "
+                f"({response.status_code}). "
+                f"Client: ({self})"
+                f"Request: (endpoint={endpoint})"
+            )
 
         if raw:
             return response
@@ -115,16 +120,21 @@ class Client:
                 raise InsufficientStorage()
 
         if response.status_code != 200:
-            print("TODO, fix me put", response, response.status_code)
+            print(
+                f"Client put request response ({response.json()}) with unexpected status "
+                f"({response.status_code}). "
+                f"Client: ({self})"
+                f"Request: (endpoint={endpoint}, payload={payload})"
+            )
         return response.json()
 
     def post(
-        self,
-        endpoint: str,
-        payload: Optional[Dict] = None,
-        retry: bool = False,
-        refresh: bool = False,
-        error_handlers: Optional[list] = None,
+            self,
+            endpoint: str,
+            payload: Optional[Dict] = None,
+            retry: bool = False,
+            refresh: bool = False,
+            error_handlers: Optional[list] = None,
     ):
         """Post something new on the server trough HTTP
 
@@ -162,7 +172,12 @@ class Client:
         if response.status_code != 200:
             for error_handler in error_handlers:
                 error_handler(response.status_code, response.json())
-            print("TODO, fix me post", response, response.status_code)
+            print(
+                f"Client post request response ({response.json()}) with unexpected status "
+                f"({response.status_code}). "
+                f"Client: ({self})"
+                f"Request: (endpoint={endpoint}, payload={payload})"
+            )
         return response.json()
 
     def list_teams(self):
@@ -512,6 +527,16 @@ class Client:
             if self.token is not None:
                 header["Authorization"] = f"Bearer {self.token}"
             return header
+
+    def __str__(self):
+        return (
+            f"(Client, token={self.token}, "
+            f"refresh_token={self.refresh_token}, "
+            f"url={self.url}, "
+            f"base_url={self.base_url}, "
+            f"team={self.team}, "
+            f"projects_dir={self.projects_dir})"
+        )
 
     @staticmethod
     def default_api_url():

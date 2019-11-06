@@ -203,8 +203,8 @@ def remove_remote_project(project_slug: str):
 def upload_data(
     project_slug: str,
     files: Optional[List[str]],
-    extensions_to_exclude: Optional[List[str]],
-    fps: int,
+    files_to_exclude: Optional[List[str]],
+    fps: Optional[int],
 ):
     """Uploads the files provided as parameter to the remote dataset selected
 
@@ -214,8 +214,8 @@ def upload_data(
         Slug of the project to retrieve
     files : list[str]
         List of files to upload. Can be None.
-    extensions_to_exclude : list[str]
-        List of extension to exclude from the file scan (which is done only if files is None)
+    files_to_exclude : list[str]
+        List of files to exclude from the file scan (which is done only if files is None)
     fps : int
         Frame rate to split videos in
 
@@ -229,7 +229,7 @@ def upload_data(
     client = _load_client()
     try:
         dataset = client.get_remote_dataset(slug=project_slug)
-        dataset.push(extensions_to_exclude=extensions_to_exclude, fps=fps, files_to_upload=files)
+        dataset.push(files_to_exclude=files_to_exclude, fps=fps, files_to_upload=files)
     except NotFound:
         _error(f"No dataset with name '{project_slug}'")
 

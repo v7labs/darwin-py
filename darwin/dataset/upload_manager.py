@@ -8,6 +8,8 @@ import requests
 
 from darwin.exceptions import UnsupportedFileType
 from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS, SUPPORTED_VIDEO_EXTENSIONS
+if TYPE_CHECKING:
+    from darwin.client import Client
 
 if TYPE_CHECKING:
     from darwin.client import Client
@@ -126,11 +128,6 @@ def _chunk_filenames(files: List[Path], size: int):
     left_over = []
     for file in files:
         if file.name in current_names:
-            #TODO I don't fully understand this logic. We enter here IFF there is the same
-            # filename but in two different folders (which is already unusual enough?)
-            # and our response is to "ship it later" with the left_over list?
-            # More generally, what is the purpose of the set() i.e. why we check the uniqueness
-            # of files names in one chunk?
             left_over.append(file)
         else:
             current_list.append(file)
@@ -194,18 +191,25 @@ def _delayed_upload_function(
         Dictionary which contains the server response from client.put
     """
     file_path = _resolve_path(file['original_filename'], files_path)
-    image_id = upload_file_to_s3(client, file, file_path)['id']
-    client.put(
+    s3_response = upload_file_to_s3(client, file, file_path)
+    image_id = file['id']
+    backend_response = client.put(
         endpoint=f"/{endpoint_prefix}/{image_id}/confirm_upload",
         payload={},
     )
+    return {
+        'file_path': file_path,
+        'image_id': image_id,
+        's3_response_status_code': s3_response.status_code,
+        'backend_response': backend_response,  # This should be the dataset_id
+    }
 
 
 def upload_file_to_s3(
         client: "Client",
         file: Dict[str, Any],
         file_path: Path,
-) -> Dict[str, Any]:
+) -> requests.Response:
     """Helper function: upload data to AWS S3
 
     Parameters
@@ -219,66 +223,46 @@ def upload_file_to_s3(
 
     Returns
     -------
-    dict
-        Key and Id of the image to upload
+    requests.Response
+        s3 response
     """
     key = file["key"]
     image_id = file["id"]
-    response = sign_upload(client, image_id, key, Path(file_path))
+    response = sign_upload(client, image_id, key, file_path)
     signature = response["signature"]
     end_point = response["postEndpoint"]
-
-    s3_response = upload_to_s3(signature, end_point, file_path)
-    # if not str(s3_response.status_code).startswith("2"):
-    #     process_response(s3_response)
-
-    if s3_response.status_code == 400:
-        print(f"Detail: Bad request when uploading to AWS S3 -- file: {file_path}")
-
-    return {"key": key, "id": image_id}
+    return requests.post("http:" + end_point, data=signature, files={"file": file_path.open('rb')})
 
 
-def upload_to_s3(signature, end_point, file_path=None):
-    """
+def sign_upload(client: "Client", image_id: int, key: str, file_path: Path):
+    """Obtains the signed URL from the back so that we can update
+    to the AWS without credentials
 
     Parameters
     ----------
-    signature
-    end_point
-    file_path
+    client: Client
+        Client authenticated to the team where the put request will be made
+    image_id: int
+        Id of the image to upload
+    key: str
+        Path in the s3 bucket
+    file_path: Path
+        Path to the file to upload on the file system
 
     Returns
     -------
-    requests.Response
-    Response of the post request
+    dict
+        Dictionary which contains the server response
     """
-    with open(file_path, "rb") as file:
-        return requests.post("http:" + end_point, data=signature, files={"file": file})
-
-
-def sign_upload(client, image_id, key, file_path):
-    """
-
-    Parameters
-    ----------
-    client
-    image_id
-    key
-    file_path
-
-    Returns
-    -------
-
-    """
-    file_format = Path(file_path).suffix
+    file_format = file_path.suffix
     if file_format in SUPPORTED_IMAGE_EXTENSIONS:
         return client.post(
-            f"/dataset_images/{image_id}/sign_upload?key={key}",
+            endpoint=f"/dataset_images/{image_id}/sign_upload?key={key}",
             payload={"filePath": str(file_path), "contentType": f"image/{file_format}"},
         )
     elif file_format in SUPPORTED_VIDEO_EXTENSIONS:
         return client.post(
-            f"/dataset_videos/{image_id}/sign_upload?key={key}",
+            endpoint=f"/dataset_videos/{image_id}/sign_upload?key={key}",
             payload={"filePath": str(file_path), "contentType": f"video/{file_format}"},
         )
 
@@ -310,7 +294,7 @@ def upload_annotations(
         actually only be retrieved from the backend at the moment.
     """
 
-    # Read and prepare the image id mappings in a dict format {'class name': 'class id'}
+    # Read and prepare the image id mappings in a dict format {'original filename': 'image id'}
     with image_mapping.open() as json_file:
         image_mapping = {cm['original_filename']: cm['id'] for cm in json.load(json_file)}
 
