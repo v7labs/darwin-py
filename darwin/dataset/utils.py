@@ -47,8 +47,7 @@ def make_class_list(
     annotation_files: List,
     lists_path: Path,
     annotation_type: str,
-    force_resplit: Optional[bool] = False,
-    add_background: Optional[bool] = False,
+        add_background: Optional[bool] = False,
 ):
     """
     Support function to extract classes and save the output to file
@@ -63,8 +62,6 @@ def make_class_list(
         Path to the lists folder
     annotation_type : str
         Type of annotations to use, e.g. 'tag' or 'polygon'
-    force_resplit : bool
-        Force the creation of the output file, should the list already exist
     add_background : bool
         Add the '__background__' class to the list of classes
 
@@ -238,12 +235,17 @@ def split_dataset(
     lists_path.mkdir(parents=True, exist_ok=True)
 
     # Create split id, path and final split paths
-    assert val_percentage is not None
-    assert test_percentage is not None
-    assert split_seed is not None
-    assert 0 < val_percentage < 1.0
-    assert 0 <= test_percentage < 1.0
-    assert val_percentage + test_percentage < 1.0
+    if val_percentage is None or not 0 < val_percentage < 1.0:
+        raise ValueError(f"Invalid validation percentage ({val_percentage}). "
+                         f"Must be > 0 and < 1.0")
+    if test_percentage is None or not 0 <= test_percentage < 1.0:
+        raise ValueError(f"Invalid test percentage ({test_percentage}). "
+                         f"Must be > 0 and < 1.0")
+    if not val_percentage + test_percentage < 1.0:
+        raise ValueError(f"Invalid combination of validation ({val_percentage}) "
+                         f"and test ({test_percentage}) percentages. Their sum must be < 1.0")
+    if split_seed is None:
+        raise ValueError("Seed is None")
     split_id = f"split_v{int(val_percentage*100)}_t{int(test_percentage*100)}_s{split_seed}"
     split_path = lists_path / split_id
 
@@ -291,7 +293,7 @@ def split_dataset(
         # STRATIFIED SPLIT ON TAGS
         # Stratify
         idx_to_classes_tag = make_class_list(
-            "classes_tag.txt", annotation_files, lists_path, "tag", force_resplit
+            "classes_tag.txt", annotation_files, lists_path, "tag"
         )
         if len(idx_to_classes_tag) > 0:
             train_indices, val_indices, test_indices = _stratify_samples(
@@ -310,7 +312,6 @@ def split_dataset(
             annotation_files,
             lists_path,
             "polygon",
-            force_resplit,
             add_background=True,
         )
         if len(idx_to_classes_polygon) > 0:
@@ -347,7 +348,7 @@ def exhaust_generator(progress: Generator, count: int, multi_threaded: bool):
     if multi_threaded:
         pbar = tqdm(total=count)
 
-        def update(*a):
+        def update():
             pbar.update()
 
         with mp.Pool(mp.cpu_count()) as pool:
