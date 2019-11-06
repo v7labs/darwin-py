@@ -22,11 +22,11 @@ from darwin.utils import is_project_dir, urljoin
 class Client:
     def __init__(
         self,
-        token: str,
+        token: Optional[str],
         api_url: str,
         base_url: str,
         projects_dir: Path,
-        refresh_token: Optional[str] = None,  # TODO verify nothing breaks
+        refresh_token: Optional[str] = None,
     ):
         """Initializes a Client object. Clients are responsible for holding the logic and for
         interacting with the remote hosts.
@@ -129,12 +129,12 @@ class Client:
         return response.json()
 
     def post(
-            self,
-            endpoint: str,
-            payload: Optional[Dict] = None,
-            retry: bool = False,
-            refresh: bool = False,
-            error_handlers: Optional[list] = None,
+        self,
+        endpoint: str,
+        payload: Optional[Dict] = None,
+        retry: bool = False,
+        refresh: bool = False,
+        error_handlers: Optional[list] = None,
     ):
         """Post something new on the server trough HTTP
 

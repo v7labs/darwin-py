@@ -204,7 +204,7 @@ def upload_data(
     project_slug: str,
     files: Optional[List[str]],
     files_to_exclude: Optional[List[str]],
-    fps: Optional[int],
+    fps: int,
 ):
     """Uploads the files provided as parameter to the remote dataset selected
 

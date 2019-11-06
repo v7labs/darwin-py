@@ -1,4 +1,5 @@
 import io
+import json
 import shutil
 import zipfile
 from pathlib import Path
@@ -9,7 +10,7 @@ from darwin.dataset.upload_manager import add_files_to_dataset
 from darwin.dataset.utils import exhaust_generator
 from darwin.exceptions import NotFound
 from darwin.utils import find_files, urljoin
-import json
+
 if TYPE_CHECKING:
     from darwin.client import Client
 
