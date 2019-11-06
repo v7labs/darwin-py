@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from darwin.client import Client
 
 
-def urljoin(*parts):
+def urljoin(*parts: str) -> str:
     """Take as input an unpacked list of strings and joins them to form an URL"""
     return "/".join(part.strip("/") for part in parts)
 
@@ -106,26 +106,29 @@ def find_files(
     return [f for f in files if f.name not in exclude and f not in exclude]
 
 
-def secure_continue_request():
+def secure_continue_request() -> bool:
     """Asks for explicit approval from the user. Empty string not accepted"""
     return input("Do you want to continue? [y/N] ") in ["Y", "y"]
 
 
-def make_configuration_file(client: "Client") -> Config:
+def persist_client_configuration(client: "Client", config_path: Optional[Path] = None) -> Config:
     """Authenticate user against the server and creates a configuration file for it
 
     Parameters
     ----------
     client : Client
         Client to take the configurations from
+    config_path : Path
+        Optional path to specify where to save the configuration file
 
     Returns
     -------
     Config
     A configuration object to handle YAML files
     """
-    config_path = Path.home() / ".darwin" / "config.yaml"
-    config_path.parent.mkdir(exist_ok=True)
+    if not config_path:
+        config_path = Path.home() / ".darwin" / "config.yaml"
+        config_path.parent.mkdir(exist_ok=True)
 
     default_config = {
         "token": client.token,
@@ -134,4 +137,5 @@ def make_configuration_file(client: "Client") -> Config:
         "base_url": client.base_url,
         "projects_dir": str(client.projects_dir),
     }
+
     return Config(config_path, default_config)
