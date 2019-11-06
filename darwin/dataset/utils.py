@@ -359,6 +359,7 @@ def exhaust_generator(progress: Generator, count: int, multi_threaded: bool):
                 responses.append(pool.apply_async(_f, args=(f,), callback=update))
             pool.close()
             pool.join()
+        responses = [response.get() for response in responses if response.successful()]
     else:
         for f in tqdm(progress, total=count, desc="Progress"):
             responses.append(_f(f))
