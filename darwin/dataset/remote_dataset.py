@@ -101,7 +101,7 @@ class RemoteDataset:
         if source_folder is None:
             source_folder = self.local_path / "images"
         # This is where the responses from the upload function will be saved/load for resume
-        responses_path = (source_folder.parent / "upload_responses.json")
+        responses_path = source_folder.parent / "upload_responses.json"
         # Init optional parameters
         if files_to_exclude is None:
             files_to_exclude = []

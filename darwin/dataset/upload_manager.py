@@ -108,20 +108,6 @@ def _chunk_filenames(files: List[Path], size: int):
     No batch has any duplicates with regards to file name.
     This is needed due to a limitation in the upload api.
 
-    This code is a bit weird but this is the general gist of it:
-    We send the filenames to the backend before we start uploading the data,
-    if we sent the full file path then it's easy to know which dataset_image_id belongs
-    to which file on disk (we get a list of {dataset_image_id and full_file_path back).
-    But we don't want the full path to be sent to the server since it will be displayed
-    in the UI. So we need to just send the filename, but then if we have more than one file with
-    that filename (in the same upload: e.g. /cat/1.png and /dot/1.png (since both are 1.png))
-    we don't know which dataset_image_id goes to which image.
-
-    We solved that by making sure they they aren't chunked together,
-    e.g. /cat/1.png and /dog/1.png will go in two different chunks.
-
-    There is probably a better solution to this :)
-
     Parameters
     ----------
     files : list[Path]
