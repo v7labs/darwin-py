@@ -1,18 +1,14 @@
-from __future__ import annotations
-
 import io
-import multiprocessing as mp
 import shutil
 import zipfile
 from pathlib import Path
 from typing import List, Optional, TYPE_CHECKING
 
-from tqdm import tqdm
-
-import darwin
 from darwin.dataset.download_manager import download_all_images_from_annotations
-from darwin.dataset.upload_manager import _split_on_file_type, upload_file_to_s3
-from darwin.utils import urljoin
+from darwin.dataset.upload_manager import add_files_to_dataset
+from darwin.dataset.utils import exhaust_generator
+from darwin.exceptions import NotFound
+from darwin.utils import find_files, urljoin
 
 if TYPE_CHECKING:
     from darwin.client import Client
@@ -20,64 +16,127 @@ if TYPE_CHECKING:
 
 class RemoteDataset:
     def __init__(
-            self,
-            name: str,
-            *,
-            slug: Optional[str] = None,
-            dataset_id: int,
-            project_id: int,
-            image_count: int = 0,
-            progress: int = 0,
-            client: "Client",
+        self,
+        *,
+        name: str,
+        slug: Optional[str] = None,
+        dataset_id: int,
+        project_id: int,
+        image_count: int = 0,
+        progress: float = 0,
+        client: "Client",
     ):
+        """Inits a DarwinDataset.
+        This class manages the remote and local versions of a dataset hosted on Darwin.
+        It allows several dataset management operations such as syncing between
+        remote and local, pulling a remote dataset, removing the local files, ...
+
+        Parameters
+        ----------
+        name : str
+            Name of the datasets as originally displayed on Darwin.
+            It may contain white spaces, capital letters and special characters, e.g. `Bird Species!`
+        slug : str
+            This is the dataset name with everything lower-case, removed specials characters and
+            spaces are replaced by dashes, e.g., `bird-species`. This string is unique within a team
+        dataset_id : int
+            Unique internal reference from the Darwin backend
+        project_id : int
+            [Deprecated] will be removed in next iteration
+        image_count : int
+            Dataset size (number of images)
+        progress : float
+            How much of the dataset has been annotated 0.0 to 1.0 (1.0 == 100%)
+        client : Client
+            Client to use for interaction with the server
+        """
         self.name = name
         self.slug = slug or name
         self.dataset_id = dataset_id
         self.project_id = project_id
         self.image_count = image_count
         self.progress = progress
-        self._client = client
+        self.client = client
 
-    def upload_files(self, files: List[str], fps: int = 1):
-        """ A generator where each file is emitted upon upload """
-        yield from self._add_files_to_dataset(files, fps=fps)
+    def push(
+        self,
+        blocking: bool = True,
+        multi_threaded: bool = True,
+        extensions_to_exclude: Optional[List[str]] = None,
+        fps: int = 1,
+        files_to_upload: Optional[List[Path]] = None,
+        source_folder: Optional[Path] = None,
+    ):
+        """Uploads a local project (images ONLY) in the projects directory.
 
-    def _add_files_to_dataset(self, filenames: List, fps: int):
-        """Helper function: upload images to an existing remote dataset. """
-        if not filenames:
-            return
-        for filenames_chunk in RemoteDataset.chunk(filenames, 100):
-            images, videos = _split_on_file_type(filenames_chunk)
-            data = self._client.put(
-                endpoint=f"/datasets/{self.dataset_id}",
-                payload={"image_filenames": images,
-                         "videos": [{"fps": fps, "original_filename": video} for video in videos]}
+        Parameters
+        ----------
+        blocking : bool
+            If False, the dataset is not uploaded and a generator function is returned instead
+        multi_threaded : bool
+            Uses multiprocessing to upload the dataset in parallel.
+            If blocking is False this has no effect.
+        extensions_to_exclude : list[str]
+            List of extensions to exclude
+        fps : int
+            Frame rate to split videos in
+        files_to_upload : list[Path]
+            List of files to upload
+        source_folder: Path
+            Path to the source folder where to scan for files.
+            If not specified self.local_path / "images" is used instead
+
+        Returns
+        -------
+        generator : function
+            Generator for doing the actual uploads. This is None if blocking is True
+        count : int
+            The files count
+        """
+        if files_to_upload is None:
+            # Collect files in the default dataset location
+            # NOTE: this part will anyway change in PR#28
+            if source_folder is None:
+                source_folder = self.local_path / "images"
+            if not source_folder.exists():
+                raise NotFound(f"Dataset location not found. Check your path ({source_folder})")
+            files_to_upload = find_files(
+                source_folder, recursive=True, exclude=extensions_to_exclude
             )
 
-        for image_file in data["image_data"]:
-            metadata = upload_file_to_s3(self._client, image_file)
-            self._client.put(f"/dataset_images/{metadata['id']}/confirm_upload", payload={})
-            yield
+            if not files_to_upload:
+                raise NotFound("No files to upload, check your path and exclusion filters")
+        elif extensions_to_exclude is not None:
+            # Filter files
+            files_to_upload = find_files(files_list=files_to_upload, exclude=extensions_to_exclude)
 
-        for video_file in data["video_data"]:
-            metadata = upload_file_to_s3(self._client, video_file)
-            self._client.put(f"/dataset_videos/{metadata['id']}/confirm_upload", payload={})
-            yield
+        progress, count = add_files_to_dataset(
+            client=self.client, dataset_id=str(self.dataset_id), filenames=files_to_upload, fps=fps
+        )
 
-    @staticmethod
-    def _f(x):
-        """Support function for pool.map() in pull()"""
-        x()
+        # If blocking is selected, upload the dataset remotely
+        if blocking:
+            exhaust_generator(progress=progress, count=count, multi_threaded=multi_threaded)
+            return None, count
+        else:
+            return progress, count
 
-    def pull(self, blocking: Optional[bool] = True, multi_threaded: Optional[bool] = True):
+    def pull(
+        self,
+        blocking: bool = True,
+        multi_threaded: bool = True,
+        only_done_images: bool = True,
+    ):
         """Downloads a remote project (images and annotations) in the projects directory.
 
         Parameters
         ----------
         blocking : bool
-            If False, the dataset is not donwloaded and a generator function is returned instead
+            If False, the dataset is not downloaded and a generator function is returned instead
         multi_threaded : bool
             Uses multiprocessing to download the dataset in parallel. If blocking is False this has no effect.
+        only_done_images: bool
+            If False, it will also download images without annotations or that have not been marked as Done
 
         Returns
         -------
@@ -87,7 +146,10 @@ class RemoteDataset:
             The files count
         """
         annotation_format = "json"
-        response = self._client.get(f"/datasets/{self.dataset_id}/export?format=json", raw=True)
+        query = f"/datasets/{self.dataset_id}/export?format={annotation_format}"
+        if only_done_images:
+            query += f"&image_status=done"
+        response = self.client.get(query, raw=True)
         zip_file = io.BytesIO(response.content)
         if zipfile.is_zipfile(zip_file):
             z = zipfile.ZipFile(zip_file)
@@ -105,63 +167,28 @@ class RemoteDataset:
             for annotation_path in annotations_dir.glob(f"*.{annotation_format}"):
                 annotation_path.rename(annotation_path.parent / f"V7_{annotation_path.name}")
             progress, count = download_all_images_from_annotations(
-                self._client.url, annotations_dir, images_dir, annotation_format
+                self.client.url, annotations_dir, images_dir, annotation_format
             )
             # If blocking is selected, download the dataset on the file system
             if blocking:
-                if multi_threaded:
-                    pbar = tqdm(total=count)
-                    def update(*a):
-                        pbar.update()
-                    with mp.Pool(mp.cpu_count()) as pool:
-                        for f in progress():
-                            pool.apply_async(RemoteDataset._f, args=(f,), callback=update)
-                        pool.close()
-                        pool.join()
-                else:
-                    for f in tqdm(progress(), total=count, desc="Downloading"):
-                        f()
+                exhaust_generator(progress=progress(), count=count, multi_threaded=multi_threaded)
                 return None, count
             else:
                 return progress, count
 
-    def local(self):
-        return darwin.dataset.LocalDataset(
-            project_path=self.local_path, client=self._client
-        )
+    def remove_remote(self):
+        """Archives (soft-deletion) the remote dataset"""
+        self.client.put(f"projects/{self.project_id}/archive", payload={})
 
     @property
-    def url(self):
-        return urljoin(self._client.base_url, f"/datasets/{self.project_id}")
-
-    def remove(self):
-        self._client.put(f"projects/{self.project_id}/archive", payload={})
+    def remote_path(self) -> Path:
+        """Returns an URL specifying the location of the remote dataset"""
+        return Path(urljoin(self.client.base_url, f"/datasets/{self.project_id}"))
 
     @property
-    def local_path(self):
-        return Path(self._client.project_dir) / self.slug
-
-    @staticmethod
-    def chunk(items, size):
-        """ Chunks paths in batches of size.
-        No batch has any duplicates with regards to file name.
-        This is needed due to a limitation in the upload api.
-        """
-        current_list = []
-        current_names = set()
-        left_over = []
-        for item in items:
-            name = Path(item).name
-            if name in current_names:
-                left_over.append(item)
-            else:
-                current_list.append(item)
-                current_names.add(name)
-            if len(current_list) >= size:
-                yield current_list
-                current_list = []
-                current_names = set()
-        if left_over:
-            yield from RemoteDataset.chunk(left_over, size)
-        if current_list:
-            yield current_list
+    def local_path(self) -> Path:
+        """Returns a Path to the local dataset"""
+        if self.slug is not None:
+            return Path(self.client.projects_dir) / self.slug
+        else:
+            return Path(self.client.projects_dir)
