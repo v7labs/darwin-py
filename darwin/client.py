@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, Iterator
 
 import requests
 
@@ -22,11 +22,11 @@ from darwin.utils import is_project_dir, urljoin
 class Client:
     def __init__(
         self,
-        token: str,
+        token: Optional[str],
         api_url: str,
         base_url: str,
         projects_dir: Path,
-        refresh_token: Optional[str] = None,  # TODO verify nothing breaks
+        refresh_token: Optional[str] = None,
     ):
         """Initializes a Client object. Clients are responsible for holding the logic and for
         interacting with the remote hosts.
@@ -186,7 +186,7 @@ class Client:
             )
         return teams
 
-    def current_team(self):
+    def current_team(self) -> Team:
         """Returns the currently selected team
 
         Returns
@@ -216,7 +216,7 @@ class Client:
         self.token = data["token"]
         self.refresh_token = data["refresh_token"]
 
-    def list_local_datasets(self):
+    def list_local_datasets(self) -> Iterator[Path]:
         """Returns a list of all local folders who are detected as dataset.
 
         Returns
@@ -228,7 +228,7 @@ class Client:
             if project_path.is_dir() and is_project_dir(project_path):
                 yield Path(project_path)
 
-    def list_remote_datasets(self):
+    def list_remote_datasets(self) -> Iterator[RemoteDataset]:
         """Returns a list of all available datasets with the team currently authenticated against
 
         Returns
@@ -254,7 +254,7 @@ class Client:
         slug: Optional[str] = None,
         name: Optional[str] = None,
         dataset_id: Optional[int] = None,
-    ):
+    ) -> RemoteDataset:
         """Get a remote dataset based on the parameter passed. You can only choose one of the
         possible parameters and calling this method with multiple ones will result in an
         error.
@@ -275,9 +275,15 @@ class Client:
         RemoteDataset
             Initialized dataset
         """
-        if sum(x is not None for x in [name, slug, dataset_id, project_id]) > 1:
+        num_args = sum(x is not None for x in [name, slug, dataset_id, project_id])
+        if num_args > 1:
             raise ValueError(
-                "Too many values provided. Please choose only 1 way of " "getting the dataset."
+                f"Too many values provided ({num_args})."
+                f" Please choose only 1 way of getting the remote dataset."
+            )
+        elif num_args == 0:
+            raise ValueError(
+                f"No values provided. Please select 1 way of getting the remote dataset."
             )
         # TODO: swap project_id for dataset_id when the backend has gotten ride of project_id
         if project_id:
@@ -314,7 +320,7 @@ class Client:
                 client=self,
             )
 
-    def create_dataset(self, name: str):
+    def create_dataset(self, name: str) -> RemoteDataset:
         """Create a remote dataset
 
         Parameters
@@ -348,8 +354,9 @@ class Client:
             self._refresh_access_token()
 
     @classmethod
-    def local(cls, projects_dir: Optional[Path] = None):
-        """Factory method to use the configuration file to init the client
+    def anonymous(cls, projects_dir: Optional[Path] = None):
+        """Factory method to create a client with anonymous access privileges.
+        This client can only fetch open datasets given their dataset id.
 
         Parameters
         ----------
@@ -361,9 +368,6 @@ class Client:
         Client
         The inited client
         """
-        # This functionality is currently suspended in favour of unauthenticated requests
-        # config_path = Path.home() / ".darwin" / "config.yaml"
-        # return Client.from_config(config_path)
         if not projects_dir:
             projects_dir = Path.home() / ".darwin" / "projects"
         return cls(
@@ -373,6 +377,18 @@ class Client:
             base_url=Client.default_base_url(),
             projects_dir=projects_dir,
         )
+
+    @classmethod
+    def local(cls):
+        """Factory method to use the default configuration file to init the client
+
+        Returns
+        -------
+        Client
+        The inited client
+        """
+        config_path = Path.home() / ".darwin" / "config.yaml"
+        return Client.from_config(config_path)
 
     @classmethod
     def from_token(cls, token: str, projects_dir: Optional[Path] = None):
@@ -500,14 +516,12 @@ class Client:
     @staticmethod
     def default_api_url():
         """Returns the default api url"""
-        return os.getenv("DARWIN_API_URL", "https://darwin.v7labs.com/api/")
+        return f"{Client.default_base_url()}/api/"
 
     @staticmethod
     def default_base_url():
         """Returns the default base url"""
-        if os.getenv("DARWIN_BASE_URL"):
-            return os.getenv("DARWIN_BASE_URL")
-        return Client.default_api_url().replace("/api", "")
+        return os.getenv('DARWIN_BASE_URL', 'https://darwin.v7labs.com')
 
 
 def name_taken(code, body):

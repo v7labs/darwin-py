@@ -1,7 +1,7 @@
 import json
 import multiprocessing as mp
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Union, Collection
 
 import numpy as np
 import torch.utils.data as data
@@ -26,12 +26,12 @@ class Dataset(data.Dataset):
         self.root = root
         self.split = split
         self.transform = transform
-        self.images_path = []
-        self.annotations_path = []
+        self.images_path: List[Path] = []
+        self.annotations_path: List[Path] = []
         self.classes = None
         self.original_classes = None
-        self.original_images_path = None
-        self.original_annotations_path = None
+        self.original_images_path: Optional[List[Path]] = None
+        self.original_annotations_path: Optional[List[Path]] = None
         self.convert_polygons = None
 
         # Compose the transform if necessary
@@ -40,7 +40,7 @@ class Dataset(data.Dataset):
 
         # Populate internal lists of annotations and images paths
         if not self.split.exists():
-            raise FileNotFoundError(f"Could not find partition {self.split}" f" in {self.root}.")
+            raise FileNotFoundError(f"Could not find partition file: {self.split}")
         extensions = [".jpg", ".jpeg", ".png"]
         stems = (e.strip() for e in split.open())
         for stem in stems:
@@ -50,11 +50,11 @@ class Dataset(data.Dataset):
             ]
             if len(images) < 1:
                 raise ValueError(
-                    f"Annotation ({annotation_path}) does" f" not have a corresponding image"
+                    f"Annotation ({annotation_path}) does not have a corresponding image"
                 )
             if len(images) > 1:
                 raise ValueError(
-                    f"Image ({stem}) is present with multiple extensions." f" This is forbidden."
+                    f"Image ({stem}) is present with multiple extensions. This is forbidden."
                 )
             assert len(images) == 1
             image_path = images[0]
@@ -118,10 +118,11 @@ class Dataset(data.Dataset):
         with self.annotations_path[index].open() as f:
             annotation = json.load(f)["annotations"]
         # Filter out unused classes
-        annotation = [a for a in annotation if a["name"] in self.classes]
+        if self.classes is not None:
+            annotation = [a for a in annotation if a["name"] in self.classes]
         return {"image_id": index, "annotations": annotation}
 
-    def measure_mean_std(self, multi_threaded: Optional[bool] = True, **kwargs):
+    def measure_mean_std(self, multi_threaded: bool = True):
         """Computes mean and std of train images, given the train loader
 
         Parameters
@@ -175,7 +176,7 @@ class Dataset(data.Dataset):
         raise NotImplementedError("Base class Dataset does not have an implementation for this")
 
     @staticmethod
-    def _compute_weights(labels: np.ndarray):
+    def _compute_weights(labels: Collection):
         """Given an array of labels computes the weights normalized
 
         Parameters
@@ -264,7 +265,7 @@ class ClassificationDataset(Dataset):
     def __init__(self, root, split: Path, transform: Optional[List] = None):
         """See superclass for documentation"""
         super().__init__(root=root, split=split, transform=transform)
-        self.classes = [e.strip() for e in open(str(self.root / "lists/classes_tag.txt"))]
+        self.classes = [e.strip() for e in (self.root / "lists/classes_tag.txt").read_text()]
 
     def _map_annotation(self, index: int):
         """See superclass for documentation
@@ -290,7 +291,7 @@ class ClassificationDataset(Dataset):
                 )
         return {"category_id": tags[0]}
 
-    def measure_weights(self, **kwargs):
+    def measure_weights(self, **kwargs) -> np.ndarray:
         """Computes the class balancing weights (not the frequencies!!) given the train loader
         Get the weights proportional to the inverse of their class frequencies.
         The vector sums up to 1
@@ -315,7 +316,7 @@ class InstanceSegmentationDataset(Dataset):
     def __init__(self, root, split: Path, transform: Optional[List] = None):
         """See superclass for documentation"""
         super().__init__(root=root, split=split, transform=transform)
-        self.classes = [e.strip() for e in open(str(self.root / "lists/classes_polygon.txt"))]
+        self.classes = [e.strip() for e in (self.root / "lists/classes_polygon.txt").read_text().split("\n")]
         self.convert_polygons = T.ConvertPolygonsToInstanceMasks()
 
     def _map_annotation(self, index: int):
@@ -328,8 +329,6 @@ class InstanceSegmentationDataset(Dataset):
                 Index of the image inside the dataset
             annotations : list[Dict]
                 List of annotations, where each annotation is a dict with:
-                iscrowd : int
-                    Flag to denote where the annotation more than one instance (can be 0 or 1)
                 category_id : int
                     The single label of the image selected.
                 segmentation : ndarray(1,)
@@ -343,7 +342,8 @@ class InstanceSegmentationDataset(Dataset):
             annotations = json.load(f)["annotations"]
 
         # Filter out unused classes
-        annotations = [a for a in annotations if a["name"] in self.classes]
+        if self.classes is not None:
+            annotations = [a for a in annotations if a["name"] in self.classes]
 
         target = []
         for annotation in annotations:
@@ -364,14 +364,11 @@ class InstanceSegmentationDataset(Dataset):
             # Compute the area of the polygon
             poly_area = polygon_area(x_coords, y_coords)
             bbox_area = w * h
-            if poly_area > bbox_area:
-                raise ValueError(
-                    f"polygon's area should be <= bbox's area. Failed {poly_area} <= {bbox_area}"
-                )
+            assert poly_area <= bbox_area
+
             # Create and append the new entry for this annotation
             target.append(
                 {
-                    "iscrowd": 0,
                     "category_id": self.classes.index(annotation["name"]),
                     "segmentation": [sequence],  # List type is used for backward compatibility
                     "bbox": [x, y, w, h],
@@ -406,7 +403,7 @@ class SemanticSegmentationDataset(Dataset):
     def __init__(self, root, split: Path, transform: Optional[List] = None):
         """See superclass for documentation"""
         super().__init__(root=root, split=split, transform=transform)
-        self.classes = [e.strip() for e in open(str(self.root / "lists/classes_polygon.txt"))]
+        self.classes = [e.strip() for e in (self.root / "lists/classes_polygon.txt").read_text().split("\n")]
         if self.classes[0] == "__background__":
             self.classes = self.classes[1:]
         self.convert_polygons = T.ConvertPolygonToMask()
@@ -428,12 +425,13 @@ class SemanticSegmentationDataset(Dataset):
             annotation = json.load(f)["annotations"]
 
         # Filter out unused classes
-        annotation = [obj for obj in annotation if obj["name"] in self.classes]
+        if self.classes is not None:
+            annotation = [obj for obj in annotation if obj["name"] in self.classes]
 
         target = []
         for obj in annotation:
-            sequence = convert_polygon_to_sequence(annotation["polygon"]["path"])
-            if len(sequence) / 2 < 3:
+            sequence = convert_polygon_to_sequence(obj["polygon"]["path"])
+            if len(sequence) < 6:  # sequence = [x1, y1, x2, y2, ..., xn, yn]
                 # Discard polygons with less than three points
                 continue
             target.append(
