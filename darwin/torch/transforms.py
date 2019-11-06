@@ -1,8 +1,5 @@
-import random
-
 import PIL
 import torch
-from torchvision.transforms import functional as F
 
 from darwin.torch.utils import convert_polygon_to_mask
 
@@ -20,70 +17,33 @@ class Compose(object):
             return image
 
 
-class RandomHorizontalFlip(object):
-    def __init__(self, prob=0.5):
-        self.prob = prob
-
-    def __call__(self, image, target):
-        if random.random() < self.prob:
-            if type(image) == PIL.JpegImagePlugin.JpegImageFile:
-                width, height = image.size
-                image = image.transpose(PIL.Image.FLIP_LEFT_RIGHT)
-            elif type(image) == torch.Tensor:
-                height, width = image.shape[-2:]
-                image = image.flip(-1)
-            else:
-                raise ValueError("Image type {type(image)} not supported")
-
-            if "boxes" in target:
-                bbox = target["boxes"]
-                bbox[:, [0, 2]] = width - bbox[:, [2, 0]]
-                target["boxes"] = bbox
-
-            if "bbox" in target:
-                bbox = target["bbox"]
-                bbox[:, [0, 2]] = width - bbox[:, [2, 0]]
-                target["bbox"] = bbox
-
-            if "masks" in target:
-                target["masks"] = target["masks"].flip(-1)
-
-        return image, target
-
-
-class ToTensor(object):
-    def __call__(self, image, target):
-        image = F.to_tensor(image)
-        return image, target
-
-
-class ConvertPolysToInstanceMasks(object):
+class ConvertPolygonsToInstanceMasks(object):
     def __call__(self, image, target):
         w, h = image.size
 
         image_id = target["image_id"]
         image_id = torch.tensor([image_id])
 
-        anno = target["annotations"]
+        annotations = target["annotations"]
 
-        anno = [obj for obj in anno if obj.get("iscrowd", 0) == 0]
+        annotations = [obj for obj in annotations if obj.get("iscrowd", 0) == 0]
 
-        boxes = [obj["bbox"] for obj in anno]
+        boxes = [obj["bbox"] for obj in annotations]
         # guard against no boxes via resizing
         boxes = torch.as_tensor(boxes, dtype=torch.float32).reshape(-1, 4)
         boxes[:, 2:] += boxes[:, :2]
         boxes[:, 0::2].clamp_(min=0, max=w)
         boxes[:, 1::2].clamp_(min=0, max=h)
 
-        classes = [obj["category_id"] for obj in anno]
+        classes = [obj["category_id"] for obj in annotations]
         classes = torch.tensor(classes, dtype=torch.int64)
 
-        segmentations = [obj["segmentation"] for obj in anno]
+        segmentations = [obj["segmentation"] for obj in annotations]
         masks = convert_polygon_to_mask(segmentations, h, w)
 
         keypoints = None
-        if anno and "keypoints" in anno[0]:
-            keypoints = [obj["keypoints"] for obj in anno]
+        if annotations and "keypoints" in annotations[0]:
+            keypoints = [obj["keypoints"] for obj in annotations]
             keypoints = torch.as_tensor(keypoints, dtype=torch.float32)
             num_keypoints = keypoints.shape[0]
             if num_keypoints:
@@ -105,19 +65,19 @@ class ConvertPolysToInstanceMasks(object):
             target["keypoints"] = keypoints
 
         # conversion to coco api
-        area = torch.tensor([obj["area"] for obj in anno])
-        iscrowd = torch.tensor([obj["iscrowd"] for obj in anno])
+        area = torch.tensor([obj["area"] for obj in annotations])
+        iscrowd = torch.tensor([obj["iscrowd"] for obj in annotations])
         target["area"] = area
         target["iscrowd"] = iscrowd
 
         return image, target
 
 
-class ConvertPolysToMask(object):
-    def __call__(self, image, anno):
+class ConvertPolygonToMask(object):
+    def __call__(self, image, annotation):
         w, h = image.size
-        segmentations = [obj["segmentation"] for obj in anno]
-        cats = [obj["category_id"] for obj in anno]
+        segmentations = [obj["segmentation"] for obj in annotation]
+        cats = [obj["category_id"] for obj in annotation]
         if segmentations:
             masks = convert_polygon_to_mask(segmentations, h, w)
             cats = torch.as_tensor(cats, dtype=masks.dtype)

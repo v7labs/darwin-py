@@ -1,15 +1,9 @@
-import json
-import os
-import shutil
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 
 import numpy as np
 import torch
 from PIL import Image
-from tqdm import tqdm
-
-from darwin.client import Client
 from pycocotools import mask as coco_mask
 
 try:
@@ -17,20 +11,25 @@ try:
 except ImportError:
     accimage = None
 
-def load_pil_image(path):
+
+def load_pil_image(path: Path):
     """
     Loads a PIL image and converts it into RGB.
 
-    Input:
-        path: path to the image file
+    Parameters
+    ----------
+    path: Path
+        Path to the image file
 
-    Output:
-        PIL Image
+    Returns
+    -------
+    PIL Image
+        Values between 0 and 255
     """
     pic = Image.open(path)
     if pic.mode == "RGB":
         pass
-    elif pic.mode in ("CMYK", "RGBA"):
+    elif pic.mode in ("CMYK", "RGBA", "P"):
         pic = pic.convert("RGB")
     elif pic.mode == "I":
         img = (np.divide(np.array(pic, np.int32), 2 ** 16 - 1) * 255).astype(np.uint8)
@@ -45,11 +44,13 @@ def load_pil_image(path):
         raise TypeError(f"unsupported image type {pic.mode}")
     return pic
 
+
 def _is_pil_image(img):
     if accimage is not None:
         return isinstance(img, (Image.Image, accimage.Image))
     else:
         return isinstance(img, Image.Image)
+
 
 def convert_polygon_to_mask(segmentations: List[float], height: int, width: int):
     """
@@ -78,28 +79,33 @@ def convert_polygon_to_mask(segmentations: List[float], height: int, width: int)
         masks = torch.zeros((0, height, width), dtype=torch.uint8)
     return masks
 
-def convert_polygon_to_sequence(polygon: List):
+
+def convert_polygon_to_sequence(polygon: List[dict]) -> np.ndarray:
     """
     Converts a sequence of dictionaries of (x,y) into an array of coordinates.
 
-    Input:
-        polygon: list of dictionaries -> [{x: x1, y:y1}, ..., {x: xn, y:yn}]
+    Parameters
+    ----------
+    polygon: list[dict]
+        List of coordinates in the format [{x: x1, y:y1}, ..., {x: xn, y:yn}]
 
-    Output:
-        list of float values -> [x1, y1, x2, y2, ..., xn, yn]
+    Returns
+    -------
+    ndarray[float]
+        Array of coordinates in the format [x1, y1, x2, y2, ..., xn, yn]
     """
-    path = []
-    if len(polygon) == 0:
-        return path
-    elif isinstance(polygon[0], dict):
-        for e in polygon:
-            path.append(e["x"])
-            path.append(e["y"])
-        return path
-    else:
-        return polygon
+    if not polygon:
+        raise ValueError("Empty polygon provided")
+    if isinstance(polygon[0], dict):
+        path = []
+        for point in polygon:
+            path.append(point["x"])
+            path.append(point["y"])
+        return np.array(path)
+    raise ValueError("Unknown input format")
 
-def polygon_area(x, y):
+
+def polygon_area(x: np.ndarray, y: np.ndarray) -> float:
     """
     Returns the area of the input polygon, represented with two numpy arrays
     for x and y coordinates.

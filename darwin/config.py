@@ -39,7 +39,6 @@ class Config(object):
 
     def parse(self):
         """Parses the YAML configuration file"""
-
         with open(self._path, "r") as stream:
             return yaml.safe_load(stream)
 
@@ -60,5 +59,6 @@ class Config(object):
             self._save()
 
     def _save(self):
+        """Persist the configuration to the file system"""
         with io.open(self._path, "w", encoding="utf8") as f:
             yaml.dump(self._data, f, default_flow_style=False, allow_unicode=True)
