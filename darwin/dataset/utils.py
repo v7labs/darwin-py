@@ -354,7 +354,7 @@ def exhaust_generator(progress: Generator, count: int, multi_threaded: bool):
     if multi_threaded:
         pbar = tqdm(total=count)
 
-        def update():
+        def update(*a):
             pbar.update()
 
         with mp.Pool(mp.cpu_count()) as pool:
