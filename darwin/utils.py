@@ -90,8 +90,7 @@ def find_files(
     if files_list is not None:
         files.extend([Path(f) for f in files_list
                       if Path(f).suffix in SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS])
-
-    if root is not None:
+    elif root is not None:
         if not root.is_dir():
             raise ValueError(f"Root is not a directory ({root}).")
         # Scan for files at the chosen directory
