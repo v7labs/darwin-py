@@ -134,7 +134,7 @@ def get_annotation_dicts(root, split, classes_file):
 
     for stem in stems:
         annotation_path = root / f"annotations/{stem}.json"
-        images = [image for image in root.glob(f"images/{stem}.*") if image.suffix in extensions]
+        images = [image for image in root.glob(f"images/{stem}.*") if image.suffix.lower() in extensions]
         if len(images) < 1:
             raise ValueError(f"Annotation ({annotation_path}) does"
                              f" not have a corresponding image")
