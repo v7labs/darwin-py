@@ -95,10 +95,14 @@ class Dataset(data.Dataset):
         self.annotations_path += dataset.annotations_path
         return self
 
-    def get_height_and_width(self, index: int):
+    def get_img_info(self, index: int):
         with self.annotations_path[index].open() as f:
             data = json.load(f)["image"]
-            return data["height"], data["width"]
+            return data
+
+    def get_height_and_width(self, index: int):
+        data = self.get_img_info(index)
+        return data["height"], data["width"]
 
     def _map_annotation(self, index: int):
         """
@@ -262,7 +266,7 @@ class Dataset(data.Dataset):
 
 
 class ClassificationDataset(Dataset):
-    def __init__(self, root, split: Path, transform: Optional[List] = None):
+    def __init__(self, root: Path, split: Path, transform: Optional[List] = None):
         """See superclass for documentation"""
         super().__init__(root=root, split=split, transform=transform)
         self.classes = [e.strip() for e in (self.root / "lists/classes_tag.txt").read_text()]
@@ -313,11 +317,17 @@ class ClassificationDataset(Dataset):
 
 
 class InstanceSegmentationDataset(Dataset):
-    def __init__(self, root, split: Path, transform: Optional[List] = None):
+    def __init__(
+        self,
+        root: Path,
+        split: Path,
+        transform: Optional[List] = None,
+        convert_polygons_to_masks: Optional[bool] = True
+    ):
         """See superclass for documentation"""
         super().__init__(root=root, split=split, transform=transform)
         self.classes = [e.strip() for e in (self.root / "lists/classes_polygon.txt").read_text().split("\n")]
-        self.convert_polygons = T.ConvertPolygonsToInstanceMasks()
+        self.convert_polygons = T.ConvertPolygonsToInstanceMasks() if convert_polygons_to_masks else None
 
     def _map_annotation(self, index: int):
         """See superclass for documentation
@@ -370,7 +380,7 @@ class InstanceSegmentationDataset(Dataset):
             target.append(
                 {
                     "category_id": self.classes.index(annotation["name"]),
-                    "segmentation": [sequence],  # List type is used for backward compatibility
+                    "segmentation": [sequence.tolist()],  # List type is used for backward compatibility
                     "bbox": [x, y, w, h],
                     "area": poly_area,
                 }
@@ -400,13 +410,19 @@ class InstanceSegmentationDataset(Dataset):
 
 
 class SemanticSegmentationDataset(Dataset):
-    def __init__(self, root, split: Path, transform: Optional[List] = None):
+    def __init__(
+        self,
+        root: Path,
+        split: Path,
+        transform: Optional[List] = None,
+        convert_polygons_to_masks: Optional[bool] = True
+    ):
         """See superclass for documentation"""
         super().__init__(root=root, split=split, transform=transform)
         self.classes = [e.strip() for e in (self.root / "lists/classes_polygon.txt").read_text().split("\n")]
         if self.classes[0] == "__background__":
             self.classes = self.classes[1:]
-        self.convert_polygons = T.ConvertPolygonToMask()
+        self.convert_polygons = T.ConvertPolygonToMask() if convert_polygons_to_masks else None
 
     def _map_annotation(self, index: int):
         """See superclass for documentation
