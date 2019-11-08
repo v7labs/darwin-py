@@ -23,7 +23,8 @@ def load_pil_image(path: Path):
     """
     Loads a PIL image and converts it into RGB.
 
-    Parameters ----------
+    Parameters 
+    ----------
     path: Path
         Path to the image file
 
