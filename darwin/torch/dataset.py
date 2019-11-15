@@ -54,7 +54,7 @@ class Dataset(data.Dataset):
                 raise ValueError(
                     f"Annotation ({annotation_path}) does not have a corresponding image"
                 )
-            image_path = self.root / f"images/{stem}.{extension}"
+            image_path = self.root / f"images/{stem}{extension}"
             self.images_path.append(image_path)
             self.annotations_path.append(annotation_path)
 
