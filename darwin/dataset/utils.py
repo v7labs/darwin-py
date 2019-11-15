@@ -78,8 +78,7 @@ def make_class_list(
         if add_background:
             classes_names.insert(0, "__background__")
         with open(str(fname), "w") as f:
-            for c in classes_names:
-                f.write(f"{c}\n")
+            f.write("\n".join(classes_names))
     return idx_to_classes
 
 
