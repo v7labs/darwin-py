@@ -43,21 +43,18 @@ class Dataset(data.Dataset):
             raise FileNotFoundError(f"Could not find partition file: {self.split}")
         extensions = [".jpg", ".jpeg", ".png"]
         stems = (e.strip() for e in split.open())
+        image_extensions_mapping = {image.stem: image.suffix
+                                    for image in self.root.glob(f"images/*")
+                                    if image.suffix in extensions}
         for stem in stems:
             annotation_path = self.root / f"annotations/{stem}.json"
-            images = [
-                image for image in self.root.glob(f"images/{stem}.*") if image.suffix in extensions
-            ]
-            if len(images) < 1:
+            try:
+                extension = image_extensions_mapping[stem]
+            except KeyError:
                 raise ValueError(
                     f"Annotation ({annotation_path}) does not have a corresponding image"
                 )
-            if len(images) > 1:
-                raise ValueError(
-                    f"Image ({stem}) is present with multiple extensions. This is forbidden."
-                )
-            assert len(images) == 1
-            image_path = images[0]
+            image_path = self.root / f"images/{stem}.{extension}"
             self.images_path.append(image_path)
             self.annotations_path.append(annotation_path)
 
