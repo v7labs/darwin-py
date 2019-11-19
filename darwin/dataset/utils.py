@@ -4,7 +4,7 @@ import os
 from collections import defaultdict
 from pathlib import Path
 from typing import Generator, Iterable, List, Optional
-
+import datetime
 import numpy as np
 from tqdm import tqdm
 
@@ -47,7 +47,7 @@ def make_class_list(
     annotation_files: List,
     lists_path: Path,
     annotation_type: str,
-        add_background: Optional[bool] = False,
+    add_background: Optional[bool] = False,
 ):
     """
     Support function to extract classes and save the output to file
@@ -329,7 +329,7 @@ def split_dataset(
 def _f(x):
     """Support function for pool.map() in _exhaust_generator()"""
     if callable(x):
-        x()
+        return x()
 
 
 def exhaust_generator(progress: Generator, count: int, multi_threaded: bool):
@@ -343,19 +343,26 @@ def exhaust_generator(progress: Generator, count: int, multi_threaded: bool):
         Size of the generator
     multi_threaded : bool
         Flag for multi-threaded enabled operations
+
+    Returns
+    -------
+    List[dict]
+        List of responses from the generator execution
     """
+    responses = []
     if multi_threaded:
         pbar = tqdm(total=count)
 
-        def update():
+        def update(*a):
             pbar.update()
 
         with mp.Pool(mp.cpu_count()) as pool:
             for f in progress:
-                pool.apply_async(_f, args=(f,), callback=update)
+                responses.append(pool.apply_async(_f, args=(f,), callback=update))
             pool.close()
             pool.join()
+        responses = [response.get() for response in responses if response.successful()]
     else:
         for f in tqdm(progress, total=count, desc="Progress"):
-            if callable(f):
-                f()
+            responses.append(_f(f))
+    return responses
