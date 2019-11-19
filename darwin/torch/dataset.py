@@ -111,13 +111,27 @@ class Dataset(data.Dataset):
         -------
         dict
         A new dictionary containing the index and the filtered annotation
+
+        Notes
+        -----
+        The return value is a dict with the following fields:
+            image_id: int
+                The index of the image in the split
+            original_filename: str
+                The path to the image on the file system
+            annotations : str
+                The original raw annotation
         """
         with self.annotations_path[index].open() as f:
             annotation = json.load(f)["annotations"]
         # Filter out unused classes
         if self.classes is not None:
             annotation = [a for a in annotation if a["name"] in self.classes]
-        return {"image_id": index, "annotations": annotation}
+        return {
+            "image_id": index,
+            "original_filename": self.images_path[index],
+            "annotations": annotation
+        }
 
     def measure_mean_std(self, multi_threaded: bool = True):
         """Computes mean and std of train images, given the train loader
@@ -270,6 +284,10 @@ class ClassificationDataset(Dataset):
         Notes
         -----
         The return value is a dict with the following fields:
+            image_id: int
+                The index of the image in the split
+            original_filename: str
+                The path to the image on the file system
             category_id : int
                 The single label of the image selected.
         """
@@ -286,7 +304,11 @@ class ClassificationDataset(Dataset):
                     f"No tags defined for this image ({self.annotations_path[index]})."
                     f"This is not valid in a classification dataset."
                 )
-        return {"category_id": tags[0]}
+        return {
+            "image_id": index,
+            "original_filename": self.images_path[index],
+            "category_id": tags[0]
+        }
 
     def measure_weights(self, **kwargs) -> np.ndarray:
         """Computes the class balancing weights (not the frequencies!!) given the train loader
@@ -324,6 +346,8 @@ class InstanceSegmentationDataset(Dataset):
         The return value is a dict with the following fields:
             image_id : int
                 Index of the image inside the dataset
+            original_filename: str
+                The path to the image on the file system
             annotations : list[Dict]
                 List of annotations, where each annotation is a dict with:
                 category_id : int
@@ -373,7 +397,11 @@ class InstanceSegmentationDataset(Dataset):
                 }
             )
 
-        return {"image_id": index, "annotations": target}
+        return {
+            "image_id": index,
+            "original_filename": self.images_path[index],
+            "annotations": target
+        }
 
     def measure_weights(self, **kwargs):
         """Computes the class balancing weights (not the frequencies!!) given the train loader
@@ -411,11 +439,13 @@ class SemanticSegmentationDataset(Dataset):
         Notes
         -----
         The return value is a dict with the following fields:
-            TODO complete documentation
-            image_id :
+            image_id : int
+                Index of the image inside the dataset
+            original_filename: str
+                The path to the image on the file system
             annotations : list
                 List of annotations, where each annotation is a dict with:
-                category_id :
+                category_id : TODO complete documentation
                 segmentation :
         """
         with self.annotations_path[index].open() as f:
@@ -437,7 +467,10 @@ class SemanticSegmentationDataset(Dataset):
                     "segmentation": np.array([sequence]),
                 }
             )
-        return {"image_id": index, "annotations": target}
+        return {
+            "image_id": index,
+            "original_filename": self.images_path[index],
+            "annotations": target}
 
     def measure_weights(self, **kwargs):
         """Computes the class balancing weights (not the frequencies!!) given the train loader
