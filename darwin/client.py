@@ -76,8 +76,13 @@ class Client:
             self._refresh_access_token()
             return self.get(endpoint=endpoint, retry=False)
 
-        if response.status_code != 200:
-            print("TODO, fix me get", response.json(), response.status_code)
+        # if response.status_code != 200:
+        #     print(
+        #         f"Client get request response ({response.json()}) with unexpected status "
+        #         f"({response.status_code}). "
+        #         f"Client: ({self})"
+        #         f"Request: (endpoint={endpoint})"
+        #     )
 
         if raw:
             return response
@@ -114,8 +119,13 @@ class Client:
             if error_code == "INSUFFICIENT_REMAINING_STORAGE":
                 raise InsufficientStorage()
 
-        if response.status_code != 200:
-            print("TODO, fix me put", response, response.status_code)
+        # if response.status_code != 200:
+        #     print(
+        #         f"Client put request response ({response.json()}) with unexpected status "
+        #         f"({response.status_code}). "
+        #         f"Client: ({self})"
+        #         f"Request: (endpoint={endpoint}, payload={payload})"
+        #     )
         return response.json()
 
     def post(
@@ -159,10 +169,15 @@ class Client:
             self._refresh_access_token()
             return self.post(endpoint, payload=payload, retry=False)
 
-        if response.status_code != 200:
-            for error_handler in error_handlers:
-                error_handler(response.status_code, response.json())
-            print("TODO, fix me post", response, response.status_code)
+        # if response.status_code != 200:
+        #     for error_handler in error_handlers:
+        #         error_handler(response.status_code, response.json())
+        #     print(
+        #         f"Client post request response ({response.json()}) with unexpected status "
+        #         f"({response.status_code}). "
+        #         f"Client: ({self})"
+        #         f"Request: (endpoint={endpoint}, payload={payload})"
+        #     )
         return response.json()
 
     def list_teams(self):
@@ -513,17 +528,25 @@ class Client:
                 header["Authorization"] = f"Bearer {self.token}"
             return header
 
+    def __str__(self):
+        return (
+            f"(Client, token={self.token}, "
+            f"refresh_token={self.refresh_token}, "
+            f"url={self.url}, "
+            f"base_url={self.base_url}, "
+            f"team={self.team}, "
+            f"projects_dir={self.projects_dir})"
+        )
+
     @staticmethod
     def default_api_url():
         """Returns the default api url"""
-        return os.getenv("DARWIN_API_URL", "https://darwin.v7labs.com/api/")
+        return f"{Client.default_base_url()}/api/"
 
     @staticmethod
     def default_base_url():
         """Returns the default base url"""
-        if os.getenv("DARWIN_BASE_URL"):
-            return os.getenv("DARWIN_BASE_URL")
-        return Client.default_api_url().replace("/api", "")
+        return os.getenv('DARWIN_BASE_URL', 'https://darwin.v7labs.com')
 
 
 def name_taken(code, body):
