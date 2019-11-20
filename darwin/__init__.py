@@ -1,4 +1,4 @@
 import darwin.exceptions
-import darwin.datasets
+import darwin.dataset
 from .client import Client
 from .team import Team
