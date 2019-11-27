@@ -7,7 +7,7 @@ import numpy as np
 import torch.utils.data as data
 
 import darwin.torch.transforms as T
-from darwin.torch.utils import convert_polygon_to_sequence, load_pil_image, polygon_area
+from darwin.torch.utils import convert_polygons_to_sequences, load_pil_image, polygon_area
 
 
 class Dataset(data.Dataset):
@@ -370,29 +370,33 @@ class InstanceSegmentationDataset(Dataset):
         for annotation in annotations:
             assert "name" in annotation
             assert "polygon" in annotation
-            # Extract the sequence of coordinates from the polygon annotation
-            sequence = convert_polygon_to_sequence(annotation["polygon"]["path"])
-            if len(sequence) / 2 < 3:
-                # Discard polygons with less than three points
+            # Extract the sequences of coordinates from the polygon annotation
+            sequences = convert_polygons_to_sequences(annotation["polygon"]["path"])
+            # Discard polygons with less than three points
+            sequences[:] = [s for s in sequences if len(s) >= 6]
+            if not sequences:
                 continue
             # Compute the bbox of the polygon
-            x_coords = sequence[0::2]
-            y_coords = sequence[1::2]
-            x = np.max((0, np.min(x_coords) - 1))
-            y = np.max((0, np.min(y_coords) - 1))
-            w = (np.max(x_coords) - x) + 1
-            h = (np.max(y_coords) - y) + 1
-            # Compute the area of the polygon
-            poly_area = polygon_area(x_coords, y_coords)
+            x_coords = [s[0::2] for s in sequences]
+            y_coords = [s[1::2] for s in sequences]
+            min_x = np.min([np.min(x_coord) for x_coord in x_coords])
+            min_y = np.min([np.min(y_coord) for y_coord in y_coords])
+            max_x = np.max([np.max(x_coord) for x_coord in x_coords])
+            max_y = np.max([np.max(y_coord) for y_coord in y_coords])
+            w = max_x - min_x
+            h = max_y - min_y
             bbox_area = w * h
+            # Compute the area of the polygon
+            poly_area = np.sum([polygon_area(x_coord, y_coord)]
+                               for x_coord, y_coord in zip(x_coords, y_coords))
             assert poly_area <= bbox_area
 
             # Create and append the new entry for this annotation
             target.append(
                 {
                     "category_id": self.classes.index(annotation["name"]),
-                    "segmentation": [sequence],  # List type is used for backward compatibility
-                    "bbox": [x, y, w, h],
+                    "segmentation": sequences,
+                    "bbox": [min_x, min_y, w, h],
                     "area": poly_area,
                 }
             )
@@ -457,14 +461,15 @@ class SemanticSegmentationDataset(Dataset):
 
         target = []
         for obj in annotation:
-            sequence = convert_polygon_to_sequence(obj["polygon"]["path"])
-            if len(sequence) < 6:  # sequence = [x1, y1, x2, y2, ..., xn, yn]
-                # Discard polygons with less than three points
+            sequences = convert_polygons_to_sequences(obj["polygon"]["path"])
+            # Discard polygons with less than three points
+            sequences[:] = [s for s in sequences if len(s) >= 6]
+            if not sequences:
                 continue
             target.append(
                 {
                     "category_id": self.classes.index(obj["name"]),
-                    "segmentation": np.array([sequence]),
+                    "segmentation": np.array(sequences),
                 }
             )
         return {
