@@ -126,7 +126,13 @@ class Client:
         #         f"Client: ({self})"
         #         f"Request: (endpoint={endpoint}, payload={payload})"
         #     )
-        return response.json()
+        try:
+            return response.json()
+        except ValueError:
+            print(f"[ERROR {response.status_code}] {response.text}")
+            response.close()
+            return {"status_code": response.status_code,
+                    "text": response.text}
 
     def post(
         self,
@@ -251,14 +257,14 @@ class Client:
         list[RemoteDataset]
         List of all remote datasets
         """
-        for project in self.get("/projects/"):
+        for dataset in self.get("/datasets/"):
             yield RemoteDataset(
-                name=project["name"],
-                slug=project["slug"],
-                dataset_id=project["dataset_id"],
-                project_id=project["id"],
-                image_count=project["num_images"],
-                progress=project["progress"],
+                name=dataset["name"],
+                slug=dataset["slug"],
+                dataset_id=dataset["id"],
+                project_id=dataset["id"],
+                image_count=dataset["num_images"],
+                progress=dataset["progress"],
                 client=self,
             )
 
