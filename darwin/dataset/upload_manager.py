@@ -352,11 +352,11 @@ def upload_annotations(
             endpoint = f"dataset_images/{image_dataset_id}/annotations"
             response = client.put(endpoint=endpoint, payload=payload, retry=True)
 
-            with open(str(output_file_path), 'w') as file:
+            with open(str(output_file_path), 'a+') as file:
                 writer = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
                 writer.writerow([payload, response])
 
-            print(response)
+            # print(response)
 
 
 def create_new_class(
