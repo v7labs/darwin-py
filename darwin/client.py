@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 from typing import Dict, Optional, Iterator
-
+import time
 import requests
 
 from darwin.config import Config
@@ -52,7 +52,7 @@ class Client:
         # TODO: read this from config
         self.projects_dir = projects_dir
 
-    def get(self, endpoint: str, retry: bool = False, raw: bool = False):
+    def get(self, endpoint: str, retry: bool = False, raw: bool = False, debug: bool = False,):
         """Get something from the server trough HTTP
 
         Parameters
@@ -63,6 +63,8 @@ class Client:
             Retry to perform the operation. Set to False on recursive calls.
         raw : bool
             Flag for returning raw response
+        debug : bool
+            Debugging flag. In this case failed requests get printed
 
         Returns
         -------
@@ -70,25 +72,33 @@ class Client:
         Dictionary which contains the server response
         """
         self.ensure_authenticated()
+
         response = requests.get(urljoin(self.url, endpoint), headers=self._get_headers())
 
         if response.status_code == 401 and retry:
-            self._refresh_access_token()
+            try:
+                self._refresh_access_token()
+            except Unauthenticated:
+                return {"error": "Unauthenticated"}
             return self.get(endpoint=endpoint, retry=False)
 
-        # if response.status_code != 200:
-        #     print(
-        #         f"Client get request response ({response.json()}) with unexpected status "
-        #         f"({response.status_code}). "
-        #         f"Client: ({self})"
-        #         f"Request: (endpoint={endpoint})"
-        #     )
+        if response.status_code != 200 and retry:
+            if debug:
+                print(
+                    f"Client get request response ({response.json()}) with unexpected status "
+                    f"({response.status_code}). "
+                    f"Client: ({self})"
+                    f"Request: (endpoint={endpoint})"
+                )
+            time.sleep(10)
+            return self.get(endpoint=endpoint, retry=False)
 
         if raw:
             return response
-        return response.json()
+        else:
+            return self._decode_response(response)
 
-    def put(self, endpoint: str, payload: Dict, retry: bool = False):
+    def put(self, endpoint: str, payload: Dict, retry: bool = False, debug: bool = False,):
         """Put something on the server trough HTTP
 
         Parameters
@@ -99,7 +109,8 @@ class Client:
             What you want to put on the server (typically json encoded)
         retry : bool
             Retry to perform the operation. Set to False on recursive calls.
-
+        debug : bool
+            Debugging flag. In this case failed requests get printed
 
         Returns
         -------
@@ -112,27 +123,29 @@ class Client:
         )
 
         if response.status_code == 401 and retry:
-            self._refresh_access_token()
+            try:
+                self._refresh_access_token()
+            except Unauthenticated:
+                return {"error": "Unauthenticated"}
             return self.put(endpoint=endpoint, payload=payload, retry=False)
+
         if response.status_code == 429:
             error_code = response.json()["errors"]["code"]
             if error_code == "INSUFFICIENT_REMAINING_STORAGE":
                 raise InsufficientStorage()
 
-        # if response.status_code != 200:
-        #     print(
-        #         f"Client put request response ({response.json()}) with unexpected status "
-        #         f"({response.status_code}). "
-        #         f"Client: ({self})"
-        #         f"Request: (endpoint={endpoint}, payload={payload})"
-        #     )
-        try:
-            return response.json()
-        except ValueError:
-            print(f"[ERROR {response.status_code}] {response.text}")
-            response.close()
-            return {"status_code": response.status_code,
-                    "text": response.text}
+        if response.status_code != 200 and retry:
+            if debug:
+                print(
+                    f"Client get request response ({response.json()}) with unexpected status "
+                    f"({response.status_code}). "
+                    f"Client: ({self})"
+                    f"Request: (endpoint={endpoint}, payload={payload})"
+                )
+            time.sleep(10)
+            return self.put(endpoint, payload=payload, retry=False)
+
+        return self._decode_response(response)
 
     def post(
         self,
@@ -140,7 +153,7 @@ class Client:
         payload: Optional[Dict] = None,
         retry: bool = False,
         refresh: bool = False,
-        error_handlers: Optional[list] = None,
+        debug: bool = False
     ):
         """Post something new on the server trough HTTP
 
@@ -154,8 +167,8 @@ class Client:
             Retry to perform the operation. Set to False on recursive calls.
         refresh : bool
             Flag for use the refresh token instead
-        error_handlers : list
-            List of error handlers
+        debug : bool
+            Debugging flag. In this case failed requests get printed
 
         Returns
         -------
@@ -164,27 +177,30 @@ class Client:
         """
         if payload is None:
             payload = {}
-        if error_handlers is None:
-            error_handlers = []
-        self.ensure_authenticated()
+
         response = requests.post(
             urljoin(self.url, endpoint), json=payload, headers=self._get_headers(refresh=refresh)
         )
 
         if response.status_code == 401 and retry:
-            self._refresh_access_token()
+            try:
+                self._refresh_access_token()
+            except Unauthenticated:
+                return {"error": "Unauthenticated"}
             return self.post(endpoint, payload=payload, retry=False)
 
-        # if response.status_code != 200:
-        #     for error_handler in error_handlers:
-        #         error_handler(response.status_code, response.json())
-        #     print(
-        #         f"Client post request response ({response.json()}) with unexpected status "
-        #         f"({response.status_code}). "
-        #         f"Client: ({self})"
-        #         f"Request: (endpoint={endpoint}, payload={payload})"
-        #     )
-        return response.json()
+        if response.status_code != 200 and retry:
+            if debug:
+                print(
+                    f"Client get request response ({response.json()}) with unexpected status "
+                    f"({response.status_code}). "
+                    f"Client: ({self})"
+                    f"Request: (endpoint={endpoint}, payload={payload})"
+                )
+            time.sleep(10)
+            return self.post(endpoint, payload=payload, retry=False)
+
+        return self._decode_response(response)
 
     def list_teams(self):
         """Returns a list of all available teams
@@ -554,6 +570,31 @@ class Client:
         """Returns the default base url"""
         return os.getenv('DARWIN_BASE_URL', 'https://darwin.v7labs.com')
 
+    @staticmethod
+    def _decode_response(response, debug: bool = False):
+        """ Decode the response as JSON entry or return a dictionary with the error
+
+        Parameters
+        ----------
+        response: requests.Response
+            Response to decode
+        debug : bool
+            Debugging flag. In this case failed requests get printed
+
+        Returns
+        -------
+        dict
+        JSON decoded entry or error
+        """
+        try:
+            return response.json()
+        except ValueError:
+            if debug:
+                print(f"[ERROR {response.status_code}] {response.text}")
+            response.close()
+            return {"error": "Response is not JSON encoded",
+                    "status_code": response.status_code,
+                    "text": response.text}
 
 def name_taken(code, body):
     if code == 422 and body["errors"]["name"][0] == "has already been taken":

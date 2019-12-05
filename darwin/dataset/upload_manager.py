@@ -4,7 +4,7 @@ import itertools
 import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
-
+import re
 import requests
 
 from darwin.exceptions import UnsupportedFileType
@@ -310,15 +310,33 @@ def upload_annotations(
     else:
         class_mapping = {}
 
+    # Resume
+    with open(output_file_path) as csv_file:
+        csv_reader = csv.reader(csv_file, delimiter=',')
+        images_id = set()
+        for row in csv_reader:
+            # Find the index of the dataset image id in the line
+            if len(row) == 2:
+                line = row[1] # Row [0] is payload and row [1] is the response
+                if 'dataset_image_id' in line:
+                    index = line.find('dataset_image_id')
+                    # Extract the next integer after 'dataset_image_id' and store it in the set
+                    id = int(re.search(r'\d+', line[index:]).group())
+                    images_id.add(id)
+
     # For each annotation found in the folder send out a request
     for f in annotations_path.glob("*.json"):
         with f.open() as json_file:
             # Read the annotation json file
             data = json.load(json_file)
             image_dataset_id = image_mapping[data['image']['original_filename']]
+            # Skip if already present
+            if image_dataset_id in images_id:
+                continue
             # Compose the payload
             payload_annotations = []
             for annotation in data['annotations']:
+
                 # If the class is missing, create a new class on Darwin and update the mapping
                 if not annotation['name'] in class_mapping:
                     if dataset_id is not None:
@@ -352,11 +370,12 @@ def upload_annotations(
             endpoint = f"dataset_images/{image_dataset_id}/annotations"
             response = client.put(endpoint=endpoint, payload=payload, retry=True)
 
-            with open(str(output_file_path), 'a+') as file:
-                writer = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-                writer.writerow([payload, response])
+            if not 'error' in response:
+                with open(str(output_file_path), 'a+') as file:
+                    writer = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+                    writer.writerow([payload, response])
 
-            # print(response)
+            print(response)
 
 
 def create_new_class(
