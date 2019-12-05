@@ -2,22 +2,25 @@ import csv
 import functools
 import itertools
 import json
+import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
-import re
+
 import requests
 
+from darwin.dataset.utils import exhaust_generator
 from darwin.exceptions import UnsupportedFileType
 from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS, SUPPORTED_VIDEO_EXTENSIONS
+
 if TYPE_CHECKING:
     from darwin.client import Client
 
 
 def add_files_to_dataset(
-        client: "Client",
-        dataset_id: str,
-        filenames: List[Path],
-        fps: Optional[int] = 1
+    client: "Client",
+    dataset_id: str,
+    filenames: List[Path],
+    fps: Optional[int] = 1
 ):
     """Helper function: upload images to an existing remote dataset
 
@@ -163,10 +166,10 @@ def _resolve_path(file_name: str, files_path: List[Path]):
 
 
 def _delayed_upload_function(
-        client: "Client",
-        file: Dict[str, Any],
-        files_path: List[Path],
-        endpoint_prefix: str
+    client: "Client",
+    file: Dict[str, Any],
+    files_path: List[Path],
+    endpoint_prefix: str
 ):
     """
     This is a wrapper function which will be executed only once the generator is
@@ -205,9 +208,9 @@ def _delayed_upload_function(
 
 
 def upload_file_to_s3(
-        client: "Client",
-        file: Dict[str, Any],
-        file_path: Path,
+    client: "Client",
+    file: Dict[str, Any],
+    file_path: Path,
 ) -> requests.Response:
     """Helper function: upload data to AWS S3
 
@@ -267,11 +270,12 @@ def sign_upload(client: "Client", image_id: int, key: str, file_path: Path):
 
 
 def upload_annotations(
-        client: "Client",
-        image_mapping: Path,
-        annotations_path: Path,
-        class_mapping: Optional[Path] = None,
-        dataset_id: Optional[int] = None,
+    client: "Client",
+    image_mapping: Path,
+    annotations_path: Path,
+    class_mapping: Optional[Path] = None,
+    dataset_id: Optional[int] = None,
+    multi_threaded: bool = True,
 ):
     """Experimental feature to upload annotations from the front end
 
@@ -291,12 +295,15 @@ def upload_annotations(
     dataset_id: int
         Dataset ID where to upload the annotations. This is required if class_mapping is None
         or if a class present in the annotations is missing on Darwin
-
+    multi_threaded : bool
+        Uses multiprocessing to upload the dataset in parallel.
     Notes
     -----
         This function is experimental and the json files `image_mapping` and `class_mapping` can
         actually only be retrieved from the backend at the moment.
     """
+    # This is where the responses from the upload function will be saved/load for resume
+    responses_path = image_mapping.parent / "upload_responses.json"
     output_file_path = image_mapping.parent / "log_requests.csv"
 
     # Read and prepare the image id mappings in a dict format {'original filename': 'image id'}
@@ -324,7 +331,7 @@ def upload_annotations(
                     id = int(re.search(r'\d+', line[index:]).group())
                     images_id.add(id)
 
-    # For each annotation found in the folder send out a request
+    # Check that all the classes exists
     for f in annotations_path.glob("*.json"):
         with f.open() as json_file:
             # Read the annotation json file
@@ -333,10 +340,7 @@ def upload_annotations(
             # Skip if already present
             if image_dataset_id in images_id:
                 continue
-            # Compose the payload
-            payload_annotations = []
             for annotation in data['annotations']:
-
                 # If the class is missing, create a new class on Darwin and update the mapping
                 if not annotation['name'] in class_mapping:
                     if dataset_id is not None:
@@ -355,27 +359,104 @@ def upload_annotations(
                         raise ValueError("Dataset ID is None and a class is missing on Darwin"
                                          " (or in the provided mapping).")
 
-                # Replace the class names with class id as provided by the mapping
-                class_id = class_mapping[annotation['name']]
+    # For each annotation found in the folder send out a request
+    files_to_upload = []
+    for f in annotations_path.glob("*.json"):
+        with f.open() as json_file:
+            # Read the annotation json file
+            data = json.load(json_file)
+            image_dataset_id = image_mapping[data['image']['original_filename']]
+            # Skip if already present
+            if image_dataset_id in images_id:
+                continue
+            files_to_upload.append({
+                'data': data,
+                'image_dataset_id': image_dataset_id
+            })
 
-                # Remove the name
-                del (annotation['name'])
-                # Compose the list of annotations as the payload wants
-                payload_annotations.append({
-                    'annotation_class_id':  class_id,
-                    'data': annotation
-                })
-            payload = {"annotations": payload_annotations}
-            # Compose the endpoint
-            endpoint = f"dataset_images/{image_dataset_id}/annotations"
-            response = client.put(endpoint=endpoint, payload=payload, retry=True)
+    generator = (
+        functools.partial(
+            _upload_annotation,
+            class_mapping=class_mapping,
+            client=client,
+            data=element['data'],
+            image_dataset_id=element['image_dataset_id'],
+            output_file_path=output_file_path,
+        )
+        for element in files_to_upload
+    )
 
-            if not 'error' in response:
-                with open(str(output_file_path), 'a+') as file:
-                    writer = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-                    writer.writerow([payload, response])
+    responses = exhaust_generator(
+        progress=generator, count=len(files_to_upload), multi_threaded=multi_threaded
+    )
+    # Log responses to file
+    if responses:
+        components_labels = ['payload', 'response']
+        responses = [{component_label: {k: str(v) for k, v in component.items()}
+                     for response in responses
+                     for component, component_label in zip(response, components_labels)}]
+        with responses_path.open('w') as f:
+            json.dump(responses, f)
 
-            print(response)
+
+def _upload_annotation(
+    class_mapping: Dict,
+    client: "Client",
+    data: Dict,
+    image_dataset_id: int,
+    output_file_path: Path,
+):
+    """
+
+    Parameters
+    ----------
+    class_mapping: Path
+        Path to the json file which contains the mapping between `class name` and `class id` which
+        is required in the put request to compose the payload.
+    client: Client
+        Client authenticated to the team where the put request will be made
+    data: dict
+        Annotation JSON decoded
+    image_dataset_id: int
+        ID of the image within the dataset
+    output_file_path: Path
+        Path to the output file where to log the rep
+
+    Returns
+    -------
+    payload: dict
+        Payload used for the put request
+    response : dict
+        Dictionary with the response of the put request
+    """
+    # Compose the payload
+    payload_annotations = []
+    for annotation in data['annotations']:
+
+        # If the class is missing, create a new class on Darwin and update the mapping
+        if not annotation['name'] in class_mapping:
+            raise ValueError(f"Class {annotation['name']} is missing "
+                             f"in provided mapping {class_mapping}")
+
+        # Replace the class names with class id as provided by the mapping
+        class_id = class_mapping[annotation['name']]
+
+        # Remove the name
+        del (annotation['name'])
+        # Compose the list of annotations as the payload wants
+        payload_annotations.append({
+            'annotation_class_id': class_id,
+            'data': annotation
+        })
+    payload = {"annotations": payload_annotations}
+    # Compose the endpoint
+    endpoint = f"dataset_images/{image_dataset_id}/annotations"
+    response = client.put(endpoint=endpoint, payload=payload, retry=True)
+    if not 'error' in response:
+        with open(str(output_file_path), 'a+') as file:
+            writer = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+            writer.writerow([payload, response])
+    return [payload, response]
 
 
 def create_new_class(
