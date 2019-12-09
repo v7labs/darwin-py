@@ -66,7 +66,7 @@ class ConvertPolygonsToInstanceMasks(object):
 
         # conversion to coco api
         area = torch.tensor([obj["area"] for obj in annotations])
-        iscrowd = torch.tensor([obj["iscrowd"] for obj in annotations])
+        iscrowd = torch.tensor([obj.get("iscrowd", 0) for obj in annotations])
         target["area"] = area
         target["iscrowd"] = iscrowd
 
