@@ -145,7 +145,7 @@ class Client:
             time.sleep(10)
             return self.put(endpoint, payload=payload, retry=False)
 
-        return self._decode_response(response)
+        return self._decode_response(response, debug)
 
     def post(
         self,
