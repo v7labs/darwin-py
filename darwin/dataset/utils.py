@@ -167,6 +167,15 @@ def _stratify_samples(idx_to_classes, split_seed, test_percentage, val_percentag
     expanded_list = [(k, c) for k, v in idx_to_classes.items() for c in v]
     # Stratify
     file_indices, labels = zip(*expanded_list)
+    file_indices, labels = np.array(file_indices), np.array(labels)
+    # Extract entries whose support set is 1 (it would make sklearn crash) and append the to train later
+    unique_labels, count = np.unique(labels, return_counts=True)
+    single_files = []
+    for l in unique_labels[count == 1]:
+        index = np.where(labels == l)[0][0]
+        single_files.append(file_indices[index])
+        labels = np.delete(labels, index)
+        file_indices = np.delete(file_indices, index)
     X_train, X_tmp, y_train, y_tmp = remove_cross_contamination(
         *train_test_split(
             np.array(file_indices),
@@ -176,6 +185,8 @@ def _stratify_samples(idx_to_classes, split_seed, test_percentage, val_percentag
             stratify=labels,
         )
     )
+    # Append files whose support set is 1 to train
+    X_train = np.concatenate((X_train, np.array(single_files)), axis=0)
 
     if test_percentage == 0.0:
         return list(set(X_train)), list(set(X_tmp)), None
@@ -189,6 +200,7 @@ def _stratify_samples(idx_to_classes, split_seed, test_percentage, val_percentag
             stratify=y_tmp,
         )
     )
+
     # Remove duplicates within the same set
     # NOTE: doing that earlier (e.g. in remove_cross_contamination()) would produce mathematical
     # mistakes in the class balancing between validation and test sets.
