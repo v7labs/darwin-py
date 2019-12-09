@@ -96,7 +96,7 @@ class Client:
         if raw:
             return response
         else:
-            return self._decode_response(response)
+            return self._decode_response(response, debug)
 
     def put(self, endpoint: str, payload: Dict, retry: bool = False, debug: bool = False,):
         """Put something on the server trough HTTP
