@@ -387,8 +387,8 @@ class InstanceSegmentationDataset(Dataset):
             h = max_y - min_y
             bbox_area = w * h
             # Compute the area of the polygon
-            poly_area = np.sum([polygon_area(x_coord, y_coord)]
-                               for x_coord, y_coord in zip(x_coords, y_coords))
+            poly_area = np.sum([polygon_area(x_coord, y_coord)
+                                for x_coord, y_coord in zip(x_coords, y_coords)])
             assert poly_area <= bbox_area
 
             # Create and append the new entry for this annotation
