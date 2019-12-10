@@ -87,7 +87,10 @@ class Config(object):
         if default_team:
             self.put("global/default_team", default_team)
 
-    def get_team(self, team: str):
+    def get_team(self, team: Optional[str] = None):
+        if not team:
+            return self.get_default_team()
+            
         api_key = self.get(f"teams/{team}/api_key")
         if api_key is None:
             raise InvalidTeam()
