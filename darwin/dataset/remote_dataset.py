@@ -64,7 +64,6 @@ class RemoteDataset:
         fps: int = 1,
         files_to_exclude: Optional[List[str]] = None,
         files_to_upload: Optional[List[str]] = None,
-        source_folder: Optional[Path] = None,
         resume: bool = False,
     ):
         """Uploads a local project (images ONLY) in the projects directory.
@@ -82,9 +81,6 @@ class RemoteDataset:
             List of files to upload
         fps : int
             Number of file per seconds to upload
-        source_folder: Path
-            Path to the source folder where to scan for files.
-            If not specified self.local_path / "images" is used instead
         resume : bool
             Flag for signalling the resuming of a push
 
@@ -95,11 +91,10 @@ class RemoteDataset:
         count : int
             The files count
         """
-        # Resolving where to look for images
-        if source_folder is None:
-            source_folder = self.local_path / "images"
+       
         # This is where the responses from the upload function will be saved/load for resume
-        responses_path = source_folder.parent / "upload_responses.json"
+        self.local_path.parent.mkdir(exist_ok=True)
+        responses_path = self.local_path.parent / ".upload_responses.json"
         # Init optional parameters
         if files_to_exclude is None:
             files_to_exclude = []
@@ -116,14 +111,13 @@ class RemoteDataset:
                                      if response['s3_response_status_code'].startswith("2")])
 
         files_to_upload = find_files(
-            root = source_folder,
-            files_list = files_to_upload,
+            files = files_to_upload,
             recursive = True,
             files_to_exclude= files_to_exclude
         )
 
         if not files_to_upload:
-            raise NotFound("No files to upload, check your path, exclusion filters and resume flag")
+            raise ValueError("No files to upload, check your path, exclusion filters and resume flag")
 
         progress, count = add_files_to_dataset(
             client=self.client, dataset_id=str(self.dataset_id), filenames=files_to_upload, fps=fps
@@ -132,9 +126,8 @@ class RemoteDataset:
         # If blocking is selected, upload the dataset remotely
         if blocking:
             responses = exhaust_generator(
-                progress=progress, count=count, multi_threaded=multi_threaded and False
+                progress=progress, count=count, multi_threaded=multi_threaded
             )
-            print(responses)
             # Log responses to file
             if responses:
                 responses = [{k: str(v) for k, v in response.items()} for response in responses ]
@@ -204,7 +197,7 @@ class RemoteDataset:
 
     def remove_remote(self):
         """Archives (soft-deletion) the remote dataset"""
-        self.client.put(f"projects/{self.dataset_id}/archive", payload={})
+        self.client.put(f"datasets/{self.dataset_id}/archive", payload={})
 
     @property
     def remote_path(self) -> Path:
@@ -215,6 +208,6 @@ class RemoteDataset:
     def local_path(self) -> Path:
         """Returns a Path to the local dataset"""
         if self.slug is not None:
-            return Path(self.client.projects_dir) / self.slug
+            return Path(self.client.datasets_dir) / self.slug
         else:
-            return Path(self.client.projects_dir)
+            return Path(self.client.datasets_dir)

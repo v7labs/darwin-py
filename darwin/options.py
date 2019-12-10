@@ -86,47 +86,11 @@ class Options(object):
             help="Frames per second for video split (recommended: 1). ",
         )
 
-        # PROJECT REMOVE
-        parser_remove = subparsers.add_parser(
-            "remove", help="Remove a remote or remote and local projects. "
+        parser_remove = dataset_action.add_parser(
+            "remove", help="Remove a remote or remote and local dataset. "
         )
-        parser_remove.add_argument("project_name", type=str, help="Remote project name to delete. ")
-        parser_remove.add_argument(
-            "-r",
-            "--remote",
-            dest="remote",
-            action="store_true",
-            required=False,
-            help="Indicates that the project deletion should be performed on darwin. ",
-        )
-
-        # PROJECT PUSH
-        parser_push = subparsers.add_parser(
-            "push", help="Upload data to an existing (remote) project. "
-        )
-        parser_push.add_argument(
-            "project_name",
-            type=str,
-            help="[Remote] Project name: to list all the existing projects, type 'darwin remote'. ",
-        )
-        parser_push.add_argument("files", type=str, nargs="+", help="Files to upload")
-
-        parser_push.add_argument(
-            "-e",
-            "--exclude",
-            type=str,
-            nargs="+",
-            default="",
-            help="Excludes the files with the specified extension/s if a data folder is provided as data path. ",
-        )
-        parser_push.add_argument(
-            "-f",
-            "--fps",
-            type=int,
-            default="1",
-            help="Frames per second for video split (recommended: 1). ",
-        )
-
+        parser_remove.add_argument("dataset_slug", type=str, help="Remote dataset name to delete. ")
+        
         # VERSION
         parser_version = subparsers.add_parser(
             "version", help="Check current version of the repository. "

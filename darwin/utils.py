@@ -58,8 +58,7 @@ def prompt(msg: str, default: Optional[str] = None) -> str:
 
 
 def find_files(
-    root: Optional[Path] = None,
-    files_list: Optional[List[str]] = None,
+    files: Optional[List[str]] = None,
     recursive: Optional[bool] = True,
     files_to_exclude: Optional[List[str]] = None,
 ) -> List[Path]:
@@ -68,9 +67,7 @@ def find_files(
 
     Parameters
     ----------
-    root : Path
-        Path to the root folder to explore
-    files_list: list[str]
+    files: list[str]
         List of files that will be filtered with the supported file extensions and returned
     recursive : bool
         Flag for recursive search
@@ -82,26 +79,21 @@ def find_files(
     list[Path]
     List of all files belonging to supported extensions. Can't return None.
     """
-    if files_list is None and root is None:
-        raise ValueError(f"Invalid combined value for root (None) and files_list (None)")
 
     # Init the return value
-    files = []
-    if files_list is not None:
-        files.extend([Path(f) for f in files_list
-                      if Path(f).suffix in SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS])
-    elif root is not None:
-        if not root.is_dir():
-            raise ValueError(f"Root is not a directory ({root}).")
-        # Scan for files at the chosen directory
-        base = "**/*" if recursive else "*"
-        pattern = [base + extension
-                   for extension in SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS]
-        files.extend([f for p in pattern for f in root.glob(p)])
+    found_files = []
+    base = "**/*" if recursive else "*"
+    pattern = [base + extension for extension in SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS]
+
+    for path in map(Path, files or []):
+        if path.is_dir():
+            found_files.extend([f for p in pattern for f in path.glob(p)])
+        elif path.suffix in SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS:
+            found_files.extend(path) 
 
     # Filter the list and return it
-    files_to_exclude = set() if files_to_exclude is None else set(files_to_exclude)
-    return [f for f in files if f.name not in files_to_exclude and str(f) not in files_to_exclude]
+    files_to_exclude = set(files_to_exclude or [])
+    return [f for f in found_files if f.name not in files_to_exclude and str(f) not in files_to_exclude]
 
 
 def secure_continue_request() -> bool:
@@ -131,6 +123,6 @@ def persist_client_configuration(client: "Client", default_team: Optional[str] =
 
     config = Config(config_path)
     config.set_team(team=client.team, api_key=client.api_key)
-    config.set_global(api_endpoint=client.url, base_url=client.base_url, directory=str(client.projects_dir), default_team=default_team)
+    config.set_global(api_endpoint=client.url, base_url=client.base_url, directory=str(client.datasets_dir), default_team=default_team)
 
     return config

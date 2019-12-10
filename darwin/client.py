@@ -27,7 +27,7 @@ class Client:
         api_key: Optional[str],
         api_url: str,
         base_url: str,
-        projects_dir: Path
+        datasets_dir: Path
     ):
         """Initializes a Client object. Clients are responsible for holding the logic and for
         interacting with the remote hosts.
@@ -40,7 +40,7 @@ class Client:
             URL to the backend
         base_url : str
             URL to the backend TODO remove this and generate it from api_url
-        projects_dir : Path
+        datasets_dir : Path
             Path where the client should be initialized from (aka the root path)
         """
         self.api_key = api_key
@@ -48,7 +48,7 @@ class Client:
         self.base_url = base_url
         self.team = team
         # TODO: read this from config
-        self.projects_dir = projects_dir
+        self.datasets_dir = datasets_dir
 
     def get(self, endpoint: str, retry: bool = False, raw: bool = False):
         """Get something from the server trough HTTP
@@ -71,7 +71,6 @@ class Client:
 
         if response.status_code == 401:
             raise Unauthorized()
-
         # if response.status_code != 200:
         #     print(
         #         f"Client get request response ({response.json()}) with unexpected status "
@@ -179,7 +178,7 @@ class Client:
         list[Path]
         List of all local datasets
         """
-        for project_path in Path(self.projects_dir).glob("*"):
+        for project_path in Path(self.datasets_dir).glob("*"):
             if project_path.is_dir() and is_project_dir(project_path):
                 yield Path(project_path)
 
@@ -304,13 +303,13 @@ class Client:
         )
 
     @classmethod
-    def anonymous(cls, projects_dir: Optional[Path] = None):
+    def anonymous(cls, datasets_dir: Optional[Path] = None):
         """Factory method to create a client with anonymous access privileges.
         This client can only fetch open datasets given their dataset id.
 
         Parameters
         ----------
-        projects_dir : Path
+        datasets_dir : Path
             Path where the client should be initialized from (aka the root path)
 
         Returns
@@ -318,14 +317,14 @@ class Client:
         Client
         The inited client
         """
-        if not projects_dir:
-            projects_dir = Path.home() / ".darwin" / "projects"
+        if not datasets_dir:
+            datasets_dir = Path.home() / ".darwin" / "projects"
         return cls(
             token=None,  # Unauthenticated requests
             refresh_token=None,
             api_url=Client.default_api_url(),
             base_url=Client.default_base_url(),
-            projects_dir=projects_dir,
+            datasets_dir=datasets_dir,
         )
 
     @classmethod
@@ -341,14 +340,14 @@ class Client:
         return Client.from_config(config_path)
 
     @classmethod
-    def from_token(cls, token: str, projects_dir: Optional[Path] = None):
+    def from_token(cls, token: str, datasets_dir: Optional[Path] = None):
         """Factory method to create a client from the token passed as parameter
 
         Parameters
         ----------
         token : str
             Access token used to auth a specific request. It has a time spans of roughly 8min. to
-        projects_dir : Path
+        datasets_dir : Path
             Path where the client should be initialized from (aka the root path)
 
         Returns
@@ -356,14 +355,14 @@ class Client:
         Client
         The inited client
         """
-        if not projects_dir:
-            projects_dir = Path.home() / ".darwin" / "projects"
+        if not datasets_dir:
+            datasets_dir = Path.home() / ".darwin" / "projects"
         return cls(
             token=token,
             refresh_token=None,
             api_url=Client.default_api_url(),
             base_url=Client.default_base_url(),
-            projects_dir=projects_dir,
+            datasets_dir=datasets_dir,
         )
 
     @classmethod
@@ -393,11 +392,11 @@ class Client:
             api_key=team_config["api_key"],
             api_url=config.get("global/api_endpoint"),
             base_url=config.get("global/base_url"),
-            projects_dir=config.get("global/projects_dir"),
+            datasets_dir=config.get("global/datasets_dir"),
         )
 
     @classmethod
-    def login(cls, api_key: str, projects_dir: Optional[Path] = None):
+    def login(cls, api_key: str, datasets_dir: Optional[Path] = None):
         """Factory method to create a client with a Darwin user login
 
         Parameters
@@ -406,7 +405,7 @@ class Client:
             Email of the Darwin user to use for the login
         password : str
             Password of the Darwin user to use for the login
-        projects_dir : str
+        datasets_dir : str
             String where the client should be initialized from (aka the root path)
 
         Returns
@@ -414,8 +413,8 @@ class Client:
         Client
         The inited client
         """
-        if projects_dir is None:
-            projects_dir = Path.home() / ".darwin" / "projects"
+        if datasets_dir is None:
+            datasets_dir = Path.home() / ".darwin" / "projects"
         headers = {"Content-Type": "application/json", "Authorization": f"ApiKey {api_key}"}
         api_url = Client.default_api_url()
         response = requests.get(
@@ -434,7 +433,7 @@ class Client:
             api_url=api_url,
             base_url=Client.default_base_url(),
             team=team,
-            projects_dir=projects_dir,
+            datasets_dir=datasets_dir,
         )
 
     def _refresh_access_token(self):
@@ -470,7 +469,7 @@ class Client:
             f"url={self.url}, "
             f"base_url={self.base_url}, "
             f"team={self.team}, "
-            f"projects_dir={self.projects_dir})"
+            f"datasets_dir={self.datasets_dir})"
         )
 
     @staticmethod

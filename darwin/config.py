@@ -83,7 +83,7 @@ class Config(object):
     def set_global(self, api_endpoint: str, base_url: str, directory: str, default_team: Optional[str] = None):
         self.put("global/api_endpoint", api_endpoint)
         self.put("global/base_url", base_url)
-        self.put("global/projects_dir", directory)
+        self.put("global/datasets_dir", directory)
         if default_team:
             self.put("global/default_team", default_team)
 

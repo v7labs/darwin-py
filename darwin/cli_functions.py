@@ -20,7 +20,7 @@ from darwin.table import Table
 from darwin.utils import find_files, persist_client_configuration, secure_continue_request
 
 
-def authenticate(api_key: str, projects_dir: str, default_team: bool) -> Config:
+def authenticate(api_key: str, datasets_dir: str, default_team: bool) -> Config:
     """Authenticate user against the server and creates a configuration file for it
 
     Parameters
@@ -29,7 +29,7 @@ def authenticate(api_key: str, projects_dir: str, default_team: bool) -> Config:
         Teams to use for the client login
     api_key : str
         API key to use for the client login
-    projects_dir : str
+    datasets_dir : str
          String where the client should be initialized from
 
     Returns
@@ -37,15 +37,15 @@ def authenticate(api_key: str, projects_dir: str, default_team: bool) -> Config:
     Config
     A configuration object to handle YAML files
     """
-    # Resolve the home folder if the project_dir starts with ~ or ~user
-    projects_dir = Path(os.path.expanduser(projects_dir))
-    Path(projects_dir).mkdir(parents=True, exist_ok=True)
-    print(f"Projects directory created {projects_dir}")
+    # Resolve the home folder if the dataset_dir starts with ~ or ~user
+    datasets_dir = Path(os.path.expanduser(datasets_dir))
+    Path(datasets_dir).mkdir(parents=True, exist_ok=True)
+    print(f"Datasets directory created {datasets_dir}")
 
 
 
     try:
-        client = Client.login(api_key=api_key, projects_dir=projects_dir)
+        client = Client.login(api_key=api_key, datasets_dir=datasets_dir)
         config_path = Path.home() / ".darwin" / "config.yaml"
         config_path.parent.mkdir(exist_ok=True)
         default_team = client.team if default_team else None
@@ -82,7 +82,7 @@ def set_team(team_slug: str):
     config.set_default_team(team_slug)
 
 def create_dataset(name: str, team: Optional[str] = None):
-    """Creates a project remotely"""
+    """Creates a dataset remotely"""
     client = _load_client(team=team)
     try:
         dataset = client.create_dataset(name=name)
@@ -94,19 +94,19 @@ def create_dataset(name: str, team: Optional[str] = None):
 
 
 def local():
-    """Lists synced projects, stored in the specified path. """
+    """Lists synced datasets, stored in the specified path. """
     table = Table(["name", "images", "sync_date", "size"], [Table.L, Table.R, Table.R, Table.R])
     client = _load_client(offline=True)
-    for project_path in client.list_local_datasets():
+    for dataset_path in client.list_local_datasets():
         table.add_row(
             {
-                "name": project_path.name,
-                "images": sum(1 for _ in find_files(project_path)),
+                "name": dataset_path.name,
+                "images": sum(1 for _ in find_files(dataset_path)),
                 "sync_date": humanize.naturaldate(
-                    datetime.datetime.fromtimestamp(project_path.stat().st_mtime)
+                    datetime.datetime.fromtimestamp(dataset_path.stat().st_mtime)
                 ),
                 "size": humanize.naturalsize(
-                    sum(p.stat().st_size for p in find_files(project_path))
+                    sum(p.stat().st_size for p in find_files(dataset_path))
                 ),
             }
         )
@@ -119,7 +119,7 @@ def split_dataset_slug(slug: str) -> (str, str):
     return slug.split("/")
 
 def path(dataset_slug: str) -> Path:
-    """Returns the absolute path of the specified project, if synced"""
+    """Returns the absolute path of the specified dataset, if synced"""
     team, dataset = split_dataset_slug(dataset_slug)
     client = _load_client(offline=True, team=team)
     try:
@@ -128,14 +128,14 @@ def path(dataset_slug: str) -> Path:
                 return p
     except NotFound:
         _error(
-            f"Project '{dataset_slug}' does not exist locally. "
-            f"Use 'darwin remote' to see all the available projects, "
-            f"and 'darwin pull' to pull them."
+            f"Dataset '{dataset_slug}' does not exist locally. "
+            f"Use 'darwin dataset remote' to see all the available datasets, "
+            f"and 'darwin dataset pull' to pull them."
         )
 
 
 def url(dataset_slug: str) -> Path:
-    """Returns the url of the specified project"""
+    """Returns the url of the specified dataset"""
     team, dataset_slug = split_dataset_slug(dataset_slug)
     client = _load_client(offline=True, team=team)
     try:
@@ -145,25 +145,25 @@ def url(dataset_slug: str) -> Path:
         _error(f"Dataset '{dataset_slug}' does not exist.")
 
 
-def pull_project(project_slug: str):
-    """Downloads a remote project (images and annotations) in the projects directory. """
+def pull_dataset(dataset_slug: str):
+    """Downloads a remote dataset (images and annotations) in the datasets directory. """
     client = _load_client()
     try:
-        dataset = client.get_remote_dataset(slug=project_slug)
-        print(f"Pulling project {project_slug}:latest")
+        dataset = client.get_remote_dataset(slug=dataset_slug)
+        print(f"Pulling dataset {dataset_slug}:latest")
         dataset.pull()
         return dataset
     except NotFound:
         _error(
-            f"project '{project_slug}' does not exist at {client.url}. "
-            f"Use 'darwin remote' to list all the remote projects."
+            f"dataset '{dataset_slug}' does not exist at {client.url}. "
+            f"Use 'darwin remote' to list all the remote datasets."
         )
     except Unauthenticated:
         _error(f"please re-authenticate")
 
 
 def remote(all_teams: bool, team: Optional[str] = None):
-    """Lists remote projects with its annotation progress"""
+    """Lists remote datasets with its annotation progress"""
     # TODO: add listing open datasets
     table = Table(["name", "images", "progress", "id"], [Table.L, Table.R, Table.R, Table.R])
     datasets = []
@@ -185,16 +185,17 @@ def remote(all_teams: bool, team: Optional[str] = None):
             }
         )
     if len(table) == 0:
-        print("No projects available.")
+        print("No dataset available.")
     else:
         print(table)
 
 
-def remove_remote_project(project_slug: str):
-    """Remove a remote project from the workview. The project gets archived. """
-    client = _load_client(offline=False)
+def remove_remote_dataset(dataset_slug: str):
+    """Remove a remote dataset from the workview. The dataset gets archived. """
+    team, dataset_slug = split_dataset_slug(dataset_slug)
+    client = _load_client(offline=False, team=team)
     try:
-        dataset = client.get_remote_dataset(slug=project_slug)
+        dataset = client.get_remote_dataset(slug=dataset_slug)
         print(f"About to delete {dataset.name} on darwin.")
         if not secure_continue_request():
             print("Cancelled.")
@@ -202,7 +203,7 @@ def remove_remote_project(project_slug: str):
 
         dataset.remove_remote()
     except NotFound:
-        _error(f"No dataset with name '{project_slug}'")
+        _error(f"No dataset with name '{dataset_slug}'")
 
 
 def upload_data(
@@ -215,8 +216,8 @@ def upload_data(
 
     Parameters
     ----------
-    project_slug : str
-        Slug of the project to retrieve
+    dataset_slug : str
+        Slug of the dataset to retrieve
     files : list[str]
         List of files to upload. Can be None.
     files_to_exclude : list[str]
@@ -238,6 +239,9 @@ def upload_data(
         dataset.push(files_to_exclude=files_to_exclude, fps=fps, files_to_upload=files)
     except NotFound:
         _error(f"No dataset with name '{dataset_slug}'")
+    except ValueError:
+        _error(f"No files found")
+
 
 
 def _error(message):

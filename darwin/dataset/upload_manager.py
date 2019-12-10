@@ -228,7 +228,6 @@ def upload_file_to_s3(
     key = file["key"]
     image_id = file["id"]
     response = sign_upload(client, image_id, key, file_path)
-    print(response)
     signature = response["signature"]
     end_point = response["postEndpoint"]
     return requests.post("http:" + end_point, data=signature, files={"file": file_path.open('rb')})

@@ -1,18 +1,13 @@
 import argparse
 import getpass
 
+import requests.exceptions
 import darwin.cli_functions as f
 from darwin.options import Options
 from darwin.utils import prompt
 from darwin.exceptions import (
-    InsufficientStorage,
-    InvalidLogin,
-    MissingConfig,
-    NameTaken,
-    NotFound,
     Unauthenticated,
-    Unauthorized,
-    ValidationError,
+    Unauthorized
 )
 
 
@@ -24,6 +19,8 @@ def main():
         f._error("Your API key is not authorized to do that action")
     except Unauthenticated:
         f._error("You need to specify a valid API key to do that action")
+    except requests.exceptions.ConnectionError:
+        f._error("Darwin seems unreachable, please try again in a minute or contact support")
 
 def run(args, parser):
     if args.command == "help":
@@ -44,8 +41,8 @@ def run(args, parser):
             print("API Key needed, generate one for your team: https://darwin.v7labs.com/?settings=api-keys")
             return
         default_team = input("Make this team default? [y/N] ") in ["Y", "y"]
-        projects_dir = prompt("Project directory", "~/.darwin/projects")
-        f.authenticate(api_key, projects_dir, default_team)
+        datasets_dir = prompt("Datasets directory", "~/.darwin/datasets")
+        f.authenticate(api_key, datasets_dir, default_team)
         print("Authentication succeeded.")
 
     # Select / List team
@@ -67,15 +64,6 @@ def run(args, parser):
         local_dataset = f.pull_project(project_name)
         print(f"Project {project_name} downloaded at {local_dataset.local_path}. ")
 
-    # Remove a project (remotely)
-    elif args.command == "remove":
-        project_name = args.project_name
-        f.remove_remote_project(project_name)
-
-    # Upload new data to a project (remotely)
-    elif args.command == "push":
-        f.upload_data(args.project_name, args.files, args.exclude, args.fps)
-
     # Version
     elif args.command == "version":
         print("0.3")
@@ -95,6 +83,9 @@ def run(args, parser):
             print(url)
         elif args.action == "push":
             f.upload_data(args.dataset_slug, args.files, args.exclude, args.fps)
+                # Remove a project (remotely)
+        elif args.action == "remove":
+            f.remove_remote_dataset(args.dataset_slug)
         elif args.action == "help":
             dataset_parser = [
                 action.choices['dataset'] for action in parser._actions if isinstance(action, argparse._SubParsersAction) and 'dataset' in action.choices][0]
