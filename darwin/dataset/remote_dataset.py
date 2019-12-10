@@ -176,7 +176,7 @@ class RemoteDataset:
         query = f"/datasets/{self.dataset_id}/export?format={annotation_format}"
         if only_done_images:
             query += f"&image_status=done"
-        response = self.client.get(query, raw=True)
+        response = self.client.get(query, raw=True, retry=True)
         zip_file = io.BytesIO(response.content)
         if zipfile.is_zipfile(zip_file):
             z = zipfile.ZipFile(zip_file)
