@@ -3,7 +3,7 @@ import json
 import shutil
 import zipfile
 from pathlib import Path
-from typing import List, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, List, Optional
 
 from darwin.dataset.download_manager import download_all_images_from_annotations
 from darwin.dataset.upload_manager import add_files_to_dataset
@@ -91,7 +91,7 @@ class RemoteDataset:
         count : int
             The files count
         """
-       
+
         # This is where the responses from the upload function will be saved/load for resume
         self.local_path.parent.mkdir(exist_ok=True)
         responses_path = self.local_path.parent / ".upload_responses.json"
@@ -106,18 +106,22 @@ class RemoteDataset:
                 raise NotFound("Dataset location not found. Check your path.")
             with responses_path.open() as f:
                 logged_responses = json.load(f)
-            files_to_exclude.extend([response['file_path']
-                                     for response in logged_responses
-                                     if response['s3_response_status_code'].startswith("2")])
+            files_to_exclude.extend(
+                [
+                    response["file_path"]
+                    for response in logged_responses
+                    if response["s3_response_status_code"].startswith("2")
+                ]
+            )
 
         files_to_upload = find_files(
-            files = files_to_upload,
-            recursive = True,
-            files_to_exclude= files_to_exclude
+            files=files_to_upload, recursive=True, files_to_exclude=files_to_exclude
         )
 
         if not files_to_upload:
-            raise ValueError("No files to upload, check your path, exclusion filters and resume flag")
+            raise ValueError(
+                "No files to upload, check your path, exclusion filters and resume flag"
+            )
 
         progress, count = add_files_to_dataset(
             client=self.client, dataset_id=str(self.dataset_id), filenames=files_to_upload, fps=fps
@@ -130,21 +134,17 @@ class RemoteDataset:
             )
             # Log responses to file
             if responses:
-                responses = [{k: str(v) for k, v in response.items()} for response in responses ]
+                responses = [{k: str(v) for k, v in response.items()} for response in responses]
                 if resume:
                     responses.extend(logged_responses)
-                with responses_path.open('w') as f:
+                with responses_path.open("w") as f:
                     json.dump(responses, f)
             return None, count
         else:
             return progress, count
 
-
     def pull(
-        self,
-        blocking: bool = True,
-        multi_threaded: bool = True,
-        only_done_images: bool = True,
+        self, blocking: bool = True, multi_threaded: bool = True, only_done_images: bool = True
     ):
         """Downloads a remote project (images and annotations) in the projects directory.
 

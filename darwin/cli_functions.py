@@ -42,8 +42,6 @@ def authenticate(api_key: str, datasets_dir: str, default_team: bool) -> Config:
     Path(datasets_dir).mkdir(parents=True, exist_ok=True)
     print(f"Datasets directory created {datasets_dir}")
 
-
-
     try:
         client = Client.login(api_key=api_key, datasets_dir=datasets_dir)
         config_path = Path.home() / ".darwin" / "config.yaml"
@@ -69,6 +67,7 @@ def list_teams():
         else:
             print(team["slug"])
 
+
 def set_team(team_slug: str):
     """Switches the client to the selected team and persist the change on the configuration file
 
@@ -81,12 +80,15 @@ def set_team(team_slug: str):
     config = _config()
     config.set_default_team(team_slug)
 
+
 def create_dataset(name: str, team: Optional[str] = None):
     """Creates a dataset remotely"""
     client = _load_client(team=team)
     try:
         dataset = client.create_dataset(name=name)
-        print(f"Dataset '{dataset.name}' ({dataset.team}/{dataset.slug}) has been created.\nAccess at {dataset.remote_path}")
+        print(
+            f"Dataset '{dataset.name}' ({dataset.team}/{dataset.slug}) has been created.\nAccess at {dataset.remote_path}"
+        )
     except NameTaken:
         _error(f"Dataset name '{name}' is already taken.")
     except ValidationError:
@@ -117,6 +119,7 @@ def split_dataset_slug(slug: str) -> (str, str):
     if "/" not in slug:
         return (None, slug)
     return slug.split("/")
+
 
 def path(dataset_slug: str) -> Path:
     """Returns the absolute path of the specified dataset, if synced"""
@@ -207,10 +210,7 @@ def remove_remote_dataset(dataset_slug: str):
 
 
 def upload_data(
-    dataset_slug: str,
-    files: Optional[List[str]],
-    files_to_exclude: Optional[List[str]],
-    fps: int,
+    dataset_slug: str, files: Optional[List[str]], files_to_exclude: Optional[List[str]], fps: int
 ):
     """Uploads the files provided as parameter to the remote dataset selected
 
@@ -243,15 +243,14 @@ def upload_data(
         _error(f"No files found")
 
 
-
 def _error(message):
     print(f"Error: {message}")
     sys.exit(1)
 
 
-
 def _config():
     return Config(Path.home() / ".darwin" / "config.yaml")
+
 
 def _load_client(team: Optional[str] = None, offline: bool = False):
     """Fetches a client, potentially offline

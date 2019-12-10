@@ -15,7 +15,6 @@ class Config(object):
             path = Path(path)
         self._path = path
         self._data = self._parse()
-    
 
     def _parse(self):
         """Parses the YAML configuration file"""
@@ -24,7 +23,7 @@ class Config(object):
                 return yaml.safe_load(stream)
         except FileNotFoundError:
             return {}
-    
+
     def get(self, key: Union[str, List[str]], default: Optional[any] = None) -> Any:
         """Gets value defined by key
         
@@ -46,7 +45,7 @@ class Config(object):
                 return acc
             else:
                 key = keys
-        
+
     def put(self, key: Union[str, List[str]], value: any, save: bool = True):
         """Sets value for specified key
         
@@ -56,7 +55,7 @@ class Config(object):
         - value: the value to be set"""
         if isinstance(key, str):
             key = key.split("/")
-        
+
         pointer = self._data
 
         for k in key[:-1]:
@@ -71,16 +70,17 @@ class Config(object):
         with io.open(self._path, "w", encoding="utf8") as f:
             yaml.dump(self._data, f, default_flow_style=False, allow_unicode=True)
 
-
     def set_team(self, team: str, api_key: str):
         self.put(f"teams/{team}/api_key", api_key)
-    
-    def set_default_team(self, team:str):
+
+    def set_default_team(self, team: str):
         if self.get(f"teams/{team}") is None:
             raise InvalidTeam()
         self.put("global/default_team", team)
-    
-    def set_global(self, api_endpoint: str, base_url: str, directory: str, default_team: Optional[str] = None):
+
+    def set_global(
+        self, api_endpoint: str, base_url: str, directory: str, default_team: Optional[str] = None
+    ):
         self.put("global/api_endpoint", api_endpoint)
         self.put("global/base_url", base_url)
         self.put("global/datasets_dir", directory)
@@ -91,9 +91,11 @@ class Config(object):
         api_key = self.get(f"teams/{team}/api_key")
         if api_key is None:
             raise InvalidTeam()
-        default = self.get("global/default_team") == team or len(list(self.get("teams").keys())) == 1
-        return {"slug": team, "api_key": api_key, "default": default} 
-    
+        default = (
+            self.get("global/default_team") == team or len(list(self.get("teams").keys())) == 1
+        )
+        return {"slug": team, "api_key": api_key, "default": default}
+
     def get_default_team(self):
         default_team = self.get("global/default_team")
         if default_team:

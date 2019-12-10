@@ -5,6 +5,7 @@ class Unauthenticated(Exception):
 class InvalidLogin(Exception):
     pass
 
+
 class InvalidTeam(Exception):
     pass
 
@@ -32,6 +33,7 @@ class NameTaken(Exception):
 
 class ValidationError(Exception):
     pass
+
 
 class Unauthorized(Exception):
     pass

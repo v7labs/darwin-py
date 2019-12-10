@@ -21,7 +21,11 @@ class Options(object):
         parser_create = subparsers.add_parser("team", help="List or pick teams. ")
         parser_create.add_argument("team_name", nargs="?", type=str, help="Team name to use. ")
         parser_create.add_argument(
-            "-c", "--current", action="store_true", required=False, help="Shows only the current team. "
+            "-c",
+            "--current",
+            action="store_true",
+            required=False,
+            help="Shows only the current team. ",
         )
 
         # PROJECT LOCAL
@@ -35,30 +39,31 @@ class Options(object):
 
         # PROJECT REMOTE
 
-        dataset = subparsers.add_parser("dataset", help="Dataset related functions", description="Arguments to interact with datasets")
+        dataset = subparsers.add_parser(
+            "dataset",
+            help="Dataset related functions",
+            description="Arguments to interact with datasets",
+        )
 
         dataset_action = dataset.add_subparsers(dest="action")
-        
+
         parser_remote = dataset_action.add_parser("remote", help="List remote datasets")
         parser_remote.add_argument("-t", "--team", help="Specify team")
-        parser_remote.add_argument("-a", "--all", action="store_true", help="List datasets for all teams")
-
+        parser_remote.add_argument(
+            "-a", "--all", action="store_true", help="List datasets for all teams"
+        )
 
         parser_create = dataset_action.add_parser("create", help="Creates a new dataset on darwin")
         parser_create.add_argument("dataset_name", type=str, help="Dataset name")
         parser_create.add_argument("-t", "--team", help="Specify team")
 
-
         parser_path = dataset_action.add_parser("path", help="Print local path to dataset")
         parser_path.add_argument("dataset_slug", type=str, help="Dataset name")
-
 
         parser_url = dataset_action.add_parser("url", help="Print url to dataset on darwin")
         parser_url.add_argument("dataset_slug", type=str, help="Dataset name")
 
-
         parse_help = dataset_action.add_parser("help", help="Show this help message and exit.")
-
 
         parser_push = dataset_action.add_parser(
             "push", help="Upload data to an existing (remote) dataset."
@@ -90,7 +95,7 @@ class Options(object):
             "remove", help="Remove a remote or remote and local dataset. "
         )
         parser_remove.add_argument("dataset_slug", type=str, help="Remote dataset name to delete. ")
-        
+
         # VERSION
         parser_version = subparsers.add_parser(
             "version", help="Check current version of the repository. "

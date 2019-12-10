@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import Dict, Optional, Iterator
+from typing import Dict, Iterator, Optional
 
 import requests
 
@@ -16,7 +16,6 @@ from darwin.exceptions import (
     Unauthorized,
     ValidationError,
 )
-from darwin.team import Team
 from darwin.utils import is_project_dir, urljoin
 
 
@@ -27,7 +26,7 @@ class Client:
         api_key: Optional[str],
         api_url: str,
         base_url: str,
-        datasets_dir: Path
+        datasets_dir: Path,
     ):
         """Initializes a Client object. Clients are responsible for holding the logic and for
         interacting with the remote hosts.
@@ -158,7 +157,7 @@ class Client:
         )
         if response.status_code == 401:
             raise Unauthorized()
-            
+
         # if response.status_code != 200:
         #     for error_handler in error_handlers:
         #         error_handler(response.status_code, response.json())
@@ -288,9 +287,7 @@ class Client:
         The created dataset
         """
         dataset = self.post(
-            "/datasets",
-            {"name": name},
-            error_handlers=[name_taken, validation_error],
+            "/datasets", {"name": name}, error_handlers=[name_taken, validation_error]
         )
         return RemoteDataset(
             name=dataset["name"],
@@ -386,7 +383,7 @@ class Client:
             team_config = config.get_team(team)
         else:
             team_config = config.get_default_team()
-            
+
         return cls(
             team=team_config["slug"],
             api_key=team_config["api_key"],
@@ -417,10 +414,7 @@ class Client:
             datasets_dir = Path.home() / ".darwin" / "projects"
         headers = {"Content-Type": "application/json", "Authorization": f"ApiKey {api_key}"}
         api_url = Client.default_api_url()
-        response = requests.get(
-            urljoin(api_url, "/users/token_info"),
-            headers=headers
-        )
+        response = requests.get(urljoin(api_url, "/users/token_info"), headers=headers)
 
         if response.status_code != 200:
             raise InvalidLogin()
@@ -457,7 +451,7 @@ class Client:
         -------
         dict
         Contains the Content-Type and Authorization token
-        """     
+        """
         header = {"Content-Type": "application/json"}
         if self.api_key is not None:
             header["Authorization"] = f"ApiKey {self.api_key}"
@@ -480,7 +474,7 @@ class Client:
     @staticmethod
     def default_base_url():
         """Returns the default base url"""
-        return os.getenv('DARWIN_BASE_URL', 'https://darwin.v7labs.com')
+        return os.getenv("DARWIN_BASE_URL", "https://darwin.v7labs.com")
 
 
 def name_taken(code, body):

@@ -83,17 +83,21 @@ def find_files(
     # Init the return value
     found_files = []
     base = "**/*" if recursive else "*"
-    pattern = [base + extension for extension in SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS]
+    pattern = [
+        base + extension for extension in SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
+    ]
 
     for path in map(Path, files or []):
         if path.is_dir():
             found_files.extend([f for p in pattern for f in path.glob(p)])
         elif path.suffix in SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS:
-            found_files.extend(path) 
+            found_files.extend(path)
 
     # Filter the list and return it
     files_to_exclude = set(files_to_exclude or [])
-    return [f for f in found_files if f.name not in files_to_exclude and str(f) not in files_to_exclude]
+    return [
+        f for f in found_files if f.name not in files_to_exclude and str(f) not in files_to_exclude
+    ]
 
 
 def secure_continue_request() -> bool:
@@ -101,7 +105,9 @@ def secure_continue_request() -> bool:
     return input("Do you want to continue? [y/N] ") in ["Y", "y"]
 
 
-def persist_client_configuration(client: "Client", default_team: Optional[str] = None, config_path: Optional[Path] = None) -> Config:
+def persist_client_configuration(
+    client: "Client", default_team: Optional[str] = None, config_path: Optional[Path] = None
+) -> Config:
     """Authenticate user against the server and creates a configuration file for it
 
     Parameters
@@ -120,9 +126,13 @@ def persist_client_configuration(client: "Client", default_team: Optional[str] =
         config_path = Path.home() / ".darwin" / "config.yaml"
         config_path.parent.mkdir(exist_ok=True)
 
-
     config = Config(config_path)
     config.set_team(team=client.team, api_key=client.api_key)
-    config.set_global(api_endpoint=client.url, base_url=client.base_url, directory=str(client.datasets_dir), default_team=default_team)
+    config.set_global(
+        api_endpoint=client.url,
+        base_url=client.base_url,
+        directory=str(client.datasets_dir),
+        default_team=default_team,
+    )
 
     return config

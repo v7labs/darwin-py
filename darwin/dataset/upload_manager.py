@@ -2,23 +2,22 @@ import functools
 import itertools
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 import requests
 
 from darwin.exceptions import UnsupportedFileType
 from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS, SUPPORTED_VIDEO_EXTENSIONS
+
 if TYPE_CHECKING:
     from darwin.client import Client
 
 if TYPE_CHECKING:
     from darwin.client import Client
+
 
 def add_files_to_dataset(
-        client: "Client",
-        dataset_id: str,
-        filenames: List[Path],
-        fps: Optional[int] = 1
+    client: "Client", dataset_id: str, filenames: List[Path], fps: Optional[int] = 1
 ):
     """Helper function: upload images to an existing remote dataset
 
@@ -43,37 +42,38 @@ def add_files_to_dataset(
     for filenames_chunk in _chunk_filenames(filenames, 100):
         images, videos = _split_on_file_type(filenames_chunk)
         data = client.put(
-            endpoint = f"/datasets/{dataset_id}/data",
-            payload = {"image_filenames": [image.name for image in images],
-                       "videos": [{"fps": fps, "original_filename": video.name}
-                                  for video in videos]}
+            endpoint=f"/datasets/{dataset_id}/data",
+            payload={
+                "image_filenames": [image.name for image in images],
+                "videos": [{"fps": fps, "original_filename": video.name} for video in videos],
+            },
         )
-        if 'errors' in data:
+        if "errors" in data:
             raise ValueError(f"There are errors in the put request: {data['errors']['detail']}")
         if images:
-            g = (lambda images: (
+            g = lambda images: (
                 functools.partial(
                     _delayed_upload_function,
                     client=client,
                     file=image_file,
                     files_path=images,
-                    endpoint_prefix="dataset_images"
+                    endpoint_prefix="dataset_images",
                 )
                 for image_file in data["image_data"]
-            ))
+            )
             generators.append(g(images))
 
         if videos:
-            g = (lambda videos: (
+            g = lambda videos: (
                 functools.partial(
                     _delayed_upload_function,
                     client=client,
                     file=video_file,
                     files_path=videos,
-                    endpoint_prefix="dataset_videos"
+                    endpoint_prefix="dataset_videos",
                 )
                 for video_file in data["video_data"]
-            ))
+            )
             generators.append(g(videos))
 
     assert generators
@@ -163,10 +163,7 @@ def _resolve_path(file_name: str, files_path: List[Path]):
 
 
 def _delayed_upload_function(
-        client: "Client",
-        file: Dict[str, Any],
-        files_path: List[Path],
-        endpoint_prefix: str
+    client: "Client", file: Dict[str, Any], files_path: List[Path], endpoint_prefix: str
 ):
     """
     This is a wrapper function which will be executed only once the generator is
@@ -189,26 +186,21 @@ def _delayed_upload_function(
     dict
         Dictionary which contains the server response from client.put
     """
-    file_path = _resolve_path(file['original_filename'], files_path)
+    file_path = _resolve_path(file["original_filename"], files_path)
     s3_response = upload_file_to_s3(client, file, file_path)
-    image_id = file['id']
+    image_id = file["id"]
     backend_response = client.put(
-        endpoint=f"/{endpoint_prefix}/{image_id}/confirm_upload",
-        payload={},
+        endpoint=f"/{endpoint_prefix}/{image_id}/confirm_upload", payload={}
     )
     return {
-        'file_path': file_path,
-        'image_id': image_id,
-        's3_response_status_code': s3_response.status_code,
-        'backend_response': backend_response,  # This should be the dataset_id
+        "file_path": file_path,
+        "image_id": image_id,
+        "s3_response_status_code": s3_response.status_code,
+        "backend_response": backend_response,  # This should be the dataset_id
     }
 
 
-def upload_file_to_s3(
-        client: "Client",
-        file: Dict[str, Any],
-        file_path: Path,
-) -> requests.Response:
+def upload_file_to_s3(client: "Client", file: Dict[str, Any], file_path: Path) -> requests.Response:
     """Helper function: upload data to AWS S3
 
     Parameters
@@ -230,7 +222,7 @@ def upload_file_to_s3(
     response = sign_upload(client, image_id, key, file_path)
     signature = response["signature"]
     end_point = response["postEndpoint"]
-    return requests.post("http:" + end_point, data=signature, files={"file": file_path.open('rb')})
+    return requests.post("http:" + end_point, data=signature, files={"file": file_path.open("rb")})
 
 
 def sign_upload(client: "Client", image_id: int, key: str, file_path: Path):
@@ -267,10 +259,7 @@ def sign_upload(client: "Client", image_id: int, key: str, file_path: Path):
 
 
 def upload_annotations(
-        client: "Client",
-        image_mapping: Path,
-        class_mapping: Path,
-        annotations_path: Path
+    client: "Client", image_mapping: Path, class_mapping: Path, annotations_path: Path
 ):
     """Experimental feature to upload annotations from the front end
 
@@ -295,11 +284,11 @@ def upload_annotations(
 
     # Read and prepare the image id mappings in a dict format {'original filename': 'image id'}
     with image_mapping.open() as json_file:
-        image_mapping = {cm['original_filename']: cm['id'] for cm in json.load(json_file)}
+        image_mapping = {cm["original_filename"]: cm["id"] for cm in json.load(json_file)}
 
     # Read and prepare the class mappings in a dict format {'class name': 'class id'}
     with class_mapping.open() as json_file:
-        class_mapping = {cm['name']: cm['id'] for cm in json.load(json_file)}
+        class_mapping = {cm["name"]: cm["id"] for cm in json.load(json_file)}
 
     # For each annotation found in the folder send out a request
     for f in annotations_path.glob("*.json"):
@@ -308,18 +297,17 @@ def upload_annotations(
             data = json.load(json_file)
             # Compose the payload
             payload_annotations = []
-            for annotation in data['annotations']:
+            for annotation in data["annotations"]:
                 # Replace the class names with class id as provided by the mapping
-                class_id = class_mapping[annotation['name']]
+                class_id = class_mapping[annotation["name"]]
                 # Remove the name
-                del (annotation['name'])
+                del annotation["name"]
                 # Compose the list of annotations as the payload wants
-                payload_annotations.append({
-                    'annotation_class_id':  class_id,
-                    'data': annotation
-                })
+                payload_annotations.append({"annotation_class_id": class_id, "data": annotation})
             payload = {"annotations": payload_annotations}
             # Compose the endpoint
-            endpoint = f"dataset_images/{image_mapping[data['image']['original_filename']]}/annotations"
+            endpoint = (
+                f"dataset_images/{image_mapping[data['image']['original_filename']]}/annotations"
+            )
             response = client.put(endpoint=endpoint, payload=payload, retry=True)
             print(response)

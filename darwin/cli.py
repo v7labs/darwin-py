@@ -2,13 +2,11 @@ import argparse
 import getpass
 
 import requests.exceptions
+
 import darwin.cli_functions as f
+from darwin.exceptions import Unauthenticated, Unauthorized
 from darwin.options import Options
 from darwin.utils import prompt
-from darwin.exceptions import (
-    Unauthenticated,
-    Unauthorized
-)
 
 
 def main():
@@ -21,6 +19,7 @@ def main():
         f._error("You need to specify a valid API key to do that action")
     except requests.exceptions.ConnectionError:
         f._error("Darwin seems unreachable, please try again in a minute or contact support")
+
 
 def run(args, parser):
     if args.command == "help":
@@ -38,7 +37,9 @@ def run(args, parser):
     if args.command == "authenticate":
         api_key = getpass.getpass(prompt="API key: ", stream=None)
         if api_key.strip() == "":
-            print("API Key needed, generate one for your team: https://darwin.v7labs.com/?settings=api-keys")
+            print(
+                "API Key needed, generate one for your team: https://darwin.v7labs.com/?settings=api-keys"
+            )
             return
         default_team = input("Make this team default? [y/N] ") in ["Y", "y"]
         datasets_dir = prompt("Datasets directory", "~/.darwin/datasets")
@@ -53,7 +54,7 @@ def run(args, parser):
             f.current_team()
         else:
             f.list_teams()
-        
+
     # List existing projects
     elif args.command == "local":
         f.local()
@@ -75,23 +76,28 @@ def run(args, parser):
         elif args.action == "create":
             f.create_dataset(args.dataset_name, args.team)
         elif args.action == "path":
-                path = f.path(args.dataset_slug)
-                print(path)
+            path = f.path(args.dataset_slug)
+            print(path)
         # Print the url of a remote project
         elif args.action == "url":
             url = f.url(args.dataset_slug)
             print(url)
         elif args.action == "push":
             f.upload_data(args.dataset_slug, args.files, args.exclude, args.fps)
-                # Remove a project (remotely)
+            # Remove a project (remotely)
         elif args.action == "remove":
             f.remove_remote_dataset(args.dataset_slug)
         elif args.action == "help":
             dataset_parser = [
-                action.choices['dataset'] for action in parser._actions if isinstance(action, argparse._SubParsersAction) and 'dataset' in action.choices][0]
+                action.choices["dataset"]
+                for action in parser._actions
+                if isinstance(action, argparse._SubParsersAction) and "dataset" in action.choices
+            ][0]
 
             subparsers_actions = [
-                action for action in dataset_parser._actions if isinstance(action, argparse._SubParsersAction)
+                action
+                for action in dataset_parser._actions
+                if isinstance(action, argparse._SubParsersAction)
             ]
 
             print(dataset_parser.description)
@@ -100,7 +106,6 @@ def run(args, parser):
                 # get all subparsers and print help
                 for choice in sorted(subparsers_action._choices_actions, key=lambda x: x.dest):
                     print("    {:<19} {}".format(choice.dest, choice.help))
-
 
 
 if __name__ == "__main__":
