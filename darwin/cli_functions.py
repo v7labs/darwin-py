@@ -148,8 +148,6 @@ def url(dataset_slug: str) -> Path:
         _error(f"Dataset '{dataset_slug}' does not exist.")
 
 
-
-
 def dataset_report(dataset_slug: str, granularity) -> Path:
     """Returns the url of the specified dataset"""
     team, dataset_slug = split_dataset_slug(dataset_slug)
@@ -160,6 +158,7 @@ def dataset_report(dataset_slug: str, granularity) -> Path:
         print(report)
     except NotFound:
         _error(f"Dataset '{dataset_slug}' does not exist.")
+
 
 def pull_dataset(dataset_slug: str):
     """Downloads a remote dataset (images and annotations) in the datasets directory. """
