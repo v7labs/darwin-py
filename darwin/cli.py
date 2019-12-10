@@ -68,9 +68,8 @@ def run(args, parser):
         print("0.3")
 
     elif args.command == "dataset":
-        # List existing projects (remotely)
         if args.action == "remote":
-            f.remote(args.all, args.team)
+            f.list_remote_datasets(args.all, args.team)
         elif args.action == "create":
             f.create_dataset(args.dataset_name, args.team)
         elif args.action == "path":
@@ -81,7 +80,7 @@ def run(args, parser):
             f.url(args.dataset_slug)
         elif args.action == "push":
             f.upload_data(args.dataset_slug, args.files, args.exclude, args.fps)
-            # Remove a project (remotely)
+        # Remove a project (remotely)
         elif args.action == "remove":
             f.remove_remote_dataset(args.dataset_slug)
         elif args.action == "report":

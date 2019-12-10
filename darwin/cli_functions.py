@@ -179,7 +179,7 @@ def pull_dataset(dataset_slug: str):
         _error(f"please re-authenticate")
 
 
-def remote(all_teams: bool, team: Optional[str] = None):
+def list_remote_datasets(all_teams: bool, team: Optional[str] = None):
     """Lists remote datasets with its annotation progress"""
     # TODO: add listing open datasets
     table = Table(["name", "images", "progress", "id"], [Table.L, Table.R, Table.R, Table.R])
