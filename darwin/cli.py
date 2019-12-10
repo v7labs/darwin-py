@@ -41,9 +41,7 @@ def run(args, parser):
                 "API Key needed, generate one for your team: https://darwin.v7labs.com/?settings=api-keys"
             )
             return
-        default_team = input("Make this team default? [y/N] ") in ["Y", "y"]
-        datasets_dir = prompt("Datasets directory", "~/.darwin/datasets")
-        f.authenticate(api_key, datasets_dir, default_team)
+        f.authenticate(api_key)
         print("Authentication succeeded.")
 
     # Select / List team
@@ -79,8 +77,7 @@ def run(args, parser):
             print(path)
         # Print the url of a remote project
         elif args.action == "url":
-            url = f.url(args.dataset_slug)
-            print(url)
+            f.url(args.dataset_slug)
         elif args.action == "push":
             f.upload_data(args.dataset_slug, args.files, args.exclude, args.fps)
         # Remove a project (remotely)
@@ -88,7 +85,7 @@ def run(args, parser):
             f.remove_remote_dataset(args.dataset_slug)
         elif args.action == "report":
             f.dataset_report(args.dataset_slug, args.granularity or "day")
-        elif args.action == "help":
+        elif args.action == "help   ":
             dataset_parser = [
                 action.choices["dataset"]
                 for action in parser._actions

@@ -17,20 +17,16 @@ from darwin.exceptions import (
     ValidationError,
 )
 from darwin.table import Table
-from darwin.utils import find_files, persist_client_configuration, secure_continue_request
+from darwin.utils import find_files, persist_client_configuration, secure_continue_request, prompt
 
 
-def authenticate(api_key: str, datasets_dir: str, default_team: bool) -> Config:
+def authenticate(api_key: str) -> Config:
     """Authenticate user against the server and creates a configuration file for it
 
     Parameters
     ----------
-    team : str
-        Teams to use for the client login
     api_key : str
         API key to use for the client login
-    datasets_dir : str
-         String where the client should be initialized from
 
     Returns
     -------
@@ -38,14 +34,20 @@ def authenticate(api_key: str, datasets_dir: str, default_team: bool) -> Config:
     A configuration object to handle YAML files
     """
     # Resolve the home folder if the dataset_dir starts with ~ or ~user
-    datasets_dir = Path(os.path.expanduser(datasets_dir))
-    Path(datasets_dir).mkdir(parents=True, exist_ok=True)
-    print(f"Datasets directory created {datasets_dir}")
-
+    
     try:
-        client = Client.login(api_key=api_key, datasets_dir=datasets_dir)
+        client = Client.login(api_key=api_key)
         config_path = Path.home() / ".darwin" / "config.yaml"
         config_path.parent.mkdir(exist_ok=True)
+
+        default_team = input(f"Make {client.team} the default team? [y/N] ") in ["Y", "y"]
+        datasets_dir = prompt("Datasets directory", "~/.darwin/datasets")
+
+        datasets_dir = Path(os.path.expanduser(datasets_dir))
+        Path(datasets_dir).mkdir(parents=True, exist_ok=True)
+        print(f"Datasets directory created {datasets_dir}")
+        client.datasets_dir = datasets_dir
+
         default_team = client.team if default_team else None
         return persist_client_configuration(client, default_team=default_team)
 
@@ -143,7 +145,7 @@ def url(dataset_slug: str) -> Path:
     client = _load_client(offline=True, team=team)
     try:
         remote_dataset = client.get_remote_dataset(slug=dataset_slug)
-        return remote_dataset.remote_path
+        print(remote_dataset.remote_path)
     except NotFound:
         _error(f"Dataset '{dataset_slug}' does not exist.")
 

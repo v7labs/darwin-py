@@ -208,7 +208,7 @@ class RemoteDataset:
     @property
     def remote_path(self) -> Path:
         """Returns an URL specifying the location of the remote dataset"""
-        return Path(urljoin(self.client.base_url, f"/datasets/{self.dataset_id}"))
+        return urljoin(self.client.base_url, f"/datasets/{self.dataset_id}")
 
     @property
     def local_path(self) -> Path:

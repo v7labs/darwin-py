@@ -202,7 +202,6 @@ class Client:
     def get_remote_dataset(
         self,
         *,
-        project_id: Optional[int] = None,
         slug: Optional[str] = None,
         name: Optional[str] = None,
         dataset_id: Optional[int] = None,
@@ -227,7 +226,7 @@ class Client:
         RemoteDataset
             Initialized dataset
         """
-        num_args = sum(x is not None for x in [name, slug, dataset_id, project_id])
+        num_args = sum(x is not None for x in [name, slug, dataset_id])
         if num_args > 1:
             raise ValueError(
                 f"Too many values provided ({num_args})."
@@ -236,18 +235,6 @@ class Client:
         elif num_args == 0:
             raise ValueError(
                 f"No values provided. Please select 1 way of getting the remote dataset."
-            )
-        # TODO: swap project_id for dataset_id when the backend has gotten ride of project_id
-        if project_id:
-            project = self.get(f"/projects/{project_id}")
-            return RemoteDataset(
-                name=project["name"],
-                slug=project["slug"],
-                dataset_id=project["dataset_id"],
-                project_id=project["id"],
-                image_count=project["num_images"],
-                progress=project["progress"],
-                client=self,
             )
         if slug:
             # TODO: when the backend have support for slug fetching update this.
@@ -261,14 +248,13 @@ class Client:
             print("Sorry, no support for name yet")
             raise NotImplementedError
         if dataset_id:
-            project = self.get(f"/datasets/{dataset_id}/project")
+            dataset = self.get(f"/datasets/{dataset_id}")
             return RemoteDataset(
-                name=project["name"],
-                slug=project["slug"],
-                dataset_id=project["dataset_id"],
-                project_id=project["id"],
-                image_count=project["num_images"],
-                progress=project["progress"],
+                name=dataset["name"],
+                slug=projedatasetct["slug"],
+                dataset_id=dataset["id"],
+                image_count=dataset["num_images"],
+                progress=dataset["progress"],
                 client=self,
             )
 
@@ -388,7 +374,7 @@ class Client:
             api_key=team_config["api_key"],
             api_url=config.get("global/api_endpoint"),
             base_url=config.get("global/base_url"),
-            datasets_dir=config.get("global/datasets_dir"),
+            datasets_dir=team_config["datasets_dir"],
         )
 
     @classmethod
