@@ -206,7 +206,7 @@ def remove_remote_project(project_slug: str):
 
 
 def upload_data(
-    project_slug: str,
+    dataset_slug: str,
     files: Optional[List[str]],
     files_to_exclude: Optional[List[str]],
     fps: int,
@@ -231,12 +231,13 @@ def upload_data(
     count : int
         The files count
     """
-    client = _load_client()
+    team, dataset_slug = split_dataset_slug(dataset_slug)
+    client = _load_client(team=team)
     try:
-        dataset = client.get_remote_dataset(slug=project_slug)
+        dataset = client.get_remote_dataset(slug=dataset_slug)
         dataset.push(files_to_exclude=files_to_exclude, fps=fps, files_to_upload=files)
     except NotFound:
-        _error(f"No dataset with name '{project_slug}'")
+        _error(f"No dataset with name '{dataset_slug}'")
 
 
 def _error(message):

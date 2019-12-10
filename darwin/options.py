@@ -60,6 +60,32 @@ class Options(object):
         parse_help = dataset_action.add_parser("help", help="Show this help message and exit.")
 
 
+        parser_push = dataset_action.add_parser(
+            "push", help="Upload data to an existing (remote) dataset."
+        )
+        parser_push.add_argument(
+            "dataset_slug",
+            type=str,
+            help="[Remote] Dataset name: to list all the existing dataset, run 'darwin dataset remote'. ",
+        )
+        parser_push.add_argument("files", type=str, nargs="+", help="Files to upload")
+
+        parser_push.add_argument(
+            "-e",
+            "--exclude",
+            type=str,
+            nargs="+",
+            default="",
+            help="Excludes the files with the specified extension/s if a data folder is provided as data path. ",
+        )
+        parser_push.add_argument(
+            "-f",
+            "--fps",
+            type=int,
+            default="1",
+            help="Frames per second for video split (recommended: 1). ",
+        )
+
         # PROJECT REMOVE
         parser_remove = subparsers.add_parser(
             "remove", help="Remove a remote or remote and local projects. "

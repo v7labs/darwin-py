@@ -13,6 +13,7 @@ from darwin.exceptions import (
     NameTaken,
     NotFound,
     Unauthenticated,
+    Unauthorized,
     ValidationError,
 )
 from darwin.team import Team
@@ -68,9 +69,8 @@ class Client:
         """
         response = requests.get(urljoin(self.url, endpoint), headers=self._get_headers())
 
-        if response.status_code == 401 and retry:
-            self._refresh_access_token()
-            return self.get(endpoint=endpoint, retry=False)
+        if response.status_code == 401:
+            raise Unauthorized()
 
         # if response.status_code != 200:
         #     print(
@@ -106,9 +106,9 @@ class Client:
             urljoin(self.url, endpoint), json=payload, headers=self._get_headers()
         )
 
-        if response.status_code == 401 and retry:
-            self._refresh_access_token()
-            return self.put(endpoint=endpoint, payload=payload, retry=False)
+        if response.status_code == 401:
+            raise Unauthorized()
+
         if response.status_code == 429:
             error_code = response.json()["errors"]["code"]
             if error_code == "INSUFFICIENT_REMAINING_STORAGE":
@@ -157,11 +157,9 @@ class Client:
         response = requests.post(
             urljoin(self.url, endpoint), json=payload, headers=self._get_headers()
         )
-
-        # if response.status_code == 401 and retry:
-        #     self._refresh_access_token()
-        #     return self.post(endpoint, payload=payload, retry=False)
-
+        if response.status_code == 401:
+            raise Unauthorized()
+            
         # if response.status_code != 200:
         #     for error_handler in error_handlers:
         #         error_handler(response.status_code, response.json())

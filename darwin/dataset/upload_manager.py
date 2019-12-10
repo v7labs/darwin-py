@@ -43,14 +43,13 @@ def add_files_to_dataset(
     for filenames_chunk in _chunk_filenames(filenames, 100):
         images, videos = _split_on_file_type(filenames_chunk)
         data = client.put(
-            endpoint = f"/datasets/{dataset_id}",
+            endpoint = f"/datasets/{dataset_id}/data",
             payload = {"image_filenames": [image.name for image in images],
                        "videos": [{"fps": fps, "original_filename": video.name}
                                   for video in videos]}
         )
         if 'errors' in data:
             raise ValueError(f"There are errors in the put request: {data['errors']['detail']}")
-
         if images:
             g = (lambda images: (
                 functools.partial(
@@ -229,6 +228,7 @@ def upload_file_to_s3(
     key = file["key"]
     image_id = file["id"]
     response = sign_upload(client, image_id, key, file_path)
+    print(response)
     signature = response["signature"]
     end_point = response["postEndpoint"]
     return requests.post("http:" + end_point, data=signature, files={"file": file_path.open('rb')})

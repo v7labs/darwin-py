@@ -4,11 +4,28 @@ import getpass
 import darwin.cli_functions as f
 from darwin.options import Options
 from darwin.utils import prompt
+from darwin.exceptions import (
+    InsufficientStorage,
+    InvalidLogin,
+    MissingConfig,
+    NameTaken,
+    NotFound,
+    Unauthenticated,
+    Unauthorized,
+    ValidationError,
+)
 
 
 def main():
     args, parser = Options().parse_args()
+    try:
+        run(args, parser)
+    except Unauthorized:
+        f._error("Your API key is not authorized to do that action")
+    except Unauthenticated:
+        f._error("You need to specify a valid API key to do that action")
 
+def run(args, parser):
     if args.command == "help":
         print(parser.description)
         print("\nCommands:")
@@ -76,6 +93,8 @@ def main():
         elif args.action == "url":
             url = f.url(args.dataset_slug)
             print(url)
+        elif args.action == "push":
+            f.upload_data(args.dataset_slug, args.files, args.exclude, args.fps)
         elif args.action == "help":
             dataset_parser = [
                 action.choices['dataset'] for action in parser._actions if isinstance(action, argparse._SubParsersAction) and 'dataset' in action.choices][0]

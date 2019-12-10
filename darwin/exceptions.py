@@ -32,3 +32,6 @@ class NameTaken(Exception):
 
 class ValidationError(Exception):
     pass
+
+class Unauthorized(Exception):
+    pass
