@@ -59,17 +59,19 @@ class RemoteDataset:
 
     def push(
         self,
+        files_to_upload: List[str],
         blocking: bool = True,
         multi_threaded: bool = True,
         fps: int = 1,
         files_to_exclude: Optional[List[str]] = None,
-        files_to_upload: Optional[List[str]] = None,
         resume: bool = False,
     ):
         """Uploads a local project (images ONLY) in the projects directory.
 
         Parameters
         ----------
+        files_to_upload : list[Path]
+            List of files to upload. It can be a folder.
         blocking : bool
             If False, the dataset is not uploaded and a generator function is returned instead
         multi_threaded : bool
@@ -77,8 +79,6 @@ class RemoteDataset:
             If blocking is False this has no effect.
         files_to_exclude : list[str]
             List of files to exclude from the file scan (which is done only if files is None)
-        files_to_upload : list[Path]
-            List of files to upload
         fps : int
             Number of file per seconds to upload
         resume : bool
@@ -98,7 +98,7 @@ class RemoteDataset:
         # Init optional parameters
         if files_to_exclude is None:
             files_to_exclude = []
-        if files_to_upload is None and not source_folder.exists():
+        if files_to_upload is None:
             raise NotFound("Dataset location not found. Check your path.")
 
         if resume:
