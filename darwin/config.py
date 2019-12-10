@@ -70,8 +70,9 @@ class Config(object):
         with io.open(self._path, "w", encoding="utf8") as f:
             yaml.dump(self._data, f, default_flow_style=False, allow_unicode=True)
 
-    def set_team(self, team: str, api_key: str):
+    def set_team(self, team: str, api_key: str, datasets_dir: str):
         self.put(f"teams/{team}/api_key", api_key)
+        self.put(f"teams/{team}/datasets_dir", datasets_dir)
 
     def set_default_team(self, team: str):
         if self.get(f"teams/{team}") is None:
@@ -79,11 +80,10 @@ class Config(object):
         self.put("global/default_team", team)
 
     def set_global(
-        self, api_endpoint: str, base_url: str, directory: str, default_team: Optional[str] = None
+        self, api_endpoint: str, base_url: str, default_team: Optional[str] = None
     ):
         self.put("global/api_endpoint", api_endpoint)
         self.put("global/base_url", base_url)
-        self.put("global/datasets_dir", directory)
         if default_team:
             self.put("global/default_team", default_team)
 
@@ -94,7 +94,9 @@ class Config(object):
         default = (
             self.get("global/default_team") == team or len(list(self.get("teams").keys())) == 1
         )
-        return {"slug": team, "api_key": api_key, "default": default}
+        
+        datasets_dir = self.get(f"teams/{team}/datasets_dir")
+        return {"slug": team, "api_key": api_key, "default": default, "datasets_dir": datasets_dir}
 
     def get_default_team(self):
         default_team = self.get("global/default_team")
