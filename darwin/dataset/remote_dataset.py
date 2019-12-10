@@ -199,6 +199,11 @@ class RemoteDataset:
         """Archives (soft-deletion) the remote dataset"""
         self.client.put(f"datasets/{self.dataset_id}/archive", payload={})
 
+    def get_report(self, granularity="day"):
+         return self.client.get(
+            f"/reports/{self.dataset_id}/annotation?group_by=dataset,user&dataset_ids={self.dataset_id}&granularity={granularity}&format=csv&include=dataset.name,user.first_name,user.last_name,user.email"
+        , raw=True).text
+
     @property
     def remote_path(self) -> Path:
         """Returns an URL specifying the location of the remote dataset"""
