@@ -88,13 +88,25 @@ class Options(object):
             "--fps",
             type=int,
             default="1",
-            help="Frames per second for video split (recommended: 1). ",
+            help="Frames per second for video split (recommended: 1).",
         )
 
         parser_remove = dataset_action.add_parser(
-            "remove", help="Remove a remote or remote and local dataset. "
+            "remove", help="Remove a remote or remote and local dataset."
         )
-        parser_remove.add_argument("dataset_slug", type=str, help="Remote dataset name to delete. ")
+        parser_remove.add_argument("dataset_slug", type=str, help="Remote dataset name to delete.")
+
+        parser_report = dataset_action.add_parser("report", help="Report about the annotators ")
+        parser_report.add_argument(
+            "dataset_slug", type=str, help="Remote dataset name to report on."
+        )
+
+        parser_report.add_argument(
+            "-g",
+            "--granularity",
+            choices=["day", "week", "month", "total"],
+            help="Granularity of the report",
+        )
 
         # VERSION
         parser_version = subparsers.add_parser(

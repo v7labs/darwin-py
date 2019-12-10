@@ -77,7 +77,6 @@ class Client:
         #         f"Client: ({self})"
         #         f"Request: (endpoint={endpoint})"
         #     )
-
         if raw:
             return response
         return response.json()

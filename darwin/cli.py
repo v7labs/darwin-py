@@ -86,6 +86,8 @@ def run(args, parser):
         # Remove a project (remotely)
         elif args.action == "remove":
             f.remove_remote_dataset(args.dataset_slug)
+        elif args.action == "report":
+            f.dataset_report(args.dataset_slug, args.granularity or "day")
         elif args.action == "help":
             dataset_parser = [
                 action.choices["dataset"]
