@@ -96,7 +96,7 @@ class Client:
         if raw:
             return response
         else:
-            return self._decode_response(response)
+            return self._decode_response(response, debug)
 
     def put(self, endpoint: str, payload: Dict, retry: bool = False, debug: bool = False,):
         """Put something on the server trough HTTP
@@ -145,7 +145,7 @@ class Client:
             time.sleep(10)
             return self.put(endpoint, payload=payload, retry=False)
 
-        return self._decode_response(response)
+        return self._decode_response(response, debug)
 
     def post(
         self,
@@ -200,7 +200,7 @@ class Client:
             time.sleep(10)
             return self.post(endpoint, payload=payload, retry=False)
 
-        return self._decode_response(response)
+        return self._decode_response(response, debug)
 
     def list_teams(self):
         """Returns a list of all available teams
