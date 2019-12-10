@@ -22,21 +22,19 @@ from darwin.utils import is_project_dir, urljoin
 class Client:
     def __init__(
         self,
-        token: Optional[str],
+        team: Optional[str],
+        api_key: Optional[str],
         api_url: str,
         base_url: str,
-        projects_dir: Path,
-        refresh_token: Optional[str] = None,
+        projects_dir: Path
     ):
         """Initializes a Client object. Clients are responsible for holding the logic and for
         interacting with the remote hosts.
 
         Parameters
         ----------
-        token : str
+        api_key : str
             Access token used to auth a specific request. It has a time spans of roughly 8min.
-        refresh_token : str
-            Its a token which lives for longer and can be used to create new tokens.
         api_url : str
             URL to the backend
         base_url : str
@@ -44,11 +42,10 @@ class Client:
         projects_dir : Path
             Path where the client should be initialized from (aka the root path)
         """
-        self.token = token
-        self.refresh_token = refresh_token
+        self.api_key = api_key
         self.url = api_url
         self.base_url = base_url
-        self.team = None
+        self.team = team
         # TODO: read this from config
         self.projects_dir = projects_dir
 
@@ -69,7 +66,6 @@ class Client:
         dict
         Dictionary which contains the server response
         """
-        self.ensure_authenticated()
         response = requests.get(urljoin(self.url, endpoint), headers=self._get_headers())
 
         if response.status_code == 401 and retry:
@@ -106,7 +102,6 @@ class Client:
         dict
         Dictionary which contains the server response
         """
-        self.ensure_authenticated()
         response = requests.put(
             urljoin(self.url, endpoint), json=payload, headers=self._get_headers()
         )
@@ -133,7 +128,6 @@ class Client:
         endpoint: str,
         payload: Optional[Dict] = None,
         retry: bool = False,
-        refresh: bool = False,
         error_handlers: Optional[list] = None,
     ):
         """Post something new on the server trough HTTP
@@ -160,14 +154,13 @@ class Client:
             payload = {}
         if error_handlers is None:
             error_handlers = []
-        self.ensure_authenticated()
         response = requests.post(
-            urljoin(self.url, endpoint), json=payload, headers=self._get_headers(refresh=refresh)
+            urljoin(self.url, endpoint), json=payload, headers=self._get_headers()
         )
 
-        if response.status_code == 401 and retry:
-            self._refresh_access_token()
-            return self.post(endpoint, payload=payload, retry=False)
+        # if response.status_code == 401 and retry:
+        #     self._refresh_access_token()
+        #     return self.post(endpoint, payload=payload, retry=False)
 
         # if response.status_code != 200:
         #     for error_handler in error_handlers:
@@ -179,57 +172,6 @@ class Client:
         #         f"Request: (endpoint={endpoint}, payload={payload})"
         #     )
         return response.json()
-
-    def list_teams(self):
-        """Returns a list of all available teams
-
-        Returns
-        -------
-        list[Team]
-        Available teams
-        """
-        data = self.get("/users/token_info")
-        teams = []
-        for row in data["teams"]:
-            teams.append(
-                Team(
-                    id=row["id"],
-                    name=row["name"],
-                    slug=row["slug"],
-                    selected=data["selected_team"]["id"] == row["id"],
-                )
-            )
-        return teams
-
-    def current_team(self) -> Team:
-        """Returns the currently selected team
-
-        Returns
-        -------
-        Team
-        Currently selected team
-        """
-        data = self.get("/users/token_info")["selected_team"]
-        return Team(id=data["id"], name=data["name"], slug=data["slug"], selected=True)
-
-    def set_team(self, slug: str):
-        """Select a team
-
-        Parameters
-        ----------
-        slug : str
-            Slug of the team to select
-
-        Returns
-        -------
-
-        """
-        matching_team = [team for team in self.list_teams() if team.slug == slug]
-        if not matching_team:
-            raise NotFound
-        data = self.post("/users/select_team", {"team_id": matching_team[0].id}, refresh=True)
-        self.token = data["token"]
-        self.refresh_token = data["refresh_token"]
 
     def list_local_datasets(self) -> Iterator[Path]:
         """Returns a list of all local folders who are detected as dataset.
@@ -251,14 +193,14 @@ class Client:
         list[RemoteDataset]
         List of all remote datasets
         """
-        for project in self.get("/projects/"):
+        for dataset in self.get("/datasets/"):
             yield RemoteDataset(
-                name=project["name"],
-                slug=project["slug"],
-                dataset_id=project["dataset_id"],
-                project_id=project["id"],
-                image_count=project["num_images"],
-                progress=project["progress"],
+                name=dataset["name"],
+                slug=dataset["slug"],
+                team=self.team,
+                dataset_id=dataset["id"],
+                image_count=dataset["num_images"],
+                progress=dataset["progress"],
                 client=self,
             )
 
@@ -348,25 +290,20 @@ class Client:
         RemoteDataset
         The created dataset
         """
-        project = self.post(
-            "/projects",
-            {"name": name, "team_id": self.current_team().id},
+        dataset = self.post(
+            "/datasets",
+            {"name": name},
             error_handlers=[name_taken, validation_error],
         )
         return RemoteDataset(
-            name=project["name"],
-            slug=project["slug"],
-            dataset_id=project["dataset_id"],
-            project_id=project["id"],
-            image_count=project["num_images"],
-            progress=project["progress"],
+            name=dataset["name"],
+            team=self.team,
+            slug=dataset["slug"],
+            dataset_id=dataset["id"],
+            image_count=dataset["num_images"],
+            progress=dataset["progress"],
             client=self,
         )
-
-    def ensure_authenticated(self):
-        """Ensure the client is authenticated"""
-        if self.refresh_token is not None:
-            self._refresh_access_token()
 
     @classmethod
     def anonymous(cls, projects_dir: Optional[Path] = None):
@@ -432,7 +369,7 @@ class Client:
         )
 
     @classmethod
-    def from_config(cls, config_path: Path):
+    def from_config(cls, config_path: Path, team: Optional[str] = None):
         """Factory method to create a client from the configuration file passed as parameter
 
         Parameters
@@ -448,16 +385,21 @@ class Client:
         if not config_path.exists():
             raise MissingConfig()
         config = Config(config_path)
+        if team:
+            team_config = config.get_team(team)
+        else:
+            team_config = config.get_default_team()
+            
         return cls(
-            token=config.get("token"),
-            refresh_token=config.get("refresh_token"),
-            api_url=config.get("api_endpoint"),
-            base_url=config.get("base_url"),
-            projects_dir=config.get("projects_dir"),
+            team=team_config["slug"],
+            api_key=team_config["api_key"],
+            api_url=config.get("global/api_endpoint"),
+            base_url=config.get("global/base_url"),
+            projects_dir=config.get("global/projects_dir"),
         )
 
     @classmethod
-    def login(cls, email: str, password: str, projects_dir: Optional[Path] = None):
+    def login(cls, api_key: str, projects_dir: Optional[Path] = None):
         """Factory method to create a client with a Darwin user login
 
         Parameters
@@ -476,20 +418,24 @@ class Client:
         """
         if projects_dir is None:
             projects_dir = Path.home() / ".darwin" / "projects"
+        headers = {"Content-Type": "application/json", "Authorization": f"ApiKey {api_key}"}
         api_url = Client.default_api_url()
-        response = requests.post(
-            urljoin(api_url, "/users/authenticate"),
-            headers={"Content-Type": "application/json"},
-            json={"email": email, "password": password},
+        response = requests.get(
+            urljoin(api_url, "/users/token_info"),
+            headers=headers
         )
+
         if response.status_code != 200:
             raise InvalidLogin()
         data = response.json()
+        team_id = data["selected_team"]["id"]
+        team = [team["slug"] for team in data["teams"] if team["id"] == team_id][0]
+
         return cls(
-            token=data["token"],
-            refresh_token=data["refresh_token"],
+            api_key=api_key,
             api_url=api_url,
             base_url=Client.default_base_url(),
+            team=team,
             projects_dir=projects_dir,
         )
 
@@ -504,34 +450,25 @@ class Client:
         data = response.json()
         self.token = data["token"]
 
-    def _get_headers(self, refresh: bool = False):
+    def _get_headers(self):
         """Get the headers of the API calls to the backend.
 
         Parameters
         ----------
-        refresh : bool
-            Flag to select refresh token or the normal token
-
+     
         Returns
         -------
         dict
         Contains the Content-Type and Authorization token
-        """
-        if refresh:
-            return {
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {self.refresh_token}",
-            }
-        else:
-            header = {"Content-Type": "application/json"}
-            if self.token is not None:
-                header["Authorization"] = f"Bearer {self.token}"
-            return header
+        """     
+        header = {"Content-Type": "application/json"}
+        if self.api_key is not None:
+            header["Authorization"] = f"ApiKey {self.api_key}"
+        return header
 
     def __str__(self):
         return (
-            f"(Client, token={self.token}, "
-            f"refresh_token={self.refresh_token}, "
+            f"(Client, token={self.api_key}, "
             f"url={self.url}, "
             f"base_url={self.base_url}, "
             f"team={self.team}, "

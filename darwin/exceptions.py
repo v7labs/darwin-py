@@ -5,6 +5,9 @@ class Unauthenticated(Exception):
 class InvalidLogin(Exception):
     pass
 
+class InvalidTeam(Exception):
+    pass
+
 
 class MissingConfig(Exception):
     pass

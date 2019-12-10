@@ -109,7 +109,7 @@ def secure_continue_request() -> bool:
     return input("Do you want to continue? [y/N] ") in ["Y", "y"]
 
 
-def persist_client_configuration(client: "Client", config_path: Optional[Path] = None) -> Config:
+def persist_client_configuration(client: "Client", default_team: Optional[str] = None, config_path: Optional[Path] = None) -> Config:
     """Authenticate user against the server and creates a configuration file for it
 
     Parameters
@@ -128,12 +128,9 @@ def persist_client_configuration(client: "Client", config_path: Optional[Path] =
         config_path = Path.home() / ".darwin" / "config.yaml"
         config_path.parent.mkdir(exist_ok=True)
 
-    default_config = {
-        "token": client.token,
-        "refresh_token": client.refresh_token,
-        "api_endpoint": client.url,
-        "base_url": client.base_url,
-        "projects_dir": str(client.projects_dir),
-    }
 
-    return Config(config_path, default_config)
+    config = Config(config_path)
+    config.set_team(team=client.team, api_key=client.api_key)
+    config.set_global(api_endpoint=client.url, base_url=client.base_url, directory=str(client.projects_dir), default_team=default_team)
+
+    return config

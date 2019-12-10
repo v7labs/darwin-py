@@ -21,25 +21,11 @@ class Options(object):
         parser_create = subparsers.add_parser("team", help="List or pick teams. ")
         parser_create.add_argument("team_name", nargs="?", type=str, help="Team name to use. ")
         parser_create.add_argument(
-            "-l", "--list", action="store_true", required=False, help="Lists all teams. "
+            "-c", "--current", action="store_true", required=False, help="Shows only the current team. "
         )
-
-        # PROJECT CREATE
-        parser_create = subparsers.add_parser("create", help="Create a new project. ")
-        parser_create.add_argument("project_name", type=str, help="Project name. ")
 
         # PROJECT LOCAL
         parser_local = subparsers.add_parser("local", help="List local projects. ")
-
-        # PROJECT PATH
-        parser_path = subparsers.add_parser(
-            "path", help="Prints absolute path of a local project. "
-        )
-        parser_path.add_argument("project_name", help="Name of the local project. ")
-
-        # PROJECT URL
-        parser_url = subparsers.add_parser("url", help="Prints the url of a remote project. ")
-        parser_url.add_argument("project_name", help="Name of the remote project. ")
 
         # PROJECT PULL
         parser_pull = subparsers.add_parser(
@@ -48,7 +34,31 @@ class Options(object):
         parser_pull.add_argument("project_name", type=str, help="Dataset output name. ")
 
         # PROJECT REMOTE
-        parser_remote = subparsers.add_parser("remote", help="List remote projects. ")
+
+        dataset = subparsers.add_parser("dataset", help="Dataset related functions", description="Arguments to interact with datasets")
+
+        dataset_action = dataset.add_subparsers(dest="action")
+        
+        parser_remote = dataset_action.add_parser("remote", help="List remote datasets")
+        parser_remote.add_argument("-t", "--team", help="Specify team")
+        parser_remote.add_argument("-a", "--all", action="store_true", help="List datasets for all teams")
+
+
+        parser_create = dataset_action.add_parser("create", help="Creates a new dataset on darwin")
+        parser_create.add_argument("dataset_name", type=str, help="Dataset name")
+        parser_create.add_argument("-t", "--team", help="Specify team")
+
+
+        parser_path = dataset_action.add_parser("path", help="Print local path to dataset")
+        parser_path.add_argument("dataset_slug", type=str, help="Dataset name")
+
+
+        parser_url = dataset_action.add_parser("url", help="Print url to dataset on darwin")
+        parser_url.add_argument("dataset_slug", type=str, help="Dataset name")
+
+
+        parse_help = dataset_action.add_parser("help", help="Show this help message and exit.")
+
 
         # PROJECT REMOVE
         parser_remove = subparsers.add_parser(

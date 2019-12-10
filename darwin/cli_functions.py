@@ -20,15 +20,15 @@ from darwin.table import Table
 from darwin.utils import find_files, persist_client_configuration, secure_continue_request
 
 
-def authenticate(email: str, password: str, projects_dir: str) -> Config:
+def authenticate(api_key: str, projects_dir: str, default_team: bool) -> Config:
     """Authenticate user against the server and creates a configuration file for it
 
     Parameters
     ----------
-    email : str
-        Email to use for the client login
-    password : str
-        Password to use for the client login
+    team : str
+        Teams to use for the client login
+    api_key : str
+        API key to use for the client login
     projects_dir : str
          String where the client should be initialized from
 
@@ -42,11 +42,14 @@ def authenticate(email: str, password: str, projects_dir: str) -> Config:
     Path(projects_dir).mkdir(parents=True, exist_ok=True)
     print(f"Projects directory created {projects_dir}")
 
+
+
     try:
-        client = Client.login(email=email, password=password, projects_dir=projects_dir)
+        client = Client.login(api_key=api_key, projects_dir=projects_dir)
         config_path = Path.home() / ".darwin" / "config.yaml"
         config_path.parent.mkdir(exist_ok=True)
-        return persist_client_configuration(client)
+        default_team = client.team if default_team else None
+        return persist_client_configuration(client, default_team=default_team)
 
     except InvalidLogin:
         _error("Invalid credentials")
@@ -55,22 +58,16 @@ def authenticate(email: str, password: str, projects_dir: str) -> Config:
 def current_team():
     """Print the team currently authenticated against"""
     client = _load_client()
-    team = client.current_team()
-    print(f"{team.slug}")
+    print(client.team)
 
 
 def list_teams():
     """Print a table of teams to which the client belong to"""
-    client = _load_client()
-    teams = client.list_teams()
-    table = Table(["slug", "full name"], [Table.L, Table.L])
-    for team in teams:
-        if team.selected:
-            table.add_row({"slug": f"(*) {team.slug}", "full name": team.name})
+    for team in _config().get_all_teams():
+        if team["default"]:
+            print(f"{team['slug']} (default)")
         else:
-            table.add_row({"slug": team.slug, "full name": team.name})
-    print(table)
-
+            print(team["slug"])
 
 def set_team(team_slug: str):
     """Switches the client to the selected team and persist the change on the configuration file
@@ -80,23 +77,16 @@ def set_team(team_slug: str):
     team_slug : str
         Slug of the team to switch to
     """
-    client = _load_client()
-    try:
-        client.set_team(slug=team_slug)
-    except NotFound:
-        _error(f"Unknown team '{team_slug}'")
-    config_path = Path.home() / ".darwin" / "config.yaml"
-    config = Config(config_path)
-    config.write("token", client.token)
-    config.write("refresh_token", client.refresh_token)
 
+    config = _config()
+    config.set_default_team(team_slug)
 
-def create_dataset(name: str):
+def create_dataset(name: str, team: Optional[str] = None):
     """Creates a project remotely"""
-    client = _load_client(offline=False)
+    client = _load_client(team=team)
     try:
         dataset = client.create_dataset(name=name)
-        print(f"Dataset '{dataset.name}' has been created.\nAccess at {dataset.remote_path}")
+        print(f"Dataset '{dataset.name}' ({dataset.team}/{dataset.slug}) has been created.\nAccess at {dataset.remote_path}")
     except NameTaken:
         _error(f"Dataset name '{name}' is already taken.")
     except ValidationError:
@@ -123,9 +113,15 @@ def local():
     print(table)
 
 
+def split_dataset_slug(slug: str) -> (str, str):
+    if "/" not in slug:
+        return (None, slug)
+    return slug.split("/")
+
 def path(dataset_slug: str) -> Path:
     """Returns the absolute path of the specified project, if synced"""
-    client = _load_client(offline=True)
+    team, dataset = split_dataset_slug(dataset_slug)
+    client = _load_client(offline=True, team=team)
     try:
         for p in client.list_local_datasets():
             if dataset_slug == p.name:
@@ -138,14 +134,15 @@ def path(dataset_slug: str) -> Path:
         )
 
 
-def url(project_slug: str) -> Path:
+def url(dataset_slug: str) -> Path:
     """Returns the url of the specified project"""
-    client = _load_client(offline=True)
+    team, dataset_slug = split_dataset_slug(dataset_slug)
+    client = _load_client(offline=True, team=team)
     try:
-        remote_dataset = client.get_remote_dataset(slug=project_slug)
+        remote_dataset = client.get_remote_dataset(slug=dataset_slug)
         return remote_dataset.remote_path
     except NotFound:
-        _error(f"Project '{project_slug}' does not exist.")
+        _error(f"Dataset '{dataset_slug}' does not exist.")
 
 
 def pull_project(project_slug: str):
@@ -165,18 +162,26 @@ def pull_project(project_slug: str):
         _error(f"please re-authenticate")
 
 
-def remote():
+def remote(all_teams: bool, team: Optional[str] = None):
     """Lists remote projects with its annotation progress"""
-    client = _load_client()
     # TODO: add listing open datasets
     table = Table(["name", "images", "progress", "id"], [Table.L, Table.R, Table.R, Table.R])
-    for dataset in client.list_remote_datasets():
+    datasets = []
+    if all_teams:
+        for team in _config().get_all_teams():
+            client = _load_client(team["slug"])
+            datasets += client.list_remote_datasets()
+    else:
+        client = _load_client(team)
+        datasets = client.list_remote_datasets()
+
+    for dataset in datasets:
         table.add_row(
             {
-                "name": dataset.slug,
+                "name": f"{dataset.team}/{dataset.slug}",
                 "images": dataset.image_count,
                 "progress": f"{round(dataset.progress*100,1)}%",
-                "id": dataset.project_id,
+                "id": dataset.dataset_id,
             }
         )
     if len(table) == 0:
@@ -239,7 +244,11 @@ def _error(message):
     sys.exit(1)
 
 
-def _load_client(offline: bool = False):
+
+def _config():
+    return Config(Path.home() / ".darwin" / "config.yaml")
+
+def _load_client(team: Optional[str] = None, offline: bool = False):
     """Fetches a client, potentially offline
 
     Parameters
@@ -254,9 +263,7 @@ def _load_client(offline: bool = False):
     """
     try:
         config_dir = Path.home() / ".darwin" / "config.yaml"
-        client = Client.from_config(config_dir)
-        if not offline:
-            client.ensure_authenticated()
+        client = Client.from_config(config_dir, team=team)
         return client
     except MissingConfig:
         _error("Authenticate first")

@@ -19,10 +19,10 @@ class RemoteDataset:
     def __init__(
         self,
         *,
+        team: str,
         name: str,
         slug: Optional[str] = None,
         dataset_id: int,
-        project_id: int,
         image_count: int = 0,
         progress: float = 0,
         client: "Client",
@@ -42,8 +42,6 @@ class RemoteDataset:
             spaces are replaced by dashes, e.g., `bird-species`. This string is unique within a team
         dataset_id : int
             Unique internal reference from the Darwin backend
-        project_id : int
-            [Deprecated] will be removed in next iteration
         image_count : int
             Dataset size (number of images)
         progress : float
@@ -51,10 +49,10 @@ class RemoteDataset:
         client : Client
             Client to use for interaction with the server
         """
+        self.team = team
         self.name = name
         self.slug = slug or name
         self.dataset_id = dataset_id
-        self.project_id = project_id
         self.image_count = image_count
         self.progress = progress
         self.client = client
@@ -205,12 +203,12 @@ class RemoteDataset:
 
     def remove_remote(self):
         """Archives (soft-deletion) the remote dataset"""
-        self.client.put(f"projects/{self.project_id}/archive", payload={})
+        self.client.put(f"projects/{self.dataset_id}/archive", payload={})
 
     @property
     def remote_path(self) -> Path:
         """Returns an URL specifying the location of the remote dataset"""
-        return Path(urljoin(self.client.base_url, f"/datasets/{self.project_id}"))
+        return Path(urljoin(self.client.base_url, f"/datasets/{self.dataset_id}"))
 
     @property
     def local_path(self) -> Path:
