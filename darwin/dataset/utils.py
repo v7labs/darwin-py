@@ -4,7 +4,7 @@ import os
 from collections import defaultdict
 from pathlib import Path
 from typing import Generator, Iterable, List, Optional
-
+import datetime
 import numpy as np
 from tqdm import tqdm
 
@@ -47,7 +47,7 @@ def make_class_list(
     annotation_files: List,
     lists_path: Path,
     annotation_type: str,
-        add_background: Optional[bool] = False,
+    add_background: Optional[bool] = False,
 ):
     """
     Support function to extract classes and save the output to file
@@ -78,8 +78,7 @@ def make_class_list(
         if add_background:
             classes_names.insert(0, "__background__")
         with open(str(fname), "w") as f:
-            for c in classes_names:
-                f.write(f"{c}\n")
+            f.write("\n".join(classes_names))
     return idx_to_classes
 
 
@@ -168,6 +167,15 @@ def _stratify_samples(idx_to_classes, split_seed, test_percentage, val_percentag
     expanded_list = [(k, c) for k, v in idx_to_classes.items() for c in v]
     # Stratify
     file_indices, labels = zip(*expanded_list)
+    file_indices, labels = np.array(file_indices), np.array(labels)
+    # Extract entries whose support set is 1 (it would make sklearn crash) and append the to train later
+    unique_labels, count = np.unique(labels, return_counts=True)
+    single_files = []
+    for l in unique_labels[count == 1]:
+        index = np.where(labels == l)[0][0]
+        single_files.append(file_indices[index])
+        labels = np.delete(labels, index)
+        file_indices = np.delete(file_indices, index)
     X_train, X_tmp, y_train, y_tmp = remove_cross_contamination(
         *train_test_split(
             np.array(file_indices),
@@ -177,6 +185,8 @@ def _stratify_samples(idx_to_classes, split_seed, test_percentage, val_percentag
             stratify=labels,
         )
     )
+    # Append files whose support set is 1 to train
+    X_train = np.concatenate((X_train, np.array(single_files)), axis=0)
 
     if test_percentage == 0.0:
         return list(set(X_train)), list(set(X_tmp)), None
@@ -190,6 +200,7 @@ def _stratify_samples(idx_to_classes, split_seed, test_percentage, val_percentag
             stratify=y_tmp,
         )
     )
+
     # Remove duplicates within the same set
     # NOTE: doing that earlier (e.g. in remove_cross_contamination()) would produce mathematical
     # mistakes in the class balancing between validation and test sets.
@@ -330,7 +341,7 @@ def split_dataset(
 def _f(x):
     """Support function for pool.map() in _exhaust_generator()"""
     if callable(x):
-        x()
+        return x()
 
 
 def exhaust_generator(progress: Generator, count: int, multi_threaded: bool):
@@ -344,19 +355,26 @@ def exhaust_generator(progress: Generator, count: int, multi_threaded: bool):
         Size of the generator
     multi_threaded : bool
         Flag for multi-threaded enabled operations
+
+    Returns
+    -------
+    List[dict]
+        List of responses from the generator execution
     """
+    responses = []
     if multi_threaded:
         pbar = tqdm(total=count)
 
-        def update():
+        def update(*a):
             pbar.update()
 
         with mp.Pool(mp.cpu_count()) as pool:
             for f in progress:
-                pool.apply_async(_f, args=(f,), callback=update)
+                responses.append(pool.apply_async(_f, args=(f,), callback=update))
             pool.close()
             pool.join()
+        responses = [response.get() for response in responses if response.successful()]
     else:
         for f in tqdm(progress, total=count, desc="Progress"):
-            if callable(f):
-                f()
+            responses.append(_f(f))
+    return responses

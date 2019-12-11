@@ -21,7 +21,6 @@ setuptools.setup(
         "sh",
         "tqdm",
         "factory_boy",
-        "requests",
     ],
     packages=["darwin"],
     entry_points={"console_scripts": ["darwin=darwin.cli:main"]},

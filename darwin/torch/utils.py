@@ -80,28 +80,44 @@ def convert_polygon_to_mask(segmentations: List[float], height: int, width: int)
     return masks
 
 
-def convert_polygon_to_sequence(polygon: List[dict]) -> np.ndarray:
+def convert_polygons_to_sequences(polygons: List) -> List[np.ndarray]:
     """
-    Converts a sequence of dictionaries of (x,y) into an array of coordinates.
+    Converts a list of polygons, encoded as a list of dictionaries of into a list of nd.arrays
+    of coordinates.
 
     Parameters
     ----------
-    polygon: list[dict]
-        List of coordinates in the format [{x: x1, y:y1}, ..., {x: xn, y:yn}]
+    polygons: list
+        List of coordinates in the format [{x: x1, y:y1}, ..., {x: xn, y:yn}] or a list of them
+        as  [[{x: x1, y:y1}, ..., {x: xn, y:yn}], ..., [{x: x1, y:y1}, ..., {x: xn, y:yn}]].
 
     Returns
     -------
-    ndarray[float]
-        Array of coordinates in the format [x1, y1, x2, y2, ..., xn, yn]
+    sequences: list[ndarray[float]]
+        List of arrays of coordinates in the format [[x1, y1, x2, y2, ..., xn, yn], ...,
+        [x1, y1, x2, y2, ..., xn, yn]]
     """
-    if not polygon:
-        raise ValueError("Empty polygon provided")
-    if isinstance(polygon[0], dict):
+    if not polygons:
+        raise ValueError("No polygons provided")
+    # If there is a single polygon composing the instance the format is going to be
+    # polygons = [{x: x1, y:y1}, ..., {x: xn, y:yn}]
+    if isinstance(polygons[0], dict):
         path = []
-        for point in polygon:
+        for point in polygons:
             path.append(point["x"])
             path.append(point["y"])
-        return np.array(path)
+        return [np.array(path)]  # List type is used for backward compatibility
+    # If there are multiple polygons composing the instance the format is going to be
+    # polygons =  [[{x: x1, y:y1}, ..., {x: xn, y:yn}], ..., [{x: x1, y:y1}, ..., {x: xn, y:yn}]]
+    if isinstance(polygons[0], list) and isinstance(polygons[0][0], dict):
+        sequences = []
+        for polygon in polygons:
+            path = []
+            for point in polygon:
+                path.append(point["x"])
+                path.append(point["y"])
+            sequences.append(np.array(path))
+        return sequences
     raise ValueError("Unknown input format")
 
 
