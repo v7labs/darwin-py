@@ -1,6 +1,7 @@
 import io
 import json
 import shutil
+import tempfile
 import zipfile
 from pathlib import Path
 from typing import TYPE_CHECKING, List, Optional
@@ -8,6 +9,7 @@ from typing import TYPE_CHECKING, List, Optional
 from darwin.dataset.download_manager import download_all_images_from_annotations
 from darwin.dataset.upload_manager import add_files_to_dataset
 from darwin.dataset.utils import exhaust_generator
+from darwin.dataset.release import Release
 from darwin.exceptions import NotFound
 from darwin.utils import find_files, urljoin
 
@@ -144,7 +146,7 @@ class RemoteDataset:
             return progress, count
 
     def pull(
-        self, blocking: bool = True, multi_threaded: bool = True, only_done_images: bool = True
+        self, release: Release, blocking: bool = True, multi_threaded: bool = True, only_done_images: bool = True
     ):
         """Downloads a remote project (images and annotations) in the projects directory.
 
@@ -164,36 +166,31 @@ class RemoteDataset:
         count : int
             The files count
         """
-        annotation_format = "json"
-        query = f"/datasets/{self.dataset_id}/export?format={annotation_format}"
-        if only_done_images:
-            query += f"&image_status=done"
-        response = self.client.get(query, raw=True)
-        zip_file = io.BytesIO(response.content)
-        if zipfile.is_zipfile(zip_file):
-            z = zipfile.ZipFile(zip_file)
-            images_dir = self.local_path / "images"
-            annotations_dir = self.local_path / "annotations"
-            if annotations_dir.exists():
-                try:
-                    shutil.rmtree(annotations_dir)
-                except PermissionError:
-                    print(f"Could not remove dataset in {annotations_dir}. Permission denied.")
-            annotations_dir.mkdir(parents=True, exist_ok=False)
-            z.extractall(annotations_dir)
-            # Rename all json files pre-pending 'V7_' in front of them.
-            # This is necessary to avoid overriding them in a later stage.
-            for annotation_path in annotations_dir.glob(f"*.{annotation_format}"):
-                annotation_path.rename(annotation_path.parent / f"V7_{annotation_path.name}")
-            progress, count = download_all_images_from_annotations(
-                self.client.url, annotations_dir, images_dir, annotation_format
-            )
-            # If blocking is selected, download the dataset on the file system
-            if blocking:
-                exhaust_generator(progress=progress(), count=count, multi_threaded=multi_threaded)
-                return None, count
-            else:
-                return progress, count
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            zip_file_path = release.download_zip(Path(tmp_dir) / "dataset.zip")
+            with zipfile.ZipFile(zip_file_path) as z:
+                images_dir = self.local_path / "images"
+                annotations_dir = self.local_path / "annotations"
+                if annotations_dir.exists():
+                    try:
+                        shutil.rmtree(annotations_dir)
+                    except PermissionError:
+                        print(f"Could not remove dataset in {annotations_dir}. Permission denied.")
+                annotations_dir.mkdir(parents=True, exist_ok=False)
+                z.extractall(annotations_dir)
+                # Rename all json files pre-pending 'V7_' in front of them.
+                # This is necessary to avoid overriding them in a later stage.
+                for annotation_path in annotations_dir.glob(f"*.json"):
+                    annotation_path.rename(annotation_path.parent / f"V7_{annotation_path.name}")
+                progress, count = download_all_images_from_annotations(
+                    self.client.url, annotations_dir, images_dir, "json"
+                )
+                # If blocking is selected, download the dataset on the file system
+                if blocking:
+                    exhaust_generator(progress=progress(), count=count, multi_threaded=multi_threaded)
+                    return None, count
+                else:
+                    return progress, count
 
     def remove_remote(self):
         """Archives (soft-deletion) the remote dataset"""
@@ -204,6 +201,24 @@ class RemoteDataset:
             f"/reports/{self.dataset_id}/annotation?group_by=dataset,user&dataset_ids={self.dataset_id}&granularity={granularity}&format=csv&include=dataset.name,user.first_name,user.last_name,user.email",
             raw=True,
         ).text
+
+    def get_releases(self):
+        releases_json = self.client.get(f"/datasets/{self.dataset_id}/exports")
+        releases = [Release.parse_json(self.slug, self.team, payload) for payload in releases_json]
+        return sorted(releases, key=lambda x: x.version, reverse=True)
+
+    def get_release(self, version):
+        releases = self.get_releases()
+        if not releases:
+            raise NotFound()
+
+        if version == "latest":
+            return releases[0]
+        
+        for release in releases:
+            if str(release.version) == version:
+                return release
+        raise NotFound()
 
     @property
     def remote_path(self) -> Path:

@@ -122,6 +122,10 @@ def split_dataset_slug(slug: str) -> (str, str):
         return (None, slug)
     return slug.split("/")
 
+def split_dataset_version(slug: str) -> (str, str):
+    if ":" not in slug:
+        return (slug, "latest")
+    return slug.split(":")
 
 def path(dataset_slug: str) -> Path:
     """Returns the absolute path of the specified dataset, if synced"""
@@ -164,12 +168,12 @@ def dataset_report(dataset_slug: str, granularity) -> Path:
 
 def pull_dataset(dataset_slug: str):
     """Downloads a remote dataset (images and annotations) in the datasets directory. """
-    client = _load_client()
+    team, dataset_slug = split_dataset_slug(dataset_slug)
+    dataset_slug, version = split_dataset_version(dataset_slug)
+    print(team, dataset_slug)
+    client = _load_client(offline=False, team=team)
     try:
         dataset = client.get_remote_dataset(slug=dataset_slug)
-        print(f"Pulling dataset {dataset_slug}:latest")
-        dataset.pull()
-        return dataset
     except NotFound:
         _error(
             f"dataset '{dataset_slug}' does not exist at {client.url}. "
@@ -177,6 +181,18 @@ def pull_dataset(dataset_slug: str):
         )
     except Unauthenticated:
         _error(f"please re-authenticate")
+    try:
+        release = dataset.get_release(version)
+        dataset.pull(release)
+    except NotFound:
+        _error(
+            f"Version '{dataset_slug}:{version}' does not exist "
+            f"Use 'darwin dataset releases' to list all available versions."
+        )
+        print(f"Pulling dataset {dataset_slug}:latest")
+        dataset.pull()
+    return dataset
+   
 
 
 def list_remote_datasets(all_teams: bool, team: Optional[str] = None):
@@ -219,6 +235,25 @@ def remove_remote_dataset(dataset_slug: str):
             return
 
         dataset.remove_remote()
+    except NotFound:
+        _error(f"No dataset with name '{dataset_slug}'")
+
+
+def dataset_list_releases(dataset_slug: str):
+    team, dataset_slug = split_dataset_slug(dataset_slug)
+    client = _load_client(offline=False, team=team)
+    try:
+        dataset = client.get_remote_dataset(slug=dataset_slug)
+        releases = dataset.get_releases()
+        table = Table(["name", "images", "classes", "export_date"], [Table.L, Table.R, Table.R, Table.R])
+        for release in releases:
+            table.add_row({
+                "name": release.versioned_name,
+                "images": release.image_count,
+                "classes": release.class_count,
+                "export_date": release.export_date
+            })
+        print(table)
     except NotFound:
         _error(f"No dataset with name '{dataset_slug}'")
 

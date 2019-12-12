@@ -56,13 +56,6 @@ def run(args, parser):
     # List existing projects
     elif args.command == "local":
         f.local()
-
-    # Download dataset
-    elif args.command == "pull":
-        project_name = args.project_name
-        local_dataset = f.pull_project(project_name)
-        print(f"Project {project_name} downloaded at {local_dataset.local_path}. ")
-
     # Version
     elif args.command == "version":
         print("0.3")
@@ -85,6 +78,11 @@ def run(args, parser):
             f.remove_remote_dataset(args.dataset_slug)
         elif args.action == "report":
             f.dataset_report(args.dataset_slug, args.granularity or "day")
+        elif args.action == "releases":
+            f.dataset_list_releases(args.dataset_slug)
+        elif args.action == "pull":
+            local_dataset = f.pull_dataset(args.dataset_slug)
+            print(f"Project {args.dataset_slug} downloaded at {local_dataset.local_path}. ")
         elif args.action == "help   ":
             dataset_parser = [
                 action.choices["dataset"]
