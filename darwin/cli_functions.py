@@ -305,7 +305,7 @@ def _load_client(team: Optional[str] = None, offline: bool = False):
     """
     try:
         config_dir = Path.home() / ".darwin" / "config.yaml"
-        client = Client.from_config(config_dir, team=team)
+        client = Client.from_config(config_dir, team_slug=team)
         return client
     except MissingConfig:
         _error("Authenticate first")

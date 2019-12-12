@@ -264,7 +264,7 @@ class Client:
         )
 
     @classmethod
-    def local(cls, team: Optional[str] = None):
+    def local(cls, team_slug: Optional[str] = None):
         """Factory method to use the default configuration file to init the client
 
         Returns
@@ -273,10 +273,10 @@ class Client:
         The inited client
         """
         config_path = Path.home() / ".darwin" / "config.yaml"
-        return Client.from_config(config_path, team=team)
+        return Client.from_config(config_path, team_slug=team_slug)
 
     @classmethod
-    def from_config(cls, config_path: Path, team: Optional[str] = None):
+    def from_config(cls, config_path: Path, team_slug: Optional[str] = None):
         """Factory method to create a client from the configuration file passed as parameter
 
         Parameters
@@ -293,7 +293,10 @@ class Client:
             raise MissingConfig()
         config = Config(config_path)
 
-        return cls(config=config, default_team=team)
+        return cls(config=config, default_team=team_slug)
+
+    def get_datasets_dir(self, team: Optional[str] = None):
+        return self.config.get_team(team or self.default_team)["datasets_dir"]
 
     @classmethod
     def login(cls, api_key: str, datasets_dir: Optional[Path] = None):
@@ -326,9 +329,6 @@ class Client:
         config.set_global(api_endpoint=api_url, base_url=Client.default_base_url())
 
         return cls(config=config, default_team=team)
-
-    def get_datasets_dir(self, team: Optional[str] = None):
-        return self.config.get_team(team or self.default_team)["datasets_dir"]
 
     def _get_headers(self, team: Optional[str] = None):
         """Get the headers of the API calls to the backend.

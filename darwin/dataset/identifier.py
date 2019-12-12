@@ -1,6 +1,3 @@
-# class DatasetIdentifier:
-#     def __init__(self, slug):
-#         self.team_slug, self.dataset_slug, self.version = parse(slug)
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -24,6 +21,16 @@ class DatasetIdentifier:
             output = f"{output}:{self.version}"
         return output
 
+    @classmethod
+    def from_slug(cls, dataset_slug: str, team_slug: str = None):
+        if dataset_slug is None:
+            raise ValueError(f"Dataset slug is {dataset_slug}. Invalid value.")
+        if team_slug is not None:
+            identifier = team_slug + "/"
+        else:
+            identifier = ""
+        identifier += dataset_slug
+        return cls(identifier=identifier)
 
 def parse(slug: str):
     if "/" in slug:
