@@ -322,32 +322,6 @@ class Client:
         return Client.from_config(config_path)
 
     @classmethod
-    def from_token(cls, token: str, datasets_dir: Optional[Path] = None):
-        """Factory method to create a client from the token passed as parameter
-
-        Parameters
-        ----------
-        token : str
-            Access token used to auth a specific request. It has a time spans of roughly 8min. to
-        datasets_dir : Path
-            Path where the client should be initialized from (aka the root path)
-
-        Returns
-        -------
-        Client
-        The inited client
-        """
-        if not datasets_dir:
-            datasets_dir = Path.home() / ".darwin" / "projects"
-        return cls(
-            token=token,
-            refresh_token=None,
-            api_url=Client.default_api_url(),
-            base_url=Client.default_base_url(),
-            datasets_dir=datasets_dir,
-        )
-
-    @classmethod
     def from_config(cls, config_path: Path, team: Optional[str] = None):
         """Factory method to create a client from the configuration file passed as parameter
 
@@ -414,17 +388,6 @@ class Client:
             team=team,
             datasets_dir=datasets_dir,
         )
-
-    def _refresh_access_token(self):
-        """Create and sets a new token"""
-        response = requests.get(
-            urljoin(self.url, "/refresh"), headers=self._get_headers(refresh=True)
-        )
-        if response.status_code != 200:
-            raise Unauthenticated()
-
-        data = response.json()
-        self.token = data["token"]
 
     def _get_headers(self):
         """Get the headers of the API calls to the backend.
