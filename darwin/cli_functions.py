@@ -199,7 +199,7 @@ def pull_dataset(dataset_slug: str):
 def list_remote_datasets(all_teams: bool, team: Optional[str] = None):
     """Lists remote datasets with its annotation progress"""
     # TODO: add listing open datasets
-    table = Table(["name", "images", "progress", "id"], [Table.L, Table.R, Table.R, Table.R])
+    table = Table(["name", "images", "progress"], [Table.L, Table.R, Table.R])
     datasets = []
     if all_teams:
         for team in _config().get_all_teams():
@@ -215,7 +215,6 @@ def list_remote_datasets(all_teams: bool, team: Optional[str] = None):
                 "name": f"{dataset.team}/{dataset.slug}",
                 "images": dataset.image_count,
                 "progress": f"{round(dataset.progress*100,1)}%",
-                "id": dataset.dataset_id,
             }
         )
     if len(table) == 0:
