@@ -91,7 +91,7 @@ def find_files(
         if path.is_dir():
             found_files.extend([f for p in pattern for f in path.glob(p)])
         elif path.suffix in SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS:
-            found_files.extend(path)
+            found_files.append(path)
 
     # Filter the list and return it
     files_to_exclude = set(files_to_exclude or [])
@@ -126,8 +126,13 @@ def persist_client_configuration(
         config_path = Path.home() / ".darwin" / "config.yaml"
         config_path.parent.mkdir(exist_ok=True)
 
+    team_config = client.config.get_default_team()
     config = Config(config_path)
-    config.set_team(team=client.team, api_key=client.api_key, datasets_dir=str(client.datasets_dir))
+    config.set_team(
+        team=team_config["slug"],
+        api_key=team_config["api_key"],
+        datasets_dir=team_config["datasets_dir"],
+    )
     config.set_global(api_endpoint=client.url, base_url=client.base_url, default_team=default_team)
 
     return config

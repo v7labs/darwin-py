@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
 
 def add_files_to_dataset(
-    client: "Client", dataset_id: str, filenames: List[Path], fps: Optional[int] = 1
+    client: "Client", dataset_id: str, filenames: List[Path], team: str, fps: Optional[int] = 1
 ):
     """Helper function: upload images to an existing remote dataset
 
@@ -47,6 +47,7 @@ def add_files_to_dataset(
                 "image_filenames": [image.name for image in images],
                 "videos": [{"fps": fps, "original_filename": video.name} for video in videos],
             },
+            team=team,
         )
         if "errors" in data:
             raise ValueError(f"There are errors in the put request: {data['errors']['detail']}")
@@ -58,6 +59,7 @@ def add_files_to_dataset(
                     file=image_file,
                     files_path=images,
                     endpoint_prefix="dataset_images",
+                    team=team,
                 )
                 for image_file in data["image_data"]
             )
@@ -163,7 +165,7 @@ def _resolve_path(file_name: str, files_path: List[Path]):
 
 
 def _delayed_upload_function(
-    client: "Client", file: Dict[str, Any], files_path: List[Path], endpoint_prefix: str
+    client: "Client", file: Dict[str, Any], files_path: List[Path], endpoint_prefix: str, team: str
 ):
     """
     This is a wrapper function which will be executed only once the generator is
@@ -187,10 +189,10 @@ def _delayed_upload_function(
         Dictionary which contains the server response from client.put
     """
     file_path = _resolve_path(file["original_filename"], files_path)
-    s3_response = upload_file_to_s3(client, file, file_path)
+    s3_response = upload_file_to_s3(client, file, file_path, team)
     image_id = file["id"]
     backend_response = client.put(
-        endpoint=f"/{endpoint_prefix}/{image_id}/confirm_upload", payload={}
+        endpoint=f"/{endpoint_prefix}/{image_id}/confirm_upload", payload={}, team=team
     )
     return {
         "file_path": file_path,
@@ -200,7 +202,9 @@ def _delayed_upload_function(
     }
 
 
-def upload_file_to_s3(client: "Client", file: Dict[str, Any], file_path: Path) -> requests.Response:
+def upload_file_to_s3(
+    client: "Client", file: Dict[str, Any], file_path: Path, team: str
+) -> requests.Response:
     """Helper function: upload data to AWS S3
 
     Parameters
@@ -219,13 +223,13 @@ def upload_file_to_s3(client: "Client", file: Dict[str, Any], file_path: Path) -
     """
     key = file["key"]
     image_id = file["id"]
-    response = sign_upload(client, image_id, key, file_path)
+    response = sign_upload(client, image_id, key, file_path, team)
     signature = response["signature"]
     end_point = response["postEndpoint"]
     return requests.post("http:" + end_point, data=signature, files={"file": file_path.open("rb")})
 
 
-def sign_upload(client: "Client", image_id: int, key: str, file_path: Path):
+def sign_upload(client: "Client", image_id: int, key: str, file_path: Path, team: str):
     """Obtains the signed URL from the back so that we can update
     to the AWS without credentials
 
@@ -250,16 +254,18 @@ def sign_upload(client: "Client", image_id: int, key: str, file_path: Path):
         return client.post(
             endpoint=f"/dataset_images/{image_id}/sign_upload?key={key}",
             payload={"filePath": str(file_path), "contentType": f"image/{file_format}"},
+            team=team,
         )
     elif file_format in SUPPORTED_VIDEO_EXTENSIONS:
         return client.post(
             endpoint=f"/dataset_videos/{image_id}/sign_upload?key={key}",
             payload={"filePath": str(file_path), "contentType": f"video/{file_format}"},
+            team=team,
         )
 
 
 def upload_annotations(
-    client: "Client", image_mapping: Path, class_mapping: Path, annotations_path: Path
+    client: "Client", image_mapping: Path, class_mapping: Path, annotations_path: Path, team: str
 ):
     """Experimental feature to upload annotations from the front end
 
@@ -309,5 +315,5 @@ def upload_annotations(
             endpoint = (
                 f"dataset_images/{image_mapping[data['image']['original_filename']]}/annotations"
             )
-            response = client.put(endpoint=endpoint, payload=payload, retry=True)
+            response = client.put(endpoint=endpoint, payload=payload, team=team, retry=True)
             print(response)

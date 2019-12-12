@@ -15,7 +15,9 @@ class MissingConfig(Exception):
 
 
 class NotFound(Exception):
-    pass
+    def __init__(self, name):
+        super().__init__()
+        self.name = name
 
 
 class UnsupportedFileType(Exception):

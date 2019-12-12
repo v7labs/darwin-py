@@ -1,11 +1,12 @@
 import os
 from pathlib import Path
-from typing import Dict, Iterator, Optional
+from typing import Dict, Iterator, Optional, Union
 
 import requests
 
 from darwin.config import Config
 from darwin.dataset import RemoteDataset
+from darwin.dataset.identifier import DatasetIdentifier
 from darwin.exceptions import (
     InsufficientStorage,
     InvalidLogin,
@@ -20,36 +21,15 @@ from darwin.utils import is_project_dir, urljoin
 
 
 class Client:
-    def __init__(
-        self,
-        team: Optional[str],
-        api_key: Optional[str],
-        api_url: str,
-        base_url: str,
-        datasets_dir: Path,
+    def __init__(self, config: Config, default_team: Optional[str] = None):
+        self.config = config
+        self.url = config.get("global/api_endpoint")
+        self.base_url = config.get("global/base_url")
+        self.default_team = default_team or config.get("global/default_team")
+
+    def get(
+        self, endpoint: str, team: Optional[str] = None, retry: bool = False, raw: bool = False
     ):
-        """Initializes a Client object. Clients are responsible for holding the logic and for
-        interacting with the remote hosts.
-
-        Parameters
-        ----------
-        api_key : str
-            Access token used to auth a specific request. It has a time spans of roughly 8min.
-        api_url : str
-            URL to the backend
-        base_url : str
-            URL to the backend TODO remove this and generate it from api_url
-        datasets_dir : Path
-            Path where the client should be initialized from (aka the root path)
-        """
-        self.api_key = api_key
-        self.url = api_url
-        self.base_url = base_url
-        self.team = team
-        # TODO: read this from config
-        self.datasets_dir = datasets_dir
-
-    def get(self, endpoint: str, retry: bool = False, raw: bool = False):
         """Get something from the server trough HTTP
 
         Parameters
@@ -66,7 +46,7 @@ class Client:
         dict
         Dictionary which contains the server response
         """
-        response = requests.get(urljoin(self.url, endpoint), headers=self._get_headers())
+        response = requests.get(urljoin(self.url, endpoint), headers=self._get_headers(team))
 
         if response.status_code == 401:
             raise Unauthorized()
@@ -81,7 +61,7 @@ class Client:
             return response
         return response.json()
 
-    def put(self, endpoint: str, payload: Dict, retry: bool = False):
+    def put(self, endpoint: str, payload: Dict, team: Optional[str] = None, retry: bool = False):
         """Put something on the server trough HTTP
 
         Parameters
@@ -100,7 +80,7 @@ class Client:
         Dictionary which contains the server response
         """
         response = requests.put(
-            urljoin(self.url, endpoint), json=payload, headers=self._get_headers()
+            urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team)
         )
 
         if response.status_code == 401:
@@ -124,6 +104,7 @@ class Client:
         self,
         endpoint: str,
         payload: Optional[Dict] = None,
+        team: Optional[str] = None,
         retry: bool = False,
         error_handlers: Optional[list] = None,
     ):
@@ -152,23 +133,23 @@ class Client:
         if error_handlers is None:
             error_handlers = []
         response = requests.post(
-            urljoin(self.url, endpoint), json=payload, headers=self._get_headers()
+            urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team)
         )
         if response.status_code == 401:
             raise Unauthorized()
 
-        # if response.status_code != 200:
-        #     for error_handler in error_handlers:
-        #         error_handler(response.status_code, response.json())
-        #     print(
-        #         f"Client post request response ({response.json()}) with unexpected status "
-        #         f"({response.status_code}). "
-        #         f"Client: ({self})"
-        #         f"Request: (endpoint={endpoint}, payload={payload})"
-        #     )
+        if response.status_code != 200:
+            for error_handler in error_handlers:
+                error_handler(response.status_code, response.json())
+            print(
+                f"Client post request response ({response.json()}) with unexpected status "
+                f"({response.status_code}). "
+                f"Client: ({self})"
+                f"Request: (endpoint={endpoint}, payload={payload})"
+            )
         return response.json()
 
-    def list_local_datasets(self) -> Iterator[Path]:
+    def list_local_datasets(self, team: Optional[str] = None) -> Iterator[Path]:
         """Returns a list of all local folders who are detected as dataset.
 
         Returns
@@ -176,11 +157,13 @@ class Client:
         list[Path]
         List of all local datasets
         """
-        for project_path in Path(self.datasets_dir).glob("*"):
+        team_config = self.config.get_team(team or self.default_team)
+
+        for project_path in Path(team_config["datasets_dir"]).glob("*"):
             if project_path.is_dir() and is_project_dir(project_path):
                 yield Path(project_path)
 
-    def list_remote_datasets(self) -> Iterator[RemoteDataset]:
+    def list_remote_datasets(self, team: Optional[str] = None) -> Iterator[RemoteDataset]:
         """Returns a list of all available datasets with the team currently authenticated against
 
         Returns
@@ -188,11 +171,11 @@ class Client:
         list[RemoteDataset]
         List of all remote datasets
         """
-        for dataset in self.get("/datasets/"):
+        for dataset in self.get("/datasets/", team=team):
             yield RemoteDataset(
                 name=dataset["name"],
                 slug=dataset["slug"],
-                team=self.team,
+                team=team or self.default_team,
                 dataset_id=dataset["id"],
                 image_count=dataset["num_images"],
                 progress=dataset["progress"],
@@ -200,11 +183,7 @@ class Client:
             )
 
     def get_remote_dataset(
-        self,
-        *,
-        slug: Optional[str] = None,
-        name: Optional[str] = None,
-        dataset_id: Optional[int] = None,
+        self, dataset_identifier: Union[str, DatasetIdentifier]
     ) -> RemoteDataset:
         """Get a remote dataset based on the parameter passed. You can only choose one of the
         possible parameters and calling this method with multiple ones will result in an
@@ -212,13 +191,7 @@ class Client:
 
         Parameters
         ----------
-        project_id : int
-            ID of the project to return
-        slug : str
-            Slug of the dataset to return
-        name : str
-            Name of the dataset to return
-        dataset_id : int
+        dataset_identifier : int
             ID of the dataset to return
 
         Returns
@@ -226,39 +199,21 @@ class Client:
         RemoteDataset
             Initialized dataset
         """
-        num_args = sum(x is not None for x in [name, slug, dataset_id])
-        if num_args > 1:
-            raise ValueError(
-                f"Too many values provided ({num_args})."
-                f" Please choose only 1 way of getting the remote dataset."
-            )
-        elif num_args == 0:
-            raise ValueError(
-                f"No values provided. Please select 1 way of getting the remote dataset."
-            )
-        if slug:
-            # TODO: when the backend have support for slug fetching update this.
-            matching_datasets = [
-                dataset for dataset in self.list_remote_datasets() if dataset.slug == slug
-            ]
-            if not matching_datasets:
-                raise NotFound
-            return matching_datasets[0]
-        if name:
-            print("Sorry, no support for name yet")
-            raise NotImplementedError
-        if dataset_id:
-            dataset = self.get(f"/datasets/{dataset_id}")
-            return RemoteDataset(
-                name=dataset["name"],
-                slug=projedatasetct["slug"],
-                dataset_id=dataset["id"],
-                image_count=dataset["num_images"],
-                progress=dataset["progress"],
-                client=self,
-            )
+        if isinstance(dataset_identifier, str):
+            dataset_identifier = DatasetIdentifier(dataset_identifier)
+        if not dataset_identifier.team_slug:
+            dataset_identifier.team_slug = self.default_team
 
-    def create_dataset(self, name: str) -> RemoteDataset:
+        matching_datasets = [
+            dataset
+            for dataset in self.list_remote_datasets(team=dataset_identifier.team_slug)
+            if dataset.slug == dataset_identifier.dataset_slug
+        ]
+        if not matching_datasets:
+            raise NotFound(dataset_identifier)
+        return matching_datasets[0]
+
+    def create_dataset(self, name: str, team: Optional[str] = None) -> RemoteDataset:
         """Create a remote dataset
 
         Parameters
@@ -272,11 +227,11 @@ class Client:
         The created dataset
         """
         dataset = self.post(
-            "/datasets", {"name": name}, error_handlers=[name_taken, validation_error]
+            "/datasets", {"name": name}, team=team, error_handlers=[name_taken, validation_error]
         )
         return RemoteDataset(
             name=dataset["name"],
-            team=self.team,
+            team=team or self.default_team,
             slug=dataset["slug"],
             dataset_id=dataset["id"],
             image_count=dataset["num_images"],
@@ -302,15 +257,14 @@ class Client:
         if not datasets_dir:
             datasets_dir = Path.home() / ".darwin" / "projects"
         return cls(
-            token=None,  # Unauthenticated requests
-            refresh_token=None,
+            api_key=None,
             api_url=Client.default_api_url(),
             base_url=Client.default_base_url(),
             datasets_dir=datasets_dir,
         )
 
     @classmethod
-    def local(cls):
+    def local(cls, team: Optional[str] = None):
         """Factory method to use the default configuration file to init the client
 
         Returns
@@ -319,7 +273,7 @@ class Client:
         The inited client
         """
         config_path = Path.home() / ".darwin" / "config.yaml"
-        return Client.from_config(config_path)
+        return Client.from_config(config_path, team=team)
 
     @classmethod
     def from_config(cls, config_path: Path, team: Optional[str] = None):
@@ -338,18 +292,8 @@ class Client:
         if not config_path.exists():
             raise MissingConfig()
         config = Config(config_path)
-        if team:
-            team_config = config.get_team(team)
-        else:
-            team_config = config.get_default_team()
 
-        return cls(
-            team=team_config["slug"],
-            api_key=team_config["api_key"],
-            api_url=config.get("global/api_endpoint"),
-            base_url=config.get("global/base_url"),
-            datasets_dir=team_config["datasets_dir"],
-        )
+        return cls(config=config, default_team=team)
 
     @classmethod
     def login(cls, api_key: str, datasets_dir: Optional[Path] = None):
@@ -357,10 +301,6 @@ class Client:
 
         Parameters
         ----------
-        email : str
-            Email of the Darwin user to use for the login
-        password : str
-            Password of the Darwin user to use for the login
         datasets_dir : str
             String where the client should be initialized from (aka the root path)
 
@@ -381,15 +321,16 @@ class Client:
         team_id = data["selected_team"]["id"]
         team = [team["slug"] for team in data["teams"] if team["id"] == team_id][0]
 
-        return cls(
-            api_key=api_key,
-            api_url=api_url,
-            base_url=Client.default_base_url(),
-            team=team,
-            datasets_dir=datasets_dir,
-        )
+        config = Config(path=None)
+        config.set_team(team=team, api_key=api_key, datasets_dir=str(datasets_dir))
+        config.set_global(api_endpoint=api_url, base_url=Client.default_base_url())
 
-    def _get_headers(self):
+        return cls(config=config, default_team=team)
+
+    def get_datasets_dir(self, team: Optional[str] = None):
+        return self.config.get_team(team or self.default_team)["datasets_dir"]
+
+    def _get_headers(self, team: Optional[str] = None):
         """Get the headers of the API calls to the backend.
 
         Parameters
@@ -401,18 +342,16 @@ class Client:
         Contains the Content-Type and Authorization token
         """
         header = {"Content-Type": "application/json"}
-        if self.api_key is not None:
-            header["Authorization"] = f"ApiKey {self.api_key}"
+
+        team_config = self.config.get_team(team or self.default_team)
+        api_key = team_config.get("api_key")
+
+        if api_key is not None:
+            header["Authorization"] = f"ApiKey {api_key}"
         return header
 
     def __str__(self):
-        return (
-            f"(Client, token={self.api_key}, "
-            f"url={self.url}, "
-            f"base_url={self.base_url}, "
-            f"team={self.team}, "
-            f"datasets_dir={self.datasets_dir})"
-        )
+        return f"Client(default_team={self.default_team})"
 
     @staticmethod
     def default_api_url():

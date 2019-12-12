@@ -4,7 +4,7 @@ import getpass
 import requests.exceptions
 
 import darwin.cli_functions as f
-from darwin.exceptions import Unauthenticated, Unauthorized
+from darwin.exceptions import InvalidTeam, Unauthenticated, Unauthorized
 from darwin.options import Options
 
 
@@ -13,11 +13,13 @@ def main():
     try:
         run(args, parser)
     except Unauthorized:
-        f._error("Your API key is not authorized to do that action")
+        f._error("Your API key is not authorized to do that action.")
     except Unauthenticated:
-        f._error("You need to specify a valid API key to do that action")
+        f._error("You need to specify a valid API key to do that action.")
+    except InvalidTeam:
+        f._error("The team specified is not in the configuration, please authenticate first.")
     except requests.exceptions.ConnectionError:
-        f._error("Darwin seems unreachable, please try again in a minute or contact support")
+        f._error("Darwin seems unreachable, please try again in a minute or contact support.")
 
 
 def run(args, parser):
@@ -64,7 +66,10 @@ def run(args, parser):
             f.create_dataset(args.dataset_name, args.team)
         elif args.action == "path":
             path = f.path(args.dataset_slug)
-            print(path)
+            if path:
+                print(path)
+            else:
+                print("The dataset has not been downloaded")
         # Print the url of a remote project
         elif args.action == "url":
             f.url(args.dataset_slug)
@@ -78,9 +83,8 @@ def run(args, parser):
         elif args.action == "releases":
             f.dataset_list_releases(args.dataset_slug)
         elif args.action == "pull":
-            local_dataset = f.pull_dataset(args.dataset_slug)
-            print(f"Project {args.dataset_slug} downloaded at {local_dataset.local_path}. ")
-        elif args.action == "help   ":
+            f.pull_dataset(args.dataset_slug)
+        elif args.action == "help" or args.action == None:
             dataset_parser = [
                 action.choices["dataset"]
                 for action in parser._actions

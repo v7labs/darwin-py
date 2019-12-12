@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, List, Optional
 
 from darwin.dataset.download_manager import download_all_images_from_annotations
+from darwin.dataset.identifier import DatasetIdentifier
 from darwin.dataset.release import Release
 from darwin.dataset.upload_manager import add_files_to_dataset
 from darwin.dataset.utils import exhaust_generator
@@ -125,7 +126,11 @@ class RemoteDataset:
             )
 
         progress, count = add_files_to_dataset(
-            client=self.client, dataset_id=str(self.dataset_id), filenames=files_to_upload, fps=fps
+            client=self.client,
+            dataset_id=str(self.dataset_id),
+            filenames=files_to_upload,
+            fps=fps,
+            team=self.team,
         )
 
         # If blocking is selected, upload the dataset remotely
@@ -199,23 +204,24 @@ class RemoteDataset:
 
     def remove_remote(self):
         """Archives (soft-deletion) the remote dataset"""
-        self.client.put(f"datasets/{self.dataset_id}/archive", payload={})
+        self.client.put(f"datasets/{self.dataset_id}/archive", payload={}, team=self.team)
 
     def get_report(self, granularity="day"):
         return self.client.get(
             f"/reports/{self.dataset_id}/annotation?group_by=dataset,user&dataset_ids={self.dataset_id}&granularity={granularity}&format=csv&include=dataset.name,user.first_name,user.last_name,user.email",
+            team=self.team,
             raw=True,
         ).text
 
     def get_releases(self):
-        releases_json = self.client.get(f"/datasets/{self.dataset_id}/exports")
+        releases_json = self.client.get(f"/datasets/{self.dataset_id}/exports", team=self.team)
         releases = [Release.parse_json(self.slug, self.team, payload) for payload in releases_json]
         return sorted(releases, key=lambda x: x.version, reverse=True)
 
     def get_release(self, version):
         releases = self.get_releases()
         if not releases:
-            raise NotFound()
+            raise NotFound(self.identifier)
 
         if version == "latest":
             return releases[0]
@@ -223,7 +229,7 @@ class RemoteDataset:
         for release in releases:
             if str(release.version) == version:
                 return release
-        raise NotFound()
+        raise NotFound(self.identifier)
 
     @property
     def remote_path(self) -> Path:
@@ -234,6 +240,10 @@ class RemoteDataset:
     def local_path(self) -> Path:
         """Returns a Path to the local dataset"""
         if self.slug is not None:
-            return Path(self.client.datasets_dir) / self.slug
+            return Path(self.client.get_datasets_dir(self.team)) / self.slug
         else:
-            return Path(self.client.datasets_dir)
+            return Path(self.client.get_datasets_dir(self.team))
+
+    @property
+    def identifier(self) -> DatasetIdentifier:
+        return DatasetIdentifier(f"{self.team}/{self.slug}")

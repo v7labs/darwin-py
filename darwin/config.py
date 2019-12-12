@@ -10,7 +10,10 @@ from darwin.exceptions import InvalidTeam
 class Config(object):
     """Handles YAML configuration files"""
 
-    def __init__(self, path: Union[Path, str]):
+    def __init__(self, path: Union[Path, str, None]):
+        """
+            If path is None the config will be in memory only
+        """
         if isinstance(path, str):
             path = Path(path)
         self._path = path
@@ -18,6 +21,8 @@ class Config(object):
 
     def _parse(self):
         """Parses the YAML configuration file"""
+        if not self._path:
+            return {}
         try:
             with open(self._path, "r") as stream:
                 return yaml.safe_load(stream)
@@ -67,6 +72,8 @@ class Config(object):
 
     def _save(self):
         """Persist the configuration to the file system"""
+        if not self._path:
+            return
         with io.open(self._path, "w", encoding="utf8") as f:
             yaml.dump(self._data, f, default_flow_style=False, allow_unicode=True)
 

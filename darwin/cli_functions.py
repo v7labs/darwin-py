@@ -8,6 +8,7 @@ import humanize
 
 from darwin.client import Client
 from darwin.config import Config
+from darwin.dataset.identifier import DatasetIdentifier
 from darwin.exceptions import (
     InvalidLogin,
     MissingConfig,
@@ -40,7 +41,7 @@ def authenticate(api_key: str) -> Config:
         config_path = Path.home() / ".darwin" / "config.yaml"
         config_path.parent.mkdir(exist_ok=True)
 
-        default_team = input(f"Make {client.team} the default team? [y/N] ") in ["Y", "y"]
+        default_team = input(f"Make {client.default_team} the default team? [y/N] ") in ["Y", "y"]
         datasets_dir = prompt("Datasets directory", "~/.darwin/datasets")
 
         datasets_dir = Path(os.path.expanduser(datasets_dir))
@@ -48,7 +49,7 @@ def authenticate(api_key: str) -> Config:
         print(f"Datasets directory created {datasets_dir}")
         client.datasets_dir = datasets_dir
 
-        default_team = client.team if default_team else None
+        default_team = client.default_team if default_team else None
         return persist_client_configuration(client, default_team=default_team)
 
     except InvalidLogin:
@@ -117,29 +118,17 @@ def local():
     print(table)
 
 
-def split_dataset_slug(slug: str) -> (str, str):
-    if "/" not in slug:
-        return (None, slug)
-    return slug.split("/")
-
-
-def split_dataset_version(slug: str) -> (str, str):
-    if ":" not in slug:
-        return (slug, "latest")
-    return slug.split(":")
-
-
 def path(dataset_slug: str) -> Path:
     """Returns the absolute path of the specified dataset, if synced"""
-    team, dataset = split_dataset_slug(dataset_slug)
-    client = _load_client(offline=True, team=team)
+    identifier = DatasetIdentifier(dataset_slug)
+    client = _load_client(offline=True)
     try:
-        for p in client.list_local_datasets():
-            if dataset_slug == p.name:
+        for p in client.list_local_datasets(team=identifier.team_slug):
+            if identifier.dataset_slug == p.name:
                 return p
-    except NotFound:
+    except NotFound as e:
         _error(
-            f"Dataset '{dataset_slug}' does not exist locally. "
+            f"Dataset '{e.name}' does not exist locally. "
             f"Use 'darwin dataset remote' to see all the available datasets, "
             f"and 'darwin dataset pull' to pull them."
         )
@@ -147,21 +136,19 @@ def path(dataset_slug: str) -> Path:
 
 def url(dataset_slug: str) -> Path:
     """Returns the url of the specified dataset"""
-    team, dataset_slug = split_dataset_slug(dataset_slug)
-    client = _load_client(offline=True, team=team)
+    client = _load_client(offline=True)
     try:
-        remote_dataset = client.get_remote_dataset(slug=dataset_slug)
+        remote_dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
         print(remote_dataset.remote_path)
-    except NotFound:
-        _error(f"Dataset '{dataset_slug}' does not exist.")
+    except NotFound as e:
+        _error(f"Dataset '{e.name}' does not exist.")
 
 
 def dataset_report(dataset_slug: str, granularity) -> Path:
     """Returns the url of the specified dataset"""
-    team, dataset_slug = split_dataset_slug(dataset_slug)
-    client = _load_client(offline=True, team=team)
+    client = _load_client(offline=True)
     try:
-        remote_dataset = client.get_remote_dataset(slug=dataset_slug)
+        remote_dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
         report = remote_dataset.get_report(granularity)
         print(report)
     except NotFound:
@@ -170,12 +157,10 @@ def dataset_report(dataset_slug: str, granularity) -> Path:
 
 def pull_dataset(dataset_slug: str):
     """Downloads a remote dataset (images and annotations) in the datasets directory. """
-    team, dataset_slug = split_dataset_slug(dataset_slug)
-    dataset_slug, version = split_dataset_version(dataset_slug)
-    print(team, dataset_slug)
-    client = _load_client(offline=False, team=team)
+    version = DatasetIdentifier(dataset_slug).version or "latest"
+    client = _load_client(offline=False)
     try:
-        dataset = client.get_remote_dataset(slug=dataset_slug)
+        dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
     except NotFound:
         _error(
             f"dataset '{dataset_slug}' does not exist at {client.url}. "
@@ -188,12 +173,10 @@ def pull_dataset(dataset_slug: str):
         dataset.pull(release)
     except NotFound:
         _error(
-            f"Version '{dataset_slug}:{version}' does not exist "
+            f"Version '{dataset.identifier}:{version}' does not exist "
             f"Use 'darwin dataset releases' to list all available versions."
         )
-        print(f"Pulling dataset {dataset_slug}:latest")
-        dataset.pull()
-    return dataset
+    print(f"Dataset {release.identifier} downloaded at {dataset.local_path}. ")
 
 
 def list_remote_datasets(all_teams: bool, team: Optional[str] = None):
@@ -225,11 +208,10 @@ def list_remote_datasets(all_teams: bool, team: Optional[str] = None):
 
 def remove_remote_dataset(dataset_slug: str):
     """Remove a remote dataset from the workview. The dataset gets archived. """
-    team, dataset_slug = split_dataset_slug(dataset_slug)
-    client = _load_client(offline=False, team=team)
+    client = _load_client(offline=False)
     try:
-        dataset = client.get_remote_dataset(slug=dataset_slug)
-        print(f"About to delete {dataset.name} on darwin.")
+        dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
+        print(f"About to delete {dataset.identifier} on darwin.")
         if not secure_continue_request():
             print("Cancelled.")
             return
@@ -243,8 +225,11 @@ def dataset_list_releases(dataset_slug: str):
     team, dataset_slug = split_dataset_slug(dataset_slug)
     client = _load_client(offline=False, team=team)
     try:
-        dataset = client.get_remote_dataset(slug=dataset_slug)
+        dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
         releases = dataset.get_releases()
+        if len(releases) == 0:
+            print("No available releases, export one first.")
+            return
         table = Table(
             ["name", "images", "classes", "export_date"], [Table.L, Table.R, Table.R, Table.R]
         )
@@ -253,7 +238,7 @@ def dataset_list_releases(dataset_slug: str):
                 continue
             table.add_row(
                 {
-                    "name": release.versioned_name,
+                    "name": release.identifier,
                     "images": release.image_count,
                     "classes": release.class_count,
                     "export_date": release.export_date,
@@ -287,13 +272,12 @@ def upload_data(
     count : int
         The files count
     """
-    team, dataset_slug = split_dataset_slug(dataset_slug)
-    client = _load_client(team=team)
+    client = _load_client()
     try:
-        dataset = client.get_remote_dataset(slug=dataset_slug)
+        dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
         dataset.push(files_to_exclude=files_to_exclude, fps=fps, files_to_upload=files)
-    except NotFound:
-        _error(f"No dataset with name '{dataset_slug}'")
+    except NotFound as e:
+        _error(f"No dataset with name '{e.name}'")
     except ValueError:
         _error(f"No files found")
 

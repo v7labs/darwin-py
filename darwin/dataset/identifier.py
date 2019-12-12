@@ -4,6 +4,7 @@
 from dataclasses import dataclass, field
 from typing import Optional
 
+
 @dataclass
 class DatasetIdentifier:
     identifier: str
@@ -13,7 +14,7 @@ class DatasetIdentifier:
 
     def __post_init__(self):
         self.team_slug, self.dataset_slug, self.version = parse(self.identifier)
-    
+
     def __str__(self):
         output = ""
         if self.team_slug:
@@ -23,12 +24,13 @@ class DatasetIdentifier:
             output = f"{output}:{self.version}"
         return output
 
+
 def parse(slug: str):
     if "/" in slug:
         team, slug = slug.split("/")
     else:
         team = None
-    
+
     if ":" in slug:
         dataset, version = slug.split(":")
     else:

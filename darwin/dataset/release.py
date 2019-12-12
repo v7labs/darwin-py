@@ -3,10 +3,20 @@ import shutil
 
 import requests
 
+from darwin.dataset.identifier import DatasetIdentifier
+
 
 class Release:
     def __init__(
-        self, dataset_slug, team_slug, version, url, export_date, image_count, class_count, available
+        self,
+        dataset_slug,
+        team_slug,
+        version,
+        url,
+        export_date,
+        image_count,
+        class_count,
+        available,
     ):
         self.dataset_slug = dataset_slug
         self.team_slug = team_slug
@@ -31,7 +41,7 @@ class Release:
                 export_date=export_date,
                 available=False,
                 image_count=None,
-                class_count=None
+                class_count=None,
             )
 
         return cls(
@@ -42,7 +52,7 @@ class Release:
             class_count=payload["metadata"]["num_classes"],
             export_date=export_date,
             url=payload["download_url"],
-            available=True
+            available=True,
         )
 
     def download_zip(self, path):
@@ -52,5 +62,5 @@ class Release:
         return path
 
     @property
-    def versioned_name(self):
-        return f"{self.team_slug}/{self.dataset_slug}:{self.version}"
+    def identifier(self) -> DatasetIdentifier:
+        return DatasetIdentifier(f"{self.team_slug}/{self.dataset_slug}:{self.version}")
