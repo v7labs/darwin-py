@@ -222,8 +222,7 @@ def remove_remote_dataset(dataset_slug: str):
 
 
 def dataset_list_releases(dataset_slug: str):
-    team, dataset_slug = split_dataset_slug(dataset_slug)
-    client = _load_client(offline=False, team=team)
+    client = _load_client(offline=False)
     try:
         dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
         releases = dataset.get_releases()
