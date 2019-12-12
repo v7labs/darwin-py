@@ -250,6 +250,8 @@ def dataset_list_releases(dataset_slug: str):
             ["name", "images", "classes", "export_date"], [Table.L, Table.R, Table.R, Table.R]
         )
         for release in releases:
+            if not release.available:
+                continue
             table.add_row(
                 {
                     "name": release.versioned_name,

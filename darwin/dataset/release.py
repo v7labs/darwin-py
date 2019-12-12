@@ -6,7 +6,7 @@ import requests
 
 class Release:
     def __init__(
-        self, dataset_slug, team_slug, version, url, export_date, image_count, class_count
+        self, dataset_slug, team_slug, version, url, export_date, image_count, class_count, available
     ):
         self.dataset_slug = dataset_slug
         self.team_slug = team_slug
@@ -15,12 +15,25 @@ class Release:
         self.export_date = export_date
         self.image_count = image_count
         self.class_count = class_count
+        self.available = available
 
     @classmethod
     def parse_json(cls, dataset_slug, team_slug, payload):
         export_date = datetime.datetime.strptime(
             payload["inserted_at"], "%Y-%m-%dT%H:%M:%S"
         )  # TODO: We should add %Z for timezones
+
+        if payload["download_url"] is None:
+            return cls(
+                dataset_slug=dataset_slug,
+                team_slug=team_slug,
+                version=payload["version"],
+                export_date=export_date,
+                available=False,
+                image_count=None,
+                class_count=None
+            )
+
         return cls(
             dataset_slug=dataset_slug,
             team_slug=team_slug,
@@ -29,6 +42,7 @@ class Release:
             class_count=payload["metadata"]["num_classes"],
             export_date=export_date,
             url=payload["download_url"],
+            available=True
         )
 
     def download_zip(self, path):
