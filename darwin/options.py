@@ -27,16 +27,6 @@ class Options(object):
             required=False,
             help="Shows only the current team. ",
         )
-
-        # PROJECT LOCAL
-        parser_local = subparsers.add_parser("local", help="List local projects. ")
-
-        # PROJECT PULL
-        parser_pull = subparsers.add_parser(
-            "pull", help="Pull/Download an existing remote project. "
-        )
-        parser_pull.add_argument("project_name", type=str, help="Dataset output name. ")
-
         # PROJECT REMOTE
 
         dataset = subparsers.add_parser(
@@ -52,6 +42,8 @@ class Options(object):
         parser_remote.add_argument(
             "-a", "--all", action="store_true", help="List datasets for all teams"
         )
+
+        parser_local = dataset_action.add_parser("local", help="List downloaded datasets")
 
         parser_create = dataset_action.add_parser("create", help="Creates a new dataset on darwin")
         parser_create.add_argument("dataset_name", type=str, help="Dataset name")

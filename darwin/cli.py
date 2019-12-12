@@ -51,10 +51,6 @@ def run(args, parser):
             f.current_team()
         else:
             f.list_teams()
-
-    # List existing projects
-    elif args.command == "local":
-        f.local()
     # Version
     elif args.command == "version":
         print("0.3")
@@ -62,6 +58,8 @@ def run(args, parser):
     elif args.command == "dataset":
         if args.action == "remote":
             f.list_remote_datasets(args.all, args.team)
+        elif args.action == "local":
+            f.local()
         elif args.action == "create":
             f.create_dataset(args.dataset_name, args.team)
         elif args.action == "path":

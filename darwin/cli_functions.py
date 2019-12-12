@@ -105,12 +105,12 @@ def local():
         table.add_row(
             {
                 "name": dataset_path.name,
-                "images": sum(1 for _ in find_files(dataset_path)),
+                "images": sum(1 for _ in find_files([dataset_path])),
                 "sync_date": humanize.naturaldate(
                     datetime.datetime.fromtimestamp(dataset_path.stat().st_mtime)
                 ),
                 "size": humanize.naturalsize(
-                    sum(p.stat().st_size for p in find_files(dataset_path))
+                    sum(p.stat().st_size for p in find_files([dataset_path]))
                 ),
             }
         )
