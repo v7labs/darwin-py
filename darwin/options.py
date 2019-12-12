@@ -108,24 +108,23 @@ class Options(object):
             help="Granularity of the report",
         )
 
-
-
-        parser_dataset_version = dataset_action.add_parser("releases", help="Available version of a dataset.")
+        parser_dataset_version = dataset_action.add_parser(
+            "releases", help="Available version of a dataset."
+        )
         parser_dataset_version.add_argument(
             "dataset_slug", type=str, help="Remote dataset name to list."
         )
 
-
-
-        parser_dataset_version = dataset_action.add_parser("pull", help="Download a version of a dataset.")
+        parser_dataset_version = dataset_action.add_parser(
+            "pull", help="Download a version of a dataset."
+        )
         parser_dataset_version.add_argument(
             "dataset_slug", type=str, help="Remote dataset name to download."
         )
-        
+
         # parser_dataset_version.add_argument(
         #     "--only-zip", type=str, help="Only saves the zip file without expanding it."
         # )
-
 
         # VERSION
         parser_version = subparsers.add_parser(

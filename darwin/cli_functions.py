@@ -17,7 +17,7 @@ from darwin.exceptions import (
     ValidationError,
 )
 from darwin.table import Table
-from darwin.utils import find_files, persist_client_configuration, secure_continue_request, prompt
+from darwin.utils import find_files, persist_client_configuration, prompt, secure_continue_request
 
 
 def authenticate(api_key: str) -> Config:
@@ -34,7 +34,7 @@ def authenticate(api_key: str) -> Config:
     A configuration object to handle YAML files
     """
     # Resolve the home folder if the dataset_dir starts with ~ or ~user
-    
+
     try:
         client = Client.login(api_key=api_key)
         config_path = Path.home() / ".darwin" / "config.yaml"
@@ -122,10 +122,12 @@ def split_dataset_slug(slug: str) -> (str, str):
         return (None, slug)
     return slug.split("/")
 
+
 def split_dataset_version(slug: str) -> (str, str):
     if ":" not in slug:
         return (slug, "latest")
     return slug.split(":")
+
 
 def path(dataset_slug: str) -> Path:
     """Returns the absolute path of the specified dataset, if synced"""
@@ -192,7 +194,6 @@ def pull_dataset(dataset_slug: str):
         print(f"Pulling dataset {dataset_slug}:latest")
         dataset.pull()
     return dataset
-   
 
 
 def list_remote_datasets(all_teams: bool, team: Optional[str] = None):
@@ -245,14 +246,18 @@ def dataset_list_releases(dataset_slug: str):
     try:
         dataset = client.get_remote_dataset(slug=dataset_slug)
         releases = dataset.get_releases()
-        table = Table(["name", "images", "classes", "export_date"], [Table.L, Table.R, Table.R, Table.R])
+        table = Table(
+            ["name", "images", "classes", "export_date"], [Table.L, Table.R, Table.R, Table.R]
+        )
         for release in releases:
-            table.add_row({
-                "name": release.versioned_name,
-                "images": release.image_count,
-                "classes": release.class_count,
-                "export_date": release.export_date
-            })
+            table.add_row(
+                {
+                    "name": release.versioned_name,
+                    "images": release.image_count,
+                    "classes": release.class_count,
+                    "export_date": release.export_date,
+                }
+            )
         print(table)
     except NotFound:
         _error(f"No dataset with name '{dataset_slug}'")

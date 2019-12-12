@@ -127,12 +127,7 @@ def persist_client_configuration(
         config_path.parent.mkdir(exist_ok=True)
 
     config = Config(config_path)
-    config.set_team(team=client.team, api_key=client.api_key, datasets_dir=str(client.datasets_dir),
-)
-    config.set_global(
-        api_endpoint=client.url,
-        base_url=client.base_url,
-        default_team=default_team,
-    )
+    config.set_team(team=client.team, api_key=client.api_key, datasets_dir=str(client.datasets_dir))
+    config.set_global(api_endpoint=client.url, base_url=client.base_url, default_team=default_team)
 
     return config

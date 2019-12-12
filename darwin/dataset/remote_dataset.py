@@ -1,4 +1,3 @@
-import io
 import json
 import shutil
 import tempfile
@@ -7,9 +6,9 @@ from pathlib import Path
 from typing import TYPE_CHECKING, List, Optional
 
 from darwin.dataset.download_manager import download_all_images_from_annotations
+from darwin.dataset.release import Release
 from darwin.dataset.upload_manager import add_files_to_dataset
 from darwin.dataset.utils import exhaust_generator
-from darwin.dataset.release import Release
 from darwin.exceptions import NotFound
 from darwin.utils import find_files, urljoin
 
@@ -146,7 +145,11 @@ class RemoteDataset:
             return progress, count
 
     def pull(
-        self, release: Release, blocking: bool = True, multi_threaded: bool = True, only_done_images: bool = True
+        self,
+        release: Release,
+        blocking: bool = True,
+        multi_threaded: bool = True,
+        only_done_images: bool = True,
     ):
         """Downloads a remote project (images and annotations) in the projects directory.
 
@@ -187,7 +190,9 @@ class RemoteDataset:
                 )
                 # If blocking is selected, download the dataset on the file system
                 if blocking:
-                    exhaust_generator(progress=progress(), count=count, multi_threaded=multi_threaded)
+                    exhaust_generator(
+                        progress=progress(), count=count, multi_threaded=multi_threaded
+                    )
                     return None, count
                 else:
                     return progress, count
@@ -214,7 +219,7 @@ class RemoteDataset:
 
         if version == "latest":
             return releases[0]
-        
+
         for release in releases:
             if str(release.version) == version:
                 return release

@@ -6,7 +6,6 @@ import requests.exceptions
 import darwin.cli_functions as f
 from darwin.exceptions import Unauthenticated, Unauthorized
 from darwin.options import Options
-from darwin.utils import prompt
 
 
 def main():
