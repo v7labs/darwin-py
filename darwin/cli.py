@@ -65,25 +65,25 @@ def run(args, parser):
         elif args.action == "create":
             f.create_dataset(args.dataset_name, args.team)
         elif args.action == "path":
-            path = f.path(args.dataset_slug)
+            path = f.path(args.dataset)
             if path:
                 print(path)
             else:
                 print("The dataset has not been downloaded")
         # Print the url of a remote project
         elif args.action == "url":
-            f.url(args.dataset_slug)
+            f.url(args.dataset)
         elif args.action == "push":
-            f.upload_data(args.dataset_slug, args.files, args.exclude, args.fps)
+            f.upload_data(args.dataset, args.files, args.exclude, args.fps)
         # Remove a project (remotely)
         elif args.action == "remove":
-            f.remove_remote_dataset(args.dataset_slug)
+            f.remove_remote_dataset(args.dataset)
         elif args.action == "report":
-            f.dataset_report(args.dataset_slug, args.granularity or "day")
+            f.dataset_report(args.dataset, args.granularity or "day")
         elif args.action == "releases":
-            f.dataset_list_releases(args.dataset_slug)
+            f.dataset_list_releases(args.dataset)
         elif args.action == "pull":
-            f.pull_dataset(args.dataset_slug)
+            f.pull_dataset(args.dataset)
         elif args.action == "help" or args.action == None:
             dataset_parser = [
                 action.choices["dataset"]

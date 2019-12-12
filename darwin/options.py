@@ -50,10 +50,10 @@ class Options(object):
         parser_create.add_argument("-t", "--team", help="Specify team")
 
         parser_path = dataset_action.add_parser("path", help="Print local path to dataset")
-        parser_path.add_argument("dataset_slug", type=str, help="Dataset name")
+        parser_path.add_argument("dataset", type=str, help="Dataset name")
 
         parser_url = dataset_action.add_parser("url", help="Print url to dataset on darwin")
-        parser_url.add_argument("dataset_slug", type=str, help="Dataset name")
+        parser_url.add_argument("dataset", type=str, help="Dataset name")
 
         parse_help = dataset_action.add_parser("help", help="Show this help message and exit.")
 
@@ -61,7 +61,7 @@ class Options(object):
             "push", help="Upload data to an existing (remote) dataset."
         )
         parser_push.add_argument(
-            "dataset_slug",
+            "dataset",
             type=str,
             help="[Remote] Dataset name: to list all the existing dataset, run 'darwin dataset remote'. ",
         )
@@ -86,11 +86,11 @@ class Options(object):
         parser_remove = dataset_action.add_parser(
             "remove", help="Remove a remote or remote and local dataset."
         )
-        parser_remove.add_argument("dataset_slug", type=str, help="Remote dataset name to delete.")
+        parser_remove.add_argument("dataset", type=str, help="Remote dataset name to delete.")
 
         parser_report = dataset_action.add_parser("report", help="Report about the annotators ")
         parser_report.add_argument(
-            "dataset_slug", type=str, help="Remote dataset name to report on."
+            "dataset", type=str, help="Remote dataset name to report on."
         )
 
         parser_report.add_argument(
@@ -104,14 +104,14 @@ class Options(object):
             "releases", help="Available version of a dataset."
         )
         parser_dataset_version.add_argument(
-            "dataset_slug", type=str, help="Remote dataset name to list."
+            "dataset", type=str, help="Remote dataset name to list."
         )
 
         parser_dataset_version = dataset_action.add_parser(
             "pull", help="Download a version of a dataset."
         )
         parser_dataset_version.add_argument(
-            "dataset_slug", type=str, help="Remote dataset name to download."
+            "dataset", type=str, help="Remote dataset name to download."
         )
 
         # parser_dataset_version.add_argument(
