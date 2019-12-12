@@ -22,7 +22,7 @@ from darwin.utils import find_files, persist_client_configuration, prompt, secur
 
 
 def authenticate(api_key: str) -> Config:
-    """Authenticate user against the server and creates a configuration file for it
+    """Authenticate the API key against the server and creates a configuration file for it
 
     Parameters
     ----------
