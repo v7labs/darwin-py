@@ -53,11 +53,20 @@ class Client:
         -------
         dict
         Dictionary which contains the server response
+
+        Raises
+        ------
+        NotFound
+            Resource not found
+        Unauthorized
+            Action is not authorized
         """
         response = requests.get(urljoin(self.url, endpoint), headers=self._get_headers(team))
 
         if response.status_code == 401:
             raise Unauthorized()
+        if response.status_code == 404:
+            raise NotFound(urljoin(self.url, endpoint))
         if response.status_code != 200 and retry:
             if debug:
                 print(
@@ -262,29 +271,52 @@ class Client:
             client=self,
         )
 
-    @classmethod
-    def anonymous(cls, datasets_dir: Optional[Path] = None):
-        """Factory method to create a client with anonymous access privileges.
-        This client can only fetch open datasets given their dataset id.
+    def get_datasets_dir(self, team: Optional[str] = None):
+        """Gets the dataset directory of the specified team or the default one
 
         Parameters
         ----------
-        datasets_dir : Path
-            Path where the client should be initialized from (aka the root path)
+        team: str
+            Team to get the directory from
 
         Returns
         -------
-        Client
-        The inited client
+        str
+            Path of the datasets for the selected team or the default one
         """
-        if not datasets_dir:
-            datasets_dir = Path.home() / ".darwin" / "projects"
-        return cls(
-            api_key=None,
-            api_url=Client.default_api_url(),
-            base_url=Client.default_base_url(),
-            datasets_dir=datasets_dir,
-        )
+        return self.config.get_team(team or self.default_team)["datasets_dir"]
+
+    def set_datasets_dir(self, datasets_dir: Path, team: Optional[str] = None):
+        """ Sets the dataset directory of the specified team or the default one
+
+        Parameters
+        ----------
+        datasets_dir: Path
+            Path to set as dataset directory of the team
+        team: str
+            Team to change the directory to
+        """
+        self.config.put(f"teams/{team or self.default_team}/datasets_dir", datasets_dir)
+
+    def _get_headers(self, team: Optional[str] = None):
+        """Get the headers of the API calls to the backend.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        dict
+        Contains the Content-Type and Authorization token
+        """
+        header = {"Content-Type": "application/json"}
+
+        team_config = self.config.get_team(team or self.default_team)
+        api_key = team_config.get("api_key")
+
+        if api_key is not None:
+            header["Authorization"] = f"ApiKey {api_key}"
+        return header
 
     @classmethod
     def local(cls, team_slug: Optional[str] = None):
@@ -318,22 +350,21 @@ class Client:
 
         return cls(config=config, default_team=team_slug)
 
-    def get_datasets_dir(self, team: Optional[str] = None):
-        return self.config.get_team(team or self.default_team)["datasets_dir"]
-
     @classmethod
-    def login(cls, api_key: str, datasets_dir: Optional[Path] = None):
-        """Factory method to create a client with a Darwin user login
+    def from_api_key(cls, api_key: str, datasets_dir: Optional[Path] = None):
+        """Factory method to create a client given an API key
 
         Parameters
         ----------
+        api_key: str
+            API key to use to authenticate the client
         datasets_dir : str
             String where the client should be initialized from (aka the root path)
 
         Returns
         -------
         Client
-        The inited client
+            The inited client
         """
         if datasets_dir is None:
             datasets_dir = Path.home() / ".darwin" / "projects"
@@ -352,29 +383,6 @@ class Client:
         config.set_global(api_endpoint=api_url, base_url=Client.default_base_url())
 
         return cls(config=config, default_team=team)
-
-    def _get_headers(self, team: Optional[str] = None):
-        """Get the headers of the API calls to the backend.
-
-        Parameters
-        ----------
-
-        Returns
-        -------
-        dict
-        Contains the Content-Type and Authorization token
-        """
-        header = {"Content-Type": "application/json"}
-
-        team_config = self.config.get_team(team or self.default_team)
-        api_key = team_config.get("api_key")
-
-        if api_key is not None:
-            header["Authorization"] = f"ApiKey {api_key}"
-        return header
-
-    def __str__(self):
-        return f"Client(default_team={self.default_team})"
 
     @staticmethod
     def default_api_url():
@@ -411,6 +419,10 @@ class Client:
             return {"error": "Response is not JSON encoded",
                     "status_code": response.status_code,
                     "text": response.text}
+
+    def __str__(self):
+        return f"Client(default_team={self.default_team})"
+
 
 def name_taken(code, body):
     if code == 422 and body["errors"]["name"][0] == "has already been taken":

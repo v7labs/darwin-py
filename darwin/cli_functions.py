@@ -21,13 +21,21 @@ from darwin.table import Table
 from darwin.utils import find_files, persist_client_configuration, prompt, secure_continue_request
 
 
-def authenticate(api_key: str) -> Config:
+def authenticate(
+    api_key: str,
+    default_team: Optional[bool] = None,
+    datasets_dir: Optional[Path] = None
+) -> Config:
     """Authenticate the API key against the server and creates a configuration file for it
 
     Parameters
     ----------
     api_key : str
         API key to use for the client login
+    default_team: bool
+        Flag to make the team the default one
+    datasets_dir: Path
+        Dataset directory on the file system
 
     Returns
     -------
@@ -37,17 +45,19 @@ def authenticate(api_key: str) -> Config:
     # Resolve the home folder if the dataset_dir starts with ~ or ~user
 
     try:
-        client = Client.login(api_key=api_key)
+        client = Client.from_api_key(api_key=api_key)
         config_path = Path.home() / ".darwin" / "config.yaml"
         config_path.parent.mkdir(exist_ok=True)
 
-        default_team = input(f"Make {client.default_team} the default team? [y/N] ") in ["Y", "y"]
-        datasets_dir = prompt("Datasets directory", "~/.darwin/datasets")
+        if default_team is None:
+            default_team = input(f"Make {client.default_team} the default team? [y/N] ") in ["Y", "y"]
+        if datasets_dir is None:
+            datasets_dir = prompt("Datasets directory", "~/.darwin/datasets")
 
         datasets_dir = Path(os.path.expanduser(datasets_dir))
         Path(datasets_dir).mkdir(parents=True, exist_ok=True)
-        print(f"Datasets directory created {datasets_dir}")
-        client.datasets_dir = datasets_dir
+
+        client.set_datasets_dir(datasets_dir)
 
         default_team = client.default_team if default_team else None
         return persist_client_configuration(client, default_team=default_team)

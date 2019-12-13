@@ -151,7 +151,7 @@ class RemoteDataset:
 
     def pull(
         self,
-        release: Release,
+        release: Optional[Release] = None,
         blocking: bool = True,
         multi_threaded: bool = True,
         only_done_images: bool = True,
@@ -160,6 +160,8 @@ class RemoteDataset:
 
         Parameters
         ----------
+        release: Release
+            The relase to pull
         blocking : bool
             If False, the dataset is not downloaded and a generator function is returned instead
         multi_threaded : bool
@@ -174,6 +176,9 @@ class RemoteDataset:
         count : int
             The files count
         """
+        if release is None:
+            release = self.get_release()
+
         with tempfile.TemporaryDirectory() as tmp_dir:
             zip_file_path = release.download_zip(Path(tmp_dir) / "dataset.zip")
             with zipfile.ZipFile(zip_file_path) as z:
@@ -213,12 +218,57 @@ class RemoteDataset:
             raw=True,
         ).text
 
+    def release(self, name: Optional[str] = None):
+        """Create a new release for the dataset
+
+        Parameters
+        ----------
+        name: str
+            Name of the release
+
+        Returns
+        -------
+        release: Release
+            The release created right now
+        """
+        self.client.post(f"/datasets/{self.dataset_id}/exports", team=self.team)
+        return self.get_release()
+
     def get_releases(self):
-        releases_json = self.client.get(f"/datasets/{self.dataset_id}/exports", team=self.team)
+        """Get a sorted list of releases with the most recent first
+
+        Returns
+        -------
+        list(Release)
+            Return a sorted list of releases with the most recent first
+        Raises
+        ------
+        """
+        try:
+            releases_json = self.client.get(f"/datasets/{self.dataset_id}/exports", team=self.team)
+        except NotFound:
+            return []
         releases = [Release.parse_json(self.slug, self.team, payload) for payload in releases_json]
         return sorted(releases, key=lambda x: x.version, reverse=True)
 
-    def get_release(self, version):
+    def get_release(self, version: str = "latest"):
+        """Get a specific release for this dataset
+
+        Parameters
+        ----------
+        version: str
+            Name of the version
+
+        Returns
+        -------
+        release: Release
+            The selected release
+
+        Raises
+        ------
+        NotFound
+            The selected release does not exists
+        """
         releases = self.get_releases()
         if not releases:
             raise NotFound(self.identifier)
