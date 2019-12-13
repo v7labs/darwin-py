@@ -30,7 +30,11 @@ class Client:
         self.default_team = default_team or config.get("global/default_team")
 
     def get(
-        self, endpoint: str, team: Optional[str] = None, retry: bool = False, raw: bool = False
+        self, endpoint: str,
+        team: Optional[str] = None,
+        retry: bool = False,
+        raw: bool = False,
+        debug: bool = False,
     ):
         """Get something from the server trough HTTP
 
