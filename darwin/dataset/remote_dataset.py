@@ -177,6 +177,12 @@ class RemoteDataset:
             Forces the re-download of an existing image
         remove_extra: bool
             Removes existing images for which there is not corresponding annotation
+        subset_filter_annotations_function: Callable
+            This function receives the directory where the annotations are downloaded and can
+            perform any operation on them i.e. filtering them with custom rules or else.
+            If it needs to receive other parameters is advised to use functools.partial() for it.
+        subset_folder_name: str
+            Name of the folder with the subset of the dataset. If not provided a timestamp is used.
 
         Returns
         -------
