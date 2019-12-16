@@ -223,31 +223,31 @@ class RemoteDataset:
                     destination_name = annotations_dir / (filename + "_" + original_filename.stem + annotation_path.suffix)
                     shutil.move(str(annotation_path), str(destination_name))
 
-                if only_annotations:
-                    # No images will be downloaded
-                    return None, 0
+        if only_annotations:
+            # No images will be downloaded
+            return None, 0
 
-                # Create the generator with the download instructions
-                images_dir = annotations_dir.parent / "images"
-                progress, count = download_all_images_from_annotations(
-                    api_url=self.client.url,
-                    annotations_path=annotations_dir,
-                    images_path=images_dir,
-                    force_replace=force_replace,
-                    remove_extra=remove_extra,
-                )
-                if count == 0:
-                    print("Nothing to download")
-                    return None, count
+        # Create the generator with the download instructions
+        images_dir = annotations_dir.parent / "images"
+        progress, count = download_all_images_from_annotations(
+            api_url=self.client.url,
+            annotations_path=annotations_dir,
+            images_path=images_dir,
+            force_replace=force_replace,
+            remove_extra=remove_extra,
+        )
+        if count == 0:
+            print("Nothing to download")
+            return None, count
 
-                # If blocking is selected, download the dataset on the file system
-                if blocking:
-                    exhaust_generator(
-                        progress=progress(), count=count, multi_threaded=multi_threaded
-                    )
-                    return None, count
-                else:
-                    return progress, count
+        # If blocking is selected, download the dataset on the file system
+        if blocking:
+            exhaust_generator(
+                progress=progress(), count=count, multi_threaded=multi_threaded
+            )
+            return None, count
+        else:
+            return progress, count
 
     def remove_remote(self):
         """Archives (soft-deletion) the remote dataset"""
