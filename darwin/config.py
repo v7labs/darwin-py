@@ -65,7 +65,7 @@ class Config(object):
 
         for k in key[:-1]:
             pointer = pointer.setdefault(k, {})
-        pointer[key[-1]] = value
+        pointer[key[-1]] = str(value)
 
         if save:
             self._save()
