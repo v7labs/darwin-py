@@ -63,9 +63,9 @@ def download_all_images_from_annotations(
 
     if remove_extra:
         # Removes existing images for which there is not corresponding annotation
-        annotations_to_download_stem = [a.stem for a in annotations_path.glob(f"*.{annotation_format}")]
+        annotations_downloaded_stem = [a.stem for a in annotations_path.glob(f"*.{annotation_format}")]
         for existing_image in existing_images.values():
-            if existing_image.stem not in annotations_to_download_stem:
+            if existing_image.stem not in annotations_downloaded_stem:
                 print(f"Removing {existing_image} as there is no corresponding annotation")
                 existing_image.unlink()
 
