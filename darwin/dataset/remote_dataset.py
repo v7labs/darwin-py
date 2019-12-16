@@ -3,8 +3,8 @@ import shutil
 import tempfile
 import zipfile
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Optional
-
+from typing import TYPE_CHECKING, List, Optional, Callable
+from datetime import datetime
 from darwin.dataset.download_manager import download_all_images_from_annotations
 from darwin.dataset.identifier import DatasetIdentifier
 from darwin.dataset.release import Release
@@ -151,23 +151,32 @@ class RemoteDataset:
 
     def pull(
         self,
+        *,
         release: Optional[Release] = None,
         blocking: bool = True,
         multi_threaded: bool = True,
-        only_done_images: bool = True,
+        only_annotations: bool = False,
+        force_replace: bool = False,
+        remove_extra: bool = True,
+        subset_filter_annotations_function: Optional[Callable] = None,
+        subset_folder_name: Optional[str] = None,
     ):
         """Downloads a remote project (images and annotations) in the projects directory.
 
         Parameters
         ----------
         release: Release
-            The relase to pull
+            The release to pull
         blocking : bool
             If False, the dataset is not downloaded and a generator function is returned instead
         multi_threaded : bool
             Uses multiprocessing to download the dataset in parallel. If blocking is False this has no effect.
-        only_done_images: bool
-            If False, it will also download images without annotations or that have not been marked as Done
+        only_annotations: bool
+            Download only the annotations and no corresponding images
+        force_replace: bool
+            Forces the re-download of an existing image
+        remove_extra: bool
+            Removes existing images for which there is not corresponding annotation
 
         Returns
         -------
@@ -180,24 +189,51 @@ class RemoteDataset:
             release = self.get_release()
 
         with tempfile.TemporaryDirectory() as tmp_dir:
-            zip_file_path = release.download_zip(Path(tmp_dir) / "dataset.zip")
+            tmp_dir = Path(tmp_dir)
+            # Download the release from Darwin
+            zip_file_path = release.download_zip(tmp_dir / "dataset.zip")
             with zipfile.ZipFile(zip_file_path) as z:
-                images_dir = self.local_path / "images"
-                annotations_dir = self.local_path / "annotations"
+                # Extract annotations
+                z.extractall(tmp_dir)
+                # If a filtering function is provided, apply it
+                if subset_filter_annotations_function is not None:
+                    subset_filter_annotations_function(tmp_dir)
+                    if subset_folder_name is None:
+                        subset_folder_name = datetime.now().strftime("%m/%d/%Y_%H:%M:%S")
+                annotations_dir = self.local_path / (subset_folder_name or "") / "annotations"
+                # Remove existing annotations if necessary
                 if annotations_dir.exists():
                     try:
                         shutil.rmtree(annotations_dir)
                     except PermissionError:
                         print(f"Could not remove dataset in {annotations_dir}. Permission denied.")
                 annotations_dir.mkdir(parents=True, exist_ok=False)
-                z.extractall(annotations_dir)
-                # Rename all json files pre-pending 'V7_' in front of them.
-                # This is necessary to avoid overriding them in a later stage.
-                for annotation_path in annotations_dir.glob(f"*.json"):
-                    annotation_path.rename(annotation_path.parent / f"V7_{annotation_path.name}")
+                # Move the annotations into the right folder and rename them to have the image
+                # original filename as contained in the json
+                for annotation_path in tmp_dir.glob(f"*.json"):
+                    annotation = json.load(annotation_path.open())
+                    original_filename = Path(annotation['image']['original_filename'])
+                    filename = Path(annotation['image']['filename']).stem
+                    destination_name = annotations_dir / (filename + "_" + original_filename.stem + annotation_path.suffix)
+                    shutil.move(str(annotation_path), str(destination_name))
+
+                if only_annotations:
+                    # No images will be downloaded
+                    return None, 0
+
+                # Create the generator with the download instructions
+                images_dir = annotations_dir.parent / "images"
                 progress, count = download_all_images_from_annotations(
-                    self.client.url, annotations_dir, images_dir, "json"
+                    api_url=self.client.url,
+                    annotations_path=annotations_dir,
+                    images_path=images_dir,
+                    force_replace=force_replace,
+                    remove_extra=remove_extra,
                 )
+                if count == 0:
+                    print("Nothing to download")
+                    return None, count
+
                 # If blocking is selected, download the dataset on the file system
                 if blocking:
                     exhaust_generator(
