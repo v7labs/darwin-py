@@ -23,7 +23,7 @@ def load_pil_image(path: Path):
     """
     Loads a PIL image and converts it into RGB.
 
-    Parameters 
+    Parameters
     ----------
     path: Path
         Path to the image file
@@ -121,6 +121,24 @@ def polygon_area(x: np.ndarray, y: np.ndarray) -> float:
 
 
 def get_annotation_dicts(root, split, classes_file):
+    """
+    Returns all the annotations of a given dataset and split in a single dictionary
+
+    Parameters
+    ----------
+    root
+        Path to the location of the dataset on the file system
+    split
+        Path to the .txt file containing the list of files for this split.
+    classes_file
+        Path to the .txt file containing the list of classes
+
+    Returns
+    -------
+    dict
+        Dictionary containing all the annotations of the dataset
+    """
+
     if isinstance(root, str):
         root = Path(root)
     split = root / 'lists' / split
