@@ -138,8 +138,18 @@ TODO update output
 
 The framework is designed to be usable as a standalone python library.
 Usage can be inferred from looking at the operations performed in `cli_functions.py`.
-A minimal example to download a datset can be found in the 
+A minimal example to download a datset is provided below and can be found in the 
 [demo](https://github.com/v7labs/darwin-py/blob/new_README/darwin_demo.py).
+
+```python
+from darwin.client import Client
+from darwin.dataset.identifier import DatasetIdentifier
+
+client = Client.local(team_slug="myteam") 
+dataset_identifier = DatasetIdentifier.from_slug(dataset_slug="test", team_slug="myteam")
+ds = client.get_remote_dataset(dataset_identifier=dataset_identifier)
+ds.pull()    
+```
 
 
 
