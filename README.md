@@ -2,6 +2,14 @@
 Official library to manage datasets along with 
 [V7 Darwin annotation platform](https://darwin.v7labs.com).
 
+Darwin-py can be used as a python library or as a command line tool.
+Main functions are:
+
+- Client authentication
+- Listing local and remote datasets
+- Create/remove a dataset 
+- Upload/download data to/from a remote dataset
+
 Support tested for python 3.7.
 
 
@@ -26,27 +34,16 @@ pip install --editable .
 
 
 
-
-## Usage
-
-Darwin can be used as a python library or as a command line tool.
-Main functions are:
-
-- Client authentication
-- Listing local and remote datasets
-- Create/remove a dataset 
-- Upload/download data to/from a remote dataset
-
 ---
 
-### As a Command Line Interface (CLI)
+## Usage as a Command Line Interface (CLI)
 
 `darwin` is accessible as a command line tool.
 An important tool to navigate the CLI usage is trough the help command `-h/--help` which will 
 provide additional information for each command available. 
 
 
-#### Client Authentication 
+### Client Authentication 
 
 To access darwin you first need to authenticate.
 This requires an team-specific [API-key](https://darwin.v7labs.com/?settings=api-keys).  
@@ -64,7 +61,7 @@ This process will create a configuration in `~/.darwin/config.yaml`.
 This file will be updated with future authentications. 
 
 
-#### Listing local and remote datasets 
+### Listing local and remote datasets 
 
 Lists a summary of local existing projects
 ```
@@ -82,7 +79,7 @@ myteam/mydataset     112025        73.0%
 ```
 
 
-#### Create/remove a dataset 
+### Create/remove a dataset 
 
 To creates an empty dataset remotely:
 
@@ -103,7 +100,7 @@ Do you want to continue? [y/N] y
 ```
 
 
-#### Upload/download data to/from a remote dataset 
+### Upload/download data to/from a remote dataset 
 
 Uploads data to an existing remote project.
 It takes the dataset name and a single image (or directory) with images/videos to upload as 
@@ -133,8 +130,8 @@ TODO update output
 
 
 
-
-### As a Python Library
+---
+## Usage as a Python library
 
 The framework is designed to be usable as a standalone python library.
 Usage can be inferred from looking at the operations performed in `cli_functions.py`.
