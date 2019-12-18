@@ -237,7 +237,6 @@ class RemoteDataset:
             remove_extra=remove_extra,
         )
         if count == 0:
-            print("Nothing to download")
             return None, count
 
         # If blocking is selected, download the dataset on the file system

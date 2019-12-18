@@ -180,7 +180,7 @@ def pull_dataset(dataset_slug: str):
         _error(f"please re-authenticate")
     try:
         release = dataset.get_release(version)
-        dataset.pull(release)
+        dataset.pull(release=release)
     except NotFound:
         _error(
             f"Version '{dataset.identifier}:{version}' does not exist "
