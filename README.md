@@ -2,8 +2,8 @@
 Official library to manage datasets along with 
 [V7 Darwin annotation platform](https://darwin.v7labs.com).
 
-Darwin-py can be used as a python library or as a command line tool.
-Main functions are:
+Darwin-py can be used as a python library or as a command line tool (CLI).
+Main functions are (but not limited to):
 
 - Client authentication
 - Listing local and remote datasets
@@ -38,15 +38,15 @@ pip install --editable .
 
 ## Usage as a Command Line Interface (CLI)
 
-`darwin` is accessible as a command line tool.
-An important tool to navigate the CLI usage is trough the help command `-h/--help` which will 
+Once installed, `darwin` is accessible as a command line tool.
+A useful way to navigate the CLI usage is trough the help command `-h/--help` which will 
 provide additional information for each command available. 
 
 
 ### Client Authentication 
 
-To access darwin you first need to authenticate.
-This requires an team-specific [API-key](https://darwin.v7labs.com/?settings=api-keys).  
+To access perform remote operation on Darwin you first need to authenticate.
+This requires a [team-specific API-key](https://darwin.v7labs.com/?settings=api-keys).  
 If you do not already have a Darwin account, you can [register for free](https://darwin.v7labs.com).
 
 To start the authentication process, use:
@@ -55,10 +55,10 @@ To start the authentication process, use:
 $ darwin authenticate
 ```
 
-You will be them prompted to insert the API-key, whether you want to set the corresponding team as 
-default and finally the desired location on the file system for the datasets of that team.
-This process will create a configuration in `~/.darwin/config.yaml`.
-This file will be updated with future authentications. 
+You will be then prompted to insert the API-key, whether you want to set the corresponding team as 
+default and finally the desired location on the local file system for the datasets of that team.
+This process will create a configuration file at `~/.darwin/config.yaml`.
+This file will be updated with future authentications for different teams.
 
 
 ### Listing local and remote datasets 
@@ -134,9 +134,9 @@ TODO update output
 ## Usage as a Python library
 
 The framework is designed to be usable as a standalone python library.
-Usage can be inferred from looking at the operations performed in `cli_functions.py`.
-A minimal example to download a datset is provided below and can be found in the 
-[demo](https://github.com/v7labs/darwin-py/blob/new_README/darwin_demo.py).
+Usage can be inferred from looking at the operations performed in `darwin/cli_functions.py`.
+A minimal example to download a dataset is provided below and a more extensive one can be found in 
+[darwin_demo.py](https://github.com/v7labs/darwin-py/blob/new_README/darwin_demo.py).
 
 ```python
 from darwin.client import Client
