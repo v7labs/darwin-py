@@ -292,13 +292,13 @@ class RemoteDataset:
         releases = [Release.parse_json(self.slug, self.team, payload) for payload in releases_json]
         return sorted(releases, key=lambda x: x.version, reverse=True)
 
-    def get_release(self, version: str = "latest"):
+    def get_release(self, name: str = "latest"):
         """Get a specific release for this dataset
 
         Parameters
         ----------
-        version: str
-            Name of the version
+        name: str
+            Name of the export
 
         Returns
         -------
@@ -314,11 +314,11 @@ class RemoteDataset:
         if not releases:
             raise NotFound(self.identifier)
 
-        if version == "latest":
+        if name == "latest":
             return next((release for release in releases if release.latest))
 
         for release in releases:
-            if str(release.version) == version:
+            if str(release.name) == name:
                 return release
         raise NotFound(self.identifier)
 
