@@ -1,3 +1,4 @@
+import argparse
 import datetime
 import os.path
 import sys
@@ -22,9 +23,7 @@ from darwin.utils import find_files, persist_client_configuration, prompt, secur
 
 
 def authenticate(
-    api_key: str,
-    default_team: Optional[bool] = None,
-    datasets_dir: Optional[Path] = None
+    api_key: str, default_team: Optional[bool] = None, datasets_dir: Optional[Path] = None
 ) -> Config:
     """Authenticate the API key against the server and creates a configuration file for it
 
@@ -50,7 +49,10 @@ def authenticate(
         config_path.parent.mkdir(exist_ok=True)
 
         if default_team is None:
-            default_team = input(f"Make {client.default_team} the default team? [y/N] ") in ["Y", "y"]
+            default_team = input(f"Make {client.default_team} the default team? [y/N] ") in [
+                "Y",
+                "y",
+            ]
         if datasets_dir is None:
             datasets_dir = prompt("Datasets directory", "~/.darwin/datasets")
 
@@ -289,6 +291,26 @@ def upload_data(
         _error(f"No dataset with name '{e.name}'")
     except ValueError:
         _error(f"No files found")
+
+
+def help(parser, subparser: Optional[str] = None):
+    if subparser:
+        parser = next(
+            action.choices[subparser]
+            for action in parser._actions
+            if isinstance(action, argparse._SubParsersAction) and subparser in action.choices
+        )
+
+    actions = [
+        action for action in parser._actions if isinstance(action, argparse._SubParsersAction)
+    ]
+
+    print(parser.description)
+    print("\nCommands:")
+    for action in actions:
+        # get all subparsers and print help
+        for choice in sorted(action._choices_actions, key=lambda x: x.dest):
+            print("    {:<19} {}".format(choice.dest, choice.help))
 
 
 def _error(message):
