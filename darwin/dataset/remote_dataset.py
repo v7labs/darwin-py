@@ -260,11 +260,13 @@ class RemoteDataset:
             raw=True,
         ).text
 
-    def release(self, name: Optional[str] = None):
+    def release(self, annotation_class_ids: Optional[List] = None, name: Optional[str] = None):
         """Create a new release for the dataset
 
         Parameters
         ----------
+        annotation_class_ids: List
+            List of the classes to filter
         name: str
             Name of the release
 
@@ -273,7 +275,10 @@ class RemoteDataset:
         release: Release
             The release created right now
         """
-        self.client.post(f"/datasets/{self.dataset_id}/exports", team=self.team)
+        if annotation_class_ids is None:
+            annotation_class_ids = []
+        payload = {"annotation_class_ids": annotation_class_ids, "name": name}
+        self.client.post(f"/datasets/{self.dataset_id}/exports", payload=payload, team=self.team)
         return self.get_release()
 
     def get_releases(self):
