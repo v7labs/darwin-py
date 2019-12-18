@@ -2,9 +2,10 @@ import json
 import shutil
 import tempfile
 import zipfile
-from pathlib import Path
-from typing import TYPE_CHECKING, List, Optional, Callable
 from datetime import datetime
+from pathlib import Path
+from typing import TYPE_CHECKING, Callable, List, Optional
+
 from darwin.dataset.download_manager import download_all_images_from_annotations
 from darwin.dataset.identifier import DatasetIdentifier
 from darwin.dataset.release import Release
@@ -218,9 +219,11 @@ class RemoteDataset:
                 # original filename as contained in the json
                 for annotation_path in tmp_dir.glob(f"*.json"):
                     annotation = json.load(annotation_path.open())
-                    original_filename = Path(annotation['image']['original_filename'])
-                    filename = Path(annotation['image']['filename']).stem
-                    destination_name = annotations_dir / (filename + "_" + original_filename.stem + annotation_path.suffix)
+                    original_filename = Path(annotation["image"]["original_filename"])
+                    filename = Path(annotation["image"]["filename"]).stem
+                    destination_name = annotations_dir / (
+                        filename + "_" + original_filename.stem + annotation_path.suffix
+                    )
                     shutil.move(str(annotation_path), str(destination_name))
 
         if only_annotations:
@@ -241,9 +244,7 @@ class RemoteDataset:
 
         # If blocking is selected, download the dataset on the file system
         if blocking:
-            exhaust_generator(
-                progress=progress(), count=count, multi_threaded=multi_threaded
-            )
+            exhaust_generator(progress=progress(), count=count, multi_threaded=multi_threaded)
             return None, count
         else:
             return progress, count

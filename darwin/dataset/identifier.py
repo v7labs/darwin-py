@@ -2,16 +2,18 @@ from typing import Optional
 
 
 class DatasetIdentifier:
-    def __init__(self, dataset_slug: str, team_slug: Optional[str] = None, version: Optional[str] = None):
+    def __init__(
+        self, dataset_slug: str, team_slug: Optional[str] = None, version: Optional[str] = None
+    ):
         self.dataset_slug = dataset_slug
         self.team_slug = team_slug
         self.version = version
-    
+
     @classmethod
     def parse(cls, identifier: str):
         team_slug, dataset_slug, version = parse(identifier)
         return cls(dataset_slug=dataset_slug, team_slug=team_slug, version=version)
-    
+
     def __str__(self):
         output = ""
         if self.team_slug:
@@ -20,6 +22,7 @@ class DatasetIdentifier:
         if self.version:
             output = f"{output}:{self.version}"
         return output
+
 
 def parse(slug: str):
     if "/" in slug:

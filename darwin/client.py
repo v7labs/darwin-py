@@ -1,7 +1,6 @@
 import os
-from pathlib import Path
-from typing import Dict, Optional, Iterator
 import time
+from pathlib import Path
 from typing import Dict, Iterator, Optional, Union
 
 import requests
@@ -30,7 +29,8 @@ class Client:
         self.default_team = default_team or config.get("global/default_team")
 
     def get(
-        self, endpoint: str,
+        self,
+        endpoint: str,
         team: Optional[str] = None,
         retry: bool = False,
         raw: bool = False,
@@ -82,7 +82,14 @@ class Client:
         else:
             return self._decode_response(response, debug)
 
-    def put(self, endpoint: str, payload: Dict, team: Optional[str] = None, retry: bool = False, debug: bool = False,):
+    def put(
+        self,
+        endpoint: str,
+        payload: Dict,
+        team: Optional[str] = None,
+        retry: bool = False,
+        debug: bool = False,
+    ):
         """Put something on the server trough HTTP
 
         Parameters
@@ -133,7 +140,7 @@ class Client:
         team: Optional[str] = None,
         retry: bool = False,
         error_handlers: Optional[list] = None,
-        debug: bool = False
+        debug: bool = False,
     ):
         """Post something new on the server trough HTTP
 
@@ -417,9 +424,11 @@ class Client:
             if debug:
                 print(f"[ERROR {response.status_code}] {response.text}")
             response.close()
-            return {"error": "Response is not JSON encoded",
-                    "status_code": response.status_code,
-                    "text": response.text}
+            return {
+                "error": "Response is not JSON encoded",
+                "status_code": response.status_code,
+                "text": response.text,
+            }
 
     def __str__(self):
         return f"Client(default_team={self.default_team})"

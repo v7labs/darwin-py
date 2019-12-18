@@ -33,9 +33,7 @@ class Release:
 
     @classmethod
     def parse_json(cls, dataset_slug, team_slug, payload):
-        export_date = datetime.datetime.strptime(
-            payload["inserted_at"], "%Y-%m-%dT%H:%M:%S%z"
-        )
+        export_date = datetime.datetime.strptime(payload["inserted_at"], "%Y-%m-%dT%H:%M:%S%z")
         if payload["download_url"] is None:
             return cls(
                 dataset_slug=dataset_slug,
@@ -46,7 +44,7 @@ class Release:
                 available=False,
                 image_count=None,
                 class_count=None,
-                latest=False
+                latest=False,
             )
 
         return cls(
@@ -59,7 +57,7 @@ class Release:
             export_date=export_date,
             url=payload["download_url"],
             available=True,
-            latest=payload["latest"]
+            latest=payload["latest"],
         )
 
     def download_zip(self, path):
@@ -70,4 +68,6 @@ class Release:
 
     @property
     def identifier(self) -> DatasetIdentifier:
-        return DatasetIdentifier(team_slug=self.team_slug, dataset_slug=self.dataset_slug, version=self.name)
+        return DatasetIdentifier(
+            team_slug=self.team_slug, dataset_slug=self.dataset_slug, version=self.name
+        )

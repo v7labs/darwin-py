@@ -1,3 +1,5 @@
+import itertools
+import json
 from pathlib import Path
 from typing import List
 
@@ -6,8 +8,6 @@ import torch
 from PIL import Image
 
 from pycocotools import mask as coco_mask
-import json
-import itertools
 
 try:
     from detectron2.structures import BoxMode
@@ -158,7 +158,7 @@ def get_annotation_dicts(root, split, classes_file):
 
     if isinstance(root, str):
         root = Path(root)
-    split = root / 'lists' / split
+    split = root / "lists" / split
     classes = [e.strip() for e in open(root / "lists" / classes_file)]
     if classes[0] == "__background__":
         classes = classes[1:]
@@ -169,21 +169,24 @@ def get_annotation_dicts(root, split, classes_file):
 
     for stem in stems:
         annotation_path = root / f"annotations/{stem}.json"
-        images = [image for image in root.glob(f"images/{stem}.*") if image.suffix.lower() in extensions]
+        images = [
+            image for image in root.glob(f"images/{stem}.*") if image.suffix.lower() in extensions
+        ]
         if len(images) < 1:
-            raise ValueError(f"Annotation ({annotation_path}) does"
-                             f" not have a corresponding image")
+            raise ValueError(
+                f"Annotation ({annotation_path}) does" f" not have a corresponding image"
+            )
         if len(images) > 1:
-            raise ValueError(f"Image ({stem}) is present with multiple extensions."
-                             f" This is forbidden.")
+            raise ValueError(
+                f"Image ({stem}) is present with multiple extensions." f" This is forbidden."
+            )
         assert len(images) == 1
         image_path = images[0]
         images_path.append(image_path)
         annotations_path.append(annotation_path)
 
     if len(images_path) == 0:
-        raise ValueError(f"Could not find any {extensions} file"
-                         f" in {root / 'images'}")
+        raise ValueError(f"Could not find any {extensions} file" f" in {root / 'images'}")
 
     assert len(images_path) == len(annotations_path)
 
@@ -227,7 +230,7 @@ def get_annotation_dicts(root, split, classes_file):
                 "bbox_mode": box_mode,
                 "segmentation": [poly],
                 "category_id": category_id,
-                "iscrowd": 0
+                "iscrowd": 0,
             }
             objs.append(obj)
         record["annotations"] = objs

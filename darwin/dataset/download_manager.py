@@ -6,7 +6,7 @@ from typing import Optional
 
 import requests
 
-from darwin.utils import urljoin, SUPPORTED_IMAGE_EXTENSIONS
+from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS, urljoin
 
 
 def download_all_images_from_annotations(
@@ -15,7 +15,7 @@ def download_all_images_from_annotations(
     images_path: Path,
     force_replace: bool = False,
     remove_extra: bool = False,
-    annotation_format: str = "json"
+    annotation_format: str = "json",
 ):
     """Helper function: downloads the all images corresponding to a project.
 
@@ -46,16 +46,19 @@ def download_all_images_from_annotations(
         raise ValueError(f"Annotation format {annotation_format} not supported")
 
     # Verify that there is not already image in the images folder
-    existing_images = {image.stem: image for image in images_path.glob(f"*")
-                       if image.suffix in SUPPORTED_IMAGE_EXTENSIONS}
+    existing_images = {
+        image.stem: image
+        for image in images_path.glob(f"*")
+        if image.suffix in SUPPORTED_IMAGE_EXTENSIONS
+    }
     annotations_to_download_path = []
     for annotation_path in annotations_path.glob(f"*.{annotation_format}"):
         annotation = json.load(annotation_path.open())
         if not force_replace:
             # Check collisions on image filename, original_filename and json filename on the system
-            if Path(annotation['image']['filename']).stem in existing_images:
+            if Path(annotation["image"]["filename"]).stem in existing_images:
                 continue
-            if Path(annotation['image']['original_filename']).stem in existing_images:
+            if Path(annotation["image"]["original_filename"]).stem in existing_images:
                 continue
             if annotation_path.stem in existing_images:
                 continue
@@ -63,7 +66,9 @@ def download_all_images_from_annotations(
 
     if remove_extra:
         # Removes existing images for which there is not corresponding annotation
-        annotations_downloaded_stem = [a.stem for a in annotations_path.glob(f"*.{annotation_format}")]
+        annotations_downloaded_stem = [
+            a.stem for a in annotations_path.glob(f"*.{annotation_format}")
+        ]
         for existing_image in existing_images.values():
             if existing_image.stem not in annotations_downloaded_stem:
                 print(f"Removing {existing_image} as there is no corresponding annotation")
@@ -122,7 +127,7 @@ def download_image_from_json_annotation(api_url: str, annotation_path: Path, ima
     annotation = json.load(annotation_path.open())
 
     # Make the image file name match the one of the JSON annotation
-    original_filename_suffix = Path(annotation["image"]['original_filename']).suffix
+    original_filename_suffix = Path(annotation["image"]["original_filename"]).suffix
     path = Path(image_path) / (annotation_path.stem + original_filename_suffix)
 
     download_image(urljoin(api_url.replace("api/", ""), annotation["image"]["url"]), path)

@@ -345,11 +345,13 @@ class InstanceSegmentationDataset(Dataset):
         root: Path,
         split: Path,
         transform: Optional[List] = None,
-        convert_polygons_to_masks: Optional[bool] = True
+        convert_polygons_to_masks: Optional[bool] = True,
     ):
         """See superclass for documentation"""
         super().__init__(root=root, split=split, transform=transform)
-        self.convert_polygons = T.ConvertPolygonsToInstanceMasks() if convert_polygons_to_masks else None
+        self.convert_polygons = (
+            T.ConvertPolygonsToInstanceMasks() if convert_polygons_to_masks else None
+        )
 
     def _map_annotation(self, index: int):
         """See superclass for documentation
@@ -448,7 +450,7 @@ class SemanticSegmentationDataset(Dataset):
         root: Path,
         split: Path,
         transform: Optional[List] = None,
-        convert_polygons_to_masks: Optional[bool] = True
+        convert_polygons_to_masks: Optional[bool] = True,
     ):
         """See superclass for documentation"""
         super().__init__(root=root, split=split, transform=transform)
