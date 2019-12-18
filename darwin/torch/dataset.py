@@ -278,7 +278,9 @@ class ClassificationDataset(Dataset):
     def __init__(self, root, split: Path, transform: Optional[List] = None):
         """See superclass for documentation"""
         super().__init__(root=root, split=split, transform=transform)
-        self.classes = [e.strip() for e in (self.root / "lists/classes_tag.txt").read_text()]
+        self.classes = [
+            e.strip() for e in (self.root / "lists/classes_tag.txt").read_text().split("\n")
+        ]
 
     def _map_annotation(self, index: int):
         """See superclass for documentation
