@@ -12,6 +12,7 @@ class Release:
         dataset_slug,
         team_slug,
         version,
+        name,
         url,
         export_date,
         image_count,
@@ -22,6 +23,7 @@ class Release:
         self.dataset_slug = dataset_slug
         self.team_slug = team_slug
         self.version = version
+        self.name = name
         self.url = url
         self.export_date = export_date
         self.image_count = image_count
@@ -39,6 +41,7 @@ class Release:
                 dataset_slug=dataset_slug,
                 team_slug=team_slug,
                 version=payload["version"],
+                name=payload["name"],
                 export_date=export_date,
                 available=False,
                 image_count=None,
@@ -49,7 +52,8 @@ class Release:
         return cls(
             dataset_slug=dataset_slug,
             team_slug=team_slug,
-            version=payload["name"],
+            version=payload["version"],
+            name=payload["name"],
             image_count=payload["metadata"]["num_images"],
             class_count=len(payload["metadata"]["annotation_classes"]),
             export_date=export_date,
@@ -66,4 +70,4 @@ class Release:
 
     @property
     def identifier(self) -> DatasetIdentifier:
-        return DatasetIdentifier(f"{self.team_slug}/{self.dataset_slug}:{self.version}")
+        return DatasetIdentifier(f"{self.team_slug}/{self.dataset_slug}:{self.name}")

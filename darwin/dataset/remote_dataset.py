@@ -315,7 +315,7 @@ class RemoteDataset:
             raise NotFound(self.identifier)
 
         if version == "latest":
-            return releases[0]
+            return next((release for release in releases if release.latest))
 
         for release in releases:
             if str(release.version) == version:
