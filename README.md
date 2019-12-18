@@ -1,5 +1,6 @@
 # Darwin
-Official library to manage datasets along with [V7 Darwin annotation platform](https://darwin.v7labs.com).
+Official library to manage datasets along with 
+[V7 Darwin annotation platform](https://darwin.v7labs.com).
 
 Support tested for python 3.7.
 
@@ -137,7 +138,8 @@ TODO update output
 
 The framework is designed to be usable as a standalone python library.
 Usage can be inferred from looking at the operations performed in `cli_functions.py`.
-A minimal example to download a datset can be found in the [demo]()
+A minimal example to download a datset can be found in the 
+[demo](https://github.com/v7labs/darwin-py/blob/new_README/darwin_demo.py).
 
 
 
