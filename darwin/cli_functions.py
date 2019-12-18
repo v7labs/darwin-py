@@ -56,7 +56,7 @@ def authenticate(
         if datasets_dir is None:
             datasets_dir = prompt("Datasets directory", "~/.darwin/datasets")
 
-        datasets_dir = Path(os.path.expanduser(datasets_dir))
+        datasets_dir = Path(datasets_dir).expanduser()
         Path(datasets_dir).mkdir(parents=True, exist_ok=True)
 
         client.set_datasets_dir(datasets_dir)
