@@ -165,7 +165,7 @@ class Client:
         if response.status_code == 401:
             raise Unauthorized()
 
-        if response.status_code != 200 and retry:
+        if response.status_code != 200:
             for error_handler in error_handlers:
                 error_handler(response.status_code, response.json())
 
@@ -176,8 +176,9 @@ class Client:
                     f"Client: ({self})"
                     f"Request: (endpoint={endpoint}, payload={payload})"
                 )
-            time.sleep(10)
-            return self.post(endpoint, payload=payload, retry=False)
+            if retry:
+                time.sleep(10)
+                return self.post(endpoint, payload=payload, retry=False)
 
         return self._decode_response(response, debug)
 

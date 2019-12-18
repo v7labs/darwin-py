@@ -337,4 +337,4 @@ class RemoteDataset:
 
     @property
     def identifier(self) -> DatasetIdentifier:
-        return DatasetIdentifier(team_slug=self.team, datset_slug=self.slug)
+        return DatasetIdentifier(team_slug=self.team, dataset_slug=self.slug)
