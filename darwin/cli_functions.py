@@ -130,7 +130,7 @@ def local():
 
 def path(dataset_slug: str) -> Path:
     """Returns the absolute path of the specified dataset, if synced"""
-    identifier = DatasetIdentifier(dataset_slug)
+    identifier = DatasetIdentifier.parse(dataset_slug)
     client = _load_client(offline=True)
     try:
         for p in client.list_local_datasets(team=identifier.team_slug):
@@ -167,7 +167,7 @@ def dataset_report(dataset_slug: str, granularity) -> Path:
 
 def pull_dataset(dataset_slug: str):
     """Downloads a remote dataset (images and annotations) in the datasets directory. """
-    version = DatasetIdentifier(dataset_slug).version or "latest"
+    version = DatasetIdentifier.parse(dataset_slug).version or "latest"
     client = _load_client(offline=False)
     try:
         dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)

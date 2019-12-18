@@ -70,4 +70,4 @@ class Release:
 
     @property
     def identifier(self) -> DatasetIdentifier:
-        return DatasetIdentifier(f"{self.team_slug}/{self.dataset_slug}:{self.name}")
+        return DatasetIdentifier(team_slug=self.team_slug, dataset_slug=self.dataset_slug, version=self.name)

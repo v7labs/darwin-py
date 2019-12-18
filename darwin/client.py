@@ -232,7 +232,7 @@ class Client:
             Initialized dataset
         """
         if isinstance(dataset_identifier, str):
-            dataset_identifier = DatasetIdentifier(dataset_identifier)
+            dataset_identifier = DatasetIdentifier.parse(dataset_identifier)
         if not dataset_identifier.team_slug:
             dataset_identifier.team_slug = self.default_team
 
