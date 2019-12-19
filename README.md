@@ -47,7 +47,7 @@ provide additional information for each command available.
 
 To perform remote operations on Darwin you first need to authenticate.
 This requires a [team-specific API-key](https://darwin.v7labs.com/?settings=api-keys).  
-If you do not already have a Darwin account, you can [contact us](https://darwin.v7labs.com/whatever-link) and we can set one up for you.
+If you do not already have a Darwin account, you can [contact us](https://www.v7labs.com/contact) and we can set one up for you.
 
 To start the authentication process, use:
 
