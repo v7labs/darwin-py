@@ -1,7 +1,7 @@
 import json
 import multiprocessing as mp
 from pathlib import Path
-from typing import List, Optional, Union, Collection
+from typing import Collection, List, Optional
 
 import numpy as np
 import torch.utils.data as data
@@ -43,9 +43,11 @@ class Dataset(data.Dataset):
             raise FileNotFoundError(f"Could not find partition file: {self.split}")
         extensions = [".jpg", ".jpeg", ".png"]
         stems = (e.strip() for e in split.open())
-        image_extensions_mapping = {image.stem: image.suffix
-                                    for image in self.root.glob(f"images/*")
-                                    if image.suffix in extensions}
+        image_extensions_mapping = {
+            image.stem: image.suffix
+            for image in self.root.glob(f"images/*")
+            if image.suffix in extensions
+        }
         for stem in stems:
             annotation_path = self.root / f"annotations/{stem}.json"
             try:
@@ -134,7 +136,7 @@ class Dataset(data.Dataset):
         return {
             "image_id": index,
             "original_filename": self.images_path[index],
-            "annotations": annotation
+            "annotations": annotation,
         }
 
     def measure_mean_std(self, multi_threaded: bool = True):
@@ -280,7 +282,9 @@ class ClassificationDataset(Dataset):
     def __init__(self, root: Path, split: Path, transform: Optional[List] = None):
         """See superclass for documentation"""
         super().__init__(root=root, split=split, transform=transform)
-        self.classes = [e.strip() for e in (self.root / "lists/classes_tag.txt").read_text()]
+        self.classes = [
+            e.strip() for e in (self.root / "lists/classes_tag.txt").read_text().split("\n")
+        ]
 
     def _map_annotation(self, index: int):
         """See superclass for documentation
@@ -311,7 +315,7 @@ class ClassificationDataset(Dataset):
         return {
             "image_id": index,
             "original_filename": self.images_path[index],
-            "category_id": tags[0]
+            "category_id": tags[0],
         }
 
     def measure_weights(self, **kwargs) -> np.ndarray:
@@ -341,12 +345,13 @@ class InstanceSegmentationDataset(Dataset):
         root: Path,
         split: Path,
         transform: Optional[List] = None,
-        convert_polygons_to_masks: Optional[bool] = True
+        convert_polygons_to_masks: Optional[bool] = True,
     ):
         """See superclass for documentation"""
         super().__init__(root=root, split=split, transform=transform)
-        self.classes = [e.strip() for e in (self.root / "lists/classes_polygon.txt").read_text().split("\n")]
-        self.convert_polygons = T.ConvertPolygonsToInstanceMasks() if convert_polygons_to_masks else None
+        self.convert_polygons = (
+            T.ConvertPolygonsToInstanceMasks() if convert_polygons_to_masks else None
+        )
 
     def _map_annotation(self, index: int):
         """See superclass for documentation
@@ -393,12 +398,13 @@ class InstanceSegmentationDataset(Dataset):
             min_y = np.min([np.min(y_coord) for y_coord in y_coords])
             max_x = np.max([np.max(x_coord) for x_coord in x_coords])
             max_y = np.max([np.max(y_coord) for y_coord in y_coords])
-            w = max_x - min_x
-            h = max_y - min_y
+            w = max_x - min_x + 1
+            h = max_y - min_y + 1
             bbox_area = w * h
             # Compute the area of the polygon
-            poly_area = np.sum([polygon_area(x_coord, y_coord)
-                                for x_coord, y_coord in zip(x_coords, y_coords)])
+            poly_area = np.sum(
+                [polygon_area(x_coord, y_coord) for x_coord, y_coord in zip(x_coords, y_coords)]
+            )
             assert poly_area <= bbox_area
 
             # Create and append the new entry for this annotation
@@ -414,7 +420,7 @@ class InstanceSegmentationDataset(Dataset):
         return {
             "image_id": index,
             "original_filename": self.images_path[index],
-            "annotations": target
+            "annotations": target,
         }
 
     def measure_weights(self, **kwargs):
@@ -444,11 +450,13 @@ class SemanticSegmentationDataset(Dataset):
         root: Path,
         split: Path,
         transform: Optional[List] = None,
-        convert_polygons_to_masks: Optional[bool] = True
+        convert_polygons_to_masks: Optional[bool] = True,
     ):
         """See superclass for documentation"""
         super().__init__(root=root, split=split, transform=transform)
-        self.classes = [e.strip() for e in (self.root / "lists/classes_polygon.txt").read_text().split("\n")]
+        self.classes = [
+            e.strip() for e in (self.root / "lists/classes_polygon.txt").read_text().split("\n")
+        ]
         if self.classes[0] == "__background__":
             self.classes = self.classes[1:]
         self.convert_polygons = T.ConvertPolygonToMask() if convert_polygons_to_masks else None
@@ -491,7 +499,8 @@ class SemanticSegmentationDataset(Dataset):
         return {
             "image_id": index,
             "original_filename": self.images_path[index],
-            "annotations": target}
+            "annotations": target,
+        }
 
     def measure_weights(self, **kwargs):
         """Computes the class balancing weights (not the frequencies!!) given the train loader

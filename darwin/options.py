@@ -21,57 +21,49 @@ class Options(object):
         parser_create = subparsers.add_parser("team", help="List or pick teams. ")
         parser_create.add_argument("team_name", nargs="?", type=str, help="Team name to use. ")
         parser_create.add_argument(
-            "-l", "--list", action="store_true", required=False, help="Lists all teams. "
-        )
-
-        # PROJECT CREATE
-        parser_create = subparsers.add_parser("create", help="Create a new project. ")
-        parser_create.add_argument("project_name", type=str, help="Project name. ")
-
-        # PROJECT LOCAL
-        parser_local = subparsers.add_parser("local", help="List local projects. ")
-
-        # PROJECT PATH
-        parser_path = subparsers.add_parser(
-            "path", help="Prints absolute path of a local project. "
-        )
-        parser_path.add_argument("project_name", help="Name of the local project. ")
-
-        # PROJECT URL
-        parser_url = subparsers.add_parser("url", help="Prints the url of a remote project. ")
-        parser_url.add_argument("project_name", help="Name of the remote project. ")
-
-        # PROJECT PULL
-        parser_pull = subparsers.add_parser(
-            "pull", help="Pull/Download an existing remote project. "
-        )
-        parser_pull.add_argument("project_name", type=str, help="Dataset output name. ")
-
-        # PROJECT REMOTE
-        parser_remote = subparsers.add_parser("remote", help="List remote projects. ")
-
-        # PROJECT REMOVE
-        parser_remove = subparsers.add_parser(
-            "remove", help="Remove a remote or remote and local projects. "
-        )
-        parser_remove.add_argument("project_name", type=str, help="Remote project name to delete. ")
-        parser_remove.add_argument(
-            "-r",
-            "--remote",
-            dest="remote",
+            "-c",
+            "--current",
             action="store_true",
             required=False,
-            help="Indicates that the project deletion should be performed on darwin. ",
+            help="Shows only the current team. ",
+        )
+        # PROJECT REMOTE
+
+        dataset = subparsers.add_parser(
+            "dataset",
+            help="Dataset related functions",
+            description="Arguments to interact with datasets",
         )
 
-        # PROJECT PUSH
-        parser_push = subparsers.add_parser(
-            "push", help="Upload data to an existing (remote) project. "
+        dataset_action = dataset.add_subparsers(dest="action")
+
+        parser_remote = dataset_action.add_parser("remote", help="List remote datasets")
+        parser_remote.add_argument("-t", "--team", help="Specify team")
+        parser_remote.add_argument(
+            "-a", "--all", action="store_true", help="List datasets for all teams"
+        )
+
+        parser_local = dataset_action.add_parser("local", help="List downloaded datasets")
+
+        parser_create = dataset_action.add_parser("create", help="Creates a new dataset on darwin")
+        parser_create.add_argument("dataset_name", type=str, help="Dataset name")
+        parser_create.add_argument("-t", "--team", help="Specify team")
+
+        parser_path = dataset_action.add_parser("path", help="Print local path to dataset")
+        parser_path.add_argument("dataset", type=str, help="Dataset name")
+
+        parser_url = dataset_action.add_parser("url", help="Print url to dataset on darwin")
+        parser_url.add_argument("dataset", type=str, help="Dataset name")
+
+        parse_help = dataset_action.add_parser("help", help="Show this help message and exit.")
+
+        parser_push = dataset_action.add_parser(
+            "push", help="Upload data to an existing (remote) dataset."
         )
         parser_push.add_argument(
-            "project_name",
+            "dataset",
             type=str,
-            help="[Remote] Project name: to list all the existing projects, type 'darwin remote'. ",
+            help="[Remote] Dataset name: to list all the existing dataset, run 'darwin dataset remote'. ",
         )
         parser_push.add_argument("files", type=str, nargs="+", help="Files to upload")
 
@@ -88,8 +80,41 @@ class Options(object):
             "--fps",
             type=int,
             default="1",
-            help="Frames per second for video split (recommended: 1). ",
+            help="Frames per second for video split (recommended: 1).",
         )
+
+        parser_remove = dataset_action.add_parser(
+            "remove", help="Remove a remote or remote and local dataset."
+        )
+        parser_remove.add_argument("dataset", type=str, help="Remote dataset name to delete.")
+
+        parser_report = dataset_action.add_parser("report", help="Report about the annotators ")
+        parser_report.add_argument("dataset", type=str, help="Remote dataset name to report on.")
+
+        parser_report.add_argument(
+            "-g",
+            "--granularity",
+            choices=["day", "week", "month", "total"],
+            help="Granularity of the report",
+        )
+
+        parser_dataset_version = dataset_action.add_parser(
+            "releases", help="Available version of a dataset."
+        )
+        parser_dataset_version.add_argument(
+            "dataset", type=str, help="Remote dataset name to list."
+        )
+
+        parser_dataset_version = dataset_action.add_parser(
+            "pull", help="Download a version of a dataset."
+        )
+        parser_dataset_version.add_argument(
+            "dataset", type=str, help="Remote dataset name to download."
+        )
+
+        # parser_dataset_version.add_argument(
+        #     "--only-zip", type=str, help="Only saves the zip file without expanding it."
+        # )
 
         # VERSION
         parser_version = subparsers.add_parser(
