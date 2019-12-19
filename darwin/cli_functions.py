@@ -167,22 +167,34 @@ def dataset_report(dataset_slug: str, granularity) -> Path:
         _error(f"Dataset '{dataset_slug}' does not exist.")
 
 
-def export_dataset():
-    """
+def export_dataset(
+    dataset_slug: str,
+    annotation_class_ids: Optional[List] = None,
+    name: Optional[str] = None
+):
+    """Create a new release for the dataset
+
     Parameters
     ----------
+    dataset_slug: str
+        Slug of the dataset to which we perform the operation on
     annotation_class_ids: List
         List of the classes to filter
     name: str
         Name of the release
-
-    Returns
-    -------
-
     """
+    client = _load_client(team=team)
+    ds = DatasetIdentifier.parse(dataset_slug)
+
 
 def pull_dataset(dataset_slug: str):
-    """Downloads a remote dataset (images and annotations) in the datasets directory. """
+    """Downloads a remote dataset (images and annotations) in the datasets directory.
+
+    Parameters
+    ----------
+    dataset_slug: str
+        Slug of the dataset to which we perform the operation on
+    """
     version = DatasetIdentifier.parse(dataset_slug).version or "latest"
     client = _load_client(offline=False)
     try:
