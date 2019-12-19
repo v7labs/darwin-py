@@ -81,7 +81,7 @@ myteam/mydataset     112025        73.0%
 
 ### Create/remove a dataset 
 
-To creates an empty dataset remotely:
+To create an empty dataset remotely:
 
 ```
 $ darwin dataset create test
@@ -147,4 +147,3 @@ dataset_identifier = DatasetIdentifier.from_slug(dataset_slug="test", team_slug=
 ds = client.get_remote_dataset(dataset_identifier=dataset_identifier)
 ds.pull()    
 ```
-
