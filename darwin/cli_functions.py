@@ -65,7 +65,7 @@ def authenticate(
         return persist_client_configuration(client, default_team=default_team)
 
     except InvalidLogin:
-        _error("Invalid credentials")
+        _error("Invalid API key")
 
 
 def current_team():
@@ -183,8 +183,8 @@ def export_dataset(
     name: str
         Name of the release
     """
-    client = _load_client(team=team)
     ds = DatasetIdentifier.parse(dataset_slug)
+    client = _load_client(offline=False)
 
 
 def pull_dataset(dataset_slug: str):

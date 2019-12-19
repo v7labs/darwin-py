@@ -253,13 +253,6 @@ class RemoteDataset:
         """Archives (soft-deletion) the remote dataset"""
         self.client.put(f"datasets/{self.dataset_id}/archive", payload={}, team=self.team)
 
-    def get_report(self, granularity="day"):
-        return self.client.get(
-            f"/reports/{self.dataset_id}/annotation?group_by=dataset,user&dataset_ids={self.dataset_id}&granularity={granularity}&format=csv&include=dataset.name,user.first_name,user.last_name,user.email",
-            team=self.team,
-            raw=True,
-        ).text
-
     def release(self, annotation_class_ids: Optional[List] = None, name: Optional[str] = None):
         """Create a new release for the dataset
 
@@ -280,6 +273,13 @@ class RemoteDataset:
         payload = {"annotation_class_ids": annotation_class_ids, "name": name}
         self.client.post(f"/datasets/{self.dataset_id}/exports", payload=payload, team=self.team)
         return self.get_release()
+
+    def get_report(self, granularity="day"):
+        return self.client.get(
+            f"/reports/{self.dataset_id}/annotation?group_by=dataset,user&dataset_ids={self.dataset_id}&granularity={granularity}&format=csv&include=dataset.name,user.first_name,user.last_name,user.email",
+            team=self.team,
+            raw=True,
+        ).text
 
     def get_releases(self):
         """Get a sorted list of releases with the most recent first
@@ -331,7 +331,7 @@ class RemoteDataset:
     @property
     def remote_path(self) -> Path:
         """Returns an URL specifying the location of the remote dataset"""
-        return urljoin(self.client.base_url, f"/datasets/{self.dataset_id}")
+        return Path(urljoin(self.client.base_url, f"/datasets/{self.dataset_id}"))
 
     @property
     def local_path(self) -> Path:
