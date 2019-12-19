@@ -65,7 +65,7 @@ def authenticate(
         return persist_client_configuration(client, default_team=default_team)
 
     except InvalidLogin:
-        _error("Invalid credentials")
+        _error("Invalid API key")
 
 
 def current_team():
