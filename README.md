@@ -47,7 +47,7 @@ provide additional information for each command available.
 
 To perform remote operations on Darwin you first need to authenticate.
 This requires a [team-specific API-key](https://darwin.v7labs.com/?settings=api-keys).  
-If you do not already have a Darwin account, you can [register for free](https://darwin.v7labs.com).
+If you do not already have a Darwin account, you can [contact us](https://darwin.v7labs.com/whatever-link) and we can set one up for you.
 
 To start the authentication process, use:
 
@@ -147,5 +147,4 @@ dataset_identifier = DatasetIdentifier.from_slug(dataset_slug="test", team_slug=
 ds = client.get_remote_dataset(dataset_identifier=dataset_identifier)
 ds.pull()    
 ```
-
 
