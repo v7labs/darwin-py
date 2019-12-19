@@ -6,12 +6,18 @@ class InvalidLogin(Exception):
     pass
 
 
+class InvalidTeam(Exception):
+    pass
+
+
 class MissingConfig(Exception):
     pass
 
 
 class NotFound(Exception):
-    pass
+    def __init__(self, name):
+        super().__init__()
+        self.name = name
 
 
 class UnsupportedFileType(Exception):
@@ -28,4 +34,8 @@ class NameTaken(Exception):
 
 
 class ValidationError(Exception):
+    pass
+
+
+class Unauthorized(Exception):
     pass

@@ -4,7 +4,7 @@ import os
 from collections import defaultdict
 from pathlib import Path
 from typing import Generator, Iterable, List, Optional
-import datetime
+
 import numpy as np
 from tqdm import tqdm
 
@@ -247,14 +247,16 @@ def split_dataset(
 
     # Create split id, path and final split paths
     if val_percentage is None or not 0 < val_percentage < 1.0:
-        raise ValueError(f"Invalid validation percentage ({val_percentage}). "
-                         f"Must be > 0 and < 1.0")
+        raise ValueError(
+            f"Invalid validation percentage ({val_percentage}). " f"Must be > 0 and < 1.0"
+        )
     if test_percentage is None or not 0 <= test_percentage < 1.0:
-        raise ValueError(f"Invalid test percentage ({test_percentage}). "
-                         f"Must be > 0 and < 1.0")
+        raise ValueError(f"Invalid test percentage ({test_percentage}). " f"Must be > 0 and < 1.0")
     if not val_percentage + test_percentage < 1.0:
-        raise ValueError(f"Invalid combination of validation ({val_percentage}) "
-                         f"and test ({test_percentage}) percentages. Their sum must be < 1.0")
+        raise ValueError(
+            f"Invalid combination of validation ({val_percentage}) "
+            f"and test ({test_percentage}) percentages. Their sum must be < 1.0"
+        )
     if split_seed is None:
         raise ValueError("Seed is None")
     split_id = f"split_v{int(val_percentage*100)}_t{int(test_percentage*100)}_s{split_seed}"
@@ -303,9 +305,7 @@ def split_dataset(
 
         # STRATIFIED SPLIT ON TAGS
         # Stratify
-        idx_to_classes_tag = make_class_list(
-            "classes_tag.txt", annotation_files, lists_path, "tag"
-        )
+        idx_to_classes_tag = make_class_list("classes_tag.txt", annotation_files, lists_path, "tag")
         if len(idx_to_classes_tag) > 0:
             train_indices, val_indices, test_indices = _stratify_samples(
                 idx_to_classes_tag, split_seed, test_percentage, val_percentage
@@ -319,11 +319,7 @@ def split_dataset(
         # STRATIFIED SPLIT ON POLYGONS
         # Stratify
         idx_to_classes_polygon = make_class_list(
-            "classes_polygon.txt",
-            annotation_files,
-            lists_path,
-            "polygon",
-            add_background=True,
+            "classes_polygon.txt", annotation_files, lists_path, "polygon", add_background=True
         )
         if len(idx_to_classes_polygon) > 0:
             train_indices, val_indices, test_indices = _stratify_samples(

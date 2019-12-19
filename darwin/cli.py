@@ -1,82 +1,80 @@
-import argparse
 import getpass
 
+import requests.exceptions
+
 import darwin.cli_functions as f
+from darwin.exceptions import InvalidTeam, Unauthenticated, Unauthorized
 from darwin.options import Options
-from darwin.utils import prompt
 
 
 def main():
     args, parser = Options().parse_args()
+    try:
+        run(args, parser)
+    except Unauthorized:
+        f._error("Your API key is not authorized to do that action.")
+    except Unauthenticated:
+        f._error("You need to specify a valid API key to do that action.")
+    except InvalidTeam:
+        f._error("The team specified is not in the configuration, please authenticate first.")
+    except requests.exceptions.ConnectionError:
+        f._error("Darwin seems unreachable, please try again in a minute or contact support.")
 
+
+def run(args, parser):
     if args.command == "help":
-        print(parser.description)
-        print("\nCommands:\n")
-        subparsers_actions = [
-            action for action in parser._actions if isinstance(action, argparse._SubParsersAction)
-        ]
-        for subparsers_action in subparsers_actions:
-            # get all subparsers and print help
-            for choice in sorted(subparsers_action._choices_actions, key=lambda x: x.dest):
-                print("    {:<19} {}".format(choice.dest, choice.help))
-
+        f.help(parser)
     # Authenticate user
     if args.command == "authenticate":
-        email = input("Username (email address): ")
-        password = getpass.getpass(prompt="Password: ", stream=None)
-        projects_dir = prompt("Project directory", "~/.darwin/projects")
-        f.authenticate(email, password, projects_dir)
-        print("Authentication succeeded. ")
-
+        api_key = getpass.getpass(prompt="API key: ", stream=None)
+        if api_key.strip() == "":
+            print(
+                "API Key needed, generate one for your team: https://darwin.v7labs.com/?settings=api-keys"
+            )
+            return
+        f.authenticate(api_key)
+        print("Authentication succeeded.")
     # Select / List team
     elif args.command == "team":
         if args.team_name:
             f.set_team(args.team_name)
-        elif args.list:
-            f.list_teams()
-        else:
+        elif args.current:
             f.current_team()
-
-    # Create new project
-    elif args.command == "create":
-        f.create_dataset(args.project_name)
-
-    # List existing projects
-    elif args.command == "local":
-        f.local()
-
-    # Print projects local path
-    elif args.command == "path":
-        path = f.path(args.project_name)
-        print(path)
-
-    # Print the url of a remote project
-    elif args.command == "url":
-        url = f.url(args.project_name)
-        print(url)
-
-    # Download dataset
-    elif args.command == "pull":
-        project_name = args.project_name
-        local_dataset = f.pull_project(project_name)
-        print(f"Project {project_name} downloaded at {local_dataset.local_path}. ")
-
-    # List existing projects (remotely)
-    elif args.command == "remote":
-        f.remote()
-
-    # Remove a project (remotely)
-    elif args.command == "remove":
-        project_name = args.project_name
-        f.remove_remote_project(project_name)
-
-    # Upload new data to a project (remotely)
-    elif args.command == "push":
-        f.upload_data(args.project_name, args.files, args.exclude, args.fps)
-
+        else:
+            f.list_teams()
     # Version
     elif args.command == "version":
-        print("0.0.1")
+        print("0.3")
+
+    elif args.command == "dataset":
+        if args.action == "remote":
+            f.list_remote_datasets(args.all, args.team)
+        elif args.action == "local":
+            f.local()
+        elif args.action == "create":
+            f.create_dataset(args.dataset_name, args.team)
+        elif args.action == "path":
+            path = f.path(args.dataset)
+            if path:
+                print(path)
+            else:
+                print("The dataset has not been downloaded")
+        # Print the url of a remote project
+        elif args.action == "url":
+            f.url(args.dataset)
+        elif args.action == "push":
+            f.upload_data(args.dataset, args.files, args.exclude, args.fps)
+        # Remove a project (remotely)
+        elif args.action == "remove":
+            f.remove_remote_dataset(args.dataset)
+        elif args.action == "report":
+            f.dataset_report(args.dataset, args.granularity or "day")
+        elif args.action == "releases":
+            f.dataset_list_releases(args.dataset)
+        elif args.action == "pull":
+            f.pull_dataset(args.dataset)
+        elif args.action == "help" or args.action == None:
+            f.help(parser, "dataset")
 
 
 if __name__ == "__main__":
