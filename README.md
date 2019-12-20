@@ -89,7 +89,6 @@ Dataset 'test' (myteam/test) has been created.
 Access at https://darwin.v7labs.com/datasets/579
 ``` 
 
-Note that in this case `579` will be the dataset ID.
 The dataset will be created in the team you're authenticated for.
 
 To delete the project on the server:
@@ -141,8 +140,7 @@ A minimal example to download a dataset is provided below and a more extensive o
 from darwin.client import Client
 from darwin.dataset.identifier import DatasetIdentifier
 
-client = Client.local(team_slug="myteam") 
-dataset_identifier = DatasetIdentifier.from_slug(dataset_slug="test", team_slug="myteam")
-ds = client.get_remote_dataset(dataset_identifier=dataset_identifier)
-ds.pull()    
-```
+client = Client.local() # use the configuration in ~/.darwin/config.yaml
+dataset = client.get_remote_dataset(DatasetIdentifier.parse("myteam/test"))
+dataset.pull() # downloads annotations and images for the latest exported version
+# ```
