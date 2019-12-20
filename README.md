@@ -55,7 +55,7 @@ To start the authentication process, use:
 $ darwin authenticate
 ```
 
-You will be then prompted to insert the API-key, whether you want to set the corresponding team as 
+You will be then prompted to enter your API-key, whether you want to set the corresponding team as 
 default and finally the desired location on the local file system for the datasets of that team.
 This process will create a configuration file at `~/.darwin/config.yaml`.
 This file will be updated with future authentications for different teams.
