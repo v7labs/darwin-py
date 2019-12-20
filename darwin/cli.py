@@ -69,6 +69,9 @@ def run(args, parser):
             f.remove_remote_dataset(args.dataset)
         elif args.action == "report":
             f.dataset_report(args.dataset, args.granularity or "day")
+        # Create a new release for that dataset
+        elif args.action == "export":
+            f.export_dataset(args.dataset, args.annotation_class, args.name)
         elif args.action == "releases":
             f.dataset_list_releases(args.dataset)
         elif args.action == "pull":
