@@ -1,6 +1,7 @@
 import json
 import shutil
 import tempfile
+import time
 import zipfile
 from datetime import datetime
 from pathlib import Path
@@ -253,7 +254,7 @@ class RemoteDataset:
         """Archives (soft-deletion) the remote dataset"""
         self.client.put(f"datasets/{self.dataset_id}/archive", payload={}, team=self.team)
 
-    def release(self, annotation_class_ids: Optional[List] = None, name: Optional[str] = None):
+    def export(self, annotation_class_ids: Optional[List] = None, name: Optional[str] = None):
         """Create a new release for the dataset
 
         Parameters
@@ -272,6 +273,7 @@ class RemoteDataset:
             annotation_class_ids = []
         payload = {"annotation_class_ids": annotation_class_ids, "name": name}
         self.client.post(f"/datasets/{self.dataset_id}/exports", payload=payload, team=self.team)
+        time.sleep(2.0) # This is necessary avoid a race condition on pulling the latest release
         return self.get_release()
 
     def get_report(self, granularity="day"):
