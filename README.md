@@ -39,7 +39,7 @@ pip install --editable .
 ## Usage as a Command Line Interface (CLI)
 
 Once installed, `darwin` is accessible as a command line tool.
-A useful way to navigate the CLI usage is trough the help command `-h/--help` which will 
+A useful way to navigate the CLI usage is through the help command `-h/--help` which will 
 provide additional information for each command available. 
 
 
