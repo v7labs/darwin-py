@@ -1,4 +1,3 @@
-import argparse
 import getpass
 
 import requests.exceptions
@@ -24,16 +23,7 @@ def main():
 
 def run(args, parser):
     if args.command == "help":
-        print(parser.description)
-        print("\nCommands:")
-        subparsers_actions = [
-            action for action in parser._actions if isinstance(action, argparse._SubParsersAction)
-        ]
-        for subparsers_action in subparsers_actions:
-            # get all subparsers and print help
-            for choice in sorted(subparsers_action._choices_actions, key=lambda x: x.dest):
-                print("    {:<19} {}".format(choice.dest, choice.help))
-
+        f.help(parser)
     # Authenticate user
     if args.command == "authenticate":
         api_key = getpass.getpass(prompt="API key: ", stream=None)
@@ -44,7 +34,6 @@ def run(args, parser):
             return
         f.authenticate(api_key)
         print("Authentication succeeded.")
-
     # Select / List team
     elif args.command == "team":
         if args.team_name:
@@ -85,24 +74,7 @@ def run(args, parser):
         elif args.action == "pull":
             f.pull_dataset(args.dataset)
         elif args.action == "help" or args.action == None:
-            dataset_parser = [
-                action.choices["dataset"]
-                for action in parser._actions
-                if isinstance(action, argparse._SubParsersAction) and "dataset" in action.choices
-            ][0]
-
-            subparsers_actions = [
-                action
-                for action in dataset_parser._actions
-                if isinstance(action, argparse._SubParsersAction)
-            ]
-
-            print(dataset_parser.description)
-            print("\nCommands:")
-            for subparsers_action in subparsers_actions:
-                # get all subparsers and print help
-                for choice in sorted(subparsers_action._choices_actions, key=lambda x: x.dest):
-                    print("    {:<19} {}".format(choice.dest, choice.help))
+            f.help(parser, "dataset")
 
 
 if __name__ == "__main__":

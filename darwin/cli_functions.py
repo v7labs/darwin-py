@@ -1,3 +1,4 @@
+import argparse
 import datetime
 import os.path
 import sys
@@ -21,13 +22,19 @@ from darwin.table import Table
 from darwin.utils import find_files, persist_client_configuration, prompt, secure_continue_request
 
 
-def authenticate(api_key: str) -> Config:
+def authenticate(
+    api_key: str, default_team: Optional[bool] = None, datasets_dir: Optional[Path] = None
+) -> Config:
     """Authenticate the API key against the server and creates a configuration file for it
 
     Parameters
     ----------
     api_key : str
         API key to use for the client login
+    default_team: bool
+        Flag to make the team the default one
+    datasets_dir: Path
+        Dataset directory on the file system
 
     Returns
     -------
@@ -37,23 +44,28 @@ def authenticate(api_key: str) -> Config:
     # Resolve the home folder if the dataset_dir starts with ~ or ~user
 
     try:
-        client = Client.login(api_key=api_key)
+        client = Client.from_api_key(api_key=api_key)
         config_path = Path.home() / ".darwin" / "config.yaml"
         config_path.parent.mkdir(exist_ok=True)
 
-        default_team = input(f"Make {client.default_team} the default team? [y/N] ") in ["Y", "y"]
-        datasets_dir = prompt("Datasets directory", "~/.darwin/datasets")
+        if default_team is None:
+            default_team = input(f"Make {client.default_team} the default team? [y/N] ") in [
+                "Y",
+                "y",
+            ]
+        if datasets_dir is None:
+            datasets_dir = prompt("Datasets directory", "~/.darwin/datasets")
 
-        datasets_dir = Path(os.path.expanduser(datasets_dir))
+        datasets_dir = Path(datasets_dir).expanduser()
         Path(datasets_dir).mkdir(parents=True, exist_ok=True)
-        print(f"Datasets directory created {datasets_dir}")
-        client.datasets_dir = datasets_dir
+
+        client.set_datasets_dir(datasets_dir)
 
         default_team = client.default_team if default_team else None
         return persist_client_configuration(client, default_team=default_team)
 
     except InvalidLogin:
-        _error("Invalid credentials")
+        _error("Invalid API key")
 
 
 def current_team():
@@ -120,7 +132,7 @@ def local():
 
 def path(dataset_slug: str) -> Path:
     """Returns the absolute path of the specified dataset, if synced"""
-    identifier = DatasetIdentifier(dataset_slug)
+    identifier = DatasetIdentifier.parse(dataset_slug)
     client = _load_client(offline=True)
     try:
         for p in client.list_local_datasets(team=identifier.team_slug):
@@ -157,7 +169,7 @@ def dataset_report(dataset_slug: str, granularity) -> Path:
 
 def pull_dataset(dataset_slug: str):
     """Downloads a remote dataset (images and annotations) in the datasets directory. """
-    version = DatasetIdentifier(dataset_slug).version or "latest"
+    version = DatasetIdentifier.parse(dataset_slug).version or "latest"
     client = _load_client(offline=False)
     try:
         dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
@@ -170,7 +182,7 @@ def pull_dataset(dataset_slug: str):
         _error(f"please re-authenticate")
     try:
         release = dataset.get_release(version)
-        dataset.pull(release)
+        dataset.pull(release=release)
     except NotFound:
         _error(
             f"Version '{dataset.identifier}:{version}' does not exist "
@@ -281,6 +293,26 @@ def upload_data(
         _error(f"No files found")
 
 
+def help(parser, subparser: Optional[str] = None):
+    if subparser:
+        parser = next(
+            action.choices[subparser]
+            for action in parser._actions
+            if isinstance(action, argparse._SubParsersAction) and subparser in action.choices
+        )
+
+    actions = [
+        action for action in parser._actions if isinstance(action, argparse._SubParsersAction)
+    ]
+
+    print(parser.description)
+    print("\nCommands:")
+    for action in actions:
+        # get all subparsers and print help
+        for choice in sorted(action._choices_actions, key=lambda x: x.dest):
+            print("    {:<19} {}".format(choice.dest, choice.help))
+
+
 def _error(message):
     print(f"Error: {message}")
     sys.exit(1)
@@ -305,7 +337,7 @@ def _load_client(team: Optional[str] = None, offline: bool = False):
     """
     try:
         config_dir = Path.home() / ".darwin" / "config.yaml"
-        client = Client.from_config(config_dir, team=team)
+        client = Client.from_config(config_dir, team_slug=team)
         return client
     except MissingConfig:
         _error("Authenticate first")

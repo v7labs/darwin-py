@@ -1,11 +1,14 @@
+import csv
 import functools
 import itertools
 import json
+import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 import requests
 
+from darwin.dataset.utils import exhaust_generator
 from darwin.exceptions import UnsupportedFileType
 from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS, SUPPORTED_VIDEO_EXTENSIONS
 
@@ -265,7 +268,13 @@ def sign_upload(client: "Client", image_id: int, key: str, file_path: Path, team
 
 
 def upload_annotations(
-    client: "Client", image_mapping: Path, class_mapping: Path, annotations_path: Path, team: str
+    client: "Client",
+    team: str,
+    image_mapping: Path,
+    annotations_path: Path,
+    class_mapping: Path,
+    dataset_id: Optional[int] = None,
+    multi_threaded: bool = True,
 ):
     """Experimental feature to upload annotations from the front end
 
@@ -273,20 +282,30 @@ def upload_annotations(
     ----------
     client: Client
         Client authenticated to the team where the put request will be made
+    team: str
+        Team against which the client will make the requests
     image_mapping: Path
         Path to the json file which contains the mapping between `original file names`
         and `dataset image id` which are required in the put request to compose the endpoint
-    class_mapping: Path
-        Path to the json file which contains the mapping between `class name` and `class id` which
-        is required in the put request to compose the payload
     annotations_path: Path
         Path to the folder which contains all the json files representing the annotations to add
-
+    class_mapping: Path
+        Path to the json file which contains the mapping between `class name` and `class id` which
+        is required in the put request to compose the payload. If not provided, new classes
+        will be created
+    dataset_id: int
+        Dataset ID where to upload the annotations. This is required if class_mapping is None
+        or if a class present in the annotations is missing on Darwin
+    multi_threaded : bool
+        Uses multiprocessing to upload the dataset in parallel.
     Notes
     -----
         This function is experimental and the json files `image_mapping` and `class_mapping` can
         actually only be retrieved from the backend at the moment.
     """
+    # This is where the responses from the upload function will be saved/load for resume
+    responses_path = image_mapping.parent / "upload_responses.json"
+    output_file_path = image_mapping.parent / "log_requests.csv"
 
     # Read and prepare the image id mappings in a dict format {'original filename': 'image id'}
     with image_mapping.open() as json_file:
@@ -295,25 +314,236 @@ def upload_annotations(
     # Read and prepare the class mappings in a dict format {'class name': 'class id'}
     with class_mapping.open() as json_file:
         class_mapping = {cm["name"]: cm["id"] for cm in json.load(json_file)}
+    if class_mapping is not None:
+        with class_mapping.open() as json_file:
+            class_mapping = {cm["name"]: cm["id"] for cm in json.load(json_file)}
+    else:
+        class_mapping = {}
 
-    # For each annotation found in the folder send out a request
+    # Resume
+    with open(output_file_path) as csv_file:
+        csv_reader = csv.reader(csv_file, delimiter=",")
+        images_id = set()
+        for row in csv_reader:
+            # Find the index of the dataset image id in the line
+            if len(row) == 2:
+                line = row[1]  # Row [0] is payload and row [1] is the response
+                if "dataset_image_id" in line:
+                    index = line.find("dataset_image_id")
+                    # Extract the next integer after 'dataset_image_id' and store it in the set
+                    id = int(re.search(r"\d+", line[index:]).group())
+                    images_id.add(id)
+
+    # Check that all the classes exists
     for f in annotations_path.glob("*.json"):
         with f.open() as json_file:
             # Read the annotation json file
             data = json.load(json_file)
-            # Compose the payload
-            payload_annotations = []
+            image_dataset_id = image_mapping[data["image"]["original_filename"]]
+            # Skip if already present
+            if image_dataset_id in images_id:
+                continue
             for annotation in data["annotations"]:
-                # Replace the class names with class id as provided by the mapping
-                class_id = class_mapping[annotation["name"]]
-                # Remove the name
-                del annotation["name"]
-                # Compose the list of annotations as the payload wants
-                payload_annotations.append({"annotation_class_id": class_id, "data": annotation})
-            payload = {"annotations": payload_annotations}
-            # Compose the endpoint
-            endpoint = (
-                f"dataset_images/{image_mapping[data['image']['original_filename']]}/annotations"
+                # If the class is missing, create a new class on Darwin and update the mapping
+                if not annotation["name"] in class_mapping:
+                    if dataset_id is not None:
+                        new_class = create_new_class(
+                            client=client,
+                            team=team,
+                            annotation_type_ids=[
+                                "1"
+                            ],  # TODO maybe in the future allow to use polygons and BB as well
+                            cropped_image={
+                                "image_id": image_dataset_id,
+                                "scale": 0.01,
+                                "x": "0",
+                                "y": "0",
+                            },
+                            dataset_id=dataset_id,
+                            description="",
+                            expected_occurrences=[0, 1],
+                            metadata=None,
+                            name=annotation["name"],
+                        )
+                        class_mapping[new_class["name"]] = new_class["id"]
+                    else:
+                        raise ValueError(
+                            "Dataset ID is None and a class is missing on Darwin"
+                            " (or in the provided mapping)."
+                        )
+
+    # For each annotation found in the folder send out a request
+    files_to_upload = []
+    for f in annotations_path.glob("*.json"):
+        with f.open() as json_file:
+            # Read the annotation json file
+            data = json.load(json_file)
+            image_dataset_id = image_mapping[data["image"]["original_filename"]]
+            # Skip if already present
+            if image_dataset_id in images_id:
+                continue
+            files_to_upload.append({"data": data, "image_dataset_id": image_dataset_id})
+
+    generator = (
+        functools.partial(
+            _upload_annotation,
+            class_mapping=class_mapping,
+            client=client,
+            team=team,
+            data=element["data"],
+            image_dataset_id=element["image_dataset_id"],
+            output_file_path=output_file_path,
+        )
+        for element in files_to_upload
+    )
+
+    responses = exhaust_generator(
+        progress=generator, count=len(files_to_upload), multi_threaded=multi_threaded
+    )
+    # Log responses to file
+    if responses:
+        components_labels = ["payload", "response"]
+        responses = [
+            {
+                component_label: {k: str(v) for k, v in component.items()}
+                for response in responses
+                for component, component_label in zip(response, components_labels)
+            }
+        ]
+        with responses_path.open("w") as f:
+            json.dump(responses, f)
+
+
+def _upload_annotation(
+    class_mapping: Dict,
+    client: "Client",
+    team: str,
+    data: Dict,
+    image_dataset_id: int,
+    output_file_path: Path,
+):
+    """
+
+    Parameters
+    ----------
+    class_mapping: Path
+        Path to the json file which contains the mapping between `class name` and `class id` which
+        is required in the put request to compose the payload.
+    client: Client
+        Client authenticated to the team where the put request will be made
+    team: str
+        Team against which the client will make the requests
+    data: dict
+        Annotation JSON decoded
+    image_dataset_id: int
+        ID of the image within the dataset
+    output_file_path: Path
+        Path to the output file where to log the rep
+
+    Returns
+    -------
+    payload: dict
+        Payload used for the put request
+    response : dict
+        Dictionary with the response of the put request
+    """
+    # Compose the payload
+    payload_annotations = []
+    for annotation in data["annotations"]:
+
+        # If the class is missing, create a new class on Darwin and update the mapping
+        if not annotation["name"] in class_mapping:
+            raise ValueError(
+                f"Class {annotation['name']} is missing " f"in provided mapping {class_mapping}"
             )
-            response = client.put(endpoint=endpoint, payload=payload, team=team, retry=True)
-            print(response)
+
+        # Replace the class names with class id as provided by the mapping
+        class_id = class_mapping[annotation["name"]]
+
+        # Remove the name
+        del annotation["name"]
+        # Compose the list of annotations as the payload wants
+        payload_annotations.append({"annotation_class_id": class_id, "data": annotation})
+    payload = {"annotations": payload_annotations}
+    # Compose the endpoint
+    endpoint = f"dataset_images/{image_dataset_id}/annotations"
+    response = client.put(endpoint=endpoint, payload=payload, team=team, retry=True)
+    if not "error" in response:
+        with open(str(output_file_path), "a+") as file:
+            writer = csv.writer(file, delimiter=",", quotechar='"', quoting=csv.QUOTE_MINIMAL)
+            writer.writerow([payload, response])
+    return [payload, response]
+
+
+def create_new_class(
+    client: "Client",
+    team: str,
+    annotation_type_ids: List[str],
+    cropped_image: Optional[Dict],
+    dataset_id: int,
+    description: str,
+    expected_occurrences: List[int],
+    metadata: Optional[Dict],
+    name: str,
+):
+    """Create a new class on the dataset, with the parameters provided
+
+    Parameters
+    ----------
+    client: Client
+        Client authenticated to the team where the put request will be made
+    team: str
+        Team against which the client will make the requests
+    annotation_type_ids: List
+        List of the annotation types. TAG is ['1'].
+    cropped_image: Dict
+        Description of the thumbnail for the class. Can be None.
+        Example: {"image_id": 706170, "scale": 0.1455, "x": "2348", "y": "70"}
+    dataset_id: int
+        Dataset ID where to create the class
+    description: str
+        Class description. Can be empty string or None
+    expected_occurrences: List
+        List of integers denoting the expected occurrences.
+        Example: [0, 1]
+    metadata: Dict
+        Metadata for the class. Example {"_color": "auto"}
+    name: str
+        Class name
+
+    Returns
+    -------
+    response: Dict
+        Client response after the request
+    """
+    # Sanity checks and inject default values
+    if client is None:
+        raise ValueError(f"Client is {client}. Invalid value.")
+    if annotation_type_ids is None:
+        raise ValueError(f"Annotation type IDs is {annotation_type_ids}. Invalid value.")
+    if dataset_id is None:
+        raise ValueError(f"Dataset ID is {dataset_id}. Invalid value.")
+    if not description:
+        description = ""
+    if expected_occurrences is None:
+        raise ValueError(f"Expected occurrences is {expected_occurrences}. Invalid value.")
+    if not metadata:
+        metadata = {"_color": "auto"}
+    if not name:
+        raise ValueError(f"Class name is {name}. Invalid value.")
+
+    payload = {
+        "annotation_type_ids": annotation_type_ids,
+        "cropped_image": cropped_image,
+        "dataset_id": dataset_id,
+        "description": description,
+        "expected_occurrences": expected_occurrences,
+        "metadata": metadata,
+        "name": name,
+    }
+
+    endpoint = "annotation_classes"
+    response = client.post(endpoint=endpoint, payload=payload, team=team, retry=True)
+    if "errors" in response:
+        raise ValueError(f"Response error: {response['errors']}")
+    return response
