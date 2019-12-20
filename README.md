@@ -125,9 +125,8 @@ Downloads a remote project, images and annotations, in the projects directory
 
 ```
 $ darwin dataset pull test 
-TODO update output
+Dataset myteam/test:versionname downloaded at /directory/choosen/at/authentication/time.
 ```
-
 
 
 ---
