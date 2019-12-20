@@ -109,7 +109,7 @@ class Options(object):
         parser_export.add_argument(
             "annotation_class",
             type=str,
-            nargs='+',
+            nargs='?',
             help="List of class filters"
         )
         parser_export.add_argument("name", type=str, help="Name with with the version gets tagged.")
