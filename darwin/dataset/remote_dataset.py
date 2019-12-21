@@ -12,7 +12,7 @@ from darwin.dataset.identifier import DatasetIdentifier
 from darwin.dataset.release import Release
 from darwin.dataset.upload_manager import add_files_to_dataset
 from darwin.dataset.utils import exhaust_generator
-from darwin.exceptions import NotFound
+from darwin.exceptions import NotFound, name_taken, validation_error
 from darwin.utils import find_files, urljoin
 
 if TYPE_CHECKING:
@@ -254,27 +254,25 @@ class RemoteDataset:
         """Archives (soft-deletion) the remote dataset"""
         self.client.put(f"datasets/{self.dataset_id}/archive", payload={}, team=self.team)
 
-    def export(self, annotation_class_ids: Optional[List] = None, name: Optional[str] = None):
+    def export(self, name: str, annotation_class_ids: Optional[List[str]] = None):
         """Create a new release for the dataset
 
         Parameters
         ----------
-        annotation_class_ids: List
-            List of the classes to filter
         name: str
             Name of the release
-
-        Returns
-        -------
-        release: Release
-            The release created right now
+        annotation_class_ids: List
+            List of the classes to filter
         """
         if annotation_class_ids is None:
             annotation_class_ids = []
         payload = {"annotation_class_ids": annotation_class_ids, "name": name}
-        self.client.post(f"/datasets/{self.dataset_id}/exports", payload=payload, team=self.team)
-        time.sleep(2.0) # This is necessary avoid a race condition on pulling the latest release
-        return self.get_release()
+        self.client.post(
+            f"/datasets/{self.dataset_id}/exports",
+            payload=payload,
+            team=self.team,
+            error_handlers=[name_taken, validation_error]
+        )
 
     def get_report(self, granularity="day"):
         return self.client.get(

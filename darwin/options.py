@@ -106,13 +106,13 @@ class Options(object):
             "export", help="Export the a version of a dataset."
         )
         parser_export.add_argument("dataset", type=str, help="Remote dataset name to export.")
+        parser_export.add_argument("name", type=str, help="Name with with the version gets tagged.")
         parser_export.add_argument(
             "annotation_class",
             type=str,
             nargs='?',
             help="List of class filters"
         )
-        parser_export.add_argument("name", type=str, help="Name with with the version gets tagged.")
 
         # Releases
         parser_dataset_version = dataset_action.add_parser(
