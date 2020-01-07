@@ -10,7 +10,7 @@ Main functions are (but not limited to):
 - Listing local and remote datasets
 - Create/remove datasets
 - Upload/download data to/from remote datasets
-- Direct integration with pytorch dataloaders (See [pytorch/README.md](torch/README.md))
+- Direct integration with pytorch dataloaders (See [torch/README.md](darwin/torch/README.md))
 
 Support tested for python 3.7.
 
@@ -137,4 +137,4 @@ dataset.pull() # downloads annotations and images for the latest exported versio
 ```
 
 
-See [pytorch/README.md](torch/README.md) for how to integrate darwin datasets directly in torch.
+See [torch/README.md](darwin/torch/README.md) for how to integrate darwin datasets directly in torch.
