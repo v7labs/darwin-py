@@ -184,9 +184,11 @@ def export_dataset(
         Name of the release
     """
     client = _load_client(offline=False)
-    ds = client.get_remote_dataset(DatasetIdentifier.parse(dataset_slug))
+    identifier = DatasetIdentifier.parse(dataset_slug)
+    ds = client.get_remote_dataset(identifier)
     ds.export(annotation_class_ids=annotation_class_ids, name=name)
-    print(f"Dataset {dataset_slug} successfully exported to :{name}")
+    identifier.version = name
+    print(f"Dataset {dataset_slug} successfully exported to {identifier}")
 
 def pull_dataset(dataset_slug: str):
     """Downloads a remote dataset (images and annotations) in the datasets directory.

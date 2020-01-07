@@ -12,8 +12,9 @@ from darwin.dataset.identifier import DatasetIdentifier
 from darwin.dataset.release import Release
 from darwin.dataset.upload_manager import add_files_to_dataset
 from darwin.dataset.utils import exhaust_generator
-from darwin.exceptions import NotFound, name_taken, validation_error
+from darwin.exceptions import NotFound
 from darwin.utils import find_files, urljoin
+from darwin.validators import name_taken, validation_error
 
 if TYPE_CHECKING:
     from darwin.client import Client
@@ -296,7 +297,7 @@ class RemoteDataset:
         except NotFound:
             return []
         releases = [Release.parse_json(self.slug, self.team, payload) for payload in releases_json]
-        return sorted(releases, key=lambda x: x.version, reverse=True)
+        return sorted(filter(lambda x: x.available, releases), key=lambda x: x.version, reverse=True)
 
     def get_release(self, name: str = "latest"):
         """Get a specific release for this dataset

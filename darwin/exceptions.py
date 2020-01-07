@@ -39,14 +39,3 @@ class ValidationError(Exception):
 
 class Unauthorized(Exception):
     pass
-
-
-#TODO not sure if this is the best place, but we need them in some kind of "shared" location (e.g. utils-like)
-def name_taken(code, body):
-    if code == 422 and body["errors"]["name"][0] == "has already been taken":
-        raise NameTaken
-
-
-def validation_error(code, body):
-    if code == 422:
-        raise ValidationError(body)
