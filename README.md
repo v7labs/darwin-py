@@ -2,36 +2,24 @@
 Official library to manage datasets along with 
 [V7 Darwin annotation platform](https://darwin.v7labs.com).
 
-Darwin-py can be used as a python library or as a command line tool (CLI).
+Darwin-py can both be used from the [command line](#usage-as-a-command-line-interface-cli) and as a [python library](#usage-as-a-python-library).
+
 Main functions are (but not limited to):
 
 - Client authentication
 - Listing local and remote datasets
-- Create/remove a dataset 
-- Upload/download data to/from a remote dataset
+- Create/remove datasets
+- Upload/download data to/from remote datasets
+- Direct integration with pytorch dataloaders (See [pytorch/README.md](torch/README.md))
 
 Support tested for python 3.7.
 
-
-
-
 ## Installation
-
-### Standard
 
 ```
 pip install darwin-py
 ```
 You can now type `darwin` in your terminal and access the command line interface.
-
-### Development
-
-After cloning the repository:
-
-```
-pip install --editable .
-```
-
 
 
 ---
@@ -49,10 +37,14 @@ To perform remote operations on Darwin you first need to authenticate.
 This requires a [team-specific API-key](https://darwin.v7labs.com/?settings=api-keys).  
 If you do not already have a Darwin account, you can [contact us](https://www.v7labs.com/contact) and we can set one up for you.
 
-To start the authentication process, use:
+To start the authentication process:
 
 ```
 $ darwin authenticate
+API key: 
+Make example-team the default team? [y/N] y
+Datasets directory [~/.darwin/datasets]: 
+Authentication succeeded.
 ```
 
 You will be then prompted to enter your API-key, whether you want to set the corresponding team as 
@@ -70,12 +62,12 @@ NAME            IMAGES     SYNC_DATE         SIZE
 mydataset       112025     yesterday     159.2 GB
 ```
 
-Lists a summary of remote projects accessible by the current user.
+Lists a summary of remote dataset accessible by the current user.
 
 ```
 $ darwin dataset remote
 NAME                 IMAGES     PROGRESS
-myteam/mydataset     112025        73.0%
+example-team/mydataset     112025        73.0%
 ```
 
 
@@ -85,7 +77,7 @@ To create an empty dataset remotely:
 
 ```
 $ darwin dataset create test
-Dataset 'test' (myteam/test) has been created.
+Dataset 'test' (example-team/test) has been created.
 Access at https://darwin.v7labs.com/datasets/579
 ``` 
 
@@ -94,7 +86,7 @@ The dataset will be created in the team you're authenticated for.
 To delete the project on the server:
 ```
 $ darwin dataset remove test
-About to delete myteam/test on darwin.
+About to delete example-team/test on darwin.
 Do you want to continue? [y/N] y
 ```
 
@@ -124,7 +116,7 @@ Downloads a remote project, images and annotations, in the projects directory
 
 ```
 $ darwin dataset pull test 
-Dataset myteam/test:versionname downloaded at /directory/choosen/at/authentication/time.
+Dataset example-team/test:versionname downloaded at /directory/choosen/at/authentication/time.
 ```
 
 
@@ -134,13 +126,15 @@ Dataset myteam/test:versionname downloaded at /directory/choosen/at/authenticati
 The framework is designed to be usable as a standalone python library.
 Usage can be inferred from looking at the operations performed in `darwin/cli_functions.py`.
 A minimal example to download a dataset is provided below and a more extensive one can be found in 
-[darwin_demo.py](https://github.com/v7labs/darwin-py/blob/new_README/darwin_demo.py).
+[darwin_demo.py](./darwin_demo.py).
 
 ```python
 from darwin.client import Client
-from darwin.dataset.identifier import DatasetIdentifier
 
 client = Client.local() # use the configuration in ~/.darwin/config.yaml
-dataset = client.get_remote_dataset(DatasetIdentifier.parse("myteam/test"))
+dataset = client.get_remote_dataset("example-team/test")
 dataset.pull() # downloads annotations and images for the latest exported version
-# ```
+```
+
+
+See [pytorch/README.md](torch/README.md) for how to integrate darwin datasets directly in torch.
