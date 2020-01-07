@@ -111,10 +111,22 @@ $ darwin dataset push test /path/to/folder/with/images
 100%|████████████████████████| 2/2 [00:01<00:00,  1.27it/s] 
 ```
 
-Downloads a remote project, images and annotations, in the projects directory 
-(specified in the authentication process [default: `~/.darwin/projects`]).
+Before a dataset can be downloaded, a release needs to be generated:
+```
+$ darwin dataset export test 0.1
+Dataset test successfully exported to example-team/test:0.1
+```
+
+This version is immutable, if new images / annotations have been added you will have to create a new release to included them.
+
+To list all available releases
 
 ```
+$ darwin dataset releases test
+NAME                           IMAGES     CLASSES                   EXPORT_DATE
+example-team/test:0.1               4           0     2019-12-07 11:37:35+00:00
+```
+
 $ darwin dataset pull test 
 Dataset example-team/test:versionname downloaded at /directory/choosen/at/authentication/time.
 ```

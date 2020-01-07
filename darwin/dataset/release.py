@@ -41,6 +41,7 @@ class Release:
                 version=payload["version"],
                 name=payload["name"],
                 export_date=export_date,
+                url=None,
                 available=False,
                 image_count=None,
                 class_count=None,
