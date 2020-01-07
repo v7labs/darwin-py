@@ -62,7 +62,7 @@ NAME            IMAGES     SYNC_DATE         SIZE
 mydataset       112025     yesterday     159.2 GB
 ```
 
-Lists a summary of remote dataset accessible by the current user.
+Lists a summary of remote datasets accessible by the current user.
 
 ```
 $ darwin dataset remote
