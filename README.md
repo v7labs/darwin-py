@@ -111,9 +111,7 @@ $ darwin dataset push test /path/to/folder/with/images
 100%|████████████████████████| 2/2 [00:01<00:00,  1.27it/s] 
 ```
 
-
-Before we can download a dataset we first need to generate a release
-
+Before a dataset can be downloaded, a release needs to be generated:
 ```
 $ darwin dataset export test 0.1
 Dataset test successfully exported to example-team/test:0.1
