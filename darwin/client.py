@@ -13,7 +13,8 @@ from darwin.exceptions import (
     InvalidLogin,
     MissingConfig,
     NotFound,
-    Unauthorized)
+    Unauthorized,
+)
 from darwin.utils import is_project_dir, urljoin
 from darwin.validators import name_taken, validation_error
 
@@ -429,5 +430,3 @@ class Client:
 
     def __str__(self):
         return f"Client(default_team={self.default_team})"
-
-

@@ -1,6 +1,5 @@
 import argparse
 import datetime
-import os.path
 import sys
 from pathlib import Path
 from typing import List, Optional
@@ -168,9 +167,7 @@ def dataset_report(dataset_slug: str, granularity) -> Path:
 
 
 def export_dataset(
-    dataset_slug: str,
-    annotation_class_ids: Optional[List] = None,
-    name: Optional[str] = None
+    dataset_slug: str, annotation_class_ids: Optional[List] = None, name: Optional[str] = None
 ):
     """Create a new release for the dataset
 
@@ -189,6 +186,7 @@ def export_dataset(
     ds.export(annotation_class_ids=annotation_class_ids, name=name)
     identifier.version = name
     print(f"Dataset {dataset_slug} successfully exported to {identifier}")
+
 
 def pull_dataset(dataset_slug: str):
     """Downloads a remote dataset (images and annotations) in the datasets directory.

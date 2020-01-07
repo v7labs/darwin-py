@@ -1,7 +1,6 @@
 import json
 import shutil
 import tempfile
-import time
 import zipfile
 from datetime import datetime
 from pathlib import Path
@@ -272,7 +271,7 @@ class RemoteDataset:
             f"/datasets/{self.dataset_id}/exports",
             payload=payload,
             team=self.team,
-            error_handlers=[name_taken, validation_error]
+            error_handlers=[name_taken, validation_error],
         )
 
     def get_report(self, granularity="day"):
@@ -297,7 +296,9 @@ class RemoteDataset:
         except NotFound:
             return []
         releases = [Release.parse_json(self.slug, self.team, payload) for payload in releases_json]
-        return sorted(filter(lambda x: x.available, releases), key=lambda x: x.version, reverse=True)
+        return sorted(
+            filter(lambda x: x.available, releases), key=lambda x: x.version, reverse=True
+        )
 
     def get_release(self, name: str = "latest"):
         """Get a specific release for this dataset
