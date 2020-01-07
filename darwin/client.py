@@ -12,13 +12,11 @@ from darwin.exceptions import (
     InsufficientStorage,
     InvalidLogin,
     MissingConfig,
-    NameTaken,
     NotFound,
-    Unauthenticated,
     Unauthorized,
-    ValidationError,
 )
 from darwin.utils import is_project_dir, urljoin
+from darwin.validators import name_taken, validation_error
 
 
 class Client:
@@ -432,13 +430,3 @@ class Client:
 
     def __str__(self):
         return f"Client(default_team={self.default_team})"
-
-
-def name_taken(code, body):
-    if code == 422 and body["errors"]["name"][0] == "has already been taken":
-        raise NameTaken
-
-
-def validation_error(code, body):
-    if code == 422:
-        raise ValidationError(body)

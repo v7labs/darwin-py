@@ -13,6 +13,7 @@ from darwin.dataset.upload_manager import add_files_to_dataset
 from darwin.dataset.utils import exhaust_generator
 from darwin.exceptions import NotFound
 from darwin.utils import find_files, urljoin
+from darwin.validators import name_taken, validation_error
 
 if TYPE_CHECKING:
     from darwin.client import Client
@@ -253,28 +254,32 @@ class RemoteDataset:
         """Archives (soft-deletion) the remote dataset"""
         self.client.put(f"datasets/{self.dataset_id}/archive", payload={}, team=self.team)
 
-    def get_report(self, granularity="day"):
-        return self.client.get(
-            f"/reports/{self.dataset_id}/annotation?group_by=dataset,user&dataset_ids={self.dataset_id}&granularity={granularity}&format=csv&include=dataset.name,user.first_name,user.last_name,user.email",
-            team=self.team,
-            raw=True,
-        ).text
-
-    def release(self, name: Optional[str] = None):
+    def export(self, name: str, annotation_class_ids: Optional[List[str]] = None):
         """Create a new release for the dataset
 
         Parameters
         ----------
         name: str
             Name of the release
-
-        Returns
-        -------
-        release: Release
-            The release created right now
+        annotation_class_ids: List
+            List of the classes to filter
         """
-        self.client.post(f"/datasets/{self.dataset_id}/exports", team=self.team)
-        return self.get_release()
+        if annotation_class_ids is None:
+            annotation_class_ids = []
+        payload = {"annotation_class_ids": annotation_class_ids, "name": name}
+        self.client.post(
+            f"/datasets/{self.dataset_id}/exports",
+            payload=payload,
+            team=self.team,
+            error_handlers=[name_taken, validation_error],
+        )
+
+    def get_report(self, granularity="day"):
+        return self.client.get(
+            f"/reports/{self.dataset_id}/annotation?group_by=dataset,user&dataset_ids={self.dataset_id}&granularity={granularity}&format=csv&include=dataset.name,user.first_name,user.last_name,user.email",
+            team=self.team,
+            raw=True,
+        ).text
 
     def get_releases(self):
         """Get a sorted list of releases with the most recent first
@@ -291,7 +296,9 @@ class RemoteDataset:
         except NotFound:
             return []
         releases = [Release.parse_json(self.slug, self.team, payload) for payload in releases_json]
-        return sorted(releases, key=lambda x: x.version, reverse=True)
+        return sorted(
+            filter(lambda x: x.available, releases), key=lambda x: x.version, reverse=True
+        )
 
     def get_release(self, name: str = "latest"):
         """Get a specific release for this dataset
@@ -326,7 +333,7 @@ class RemoteDataset:
     @property
     def remote_path(self) -> Path:
         """Returns an URL specifying the location of the remote dataset"""
-        return urljoin(self.client.base_url, f"/datasets/{self.dataset_id}")
+        return Path(urljoin(self.client.base_url, f"/datasets/{self.dataset_id}"))
 
     @property
     def local_path(self) -> Path:

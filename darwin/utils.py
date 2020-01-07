@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, List, Optional, Union
 
 from darwin.config import Config
 
@@ -58,9 +58,9 @@ def prompt(msg: str, default: Optional[str] = None) -> str:
 
 
 def find_files(
-    files: Optional[List[str]] = None,
+    files: Optional[List[Union[str, Path]]] = None,
     recursive: Optional[bool] = True,
-    files_to_exclude: Optional[List[str]] = None,
+    files_to_exclude: Optional[List[Union[str, Path]]] = None,
 ) -> List[Path]:
     """Retrieve a list of all files belonging to supported extensions. The exploration can be made
     recursive and a list of files can be excluded if desired.

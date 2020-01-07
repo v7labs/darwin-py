@@ -1,6 +1,5 @@
 import argparse
 import datetime
-import os.path
 import sys
 from pathlib import Path
 from typing import List, Optional
@@ -167,8 +166,36 @@ def dataset_report(dataset_slug: str, granularity) -> Path:
         _error(f"Dataset '{dataset_slug}' does not exist.")
 
 
+def export_dataset(
+    dataset_slug: str, annotation_class_ids: Optional[List] = None, name: Optional[str] = None
+):
+    """Create a new release for the dataset
+
+    Parameters
+    ----------
+    dataset_slug: str
+        Slug of the dataset to which we perform the operation on
+    annotation_class_ids: List
+        List of the classes to filter
+    name: str
+        Name of the release
+    """
+    client = _load_client(offline=False)
+    identifier = DatasetIdentifier.parse(dataset_slug)
+    ds = client.get_remote_dataset(identifier)
+    ds.export(annotation_class_ids=annotation_class_ids, name=name)
+    identifier.version = name
+    print(f"Dataset {dataset_slug} successfully exported to {identifier}")
+
+
 def pull_dataset(dataset_slug: str):
-    """Downloads a remote dataset (images and annotations) in the datasets directory. """
+    """Downloads a remote dataset (images and annotations) in the datasets directory.
+
+    Parameters
+    ----------
+    dataset_slug: str
+        Slug of the dataset to which we perform the operation on
+    """
     version = DatasetIdentifier.parse(dataset_slug).version or "latest"
     client = _load_client(offline=False)
     try:
