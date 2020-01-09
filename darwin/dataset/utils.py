@@ -261,7 +261,7 @@ def split_dataset(
         raise ValueError("Seed is None")
     split_id = f"split_v{int(val_percentage*100)}_t{int(test_percentage*100)}"
     if split_seed != 0:
-        split_id += "_{split_seed}"
+        split_id += "_s{split_seed}"
     split_path = lists_path / split_id
 
     # Prepare the return value with the paths of the splits
