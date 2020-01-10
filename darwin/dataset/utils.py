@@ -189,7 +189,7 @@ def _stratify_samples(idx_to_classes, split_seed, test_percentage, val_percentag
     X_train = np.concatenate((X_train, np.array(single_files)), axis=0)
 
     if test_percentage == 0.0:
-        return list(set(X_train)), list(set(X_tmp)), None
+        return list(set(X_train.astype(np.int))), list(set(X_tmp.astype(np.int))), None
 
     X_val, X_test, y_val, y_test = remove_cross_contamination(
         *train_test_split(
@@ -204,7 +204,7 @@ def _stratify_samples(idx_to_classes, split_seed, test_percentage, val_percentag
     # Remove duplicates within the same set
     # NOTE: doing that earlier (e.g. in remove_cross_contamination()) would produce mathematical
     # mistakes in the class balancing between validation and test sets.
-    return list(set(X_train)), list(set(X_val)), list(set(X_test))
+    return list(set(X_train.astype(np.int))), list(set(X_val.astype(np.int))), list(set(X_test.astype(np.int)))
 
 
 def split_dataset(
@@ -212,7 +212,7 @@ def split_dataset(
     val_percentage: Optional[float] = 0.1,
     test_percentage: Optional[float] = 0.2,
     force_resplit: Optional[bool] = False,
-    split_seed: Optional[int] = 42,
+    split_seed: Optional[int] = 0,
 ):
     """
     Given a local a dataset (pulled from Darwin) creates lists of file names
@@ -259,7 +259,9 @@ def split_dataset(
         )
     if split_seed is None:
         raise ValueError("Seed is None")
-    split_id = f"split_v{int(val_percentage*100)}_t{int(test_percentage*100)}_s{split_seed}"
+    split_id = f"split_v{int(val_percentage*100)}_t{int(test_percentage*100)}"
+    if split_seed != 0:
+        split_id += "_s{split_seed}"
     split_path = lists_path / split_id
 
     # Prepare the return value with the paths of the splits
@@ -294,9 +296,9 @@ def split_dataset(
         # Slice a permuted array as big as the dataset
         np.random.seed(split_seed)
         indices = np.random.permutation(dataset_size)
-        train_indices = indices[:train_size]
-        val_indices = indices[train_size : train_size + val_size]
-        test_indices = indices[train_size + val_size :]
+        train_indices = list(indices[:train_size])
+        val_indices = list(indices[train_size:train_size + val_size])
+        test_indices = list(indices[train_size + val_size:])
         # Write files
         _write_to_file(annotation_files, splits["random"]["train"], train_indices)
         _write_to_file(annotation_files, splits["random"]["val"], val_indices)
