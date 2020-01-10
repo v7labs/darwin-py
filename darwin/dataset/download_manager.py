@@ -130,7 +130,7 @@ def download_image_from_json_annotation(api_url: str, annotation_path: Path, ima
     original_filename_suffix = Path(annotation["image"]["original_filename"]).suffix
     path = Path(image_path) / (annotation_path.stem + original_filename_suffix)
 
-    download_image(urljoin(api_url.replace("api/", ""), annotation["image"]["url"]), path)
+    download_image(annotation["image"]["url"], path)
 
 
 def download_image(url: str, path: Path, verbose: Optional[bool] = False):
