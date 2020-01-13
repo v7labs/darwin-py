@@ -349,6 +349,9 @@ class InstanceSegmentationDataset(Dataset):
     ):
         """See superclass for documentation"""
         super().__init__(root=root, split=split, transform=transform)
+        self.classes = [
+            e.strip() for e in (self.root / "lists/classes_polygon.txt").read_text().split("\n")
+        ]
         self.convert_polygons = (
             T.ConvertPolygonsToInstanceMasks() if convert_polygons_to_masks else None
         )
