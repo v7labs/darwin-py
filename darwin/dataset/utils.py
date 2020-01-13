@@ -337,13 +337,11 @@ def split_dataset(
                 _write_to_file(annotation_files, splits["stratified_polygon"]["test"], test_indices)
 
     # Create symlink for default split
-    cwd = os.getcwd()
-    os.chdir(lists_path)
-    if not os.path.exists('split') or make_default_split:
-        if os.path.exists('split'):
-            os.unlink('split')
-        os.symlink(split_id, 'split')
-    os.chdir(cwd)
+    split = lists_path / 'split'
+    if make_default_split or not split.exists():
+        if split.exists():
+            split.unlink()
+        split.symlink_to(lists_path / split_id)
 
     return splits
 
