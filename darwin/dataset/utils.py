@@ -213,6 +213,7 @@ def split_dataset(
     test_percentage: Optional[float] = 0.2,
     force_resplit: Optional[bool] = False,
     split_seed: Optional[int] = 0,
+    make_default_split: Optional[bool] = True
 ):
     """
     Given a local a dataset (pulled from Darwin) creates lists of file names
@@ -228,8 +229,10 @@ def split_dataset(
         Percentage of images used in the test set
     force_resplit : bool
         Discard previous split and create a new one
-    split_seed : in
+    split_seed : int
         Fix seed for random split creation
+    make_default_split: bool
+        Makes this split the default split
 
     Returns
     -------
@@ -332,6 +335,13 @@ def split_dataset(
             _write_to_file(annotation_files, splits["stratified_polygon"]["val"], val_indices)
             if test_percentage > 0.0:
                 _write_to_file(annotation_files, splits["stratified_polygon"]["test"], test_indices)
+
+    # Create symlink for default split
+    split = lists_path / 'split'
+    if make_default_split or not split.exists():
+        if split.exists():
+            split.unlink()
+        split.symlink_to(lists_path / split_id)
 
     return splits
 
