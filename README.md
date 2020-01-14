@@ -66,7 +66,7 @@ Lists a summary of remote datasets accessible by the current user.
 
 ```
 $ darwin dataset remote
-NAME                 IMAGES     PROGRESS
+NAME                       IMAGES     PROGRESS
 example-team/mydataset     112025        73.0%
 ```
 
