@@ -221,7 +221,7 @@ def split_dataset(
 
     Parameters
     ----------
-    dataset : DarwinDataset or Path
+    dataset : RemoteDataset or Path
         It can be either a Darwin Dataset or local path to the dataset
     val_percentage : float
         Percentage of images used in the validation set
