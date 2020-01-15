@@ -221,8 +221,8 @@ def split_dataset(
 
     Parameters
     ----------
-    dataset : DarwinDataset
-        Dataset to split
+    dataset : DarwinDataset or Path
+        It can be either a Darwin Dataset or local path to the dataset
     val_percentage : float
         Percentage of images used in the validation set
     test_percentage : float
@@ -240,12 +240,16 @@ def split_dataset(
         Keys are the different splits (random, tags, ...) and values are the relative file names
     """
     assert dataset is not None
-    annotation_path = Path(dataset.local_path / "annotations")
+    if isinstance(dataset, Path) or isinstance(dataset, str):
+        dataset_path = Path(dataset)
+    else:
+        dataset_path = dataset.local_path
+    annotation_path = dataset_path / "annotations"
     assert annotation_path.exists()
     annotation_files = list(annotation_path.glob("*.json"))
 
     # Prepare the lists folder
-    lists_path = dataset.local_path / "lists"
+    lists_path = dataset_path / "lists"
     lists_path.mkdir(parents=True, exist_ok=True)
 
     # Create split id, path and final split paths
