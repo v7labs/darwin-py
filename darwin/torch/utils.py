@@ -1,7 +1,7 @@
 import itertools
 import json
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 import numpy as np
 import torch
@@ -137,40 +137,68 @@ def polygon_area(x: np.ndarray, y: np.ndarray) -> float:
     return 0.5 * np.abs(np.dot(x, np.roll(y, 1)) - np.dot(y, np.roll(x, 1)))
 
 
-def get_annotation_dicts(root, split, classes_file):
+def get_annotations(
+    dataset,
+    partition: str,
+    split: Optional[str] = 'split',
+    split_type: Optional[str] = 'stratified',
+    classes_type: Optional[str] = 'polygon'
+):
     """
     Returns all the annotations of a given dataset and split in a single dictionary
 
     Parameters
     ----------
-    root
+    dataset
         Path to the location of the dataset on the file system
+    partition
+        Selects one of the partitions [train, val, test]
     split
-        Path to the .txt file containing the list of files for this split.
-    classes_file
-        Path to the .txt file containing the list of classes
+        Selects the split that defines the percetages used (use 'split' to select the default split
+    split_type
+        Heuristic used to do the split [random, stratified]
+    classes_type
+        The type of annotation classes [tag, polygon]
 
     Returns
     -------
     dict
         Dictionary containing all the annotations of the dataset
     """
+    assert dataset is not None
+    if isinstance(dataset, Path) or isinstance(dataset, str):
+        dataset_path = Path(dataset)
+    else:
+        dataset_path = dataset.local_path
 
-    if isinstance(root, str):
-        root = Path(root)
-    split = root / "lists" / split
-    classes = [e.strip() for e in open(root / "lists" / classes_file)]
+    if partition not in ['train', 'val', 'test']:
+        raise ValueError("partition should be either 'train', 'val', or 'test'")
+    if split_type not in ['random', 'stratified']:
+        raise ValueError("split_type should be either 'random' or 'stratified'")
+    if classes_type not in ['tag', 'polygon']:
+        raise ValueError("classes_type should be either 'tag' or 'polygon'")
+
+    # Get the list of classes
+    classes_file = f"classes_{classes_type}.txt"
+    classes = [e.strip() for e in open(dataset_path / "lists" / classes_file)]
     if classes[0] == "__background__":
         classes = classes[1:]
+    # Get the split
+    if split_type == 'random':
+        split_file = f"{split_type}_{partition}.txt"
+    elif split_type == 'stratified':
+        split_file = f"{split_type}_{classes_type}_{partition}.txt"
+    split_path = dataset_path / "lists" / split / split_file
+    stems = (e.strip() for e in split_path.open())
     extensions = [".jpg", ".jpeg", ".png"]
-    stems = (e.strip() for e in split.open())
     images_path = []
     annotations_path = []
 
+    # Find all the annotations and their corresponding images
     for stem in stems:
-        annotation_path = root / f"annotations/{stem}.json"
+        annotation_path = dataset_path / f"annotations/{stem}.json"
         images = [
-            image for image in root.glob(f"images/{stem}.*") if image.suffix.lower() in extensions
+            image for image in dataset_path.glob(f"images/{stem}.*") if image.suffix.lower() in extensions
         ]
         if len(images) < 1:
             raise ValueError(
@@ -186,10 +214,11 @@ def get_annotation_dicts(root, split, classes_file):
         annotations_path.append(annotation_path)
 
     if len(images_path) == 0:
-        raise ValueError(f"Could not find any {extensions} file" f" in {root / 'images'}")
+        raise ValueError(f"Could not find any {extensions} file" f" in {dataset_path / 'images'}")
 
     assert len(images_path) == len(annotations_path)
 
+    # Load and re-format all the annotations
     dataset_dicts = []
     for im_path, annot_path in zip(images_path, annotations_path):
         record = {}
