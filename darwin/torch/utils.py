@@ -8,6 +8,7 @@ import torch
 from PIL import Image
 
 from pycocotools import mask as coco_mask
+from darwin.dataset.utils import get_classes
 
 try:
     from detectron2.structures import BoxMode
@@ -142,7 +143,7 @@ def get_annotations(
     partition: str,
     split: Optional[str] = 'split',
     split_type: Optional[str] = 'stratified',
-    classes_type: Optional[str] = 'polygon'
+    class_type: Optional[str] = 'polygon'
 ):
     """
     Returns all the annotations of a given dataset and split in a single dictionary
@@ -157,7 +158,7 @@ def get_annotations(
         Selects the split that defines the percetages used (use 'split' to select the default split
     split_type
         Heuristic used to do the split [random, stratified]
-    classes_type
+    class_type
         The type of annotation classes [tag, polygon]
 
     Returns
@@ -175,19 +176,16 @@ def get_annotations(
         raise ValueError("partition should be either 'train', 'val', or 'test'")
     if split_type not in ['random', 'stratified']:
         raise ValueError("split_type should be either 'random' or 'stratified'")
-    if classes_type not in ['tag', 'polygon']:
-        raise ValueError("classes_type should be either 'tag' or 'polygon'")
+    if class_type not in ['tag', 'polygon']:
+        raise ValueError("class_type should be either 'tag' or 'polygon'")
 
     # Get the list of classes
-    classes_file = f"classes_{classes_type}.txt"
-    classes = [e.strip() for e in open(dataset_path / "lists" / classes_file)]
-    if classes[0] == "__background__":
-        classes = classes[1:]
+    classes = get_classes(dataset, class_type=class_type, remove_background=True)
     # Get the split
     if split_type == 'random':
         split_file = f"{split_type}_{partition}.txt"
     elif split_type == 'stratified':
-        split_file = f"{split_type}_{classes_type}_{partition}.txt"
+        split_file = f"{split_type}_{class_type}_{partition}.txt"
     split_path = dataset_path / "lists" / split / split_file
     stems = (e.strip() for e in split_path.open())
     extensions = [".jpg", ".jpeg", ".png"]
