@@ -42,6 +42,21 @@ def extract_classes(annotation_files: List, annotation_type: str):
     return classes, indices_to_classes
 
 
+def get_classes(dataset, class_type: str, remove_background: bool = True):
+    assert dataset is not None
+    if isinstance(dataset, Path) or isinstance(dataset, str):
+        dataset_path = Path(dataset)
+    else:
+        dataset_path = dataset.local_path
+
+    classes_file = f"classes_{class_type}.txt"
+    classes = [e.strip() for e in open(dataset_path / 'lists' / classes_file)]
+    if remove_background and classes[0] == "__background__":
+        classes = classes[1:]
+
+    return classes
+
+
 def make_class_list(
     file_name: str,
     annotation_files: List,
@@ -244,6 +259,7 @@ def split_dataset(
         dataset_path = Path(dataset)
     else:
         dataset_path = dataset.local_path
+
     annotation_path = dataset_path / "annotations"
     assert annotation_path.exists()
     annotation_files = list(annotation_path.glob("*.json"))
