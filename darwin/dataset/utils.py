@@ -43,6 +43,24 @@ def extract_classes(annotation_files: List, annotation_type: str):
 
 
 def get_classes(dataset, class_type: str, remove_background: bool = True):
+    """
+    Given a dataset and the class_type returns the list of classes
+
+    Parameters
+    ----------
+    dataset
+        Path to the location of the dataset on the file system
+    classes_type
+        The type of annotation classes [tag, polygon]
+    remove_background
+        Removes the background class (if exists) from the list of classes
+
+    Returns
+    -------
+    classes: list
+        List of classes in the dataset of type classes_type
+    """
+
     assert dataset is not None
     if isinstance(dataset, Path) or isinstance(dataset, str):
         dataset_path = Path(dataset)
