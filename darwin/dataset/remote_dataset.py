@@ -10,7 +10,7 @@ from darwin.dataset.download_manager import download_all_images_from_annotations
 from darwin.dataset.identifier import DatasetIdentifier
 from darwin.dataset.release import Release
 from darwin.dataset.upload_manager import add_files_to_dataset
-from darwin.dataset.utils import exhaust_generator
+from darwin.dataset.utils import exhaust_generator, get_classes
 from darwin.exceptions import NotFound
 from darwin.utils import find_files, urljoin
 from darwin.validators import name_taken, validation_error
@@ -250,6 +250,8 @@ class RemoteDataset:
         else:
             return progress, count
 
+        ## TODO: extract classes and create text files
+
     def remove_remote(self):
         """Archives (soft-deletion) the remote dataset"""
         self.client.put(f"datasets/{self.dataset_id}/archive", payload={}, team=self.team)
@@ -329,6 +331,23 @@ class RemoteDataset:
             if str(release.name) == name:
                 return release
         raise NotFound(self.identifier)
+
+    def classes(self, annotation_type: str):
+        """
+        Returns the list of `class_type` classes
+
+        Parameters
+        ----------
+        annotation_type
+            The type of annotation classes, e.g. 'tag' or 'polygon'
+
+        Returns
+        -------
+        classes: list
+            List of classes in the dataset of type `class_type`
+        """
+        assert self.local_path.exist()
+        return get_classes(self.local_path, annotation_type=annotation_type)
 
     @property
     def remote_path(self) -> Path:
