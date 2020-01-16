@@ -143,7 +143,7 @@ def get_annotations(
     partition: str,
     split: Optional[str] = 'split',
     split_type: Optional[str] = 'stratified',
-    class_type: Optional[str] = 'polygon'
+    annotation_type: Optional[str] = 'polygon'
 ):
     """
     Returns all the annotations of a given dataset and split in a single dictionary
@@ -158,7 +158,7 @@ def get_annotations(
         Selects the split that defines the percetages used (use 'split' to select the default split
     split_type
         Heuristic used to do the split [random, stratified]
-    class_type
+    annotation_type
         The type of annotation classes [tag, polygon]
 
     Returns
@@ -176,16 +176,16 @@ def get_annotations(
         raise ValueError("partition should be either 'train', 'val', or 'test'")
     if split_type not in ['random', 'stratified']:
         raise ValueError("split_type should be either 'random' or 'stratified'")
-    if class_type not in ['tag', 'polygon']:
-        raise ValueError("class_type should be either 'tag' or 'polygon'")
+    if annotation_type not in ['tag', 'polygon']:
+        raise ValueError("annotation_type should be either 'tag' or 'polygon'")
 
     # Get the list of classes
-    classes = get_classes(dataset, class_type=class_type, remove_background=True)
+    classes = get_classes(dataset, annotation_type=annotation_type, remove_background=True)
     # Get the split
     if split_type == 'random':
         split_file = f"{split_type}_{partition}.txt"
     elif split_type == 'stratified':
-        split_file = f"{split_type}_{class_type}_{partition}.txt"
+        split_file = f"{split_type}_{annotation_type}_{partition}.txt"
     split_path = dataset_path / "lists" / split / split_file
     stems = (e.strip() for e in split_path.open())
     extensions = [".jpg", ".jpeg", ".png"]

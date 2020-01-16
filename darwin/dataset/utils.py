@@ -42,9 +42,9 @@ def extract_classes(annotation_files: List, annotation_type: str):
     return classes, indices_to_classes
 
 
-def get_classes(dataset, class_type: str, remove_background: bool = True):
+def get_classes(dataset, annotation_type: str, remove_background: bool = True):
     """
-    Given a dataset and the class_type returns the list of classes
+    Given a dataset and an annotation_type returns the list of classes
 
     Parameters
     ----------
@@ -67,7 +67,7 @@ def get_classes(dataset, class_type: str, remove_background: bool = True):
     else:
         dataset_path = dataset.local_path
 
-    classes_file = f"classes_{class_type}.txt"
+    classes_file = f"classes_{annotation_type}.txt"
     classes = [e.strip() for e in open(dataset_path / 'lists' / classes_file)]
     if remove_background and classes[0] == "__background__":
         classes = classes[1:]
