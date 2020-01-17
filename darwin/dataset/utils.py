@@ -10,14 +10,14 @@ import numpy as np
 from tqdm import tqdm
 
 
-def extract_classes(annotation_files: List, annotation_type: str):
+def extract_classes(annotations_path: Path, annotation_type: str):
     """
     Given a the GT as json files extracts all classes and an maps images index to classes
 
     Parameters
     ----------
-    annotation_files: list
-        List of json files with the GT information of each image
+    annotations_files: Path
+        Path to the json files with the GT information of each image
     annotation_type : str
         Type of annotation to use to extract the Gt information
 
@@ -32,6 +32,7 @@ def extract_classes(annotation_files: List, annotation_type: str):
     """
     classes = defaultdict(set)
     indices_to_classes = defaultdict(set)
+    annotation_files = list(annotations_path.glob("*.json"))
     for i, file_name in enumerate(annotation_files):
         with open(file_name) as f:
             for annotation in json.load(f)["annotations"]:
@@ -41,6 +42,37 @@ def extract_classes(annotation_files: List, annotation_type: str):
                 indices_to_classes[i].add(class_name)
                 classes[class_name].add(i)
     return classes, indices_to_classes
+
+
+def make_class_lists(dataset):
+    """
+    Support function to extract classes and save the output to file
+
+    Parameters
+    ----------
+    dataset
+        Path to the location of the dataset on the file system
+    """
+    assert dataset is not None
+    if isinstance(dataset, Path) or isinstance(dataset, str):
+        dataset_path = Path(dataset)
+    else:
+        dataset_path = dataset.local_path
+
+    annotations_path = dataset_path / "annotations"
+    assert annotations_path.exists()
+    lists_path = dataset_path / "lists"
+    lists_path.mkdir(exist_ok=True)
+
+    for annotation_type in ['tag', 'polygon']:
+        fname = lists_path / f"classes_{annotation_type}.txt"
+        classes, _ = extract_classes(annotations_path, annotation_type=annotation_type)
+        classes_names = list(classes.keys())
+        if len(classes_names) > 0:
+            if annotation_type == 'polygon':
+                classes_names.insert(0, "__background__")
+            with open(str(fname), "w") as f:
+                f.write("\n".join(classes_names))
 
 
 def get_classes(dataset, annotation_type: str, remove_background: bool = True):
@@ -72,48 +104,7 @@ def get_classes(dataset, annotation_type: str, remove_background: bool = True):
     classes = [e.strip() for e in open(dataset_path / 'lists' / classes_file)]
     if remove_background and classes[0] == "__background__":
         classes = classes[1:]
-
     return classes
-
-
-def make_class_list(
-    file_name: str,
-    annotation_files: List,
-    lists_path: Path,
-    annotation_type: str,
-    add_background: Optional[bool] = False,
-):
-    """
-    Support function to extract classes and save the output to file
-
-    Parameters
-    ----------
-    file_name : str
-        Name of the file where to store the results
-    annotation_files : list
-        List of json files with the GT information of each image
-    lists_path : Path
-        Path to the lists folder
-    annotation_type : str
-        Type of annotations to use, e.g. 'tag' or 'polygon'
-    add_background : bool
-        Add the '__background__' class to the list of classes
-
-    Returns
-    -------
-    idx_to_classes: dict
-    Dictionary where keys are image indices and values are all classes
-    contained in that image
-    """
-    fname = lists_path / file_name
-    classes, idx_to_classes = extract_classes(annotation_files, annotation_type=annotation_type)
-    classes_names = list(classes.keys())
-    if len(classes_names) > 0:
-        if add_background:
-            classes_names.insert(0, "__background__")
-        with open(str(fname), "w") as f:
-            f.write("\n".join(classes_names))
-    return idx_to_classes
 
 
 def _write_to_file(annotation_files: List, file_path: Path, split_idx: Iterable):
@@ -349,7 +340,7 @@ def split_dataset(
 
         # STRATIFIED SPLIT ON TAGS
         # Stratify
-        idx_to_classes_tag = make_class_list("classes_tag.txt", annotation_files, lists_path, "tag")
+        classes_tag, idx_to_classes_tag = extract_classes(annotation_path, "tag")
         if len(idx_to_classes_tag) > 0:
             train_indices, val_indices, test_indices = _stratify_samples(
                 idx_to_classes_tag, split_seed, test_percentage, val_percentage
@@ -362,9 +353,7 @@ def split_dataset(
 
         # STRATIFIED SPLIT ON POLYGONS
         # Stratify
-        idx_to_classes_polygon = make_class_list(
-            "classes_polygon.txt", annotation_files, lists_path, "polygon", add_background=True
-        )
+        classes_polygon, idx_to_classes_polygon = extract_classes(annotation_path, "polygon")
         if len(idx_to_classes_polygon) > 0:
             train_indices, val_indices, test_indices = _stratify_samples(
                 idx_to_classes_polygon, split_seed, test_percentage, val_percentage

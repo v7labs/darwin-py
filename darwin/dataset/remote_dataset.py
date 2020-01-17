@@ -10,7 +10,13 @@ from darwin.dataset.download_manager import download_all_images_from_annotations
 from darwin.dataset.identifier import DatasetIdentifier
 from darwin.dataset.release import Release
 from darwin.dataset.upload_manager import add_files_to_dataset
-from darwin.dataset.utils import exhaust_generator, get_classes, split_dataset, get_annotations
+from darwin.dataset.utils import (
+    exhaust_generator,
+    get_classes,
+    split_dataset,
+    get_annotations,
+    make_class_lists
+)
 from darwin.exceptions import NotFound
 from darwin.utils import find_files, urljoin
 from darwin.validators import name_taken, validation_error
@@ -227,6 +233,9 @@ class RemoteDataset:
                     )
                     shutil.move(str(annotation_path), str(destination_name))
 
+        # Extract the list of classes and create the text files
+        make_class_lists(self.local_path)
+
         if only_annotations:
             # No images will be downloaded
             return None, 0
@@ -249,8 +258,6 @@ class RemoteDataset:
             return None, count
         else:
             return progress, count
-
-        ## TODO: extract classes and create text files
 
     def remove_remote(self):
         """Archives (soft-deletion) the remote dataset"""
