@@ -10,11 +10,10 @@ from darwin.dataset.download_manager import download_all_images_from_annotations
 from darwin.dataset.identifier import DatasetIdentifier
 from darwin.dataset.release import Release
 from darwin.dataset.upload_manager import add_files_to_dataset
-from darwin.dataset.utils import exhaust_generator, get_classes, split_dataset
+from darwin.dataset.utils import exhaust_generator, get_classes, split_dataset, get_annotations
 from darwin.exceptions import NotFound
 from darwin.utils import find_files, urljoin
 from darwin.validators import name_taken, validation_error
-from darwin.torch.utils import get_annotations
 
 if TYPE_CHECKING:
     from darwin.client import Client

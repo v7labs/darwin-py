@@ -1,4 +1,3 @@
-import itertools
 import json
 from pathlib import Path
 from typing import List, Optional
@@ -9,11 +8,6 @@ from PIL import Image
 
 from pycocotools import mask as coco_mask
 from darwin.dataset.utils import get_classes
-
-try:
-    from detectron2.structures import BoxMode
-except ImportError:
-    BoxMode = None
 
 try:
     import accimage
@@ -136,130 +130,3 @@ def polygon_area(x: np.ndarray, y: np.ndarray) -> float:
     for x and y coordinates.
     """
     return 0.5 * np.abs(np.dot(x, np.roll(y, 1)) - np.dot(y, np.roll(x, 1)))
-
-
-def get_annotations(
-    dataset,
-    partition: str,
-    split: Optional[str] = 'split',
-    split_type: Optional[str] = 'stratified',
-    annotation_type: Optional[str] = 'polygon'
-):
-    """
-    Returns all the annotations of a given dataset and split in a single dictionary
-
-    Parameters
-    ----------
-    dataset
-        Path to the location of the dataset on the file system
-    partition
-        Selects one of the partitions [train, val, test]
-    split
-        Selects the split that defines the percetages used (use 'split' to select the default split
-    split_type
-        Heuristic used to do the split [random, stratified]
-    annotation_type
-        The type of annotation classes [tag, polygon]
-
-    Returns
-    -------
-    dict
-        Dictionary containing all the annotations of the dataset
-    """
-    assert dataset is not None
-    if isinstance(dataset, Path) or isinstance(dataset, str):
-        dataset_path = Path(dataset)
-    else:
-        dataset_path = dataset.local_path
-
-    if partition not in ['train', 'val', 'test']:
-        raise ValueError("partition should be either 'train', 'val', or 'test'")
-    if split_type not in ['random', 'stratified']:
-        raise ValueError("split_type should be either 'random' or 'stratified'")
-    if annotation_type not in ['tag', 'polygon']:
-        raise ValueError("annotation_type should be either 'tag' or 'polygon'")
-
-    # Get the list of classes
-    classes = get_classes(dataset, annotation_type=annotation_type, remove_background=True)
-    # Get the split
-    if split_type == 'random':
-        split_file = f"{split_type}_{partition}.txt"
-    elif split_type == 'stratified':
-        split_file = f"{split_type}_{annotation_type}_{partition}.txt"
-    split_path = dataset_path / "lists" / split / split_file
-    stems = (e.strip() for e in split_path.open())
-    extensions = [".jpg", ".jpeg", ".png"]
-    images_path = []
-    annotations_path = []
-
-    # Find all the annotations and their corresponding images
-    for stem in stems:
-        annotation_path = dataset_path / f"annotations/{stem}.json"
-        images = [
-            image for image in dataset_path.glob(f"images/{stem}.*") if image.suffix.lower() in extensions
-        ]
-        if len(images) < 1:
-            raise ValueError(
-                f"Annotation ({annotation_path}) does" f" not have a corresponding image"
-            )
-        if len(images) > 1:
-            raise ValueError(
-                f"Image ({stem}) is present with multiple extensions." f" This is forbidden."
-            )
-        assert len(images) == 1
-        image_path = images[0]
-        images_path.append(image_path)
-        annotations_path.append(annotation_path)
-
-    if len(images_path) == 0:
-        raise ValueError(f"Could not find any {extensions} file" f" in {dataset_path / 'images'}")
-
-    assert len(images_path) == len(annotations_path)
-
-    # Load and re-format all the annotations
-    dataset_dicts = []
-    for im_path, annot_path in zip(images_path, annotations_path):
-        record = {}
-
-        with annot_path.open() as f:
-            data = json.load(f)
-
-        height, width = data["image"]["height"], data["image"]["width"]
-        annotations = data["annotations"]
-
-        filename = im_path
-        record["file_name"] = str(filename)
-        record["height"] = height
-        record["width"] = width
-
-        objs = []
-        for obj in annotations:
-            px, py = [], []
-            if "polygon" not in obj:
-                continue
-            for point in obj["polygon"]["path"]:
-                px.append(point["x"])
-                py.append(point["y"])
-            poly = [(x, y) for x, y in zip(px, py)]
-            if len(poly) < 3:  # Discard polyhons with less than 3 points
-                continue
-            poly = list(itertools.chain.from_iterable(poly))
-
-            category_id = classes.index(obj["name"])
-
-            if BoxMode is not None:
-                box_mode = BoxMode.XYXY_ABS
-            else:
-                box_mode = 0
-
-            obj = {
-                "bbox": [np.min(px), np.min(py), np.max(px), np.max(py)],
-                "bbox_mode": box_mode,
-                "segmentation": [poly],
-                "category_id": category_id,
-                "iscrowd": 0,
-            }
-            objs.append(obj)
-        record["annotations"] = objs
-        dataset_dicts.append(record)
-    return dataset_dicts
