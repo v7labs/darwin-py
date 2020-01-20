@@ -501,7 +501,7 @@ def get_annotations(
 
     # Load and re-format all the annotations
     dataset_dicts = []
-    for im_path, annot_path in zip(images_path, annotations_path):
+    for image_id, (im_path, annot_path) in enumerate(zip(images_path, annotations_path)):
         record = {}
 
         with annot_path.open() as f:
@@ -540,6 +540,7 @@ def get_annotations(
                 "bbox_mode": box_mode,
                 "segmentation": [poly],
                 "category_id": category_id,
+                "image_id": image_id,
                 "iscrowd": 0,
             }
             objs.append(obj)
