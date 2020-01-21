@@ -514,6 +514,7 @@ def get_annotations(
         record["file_name"] = str(filename)
         record["height"] = height
         record["width"] = width
+        record["image_id"] = image_id
 
         objs = []
         for obj in annotations:
@@ -540,7 +541,6 @@ def get_annotations(
                 "bbox_mode": box_mode,
                 "segmentation": [poly],
                 "category_id": category_id,
-                "image_id": image_id,
                 "iscrowd": 0,
             }
             objs.append(obj)
