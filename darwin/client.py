@@ -373,7 +373,7 @@ class Client:
             The inited client
         """
         if datasets_dir is None:
-            datasets_dir = Path.home() / ".darwin" / "projects"
+            datasets_dir = Path.home() / ".darwin" / "datasets"
         headers = {"Content-Type": "application/json", "Authorization": f"ApiKey {api_key}"}
         api_url = Client.default_api_url()
         response = requests.get(urljoin(api_url, "/users/token_info"), headers=headers)
