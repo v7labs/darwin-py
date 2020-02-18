@@ -57,6 +57,15 @@ class ToTensor(transforms.ToTensor):
         return image, target
 
 
+class ToPILImage(transforms.ToPILImage):
+    def __call__(self, image, target: Optional[TargetType] = None):
+        if target is None:
+            return super(ToPILImage, self).__call__(image)
+
+        image = F.to_pil_image(image)
+        return image, target
+
+
 class ConvertPolygonsToInstanceMasks(object):
     def __call__(self, image: Image, target: TargetType):
         w, h = image.size
