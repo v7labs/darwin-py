@@ -204,7 +204,11 @@ def _stratify_samples(idx_to_classes, split_seed, test_percentage, val_percentag
     # Remove duplicates within the same set
     # NOTE: doing that earlier (e.g. in remove_cross_contamination()) would produce mathematical
     # mistakes in the class balancing between validation and test sets.
-    return list(set(X_train.astype(np.int))), list(set(X_val.astype(np.int))), list(set(X_test.astype(np.int)))
+    return (
+        list(set(X_train.astype(np.int))),
+        list(set(X_val.astype(np.int))),
+        list(set(X_test.astype(np.int))),
+    )
 
 
 def split_dataset(
@@ -213,7 +217,7 @@ def split_dataset(
     test_percentage: Optional[float] = 0.2,
     force_resplit: Optional[bool] = False,
     split_seed: Optional[int] = 0,
-    make_default_split: Optional[bool] = True
+    make_default_split: Optional[bool] = True,
 ):
     """
     Given a local a dataset (pulled from Darwin) creates lists of file names
@@ -300,8 +304,8 @@ def split_dataset(
         np.random.seed(split_seed)
         indices = np.random.permutation(dataset_size)
         train_indices = list(indices[:train_size])
-        val_indices = list(indices[train_size:train_size + val_size])
-        test_indices = list(indices[train_size + val_size:])
+        val_indices = list(indices[train_size : train_size + val_size])
+        test_indices = list(indices[train_size + val_size :])
         # Write files
         _write_to_file(annotation_files, splits["random"]["train"], train_indices)
         _write_to_file(annotation_files, splits["random"]["val"], val_indices)
@@ -337,7 +341,7 @@ def split_dataset(
                 _write_to_file(annotation_files, splits["stratified_polygon"]["test"], test_indices)
 
     # Create symlink for default split
-    split = lists_path / 'split'
+    split = lists_path / "split"
     if make_default_split or not split.exists():
         if split.exists():
             split.unlink()
