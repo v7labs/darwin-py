@@ -312,8 +312,6 @@ def upload_annotations(
         image_mapping = {cm["original_filename"]: cm["id"] for cm in json.load(json_file)}
 
     # Read and prepare the class mappings in a dict format {'class name': 'class id'}
-    with class_mapping.open() as json_file:
-        class_mapping = {cm["name"]: cm["id"] for cm in json.load(json_file)}
     if class_mapping is not None:
         with class_mapping.open() as json_file:
             class_mapping = {cm["name"]: cm["id"] for cm in json.load(json_file)}
@@ -321,18 +319,7 @@ def upload_annotations(
         class_mapping = {}
 
     # Resume
-    with open(output_file_path) as csv_file:
-        csv_reader = csv.reader(csv_file, delimiter=",")
-        images_id = set()
-        for row in csv_reader:
-            # Find the index of the dataset image id in the line
-            if len(row) == 2:
-                line = row[1]  # Row [0] is payload and row [1] is the response
-                if "dataset_image_id" in line:
-                    index = line.find("dataset_image_id")
-                    # Extract the next integer after 'dataset_image_id' and store it in the set
-                    id = int(re.search(r"\d+", line[index:]).group())
-                    images_id.add(id)
+    images_id = set()
 
     # Check that all the classes exists
     for f in annotations_path.glob("*.json"):
@@ -340,6 +327,7 @@ def upload_annotations(
             # Read the annotation json file
             data = json.load(json_file)
             image_dataset_id = image_mapping[data["image"]["original_filename"]]
+
             # Skip if already present
             if image_dataset_id in images_id:
                 continue
@@ -351,7 +339,7 @@ def upload_annotations(
                             client=client,
                             team=team,
                             annotation_type_ids=[
-                                "1"
+                                "3"
                             ],  # TODO maybe in the future allow to use polygons and BB as well
                             cropped_image={
                                 "image_id": image_dataset_id,
@@ -468,7 +456,7 @@ def _upload_annotation(
     # Compose the endpoint
     endpoint = f"dataset_images/{image_dataset_id}/annotations"
     response = client.put(endpoint=endpoint, payload=payload, team=team, retry=True)
-    if not "error" in response:
+    if "error" not in response:
         with open(str(output_file_path), "a+") as file:
             writer = csv.writer(file, delimiter=",", quotechar='"', quoting=csv.QUOTE_MINIMAL)
             writer.writerow([payload, response])
@@ -537,7 +525,6 @@ def create_new_class(
         "cropped_image": cropped_image,
         "dataset_id": dataset_id,
         "description": description,
-        "expected_occurrences": expected_occurrences,
         "metadata": metadata,
         "name": name,
     }
