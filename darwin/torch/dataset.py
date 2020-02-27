@@ -41,7 +41,7 @@ class Dataset(data.Dataset):
         # Populate internal lists of annotations and images paths
         if not self.split.exists():
             raise FileNotFoundError(f"Could not find partition file: {self.split}")
-        extensions = [".jpg", ".jpeg", ".png"]
+        extensions = [".jpg", ".jpeg", ".png", ".jfif"]
         stems = (e.strip() for e in split.open())
         image_extensions_mapping = {
             image.stem: image.suffix

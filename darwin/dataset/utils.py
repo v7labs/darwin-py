@@ -66,7 +66,7 @@ def make_class_lists(dataset):
     lists_path = dataset_path / "lists"
     lists_path.mkdir(exist_ok=True)
 
-    for annotation_type in ['tag', 'polygon']:
+    for annotation_type in ["tag", "polygon"]:
         fname = lists_path / f"classes_{annotation_type}.txt"
         classes, _ = extract_classes(annotations_path, annotation_type=annotation_type)
         classes_names = list(classes.keys())
@@ -102,7 +102,7 @@ def get_classes(dataset, annotation_type: str, remove_background: bool = True):
         dataset_path = dataset.local_path
 
     classes_file = f"classes_{annotation_type}.txt"
-    classes = [e.strip() for e in open(dataset_path / 'lists' / classes_file)]
+    classes = [e.strip() for e in open(dataset_path / "lists" / classes_file)]
     if remove_background and classes[0] == "__background__":
         classes = classes[1:]
     return classes
@@ -230,7 +230,11 @@ def _stratify_samples(idx_to_classes, split_seed, test_percentage, val_percentag
     # Remove duplicates within the same set
     # NOTE: doing that earlier (e.g. in remove_cross_contamination()) would produce mathematical
     # mistakes in the class balancing between validation and test sets.
-    return list(set(X_train.astype(np.int))), list(set(X_val.astype(np.int))), list(set(X_test.astype(np.int)))
+    return (
+        list(set(X_train.astype(np.int))),
+        list(set(X_val.astype(np.int))),
+        list(set(X_test.astype(np.int))),
+    )
 
 
 def split_dataset(
@@ -239,7 +243,7 @@ def split_dataset(
     test_percentage: Optional[float] = 0.2,
     force_resplit: Optional[bool] = False,
     split_seed: Optional[int] = 0,
-    make_default_split: Optional[bool] = True
+    make_default_split: Optional[bool] = True,
 ):
     """
     Given a local a dataset (pulled from Darwin) creates lists of file names
@@ -331,8 +335,8 @@ def split_dataset(
         np.random.seed(split_seed)
         indices = np.random.permutation(dataset_size)
         train_indices = list(indices[:train_size])
-        val_indices = list(indices[train_size:train_size + val_size])
-        test_indices = list(indices[train_size + val_size:])
+        val_indices = list(indices[train_size : train_size + val_size])
+        test_indices = list(indices[train_size + val_size :])
         # Write files
         _write_to_file(annotation_files, splits["random"]["train"], train_indices)
         _write_to_file(annotation_files, splits["random"]["val"], val_indices)
@@ -366,7 +370,7 @@ def split_dataset(
                 _write_to_file(annotation_files, splits["stratified_polygon"]["test"], test_indices)
 
     # Create symlink for default split
-    split = lists_path / 'split'
+    split = lists_path / "split"
     if make_default_split or not split.exists():
         if split.exists():
             split.unlink()
@@ -420,9 +424,9 @@ def exhaust_generator(progress: Generator, count: int, multi_threaded: bool):
 def get_annotations(
     dataset,
     partition: str,
-    split: str = 'split',
-    split_type: str = 'stratified',
-    annotation_type: str = 'polygon'
+    split: str = "split",
+    split_type: str = "stratified",
+    annotation_type: str = "polygon",
 ):
     """
     Returns all the annotations of a given dataset and split in a single dictionary
@@ -451,23 +455,23 @@ def get_annotations(
     else:
         dataset_path = dataset.local_path
 
-    if partition not in ['train', 'val', 'test']:
+    if partition not in ["train", "val", "test"]:
         raise ValueError("partition should be either 'train', 'val', or 'test'")
-    if split_type not in ['random', 'stratified']:
+    if split_type not in ["random", "stratified"]:
         raise ValueError("split_type should be either 'random' or 'stratified'")
-    if annotation_type not in ['tag', 'polygon']:
+    if annotation_type not in ["tag", "polygon"]:
         raise ValueError("annotation_type should be either 'tag' or 'polygon'")
 
     # Get the list of classes
     classes = get_classes(dataset, annotation_type=annotation_type, remove_background=True)
     # Get the split
-    if split_type == 'random':
+    if split_type == "random":
         split_file = f"{split_type}_{partition}.txt"
-    elif split_type == 'stratified':
+    elif split_type == "stratified":
         split_file = f"{split_type}_{annotation_type}_{partition}.txt"
     split_path = dataset_path / "lists" / split / split_file
     stems = (e.strip() for e in split_path.open())
-    extensions = [".jpg", ".jpeg", ".png"]
+    extensions = [".jpg", ".jpeg", ".png", ".jfif"]
     images_path = []
     annotations_path = []
 
@@ -475,7 +479,9 @@ def get_annotations(
     for stem in stems:
         annotation_path = dataset_path / f"annotations/{stem}.json"
         images = [
-            image for image in dataset_path.glob(f"images/{stem}.*") if image.suffix.lower() in extensions
+            image
+            for image in dataset_path.glob(f"images/{stem}.*")
+            if image.suffix.lower() in extensions
         ]
         if len(images) < 1:
             raise ValueError(
