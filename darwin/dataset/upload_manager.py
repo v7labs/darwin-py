@@ -455,7 +455,7 @@ def _upload_annotation(
     payload = {"annotations": payload_annotations}
     # Compose the endpoint
     endpoint = f"dataset_images/{image_dataset_id}/annotations"
-    response = client.put(endpoint=endpoint, payload=payload, team=team, retry=True)
+    response = client.put(endpoint=endpoint, payload=payload, team=team)
     if "error" not in response:
         with open(str(output_file_path), "a+") as file:
             writer = csv.writer(file, delimiter=",", quotechar='"', quoting=csv.QUOTE_MINIMAL)
@@ -530,7 +530,7 @@ def create_new_class(
     }
 
     endpoint = "annotation_classes"
-    response = client.post(endpoint=endpoint, payload=payload, team=team, retry=True)
+    response = client.post(endpoint=endpoint, payload=payload, team=team)
     if "errors" in response:
         raise ValueError(f"Response error: {response['errors']}")
     return response

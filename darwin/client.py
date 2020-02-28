@@ -1,7 +1,7 @@
 import os
 import time
 from pathlib import Path
-from typing import Dict, Iterator, Optional, Union
+from typing import Dict, Iterator, List, Optional, Union
 
 import requests
 
@@ -16,7 +16,7 @@ from darwin.exceptions import (
     Unauthorized,
 )
 from darwin.utils import is_project_dir, urljoin
-from darwin.validators import name_taken, validation_error
+from darwin.validators import ErrorHandlerType, name_taken, validation_error
 
 
 class Client:
@@ -26,22 +26,15 @@ class Client:
         self.base_url = config.get("global/base_url")
         self.default_team = default_team or config.get("global/default_team")
 
-    def get(
-        self,
-        endpoint: str,
-        team: Optional[str] = None,
-        retry: bool = False,
-        raw: bool = False,
-        debug: bool = False,
-    ):
+    def get(self, endpoint: str, team: str, raw: bool = False, debug: bool = False):
         """Get something from the server trough HTTP
 
         Parameters
         ----------
         endpoint : str
             Recipient of the HTTP operation
-        retry : bool
-            Retry to perform the operation. Set to False on recursive calls.
+        team : str
+            Team slug, used to fetch the correct headers for the request
         raw : bool
             Flag for returning raw response
         debug : bool
@@ -65,29 +58,12 @@ class Client:
             raise Unauthorized()
         if response.status_code == 404:
             raise NotFound(urljoin(self.url, endpoint))
-        if response.status_code != 200 and retry:
-            if debug:
-                print(
-                    f"Client get request response ({response.json()}) with unexpected status "
-                    f"({response.status_code}). "
-                    f"Client: ({self})"
-                    f"Request: (endpoint={endpoint})"
-                )
-            time.sleep(10)
-            return self.get(endpoint=endpoint, retry=False)
         if raw:
             return response
         else:
             return self._decode_response(response, debug)
 
-    def put(
-        self,
-        endpoint: str,
-        payload: Dict,
-        team: Optional[str] = None,
-        retry: bool = False,
-        debug: bool = False,
-    ):
+    def put(self, endpoint: str, payload: Dict, team: str, debug: bool = False):
         """Put something on the server trough HTTP
 
         Parameters
@@ -96,8 +72,8 @@ class Client:
             Recipient of the HTTP operation
         payload : dict
             What you want to put on the server (typically json encoded)
-        retry : bool
-            Retry to perform the operation. Set to False on recursive calls.
+        team : str
+            Team slug, used to fetch the correct headers for the request
         debug : bool
             Debugging flag. In this case failed requests get printed
 
@@ -105,6 +81,13 @@ class Client:
         -------
         dict
         Dictionary which contains the server response
+
+        Raises
+        ------
+        Unauthorized
+            Action is not authorized
+        InsufficientStorage
+            Insufficient storage left
         """
         response = requests.put(
             urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team)
@@ -118,26 +101,14 @@ class Client:
             if error_code == "INSUFFICIENT_REMAINING_STORAGE":
                 raise InsufficientStorage()
 
-        if response.status_code != 200 and retry:
-            if debug:
-                print(
-                    f"Client get request response ({response.json()}) with unexpected status "
-                    f"({response.status_code}). "
-                    f"Client: ({self})"
-                    f"Request: (endpoint={endpoint}, payload={payload})"
-                )
-            time.sleep(10)
-            return self.put(endpoint, payload=payload, retry=False)
-
         return self._decode_response(response, debug)
 
     def post(
         self,
         endpoint: str,
-        payload: Optional[Dict] = None,
-        team: Optional[str] = None,
-        retry: bool = False,
-        error_handlers: Optional[list] = None,
+        payload: Dict,
+        team: str,
+        error_handlers: Optional[List[ErrorHandlerType]] = None,
         debug: bool = False,
     ):
         """Post something new on the server trough HTTP
@@ -148,10 +119,10 @@ class Client:
             Recipient of the HTTP operation
         payload : dict
             What you want to put on the server (typically json encoded)
-        retry : bool
-            Retry to perform the operation. Set to False on recursive calls.
-        refresh : bool
-            Flag for use the refresh token instead
+        team : str
+            Team slug, used to fetch the correct headers for the request
+        error_handlers : Optional[List[ErrorHandlerType]]
+            Optional list of error handlers
         debug : bool
             Debugging flag. In this case failed requests get printed
 
@@ -181,9 +152,6 @@ class Client:
                     f"Client: ({self})"
                     f"Request: (endpoint={endpoint}, payload={payload})"
                 )
-            if retry:
-                time.sleep(10)
-                return self.post(endpoint, payload=payload, retry=False)
 
         return self._decode_response(response, debug)
 
@@ -313,7 +281,7 @@ class Client:
         Returns
         -------
         dict
-        Contains the Content-Type and Authorization token
+        Contains the Content-Type and Authorization key
         """
         header = {"Content-Type": "application/json"}
 

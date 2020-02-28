@@ -1,5 +1,6 @@
 __pycache__/
 .pytest_cache/
+.cache/
 
 /.mypy_cache/
 /.vscode/

@@ -1,0 +1,11 @@
+global:
+  api_endpoint: https://darwin.v7labs.com/api/
+  base_url: https://darwin.v7labs.com/
+  default_team: team-1
+teams:
+  team-1:
+    api_key: IwQ0zBC.eNt278rJ_yt8ZMN657NeNsv6YS_8pc5D
+    datasets_dir: /Users/andrea/.darwin/datasets
+  team-2:
+    api_key: F8PF7xP.Vi5TONkg_L_spCWefsblI5ISSbvYJj5d
+    datasets_dir: /Users/andrea/.darwin/datasets

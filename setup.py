@@ -23,6 +23,7 @@ setuptools.setup(
         "sh",
         "tqdm",
     ],
+    extras_require={"dev": ["pytest", "requests-mock"]},
     packages=setuptools.find_packages(),
     entry_points={"console_scripts": ["darwin=darwin.cli:main"]},
     classifiers=["Programming Language :: Python :: 3", "License :: OSI Approved :: MIT License"],
