@@ -55,7 +55,7 @@ This file will be updated with future authentications for different teams.
 
 ### Listing local and remote datasets 
 
-Lists a summary of local existing projects
+Lists a summary of local existing datasets
 ```
 $ darwin dataset local
 NAME            IMAGES     SYNC_DATE         SIZE

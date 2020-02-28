@@ -76,7 +76,7 @@ class RemoteDataset:
         files_to_exclude: Optional[List[str]] = None,
         resume: bool = False,
     ):
-        """Uploads a local project (images ONLY) in the projects directory.
+        """Uploads a local dataset (images ONLY) in the datasets directory.
 
         Parameters
         ----------
@@ -169,7 +169,7 @@ class RemoteDataset:
         subset_filter_annotations_function: Optional[Callable] = None,
         subset_folder_name: Optional[str] = None,
     ):
-        """Downloads a remote project (images and annotations) in the projects directory.
+        """Downloads a remote project (images and annotations) in the datasets directory.
 
         Parameters
         ----------
