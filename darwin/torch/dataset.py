@@ -1,12 +1,12 @@
 import json
 import multiprocessing as mp
 from pathlib import Path
-from typing import Collection, List, Optional
+from typing import Callable, Collection, List, Optional
 
 import numpy as np
 import torch.utils.data as data
 
-import darwin.torch.transforms as T
+from darwin.torch.transforms import Compose, ConvertPolygonsToInstanceMasks, ConvertPolygonToMask
 from darwin.torch.utils import convert_polygons_to_sequences, load_pil_image, polygon_area
 from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS
 
@@ -33,11 +33,11 @@ class Dataset(data.Dataset):
         self.original_classes = None
         self.original_images_path: Optional[List[Path]] = None
         self.original_annotations_path: Optional[List[Path]] = None
-        self.convert_polygons = None
+        self.convert_polygons: Optional[Callable] = None
 
         # Compose the transform if necessary
         if self.transform is not None and isinstance(self.transform, list):
-            self.transform = T.Compose(transform)
+            self.transform = Compose(transform)
 
         # Populate internal lists of annotations and images paths
         if not self.split.exists():
@@ -331,7 +331,7 @@ class ClassificationDataset(Dataset):
         """
         # Collect all the labels by iterating over the whole dataset
         labels = []
-        for i, filename in enumerate(self.images_path):
+        for i in range(len(self.images_path)):
             target = self._map_annotation(i)
             labels.append(target["category_id"])
         return self._compute_weights(labels)
@@ -354,7 +354,7 @@ class InstanceSegmentationDataset(Dataset):
             e.strip() for e in (self.root / "lists/classes_polygon.txt").read_text().split("\n")
         ]
         self.convert_polygons = (
-            T.ConvertPolygonsToInstanceMasks() if convert_polygons_to_masks else None
+            ConvertPolygonsToInstanceMasks() if convert_polygons_to_masks else None
         )
 
     def _map_annotation(self, index: int):
@@ -463,7 +463,7 @@ class SemanticSegmentationDataset(Dataset):
         ]
         if self.classes[0] == "__background__":
             self.classes = self.classes[1:]
-        self.convert_polygons = T.ConvertPolygonToMask() if convert_polygons_to_masks else None
+        self.convert_polygons = ConvertPolygonToMask() if convert_polygons_to_masks else None
 
     def _map_annotation(self, index: int):
         """See superclass for documentation

@@ -1,24 +1,74 @@
-import PIL
+import random
+from typing import Any, Dict, Optional, Union
+
 import torch
+import torchvision.transforms as transforms
+import torchvision.transforms.functional as F
+from PIL import Image
 
-from darwin.torch.utils import convert_polygon_to_mask
+from .utils import convert_polygon_to_mask
+
+TargetKey = Union["boxes", "labels", "masks", "image_id", "area", "iscrowd"]
+TargetType = Dict[TargetKey, torch.Tensor]
 
 
-class Compose(object):
-    def __init__(self, transforms):
-        self.transforms = transforms
+class Compose(transforms.Compose):
+    def __call__(self, image: Image, target: Optional[TargetType] = None):
+        for transform in self.transforms:
+            image, target = transform(image, target)
+        return image, target
 
-    def __call__(self, image, target=None):
-        for t in self.transforms:
-            image, target = t(image, target)
-        if target is not None:
+
+class RandomHorizontalFlip(transforms.RandomHorizontalFlip):
+    def __call__(self, image: Image, target: Optional[TargetType] = None):
+        if random.random() < self.p:
+            image = F.hflip(image)
+            if target is None:
+                return image
+
+            if "boxes" is target:
+                bbox = target["boxes"]
+                bbox[:, [0, 2]] = image.size[0] - bbox[:, [2, 0]]
+                target["boxes"] = bbox
+            if "masks" in target:
+                target["masks"] = target["masks"].flip(-1)
             return image, target
-        else:
+
+        if target is None:
             return image
+        return image, target
+
+
+class ColorJitter(transforms.ColorJitter):
+    def __call__(self, image, target: Optional[TargetType] = None):
+        if target is None:
+            return super(ColorJitter, self).__call__(image)
+
+        transform = self.get_params(self.brightness, self.contrast, self.saturation, self.hue)
+        image = transform(image)
+        return image, target
+
+
+class ToTensor(transforms.ToTensor):
+    def __call__(self, image, target: Optional[TargetType] = None):
+        if target is None:
+            return super(ToTensor, self).__call__(image)
+
+        image = F.to_tensor(image)
+        return image, target
+
+
+class ToPILImage(transforms.ToPILImage):
+    def __call__(self, image, target: Optional[TargetType] = None):
+        if target is None:
+            return super(ToPILImage, self).__call__(image)
+
+        image = F.to_pil_image(image)
+        return image, target
 
 
 class ConvertPolygonsToInstanceMasks(object):
-    def __call__(self, image, target):
+    def __call__(self, image: Image, target: TargetType):
         w, h = image.size
 
         image_id = target["image_id"]
@@ -88,5 +138,5 @@ class ConvertPolygonToMask(object):
             target[masks.sum(0) > 1] = 255
         else:
             target = torch.zeros((h, w), dtype=torch.uint8)
-        target = PIL.Image.fromarray(target.numpy())
+        target = Image.fromarray(target.numpy())
         return image, target

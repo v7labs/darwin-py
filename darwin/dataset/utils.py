@@ -244,11 +244,11 @@ def _stratify_samples(idx_to_classes, split_seed, test_percentage, val_percentag
 
 def split_dataset(
     dataset,
-    val_percentage: Optional[float] = 0.1,
-    test_percentage: Optional[float] = 0.2,
-    force_resplit: Optional[bool] = False,
-    split_seed: Optional[int] = 0,
-    make_default_split: Optional[bool] = True,
+    val_percentage: float = 0.1,
+    test_percentage: float = 0.2,
+    force_resplit: bool = False,
+    split_seed: int = 0,
+    make_default_split: bool = True,
 ):
     """
     Given a local a dataset (pulled from Darwin) creates lists of file names
