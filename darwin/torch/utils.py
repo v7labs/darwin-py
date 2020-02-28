@@ -5,8 +5,8 @@ from typing import List, Optional
 import numpy as np
 import torch
 from PIL import Image
-
 from pycocotools import mask as coco_mask
+
 from darwin.dataset.utils import get_classes
 
 try:

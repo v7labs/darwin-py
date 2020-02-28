@@ -8,6 +8,7 @@ import torch.utils.data as data
 
 import darwin.torch.transforms as T
 from darwin.torch.utils import convert_polygons_to_sequences, load_pil_image, polygon_area
+from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS
 
 
 class Dataset(data.Dataset):
@@ -41,7 +42,7 @@ class Dataset(data.Dataset):
         # Populate internal lists of annotations and images paths
         if not self.split.exists():
             raise FileNotFoundError(f"Could not find partition file: {self.split}")
-        extensions = [".jpg", ".jpeg", ".png", ".jfif"]
+        extensions = SUPPORTED_IMAGE_EXTENSIONS
         stems = (e.strip() for e in split.open())
         image_extensions_mapping = {
             image.stem: image.suffix

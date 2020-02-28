@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, List, Optional, Union
 
 from darwin.config import Config
 
-SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpeg", ".jpg", ".PNG", ".JPEG", ".JPG"]
+SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpeg", ".jpg", ".jfif", ".PNG", ".JPEG", ".JPG", ".JFIF"]
 SUPPORTED_VIDEO_EXTENSIONS = [".bpm", ".mov", ".mp4", ".BPM", ".MOV", ".MP4"]
 
 

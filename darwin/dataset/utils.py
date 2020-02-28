@@ -1,13 +1,15 @@
+import itertools
 import json
 import multiprocessing as mp
 import os
 from collections import defaultdict
 from pathlib import Path
 from typing import Generator, Iterable, List, Optional
-import itertools
 
 import numpy as np
 from tqdm import tqdm
+
+from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS
 
 
 def extract_classes(annotations_path: Path, annotation_type: str):
@@ -471,7 +473,7 @@ def get_annotations(
         split_file = f"{split_type}_{annotation_type}_{partition}.txt"
     split_path = dataset_path / "lists" / split / split_file
     stems = (e.strip() for e in split_path.open())
-    extensions = [".jpg", ".jpeg", ".png", ".jfif"]
+    extensions = SUPPORTED_IMAGE_EXTENSIONS
     images_path = []
     annotations_path = []
 

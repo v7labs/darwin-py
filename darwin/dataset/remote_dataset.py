@@ -12,10 +12,10 @@ from darwin.dataset.release import Release
 from darwin.dataset.upload_manager import add_files_to_dataset
 from darwin.dataset.utils import (
     exhaust_generator,
-    get_classes,
-    split_dataset,
     get_annotations,
-    make_class_lists
+    get_classes,
+    make_class_lists,
+    split_dataset,
 )
 from darwin.exceptions import NotFound
 from darwin.utils import find_files, urljoin
@@ -345,7 +345,7 @@ class RemoteDataset:
         test_percentage: float = 0,
         force_resplit: bool = False,
         split_seed: int = 0,
-        make_default_split: bool = True
+        make_default_split: bool = True,
     ):
         """
         Creates lists of file names for each split for train, validation, and test.
@@ -365,15 +365,17 @@ class RemoteDataset:
             Makes this split the default split
         """
         if not self.local_path.exists():
-            raise NotFound("Local dataset not foungd: the split is perfomed on the local copy of the dataset. \
-                           Pull the dataset from Darwin first using pull()")
+            raise NotFound(
+                "Local dataset not foungd: the split is perfomed on the local copy of the dataset. \
+                           Pull the dataset from Darwin first using pull()"
+            )
         split_dataset(
             self.local_path,
             val_percentage=val_percentage,
             test_percentage=test_percentage,
             force_resplit=force_resplit,
             split_seed=split_seed,
-            make_default_split=make_default_split
+            make_default_split=make_default_split,
         )
 
     def classes(self, annotation_type: str):
@@ -396,9 +398,9 @@ class RemoteDataset:
     def annotations(
         self,
         partition: str,
-        split: str = 'split',
-        split_type: str = 'stratified',
-        annotation_type: str = 'polygon'
+        split: str = "split",
+        split_type: str = "stratified",
+        annotation_type: str = "polygon",
     ):
         """
         Returns all the annotations of a given split and partition in a single dictionary
@@ -420,8 +422,13 @@ class RemoteDataset:
             Dictionary containing all the annotations of the dataset
         """
         assert self.local_path.exists()
-        return get_annotations(self.local_path, partition=partition, split=split,
-                               split_type=split_type, annotation_type=annotation_type)
+        return get_annotations(
+            self.local_path,
+            partition=partition,
+            split=split,
+            split_type=split_type,
+            annotation_type=annotation_type,
+        )
 
     @property
     def remote_path(self) -> Path:
