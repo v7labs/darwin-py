@@ -8,7 +8,6 @@ from PIL import Image
 
 from .utils import convert_polygon_to_mask
 
-
 TargetKey = Union["boxes", "labels", "masks", "image_id", "area", "iscrowd"]
 TargetType = Dict[TargetKey, torch.Tensor]
 
@@ -23,18 +22,20 @@ class Compose(transforms.Compose):
 class RandomHorizontalFlip(transforms.RandomHorizontalFlip):
     def __call__(self, image: Image, target: Optional[TargetType] = None):
         if random.random() < self.p:
-            return image if target is None else (image, target)
+            image = F.hflip(image)
+            if target is None:
+                return image
 
-        image = super(RandomHorizontalFlip, self).__call__(image)
+            if "boxes" is target:
+                bbox = target["boxes"]
+                bbox[:, [0, 2]] = image.size[0] - bbox[:, [2, 0]]
+                target["boxes"] = bbox
+            if "masks" in target:
+                target["masks"] = target["masks"].flip(-1)
+            return image, target
+
         if target is None:
             return image
-
-        if "boxes" is target:
-            bbox = target["boxes"]
-            bbox[:, [0, 2]] = image.size[0] - bbox[:, [2, 0]]
-            target["boxes"] = bbox
-        if "masks" in target:
-            target["masks"] = target["masks"].flip(-1)
         return image, target
 
 
