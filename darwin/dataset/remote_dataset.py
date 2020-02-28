@@ -366,7 +366,7 @@ class RemoteDataset:
         """
         if not self.local_path.exists():
             raise NotFound(
-                "Local dataset not foungd: the split is perfomed on the local copy of the dataset. \
+                "Local dataset not found: the split is performed on the local copy of the dataset. \
                            Pull the dataset from Darwin first using pull()"
             )
         split_dataset(
