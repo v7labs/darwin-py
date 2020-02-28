@@ -14,12 +14,17 @@ TargetType = Dict[TargetKey, torch.Tensor]
 
 class Compose(transforms.Compose):
     def __call__(self, image: Image, target: Optional[TargetType] = None):
+        if target is None:
+            return super(Compose, self).__call__(image)
         for transform in self.transforms:
             image, target = transform(image, target)
         return image, target
 
 
-class RandomHorizontalFlip(transforms.RandomHorizontalFlip):
+class RandomHorizontalFlip(object):
+    def __init__(self, p: float = 0.5):
+        self.p = p
+
     def __call__(self, image: Image, target: Optional[TargetType] = None):
         if random.random() < self.p:
             image = F.hflip(image)
@@ -40,30 +45,27 @@ class RandomHorizontalFlip(transforms.RandomHorizontalFlip):
 
 
 class ColorJitter(transforms.ColorJitter):
-    def __call__(self, image, target: Optional[TargetType] = None):
-        if target is None:
-            return super(ColorJitter, self).__call__(image)
-
+    def __call__(self, image: Image, target: Optional[TargetType] = None):
         transform = self.get_params(self.brightness, self.contrast, self.saturation, self.hue)
         image = transform(image)
+        if target is None:
+            return image
         return image, target
 
 
-class ToTensor(transforms.ToTensor):
-    def __call__(self, image, target: Optional[TargetType] = None):
-        if target is None:
-            return super(ToTensor, self).__call__(image)
-
+class ToTensor(object):
+    def __call__(self, image: Image, target: Optional[TargetType] = None):
         image = F.to_tensor(image)
+        if target is None:
+            return image
         return image, target
 
 
-class ToPILImage(transforms.ToPILImage):
-    def __call__(self, image, target: Optional[TargetType] = None):
-        if target is None:
-            return super(ToPILImage, self).__call__(image)
-
+class ToPILImage(object):
+    def __call__(self, image: Image, target: Optional[TargetType] = None):
         image = F.to_pil_image(image)
+        if target is None:
+            return image
         return image, target
 
 
