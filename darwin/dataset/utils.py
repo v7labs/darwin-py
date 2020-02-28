@@ -10,7 +10,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 
-from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS
+from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS, is_image_extension_allowed
 
 
 def extract_classes(annotations_path: Path, annotation_type: str):
@@ -476,7 +476,6 @@ def get_annotations(
         split_file = f"{split_type}_{annotation_type}_{partition}.txt"
     split_path = dataset_path / "lists" / split / split_file
     stems = (e.strip() for e in split_path.open())
-    extensions = SUPPORTED_IMAGE_EXTENSIONS
     images_path = []
     annotations_path = []
 
@@ -486,7 +485,7 @@ def get_annotations(
         images = [
             image
             for image in dataset_path.glob(f"images/{stem}.*")
-            if image.suffix.lower() in extensions
+            if is_image_extension_allowed(image.suffix)
         ]
         if len(images) < 1:
             raise ValueError(
@@ -502,7 +501,9 @@ def get_annotations(
         annotations_path.append(annotation_path)
 
     if len(images_path) == 0:
-        raise ValueError(f"Could not find any {extensions} file" f" in {dataset_path / 'images'}")
+        raise ValueError(
+            f"Could not find any {SUPPORTED_IMAGE_EXTENSIONS} file" f" in {dataset_path / 'images'}"
+        )
 
     assert len(images_path) == len(annotations_path)
 

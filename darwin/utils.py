@@ -3,8 +3,21 @@ from typing import TYPE_CHECKING, List, Optional, Union
 
 from darwin.config import Config
 
-SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpeg", ".jpg", ".jfif", ".PNG", ".JPEG", ".JPG", ".JFIF"]
-SUPPORTED_VIDEO_EXTENSIONS = [".bpm", ".mov", ".mp4", ".BPM", ".MOV", ".MP4"]
+SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpeg", ".jpg", ".jfif"]
+SUPPORTED_VIDEO_EXTENSIONS = [".bpm", ".mov", ".mp4"]
+SUPPORTED_EXTENSIONS = SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
+
+
+def is_extension_allowed(extension):
+    return extension.lower() in SUPPORTED_EXTENSIONS
+
+
+def is_image_extension_allowed(extension):
+    return extension.lower() in SUPPORTED_IMAGE_EXTENSIONS
+
+
+def is_video_extension_allowed(extension):
+    return extension.lower() in SUPPORTED_VIDEO_EXTENSIONS
 
 
 if TYPE_CHECKING:
@@ -58,20 +71,20 @@ def prompt(msg: str, default: Optional[str] = None) -> str:
 
 
 def find_files(
-    files: Optional[List[Union[str, Path]]] = None,
-    recursive: Optional[bool] = True,
-    files_to_exclude: Optional[List[Union[str, Path]]] = None,
+    files: List[Union[str, Path]] = [],
+    recursive: bool = True,
+    files_to_exclude: List[Union[str, Path]] = [],
 ) -> List[Path]:
     """Retrieve a list of all files belonging to supported extensions. The exploration can be made
     recursive and a list of files can be excluded if desired.
 
     Parameters
     ----------
-    files: list[str]
+    files: List[Union[str, Path]]
         List of files that will be filtered with the supported file extensions and returned
     recursive : bool
         Flag for recursive search
-    files_to_exclude : list[str]
+    files_to_exclude : List[Union[str, Path]]
         List of files to exclude from the search
 
     Returns
@@ -84,17 +97,19 @@ def find_files(
     found_files = []
     base = "**/*" if recursive else "*"
     pattern = [
-        base + extension for extension in SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
+        base + extension
+        for extension in SUPPORTED_EXTENSIONS
+        + list(map(lambda ext: ext.upper(), SUPPORTED_EXTENSIONS))
     ]
 
-    for path in map(Path, files or []):
+    for path in map(Path, files):
         if path.is_dir():
             found_files.extend([f for p in pattern for f in path.glob(p)])
-        elif path.suffix in SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS:
+        elif is_extension_allowed(path.suffix):
             found_files.append(path)
 
     # Filter the list and return it
-    files_to_exclude = set(files_to_exclude or [])
+    files_to_exclude = set(files_to_exclude)
     return [
         f for f in found_files if f.name not in files_to_exclude and str(f) not in files_to_exclude
     ]

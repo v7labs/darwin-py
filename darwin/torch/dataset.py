@@ -8,7 +8,7 @@ import torch.utils.data as data
 
 from darwin.torch.transforms import Compose, ConvertPolygonsToInstanceMasks, ConvertPolygonToMask
 from darwin.torch.utils import convert_polygons_to_sequences, load_pil_image, polygon_area
-from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS
+from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS, is_image_extension_allowed
 
 
 class Dataset(data.Dataset):
@@ -42,12 +42,11 @@ class Dataset(data.Dataset):
         # Populate internal lists of annotations and images paths
         if not self.split.exists():
             raise FileNotFoundError(f"Could not find partition file: {self.split}")
-        extensions = SUPPORTED_IMAGE_EXTENSIONS
         stems = (e.strip() for e in split.open())
         image_extensions_mapping = {
             image.stem: image.suffix
             for image in self.root.glob(f"images/*")
-            if image.suffix in extensions
+            if is_image_extension_allowed(image.suffix)
         }
         for stem in stems:
             annotation_path = self.root / f"annotations/{stem}.json"
@@ -62,7 +61,10 @@ class Dataset(data.Dataset):
             self.annotations_path.append(annotation_path)
 
         if len(self.images_path) == 0:
-            raise ValueError(f"Could not find any {extensions} file" f" in {self.root / 'images'}")
+            raise ValueError(
+                f"Could not find any {SUPPORTED_IMAGE_EXTENSIONS} file"
+                f" in {self.root / 'images'}"
+            )
 
         assert len(self.images_path) == len(self.annotations_path)
 

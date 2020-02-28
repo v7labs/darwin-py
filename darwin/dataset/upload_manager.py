@@ -10,7 +10,7 @@ import requests
 
 from darwin.dataset.utils import exhaust_generator
 from darwin.exceptions import UnsupportedFileType
-from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS, SUPPORTED_VIDEO_EXTENSIONS
+from darwin.utils import is_image_extension_allowed, is_video_extension_allowed
 
 if TYPE_CHECKING:
     from darwin.client import Client
@@ -102,9 +102,9 @@ def _split_on_file_type(files: List[Path]):
     videos = []
     for file_path in files:
         suffix = file_path.suffix
-        if suffix in SUPPORTED_IMAGE_EXTENSIONS:
+        if is_image_extension_allowed(suffix):
             images.append(file_path)
-        elif suffix in SUPPORTED_VIDEO_EXTENSIONS:
+        elif is_video_extension_allowed(suffix):
             videos.append(file_path)
         else:
             raise UnsupportedFileType(file_path)
@@ -253,13 +253,13 @@ def sign_upload(client: "Client", image_id: int, key: str, file_path: Path, team
         Dictionary which contains the server response
     """
     file_format = file_path.suffix
-    if file_format in SUPPORTED_IMAGE_EXTENSIONS:
+    if is_image_extension_allowed(file_format):
         return client.post(
             endpoint=f"/dataset_images/{image_id}/sign_upload?key={key}",
             payload={"filePath": str(file_path), "contentType": f"image/{file_format}"},
             team=team,
         )
-    elif file_format in SUPPORTED_VIDEO_EXTENSIONS:
+    elif is_video_extension_allowed(file_format):
         return client.post(
             endpoint=f"/dataset_videos/{image_id}/sign_upload?key={key}",
             payload={"filePath": str(file_path), "contentType": f"video/{file_format}"},
