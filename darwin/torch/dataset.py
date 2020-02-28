@@ -333,7 +333,7 @@ class ClassificationDataset(Dataset):
         """
         # Collect all the labels by iterating over the whole dataset
         labels = []
-        for i in range(len(self.images_path)):
+        for i, _filename in enumerate(self.images_path):
             target = self._map_annotation(i)
             labels.append(target["category_id"])
         return self._compute_weights(labels)
