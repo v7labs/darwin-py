@@ -17,7 +17,7 @@ def download_all_images_from_annotations(
     remove_extra: bool = False,
     annotation_format: str = "json",
 ):
-    """Helper function: downloads the all images corresponding to a project.
+    """Helper function: downloads the all images corresponding to a dataset.
 
     Parameters
     ----------

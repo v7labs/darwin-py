@@ -169,7 +169,7 @@ class RemoteDataset:
         subset_filter_annotations_function: Optional[Callable] = None,
         subset_folder_name: Optional[str] = None,
     ):
-        """Downloads a remote project (images and annotations) in the datasets directory.
+        """Downloads a remote dataset (images and annotations) in the datasets directory.
 
         Parameters
         ----------

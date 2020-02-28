@@ -83,7 +83,7 @@ Access at https://darwin.v7labs.com/datasets/579
 
 The dataset will be created in the team you're authenticated for.
 
-To delete the project on the server:
+To delete the dataset on the server:
 ```
 $ darwin dataset remove test
 About to delete example-team/test on darwin.
@@ -93,7 +93,7 @@ Do you want to continue? [y/N] y
 
 ### Upload/download data to/from a remote dataset 
 
-Uploads data to an existing remote project.
+Uploads data to an existing remote dataset.
 It takes the dataset name and a single image (or directory) with images/videos to upload as 
 parameters. 
 

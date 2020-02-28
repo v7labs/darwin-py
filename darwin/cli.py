@@ -59,12 +59,12 @@ def run(args, parser):
                 print(path)
             else:
                 print("The dataset has not been downloaded")
-        # Print the url of a remote project
+        # Print the url of a remote dataset
         elif args.action == "url":
             f.url(args.dataset)
         elif args.action == "push":
             f.upload_data(args.dataset, args.files, args.exclude, args.fps)
-        # Remove a project (remotely)
+        # Remove a dataset (remotely)
         elif args.action == "remove":
             f.remove_remote_dataset(args.dataset)
         elif args.action == "report":

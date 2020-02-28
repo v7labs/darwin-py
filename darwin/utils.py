@@ -16,20 +16,20 @@ def urljoin(*parts: str) -> str:
     return "/".join(part.strip("/") for part in parts)
 
 
-def is_project_dir(project_path: Path) -> bool:
-    """Verifies if the directory is a project from Darwin by inspecting its sturcture
+def is_dataset_dir(dataset_path: Path) -> bool:
+    """Verifies if the directory is a dataset from Darwin by inspecting its sturcture
 
     Parameters
     ----------
-    project_path : Path
+    dataset_path : Path
         Directory to examine
 
     Returns
     -------
     bool
-    Is the directory is a project from Darwin?
+    Is the directory is a dataset from Darwin?
     """
-    return (project_path / "annotations").exists() and (project_path / "images").exists()
+    return (dataset_path / "annotations").exists() and (dataset_path / "images").exists()
 
 
 def prompt(msg: str, default: Optional[str] = None) -> str:

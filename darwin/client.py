@@ -15,7 +15,7 @@ from darwin.exceptions import (
     NotFound,
     Unauthorized,
 )
-from darwin.utils import is_project_dir, urljoin
+from darwin.utils import is_dataset_dir, urljoin
 from darwin.validators import ErrorHandlerType, name_taken, validation_error
 
 
@@ -165,9 +165,9 @@ class Client:
         """
         team_config = self.config.get_team(team or self.default_team)
 
-        for project_path in Path(team_config["datasets_dir"]).glob("*"):
-            if project_path.is_dir() and is_project_dir(project_path):
-                yield Path(project_path)
+        for dataset_path in Path(team_config["datasets_dir"]).glob("*"):
+            if dataset_path.is_dir() and is_dataset_dir(dataset_path):
+                yield Path(dataset_path)
 
     def list_remote_datasets(self, team: Optional[str] = None) -> Iterator[RemoteDataset]:
         """Returns a list of all available datasets with the team currently authenticated against

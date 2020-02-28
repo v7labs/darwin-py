@@ -59,3 +59,6 @@ def test_post(**kwargs):
     response = client.post("mock", {}, "team-1")
 
     assert response == {"status": 200}
+
+
+# TODO test failure cases of the above tests, too
