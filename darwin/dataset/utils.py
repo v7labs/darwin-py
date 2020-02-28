@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Generator, Iterable, List, Optional
 
 import numpy as np
+from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 
 from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS
@@ -188,8 +189,6 @@ def _stratify_samples(idx_to_classes, split_seed, test_percentage, val_percentag
     X_train, X_val, X_test : list
         List of indices of the images for each split
     """
-    # Import locally sklearn as to prevent making it a requirement globally for darwin-py
-    from sklearn.model_selection import train_test_split
 
     # Expand the list of files with all the classes
     expanded_list = [(k, c) for k, v in idx_to_classes.items() for c in v]
@@ -204,6 +203,10 @@ def _stratify_samples(idx_to_classes, split_seed, test_percentage, val_percentag
         single_files.append(file_indices[index])
         labels = np.delete(labels, index)
         file_indices = np.delete(file_indices, index)
+    # If file_indices or labels are empty, the following train_test_split will crash (empty train set)
+    if len(file_indices) == 0 or len(labels) == 0:
+        return [], [], []
+
     X_train, X_tmp, y_train, y_tmp = remove_cross_contamination(
         *train_test_split(
             np.array(file_indices),
