@@ -246,7 +246,6 @@ def split_dataset(
     dataset,
     val_percentage: float = 0.1,
     test_percentage: float = 0.2,
-    force_resplit: bool = False,
     split_seed: int = 0,
     make_default_split: bool = True,
 ):
@@ -327,7 +326,7 @@ def split_dataset(
         splits["stratified_polygon"]["test"] = Path(split_path / "stratified_polygon_test.txt")
 
     # Do the actual split
-    if not split_path.exists() or force_resplit:
+    if not split_path.exists():
         os.makedirs(str(split_path), exist_ok=True)
 
         # RANDOM SPLIT

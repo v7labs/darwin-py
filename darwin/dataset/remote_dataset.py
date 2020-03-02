@@ -343,7 +343,6 @@ class RemoteDataset:
         self,
         val_percentage: float = 0.1,
         test_percentage: float = 0,
-        force_resplit: bool = False,
         split_seed: int = 0,
         make_default_split: bool = True,
     ):
@@ -373,7 +372,6 @@ class RemoteDataset:
             self.local_path,
             val_percentage=val_percentage,
             test_percentage=test_percentage,
-            force_resplit=force_resplit,
             split_seed=split_seed,
             make_default_split=make_default_split,
         )
