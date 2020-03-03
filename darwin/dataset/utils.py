@@ -37,7 +37,7 @@ def get_release_path(dataset_path: Path, release_name: Optional[str] = None):
     release_path = dataset_path / "releases" / release_name
     if not release_path.exists():
         raise NotFound(
-            f"Version {release_name} not found locally: Pull this version from Darwin using pull() \
+            f"Local copy of release {release_name} not found: Pull this release from Darwin using pull() \
             or use a different version"
         )
     return release_path
