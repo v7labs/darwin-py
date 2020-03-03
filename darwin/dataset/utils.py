@@ -11,6 +11,36 @@ from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 
 from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS, is_image_extension_allowed
+from darwin.exceptions import NotFound
+
+
+def get_release_path(dataset_path: Path, release_name: Optional[str] = None):
+    """
+    Given a dataset path and a release name, returns the path to the release
+
+    Parameters
+    ----------
+    dataset_path
+        Path to the location of the dataset on the file system
+    release_name: str
+        Version of the dataset
+
+    Returns
+    -------
+    release_path: Path
+        Path to the location of the dataset release on the file system
+    """
+    assert dataset_path is not None
+
+    if not release_name:
+        release_name = "latest"
+    release_path = dataset_path / "version" / release_name
+    if not release_path.exists():
+        raise NotFound(
+            f"Version {release_name} not found locally: Pull this version from Darwin using pull() \
+            or use a different version"
+        )
+    return release_path
 
 
 def extract_classes(annotations_path: Path, annotation_type: str):
@@ -49,24 +79,22 @@ def extract_classes(annotations_path: Path, annotation_type: str):
     return classes, indices_to_classes
 
 
-def make_class_lists(dataset):
+def make_class_lists(release_path: Path):
     """
     Support function to extract classes and save the output to file
 
     Parameters
     ----------
-    dataset
+    release_path: Path
         Path to the location of the dataset on the file system
     """
-    assert dataset is not None
-    if isinstance(dataset, Path) or isinstance(dataset, str):
-        dataset_path = Path(dataset)
-    else:
-        dataset_path = dataset.local_path
+    assert release_path is not None
+    if isinstance(release_path, str):
+        release_path = Path(release_path)
 
-    annotations_path = dataset_path / "annotations"
+    annotations_path = release_path / "annotations"
     assert annotations_path.exists()
-    lists_path = dataset_path / "lists"
+    lists_path = release_path / "lists"
     lists_path.mkdir(exist_ok=True)
 
     for annotation_type in ["tag", "polygon"]:
@@ -79,15 +107,22 @@ def make_class_lists(dataset):
                 f.write("\n".join(classes_names))
 
 
-def get_classes(dataset, annotation_type: str, remove_background: bool = True):
+def get_classes(
+    dataset_path: Path,
+    release_name: Optional[str] = None,
+    annotation_type: str = "polygon",
+    remove_background: bool = True
+):
     """
     Given a dataset and an annotation_type returns the list of classes
 
     Parameters
     ----------
-    dataset
+    dataset_path
         Path to the location of the dataset on the file system
-    classes_type
+    release_name: str
+        Version of the dataset
+    annotation_type
         The type of annotation classes [tag, polygon]
     remove_background
         Removes the background class (if exists) from the list of classes
@@ -97,15 +132,11 @@ def get_classes(dataset, annotation_type: str, remove_background: bool = True):
     classes: list
         List of classes in the dataset of type classes_type
     """
-
-    assert dataset is not None
-    if isinstance(dataset, Path) or isinstance(dataset, str):
-        dataset_path = Path(dataset)
-    else:
-        dataset_path = dataset.local_path
+    assert dataset_path is not None
+    release_path = get_release_path(dataset_path, release_name)
 
     classes_file = f"classes_{annotation_type}.txt"
-    classes = [e.strip() for e in open(dataset_path / "lists" / classes_file)]
+    classes = [e.strip() for e in open(release_path / "lists" / classes_file)]
     if remove_background and classes[0] == "__background__":
         classes = classes[1:]
     return classes
@@ -243,7 +274,8 @@ def _stratify_samples(idx_to_classes, split_seed, test_percentage, val_percentag
 
 
 def split_dataset(
-    dataset,
+    dataset_path: Path,
+    release_name: Optional[str] = None,
     val_percentage: float = 0.1,
     test_percentage: float = 0.2,
     split_seed: int = 0,
@@ -255,8 +287,10 @@ def split_dataset(
 
     Parameters
     ----------
-    dataset : RemoteDataset or Path
-        It can be either a Darwin Dataset or local path to the dataset
+    dataset_path : Path
+        Local path to the dataset
+    release_name: str
+        Version of the dataset
     val_percentage : float
         Percentage of images used in the validation set
     test_percentage : float
@@ -273,18 +307,15 @@ def split_dataset(
     splits : dict
         Keys are the different splits (random, tags, ...) and values are the relative file names
     """
-    assert dataset is not None
-    if isinstance(dataset, Path) or isinstance(dataset, str):
-        dataset_path = Path(dataset)
-    else:
-        dataset_path = dataset.local_path
+    assert dataset_path is not None
+    release_path = get_release_path(dataset_path, release_name)
 
-    annotation_path = dataset_path / "annotations"
+    annotation_path = release_path / "annotations"
     assert annotation_path.exists()
     annotation_files = list(annotation_path.glob("*.json"))
 
     # Prepare the lists folder
-    lists_path = dataset_path / "lists"
+    lists_path = release_path / "lists"
     lists_path.mkdir(parents=True, exist_ok=True)
 
     # Create split id, path and final split paths
@@ -426,18 +457,19 @@ def exhaust_generator(progress: Generator, count: int, multi_threaded: bool):
 
 
 def get_annotations(
-    dataset,
+    dataset_path: Path,
     partition: str,
     split: str = "split",
     split_type: str = "stratified",
     annotation_type: str = "polygon",
+    release_name: Optional[str] = None,
 ):
     """
     Returns all the annotations of a given dataset and split in a single dictionary
 
     Parameters
     ----------
-    dataset
+    dataset_path
         Path to the location of the dataset on the file system
     partition
         Selects one of the partitions [train, val, test]
@@ -447,17 +479,16 @@ def get_annotations(
         Heuristic used to do the split [random, stratified]
     annotation_type
         The type of annotation classes [tag, polygon]
+    release_name: str
+        Version of the dataset
 
     Returns
     -------
     dict
         Dictionary containing all the annotations of the dataset
     """
-    assert dataset is not None
-    if isinstance(dataset, Path) or isinstance(dataset, str):
-        dataset_path = Path(dataset)
-    else:
-        dataset_path = dataset.local_path
+    assert dataset_path is not None
+    release_path = get_release_path(dataset_path, release_name)
 
     if partition not in ["train", "val", "test"]:
         raise ValueError("partition should be either 'train', 'val', or 'test'")
@@ -467,20 +498,20 @@ def get_annotations(
         raise ValueError("annotation_type should be either 'tag' or 'polygon'")
 
     # Get the list of classes
-    classes = get_classes(dataset, annotation_type=annotation_type, remove_background=True)
+    classes = get_classes(dataset_path, release_name, annotation_type=annotation_type, remove_background=True)
     # Get the split
     if split_type == "random":
         split_file = f"{split_type}_{partition}.txt"
     elif split_type == "stratified":
         split_file = f"{split_type}_{annotation_type}_{partition}.txt"
-    split_path = dataset_path / "lists" / split / split_file
+    split_path = release_path / "lists" / split / split_file
     stems = (e.strip() for e in split_path.open())
     images_path = []
     annotations_path = []
 
     # Find all the annotations and their corresponding images
     for stem in stems:
-        annotation_path = dataset_path / f"annotations/{stem}.json"
+        annotation_path = release_path / f"annotations/{stem}.json"
         images = [
             image
             for image in dataset_path.glob(f"images/{stem}.*")
