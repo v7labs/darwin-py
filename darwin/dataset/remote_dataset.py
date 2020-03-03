@@ -202,7 +202,7 @@ class RemoteDataset:
         if release is None:
             release = self.get_release()
 
-        release_dir = self.local_path / "version" / release.name
+        release_dir = self.local_path / "releases" / release.name
         release_dir.mkdir(parents=True, exist_ok=True)
 
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -240,7 +240,7 @@ class RemoteDataset:
         make_class_lists(release_dir)
 
         if release.latest:
-            latest_dir = self.local_path / "version" / "latest"
+            latest_dir = self.local_path / "releases" / "latest"
             if latest_dir.exists():
                 latest_dir.unlink()
             latest_dir.symlink_to(release_dir)
