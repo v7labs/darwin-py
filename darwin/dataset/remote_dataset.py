@@ -239,12 +239,6 @@ class RemoteDataset:
         # Extract the list of classes and create the text files
         make_class_lists(release_dir)
 
-        if release.latest:
-            latest_dir = self.local_path / "releases" / "latest"
-            if latest_dir.exists():
-                latest_dir.unlink()
-            latest_dir.symlink_to(release_dir)
-
         if only_annotations:
             # No images will be downloaded
             return None, 0
@@ -380,6 +374,9 @@ class RemoteDataset:
                 "Local dataset not found: the split is performed on the local copy of the dataset. \
                            Pull the dataset from Darwin first using pull()"
             )
+        if release_name is None:
+            release = self.get_release("latest")
+            release_name = release.name
 
         split_dataset(
             self.local_path,
@@ -412,6 +409,10 @@ class RemoteDataset:
             List of classes in the dataset of type `class_type`
         """
         assert self.local_path.exists()
+        if release_name is None:
+            release = self.get_release("latest")
+            release_name = release.name
+
         return get_classes(self.local_path, release_name=release_name, annotation_type=annotation_type)
 
     def annotations(
@@ -444,6 +445,10 @@ class RemoteDataset:
             Dictionary containing all the annotations of the dataset
         """
         assert self.local_path.exists()
+        if release_name is None:
+            release = self.get_release("latest")
+            release_name = release.name
+
         return get_annotations(
             self.local_path,
             partition=partition,
