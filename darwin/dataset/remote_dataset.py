@@ -413,7 +413,11 @@ class RemoteDataset:
             release = self.get_release("latest")
             release_name = release.name
 
-        return get_classes(self.local_path, release_name=release_name, annotation_type=annotation_type)
+        return get_classes(
+            self.local_path,
+            release_name=release_name,
+            annotation_type=annotation_type
+        )
 
     def annotations(
         self,
