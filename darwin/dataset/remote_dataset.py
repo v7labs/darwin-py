@@ -202,7 +202,7 @@ class RemoteDataset:
         if release is None:
             release = self.get_release()
 
-        release_dir = self.local_path / "releases" / release.name
+        release_dir = self.local_releases_path / release.name
         release_dir.mkdir(parents=True, exist_ok=True)
 
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -239,16 +239,21 @@ class RemoteDataset:
         # Extract the list of classes and create the text files
         make_class_lists(release_dir)
 
+        if release.latest:
+            latest_dir = self.local_releases_path / "latest"
+            if latest_dir.exists():
+                latest_dir.unlink()
+            latest_dir.symlink_to(release_dir)
+
         if only_annotations:
             # No images will be downloaded
             return None, 0
 
         # Create the generator with the download instructions
-        images_dir = self.local_path / "images"
         progress, count = download_all_images_from_annotations(
             api_url=self.client.url,
             annotations_path=annotations_dir,
-            images_path=images_dir,
+            images_path=self.local_images_path,
             force_replace=force_replace,
             remove_extra=remove_extra,
         )
@@ -374,7 +379,7 @@ class RemoteDataset:
                 "Local dataset not found: the split is performed on the local copy of the dataset. \
                            Pull the dataset from Darwin first using pull()"
             )
-        if release_name is None:
+        if release_name in ["latest", None]:
             release = self.get_release("latest")
             release_name = release.name
 
@@ -409,7 +414,7 @@ class RemoteDataset:
             List of classes in the dataset of type `class_type`
         """
         assert self.local_path.exists()
-        if release_name is None:
+        if release_name in ["latest", None]:
             release = self.get_release("latest")
             release_name = release.name
 
@@ -449,7 +454,7 @@ class RemoteDataset:
             Dictionary containing all the annotations of the dataset
         """
         assert self.local_path.exists()
-        if release_name is None:
+        if release_name in ["latest", None]:
             release = self.get_release("latest")
             release_name = release.name
 
@@ -474,6 +479,16 @@ class RemoteDataset:
             return Path(self.client.get_datasets_dir(self.team)) / self.slug
         else:
             return Path(self.client.get_datasets_dir(self.team))
+
+    @property
+    def local_releases_path(self) -> Path:
+        """Returns a Path to the local dataset releases"""
+        return self.local_path / "releases"
+
+    @property
+    def local_images_path(self) -> Path:
+        """Returns a local Path to the images folder"""
+        return self.local_path / "images"
 
     @property
     def identifier(self) -> DatasetIdentifier:
