@@ -562,15 +562,22 @@ def get_annotations(
         objs = []
         for obj in annotations:
             px, py = [], []
-            if "polygon" not in obj:
+            if "polygon" not in obj and "bounding_box" not in obj:
                 continue
-            for point in obj["polygon"]["path"]:
-                px.append(point["x"])
-                py.append(point["y"])
-            poly = [(x, y) for x, y in zip(px, py)]
-            if len(poly) < 3:  # Discard polyhons with less than 3 points
-                continue
-            poly = list(itertools.chain.from_iterable(poly))
+            if "polygon" in obj:
+                for point in obj["polygon"]["path"]:
+                    px.append(point["x"])
+                    py.append(point["y"])
+                poly = [(x, y) for x, y in zip(px, py)]
+                if len(poly) < 3:  # Discard polyhons with less than 3 points
+                    continue
+                poly = list(itertools.chain.from_iterable(poly))
+                bbox = [np.min(px), np.min(py), np.max(px), np.max(py)]
+            else:
+                poly = None
+            if "bounding_box" in obj:
+                bbox = obj["bounding_box"]
+                bbox = [bbox["x"], bbox["y"], bbox["x"] + bbox["w"], bbox["y"] + bbox["h"]]
 
             category_id = classes.index(obj["name"])
 
@@ -580,12 +587,13 @@ def get_annotations(
                 box_mode = 0
 
             obj = {
-                "bbox": [np.min(px), np.min(py), np.max(px), np.max(py)],
+                "bbox": bbox,
                 "bbox_mode": box_mode,
-                "segmentation": [poly],
                 "category_id": category_id,
                 "iscrowd": 0,
             }
+            if poly is not None:
+                obj["segmentation"] = [poly]
             objs.append(obj)
         record["annotations"] = objs
         dataset_dicts.append(record)
