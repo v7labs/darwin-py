@@ -370,8 +370,8 @@ def split_dataset(
         np.random.seed(split_seed)
         indices = np.random.permutation(dataset_size)
         train_indices = list(indices[:train_size])
-        val_indices = list(indices[train_size : train_size + val_size])
-        test_indices = list(indices[train_size + val_size :])
+        val_indices = list(indices[train_size:train_size + val_size])
+        test_indices = list(indices[train_size + val_size:])
         # Write files
         _write_to_file(annotation_files, splits["random"]["train"], train_indices)
         _write_to_file(annotation_files, splits["random"]["val"], val_indices)
@@ -460,7 +460,7 @@ def get_annotations(
     dataset_path: Path,
     partition: str,
     split: str = "split",
-    split_type: str = "stratified",
+    split_type: Optional[str] = None,
     annotation_type: str = "polygon",
     release_name: Optional[str] = None,
 ):
@@ -490,17 +490,19 @@ def get_annotations(
     assert dataset_path is not None
     release_path = get_release_path(dataset_path, release_name)
 
-    if partition not in ["train", "val", "test"]:
-        raise ValueError("partition should be either 'train', 'val', or 'test'")
+    if partition not in ["train", "validation", "test"]:
+        raise ValueError("partition should be either 'train', 'valildation', or 'test'")
     if split_type not in ["random", "stratified"]:
         raise ValueError("split_type should be either 'random' or 'stratified'")
-    if annotation_type not in ["tag", "polygon"]:
-        raise ValueError("annotation_type should be either 'tag' or 'polygon'")
+    if annotation_type not in ["tag", "polygon", "box"]:
+        raise ValueError("annotation_type should be either 'tag', 'box', or 'polygon'")
 
     # Get the list of classes
     classes = get_classes(dataset_path, release_name, annotation_type=annotation_type, remove_background=True)
     # Get the split
-    if split_type == "random":
+    if split_type is None:
+        split_file = f"{partition}.txt"
+    elif split_type == "random":
         split_file = f"{split_type}_{partition}.txt"
     elif split_type == "stratified":
         split_file = f"{split_type}_{annotation_type}_{partition}.txt"
@@ -508,6 +510,8 @@ def get_annotations(
     stems = (e.strip() for e in split_path.open())
     images_path = []
     annotations_path = []
+    if annotation_type == "box":
+        annotation_type = "bounding_box"
 
     # Find all the annotations and their corresponding images
     for stem in stems:
@@ -562,38 +566,32 @@ def get_annotations(
         objs = []
         for obj in annotations:
             px, py = [], []
-            if "polygon" not in obj and "bounding_box" not in obj:
+            if annotation_type not in obj:
                 continue
-            if "polygon" in obj:
+
+            if BoxMode is not None:
+                box_mode = BoxMode.XYXY_ABS
+            else:
+                box_mode = 0
+            obj = {
+                "bbox_mode": box_mode,
+                "category_id": classes.index(obj["name"]),
+                "iscrowd": 0,
+            }
+
+            if annotation_type == "polygon":
                 for point in obj["polygon"]["path"]:
                     px.append(point["x"])
                     py.append(point["y"])
                 poly = [(x, y) for x, y in zip(px, py)]
                 if len(poly) < 3:  # Discard polyhons with less than 3 points
                     continue
-                poly = list(itertools.chain.from_iterable(poly))
-                bbox = [np.min(px), np.min(py), np.max(px), np.max(py)]
-            else:
-                poly = None
-            if "bounding_box" in obj:
+                obj["segmentation"] = list(itertools.chain.from_iterable(poly))
+                obj["bbox"] = [np.min(px), np.min(py), np.max(px), np.max(py)]
+            if annotation_type == "bounding_box":
                 bbox = obj["bounding_box"]
-                bbox = [bbox["x"], bbox["y"], bbox["x"] + bbox["w"], bbox["y"] + bbox["h"]]
+                obj["bbox"] = [bbox["x"], bbox["y"], bbox["x"] + bbox["w"], bbox["y"] + bbox["h"]]
 
-            category_id = classes.index(obj["name"])
-
-            if BoxMode is not None:
-                box_mode = BoxMode.XYXY_ABS
-            else:
-                box_mode = 0
-
-            obj = {
-                "bbox": bbox,
-                "bbox_mode": box_mode,
-                "category_id": category_id,
-                "iscrowd": 0,
-            }
-            if poly is not None:
-                obj["segmentation"] = [poly]
             objs.append(obj)
         record["annotations"] = objs
         dataset_dicts.append(record)
