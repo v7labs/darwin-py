@@ -588,7 +588,7 @@ def get_annotations(
                     continue
                 obj["segmentation"] = list(itertools.chain.from_iterable(poly))
                 obj["bbox"] = [np.min(px), np.min(py), np.max(px), np.max(py)]
-            if annotation_type == "bounding_box":
+            elif annotation_type == "bounding_box":
                 bbox = obj["bounding_box"]
                 obj["bbox"] = [bbox["x"], bbox["y"], bbox["x"] + bbox["w"], bbox["y"] + bbox["h"]]
 
