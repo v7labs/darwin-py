@@ -341,15 +341,15 @@ def split_dataset(
     splits = {}
     splits["random"] = {
         "train": Path(split_path / "random_train.txt"),
-        "val": Path(split_path / "random_val.txt"),
+        "val": Path(split_path / "random_validation.txt"),
     }
     splits["stratified_tag"] = {
         "train": Path(split_path / "stratified_tag_train.txt"),
-        "val": Path(split_path / "stratified_tag_val.txt"),
+        "val": Path(split_path / "stratified_tag_validation.txt"),
     }
     splits["stratified_polygon"] = {
         "train": Path(split_path / "stratified_polygon_train.txt"),
-        "val": Path(split_path / "stratified_polygon_val.txt"),
+        "val": Path(split_path / "stratified_polygon_validation.txt"),
     }
     if test_percentage > 0.0:
         splits["random"]["test"] = Path(split_path) / "random_test.txt"
@@ -492,8 +492,8 @@ def get_annotations(
 
     if partition not in ["train", "validation", "test"]:
         raise ValueError("partition should be either 'train', 'valildation', or 'test'")
-    if split_type not in ["random", "stratified"]:
-        raise ValueError("split_type should be either 'random' or 'stratified'")
+    if split_type not in ["random", "stratified", None]:
+        raise ValueError("split_type should be either 'random', 'stratified'")
     if annotation_type not in ["tag", "polygon", "box"]:
         raise ValueError("annotation_type should be either 'tag', 'box', or 'polygon'")
 
