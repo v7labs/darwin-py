@@ -516,18 +516,23 @@ def get_annotations(
     # Find all the annotations and their corresponding images
     for stem in stems:
         annotation_path = release_path / f"annotations/{stem}.json"
-        images = [
-            image
-            for image in dataset_path.glob(f"images/{stem}.*")
-            if is_image_extension_allowed(image.suffix)
-        ]
+        images = []
+        for ext in SUPPORTED_IMAGE_EXTENSIONS:
+            image_path = dataset_path / f"images/{stem}{ext}"
+            if image_path.exists():
+                images.append(image_path)
+        # images = [
+        #     image
+        #     for image in dataset_path.glob(f"images/{stem}.*")
+        #     if is_image_extension_allowed(image.suffix)
+        # ]
         if len(images) < 1:
             raise ValueError(
-                f"Annotation ({annotation_path}) does" f" not have a corresponding image"
+                f"Annotation ({annotation_path}) does not have a corresponding image"
             )
         if len(images) > 1:
             raise ValueError(
-                f"Image ({stem}) is present with multiple extensions." f" This is forbidden."
+                f"Image ({stem}) is present with multiple extensions. This is forbidden."
             )
         assert len(images) == 1
         image_path = images[0]
@@ -573,7 +578,7 @@ def get_annotations(
                 box_mode = BoxMode.XYXY_ABS
             else:
                 box_mode = 0
-            obj = {
+            new_obj = {
                 "bbox_mode": box_mode,
                 "category_id": classes.index(obj["name"]),
                 "iscrowd": 0,
@@ -586,13 +591,13 @@ def get_annotations(
                 poly = [(x, y) for x, y in zip(px, py)]
                 if len(poly) < 3:  # Discard polyhons with less than 3 points
                     continue
-                obj["segmentation"] = list(itertools.chain.from_iterable(poly))
-                obj["bbox"] = [np.min(px), np.min(py), np.max(px), np.max(py)]
+                new_obj["segmentation"] = list(itertools.chain.from_iterable(poly))
+                new_obj["bbox"] = [np.min(px), np.min(py), np.max(px), np.max(py)]
             elif annotation_type == "bounding_box":
                 bbox = obj["bounding_box"]
-                obj["bbox"] = [bbox["x"], bbox["y"], bbox["x"] + bbox["w"], bbox["y"] + bbox["h"]]
+                new_obj["bbox"] = [bbox["x"], bbox["y"], bbox["x"] + bbox["w"], bbox["y"] + bbox["h"]]
 
-            objs.append(obj)
+            objs.append(new_obj)
         record["annotations"] = objs
         dataset_dicts.append(record)
     return dataset_dicts
