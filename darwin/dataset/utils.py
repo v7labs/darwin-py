@@ -17,7 +17,7 @@ def ensure_sklearn_imported(requester):
     try:
         import sklearn
     except ImportError:
-        print(f"`{requester}` requires sklearn to be installed, pip install scikit")
+        print(f"`{requester}` requires sklearn to be installed, pip install scikit-learn")
         sys.exit(0)
 
 
@@ -255,11 +255,11 @@ def _stratify_samples(idx_to_classes, split_seed, test_percentage, val_percentag
 
 def split_dataset(
     dataset,
-    val_percentage: float = 0.1,
-    test_percentage: float = 0.2,
-    split_seed: int = 0,
-    make_default_split: bool = True,
-    add_stratified_split: bool = True,
+    val_percentage: Optional[float] = 0.1,
+    test_percentage: Optional[float] = 0.2,
+    split_seed: Optional[int] = 0,
+    make_default_split: Optional[bool] = True,
+    add_stratified_split: Optional[bool] = True,
 ):
     """
     Given a local a dataset (pulled from Darwin) creates lists of file names
@@ -273,8 +273,6 @@ def split_dataset(
         Percentage of images used in the validation set
     test_percentage : float
         Percentage of images used in the test set
-    force_resplit : bool
-        Discard previous split and create a new one
     split_seed : int
         Fix seed for random split creation
     make_default_split: bool
@@ -572,5 +570,4 @@ def get_annotations(
             }
             objs.append(obj)
         record["annotations"] = objs
-        dataset_dicts.append(record)
-    return dataset_dicts
+        yield record

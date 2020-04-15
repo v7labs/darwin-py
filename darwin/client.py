@@ -381,8 +381,7 @@ class Client:
         if response.status_code != 200:
             raise InvalidLogin()
         data = response.json()
-        team_id = data["selected_team"]["id"]
-        team = [team["slug"] for team in data["teams"] if team["id"] == team_id][0]
+        team = data["selected_team"]["slug"]
 
         config = Config(path=None)
         config.set_team(team=team, api_key=api_key, datasets_dir=str(datasets_dir))
