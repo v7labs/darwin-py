@@ -5,7 +5,7 @@ import os
 import sys
 from collections import defaultdict
 from pathlib import Path
-from typing import Generator, Iterable, List, Optional
+from typing import Generator, Iterable, List, Optional, Union
 
 import numpy as np
 from tqdm import tqdm
@@ -473,12 +473,12 @@ def exhaust_generator(progress: Generator, count: int, multi_threaded: bool):
     return responses
 
 
-def get_all_records(
-    annotations_paths: list,
+def get_record(
+    annotation_path: Path,
     annotation_type: str = "polygon",
-    images_paths: Optional[list] = None,
-    images_ids: Optional[list] = None,
-    classes: Optional[list] = None,
+    image_path: Optional[Path] = None,
+    image_id: Optional[Union[str, int]] = None,
+    classes: Optional[List[str]] = None,
 ):
     try:
         from detectron2.structures import BoxMode
@@ -486,55 +486,51 @@ def get_all_records(
     except ImportError:
         box_mode = 0
 
-    if images_paths:
-        assert len(annotations_paths) == len(images_pats)
+    with annotation_path.open() as f:
+        data = json.load(f)
+    height, width = data["image"]["height"], data["image"]["width"]
+    annotations = data["annotations"]
 
-    for i, annotation_path in enumerate(annotations_paths):
-        with annotation_path.open() as f:
-            data = json.load(f)
-        height, width = data["image"]["height"], data["image"]["width"]
-        annotations = data["annotations"]
+    record = {}
+    if image_path:
+        record["file_name"] = str(image_path)
+    if image_id:
+        record["image_id"] = image_id
+    record["height"] = height
+    record["width"] = width
 
-        record = {}
-        if images_paths:
-            record["file_name"] = str(images_paths[i])
-        if images_ids:
-            record["image_id"] = images_ids[i]
-        record["height"] = height
-        record["width"] = width
+    objs = []
+    for obj in annotations:
+        px, py = [], []
+        if annotation_type not in obj:
+            continue
 
-        objs = []
-        for obj in annotations:
-            px, py = [], []
-            if annotation_type not in obj:
+        if classes:
+            category = classes.index(obj["name"])
+        else:
+            category = obj["name"]
+        new_obj = {
+            "bbox_mode": box_mode,
+            "category_id": category,
+            "iscrowd": 0,
+        }
+
+        if annotation_type == "polygon":
+            for point in obj["polygon"]["path"]:
+                px.append(point["x"])
+                py.append(point["y"])
+            poly = [(x, y) for x, y in zip(px, py)]
+            if len(poly) < 3:  # Discard polyhons with less than 3 points
                 continue
+            new_obj["segmentation"] = list(itertools.chain.from_iterable(poly))
+            new_obj["bbox"] = [np.min(px), np.min(py), np.max(px), np.max(py)]
+        elif annotation_type == "bounding_box":
+            bbox = obj["bounding_box"]
+            new_obj["bbox"] = [bbox["x"], bbox["y"], bbox["x"] + bbox["w"], bbox["y"] + bbox["h"]]
 
-            if classes:
-                category = classes.index(obj["name"])
-            else:
-                category = obj["name"]
-            new_obj = {
-                "bbox_mode": box_mode,
-                "category_id": category,
-                "iscrowd": 0,
-            }
-
-            if annotation_type == "polygon":
-                for point in obj["polygon"]["path"]:
-                    px.append(point["x"])
-                    py.append(point["y"])
-                poly = [(x, y) for x, y in zip(px, py)]
-                if len(poly) < 3:  # Discard polyhons with less than 3 points
-                    continue
-                new_obj["segmentation"] = list(itertools.chain.from_iterable(poly))
-                new_obj["bbox"] = [np.min(px), np.min(py), np.max(px), np.max(py)]
-            elif annotation_type == "bounding_box":
-                bbox = obj["bounding_box"]
-                new_obj["bbox"] = [bbox["x"], bbox["y"], bbox["x"] + bbox["w"], bbox["y"] + bbox["h"]]
-
-            objs.append(new_obj)
-        record["annotations"] = objs
-        yield record
+        objs.append(new_obj)
+    record["annotations"] = objs
+    return record
 
 
 def get_annotations(
@@ -570,10 +566,10 @@ def get_annotations(
     """
     assert dataset_path is not None
     release_path = get_release_path(dataset_path, release_name)
-    annotations_path = release_path / "annotations"
-    assert annotations_path.exists()
-    images_path = dataset_path / "images"
-    assert images_path.exists()
+    annotations_dir = release_path / "annotations"
+    assert annotations_dir.exists()
+    images_dir = dataset_path / "images"
+    assert images_dir.exists()
 
     if partition not in ["train", "validation", "test"]:
         raise ValueError("partition should be either 'train', 'valildation', or 'test'")
@@ -597,7 +593,7 @@ def get_annotations(
         stems = (e.strip() for e in split_path.open())
     else:
         # If the split is not specified, get all the annotations
-        stems = [e.stem for e in annotations_path.glob("*.json")]
+        stems = [e.stem for e in annotations_dir.glob("*.json")]
 
     images_paths = []
     annotations_paths = []
@@ -606,10 +602,10 @@ def get_annotations(
 
     # Find all the annotations and their corresponding images
     for stem in stems:
-        annotation_path = annotations_path / f"{stem}.json"
+        annotation_path = annotations_dir / f"{stem}.json"
         images = []
         for ext in SUPPORTED_IMAGE_EXTENSIONS:
-            image_path = images_path / f"{stem}{ext}"
+            image_path = images_dir / f"{stem}{ext}"
             if image_path.exists():
                 images.append(image_path)
         if len(images) < 1:
@@ -629,14 +625,15 @@ def get_annotations(
             f"Could not find any {SUPPORTED_IMAGE_EXTENSIONS} file" f" in {dataset_path / 'images'}"
         )
 
-    assert len(images_paths) == len(annotations_path)
-    images_ids = list(range(len(images_paths)
+    assert len(images_paths) == len(annotations_paths)
+    images_ids = list(range(len(images_paths)))
 
     # Load and re-format all the annotations
-    return get_all_records(
-        annotations_paths=annotations_paths,
-        annotation_type=annotation_type,
-        images_paths=images_paths,
-        images_ids=images_ids,
-        classes=classes
-    )
+    for annotation_path, image_path, image_id in zip(annotations_paths, images_paths, images_ids):
+        yield get_record(
+            annotation_path=annotation_path,
+            annotation_type=annotation_type,
+            image_path=image_path,
+            image_id=image_id,
+            classes=classes,
+        )
