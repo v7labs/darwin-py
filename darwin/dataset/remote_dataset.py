@@ -10,7 +10,13 @@ from darwin.dataset.download_manager import download_all_images_from_annotations
 from darwin.dataset.identifier import DatasetIdentifier
 from darwin.dataset.release import Release
 from darwin.dataset.upload_manager import add_files_to_dataset
-from darwin.dataset.utils import exhaust_generator
+from darwin.dataset.utils import (
+    exhaust_generator,
+    get_annotations,
+    get_classes,
+    make_class_lists,
+    split_dataset,
+)
 from darwin.exceptions import NotFound
 from darwin.utils import find_files, urljoin
 from darwin.validators import name_taken, validation_error
@@ -70,7 +76,7 @@ class RemoteDataset:
         files_to_exclude: Optional[List[str]] = None,
         resume: bool = False,
     ):
-        """Uploads a local project (images ONLY) in the projects directory.
+        """Uploads a local dataset (images ONLY) in the datasets directory.
 
         Parameters
         ----------
@@ -163,7 +169,7 @@ class RemoteDataset:
         subset_filter_annotations_function: Optional[Callable] = None,
         subset_folder_name: Optional[str] = None,
     ):
-        """Downloads a remote project (images and annotations) in the projects directory.
+        """Downloads a remote project (images and annotations) in the datasets directory.
 
         Parameters
         ----------
@@ -226,6 +232,9 @@ class RemoteDataset:
                         filename + "_" + original_filename.stem + annotation_path.suffix
                     )
                     shutil.move(str(annotation_path), str(destination_name))
+
+        # Extract the list of classes and create the text files
+        make_class_lists(self.local_path)
 
         if only_annotations:
             # No images will be downloaded
@@ -329,6 +338,95 @@ class RemoteDataset:
             if str(release.name) == name:
                 return release
         raise NotFound(self.identifier)
+
+    def split(
+        self,
+        val_percentage: float = 0.1,
+        test_percentage: float = 0,
+        split_seed: int = 0,
+        make_default_split: bool = True,
+    ):
+        """
+        Creates lists of file names for each split for train, validation, and test.
+        Note: This functions needs a local copy of the dataset
+
+        Parameters
+        ----------
+        val_percentage : float
+            Percentage of images used in the validation set
+        test_percentage : float
+            Percentage of images used in the test set
+        force_resplit : bool
+            Discard previous split and create a new one
+        split_seed : int
+            Fix seed for random split creation
+        make_default_split: bool
+            Makes this split the default split
+        """
+        if not self.local_path.exists():
+            raise NotFound(
+                "Local dataset not found: the split is performed on the local copy of the dataset. \
+                           Pull the dataset from Darwin first using pull()"
+            )
+        split_dataset(
+            self.local_path,
+            val_percentage=val_percentage,
+            test_percentage=test_percentage,
+            split_seed=split_seed,
+            make_default_split=make_default_split,
+        )
+
+    def classes(self, annotation_type: str):
+        """
+        Returns the list of `class_type` classes
+
+        Parameters
+        ----------
+        annotation_type
+            The type of annotation classes, e.g. 'tag' or 'polygon'
+
+        Returns
+        -------
+        classes: list
+            List of classes in the dataset of type `class_type`
+        """
+        assert self.local_path.exists()
+        return get_classes(self.local_path, annotation_type=annotation_type)
+
+    def annotations(
+        self,
+        partition: str,
+        split: str = "split",
+        split_type: str = "stratified",
+        annotation_type: str = "polygon",
+    ):
+        """
+        Returns all the annotations of a given split and partition in a single dictionary
+
+        Parameters
+        ----------
+        partition
+            Selects one of the partitions [train, val, test]
+        split
+            Selects the split that defines the percetages used (use 'split' to select the default split
+        split_type
+            Heuristic used to do the split [random, stratified]
+        annotation_type
+            The type of annotation classes [tag, polygon]
+
+        Returns
+        -------
+        dict
+            Dictionary containing all the annotations of the dataset
+        """
+        assert self.local_path.exists()
+        return get_annotations(
+            self.local_path,
+            partition=partition,
+            split=split,
+            split_type=split_type,
+            annotation_type=annotation_type,
+        )
 
     @property
     def remote_path(self) -> Path:

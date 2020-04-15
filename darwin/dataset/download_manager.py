@@ -6,7 +6,7 @@ from typing import Optional
 
 import requests
 
-from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS, urljoin
+from darwin.utils import is_image_extension_allowed, urljoin
 
 
 def download_all_images_from_annotations(
@@ -49,7 +49,7 @@ def download_all_images_from_annotations(
     existing_images = {
         image.stem: image
         for image in images_path.glob(f"*")
-        if image.suffix in SUPPORTED_IMAGE_EXTENSIONS
+        if is_image_extension_allowed(image.suffix)
     }
     annotations_to_download_path = []
     for annotation_path in annotations_path.glob(f"*.{annotation_format}"):
