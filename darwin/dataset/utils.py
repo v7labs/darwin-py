@@ -2,12 +2,12 @@ import itertools
 import json
 import multiprocessing as mp
 import os
+import sys
 from collections import defaultdict
 from pathlib import Path
 from typing import Generator, Iterable, List, Optional
 
 import numpy as np
-from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 
 from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS, is_image_extension_allowed
@@ -41,6 +41,14 @@ def get_release_path(dataset_path: Path, release_name: Optional[str] = None):
             or use a different version"
         )
     return release_path
+
+
+def ensure_sklearn_imported(requester):
+    try:
+        import sklearn
+    except ImportError:
+        print(f"`{requester}` requires sklearn to be installed, pip install scikit-learn")
+        sys.exit(0)
 
 
 def extract_classes(annotations_path: Path, annotation_type: str):
@@ -221,6 +229,9 @@ def _stratify_samples(idx_to_classes, split_seed, test_percentage, val_percentag
         List of indices of the images for each split
     """
 
+    ensure_sklearn_imported("split_dataset()")
+    from sklearn.model_selection import train_test_split
+
     # Expand the list of files with all the classes
     expanded_list = [(k, c) for k, v in idx_to_classes.items() for c in v]
     # Stratify
@@ -276,10 +287,11 @@ def _stratify_samples(idx_to_classes, split_seed, test_percentage, val_percentag
 def split_dataset(
     dataset_path: Path,
     release_name: Optional[str] = None,
-    val_percentage: float = 0.1,
-    test_percentage: float = 0.2,
-    split_seed: int = 0,
-    make_default_split: bool = True,
+    val_percentage: Optional[float] = 0.1,
+    test_percentage: Optional[float] = 0.2,
+    split_seed: Optional[int] = 0,
+    make_default_split: Optional[bool] = True,
+    add_stratified_split: Optional[bool] = True,
 ):
     """
     Given a local a dataset (pulled from Darwin) creates lists of file names
@@ -295,12 +307,12 @@ def split_dataset(
         Percentage of images used in the validation set
     test_percentage : float
         Percentage of images used in the test set
-    force_resplit : bool
-        Discard previous split and create a new one
     split_seed : int
         Fix seed for random split creation
     make_default_split: bool
         Makes this split the default split
+    add_stratified_split: bool
+        In addition to the random split it also adds a stratified split
 
     Returns
     -------
@@ -378,31 +390,32 @@ def split_dataset(
         if test_percentage > 0.0:
             _write_to_file(annotation_files, splits["random"]["test"], test_indices)
 
-        # STRATIFIED SPLIT ON TAGS
-        # Stratify
-        classes_tag, idx_to_classes_tag = extract_classes(annotation_path, "tag")
-        if len(idx_to_classes_tag) > 0:
-            train_indices, val_indices, test_indices = _stratify_samples(
-                idx_to_classes_tag, split_seed, test_percentage, val_percentage
-            )
-            # Write files
-            _write_to_file(annotation_files, splits["stratified_tag"]["train"], train_indices)
-            _write_to_file(annotation_files, splits["stratified_tag"]["val"], val_indices)
-            if test_percentage > 0.0:
-                _write_to_file(annotation_files, splits["stratified_tag"]["test"], test_indices)
+        if add_stratified_split:
+            # STRATIFIED SPLIT ON TAGS
+            # Stratify
+            classes_tag, idx_to_classes_tag = extract_classes(annotation_path, "tag")
+            if len(idx_to_classes_tag) > 0:
+                train_indices, val_indices, test_indices = _stratify_samples(
+                    idx_to_classes_tag, split_seed, test_percentage, val_percentage
+                )
+                # Write files
+                _write_to_file(annotation_files, splits["stratified_tag"]["train"], train_indices)
+                _write_to_file(annotation_files, splits["stratified_tag"]["val"], val_indices)
+                if test_percentage > 0.0:
+                    _write_to_file(annotation_files, splits["stratified_tag"]["test"], test_indices)
 
-        # STRATIFIED SPLIT ON POLYGONS
-        # Stratify
-        classes_polygon, idx_to_classes_polygon = extract_classes(annotation_path, "polygon")
-        if len(idx_to_classes_polygon) > 0:
-            train_indices, val_indices, test_indices = _stratify_samples(
-                idx_to_classes_polygon, split_seed, test_percentage, val_percentage
-            )
-            # Write files
-            _write_to_file(annotation_files, splits["stratified_polygon"]["train"], train_indices)
-            _write_to_file(annotation_files, splits["stratified_polygon"]["val"], val_indices)
-            if test_percentage > 0.0:
-                _write_to_file(annotation_files, splits["stratified_polygon"]["test"], test_indices)
+            # STRATIFIED SPLIT ON POLYGONS
+            # Stratify
+            classes_polygon, idx_to_classes_polygon = extract_classes(annotation_path, "polygon")
+            if len(idx_to_classes_polygon) > 0:
+                train_indices, val_indices, test_indices = _stratify_samples(
+                    idx_to_classes_polygon, split_seed, test_percentage, val_percentage
+                )
+                # Write files
+                _write_to_file(annotation_files, splits["stratified_polygon"]["train"], train_indices)
+                _write_to_file(annotation_files, splits["stratified_polygon"]["val"], val_indices)
+                if test_percentage > 0.0:
+                    _write_to_file(annotation_files, splits["stratified_polygon"]["test"], test_indices)
 
     # Create symlink for default split
     split = lists_path / "split"
@@ -521,11 +534,6 @@ def get_annotations(
             image_path = dataset_path / f"images/{stem}{ext}"
             if image_path.exists():
                 images.append(image_path)
-        # images = [
-        #     image
-        #     for image in dataset_path.glob(f"images/{stem}.*")
-        #     if is_image_extension_allowed(image.suffix)
-        # ]
         if len(images) < 1:
             raise ValueError(
                 f"Annotation ({annotation_path}) does not have a corresponding image"
@@ -599,5 +607,4 @@ def get_annotations(
 
             objs.append(new_obj)
         record["annotations"] = objs
-        dataset_dicts.append(record)
-    return dataset_dicts
+        yield record
