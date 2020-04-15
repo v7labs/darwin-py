@@ -473,6 +473,70 @@ def exhaust_generator(progress: Generator, count: int, multi_threaded: bool):
     return responses
 
 
+def get_all_records(
+    annotations_paths: list,
+    annotation_type: str = "polygon",
+    images_paths: Optional[list] = None,
+    images_ids: Optional[list] = None,
+    classes: Optional[list] = None,
+):
+    try:
+        from detectron2.structures import BoxMode
+        box_mode = BoxMode.XYXY_ABS
+    except ImportError:
+        box_mode = 0
+
+    if images_paths:
+        assert len(annotations_paths) == len(images_pats)
+
+    for i, annotation_path in enumerate(annotations_paths):
+        with annotation_path.open() as f:
+            data = json.load(f)
+        height, width = data["image"]["height"], data["image"]["width"]
+        annotations = data["annotations"]
+
+        record = {}
+        if images_paths:
+            record["file_name"] = str(images_paths[i])
+        if images_ids:
+            record["image_id"] = images_ids[i]
+        record["height"] = height
+        record["width"] = width
+
+        objs = []
+        for obj in annotations:
+            px, py = [], []
+            if annotation_type not in obj:
+                continue
+
+            if classes:
+                category = classes.index(obj["name"])
+            else:
+                category = obj["name"]
+            new_obj = {
+                "bbox_mode": box_mode,
+                "category_id": category,
+                "iscrowd": 0,
+            }
+
+            if annotation_type == "polygon":
+                for point in obj["polygon"]["path"]:
+                    px.append(point["x"])
+                    py.append(point["y"])
+                poly = [(x, y) for x, y in zip(px, py)]
+                if len(poly) < 3:  # Discard polyhons with less than 3 points
+                    continue
+                new_obj["segmentation"] = list(itertools.chain.from_iterable(poly))
+                new_obj["bbox"] = [np.min(px), np.min(py), np.max(px), np.max(py)]
+            elif annotation_type == "bounding_box":
+                bbox = obj["bounding_box"]
+                new_obj["bbox"] = [bbox["x"], bbox["y"], bbox["x"] + bbox["w"], bbox["y"] + bbox["h"]]
+
+            objs.append(new_obj)
+        record["annotations"] = objs
+        yield record
+
+
 def get_annotations(
     dataset_path: Path,
     partition: str,
@@ -535,8 +599,8 @@ def get_annotations(
         # If the split is not specified, get all the annotations
         stems = [e.stem for e in annotations_path.glob("*.json")]
 
-    images_path = []
-    annotations_path = []
+    images_paths = []
+    annotations_paths = []
     if annotation_type == "box":
         annotation_type = "bounding_box"
 
@@ -557,68 +621,22 @@ def get_annotations(
                 f"Image ({stem}) is present with multiple extensions. This is forbidden."
             )
         assert len(images) == 1
-        image_path = images[0]
-        images_path.append(image_path)
-        annotations_path.append(annotation_path)
+        images_paths.append(images[0])
+        annotations_paths.append(annotation_path)
 
-    if len(images_path) == 0:
+    if len(images_paths) == 0:
         raise ValueError(
             f"Could not find any {SUPPORTED_IMAGE_EXTENSIONS} file" f" in {dataset_path / 'images'}"
         )
 
-    assert len(images_path) == len(annotations_path)
-
-    try:
-        from detectron2.structures import BoxMode
-    except ImportError:
-        BoxMode = None
+    assert len(images_paths) == len(annotations_path)
+    images_ids = list(range(len(images_paths)
 
     # Load and re-format all the annotations
-    dataset_dicts = []
-    for image_id, (im_path, annot_path) in enumerate(zip(images_path, annotations_path)):
-        record = {}
-
-        with annot_path.open() as f:
-            data = json.load(f)
-
-        height, width = data["image"]["height"], data["image"]["width"]
-        annotations = data["annotations"]
-
-        filename = im_path
-        record["file_name"] = str(filename)
-        record["height"] = height
-        record["width"] = width
-        record["image_id"] = image_id
-
-        objs = []
-        for obj in annotations:
-            px, py = [], []
-            if annotation_type not in obj:
-                continue
-
-            if BoxMode is not None:
-                box_mode = BoxMode.XYXY_ABS
-            else:
-                box_mode = 0
-            new_obj = {
-                "bbox_mode": box_mode,
-                "category_id": classes.index(obj["name"]),
-                "iscrowd": 0,
-            }
-
-            if annotation_type == "polygon":
-                for point in obj["polygon"]["path"]:
-                    px.append(point["x"])
-                    py.append(point["y"])
-                poly = [(x, y) for x, y in zip(px, py)]
-                if len(poly) < 3:  # Discard polyhons with less than 3 points
-                    continue
-                new_obj["segmentation"] = list(itertools.chain.from_iterable(poly))
-                new_obj["bbox"] = [np.min(px), np.min(py), np.max(px), np.max(py)]
-            elif annotation_type == "bounding_box":
-                bbox = obj["bounding_box"]
-                new_obj["bbox"] = [bbox["x"], bbox["y"], bbox["x"] + bbox["w"], bbox["y"] + bbox["h"]]
-
-            objs.append(new_obj)
-        record["annotations"] = objs
-        yield record
+    return get_all_records(
+        annotations_paths=annotations_paths,
+        annotation_type=annotation_type,
+        images_paths=images_paths,
+        images_ids=images_ids,
+        classes=classes
+    )
