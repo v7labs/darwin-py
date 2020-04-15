@@ -472,7 +472,7 @@ def exhaust_generator(progress: Generator, count: int, multi_threaded: bool):
 def get_annotations(
     dataset_path: Path,
     partition: str,
-    split: str = "split",
+    split: Optional[str] = None,
     split_type: Optional[str] = None,
     annotation_type: str = "polygon",
     release_name: Optional[str] = None,
@@ -502,6 +502,10 @@ def get_annotations(
     """
     assert dataset_path is not None
     release_path = get_release_path(dataset_path, release_name)
+    annotations_path = release_path / "annotations"
+    assert annotations_path.exists()
+    images_path = dataset_path / "images"
+    assert images_path.exists()
 
     if partition not in ["train", "validation", "test"]:
         raise ValueError("partition should be either 'train', 'valildation', or 'test'")
@@ -512,15 +516,21 @@ def get_annotations(
 
     # Get the list of classes
     classes = get_classes(dataset_path, release_name, annotation_type=annotation_type, remove_background=True)
-    # Get the split
-    if split_type is None:
-        split_file = f"{partition}.txt"
-    elif split_type == "random":
-        split_file = f"{split_type}_{partition}.txt"
-    elif split_type == "stratified":
-        split_file = f"{split_type}_{annotation_type}_{partition}.txt"
-    split_path = release_path / "lists" / split / split_file
-    stems = (e.strip() for e in split_path.open())
+    # Get the list of stems
+    if split:
+        # Get the split
+        if split_type is None:
+            split_file = f"{partition}.txt"
+        elif split_type == "random":
+            split_file = f"{split_type}_{partition}.txt"
+        elif split_type == "stratified":
+            split_file = f"{split_type}_{annotation_type}_{partition}.txt"
+        split_path = release_path / "lists" / split / split_file
+        stems = (e.strip() for e in split_path.open())
+    else:
+        # If the split is not specified, get all the annotations
+        stems = [e.stem for e in annotations_path.glob("*.json")]
+
     images_path = []
     annotations_path = []
     if annotation_type == "box":
@@ -528,10 +538,10 @@ def get_annotations(
 
     # Find all the annotations and their corresponding images
     for stem in stems:
-        annotation_path = release_path / f"annotations/{stem}.json"
+        annotation_path = annotations_path / f"{stem}.json"
         images = []
         for ext in SUPPORTED_IMAGE_EXTENSIONS:
-            image_path = dataset_path / f"images/{stem}{ext}"
+            image_path = images_path / f"{stem}{ext}"
             if image_path.exists():
                 images.append(image_path)
         if len(images) < 1:
