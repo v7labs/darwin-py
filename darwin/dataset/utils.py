@@ -71,6 +71,10 @@ def extract_classes(annotations_path: Path, annotation_type: str):
     Dictionary where keys are image indices and values are all classes
     contained in that image
     """
+    assert annotation_type in ["tag", "polygon", "box", "bounding_box"]
+    if annotation_type == "box":
+        annotation_type = "bounding_box"
+
     classes = defaultdict(set)
     indices_to_classes = defaultdict(set)
     annotation_files = list(annotations_path.glob("*.json"))
@@ -105,7 +109,7 @@ def make_class_lists(release_path: Path):
     lists_path = release_path / "lists"
     lists_path.mkdir(exist_ok=True)
 
-    for annotation_type in ["tag", "polygon"]:
+    for annotation_type in ["tag", "polygon", "box"]:
         fname = lists_path / f"classes_{annotation_type}.txt"
         classes, _ = extract_classes(annotations_path, annotation_type=annotation_type)
         classes_names = list(classes.keys())
