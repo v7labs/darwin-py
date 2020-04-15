@@ -458,14 +458,15 @@ class RemoteDataset:
             release = self.get_release("latest")
             release_name = release.name
 
-        return get_annotations(
+        for annotation in get_annotations(
             self.local_path,
             partition=partition,
             split=split,
             split_type=split_type,
             annotation_type=annotation_type,
             release_name=release_name,
-        )
+        ):
+            yield annotation
 
     @property
     def remote_path(self) -> Path:
