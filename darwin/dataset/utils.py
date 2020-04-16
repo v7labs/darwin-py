@@ -473,13 +473,14 @@ def exhaust_generator(progress: Generator, count: int, multi_threaded: bool):
     return responses
 
 
-def get_record(
+def get_coco_format_record(
     annotation_path: Path,
     annotation_type: str = "polygon",
     image_path: Optional[Path] = None,
     image_id: Optional[Union[str, int]] = None,
     classes: Optional[List[str]] = None,
 ):
+    assert annotation_type in ["tag", "polygon", "bounding_box", "box"]
     try:
         from detectron2.structures import BoxMode
         box_mode = BoxMode.XYXY_ABS
@@ -524,7 +525,7 @@ def get_record(
                 continue
             new_obj["segmentation"] = list(itertools.chain.from_iterable(poly))
             new_obj["bbox"] = [np.min(px), np.min(py), np.max(px), np.max(py)]
-        elif annotation_type == "bounding_box":
+        elif annotation_type == "bounding_box" or annotation_type == "box":
             bbox = obj["bounding_box"]
             new_obj["bbox"] = [bbox["x"], bbox["y"], bbox["x"] + bbox["w"], bbox["y"] + bbox["h"]]
 
@@ -551,11 +552,11 @@ def get_annotations(
     partition
         Selects one of the partitions [train, val, test]
     split
-        Selects the split that defines the percetages used (use 'split' to select the default split
+        Selects the split that defines the percetages used (use 'split' to select the default split)
     split_type
-        Heuristic used to do the split [random, stratified]
+        Heuristic used to do the split [random, stratified, None]
     annotation_type
-        The type of annotation classes [tag, polygon]
+        The type of annotation classes [tag, box, polygon]
     release_name: str
         Version of the dataset
 
@@ -597,8 +598,6 @@ def get_annotations(
 
     images_paths = []
     annotations_paths = []
-    if annotation_type == "box":
-        annotation_type = "bounding_box"
 
     # Find all the annotations and their corresponding images
     for stem in stems:
@@ -630,7 +629,7 @@ def get_annotations(
 
     # Load and re-format all the annotations
     for annotation_path, image_path, image_id in zip(annotations_paths, images_paths, images_ids):
-        yield get_record(
+        yield get_coco_format_record(
             annotation_path=annotation_path,
             annotation_type=annotation_type,
             image_path=image_path,
