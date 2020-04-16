@@ -541,6 +541,7 @@ def get_annotations(
     split_type: Optional[str] = None,
     annotation_type: str = "polygon",
     release_name: Optional[str] = None,
+    annotation_format: Optional[str] = "coco",
 ):
     """
     Returns all the annotations of a given dataset and split in a single dictionary
@@ -559,6 +560,8 @@ def get_annotations(
         The type of annotation classes [tag, box, polygon]
     release_name: str
         Version of the dataset
+    annotations_format: str
+        Re-formatting of the annotation when loaded [coco, darwin]
 
     Returns
     -------
@@ -625,14 +628,20 @@ def get_annotations(
         )
 
     assert len(images_paths) == len(annotations_paths)
-    images_ids = list(range(len(images_paths)))
 
     # Load and re-format all the annotations
-    for annotation_path, image_path, image_id in zip(annotations_paths, images_paths, images_ids):
-        yield get_coco_format_record(
-            annotation_path=annotation_path,
-            annotation_type=annotation_type,
-            image_path=image_path,
-            image_id=image_id,
-            classes=classes,
-        )
+    if annotation_format == "coco":
+        images_ids = list(range(len(images_paths)))
+        for annotation_path, image_path, image_id in zip(annotations_paths, images_paths, images_ids):
+            yield get_coco_format_record(
+                annotation_path=annotation_path,
+                annotation_type=annotation_type,
+                image_path=image_path,
+                image_id=image_id,
+                classes=classes,
+            )
+    elif annotation_format == "darwin":
+        for annotation_path in annotations_paths:
+            with annotation_path.open() as f:
+                record = json.load(f)
+            yield record
