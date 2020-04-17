@@ -5,7 +5,7 @@ with open("README.md", "r") as f:
 
 setuptools.setup(
     name="darwin-py",
-    version="0.3",
+    version="0.4",
     author="V7",
     author_email="info@v7labs.com",
     description="Library and command line interface for darwin.v7labs.com",
@@ -17,9 +17,9 @@ setuptools.setup(
         "docutils",
         "factory_boy",
         "humanize",
+        "numpy",
         "pyyaml>=5.1",
-        "requests",
-        "scikit-learn",
+        "requests>=2.20",
         "sh",
         "tqdm",
     ],
