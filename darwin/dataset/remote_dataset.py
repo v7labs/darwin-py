@@ -285,7 +285,7 @@ class RemoteDataset:
 
     def get_report(self, granularity="day"):
         return self.client.get(
-            f"/reports/{self.dataset_id}/annotation?group_by=dataset,user&dataset_ids={self.dataset_id}&granularity={granularity}&format=csv&include=dataset.name,user.first_name,user.last_name,user.email",
+            f"/reports/{self.team}/annotation?group_by=dataset,user&dataset_ids={self.dataset_id}&granularity={granularity}&format=csv&include=dataset.name,user.first_name,user.last_name,user.email",
             team=self.team,
             raw=True,
         ).text
