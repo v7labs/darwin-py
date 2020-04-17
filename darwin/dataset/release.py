@@ -33,7 +33,11 @@ class Release:
 
     @classmethod
     def parse_json(cls, dataset_slug, team_slug, payload):
-        export_date = datetime.datetime.strptime(payload["inserted_at"], "%Y-%m-%dT%H:%M:%S%z")
+        try:
+            export_date = datetime.datetime.strptime(payload["inserted_at"], "%Y-%m-%dT%H:%M:%S%z")
+        except ValueError:
+            # For python version older than 3.7
+            export_date = datetime.datetime.strptime(payload["inserted_at"], "%Y-%m-%dT%H:%M:%SZ")
         if payload["download_url"] is None:
             return cls(
                 dataset_slug=dataset_slug,
