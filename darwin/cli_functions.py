@@ -22,14 +22,16 @@ from darwin.utils import find_files, persist_client_configuration, prompt, secur
 
 
 def validate_api_key(api_key: str):
+    example_key = "DHMhAWr.BHucps-tKMAi6rWF1xieOpUvNe5WzrHP"
+
     if len(api_key) != 40:
-        _error("Expected key to be 40 characters long")
+        _error(f"Expected key to be 40 characters long\n(example: {example_key})")
 
     if "." not in api_key:
-        _error("Expected key formatted as prefix . suffix")
+        _error(f"Expected key formatted as prefix . suffix\n(example: {example_key})")
 
     if len(api_key.split(".")[0]) != 7:
-        _error("Expected key prefix to be 7 characters long")
+        _error(f"Expected key prefix to be 7 characters long\n(example: {example_key})")
 
 
 def authenticate(
