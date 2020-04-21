@@ -21,6 +21,17 @@ from darwin.table import Table
 from darwin.utils import find_files, persist_client_configuration, prompt, secure_continue_request
 
 
+def validate_api_key(api_key: str):
+    if len(api_key) != 40:
+        _error("Expected key to be 40 characters long")
+
+    if "." not in api_key:
+        _error("Expected key formatted as prefix . suffix")
+
+    if len(api_key.split(".")[0]) != 7:
+        _error("Expected key prefix to be 7 characters long")
+
+
 def authenticate(
     api_key: str, default_team: Optional[bool] = None, datasets_dir: Optional[Path] = None
 ) -> Config:
@@ -41,6 +52,8 @@ def authenticate(
     A configuration object to handle YAML files
     """
     # Resolve the home folder if the dataset_dir starts with ~ or ~user
+
+    validate_api_key(api_key)
 
     try:
         client = Client.from_api_key(api_key=api_key)
