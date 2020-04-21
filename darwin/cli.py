@@ -27,7 +27,8 @@ def run(args, parser):
     # Authenticate user
     if args.command == "authenticate":
         api_key = getpass.getpass(prompt="API key: ", stream=None)
-        if api_key.strip() == "":
+        api_key = api_key.strip()
+        if api_key == "":
             print(
                 "API Key needed, generate one for your team: https://darwin.v7labs.com/?settings=api-keys"
             )
