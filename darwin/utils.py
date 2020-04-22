@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from typing import TYPE_CHECKING, List, Optional, Union
 
@@ -96,11 +97,13 @@ def find_files(
     # Init the return value
     found_files = []
     base = "**/*" if recursive else "*"
-    pattern = [
-        base + extension
-        for extension in SUPPORTED_EXTENSIONS
-        + list(map(lambda ext: ext.upper(), SUPPORTED_EXTENSIONS))
-    ]
+
+    extensions = SUPPORTED_EXTENSIONS
+    # On Windows, path are case insensitive, so extending the extension list would double the pushed files
+    if os.name != "nt":
+        extensions.extend([ext.upper() for ext in SUPPORTED_EXTENSIONS])
+
+    pattern = [f"{base}{extension}" for extension in SUPPORTED_EXTENSIONS]
 
     for path in map(Path, files):
         if path.is_dir():
