@@ -45,7 +45,7 @@ def run(args, parser):
             f.list_teams()
     # Version
     elif args.command == "version":
-        print("0.3")
+        print("0.4.2")
 
     elif args.command == "dataset":
         if args.action == "remote":
