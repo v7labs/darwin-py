@@ -96,18 +96,11 @@ def find_files(
 
     # Init the return value
     found_files = []
-    base = "**/*" if recursive else "*"
-
-    extensions = SUPPORTED_EXTENSIONS
-    # On Windows, path are case insensitive, so extending the extension list would double the pushed files
-    if os.name != "nt":
-        extensions.extend([ext.upper() for ext in SUPPORTED_EXTENSIONS])
-
-    pattern = [f"{base}{extension}" for extension in SUPPORTED_EXTENSIONS]
+    pattern = "**/*" if recursive else "*"
 
     for path in map(Path, files):
         if path.is_dir():
-            found_files.extend([f for p in pattern for f in path.glob(p)])
+            found_files.extend([f for f in path.glob(pattern) if is_extension_allowed(f.suffix)])
         elif is_extension_allowed(path.suffix):
             found_files.append(path)
 
