@@ -522,7 +522,7 @@ def get_record(
             poly = [(x, y) for x, y in zip(px, py)]
             if len(poly) < 3:  # Discard polyhons with less than 3 points
                 continue
-            new_obj["segmentation"] = list(itertools.chain.from_iterable(poly))
+            new_obj["segmentation"] = [list(itertools.chain.from_iterable(poly))]
             new_obj["bbox"] = [np.min(px), np.min(py), np.max(px), np.max(py)]
         elif annotation_type == "bounding_box":
             bbox = obj["bounding_box"]
