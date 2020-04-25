@@ -493,9 +493,9 @@ def get_coco_format_record(
     annotations = data["annotations"]
 
     record = {}
-    if image_path:
+    if image_path is not None:
         record["file_name"] = str(image_path)
-    if image_id:
+    if image_id is not None:
         record["image_id"] = image_id
     record["height"] = height
     record["width"] = width
