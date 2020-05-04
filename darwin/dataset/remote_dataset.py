@@ -148,7 +148,9 @@ class RemoteDataset:
             )
             # Log responses to file
             if responses:
-                responses = [{k: str(v) for k, v in response.items()} for response in responses]
+                responses = [
+                    {k: str(v) for k, v in response.items()} for response in responses
+                ]
                 if resume:
                     responses.extend(logged_responses)
                 with responses_path.open("w") as f:
@@ -213,14 +215,20 @@ class RemoteDataset:
                 if subset_filter_annotations_function is not None:
                     subset_filter_annotations_function(tmp_dir)
                     if subset_folder_name is None:
-                        subset_folder_name = datetime.now().strftime("%m/%d/%Y_%H:%M:%S")
-                annotations_dir = self.local_path / (subset_folder_name or "") / "annotations"
+                        subset_folder_name = datetime.now().strftime(
+                            "%m/%d/%Y_%H:%M:%S"
+                        )
+                annotations_dir = (
+                    self.local_path / (subset_folder_name or "") / "annotations"
+                )
                 # Remove existing annotations if necessary
                 if annotations_dir.exists():
                     try:
                         shutil.rmtree(annotations_dir)
                     except PermissionError:
-                        print(f"Could not remove dataset in {annotations_dir}. Permission denied.")
+                        print(
+                            f"Could not remove dataset in {annotations_dir}. Permission denied."
+                        )
                 annotations_dir.mkdir(parents=True, exist_ok=False)
                 # Move the annotations into the right folder and rename them to have the image
                 # original filename as contained in the json
@@ -254,14 +262,58 @@ class RemoteDataset:
 
         # If blocking is selected, download the dataset on the file system
         if blocking:
-            exhaust_generator(progress=progress(), count=count, multi_threaded=multi_threaded)
+            exhaust_generator(
+                progress=progress(), count=count, multi_threaded=multi_threaded
+            )
             return None, count
         else:
             return progress, count
 
     def remove_remote(self):
         """Archives (soft-deletion) the remote dataset"""
-        self.client.put(f"datasets/{self.dataset_id}/archive", payload={}, team=self.team)
+        self.client.put(
+            f"datasets/{self.dataset_id}/archive", payload={}, team=self.team
+        )
+
+    def fetch_remote_files(self):
+        """Fetch and lists all files on the remote dataset"""
+        # https://darwin.v7labs.com/api/datasets/479/dataset_images?page%5Bfrom%5D=2019-11-08%2011%3A26%3A08%2C523&sort%5Bcreated_at%5D=asc
+        cursor = ""
+        while True:
+            response = self.client.get(
+                f"/datasets/{self.dataset_id}/dataset_images{cursor}", team=self.team
+            )
+            yield from response["items"]
+            if response["metadata"]["next"]:
+                cursor = f"?page[from]={response['metadata']['next']}"
+            else:
+                return
+
+    def fetch_annotation_type_id_for_name(self, name):
+        """Fetches annotation type id for a annotation type name, such as bounding_box"""
+        annotation_types = self.client.get(f"/annotation_types")
+        for annotation_type in annotation_types:
+            if annotation_type["name"] == name:
+                return annotation_type["id"]
+
+    def create_annotation_class(self, name: str, type: str):
+        type_id = self.fetch_annotation_type_id_for_name(type)
+        return self.client.post(
+            f"/annotation_classes",
+            payload={
+                "dataset_id": self.dataset_id,
+                "name": name,
+                "metadata": {"_color": "auto"},
+                "annotation_type_ids": [type_id],
+            },
+            error_handlers=[name_taken, validation_error],
+        )
+
+    def fetch_remote_classes(self):
+        """Fetches all remote classes on the remote dataset"""
+        return self.client.get(f"/datasets/{self.dataset_id}/annotation_classes")[
+            "annotation_classes"
+        ]
 
     def export(self, name: str, annotation_class_ids: Optional[List[str]] = None):
         """Create a new release for the dataset
@@ -301,12 +353,19 @@ class RemoteDataset:
         ------
         """
         try:
-            releases_json = self.client.get(f"/datasets/{self.dataset_id}/exports", team=self.team)
+            releases_json = self.client.get(
+                f"/datasets/{self.dataset_id}/exports", team=self.team
+            )
         except NotFound:
             return []
-        releases = [Release.parse_json(self.slug, self.team, payload) for payload in releases_json]
+        releases = [
+            Release.parse_json(self.slug, self.team, payload)
+            for payload in releases_json
+        ]
         return sorted(
-            filter(lambda x: x.available, releases), key=lambda x: x.version, reverse=True
+            filter(lambda x: x.available, releases),
+            key=lambda x: x.version,
+            reverse=True,
         )
 
     def get_release(self, name: str = "latest"):
