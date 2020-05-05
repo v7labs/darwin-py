@@ -279,7 +279,7 @@ class RemoteDataset:
 
     def fetch_annotation_type_id_for_name(self, name):
         """Fetches annotation type id for a annotation type name, such as bounding_box"""
-        annotation_types = self.client.get(f"/annotation_types")
+        annotation_types = self.client.get("/annotation_types")
         for annotation_type in annotation_types:
             if annotation_type["name"] == name:
                 return annotation_type["id"]
