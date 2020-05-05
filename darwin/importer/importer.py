@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Callable, List, Optional, Union
+from typing import Callable, List, Union
 
 import darwin.datatypes as dt
 from darwin.utils import secure_continue_request
@@ -22,7 +22,7 @@ def build_main_annotations_lookup_table(annotation_classes):
 
 def import_annotations(
     dataset: "RemoteDataset",
-    importer: Callable[[Path], Optional[dt.AnnotationFile]],
+    importer: Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]],
     file_paths: List[Union[str, Path]],
 ):
     print("Fetching remote file list...")
@@ -37,15 +37,19 @@ def import_annotations(
     for file_path in map(Path, file_paths):
         files = file_path.glob("**/*") if file_path.is_dir() else [file_path]
         for f in files:
-            parsed_file = importer(f)
-            if not parsed_file:
+            # importer returns either None, 1 annotation file or a list of annotation files
+            parsed_files = importer(f)
+            if parsed_files is None:
                 continue
-            # clear to save memory
-            parsed_file.annotations = []
-            if parsed_file.filename not in remote_files:
-                local_files_missing_remotely.append(parsed_file)
-                continue
-            local_files.append(parsed_file)
+            if type(parsed_files) is not list:
+                parsed_files = [parsed_files]
+            for parsed_file in parsed_files:
+                # clear to save memory
+                parsed_file.annotations = []
+                if parsed_file.filename not in remote_files:
+                    local_files_missing_remotely.append(parsed_file)
+                    continue
+                local_files.append(parsed_file)
     print(f"{len(local_files) + len(local_files_missing_remotely)} annotation file(s) found.")
     if local_files_missing_remotely:
         print(f"{len(local_files_missing_remotely)} file(s) are missing from the dataset")
@@ -58,7 +62,10 @@ def import_annotations(
     local_classes_missing_remotely = set()
     for local_file in local_files:
         for cls in local_file.annotation_classes:
-            if cls.name not in remote_classes[cls.annotation_type]:
+            if (
+                cls.annotation_type not in remote_classes
+                or cls.name not in remote_classes[cls.annotation_type]
+            ):
                 local_classes_missing_remotely.add(cls)
 
     print(f"{len(local_classes_missing_remotely)} classes are missing remotely.")
@@ -75,13 +82,16 @@ def import_annotations(
             remote_classes = build_main_annotations_lookup_table(dataset.fetch_remote_classes())
 
     # Need to re parse the files since we didn't save the annotations in memory
-    for local_file in local_files:
-        print(f"importing {local_file.path}")
-        parsed_file = importer(local_file.path)
-        image_id = remote_files[parsed_file.filename]
-        _import_annotations(
-            dataset.client, image_id, remote_classes, parsed_file.annotations, dataset
-        )
+    for local_path in set(local_file.path for local_file in local_files):
+        print(f"importing {local_path}")
+        parsed_files = importer(local_path)
+        if type(parsed_files) is not list:
+            parsed_files = [parsed_files]
+        for parsed_file in parsed_files:
+            image_id = remote_files[parsed_file.filename]
+            _import_annotations(
+                dataset.client, image_id, remote_classes, parsed_file.annotations, dataset,
+            )
 
 
 def _import_annotations(client: "Client", id: int, remote_classes, annotations, dataset):

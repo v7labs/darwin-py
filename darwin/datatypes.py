@@ -28,3 +28,7 @@ def make_bounding_box(class_name, x, y, w, h):
         AnnotationClass(class_name, "bounding_box"),
         {"x": round(x, 3), "y": round(y, 3), "w": round(w, 3), "h": round(h, 3)},
     )
+
+
+def make_tag(class_name):
+    return Annotation(AnnotationClass(class_name, "tag"), {})

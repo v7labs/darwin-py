@@ -299,7 +299,7 @@ class RemoteDataset:
 
     def fetch_remote_classes(self):
         """Fetches all remote classes on the remote dataset"""
-        return self.client.get(f"/datasets/{self.dataset_id}/annotation_classes")[
+        return self.client.get(f"/datasets/{self.dataset_id}/annotation_classes?include_tags=true")[
             "annotation_classes"
         ]
 
