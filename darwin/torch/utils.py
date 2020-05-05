@@ -1,12 +1,10 @@
-import json
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 
 import numpy as np
-
 import torch
-from darwin.dataset.utils import get_classes
 from PIL import Image
+
 from pycocotools import mask as coco_mask
 
 try:

@@ -6,6 +6,8 @@ from typing import List, Optional
 
 import humanize
 
+import darwin.importer as importer
+import darwin.importer.formats
 from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset.identifier import DatasetIdentifier
@@ -18,14 +20,7 @@ from darwin.exceptions import (
     ValidationError,
 )
 from darwin.table import Table
-from darwin.utils import (
-    find_files,
-    persist_client_configuration,
-    prompt,
-    secure_continue_request,
-)
-import darwin.importer as importer
-import darwin.importer.formats
+from darwin.utils import find_files, persist_client_configuration, prompt, secure_continue_request
 
 
 def validate_api_key(api_key: str):
@@ -42,9 +37,7 @@ def validate_api_key(api_key: str):
 
 
 def authenticate(
-    api_key: str,
-    default_team: Optional[bool] = None,
-    datasets_dir: Optional[Path] = None,
+    api_key: str, default_team: Optional[bool] = None, datasets_dir: Optional[Path] = None,
 ) -> Config:
     """Authenticate the API key against the server and creates a configuration file for it
 
@@ -72,9 +65,10 @@ def authenticate(
         config_path.parent.mkdir(exist_ok=True)
 
         if default_team is None:
-            default_team = input(
-                f"Make {client.default_team} the default team? [y/N] "
-            ) in ["Y", "y",]
+            default_team = input(f"Make {client.default_team} the default team? [y/N] ") in [
+                "Y",
+                "y",
+            ]
         if datasets_dir is None:
             datasets_dir = prompt("Datasets directory", "~/.darwin/datasets")
 
@@ -134,9 +128,7 @@ def create_dataset(name: str, team: Optional[str] = None):
 
 def local():
     """Lists synced datasets, stored in the specified path. """
-    table = Table(
-        ["name", "images", "sync_date", "size"], [Table.L, Table.R, Table.R, Table.R]
-    )
+    table = Table(["name", "images", "sync_date", "size"], [Table.L, Table.R, Table.R, Table.R])
     client = _load_client(offline=True)
     for dataset_path in client.list_local_datasets():
         table.add_row(
@@ -192,9 +184,7 @@ def dataset_report(dataset_slug: str, granularity) -> Path:
 
 
 def export_dataset(
-    dataset_slug: str,
-    annotation_class_ids: Optional[List] = None,
-    name: Optional[str] = None,
+    dataset_slug: str, annotation_class_ids: Optional[List] = None, name: Optional[str] = None,
 ):
     """Create a new release for the dataset
 
@@ -296,8 +286,7 @@ def dataset_list_releases(dataset_slug: str):
             print("No available releases, export one first.")
             return
         table = Table(
-            ["name", "images", "classes", "export_date"],
-            [Table.L, Table.R, Table.R, Table.R],
+            ["name", "images", "classes", "export_date"], [Table.L, Table.R, Table.R, Table.R],
         )
         for release in releases:
             if not release.available:
@@ -316,10 +305,7 @@ def dataset_list_releases(dataset_slug: str):
 
 
 def upload_data(
-    dataset_slug: str,
-    files: Optional[List[str]],
-    files_to_exclude: Optional[List[str]],
-    fps: int,
+    dataset_slug: str, files: Optional[List[str]], files_to_exclude: Optional[List[str]], fps: int,
 ):
     """Uploads the files provided as parameter to the remote dataset selected
 
@@ -377,14 +363,11 @@ def help(parser, subparser: Optional[str] = None):
         parser = next(
             action.choices[subparser]
             for action in parser._actions
-            if isinstance(action, argparse._SubParsersAction)
-            and subparser in action.choices
+            if isinstance(action, argparse._SubParsersAction) and subparser in action.choices
         )
 
     actions = [
-        action
-        for action in parser._actions
-        if isinstance(action, argparse._SubParsersAction)
+        action for action in parser._actions if isinstance(action, argparse._SubParsersAction)
     ]
 
     print(parser.description)

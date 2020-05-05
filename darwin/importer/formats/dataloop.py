@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Optional, Union
+from typing import Optional
 
 import darwin.datatypes as dt
 
@@ -11,14 +11,9 @@ def parse_file(path: Path) -> Optional[dt.AnnotationFile]:
     with path.open() as f:
         data = json.load(f)
         annotations = list(filter(None, map(_parse_annotation, data["annotations"])))
-        annotation_classes = set(
-            [annotation.annotation_class for annotation in annotations]
-        )
+        annotation_classes = set([annotation.annotation_class for annotation in annotations])
         return dt.AnnotationFile(
-            path,
-            _remove_leading_slash(data["filename"]),
-            annotation_classes,
-            annotations,
+            path, _remove_leading_slash(data["filename"]), annotation_classes, annotations,
         )
 
 

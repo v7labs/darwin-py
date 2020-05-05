@@ -148,9 +148,7 @@ class RemoteDataset:
             )
             # Log responses to file
             if responses:
-                responses = [
-                    {k: str(v) for k, v in response.items()} for response in responses
-                ]
+                responses = [{k: str(v) for k, v in response.items()} for response in responses]
                 if resume:
                     responses.extend(logged_responses)
                 with responses_path.open("w") as f:
@@ -215,20 +213,14 @@ class RemoteDataset:
                 if subset_filter_annotations_function is not None:
                     subset_filter_annotations_function(tmp_dir)
                     if subset_folder_name is None:
-                        subset_folder_name = datetime.now().strftime(
-                            "%m/%d/%Y_%H:%M:%S"
-                        )
-                annotations_dir = (
-                    self.local_path / (subset_folder_name or "") / "annotations"
-                )
+                        subset_folder_name = datetime.now().strftime("%m/%d/%Y_%H:%M:%S")
+                annotations_dir = self.local_path / (subset_folder_name or "") / "annotations"
                 # Remove existing annotations if necessary
                 if annotations_dir.exists():
                     try:
                         shutil.rmtree(annotations_dir)
                     except PermissionError:
-                        print(
-                            f"Could not remove dataset in {annotations_dir}. Permission denied."
-                        )
+                        print(f"Could not remove dataset in {annotations_dir}. Permission denied.")
                 annotations_dir.mkdir(parents=True, exist_ok=False)
                 # Move the annotations into the right folder and rename them to have the image
                 # original filename as contained in the json
@@ -262,18 +254,14 @@ class RemoteDataset:
 
         # If blocking is selected, download the dataset on the file system
         if blocking:
-            exhaust_generator(
-                progress=progress(), count=count, multi_threaded=multi_threaded
-            )
+            exhaust_generator(progress=progress(), count=count, multi_threaded=multi_threaded)
             return None, count
         else:
             return progress, count
 
     def remove_remote(self):
         """Archives (soft-deletion) the remote dataset"""
-        self.client.put(
-            f"datasets/{self.dataset_id}/archive", payload={}, team=self.team
-        )
+        self.client.put(f"datasets/{self.dataset_id}/archive", payload={}, team=self.team)
 
     def fetch_remote_files(self):
         """Fetch and lists all files on the remote dataset"""
@@ -353,19 +341,12 @@ class RemoteDataset:
         ------
         """
         try:
-            releases_json = self.client.get(
-                f"/datasets/{self.dataset_id}/exports", team=self.team
-            )
+            releases_json = self.client.get(f"/datasets/{self.dataset_id}/exports", team=self.team)
         except NotFound:
             return []
-        releases = [
-            Release.parse_json(self.slug, self.team, payload)
-            for payload in releases_json
-        ]
+        releases = [Release.parse_json(self.slug, self.team, payload) for payload in releases_json]
         return sorted(
-            filter(lambda x: x.available, releases),
-            key=lambda x: x.version,
-            reverse=True,
+            filter(lambda x: x.available, releases), key=lambda x: x.version, reverse=True,
         )
 
     def get_release(self, name: str = "latest"):

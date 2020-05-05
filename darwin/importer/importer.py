@@ -1,9 +1,8 @@
-from abc import ABC, abstractmethod
 from pathlib import Path
-from dataclasses import dataclass
-from typing import TYPE_CHECKING, List, Set, Optional, Union, Callable
-from darwin.utils import secure_continue_request
+from typing import Callable, List, Optional, Union
+
 import darwin.datatypes as dt
+from darwin.utils import secure_continue_request
 
 # def make_polygon(class_name, point_path):
 #     return Annotation(AnnotationClass(class_name, "polygon"), {"path": point_path})
@@ -47,13 +46,9 @@ def import_annotations(
                 local_files_missing_remotely.append(parsed_file)
                 continue
             local_files.append(parsed_file)
-    print(
-        f"{len(local_files) + len(local_files_missing_remotely)} annotation file(s) found."
-    )
+    print(f"{len(local_files) + len(local_files_missing_remotely)} annotation file(s) found.")
     if local_files_missing_remotely:
-        print(
-            f"{len(local_files_missing_remotely)} file(s) are missing from the dataset"
-        )
+        print(f"{len(local_files_missing_remotely)} file(s) are missing from the dataset")
         for local_file in local_files_missing_remotely:
             print(f"\t{local_file.path}: '{local_file.filename}'")
 
@@ -74,14 +69,10 @@ def import_annotations(
         if not secure_continue_request():
             return
         for missing_class in local_classes_missing_remotely:
-            dataset.create_annotation_class(
-                missing_class.name, missing_class.annotation_type
-            )
+            dataset.create_annotation_class(missing_class.name, missing_class.annotation_type)
 
             # Refetch classes to update mappings
-            remote_classes = build_main_annotations_lookup_table(
-                dataset.fetch_remote_classes()
-            )
+            remote_classes = build_main_annotations_lookup_table(dataset.fetch_remote_classes())
 
     # Need to re parse the files since we didn't save the annotations in memory
     for local_file in local_files:
@@ -93,9 +84,7 @@ def import_annotations(
         )
 
 
-def _import_annotations(
-    client: "Client", id: int, remote_classes, annotations, dataset
-):
+def _import_annotations(client: "Client", id: int, remote_classes, annotations, dataset):
     serialized_annotations = []
     for annotation in annotations:
         annotation_class = annotation.annotation_class
@@ -110,11 +99,8 @@ def _import_annotations(
         )
 
     if client.feature_enabled("WORKFLOW", dataset.team):
-        result = client.post(
-            f"/items/{id}/import", payload={"annotations": serialized_annotations}
-        )
+        result = client.post(f"/items/{id}/import", payload={"annotations": serialized_annotations})
     else:
         result = client.post(
-            f"/dataset_images/{id}/import",
-            payload={"annotations": serialized_annotations},
+            f"/dataset_images/{id}/import", payload={"annotations": serialized_annotations},
         )

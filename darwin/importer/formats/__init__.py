@@ -1,5 +1,4 @@
-from . import dataloop
-from . import pascalvoc
+from . import dataloop, pascalvoc
 
 supported_formats = [
     ("pascalvoc", pascalvoc.parse_file),

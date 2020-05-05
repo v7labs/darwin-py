@@ -60,9 +60,7 @@ class Client:
         Unauthorized
             Action is not authorized
         """
-        response = requests.get(
-            urljoin(self.url, endpoint), headers=self._get_headers(team)
-        )
+        response = requests.get(urljoin(self.url, endpoint), headers=self._get_headers(team))
 
         if response.status_code == 401:
             raise Unauthorized()
@@ -204,9 +202,7 @@ class Client:
             if project_path.is_dir() and is_project_dir(project_path):
                 yield Path(project_path)
 
-    def list_remote_datasets(
-        self, team: Optional[str] = None
-    ) -> Iterator[RemoteDataset]:
+    def list_remote_datasets(self, team: Optional[str] = None) -> Iterator[RemoteDataset]:
         """Returns a list of all available datasets with the team currently authenticated against
 
         Returns
@@ -270,10 +266,7 @@ class Client:
         The created dataset
         """
         dataset = self.post(
-            "/datasets",
-            {"name": name},
-            team=team,
-            error_handlers=[name_taken, validation_error],
+            "/datasets", {"name": name}, team=team, error_handlers=[name_taken, validation_error],
         )
         return RemoteDataset(
             name=dataset["name"],
