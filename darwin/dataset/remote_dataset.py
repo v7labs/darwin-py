@@ -277,12 +277,12 @@ class RemoteDataset:
 
     def fetch_remote_files(self):
         """Fetch and lists all files on the remote dataset"""
-        # https://darwin.v7labs.com/api/datasets/479/dataset_images?page%5Bfrom%5D=2019-11-08%2011%3A26%3A08%2C523&sort%5Bcreated_at%5D=asc
+        base_url = f"/datasets/{self.dataset_id}/items"
+        if not self.client.feature_enabled("WORKFLOW", self.team):
+            base_url = f"/datasets/{self.dataset_id}/dataset_images"
         cursor = ""
         while True:
-            response = self.client.get(
-                f"/datasets/{self.dataset_id}/dataset_images{cursor}", team=self.team
-            )
+            response = self.client.get(f"{base_url}{cursor}", team=self.team)
             yield from response["items"]
             if response["metadata"]["next"]:
                 cursor = f"?page[from]={response['metadata']['next']}"

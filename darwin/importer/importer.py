@@ -1,54 +1,12 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, List, Set, Optional, Union
+from typing import TYPE_CHECKING, List, Set, Optional, Union, Callable
 from darwin.utils import secure_continue_request
+import darwin.datatypes as dt
 
-
-@dataclass(frozen=True, eq=True)
-class AnnotationClass:
-    name: str
-    annotation_type: str
-
-
-@dataclass(frozen=True, eq=True)
-class Annotation:
-    annotation_class: AnnotationClass
-    data: any
-
-
-@dataclass
-class AnnotationFile:
-    path: Path
-    filename: str
-    annotation_classes: Set[AnnotationClass]
-    annotations: List[Annotation]
-
-
-@dataclass
-class RemoteFile:
-    remote_id: int
-    filename: str
-
-    # def get_classes(self):
-    #     return Set([annotation.annotation_class for annotation in self.annotations])
-
-
-def make_bounding_box(class_name, x, y, w, h):
-    return Annotation(
-        AnnotationClass(class_name, "bounding_box"),
-        {"x": round(x, 3), "y": round(y, 3), "w": round(w, 3), "h": round(h, 3)},
-    )
-
-
-def make_polygon(class_name, point_path):
-    return Annotation(AnnotationClass(class_name, "polygon"), {"path": point_path})
-
-
-class AnnotationImport(ABC):
-    @abstractmethod
-    def parse_file(self, path: Path) -> Optional[AnnotationFile]:
-        return None
+# def make_polygon(class_name, point_path):
+#     return Annotation(AnnotationClass(class_name, "polygon"), {"path": point_path})
 
 
 def build_main_annotations_lookup_table(annotation_classes):
@@ -65,7 +23,7 @@ def build_main_annotations_lookup_table(annotation_classes):
 
 def import_annotations(
     dataset: "RemoteDataset",
-    importer: AnnotationImport,
+    importer: Callable[[Path], Optional[dt.AnnotationFile]],
     file_paths: List[Union[str, Path]],
 ):
     print("Fetching remote file list...")
@@ -80,7 +38,7 @@ def import_annotations(
     for file_path in map(Path, file_paths):
         files = file_path.glob("**/*") if file_path.is_dir() else [file_path]
         for f in files:
-            parsed_file = importer.parse_file(f)
+            parsed_file = importer(f)
             if not parsed_file:
                 continue
             # clear to save memory
@@ -128,14 +86,16 @@ def import_annotations(
     # Need to re parse the files since we didn't save the annotations in memory
     for local_file in local_files:
         print(f"importing {local_file.path}")
-        parsed_file = importer.parse_file(f)
+        parsed_file = importer(local_file.path)
         image_id = remote_files[parsed_file.filename]
         _import_annotations(
-            dataset.client, image_id, remote_classes, parsed_file.annotations
+            dataset.client, image_id, remote_classes, parsed_file.annotations, dataset
         )
 
 
-def _import_annotations(client: "Client", id: int, remote_classes, annotations):
+def _import_annotations(
+    client: "Client", id: int, remote_classes, annotations, dataset
+):
     serialized_annotations = []
     for annotation in annotations:
         annotation_class = annotation.annotation_class
@@ -148,6 +108,13 @@ def _import_annotations(client: "Client", id: int, remote_classes, annotations):
                 "data": {annotation_class.annotation_type: annotation.data},
             }
         )
-    client.post(
-        f"/dataset_images/{id}/import", payload={"annotations": serialized_annotations}
-    )
+
+    if client.feature_enabled("WORKFLOW", dataset.team):
+        result = client.post(
+            f"/items/{id}/import", payload={"annotations": serialized_annotations}
+        )
+    else:
+        result = client.post(
+            f"/dataset_images/{id}/import",
+            payload={"annotations": serialized_annotations},
+        )

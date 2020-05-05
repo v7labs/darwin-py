@@ -25,6 +25,7 @@ class Client:
         self.url = config.get("global/api_endpoint")
         self.base_url = config.get("global/base_url")
         self.default_team = default_team or config.get("global/default_team")
+        self.features = {}
 
     def get(
         self,
@@ -59,7 +60,9 @@ class Client:
         Unauthorized
             Action is not authorized
         """
-        response = requests.get(urljoin(self.url, endpoint), headers=self._get_headers(team))
+        response = requests.get(
+            urljoin(self.url, endpoint), headers=self._get_headers(team)
+        )
 
         if response.status_code == 401:
             raise Unauthorized()
@@ -201,7 +204,9 @@ class Client:
             if project_path.is_dir() and is_project_dir(project_path):
                 yield Path(project_path)
 
-    def list_remote_datasets(self, team: Optional[str] = None) -> Iterator[RemoteDataset]:
+    def list_remote_datasets(
+        self, team: Optional[str] = None
+    ) -> Iterator[RemoteDataset]:
         """Returns a list of all available datasets with the team currently authenticated against
 
         Returns
@@ -265,7 +270,10 @@ class Client:
         The created dataset
         """
         dataset = self.post(
-            "/datasets", {"name": name}, team=team, error_handlers=[name_taken, validation_error]
+            "/datasets",
+            {"name": name},
+            team=team,
+            error_handlers=[name_taken, validation_error],
         )
         return RemoteDataset(
             name=dataset["name"],
@@ -276,6 +284,20 @@ class Client:
             progress=dataset["progress"],
             client=self,
         )
+
+    def load_feature_flags(self, team: Optional[str] = None):
+        """Gets current features enabled for a team"""
+        team_slug = self.config.get_team(team or self.default_team)["slug"]
+        self.features[team_slug] = self.get(f"/teams/{team_slug}/features")
+
+    def feature_enabled(self, feature_name: str, team: Optional[str] = None):
+        team_slug = self.config.get_team(team or self.default_team)["slug"]
+        if team_slug not in self.features:
+            self.load_feature_flags(team)
+        for feature in self.features[team_slug]:
+            if feature["name"] == feature_name:
+                return feature["enabled"]
+        return False
 
     def get_datasets_dir(self, team: Optional[str] = None):
         """Gets the dataset directory of the specified team or the default one
@@ -374,7 +396,10 @@ class Client:
         """
         if datasets_dir is None:
             datasets_dir = Path.home() / ".darwin" / "datasets"
-        headers = {"Content-Type": "application/json", "Authorization": f"ApiKey {api_key}"}
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"ApiKey {api_key}",
+        }
         api_url = Client.default_api_url()
         response = requests.get(urljoin(api_url, "/users/token_info"), headers=headers)
 
