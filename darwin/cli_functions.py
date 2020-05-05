@@ -348,9 +348,10 @@ def dataset_import(dataset_slug, format, files):
             parser = fmt_parser
 
         if not parser:
-            _error(
-                "Unsupported format, currently supported: {[fmt for (fmt, _) in darwin.importer.formats.supported_formats].join(', ')}"
+            list_of_formats = ", ".join(
+                [fmt for (fmt, _) in darwin.importer.formats.supported_formats]
             )
+            _error(f"Unsupported format, currently supported: {list_of_formats}")
 
         dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
         importer.import_annotations(dataset, parser, files)

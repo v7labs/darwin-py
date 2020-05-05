@@ -1,1 +1,1 @@
-from .importer import import_annotations
+from .importer import import_annotations  # noqa
