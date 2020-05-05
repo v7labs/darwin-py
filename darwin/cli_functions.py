@@ -6,6 +6,8 @@ from typing import List, Optional
 
 import humanize
 
+import darwin.exporter as exporter
+import darwin.exporter.formats
 import darwin.importer as importer
 import darwin.importer.formats
 from darwin.client import Client
@@ -339,24 +341,39 @@ def upload_data(
 
 def dataset_import(dataset_slug, format, files):
     client = _load_client()
+    parser = find_supported_format(format, darwin.importer.formats.supported_formats)
+
     try:
-        parser = None
-
-        for (fmt, fmt_parser) in darwin.importer.formats.supported_formats:
-            if fmt != format:
-                continue
-            parser = fmt_parser
-
-        if not parser:
-            list_of_formats = ", ".join(
-                [fmt for (fmt, _) in darwin.importer.formats.supported_formats]
-            )
-            _error(f"Unsupported format, currently supported: {list_of_formats}")
-
         dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
         importer.import_annotations(dataset, parser, files)
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
+
+
+def find_supported_format(query, supported_formats):
+    for (fmt, fmt_parser) in darwin.exporter.formats.supported_formats:
+        return fmt_parser
+    list_of_formats = ", ".join([fmt for (fmt, _) in darwin.exporter.formats.supported_formats])
+    _error(f"Unsupported format, currently supported: {list_of_formats}")
+
+
+def dataset_convert(dataset_slug, format, output_dir):
+    client = _load_client()
+    parser = find_supported_format(format, darwin.exporter.formats.supported_formats)
+
+    try:
+        dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
+        if not dataset.local_path.exists():
+            _error(f"No annotations download for dataset f{dataset}, first pull a release")
+        exporter.export_annotations(client, parser, [dataset.local_path], output_dir)
+    except NotFound as e:
+        _error(f"No dataset with name '{e.name}'")
+
+
+def convert(format, files, output_dir):
+    client = _load_client()
+    parser = find_supported_format(format, darwin.exporter.formats.supported_formats)
+    exporter.export_annotations(client, parser, files, output_dir)
 
 
 def help(parser, subparser: Optional[str] = None):

@@ -4,9 +4,6 @@ from typing import Callable, List, Union
 import darwin.datatypes as dt
 from darwin.utils import secure_continue_request
 
-# def make_polygon(class_name, point_path):
-#     return Annotation(AnnotationClass(class_name, "polygon"), {"path": point_path})
-
 
 def build_main_annotations_lookup_table(annotation_classes):
     lookup = {}

@@ -28,6 +28,21 @@ class Options(object):
             help="Shows only the current team. ",
         )
 
+        parser_convert = subparsers.add_parser(
+            "convert", help="Converts darwin json to other annotation formats."
+        )
+        parser_convert.add_argument(
+            "format", type=str, help="Annotation import to convert to",
+        )
+
+        parser_convert.add_argument(
+            "files", type=str, nargs="+", help="Annotation files (or folders) to convert",
+        )
+
+        parser_convert.add_argument(
+            "output_dir", type=str, help="Where to store output files",
+        )
+
         # DATASET
         dataset = subparsers.add_parser(
             "dataset",
@@ -138,6 +153,23 @@ class Options(object):
 
         parser_import.add_argument(
             "files", type=str, nargs="+", help="Annotation files (or folders) to import"
+        )
+
+        # Convet
+        parser_convert = dataset_action.add_parser(
+            "convert", help="Converts darwin json to other annotation formats."
+        )
+        parser_convert.add_argument(
+            "dataset",
+            type=str,
+            help="[Remote] Dataset name: to list all the existing dataset, run 'darwin dataset remote'. ",
+        )
+        parser_convert.add_argument(
+            "format", type=str, help="Annotation import to convert to",
+        )
+
+        parser_convert.add_argument(
+            "output_dir", type=str, help="Where to store output files",
         )
 
         # Help

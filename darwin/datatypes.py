@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Set
+from typing import List, Optional, Set
 
 
 @dataclass(frozen=True, eq=True)
@@ -21,6 +21,8 @@ class AnnotationFile:
     filename: str
     annotation_classes: Set[AnnotationClass]
     annotations: List[Annotation]
+    image_width: Optional[int] = None
+    image_height: Optional[int] = None
 
 
 def make_bounding_box(class_name, x, y, w, h):
@@ -32,3 +34,7 @@ def make_bounding_box(class_name, x, y, w, h):
 
 def make_tag(class_name):
     return Annotation(AnnotationClass(class_name, "tag"), {})
+
+
+def make_polygon(class_name, point_path):
+    return Annotation(AnnotationClass(class_name, "polygon"), {"path": point_path})
