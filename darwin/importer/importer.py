@@ -17,20 +17,13 @@ def build_main_annotations_lookup_table(annotation_classes):
     return lookup
 
 
-def import_annotations(
-    dataset: "RemoteDataset",
+def find_and_parse(
     importer: Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]],
     file_paths: List[Union[str, Path]],
-):
-    print("Fetching remote file list...")
-    remote_files = {f["filename"]: f["id"] for f in dataset.fetch_remote_files()}
-    print("Fetching remote class list...")
-    remote_classes = build_main_annotations_lookup_table(dataset.fetch_remote_classes())
-
-    print("Retrieving local annotations ...")
+) -> (List[dt.AnnotationFile], List[dt.AnnotationFile]):
     local_files = []
     local_files_missing_remotely = []
-    # TODO: this could be done in parallell
+    # TODO: this could be done in parallel
     for file_path in map(Path, file_paths):
         files = file_path.glob("**/*") if file_path.is_dir() else [file_path]
         for f in files:
@@ -47,6 +40,24 @@ def import_annotations(
                     local_files_missing_remotely.append(parsed_file)
                     continue
                 local_files.append(parsed_file)
+    return local_files, local_files_missing_remotely
+
+
+def import_annotations(
+    dataset: "RemoteDataset",
+    importer: Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]],
+    file_paths: List[Union[str, Path]],
+):
+    print("Fetching remote file list...")
+    remote_files = {f["filename"]: f["id"] for f in dataset.fetch_remote_files()}
+    print("Fetching remote class list...")
+    remote_classes = build_main_annotations_lookup_table(dataset.fetch_remote_classes())
+
+    print("Retrieving local annotations ...")
+    local_files = []
+    local_files_missing_remotely = []
+    local_files, local_files_missing_remotely = find_and_parse(importer, file_paths)
+
     print(f"{len(local_files) + len(local_files_missing_remotely)} annotation file(s) found.")
     if local_files_missing_remotely:
         print(f"{len(local_files_missing_remotely)} file(s) are missing from the dataset")
@@ -106,8 +117,8 @@ def _import_annotations(client: "Client", id: int, remote_classes, annotations, 
         )
 
     if client.feature_enabled("WORKFLOW", dataset.team):
-        result = client.post(f"/items/{id}/import", payload={"annotations": serialized_annotations})
+        client.post(f"/items/{id}/import", payload={"annotations": serialized_annotations})
     else:
-        result = client.post(
+        client.post(
             f"/dataset_images/{id}/import", payload={"annotations": serialized_annotations},
         )
