@@ -1,21 +1,16 @@
 import json
 from pathlib import Path
-from typing import Callable, List, Union
+from typing import Callable, Generator, List, Union
 
 import darwin.datatypes as dt
 from darwin.client import Client
-from darwin.exporter.formats.pascalvoc import export_file
 
 
 def _parse_darwin_json(path: Path):
     with path.open() as f:
         data = json.load(f)
-        annotations = list(
-            filter(None, map(_parse_darwin_annotation, data["annotations"]))
-        )
-        annotation_classes = set(
-            [annotation.annotation_class for annotation in annotations]
-        )
+        annotations = list(filter(None, map(_parse_darwin_annotation, data["annotations"])))
+        annotation_classes = set([annotation.annotation_class for annotation in annotations])
 
         return dt.AnnotationFile(
             path,
@@ -24,39 +19,53 @@ def _parse_darwin_json(path: Path):
             annotations,
             data["image"]["width"],
             data["image"]["height"],
+            data["image"]["url"],
+            data["image"]["workview_url"],
         )
 
 
 def _parse_darwin_annotation(annotation):
     name = annotation["name"]
+    main_annotation = None
     if "polygon" in annotation:
-        return dt.make_polygon(name, annotation["polygon"])
+        main_annotation = dt.make_polygon(name, annotation["polygon"]["path"])
     elif "bounding_box" in annotation:
         bounding_box = annotation["bounding_box"]
-        return dt.make_bounding_box(
-            name,
-            bounding_box["x"],
-            bounding_box["y"],
-            bounding_box["w"],
-            bounding_box["h"],
+        main_annotation = dt.make_bounding_box(
+            name, bounding_box["x"], bounding_box["y"], bounding_box["w"], bounding_box["h"],
         )
     elif "tag" in annotation:
-        return dt.make_tag(name)
-    else:
+        main_annotation = dt.make_tag(name)
+
+    if not main_annotation:
         raise ValueError(f"Unsupported annotation type: '{annotation.keys()}'")
 
+    if "instance_id" in annotation:
+        main_annotation.subs.append(dt.make_instance_id(annotation["instance_id"]["value"]))
+    return main_annotation
 
-def export_annotations(
-    client: "Client",
-    exporter: Callable[[dt.AnnotationFile, Path], None],
-    file_paths: List[Union[str, Path]],
-    output_directory: Union[str, Path],
-):
-    """Converts a set of files to a different annotation format"""
+
+def darwin_to_dt_gen(file_paths):
     for file_path in map(Path, file_paths):
         files = file_path.glob("**/*") if file_path.is_dir() else [file_path]
         for f in files:
             if f.suffix != ".json":
                 continue
-            darwin_annotation_file = _parse_darwin_json(f)
-            exporter(darwin_annotation_file, Path(output_directory))
+            yield _parse_darwin_json(f)
+
+
+def export_annotations(
+    client: "Client",
+    exporter: Callable[[Generator[dt.AnnotationFile, None, None], Path], None],
+    file_paths: List[Union[str, Path]],
+    output_directory: Union[str, Path],
+):
+    """Converts a set of files to a different annotation format"""
+    exporter(darwin_to_dt_gen(file_paths), Path(output_directory))
+    # for file_path in map(Path, file_paths):
+    #     files = file_path.glob("**/*") if file_path.is_dir() else [file_path]
+    #     for f in files:
+    #         if f.suffix != ".json":
+    #             continue
+    #         darwin_annotation_file = _parse_darwin_json(f)
+    #         exporter(darwin_annotation_file, Path(output_directory))

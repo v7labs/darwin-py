@@ -2,6 +2,11 @@ import json
 import xml.etree.ElementTree as ET
 
 
+def export(annotation_files, output_dir):
+    for annotation_file in annotation_files:
+        export_file(annotation_file, output_dir)
+
+
 def export_file(annotation_file, output_dir):
     xml = build_xml(annotation_file)
     output_file_path = (output_dir / annotation_file.filename).with_suffix(".xml")

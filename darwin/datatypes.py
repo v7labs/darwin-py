@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import List, Optional, Set
 
@@ -10,9 +10,21 @@ class AnnotationClass:
 
 
 @dataclass(frozen=True, eq=True)
+class SubAnnotation:
+    annotation_type: str
+    data: any
+
+
+@dataclass(frozen=True, eq=True)
 class Annotation:
     annotation_class: AnnotationClass
     data: any
+    subs: List[SubAnnotation] = field(default_factory=list)
+
+    def get_sub(self, annotation_type: str) -> Optional[SubAnnotation]:
+        for sub in self.subs:
+            if sub.annotation_type == annotation_type:
+                return sub
 
 
 @dataclass
@@ -23,6 +35,8 @@ class AnnotationFile:
     annotations: List[Annotation]
     image_width: Optional[int] = None
     image_height: Optional[int] = None
+    image_url: Optional[str] = None
+    workview_url: Optional[str] = None
 
 
 def make_bounding_box(class_name, x, y, w, h):
@@ -38,3 +52,7 @@ def make_tag(class_name):
 
 def make_polygon(class_name, point_path):
     return Annotation(AnnotationClass(class_name, "polygon"), {"path": point_path})
+
+
+def make_instance_id(value):
+    return SubAnnotation("instance_id", {"value": value})
