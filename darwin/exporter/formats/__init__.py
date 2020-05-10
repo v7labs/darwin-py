@@ -1,6 +1,6 @@
 from . import coco, pascalvoc
 
 supported_formats = [
-    ("pascalvoc", pascalvoc.export),
+    ("pascal_voc", pascalvoc.export),
     ("coco", coco.export),
 ]
