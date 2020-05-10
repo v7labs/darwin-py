@@ -6,7 +6,6 @@ from typing import Generator, List
 import numpy as np
 
 import darwin.datatypes as dt
-from darwin.torch.utils import convert_polygons_to_sequences, polygon_area
 
 
 class NumpyEncoder(json.JSONEncoder):
@@ -21,7 +20,9 @@ class NumpyEncoder(json.JSONEncoder):
             return super(NumpyEncoder, self).default(obj)
 
 
-def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_dir: Path):
+def export(
+    annotation_files: Generator[dt.AnnotationFile, None, None], output_dir: Path
+):
     output = build_json(list(annotation_files))
     # TODO, maybe an optional output name (like the dataset name if available)
     output_file_path = (output_dir / "output").with_suffix(".json")
@@ -70,7 +71,10 @@ def build_licenses():
 
 
 def build_images(annotation_files):
-    return [build_image(id, annotation_file) for id, annotation_file in enumerate(annotation_files)]
+    return [
+        build_image(id, annotation_file)
+        for id, annotation_file in enumerate(annotation_files)
+    ]
 
 
 def build_image(id, annotation_file):
@@ -93,7 +97,9 @@ def build_annotations(annotation_files, categories):
     for (image_id, annotation_file) in enumerate(annotation_files):
         for annotation in annotation_file.annotations:
             annotation_id += 1
-            annotation_data = build_annotation(image_id, annotation_id, annotation, categories)
+            annotation_data = build_annotation(
+                image_id, annotation_id, annotation, categories
+            )
             if annotation_data:
                 yield annotation_data
 
@@ -112,7 +118,10 @@ def build_annotation(image_id, annotation_id, annotation: dt.Annotation, categor
         h = max_y - min_y + 1
         # Compute the area of the polygon
         poly_area = np.sum(
-            [polygon_area(x_coord, y_coord) for x_coord, y_coord in zip(x_coords, y_coords)]
+            [
+                polygon_area(x_coord, y_coord)
+                for x_coord, y_coord in zip(x_coords, y_coords)
+            ]
         )
 
         data = {
@@ -137,85 +146,50 @@ def build_categories(categories):
         yield {"id": id, "name": name, "supercategory": "root"}
 
 
-# def build_xml(annotation_file):
-#     root = ET.Element("annotation")
-#     add_subelement_text(root, "folder", "images")
-#     add_subelement_text(root, "filename", annotation_file.filename)
-#     add_subelement_text(root, "path", f"images/{annotation_file.filename}")
+def convert_polygons_to_sequences(polygons: List) -> List[np.ndarray]:
+    """
+    Converts a list of polygons, encoded as a list of dictionaries of into a list of nd.arrays
+    of coordinates.
 
-#     source = ET.SubElement(root, "source")
-#     add_subelement_text(source, "database", "darwin")
+    Parameters
+    ----------
+    polygons: list
+        List of coordinates in the format [{x: x1, y:y1}, ..., {x: xn, y:yn}] or a list of them
+        as  [[{x: x1, y:y1}, ..., {x: xn, y:yn}], ..., [{x: x1, y:y1}, ..., {x: xn, y:yn}]].
 
-#     size = ET.SubElement(root, "size")
-#     add_subelement_text(size, "width", str(annotation_file.image_width))
-#     add_subelement_text(size, "height", str(annotation_file.image_height))
-#     add_subelement_text(size, "depth", "3")
-
-#     add_subelement_text(root, "segmented", "0")
-
-#     for annotation in annotation_file.annotations:
-#         if annotation.annotation_class.annotation_type != "bounding_box":
-#             continue
-#         data = annotation.data
-#         sub_annotation = ET.SubElement(root, "object")
-#         add_subelement_text(sub_annotation, "name", annotation.annotation_class.name)
-#         add_subelement_text(sub_annotation, "pose", "Unspecified")
-#         add_subelement_text(sub_annotation, "truncated", "0")
-#         add_subelement_text(sub_annotation, "difficult", "0")
-#         bndbox = ET.SubElement(sub_annotation, "bndbox")
-#         add_subelement_text(bndbox, "xmin", str(round(data["x"])))
-#         add_subelement_text(bndbox, "ymin", str(round(data["y"])))
-#         add_subelement_text(bndbox, "xmax", str(round(data["x"] + data["w"])))
-#         add_subelement_text(bndbox, "ymax", str(round(data["y"] + data["h"])))
-#     return root
-
-
-# def add_subelement_text(parent, name, value):
-#     sub = ET.SubElement(parent, name)
-#     sub.text = value
-#     return sub
-
-
-# def convert_file(path):
-#     with open(path, "r") as f:
-#         data = json.load(f)
-#         return build_voc(data["image"], data["annotations"])
+    Returns
+    -------
+    sequences: list[ndarray[float]]
+        List of arrays of coordinates in the format [[x1, y1, x2, y2, ..., xn, yn], ...,
+        [x1, y1, x2, y2, ..., xn, yn]]
+    """
+    if not polygons:
+        raise ValueError("No polygons provided")
+    # If there is a single polygon composing the instance the format is going to be
+    # polygons = [{x: x1, y:y1}, ..., {x: xn, y:yn}]
+    if isinstance(polygons[0], dict):
+        path = []
+        for point in polygons:
+            path.append(point["x"])
+            path.append(point["y"])
+        return [np.array(path)]  # List type is used for backward compatibility
+    # If there are multiple polygons composing the instance the format is going to be
+    # polygons =  [[{x: x1, y:y1}, ..., {x: xn, y:yn}], ..., [{x: x1, y:y1}, ..., {x: xn, y:yn}]]
+    if isinstance(polygons[0], list) and isinstance(polygons[0][0], dict):
+        sequences = []
+        for polygon in polygons:
+            path = []
+            for point in polygon:
+                path.append(point["x"])
+                path.append(point["y"])
+            sequences.append(np.array(path))
+        return sequences
+    raise ValueError("Unknown input format")
 
 
-# def save_xml(xml, path):
-#     with open(path, "wb") as f:
-#         f.write(ET.tostring(xml))
-
-
-# def build_voc(metadata, annotations):
-#     print(metadata)
-#     root = ET.Element("annotation")
-#     add_subelement_text(root, "folder", "images")
-#     add_subelement_text(root, "filename", metadata["original_filename"])
-#     add_subelement_text(root, "path", f"images/{metadata['original_filename']}")
-
-#     source = ET.SubElement(root, "source")
-#     add_subelement_text(source, "database", "darwin")
-
-#     size = ET.SubElement(root, "size")
-#     add_subelement_text(size, "width", str(metadata["width"]))
-#     add_subelement_text(size, "height", str(metadata["height"]))
-#     add_subelement_text(size, "depth", "3")
-
-#     add_subelement_text(root, "segmented", "0")
-
-#     for annotation in annotations:
-#         if "bounding_box" not in annotation:
-#             continue
-#         data = annotation["bounding_box"]
-#         sub_annotation = ET.SubElement(root, "object")
-#         add_subelement_text(sub_annotation, "name", annotation["name"])
-#         add_subelement_text(sub_annotation, "pose", "Unspecified")
-#         add_subelement_text(sub_annotation, "truncated", "0")
-#         add_subelement_text(sub_annotation, "difficult", "0")
-#         bndbox = ET.SubElement(sub_annotation, "bndbox")
-#         add_subelement_text(bndbox, "xmin", str(round(data["x"])))
-#         add_subelement_text(bndbox, "ymin", str(round(data["y"])))
-#         add_subelement_text(bndbox, "xmax", str(round(data["x"] + data["w"])))
-#         add_subelement_text(bndbox, "ymax", str(round(data["y"] + data["h"])))
-#     return root
+def polygon_area(x: np.ndarray, y: np.ndarray) -> float:
+    """
+    Returns the area of the input polygon, represented with two numpy arrays
+    for x and y coordinates.
+    """
+    return 0.5 * np.abs(np.dot(x, np.roll(y, 1)) - np.dot(y, np.roll(x, 1)))
