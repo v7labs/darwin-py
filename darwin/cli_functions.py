@@ -366,15 +366,14 @@ def dataset_convert(dataset_slug, format, output_dir):
         dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
         if not dataset.local_path.exists():
             _error(f"No annotations download for dataset f{dataset}, first pull a release")
-        exporter.export_annotations(client, parser, [dataset.local_path], output_dir)
+        exporter.export_annotations(parser, [dataset.local_path], output_dir)
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
 
 
 def convert(format, files, output_dir):
-    client = _load_client()
     parser = find_supported_format(format, darwin.exporter.formats.supported_formats)
-    exporter.export_annotations(client, parser, files, output_dir)
+    exporter.export_annotations(parser, files, output_dir)
 
 
 def help(parser, subparser: Optional[str] = None):

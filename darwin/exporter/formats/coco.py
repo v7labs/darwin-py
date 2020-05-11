@@ -20,9 +20,7 @@ class NumpyEncoder(json.JSONEncoder):
             return super(NumpyEncoder, self).default(obj)
 
 
-def export(
-    annotation_files: Generator[dt.AnnotationFile, None, None], output_dir: Path
-):
+def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_dir: Path):
     output = build_json(list(annotation_files))
     # TODO, maybe an optional output name (like the dataset name if available)
     output_file_path = (output_dir / "output").with_suffix(".json")
@@ -71,10 +69,7 @@ def build_licenses():
 
 
 def build_images(annotation_files):
-    return [
-        build_image(id, annotation_file)
-        for id, annotation_file in enumerate(annotation_files)
-    ]
+    return [build_image(id, annotation_file) for id, annotation_file in enumerate(annotation_files)]
 
 
 def build_image(id, annotation_file):
@@ -97,9 +92,7 @@ def build_annotations(annotation_files, categories):
     for (image_id, annotation_file) in enumerate(annotation_files):
         for annotation in annotation_file.annotations:
             annotation_id += 1
-            annotation_data = build_annotation(
-                image_id, annotation_id, annotation, categories
-            )
+            annotation_data = build_annotation(image_id, annotation_id, annotation, categories)
             if annotation_data:
                 yield annotation_data
 
@@ -118,10 +111,7 @@ def build_annotation(image_id, annotation_id, annotation: dt.Annotation, categor
         h = max_y - min_y + 1
         # Compute the area of the polygon
         poly_area = np.sum(
-            [
-                polygon_area(x_coord, y_coord)
-                for x_coord, y_coord in zip(x_coords, y_coords)
-            ]
+            [polygon_area(x_coord, y_coord) for x_coord, y_coord in zip(x_coords, y_coords)]
         )
 
         data = {

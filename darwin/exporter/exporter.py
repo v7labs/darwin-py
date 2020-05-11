@@ -3,7 +3,6 @@ from pathlib import Path
 from typing import Callable, Generator, List, Union
 
 import darwin.datatypes as dt
-from darwin.client import Client
 
 
 def _parse_darwin_json(path: Path):
@@ -55,17 +54,9 @@ def darwin_to_dt_gen(file_paths):
 
 
 def export_annotations(
-    client: "Client",
     exporter: Callable[[Generator[dt.AnnotationFile, None, None], Path], None],
     file_paths: List[Union[str, Path]],
     output_directory: Union[str, Path],
 ):
     """Converts a set of files to a different annotation format"""
     exporter(darwin_to_dt_gen(file_paths), Path(output_directory))
-    # for file_path in map(Path, file_paths):
-    #     files = file_path.glob("**/*") if file_path.is_dir() else [file_path]
-    #     for f in files:
-    #         if f.suffix != ".json":
-    #             continue
-    #         darwin_annotation_file = _parse_darwin_json(f)
-    #         exporter(darwin_annotation_file, Path(output_directory))
