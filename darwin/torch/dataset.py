@@ -133,7 +133,13 @@ class Dataset(data.Dataset):
             elif split_type == "stratified":
                 split_file = f"{split_type}_{annotation_type}_{partition}.txt"
             split_path = release_path / "lists" / split / split_file
-            stems = (e.strip() for e in split_path.open())
+            if split_path.is_file():
+                stems = (e.strip() for e in split_path.open())
+            else:
+                raise FileNotFoundError(
+                    f"Could not find a dataset partition. ",
+                    f"To split the dataset you can use 'split_dataset' from darwin.dataset.utils"
+                )
         else:
             # If the split is not specified, get all the annotations
             stems = [e.stem for e in annotations_dir.glob("*.json")]
