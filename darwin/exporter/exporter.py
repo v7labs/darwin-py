@@ -39,7 +39,8 @@ def _parse_darwin_annotation(annotation):
         main_annotation = dt.make_tag(name)
 
     if not main_annotation:
-        raise ValueError(f"Unsupported annotation type: '{annotation.keys()}'")
+        print(f"[WARNING] Unsupported annotation type: '{annotation.keys()}'")
+        return None
 
     if "instance_id" in annotation:
         main_annotation.subs.append(dt.make_instance_id(annotation["instance_id"]["value"]))
