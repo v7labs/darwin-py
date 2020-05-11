@@ -1,7 +1,7 @@
 import json
 import multiprocessing as mp
 from pathlib import Path
-from typing import Callable, Collection, List, Optional
+from typing import Callable, Collection, List, Optional, Union
 
 import numpy as np
 import torch.utils.data as data
@@ -13,7 +13,7 @@ from darwin.dataset.utils import get_classes, get_release_path
 
 
 def get_dataset(
-    dataset_path: Path,
+    dataset_path: Union[Path, str],
     dataset_type: str,
     partition: Optional[str] = None,
     split: Optional[str] = None,
@@ -47,6 +47,9 @@ def get_dataset(
         "semantic_segmentation": SemanticSegmentationDataset,
     }
     dataset_function = dataset_functions[dataset_type]
+
+    if isinstance(dataset_path, str):
+        dataset_path = Path(dataset_path)
 
     return dataset_function(
         dataset_path=dataset_path,
@@ -103,6 +106,7 @@ class Dataset(data.Dataset):
             raise ValueError("annotation_type should be either 'tag', 'box', or 'polygon'")
 
         self.dataset_path = dataset_path
+        self.annotation_type = annotation_type
         self.transform = transform
         self.images_path: List[Path] = []
         self.annotations_path: List[Path] = []
@@ -118,7 +122,7 @@ class Dataset(data.Dataset):
         # Get the list of classes
         self.classes = get_classes(
             self.dataset_path,
-            self.release_name,
+            release_name,
             annotation_type=self.annotation_type,
             remove_background=True
         )
@@ -164,12 +168,13 @@ class Dataset(data.Dataset):
                     f"Image ({stem}) is present with multiple extensions. This is forbidden."
                 )
             assert len(images) == 1
-            self.images_paths.append(images[0])
-            self.annotations_paths.append(annotation_path)
+            self.images_path.append(images[0])
+            self.annotations_path.append(annotation_path)
 
-        if len(self.images_paths) == 0:
+        if len(self.images_path) == 0:
             raise ValueError(
-                f"Could not find any {SUPPORTED_IMAGE_EXTENSIONS} file" f" in {dataset_path / 'images'}"
+                f"Could not find any {SUPPORTED_IMAGE_EXTENSIONS} file",
+                f" in {images_dir}"
             )
 
         assert len(self.images_path) == len(self.annotations_path)
