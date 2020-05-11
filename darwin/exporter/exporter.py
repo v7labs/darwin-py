@@ -8,6 +8,8 @@ import darwin.datatypes as dt
 def _parse_darwin_json(path: Path):
     with path.open() as f:
         data = json.load(f)
+        if not data["annotations"]:
+            return None
         annotations = list(filter(None, map(_parse_darwin_annotation, data["annotations"])))
         annotation_classes = set([annotation.annotation_class for annotation in annotations])
 
@@ -55,7 +57,9 @@ def darwin_to_dt_gen(file_paths):
         for f in files:
             if f.suffix != ".json":
                 continue
-            yield _parse_darwin_json(f)
+            data = _parse_darwin_json(f)
+            if data:
+                yield data
 
 
 def export_annotations(

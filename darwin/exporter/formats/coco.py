@@ -65,7 +65,7 @@ def build_info():
 
 
 def build_licenses():
-    return []
+    return [{"url": "n/a", "id": 0, "name": "placeholder license"}]
 
 
 def build_images(annotation_files):
