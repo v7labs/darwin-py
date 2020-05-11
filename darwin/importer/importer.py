@@ -18,6 +18,7 @@ def build_main_annotations_lookup_table(annotation_classes):
 
 
 def find_and_parse(
+    remote_files: List[str],
     importer: Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]],
     file_paths: List[Union[str, Path]],
 ) -> (List[dt.AnnotationFile], List[dt.AnnotationFile]):
@@ -56,7 +57,7 @@ def import_annotations(
     print("Retrieving local annotations ...")
     local_files = []
     local_files_missing_remotely = []
-    local_files, local_files_missing_remotely = find_and_parse(importer, file_paths)
+    local_files, local_files_missing_remotely = find_and_parse(remote_files, importer, file_paths)
 
     print(f"{len(local_files) + len(local_files_missing_remotely)} annotation file(s) found.")
     if local_files_missing_remotely:

@@ -351,10 +351,10 @@ def dataset_import(dataset_slug, format, files):
 
 
 def find_supported_format(query, supported_formats):
-    for (fmt, fmt_parser) in darwin.exporter.formats.supported_formats:
+    for (fmt, fmt_parser) in supported_formats:
         if fmt == query:
             return fmt_parser
-    list_of_formats = ", ".join([fmt for fmt, _ in darwin.exporter.formats.supported_formats])
+    list_of_formats = ", ".join([fmt for fmt, _ in supported_formats])
     _error(f"Unsupported format, currently supported: {list_of_formats}")
 
 

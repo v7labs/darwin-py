@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Optional, Set
+from typing import Any, List, Optional, Set
 
 
 @dataclass(frozen=True, eq=True)
@@ -12,13 +12,13 @@ class AnnotationClass:
 @dataclass(frozen=True, eq=True)
 class SubAnnotation:
     annotation_type: str
-    data: any
+    data: Any
 
 
 @dataclass(frozen=True, eq=True)
 class Annotation:
     annotation_class: AnnotationClass
-    data: any
+    data: Any
     subs: List[SubAnnotation] = field(default_factory=list)
 
     def get_sub(self, annotation_type: str) -> Optional[SubAnnotation]:
