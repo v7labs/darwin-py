@@ -14,8 +14,8 @@ setuptools.setup(
     url="https://github.com/v7labs/darwin-py",
     install_requires=[
         "argcomplete",
-        "docutils",
         "dataclasses",
+        "docutils",
         "factory_boy",
         "humanize",
         "pyyaml>=5.1",

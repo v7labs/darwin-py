@@ -19,7 +19,7 @@ def _parse_darwin_json(path: Path):
             data["image"]["width"],
             data["image"]["height"],
             data["image"]["url"],
-            data["image"]["workview_url"],
+            data["image"].get("workview_url"),
         )
 
 
