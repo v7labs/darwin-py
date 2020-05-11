@@ -114,7 +114,7 @@ def build_annotation(image_id, annotation_id, annotation: dt.Annotation, categor
             [polygon_area(x_coord, y_coord) for x_coord, y_coord in zip(x_coords, y_coords)]
         )
 
-        data = {
+        return {
             "id": annotation_id,
             "image_id": image_id,
             "category_id": categories[annotation.annotation_class.name],
@@ -122,17 +122,29 @@ def build_annotation(image_id, annotation_id, annotation: dt.Annotation, categor
             "area": poly_area,
             "bbox": [min_x, min_y, w, h],
             "iscrowd": 0,
+            "extra": build_extra(annotation),
         }
-        instance_id_sub = annotation.get_sub("instance_id")
-        if instance_id_sub:
-            data["instance_id"] = instance_id_sub.data["value"]
-        return data
     else:
         print(f"skipping unsupported annotation_type '{annotation_type}'")
 
 
+def build_extra(annotation):
+    data = {}
+    instance_id_sub = annotation.get_sub("instance_id")
+    attributes_sub = annotation.get_sub("attributes")
+    text_sub = annotation.get_sub("text")
+
+    if instance_id_sub:
+        data["instance_id"] = instance_id_sub.data
+    if attributes_sub:
+        data["attributes"] = attributes_sub.data
+    if text_sub:
+        data["text"] = text_sub.data
+    return data
+
+
 def build_categories(categories):
-    for id, name in categories.items():
+    for name, id in categories.items():
         yield {"id": id, "name": name, "supercategory": "root"}
 
 

@@ -55,4 +55,12 @@ def make_polygon(class_name, point_path):
 
 
 def make_instance_id(value):
-    return SubAnnotation("instance_id", {"value": value})
+    return SubAnnotation("instance_id", value)
+
+
+def make_attributes(attributes):
+    return SubAnnotation("attributes", attributes)
+
+
+def make_text(text):
+    return SubAnnotation("text", text)

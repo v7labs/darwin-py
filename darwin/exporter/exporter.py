@@ -41,6 +41,11 @@ def _parse_darwin_annotation(annotation):
 
     if "instance_id" in annotation:
         main_annotation.subs.append(dt.make_instance_id(annotation["instance_id"]["value"]))
+    if "attributes" in annotation:
+        main_annotation.subs.append(dt.make_attributes(annotation["attributes"]))
+    if "text" in annotation:
+        main_annotation.subs.append(dt.make_text(annotation["text"]["text"]))
+
     return main_annotation
 
 
