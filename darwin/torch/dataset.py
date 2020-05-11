@@ -9,27 +9,103 @@ import torch.utils.data as data
 from darwin.torch.transforms import Compose, ConvertPolygonsToInstanceMasks, ConvertPolygonToMask
 from darwin.torch.utils import convert_polygons_to_sequences, load_pil_image, polygon_area
 from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS, is_image_extension_allowed
+from darwin.dataset.utils import get_classes, get_release_path
+
+
+def get_dataset(
+    dataset_path: Path,
+    dataset_type: str,
+    partition: Optional[str] = None,
+    split: Optional[str] = None,
+    split_type: Optional[str] = None,
+    release_name: Optional[str] = None,
+    transform: Optional[List] = None
+):
+    """ Creates and returns a dataset
+
+    Parameters
+    ----------
+    dataset_path
+        Path to the location of the dataset on the file system
+    dataset_type
+        The type of dataset [classification, instances_segmentation, semantic_segmentation]
+    partition
+        Selects one of the partitions [train, val, test]
+    split
+        Selects the split that defines the percetages used (use 'split' to select the default split)
+    split_type
+        Heuristic used to do the split [random, stratified, None]
+    release_name: str
+        Version of the dataset
+    transform : list[torchvision.transforms]
+        List of PyTorch transforms
+    """
+    assert dataset_type in ["classification", "instance_segmentation", "semantic_sgmentation"]
+    dataset_functions = {
+        "classification": ClassificationDataset,
+        "instance_segmentation": InstanceSegmentationDataset,
+        "semantic_segmentation": SemanticSegmentationDataset,
+    }
+    dataset_function = dataset_functions[dataset_type]
+
+    return dataset_function(
+        dataset_path=dataset_path,
+        partition=partition,
+        split=split,
+        split_type=split_type,
+        release_name=release_name,
+        transform=transform,
+    )
 
 
 class Dataset(data.Dataset):
-    def __init__(self, root: Path, split: Path, transform: Optional[List] = None):
+    def __init__(
+        self,
+        dataset_path: Path,
+        annotation_type: str,
+        partition: Optional[str] = None,
+        split: Optional[str] = None,
+        split_type: Optional[str] = None,
+        release_name: Optional[str] = None,
+        transform: Optional[List] = None
+    ):
         """ Creates a dataset
 
         Parameters
         ----------
-        root : Path
+        dataset_path
             Path to the location of the dataset on the file system
-        split : Path
-            Path to the *.txt file containing the list of files for this split.
+        annotation_type
+            The type of annotation classes [tag, box, polygon]
+        partition
+            Selects one of the partitions [train, val, test]
+        split
+            Selects the split that defines the percetages used (use 'split' to select the default split)
+        split_type
+            Heuristic used to do the split [random, stratified, None]
+        release_name: str
+            Version of the dataset
         transform : list[torchvision.transforms]
             List of PyTorch transforms
         """
-        self.root = root
-        self.split = split
+        assert dataset_path is not None
+        release_path = get_release_path(dataset_path, release_name)
+        annotations_dir = release_path / "annotations"
+        assert annotations_dir.exists()
+        images_dir = dataset_path / "images"
+        assert images_dir.exists()
+
+        if partition not in ["train", "val", "test", None]:
+            raise ValueError("partition should be either 'train', 'val', or 'test'")
+        if split_type not in ["random", "stratified", None]:
+            raise ValueError("split_type should be either 'random', 'stratified'")
+        if annotation_type not in ["tag", "polygon", "box"]:
+            raise ValueError("annotation_type should be either 'tag', 'box', or 'polygon'")
+
+        self.dataset_path = dataset_path
         self.transform = transform
         self.images_path: List[Path] = []
         self.annotations_path: List[Path] = []
-        self.classes = None
         self.original_classes = None
         self.original_images_path: Optional[List[Path]] = None
         self.original_annotations_path: Optional[List[Path]] = None
@@ -39,31 +115,55 @@ class Dataset(data.Dataset):
         if self.transform is not None and isinstance(self.transform, list):
             self.transform = Compose(transform)
 
-        # Populate internal lists of annotations and images paths
-        if not self.split.exists():
-            raise FileNotFoundError(f"Could not find partition file: {self.split}")
-        stems = (e.strip() for e in split.open())
-        image_extensions_mapping = {
-            image.stem: image.suffix
-            for image in self.root.glob(f"images/*")
-            if is_image_extension_allowed(image.suffix)
-        }
+        # Get the list of classes
+        self.classes = get_classes(
+            self.dataset_path,
+            self.release_name,
+            annotation_type=self.annotation_type,
+            remove_background=True
+        )
+
+        # Get the list of stems
+        if split:
+            # Get the split
+            if split_type is None:
+                split_file = f"{partition}.txt"
+            elif split_type == "random":
+                split_file = f"{split_type}_{partition}.txt"
+            elif split_type == "stratified":
+                split_file = f"{split_type}_{annotation_type}_{partition}.txt"
+            split_path = release_path / "lists" / split / split_file
+            stems = (e.strip() for e in split_path.open())
+        else:
+            # If the split is not specified, get all the annotations
+            stems = [e.stem for e in annotations_dir.glob("*.json")]
+
+        images_paths = []
+        annotations_paths = []
+
+        # Find all the annotations and their corresponding images
         for stem in stems:
-            annotation_path = self.root / f"annotations/{stem}.json"
-            try:
-                extension = image_extensions_mapping[stem]
-            except KeyError:
+            annotation_path = annotations_dir / f"{stem}.json"
+            images = []
+            for ext in SUPPORTED_IMAGE_EXTENSIONS:
+                image_path = images_dir / f"{stem}{ext}"
+                if image_path.exists():
+                    images.append(image_path)
+            if len(images) < 1:
                 raise ValueError(
                     f"Annotation ({annotation_path}) does not have a corresponding image"
                 )
-            image_path = self.root / f"images/{stem}{extension}"
-            self.images_path.append(image_path)
-            self.annotations_path.append(annotation_path)
+            if len(images) > 1:
+                raise ValueError(
+                    f"Image ({stem}) is present with multiple extensions. This is forbidden."
+                )
+            assert len(images) == 1
+            self.images_paths.append(images[0])
+            self.annotations_paths.append(annotation_path)
 
-        if len(self.images_path) == 0:
+        if len(self.images_paths) == 0:
             raise ValueError(
-                f"Could not find any {SUPPORTED_IMAGE_EXTENSIONS} file"
-                f" in {self.root / 'images'}"
+                f"Could not find any {SUPPORTED_IMAGE_EXTENSIONS} file" f" in {dataset_path / 'images'}"
             )
 
         assert len(self.images_path) == len(self.annotations_path)
@@ -83,6 +183,8 @@ class Dataset(data.Dataset):
         Dataset
             self
         """
+        if self.annotation_type != dataset.annotation_type:
+            raise ValueError("Annotation type of both datasets should match")
         if self.classes != dataset.classes and not extend_classes:
             raise ValueError(
                 f"Operation dataset_a + dataset_b could not be computed: classes "
@@ -246,6 +348,8 @@ class Dataset(data.Dataset):
         Dataset
             self
         """
+        if self.annotation_type != dataset.annotation_type:
+            raise ValueError("Annotation type of both datasets should match")
         if self.classes != dataset.classes:
             raise ValueError(
                 f"Operation dataset_a + dataset_b could not be computed: classes should match."
@@ -282,12 +386,9 @@ class Dataset(data.Dataset):
 
 
 class ClassificationDataset(Dataset):
-    def __init__(self, root: Path, split: Path, transform: Optional[List] = None):
+    def __init__(self, **kwargs):
         """See superclass for documentation"""
-        super().__init__(root=root, split=split, transform=transform)
-        self.classes = [
-            e.strip() for e in (self.root / "lists/classes_tag.txt").read_text().split("\n")
-        ]
+        super().__init__(annotation_type="tag", **kwargs)
 
     def _map_annotation(self, index: int):
         """See superclass for documentation
@@ -345,16 +446,11 @@ class ClassificationDataset(Dataset):
 class InstanceSegmentationDataset(Dataset):
     def __init__(
         self,
-        root: Path,
-        split: Path,
-        transform: Optional[List] = None,
         convert_polygons_to_masks: Optional[bool] = True,
+        **kwargs,
     ):
         """See superclass for documentation"""
-        super().__init__(root=root, split=split, transform=transform)
-        self.classes = [
-            e.strip() for e in (self.root / "lists/classes_polygon.txt").read_text().split("\n")
-        ]
+        super().__init__(annotation_type="polygon", **kwargs)
         self.convert_polygons = (
             ConvertPolygonsToInstanceMasks() if convert_polygons_to_masks else None
         )
@@ -453,19 +549,14 @@ class InstanceSegmentationDataset(Dataset):
 class SemanticSegmentationDataset(Dataset):
     def __init__(
         self,
-        root: Path,
-        split: Path,
-        transform: Optional[List] = None,
         convert_polygons_to_masks: Optional[bool] = True,
+        **kwargs,
     ):
         """See superclass for documentation"""
-        super().__init__(root=root, split=split, transform=transform)
-        self.classes = [
-            e.strip() for e in (self.root / "lists/classes_polygon.txt").read_text().split("\n")
-        ]
-        if self.classes[0] == "__background__":
-            self.classes = self.classes[1:]
-        self.convert_polygons = ConvertPolygonToMask() if convert_polygons_to_masks else None
+        super().__init__(annotation_type="polygon", **kwargs)
+        self.convert_polygons = (
+            ConvertPolygonsToInstanceMasks() if convert_polygons_to_masks else None
+        )
 
     def _map_annotation(self, index: int):
         """See superclass for documentation

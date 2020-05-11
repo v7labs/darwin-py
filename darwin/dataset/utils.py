@@ -357,15 +357,15 @@ def split_dataset(
     splits = {}
     splits["random"] = {
         "train": Path(split_path / "random_train.txt"),
-        "val": Path(split_path / "random_validation.txt"),
+        "val": Path(split_path / "random_val.txt"),
     }
     splits["stratified_tag"] = {
         "train": Path(split_path / "stratified_tag_train.txt"),
-        "val": Path(split_path / "stratified_tag_validation.txt"),
+        "val": Path(split_path / "stratified_tag_val.txt"),
     }
     splits["stratified_polygon"] = {
         "train": Path(split_path / "stratified_polygon_train.txt"),
-        "val": Path(split_path / "stratified_polygon_validation.txt"),
+        "val": Path(split_path / "stratified_polygon_val.txt"),
     }
     if test_percentage > 0.0:
         splits["random"]["test"] = Path(split_path) / "random_test.txt"
@@ -536,7 +536,7 @@ def get_coco_format_record(
 
 def get_annotations(
     dataset_path: Path,
-    partition: str,
+    partition: Optional[str] = None,
     split: Optional[str] = None,
     split_type: Optional[str] = None,
     annotation_type: str = "polygon",
@@ -575,10 +575,10 @@ def get_annotations(
     images_dir = dataset_path / "images"
     assert images_dir.exists()
 
-    if partition not in ["train", "validation", "test"]:
-        raise ValueError("partition should be either 'train', 'valildation', or 'test'")
+    if partition not in ["train", "val", "test", None]:
+        raise ValueError("partition should be either 'train', 'val', 'test', or None")
     if split_type not in ["random", "stratified", None]:
-        raise ValueError("split_type should be either 'random', 'stratified'")
+        raise ValueError("split_type should be either 'random', 'stratified', or None")
     if annotation_type not in ["tag", "polygon", "box"]:
         raise ValueError("annotation_type should be either 'tag', 'box', or 'polygon'")
 
