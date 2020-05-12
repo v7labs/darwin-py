@@ -6,7 +6,7 @@ This toolbox include some funcitonality to load your datasets ready to be plugge
 get_dataset("/PATH/TO/YOUR/DATASET", DATASET_TYPE [, PARTITION, SPLIT_TYPE, RELEASE_NAME, TRANSFORMS])
 ```
 
-Here is an example of how to load the `bird-species` dataset ready for instance segmentation using the `dataset_type = "instance_segmentation"` (alternatively you can use `"classification"` or `"semantic_segmentation"` for different taks):
+Here is an example of how to load the `bird-species` dataset ready for instance segmentation using `"instance_segmentation"` as `dataset_type` (alternatively you can use `"classification"` or `"semantic_segmentation"` for those other tasks):
 
 ```python
 from darwin.torch import get_dataset
