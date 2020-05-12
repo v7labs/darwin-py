@@ -1,36 +1,31 @@
 # PyTorch
 
-
-This is an example on how to fetch a dataset from Darwin, splitting it into 70% for training, 20% for validation, 10% test, and getting the train partition, using the function `get_dataset`:
-
-```
-from darwin.torch.dataset import get_dataset
-
-db = get_dataset('bird-species', image_set="train", val_percentage=0.2, test_percentage=0.1)
-```
-
-The function `get_dataset` also accepts a list of transform as parameter using the parameter `transforms`. It also allows you to select the ground truth data you are interested in, such as `instance_segmentation`, `image_classification`, or `semantic_segmentation`. Finally, it also accepts a Darwin client as a parameter, containing your authenticating credentials in the Darwin.
+This toolbox include some funcitonality to load your datasets ready to be plugged into Pytorch's DataLoaders. For that you can use the function `get_dataset`:
 
 ```
-from darwin.torch.dataset import get_dataset
-from darwin.client import Client
+get_dataset("/PATH/TO/YOUR/DATASET", DATASET_TYPE [, PARTITION, RELEASE_NAME, TRANSFORMS])
+```
+
+Here is an example of how to load the `bird-species` dataset ready for instance segmentation using the "instance_segmentation" `dataset_type` (alternatively you can use "classification" or "semantic_segmentation" for different taks):
+
+```
+from darwin.torch import get_dataset
+
+db = get_dataset("/datasets/bird-species", dataset_type="instance_segmentation")
+```
+
+You can use this function in combination with the `split_dataset` function to load only a given partition, and also provide a list of transformations:
+
+```
+from darwin.dataset import split_dataset
+from darwin.torch import get_dataset
 import darwin.torch.transforms as T
 
-trfs = T.Compose([T.RandomHorizontalFlip(), T.ToTensor()])
-client = Client(...)
+split_dataset("/datasets/bird-species", val_percentage=0.2, test_percentage=0)
 
-db = get_dataset('bird-species', image_set="val", val_percentage=0.2, test_percentage=0.1, transforms=trfs, client=client, mode="instance_segmentation")
-```
+trfs_train = T.Compose([T.RandomHorizontalFlip(), T.ToTensor()])
+db_train = get_dataset("/datasets/bird-species", dataset_type="instance_segmentation", partition="train", transform=trfs_val)
 
-Other advanced options include: fixing the seed for random splitting using `split_seed=INT`, force re-fetching a dataset discarding the local copy using `force_fetching=True`, and force a re-split of the dataset using `force_resplit=True`.
-
-```
-from darwin.torch.dataset import get_dataset
-from darwin.client import Client
-import darwin.torch.transforms as T
-
-trfs = T.Compose([T.RandomHorizontalFlip(), T.ToTensor()])
-client = Client(...)
-
-db = get_dataset('bird-species', image_set="val", val_percentage=0.25, transforms=trfs, client=client, mode="image_classification", force_fetching=True, seed=42)
+trfs_val = T.Compose([T.ToTensor()])
+db_val = get_dataset("/datasets/bird-species", dataset_type="instance_segmentation", partition="val", transform=trfs_train)
 ```

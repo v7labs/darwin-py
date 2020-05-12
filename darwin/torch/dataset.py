@@ -67,7 +67,7 @@ class Dataset(data.Dataset):
         dataset_path: Path,
         annotation_type: str,
         partition: Optional[str] = None,
-        split: Optional[str] = None,
+        split: Optional[str] = "default",
         split_type: Optional[str] = None,
         release_name: Optional[str] = None,
         transform: Optional[List] = None
@@ -128,7 +128,7 @@ class Dataset(data.Dataset):
         )
 
         # Get the list of stems
-        if split:
+        if partition:
             # Get the split
             if split_type is None:
                 split_file = f"{partition}.txt"
@@ -145,7 +145,7 @@ class Dataset(data.Dataset):
                     f"To split the dataset you can use 'split_dataset' from darwin.dataset.utils"
                 )
         else:
-            # If the split is not specified, get all the annotations
+            # If the partition is not specified, get all the annotations
             stems = [e.stem for e in annotations_dir.glob("*.json")]
 
         images_paths = []
