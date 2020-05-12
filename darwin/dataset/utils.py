@@ -39,7 +39,7 @@ def get_release_path(dataset_path: Path, release_name: Optional[str] = None):
 
     if not releases_dir.exists():
         warnings.warn("darwin-py has adopted a new folder structure and the old structure will be depecrated. "
-                      f"Migrate this dataset by running: `darwin dataset migrate`")
+                      f"Migrate this dataset by running: `darwin dataset migrate`", DeprecationWarning)
         return dataset_path
 
     release_path = releases_dir / release_name
