@@ -386,8 +386,9 @@ class Dataset(data.Dataset):
     def __str__(self):
         return (
             f"{self.__class__.__name__}():\n"
-            f"  Root: {self.root}\n"
-            f"  Number of images: {len(self.images_path)}"
+            f"  Root: {self.dataset_path}\n"
+            f"  Number of images: {len(self.images_path)}\n"
+            f"  Number of classes: {len(self.classes)}"
         )
 
 
