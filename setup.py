@@ -14,6 +14,7 @@ setuptools.setup(
     url="https://github.com/v7labs/darwin-py",
     install_requires=[
         "argcomplete",
+        "dataclasses",
         "docutils",
         "factory_boy",
         "humanize",
@@ -25,6 +26,6 @@ setuptools.setup(
     ],
     packages=setuptools.find_packages(),
     entry_points={"console_scripts": ["darwin=darwin.cli:main"]},
-    classifiers=["Programming Language :: Python :: 3", "License :: OSI Approved :: MIT License"],
+    classifiers=["Programming Language :: Python :: 3", "License :: OSI Approved :: MIT License",],
     python_requires=">=3.6",
 )

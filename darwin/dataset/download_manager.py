@@ -6,7 +6,7 @@ from typing import Optional
 
 import requests
 
-from darwin.utils import is_image_extension_allowed, urljoin
+from darwin.utils import is_image_extension_allowed
 
 
 def download_all_images_from_annotations(

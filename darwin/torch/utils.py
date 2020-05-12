@@ -1,13 +1,14 @@
-import json
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 
 import numpy as np
-
 import torch
-from darwin.dataset.utils import get_classes
 from PIL import Image
-from pycocotools import mask as coco_mask
+
+try:
+    from pycocotools import mask as coco_mask
+except ImportError:
+    coco_mask = None
 
 try:
     import accimage
@@ -67,6 +68,8 @@ def convert_polygon_to_mask(segmentations: List[float], height: int, width: int)
     Output:
         torch.tensor
     """
+    if coco_mask is None:
+        raise ImportError("failed to import pycocotools")
     masks = []
     for polygons in segmentations:
         rles = coco_mask.frPyObjects(polygons, height, width)
