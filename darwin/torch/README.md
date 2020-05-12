@@ -24,7 +24,7 @@ import darwin.torch.transforms as T
 split_dataset("/datasets/bird-species", val_percentage=0.2, test_percentage=0)
 
 trfs_train = T.Compose([T.RandomHorizontalFlip(), T.ToTensor()])
-db_train = get_dataset("/datasets/bird-species", dataset_type="instance_segmentation", partition="train", split_type="random", transform=trfs_val)
+db_train = get_dataset("/datasets/bird-species", dataset_type="instance_segmentation", partition="train", split_type="random", transform=trfs_train)
 
 trfs_val = T.Compose([T.ToTensor()])
 db_val = get_dataset("/datasets/bird-species", dataset_type="instance_segmentation", partition="val", split_type="random", transform=trfs_train)
