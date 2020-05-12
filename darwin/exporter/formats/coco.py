@@ -30,12 +30,14 @@ def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_di
 
 def build_json(annotation_files):
     categories = calculate_categories(annotation_files)
+    tag_categories = calculate_tag_categories(annotation_files)
     return {
         "info": build_info(),
         "licenses": build_licenses(),
-        "images": build_images(annotation_files),
+        "images": build_images(annotation_files, tag_categories),
         "annotations": list(build_annotations(annotation_files, categories)),
         "categories": list(build_categories(categories)),
+        "tag_categories": list(build_tag_categories(tag_categories)),
     }
 
 
@@ -46,6 +48,18 @@ def calculate_categories(annotation_files: List[dt.AnnotationFile]):
             if (
                 annotation_class.name not in categories
                 and annotation_class.annotation_type == "polygon"
+            ):
+                categories[annotation_class.name] = len(categories)
+    return categories
+
+
+def calculate_tag_categories(annotation_files: List[dt.AnnotationFile]):
+    categories = {}
+    for annotation_file in annotation_files:
+        for annotation_class in annotation_file.annotation_classes:
+            if (
+                annotation_class.name not in categories
+                and annotation_class.annotation_type == "tag"
             ):
                 categories[annotation_class.name] = len(categories)
     return categories
@@ -68,11 +82,19 @@ def build_licenses():
     return [{"url": "n/a", "id": 0, "name": "placeholder license"}]
 
 
-def build_images(annotation_files):
-    return [build_image(id, annotation_file) for id, annotation_file in enumerate(annotation_files)]
+def build_images(annotation_files, tag_categories):
+    return [
+        build_image(id, annotation_file, tag_categories)
+        for id, annotation_file in enumerate(annotation_files)
+    ]
 
 
-def build_image(id, annotation_file):
+def build_image(id, annotation_file, tag_categories):
+    tags = [
+        annotation
+        for annotation in annotation_file.annotations
+        if annotation.annotation_class.annotation_type == "tag"
+    ]
     return {
         "license": 0,
         "file_name": annotation_file.filename,
@@ -84,6 +106,7 @@ def build_image(id, annotation_file):
         "darwin_url": annotation_file.image_url,
         "darwin_workview_url": annotation_file.workview_url,
         "id": id,
+        "tag_ids": [tag_categories[tag.annotation_class.name] for tag in tags],
     }
 
 
@@ -124,6 +147,8 @@ def build_annotation(image_id, annotation_id, annotation: dt.Annotation, categor
             "iscrowd": 0,
             "extra": build_extra(annotation),
         }
+    elif annotation_type == "tag":
+        pass
     else:
         print(f"skipping unsupported annotation_type '{annotation_type}'")
 
@@ -146,6 +171,11 @@ def build_extra(annotation):
 def build_categories(categories):
     for name, id in categories.items():
         yield {"id": id, "name": name, "supercategory": "root"}
+
+
+def build_tag_categories(categories):
+    for name, id in categories.items():
+        yield {"id": id, "name": name}
 
 
 def convert_polygons_to_sequences(polygons: List) -> List[np.ndarray]:
