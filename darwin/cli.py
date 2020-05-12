@@ -47,6 +47,8 @@ def run(args, parser):
     elif args.command == "version":
         print("0.4.2")
 
+    elif args.command == "convert":
+        f.convert(args.format, args.files, args.output_dir)
     elif args.command == "dataset":
         if args.action == "remote":
             f.list_remote_datasets(args.all, args.team)
@@ -76,6 +78,10 @@ def run(args, parser):
             f.dataset_list_releases(args.dataset)
         elif args.action == "pull":
             f.pull_dataset(args.dataset)
+        elif args.action == "import":
+            f.dataset_import(args.dataset, args.format, args.files)
+        elif args.action == "convert":
+            f.dataset_convert(args.dataset, args.format, args.output_dir)
         elif args.action == "help" or args.action == None:
             f.help(parser, "dataset")
 

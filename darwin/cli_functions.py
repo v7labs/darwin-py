@@ -6,6 +6,10 @@ from typing import List, Optional
 
 import humanize
 
+import darwin.exporter as exporter
+import darwin.exporter.formats
+import darwin.importer as importer
+import darwin.importer.formats
 from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset.identifier import DatasetIdentifier
@@ -35,7 +39,7 @@ def validate_api_key(api_key: str):
 
 
 def authenticate(
-    api_key: str, default_team: Optional[bool] = None, datasets_dir: Optional[Path] = None
+    api_key: str, default_team: Optional[bool] = None, datasets_dir: Optional[Path] = None,
 ) -> Config:
     """Authenticate the API key against the server and creates a configuration file for it
 
@@ -85,7 +89,7 @@ def authenticate(
 def current_team():
     """Print the team currently authenticated against"""
     client = _load_client()
-    print(client.team)
+    print(client.default_team)
 
 
 def list_teams():
@@ -182,7 +186,7 @@ def dataset_report(dataset_slug: str, granularity) -> Path:
 
 
 def export_dataset(
-    dataset_slug: str, annotation_class_ids: Optional[List] = None, name: Optional[str] = None
+    dataset_slug: str, annotation_class_ids: Optional[List] = None, name: Optional[str] = None,
 ):
     """Create a new release for the dataset
 
@@ -284,7 +288,7 @@ def dataset_list_releases(dataset_slug: str):
             print("No available releases, export one first.")
             return
         table = Table(
-            ["name", "images", "classes", "export_date"], [Table.L, Table.R, Table.R, Table.R]
+            ["name", "images", "classes", "export_date"], [Table.L, Table.R, Table.R, Table.R],
         )
         for release in releases:
             if not release.available:
@@ -303,7 +307,7 @@ def dataset_list_releases(dataset_slug: str):
 
 
 def upload_data(
-    dataset_slug: str, files: Optional[List[str]], files_to_exclude: Optional[List[str]], fps: int
+    dataset_slug: str, files: Optional[List[str]], files_to_exclude: Optional[List[str]], fps: int,
 ):
     """Uploads the files provided as parameter to the remote dataset selected
 
@@ -333,6 +337,43 @@ def upload_data(
         _error(f"No dataset with name '{e.name}'")
     except ValueError:
         _error(f"No files found")
+
+
+def dataset_import(dataset_slug, format, files):
+    client = _load_client()
+    parser = find_supported_format(format, darwin.importer.formats.supported_formats)
+
+    try:
+        dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
+        importer.import_annotations(dataset, parser, files)
+    except NotFound as e:
+        _error(f"No dataset with name '{e.name}'")
+
+
+def find_supported_format(query, supported_formats):
+    for (fmt, fmt_parser) in supported_formats:
+        if fmt == query:
+            return fmt_parser
+    list_of_formats = ", ".join([fmt for fmt, _ in supported_formats])
+    _error(f"Unsupported format, currently supported: {list_of_formats}")
+
+
+def dataset_convert(dataset_slug, format, output_dir):
+    client = _load_client()
+    parser = find_supported_format(format, darwin.exporter.formats.supported_formats)
+
+    try:
+        dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
+        if not dataset.local_path.exists():
+            _error(f"No annotations download for dataset f{dataset}, first pull a release")
+        exporter.export_annotations(parser, [dataset.local_path], output_dir)
+    except NotFound as e:
+        _error(f"No dataset with name '{e.name}'")
+
+
+def convert(format, files, output_dir):
+    parser = find_supported_format(format, darwin.exporter.formats.supported_formats)
+    exporter.export_annotations(parser, files, output_dir)
 
 
 def help(parser, subparser: Optional[str] = None):

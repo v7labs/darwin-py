@@ -1,5 +1,5 @@
 import random
-from typing import Any, Dict, Optional, Union
+from typing import Dict, Optional, Union
 
 import torch
 import torchvision.transforms as transforms
