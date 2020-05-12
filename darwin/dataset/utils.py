@@ -289,7 +289,7 @@ def _stratify_samples(idx_to_classes, split_seed, test_percentage, val_percentag
 
 
 def split_dataset(
-    dataset_path: Path,
+    dataset_path: Union[Path, str],
     release_name: Optional[str] = None,
     val_percentage: Optional[float] = 0.1,
     test_percentage: Optional[float] = 0.2,
@@ -324,6 +324,8 @@ def split_dataset(
         Keys are the different splits (random, tags, ...) and values are the relative file names
     """
     assert dataset_path is not None
+    if isinstance(dataset_path, str):
+        dataset_path = Path(dataset_path)
     release_path = get_release_path(dataset_path, release_name)
 
     annotation_path = release_path / "annotations"

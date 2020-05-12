@@ -16,8 +16,8 @@ def get_dataset(
     dataset_path: Union[Path, str],
     dataset_type: str,
     partition: Optional[str] = None,
-    split: Optional[str] = None,
-    split_type: Optional[str] = None,
+    split: str = "default",
+    split_type: str = "random",
     release_name: Optional[str] = None,
     transform: Optional[List] = None
 ):
@@ -34,7 +34,7 @@ def get_dataset(
     split
         Selects the split that defines the percetages used (use 'split' to select the default split)
     split_type
-        Heuristic used to do the split [random, stratified, None]
+        Heuristic used to do the split [random, stratified]
     release_name: str
         Version of the dataset
     transform : list[torchvision.transforms]
@@ -67,8 +67,8 @@ class Dataset(data.Dataset):
         dataset_path: Path,
         annotation_type: str,
         partition: Optional[str] = None,
-        split: Optional[str] = "default",
-        split_type: Optional[str] = None,
+        split: str = "default",
+        split_type: str = "random",
         release_name: Optional[str] = None,
         transform: Optional[List] = None
     ):
@@ -100,7 +100,7 @@ class Dataset(data.Dataset):
 
         if partition not in ["train", "val", "test", None]:
             raise ValueError("partition should be either 'train', 'val', or 'test'")
-        if split_type not in ["random", "stratified", None]:
+        if split_type not in ["random", "stratified"]:
             raise ValueError("split_type should be either 'random', 'stratified'")
         if annotation_type not in ["tag", "polygon", "box"]:
             raise ValueError("annotation_type should be either 'tag', 'box', or 'polygon'")
@@ -130,9 +130,7 @@ class Dataset(data.Dataset):
         # Get the list of stems
         if partition:
             # Get the split
-            if split_type is None:
-                split_file = f"{partition}.txt"
-            elif split_type == "random":
+            if split_type == "random":
                 split_file = f"{split_type}_{partition}.txt"
             elif split_type == "stratified":
                 split_file = f"{split_type}_{annotation_type}_{partition}.txt"
