@@ -1,4 +1,4 @@
-# PyTorch
+# PyTorch toolbox
 
 This toolbox include some funcitonality to load your datasets ready to be plugged into Pytorch's DataLoaders. For that you can use the function `get_dataset`:
 
@@ -33,7 +33,6 @@ db_val = get_dataset("/datasets/bird-species", dataset_type="instance_segmentati
 
 print(db_train)
 # Returns:
-#
 # InstanceSegmentationDataset():
 #   Root: /datasets/bird-species
 #   Number of images: 1528
