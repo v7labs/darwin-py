@@ -6,6 +6,7 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 from typing import Generator, Iterable, List, Optional, Union
+import warnings
 
 import numpy as np
 from tqdm import tqdm
@@ -34,11 +35,19 @@ def get_release_path(dataset_path: Path, release_name: Optional[str] = None):
 
     if not release_name:
         release_name = "latest"
-    release_path = dataset_path / "releases" / release_name
+    releases_dir = dataset_path / "releases"
+
+    if not releases_dir.exists():
+        warnings.warn("darwin-py has adopted a new folder structure and the old structure will be depecrated. "
+                      f"Migrate this dataset by running: `darwin dataset migrate`", DeprecationWarning)
+        return dataset_path
+
+    release_path = releases_dir / release_name
     if not release_path.exists():
         raise NotFound(
-            f"Local copy of release {release_name} not found: Pull this release from Darwin using pull() "
-            "or use a different version"
+            f"Local copy of release {release_name} not found: "
+            f"Pull this release from Darwin using 'darwin dataset pull DATASET:{release_name}' "
+            f"or use a different release."
         )
     return release_path
 
