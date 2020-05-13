@@ -298,7 +298,7 @@ def _stratify_samples(idx_to_classes, split_seed, test_percentage, val_percentag
 
 
 def split_dataset(
-    dataset_path: Path,
+    dataset_path: Union[Path, str],
     release_name: Optional[str] = None,
     val_percentage: Optional[float] = 0.1,
     test_percentage: Optional[float] = 0.2,
@@ -333,6 +333,8 @@ def split_dataset(
         Keys are the different splits (random, tags, ...) and values are the relative file names
     """
     assert dataset_path is not None
+    if isinstance(dataset_path, str):
+        dataset_path = Path(dataset_path)
     release_path = get_release_path(dataset_path, release_name)
 
     annotation_path = release_path / "annotations"
@@ -366,15 +368,15 @@ def split_dataset(
     splits = {}
     splits["random"] = {
         "train": Path(split_path / "random_train.txt"),
-        "val": Path(split_path / "random_validation.txt"),
+        "val": Path(split_path / "random_val.txt"),
     }
     splits["stratified_tag"] = {
         "train": Path(split_path / "stratified_tag_train.txt"),
-        "val": Path(split_path / "stratified_tag_validation.txt"),
+        "val": Path(split_path / "stratified_tag_val.txt"),
     }
     splits["stratified_polygon"] = {
         "train": Path(split_path / "stratified_polygon_train.txt"),
-        "val": Path(split_path / "stratified_polygon_validation.txt"),
+        "val": Path(split_path / "stratified_polygon_val.txt"),
     }
     if test_percentage > 0.0:
         splits["random"]["test"] = Path(split_path) / "random_test.txt"
@@ -431,7 +433,7 @@ def split_dataset(
                     _write_to_file(annotation_files, splits["stratified_polygon"]["test"], test_indices)
 
     # Create symlink for default split
-    split = lists_path / "split"
+    split = lists_path / "default"
     if make_default_split or not split.exists():
         if split.exists():
             split.unlink()
@@ -545,7 +547,7 @@ def get_coco_format_record(
 
 def get_annotations(
     dataset_path: Path,
-    partition: str,
+    partition: Optional[str] = None,
     split: Optional[str] = None,
     split_type: Optional[str] = None,
     annotation_type: str = "polygon",
@@ -584,10 +586,10 @@ def get_annotations(
     images_dir = dataset_path / "images"
     assert images_dir.exists()
 
-    if partition not in ["train", "validation", "test"]:
-        raise ValueError("partition should be either 'train', 'valildation', or 'test'")
+    if partition not in ["train", "val", "test", None]:
+        raise ValueError("partition should be either 'train', 'val', 'test', or None")
     if split_type not in ["random", "stratified", None]:
-        raise ValueError("split_type should be either 'random', 'stratified'")
+        raise ValueError("split_type should be either 'random', 'stratified', or None")
     if annotation_type not in ["tag", "polygon", "box"]:
         raise ValueError("annotation_type should be either 'tag', 'box', or 'polygon'")
 
@@ -603,7 +605,13 @@ def get_annotations(
         elif split_type == "stratified":
             split_file = f"{split_type}_{annotation_type}_{partition}.txt"
         split_path = release_path / "lists" / split / split_file
-        stems = (e.strip() for e in split_path.open())
+        if split_path.is_file():
+            stems = (e.strip() for e in split_path.open())
+        else:
+            raise FileNotFoundError(
+                f"Could not find a dataset partition. ",
+                f"To split the dataset you can use 'split_dataset' from darwin.dataset.utils"
+            )
     else:
         # If the split is not specified, get all the annotations
         stems = [e.stem for e in annotations_dir.glob("*.json")]
