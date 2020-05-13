@@ -271,6 +271,46 @@ class RemoteDataset:
         """Archives (soft-deletion) the remote dataset"""
         self.client.put(f"datasets/{self.dataset_id}/archive", payload={}, team=self.team)
 
+    def fetch_remote_files(self):
+        """Fetch and lists all files on the remote dataset"""
+        base_url = f"/datasets/{self.dataset_id}/items"
+        if not self.client.feature_enabled("WORKFLOW", self.team):
+            base_url = f"/datasets/{self.dataset_id}/dataset_images"
+        cursor = ""
+        while True:
+            response = self.client.get(f"{base_url}{cursor}", team=self.team)
+            yield from response["items"]
+            if response["metadata"]["next"]:
+                cursor = f"?page[from]={response['metadata']['next']}"
+            else:
+                return
+
+    def fetch_annotation_type_id_for_name(self, name: str):
+        """Fetches annotation type id for a annotation type name, such as bounding_box"""
+        annotation_types = self.client.get("/annotation_types")
+        for annotation_type in annotation_types:
+            if annotation_type["name"] == name:
+                return annotation_type["id"]
+
+    def create_annotation_class(self, name: str, type: str):
+        type_id = self.fetch_annotation_type_id_for_name(type)
+        return self.client.post(
+            f"/annotation_classes",
+            payload={
+                "dataset_id": self.dataset_id,
+                "name": name,
+                "metadata": {"_color": "auto"},
+                "annotation_type_ids": [type_id],
+            },
+            error_handlers=[name_taken, validation_error],
+        )
+
+    def fetch_remote_classes(self):
+        """Fetches all remote classes on the remote dataset"""
+        return self.client.get(f"/datasets/{self.dataset_id}/annotation_classes?include_tags=true")[
+            "annotation_classes"
+        ]
+
     def export(self, name: str, annotation_class_ids: Optional[List[str]] = None):
         """Create a new release for the dataset
 
@@ -293,7 +333,7 @@ class RemoteDataset:
 
     def get_report(self, granularity="day"):
         return self.client.get(
-            f"/reports/{self.dataset_id}/annotation?group_by=dataset,user&dataset_ids={self.dataset_id}&granularity={granularity}&format=csv&include=dataset.name,user.first_name,user.last_name,user.email",
+            f"/reports/{self.team}/annotation?group_by=dataset,user&dataset_ids={self.dataset_id}&granularity={granularity}&format=csv&include=dataset.name,user.first_name,user.last_name,user.email",
             team=self.team,
             raw=True,
         ).text
@@ -314,7 +354,7 @@ class RemoteDataset:
             return []
         releases = [Release.parse_json(self.slug, self.team, payload) for payload in releases_json]
         return sorted(
-            filter(lambda x: x.available, releases), key=lambda x: x.version, reverse=True
+            filter(lambda x: x.available, releases), key=lambda x: x.version, reverse=True,
         )
 
     def get_release(self, name: str = "latest"):

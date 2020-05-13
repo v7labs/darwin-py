@@ -9,6 +9,7 @@ from typing import Generator, Iterable, List, Optional, Union
 import warnings
 
 import numpy as np
+from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 
 from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS, is_image_extension_allowed

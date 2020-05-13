@@ -2,7 +2,6 @@ import csv
 import functools
 import itertools
 import json
-import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 

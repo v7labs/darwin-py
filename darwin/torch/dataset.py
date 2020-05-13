@@ -394,9 +394,6 @@ class Dataset(data.Dataset):
         )
 
 
-####################################################################################################
-
-
 class ClassificationDataset(Dataset):
     def __init__(self, **kwargs):
         """See superclass for documentation"""
@@ -450,9 +447,6 @@ class ClassificationDataset(Dataset):
             target = self._map_annotation(i)
             labels.append(target["category_id"])
         return self._compute_weights(labels)
-
-
-####################################################################################################
 
 
 class InstanceSegmentationDataset(Dataset):
@@ -553,9 +547,6 @@ class InstanceSegmentationDataset(Dataset):
             target = self._map_annotation(i)
             labels.extend([a["category_id"] for a in target["annotations"]])
         return self._compute_weights(labels)
-
-
-####################################################################################################
 
 
 class SemanticSegmentationDataset(Dataset):

@@ -28,6 +28,21 @@ class Options(object):
             help="Shows only the current team. ",
         )
 
+        parser_convert = subparsers.add_parser(
+            "convert", help="Converts darwin json to other annotation formats."
+        )
+        parser_convert.add_argument(
+            "format", type=str, help="Annotation import to convert to",
+        )
+
+        parser_convert.add_argument(
+            "files", type=str, nargs="+", help="Annotation files (or folders) to convert",
+        )
+
+        parser_convert.add_argument(
+            "output_dir", type=str, help="Where to store output files",
+        )
+
         # DATASET
         dataset = subparsers.add_parser(
             "dataset",
@@ -120,11 +135,41 @@ class Options(object):
         )
 
         # Pull
-        parser_dataset_version = dataset_action.add_parser(
-            "pull", help="Download a version of a dataset."
+        parser_pull = dataset_action.add_parser("pull", help="Download a version of a dataset.")
+        parser_pull.add_argument("dataset", type=str, help="Remote dataset name to download.")
+
+        # Import
+        parser_import = dataset_action.add_parser(
+            "import", help="Import data to an existing (remote) dataset."
         )
-        parser_dataset_version.add_argument(
-            "dataset", type=str, help="Remote dataset name to download."
+        parser_import.add_argument(
+            "dataset",
+            type=str,
+            help="[Remote] Dataset name: to list all the existing dataset, run 'darwin dataset remote'. ",
+        )
+        parser_import.add_argument(
+            "format", type=str, help="Annotation import to import",
+        )
+
+        parser_import.add_argument(
+            "files", type=str, nargs="+", help="Annotation files (or folders) to import"
+        )
+
+        # Convet
+        parser_convert = dataset_action.add_parser(
+            "convert", help="Converts darwin json to other annotation formats."
+        )
+        parser_convert.add_argument(
+            "dataset",
+            type=str,
+            help="[Remote] Dataset name: to list all the existing dataset, run 'darwin dataset remote'. ",
+        )
+        parser_convert.add_argument(
+            "format", type=str, help="Annotation import to convert to",
+        )
+
+        parser_convert.add_argument(
+            "output_dir", type=str, help="Where to store output files",
         )
 
         # Help
