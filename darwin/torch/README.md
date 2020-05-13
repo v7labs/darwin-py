@@ -6,7 +6,7 @@ This module includes some funcitonality to import your datasets ready to be plug
 get_dataset("/PATH/TO/YOUR/DATASET", DATASET_TYPE [, PARTITION, SPLIT_TYPE, RELEASE_NAME, TRANSFORMS])
 ```
 
-Here is an example of how to load the `bird-species` to be used in a instance segmentation task using `"instance_segmentation"` as `dataset_type` (alternatively you can use `"classification"` or `"semantic_segmentation"` for those other tasks):
+Here is an example of how to load the `bird-species` dataset ready to be used in a instance segmentation task using `"instance_segmentation"` as `dataset_type` (alternatively you can use `"classification"` or `"semantic_segmentation"` for those other tasks):
 
 ```python
 from darwin.torch import get_dataset
