@@ -1,6 +1,6 @@
 # Dataset toolbox for Pytorch
 
-This module includes some funcitonality to import your datasets ready to be plugged into Pytorch's DataLoaders. This can be done by using the function `get_dataset`:
+This module includes some funcitonality to import your datasets ready to be plugged into Pytorch's DataLoaders. This can be done using `get_dataset()`:
 
 ```python
 get_dataset("/PATH/TO/YOUR/DATASET", DATASET_TYPE [, PARTITION, SPLIT_TYPE, RELEASE_NAME, TRANSFORMS])
