@@ -25,28 +25,30 @@ def get_dataset(
 
     Parameters
     ----------
-    dataset_path
+    dataset_path: Path, str
         Path to the location of the dataset on the file system
-    dataset_type
-        The type of dataset [classification, instances_segmentation, semantic_segmentation]
-    partition
+    dataset_type: str
+        The type of dataset [classification, instance_segmentation, semantic_segmentation]
+    partition: str
         Selects one of the partitions [train, val, test]
-    split
-        Selects the split that defines the percetages used (use 'split' to select the default split)
-    split_type
+    split: str
+        Selects the split that defines the percentages used (use 'default' to select the default split)
+    split_type: str
         Heuristic used to do the split [random, stratified]
     release_name: str
         Version of the dataset
     transform : list[torchvision.transforms]
         List of PyTorch transforms
     """
-    assert dataset_type in ["classification", "instance_segmentation", "semantic_sgmentation"]
     dataset_functions = {
         "classification": ClassificationDataset,
         "instance_segmentation": InstanceSegmentationDataset,
         "semantic_segmentation": SemanticSegmentationDataset,
     }
-    dataset_function = dataset_functions[dataset_type]
+    dataset_function = dataset_functions.get(dataset_type)
+    if not dataset_function:
+        list_of_types = ", ".join(dataset_functions.keys())
+        raise ValueError(f"dataset_type needs to be one of '{list_of_types}'")
 
     if isinstance(dataset_path, str):
         dataset_path = Path(dataset_path)
@@ -76,16 +78,16 @@ class Dataset(data.Dataset):
 
         Parameters
         ----------
-        dataset_path
+        dataset_path: Path, str
             Path to the location of the dataset on the file system
-        annotation_type
+        annotation_type: str
             The type of annotation classes [tag, box, polygon]
-        partition
+        partition: str
             Selects one of the partitions [train, val, test]
-        split
-            Selects the split that defines the percetages used (use 'split' to select the default split)
-        split_type
-            Heuristic used to do the split [random, stratified, None]
+        split: str
+            Selects the split that defines the percentages used (use 'default' to select the default split)
+        split_type: str
+            Heuristic used to do the split [random, stratified]
         release_name: str
             Version of the dataset
         transform : list[torchvision.transforms]
@@ -140,7 +142,7 @@ class Dataset(data.Dataset):
             else:
                 raise FileNotFoundError(
                     f"Could not find a dataset partition. ",
-                    f"To split the dataset you can use 'split_dataset' from darwin.dataset.utils"
+                    f"Split the dataset using `split_dataset()` from `darwin.dataset.utils`"
                 )
         else:
             # If the partition is not specified, get all the annotations
