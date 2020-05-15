@@ -477,9 +477,9 @@ class RemoteDataset:
     def local_path(self) -> Path:
         """Returns a Path to the local dataset"""
         if self.slug is not None:
-            return Path(self.client.get_datasets_dir(self.team)) / self.slug
+            return Path(self.client.get_datasets_dir(self.team)) / self.team / self.slug
         else:
-            return Path(self.client.get_datasets_dir(self.team))
+            return Path(self.client.get_datasets_dir(self.team)) / self.team
 
     @property
     def local_releases_path(self) -> Path:
