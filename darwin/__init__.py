@@ -1,5 +1,5 @@
-import darwin.dataset
-import darwin.exceptions
+import darwin.dataset  # noqa
+import darwin.exceptions  # noqa
 
-from .client import Client
-from .team import Team
+from .client import Client  # noqa
+from .team import Team  # noqa

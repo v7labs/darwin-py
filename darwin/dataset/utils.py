@@ -11,7 +11,7 @@ import warnings
 import numpy as np
 from tqdm import tqdm
 
-from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS, is_image_extension_allowed
+from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS
 from darwin.exceptions import NotFound
 
 
@@ -54,7 +54,7 @@ def get_release_path(dataset_path: Path, release_name: Optional[str] = None):
 
 def ensure_sklearn_imported(requester):
     try:
-        import sklearn
+        import sklearn  # noqa
     except ImportError:
         print(f"`{requester}` requires sklearn to be installed, pip install scikit-learn")
         sys.exit(0)

@@ -6,9 +6,9 @@ from typing import Callable, Collection, List, Optional, Union
 import numpy as np
 import torch.utils.data as data
 
-from darwin.torch.transforms import Compose, ConvertPolygonsToInstanceMasks, ConvertPolygonToMask
+from darwin.torch.transforms import Compose, ConvertPolygonsToInstanceMasks
 from darwin.torch.utils import convert_polygons_to_sequences, load_pil_image, polygon_area
-from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS, is_image_extension_allowed
+from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS
 from darwin.dataset.utils import get_classes, get_release_path
 
 
@@ -147,9 +147,6 @@ class Dataset(data.Dataset):
         else:
             # If the partition is not specified, get all the annotations
             stems = [e.stem for e in annotations_dir.glob("*.json")]
-
-        images_paths = []
-        annotations_paths = []
 
         # Find all the annotations and their corresponding images
         for stem in stems:
@@ -394,9 +391,6 @@ class Dataset(data.Dataset):
         )
 
 
-####################################################################################################
-
-
 class ClassificationDataset(Dataset):
     def __init__(self, **kwargs):
         """See superclass for documentation"""
@@ -450,9 +444,6 @@ class ClassificationDataset(Dataset):
             target = self._map_annotation(i)
             labels.append(target["category_id"])
         return self._compute_weights(labels)
-
-
-####################################################################################################
 
 
 class InstanceSegmentationDataset(Dataset):
@@ -553,9 +544,6 @@ class InstanceSegmentationDataset(Dataset):
             target = self._map_annotation(i)
             labels.extend([a["category_id"] for a in target["annotations"]])
         return self._compute_weights(labels)
-
-
-####################################################################################################
 
 
 class SemanticSegmentationDataset(Dataset):
