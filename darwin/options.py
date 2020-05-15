@@ -119,7 +119,7 @@ class Options(object):
 
         # Export
         parser_export = dataset_action.add_parser(
-            "export", help="Export the a version of a dataset."
+            "export", help="Export a version of a dataset."
         )
         parser_export.add_argument("dataset", type=str, help="Remote dataset name to export.")
         parser_export.add_argument("name", type=str, help="Name with with the version gets tagged.")

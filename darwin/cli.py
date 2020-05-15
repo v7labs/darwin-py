@@ -60,8 +60,6 @@ def run(args, parser):
             path = f.path(args.dataset)
             if path:
                 print(path)
-            else:
-                print("The dataset has not been downloaded")
         # Print the url of a remote project
         elif args.action == "url":
             f.url(args.dataset)

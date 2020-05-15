@@ -19,6 +19,7 @@ from darwin.exceptions import (
     MissingConfig,
     NameTaken,
     NotFound,
+    DeprecatedDataset,
     Unauthenticated,
     ValidationError,
 )
@@ -165,24 +166,35 @@ def local(team: Optional[str] = None):
 
     print(table)
     if len(list(deprecated_local_datasets)):
-        print(f"\nWARNING: found some local datasets that use a deprecated format not supported by the recent version of darwin-py. "
-              f"Run `darwin dataset migrate team_slug/dataset_slug` if you want to be able to use them in darwin-py.")
+        print(f"\nWARNING: found some local datasets that use a deprecated format "
+              f"not supported by the recent version of darwin-py. "
+              f"Run `darwin dataset migrate team_slug/dataset_slug` "
+              "if you want to be able to use them in darwin-py.")
 
 
 def path(dataset_slug: str) -> Path:
     """Returns the absolute path of the specified dataset, if synced"""
     identifier = DatasetIdentifier.parse(dataset_slug)
     client = _load_client(offline=True)
-    try:
-        for p in client.list_local_datasets(team=identifier.team_slug):
-            if identifier.dataset_slug == p.name:
-                return p
-    except NotFound as e:
-        _error(
-            f"Dataset '{e.name}' does not exist locally. "
-            f"Use 'darwin dataset remote' to see all the available datasets, "
-            f"and 'darwin dataset pull' to pull them."
-        )
+
+    for p in client.list_local_datasets(team=identifier.team_slug):
+        if identifier.dataset_slug == p.name:
+            return p
+
+    for p in client.list_deprecated_local_datasets(team=identifier.team_slug):
+        if identifier.dataset_slug == p.name:
+            print(
+                f"Warning: found local version of the dataset {identifier.dataset_slug} which uses a deprecated format. "
+                f"Run `darwin dataset migrate {identifier}` if you want to be able to use it in darwin-py.\n"
+                f"\n{p} (deprecated format)"
+            )
+            return
+
+    _error(
+        f"Dataset '{identifier.dataset_slug}' does not exist locally. "
+        f"Use 'darwin dataset remote' to see all the available datasets, "
+        f"and 'darwin dataset pull' to pull them."
+    )
 
 
 def url(dataset_slug: str) -> Path:
@@ -268,14 +280,12 @@ def migrate_dataset(dataset_slug: str):
     """
     identifier = DatasetIdentifier.parse(dataset_slug)
     client = _load_client(offline=True)
-    try:
-        for p in client.list_deprecated_local_datasets(identifier.team_slug):
-            if identifier.dataset_slug == p.name:
-                old_path = p
-    except NotFound as e:
-        _error(
-            f"Could not find an outdated local version of dataset '{e.name}'."
-        )
+    for p in client.list_deprecated_local_datasets(identifier.team_slug):
+        if identifier.dataset_slug == p.name:
+            old_path = p
+    _error(
+        f"Could not find a deprecated local version of dataset '{identifier.dataset_slug}'."
+    )
 
     # Move the dataset under the team_slug folder
     team_config = client.config.get_team(identifier.team_slug)

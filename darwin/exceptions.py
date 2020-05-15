@@ -20,6 +20,10 @@ class NotFound(Exception):
         self.name = name
 
 
+class DeprecatedDataset(Exception):
+    pass
+
+
 class UnsupportedFileType(Exception):
     def __init__(self, path):
         self.path = path
