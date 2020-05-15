@@ -19,7 +19,6 @@ from darwin.exceptions import (
     MissingConfig,
     NameTaken,
     NotFound,
-    DeprecatedDataset,
     Unauthenticated,
     ValidationError,
 )
