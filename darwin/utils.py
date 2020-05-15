@@ -40,7 +40,23 @@ def is_project_dir(project_path: Path) -> bool:
     Returns
     -------
     bool
-    Is the directory is a project from Darwin?
+        Is the directory a project from Darwin?
+    """
+    return (project_path / "releases").exists() and (project_path / "images").exists()
+
+
+def is_deprecated_project_dir(project_path: Path) -> bool:
+    """Verifies if the directory is a project from Darwin that uses a deprectated local structure
+
+    Parameters
+    ----------
+    project_path : Path
+        Directory to examine
+
+    Returns
+    -------
+    bool
+        Is the directory a project from Darwin?
     """
     return (project_path / "annotations").exists() and (project_path / "images").exists()
 

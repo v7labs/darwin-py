@@ -59,7 +59,8 @@ class Options(object):
         )
 
         # Local
-        dataset_action.add_parser("local", help="List downloaded datasets")
+        parser_local = dataset_action.add_parser("local", help="List downloaded datasets")
+        parser_local.add_argument("-t", "--team", help="Specify team")
 
         # Create
         parser_create = dataset_action.add_parser("create", help="Creates a new dataset on darwin")
@@ -171,6 +172,10 @@ class Options(object):
         parser_convert.add_argument(
             "output_dir", type=str, help="Where to store output files",
         )
+
+        # Migrate
+        parser_migrate = dataset_action.add_parser("migrate", help="Migrate a local dataset to the latest version.")
+        parser_migrate.add_argument("dataset", type=str, help="Local dataset name to migrate.")
 
         # Help
         dataset_action.add_parser("help", help="Show this help message and exit.")

@@ -15,7 +15,7 @@ from darwin.exceptions import (
     NotFound,
     Unauthorized,
 )
-from darwin.utils import is_project_dir, urljoin
+from darwin.utils import is_project_dir, urljoin, is_deprecated_project_dir
 from darwin.validators import name_taken, validation_error
 
 
@@ -189,17 +189,38 @@ class Client:
         return self._decode_response(response, debug)
 
     def list_local_datasets(self, team: Optional[str] = None) -> Iterator[Path]:
-        """Returns a list of all local folders who are detected as dataset.
+        """Returns a list of all local folders which are detected as dataset.
 
         Returns
         -------
         list[Path]
         List of all local datasets
         """
-        team_config = self.config.get_team(team or self.default_team)
+        if team is not None:
+            team_configs = [self.config.get_team(team)]
+        else:
+            team_configs = self.config.get_all_teams()
+        # team = (team or self.default_team)
+        for team_config in team_configs:
+            projects_team = Path(team_config["datasets_dir"]) / team_config["slug"]
+            for project_path in projects_team.glob("*"):
+                if project_path.is_dir() and is_project_dir(project_path):
+                    yield Path(project_path)
 
-        for project_path in Path(team_config["datasets_dir"]).glob("*"):
-            if project_path.is_dir() and is_project_dir(project_path):
+    def list_deprecated_local_datasets(self, team: Optional[str] = None) -> Iterator[Path]:
+        """Returns a list of all local folders whhich are detected as dataset but use a deprectated local structure
+
+        Returns
+        -------
+        list[Path]
+        List of all local datasets
+        """
+        team = (team or self.default_team)
+        team_config = self.config.get_team(team)
+
+        projects_team = Path(team_config["datasets_dir"])
+        for project_path in projects_team.glob("*"):
+            if project_path.is_dir() and is_deprecated_project_dir(project_path):
                 yield Path(project_path)
 
     def list_remote_datasets(self, team: Optional[str] = None) -> Iterator[RemoteDataset]:
