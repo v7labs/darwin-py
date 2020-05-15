@@ -183,9 +183,9 @@ def path(dataset_slug: str) -> Path:
     for p in client.list_deprecated_local_datasets(team=identifier.team_slug):
         if identifier.dataset_slug == p.name:
             print(
+                f"{p} (deprecated format) \n"
                 f"Warning: found local version of the dataset {identifier.dataset_slug} which uses a deprecated format. "
-                f"Run `darwin dataset migrate {identifier}` if you want to be able to use it in darwin-py.\n"
-                f"\n{p} (deprecated format)"
+                f"Run `darwin dataset migrate {identifier}` if you want to be able to use it in darwin-py."
             )
             return
 
@@ -282,9 +282,10 @@ def migrate_dataset(dataset_slug: str):
     for p in client.list_deprecated_local_datasets(identifier.team_slug):
         if identifier.dataset_slug == p.name:
             old_path = p
-    _error(
-        f"Could not find a deprecated local version of dataset '{identifier.dataset_slug}'."
-    )
+    if not old_path:
+        _error(
+            f"Could not find a deprecated local version of dataset '{identifier.dataset_slug}'."
+        )
 
     # Move the dataset under the team_slug folder
     team_config = client.config.get_team(identifier.team_slug)
