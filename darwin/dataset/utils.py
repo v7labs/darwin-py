@@ -37,7 +37,7 @@ def get_release_path(dataset_path: Path, release_name: Optional[str] = None):
         release_name = "latest"
     releases_dir = dataset_path / "releases"
 
-    if not releases_dir.exists():
+    if not releases_dir.exists() and (dataset_path / "annotations").exists():
         warnings.warn("darwin-py has adopted a new folder structure and the old structure will be depecrated. "
                       f"Migrate this dataset by running: 'darwin dataset migrate {dataset_path.name}", DeprecationWarning)
         return dataset_path
