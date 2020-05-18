@@ -66,14 +66,18 @@ def convert_polygon_to_mask(segmentations: List[float], height: int, width: int)
     Output:
         torch.tensor
     """
-    polygons = [
-        np.array(list(zip(map(int, map(round, s[0::2])), map(int, map(round, s[1::2])))))
-        for contour in segmentations
-        for s in contour
-    ]
-    zeros = torch.zeros((1080, 1920)).numpy().astype(np.uint8)
-    mask = torch.from_numpy(cv2.drawContours(zeros, polygons, -1, 1, cv2.FILLED))
-    return mask.unsqueeze(0)
+    masks = []
+    for contour in segmentations:
+        polygons = []
+        for s in contour:
+            xs = map(int, map(round, s[0::2]))
+            ys = map(int, map(round, s[1::2]))
+            polygon = list(zip(xs, ys))
+            polygons.append(np.array(polygon))
+        zeros = torch.zeros((height, width)).numpy().astype(np.uint8)
+        mask = torch.from_numpy(cv2.drawContours(zeros, polygons, -1, 1, cv2.FILLED))
+        masks.append(mask)
+    return torch.stack(masks)
 
 
 def convert_polygons_to_sequences(polygons: Union[Polygon, ComplexPolygon]) -> List[np.ndarray]:
