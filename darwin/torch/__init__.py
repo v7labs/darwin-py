@@ -1,4 +1,4 @@
-# Requirements: pytorch, torchvision, pycocotools, sklearn
+# Requirements: pytorch, torchvision, sklearn
 from .dataset import (
     ClassificationDataset,
     Dataset,

@@ -14,7 +14,7 @@ def parse_file(path: Path) -> Optional[dt.AnnotationFile]:
     filename = root.find("filename").text
     annotations = list(filter(None, map(_parse_annotation, root.findall("object"))))
     annotation_classes = set([annotation.annotation_class for annotation in annotations])
-    return dt.AnnotationFile(path, filename, annotation_classes, annotations,)
+    return dt.AnnotationFile(path, filename, annotation_classes, annotations)
 
 
 def _parse_annotation(annotation_object):

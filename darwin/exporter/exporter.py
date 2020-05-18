@@ -33,7 +33,7 @@ def _parse_darwin_annotation(annotation):
     elif "bounding_box" in annotation:
         bounding_box = annotation["bounding_box"]
         main_annotation = dt.make_bounding_box(
-            name, bounding_box["x"], bounding_box["y"], bounding_box["w"], bounding_box["h"],
+            name, bounding_box["x"], bounding_box["y"], bounding_box["w"], bounding_box["h"]
         )
     elif "tag" in annotation:
         main_annotation = dt.make_tag(name)
