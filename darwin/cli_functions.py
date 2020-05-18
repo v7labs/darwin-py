@@ -281,7 +281,7 @@ def migrate_dataset(dataset_slug: str):
 
     for p in client.list_local_datasets(team=identifier.team_slug):
         if identifier.dataset_slug == p.name:
-            print(f"Dataset {dataset_slug} already migrated.")
+            print(f"Dataset '{dataset_slug}' already migrated.")
             return
 
     old_path = None
@@ -290,7 +290,7 @@ def migrate_dataset(dataset_slug: str):
             old_path = p
     if not old_path:
         _error(
-            f"Could not find a deprecated local version of the dataset '{dataset_slug}'. "
+            f"could not find a deprecated local version of the dataset '{dataset_slug}'. "
             f"Use 'darwin dataset pull {dataset_slug}' to pull the latest version from darwin."
         )
 
