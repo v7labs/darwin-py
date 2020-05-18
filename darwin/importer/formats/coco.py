@@ -38,7 +38,7 @@ def parse_json(path, data):
 def parse_annotation(annotation, category_lookup_table):
     category = category_lookup_table[annotation["category_id"]]
     segmentation = annotation["segmentation"]
-    iscrowd = annotation["iscrowd"] == 1
+    iscrowd = annotation.get("iscrowd") == 1
 
     if iscrowd:
         print("Warning, unsupported RLE, skipping")
