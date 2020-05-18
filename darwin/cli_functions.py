@@ -182,12 +182,11 @@ def path(dataset_slug: str) -> Path:
 
     for p in client.list_deprecated_local_datasets(team=identifier.team_slug):
         if identifier.dataset_slug == p.name:
-            print(
-                f"{p} (deprecated format) \n"
-                f"Warning: found local version of the dataset {identifier.dataset_slug} which uses a deprecated format. "
+            _error(
+                f"found a local version of the dataset {identifier.dataset_slug} which uses a deprecated format. "
                 f"Run `darwin dataset migrate {identifier}` if you want to be able to use it in darwin-py."
+                f"\n{p} (deprecated format)"
             )
-            return
 
     _error(
         f"Dataset '{identifier.dataset_slug}' does not exist locally. "
@@ -279,12 +278,20 @@ def migrate_dataset(dataset_slug: str):
     """
     identifier = DatasetIdentifier.parse(dataset_slug)
     client = _load_client(offline=True)
+
+    for p in client.list_local_datasets(team=identifier.team_slug):
+        if identifier.dataset_slug == p.name:
+            print(f"Dataset {dataset_slug} already migrated.")
+            return
+
+    old_path = None
     for p in client.list_deprecated_local_datasets(identifier.team_slug):
         if identifier.dataset_slug == p.name:
             old_path = p
     if not old_path:
         _error(
-            f"Could not find a deprecated local version of dataset '{identifier.dataset_slug}'."
+            f"Could not find a deprecated local version of the dataset '{dataset_slug}'. "
+            f"Use 'darwin dataset pull {dataset_slug}' to pull the latest version from darwin."
         )
 
     # Move the dataset under the team_slug folder
@@ -305,7 +312,7 @@ def migrate_dataset(dataset_slug: str):
         latest_release.unlink()
     latest_release.symlink_to("./migrated")
 
-    print(f"Dataset {identifier.dataset_slug} migrated to {dataset_path}")
+    print(f"Dataset {identifier.dataset_slug} migrated to {dataset_path}.")
 
 
 def list_remote_datasets(all_teams: bool, team: Optional[str] = None):
