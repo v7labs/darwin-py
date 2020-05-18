@@ -39,14 +39,14 @@ def get_release_path(dataset_path: Path, release_name: Optional[str] = None):
 
     if not releases_dir.exists():
         warnings.warn("darwin-py has adopted a new folder structure and the old structure will be depecrated. "
-                      f"Migrate this dataset by running: `darwin dataset migrate`", DeprecationWarning)
+                      f"Migrate this dataset by running: 'darwin dataset migrate {dataset_path.name}", DeprecationWarning)
         return dataset_path
 
     release_path = releases_dir / release_name
     if not release_path.exists():
         raise NotFound(
             f"Local copy of release {release_name} not found: "
-            f"Pull this release from Darwin using 'darwin dataset pull DATASET:{release_name}' "
+            f"Pull this release from Darwin using 'darwin dataset pull {dataset_path.name}:{release_name}' "
             f"or use a different release."
         )
     return release_path
@@ -546,7 +546,7 @@ def get_coco_format_record(
 
 
 def get_annotations(
-    dataset_path: Path,
+    dataset_path: Union[Path, str],
     partition: Optional[str] = None,
     split: Optional[str] = None,
     split_type: Optional[str] = None,
@@ -580,7 +580,11 @@ def get_annotations(
         Dictionary containing all the annotations of the dataset
     """
     assert dataset_path is not None
+    if isinstance(dataset_path, str):
+        dataset_path = Path(dataset_path)
+
     release_path = get_release_path(dataset_path, release_name)
+
     annotations_dir = release_path / "annotations"
     assert annotations_dir.exists()
     images_dir = dataset_path / "images"

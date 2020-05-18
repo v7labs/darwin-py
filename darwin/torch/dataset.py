@@ -141,9 +141,9 @@ class Dataset(data.Dataset):
                 stems = (e.strip() for e in split_path.open())
             else:
                 raise FileNotFoundError(
-                    f"Could not find a dataset partition. ",
+                    f"could not find a dataset partition. "
                     f"Split the dataset using `split_dataset()` from `darwin.dataset.utils`"
-                )
+                ) from None
         else:
             # If the partition is not specified, get all the annotations
             stems = [e.stem for e in annotations_dir.glob("*.json")]
