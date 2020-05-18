@@ -200,7 +200,6 @@ class Client:
             team_configs = [self.config.get_team(team)]
         else:
             team_configs = self.config.get_all_teams()
-        # team = (team or self.default_team)
         for team_config in team_configs:
             projects_team = Path(team_config["datasets_dir"]) / team_config["slug"]
             for project_path in projects_team.glob("*"):
@@ -208,7 +207,7 @@ class Client:
                     yield Path(project_path)
 
     def list_deprecated_local_datasets(self, team: Optional[str] = None) -> Iterator[Path]:
-        """Returns a list of all local folders whhich are detected as dataset but use a deprectated local structure
+        """Returns a list of all local folders which are detected as datasets but use a deprecated local structure
 
         Returns
         -------
