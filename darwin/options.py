@@ -31,17 +31,13 @@ class Options(object):
         parser_convert = subparsers.add_parser(
             "convert", help="Converts darwin json to other annotation formats."
         )
-        parser_convert.add_argument(
-            "format", type=str, help="Annotation import to convert to",
-        )
+        parser_convert.add_argument("format", type=str, help="Annotation import to convert to")
 
         parser_convert.add_argument(
-            "files", type=str, nargs="+", help="Annotation files (or folders) to convert",
+            "files", type=str, nargs="+", help="Annotation files (or folders) to convert"
         )
 
-        parser_convert.add_argument(
-            "output_dir", type=str, help="Where to store output files",
-        )
+        parser_convert.add_argument("output_dir", type=str, help="Where to store output files")
 
         # DATASET
         dataset = subparsers.add_parser(
@@ -147,9 +143,7 @@ class Options(object):
             type=str,
             help="[Remote] Dataset name: to list all the existing dataset, run 'darwin dataset remote'. ",
         )
-        parser_import.add_argument(
-            "format", type=str, help="Annotation import to import",
-        )
+        parser_import.add_argument("format", type=str, help="Annotation import to import")
 
         parser_import.add_argument(
             "files", type=str, nargs="+", help="Annotation files (or folders) to import"
@@ -164,13 +158,9 @@ class Options(object):
             type=str,
             help="[Remote] Dataset name: to list all the existing dataset, run 'darwin dataset remote'. ",
         )
-        parser_convert.add_argument(
-            "format", type=str, help="Annotation import to convert to",
-        )
+        parser_convert.add_argument("format", type=str, help="Annotation import to convert to")
 
-        parser_convert.add_argument(
-            "output_dir", type=str, help="Where to store output files",
-        )
+        parser_convert.add_argument("output_dir", type=str, help="Where to store output files")
 
         # Help
         dataset_action.add_parser("help", help="Show this help message and exit.")

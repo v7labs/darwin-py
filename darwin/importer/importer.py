@@ -99,7 +99,7 @@ def import_annotations(
         for parsed_file in parsed_files:
             image_id = remote_files[parsed_file.filename]
             _import_annotations(
-                dataset.client, image_id, remote_classes, parsed_file.annotations, dataset,
+                dataset.client, image_id, remote_classes, parsed_file.annotations, dataset
             )
 
 
@@ -120,6 +120,4 @@ def _import_annotations(client: "Client", id: int, remote_classes, annotations, 
     if client.feature_enabled("WORKFLOW", dataset.team):
         client.post(f"/items/{id}/import", payload={"annotations": serialized_annotations})
     else:
-        client.post(
-            f"/dataset_images/{id}/import", payload={"annotations": serialized_annotations},
-        )
+        client.post(f"/dataset_images/{id}/import", payload={"annotations": serialized_annotations})

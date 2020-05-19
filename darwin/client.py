@@ -266,7 +266,7 @@ class Client:
         The created dataset
         """
         dataset = self.post(
-            "/datasets", {"name": name}, team=team, error_handlers=[name_taken, validation_error],
+            "/datasets", {"name": name}, team=team, error_handlers=[name_taken, validation_error]
         )
         return RemoteDataset(
             name=dataset["name"],
@@ -389,10 +389,7 @@ class Client:
         """
         if datasets_dir is None:
             datasets_dir = Path.home() / ".darwin" / "datasets"
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"ApiKey {api_key}",
-        }
+        headers = {"Content-Type": "application/json", "Authorization": f"ApiKey {api_key}"}
         api_url = Client.default_api_url()
         response = requests.get(urljoin(api_url, "/users/token_info"), headers=headers)
 

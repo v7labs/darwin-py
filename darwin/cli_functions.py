@@ -39,7 +39,7 @@ def validate_api_key(api_key: str):
 
 
 def authenticate(
-    api_key: str, default_team: Optional[bool] = None, datasets_dir: Optional[Path] = None,
+    api_key: str, default_team: Optional[bool] = None, datasets_dir: Optional[Path] = None
 ) -> Config:
     """Authenticate the API key against the server and creates a configuration file for it
 
@@ -186,7 +186,7 @@ def dataset_report(dataset_slug: str, granularity) -> Path:
 
 
 def export_dataset(
-    dataset_slug: str, annotation_class_ids: Optional[List] = None, name: Optional[str] = None,
+    dataset_slug: str, annotation_class_ids: Optional[List] = None, name: Optional[str] = None
 ):
     """Create a new release for the dataset
 
@@ -288,7 +288,7 @@ def dataset_list_releases(dataset_slug: str):
             print("No available releases, export one first.")
             return
         table = Table(
-            ["name", "images", "classes", "export_date"], [Table.L, Table.R, Table.R, Table.R],
+            ["name", "images", "classes", "export_date"], [Table.L, Table.R, Table.R, Table.R]
         )
         for release in releases:
             if not release.available:
@@ -307,7 +307,7 @@ def dataset_list_releases(dataset_slug: str):
 
 
 def upload_data(
-    dataset_slug: str, files: Optional[List[str]], files_to_exclude: Optional[List[str]], fps: int,
+    dataset_slug: str, files: Optional[List[str]], files_to_exclude: Optional[List[str]], fps: int
 ):
     """Uploads the files provided as parameter to the remote dataset selected
 
