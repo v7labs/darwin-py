@@ -354,7 +354,7 @@ class RemoteDataset:
             return []
         releases = [Release.parse_json(self.slug, self.team, payload) for payload in releases_json]
         return sorted(
-            filter(lambda x: x.available, releases), key=lambda x: x.version, reverse=True,
+            filter(lambda x: x.available, releases), key=lambda x: x.version, reverse=True
         )
 
     def get_release(self, name: str = "latest"):
