@@ -1,12 +1,17 @@
 from pathlib import Path
 from typing import List, Union
 
-import cv2
 import numpy as np
 import torch
 from PIL import Image
 
 from darwin.types import ComplexPolygon, Polygon
+
+try:
+    import cv2
+except ImportError:
+    cv2 = None
+
 
 try:
     import accimage
@@ -66,6 +71,8 @@ def convert_polygon_to_mask(segmentations: List[float], height: int, width: int)
     Output:
         torch.tensor
     """
+    if cv2 is None:
+        raise ImportError("failed to import cv2")
     masks = []
     for contour in segmentations:
         polygons = []
