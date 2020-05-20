@@ -80,9 +80,7 @@ def extract_classes(annotations_path: Path, annotation_type: str):
     Dictionary where keys are image indices and values are all classes
     contained in that image
     """
-    assert annotation_type in ["tag", "polygon", "box", "bounding_box"]
-    if annotation_type == "box":
-        annotation_type = "bounding_box"
+    assert annotation_type in ["tag", "polygon", "bounding_box"]
 
     classes = defaultdict(set)
     indices_to_classes = defaultdict(set)
@@ -118,7 +116,7 @@ def make_class_lists(release_path: Path):
     lists_path = release_path / "lists"
     lists_path.mkdir(exist_ok=True)
 
-    for annotation_type in ["tag", "polygon", "box"]:
+    for annotation_type in ["tag", "polygon", "bounding_box"]:
         fname = lists_path / f"classes_{annotation_type}.txt"
         classes, _ = extract_classes(annotations_path, annotation_type=annotation_type)
         classes_names = list(classes.keys())
@@ -378,10 +376,15 @@ def split_dataset(
         "train": Path(split_path / "stratified_polygon_train.txt"),
         "val": Path(split_path / "stratified_polygon_val.txt"),
     }
+    splits["stratified_bounding_box"] = {
+        "train": Path(split_path / "stratified_bounding_box_train.txt"),
+        "val": Path(split_path / "stratified_bounding_box_val.txt"),
+    }
     if test_percentage > 0.0:
         splits["random"]["test"] = Path(split_path) / "random_test.txt"
         splits["stratified_tag"]["test"] = Path(split_path / "stratified_tag_test.txt")
         splits["stratified_polygon"]["test"] = Path(split_path / "stratified_polygon_test.txt")
+        splits["stratified_bounding_box"]["test"] = Path(split_path / "stratified_bounding_box_test.txt")
 
     # Do the actual split
     if not split_path.exists():
@@ -431,6 +434,19 @@ def split_dataset(
                 _write_to_file(annotation_files, splits["stratified_polygon"]["val"], val_indices)
                 if test_percentage > 0.0:
                     _write_to_file(annotation_files, splits["stratified_polygon"]["test"], test_indices)
+
+            # STRATIFIED SPLIT ON BOUNDING BOXES
+            # Stratify
+            classes_bbox, idx_to_classes_bbox = extract_classes(annotation_path, "bounding_box")
+            if len(idx_to_classes_bbox) > 0:
+                train_indices, val_indices, test_indices = _stratify_samples(
+                    idx_to_classes_bbox, split_seed, test_percentage, val_percentage
+                )
+                # Write files
+                _write_to_file(annotation_files, splits["stratified_bounding_box"]["train"], train_indices)
+                _write_to_file(annotation_files, splits["stratified_bounding_box"]["val"], val_indices)
+                if test_percentage > 0.0:
+                    _write_to_file(annotation_files, splits["stratified_bounding_box"]["test"], test_indices)
 
     # Create symlink for default split
     split = lists_path / "default"
@@ -491,7 +507,7 @@ def get_coco_format_record(
     image_id: Optional[Union[str, int]] = None,
     classes: Optional[List[str]] = None,
 ):
-    assert annotation_type in ["tag", "polygon", "bounding_box", "box"]
+    assert annotation_type in ["tag", "polygon", "bounding_box"]
     try:
         from detectron2.structures import BoxMode
         box_mode = BoxMode.XYXY_ABS
@@ -536,7 +552,7 @@ def get_coco_format_record(
                 continue
             new_obj["segmentation"] = [list(itertools.chain.from_iterable(poly))]
             new_obj["bbox"] = [np.min(px), np.min(py), np.max(px), np.max(py)]
-        elif annotation_type == "bounding_box" or annotation_type == "box":
+        elif annotation_type == "bounding_box":
             bbox = obj["bounding_box"]
             new_obj["bbox"] = [bbox["x"], bbox["y"], bbox["x"] + bbox["w"], bbox["y"] + bbox["h"]]
 
@@ -568,7 +584,7 @@ def get_annotations(
     split_type
         Heuristic used to do the split [random, stratified, None]
     annotation_type
-        The type of annotation classes [tag, box, polygon]
+        The type of annotation classes [tag, bounding_box, polygon]
     release_name: str
         Version of the dataset
     annotations_format: str
@@ -594,8 +610,8 @@ def get_annotations(
         raise ValueError("partition should be either 'train', 'val', 'test', or None")
     if split_type not in ["random", "stratified", None]:
         raise ValueError("split_type should be either 'random', 'stratified', or None")
-    if annotation_type not in ["tag", "polygon", "box"]:
-        raise ValueError("annotation_type should be either 'tag', 'box', or 'polygon'")
+    if annotation_type not in ["tag", "polygon", "bounding_box"]:
+        raise ValueError("annotation_type should be either 'tag', 'bounding_box', or 'polygon'")
 
     # Get the list of classes
     classes = get_classes(dataset_path, release_name, annotation_type=annotation_type, remove_background=True)

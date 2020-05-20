@@ -81,7 +81,7 @@ class Dataset(data.Dataset):
         dataset_path: Path, str
             Path to the location of the dataset on the file system
         annotation_type: str
-            The type of annotation classes [tag, box, polygon]
+            The type of annotation classes [tag, bounding_box, polygon]
         partition: str
             Selects one of the partitions [train, val, test]
         split: str
@@ -104,8 +104,8 @@ class Dataset(data.Dataset):
             raise ValueError("partition should be either 'train', 'val', or 'test'")
         if split_type not in ["random", "stratified"]:
             raise ValueError("split_type should be either 'random', 'stratified'")
-        if annotation_type not in ["tag", "polygon", "box"]:
-            raise ValueError("annotation_type should be either 'tag', 'box', or 'polygon'")
+        if annotation_type not in ["tag", "polygon", "bounding_box"]:
+            raise ValueError("annotation_type should be either 'tag', 'bounding_box', or 'polygon'")
 
         self.dataset_path = dataset_path
         self.annotation_type = annotation_type
