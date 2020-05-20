@@ -16,7 +16,7 @@ except ImportError:
 
 from .dataset import (
     get_dataset,
-    Dataset,
+    DarwinDataset,
     ClassificationDataset,
     InstanceSegmentationDataset,
     SemanticSegmentationDataset,
