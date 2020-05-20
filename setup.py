@@ -27,6 +27,6 @@ setuptools.setup(
     ],
     packages=setuptools.find_packages(),
     entry_points={"console_scripts": ["darwin=darwin.cli:main"]},
-    classifiers=["Programming Language :: Python :: 3", "License :: OSI Approved :: MIT License", ],
+    classifiers=["Programming Language :: Python :: 3", "License :: OSI Approved :: MIT License"],
     python_requires=">=3.6",
 )
