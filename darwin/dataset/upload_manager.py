@@ -75,6 +75,7 @@ def add_files_to_dataset(
                     file=video_file,
                     files_path=videos,
                     endpoint_prefix="dataset_videos",
+                    team=team,
                 )
                 for video_file in data["video_data"]
             )
