@@ -46,7 +46,7 @@ def is_project_dir(project_path: Path) -> bool:
 
 
 def is_deprecated_project_dir(project_path: Path) -> bool:
-    """Verifies if the directory is a project from Darwin that uses a deprectated local structure
+    """Verifies if the directory is a project from Darwin that uses a deprecated local structure
 
     Parameters
     ----------

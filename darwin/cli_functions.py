@@ -23,7 +23,14 @@ from darwin.exceptions import (
     ValidationError,
 )
 from darwin.table import Table
-from darwin.utils import find_files, persist_client_configuration, prompt, secure_continue_request
+from darwin.utils import (
+    find_files,
+    persist_client_configuration,
+    prompt,
+    secure_continue_request,
+    is_deprecated_project_dir,
+)
+from darwin.dataset.utils import get_release_path
 
 
 def validate_api_key(api_key: str):
@@ -146,7 +153,7 @@ def local(team: Optional[str] = None):
                 ),
             }
         )
-    # List deprectated datasets
+    # List deprecated datasets
     deprecated_local_datasets = client.list_deprecated_local_datasets()
     if deprecated_local_datasets:
         for dataset_path in client.list_deprecated_local_datasets():
@@ -443,8 +450,17 @@ def dataset_convert(dataset_slug, format, output_dir):
     try:
         dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
         if not dataset.local_path.exists():
-            _error(f"No annotations download for dataset f{dataset}, first pull a release")
-        exporter.export_annotations(parser, [dataset.local_path], output_dir)
+            _error(
+                f"No annotations downloaded for dataset f{dataset}, first pull a release using "
+                f"'darwin dataset pull {dataset_slug}'"
+            )
+
+        release_path = get_release_path(dataset.local_path)
+        annotations_path = release_path / "annotations"
+        if output_dir is None:
+            output_dir = release_path / "other_formats" / f"{format}"
+            output_dir.mkdir(parents=True, exist_ok=True)
+        exporter.export_annotations(parser, [annotations_path], output_dir)
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
 
