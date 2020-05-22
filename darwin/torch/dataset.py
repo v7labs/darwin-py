@@ -69,7 +69,6 @@ def get_dataset(
 
 
 class DarwinDataset(LocalDataset):
-
     def measure_mean_std(self, multi_threaded: bool = True):
         """Computes mean and std of train images, given the train loader
 
@@ -189,32 +188,24 @@ class ClassificationDataset(DarwinDataset):
                 The single label of the image selected.
         """
         img = load_pil_image(self.images_path[index])
-
-        with self.annotations_path[index].open() as f:
-            data = json.load(f)
-            annotations = data["annotations"]
-            tags = [self.classes.index(a["name"]) for a in annotations if "tag" in a]
-            if len(tags) > 1:
-                raise ValueError(
-                    f"Multiple tags defined for this image ({tags}). "
-                    f"This is not valid in a classification dataset."
-                )
-            if len(tags) == 0:
-                raise ValueError(
-                    f"No tags defined for this image ({self.annotations_path[index]})."
-                    f"This is not valid in a classification dataset."
-                )
-
         if self.transform is not None:
             img = self.transform(img)
 
-        target = {
-            "image_id": index,
-            "image_path": str(self.images_path[index]),
-            "height": data["image"]["height"],
-            "width": data["image"]["width"],
-            "category_id": tags[0],
-        }
+        target = self.parse_json(index)
+        annotations = target.pop("annotations")
+        tags = [self.classes.index(a["name"]) for a in annotations if "tag" in a]
+        if len(tags) > 1:
+            raise ValueError(
+                f"Multiple tags defined for this image ({tags}). "
+                f"This is not valid in a classification dataset."
+            )
+        if len(tags) == 0:
+            raise ValueError(
+                f"No tags defined for this image ({self.annotations_path[index]})."
+                f"This is not valid in a classification dataset."
+            )
+        target["category_id"] = tags[0]
+
         return img, target
 
     def measure_weights(self, **kwargs) -> np.ndarray:
@@ -275,17 +266,10 @@ class InstanceSegmentationDataset(DarwinDataset):
                     Area of the polygon
         """
         img = load_pil_image(self.images_path[index])
+        target = self.parse_json(index)
 
-        with self.annotations_path[index].open() as f:
-            data = json.load(f)
-
-        # Filter out unused classes
-        annotations = data["annotations"]
-        if self.classes is not None:
-            annotations = [a for a in annotations if a["name"] in self.classes and "polygon" in a]
-
-        target = []
-        for annotation in annotations:
+        annotations = []
+        for annotation in target["annotations"]:
             assert "name" in annotation
             assert "polygon" in annotation
             # Extract the sequences of coordinates from the polygon annotation
@@ -311,7 +295,7 @@ class InstanceSegmentationDataset(DarwinDataset):
             assert poly_area <= bbox_area
 
             # Create and append the new entry for this annotation
-            target.append(
+            annotations.append(
                 {
                     "category_id": self.classes.index(annotation["name"]),
                     "segmentation": sequences,
@@ -319,13 +303,7 @@ class InstanceSegmentationDataset(DarwinDataset):
                     "area": poly_area,
                 }
             )
-        target = {
-            "image_id": index,
-            "image_path": str(self.images_path[index]),
-            "height": data["image"]["height"],
-            "width": data["image"]["width"],
-            "annotations": target,
-        }
+        target["annotations"] = annotations
 
         if self.convert_polygons is not None:
             img, target = self.convert_polygons(img, target)
@@ -386,35 +364,22 @@ class SemanticSegmentationDataset(DarwinDataset):
                 segmentation :
         """
         img = load_pil_image(self.images_path[index])
+        target = self.parse_json(index)
 
-        with self.annotations_path[index].open() as f:
-            data = json.load(f)
-        annotations = data["annotations"]
-
-        # Filter out unused classes
-        if self.classes is not None:
-            annotations = [obj for obj in annotations if obj["name"] in self.classes and "polygon" in obj]
-
-        target = []
-        for obj in annotations:
+        annotations = []
+        for obj in target["annotations"]:
             sequences = convert_polygons_to_sequences(obj["polygon"]["path"])
             # Discard polygons with less than three points
             sequences[:] = [s for s in sequences if len(s) >= 6]
             if not sequences:
                 continue
-            target.append(
+            annotations.append(
                 {
                     "category_id": self.classes.index(obj["name"]),
                     "segmentation": np.array(sequences),
                 }
             )
-        target = {
-            "image_id": index,
-            "image_path": str(self.images_path[index]),
-            "height": data["image"]["height"],
-            "width": data["image"]["width"],
-            "annotations": target,
-        }
+        target["annotations"] = annotations
 
         if self.convert_polygons is not None:
             img, target = self.convert_polygons(img, target)

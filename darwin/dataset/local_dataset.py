@@ -151,10 +151,10 @@ class LocalDataset(object):
         self.annotations_path += dataset.annotations_path
         return self
 
-    def __getitem__(self, index: int):
+    def parse_json(self, index: int):
         """
         Load an annotation and filter out the extra classes according to what
-        specified in `self.classes`
+        specified in `self.classes` and the annotation_type
 
         Parameters
         ----------
@@ -179,6 +179,9 @@ class LocalDataset(object):
             "width": data["image"]["width"],
             "annotations": annotations,
         }
+
+    def __getitem__(self, index: int):
+        return self.parse_json(index)
 
     def __len__(self):
         return len(self.images_path)
