@@ -1,10 +1,8 @@
-import json
 import multiprocessing as mp
 from pathlib import Path
-from typing import Callable, Collection, List, Optional, Union
+from typing import Collection, List, Optional, Union
 
 import numpy as np
-import torch.utils.data as data
 
 from darwin.torch.transforms import (
     Compose,
@@ -12,8 +10,6 @@ from darwin.torch.transforms import (
     ConvertPolygonsToSegmentationMask,
 )
 from darwin.torch.utils import convert_polygons_to_sequences, load_pil_image, polygon_area
-from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS
-from darwin.dataset.utils import get_classes, get_release_path
 from darwin.dataset import LocalDataset
 
 
