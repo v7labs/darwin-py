@@ -37,6 +37,9 @@ def _parse_darwin_annotation(annotation):
         )
     elif "tag" in annotation:
         main_annotation = dt.make_tag(name)
+    # elif "complex_polygon" in annotation:
+    #     TODO: add support for "complex_polygon"
+    #     main_annotation = dt.make_polygon(name, annotation["complex_polygon"]["path"])
 
     if not main_annotation:
         print(f"[WARNING] Unsupported annotation type: '{annotation.keys()}'")
