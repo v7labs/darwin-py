@@ -98,24 +98,24 @@ def convert_polygons_to_sequences(polygons: List, height: Optional[int] = None, 
     if isinstance(polygons[0], dict):
         polygons = [polygons]
 
-    if isinstance(polygons[0], list) and isinstance(polygons[0][0], dict):
-        sequences = []
-        for polygon in polygons:
-            path = []
-            for point in polygon:
-                x = min(point["x"], width - 1) if width else point["x"]
-                y = min(point["y"], height - 1) if height else point["y"]
-                path.append(round(x))
-                path.append(round(y))
-            sequences.append(path)
-        return sequences
+    if not isinstance(polygons[0], list) or not isinstance(polygons[0][0], dict):
+        raise ValueError("Unknown input format")
 
-    raise ValueError("Unknown input format")
+    sequences = []
+    for polygon in polygons:
+        path = []
+        for point in polygon:
+            # Clip coordinates to the image size
+            x = max(min(point["x"], width - 1) if width else point["x"], 0)
+            y = max(min(point["y"], height - 1) if height else point["y"], 0)
+            path.append(round(x))
+            path.append(round(y))
+        sequences.append(path)
+    return sequences
+
 
 
 def convert_polygons_to_mask(polygons, height, width):
     mask = np.zeros((height, width)).astype(np.uint8)
-    # polygons = [np.array(e) for e in polygons]
-    # cv2.drawContours(mask, polygons, -1, 1, cv2.FILLED)
     draw_polygon(mask, polygons, 1)
     return mask
