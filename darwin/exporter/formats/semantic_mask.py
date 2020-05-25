@@ -55,7 +55,7 @@ def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_di
     with open(output_dir / "category_mapping.txt", "w") as f:
         for idx, c in enumerate(categories):
             f.write(f"{idx} {c}\n")
-        f.write(f"__ignore__ {ignore_idx}")
+        f.write(f"{ignore_idx} __ignore__")
 
 
 def calculate_categories(annotation_files: List[dt.AnnotationFile]):
