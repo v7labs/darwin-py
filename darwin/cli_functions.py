@@ -13,16 +13,11 @@ import darwin.importer.formats
 from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset.identifier import DatasetIdentifier
-from darwin.exceptions import (
-    InvalidLogin,
-    MissingConfig,
-    NameTaken,
-    NotFound,
-    Unauthenticated,
-    ValidationError,
-)
+from darwin.exceptions import (InvalidLogin, MissingConfig, NameTaken,
+                               NotFound, Unauthenticated, ValidationError)
 from darwin.table import Table
-from darwin.utils import find_files, persist_client_configuration, prompt, secure_continue_request
+from darwin.utils import (find_files, persist_client_configuration, prompt,
+                          secure_continue_request)
 
 
 def validate_api_key(api_key: str):

@@ -5,13 +5,8 @@ import numpy as np
 import torch
 from PIL import Image
 
-from darwin.types import ComplexPolygon, Polygon
-
-try:
-    import cv2
-except ImportError:
-    cv2 = None
-
+from darwin.datatypes import ComplexPolygon, Polygon
+from upolygon import draw_polygon
 
 try:
     import accimage
@@ -59,7 +54,7 @@ def _is_pil_image(img):
         return isinstance(img, Image.Image)
 
 
-def convert_polygon_to_mask(segmentations: List[float], height: int, width: int):
+def convert_polygon_to_mask(segmentations: List[List[float]], height: int, width: int):
     """
     Converts a polygon represented as a sequence of coordinates into a mask.
 
@@ -71,23 +66,17 @@ def convert_polygon_to_mask(segmentations: List[float], height: int, width: int)
     Output:
         torch.tensor
     """
-    if cv2 is None:
-        raise ImportError("failed to import cv2")
     masks = []
     for contour in segmentations:
-        polygons = []
-        for s in contour:
-            xs = map(int, map(round, s[0::2]))
-            ys = map(int, map(round, s[1::2]))
-            polygon = list(zip(xs, ys))
-            polygons.append(np.array(polygon))
-        zeros = torch.zeros((height, width)).numpy().astype(np.uint8)
-        mask = torch.from_numpy(cv2.drawContours(zeros, polygons, -1, 1, cv2.FILLED))
-        masks.append(mask)
+        contour = [c.tolist() for c in contour]
+        mask = torch.zeros((height, width)).numpy().astype(np.uint8)
+        masks.append(torch.from_numpy(np.asarray(draw_polygon(mask, contour, 1))))
     return torch.stack(masks)
 
 
-def convert_polygons_to_sequences(polygons: Union[Polygon, ComplexPolygon]) -> List[np.ndarray]:
+def convert_polygons_to_sequences(
+    polygons: Union[Polygon, ComplexPolygon]
+) -> List[np.ndarray]:
     """
     Converts a list of polygons, encoded as a list of dictionaries of into a list of nd.arrays
     of coordinates.

@@ -6,8 +6,10 @@ from typing import Callable, Collection, List, Optional
 import numpy as np
 import torch.utils.data as data
 
-from darwin.torch.transforms import Compose, ConvertPolygonsToInstanceMasks, ConvertPolygonToMask
-from darwin.torch.utils import convert_polygons_to_sequences, load_pil_image, polygon_area
+from darwin.torch.transforms import (Compose, ConvertPolygonsToInstanceMasks,
+                                     ConvertPolygonToMask)
+from darwin.torch.utils import (convert_polygons_to_sequences, load_pil_image,
+                                polygon_area)
 from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS, is_image_extension_allowed
 
 
