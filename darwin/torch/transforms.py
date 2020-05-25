@@ -62,9 +62,7 @@ class ToTensor(object):
 
 
 class ToPILImage(object):
-    def __call__(self, image: Image, target: Optional[TargetType] = None):
-        image = F.to_pil_image(image)
-        if target is None:
+    def __call__(self, image: Image, target: Optional[TargetType] = None): image = F.to_pil_image(image) if target is None:
             return image
         return image, target
 
