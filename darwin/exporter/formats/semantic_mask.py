@@ -50,10 +50,11 @@ def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_di
             mask = Image.fromarray(mask.astype(np.uint8))
             mask.save(outfile)
 
-    with open(output_dir / "category_mapping.txt", "w") as f:
+    with open(output_dir / "class_mapping.csv", "w") as f:
+        f.write(f"class_idx,class_name\n")
         for idx, c in enumerate(categories):
-            f.write(f"{idx} {c}\n")
-        f.write(f"{ignore_idx} __ignore__")
+            f.write(f"{idx},{c}\n")
+        f.write(f"{ignore_idx},__ignore__")
 
 
 def calculate_categories(annotation_files: List[dt.AnnotationFile]):
