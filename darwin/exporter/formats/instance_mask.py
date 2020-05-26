@@ -1,5 +1,3 @@
-import json
-from datetime import date
 from pathlib import Path
 from typing import Generator, List, Optional
 from upolygon import draw_polygon
