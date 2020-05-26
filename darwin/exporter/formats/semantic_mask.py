@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Generator, List, Optional
 from upolygon import draw_polygon
 from PIL import Image
-import cv2
 
 import numpy as np
 
@@ -23,7 +22,7 @@ def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_di
             continue
         height = annotation_file.image_height
         width = annotation_file.image_width
-        annotations = [a for a in annotation_file.annotations if ispolygon(a.annotation_class.annotation_type)]
+        annotations = [a for a in annotation_file.annotations if ispolygon(a.annotation_class)]
         if annotations:
             # compute a mask per category
             mask_per_category = {}
@@ -61,7 +60,7 @@ def calculate_categories(annotation_files: List[dt.AnnotationFile]):
     categories = set()
     for annotation_file in annotation_files:
         for annotation_class in annotation_file.annotation_classes:
-            if ispolygon(annotation_class.annotation_type):
+            if ispolygon(annotation_class):
                 categories.add(annotation_class.name)
     categories = list(categories)
     categories.sort()
@@ -110,12 +109,11 @@ def convert_polygons_to_sequences(polygons: List, height: Optional[int] = None, 
     return sequences
 
 
-
 def convert_polygons_to_mask(polygons, height, width):
     mask = np.zeros((height, width)).astype(np.uint8)
     draw_polygon(mask, polygons, 1)
     return mask
 
 
-def ispolygon(annotation_type):
-    return annotation_type in ["polygon", "complex_polygon"]
+def ispolygon(annotation):
+    return annotation.annotation_type in ["polygon", "complex_polygon"]
