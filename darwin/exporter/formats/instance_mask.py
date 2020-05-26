@@ -23,7 +23,7 @@ def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_di
     masks_dir.mkdir(exist_ok=True, parents=True)
     instance_ids = set()
     with open(output_dir / "instance_mask_annotations.csv", "w") as f:
-        f.write("image_id,class_name,instance_id\n")
+        f.write("image_id,mask_id,class_name\n")
         for annotation_file in list(annotation_files):
             image_id = annotation_file.path.stem
             height = annotation_file.image_height
@@ -34,12 +34,11 @@ def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_di
                 instance_id = generate_instance_id(instance_ids)
                 instance_ids.add(instance_id)
                 sequence = convert_polygons_to_sequences(annotation.data["path"], height, width)
-                mask = convert_polygons_to_mask(sequence, height, width)
-                mask *= 255
+                mask = convert_polygons_to_mask(sequence, height, width) * 255
                 mask = Image.fromarray(mask.astype(np.uint8))
-                outfile = masks_dir / f"{image_id}_{cat.replace(' ', '-')}_{instance_id}.png"
-                mask.save(outfile)
-                f.write(f"{image_id},{cat},{instance_id}\n")
+                mask_id = f"{image_id}_{instance_id}"
+                mask.save(masks_dir / f"{mask_id}.png")
+                f.write(f"{image_id},{mask_id},{cat}\n")
 
 
 def convert_polygons_to_sequences(polygons: List, height: Optional[int] = None, width: Optional[int] = None) -> List[np.ndarray]:
