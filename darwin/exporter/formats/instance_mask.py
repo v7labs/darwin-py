@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Generator, List, Optional
 from upolygon import draw_polygon
 from PIL import Image
+from tqdm import tqdm
 import uuid
 
 import numpy as np
@@ -22,7 +23,9 @@ def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_di
     instance_ids = set()
     with open(output_dir / "instance_mask_annotations.csv", "w") as f:
         f.write("image_id,mask_id,class_name\n")
-        for annotation_file in list(annotation_files):
+        pbar = tqdm(list(annotation_files))
+        pbar.set_description(desc="Processing dataset", refresh=True)
+        for annotation_file in pbar:
             image_id = annotation_file.path.stem
             height = annotation_file.image_height
             width = annotation_file.image_width
@@ -37,6 +40,7 @@ def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_di
                 mask_id = f"{image_id}_{instance_id}"
                 mask.save(masks_dir / f"{mask_id}.png")
                 f.write(f"{image_id},{mask_id},{cat}\n")
+        print(f"Dataset format saved at {output_dir}")
 
 
 def convert_polygons_to_sequences(polygons: List, height: Optional[int] = None, width: Optional[int] = None) -> List[np.ndarray]:

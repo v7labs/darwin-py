@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Generator, List, Optional
 from upolygon import draw_polygon
 from PIL import Image
+from tqdm import tqdm
 
 import numpy as np
 
@@ -14,10 +15,10 @@ def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_di
     annotation_files = list(annotation_files)
     categories = calculate_categories(annotation_files)
     ignore_idx = 255
-    for annotation_file in annotation_files:
+    pbar = tqdm(annotation_files)
+    pbar.set_description(desc="Processing dataset", refresh=True)
+    for annotation_file in pbar:
         outfile = masks_dir / (annotation_file.path.stem + '.png')
-        if outfile.exists():
-            continue
         height = annotation_file.image_height
         width = annotation_file.image_width
         annotations = [a for a in annotation_file.annotations if ispolygon(a.annotation_class)]
@@ -47,12 +48,12 @@ def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_di
             mask[np.sum(masks, axis=2) > 1] = ignore_idx
             mask = Image.fromarray(mask.astype(np.uint8))
             mask.save(outfile)
-
     with open(output_dir / "class_mapping.csv", "w") as f:
         f.write(f"class_idx,class_name\n")
         for idx, c in enumerate(categories):
             f.write(f"{idx},{c}\n")
         f.write(f"{ignore_idx},__ignore__")
+    print(f"Dataset format saved at {output_dir}")
 
 
 def calculate_categories(annotation_files: List[dt.AnnotationFile]):
