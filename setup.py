@@ -18,6 +18,7 @@ setuptools.setup(
         "docutils",
         "factory_boy",
         "humanize",
+        "numpy",
         "pyyaml>=5.1",
         "requests",
         "scikit-learn",

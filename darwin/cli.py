@@ -53,15 +53,13 @@ def run(args, parser):
         if args.action == "remote":
             f.list_remote_datasets(args.all, args.team)
         elif args.action == "local":
-            f.local()
+            f.local(args.team)
         elif args.action == "create":
             f.create_dataset(args.dataset_name, args.team)
         elif args.action == "path":
             path = f.path(args.dataset)
             if path:
                 print(path)
-            else:
-                print("The dataset has not been downloaded")
         # Print the url of a remote project
         elif args.action == "url":
             f.url(args.dataset)
@@ -82,7 +80,11 @@ def run(args, parser):
             f.dataset_import(args.dataset, args.format, args.files)
         elif args.action == "convert":
             f.dataset_convert(args.dataset, args.format, args.output_dir)
-        elif args.action == "help" or args.action == None:
+        elif args.action == "migrate":
+            f.migrate_dataset(args.dataset)
+        elif args.action == "split":
+            f.split(args.dataset, args.val_percentage, args.test_percentage, args.seed)
+        elif args.action == "help" or args.action is None:
             f.help(parser, "dataset")
 
 

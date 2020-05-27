@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, List, Optional, Union
 
 from darwin.config import Config
 
-SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpeg", ".jpg", ".jfif"]
+SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpeg", ".jpg", ".jfif", ".tif"]
 SUPPORTED_VIDEO_EXTENSIONS = [".bpm", ".mov", ".mp4"]
 SUPPORTED_EXTENSIONS = SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
 
@@ -40,7 +40,23 @@ def is_project_dir(project_path: Path) -> bool:
     Returns
     -------
     bool
-    Is the directory is a project from Darwin?
+        Is the directory a project from Darwin?
+    """
+    return (project_path / "releases").exists() and (project_path / "images").exists()
+
+
+def is_deprecated_project_dir(project_path: Path) -> bool:
+    """Verifies if the directory is a project from Darwin that uses a deprectated local structure
+
+    Parameters
+    ----------
+    project_path : Path
+        Directory to examine
+
+    Returns
+    -------
+    bool
+        Is the directory a project from Darwin?
     """
     return (project_path / "annotations").exists() and (project_path / "images").exists()
 

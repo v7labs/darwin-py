@@ -3,6 +3,7 @@ import datetime
 import sys
 from pathlib import Path
 from typing import List, Optional
+import shutil
 
 import humanize
 
@@ -23,6 +24,7 @@ from darwin.exceptions import (
 )
 from darwin.table import Table
 from darwin.utils import find_files, persist_client_configuration, prompt, secure_continue_request
+from darwin.dataset.utils import split_dataset
 
 
 def validate_api_key(api_key: str):
@@ -128,14 +130,14 @@ def create_dataset(name: str, team: Optional[str] = None):
         _error(f"Dataset name '{name}' is not valid.")
 
 
-def local():
+def local(team: Optional[str] = None):
     """Lists synced datasets, stored in the specified path. """
     table = Table(["name", "images", "sync_date", "size"], [Table.L, Table.R, Table.R, Table.R])
     client = _load_client(offline=True)
-    for dataset_path in client.list_local_datasets():
+    for dataset_path in client.list_local_datasets(team=team):
         table.add_row(
             {
-                "name": dataset_path.name,
+                "name": f"{dataset_path.parent.name}/{dataset_path.name}",
                 "images": sum(1 for _ in find_files([dataset_path])),
                 "sync_date": humanize.naturaldate(
                     datetime.datetime.fromtimestamp(dataset_path.stat().st_mtime)
@@ -145,23 +147,53 @@ def local():
                 ),
             }
         )
+    # List deprectated datasets
+    deprecated_local_datasets = client.list_deprecated_local_datasets()
+    if deprecated_local_datasets:
+        for dataset_path in client.list_deprecated_local_datasets():
+            table.add_row(
+                {
+                    "name": dataset_path.name + " (deprecated format)",
+                    "images": sum(1 for _ in find_files([dataset_path])),
+                    "sync_date": humanize.naturaldate(
+                        datetime.datetime.fromtimestamp(dataset_path.stat().st_mtime)
+                    ),
+                    "size": humanize.naturalsize(
+                        sum(p.stat().st_size for p in find_files([dataset_path]))
+                    ),
+                }
+            )
+
     print(table)
+    if len(list(deprecated_local_datasets)):
+        print(f"\nWARNING: found some local datasets that use a deprecated format "
+              f"not supported by the recent version of darwin-py. "
+              f"Run `darwin dataset migrate team_slug/dataset_slug` "
+              "if you want to be able to use them in darwin-py.")
 
 
 def path(dataset_slug: str) -> Path:
     """Returns the absolute path of the specified dataset, if synced"""
     identifier = DatasetIdentifier.parse(dataset_slug)
     client = _load_client(offline=True)
-    try:
-        for p in client.list_local_datasets(team=identifier.team_slug):
-            if identifier.dataset_slug == p.name:
-                return p
-    except NotFound as e:
-        _error(
-            f"Dataset '{e.name}' does not exist locally. "
-            f"Use 'darwin dataset remote' to see all the available datasets, "
-            f"and 'darwin dataset pull' to pull them."
-        )
+
+    for p in client.list_local_datasets(team=identifier.team_slug):
+        if identifier.dataset_slug == p.name:
+            return p
+
+    for p in client.list_deprecated_local_datasets(team=identifier.team_slug):
+        if identifier.dataset_slug == p.name:
+            _error(
+                f"found a local version of the dataset {identifier.dataset_slug} which uses a deprecated format. "
+                f"Run `darwin dataset migrate {identifier}` if you want to be able to use it in darwin-py."
+                f"\n{p} (deprecated format)"
+            )
+
+    _error(
+        f"Dataset '{identifier.dataset_slug}' does not exist locally. "
+        f"Use 'darwin dataset remote' to see all the available datasets, "
+        f"and 'darwin dataset pull' to pull them."
+    )
 
 
 def url(dataset_slug: str) -> Path:
@@ -235,6 +267,97 @@ def pull_dataset(dataset_slug: str):
             f"Use 'darwin dataset releases' to list all available versions."
         )
     print(f"Dataset {release.identifier} downloaded at {dataset.local_path}. ")
+
+
+def migrate_dataset(dataset_slug: str):
+    """Migrates an outdated local dataset to the latest format.
+
+    Parameters
+    ----------
+    dataset_slug: str
+        Slug of the dataset to which we perform the operation on
+    """
+    identifier = DatasetIdentifier.parse(dataset_slug)
+    client = _load_client(offline=True)
+
+    for p in client.list_local_datasets(team=identifier.team_slug):
+        if identifier.dataset_slug == p.name:
+            print(f"Dataset '{dataset_slug}' already migrated.")
+            return
+
+    old_path = None
+    for p in client.list_deprecated_local_datasets(identifier.team_slug):
+        if identifier.dataset_slug == p.name:
+            old_path = p
+    if not old_path:
+        _error(
+            f"could not find a deprecated local version of the dataset '{dataset_slug}'. "
+            f"Use 'darwin dataset pull {dataset_slug}' to pull the latest version from darwin."
+        )
+
+    # Move the dataset under the team_slug folder
+    team_config = client.config.get_team(identifier.team_slug)
+    team_path = Path(team_config["datasets_dir"]) / identifier.team_slug
+    team_path.mkdir(exist_ok=True)
+    shutil.move(str(old_path), str(team_path))
+
+    # Update internal structure
+    dataset_path = team_path / old_path.name
+    release_path = dataset_path / "releases/migrated"
+    for p in ["annotations", "lists"]:
+        if (dataset_path / p).exists():
+            shutil.move(str(dataset_path / p), str(release_path / p))
+
+    latest_release = dataset_path / "releases/latest"
+    if latest_release.exists():
+        latest_release.unlink()
+    latest_release.symlink_to("./migrated")
+
+    print(f"Dataset {identifier.dataset_slug} migrated to {dataset_path}.")
+
+
+def split(dataset_slug: str, val_percentage: float, test_percentage: float, seed: Optional[int] = 0):
+    """Splits a local version of a dataset into train, validation, and test partitions
+
+    Parameters
+    ----------
+    dataset_slug: str
+        Slug of the dataset to which we perform the operation on
+    val_percentage: float
+        Percentage in the validation set
+    test_percentage: float
+        Percentage in the test set
+    seed: int
+        Random seed
+    """
+    identifier = DatasetIdentifier.parse(dataset_slug)
+    client = _load_client(offline=True)
+
+    for p in client.list_local_datasets(team=identifier.team_slug):
+        if identifier.dataset_slug == p.name:
+            split_path = split_dataset(
+                dataset_path=p,
+                release_name=identifier.version,
+                val_percentage=val_percentage,
+                test_percentage=test_percentage,
+                split_seed=seed
+            )
+            print(f"Partition lists saved at {split_path}")
+            return
+
+    for p in client.list_deprecated_local_datasets(team=identifier.team_slug):
+        if identifier.dataset_slug == p.name:
+            _error(
+                f"found a local version of the dataset {identifier.dataset_slug} which uses a deprecated format. "
+                f"Run `darwin dataset migrate {identifier}` if you want to be able to use it in darwin-py."
+            )
+
+    _error(
+        f"Dataset '{identifier.dataset_slug}' does not exist locally. "
+        f"Use 'darwin dataset remote' to see all the available datasets, "
+        f"and 'darwin dataset pull' to pull them."
+    )
+
 
 
 def list_remote_datasets(all_teams: bool, team: Optional[str] = None):

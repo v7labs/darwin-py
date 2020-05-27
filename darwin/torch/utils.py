@@ -9,7 +9,6 @@ try:
     from pycocotools import mask as coco_mask
 except ImportError:
     coco_mask = None
-
 try:
     import accimage
 except ImportError:

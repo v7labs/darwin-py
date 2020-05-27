@@ -31,7 +31,7 @@ class Config(object):
 
     def get(self, key: Union[str, List[str]], default: Optional[any] = None) -> Any:
         """Gets value defined by key
-        
+
         Args:
         - key: the key where the value to be fetched is stored.
         It can be formatted as a simple string, or as a path/like/string to fetch nested values.
@@ -53,7 +53,7 @@ class Config(object):
 
     def put(self, key: Union[str, List[str]], value: any, save: bool = True):
         """Sets value for specified key
-        
+
         Args:
         - key: the key where the value is going to be stored.
         It can be formatted as a simple string, or as a path/like/string to fetch nested values.

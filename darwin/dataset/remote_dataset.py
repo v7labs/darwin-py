@@ -202,6 +202,9 @@ class RemoteDataset:
         if release is None:
             release = self.get_release()
 
+        release_dir = self.local_releases_path / release.name
+        release_dir.mkdir(parents=True, exist_ok=True)
+
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_dir = Path(tmp_dir)
             # Download the release from Darwin
@@ -214,7 +217,7 @@ class RemoteDataset:
                     subset_filter_annotations_function(tmp_dir)
                     if subset_folder_name is None:
                         subset_folder_name = datetime.now().strftime("%m/%d/%Y_%H:%M:%S")
-                annotations_dir = self.local_path / (subset_folder_name or "") / "annotations"
+                annotations_dir = release_dir / (subset_folder_name or "") / "annotations"
                 # Remove existing annotations if necessary
                 if annotations_dir.exists():
                     try:
@@ -234,18 +237,23 @@ class RemoteDataset:
                     shutil.move(str(annotation_path), str(destination_name))
 
         # Extract the list of classes and create the text files
-        make_class_lists(self.local_path)
+        make_class_lists(release_dir)
+
+        if release.latest:
+            latest_dir = self.local_releases_path / "latest"
+            if latest_dir.exists():
+                latest_dir.unlink()
+            latest_dir.symlink_to(f"./{release_dir.name}")
 
         if only_annotations:
             # No images will be downloaded
             return None, 0
 
         # Create the generator with the download instructions
-        images_dir = annotations_dir.parent / "images"
         progress, count = download_all_images_from_annotations(
             api_url=self.client.url,
             annotations_path=annotations_dir,
-            images_path=images_dir,
+            images_path=self.local_images_path,
             force_replace=force_replace,
             remove_extra=remove_extra,
         )
@@ -385,6 +393,7 @@ class RemoteDataset:
         test_percentage: float = 0,
         split_seed: int = 0,
         make_default_split: bool = True,
+        release_name: Optional[str] = None,
     ):
         """
         Creates lists of file names for each split for train, validation, and test.
@@ -402,21 +411,32 @@ class RemoteDataset:
             Fix seed for random split creation
         make_default_split: bool
             Makes this split the default split
+        release_name: str
+            Version of the dataset
         """
         if not self.local_path.exists():
             raise NotFound(
                 "Local dataset not found: the split is performed on the local copy of the dataset. \
                            Pull the dataset from Darwin first using pull()"
             )
+        if release_name in ["latest", None]:
+            release = self.get_release("latest")
+            release_name = release.name
+
         split_dataset(
             self.local_path,
+            release_name=release_name,
             val_percentage=val_percentage,
             test_percentage=test_percentage,
             split_seed=split_seed,
             make_default_split=make_default_split,
         )
 
-    def classes(self, annotation_type: str):
+    def classes(
+        self,
+        annotation_type: str,
+        release_name: Optional[str] = None,
+    ):
         """
         Returns the list of `class_type` classes
 
@@ -424,6 +444,9 @@ class RemoteDataset:
         ----------
         annotation_type
             The type of annotation classes, e.g. 'tag' or 'polygon'
+        release_name: str
+            Version of the dataset
+
 
         Returns
         -------
@@ -431,7 +454,15 @@ class RemoteDataset:
             List of classes in the dataset of type `class_type`
         """
         assert self.local_path.exists()
-        return get_classes(self.local_path, annotation_type=annotation_type)
+        if release_name in ["latest", None]:
+            release = self.get_release("latest")
+            release_name = release.name
+
+        return get_classes(
+            self.local_path,
+            release_name=release_name,
+            annotation_type=annotation_type
+        )
 
     def annotations(
         self,
@@ -439,6 +470,7 @@ class RemoteDataset:
         split: str = "split",
         split_type: str = "stratified",
         annotation_type: str = "polygon",
+        release_name: Optional[str] = None,
     ):
         """
         Returns all the annotations of a given split and partition in a single dictionary
@@ -453,6 +485,8 @@ class RemoteDataset:
             Heuristic used to do the split [random, stratified]
         annotation_type
             The type of annotation classes [tag, polygon]
+        release_name: str
+            Version of the dataset
 
         Returns
         -------
@@ -460,13 +494,19 @@ class RemoteDataset:
             Dictionary containing all the annotations of the dataset
         """
         assert self.local_path.exists()
-        return get_annotations(
+        if release_name in ["latest", None]:
+            release = self.get_release("latest")
+            release_name = release.name
+
+        for annotation in get_annotations(
             self.local_path,
             partition=partition,
             split=split,
             split_type=split_type,
             annotation_type=annotation_type,
-        )
+            release_name=release_name,
+        ):
+            yield annotation
 
     @property
     def remote_path(self) -> Path:
@@ -477,9 +517,19 @@ class RemoteDataset:
     def local_path(self) -> Path:
         """Returns a Path to the local dataset"""
         if self.slug is not None:
-            return Path(self.client.get_datasets_dir(self.team)) / self.slug
+            return Path(self.client.get_datasets_dir(self.team)) / self.team / self.slug
         else:
-            return Path(self.client.get_datasets_dir(self.team))
+            return Path(self.client.get_datasets_dir(self.team)) / self.team
+
+    @property
+    def local_releases_path(self) -> Path:
+        """Returns a Path to the local dataset releases"""
+        return self.local_path / "releases"
+
+    @property
+    def local_images_path(self) -> Path:
+        """Returns a local Path to the images folder"""
+        return self.local_path / "images"
 
     @property
     def identifier(self) -> DatasetIdentifier:
