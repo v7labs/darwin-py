@@ -24,6 +24,7 @@ from darwin.exceptions import (
 )
 from darwin.table import Table
 from darwin.utils import find_files, persist_client_configuration, prompt, secure_continue_request
+from darwin.dataset.utils import split_dataset
 
 
 def validate_api_key(api_key: str):
@@ -313,6 +314,50 @@ def migrate_dataset(dataset_slug: str):
     latest_release.symlink_to("./migrated")
 
     print(f"Dataset {identifier.dataset_slug} migrated to {dataset_path}.")
+
+
+def split(dataset_slug: str, val_percentage: float, test_percentage: float, seed: Optional[int] = 0):
+    """Splits a local version of a dataset into train, validation, and test partitions
+
+    Parameters
+    ----------
+    dataset_slug: str
+        Slug of the dataset to which we perform the operation on
+    val_percentage: float
+        Percentage in the validation set
+    test_percentage: float
+        Percentage in the test set
+    seed: int
+        Random seed
+    """
+    identifier = DatasetIdentifier.parse(dataset_slug)
+    client = _load_client(offline=True)
+
+    for p in client.list_local_datasets(team=identifier.team_slug):
+        if identifier.dataset_slug == p.name:
+            split_path = split_dataset(
+                dataset_path=p,
+                release_name=identifier.version,
+                val_percentage=val_percentage,
+                test_percentage=test_percentage,
+                split_seed=seed
+            )
+            print(f"Partition lists saved at {split_path}")
+            return
+
+    for p in client.list_deprecated_local_datasets(team=identifier.team_slug):
+        if identifier.dataset_slug == p.name:
+            _error(
+                f"found a local version of the dataset {identifier.dataset_slug} which uses a deprecated format. "
+                f"Run `darwin dataset migrate {identifier}` if you want to be able to use it in darwin-py."
+            )
+
+    _error(
+        f"Dataset '{identifier.dataset_slug}' does not exist locally. "
+        f"Use 'darwin dataset remote' to see all the available datasets, "
+        f"and 'darwin dataset pull' to pull them."
+    )
+
 
 
 def list_remote_datasets(all_teams: bool, team: Optional[str] = None):
