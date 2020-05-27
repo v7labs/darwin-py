@@ -24,7 +24,7 @@ def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_di
     with open(output_dir / "instance_mask_annotations.csv", "w") as f:
         f.write("image_id,mask_id,class_name\n")
         pbar = tqdm(list(annotation_files))
-        pbar.set_description(desc="Processing dataset", refresh=True)
+        pbar.set_description(desc="Processing annotations", refresh=True)
         for annotation_file in pbar:
             image_id = annotation_file.path.stem
             height = annotation_file.image_height

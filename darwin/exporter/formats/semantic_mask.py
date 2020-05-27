@@ -16,7 +16,7 @@ def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_di
     categories = calculate_categories(annotation_files)
     ignore_idx = 255
     pbar = tqdm(annotation_files)
-    pbar.set_description(desc="Processing dataset", refresh=True)
+    pbar.set_description(desc="Processing annotations", refresh=True)
     for annotation_file in pbar:
         outfile = masks_dir / (annotation_file.path.stem + '.png')
         height = annotation_file.image_height
