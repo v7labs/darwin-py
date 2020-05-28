@@ -1,58 +1,12 @@
-from pathlib import Path
 from typing import List
 
 import numpy as np
 import torch
-from PIL import Image
 
 try:
     from pycocotools import mask as coco_mask
 except ImportError:
     coco_mask = None
-try:
-    import accimage
-except ImportError:
-    accimage = None
-
-
-def load_pil_image(path: Path):
-    """
-    Loads a PIL image and converts it into RGB.
-
-    Parameters
-    ----------
-    path: Path
-        Path to the image file
-
-    Returns
-    -------
-    PIL Image
-        Values between 0 and 255
-    """
-    pic = Image.open(path)
-    if pic.mode == "RGB":
-        pass
-    elif pic.mode in ("CMYK", "RGBA", "P"):
-        pic = pic.convert("RGB")
-    elif pic.mode == "I":
-        img = (np.divide(np.array(pic, np.int32), 2 ** 16 - 1) * 255).astype(np.uint8)
-        pic = Image.fromarray(np.stack((img, img, img), axis=2))
-    elif pic.mode == "I;16":
-        img = (np.divide(np.array(pic, np.int16), 2 ** 8 - 1) * 255).astype(np.uint8)
-        pic = Image.fromarray(np.stack((img, img, img), axis=2))
-    elif pic.mode == "L":
-        img = np.array(pic).astype(np.uint8)
-        pic = Image.fromarray(np.stack((img, img, img), axis=2))
-    else:
-        raise TypeError(f"unsupported image type {pic.mode}")
-    return pic
-
-
-def _is_pil_image(img):
-    if accimage is not None:
-        return isinstance(img, (Image.Image, accimage.Image))
-    else:
-        return isinstance(img, Image.Image)
 
 
 def convert_polygon_to_mask(segmentations: List[float], height: int, width: int):
