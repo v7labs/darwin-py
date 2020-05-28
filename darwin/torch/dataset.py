@@ -1,15 +1,16 @@
-import json
 import multiprocessing as mp
 from pathlib import Path
-from typing import Callable, Collection, List, Optional, Union
+from typing import Collection, List, Optional, Union
 
 import numpy as np
-import torch.utils.data as data
 
-from darwin.torch.transforms import Compose, ConvertPolygonsToInstanceMasks
+from darwin.torch.transforms import (
+    Compose,
+    ConvertPolygonsToInstanceMasks,
+    ConvertPolygonsToSegmentationMask,
+)
 from darwin.torch.utils import convert_polygons_to_sequences, load_pil_image, polygon_area
-from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS
-from darwin.dataset.utils import get_classes, get_release_path
+from darwin.dataset import LocalDataset
 
 
 def get_dataset(
@@ -63,195 +64,7 @@ def get_dataset(
     )
 
 
-class Dataset(data.Dataset):
-    def __init__(
-        self,
-        dataset_path: Path,
-        annotation_type: str,
-        partition: Optional[str] = None,
-        split: str = "default",
-        split_type: str = "random",
-        release_name: Optional[str] = None,
-        transform: Optional[List] = None
-    ):
-        """ Creates a dataset
-
-        Parameters
-        ----------
-        dataset_path: Path, str
-            Path to the location of the dataset on the file system
-        annotation_type: str
-            The type of annotation classes [tag, bounding_box, polygon]
-        partition: str
-            Selects one of the partitions [train, val, test]
-        split: str
-            Selects the split that defines the percentages used (use 'default' to select the default split)
-        split_type: str
-            Heuristic used to do the split [random, stratified]
-        release_name: str
-            Version of the dataset
-        transform : list[torchvision.transforms]
-            List of PyTorch transforms
-        """
-        assert dataset_path is not None
-        release_path = get_release_path(dataset_path, release_name)
-        annotations_dir = release_path / "annotations"
-        assert annotations_dir.exists()
-        images_dir = dataset_path / "images"
-        assert images_dir.exists()
-
-        if partition not in ["train", "val", "test", None]:
-            raise ValueError("partition should be either 'train', 'val', or 'test'")
-        if split_type not in ["random", "stratified"]:
-            raise ValueError("split_type should be either 'random', 'stratified'")
-        if annotation_type not in ["tag", "polygon", "bounding_box"]:
-            raise ValueError("annotation_type should be either 'tag', 'bounding_box', or 'polygon'")
-
-        self.dataset_path = dataset_path
-        self.annotation_type = annotation_type
-        self.transform = transform
-        self.images_path: List[Path] = []
-        self.annotations_path: List[Path] = []
-        self.original_classes = None
-        self.original_images_path: Optional[List[Path]] = None
-        self.original_annotations_path: Optional[List[Path]] = None
-        self.convert_polygons: Optional[Callable] = None
-
-        # Compose the transform if necessary
-        if self.transform is not None and isinstance(self.transform, list):
-            self.transform = Compose(transform)
-
-        # Get the list of classes
-        self.classes = get_classes(
-            self.dataset_path,
-            release_name,
-            annotation_type=self.annotation_type,
-            remove_background=True
-        )
-
-        # Get the list of stems
-        if partition:
-            # Get the split
-            if split_type == "random":
-                split_file = f"{split_type}_{partition}.txt"
-            elif split_type == "stratified":
-                split_file = f"{split_type}_{annotation_type}_{partition}.txt"
-            split_path = release_path / "lists" / split / split_file
-            if split_path.is_file():
-                stems = (e.strip() for e in split_path.open())
-            else:
-                raise FileNotFoundError(
-                    f"could not find a dataset partition. "
-                    f"Split the dataset using `split_dataset()` from `darwin.dataset.utils`"
-                ) from None
-        else:
-            # If the partition is not specified, get all the annotations
-            stems = [e.stem for e in annotations_dir.glob("*.json")]
-
-        # Find all the annotations and their corresponding images
-        for stem in stems:
-            annotation_path = annotations_dir / f"{stem}.json"
-            images = []
-            for ext in SUPPORTED_IMAGE_EXTENSIONS:
-                image_path = images_dir / f"{stem}{ext}"
-                if image_path.exists():
-                    images.append(image_path)
-            if len(images) < 1:
-                raise ValueError(
-                    f"Annotation ({annotation_path}) does not have a corresponding image"
-                )
-            if len(images) > 1:
-                raise ValueError(
-                    f"Image ({stem}) is present with multiple extensions. This is forbidden."
-                )
-            assert len(images) == 1
-            self.images_path.append(images[0])
-            self.annotations_path.append(annotation_path)
-
-        if len(self.images_path) == 0:
-            raise ValueError(
-                f"Could not find any {SUPPORTED_IMAGE_EXTENSIONS} file",
-                f" in {images_dir}"
-            )
-
-        assert len(self.images_path) == len(self.annotations_path)
-
-    def extend(self, dataset, extend_classes: bool = False):
-        """Extends the current dataset with another one
-
-        Parameters
-        ----------
-        dataset : Dataset
-            Dataset to merge
-        extend_classes : bool
-            Extend the current set of classes by merging with the passed dataset ones
-
-        Returns
-        -------
-        Dataset
-            self
-        """
-        if self.annotation_type != dataset.annotation_type:
-            raise ValueError("Annotation type of both datasets should match")
-        if self.classes != dataset.classes and not extend_classes:
-            raise ValueError(
-                f"Operation dataset_a + dataset_b could not be computed: classes "
-                f"should match. Use flag extend_classes=True to combine both lists "
-                f"of classes."
-            )
-        self.classes = list(set(self.classes).union(set(dataset.classes)))
-
-        self.original_images_path = self.images_path
-        self.images_path += dataset.images_path
-        self.original_annotations_path = self.annotations_path
-        self.annotations_path += dataset.annotations_path
-        return self
-
-    def get_img_info(self, index: int):
-        with self.annotations_path[index].open() as f:
-            data = json.load(f)["image"]
-            return data
-
-    def get_height_and_width(self, index: int):
-        data = self.get_img_info(index)
-        return data["height"], data["width"]
-
-    def _map_annotation(self, index: int):
-        """
-        Load an annotation and filter out the extra classes according to what
-        specified in `self.classes`
-
-        Parameters
-        ----------
-        index : int
-            Index of the annotation to read
-
-        Returns
-        -------
-        dict
-        A new dictionary containing the index and the filtered annotation
-
-        Notes
-        -----
-        The return value is a dict with the following fields:
-            image_id: int
-                The index of the image in the split
-            original_filename: str
-                The path to the image on the file system
-            annotations : str
-                The original raw annotation
-        """
-        with self.annotations_path[index].open() as f:
-            annotation = json.load(f)["annotations"]
-        # Filter out unused classes
-        if self.classes is not None:
-            annotation = [a for a in annotation if a["name"] in self.classes]
-        return {
-            "image_id": index,
-            "original_filename": self.images_path[index],
-            "annotations": annotation,
-        }
-
+class DarwinDataset(LocalDataset):
     def measure_mean_std(self, multi_threaded: bool = True):
         """Computes mean and std of train images, given the train loader
 
@@ -343,60 +156,21 @@ class Dataset(data.Dataset):
         )
         return np.sum(np.sum(m2, axis=1), 1), m2.size / 3.0
 
-    def __add__(self, dataset):
-        """Adds the passed dataset to the current one
 
-        Parameters
-        ----------
-        dataset : Dataset
-            Dataset to merge
-
-        Returns
-        -------
-        Dataset
-            self
-        """
-        if self.annotation_type != dataset.annotation_type:
-            raise ValueError("Annotation type of both datasets should match")
-        if self.classes != dataset.classes:
-            raise ValueError(
-                f"Operation dataset_a + dataset_b could not be computed: classes should match."
-                f"Use dataset_a.extend(dataset_b, extend_classes=True) to combine both lists of classes"
-            )
-        self.original_images_path = self.images_path
-        self.images_path += dataset.images_path
-        self.original_annotations_path = self.annotations_path
-        self.annotations_path += dataset.annotations_path
-        return self
-
-    def __getitem__(self, index: int):
-        # Load images and masks
-        img = load_pil_image(self.images_path[index])
-        target = self._map_annotation(index)
-        if self.convert_polygons is not None:
-            img, target = self.convert_polygons(img, target)
-        if self.transform is not None:
-            img, target = self.transform(img, target)
-        return img, target
-
-    def __len__(self):
-        return len(self.images_path)
-
-    def __str__(self):
-        return (
-            f"{self.__class__.__name__}():\n"
-            f"  Root: {self.dataset_path}\n"
-            f"  Number of images: {len(self.images_path)}\n"
-            f"  Number of classes: {len(self.classes)}"
-        )
-
-
-class ClassificationDataset(Dataset):
-    def __init__(self, **kwargs):
-        """See superclass for documentation"""
+class ClassificationDataset(DarwinDataset):
+    def __init__(
+        self,
+        transform: Optional[List] = None,
+        **kwargs,
+    ):
+        """See class `LocalDataset` for documentation"""
         super().__init__(annotation_type="tag", **kwargs)
 
-    def _map_annotation(self, index: int):
+        self.transform = transform
+        if self.transform is not None and isinstance(self.transform, list):
+            self.transform = Compose(self.transform)
+
+    def __getitem__(self, index: int):
         """See superclass for documentation
 
         Notes
@@ -409,24 +183,26 @@ class ClassificationDataset(Dataset):
             category_id : int
                 The single label of the image selected.
         """
-        with self.annotations_path[index].open() as f:
-            annotation = json.load(f)["annotations"]
-            tags = [self.classes.index(a["name"]) for a in annotation if "tag" in a]
-            if len(tags) > 1:
-                raise ValueError(
-                    f"Multiple tags defined for this image ({tags}). "
-                    f"This is not valid in a classification dataset."
-                )
-            if len(tags) == 0:
-                raise ValueError(
-                    f"No tags defined for this image ({self.annotations_path[index]})."
-                    f"This is not valid in a classification dataset."
-                )
-        return {
-            "image_id": index,
-            "original_filename": self.images_path[index],
-            "category_id": tags[0],
-        }
+        img = load_pil_image(self.images_path[index])
+        if self.transform is not None:
+            img = self.transform(img)
+
+        target = self.parse_json(index)
+        annotations = target.pop("annotations")
+        tags = [self.classes.index(a["name"]) for a in annotations if "tag" in a]
+        if len(tags) > 1:
+            raise ValueError(
+                f"Multiple tags defined for this image ({tags}). "
+                f"This is not valid in a classification dataset."
+            )
+        if len(tags) == 0:
+            raise ValueError(
+                f"No tags defined for this image ({self.annotations_path[index]})."
+                f"This is not valid in a classification dataset."
+            )
+        target["category_id"] = tags[0]
+
+        return img, target
 
     def measure_weights(self, **kwargs) -> np.ndarray:
         """Computes the class balancing weights (not the frequencies!!) given the train loader
@@ -446,20 +222,26 @@ class ClassificationDataset(Dataset):
         return self._compute_weights(labels)
 
 
-class InstanceSegmentationDataset(Dataset):
+class InstanceSegmentationDataset(DarwinDataset):
     def __init__(
         self,
+        transform: Optional[List] = None,
         convert_polygons_to_masks: Optional[bool] = True,
         **kwargs,
     ):
-        """See superclass for documentation"""
+        """See `LocalDataset` class for documentation"""
         super().__init__(annotation_type="polygon", **kwargs)
+
+        self.transform = transform
+        if self.transform is not None and isinstance(self.transform, list):
+            self.transform = Compose(self.transform)
+
         self.convert_polygons = (
             ConvertPolygonsToInstanceMasks() if convert_polygons_to_masks else None
         )
 
-    def _map_annotation(self, index: int):
-        """See superclass for documentation
+    def __getitem__(self, index: int):
+        """
 
         Notes
         -----
@@ -479,15 +261,11 @@ class InstanceSegmentationDataset(Dataset):
                 area : float
                     Area of the polygon
         """
-        with self.annotations_path[index].open() as f:
-            annotations = json.load(f)["annotations"]
+        img = load_pil_image(self.images_path[index])
+        target = self.parse_json(index)
 
-        # Filter out unused classes
-        if self.classes is not None:
-            annotations = [a for a in annotations if a["name"] in self.classes]
-
-        target = []
-        for annotation in annotations:
+        annotations = []
+        for annotation in target["annotations"]:
             assert "name" in annotation
             assert "polygon" in annotation
             # Extract the sequences of coordinates from the polygon annotation
@@ -513,7 +291,7 @@ class InstanceSegmentationDataset(Dataset):
             assert poly_area <= bbox_area
 
             # Create and append the new entry for this annotation
-            target.append(
+            annotations.append(
                 {
                     "category_id": self.classes.index(annotation["name"]),
                     "segmentation": sequences,
@@ -521,12 +299,14 @@ class InstanceSegmentationDataset(Dataset):
                     "area": poly_area,
                 }
             )
+        target["annotations"] = annotations
 
-        return {
-            "image_id": index,
-            "original_filename": self.images_path[index],
-            "annotations": target,
-        }
+        if self.convert_polygons is not None:
+            img, target = self.convert_polygons(img, target)
+        if self.transform is not None:
+            img, target = self.transform(img, target)
+
+        return img, target
 
     def measure_weights(self, **kwargs):
         """Computes the class balancing weights (not the frequencies!!) given the train loader
@@ -546,19 +326,25 @@ class InstanceSegmentationDataset(Dataset):
         return self._compute_weights(labels)
 
 
-class SemanticSegmentationDataset(Dataset):
+class SemanticSegmentationDataset(DarwinDataset):
     def __init__(
         self,
+        transform: Optional[List] = None,
         convert_polygons_to_masks: Optional[bool] = True,
         **kwargs,
     ):
-        """See superclass for documentation"""
+        """See `LocalDataset` class for documentation"""
         super().__init__(annotation_type="polygon", **kwargs)
+
+        self.transform = transform
+        if self.transform is not None and isinstance(self.transform, list):
+            self.transform = Compose(self.transform)
+
         self.convert_polygons = (
-            ConvertPolygonsToInstanceMasks() if convert_polygons_to_masks else None
+            ConvertPolygonsToSegmentationMask() if convert_polygons_to_masks else None
         )
 
-    def _map_annotation(self, index: int):
+    def __getitem__(self, index: int):
         """See superclass for documentation
 
         Notes
@@ -573,31 +359,30 @@ class SemanticSegmentationDataset(Dataset):
                 category_id : TODO complete documentation
                 segmentation :
         """
-        with self.annotations_path[index].open() as f:
-            annotation = json.load(f)["annotations"]
+        img = load_pil_image(self.images_path[index])
+        target = self.parse_json(index)
 
-        # Filter out unused classes
-        if self.classes is not None:
-            annotation = [obj for obj in annotation if obj["name"] in self.classes]
-
-        target = []
-        for obj in annotation:
+        annotations = []
+        for obj in target["annotations"]:
             sequences = convert_polygons_to_sequences(obj["polygon"]["path"])
             # Discard polygons with less than three points
             sequences[:] = [s for s in sequences if len(s) >= 6]
             if not sequences:
                 continue
-            target.append(
+            annotations.append(
                 {
                     "category_id": self.classes.index(obj["name"]),
                     "segmentation": np.array(sequences),
                 }
             )
-        return {
-            "image_id": index,
-            "original_filename": self.images_path[index],
-            "annotations": target,
-        }
+        target["annotations"] = annotations
+
+        if self.convert_polygons is not None:
+            img, target = self.convert_polygons(img, target)
+        if self.transform is not None:
+            img, target = self.transform(img, target)
+
+        return img, target
 
     def measure_weights(self, **kwargs):
         """Computes the class balancing weights (not the frequencies!!) given the train loader
