@@ -2,8 +2,8 @@ import json
 from pathlib import Path
 from typing import List, Optional
 
-from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS
 from darwin.dataset.utils import get_classes, get_release_path
+from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS
 
 
 class LocalDataset(object):

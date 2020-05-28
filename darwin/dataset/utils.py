@@ -3,16 +3,16 @@ import json
 import multiprocessing as mp
 import os
 import sys
+import warnings
 from collections import defaultdict
 from pathlib import Path
 from typing import Generator, Iterable, List, Optional, Union
-import warnings
 
 import numpy as np
 from tqdm import tqdm
 
-from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS
 from darwin.exceptions import NotFound
+from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS
 
 
 def get_release_path(dataset_path: Path, release_name: Optional[str] = None):

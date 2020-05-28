@@ -4,13 +4,11 @@ from typing import Collection, List, Optional, Union
 
 import numpy as np
 
-from darwin.torch.transforms import (
-    Compose,
-    ConvertPolygonsToInstanceMasks,
-    ConvertPolygonsToSegmentationMask,
-)
-from darwin.torch.utils import convert_polygons_to_sequences, load_pil_image, polygon_area
 from darwin.dataset import LocalDataset
+from darwin.torch.transforms import (Compose, ConvertPolygonsToInstanceMasks,
+                                     ConvertPolygonsToSegmentationMask)
+from darwin.torch.utils import (convert_polygons_to_sequences, load_pil_image,
+                                polygon_area)
 
 
 def get_dataset(

@@ -1,12 +1,12 @@
 from pathlib import Path
 from typing import Generator, List, Optional
-from upolygon import draw_polygon
+
+import numpy as np
 from PIL import Image
 from tqdm import tqdm
 
-import numpy as np
-
 import darwin.datatypes as dt
+from upolygon import draw_polygon
 
 
 def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_dir: Path):

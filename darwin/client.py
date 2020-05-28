@@ -8,14 +8,9 @@ import requests
 from darwin.config import Config
 from darwin.dataset import RemoteDataset
 from darwin.dataset.identifier import DatasetIdentifier
-from darwin.exceptions import (
-    InsufficientStorage,
-    InvalidLogin,
-    MissingConfig,
-    NotFound,
-    Unauthorized,
-)
-from darwin.utils import is_project_dir, urljoin, is_deprecated_project_dir
+from darwin.exceptions import (InsufficientStorage, InvalidLogin,
+                               MissingConfig, NotFound, Unauthorized)
+from darwin.utils import is_deprecated_project_dir, is_project_dir, urljoin
 from darwin.validators import name_taken, validation_error
 
 

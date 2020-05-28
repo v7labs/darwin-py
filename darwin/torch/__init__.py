@@ -15,9 +15,5 @@ except ImportError:
     ) from None
 
 from .dataset import (
-    get_dataset,
-    DarwinDataset,
-    ClassificationDataset,
-    InstanceSegmentationDataset,
-    SemanticSegmentationDataset,
-)
+    ClassificationDataset, DarwinDataset, InstanceSegmentationDataset,
+    SemanticSegmentationDataset, get_dataset)

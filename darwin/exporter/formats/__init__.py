@@ -1,4 +1,4 @@
-from . import coco, cvat, dataloop, pascalvoc, semantic_mask, instance_mask
+from . import coco, cvat, dataloop, instance_mask, pascalvoc, semantic_mask
 
 supported_formats = [
     ("coco", coco.export),
