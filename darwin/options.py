@@ -114,9 +114,7 @@ class Options(object):
         )
 
         # Export
-        parser_export = dataset_action.add_parser(
-            "export", help="Export a version of a dataset."
-        )
+        parser_export = dataset_action.add_parser("export", help="Export a version of a dataset.")
         parser_export.add_argument("dataset", type=str, help="Remote dataset name to export.")
         parser_export.add_argument("name", type=str, help="Name with with the version gets tagged.")
         parser_export.add_argument(
@@ -161,22 +159,41 @@ class Options(object):
         )
         parser_convert.add_argument("format", type=str, help="Annotation import to convert to")
 
-        parser_convert.add_argument("-o", "--output_dir", type=str, help="Where to store output files")
+        parser_convert.add_argument(
+            "-o", "--output_dir", type=str, help="Where to store output files"
+        )
 
         # Migrate
-        parser_migrate = dataset_action.add_parser("migrate", help="Migrate a local dataset to the latest version.")
+        parser_migrate = dataset_action.add_parser(
+            "migrate", help="Migrate a local dataset to the latest version."
+        )
         parser_migrate.add_argument("dataset", type=str, help="Local dataset name to migrate.")
 
         # Migrate
-        parser_migrate = dataset_action.add_parser("migrate", help="Migrate a local dataset to the latest version.")
+        parser_migrate = dataset_action.add_parser(
+            "migrate", help="Migrate a local dataset to the latest version."
+        )
         parser_migrate.add_argument("dataset", type=str, help="Local dataset name to migrate.")
 
         # Split
-        parser_split = dataset_action.add_parser("split", help="Splits a local dataset following random and stratified split types.")
+        parser_split = dataset_action.add_parser(
+            "split", help="Splits a local dataset following random and stratified split types."
+        )
         parser_split.add_argument("dataset", type=str, help="Local dataset name to split.")
-        parser_split.add_argument("-v", "--val-percentage", type=float, required=True, help="Validation percentage.")
-        parser_split.add_argument("-t", "--test-percentage", type=float, required=False, default=0, help="Test percentage.")
-        parser_split.add_argument("-s", "--seed", type=int, required=False, default=0, help="Split seed.")
+        parser_split.add_argument(
+            "-v", "--val-percentage", type=float, required=True, help="Validation percentage."
+        )
+        parser_split.add_argument(
+            "-t",
+            "--test-percentage",
+            type=float,
+            required=False,
+            default=0,
+            help="Test percentage.",
+        )
+        parser_split.add_argument(
+            "-s", "--seed", type=int, required=False, default=0, help="Split seed."
+        )
 
         # Help
         dataset_action.add_parser("help", help="Show this help message and exit.")

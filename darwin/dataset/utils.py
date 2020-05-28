@@ -39,8 +39,11 @@ def get_release_path(dataset_path: Path, release_name: Optional[str] = None):
     releases_dir = dataset_path / "releases"
 
     if not releases_dir.exists() and (dataset_path / "annotations").exists():
-        warnings.warn("darwin-py has adopted a new folder structure and the old structure will be depecrated. "
-                      f"Migrate this dataset by running: 'darwin dataset migrate {dataset_path.name}", DeprecationWarning)
+        warnings.warn(
+            "darwin-py has adopted a new folder structure and the old structure will be depecrated. "
+            f"Migrate this dataset by running: 'darwin dataset migrate {dataset_path.name}",
+            DeprecationWarning,
+        )
         return dataset_path
 
     release_path = releases_dir / release_name
@@ -131,7 +134,7 @@ def get_classes(
     dataset_path: Path,
     release_name: Optional[str] = None,
     annotation_type: str = "polygon",
-    remove_background: bool = True
+    remove_background: bool = True,
 ):
     """
     Given a dataset and an annotation_type returns the list of classes
@@ -385,7 +388,9 @@ def split_dataset(
         splits["random"]["test"] = Path(split_path) / "random_test.txt"
         splits["stratified_tag"]["test"] = Path(split_path / "stratified_tag_test.txt")
         splits["stratified_polygon"]["test"] = Path(split_path / "stratified_polygon_test.txt")
-        splits["stratified_bounding_box"]["test"] = Path(split_path / "stratified_bounding_box_test.txt")
+        splits["stratified_bounding_box"]["test"] = Path(
+            split_path / "stratified_bounding_box_test.txt"
+        )
 
     # Do the actual split
     if not split_path.exists():
@@ -401,8 +406,8 @@ def split_dataset(
         np.random.seed(split_seed)
         indices = np.random.permutation(dataset_size)
         train_indices = list(indices[:train_size])
-        val_indices = list(indices[train_size:train_size + val_size])
-        test_indices = list(indices[train_size + val_size:])
+        val_indices = list(indices[train_size : train_size + val_size])
+        test_indices = list(indices[train_size + val_size :])
         # Write files
         _write_to_file(annotation_files, splits["random"]["train"], train_indices)
         _write_to_file(annotation_files, splits["random"]["val"], val_indices)
@@ -431,10 +436,14 @@ def split_dataset(
                     idx_to_classes_polygon, split_seed, test_percentage, val_percentage
                 )
                 # Write files
-                _write_to_file(annotation_files, splits["stratified_polygon"]["train"], train_indices)
+                _write_to_file(
+                    annotation_files, splits["stratified_polygon"]["train"], train_indices
+                )
                 _write_to_file(annotation_files, splits["stratified_polygon"]["val"], val_indices)
                 if test_percentage > 0.0:
-                    _write_to_file(annotation_files, splits["stratified_polygon"]["test"], test_indices)
+                    _write_to_file(
+                        annotation_files, splits["stratified_polygon"]["test"], test_indices
+                    )
 
             # STRATIFIED SPLIT ON BOUNDING BOXES
             # Stratify
@@ -444,10 +453,16 @@ def split_dataset(
                     idx_to_classes_bbox, split_seed, test_percentage, val_percentage
                 )
                 # Write files
-                _write_to_file(annotation_files, splits["stratified_bounding_box"]["train"], train_indices)
-                _write_to_file(annotation_files, splits["stratified_bounding_box"]["val"], val_indices)
+                _write_to_file(
+                    annotation_files, splits["stratified_bounding_box"]["train"], train_indices
+                )
+                _write_to_file(
+                    annotation_files, splits["stratified_bounding_box"]["val"], val_indices
+                )
                 if test_percentage > 0.0:
-                    _write_to_file(annotation_files, splits["stratified_bounding_box"]["test"], test_indices)
+                    _write_to_file(
+                        annotation_files, splits["stratified_bounding_box"]["test"], test_indices
+                    )
 
     # Create symlink for default split
     split = lists_path / "default"
@@ -511,6 +526,7 @@ def get_coco_format_record(
     assert annotation_type in ["tag", "polygon", "bounding_box"]
     try:
         from detectron2.structures import BoxMode
+
         box_mode = BoxMode.XYXY_ABS
     except ImportError:
         box_mode = 0
@@ -615,7 +631,9 @@ def get_annotations(
         raise ValueError("annotation_type should be either 'tag', 'bounding_box', or 'polygon'")
 
     # Get the list of classes
-    classes = get_classes(dataset_path, release_name, annotation_type=annotation_type, remove_background=True)
+    classes = get_classes(
+        dataset_path, release_name, annotation_type=annotation_type, remove_background=True
+    )
     # Get the list of stems
     if split:
         # Get the split
@@ -631,7 +649,7 @@ def get_annotations(
         else:
             raise FileNotFoundError(
                 f"Could not find a dataset partition. ",
-                f"To split the dataset you can use 'split_dataset' from darwin.dataset.utils"
+                f"To split the dataset you can use 'split_dataset' from darwin.dataset.utils",
             )
     else:
         # If the split is not specified, get all the annotations
@@ -649,9 +667,7 @@ def get_annotations(
             if image_path.exists():
                 images.append(image_path)
         if len(images) < 1:
-            raise ValueError(
-                f"Annotation ({annotation_path}) does not have a corresponding image"
-            )
+            raise ValueError(f"Annotation ({annotation_path}) does not have a corresponding image")
         if len(images) > 1:
             raise ValueError(
                 f"Image ({stem}) is present with multiple extensions. This is forbidden."
@@ -670,7 +686,9 @@ def get_annotations(
     # Load and re-format all the annotations
     if annotation_format == "coco":
         images_ids = list(range(len(images_paths)))
-        for annotation_path, image_path, image_id in zip(annotations_paths, images_paths, images_ids):
+        for annotation_path, image_path, image_id in zip(
+            annotations_paths, images_paths, images_ids
+        ):
             yield get_coco_format_record(
                 annotation_path=annotation_path,
                 annotation_type=annotation_type,

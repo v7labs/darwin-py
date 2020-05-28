@@ -15,11 +15,16 @@ from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset.identifier import DatasetIdentifier
 from darwin.dataset.utils import get_release_path, split_dataset
-from darwin.exceptions import (InvalidLogin, MissingConfig, NameTaken,
-                               NotFound, Unauthenticated, ValidationError)
+from darwin.exceptions import (
+    InvalidLogin,
+    MissingConfig,
+    NameTaken,
+    NotFound,
+    Unauthenticated,
+    ValidationError,
+)
 from darwin.table import Table
-from darwin.utils import (find_files, persist_client_configuration, prompt,
-                          secure_continue_request)
+from darwin.utils import find_files, persist_client_configuration, prompt, secure_continue_request
 
 
 def validate_api_key(api_key: str):
@@ -161,10 +166,12 @@ def local(team: Optional[str] = None):
 
     print(table)
     if len(list(deprecated_local_datasets)):
-        print(f"\nWARNING: found some local datasets that use a deprecated format "
-              f"not supported by the recent version of darwin-py. "
-              f"Run `darwin dataset migrate team_slug/dataset_slug` "
-              "if you want to be able to use them in darwin-py.")
+        print(
+            f"\nWARNING: found some local datasets that use a deprecated format "
+            f"not supported by the recent version of darwin-py. "
+            f"Run `darwin dataset migrate team_slug/dataset_slug` "
+            "if you want to be able to use them in darwin-py."
+        )
 
 
 def path(dataset_slug: str) -> Path:
@@ -311,7 +318,9 @@ def migrate_dataset(dataset_slug: str):
     print(f"Dataset {identifier.dataset_slug} migrated to {dataset_path}.")
 
 
-def split(dataset_slug: str, val_percentage: float, test_percentage: float, seed: Optional[int] = 0):
+def split(
+    dataset_slug: str, val_percentage: float, test_percentage: float, seed: Optional[int] = 0
+):
     """Splits a local version of a dataset into train, validation, and test partitions
 
     Parameters
@@ -335,7 +344,7 @@ def split(dataset_slug: str, val_percentage: float, test_percentage: float, seed
                 release_name=identifier.version,
                 val_percentage=val_percentage,
                 test_percentage=test_percentage,
-                split_seed=seed
+                split_seed=seed,
             )
             print(f"Partition lists saved at {split_path}")
             return

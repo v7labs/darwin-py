@@ -18,7 +18,7 @@ def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_di
     pbar = tqdm(annotation_files)
     pbar.set_description(desc="Processing annotations", refresh=True)
     for annotation_file in pbar:
-        outfile = masks_dir / (annotation_file.path.stem + '.png')
+        outfile = masks_dir / (annotation_file.path.stem + ".png")
         height = annotation_file.image_height
         width = annotation_file.image_width
         annotations = [a for a in annotation_file.annotations if ispolygon(a.annotation_class)]
@@ -30,7 +30,9 @@ def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_di
                 sequence = convert_polygons_to_sequences(a.data["path"], height, width)
                 mask = convert_polygons_to_mask(sequence, height, width)
                 if cat in mask_per_category:
-                    mask_per_category[cat] = np.stack((mask_per_category[cat], mask), axis=-1).max(axis=2)
+                    mask_per_category[cat] = np.stack((mask_per_category[cat], mask), axis=-1).max(
+                        axis=2
+                    )
                 else:
                     mask_per_category[cat] = mask
             # merge all category masks into a single segmentation map
@@ -68,7 +70,9 @@ def calculate_categories(annotation_files: List[dt.AnnotationFile]):
     return categories
 
 
-def convert_polygons_to_sequences(polygons: List, height: Optional[int] = None, width: Optional[int] = None) -> List[np.ndarray]:
+def convert_polygons_to_sequences(
+    polygons: List, height: Optional[int] = None, width: Optional[int] = None
+) -> List[np.ndarray]:
     """
     Converts a list of polygons, encoded as a list of dictionaries of into a list of nd.arrays
     of coordinates.

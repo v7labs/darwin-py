@@ -63,7 +63,7 @@ class LocalDataset(object):
             self.dataset_path,
             release_name,
             annotation_type=self.annotation_type,
-            remove_background=True
+            remove_background=True,
         )
 
         # Get the list of stems
@@ -107,8 +107,7 @@ class LocalDataset(object):
 
         if len(self.images_path) == 0:
             raise ValueError(
-                f"Could not find any {SUPPORTED_IMAGE_EXTENSIONS} file",
-                f" in {images_dir}"
+                f"Could not find any {SUPPORTED_IMAGE_EXTENSIONS} file", f" in {images_dir}"
             )
 
         assert len(self.images_path) == len(self.annotations_path)
@@ -173,7 +172,9 @@ class LocalDataset(object):
         # Filter out unused classes and annotations of a different type
         annotations = data["annotations"]
         if self.classes is not None:
-            annotations = [a for a in annotations if a["name"] in self.classes and self.annotation_type in a]
+            annotations = [
+                a for a in annotations if a["name"] in self.classes and self.annotation_type in a
+            ]
         return {
             "image_id": index,
             "image_path": str(self.images_path[index]),

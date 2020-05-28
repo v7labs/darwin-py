@@ -43,7 +43,9 @@ def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_di
         print(f"Dataset format saved at {output_dir}")
 
 
-def convert_polygons_to_sequences(polygons: List, height: Optional[int] = None, width: Optional[int] = None) -> List[np.ndarray]:
+def convert_polygons_to_sequences(
+    polygons: List, height: Optional[int] = None, width: Optional[int] = None
+) -> List[np.ndarray]:
     """
     Converts a list of polygons, encoded as a list of dictionaries of into a list of nd.arrays
     of coordinates.

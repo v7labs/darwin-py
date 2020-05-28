@@ -5,8 +5,11 @@ import numpy as np
 
 from darwin.dataset import LocalDataset
 from darwin.dataset.utils import load_pil_image
-from darwin.torch.transforms import (Compose, ConvertPolygonsToInstanceMasks,
-                                     ConvertPolygonsToSegmentationMask)
+from darwin.torch.transforms import (
+    Compose,
+    ConvertPolygonsToInstanceMasks,
+    ConvertPolygonsToSegmentationMask,
+)
 from darwin.torch.utils import convert_polygons_to_sequences, polygon_area
 
 
@@ -17,7 +20,7 @@ def get_dataset(
     split: str = "default",
     split_type: str = "random",
     release_name: Optional[str] = None,
-    transform: Optional[List] = None
+    transform: Optional[List] = None,
 ):
     """ Creates and returns a dataset
 
@@ -63,9 +66,7 @@ def get_dataset(
 
 class ClassificationDataset(LocalDataset):
     def __init__(
-        self,
-        transform: Optional[List] = None,
-        **kwargs,
+        self, transform: Optional[List] = None, **kwargs,
     ):
         """See class `LocalDataset` for documentation"""
         super().__init__(annotation_type="tag", **kwargs)
