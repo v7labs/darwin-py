@@ -24,6 +24,7 @@ setuptools.setup(
         "scikit-learn",
         "sh",
         "tqdm",
+        "pillow",
     ],
     packages=setuptools.find_packages(),
     entry_points={"console_scripts": ["darwin=darwin.cli:main"]},
