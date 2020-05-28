@@ -82,6 +82,8 @@ def run(args, parser):
             f.dataset_convert(args.dataset, args.format, args.output_dir)
         elif args.action == "migrate":
             f.migrate_dataset(args.dataset)
+        elif args.action == "split":
+            f.split(args.dataset, args.val_percentage, args.test_percentage, args.seed)
         elif args.action == "help" or args.action is None:
             f.help(parser, "dataset")
 
