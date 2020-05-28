@@ -31,7 +31,7 @@ class RandomHorizontalFlip(object):
             if target is None:
                 return image
 
-            if "boxes" is target:
+            if "boxes" in target:
                 bbox = target["boxes"]
                 bbox[:, [0, 2]] = image.size[0] - bbox[:, [2, 0]]
                 target["boxes"] = bbox
@@ -76,7 +76,7 @@ class ConvertPolygonsToInstanceMasks(object):
         image_id = target["image_id"]
         image_id = torch.tensor([image_id])
 
-        annotations = target["annotations"]
+        annotations = target.pop("annotations")
 
         annotations = [obj for obj in annotations if obj.get("iscrowd", 0) == 0]
 
@@ -108,7 +108,6 @@ class ConvertPolygonsToInstanceMasks(object):
         if keypoints is not None:
             keypoints = keypoints[keep]
 
-        target = {}
         target["boxes"] = boxes
         target["labels"] = classes
         target["masks"] = masks
@@ -122,6 +121,31 @@ class ConvertPolygonsToInstanceMasks(object):
         target["area"] = area
         target["iscrowd"] = iscrowd
 
+        return image, target
+
+
+class ConvertPolygonsToSegmentationMask(object):
+    def __call__(self, image, target):
+        w, h = image.size
+        image_id = target["image_id"]
+        image_id = torch.tensor([image_id])
+
+        annotations = target.pop("annotations")
+        segmentations = [obj["segmentation"] for obj in annotations]
+        cats = [obj["category_id"] for obj in annotations]
+        if segmentations:
+            masks = convert_polygon_to_mask(segmentations, h, w)
+            cats = torch.as_tensor(cats, dtype=masks.dtype)
+            # merge all instance masks into a single segmentation map
+            # with its corresponding categories
+            mask, _ = (masks * cats[:, None, None]).max(dim=0)
+            # discard overlapping instances
+            mask[masks.sum(0) > 1] = 255
+        else:
+            mask = torch.zeros((h, w), dtype=torch.uint8)
+
+        target["mask"] = mask
+        target["image_id"] = image_id
         return image, target
 
 

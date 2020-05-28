@@ -359,7 +359,6 @@ def split(dataset_slug: str, val_percentage: float, test_percentage: float, seed
     )
 
 
-
 def list_remote_datasets(all_teams: bool, team: Optional[str] = None):
     """Lists remote datasets with its annotation progress"""
     # TODO: add listing open datasets
