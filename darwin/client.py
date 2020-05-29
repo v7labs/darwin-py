@@ -77,7 +77,7 @@ class Client:
             return self._decode_response(response, debug)
 
     def put(
-        self, endpoint: str, payload: Dict, team: Optional[str] = None, retry: bool = False, debug: bool = False,
+        self, endpoint: str, payload: Dict, team: Optional[str] = None, retry: bool = False, debug: bool = False
     ):
         """Put something on the server trough HTTP
 

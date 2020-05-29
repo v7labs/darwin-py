@@ -406,7 +406,7 @@ def dataset_list_releases(dataset_slug: str):
         if len(releases) == 0:
             print("No available releases, export one first.")
             return
-        table = Table(["name", "images", "classes", "export_date"], [Table.L, Table.R, Table.R, Table.R],)
+        table = Table(["name", "images", "classes", "export_date"], [Table.L, Table.R, Table.R, Table.R])
         for release in releases:
             if not release.available:
                 continue

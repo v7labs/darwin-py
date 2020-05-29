@@ -124,7 +124,7 @@ class RemoteDataset:
             raise ValueError("No files to upload, check your path, exclusion filters and resume flag")
 
         progress, count = add_files_to_dataset(
-            client=self.client, dataset_id=str(self.dataset_id), filenames=files_to_upload, fps=fps, team=self.team,
+            client=self.client, dataset_id=str(self.dataset_id), filenames=files_to_upload, fps=fps, team=self.team
         )
 
         # If blocking is selected, upload the dataset remotely
@@ -415,7 +415,7 @@ class RemoteDataset:
         )
 
     def classes(
-        self, annotation_type: str, release_name: Optional[str] = None,
+        self, annotation_type: str, release_name: Optional[str] = None
     ):
         """
         Returns the list of `class_type` classes
