@@ -184,7 +184,7 @@ def path(dataset_slug: str) -> Path:
     for p in client.list_deprecated_local_datasets(team=identifier.team_slug):
         if identifier.dataset_slug == p.name:
             _error(
-                f"found a local version of the dataset {identifier.dataset_slug} which uses a deprecated format. "
+                f"Found a local version of the dataset {identifier.dataset_slug} which uses a deprecated format. "
                 f"Run `darwin dataset migrate {identifier}` if you want to be able to use it in darwin-py."
                 f"\n{p} (deprecated format)"
             )
@@ -253,7 +253,7 @@ def pull_dataset(dataset_slug: str):
         dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
     except NotFound:
         _error(
-            f"dataset '{dataset_slug}' does not exist at {client.url}. "
+            f"Dataset '{dataset_slug}' does not exist at {client.url}. "
             f"Use 'darwin remote' to list all the remote datasets."
         )
     except Unauthenticated:
@@ -278,7 +278,14 @@ def migrate_dataset(dataset_slug: str):
         Slug of the dataset to which we perform the operation on
     """
     identifier = DatasetIdentifier.parse(dataset_slug)
+    if not identifier.team_slug:
+        _error("Team name missing.\nUsage: darwin dataset migrate <team-name>/<dataset-name>")
+
     client = _load_client(offline=True)
+    authenticated_teams = [e['slug'] for e in client.config.get_all_teams()]
+    if identifier.team_slug not in authenticated_teams:
+        _error(f"Could not find '{identifier.team_slug}' in the authenticated teams. "
+               "Run 'darwin authenticate' to authenticate it.")
 
     for p in client.list_local_datasets(team=identifier.team_slug):
         if identifier.dataset_slug == p.name:
@@ -291,7 +298,7 @@ def migrate_dataset(dataset_slug: str):
             old_path = p
     if not old_path:
         _error(
-            f"could not find a deprecated local version of the dataset '{dataset_slug}'. "
+            f"Could not find a deprecated local version of the dataset '{dataset_slug}'. "
             f"Use 'darwin dataset pull {dataset_slug}' to pull the latest version from darwin."
         )
 
@@ -348,7 +355,7 @@ def split(dataset_slug: str, val_percentage: float, test_percentage: float, seed
     for p in client.list_deprecated_local_datasets(team=identifier.team_slug):
         if identifier.dataset_slug == p.name:
             _error(
-                f"found a local version of the dataset {identifier.dataset_slug} which uses a deprecated format. "
+                f"Found a local version of the dataset {identifier.dataset_slug} which uses a deprecated format. "
                 f"Run `darwin dataset migrate {identifier}` if you want to be able to use it in darwin-py."
             )
 
