@@ -3,16 +3,16 @@ import json
 import multiprocessing as mp
 import os
 import sys
+import warnings
 from collections import defaultdict
 from pathlib import Path
 from typing import Generator, Iterable, List, Optional, Union
-import warnings
 
 import numpy as np
 from tqdm import tqdm
 
-from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS
 from darwin.exceptions import NotFound
+from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS
 
 
 def get_release_path(dataset_path: Path, release_name: Optional[str] = None):
@@ -38,8 +38,11 @@ def get_release_path(dataset_path: Path, release_name: Optional[str] = None):
     releases_dir = dataset_path / "releases"
 
     if not releases_dir.exists() and (dataset_path / "annotations").exists():
-        warnings.warn("darwin-py has adopted a new folder structure and the old structure will be depecrated. "
-                      f"Migrate this dataset by running: 'darwin dataset migrate {dataset_path.name}", DeprecationWarning)
+        warnings.warn(
+            "darwin-py has adopted a new folder structure and the old structure will be depecrated. "
+            f"Migrate this dataset by running: 'darwin dataset migrate {dataset_path.name}",
+            DeprecationWarning,
+        )
         return dataset_path
 
     release_path = releases_dir / release_name
@@ -130,7 +133,7 @@ def get_classes(
     dataset_path: Path,
     release_name: Optional[str] = None,
     annotation_type: str = "polygon",
-    remove_background: bool = True
+    remove_background: bool = True,
 ):
     """
     Given a dataset and an annotation_type returns the list of classes
@@ -345,9 +348,7 @@ def split_dataset(
 
     # Create split id, path and final split paths
     if val_percentage is None or not 0 < val_percentage < 1.0:
-        raise ValueError(
-            f"Invalid validation percentage ({val_percentage}). " f"Must be > 0 and < 1.0"
-        )
+        raise ValueError(f"Invalid validation percentage ({val_percentage}). " f"Must be > 0 and < 1.0")
     if test_percentage is None or not 0 <= test_percentage < 1.0:
         raise ValueError(f"Invalid test percentage ({test_percentage}). " f"Must be > 0 and < 1.0")
     if not val_percentage + test_percentage < 1.0:
@@ -400,8 +401,8 @@ def split_dataset(
         np.random.seed(split_seed)
         indices = np.random.permutation(dataset_size)
         train_indices = list(indices[:train_size])
-        val_indices = list(indices[train_size:train_size + val_size])
-        test_indices = list(indices[train_size + val_size:])
+        val_indices = list(indices[train_size : train_size + val_size])
+        test_indices = list(indices[train_size + val_size :])
         # Write files
         _write_to_file(annotation_files, splits["random"]["train"], train_indices)
         _write_to_file(annotation_files, splits["random"]["val"], val_indices)
@@ -510,6 +511,7 @@ def get_coco_format_record(
     assert annotation_type in ["tag", "polygon", "bounding_box"]
     try:
         from detectron2.structures import BoxMode
+
         box_mode = BoxMode.XYXY_ABS
     except ImportError:
         box_mode = 0
@@ -630,7 +632,7 @@ def get_annotations(
         else:
             raise FileNotFoundError(
                 f"Could not find a dataset partition. ",
-                f"To split the dataset you can use 'split_dataset' from darwin.dataset.utils"
+                f"To split the dataset you can use 'split_dataset' from darwin.dataset.utils",
             )
     else:
         # If the split is not specified, get all the annotations
@@ -648,21 +650,15 @@ def get_annotations(
             if image_path.exists():
                 images.append(image_path)
         if len(images) < 1:
-            raise ValueError(
-                f"Annotation ({annotation_path}) does not have a corresponding image"
-            )
+            raise ValueError(f"Annotation ({annotation_path}) does not have a corresponding image")
         if len(images) > 1:
-            raise ValueError(
-                f"Image ({stem}) is present with multiple extensions. This is forbidden."
-            )
+            raise ValueError(f"Image ({stem}) is present with multiple extensions. This is forbidden.")
         assert len(images) == 1
         images_paths.append(images[0])
         annotations_paths.append(annotation_path)
 
     if len(images_paths) == 0:
-        raise ValueError(
-            f"Could not find any {SUPPORTED_IMAGE_EXTENSIONS} file" f" in {dataset_path / 'images'}"
-        )
+        raise ValueError(f"Could not find any {SUPPORTED_IMAGE_EXTENSIONS} file" f" in {dataset_path / 'images'}")
 
     assert len(images_paths) == len(annotations_paths)
 

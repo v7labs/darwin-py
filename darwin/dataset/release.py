@@ -8,17 +8,7 @@ from darwin.dataset.identifier import DatasetIdentifier
 
 class Release:
     def __init__(
-        self,
-        dataset_slug,
-        team_slug,
-        version,
-        name,
-        url,
-        export_date,
-        image_count,
-        class_count,
-        available,
-        latest,
+        self, dataset_slug, team_slug, version, name, url, export_date, image_count, class_count, available, latest,
     ):
         self.dataset_slug = dataset_slug
         self.team_slug = team_slug
@@ -73,6 +63,4 @@ class Release:
 
     @property
     def identifier(self) -> DatasetIdentifier:
-        return DatasetIdentifier(
-            team_slug=self.team_slug, dataset_slug=self.dataset_slug, version=self.name
-        )
+        return DatasetIdentifier(team_slug=self.team_slug, dataset_slug=self.dataset_slug, version=self.name)

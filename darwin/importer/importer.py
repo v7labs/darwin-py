@@ -71,10 +71,7 @@ def import_annotations(
     local_classes_missing_remotely = set()
     for local_file in local_files:
         for cls in local_file.annotation_classes:
-            if (
-                cls.annotation_type not in remote_classes
-                or cls.name not in remote_classes[cls.annotation_type]
-            ):
+            if cls.annotation_type not in remote_classes or cls.name not in remote_classes[cls.annotation_type]:
                 local_classes_missing_remotely.add(cls)
 
     print(f"{len(local_classes_missing_remotely)} classes are missing remotely.")
@@ -98,23 +95,16 @@ def import_annotations(
             parsed_files = [parsed_files]
         for parsed_file in parsed_files:
             image_id = remote_files[parsed_file.filename]
-            _import_annotations(
-                dataset.client, image_id, remote_classes, parsed_file.annotations, dataset
-            )
+            _import_annotations(dataset.client, image_id, remote_classes, parsed_file.annotations, dataset)
 
 
 def _import_annotations(client: "Client", id: int, remote_classes, annotations, dataset):
     serialized_annotations = []
     for annotation in annotations:
         annotation_class = annotation.annotation_class
-        annotation_class_id = remote_classes[annotation_class.annotation_type][
-            annotation_class.name
-        ]
+        annotation_class_id = remote_classes[annotation_class.annotation_type][annotation_class.name]
         serialized_annotations.append(
-            {
-                "annotation_class_id": annotation_class_id,
-                "data": {annotation_class.annotation_type: annotation.data},
-            }
+            {"annotation_class_id": annotation_class_id, "data": {annotation_class.annotation_type: annotation.data},}
         )
 
     if client.feature_enabled("WORKFLOW", dataset.team):
