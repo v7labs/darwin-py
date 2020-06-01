@@ -67,9 +67,7 @@ def build_annotations(annotation_file: dt.AnnotationFile, id):
                 "type": "segment",
                 "label": annotation.annotation_class.name,
                 "attributes": [],
-                "coordinates": [
-                    {"x": point["x"], "y": point["y"], "z": 0} for point in annotation.data["path"]
-                ],
+                "coordinates": [{"x": point["x"], "y": point["y"], "z": 0} for point in annotation.data["path"]],
                 "metadata": {},
             }
             output.append(entry)

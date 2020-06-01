@@ -10,13 +10,7 @@ from darwin.dataset.download_manager import download_all_images_from_annotations
 from darwin.dataset.identifier import DatasetIdentifier
 from darwin.dataset.release import Release
 from darwin.dataset.upload_manager import add_files_to_dataset
-from darwin.dataset.utils import (
-    exhaust_generator,
-    get_annotations,
-    get_classes,
-    make_class_lists,
-    split_dataset,
-)
+from darwin.dataset.utils import exhaust_generator, get_annotations, get_classes, make_class_lists, split_dataset
 from darwin.exceptions import NotFound
 from darwin.utils import find_files, urljoin
 from darwin.validators import name_taken, validation_error
@@ -124,28 +118,18 @@ class RemoteDataset:
                 ]
             )
 
-        files_to_upload = find_files(
-            files=files_to_upload, recursive=True, files_to_exclude=files_to_exclude
-        )
+        files_to_upload = find_files(files=files_to_upload, recursive=True, files_to_exclude=files_to_exclude)
 
         if not files_to_upload:
-            raise ValueError(
-                "No files to upload, check your path, exclusion filters and resume flag"
-            )
+            raise ValueError("No files to upload, check your path, exclusion filters and resume flag")
 
         progress, count = add_files_to_dataset(
-            client=self.client,
-            dataset_id=str(self.dataset_id),
-            filenames=files_to_upload,
-            fps=fps,
-            team=self.team,
+            client=self.client, dataset_id=str(self.dataset_id), filenames=files_to_upload, fps=fps, team=self.team
         )
 
         # If blocking is selected, upload the dataset remotely
         if blocking:
-            responses = exhaust_generator(
-                progress=progress, count=count, multi_threaded=multi_threaded
-            )
+            responses = exhaust_generator(progress=progress, count=count, multi_threaded=multi_threaded)
             # Log responses to file
             if responses:
                 responses = [{k: str(v) for k, v in response.items()} for response in responses]
@@ -353,9 +337,7 @@ class RemoteDataset:
         except NotFound:
             return []
         releases = [Release.parse_json(self.slug, self.team, payload) for payload in releases_json]
-        return sorted(
-            filter(lambda x: x.available, releases), key=lambda x: x.version, reverse=True
-        )
+        return sorted(filter(lambda x: x.available, releases), key=lambda x: x.version, reverse=True)
 
     def get_release(self, name: str = "latest"):
         """Get a specific release for this dataset
@@ -433,9 +415,7 @@ class RemoteDataset:
         )
 
     def classes(
-        self,
-        annotation_type: str,
-        release_name: Optional[str] = None,
+        self, annotation_type: str, release_name: Optional[str] = None
     ):
         """
         Returns the list of `class_type` classes
@@ -458,11 +438,7 @@ class RemoteDataset:
             release = self.get_release("latest")
             release_name = release.name
 
-        return get_classes(
-            self.local_path,
-            release_name=release_name,
-            annotation_type=annotation_type
-        )
+        return get_classes(self.local_path, release_name=release_name, annotation_type=annotation_type)
 
     def annotations(
         self,

@@ -3,16 +3,16 @@ import json
 import multiprocessing as mp
 import os
 import sys
+import warnings
 from collections import defaultdict
 from pathlib import Path
 from typing import Generator, Iterable, List, Optional, Union
-import warnings
 
 import numpy as np
 from tqdm import tqdm
 
-from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS
 from darwin.exceptions import NotFound
+from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS
 
 
 def get_release_path(dataset_path: Path, release_name: Optional[str] = None):
@@ -38,8 +38,11 @@ def get_release_path(dataset_path: Path, release_name: Optional[str] = None):
     releases_dir = dataset_path / "releases"
 
     if not releases_dir.exists() and (dataset_path / "annotations").exists():
-        warnings.warn("darwin-py has adopted a new folder structure and the old structure will be depecrated. "
-                      f"Migrate this dataset by running: 'darwin dataset migrate {dataset_path.name}", DeprecationWarning)
+        warnings.warn(
+            "darwin-py has adopted a new folder structure and the old structure will be depecrated. "
+            f"Migrate this dataset by running: 'darwin dataset migrate {dataset_path.name}",
+            DeprecationWarning,
+        )
         return dataset_path
 
     release_path = releases_dir / release_name
@@ -130,7 +133,7 @@ def get_classes(
     dataset_path: Path,
     release_name: Optional[str] = None,
     annotation_type: str = "polygon",
-    remove_background: bool = True
+    remove_background: bool = True,
 ):
     """
     Given a dataset and an annotation_type returns the list of classes
@@ -264,7 +267,7 @@ def _stratify_samples(idx_to_classes, split_seed, test_percentage, val_percentag
         *train_test_split(
             np.array(file_indices),
             np.array(labels),
-            test_size=int((val_percentage + test_percentage) * 100) / 100,
+            test_size=(val_percentage + test_percentage) / 100.0,
             random_state=split_seed,
             stratify=labels,
         )
@@ -279,7 +282,7 @@ def _stratify_samples(idx_to_classes, split_seed, test_percentage, val_percentag
         *train_test_split(
             X_tmp,
             y_tmp,
-            test_size=(test_percentage * 100 / (val_percentage + test_percentage)) / 100,
+            test_size=(test_percentage / (val_percentage + test_percentage)),
             random_state=split_seed,
             stratify=y_tmp,
         )
@@ -298,8 +301,8 @@ def _stratify_samples(idx_to_classes, split_seed, test_percentage, val_percentag
 def split_dataset(
     dataset_path: Union[Path, str],
     release_name: Optional[str] = None,
-    val_percentage: Optional[float] = 0.1,
-    test_percentage: Optional[float] = 0.2,
+    val_percentage: Optional[float] = 10,
+    test_percentage: Optional[float] = 20,
     split_seed: Optional[int] = 0,
     make_default_split: Optional[bool] = True,
     add_stratified_split: Optional[bool] = True,
@@ -344,20 +347,18 @@ def split_dataset(
     lists_path.mkdir(parents=True, exist_ok=True)
 
     # Create split id, path and final split paths
-    if val_percentage is None or not 0 < val_percentage < 1.0:
-        raise ValueError(
-            f"Invalid validation percentage ({val_percentage}). " f"Must be > 0 and < 1.0"
-        )
-    if test_percentage is None or not 0 <= test_percentage < 1.0:
-        raise ValueError(f"Invalid test percentage ({test_percentage}). " f"Must be > 0 and < 1.0")
-    if not val_percentage + test_percentage < 1.0:
+    if val_percentage is None or not 0 <= val_percentage < 100:
+        raise ValueError(f"Invalid validation percentage ({val_percentage}). " f"Must be >= 0 and < 100")
+    if test_percentage is None or not 0 <= test_percentage < 100:
+        raise ValueError(f"Invalid test percentage ({test_percentage}). " f"Must be >= 0 and < 100")
+    if not 1 <= val_percentage + test_percentage < 100:
         raise ValueError(
             f"Invalid combination of validation ({val_percentage}) "
-            f"and test ({test_percentage}) percentages. Their sum must be < 1.0"
+            f"and test ({test_percentage}) percentages. Their sum must be > 1 and < 100"
         )
     if split_seed is None:
         raise ValueError("Seed is None")
-    split_id = f"split_v{int(val_percentage*100)}_t{int(test_percentage*100)}"
+    split_id = f"split_v{int(val_percentage)}_t{int(test_percentage)}"
     if split_seed != 0:
         split_id += f"_s{split_seed}"
     split_path = lists_path / split_id
@@ -393,14 +394,14 @@ def split_dataset(
         # RANDOM SPLIT
         # Compute split sizes
         dataset_size = sum(1 for _ in annotation_files)
-        val_size = int(dataset_size * val_percentage)
-        test_size = int(dataset_size * test_percentage)
+        val_size = int(dataset_size * (val_percentage / 100.))
+        test_size = int(dataset_size * (test_percentage / 100.))
         train_size = dataset_size - val_size - test_size
         # Slice a permuted array as big as the dataset
         np.random.seed(split_seed)
         indices = np.random.permutation(dataset_size)
         train_indices = list(indices[:train_size])
-        val_indices = list(indices[train_size:train_size + val_size])
+        val_indices = list(indices[train_size: train_size + val_size])
         test_indices = list(indices[train_size + val_size:])
         # Write files
         _write_to_file(annotation_files, splits["random"]["train"], train_indices)
@@ -510,6 +511,7 @@ def get_coco_format_record(
     assert annotation_type in ["tag", "polygon", "bounding_box"]
     try:
         from detectron2.structures import BoxMode
+
         box_mode = BoxMode.XYXY_ABS
     except ImportError:
         box_mode = 0
@@ -630,7 +632,7 @@ def get_annotations(
         else:
             raise FileNotFoundError(
                 f"Could not find a dataset partition. ",
-                f"To split the dataset you can use 'split_dataset' from darwin.dataset.utils"
+                f"To split the dataset you can use 'split_dataset' from darwin.dataset.utils",
             )
     else:
         # If the split is not specified, get all the annotations
@@ -648,21 +650,15 @@ def get_annotations(
             if image_path.exists():
                 images.append(image_path)
         if len(images) < 1:
-            raise ValueError(
-                f"Annotation ({annotation_path}) does not have a corresponding image"
-            )
+            raise ValueError(f"Annotation ({annotation_path}) does not have a corresponding image")
         if len(images) > 1:
-            raise ValueError(
-                f"Image ({stem}) is present with multiple extensions. This is forbidden."
-            )
+            raise ValueError(f"Image ({stem}) is present with multiple extensions. This is forbidden.")
         assert len(images) == 1
         images_paths.append(images[0])
         annotations_paths.append(annotation_path)
 
     if len(images_paths) == 0:
-        raise ValueError(
-            f"Could not find any {SUPPORTED_IMAGE_EXTENSIONS} file" f" in {dataset_path / 'images'}"
-        )
+        raise ValueError(f"Could not find any {SUPPORTED_IMAGE_EXTENSIONS} file" f" in {dataset_path / 'images'}")
 
     assert len(images_paths) == len(annotations_paths)
 

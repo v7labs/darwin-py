@@ -2,9 +2,7 @@ from typing import Optional
 
 
 class DatasetIdentifier:
-    def __init__(
-        self, dataset_slug: str, team_slug: Optional[str] = None, version: Optional[str] = None
-    ):
+    def __init__(self, dataset_slug: str, team_slug: Optional[str] = None, version: Optional[str] = None):
         self.dataset_slug = dataset_slug
         self.team_slug = team_slug
         self.version = version
