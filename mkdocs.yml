@@ -1,0 +1,9 @@
+site_name: Darwin-py docs
+
+theme:
+  name: readthedocs
+  highlightjs: true
+  hljs_languages:
+    - sh
+    - bash
+    - python
