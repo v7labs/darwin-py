@@ -29,9 +29,7 @@ def run(args, parser):
         api_key = getpass.getpass(prompt="API key: ", stream=None)
         api_key = api_key.strip()
         if api_key == "":
-            print(
-                "API Key needed, generate one for your team: https://darwin.v7labs.com/?settings=api-keys"
-            )
+            print("API Key needed, generate one for your team: https://darwin.v7labs.com/?settings=api-keys")
             return
         f.authenticate(api_key)
         print("Authentication succeeded.")
@@ -45,7 +43,7 @@ def run(args, parser):
             f.list_teams()
     # Version
     elif args.command == "version":
-        print("0.4.2")
+        print("0.5")
 
     elif args.command == "convert":
         f.convert(args.format, args.files, args.output_dir)

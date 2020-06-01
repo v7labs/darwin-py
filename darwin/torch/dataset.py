@@ -4,13 +4,9 @@ from typing import Collection, List, Optional, Union
 
 import numpy as np
 
-from darwin.torch.transforms import (
-    Compose,
-    ConvertPolygonsToInstanceMasks,
-    ConvertPolygonsToSegmentationMask,
-)
-from darwin.torch.utils import convert_polygons_to_sequences, load_pil_image, polygon_area
 from darwin.dataset import LocalDataset
+from darwin.torch.transforms import Compose, ConvertPolygonsToInstanceMasks, ConvertPolygonsToSegmentationMask
+from darwin.torch.utils import convert_polygons_to_sequences, load_pil_image, polygon_area
 
 
 def get_dataset(
@@ -20,7 +16,7 @@ def get_dataset(
     split: str = "default",
     split_type: str = "random",
     release_name: Optional[str] = None,
-    transform: Optional[List] = None
+    transform: Optional[List] = None,
 ):
     """ Creates and returns a dataset
 
@@ -87,9 +83,7 @@ class DarwinDataset(LocalDataset):
                 results = pool.map(self._return_mean, self.images_path)
                 mean = np.sum(np.array(results), axis=0) / len(self.images_path)
                 # Online image_classification deviation
-                results = pool.starmap(
-                    self._return_std, [[item, mean] for item in self.images_path]
-                )
+                results = pool.starmap(self._return_std, [[item, mean] for item in self.images_path])
                 std_sum = np.sum(np.array([item[0] for item in results]), axis=0)
                 total_pixel_count = np.sum(np.array([item[1] for item in results]))
                 std = np.sqrt(std_sum / total_pixel_count)
@@ -151,17 +145,13 @@ class DarwinDataset(LocalDataset):
     @staticmethod
     def _return_std(image_path, mean):
         img = np.array(load_pil_image(image_path)) / 255.0
-        m2 = np.square(
-            np.array([img[:, :, 0] - mean[0], img[:, :, 1] - mean[1], img[:, :, 2] - mean[2]])
-        )
+        m2 = np.square(np.array([img[:, :, 0] - mean[0], img[:, :, 1] - mean[1], img[:, :, 2] - mean[2]]))
         return np.sum(np.sum(m2, axis=1), 1), m2.size / 3.0
 
 
 class ClassificationDataset(DarwinDataset):
     def __init__(
-        self,
-        transform: Optional[List] = None,
-        **kwargs,
+        self, transform: Optional[List] = None, **kwargs,
     ):
         """See class `LocalDataset` for documentation"""
         super().__init__(annotation_type="tag", **kwargs)
@@ -192,8 +182,7 @@ class ClassificationDataset(DarwinDataset):
         tags = [self.classes.index(a["name"]) for a in annotations if "tag" in a]
         if len(tags) > 1:
             raise ValueError(
-                f"Multiple tags defined for this image ({tags}). "
-                f"This is not valid in a classification dataset."
+                f"Multiple tags defined for this image ({tags}). " f"This is not valid in a classification dataset."
             )
         if len(tags) == 0:
             raise ValueError(
@@ -224,10 +213,7 @@ class ClassificationDataset(DarwinDataset):
 
 class InstanceSegmentationDataset(DarwinDataset):
     def __init__(
-        self,
-        transform: Optional[List] = None,
-        convert_polygons_to_masks: Optional[bool] = True,
-        **kwargs,
+        self, transform: Optional[List] = None, convert_polygons_to_masks: Optional[bool] = True, **kwargs,
     ):
         """See `LocalDataset` class for documentation"""
         super().__init__(annotation_type="polygon", **kwargs)
@@ -236,9 +222,7 @@ class InstanceSegmentationDataset(DarwinDataset):
         if self.transform is not None and isinstance(self.transform, list):
             self.transform = Compose(self.transform)
 
-        self.convert_polygons = (
-            ConvertPolygonsToInstanceMasks() if convert_polygons_to_masks else None
-        )
+        self.convert_polygons = ConvertPolygonsToInstanceMasks() if convert_polygons_to_masks else None
 
     def __getitem__(self, index: int):
         """
@@ -285,9 +269,7 @@ class InstanceSegmentationDataset(DarwinDataset):
             h = max_y - min_y + 1
             bbox_area = w * h
             # Compute the area of the polygon
-            poly_area = np.sum(
-                [polygon_area(x_coord, y_coord) for x_coord, y_coord in zip(x_coords, y_coords)]
-            )
+            poly_area = np.sum([polygon_area(x_coord, y_coord) for x_coord, y_coord in zip(x_coords, y_coords)])
             assert poly_area <= bbox_area
 
             # Create and append the new entry for this annotation
@@ -328,10 +310,7 @@ class InstanceSegmentationDataset(DarwinDataset):
 
 class SemanticSegmentationDataset(DarwinDataset):
     def __init__(
-        self,
-        transform: Optional[List] = None,
-        convert_polygons_to_masks: Optional[bool] = True,
-        **kwargs,
+        self, transform: Optional[List] = None, convert_polygons_to_masks: Optional[bool] = True, **kwargs,
     ):
         """See `LocalDataset` class for documentation"""
         super().__init__(annotation_type="polygon", **kwargs)
@@ -340,9 +319,7 @@ class SemanticSegmentationDataset(DarwinDataset):
         if self.transform is not None and isinstance(self.transform, list):
             self.transform = Compose(self.transform)
 
-        self.convert_polygons = (
-            ConvertPolygonsToSegmentationMask() if convert_polygons_to_masks else None
-        )
+        self.convert_polygons = ConvertPolygonsToSegmentationMask() if convert_polygons_to_masks else None
 
     def __getitem__(self, index: int):
         """See superclass for documentation
@@ -370,10 +347,7 @@ class SemanticSegmentationDataset(DarwinDataset):
             if not sequences:
                 continue
             annotations.append(
-                {
-                    "category_id": self.classes.index(obj["name"]),
-                    "segmentation": np.array(sequences),
-                }
+                {"category_id": self.classes.index(obj["name"]), "segmentation": np.array(sequences),}
             )
         target["annotations"] = annotations
 
