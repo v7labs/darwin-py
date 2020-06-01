@@ -50,10 +50,7 @@ class Table(object):
         if len(self) == 0:
             return ""
 
-        column_sizes = [
-            len(max(self.table[column] + [column], key=len)) + self.column_margin
-            for column in self.table
-        ]
+        column_sizes = [len(max(self.table[column] + [column], key=len)) + self.column_margin for column in self.table]
         rows = [self._build_header(column_sizes)]
         for values in zip(*self.table.values()):
             row = {key: value for key, value in zip(self.table.keys(), values)}
