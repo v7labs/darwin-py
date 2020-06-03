@@ -1,6 +1,6 @@
 # Library
 
-A central concept to `darwin-py` is the client object. It is authenticated with an api key and then used to create Dataset Object (high level access) or diretly communicate with Darwin (low level access). 
+A central concept to `darwin-py` is the client object. It is authenticated with an API key and then used to create a Dataset Object (high level access) or diretly communicate with Darwin (low level access). 
 
 Simple example
 ```python
