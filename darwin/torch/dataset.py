@@ -5,11 +5,7 @@ import numpy as np
 
 from darwin.dataset import LocalDataset
 from darwin.dataset.utils import load_pil_image
-from darwin.torch.transforms import (
-    Compose,
-    ConvertPolygonsToInstanceMasks,
-    ConvertPolygonsToSegmentationMask,
-)
+from darwin.torch.transforms import Compose, ConvertPolygonsToInstanceMasks, ConvertPolygonsToSegmentationMask
 from darwin.torch.utils import convert_polygons_to_sequences, polygon_area
 
 
@@ -97,8 +93,7 @@ class ClassificationDataset(LocalDataset):
         tags = [self.classes.index(a["name"]) for a in annotations if "tag" in a]
         if len(tags) > 1:
             raise ValueError(
-                f"Multiple tags defined for this image ({tags}). "
-                f"This is not valid in a classification dataset."
+                f"Multiple tags defined for this image ({tags}). " f"This is not valid in a classification dataset."
             )
         if len(tags) == 0:
             raise ValueError(
@@ -129,10 +124,7 @@ class ClassificationDataset(LocalDataset):
 
 class InstanceSegmentationDataset(LocalDataset):
     def __init__(
-        self,
-        transform: Optional[List] = None,
-        convert_polygons_to_masks: Optional[bool] = True,
-        **kwargs,
+        self, transform: Optional[List] = None, convert_polygons_to_masks: Optional[bool] = True, **kwargs,
     ):
         """See `LocalDataset` class for documentation"""
         super().__init__(annotation_type="polygon", **kwargs)
@@ -141,9 +133,7 @@ class InstanceSegmentationDataset(LocalDataset):
         if self.transform is not None and isinstance(self.transform, list):
             self.transform = Compose(self.transform)
 
-        self.convert_polygons = (
-            ConvertPolygonsToInstanceMasks() if convert_polygons_to_masks else None
-        )
+        self.convert_polygons = ConvertPolygonsToInstanceMasks() if convert_polygons_to_masks else None
 
     def __getitem__(self, index: int):
         """
@@ -190,9 +180,7 @@ class InstanceSegmentationDataset(LocalDataset):
             h = max_y - min_y + 1
             bbox_area = w * h
             # Compute the area of the polygon
-            poly_area = np.sum(
-                [polygon_area(x_coord, y_coord) for x_coord, y_coord in zip(x_coords, y_coords)]
-            )
+            poly_area = np.sum([polygon_area(x_coord, y_coord) for x_coord, y_coord in zip(x_coords, y_coords)])
             assert poly_area <= bbox_area
 
             # Create and append the new entry for this annotation
@@ -233,10 +221,7 @@ class InstanceSegmentationDataset(LocalDataset):
 
 class SemanticSegmentationDataset(LocalDataset):
     def __init__(
-        self,
-        transform: Optional[List] = None,
-        convert_polygons_to_masks: Optional[bool] = True,
-        **kwargs,
+        self, transform: Optional[List] = None, convert_polygons_to_masks: Optional[bool] = True, **kwargs,
     ):
         """See `LocalDataset` class for documentation"""
         super().__init__(annotation_type="polygon", **kwargs)
@@ -245,9 +230,7 @@ class SemanticSegmentationDataset(LocalDataset):
         if self.transform is not None and isinstance(self.transform, list):
             self.transform = Compose(self.transform)
 
-        self.convert_polygons = (
-            ConvertPolygonsToSegmentationMask() if convert_polygons_to_masks else None
-        )
+        self.convert_polygons = ConvertPolygonsToSegmentationMask() if convert_polygons_to_masks else None
 
     def __getitem__(self, index: int):
         """See superclass for documentation
@@ -275,10 +258,7 @@ class SemanticSegmentationDataset(LocalDataset):
             if not sequences:
                 continue
             annotations.append(
-                {
-                    "category_id": self.classes.index(obj["name"]),
-                    "segmentation": np.array(sequences),
-                }
+                {"category_id": self.classes.index(obj["name"]), "segmentation": np.array(sequences)}
             )
         target["annotations"] = annotations
 

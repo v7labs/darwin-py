@@ -18,9 +18,7 @@ if TYPE_CHECKING:
     from darwin.client import Client
 
 
-def add_files_to_dataset(
-    client: "Client", dataset_id: str, filenames: List[Path], team: str, fps: Optional[int] = 1
-):
+def add_files_to_dataset(client: "Client", dataset_id: str, filenames: List[Path], team: str, fps: Optional[int] = 1):
     """Helper function: upload images to an existing remote dataset
 
     Parameters
@@ -194,9 +192,7 @@ def _delayed_upload_function(
     file_path = _resolve_path(file["original_filename"], files_path)
     s3_response = upload_file_to_s3(client, file, file_path, team)
     image_id = file["id"]
-    backend_response = client.put(
-        endpoint=f"/{endpoint_prefix}/{image_id}/confirm_upload", payload={}, team=team
-    )
+    backend_response = client.put(endpoint=f"/{endpoint_prefix}/{image_id}/confirm_upload", payload={}, team=team)
     return {
         "file_path": file_path,
         "image_id": image_id,
@@ -205,9 +201,7 @@ def _delayed_upload_function(
     }
 
 
-def upload_file_to_s3(
-    client: "Client", file: Dict[str, Any], file_path: Path, team: str
-) -> requests.Response:
+def upload_file_to_s3(client: "Client", file: Dict[str, Any], file_path: Path, team: str) -> requests.Response:
     """Helper function: upload data to AWS S3
 
     Parameters
@@ -338,15 +332,8 @@ def upload_annotations(
                         new_class = create_new_class(
                             client=client,
                             team=team,
-                            annotation_type_ids=[
-                                "3"
-                            ],  # TODO maybe in the future allow to use polygons and BB as well
-                            cropped_image={
-                                "image_id": image_dataset_id,
-                                "scale": 0.01,
-                                "x": "0",
-                                "y": "0",
-                            },
+                            annotation_type_ids=["3"],  # TODO maybe in the future allow to use polygons and BB as well
+                            cropped_image={"image_id": image_dataset_id, "scale": 0.01, "x": "0", "y": "0",},
                             dataset_id=dataset_id,
                             description="",
                             expected_occurrences=[0, 1],
@@ -356,8 +343,7 @@ def upload_annotations(
                         class_mapping[new_class["name"]] = new_class["id"]
                     else:
                         raise ValueError(
-                            "Dataset ID is None and a class is missing on Darwin"
-                            " (or in the provided mapping)."
+                            "Dataset ID is None and a class is missing on Darwin" " (or in the provided mapping)."
                         )
 
     # For each annotation found in the folder send out a request
@@ -385,9 +371,7 @@ def upload_annotations(
         for element in files_to_upload
     )
 
-    responses = exhaust_generator(
-        progress=generator, count=len(files_to_upload), multi_threaded=multi_threaded
-    )
+    responses = exhaust_generator(progress=generator, count=len(files_to_upload), multi_threaded=multi_threaded)
     # Log responses to file
     if responses:
         components_labels = ["payload", "response"]
@@ -403,12 +387,7 @@ def upload_annotations(
 
 
 def _upload_annotation(
-    class_mapping: Dict,
-    client: "Client",
-    team: str,
-    data: Dict,
-    image_dataset_id: int,
-    output_file_path: Path,
+    class_mapping: Dict, client: "Client", team: str, data: Dict, image_dataset_id: int, output_file_path: Path,
 ):
     """
 
@@ -441,9 +420,7 @@ def _upload_annotation(
 
         # If the class is missing, create a new class on Darwin and update the mapping
         if not annotation["name"] in class_mapping:
-            raise ValueError(
-                f"Class {annotation['name']} is missing " f"in provided mapping {class_mapping}"
-            )
+            raise ValueError(f"Class {annotation['name']} is missing " f"in provided mapping {class_mapping}")
 
         # Replace the class names with class id as provided by the mapping
         class_id = class_mapping[annotation["name"]]

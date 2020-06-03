@@ -5,7 +5,7 @@ from typing import Callable, Generator, List, Union
 import darwin.datatypes as dt
 
 
-def _parse_darwin_json(path: Path):
+def _parse_darwin_json(path: Path, count: int):
     with path.open() as f:
         data = json.load(f)
         if not data["annotations"]:
@@ -22,6 +22,7 @@ def _parse_darwin_json(path: Path):
             data["image"]["height"],
             data["image"]["url"],
             data["image"].get("workview_url"),
+            data["image"].get("seq", count),
         )
 
 
@@ -33,7 +34,7 @@ def _parse_darwin_annotation(annotation):
     elif "bounding_box" in annotation:
         bounding_box = annotation["bounding_box"]
         main_annotation = dt.make_bounding_box(
-            name, bounding_box["x"], bounding_box["y"], bounding_box["w"], bounding_box["h"]
+            name, bounding_box["x"], bounding_box["y"], bounding_box["w"], bounding_box["h"],
         )
     elif "tag" in annotation:
         main_annotation = dt.make_tag(name)
@@ -56,14 +57,16 @@ def _parse_darwin_annotation(annotation):
 
 
 def darwin_to_dt_gen(file_paths):
+    count = 0
     for file_path in map(Path, file_paths):
         files = file_path.glob("**/*") if file_path.is_dir() else [file_path]
         for f in files:
             if f.suffix != ".json":
                 continue
-            data = _parse_darwin_json(f)
+            data = _parse_darwin_json(f, count)
             if data:
                 yield data
+            count += 1
 
 
 def export_annotations(

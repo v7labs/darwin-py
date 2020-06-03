@@ -99,9 +99,7 @@ class Config(object):
         api_key = self.get(f"teams/{team}/api_key")
         if api_key is None:
             raise InvalidTeam()
-        default = (
-            self.get("global/default_team") == team or len(list(self.get("teams").keys())) == 1
-        )
+        default = self.get("global/default_team") == team or len(list(self.get("teams").keys())) == 1
 
         datasets_dir = self.get(f"teams/{team}/datasets_dir")
         return {"slug": team, "api_key": api_key, "default": default, "datasets_dir": datasets_dir}

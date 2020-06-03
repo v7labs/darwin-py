@@ -45,10 +45,7 @@ def calculate_categories(annotation_files: List[dt.AnnotationFile]):
     categories = {}
     for annotation_file in annotation_files:
         for annotation_class in annotation_file.annotation_classes:
-            if (
-                annotation_class.name not in categories
-                and annotation_class.annotation_type == "polygon"
-            ):
+            if annotation_class.name not in categories and annotation_class.annotation_type == "polygon":
                 categories[annotation_class.name] = len(categories)
     return categories
 
@@ -57,10 +54,7 @@ def calculate_tag_categories(annotation_files: List[dt.AnnotationFile]):
     categories = {}
     for annotation_file in annotation_files:
         for annotation_class in annotation_file.annotation_classes:
-            if (
-                annotation_class.name not in categories
-                and annotation_class.annotation_type == "tag"
-            ):
+            if annotation_class.name not in categories and annotation_class.annotation_type == "tag":
                 categories[annotation_class.name] = len(categories)
     return categories
 
@@ -84,16 +78,14 @@ def build_licenses():
 
 def build_images(annotation_files, tag_categories):
     return [
-        build_image(id, annotation_file, tag_categories)
-        for id, annotation_file in enumerate(annotation_files)
+        build_image(annotation_file, tag_categories)
+        for annotation_file in sorted(annotation_files, key=lambda x: x.seq)
     ]
 
 
-def build_image(id, annotation_file, tag_categories):
+def build_image(annotation_file, tag_categories):
     tags = [
-        annotation
-        for annotation in annotation_file.annotations
-        if annotation.annotation_class.annotation_type == "tag"
+        annotation for annotation in annotation_file.annotations if annotation.annotation_class.annotation_type == "tag"
     ]
     return {
         "license": 0,
@@ -105,17 +97,17 @@ def build_image(id, annotation_file, tag_categories):
         "flickr_url": "n/a",
         "darwin_url": annotation_file.image_url,
         "darwin_workview_url": annotation_file.workview_url,
-        "id": id,
+        "id": annotation_file.seq,
         "tag_ids": [tag_categories[tag.annotation_class.name] for tag in tags],
     }
 
 
 def build_annotations(annotation_files, categories):
     annotation_id = 0
-    for (image_id, annotation_file) in enumerate(annotation_files):
+    for annotation_file in annotation_files:
         for annotation in annotation_file.annotations:
             annotation_id += 1
-            annotation_data = build_annotation(image_id, annotation_id, annotation, categories)
+            annotation_data = build_annotation(annotation_file.seq, annotation_id, annotation, categories)
             if annotation_data:
                 yield annotation_data
 
@@ -133,9 +125,7 @@ def build_annotation(image_id, annotation_id, annotation: dt.Annotation, categor
         w = max_x - min_x + 1
         h = max_y - min_y + 1
         # Compute the area of the polygon
-        poly_area = np.sum(
-            [polygon_area(x_coord, y_coord) for x_coord, y_coord in zip(x_coords, y_coords)]
-        )
+        poly_area = np.sum([polygon_area(x_coord, y_coord) for x_coord, y_coord in zip(x_coords, y_coords)])
 
         return {
             "id": annotation_id,

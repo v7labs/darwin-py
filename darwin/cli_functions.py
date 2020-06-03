@@ -15,14 +15,7 @@ from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset.identifier import DatasetIdentifier
 from darwin.dataset.utils import get_release_path, split_dataset
-from darwin.exceptions import (
-    InvalidLogin,
-    MissingConfig,
-    NameTaken,
-    NotFound,
-    Unauthenticated,
-    ValidationError,
-)
+from darwin.exceptions import InvalidLogin, MissingConfig, NameTaken, NotFound, Unauthenticated, ValidationError
 from darwin.table import Table
 from darwin.utils import find_files, persist_client_configuration, prompt, secure_continue_request
 
@@ -40,9 +33,7 @@ def validate_api_key(api_key: str):
         _error(f"Expected key prefix to be 7 characters long\n(example: {example_key})")
 
 
-def authenticate(
-    api_key: str, default_team: Optional[bool] = None, datasets_dir: Optional[Path] = None
-) -> Config:
+def authenticate(api_key: str, default_team: Optional[bool] = None, datasets_dir: Optional[Path] = None) -> Config:
     """Authenticate the API key against the server and creates a configuration file for it
 
     Parameters
@@ -139,12 +130,8 @@ def local(team: Optional[str] = None):
             {
                 "name": f"{dataset_path.parent.name}/{dataset_path.name}",
                 "images": sum(1 for _ in find_files([dataset_path])),
-                "sync_date": humanize.naturaldate(
-                    datetime.datetime.fromtimestamp(dataset_path.stat().st_mtime)
-                ),
-                "size": humanize.naturalsize(
-                    sum(p.stat().st_size for p in find_files([dataset_path]))
-                ),
+                "sync_date": humanize.naturaldate(datetime.datetime.fromtimestamp(dataset_path.stat().st_mtime)),
+                "size": humanize.naturalsize(sum(p.stat().st_size for p in find_files([dataset_path]))),
             }
         )
     # List deprecated datasets
@@ -155,12 +142,8 @@ def local(team: Optional[str] = None):
                 {
                     "name": dataset_path.name + " (deprecated format)",
                     "images": sum(1 for _ in find_files([dataset_path])),
-                    "sync_date": humanize.naturaldate(
-                        datetime.datetime.fromtimestamp(dataset_path.stat().st_mtime)
-                    ),
-                    "size": humanize.naturalsize(
-                        sum(p.stat().st_size for p in find_files([dataset_path]))
-                    ),
+                    "sync_date": humanize.naturaldate(datetime.datetime.fromtimestamp(dataset_path.stat().st_mtime)),
+                    "size": humanize.naturalsize(sum(p.stat().st_size for p in find_files([dataset_path]))),
                 }
             )
 
@@ -186,7 +169,7 @@ def path(dataset_slug: str) -> Path:
     for p in client.list_deprecated_local_datasets(team=identifier.team_slug):
         if identifier.dataset_slug == p.name:
             _error(
-                f"found a local version of the dataset {identifier.dataset_slug} which uses a deprecated format. "
+                f"Found a local version of the dataset {identifier.dataset_slug} which uses a deprecated format. "
                 f"Run `darwin dataset migrate {identifier}` if you want to be able to use it in darwin-py."
                 f"\n{p} (deprecated format)"
             )
@@ -219,9 +202,7 @@ def dataset_report(dataset_slug: str, granularity) -> Path:
         _error(f"Dataset '{dataset_slug}' does not exist.")
 
 
-def export_dataset(
-    dataset_slug: str, annotation_class_ids: Optional[List] = None, name: Optional[str] = None
-):
+def export_dataset(dataset_slug: str, annotation_class_ids: Optional[List] = None, name: Optional[str] = None):
     """Create a new release for the dataset
 
     Parameters
@@ -255,7 +236,7 @@ def pull_dataset(dataset_slug: str):
         dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
     except NotFound:
         _error(
-            f"dataset '{dataset_slug}' does not exist at {client.url}. "
+            f"Dataset '{dataset_slug}' does not exist at {client.url}. "
             f"Use 'darwin remote' to list all the remote datasets."
         )
     except Unauthenticated:
@@ -280,7 +261,16 @@ def migrate_dataset(dataset_slug: str):
         Slug of the dataset to which we perform the operation on
     """
     identifier = DatasetIdentifier.parse(dataset_slug)
+    if not identifier.team_slug:
+        _error("Team name missing.\nUsage: darwin dataset migrate <team-name>/<dataset-name>")
+
     client = _load_client(offline=True)
+    authenticated_teams = [e["slug"] for e in client.config.get_all_teams()]
+    if identifier.team_slug not in authenticated_teams:
+        _error(
+            f"Could not find '{identifier.team_slug}' in the authenticated teams. "
+            "Run 'darwin authenticate' to authenticate it."
+        )
 
     for p in client.list_local_datasets(team=identifier.team_slug):
         if identifier.dataset_slug == p.name:
@@ -293,7 +283,7 @@ def migrate_dataset(dataset_slug: str):
             old_path = p
     if not old_path:
         _error(
-            f"could not find a deprecated local version of the dataset '{dataset_slug}'. "
+            f"Could not find a deprecated local version of the dataset '{dataset_slug}'. "
             f"Use 'darwin dataset pull {dataset_slug}' to pull the latest version from darwin."
         )
 
@@ -339,20 +329,25 @@ def split(
 
     for p in client.list_local_datasets(team=identifier.team_slug):
         if identifier.dataset_slug == p.name:
-            split_path = split_dataset(
-                dataset_path=p,
-                release_name=identifier.version,
-                val_percentage=val_percentage,
-                test_percentage=test_percentage,
-                split_seed=seed,
-            )
-            print(f"Partition lists saved at {split_path}")
-            return
+            try:
+                split_path = split_dataset(
+                    dataset_path=p,
+                    release_name=identifier.version,
+                    val_percentage=val_percentage,
+                    test_percentage=test_percentage,
+                    split_seed=seed,
+                )
+                print(f"Partition lists saved at {split_path}")
+                return
+            except NotFound as e:
+                _error(e.name)
+            except ValueError as e:
+                _error(e.args[0])
 
     for p in client.list_deprecated_local_datasets(team=identifier.team_slug):
         if identifier.dataset_slug == p.name:
             _error(
-                f"found a local version of the dataset {identifier.dataset_slug} which uses a deprecated format. "
+                f"Found a local version of the dataset {identifier.dataset_slug} which uses a deprecated format. "
                 f"Run `darwin dataset migrate {identifier}` if you want to be able to use it in darwin-py."
             )
 
@@ -413,9 +408,7 @@ def dataset_list_releases(dataset_slug: str):
         if len(releases) == 0:
             print("No available releases, export one first.")
             return
-        table = Table(
-            ["name", "images", "classes", "export_date"], [Table.L, Table.R, Table.R, Table.R]
-        )
+        table = Table(["name", "images", "classes", "export_date"], [Table.L, Table.R, Table.R, Table.R])
         for release in releases:
             if not release.available:
                 continue
@@ -432,9 +425,7 @@ def dataset_list_releases(dataset_slug: str):
         _error(f"No dataset with name '{dataset_slug}'")
 
 
-def upload_data(
-    dataset_slug: str, files: Optional[List[str]], files_to_exclude: Optional[List[str]], fps: int
-):
+def upload_data(dataset_slug: str, files: Optional[List[str]], files_to_exclude: Optional[List[str]], fps: int):
     """Uploads the files provided as parameter to the remote dataset selected
 
     Parameters
@@ -519,9 +510,7 @@ def help(parser, subparser: Optional[str] = None):
             if isinstance(action, argparse._SubParsersAction) and subparser in action.choices
         )
 
-    actions = [
-        action for action in parser._actions if isinstance(action, argparse._SubParsersAction)
-    ]
+    actions = [action for action in parser._actions if isinstance(action, argparse._SubParsersAction)]
 
     print(parser.description)
     print("\nCommands:")

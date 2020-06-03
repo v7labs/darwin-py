@@ -87,9 +87,7 @@ def prompt(msg: str, default: Optional[str] = None) -> str:
 
 
 def find_files(
-    files: List[Union[str, Path]] = [],
-    recursive: bool = True,
-    files_to_exclude: List[Union[str, Path]] = [],
+    files: List[Union[str, Path]] = [], recursive: bool = True, files_to_exclude: List[Union[str, Path]] = [],
 ) -> List[Path]:
     """Retrieve a list of all files belonging to supported extensions. The exploration can be made
     recursive and a list of files can be excluded if desired.
@@ -121,9 +119,7 @@ def find_files(
 
     # Filter the list and return it
     files_to_exclude = set(files_to_exclude)
-    return [
-        f for f in found_files if f.name not in files_to_exclude and str(f) not in files_to_exclude
-    ]
+    return [f for f in found_files if f.name not in files_to_exclude and str(f) not in files_to_exclude]
 
 
 def secure_continue_request() -> bool:
@@ -155,9 +151,7 @@ def persist_client_configuration(
     team_config = client.config.get_default_team()
     config = Config(config_path)
     config.set_team(
-        team=team_config["slug"],
-        api_key=team_config["api_key"],
-        datasets_dir=team_config["datasets_dir"],
+        team=team_config["slug"], api_key=team_config["api_key"], datasets_dir=team_config["datasets_dir"],
     )
     config.set_global(api_endpoint=client.url, base_url=client.base_url, default_team=default_team)
 

@@ -97,9 +97,6 @@ def build_label_lookup(annotation_files):
     labels = {}
     for annotation_file in annotation_files:
         for annotation_class in annotation_file.annotation_classes:
-            if (
-                annotation_class.name not in labels
-                and annotation_class.annotation_type == "bounding_box"
-            ):
+            if annotation_class.name not in labels and annotation_class.annotation_type == "bounding_box":
                 labels[annotation_class.name] = len(labels)
     return labels
