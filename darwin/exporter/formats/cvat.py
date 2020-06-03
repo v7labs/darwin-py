@@ -34,6 +34,9 @@ def build_images(root, annotation_files, label_lookup):
         image = ET.SubElement(root, "image")
         image.attrib["id"] = str(id)
         image.attrib["name"] = annotation_file.filename
+        image.attrib["width"] = str(annotation_file.image_width)
+        image.attrib["height"] = str(annotation_file.image_height)
+
         for annotation in annotation_file.annotations:
             build_annotation(image, annotation)
 
@@ -64,8 +67,8 @@ def build_meta(root, annotation_files, label_lookup):
     add_subelement_text(task, "overlapp", 0)
     add_subelement_text(task, "bugtracker", None)
     add_subelement_text(task, "flipped", False)
-    add_subelement_text(meta, "created", str(datetime.now()))
-    add_subelement_text(meta, "updated", str(datetime.now()))
+    add_subelement_text(task, "created", str(datetime.now()))
+    add_subelement_text(task, "updated", str(datetime.now()))
 
     labels = ET.SubElement(task, "labels")
     build_labels(labels, label_lookup)
