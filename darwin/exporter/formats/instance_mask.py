@@ -1,3 +1,4 @@
+import shutil
 import uuid
 from pathlib import Path
 from typing import Generator, List, Optional
@@ -19,7 +20,9 @@ def generate_instance_id(instance_ids, length=8):
 
 def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_dir: Path):
     masks_dir = output_dir / "masks"
-    masks_dir.mkdir(exist_ok=True, parents=True)
+    if masks_dir.exists():
+        shutil.rmtree(masks_dir)
+    masks_dir.mkdir(parents=True)
     instance_ids = set()
     with open(output_dir / "instance_mask_annotations.csv", "w") as f:
         f.write("image_id,mask_id,class_name\n")
