@@ -9,7 +9,7 @@ Typical use cases for Darwin include:
 - Convert between annotations formats
 - Direct integration with PyTorch DataLoaders (See [torch/README.md](darwin/torch/README.md))
 
-Darwin-py can both be used from the [command line](commandline.md) and as a [python library](#usage-as-a-python-library).
+Darwin-py can both be used from the [command line](commandline.md) and as a [python library](library.md).
 
 ## Installation
 ```bash
