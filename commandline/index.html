@@ -135,7 +135,7 @@
                 <h1 id="command-line">Command line</h1>
 <h2 id="authentication">Authentication</h2>
 <p>To perform remote operations on Darwin you first need to authenticate.
-This requires a <a href="https://darwin.v7labs.com/?settings=api-keys">team-specific API-key</a>.<br />
+Authentication requires a <a href="https://darwin.v7labs.com/?settings=api-keys">team-specific API-key</a>.<br />
 If you do not already have a Darwin account, you can <a href="https://www.v7labs.com/contact">contact us</a> and we can set one up for you.</p>
 <p>To start the authentication process:</p>
 <pre><code class="sh">$ darwin authenticate
@@ -149,10 +149,10 @@ Authentication succeeded.
 default and finally the desired location on the local file system for the datasets of that team.
 This process will create a configuration file at <code>~/.darwin/config.yaml</code>.
 This file will be updated with future authentications for different teams.</p>
-<p><strong>Note</strong> that the API key rights selected when requesting the key determines which of the following commands are allowed. If the key had insufficient permissions for an action an error will be shown <code>Insufficient permissions</code> or <code>Invalid API key</code>. </p>
+<p><strong>Note</strong> that the API key rights selected when requesting the key determine which of the following commands are allowed. If the key has insufficient permissions for an action an error will be shown <code>Insufficient permissions</code> or <code>Invalid API key</code>. </p>
 <h2 id="datasets">Datasets</h2>
 <p>A central part of Darwin are the datasets. They contain images/videos, annotation classes, instructions and annotations. In this documentation we will refer to a dataset as <em>remote</em> when it's hosted on Darwin, and <em>local</em> when a copy has been made locally. </p>
-<p>A dataset can either be referred by its name directly, but this can lead to ambiguity when authenticating with multiple team (hence the use of default team), or by <code>team-name/dataset-name</code>. Team and Datasets names are slugified:</p>
+<p>A dataset can either be referred by its name directly, but this can lead to ambiguity when authenticating with multiple teams (hence the use of default team), or by <code>team-name/dataset-name</code>. Team and Dataset names are slugified:</p>
 <ul>
 <li>lower case</li>
 <li>spaces is replaced with dash</li>
@@ -287,7 +287,7 @@ Do you want to continue? [y/N] y
 <pre><code>$ darwin dataset convert v7/my-new-dataset:standard coco output_directory
 </code></pre>
 
-<p>This converts the downloaded annotations from the darwin format to an external format. Currently supported: [COCO, CVAT, Pascal Voc]</p>
+<p>This converts the downloaded annotations from the darwin format to an external format. Currently supported: [COCO, CVAT, Pascal VOC]</p>
 <p><strong>Note</strong> Some annotations types are not valid for some formats, when that happens the annotation is simply dropped. </p>
               
             </div>
