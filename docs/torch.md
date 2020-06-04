@@ -1,6 +1,6 @@
 # PyTorch bindings
 
-This module includes some funcitonality to import your datasets ready to be plugged into Pytorch's `DataLoader`. For this, you can use the `get_dataset` function:
+This module includes some functionality to import your datasets ready to be plugged into Pytorch's `DataLoader`. For this, you can use the `get_dataset` function:
 
 ```python
 get_dataset("/PATH/TO/YOUR/DATASET", DATASET_TYPE [, PARTITION, SPLIT_TYPE, RELEASE_NAME, TRANSFORMS])
