@@ -150,9 +150,7 @@ class DarwinDataset(LocalDataset):
 
 
 class ClassificationDataset(DarwinDataset):
-    def __init__(
-        self, transform: Optional[List] = None, **kwargs,
-    ):
+    def __init__(self, transform: Optional[List] = None, **kwargs):
         """See class `LocalDataset` for documentation"""
         super().__init__(annotation_type="tag", **kwargs)
 
@@ -212,9 +210,7 @@ class ClassificationDataset(DarwinDataset):
 
 
 class InstanceSegmentationDataset(DarwinDataset):
-    def __init__(
-        self, transform: Optional[List] = None, convert_polygons_to_masks: Optional[bool] = True, **kwargs,
-    ):
+    def __init__(self, transform: Optional[List] = None, convert_polygons_to_masks: Optional[bool] = True, **kwargs):
         """See `LocalDataset` class for documentation"""
         super().__init__(annotation_type="polygon", **kwargs)
 
@@ -309,9 +305,7 @@ class InstanceSegmentationDataset(DarwinDataset):
 
 
 class SemanticSegmentationDataset(DarwinDataset):
-    def __init__(
-        self, transform: Optional[List] = None, convert_polygons_to_masks: Optional[bool] = True, **kwargs,
-    ):
+    def __init__(self, transform: Optional[List] = None, convert_polygons_to_masks: Optional[bool] = True, **kwargs):
         """See `LocalDataset` class for documentation"""
         super().__init__(annotation_type="polygon", **kwargs)
 
@@ -346,9 +340,7 @@ class SemanticSegmentationDataset(DarwinDataset):
             sequences[:] = [s for s in sequences if len(s) >= 6]
             if not sequences:
                 continue
-            annotations.append(
-                {"category_id": self.classes.index(obj["name"]), "segmentation": np.array(sequences),}
-            )
+            annotations.append({"category_id": self.classes.index(obj["name"]), "segmentation": np.array(sequences)})
         target["annotations"] = annotations
 
         if self.convert_polygons is not None:

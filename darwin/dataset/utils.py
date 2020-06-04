@@ -291,11 +291,7 @@ def _stratify_samples(idx_to_classes, split_seed, test_percentage, val_percentag
     # Remove duplicates within the same set
     # NOTE: doing that earlier (e.g. in remove_cross_contamination()) would produce mathematical
     # mistakes in the class balancing between validation and test sets.
-    return (
-        list(set(X_train.astype(np.int))),
-        list(set(X_val.astype(np.int))),
-        list(set(X_test.astype(np.int))),
-    )
+    return (list(set(X_train.astype(np.int))), list(set(X_val.astype(np.int))), list(set(X_test.astype(np.int))))
 
 
 def split_dataset(
@@ -365,10 +361,7 @@ def split_dataset(
 
     # Prepare the return value with the paths of the splits
     splits = {}
-    splits["random"] = {
-        "train": Path(split_path / "random_train.txt"),
-        "val": Path(split_path / "random_val.txt"),
-    }
+    splits["random"] = {"train": Path(split_path / "random_train.txt"), "val": Path(split_path / "random_val.txt")}
     splits["stratified_tag"] = {
         "train": Path(split_path / "stratified_tag_train.txt"),
         "val": Path(split_path / "stratified_tag_val.txt"),
@@ -394,15 +387,15 @@ def split_dataset(
         # RANDOM SPLIT
         # Compute split sizes
         dataset_size = sum(1 for _ in annotation_files)
-        val_size = int(dataset_size * (val_percentage / 100.))
-        test_size = int(dataset_size * (test_percentage / 100.))
+        val_size = int(dataset_size * (val_percentage / 100.0))
+        test_size = int(dataset_size * (test_percentage / 100.0))
         train_size = dataset_size - val_size - test_size
         # Slice a permuted array as big as the dataset
         np.random.seed(split_seed)
         indices = np.random.permutation(dataset_size)
         train_indices = list(indices[:train_size])
-        val_indices = list(indices[train_size: train_size + val_size])
-        test_indices = list(indices[train_size + val_size:])
+        val_indices = list(indices[train_size : train_size + val_size])
+        test_indices = list(indices[train_size + val_size :])
         # Write files
         _write_to_file(annotation_files, splits["random"]["train"], train_indices)
         _write_to_file(annotation_files, splits["random"]["val"], val_indices)
@@ -539,11 +532,7 @@ def get_coco_format_record(
             category = classes.index(obj["name"])
         else:
             category = obj["name"]
-        new_obj = {
-            "bbox_mode": box_mode,
-            "category_id": category,
-            "iscrowd": 0,
-        }
+        new_obj = {"bbox_mode": box_mode, "category_id": category, "iscrowd": 0}
 
         if annotation_type == "polygon":
             for point in obj["polygon"]["path"]:
