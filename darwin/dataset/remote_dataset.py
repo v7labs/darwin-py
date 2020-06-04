@@ -414,9 +414,7 @@ class RemoteDataset:
             make_default_split=make_default_split,
         )
 
-    def classes(
-        self, annotation_type: str, release_name: Optional[str] = None
-    ):
+    def classes(self, annotation_type: str, release_name: Optional[str] = None):
         """
         Returns the list of `class_type` classes
 

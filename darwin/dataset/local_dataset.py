@@ -60,7 +60,7 @@ class LocalDataset(object):
 
         # Get the list of classes
         self.classes = get_classes(
-            self.dataset_path, release_name, annotation_type=self.annotation_type, remove_background=True,
+            self.dataset_path, release_name, annotation_type=self.annotation_type, remove_background=True
         )
 
         # Get the list of stems

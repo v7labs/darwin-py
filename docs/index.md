@@ -1,15 +1,15 @@
 # Darwin SDK and CLI
-Offical documentation for [darwin-py](https://github.com/v7labs/darwin-py/), for managing datasets and annotations on
+Official documentation of [darwin-py](https://github.com/v7labs/darwin-py/), for managing datasets and annotations on
 [V7 Darwin](https://darwin.v7labs.com).
 
-Typical use cases for darwin includes:
+Typical use cases for Darwin include:
 
 - Create/remove/list datasets
 - Upload/download data to/from remote datasets
 - Convert between annotations formats
-- Direct integration with PyTorch dataloaders (See [torch/README.md](darwin/torch/README.md))
+- Direct integration with PyTorch DataLoaders (See [torch/README.md](darwin/torch/README.md))
 
-Darwin-py can both be used from the [command line](commandline.md) and as a [python library](#usage-as-a-python-library).
+Darwin-py can both be used from the [command line](commandline.md) and as a [python library](library.md).
 
 ## Installation
 ```bash
@@ -18,7 +18,7 @@ pip install darwin-py
 
 Once installed, `darwin` will be available from the command line. 
 
-**Note**: darwin-py has been tested for python 3.7 and python 3.8, while older versions might work they are not supported. 
+**Note**: darwin-py has been tested for python >= 3.6, while older versions might work they are not supported. 
 
 ### PyTorch
 

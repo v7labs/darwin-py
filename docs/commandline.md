@@ -1,9 +1,8 @@
 # Command line  
 
-
 ## Authentication
 To perform remote operations on Darwin you first need to authenticate.
-This requires a [team-specific API-key](https://darwin.v7labs.com/?settings=api-keys).  
+Authentication requires a [team-specific API-key](https://darwin.v7labs.com/?settings=api-keys).  
 If you do not already have a Darwin account, you can [contact us](https://www.v7labs.com/contact) and we can set one up for you.
 
 To start the authentication process:
@@ -21,12 +20,12 @@ default and finally the desired location on the local file system for the datase
 This process will create a configuration file at `~/.darwin/config.yaml`.
 This file will be updated with future authentications for different teams.
 
-**Note** that the API key rights selected when requesting the key determines which of the following commands are allowed. If the key had insufficient permissions for an action an error will be shown `Insufficient permissions` or `Invalid API key`. 
+**Note** that the API key rights selected when requesting the key determine which of the following commands are allowed. If the key has insufficient permissions for an action an error will be shown `Insufficient permissions` or `Invalid API key`. 
 
 ## Datasets
 A central part of Darwin are the datasets. They contain images/videos, annotation classes, instructions and annotations. In this documentation we will refer to a dataset as *remote* when it's hosted on Darwin, and *local* when a copy has been made locally. 
 
-A dataset can either be referred by its name directly, but this can lead to ambiguity when authenticating with multiple team (hence the use of default team), or by `team-name/dataset-name`. Team and Datasets names are slugified:
+A dataset can either be referred by its name directly, but this can lead to ambiguity when authenticating with multiple teams (hence the use of default team), or by `team-name/dataset-name`. Team and Dataset names are slugified:
 
 * lower case
 * spaces is replaced with dash
@@ -158,7 +157,6 @@ About to delete example-team/test on darwin.
 Do you want to continue? [y/N] y
 ```
 
-
 ### Import annotations
 If you want to bootstrap your dataset by importing already existing annotations, first make sure that all the images are already uploaded. Then ensure that the annotations are in one of the following formats [PascalVoc, COCO, CSV Tags]. 
 
@@ -188,6 +186,6 @@ There are few things going on here:
 $ darwin dataset convert v7/my-new-dataset:standard coco output_directory
 ```
 
-This converts the downloaded annotations from the darwin format to an external format. Currently supported: [COCO, CVAT, Pascal Voc]
+This converts the downloaded annotations from the darwin format to an external format. Currently supported: [COCO, CVAT, Pascal VOC]
 
 **Note** Some annotations types are not valid for some formats, when that happens the annotation is simply dropped. 
