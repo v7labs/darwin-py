@@ -21,14 +21,14 @@ from darwin.dataset.utils import split_dataset
 from darwin.torch import get_dataset
 import darwin.torch.transforms as T
 
-split_dataset("/my-datasets/bird-species", val_percentage=20, test_percentage=0)
+split_dataset("/datasets/bird-species", val_percentage=20, test_percentage=0)
 
 trfs_train = T.Compose([T.RandomHorizontalFlip(), T.ToTensor()])
-db_train = get_dataset("/my-datasets/bird-species", dataset_type="instance_segmentation", \
+db_train = get_dataset("/datasets/bird-species", dataset_type="instance_segmentation", \
     partition="train", split_type="stratified", transform=trfs_train)
 
 trfs_val = T.ToTensor()
-db_val = get_dataset("/my-datasets/bird-species", dataset_type="instance_segmentation", \
+db_val = get_dataset("/datasets/bird-species", dataset_type="instance_segmentation", \
     partition="val", split_type="stratified", transform=trfs_val)
 
 print(db_train)
