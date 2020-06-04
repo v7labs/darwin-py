@@ -21,7 +21,7 @@ class Options(object):
         parser_create = subparsers.add_parser("team", help="List or pick teams. ")
         parser_create.add_argument("team_name", nargs="?", type=str, help="Team name to use. ")
         parser_create.add_argument(
-            "-c", "--current", action="store_true", required=False, help="Shows only the current team. ",
+            "-c", "--current", action="store_true", required=False, help="Shows only the current team. "
         )
 
         parser_convert = subparsers.add_parser("convert", help="Converts darwin json to other annotation formats.")
@@ -33,7 +33,7 @@ class Options(object):
 
         # DATASET
         dataset = subparsers.add_parser(
-            "dataset", help="Dataset related functions", description="Arguments to interact with datasets",
+            "dataset", help="Dataset related functions", description="Arguments to interact with datasets"
         )
         dataset_action = dataset.add_subparsers(dest="action")
 
@@ -76,7 +76,7 @@ class Options(object):
             help="Excludes the files with the specified extension/s if a data folder is provided as data path. ",
         )
         parser_push.add_argument(
-            "-f", "--fps", type=int, default="1", help="Frames per second for video split (recommended: 1).",
+            "-f", "--fps", type=int, default="1", help="Frames per second for video split (recommended: 1)."
         )
 
         # Remove
@@ -87,7 +87,7 @@ class Options(object):
         parser_report = dataset_action.add_parser("report", help="Report about the annotators ")
         parser_report.add_argument("dataset", type=str, help="Remote dataset name to report on.")
         parser_report.add_argument(
-            "-g", "--granularity", choices=["day", "week", "month", "total"], help="Granularity of the report",
+            "-g", "--granularity", choices=["day", "week", "month", "total"], help="Granularity of the report"
         )
 
         # Export
@@ -137,7 +137,7 @@ class Options(object):
         parser_split.add_argument("dataset", type=str, help="Local dataset name to split.")
         parser_split.add_argument("-v", "--val-percentage", type=float, required=True, help="Validation percentage.")
         parser_split.add_argument(
-            "-t", "--test-percentage", type=float, required=False, default=0, help="Test percentage.",
+            "-t", "--test-percentage", type=float, required=False, default=0, help="Test percentage."
         )
         parser_split.add_argument("-s", "--seed", type=int, required=False, default=0, help="Split seed.")
 

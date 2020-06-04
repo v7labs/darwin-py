@@ -60,10 +60,7 @@ def authenticate(api_key: str, default_team: Optional[bool] = None, datasets_dir
         config_path.parent.mkdir(exist_ok=True)
 
         if default_team is None:
-            default_team = input(f"Make {client.default_team} the default team? [y/N] ") in [
-                "Y",
-                "y",
-            ]
+            default_team = input(f"Make {client.default_team} the default team? [y/N] ") in ["Y", "y"]
         if datasets_dir is None:
             datasets_dir = prompt("Datasets directory", "~/.darwin/datasets")
 

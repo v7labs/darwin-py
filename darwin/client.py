@@ -8,14 +8,8 @@ import requests
 from darwin.config import Config
 from darwin.dataset import RemoteDataset
 from darwin.dataset.identifier import DatasetIdentifier
-from darwin.exceptions import (
-    InsufficientStorage,
-    InvalidLogin,
-    MissingConfig,
-    NotFound,
-    Unauthorized,
-)
-from darwin.utils import is_project_dir, urljoin, is_deprecated_project_dir
+from darwin.exceptions import InsufficientStorage, InvalidLogin, MissingConfig, NotFound, Unauthorized
+from darwin.utils import is_deprecated_project_dir, is_project_dir, urljoin
 from darwin.validators import name_taken, validation_error
 
 
@@ -76,9 +70,7 @@ class Client:
         else:
             return self._decode_response(response, debug)
 
-    def put(
-        self, endpoint: str, payload: Dict, team: Optional[str] = None, retry: bool = False, debug: bool = False
-    ):
+    def put(self, endpoint: str, payload: Dict, team: Optional[str] = None, retry: bool = False, debug: bool = False):
         """Put something on the server trough HTTP
 
         Parameters
@@ -437,11 +429,7 @@ class Client:
             if debug:
                 print(f"[ERROR {response.status_code}] {response.text}")
             response.close()
-            return {
-                "error": "Response is not JSON encoded",
-                "status_code": response.status_code,
-                "text": response.text,
-            }
+            return {"error": "Response is not JSON encoded", "status_code": response.status_code, "text": response.text}
 
     def __str__(self):
         return f"Client(default_team={self.default_team})"

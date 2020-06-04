@@ -333,7 +333,7 @@ def upload_annotations(
                             client=client,
                             team=team,
                             annotation_type_ids=["3"],  # TODO maybe in the future allow to use polygons and BB as well
-                            cropped_image={"image_id": image_dataset_id, "scale": 0.01, "x": "0", "y": "0",},
+                            cropped_image={"image_id": image_dataset_id, "scale": 0.01, "x": "0", "y": "0"},
                             dataset_id=dataset_id,
                             description="",
                             expected_occurrences=[0, 1],
@@ -387,7 +387,7 @@ def upload_annotations(
 
 
 def _upload_annotation(
-    class_mapping: Dict, client: "Client", team: str, data: Dict, image_dataset_id: int, output_file_path: Path,
+    class_mapping: Dict, client: "Client", team: str, data: Dict, image_dataset_id: int, output_file_path: Path
 ):
     """
 
