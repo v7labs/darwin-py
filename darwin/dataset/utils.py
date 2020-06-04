@@ -379,9 +379,7 @@ def split_dataset(
         splits["random"]["test"] = Path(split_path) / "random_test.txt"
         splits["stratified_tag"]["test"] = Path(split_path / "stratified_tag_test.txt")
         splits["stratified_polygon"]["test"] = Path(split_path / "stratified_polygon_test.txt")
-        splits["stratified_bounding_box"]["test"] = Path(
-            split_path / "stratified_bounding_box_test.txt"
-        )
+        splits["stratified_bounding_box"]["test"] = Path(split_path / "stratified_bounding_box_test.txt")
 
     # Do the actual split
     if not split_path.exists():
@@ -427,14 +425,10 @@ def split_dataset(
                     idx_to_classes_polygon, split_seed, test_percentage, val_percentage
                 )
                 # Write files
-                _write_to_file(
-                    annotation_files, splits["stratified_polygon"]["train"], train_indices
-                )
+                _write_to_file(annotation_files, splits["stratified_polygon"]["train"], train_indices)
                 _write_to_file(annotation_files, splits["stratified_polygon"]["val"], val_indices)
                 if test_percentage > 0.0:
-                    _write_to_file(
-                        annotation_files, splits["stratified_polygon"]["test"], test_indices
-                    )
+                    _write_to_file(annotation_files, splits["stratified_polygon"]["test"], test_indices)
 
             # STRATIFIED SPLIT ON BOUNDING BOXES
             # Stratify
@@ -444,16 +438,10 @@ def split_dataset(
                     idx_to_classes_bbox, split_seed, test_percentage, val_percentage
                 )
                 # Write files
-                _write_to_file(
-                    annotation_files, splits["stratified_bounding_box"]["train"], train_indices
-                )
-                _write_to_file(
-                    annotation_files, splits["stratified_bounding_box"]["val"], val_indices
-                )
+                _write_to_file(annotation_files, splits["stratified_bounding_box"]["train"], train_indices)
+                _write_to_file(annotation_files, splits["stratified_bounding_box"]["val"], val_indices)
                 if test_percentage > 0.0:
-                    _write_to_file(
-                        annotation_files, splits["stratified_bounding_box"]["test"], test_indices
-                    )
+                    _write_to_file(annotation_files, splits["stratified_bounding_box"]["test"], test_indices)
 
     # Create symlink for default split
     split = lists_path / "default"
@@ -618,9 +606,7 @@ def get_annotations(
         raise ValueError("annotation_type should be either 'tag', 'bounding_box', or 'polygon'")
 
     # Get the list of classes
-    classes = get_classes(
-        dataset_path, release_name, annotation_type=annotation_type, remove_background=True
-    )
+    classes = get_classes(dataset_path, release_name, annotation_type=annotation_type, remove_background=True)
     # Get the list of stems
     if split:
         # Get the split
@@ -669,9 +655,7 @@ def get_annotations(
     # Load and re-format all the annotations
     if annotation_format == "coco":
         images_ids = list(range(len(images_paths)))
-        for annotation_path, image_path, image_id in zip(
-            annotations_paths, images_paths, images_ids
-        ):
+        for annotation_path, image_path, image_id in zip(annotations_paths, images_paths, images_ids):
             yield get_coco_format_record(
                 annotation_path=annotation_path,
                 annotation_type=annotation_type,

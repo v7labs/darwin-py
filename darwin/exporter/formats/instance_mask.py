@@ -6,9 +6,9 @@ from typing import Generator, List, Optional
 import numpy as np
 from PIL import Image
 from tqdm import tqdm
+from upolygon import draw_polygon
 
 import darwin.datatypes as dt
-from upolygon import draw_polygon
 
 
 def generate_instance_id(instance_ids, length=8):

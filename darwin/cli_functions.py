@@ -305,9 +305,7 @@ def migrate_dataset(dataset_slug: str):
     print(f"Dataset {identifier.dataset_slug} migrated to {dataset_path}.")
 
 
-def split(
-    dataset_slug: str, val_percentage: float, test_percentage: float, seed: Optional[int] = 0
-):
+def split(dataset_slug: str, val_percentage: float, test_percentage: float, seed: Optional[int] = 0):
     """Splits a local version of a dataset into train, validation, and test partitions
 
     Parameters

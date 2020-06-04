@@ -163,9 +163,7 @@ class LocalDataset(object):
         # Filter out unused classes and annotations of a different type
         annotations = data["annotations"]
         if self.classes is not None:
-            annotations = [
-                a for a in annotations if a["name"] in self.classes and self.annotation_type in a
-            ]
+            annotations = [a for a in annotations if a["name"] in self.classes and self.annotation_type in a]
         return {
             "image_id": index,
             "image_path": str(self.images_path[index]),
@@ -196,9 +194,7 @@ class LocalDataset(object):
                 results = pool.map(self._return_mean, self.images_path)
                 mean = np.sum(np.array(results), axis=0) / len(self.images_path)
                 # Online image_classification deviation
-                results = pool.starmap(
-                    self._return_std, [[item, mean] for item in self.images_path]
-                )
+                results = pool.starmap(self._return_std, [[item, mean] for item in self.images_path])
                 std_sum = np.sum(np.array([item[0] for item in results]), axis=0)
                 total_pixel_count = np.sum(np.array([item[1] for item in results]))
                 std = np.sqrt(std_sum / total_pixel_count)
@@ -260,9 +256,7 @@ class LocalDataset(object):
     @staticmethod
     def _return_std(image_path, mean):
         img = np.array(load_pil_image(image_path)) / 255.0
-        m2 = np.square(
-            np.array([img[:, :, 0] - mean[0], img[:, :, 1] - mean[1], img[:, :, 2] - mean[2]])
-        )
+        m2 = np.square(np.array([img[:, :, 0] - mean[0], img[:, :, 1] - mean[1], img[:, :, 2] - mean[2]]))
         return np.sum(np.sum(m2, axis=1), 1), m2.size / 3.0
 
     def __getitem__(self, index: int):

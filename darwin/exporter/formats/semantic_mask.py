@@ -4,9 +4,9 @@ from typing import Generator, List, Optional
 import numpy as np
 from PIL import Image
 from tqdm import tqdm
+from upolygon import draw_polygon
 
 import darwin.datatypes as dt
-from upolygon import draw_polygon
 
 
 def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_dir: Path):
@@ -30,9 +30,7 @@ def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_di
                 sequence = convert_polygons_to_sequences(a.data["path"], height, width)
                 mask = convert_polygons_to_mask(sequence, height, width)
                 if cat in mask_per_category:
-                    mask_per_category[cat] = np.stack((mask_per_category[cat], mask), axis=-1).max(
-                        axis=2
-                    )
+                    mask_per_category[cat] = np.stack((mask_per_category[cat], mask), axis=-1).max(axis=2)
                 else:
                     mask_per_category[cat] = mask
             # merge all category masks into a single segmentation map
