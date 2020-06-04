@@ -47,9 +47,7 @@ def download_all_images_from_annotations(
 
     # Verify that there is not already image in the images folder
     existing_images = {
-        image.stem: image
-        for image in images_path.glob(f"*")
-        if is_image_extension_allowed(image.suffix)
+        image.stem: image for image in images_path.glob(f"*") if is_image_extension_allowed(image.suffix)
     }
     annotations_to_download_path = []
     for annotation_path in annotations_path.glob(f"*.{annotation_format}"):
@@ -66,9 +64,7 @@ def download_all_images_from_annotations(
 
     if remove_extra:
         # Removes existing images for which there is not corresponding annotation
-        annotations_downloaded_stem = [
-            a.stem for a in annotations_path.glob(f"*.{annotation_format}")
-        ]
+        annotations_downloaded_stem = [a.stem for a in annotations_path.glob(f"*.{annotation_format}")]
         for existing_image in existing_images.values():
             if existing_image.stem not in annotations_downloaded_stem:
                 print(f"Removing {existing_image} as there is no corresponding annotation")
@@ -77,17 +73,13 @@ def download_all_images_from_annotations(
     # Create the generator with the partial functions
     count = len(annotations_to_download_path)
     generator = lambda: (
-        functools.partial(
-            download_image_from_annotation, api_url, annotation_path, images_path, annotation_format
-        )
+        functools.partial(download_image_from_annotation, api_url, annotation_path, images_path, annotation_format)
         for annotation_path in annotations_to_download_path
     )
     return generator, count
 
 
-def download_image_from_annotation(
-    api_url: str, annotation_path: Path, images_path: str, annotation_format: str
-):
+def download_image_from_annotation(api_url: str, annotation_path: Path, images_path: str, annotation_format: str):
     """Helper function: dispatcher of functions to download an image given an annotation
 
     Parameters

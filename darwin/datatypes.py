@@ -42,6 +42,7 @@ class AnnotationFile:
     image_height: Optional[int] = None
     image_url: Optional[str] = None
     workview_url: Optional[str] = None
+    seq: Optional[int] = None
 
 
 def make_bounding_box(class_name, x, y, w, h):

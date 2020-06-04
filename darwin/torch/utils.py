@@ -74,9 +74,7 @@ def convert_polygon_to_mask(segmentations: List[List[float]], height: int, width
     return torch.stack(masks)
 
 
-def convert_polygons_to_sequences(
-    polygons: Union[Polygon, ComplexPolygon]
-) -> List[np.ndarray]:
+def convert_polygons_to_sequences(polygons: Union[Polygon, ComplexPolygon]) -> List[np.ndarray]:
     """
     Converts a list of polygons, encoded as a list of dictionaries of into a list of nd.arrays
     of coordinates.

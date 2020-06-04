@@ -1,3 +1,8 @@
-from . import coco, pascalvoc
+from . import coco, cvat, dataloop, pascalvoc
 
-supported_formats = [("pascal_voc", pascalvoc.export), ("coco", coco.export)]
+supported_formats = [
+    ("coco", coco.export),
+    ("cvat", cvat.export),
+    ("dataloop", dataloop.export),
+    ("pascal_voc", pascalvoc.export),
+]

@@ -8,9 +8,8 @@ import requests
 from darwin.config import Config
 from darwin.dataset import RemoteDataset
 from darwin.dataset.identifier import DatasetIdentifier
-from darwin.exceptions import (InsufficientStorage, InvalidLogin,
-                               MissingConfig, NotFound, Unauthorized)
-from darwin.utils import is_project_dir, urljoin
+from darwin.exceptions import InsufficientStorage, InvalidLogin, MissingConfig, NotFound, Unauthorized
+from darwin.utils import is_deprecated_project_dir, is_project_dir, urljoin
 from darwin.validators import name_taken, validation_error
 
 
@@ -23,12 +22,7 @@ class Client:
         self.features = {}
 
     def get(
-        self,
-        endpoint: str,
-        team: Optional[str] = None,
-        retry: bool = False,
-        raw: bool = False,
-        debug: bool = False,
+        self, endpoint: str, team: Optional[str] = None, retry: bool = False, raw: bool = False, debug: bool = False
     ):
         """Get something from the server trough HTTP
 
@@ -76,14 +70,7 @@ class Client:
         else:
             return self._decode_response(response, debug)
 
-    def put(
-        self,
-        endpoint: str,
-        payload: Dict,
-        team: Optional[str] = None,
-        retry: bool = False,
-        debug: bool = False,
-    ):
+    def put(self, endpoint: str, payload: Dict, team: Optional[str] = None, retry: bool = False, debug: bool = False):
         """Put something on the server trough HTTP
 
         Parameters
@@ -102,9 +89,7 @@ class Client:
         dict
         Dictionary which contains the server response
         """
-        response = requests.put(
-            urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team)
-        )
+        response = requests.put(urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team))
 
         if response.status_code == 401:
             raise Unauthorized()
@@ -160,9 +145,7 @@ class Client:
             payload = {}
         if error_handlers is None:
             error_handlers = []
-        response = requests.post(
-            urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team)
-        )
+        response = requests.post(urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team))
         if response.status_code == 401:
             raise Unauthorized()
 
@@ -184,17 +167,37 @@ class Client:
         return self._decode_response(response, debug)
 
     def list_local_datasets(self, team: Optional[str] = None) -> Iterator[Path]:
-        """Returns a list of all local folders who are detected as dataset.
+        """Returns a list of all local folders which are detected as dataset.
 
         Returns
         -------
         list[Path]
         List of all local datasets
         """
-        team_config = self.config.get_team(team or self.default_team)
+        if team is not None:
+            team_configs = [self.config.get_team(team)]
+        else:
+            team_configs = self.config.get_all_teams()
+        for team_config in team_configs:
+            projects_team = Path(team_config["datasets_dir"]) / team_config["slug"]
+            for project_path in projects_team.glob("*"):
+                if project_path.is_dir() and is_project_dir(project_path):
+                    yield Path(project_path)
 
-        for project_path in Path(team_config["datasets_dir"]).glob("*"):
-            if project_path.is_dir() and is_project_dir(project_path):
+    def list_deprecated_local_datasets(self, team: Optional[str] = None) -> Iterator[Path]:
+        """Returns a list of all local folders which are detected as datasets but use a deprecated local structure
+
+        Returns
+        -------
+        list[Path]
+        List of all local datasets
+        """
+        team = team or self.default_team
+        team_config = self.config.get_team(team)
+
+        projects_team = Path(team_config["datasets_dir"])
+        for project_path in projects_team.glob("*"):
+            if project_path.is_dir() and is_deprecated_project_dir(project_path):
                 yield Path(project_path)
 
     def list_remote_datasets(self, team: Optional[str] = None) -> Iterator[RemoteDataset]:
@@ -216,9 +219,7 @@ class Client:
                 client=self,
             )
 
-    def get_remote_dataset(
-        self, dataset_identifier: Union[str, DatasetIdentifier]
-    ) -> RemoteDataset:
+    def get_remote_dataset(self, dataset_identifier: Union[str, DatasetIdentifier]) -> RemoteDataset:
         """Get a remote dataset based on the parameter passed. You can only choose one of the
         possible parameters and calling this method with multiple ones will result in an
         error.
@@ -237,7 +238,6 @@ class Client:
             dataset_identifier = DatasetIdentifier.parse(dataset_identifier)
         if not dataset_identifier.team_slug:
             dataset_identifier.team_slug = self.default_team
-
         matching_datasets = [
             dataset
             for dataset in self.list_remote_datasets(team=dataset_identifier.team_slug)
@@ -260,9 +260,7 @@ class Client:
         RemoteDataset
         The created dataset
         """
-        dataset = self.post(
-            "/datasets", {"name": name}, team=team, error_handlers=[name_taken, validation_error]
-        )
+        dataset = self.post("/datasets", {"name": name}, team=team, error_handlers=[name_taken, validation_error])
         return RemoteDataset(
             name=dataset["name"],
             team=team or self.default_team,
@@ -431,11 +429,7 @@ class Client:
             if debug:
                 print(f"[ERROR {response.status_code}] {response.text}")
             response.close()
-            return {
-                "error": "Response is not JSON encoded",
-                "status_code": response.status_code,
-                "text": response.text,
-            }
+            return {"error": "Response is not JSON encoded", "status_code": response.status_code, "text": response.text}
 
     def __str__(self):
         return f"Client(default_team={self.default_team})"

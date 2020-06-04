@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, List, Optional, Union
 
 from darwin.config import Config
 
-SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpeg", ".jpg", ".jfif"]
+SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpeg", ".jpg", ".jfif", ".tif"]
 SUPPORTED_VIDEO_EXTENSIONS = [".bpm", ".mov", ".mp4"]
 SUPPORTED_EXTENSIONS = SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
 
@@ -40,7 +40,23 @@ def is_project_dir(project_path: Path) -> bool:
     Returns
     -------
     bool
-    Is the directory is a project from Darwin?
+        Is the directory a project from Darwin?
+    """
+    return (project_path / "releases").exists() and (project_path / "images").exists()
+
+
+def is_deprecated_project_dir(project_path: Path) -> bool:
+    """Verifies if the directory is a project from Darwin that uses a deprectated local structure
+
+    Parameters
+    ----------
+    project_path : Path
+        Directory to examine
+
+    Returns
+    -------
+    bool
+        Is the directory a project from Darwin?
     """
     return (project_path / "annotations").exists() and (project_path / "images").exists()
 
@@ -71,9 +87,7 @@ def prompt(msg: str, default: Optional[str] = None) -> str:
 
 
 def find_files(
-    files: List[Union[str, Path]] = [],
-    recursive: bool = True,
-    files_to_exclude: List[Union[str, Path]] = [],
+    files: List[Union[str, Path]] = [], recursive: bool = True, files_to_exclude: List[Union[str, Path]] = []
 ) -> List[Path]:
     """Retrieve a list of all files belonging to supported extensions. The exploration can be made
     recursive and a list of files can be excluded if desired.
@@ -105,9 +119,7 @@ def find_files(
 
     # Filter the list and return it
     files_to_exclude = set(files_to_exclude)
-    return [
-        f for f in found_files if f.name not in files_to_exclude and str(f) not in files_to_exclude
-    ]
+    return [f for f in found_files if f.name not in files_to_exclude and str(f) not in files_to_exclude]
 
 
 def secure_continue_request() -> bool:
@@ -138,11 +150,7 @@ def persist_client_configuration(
 
     team_config = client.config.get_default_team()
     config = Config(config_path)
-    config.set_team(
-        team=team_config["slug"],
-        api_key=team_config["api_key"],
-        datasets_dir=team_config["datasets_dir"],
-    )
+    config.set_team(team=team_config["slug"], api_key=team_config["api_key"], datasets_dir=team_config["datasets_dir"])
     config.set_global(api_endpoint=client.url, base_url=client.base_url, default_team=default_team)
 
     return config

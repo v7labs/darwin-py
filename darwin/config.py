@@ -31,7 +31,7 @@ class Config(object):
 
     def get(self, key: Union[str, List[str]], default: Optional[any] = None) -> Any:
         """Gets value defined by key
-        
+
         Args:
         - key: the key where the value to be fetched is stored.
         It can be formatted as a simple string, or as a path/like/string to fetch nested values.
@@ -53,7 +53,7 @@ class Config(object):
 
     def put(self, key: Union[str, List[str]], value: any, save: bool = True):
         """Sets value for specified key
-        
+
         Args:
         - key: the key where the value is going to be stored.
         It can be formatted as a simple string, or as a path/like/string to fetch nested values.
@@ -99,9 +99,7 @@ class Config(object):
         api_key = self.get(f"teams/{team}/api_key")
         if api_key is None:
             raise InvalidTeam()
-        default = (
-            self.get("global/default_team") == team or len(list(self.get("teams").keys())) == 1
-        )
+        default = self.get("global/default_team") == team or len(list(self.get("teams").keys())) == 1
 
         datasets_dir = self.get(f"teams/{team}/datasets_dir")
         return {"slug": team, "api_key": api_key, "default": default, "datasets_dir": datasets_dir}
