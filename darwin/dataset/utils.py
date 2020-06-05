@@ -131,7 +131,7 @@ def make_class_lists(release_path: Path):
 
 
 def get_classes(
-    dataset_path: Path,
+    dataset_path: Union[Path, str],
     release_name: Optional[str] = None,
     annotation_type: str = "polygon",
     remove_background: bool = True,
@@ -156,6 +156,7 @@ def get_classes(
         List of classes in the dataset of type classes_type
     """
     assert dataset_path is not None
+    dataset_path = Path(dataset_path)
     release_path = get_release_path(dataset_path, release_name)
 
     classes_file = f"classes_{annotation_type}.txt"
@@ -556,7 +557,7 @@ def get_coco_format_record(
 def get_annotations(
     dataset_path: Union[Path, str],
     partition: Optional[str] = None,
-    split: Optional[str] = None,
+    split: Optional[str] = 'default',
     split_type: Optional[str] = None,
     annotation_type: str = "polygon",
     release_name: Optional[str] = None,
@@ -572,14 +573,14 @@ def get_annotations(
     partition
         Selects one of the partitions [train, val, test]
     split
-        Selects the split that defines the percetages used (use 'split' to select the default split)
+        Selects the split that defines the percetages used (use 'default' to select the default split)
     split_type
         Heuristic used to do the split [random, stratified, None]
     annotation_type
         The type of annotation classes [tag, bounding_box, polygon]
     release_name: str
         Version of the dataset
-    annotations_format: str
+    annotation_format: str
         Re-formatting of the annotation when loaded [coco, darwin]
 
     Returns
@@ -588,8 +589,7 @@ def get_annotations(
         Dictionary containing all the annotations of the dataset
     """
     assert dataset_path is not None
-    if isinstance(dataset_path, str):
-        dataset_path = Path(dataset_path)
+    dataset_path = Path(dataset_path)
 
     release_path = get_release_path(dataset_path, release_name)
 
@@ -608,7 +608,7 @@ def get_annotations(
     # Get the list of classes
     classes = get_classes(dataset_path, release_name, annotation_type=annotation_type, remove_background=True)
     # Get the list of stems
-    if split:
+    if partition:
         # Get the split
         if split_type is None:
             split_file = f"{partition}.txt"
@@ -625,7 +625,7 @@ def get_annotations(
                 f"To split the dataset you can use 'split_dataset' from darwin.dataset.utils",
             )
     else:
-        # If the split is not specified, get all the annotations
+        # If the partition is not specified, get all the annotations
         stems = [e.stem for e in annotations_dir.glob("*.json")]
 
     images_paths = []

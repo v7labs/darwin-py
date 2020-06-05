@@ -62,6 +62,7 @@ class LocalDataset(object):
         self.classes = get_classes(
             self.dataset_path, release_name, annotation_type=self.annotation_type, remove_background=True
         )
+        self.num_classes = len(self.classes)
 
         # Get the list of stems
         if partition:
