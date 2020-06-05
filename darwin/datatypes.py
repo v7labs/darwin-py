@@ -1,6 +1,11 @@
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set
+
+Point = Dict[str, float]
+BoundingBox = Dict[str, float]
+Polygon = List[Point]
+ComplexPolygon = List[Polygon]
 
 
 @dataclass(frozen=True, eq=True)
