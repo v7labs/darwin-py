@@ -233,8 +233,12 @@ class RemoteDataset:
             # No images will be downloaded
             return None, 0
 
+        team_config = self.client.config.get_team(self.team)
+        api_key = team_config.get("api_key")
+
         # Create the generator with the download instructions
         progress, count = download_all_images_from_annotations(
+            api_key=api_key,
             api_url=self.client.url,
             annotations_path=annotations_dir,
             images_path=self.local_images_path,
