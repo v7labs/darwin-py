@@ -1,15 +1,14 @@
-from typing import List
+from pathlib import Path
+from typing import List, Union
 
 import numpy as np
 import torch
 
-try:
-    from pycocotools import mask as coco_mask
-except ImportError:
-    coco_mask = None
+from darwin.datatypes import ComplexPolygon, Polygon
+from upolygon import draw_polygon
 
 
-def convert_polygon_to_mask(segmentations: List[float], height: int, width: int):
+def convert_polygon_to_mask(segmentations: List[List[float]], height: int, width: int):
     """
     Converts a polygon represented as a sequence of coordinates into a mask.
 
@@ -21,25 +20,15 @@ def convert_polygon_to_mask(segmentations: List[float], height: int, width: int)
     Output:
         torch.tensor
     """
-    if coco_mask is None:
-        raise ImportError("failed to import pycocotools")
     masks = []
-    for polygons in segmentations:
-        rles = coco_mask.frPyObjects(polygons, height, width)
-        mask = coco_mask.decode(rles)
-        if len(mask.shape) < 3:
-            mask = mask[..., None]
-        mask = torch.as_tensor(mask, dtype=torch.uint8)
-        mask = mask.any(dim=2)
-        masks.append(mask)
-    if masks:
-        masks = torch.stack(masks, dim=0)
-    else:
-        masks = torch.zeros((0, height, width), dtype=torch.uint8)
-    return masks
+    for contour in segmentations:
+        contour = [c.tolist() for c in contour]
+        mask = torch.zeros((height, width)).numpy().astype(np.uint8)
+        masks.append(torch.from_numpy(np.asarray(draw_polygon(mask, contour, 1))))
+    return torch.stack(masks)
 
 
-def convert_polygons_to_sequences(polygons: List) -> List[np.ndarray]:
+def convert_polygons_to_sequences(polygons: Union[Polygon, ComplexPolygon]) -> List[np.ndarray]:
     """
     Converts a list of polygons, encoded as a list of dictionaries of into a list of nd.arrays
     of coordinates.

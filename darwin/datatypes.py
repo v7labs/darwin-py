@@ -1,6 +1,11 @@
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set
+
+Point = Dict[str, float]
+BoundingBox = Dict[str, float]
+Polygon = List[Point]
+ComplexPolygon = List[Polygon]
 
 
 @dataclass(frozen=True, eq=True)
@@ -53,6 +58,10 @@ def make_tag(class_name):
 
 def make_polygon(class_name, point_path):
     return Annotation(AnnotationClass(class_name, "polygon"), {"path": point_path})
+
+
+def make_complex_polygon(class_name, point_paths):
+    return Annotation(AnnotationClass(class_name, "complex_polygon"), {"paths": point_paths})
 
 
 def make_instance_id(value):
