@@ -246,14 +246,11 @@ class InstanceSegmentationDataset(DarwinDataset):
 
         annotations = []
         for annotation in target["annotations"]:
-            assert "name" in annotation
-            assert "polygon" in annotation
+            if "polygon" not in annotation and "complex_polygon" not in annotation:
+                print(f"Warning: missing polygon in annotation {self.annotations_path[index]}")
             # Extract the sequences of coordinates from the polygon annotation
-            sequences = convert_polygons_to_sequences(annotation["polygon"]["path"])
-            # Discard polygons with less than three points
-            sequences[:] = [s for s in sequences if len(s) >= 6]
-            if not sequences:
-                continue
+            annotation_type = "polygon" if "polygon" in annotation else "complex_polygon"
+            sequences = convert_polygons_to_sequences(annotation[annotation_type]["path"])
             # Compute the bbox of the polygon
             x_coords = [s[0::2] for s in sequences]
             y_coords = [s[1::2] for s in sequences]
@@ -263,10 +260,9 @@ class InstanceSegmentationDataset(DarwinDataset):
             max_y = np.max([np.max(y_coord) for y_coord in y_coords])
             w = max_x - min_x + 1
             h = max_y - min_y + 1
-            bbox_area = w * h
             # Compute the area of the polygon
+            # TODO fix with addictive/subtractive paths in complex polygons
             poly_area = np.sum([polygon_area(x_coord, y_coord) for x_coord, y_coord in zip(x_coords, y_coords)])
-            assert poly_area <= bbox_area
 
             # Create and append the new entry for this annotation
             annotations.append(
