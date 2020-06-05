@@ -6,6 +6,7 @@ from typing import Generator, List
 import numpy as np
 
 import darwin.datatypes as dt
+from upolygon import draw_polygon
 
 
 class NumpyEncoder(json.JSONEncoder):
@@ -45,7 +46,10 @@ def calculate_categories(annotation_files: List[dt.AnnotationFile]):
     categories = {}
     for annotation_file in annotation_files:
         for annotation_class in annotation_file.annotation_classes:
-            if annotation_class.name not in categories and annotation_class.annotation_type == "polygon":
+            if annotation_class.name not in categories and annotation_class.annotation_type in [
+                "polygon",
+                "complex_polygon",
+            ]:
                 categories[annotation_class.name] = len(categories)
     return categories
 
@@ -107,12 +111,12 @@ def build_annotations(annotation_files, categories):
     for annotation_file in annotation_files:
         for annotation in annotation_file.annotations:
             annotation_id += 1
-            annotation_data = build_annotation(annotation_file.seq, annotation_id, annotation, categories)
+            annotation_data = build_annotation(annotation_file, annotation_id, annotation, categories)
             if annotation_data:
                 yield annotation_data
 
 
-def build_annotation(image_id, annotation_id, annotation: dt.Annotation, categories):
+def build_annotation(annotation_file, annotation_id, annotation: dt.Annotation, categories):
     annotation_type = annotation.annotation_class.annotation_type
     if annotation_type == "polygon":
         sequences = convert_polygons_to_sequences(annotation.data["path"])
@@ -129,12 +133,37 @@ def build_annotation(image_id, annotation_id, annotation: dt.Annotation, categor
 
         return {
             "id": annotation_id,
-            "image_id": image_id,
+            "image_id": annotation_file.seq,
             "category_id": categories[annotation.annotation_class.name],
             "segmentation": sequences,
             "area": poly_area,
             "bbox": [min_x, min_y, w, h],
             "iscrowd": 0,
+            "extra": build_extra(annotation),
+        }
+    elif annotation_type == "complex_polygon":
+        mask = np.zeros((annotation_file.image_height, annotation_file.image_width))
+        sequences = convert_polygons_to_sequences(annotation.data["paths"])
+        draw_polygon(mask, sequences, 1)
+        counts = rle_encoding(mask)
+
+        x_coords = [s[0::2] for s in sequences]
+        y_coords = [s[1::2] for s in sequences]
+        min_x = np.min([np.min(x_coord) for x_coord in x_coords])
+        min_y = np.min([np.min(y_coord) for y_coord in y_coords])
+        max_x = np.max([np.max(x_coord) for x_coord in x_coords])
+        max_y = np.max([np.max(y_coord) for y_coord in y_coords])
+        w = max_x - min_x + 1
+        h = max_y - min_y + 1
+
+        return {
+            "id": annotation_id,
+            "image_id": annotation_file.seq,
+            "category_id": categories[annotation.annotation_class.name],
+            "segmentation": {"counts": counts, "size": [annotation_file.image_width, annotation_file.image_height]},
+            "area": 0,
+            "bbox": [min_x, min_y, w, h],
+            "iscrowd": 1,
             "extra": build_extra(annotation),
         }
     elif annotation_type == "tag":
@@ -204,7 +233,7 @@ def convert_polygons_to_sequences(polygons: List) -> List[np.ndarray]:
             for point in polygon:
                 path.append(point["x"])
                 path.append(point["y"])
-            sequences.append(np.array(path))
+            sequences.append(path)
         return sequences
     raise ValueError("Unknown input format")
 
@@ -215,3 +244,20 @@ def polygon_area(x: np.ndarray, y: np.ndarray) -> float:
     for x and y coordinates.
     """
     return 0.5 * np.abs(np.dot(x, np.roll(y, 1)) - np.dot(y, np.roll(x, 1)))
+
+
+def rle_encoding(binary_mask):
+    counts = []
+
+    last_elem = 0
+    running_length = 0
+    for i, elem in enumerate(binary_mask.ravel(order="F")):
+        if elem != last_elem:
+            counts.append(running_length)
+            running_length = 0
+            last_elem = elem
+        running_length += 1
+
+    counts.append(running_length)
+
+    return counts
