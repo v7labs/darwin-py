@@ -1,5 +1,7 @@
+import os
+import sys
 from pathlib import Path
-from typing import List, Union
+from typing import List, Optional, Union
 
 import numpy as np
 import torch
@@ -75,3 +77,51 @@ def polygon_area(x: np.ndarray, y: np.ndarray) -> float:
     for x and y coordinates.
     """
     return 0.5 * np.abs(np.dot(x, np.roll(y, 1)) - np.dot(y, np.roll(x, 1)))
+
+
+def collate_fn(batch):
+    """
+    A collate function to be used in PyTorch's DataLoader
+    """
+    return tuple(zip(*batch))
+
+
+def detectron2_register_darwin_dataset(
+    dataset_path: Union[Path, str],
+    partition: Optional[str] = None,
+    split_type: Optional[str] = "stratified",
+    release_name: Optional[str] = None,
+):
+    """ Registers a local Darwin-formatted dataset in Detectron2
+
+    Parameters
+    ----------
+    dataset_path: Path, str
+        Path to the location of the dataset on the file system
+    partition: str
+        Selects one of the partitions [train, val, test]
+    split_type: str
+        Heuristic used to do the split [random, stratified]
+    release_name: str
+        Version of the dataset
+    """
+    try:
+        from detectron2.data import MetadataCatalog, DatasetCatalog
+    except ImportError:
+        print("Detectron2 not found.")
+        sys.exit(1)
+    from darwin.dataset.utils import get_annotations, get_classes
+
+    catalog_name = f"darwin_{os.path.basename(dataset_path)}_{partition}"
+    classes = get_classes(dataset_path, annotation_type='polygon')
+    DatasetCatalog.register(
+        catalog_name,
+        lambda partition=partition: list(get_annotations(
+            dataset_path,
+            partition=partition,
+            split_type=split_type,
+            release_name=release_name,
+        ))
+    )
+    MetadataCatalog.get(catalog_name).set(thing_classes=classes)
+    return catalog_name
