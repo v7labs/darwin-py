@@ -79,13 +79,6 @@ def polygon_area(x: np.ndarray, y: np.ndarray) -> float:
     return 0.5 * np.abs(np.dot(x, np.roll(y, 1)) - np.dot(y, np.roll(x, 1)))
 
 
-def collate_fn(batch):
-    """
-    A collate function to be used in PyTorch's DataLoader
-    """
-    return tuple(zip(*batch))
-
-
 def detectron2_register_darwin_dataset(
     dataset_path: Union[Path, str],
     partition: Optional[str] = None,

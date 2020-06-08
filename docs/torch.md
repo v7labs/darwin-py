@@ -42,7 +42,7 @@ print(db_train)
 ```
 
 
-## Darwin :heart: Torchvision
+## Darwin X Torchvision
 
 
 ```python
@@ -117,36 +117,24 @@ for epoch in range(10):
 ```
 
 
-## Darwin :heart: Detectron2
+## Darwin X Detectron2
 
 ```python
 import os
-# import some common detectron2 utilities
+# import some common Detectron2 and Darwin utilities
 from detectron2.utils.logger import setup_logger
 from detectron2 import model_zoo
 from detectron2.engine import DefaultTrainer
 from detectron2.config import get_cfg
-from detectron2.data import MetadataCatalog, DatasetCatalog, build_detection_test_loader
+from detectron2.data import MetadataCatalog, build_detection_test_loader
 from detectron2.evaluation import COCOEvaluator, inference_on_dataset
-# import darwin utilities
-from darwin.dataset.utils import get_annotations, get_classes
-
-
-def register_darwin_dataset(dataset_path, partition, split_type='stratified'):
-    catalog_name = f"darwin_{os.path.basename(dataset_path)}_{partition}"
-    classes = get_classes(dataset_path, annotation_type='polygon')
-    DatasetCatalog.register(
-        catalog_name,
-        lambda partition=partition: list(get_annotations(dataset_path, partition, split_type=split_type))
-    )
-    MetadataCatalog.get(catalog_name).set(thing_classes=classes)
-    return catalog_name
+from darwin.torch.utils import detectron2_register_darwin_dataset
 
 
 # Register both training and validation sets
 dataset_path = '/datasets/v7-demo/bird-species'
-dataset_train = register_darwin_dataset(dataset_path, 'train')
-dataset_val = register_darwin_dataset(dataset_path, 'val')
+dataset_train = detectron2_register_darwin_dataset(dataset_path, partition='train')
+dataset_val = detectron2_register_darwin_dataset(dataset_path, partition='val')
 
 # Set up training configuration and train the model
 cfg = get_cfg()
@@ -156,8 +144,8 @@ cfg.DATASETS.TEST = ()
 cfg.DATALOADER.NUM_WORKERS = 2
 cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url("COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml")
 cfg.SOLVER.IMS_PER_BATCH = 8
-cfg.SOLVER.BASE_LR = 0.00025  # pick a good LR
-cfg.SOLVER.MAX_ITER = 100  # and a good number of iterations
+cfg.SOLVER.BASE_LR = 0.005  # pick a good LR
+cfg.SOLVER.MAX_ITER = 1000  # and a good number of iterations
 cfg.MODEL.ROI_HEADS.NUM_CLASSES = len(MetadataCatalog.get(dataset_train).thing_classes)
 
 os.makedirs(cfg.OUTPUT_DIR, exist_ok=True)
