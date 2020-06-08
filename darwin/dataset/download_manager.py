@@ -2,7 +2,6 @@ import functools
 import json
 import time
 from pathlib import Path
-from typing import Optional
 
 import requests
 
@@ -10,6 +9,7 @@ from darwin.utils import is_image_extension_allowed
 
 
 def download_all_images_from_annotations(
+    api_key: str,
     api_url: str,
     annotations_path: Path,
     images_path: Path,
@@ -21,6 +21,8 @@ def download_all_images_from_annotations(
 
     Parameters
     ----------
+    api_key : str
+        API Key of the current team
     api_url : str
         Url of the darwin API (e.g. 'https://darwin.v7labs.com/api/')
     annotations_path : Path
@@ -73,17 +75,23 @@ def download_all_images_from_annotations(
     # Create the generator with the partial functions
     count = len(annotations_to_download_path)
     generator = lambda: (
-        functools.partial(download_image_from_annotation, api_url, annotation_path, images_path, annotation_format)
+        functools.partial(
+            download_image_from_annotation, api_key, api_url, annotation_path, images_path, annotation_format
+        )
         for annotation_path in annotations_to_download_path
     )
     return generator, count
 
 
-def download_image_from_annotation(api_url: str, annotation_path: Path, images_path: str, annotation_format: str):
+def download_image_from_annotation(
+    api_key: str, api_url: str, annotation_path: Path, images_path: str, annotation_format: str
+):
     """Helper function: dispatcher of functions to download an image given an annotation
 
     Parameters
     ----------
+    api_key : str
+        API Key of the current team
     api_url : str
         Url of the darwin API (e.g. 'https://darwin.v7labs.com/api/')
     annotation_path : Path
@@ -94,20 +102,22 @@ def download_image_from_annotation(api_url: str, annotation_path: Path, images_p
         Format of the annotations. Currently only JSON is supported
     """
     if annotation_format == "json":
-        download_image_from_json_annotation(api_url, annotation_path, images_path)
+        download_image_from_json_annotation(api_key, api_url, annotation_path, images_path)
     elif annotation_format == "xml":
         print("sorry can't let you do that dave")
         raise NotImplementedError
         # download_image_from_xml_annotation(annotation_path, images_path)
 
 
-def download_image_from_json_annotation(api_url: str, annotation_path: Path, image_path: str):
+def download_image_from_json_annotation(api_key: str, api_url: str, annotation_path: Path, image_path: str):
     """
     Helper function: downloads an image given a .json annotation path
     and renames the json after the image filename
 
     Parameters
     ----------
+    api_key : str
+        API Key of the current team
     api_url : str
         Url of the darwin API (e.g. 'https://darwin.v7labs.com/api/')
     annotation_path : Path
@@ -122,10 +132,10 @@ def download_image_from_json_annotation(api_url: str, annotation_path: Path, ima
     original_filename_suffix = Path(annotation["image"]["original_filename"]).suffix
     path = Path(image_path) / (annotation_path.stem + original_filename_suffix)
 
-    download_image(annotation["image"]["url"], path)
+    download_image(annotation["image"]["url"], path, api_key)
 
 
-def download_image(url: str, path: Path, verbose: Optional[bool] = False):
+def download_image(url: str, path: Path, api_key: str):
     """Helper function: downloads one image from url.
 
     Parameters
@@ -134,17 +144,18 @@ def download_image(url: str, path: Path, verbose: Optional[bool] = False):
         Url of the image to download
     path : Path
         Path where to download the image, with filename
-    verbose : bool
-        Flag for the logging level
+    api_key : str
+        API Key of the current team
     """
     if path.exists():
         return
-    if verbose:
-        print(f"Dowloading {path.name}")
     TIMEOUT = 60
     start = time.time()
     while True:
-        response = requests.get(url, stream=True)
+        if "token" in url:
+            response = requests.get(url, stream=True)
+        else:
+            response = requests.get(url, headers={"Authorization": f"ApiKey {api_key}"}, stream=True)
         # Correct status: download image
         if response.status_code == 200:
             with open(str(path), "wb") as file:

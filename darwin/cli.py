@@ -69,7 +69,7 @@ def run(args, parser):
         elif args.action == "report":
             f.dataset_report(args.dataset, args.granularity or "day")
         elif args.action == "export":
-            f.export_dataset(args.dataset, args.annotation_class, args.name)
+            f.export_dataset(args.dataset, args.include_url_token, args.annotation_class, args.name)
         elif args.action == "releases":
             f.dataset_list_releases(args.dataset)
         elif args.action == "pull":
