@@ -299,7 +299,7 @@ class RemoteDataset:
             "annotation_classes"
         ]
 
-    def export(self, name: str, annotation_class_ids: Optional[List[str]] = None):
+    def export(self, name: str, annotation_class_ids: Optional[List[str]] = None, include_url_token: bool = False):
         """Create a new release for the dataset
 
         Parameters
@@ -308,10 +308,16 @@ class RemoteDataset:
             Name of the release
         annotation_class_ids: List
             List of the classes to filter
+        include_url_token: bool
+            Should the image url in the export be include a token enabling access without team membership
         """
         if annotation_class_ids is None:
             annotation_class_ids = []
-        payload = {"annotation_class_ids": annotation_class_ids, "name": name}
+        payload = {
+            "annotation_class_ids": annotation_class_ids,
+            "name": name,
+            "include_export_token": include_url_token,
+        }
         self.client.post(
             f"/datasets/{self.dataset_id}/exports",
             payload=payload,
