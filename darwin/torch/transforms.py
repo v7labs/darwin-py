@@ -124,7 +124,7 @@ class ConvertPolygonsToInstanceMasks(object):
         return image, target
 
 
-class ConvertPolygonsToSegmentationMask(object):
+class ConvertPolygonsToSemanticMask(object):
     def __call__(self, image, target):
         w, h = image.size
         image_id = target["image_id"]
