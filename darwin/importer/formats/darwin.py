@@ -13,9 +13,9 @@ def parse_file(path: Path) -> Optional[dt.AnnotationFile]:
         data = json.load(f)
         annotations = list(filter(None, map(_parse_annotation, data["annotations"])))
         annotation_classes = set([annotation.annotation_class for annotation in annotations])
-        image = data["image"]
-        # filename = f"{image['original_filename']}"
-        filename = f"{os.splitext(image['filename'])[0]_image['original_filename']}"
+        # filename = f"{data['image']['original_filename']}"
+        filename = path.stem + os.path.splitext(data["image"]["original_filename"])[1]
+        import pdb; pdb.set_trace()  # XXX BREAKPOINT
         return dt.AnnotationFile(path, filename, annotation_classes, annotations)
 
 
