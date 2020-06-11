@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Optional
 
 import darwin.datatypes as dt
-from darwin.exporter import _parse_darwin_annotation
+from darwin.utils import _parse_darwin_annotation
 
 
 def parse_file(path: Path) -> Optional[dt.AnnotationFile]:
