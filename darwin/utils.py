@@ -2,8 +2,8 @@ import json
 from pathlib import Path
 from typing import TYPE_CHECKING, List, Optional, Union
 
-from darwin.config import Config
 import darwin.datatypes as dt
+from darwin.config import Config
 
 SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpeg", ".jpg", ".jfif", ".tif"]
 SUPPORTED_VIDEO_EXTENSIONS = [".bpm", ".mov", ".mp4"]

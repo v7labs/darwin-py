@@ -1,4 +1,4 @@
-from . import coco, csvtags, dataloop, darwin, pascalvoc
+from . import coco, csvtags, darwin, dataloop, pascalvoc
 
 supported_formats = [
     ("pascal_voc", pascalvoc.parse_file),
