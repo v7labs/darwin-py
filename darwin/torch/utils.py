@@ -79,9 +79,10 @@ def polygon_area(x: np.ndarray, y: np.ndarray) -> float:
     return 0.5 * np.abs(np.dot(x, np.roll(y, 1)) - np.dot(y, np.roll(x, 1)))
 
 
-def detectron2_register_darwin_dataset(
+def detectron2_register_dataset(
     dataset_path: Union[Path, str],
     partition: Optional[str] = None,
+    split: Optional[str] = 'default',
     split_type: Optional[str] = "stratified",
     release_name: Optional[str] = None,
 ):
@@ -93,6 +94,8 @@ def detectron2_register_darwin_dataset(
         Path to the location of the dataset on the file system
     partition: str
         Selects one of the partitions [train, val, test]
+    split
+        Selects the split that defines the percetages used (use 'default' to select the default split)
     split_type: str
         Heuristic used to do the split [random, stratified]
     release_name: str
@@ -105,7 +108,9 @@ def detectron2_register_darwin_dataset(
         sys.exit(1)
     from darwin.dataset.utils import get_annotations, get_classes
 
-    catalog_name = f"darwin_{os.path.basename(dataset_path)}_{partition}"
+    catalog_name = f"darwin_{os.path.basename(dataset_path)}"
+    if partition:
+        catalog_name += f"_{partition}"
     classes = get_classes(dataset_path, annotation_type='polygon')
     DatasetCatalog.register(
         catalog_name,
@@ -114,6 +119,8 @@ def detectron2_register_darwin_dataset(
             partition=partition,
             split_type=split_type,
             release_name=release_name,
+            annotation_type="polygon",
+            annotation_format="coco",
         ))
     )
     MetadataCatalog.get(catalog_name).set(thing_classes=classes)
