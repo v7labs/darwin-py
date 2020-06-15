@@ -85,6 +85,7 @@ def detectron2_register_dataset(
     split: Optional[str] = 'default',
     split_type: Optional[str] = "stratified",
     release_name: Optional[str] = None,
+    evaluator_type: Optional[str] = None,
 ):
     """ Registers a local Darwin-formatted dataset in Detectron2
 
@@ -100,6 +101,8 @@ def detectron2_register_dataset(
         Heuristic used to do the split [random, stratified]
     release_name: str
         Version of the dataset
+    evaluator_type: str
+        Evaluator to be used in the val and test sets
     """
     try:
         from detectron2.data import MetadataCatalog, DatasetCatalog
@@ -124,4 +127,6 @@ def detectron2_register_dataset(
         ))
     )
     MetadataCatalog.get(catalog_name).set(thing_classes=classes)
+    if evaluator_type and partition in ['val', 'test']:
+        MetadataCatalog.get(catalog_name).set(evaluator_type=evaluator_type)
     return catalog_name
