@@ -4,9 +4,9 @@ from typing import List, Union
 import numpy as np
 import torch
 from PIL import Image
+from upolygon import draw_polygon
 
 from darwin.datatypes import ComplexPolygon, Polygon
-from upolygon import draw_polygon
 
 try:
     import accimage

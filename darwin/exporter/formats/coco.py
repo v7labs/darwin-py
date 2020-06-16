@@ -4,9 +4,9 @@ from pathlib import Path
 from typing import Generator, List
 
 import numpy as np
+from upolygon import draw_polygon
 
 import darwin.datatypes as dt
-from upolygon import draw_polygon
 
 
 class NumpyEncoder(json.JSONEncoder):
