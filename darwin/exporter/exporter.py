@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Callable, Generator, List, Union
 
 import darwin.datatypes as dt
-from darwin.utils import _parse_darwin_json
+from darwin.utils import parse_darwin_json
 
 
 def darwin_to_dt_gen(file_paths):
@@ -12,7 +12,7 @@ def darwin_to_dt_gen(file_paths):
         for f in files:
             if f.suffix != ".json":
                 continue
-            data = _parse_darwin_json(f, count)
+            data = parse_darwin_json(f, count)
             if data:
                 yield data
             count += 1

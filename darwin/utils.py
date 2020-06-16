@@ -158,12 +158,12 @@ def persist_client_configuration(
     return config
 
 
-def _parse_darwin_json(path: Path, count: int):
+def parse_darwin_json(path: Path, count: int):
     with path.open() as f:
         data = json.load(f)
         if not data["annotations"]:
             return None
-        annotations = list(filter(None, map(_parse_darwin_annotation, data["annotations"])))
+        annotations = list(filter(None, map(parse_darwin_annotation, data["annotations"])))
         annotation_classes = set([annotation.annotation_class for annotation in annotations])
 
         return dt.AnnotationFile(
@@ -179,7 +179,7 @@ def _parse_darwin_json(path: Path, count: int):
         )
 
 
-def _parse_darwin_annotation(annotation):
+def parse_darwin_annotation(annotation):
     name = annotation["name"]
     main_annotation = None
     if "polygon" in annotation:
