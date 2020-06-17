@@ -127,6 +127,6 @@ def detectron2_register_dataset(
         ))
     )
     MetadataCatalog.get(catalog_name).set(thing_classes=classes)
-    if evaluator_type and partition in ['val', 'test']:
+    if evaluator_type:
         MetadataCatalog.get(catalog_name).set(evaluator_type=evaluator_type)
     return catalog_name
