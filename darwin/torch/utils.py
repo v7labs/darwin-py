@@ -6,6 +6,8 @@ from typing import List, Optional, Union
 import numpy as np
 import torch
 
+from darwin.cli_functions import _error, _load_client
+from darwin.dataset.identifier import DatasetIdentifier
 from darwin.datatypes import ComplexPolygon, Polygon
 from upolygon import draw_polygon
 
@@ -80,7 +82,7 @@ def polygon_area(x: np.ndarray, y: np.ndarray) -> float:
 
 
 def detectron2_register_dataset(
-    dataset_path: Union[Path, str],
+    dataset_slug: str,
     partition: Optional[str] = None,
     split: Optional[str] = 'default',
     split_type: Optional[str] = "stratified",
@@ -91,7 +93,7 @@ def detectron2_register_dataset(
 
     Parameters
     ----------
-    dataset_path: Path, str
+    dataset_slug: Path, str
         Path to the location of the dataset on the file system
     partition: str
         Selects one of the partitions [train, val, test]
@@ -111,22 +113,33 @@ def detectron2_register_dataset(
         sys.exit(1)
     from darwin.dataset.utils import get_annotations, get_classes
 
-    catalog_name = f"darwin_{os.path.basename(dataset_path)}"
-    if partition:
-        catalog_name += f"_{partition}"
-    classes = get_classes(dataset_path, annotation_type='polygon')
-    DatasetCatalog.register(
-        catalog_name,
-        lambda partition=partition: list(get_annotations(
-            dataset_path,
-            partition=partition,
-            split_type=split_type,
-            release_name=release_name,
-            annotation_type="polygon",
-            annotation_format="coco",
-        ))
+    identifier = DatasetIdentifier.parse(dataset_slug)
+    client = _load_client(offline=True)
+
+    for dataset_path in client.list_local_datasets(team=identifier.team_slug):
+        if identifier.dataset_slug == dataset_path.name:
+            catalog_name = f"darwin_{identifier.dataset_slug}"
+            if partition:
+                catalog_name += f"_{partition}"
+            classes = get_classes(dataset_path, annotation_type='polygon')
+            DatasetCatalog.register(
+                catalog_name,
+                lambda partition=partition: list(get_annotations(
+                    dataset_path,
+                    partition=partition,
+                    split_type=split_type,
+                    release_name=release_name,
+                    annotation_type="polygon",
+                    annotation_format="coco",
+                ))
+            )
+            MetadataCatalog.get(catalog_name).set(thing_classes=classes)
+            if evaluator_type:
+                MetadataCatalog.get(catalog_name).set(evaluator_type=evaluator_type)
+            return catalog_name
+
+    _error(
+        f"Dataset '{identifier.dataset_slug}' does not exist locally. "
+        f"Use 'darwin dataset remote' to see all the available datasets, "
+        f"and 'darwin dataset pull' to pull them."
     )
-    MetadataCatalog.get(catalog_name).set(thing_classes=classes)
-    if evaluator_type:
-        MetadataCatalog.get(catalog_name).set(evaluator_type=evaluator_type)
-    return catalog_name
