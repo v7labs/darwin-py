@@ -4,6 +4,7 @@ This module includes some functionality to import your datasets ready to be plug
 
 ```
 def get_dataset(dataset_slug, dataset_type [, partition, split, split_type, transform])
+
 Input
 ----------
 dataset_slug: str
@@ -159,7 +160,8 @@ This tutorial shows how to train [Detectron2](https://github.com/facebookresearc
 Detectron2 organizes the datasets in `DatasetCatalog`, so the only thing we will need to do is to register our Darwin dataset in this catalog. For this, `darwin-py` provides thes `detectron2_register_dataset`, which takes the following parameters:
 
 ```
-detectron2_register_dataset(dataset_slug [, partition, split, split_type, release_name, evaluator_type])
+def detectron2_register_dataset(dataset_slug [, partition, split, split_type, release_name, evaluator_type])
+
 Input
 ----------
 dataset_slug: Path, str
