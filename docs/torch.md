@@ -1,5 +1,8 @@
 # PyTorch bindings
 
+
+## Loading a dataset in Python
+
 This module includes some functionality to import your datasets ready to be plugged into your Pytorch-based libraries. For this, you can use `get_dataset()` function:
 
 ```
@@ -26,9 +29,9 @@ dataset: LocalDataset
   API class to the local dataset
 ```
 
-For now, it only support three types of dataset: `classification`, `instance-segmentation`, and `semantic-segmentation`. These different modes use different API classes, which load and pre-process the data in different ways, tailored for these specific tasks. If you need a different API or a different pre-processing for a different task you can take a look into the implementation of these APIs in `darwin.torch.dataset` and extend `LocalDataset` in the way it suits your needs best.
+**Note:** For now, it only support three types of dataset: `classification`, `instance-segmentation`, and `semantic-segmentation`. These different modes use different API classes, which load and pre-process the data in different ways, tailored for these specific tasks. If you need a different API or a different pre-processing for a different task you can take a look into the implementation of these APIs in `darwin.torch.dataset` and extend `LocalDataset` in the way it suits your needs best.
 
-Finally, this is an example of how to load the `v7-demo/bird-species` dataset ready to be used in a instance segmentation task using `"instance-segmentation"` as `dataset_type`. First, we will pull it from Darwin using `darwin-py`'s CLI and will create train, validation, and test partitions:
+This is an example of how to load the `v7-demo/bird-species` dataset ready to be used in a instance segmentation task using `"instance-segmentation"` as `dataset_type`. First, we will pull it from Darwin using `darwin-py`'s CLI and will create train, validation, and test partitions:
 
 ```bash
 darwin dataset pull v7-demo/bird-species
@@ -101,7 +104,7 @@ def get_instance_segmentation_model(num_classes):
     return model
 ```
 
-Then, we will load the dataset using `darwin-py`'s `get_dataset()` function, specifying the path to the dataset, the dataset type (in this case we need an `instance-segmentation` dataset), and the `train` partition. The dataset that we get back can be used directly into Pytorch's standard DataLoader.
+Then, we will load the dataset using `darwin-py`'s `get_dataset()` function, specifying the dataset slug, the dataset type (in this case we need an `instance-segmentation` dataset), and the `train` partition. The dataset that we get back can be used directly into Pytorch's standard DataLoader.
 
 ```python
 trfs_train = T.Compose([T.RandomHorizontalFlip(), T.ToTensor()])
@@ -127,7 +130,7 @@ optimizer = torch.optim.SGD(params, lr=0.005, momentum=0.9, weight_decay=0.0005)
 lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
 ```
 
-And finally, we define our training loop and train the model for 10 full epochs.
+And finally, we write our training loop and train the model for 10 full epochs.
 
 ```python
 # let's train it for 10 epochs
