@@ -2,27 +2,27 @@
 
 This module includes some functionality to import your datasets ready to be plugged into your Pytorch-based libraries. For this, you can use `get_dataset()` function:
 
-```python
-get_dataset(DATASET_SLUG, DATASET_TYPE [, PARTITION, SPLIT, SPLIT_TYPE, TRANSFORMS])
+```
+def get_dataset(dataset_slug, dataset_type [, partition, split, split_type, transform])
 Input
 ----------
 dataset_slug: str
-	Slug of the dataset to retrieve
+  Slug of the dataset to retrieve
 dataset_type: str
-	The type of dataset [classification, instance-segmentation, semantic-segmentation]
+  The type of dataset [classification, instance-segmentation, semantic-segmentation]
 partition: str
-	Selects one of the partitions [train, val, test, None]. (Default: None)
+  Selects one of the partitions [train, val, test, None]. (Default: None)
 split: str
-	Selects the split that defines the percentages used. (Default: 'default')
+  Selects the split that defines the percentages used. (Default: 'default')
 split_type: str
-	Heuristic used to do the split [random, stratified]. (Default: 'random')
+  Heuristic used to do the split [random, stratified]. (Default: 'random')
 transform : list[torchvision.transforms]
-	List of PyTorch transforms. (Default: None)
+  List of PyTorch transforms. (Default: None)
 
 Output
 ----------
 dataset: LocalDataset
-    API class to the local dataset
+  API class to the local dataset
 ```
 
 For now, it only support three types of dataset: `classification`, `instance-segmentation`, and `semantic-segmentation`. These different modes use different API classes, which load and pre-process the data in different ways, tailored for these specific tasks. If you need a different API or a different pre-processing for a different task you can take a look into the implementation of these APIs in `darwin.torch.dataset` and extend `LocalDataset` in the way it suits your needs best.
@@ -163,22 +163,22 @@ detectron2_register_dataset(dataset_slug [, partition, split, split_type, releas
 Input
 ----------
 dataset_slug: Path, str
-    Slug of the dataset you want to register
+  Slug of the dataset you want to register
 partition: str
-    Selects one of the partitions [train, val, test]. If None, loads the whole dataset. (default: None)
+  Selects one of the partitions [train, val, test]. If None, loads the whole dataset. (default: None)
 split
-    Selects the split that defines the percetages used (use 'default' to select the default split)
+  Selects the split that defines the percetages used (use 'default' to select the default split)
 split_type: str
-    Heuristic used to do the split [random, stratified] (default: stratified)
+  Heuristic used to do the split [random, stratified] (default: stratified)
 release_name: str
-    Version of the dataset. If None, takes the latest (default: None)
+  Version of the dataset. If None, takes the latest (default: None)
 evaluator_type: str
-    Evaluator to be used in the val and test sets (default: None)
+  Evaluator to be used in the val and test sets (default: None)
 
 Output
 ----------
 catalog_name: str
-    Name used to register this dataset partition in DatasetCatalog
+  Name used to register this dataset partition in DatasetCatalog
 ```
 
 Here's an example of how to use this function to register a Darwin dataset, and train an instance segmentation model on it. First, and as we did before, we will start by pulling the dataset from Darwin and splitting it into train and validation from the command line:
