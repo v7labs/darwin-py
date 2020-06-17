@@ -31,7 +31,7 @@ dataset: LocalDataset
 
 **Note:** For now, it only support three types of dataset: `classification`, `instance-segmentation`, and `semantic-segmentation`. These different modes use different API classes, which load and pre-process the data in different ways, tailored for these specific tasks. If you need a different API or a different pre-processing for a different task you can take a look into the implementation of these APIs in `darwin.torch.dataset` and extend `LocalDataset` in the way it suits your needs best.
 
-This is an example of how to load the `v7-demo/bird-species` dataset ready to be used in a instance segmentation task using `"instance-segmentation"` as `dataset_type`. First, we will pull it from Darwin using `darwin-py`'s CLI and will create train, validation, and test partitions:
+This is an example of how to load the `v7-demo/bird-species` dataset ready to be used in a instance segmentation task by using `"instance-segmentation"` as `dataset_type`. First, we will pull it from Darwin using `darwin-py`'s CLI, and will create train, validation, and test partitions:
 
 ```bash
 darwin dataset pull v7-demo/bird-species
@@ -65,14 +65,14 @@ print(db_train)
 
 ## Darwin X Torchvision
 
-This tutorial shows how to use the function `get_dataset()` in `darwin-py` to train an instance segmentaion model using Pytorch's [Torchvsion](https://github.com/pytorch/vision) on a dataset in Darwin. First, using `darwin-py`'s CLI, we will pull the dataset from Darwin and create train, validation, and test partitions.
+This tutorial shows how to train an instance segmentaion model on a Darwin dataset using Pytorch's [Torchvsion](https://github.com/pytorch/vision) and `darwin-py`. First, using `darwin-py`'s CLI, we will pull the dataset from Darwin and create train, validation, and test partitions.
 
 ```bash
 darwin dataset pull v7-demo/bird-species
 darwin dataset split v7-demo/bird-species --val-percentage 10 --test-percentage 20
 ```
 
-Now, in Python, we will start by importing some `torchvision` and `darwin` functions, and by defining the function `get_instance_segmentation_model()` that we will use to instantiate a [Mask-RCNN](https://arxiv.org/abs/1703.06870) model using Torchvision's API.
+Now, in Python, we will start by importing some `torchvision` and `darwin-py` functions, and by defining the function `get_instance_segmentation_model()` that we will use to instantiate a [Mask-RCNN](https://arxiv.org/abs/1703.06870) model using Torchvision's API.
 
 ```python
 import torch
