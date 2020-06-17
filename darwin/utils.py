@@ -1,6 +1,8 @@
+import json
 from pathlib import Path
 from typing import TYPE_CHECKING, List, Optional, Union
 
+import darwin.datatypes as dt
 from darwin.config import Config
 
 SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpeg", ".jpg", ".jfif", ".tif"]
@@ -154,3 +156,53 @@ def persist_client_configuration(
     config.set_global(api_endpoint=client.url, base_url=client.base_url, default_team=default_team)
 
     return config
+
+
+def parse_darwin_json(path: Path, count: int):
+    with path.open() as f:
+        data = json.load(f)
+        if not data["annotations"]:
+            return None
+        annotations = list(filter(None, map(parse_darwin_annotation, data["annotations"])))
+        annotation_classes = set([annotation.annotation_class for annotation in annotations])
+
+        return dt.AnnotationFile(
+            path,
+            data["image"]["original_filename"],
+            annotation_classes,
+            annotations,
+            data["image"]["width"],
+            data["image"]["height"],
+            data["image"]["url"],
+            data["image"].get("workview_url"),
+            data["image"].get("seq", count),
+        )
+
+
+def parse_darwin_annotation(annotation):
+    name = annotation["name"]
+    main_annotation = None
+    if "polygon" in annotation:
+        main_annotation = dt.make_polygon(name, annotation["polygon"]["path"])
+    elif "complex_polygon" in annotation:
+        main_annotation = dt.make_complex_polygon(name, annotation["complex_polygon"]["path"])
+    elif "bounding_box" in annotation:
+        bounding_box = annotation["bounding_box"]
+        main_annotation = dt.make_bounding_box(
+            name, bounding_box["x"], bounding_box["y"], bounding_box["w"], bounding_box["h"]
+        )
+    elif "tag" in annotation:
+        main_annotation = dt.make_tag(name)
+
+    if not main_annotation:
+        print(f"[WARNING] Unsupported annotation type: '{annotation.keys()}'")
+        return None
+
+    if "instance_id" in annotation:
+        main_annotation.subs.append(dt.make_instance_id(annotation["instance_id"]["value"]))
+    if "attributes" in annotation:
+        main_annotation.subs.append(dt.make_attributes(annotation["attributes"]))
+    if "text" in annotation:
+        main_annotation.subs.append(dt.make_text(annotation["text"]["text"]))
+
+    return main_annotation

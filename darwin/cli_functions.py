@@ -199,7 +199,9 @@ def dataset_report(dataset_slug: str, granularity) -> Path:
         _error(f"Dataset '{dataset_slug}' does not exist.")
 
 
-def export_dataset(dataset_slug: str, annotation_class_ids: Optional[List] = None, name: Optional[str] = None):
+def export_dataset(
+    dataset_slug: str, include_url_token: bool, annotation_class_ids: Optional[List] = None, name: Optional[str] = None
+):
     """Create a new release for the dataset
 
     Parameters
@@ -214,7 +216,7 @@ def export_dataset(dataset_slug: str, annotation_class_ids: Optional[List] = Non
     client = _load_client(offline=False)
     identifier = DatasetIdentifier.parse(dataset_slug)
     ds = client.get_remote_dataset(identifier)
-    ds.export(annotation_class_ids=annotation_class_ids, name=name)
+    ds.export(annotation_class_ids=annotation_class_ids, name=name, include_url_token=include_url_token)
     identifier.version = name
     print(f"Dataset {dataset_slug} successfully exported to {identifier}")
 
@@ -356,7 +358,7 @@ def split(dataset_slug: str, val_percentage: float, test_percentage: float, seed
 def list_remote_datasets(all_teams: bool, team: Optional[str] = None):
     """Lists remote datasets with its annotation progress"""
     # TODO: add listing open datasets
-    table = Table(["name", "images", "progress"], [Table.L, Table.R, Table.R])
+    table = Table(["name", "images"], [Table.L, Table.R])
     datasets = []
     if all_teams:
         for team in _config().get_all_teams():
@@ -367,13 +369,7 @@ def list_remote_datasets(all_teams: bool, team: Optional[str] = None):
         datasets = client.list_remote_datasets()
 
     for dataset in datasets:
-        table.add_row(
-            {
-                "name": f"{dataset.team}/{dataset.slug}",
-                "images": dataset.image_count,
-                "progress": f"{round(dataset.progress*100,1)}%",
-            }
-        )
+        table.add_row({"name": f"{dataset.team}/{dataset.slug}", "images": dataset.image_count})
     if len(table) == 0:
         print("No dataset available.")
     else:

@@ -3,9 +3,9 @@ from typing import List, Union
 
 import numpy as np
 import torch
+from upolygon import draw_polygon
 
 from darwin.datatypes import ComplexPolygon, Polygon
-from upolygon import draw_polygon
 
 
 def convert_polygon_to_mask(segmentations: List[List[float]], height: int, width: int):
