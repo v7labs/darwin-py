@@ -160,7 +160,7 @@ for epoch in range(10):
 
 This tutorial shows how to train [Detectron2](https://github.com/facebookresearch/detectron2) models in your Darwin datasets. If you do not have Detectron2 installed yet, follow these [installation instructions](https://github.com/facebookresearch/detectron2/blob/master/INSTALL.md).
 
-Detectron2 organizes the datasets in `DatasetCatalog`, so the only thing we will need to do is to register our Darwin dataset in this catalog. For this, `darwin-py` provides thes `detectron2_register_dataset`, which takes the following parameters:
+Detectron2 organizes the datasets in `DatasetCatalog`, so the only thing we will need to do is to register our Darwin dataset in this catalog. For this, `darwin-py` provides the function `detectron2_register_dataset()`, which takes the following parameters:
 
 ```
 def detectron2_register_dataset(dataset_slug [, partition, split, split_type, release_name, evaluator_type])
