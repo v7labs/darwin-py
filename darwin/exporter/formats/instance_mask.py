@@ -5,10 +5,10 @@ from typing import Generator, List, Optional
 
 import numpy as np
 from PIL import Image
-from tqdm import tqdm
 from upolygon import draw_polygon
 
 import darwin.datatypes as dt
+from darwin.utils import get_progress_bar
 
 
 def generate_instance_id(instance_ids, length=8):
@@ -26,9 +26,7 @@ def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_di
     instance_ids = set()
     with open(output_dir / "instance_mask_annotations.csv", "w") as f:
         f.write("image_id,mask_id,class_name\n")
-        pbar = tqdm(list(annotation_files))
-        pbar.set_description(desc="Processing annotations", refresh=True)
-        for annotation_file in pbar:
+        for annotation_file in get_progress_bar(list(annotation_files), "Processing annotations"):
             image_id = annotation_file.path.stem
             height = annotation_file.image_height
             width = annotation_file.image_width

@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from tqdm import tqdm
 from typing import TYPE_CHECKING, List, Optional, Union
 
 import darwin.datatypes as dt
@@ -206,3 +207,9 @@ def parse_darwin_annotation(annotation):
         main_annotation.subs.append(dt.make_text(annotation["text"]["text"]))
 
     return main_annotation
+
+
+def get_progress_bar(array: List, description: Optional[str] = None):
+    pbar = tqdm(array)
+    pbar.set_description(desc=description, refresh=True)
+    return pbar

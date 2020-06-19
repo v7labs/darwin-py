@@ -3,10 +3,10 @@ from typing import Generator, List, Optional
 
 import numpy as np
 from PIL import Image
-from tqdm import tqdm
 from upolygon import draw_polygon
 
 import darwin.datatypes as dt
+from darwin.utils import get_progress_bar
 
 
 def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_dir: Path):
@@ -15,10 +15,8 @@ def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_di
     annotation_files = list(annotation_files)
     categories = calculate_categories(annotation_files)
     ignore_idx = 255
-    pbar = tqdm(annotation_files)
-    pbar.set_description(desc="Processing annotations", refresh=True)
-    for annotation_file in pbar:
-        outfile = masks_dir / f'{annotation_file.path.stem}.png')
+    for annotation_file in get_progress_bar(list(annotation_files), "Processing annotations"):
+        outfile = masks_dir / f"{annotation_file.path.stem}.png"
         height = annotation_file.image_height
         width = annotation_file.image_width
         annotations = [a for a in annotation_file.annotations if ispolygon(a.annotation_class)]
