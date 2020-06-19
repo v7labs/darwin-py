@@ -246,7 +246,7 @@ class LocalDataset(object):
         class_weights /= class_weights.sum()
         return class_weights
 
-    # Loads an image with OpenCV and returns the channel wise means of the image.
+    # Loads an image with Pillow and returns the channel wise means of the image.
     @staticmethod
     def _return_mean(image_path):
         img = np.array(load_pil_image(image_path))
