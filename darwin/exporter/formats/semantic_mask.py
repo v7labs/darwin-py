@@ -18,7 +18,7 @@ def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_di
     pbar = tqdm(annotation_files)
     pbar.set_description(desc="Processing annotations", refresh=True)
     for annotation_file in pbar:
-        outfile = masks_dir / (annotation_file.path.stem + ".png")
+        outfile = masks_dir / f'{annotation_file.path.stem}.png')
         height = annotation_file.image_height
         width = annotation_file.image_width
         annotations = [a for a in annotation_file.annotations if ispolygon(a.annotation_class)]
