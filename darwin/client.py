@@ -238,11 +238,31 @@ class Client:
             dataset_identifier = DatasetIdentifier.parse(dataset_identifier)
         if not dataset_identifier.team_slug:
             dataset_identifier.team_slug = self.default_team
-        matching_datasets = [
-            dataset
-            for dataset in self.list_remote_datasets(team=dataset_identifier.team_slug)
-            if dataset.slug == dataset_identifier.dataset_slug
-        ]
+
+        try:
+            matching_datasets = [
+                dataset
+                for dataset in self.list_remote_datasets(team=dataset_identifier.team_slug)
+                if dataset.slug == dataset_identifier.dataset_slug
+            ]
+        except Unauthorized:
+            # There is a chance that we tried to access an open dataset
+            dataset = self.get(f"{dataset_identifier.team_slug}/{dataset_identifier.dataset_slug}")
+
+            # If there isn't a record of this team, create one.
+            if not self.config.get_team(dataset_identifier.team_slug, raise_on_invalid_team=False):
+                datasets_dir = Path.home() / ".darwin" / "datasets"
+                self.config.set_team(team=dataset_identifier.team_slug, api_key="", datasets_dir=str(datasets_dir))
+
+            return RemoteDataset(
+                name=dataset["name"],
+                slug=dataset["slug"],
+                team=dataset_identifier.team_slug,
+                dataset_id=dataset["id"],
+                image_count=dataset["num_images"],
+                progress=0,
+                client=self,
+            )
         if not matching_datasets:
             raise NotFound(dataset_identifier)
         return matching_datasets[0]
@@ -324,11 +344,12 @@ class Client:
         Contains the Content-Type and Authorization token
         """
         header = {"Content-Type": "application/json"}
+        api_key = None
+        team_config = self.config.get_team(team or self.default_team, raise_on_invalid_team=False)
+        if team_config:
+            api_key = team_config.get("api_key")
 
-        team_config = self.config.get_team(team or self.default_team)
-        api_key = team_config.get("api_key")
-
-        if api_key is not None:
+        if api_key is not None and len(api_key) > 0:
             header["Authorization"] = f"ApiKey {api_key}"
         return header
 
@@ -363,6 +384,14 @@ class Client:
         config = Config(config_path)
 
         return cls(config=config, default_team=team_slug)
+
+    @classmethod
+    def from_guest(cls, datasets_dir: Optional[Path] = None):
+        if datasets_dir is None:
+            datasets_dir = Path.home() / ".darwin" / "datasets"
+        config = Config(path=None)
+        config.set_global(api_endpoint=Client.default_api_url(), base_url=Client.default_base_url())
+        return cls(config=config)
 
     @classmethod
     def from_api_key(cls, api_key: str, datasets_dir: Optional[Path] = None):

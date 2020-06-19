@@ -230,7 +230,7 @@ def pull_dataset(dataset_slug: str):
         Slug of the dataset to which we perform the operation on
     """
     version = DatasetIdentifier.parse(dataset_slug).version or "latest"
-    client = _load_client(offline=False)
+    client = _load_client(offline=False, maybe_guest=True)
     try:
         dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
     except NotFound:
@@ -511,7 +511,7 @@ def _config():
     return Config(Path.home() / ".darwin" / "config.yaml")
 
 
-def _load_client(team: Optional[str] = None, offline: bool = False):
+def _load_client(team: Optional[str] = None, offline: bool = False, maybe_guest: bool = False):
     """Fetches a client, potentially offline
 
     Parameters
@@ -519,6 +519,8 @@ def _load_client(team: Optional[str] = None, offline: bool = False):
     offline : bool
         Flag for using an offline client
 
+    maybe_guest : bool
+        Flag to make a guest client, if config is missing 
     Returns
     -------
     Client
@@ -529,7 +531,10 @@ def _load_client(team: Optional[str] = None, offline: bool = False):
         client = Client.from_config(config_dir, team_slug=team)
         return client
     except MissingConfig:
-        _error("Authenticate first")
+        if maybe_guest:
+            return Client.from_guest()
+        else:
+            _error("Authenticate first")
     except InvalidLogin:
         _error("Please re-authenticate")
     except Unauthenticated:
