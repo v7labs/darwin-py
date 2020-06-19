@@ -235,7 +235,7 @@ def pull_dataset(dataset_slug: str):
         dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
     except NotFound:
         _error(
-            f"Dataset '{dataset_slug}' does not exist at {client.url}. "
+            f"Dataset '{dataset_slug}' does not exist, please check the spelling. "
             f"Use 'darwin remote' to list all the remote datasets."
         )
     except Unauthenticated:
