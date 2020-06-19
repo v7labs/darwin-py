@@ -1,7 +1,10 @@
 import json
 from pathlib import Path
-from tqdm import tqdm
 from typing import TYPE_CHECKING, List, Optional, Union
+
+from upolygon import draw_polygon
+import numpy as np
+from tqdm import tqdm
 
 import darwin.datatypes as dt
 from darwin.config import Config
@@ -186,7 +189,7 @@ def parse_darwin_json(path: Path, count: int):
         )
 
 
-def parse_darwin_annotation(annotation):
+def parse_darwin_annotation(annotation: dict):
     name = annotation["name"]
     main_annotation = None
     if "polygon" in annotation:
@@ -213,6 +216,10 @@ def parse_darwin_annotation(annotation):
         main_annotation.subs.append(dt.make_text(annotation["text"]["text"]))
 
     return main_annotation
+
+
+def ispolygon(annotation):
+    return annotation.annotation_type in ["polygon", "complex_polygon"]
 
 
 def convert_polygons_to_sequences(
@@ -253,7 +260,27 @@ def convert_polygons_to_sequences(
             y = max(min(point["y"], height - 1) if height else point["y"], 0)
             path.append(round(x))
             path.append(round(y))
-        sequences.append(np.array(path))
+        # sequences.append(np.array(path))
+        sequences.append(path)
     return sequences
 
 
+def convert_polygons_to_mask(polygons: List, height: int, width: int) -> np.ndarray:
+    """
+    Converts a list of polygons, encoded as a list of dictionaries into an nd.array mask
+
+    Parameters
+    ----------
+    polygons: list
+        List of coordinates in the format [{x: x1, y:y1}, ..., {x: xn, y:yn}] or a list of them
+        as  [[{x: x1, y:y1}, ..., {x: xn, y:yn}], ..., [{x: x1, y:y1}, ..., {x: xn, y:yn}]].
+
+    Returns
+    -------
+    mask: ndarray[float]
+        ndarray mask of the polygon(s)
+    """
+    sequence = convert_polygons_to_sequences(polygons, height=height, width=width)
+    mask = np.zeros((height, width)).astype(np.uint8)
+    draw_polygon(mask, sequence, 1)
+    return mask

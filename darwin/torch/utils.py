@@ -5,7 +5,7 @@ import torch
 from upolygon import draw_polygon
 
 
-def convert_polygon_to_mask(segmentations: List[List[float]], height: int, width: int):
+def convert_segmentation_to_mask(segmentations: List[List[float]], height: int, width: int):
     """
     Converts a polygon represented as a sequence of coordinates into a mask.
 
@@ -19,7 +19,6 @@ def convert_polygon_to_mask(segmentations: List[List[float]], height: int, width
     """
     masks = []
     for contour in segmentations:
-        contour = [c.tolist() for c in contour]
         mask = torch.zeros((height, width)).numpy().astype(np.uint8)
         masks.append(torch.from_numpy(np.asarray(draw_polygon(mask, contour, 1))))
     return torch.stack(masks)
