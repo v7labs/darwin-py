@@ -2,9 +2,9 @@ import json
 from pathlib import Path
 from typing import TYPE_CHECKING, List, Optional, Union
 
-from upolygon import draw_polygon
 import numpy as np
 from tqdm import tqdm
+from upolygon import draw_polygon
 
 import darwin.datatypes as dt
 from darwin.config import Config

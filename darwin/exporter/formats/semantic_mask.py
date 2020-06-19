@@ -1,9 +1,8 @@
 from pathlib import Path
-from typing import Generator, List, Optional
+from typing import Generator, List
 
 import numpy as np
 from PIL import Image
-from upolygon import draw_polygon
 
 import darwin.datatypes as dt
 from darwin.utils import convert_polygons_to_mask, get_progress_bar, ispolygon
