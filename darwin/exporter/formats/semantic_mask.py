@@ -49,7 +49,6 @@ def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_di
         for idx, c in enumerate(categories):
             f.write(f"{idx},{c}\n")
         f.write(f"{ignore_idx},__ignore__")
-    print(f"Dataset format saved at {output_dir}")
 
 
 def calculate_categories(annotation_files: List[dt.AnnotationFile]):

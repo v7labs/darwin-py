@@ -39,4 +39,3 @@ def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_di
                 mask_id = f"{image_id}_{instance_id}"
                 mask.save(masks_dir / f"{mask_id}.png")
                 f.write(f"{image_id},{mask_id},{cat}\n")
-        print(f"Dataset format saved at {output_dir}")
