@@ -14,7 +14,7 @@ import darwin.importer.formats
 from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset.identifier import DatasetIdentifier
-from darwin.dataset.utils import split_dataset
+from darwin.dataset.utils import get_release_path, split_dataset
 from darwin.exceptions import InvalidLogin, MissingConfig, NameTaken, NotFound, Unauthenticated, ValidationError
 from darwin.table import Table
 from darwin.utils import find_files, persist_client_configuration, prompt, secure_continue_request
@@ -131,7 +131,7 @@ def local(team: Optional[str] = None):
                 "size": humanize.naturalsize(sum(p.stat().st_size for p in find_files([dataset_path]))),
             }
         )
-    # List deprectated datasets
+    # List deprecated datasets
     deprecated_local_datasets = client.list_deprecated_local_datasets()
     if deprecated_local_datasets:
         for dataset_path in client.list_deprecated_local_datasets():
@@ -473,8 +473,17 @@ def dataset_convert(dataset_slug, format, output_dir):
     try:
         dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
         if not dataset.local_path.exists():
-            _error(f"No annotations download for dataset f{dataset}, first pull a release")
-        exporter.export_annotations(parser, [dataset.local_path], output_dir)
+            _error(
+                f"No annotations downloaded for dataset f{dataset}, first pull a release using "
+                f"'darwin dataset pull {dataset_slug}'"
+            )
+
+        release_path = get_release_path(dataset.local_path)
+        annotations_path = release_path / "annotations"
+        if output_dir is None:
+            output_dir = release_path / "other_formats" / f"{format}"
+            output_dir.mkdir(parents=True, exist_ok=True)
+        exporter.export_annotations(parser, [annotations_path], output_dir)
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
 

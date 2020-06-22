@@ -131,7 +131,7 @@ class Options(object):
         )
         parser_convert.add_argument("format", type=str, help="Annotation import to convert to")
 
-        parser_convert.add_argument("output_dir", type=str, help="Where to store output files")
+        parser_convert.add_argument("-o", "--output_dir", type=str, help="Where to store output files")
 
         # Migrate
         parser_migrate = dataset_action.add_parser("migrate", help="Migrate a local dataset to the latest version.")
