@@ -4,10 +4,10 @@ from typing import TYPE_CHECKING, List, Optional, Union
 
 import numpy as np
 from tqdm import tqdm
-from upolygon import draw_polygon
 
 import darwin.datatypes as dt
 from darwin.config import Config
+from upolygon import draw_polygon
 
 SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpeg", ".jpg", ".jfif", ".tif"]
 SUPPORTED_VIDEO_EXTENSIONS = [".bpm", ".mov", ".mp4"]
@@ -203,6 +203,10 @@ def parse_darwin_annotation(annotation: dict):
         )
     elif "tag" in annotation:
         main_annotation = dt.make_tag(name)
+    elif "line" in annotation:
+        main_annotation = dt.make_line(name, annotation["line"]["path"])
+    elif "keypoint" in annotation:
+        main_annotation = dt.make_keypoint(name, annotation["keypoint"]["x"], annotation["keypoint"]["y"])
 
     if not main_annotation:
         print(f"[WARNING] Unsupported annotation type: '{annotation.keys()}'")

@@ -64,6 +64,14 @@ def make_complex_polygon(class_name, point_paths):
     return Annotation(AnnotationClass(class_name, "complex_polygon"), {"paths": point_paths})
 
 
+def make_keypoint(class_name, x, y):
+    return Annotation(AnnotationClass(class_name, "keypoint"), {"x": x, "y": y})
+
+
+def make_line(class_name, path):
+    return Annotation(AnnotationClass(class_name, "line"), {"path": path})
+
+
 def make_instance_id(value):
     return SubAnnotation("instance_id", value)
 
