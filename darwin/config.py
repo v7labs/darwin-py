@@ -92,25 +92,31 @@ class Config(object):
         if default_team:
             self.put("global/default_team", default_team)
 
-    def get_team(self, team: Optional[str] = None):
+    def get_team(self, team: Optional[str] = None, raise_on_invalid_team: bool = True):
         if not team:
-            return self.get_default_team()
+            return self.get_default_team(raise_on_invalid_team=raise_on_invalid_team)
 
         api_key = self.get(f"teams/{team}/api_key")
         if api_key is None:
-            raise InvalidTeam()
+            if raise_on_invalid_team:
+                raise InvalidTeam()
+            else:
+                return None
         default = self.get("global/default_team") == team or len(list(self.get("teams").keys())) == 1
 
         datasets_dir = self.get(f"teams/{team}/datasets_dir")
         return {"slug": team, "api_key": api_key, "default": default, "datasets_dir": datasets_dir}
 
-    def get_default_team(self):
+    def get_default_team(self, raise_on_invalid_team: bool = True):
         default_team = self.get("global/default_team")
         if default_team:
             return self.get_team(default_team)
-        teams = list(self.get("teams").keys())
-        if len(teams) > 1:
-            raise InvalidTeam()
+        teams = list((self.get("teams") or {}).keys())
+        if len(teams) != 1:
+            if raise_on_invalid_team:
+                raise InvalidTeam()
+            else:
+                return None
         return self.get_team(teams[0])
 
     def get_all_teams(self):

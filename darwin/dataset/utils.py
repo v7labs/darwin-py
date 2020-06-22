@@ -557,7 +557,7 @@ def get_coco_format_record(
 def get_annotations(
     dataset_path: Union[Path, str],
     partition: Optional[str] = None,
-    split: Optional[str] = 'default',
+    split: Optional[str] = "default",
     split_type: Optional[str] = None,
     annotation_type: str = "polygon",
     release_name: Optional[str] = None,

@@ -1,12 +1,11 @@
 from pathlib import Path
-from typing import Generator, List, Optional
+from typing import Generator, List
 
 import numpy as np
 from PIL import Image
-from tqdm import tqdm
-from upolygon import draw_polygon
 
 import darwin.datatypes as dt
+from darwin.utils import convert_polygons_to_mask, get_progress_bar, ispolygon
 
 
 def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_dir: Path):
@@ -15,10 +14,8 @@ def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_di
     annotation_files = list(annotation_files)
     categories = calculate_categories(annotation_files)
     ignore_idx = 255
-    pbar = tqdm(annotation_files)
-    pbar.set_description(desc="Processing annotations", refresh=True)
-    for annotation_file in pbar:
-        outfile = masks_dir / (annotation_file.path.stem + ".png")
+    for annotation_file in get_progress_bar(list(annotation_files), "Processing annotations"):
+        outfile = masks_dir / f"{annotation_file.path.stem}.png"
         height = annotation_file.image_height
         width = annotation_file.image_width
         annotations = [a for a in annotation_file.annotations if ispolygon(a.annotation_class)]
@@ -27,8 +24,7 @@ def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_di
             mask_per_category = {}
             for a in annotations:
                 cat = a.annotation_class.name
-                sequence = convert_polygons_to_sequences(a.data["path"], height, width)
-                mask = convert_polygons_to_mask(sequence, height, width)
+                mask = convert_polygons_to_mask(a.data["path"], height, width)
                 if cat in mask_per_category:
                     mask_per_category[cat] = np.stack((mask_per_category[cat], mask), axis=-1).max(axis=2)
                 else:
@@ -53,7 +49,6 @@ def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_di
         for idx, c in enumerate(categories):
             f.write(f"{idx},{c}\n")
         f.write(f"{ignore_idx},__ignore__")
-    print(f"Dataset format saved at {output_dir}")
 
 
 def calculate_categories(annotation_files: List[dt.AnnotationFile]):
@@ -66,56 +61,3 @@ def calculate_categories(annotation_files: List[dt.AnnotationFile]):
     categories.sort()
     categories.insert(0, "__background__")
     return categories
-
-
-def convert_polygons_to_sequences(
-    polygons: List, height: Optional[int] = None, width: Optional[int] = None
-) -> List[np.ndarray]:
-    """
-    Converts a list of polygons, encoded as a list of dictionaries of into a list of nd.arrays
-    of coordinates.
-
-    Parameters
-    ----------
-    polygons: list
-        List of coordinates in the format [{x: x1, y:y1}, ..., {x: xn, y:yn}] or a list of them
-        as  [[{x: x1, y:y1}, ..., {x: xn, y:yn}], ..., [{x: x1, y:y1}, ..., {x: xn, y:yn}]].
-
-    Returns
-    -------
-    sequences: list[ndarray[float]]
-        List of arrays of coordinates in the format [[x1, y1, x2, y2, ..., xn, yn], ...,
-        [x1, y1, x2, y2, ..., xn, yn]]
-    """
-    if not polygons:
-        raise ValueError("No polygons provided")
-
-    # If there is a single polygon composing the instance then this is
-    # transformed to polygons = [[{x: x1, y:y1}, ..., {x: xn, y:yn}]]
-    if isinstance(polygons[0], dict):
-        polygons = [polygons]
-
-    if not isinstance(polygons[0], list) or not isinstance(polygons[0][0], dict):
-        raise ValueError("Unknown input format")
-
-    sequences = []
-    for polygon in polygons:
-        path = []
-        for point in polygon:
-            # Clip coordinates to the image size
-            x = max(min(point["x"], width - 1) if width else point["x"], 0)
-            y = max(min(point["y"], height - 1) if height else point["y"], 0)
-            path.append(round(x))
-            path.append(round(y))
-        sequences.append(path)
-    return sequences
-
-
-def convert_polygons_to_mask(polygons, height, width):
-    mask = np.zeros((height, width)).astype(np.uint8)
-    draw_polygon(mask, polygons, 1)
-    return mask
-
-
-def ispolygon(annotation):
-    return annotation.annotation_type in ["polygon", "complex_polygon"]

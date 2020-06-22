@@ -1,18 +1,17 @@
-import os
 import sys
-from pathlib import Path
-from typing import List, Optional, Union
+from typing import List, Optional
 
 import numpy as np
 import torch
 
 from darwin.cli_functions import _error, _load_client
 from darwin.dataset.identifier import DatasetIdentifier
-from darwin.datatypes import ComplexPolygon, Polygon
+from upolygon import draw_polygon
+
 from upolygon import draw_polygon
 
 
-def convert_polygon_to_mask(segmentations: List[List[float]], height: int, width: int):
+def convert_segmentation_to_mask(segmentations: List[List[float]], height: int, width: int):
     """
     Converts a polygon represented as a sequence of coordinates into a mask.
 
@@ -26,51 +25,9 @@ def convert_polygon_to_mask(segmentations: List[List[float]], height: int, width
     """
     masks = []
     for contour in segmentations:
-        contour = [c.tolist() for c in contour]
         mask = torch.zeros((height, width)).numpy().astype(np.uint8)
         masks.append(torch.from_numpy(np.asarray(draw_polygon(mask, contour, 1))))
     return torch.stack(masks)
-
-
-def convert_polygons_to_sequences(polygons: Union[Polygon, ComplexPolygon]) -> List[np.ndarray]:
-    """
-    Converts a list of polygons, encoded as a list of dictionaries of into a list of nd.arrays
-    of coordinates.
-
-    Parameters
-    ----------
-    polygons: list
-        List of coordinates in the format [{x: x1, y:y1}, ..., {x: xn, y:yn}] or a list of them
-        as  [[{x: x1, y:y1}, ..., {x: xn, y:yn}], ..., [{x: x1, y:y1}, ..., {x: xn, y:yn}]].
-
-    Returns
-    -------
-    sequences: list[ndarray[float]]
-        List of arrays of coordinates in the format [[x1, y1, x2, y2, ..., xn, yn], ...,
-        [x1, y1, x2, y2, ..., xn, yn]]
-    """
-    if not polygons:
-        raise ValueError("No polygons provided")
-    # If there is a single polygon composing the instance the format is going to be
-    # polygons = [{x: x1, y:y1}, ..., {x: xn, y:yn}]
-    if isinstance(polygons[0], dict):
-        path = []
-        for point in polygons:
-            path.append(point["x"])
-            path.append(point["y"])
-        return [np.array(path)]  # List type is used for backward compatibility
-    # If there are multiple polygons composing the instance the format is going to be
-    # polygons =  [[{x: x1, y:y1}, ..., {x: xn, y:yn}], ..., [{x: x1, y:y1}, ..., {x: xn, y:yn}]]
-    if isinstance(polygons[0], list) and isinstance(polygons[0][0], dict):
-        sequences = []
-        for polygon in polygons:
-            path = []
-            for point in polygon:
-                path.append(point["x"])
-                path.append(point["y"])
-            sequences.append(np.array(path))
-        return sequences
-    raise ValueError("Unknown input format")
 
 
 def polygon_area(x: np.ndarray, y: np.ndarray) -> float:
@@ -93,8 +50,8 @@ def detectron2_register_dataset(
 
     Parameters
     ----------
-    dataset_slug: Path, str
-        Path to the location of the dataset on the file system
+    dataset_slug: str
+        Dataset slug
     partition: str
         Selects one of the partitions [train, val, test]
     split

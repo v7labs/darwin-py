@@ -1,6 +1,12 @@
+import json
 from pathlib import Path
 from typing import TYPE_CHECKING, List, Optional, Union
 
+import numpy as np
+from tqdm import tqdm
+from upolygon import draw_polygon
+
+import darwin.datatypes as dt
 from darwin.config import Config
 
 SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpeg", ".jpg", ".jfif", ".tif"]
@@ -59,6 +65,12 @@ def is_deprecated_project_dir(project_path: Path) -> bool:
         Is the directory a project from Darwin?
     """
     return (project_path / "annotations").exists() and (project_path / "images").exists()
+
+
+def get_progress_bar(array: List, description: Optional[str] = None):
+    pbar = tqdm(array)
+    pbar.set_description(desc=description, refresh=True)
+    return pbar
 
 
 def prompt(msg: str, default: Optional[str] = None) -> str:
@@ -154,3 +166,121 @@ def persist_client_configuration(
     config.set_global(api_endpoint=client.url, base_url=client.base_url, default_team=default_team)
 
     return config
+
+
+def parse_darwin_json(path: Path, count: int):
+    with path.open() as f:
+        data = json.load(f)
+        if not data["annotations"]:
+            return None
+        annotations = list(filter(None, map(parse_darwin_annotation, data["annotations"])))
+        annotation_classes = set([annotation.annotation_class for annotation in annotations])
+
+        return dt.AnnotationFile(
+            path,
+            data["image"]["original_filename"],
+            annotation_classes,
+            annotations,
+            data["image"]["width"],
+            data["image"]["height"],
+            data["image"]["url"],
+            data["image"].get("workview_url"),
+            data["image"].get("seq", count),
+        )
+
+
+def parse_darwin_annotation(annotation: dict):
+    name = annotation["name"]
+    main_annotation = None
+    if "polygon" in annotation:
+        main_annotation = dt.make_polygon(name, annotation["polygon"]["path"])
+    elif "complex_polygon" in annotation:
+        main_annotation = dt.make_complex_polygon(name, annotation["complex_polygon"]["path"])
+    elif "bounding_box" in annotation:
+        bounding_box = annotation["bounding_box"]
+        main_annotation = dt.make_bounding_box(
+            name, bounding_box["x"], bounding_box["y"], bounding_box["w"], bounding_box["h"]
+        )
+    elif "tag" in annotation:
+        main_annotation = dt.make_tag(name)
+
+    if not main_annotation:
+        print(f"[WARNING] Unsupported annotation type: '{annotation.keys()}'")
+        return None
+
+    if "instance_id" in annotation:
+        main_annotation.subs.append(dt.make_instance_id(annotation["instance_id"]["value"]))
+    if "attributes" in annotation:
+        main_annotation.subs.append(dt.make_attributes(annotation["attributes"]))
+    if "text" in annotation:
+        main_annotation.subs.append(dt.make_text(annotation["text"]["text"]))
+
+    return main_annotation
+
+
+def ispolygon(annotation):
+    return annotation.annotation_type in ["polygon", "complex_polygon"]
+
+
+def convert_polygons_to_sequences(
+    polygons: List, height: Optional[int] = None, width: Optional[int] = None
+) -> List[np.ndarray]:
+    """
+    Converts a list of polygons, encoded as a list of dictionaries of into a list of nd.arrays
+    of coordinates.
+
+    Parameters
+    ----------
+    polygons: list
+        List of coordinates in the format [{x: x1, y:y1}, ..., {x: xn, y:yn}] or a list of them
+        as  [[{x: x1, y:y1}, ..., {x: xn, y:yn}], ..., [{x: x1, y:y1}, ..., {x: xn, y:yn}]].
+
+    Returns
+    -------
+    sequences: list[ndarray[float]]
+        List of arrays of coordinates in the format [[x1, y1, x2, y2, ..., xn, yn], ...,
+        [x1, y1, x2, y2, ..., xn, yn]]
+    """
+    if not polygons:
+        raise ValueError("No polygons provided")
+    # If there is a single polygon composing the instance then this is
+    # transformed to polygons = [[{x: x1, y:y1}, ..., {x: xn, y:yn}]]
+    if isinstance(polygons[0], dict):
+        polygons = [polygons]
+
+    if not isinstance(polygons[0], list) or not isinstance(polygons[0][0], dict):
+        raise ValueError("Unknown input format")
+
+    sequences = []
+    for polygon in polygons:
+        path = []
+        for point in polygon:
+            # Clip coordinates to the image size
+            x = max(min(point["x"], width - 1) if width else point["x"], 0)
+            y = max(min(point["y"], height - 1) if height else point["y"], 0)
+            path.append(round(x))
+            path.append(round(y))
+        # sequences.append(np.array(path))
+        sequences.append(path)
+    return sequences
+
+
+def convert_polygons_to_mask(polygons: List, height: int, width: int) -> np.ndarray:
+    """
+    Converts a list of polygons, encoded as a list of dictionaries into an nd.array mask
+
+    Parameters
+    ----------
+    polygons: list
+        List of coordinates in the format [{x: x1, y:y1}, ..., {x: xn, y:yn}] or a list of them
+        as  [[{x: x1, y:y1}, ..., {x: xn, y:yn}], ..., [{x: x1, y:y1}, ..., {x: xn, y:yn}]].
+
+    Returns
+    -------
+    mask: ndarray[float]
+        ndarray mask of the polygon(s)
+    """
+    sequence = convert_polygons_to_sequences(polygons, height=height, width=width)
+    mask = np.zeros((height, width)).astype(np.uint8)
+    draw_polygon(mask, sequence, 1)
+    return mask

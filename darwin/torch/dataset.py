@@ -7,7 +7,8 @@ from darwin.dataset.identifier import DatasetIdentifier
 from darwin.dataset import LocalDataset
 from darwin.dataset.utils import load_pil_image
 from darwin.torch.transforms import Compose, ConvertPolygonsToInstanceMasks, ConvertPolygonsToSemanticMask
-from darwin.torch.utils import convert_polygons_to_sequences, polygon_area
+from darwin.torch.utils import polygon_area
+from darwin.utils import convert_polygons_to_sequences
 from darwin.cli_functions import _error, _load_client
 
 

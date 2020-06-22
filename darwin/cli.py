@@ -43,7 +43,7 @@ def run(args, parser):
             f.list_teams()
     # Version
     elif args.command == "version":
-        print("0.5.1")
+        print("0.5.4")
 
     elif args.command == "convert":
         f.convert(args.format, args.files, args.output_dir)
@@ -69,7 +69,7 @@ def run(args, parser):
         elif args.action == "report":
             f.dataset_report(args.dataset, args.granularity or "day")
         elif args.action == "export":
-            f.export_dataset(args.dataset, args.annotation_class, args.name)
+            f.export_dataset(args.dataset, args.include_url_token, args.annotation_class, args.name)
         elif args.action == "releases":
             f.dataset_list_releases(args.dataset)
         elif args.action == "pull":
