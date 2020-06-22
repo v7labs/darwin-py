@@ -24,7 +24,6 @@ def convert_segmentation_to_mask(segmentations: List[List[float]], height: int, 
     masks = []
     for contour in segmentations:
         mask = torch.zeros((height, width)).numpy().astype(np.uint8)
-        import pdb; pdb.set_trace()  # XXX BREAKPOINT
         masks.append(torch.from_numpy(np.asarray(draw_polygon(mask, contour, 1))))
     return torch.stack(masks)
 
@@ -35,6 +34,10 @@ def polygon_area(x: np.ndarray, y: np.ndarray) -> float:
     for x and y coordinates.
     """
     return 0.5 * np.abs(np.dot(x, np.roll(y, 1)) - np.dot(y, np.roll(x, 1)))
+
+
+def collate_fn(batch):
+    return tuple(zip(*batch))
 
 
 def detectron2_register_dataset(
