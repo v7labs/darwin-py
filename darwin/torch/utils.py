@@ -24,6 +24,7 @@ def convert_segmentation_to_mask(segmentations: List[List[float]], height: int, 
     masks = []
     for contour in segmentations:
         mask = torch.zeros((height, width)).numpy().astype(np.uint8)
+        import pdb; pdb.set_trace()  # XXX BREAKPOINT
         masks.append(torch.from_numpy(np.asarray(draw_polygon(mask, contour, 1))))
     return torch.stack(masks)
 

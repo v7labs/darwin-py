@@ -91,7 +91,7 @@ class ConvertPolygonsToInstanceMasks(object):
         classes = torch.tensor(classes, dtype=torch.int64)
 
         segmentations = [obj["segmentation"] for obj in annotations]
-        masks = convert_polygon_to_mask(segmentations, h, w)
+        masks = convert_segmentation_to_mask(segmentations, h, w)
 
         keypoints = None
         if annotations and "keypoints" in annotations[0]:

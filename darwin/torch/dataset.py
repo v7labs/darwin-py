@@ -195,8 +195,7 @@ class InstanceSegmentationDataset(LocalDataset):
             )
         target["annotations"] = annotations
 
-        if self.convert_polygons is not None:
-            img, target = self.convert_polygons(img, target)
+        img, target = self.convert_polygons(img, target)
         if self.transform is not None:
             img, target = self.transform(img, target)
 
@@ -254,11 +253,10 @@ class SemanticSegmentationDataset(LocalDataset):
             sequences[:] = [s for s in sequences if len(s) >= 6]
             if not sequences:
                 continue
-            annotations.append({"category_id": self.classes.index(obj["name"]), "segmentation": np.array(sequences)})
+            annotations.append({"category_id": self.classes.index(obj["name"]), "segmentation": sequences})
         target["annotations"] = annotations
 
-        if self.convert_polygons is not None:
-            img, target = self.convert_polygons(img, target)
+        img, target = self.convert_polygons(img, target)
         if self.transform is not None:
             img, target = self.transform(img, target)
 
