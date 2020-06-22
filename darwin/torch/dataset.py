@@ -1,15 +1,14 @@
-from pathlib import Path
-from typing import List, Optional, Union
+from typing import List, Optional
 
 import numpy as np
 
-from darwin.dataset.identifier import DatasetIdentifier
+from darwin.cli_functions import _error, _load_client
 from darwin.dataset import LocalDataset
+from darwin.dataset.identifier import DatasetIdentifier
 from darwin.dataset.utils import load_pil_image
 from darwin.torch.transforms import Compose, ConvertPolygonsToInstanceMasks, ConvertPolygonsToSemanticMask
 from darwin.torch.utils import polygon_area
 from darwin.utils import convert_polygons_to_sequences
-from darwin.cli_functions import _error, _load_client
 
 
 def get_dataset(
@@ -105,9 +104,7 @@ class ClassificationDataset(LocalDataset):
         annotations = target.pop("annotations")
         tags = [self.classes.index(a["name"]) for a in annotations if "tag" in a]
         if len(tags) > 1:
-            raise ValueError(
-                f"Multiple tags defined for this image ({tags}). This is not supported at the moment."
-            )
+            raise ValueError(f"Multiple tags defined for this image ({tags}). This is not supported at the moment.")
         if len(tags) == 0:
             raise ValueError(
                 f"No tags defined for this image ({self.annotations_path[index]})."

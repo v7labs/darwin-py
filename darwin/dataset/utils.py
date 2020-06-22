@@ -396,8 +396,8 @@ def split_dataset(
         np.random.seed(split_seed)
         indices = np.random.permutation(dataset_size)
         train_indices = list(indices[:train_size])
-        val_indices = list(indices[train_size: train_size + val_size])
-        test_indices = list(indices[train_size + val_size:])
+        val_indices = list(indices[train_size : train_size + val_size])
+        test_indices = list(indices[train_size + val_size :])
         # Write files
         _write_to_file(annotation_files, splits["random"]["train"], train_indices)
         _write_to_file(annotation_files, splits["random"]["val"], val_indices)

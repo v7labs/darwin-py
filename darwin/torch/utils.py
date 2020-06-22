@@ -3,12 +3,10 @@ from typing import List, Optional
 
 import numpy as np
 import torch
+from upolygon import draw_polygon
 
 from darwin.cli_functions import _error, _load_client
 from darwin.dataset.identifier import DatasetIdentifier
-from upolygon import draw_polygon
-
-from upolygon import draw_polygon
 
 
 def convert_segmentation_to_mask(segmentations: List[List[float]], height: int, width: int):
@@ -41,7 +39,7 @@ def polygon_area(x: np.ndarray, y: np.ndarray) -> float:
 def detectron2_register_dataset(
     dataset_slug: str,
     partition: Optional[str] = None,
-    split: Optional[str] = 'default',
+    split: Optional[str] = "default",
     split_type: Optional[str] = "stratified",
     release_name: Optional[str] = None,
     evaluator_type: Optional[str] = None,
@@ -78,17 +76,19 @@ def detectron2_register_dataset(
             catalog_name = f"darwin_{identifier.dataset_slug}"
             if partition:
                 catalog_name += f"_{partition}"
-            classes = get_classes(dataset_path, annotation_type='polygon')
+            classes = get_classes(dataset_path, annotation_type="polygon")
             DatasetCatalog.register(
                 catalog_name,
-                lambda partition=partition: list(get_annotations(
-                    dataset_path,
-                    partition=partition,
-                    split_type=split_type,
-                    release_name=release_name,
-                    annotation_type="polygon",
-                    annotation_format="coco",
-                ))
+                lambda partition=partition: list(
+                    get_annotations(
+                        dataset_path,
+                        partition=partition,
+                        split_type=split_type,
+                        release_name=release_name,
+                        annotation_type="polygon",
+                        annotation_format="coco",
+                    )
+                ),
             )
             MetadataCatalog.get(catalog_name).set(thing_classes=classes)
             if evaluator_type:
