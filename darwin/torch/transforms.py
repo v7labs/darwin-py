@@ -6,7 +6,7 @@ import torchvision.transforms as transforms
 import torchvision.transforms.functional as F
 from PIL import Image
 
-from .utils import convert_polygon_to_mask
+from darwin.torch.utils import convert_segmentation_to_mask
 
 TargetKey = Union["boxes", "labels", "masks", "image_id", "area", "iscrowd"]
 TargetType = Dict[TargetKey, torch.Tensor]
@@ -134,7 +134,7 @@ class ConvertPolygonsToSegmentationMask(object):
         segmentations = [obj["segmentation"] for obj in annotations]
         cats = [obj["category_id"] for obj in annotations]
         if segmentations:
-            masks = convert_polygon_to_mask(segmentations, h, w)
+            masks = convert_segmentation_to_mask(segmentations, h, w)
             cats = torch.as_tensor(cats, dtype=masks.dtype)
             # merge all instance masks into a single segmentation map
             # with its corresponding categories
@@ -155,7 +155,7 @@ class ConvertPolygonToMask(object):
         segmentations = [obj["segmentation"] for obj in annotation]
         cats = [obj["category_id"] for obj in annotation]
         if segmentations:
-            masks = convert_polygon_to_mask(segmentations, h, w)
+            masks = convert_segmentation_to_mask(segmentations, h, w)
             cats = torch.as_tensor(cats, dtype=masks.dtype)
             # merge all instance masks into a single segmentation map
             # with its corresponding categories

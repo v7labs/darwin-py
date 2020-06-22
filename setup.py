@@ -19,6 +19,7 @@ setuptools.setup(
         "factory_boy",
         "humanize",
         "numpy",
+        "pillow",
         "pyyaml>=5.1",
         "requests",
         "scikit-learn",

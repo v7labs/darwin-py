@@ -25,3 +25,4 @@ def export_annotations(
 ):
     """Converts a set of files to a different annotation format"""
     exporter(darwin_to_dt_gen(file_paths), Path(output_directory))
+    print(f"Converted annotation format saved at {output_directory}")
