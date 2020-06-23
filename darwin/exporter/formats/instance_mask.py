@@ -10,13 +10,6 @@ import darwin.datatypes as dt
 from darwin.utils import convert_polygons_to_mask, get_progress_bar, ispolygon
 
 
-def generate_instance_id(instance_ids, length=8):
-    instance_id = uuid.uuid4().hex[:length]
-    while instance_id in instance_ids:
-        instance_id = uuid.uuid4().hex[:length]
-    return instance_id
-
-
 def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_dir: Path):
     masks_dir = output_dir / "masks"
     if masks_dir.exists():
@@ -30,18 +23,16 @@ def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_di
             height = annotation_file.image_height
             width = annotation_file.image_width
             annotations = [a for a in annotation_file.annotations if ispolygon(a.annotation_class)]
-            for annotation in annotations:
+            for i, annotation in enumerate(annotations):
                 cat = annotation.annotation_class.name
-                instance_id = generate_instance_id(instance_ids)
-                instance_ids.add(instance_id)
                 if annotation.annotation_class.annotation_type == "polygon":
                     polygon = annotation.data["path"]
                 elif annotation.annotation_class.annotation_type == "complex_polygon":
                     polygon = annotation.data["paths"]
                 else:
                     continue
-                mask = convert_polygons_to_mask(polygon, height, width) * 255
+                mask = convert_polygons_to_mask(polygon, height=height, width=width, value=255)
                 mask = Image.fromarray(mask.astype(np.uint8))
-                mask_id = f"{image_id}_{instance_id}"
+                mask_id = f"{image_id}_{i:05}"
                 mask.save(masks_dir / f"{mask_id}.png")
                 f.write(f"{image_id},{mask_id},{cat}\n")
