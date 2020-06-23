@@ -34,7 +34,13 @@ def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_di
                 cat = annotation.annotation_class.name
                 instance_id = generate_instance_id(instance_ids)
                 instance_ids.add(instance_id)
-                mask = convert_polygons_to_mask(annotation.data["path"], height, width) * 255
+                if annotation.annotation_class.annotation_type == "polygon":
+                    polygon = annotation.data["path"]
+                elif annotation.annotation_class.annotation_type == "complex_polygon":
+                    polygon = annotation.data["paths"]
+                else:
+                    continue
+                mask = convert_polygons_to_mask(polygon, height, width) * 255
                 mask = Image.fromarray(mask.astype(np.uint8))
                 mask_id = f"{image_id}_{instance_id}"
                 mask.save(masks_dir / f"{mask_id}.png")
