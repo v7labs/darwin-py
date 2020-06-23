@@ -24,7 +24,13 @@ def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_di
             mask_per_category = {}
             for a in annotations:
                 cat = a.annotation_class.name
-                mask = convert_polygons_to_mask(a.data["path"], height, width)
+                if a.annotation_class.annotation_type == "polygon":
+                    polygon = a.data["path"]
+                elif a.annotation_class.annotation_type == "complex_polygon":
+                    polygon = a.data["paths"]
+                else:
+                    continue
+                mask = convert_polygons_to_mask(polygon, height, width)
                 if cat in mask_per_category:
                     mask_per_category[cat] = np.stack((mask_per_category[cat], mask), axis=-1).max(axis=2)
                 else:
