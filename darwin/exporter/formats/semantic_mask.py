@@ -8,12 +8,21 @@ import darwin.datatypes as dt
 from darwin.utils import convert_polygons_to_mask, get_progress_bar, ispolygon
 
 
-def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_dir: Path):
+def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_dir: Path, mode: str = "grayscale"):
     masks_dir = output_dir / "masks"
     masks_dir.mkdir(exist_ok=True, parents=True)
     annotation_files = list(annotation_files)
+
     categories = calculate_categories(annotation_files)
-    ignore_idx = 255
+    if mode == "index":
+        palette = [i for i in range(len(categories))]
+        palette[-1] = 255
+    elif mode == "grayscale":
+        palette = [int(i * 255 / (len(categories)-1)) for i in range(len(categories))]
+    elif mode == "rgb":
+        raise NotImplementedError
+    ignore_value = palette[-1]
+
     for annotation_file in get_progress_bar(list(annotation_files), "Processing annotations"):
         outfile = masks_dir / f"{annotation_file.path.stem}.png"
         height = annotation_file.image_height
@@ -42,19 +51,19 @@ def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_di
             for cid, c in enumerate(categories):
                 if c in mask_per_category:
                     masks.append(mask_per_category[c])
-                    cats.append(cid)
+                    cats.append(palette[cid])
             masks = np.stack(masks, axis=2)
             cats = np.array(cats)
             mask = np.max(masks * cats[None, None, :], axis=2)
             # discard overlapping instances
-            mask[np.sum(masks, axis=2) > 1] = ignore_idx
+            mask[np.sum(masks, axis=2) > 1] = ignore_value
             mask = Image.fromarray(mask.astype(np.uint8))
             mask.save(outfile)
+
     with open(output_dir / "class_mapping.csv", "w") as f:
         f.write(f"class_idx,class_name\n")
-        for idx, c in enumerate(categories):
+        for idx, c in zip(palette, categories):
             f.write(f"{idx},{c}\n")
-        f.write(f"{ignore_idx},__ignore__")
 
 
 def calculate_categories(annotation_files: List[dt.AnnotationFile]):
@@ -66,4 +75,5 @@ def calculate_categories(annotation_files: List[dt.AnnotationFile]):
     categories = list(categories)
     categories.sort()
     categories.insert(0, "__background__")
+    categories.append("__ignore__")
     return categories
