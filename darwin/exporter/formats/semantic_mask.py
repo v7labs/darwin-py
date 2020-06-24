@@ -1,3 +1,4 @@
+import colorsys
 from pathlib import Path
 from typing import Generator, List
 
@@ -15,12 +16,18 @@ def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_di
     annotation_files = list(annotation_files)
 
     categories = calculate_categories(annotation_files)
+    N = len(categories)
     if mode == "index":
         palette = {c: i for i, c in enumerate(categories)}
     elif mode == "grayscale":
-        palette = {c: int(i * 255 / (len(categories)-1)) for i, c in enumerate(categories)}
+        palette = {c: int(i * 255 / (N-1)) for i, c in enumerate(categories)}
     elif mode == "rgb":
-        raise NotImplementedError
+        palette = {c: i for i, c in enumerate(categories)}
+        HSV_colors = [(x / N, 0.8, 1.0) for x in range(N - 1)]  # Generate HSV colors for all classes except for BG
+        RGB_colors = list(map(lambda x: [int(e * 255) for e in colorsys.hsv_to_rgb(*x)], HSV_colors))
+        RGB_colors.insert(0, [0, 0, 0])  # Now we add BG class with [0 0 0] RGB value
+        palette_rgb = {c: rgb for c, rgb in zip(categories, RGB_colors)}
+        RGB_colors = [c for e in RGB_colors for c in e]
 
     for annotation_file in get_progress_bar(list(annotation_files), "Processing annotations"):
         outfile = masks_dir / f"{annotation_file.path.stem}.png"
@@ -36,13 +43,20 @@ def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_di
                 polygon = a.data["paths"]
             sequence = convert_polygons_to_sequences(polygon, height=height, width=width)
             draw_polygon(mask, sequence, palette[cat])
-        mask = Image.fromarray(mask)
+        if mode == "rgb":
+            mask = Image.fromarray(mask, 'P')
+            mask.putpalette(RGB_colors)
+        else:
+            mask = Image.fromarray(mask)
         mask.save(outfile)
 
     with open(output_dir / "class_mapping.csv", "w") as f:
-        f.write(f"class_idx,class_name\n")
+        f.write(f"class_name,color_idx\n")
         for c in categories:
-            f.write(f"{palette[c]},{c}\n")
+            if mode == 'rgb':
+                f.write(f"{c},{palette_rgb[c][0]} {palette_rgb[c][1]} {palette_rgb[c][2]}\n")
+            else:
+                f.write(f"{c},{palette[c]}\n")
 
 
 def calculate_categories(annotation_files: List[dt.AnnotationFile]):
