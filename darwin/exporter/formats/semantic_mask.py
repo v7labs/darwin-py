@@ -10,7 +10,7 @@ import darwin.datatypes as dt
 from darwin.utils import convert_polygons_to_sequences, get_progress_bar, ispolygon
 
 
-def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_dir: Path, mode: str = "grayscale"):
+def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_dir: Path, mode: str = "greyscale"):
     masks_dir = output_dir / "masks"
     masks_dir.mkdir(exist_ok=True, parents=True)
     annotation_files = list(annotation_files)
@@ -19,7 +19,7 @@ def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_di
     N = len(categories)
     if mode == "index":
         palette = {c: i for i, c in enumerate(categories)}
-    elif mode == "grayscale":
+    elif mode == "greyscale":
         palette = {c: int(i * 255 / (N - 1)) for i, c in enumerate(categories)}
     elif mode == "rgb":
         palette = {c: i for i, c in enumerate(categories)}
