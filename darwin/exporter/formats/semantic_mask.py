@@ -20,7 +20,7 @@ def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_di
     if mode == "index":
         palette = {c: i for i, c in enumerate(categories)}
     elif mode == "grayscale":
-        palette = {c: int(i * 255 / (N-1)) for i, c in enumerate(categories)}
+        palette = {c: int(i * 255 / (N - 1)) for i, c in enumerate(categories)}
     elif mode == "rgb":
         palette = {c: i for i, c in enumerate(categories)}
         HSV_colors = [(x / N, 0.8, 1.0) for x in range(N - 1)]  # Generate HSV colors for all classes except for BG
@@ -44,7 +44,7 @@ def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_di
             sequence = convert_polygons_to_sequences(polygon, height=height, width=width)
             draw_polygon(mask, sequence, palette[cat])
         if mode == "rgb":
-            mask = Image.fromarray(mask, 'P')
+            mask = Image.fromarray(mask, "P")
             mask.putpalette(RGB_colors)
         else:
             mask = Image.fromarray(mask)
@@ -53,7 +53,7 @@ def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_di
     with open(output_dir / "class_mapping.csv", "w") as f:
         f.write(f"class_name,color_idx\n")
         for c in categories:
-            if mode == 'rgb':
+            if mode == "rgb":
                 f.write(f"{c},{palette_rgb[c][0]} {palette_rgb[c][1]} {palette_rgb[c][2]}\n")
             else:
                 f.write(f"{c},{palette[c]}\n")
