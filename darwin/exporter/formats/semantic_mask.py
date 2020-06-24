@@ -51,7 +51,7 @@ def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_di
         mask.save(outfile)
 
     with open(output_dir / "class_mapping.csv", "w") as f:
-        f.write(f"class_name,color_idx\n")
+        f.write(f"class_name,class_color\n")
         for c in categories:
             if mode == "rgb":
                 f.write(f"{c},{palette_rgb[c][0]} {palette_rgb[c][1]} {palette_rgb[c][2]}\n")
