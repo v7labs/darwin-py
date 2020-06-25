@@ -1,3 +1,4 @@
+from functools import partial
 from . import coco, cvat, dataloop, instance_mask, pascalvoc, semantic_mask
 
 supported_formats = [
@@ -6,8 +7,7 @@ supported_formats = [
     ("dataloop", dataloop.export),
     ("instance-mask", instance_mask.export),
     ("pascal_voc", pascalvoc.export),
-    ("semantic-mask", semantic_mask.export),
-    ("semantic-mask-grey", semantic_mask.export),
-    ("semantic-mask-index", semantic_mask.export),
-    ("semantic-mask-rgb", semantic_mask.export),
+    ("semantic-mask", partial(semantic_mask.export, mode="grey")),
+    ("semantic-mask-index", partial(semantic_mask.export, mode="index")),
+    ("semantic-mask-rgb", partial(semantic_mask.export, mode="rgb")),
 ]

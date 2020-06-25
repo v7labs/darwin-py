@@ -2,7 +2,6 @@ import argparse
 import datetime
 import shutil
 import sys
-from functools import partial
 from pathlib import Path
 from typing import List, Optional
 
@@ -470,12 +469,6 @@ def find_supported_format(query, supported_formats):
 def dataset_convert(dataset_slug, format, output_dir):
     client = _load_client()
     parser = find_supported_format(format, darwin.exporter.formats.supported_formats)
-
-    # Support for different semantic mask modes [gray, rgb, index]
-    if format.startswith("semantic-mask-"):
-        mode = format.split("-")[2]
-        parser = partial(parser, mode=mode)
-        format = "semantic-mask"
 
     try:
         dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
