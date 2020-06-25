@@ -2,6 +2,7 @@ import argparse
 import datetime
 import shutil
 import sys
+from functools import partial
 from pathlib import Path
 from typing import List, Optional
 
@@ -470,6 +471,12 @@ def dataset_convert(dataset_slug, format, output_dir):
     client = _load_client()
     parser = find_supported_format(format, darwin.exporter.formats.supported_formats)
 
+    # Support for different semantic mask modes [gray, rgb, index]
+    if format.startswith('semantic-mask-'):
+        mode = format.split('-')[2]
+        parser = partial(parser, mode=mode)
+        format = 'semantic-mask'
+
     try:
         dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
         if not dataset.local_path.exists():
@@ -529,7 +536,7 @@ def _load_client(team: Optional[str] = None, offline: bool = False, maybe_guest:
         Flag for using an offline client
 
     maybe_guest : bool
-        Flag to make a guest client, if config is missing 
+        Flag to make a guest client, if config is missing
     Returns
     -------
     Client

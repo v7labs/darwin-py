@@ -10,7 +10,7 @@ import darwin.datatypes as dt
 from darwin.utils import convert_polygons_to_sequences, get_progress_bar, ispolygon
 
 
-def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_dir: Path, mode: str = "greyscale"):
+def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_dir: Path, mode: str = "grey"):
     masks_dir = output_dir / "masks"
     masks_dir.mkdir(exist_ok=True, parents=True)
     annotation_files = list(annotation_files)
@@ -18,10 +18,16 @@ def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_di
     categories = calculate_categories(annotation_files)
     N = len(categories)
     if mode == "index":
+        if N > 254:
+            raise ValueError("maximum number of classes supported: 254")
         palette = {c: i for i, c in enumerate(categories)}
-    elif mode == "greyscale":
+    elif mode == "grey":
+        if N > 254:
+            raise ValueError("maximum number of classes supported: 254")
         palette = {c: int(i * 255 / (N - 1)) for i, c in enumerate(categories)}
     elif mode == "rgb":
+        if N > 360:
+            raise ValueError("maximum number of classes supported: 360")
         palette = {c: i for i, c in enumerate(categories)}
         HSV_colors = [(x / N, 0.8, 1.0) for x in range(N - 1)]  # Generate HSV colors for all classes except for BG
         RGB_colors = list(map(lambda x: [int(e * 255) for e in colorsys.hsv_to_rgb(*x)], HSV_colors))
