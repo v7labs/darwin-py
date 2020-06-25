@@ -472,10 +472,10 @@ def dataset_convert(dataset_slug, format, output_dir):
     parser = find_supported_format(format, darwin.exporter.formats.supported_formats)
 
     # Support for different semantic mask modes [gray, rgb, index]
-    if format.startswith('semantic-mask-'):
-        mode = format.split('-')[2]
+    if format.startswith("semantic-mask-"):
+        mode = format.split("-")[2]
         parser = partial(parser, mode=mode)
-        format = 'semantic-mask'
+        format = "semantic-mask"
 
     try:
         dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
