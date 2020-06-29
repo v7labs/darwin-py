@@ -261,7 +261,9 @@ class LocalDataset(object):
         return np.sum(np.sum(m2, axis=1), 1), m2.size / 3.0
 
     def __getitem__(self, index: int):
-        return self.parse_json(index)
+        img = load_pil_image(self.images_path[index])
+        target = self.parse_json(index)
+        return img, target
 
     def __len__(self):
         return len(self.images_path)

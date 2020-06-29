@@ -23,14 +23,17 @@ class DatasetIdentifier:
 
 
 def parse(slug: str):
-    if "/" in slug:
-        team, slug = slug.split("/")
-    else:
-        team = None
+    try:
+        if "/" in slug:
+            team, slug = slug.split("/")
+        else:
+            team = None
 
-    if ":" in slug:
-        dataset, version = slug.split(":")
-    else:
-        dataset = slug
-        version = None
-    return team, dataset, version
+        if ":" in slug:
+            dataset, version = slug.split(":")
+        else:
+            dataset = slug
+            version = None
+        return team, dataset, version
+    except ValueError as e:
+        raise type(e)(f"Invalid dataset identifier {slug}")
