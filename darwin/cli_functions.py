@@ -529,7 +529,7 @@ def _load_client(team: Optional[str] = None, offline: bool = False, maybe_guest:
         Flag for using an offline client
 
     maybe_guest : bool
-        Flag to make a guest client, if config is missing 
+        Flag to make a guest client, if config is missing
     Returns
     -------
     Client

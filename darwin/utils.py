@@ -203,6 +203,10 @@ def parse_darwin_annotation(annotation: dict):
         )
     elif "tag" in annotation:
         main_annotation = dt.make_tag(name)
+    elif "line" in annotation:
+        main_annotation = dt.make_line(name, annotation["line"]["path"])
+    elif "keypoint" in annotation:
+        main_annotation = dt.make_keypoint(name, annotation["keypoint"]["x"], annotation["keypoint"]["y"])
 
     if not main_annotation:
         print(f"[WARNING] Unsupported annotation type: '{annotation.keys()}'")
@@ -264,7 +268,7 @@ def convert_polygons_to_sequences(
     return sequences
 
 
-def convert_polygons_to_mask(polygons: List, height: int, width: int) -> np.ndarray:
+def convert_polygons_to_mask(polygons: List, height: int, width: int, value: Optional[int] = 1) -> np.ndarray:
     """
     Converts a list of polygons, encoded as a list of dictionaries into an nd.array mask
 
@@ -281,5 +285,5 @@ def convert_polygons_to_mask(polygons: List, height: int, width: int) -> np.ndar
     """
     sequence = convert_polygons_to_sequences(polygons, height=height, width=width)
     mask = np.zeros((height, width)).astype(np.uint8)
-    draw_polygon(mask, sequence, 1)
+    draw_polygon(mask, sequence, value)
     return mask
