@@ -1,4 +1,5 @@
 from functools import partial
+
 from . import coco, cvat, dataloop, instance_mask, pascalvoc, semantic_mask
 
 supported_formats = [
