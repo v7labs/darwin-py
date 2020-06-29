@@ -25,6 +25,7 @@ setuptools.setup(
         "scikit-learn",
         "sh",
         "tqdm",
+        "pillow",
         "upolygon==0.1",
     ],
     packages=setuptools.find_packages(),

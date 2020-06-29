@@ -228,7 +228,7 @@ def ispolygon(annotation):
 
 def convert_polygons_to_sequences(
     polygons: List, height: Optional[int] = None, width: Optional[int] = None
-) -> List[np.ndarray]:
+) -> List:
     """
     Converts a list of polygons, encoded as a list of dictionaries of into a list of nd.arrays
     of coordinates.
@@ -264,7 +264,6 @@ def convert_polygons_to_sequences(
             y = max(min(point["y"], height - 1) if height else point["y"], 0)
             path.append(round(x))
             path.append(round(y))
-        # sequences.append(np.array(path))
         sequences.append(path)
     return sequences
 
