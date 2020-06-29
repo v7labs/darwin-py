@@ -45,7 +45,6 @@ def detectron2_register_dataset(
     partition: Optional[str] = None,
     split: Optional[str] = "default",
     split_type: Optional[str] = "stratified",
-    release_name: Optional[str] = None,
     evaluator_type: Optional[str] = None,
 ):
     """ Registers a local Darwin-formatted dataset in Detectron2
@@ -60,8 +59,6 @@ def detectron2_register_dataset(
         Selects the split that defines the percetages used (use 'default' to select the default split)
     split_type: str
         Heuristic used to do the split [random, stratified]
-    release_name: str
-        Version of the dataset
     evaluator_type: str
         Evaluator to be used in the val and test sets
     """
@@ -88,7 +85,7 @@ def detectron2_register_dataset(
                         dataset_path,
                         partition=partition,
                         split_type=split_type,
-                        release_name=release_name,
+                        release_name=identifier.version,
                         annotation_type="polygon",
                         annotation_format="coco",
                     )
