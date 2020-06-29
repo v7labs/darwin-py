@@ -2,7 +2,6 @@ from typing import List
 
 import numpy as np
 import torch
-
 from upolygon import draw_polygon
 
 
