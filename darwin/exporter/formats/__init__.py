@@ -7,7 +7,7 @@ supported_formats = [
     ("dataloop", dataloop.export),
     ("instance-mask", instance_mask.export),
     ("pascal_voc", pascalvoc.export),
-    ("semantic-mask", partial(semantic_mask.export, mode="grey")),
+    ("semantic-mask", partial(semantic_mask.export, mode="rgb")),
+    ("semantic-mask-grey", partial(semantic_mask.export, mode="grey")),
     ("semantic-mask-index", partial(semantic_mask.export, mode="index")),
-    ("semantic-mask-rgb", partial(semantic_mask.export, mode="rgb")),
 ]
