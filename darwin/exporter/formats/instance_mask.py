@@ -1,5 +1,4 @@
 import shutil
-import uuid
 from pathlib import Path
 from typing import Generator
 
@@ -15,7 +14,6 @@ def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_di
     if masks_dir.exists():
         shutil.rmtree(masks_dir)
     masks_dir.mkdir(parents=True)
-    instance_ids = set()
     with open(output_dir / "instance_mask_annotations.csv", "w") as f:
         f.write("image_id,mask_id,class_name\n")
         for annotation_file in get_progress_bar(list(annotation_files), "Processing annotations"):
