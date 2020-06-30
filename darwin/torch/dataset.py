@@ -1,63 +1,76 @@
-from pathlib import Path
-from typing import List, Optional, Union
+from typing import List, Optional
 
 import numpy as np
 
+from darwin.cli_functions import _error, _load_client
 from darwin.dataset import LocalDataset
+from darwin.dataset.identifier import DatasetIdentifier
 from darwin.dataset.utils import load_pil_image
-from darwin.torch.transforms import Compose, ConvertPolygonsToInstanceMasks, ConvertPolygonsToSegmentationMask
+from darwin.torch.transforms import Compose, ConvertPolygonsToInstanceMasks, ConvertPolygonsToSemanticMask
 from darwin.torch.utils import polygon_area
 from darwin.utils import convert_polygons_to_sequences
 
 
 def get_dataset(
-    dataset_path: Union[Path, str],
+    dataset_slug: str,
     dataset_type: str,
     partition: Optional[str] = None,
     split: str = "default",
     split_type: str = "random",
-    release_name: Optional[str] = None,
     transform: Optional[List] = None,
 ):
     """ Creates and returns a dataset
 
     Parameters
     ----------
-    dataset_path: Path, str
-        Path to the location of the dataset on the file system
+    dataset_slug: str
+        Slug of the dataset to retrieve
     dataset_type: str
-        The type of dataset [classification, instance_segmentation, semantic_segmentation]
+        The type of dataset [classification, instance-segmentation, semantic-segmentation]
     partition: str
-        Selects one of the partitions [train, val, test]
+        Selects one of the partitions [train, val, test, None]. (Default: None)
     split: str
-        Selects the split that defines the percentages used (use 'default' to select the default split)
+        Selects the split that defines the percentages used. (Default: 'default')
     split_type: str
-        Heuristic used to do the split [random, stratified]
-    release_name: str
-        Version of the dataset
+        Heuristic used to do the split [random, stratified]. (Default: 'random')
     transform : list[torchvision.transforms]
         List of PyTorch transforms
     """
     dataset_functions = {
         "classification": ClassificationDataset,
-        "instance_segmentation": InstanceSegmentationDataset,
-        "semantic_segmentation": SemanticSegmentationDataset,
+        "instance-segmentation": InstanceSegmentationDataset,
+        "semantic-segmentation": SemanticSegmentationDataset,
     }
     dataset_function = dataset_functions.get(dataset_type)
     if not dataset_function:
         list_of_types = ", ".join(dataset_functions.keys())
-        raise ValueError(f"dataset_type needs to be one of '{list_of_types}'")
+        _error(f"dataset_type needs to be one of '{list_of_types}'")
 
-    if isinstance(dataset_path, str):
-        dataset_path = Path(dataset_path)
+    identifier = DatasetIdentifier.parse(dataset_slug)
+    client = _load_client(offline=True)
 
-    return dataset_function(
-        dataset_path=dataset_path,
-        partition=partition,
-        split=split,
-        split_type=split_type,
-        release_name=release_name,
-        transform=transform,
+    for p in client.list_local_datasets(team=identifier.team_slug):
+        if identifier.dataset_slug == p.name:
+            return dataset_function(
+                dataset_path=p,
+                partition=partition,
+                split=split,
+                split_type=split_type,
+                release_name=identifier.version,
+                transform=transform,
+            )
+
+    for p in client.list_deprecated_local_datasets(team=identifier.team_slug):
+        if identifier.dataset_slug == p.name:
+            _error(
+                f"Found a local version of the dataset {identifier.dataset_slug} which uses a deprecated format. "
+                f"Run `darwin dataset migrate {identifier}` if you want to be able to use it in darwin-py."
+            )
+
+    _error(
+        f"Dataset '{identifier.dataset_slug}' does not exist locally. "
+        f"Use 'darwin dataset remote' to see all the available datasets, "
+        f"and 'darwin dataset pull' to pull them."
     )
 
 
@@ -78,10 +91,10 @@ class ClassificationDataset(LocalDataset):
         The return value is a dict with the following fields:
             image_id: int
                 The index of the image in the split
-            original_filename: str
+            image_path: str
                 The path to the image on the file system
             category_id : int
-                The single label of the image selected.
+                The single label of the image selected
         """
         img = load_pil_image(self.images_path[index])
         if self.transform is not None:
@@ -91,9 +104,7 @@ class ClassificationDataset(LocalDataset):
         annotations = target.pop("annotations")
         tags = [self.classes.index(a["name"]) for a in annotations if "tag" in a]
         if len(tags) > 1:
-            raise ValueError(
-                f"Multiple tags defined for this image ({tags}). " f"This is not valid in a classification dataset."
-            )
+            raise ValueError(f"Multiple tags defined for this image ({tags}). This is not supported at the moment.")
         if len(tags) == 0:
             raise ValueError(
                 f"No tags defined for this image ({self.annotations_path[index]})."
@@ -122,7 +133,7 @@ class ClassificationDataset(LocalDataset):
 
 
 class InstanceSegmentationDataset(LocalDataset):
-    def __init__(self, transform: Optional[List] = None, convert_polygons_to_masks: Optional[bool] = True, **kwargs):
+    def __init__(self, transform: Optional[List] = None, **kwargs):
         """See `LocalDataset` class for documentation"""
         super().__init__(annotation_type="polygon", **kwargs)
 
@@ -130,28 +141,25 @@ class InstanceSegmentationDataset(LocalDataset):
         if self.transform is not None and isinstance(self.transform, list):
             self.transform = Compose(self.transform)
 
-        self.convert_polygons = ConvertPolygonsToInstanceMasks() if convert_polygons_to_masks else None
+        self.convert_polygons = ConvertPolygonsToInstanceMasks()
 
     def __getitem__(self, index: int):
         """
-
         Notes
         -----
         The return value is a dict with the following fields:
             image_id : int
                 Index of the image inside the dataset
-            original_filename: str
+            image_path: str
                 The path to the image on the file system
-            annotations : list[Dict]
-                List of annotations, where each annotation is a dict with:
-                category_id : int
-                    The single label of the image selected.
-                segmentation : ndarray(1,)
-                    Array of points [x,y,x,y,x,y ...] composing the polygon enclosing the object
-                bbox : ndarray(1,)
-                    Coordinates of the bounding box enclosing the instance as [x, y, w, h]
-                area : float
-                    Area of the polygon
+            labels : tensor(n)
+                The class label of each one of the instances
+            masks : tensor(n, H, W)
+                Segmentation mask of each one of the instances
+            boxes : tensor(n, 4)
+                Coordinates of the bounding box enclosing the instances as [x, y, x, y]
+            area : float
+                Area in pixels of each one of the instances
         """
         img = load_pil_image(self.images_path[index])
         target = self.parse_json(index)
@@ -187,8 +195,7 @@ class InstanceSegmentationDataset(LocalDataset):
             )
         target["annotations"] = annotations
 
-        if self.convert_polygons is not None:
-            img, target = self.convert_polygons(img, target)
+        img, target = self.convert_polygons(img, target)
         if self.transform is not None:
             img, target = self.transform(img, target)
 
@@ -213,7 +220,7 @@ class InstanceSegmentationDataset(LocalDataset):
 
 
 class SemanticSegmentationDataset(LocalDataset):
-    def __init__(self, transform: Optional[List] = None, convert_polygons_to_masks: Optional[bool] = True, **kwargs):
+    def __init__(self, transform: Optional[List] = None, **kwargs):
         """See `LocalDataset` class for documentation"""
         super().__init__(annotation_type="polygon", **kwargs)
 
@@ -221,7 +228,7 @@ class SemanticSegmentationDataset(LocalDataset):
         if self.transform is not None and isinstance(self.transform, list):
             self.transform = Compose(self.transform)
 
-        self.convert_polygons = ConvertPolygonsToSegmentationMask() if convert_polygons_to_masks else None
+        self.convert_polygons = ConvertPolygonsToSemanticMask()
 
     def __getitem__(self, index: int):
         """See superclass for documentation
@@ -231,12 +238,10 @@ class SemanticSegmentationDataset(LocalDataset):
         The return value is a dict with the following fields:
             image_id : int
                 Index of the image inside the dataset
-            original_filename: str
+            image_path: str
                 The path to the image on the file system
-            annotations : list
-                List of annotations, where each annotation is a dict with:
-                category_id : TODO complete documentation
-                segmentation :
+            mask : tensor(H, W)
+                Segmentation mask where each pixel encodes a class label
         """
         img = load_pil_image(self.images_path[index])
         target = self.parse_json(index)
@@ -248,11 +253,10 @@ class SemanticSegmentationDataset(LocalDataset):
             sequences[:] = [s for s in sequences if len(s) >= 6]
             if not sequences:
                 continue
-            annotations.append({"category_id": self.classes.index(obj["name"]), "segmentation": np.array(sequences)})
+            annotations.append({"category_id": self.classes.index(obj["name"]), "segmentation": sequences})
         target["annotations"] = annotations
 
-        if self.convert_polygons is not None:
-            img, target = self.convert_polygons(img, target)
+        img, target = self.convert_polygons(img, target)
         if self.transform is not None:
             img, target = self.transform(img, target)
 
