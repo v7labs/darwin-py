@@ -65,7 +65,9 @@ print(db_train)
 
 ## Darwin &#2715; Torchvision
 
-This tutorial shows how to train an instance segmentaion model on a Darwin dataset using Pytorch's [Torchvsion](https://github.com/pytorch/vision) and `darwin-py`. First, using `darwin-py`'s CLI, we will pull the dataset from Darwin and create train, validation, and test partitions.
+This tutorial shows how to train an instance segmentaion model on a Darwin dataset using Pytorch's [Torchvsion](https://github.com/pytorch/vision) and `darwin-py`. If you do not have Pytorch and Torchvision installed yet, you can follow these [installation instructions](https://pytorch.org/get-started/locally/).
+
+First, using `darwin-py`'s CLI, we will pull the dataset from Darwin and create train, validation, and test partitions.
 
 ```bash
 darwin dataset pull v7-demo/bird-species
@@ -158,7 +160,7 @@ for epoch in range(10):
 
 ## Darwin &#2715; Detectron2
 
-This tutorial shows how to train [Detectron2](https://github.com/facebookresearch/detectron2) models in your Darwin datasets. If you do not have Detectron2 installed yet, follow these [installation instructions](https://github.com/facebookresearch/detectron2/blob/master/INSTALL.md).
+This tutorial shows how to train [Detectron2](https://github.com/facebookresearch/detectron2) models in your Darwin datasets. If you do not have Detectron2 installed yet, please follow these [installation instructions](https://github.com/facebookresearch/detectron2/blob/master/INSTALL.md).
 
 Detectron2 organizes the datasets in `DatasetCatalog`, so the only thing we will need to do is to register our Darwin dataset in this catalog. For this, `darwin-py` provides the function `detectron2_register_dataset`, which takes the following parameters:
 
