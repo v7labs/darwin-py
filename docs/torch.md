@@ -63,7 +63,7 @@ print(db_train)
 ```
 
 
-## Darwin &#2715; Torchvision
+## Darwin &#x2715; Torchvision
 
 This tutorial shows how to train an instance segmentaion model on a Darwin dataset using Pytorch's [Torchvsion](https://github.com/pytorch/vision) and `darwin-py`. If you do not have Pytorch and Torchvision installed yet, you can follow these [installation instructions](https://pytorch.org/get-started/locally/).
 
