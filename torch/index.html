@@ -69,7 +69,7 @@
     </li>
     <li class="toctree-l2"><a class="reference internal" href="#darwin-torchvision">Darwin &#x2715; Torchvision</a>
     </li>
-    <li class="toctree-l2"><a class="reference internal" href="#darwin-detectron2">Darwin &#2715; Detectron2</a>
+    <li class="toctree-l2"><a class="reference internal" href="#darwin-detectron2">Darwin &#x2715; Detectron2</a>
     </li>
     </ul>
                     </li>
@@ -242,7 +242,7 @@ for epoch in range(10):
     lr_scheduler.step()
 </code></pre>
 
-<h2 id="darwin-detectron2">Darwin &#2715; Detectron2</h2>
+<h2 id="darwin-detectron2">Darwin &#x2715; Detectron2</h2>
 <p>This tutorial shows how to train <a href="https://github.com/facebookresearch/detectron2">Detectron2</a> models in your Darwin datasets. If you do not have Detectron2 installed yet, please follow these <a href="https://github.com/facebookresearch/detectron2/blob/master/INSTALL.md">installation instructions</a>.</p>
 <p>Detectron2 organizes the datasets in <code>DatasetCatalog</code>, so the only thing we will need to do is to register our Darwin dataset in this catalog. For this, <code>darwin-py</code> provides the function <code>detectron2_register_dataset</code>, which takes the following parameters:</p>
 <pre><code>detectron2_register_dataset(dataset_slug [, partition, split, split_type, release_name, evaluator_type])
