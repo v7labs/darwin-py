@@ -3,10 +3,10 @@
 
 ## Loading a dataset in Python
 
-This module includes some functionality to import your datasets ready to be plugged into your Pytorch-based libraries. For this, you can use `get_dataset()` function:
+This module includes some functionality to import your datasets ready to be plugged into your Pytorch-based libraries. For this, you can use the function `get_dataset`:
 
 ```
-def get_dataset(dataset_slug, dataset_type [, partition, split, split_type, transform])
+get_dataset(dataset_slug, dataset_type [, partition, split, split_type, transform])
 
 Input
 ----------
@@ -29,7 +29,7 @@ dataset: LocalDataset
   API class to the local dataset
 ```
 
-**Note:** For now, it only support three types of dataset: `classification`, `instance-segmentation`, and `semantic-segmentation`. These different modes use different API classes, which load and pre-process the data in different ways, tailored for these specific tasks. If you need a different API or a different pre-processing for a different task you can take a look into the implementation of these APIs in `darwin.torch.dataset` and extend `LocalDataset` in the way it suits your needs best.
+**Note:** For now, it only support three types of dataset: `classification`, `instance-segmentation`, and `semantic-segmentation`. These different modes use different API classes, which load and pre-process the data in different ways, suited for these specific tasks. If you need a different API or a different pre-processing for a different task you can take a look into the implementation of these APIs in `darwin.torch.dataset` and extend `LocalDataset` in the way it suits your needs best.
 
 This is an example of how to load the `v7-demo/bird-species` dataset ready to be used in a instance segmentation task by using `"instance-segmentation"` as `dataset_type`. First, we will pull it from Darwin using `darwin-py`'s CLI, and will create train, validation, and test partitions:
 
@@ -38,7 +38,7 @@ darwin dataset pull v7-demo/bird-species
 darwin dataset split v7-demo/bird-species --val-percentage 10 --test-percentage 20
 ```
 
-Once downloaded, we can use `get_dataset()` to load the different partitions, and pass different transformations for train and validation splits (some basic transformations are implemented in `darwin.torch.transforms` but you can also use your own transformations):
+Once downloaded, we can use `get_dataset` to load the different partitions, and pass different transformations for train and validation splits (some basic transformations are implemented in `darwin.torch.transforms` but you can also use your own transformations):
 
 ```python
 from darwin.torch import get_dataset
@@ -63,7 +63,7 @@ print(db_train)
 ```
 
 
-## Darwin X Torchvision
+## Darwin &#2715; Torchvision
 
 This tutorial shows how to train an instance segmentaion model on a Darwin dataset using Pytorch's [Torchvsion](https://github.com/pytorch/vision) and `darwin-py`. First, using `darwin-py`'s CLI, we will pull the dataset from Darwin and create train, validation, and test partitions.
 
@@ -72,7 +72,7 @@ darwin dataset pull v7-demo/bird-species
 darwin dataset split v7-demo/bird-species --val-percentage 10 --test-percentage 20
 ```
 
-Now, in Python, we will start by importing some `torchvision` and `darwin-py` functions, and by defining the function `get_instance_segmentation_model()` that we will use to instantiate a [Mask-RCNN](https://arxiv.org/abs/1703.06870) model using Torchvision's API.
+Now, in Python, we will start by importing some `torchvision` and `darwin-py` functions, and by defining the function `get_instance_segmentation_model` that we will use to instantiate a [Mask-RCNN](https://arxiv.org/abs/1703.06870) model using Torchvision's API.
 
 ```python
 import torch
@@ -104,7 +104,7 @@ def get_instance_segmentation_model(num_classes):
     return model
 ```
 
-Then, we will load the dataset using `darwin-py`'s `get_dataset()` function, specifying the dataset slug, the dataset type (in this case we need an `instance-segmentation` dataset), and the `train` partition. The dataset that we get back can be used directly into Pytorch's standard DataLoader.
+Then, we will load the dataset using `darwin-py`'s `get_dataset` function, specifying the dataset slug, the dataset type (in this case we need an `instance-segmentation` dataset), and the `train` partition. The dataset that we get back can be used directly into Pytorch's standard DataLoader.
 
 ```python
 trfs_train = T.Compose([T.RandomHorizontalFlip(), T.ToTensor()])
@@ -156,14 +156,14 @@ for epoch in range(10):
 ```
 
 
-## Darwin X Detectron2
+## Darwin &#2715; Detectron2
 
 This tutorial shows how to train [Detectron2](https://github.com/facebookresearch/detectron2) models in your Darwin datasets. If you do not have Detectron2 installed yet, follow these [installation instructions](https://github.com/facebookresearch/detectron2/blob/master/INSTALL.md).
 
-Detectron2 organizes the datasets in `DatasetCatalog`, so the only thing we will need to do is to register our Darwin dataset in this catalog. For this, `darwin-py` provides the function `detectron2_register_dataset()`, which takes the following parameters:
+Detectron2 organizes the datasets in `DatasetCatalog`, so the only thing we will need to do is to register our Darwin dataset in this catalog. For this, `darwin-py` provides the function `detectron2_register_dataset`, which takes the following parameters:
 
 ```
-def detectron2_register_dataset(dataset_slug [, partition, split, split_type, release_name, evaluator_type])
+detectron2_register_dataset(dataset_slug [, partition, split, split_type, release_name, evaluator_type])
 
 Input
 ----------
@@ -190,10 +190,10 @@ Here's an example of how to use this function to register a Darwin dataset, and 
 
 ```bash
 darwin dataset pull v7-demo/bird-species
-darwin dataset split v7-demo/bird-species --val-percentage 10
+darwin dataset split v7-demo/bird-species --val-percentage 10 --test-percentage 20
 ```
 
-Now in Python, we will import some `detectron2` utils and we will register the Darwin dataset into Detectron2's catalog.
+Now, in Python, we will import some `detectron2` utils and we will register the Darwin dataset into Detectron2's catalog.
 
 ```python
 import os

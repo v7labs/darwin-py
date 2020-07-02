@@ -238,6 +238,10 @@ def convert_polygons_to_sequences(
     polygons: list
         List of coordinates in the format [{x: x1, y:y1}, ..., {x: xn, y:yn}] or a list of them
         as  [[{x: x1, y:y1}, ..., {x: xn, y:yn}], ..., [{x: x1, y:y1}, ..., {x: xn, y:yn}]].
+    height: int
+        Maximum height for a polygon coordinate
+    width: int
+        Maximum width for a polygon coordinate
 
     Returns
     -------
