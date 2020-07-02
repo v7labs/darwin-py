@@ -226,9 +226,7 @@ def ispolygon(annotation):
     return annotation.annotation_type in ["polygon", "complex_polygon"]
 
 
-def convert_polygons_to_sequences(
-    polygons: List, height: Optional[int] = None, width: Optional[int] = None
-) -> List:
+def convert_polygons_to_sequences(polygons: List, height: Optional[int] = None, width: Optional[int] = None) -> List:
     """
     Converts a list of polygons, encoded as a list of dictionaries of into a list of nd.arrays
     of coordinates.
@@ -238,6 +236,10 @@ def convert_polygons_to_sequences(
     polygons: list
         List of coordinates in the format [{x: x1, y:y1}, ..., {x: xn, y:yn}] or a list of them
         as  [[{x: x1, y:y1}, ..., {x: xn, y:yn}], ..., [{x: x1, y:y1}, ..., {x: xn, y:yn}]].
+    height: int
+        Maximum height for a polygon coordinate
+    width: int
+        Maximum width for a polygon coordinate
 
     Returns
     -------
