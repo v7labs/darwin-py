@@ -7,7 +7,7 @@ Typical use cases for Darwin include:
 - Create/remove/list datasets
 - Upload/download data to/from remote datasets
 - Convert between annotations formats
-- Direct integration with PyTorch DataLoaders (See [torch/README.md](darwin/torch/README.md))
+- Direct integration with PyTorch DataLoaders (See [torch](torch.md))
 
 Darwin-py can both be used from the [command line](commandline.md) and as a [python library](library.md).
 
