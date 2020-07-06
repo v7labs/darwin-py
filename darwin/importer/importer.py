@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Callable, List, Union
+from tqdm import tqdm
 
 import darwin.datatypes as dt
 from darwin.utils import secure_continue_request
@@ -93,7 +94,7 @@ def import_annotations(
         parsed_files = importer(local_path)
         if type(parsed_files) is not list:
             parsed_files = [parsed_files]
-        for parsed_file in parsed_files:
+        for parsed_file in tqdm(parsed_files):
             image_id = remote_files[parsed_file.filename]
             _import_annotations(dataset.client, image_id, remote_classes, parsed_file.annotations, dataset)
 
@@ -108,6 +109,8 @@ def _import_annotations(client: "Client", id: int, remote_classes, annotations, 
         )
 
     if client.feature_enabled("WORKFLOW", dataset.team):
-        client.post(f"/items/{id}/import", payload={"annotations": serialized_annotations})
+        res = client.post(f"/dataset_items/{id}/import", payload={"annotations": serialized_annotations})
+        if res["status_code"] != 200:
+            print(f"warning, failed to upload annotation to {id}")
     else:
         client.post(f"/dataset_images/{id}/import", payload={"annotations": serialized_annotations})
