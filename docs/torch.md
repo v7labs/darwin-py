@@ -158,7 +158,7 @@ for epoch in range(10):
 ```
 
 
-## Darwin &#2715; Detectron2
+## Darwin &#x2715; Detectron2
 
 This tutorial shows how to train [Detectron2](https://github.com/facebookresearch/detectron2) models in your Darwin datasets. If you do not have Detectron2 installed yet, please follow these [installation instructions](https://github.com/facebookresearch/detectron2/blob/master/INSTALL.md).
 

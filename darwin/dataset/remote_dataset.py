@@ -264,7 +264,7 @@ class RemoteDataset:
         base_url = f"/datasets/{self.dataset_id}/items"
         if not self.client.feature_enabled("WORKFLOW", self.team):
             base_url = f"/datasets/{self.dataset_id}/dataset_images"
-        cursor = ""
+        cursor = "?page[size]=500"
         while True:
             response = self.client.get(f"{base_url}{cursor}", team=self.team)
             yield from response["items"]
