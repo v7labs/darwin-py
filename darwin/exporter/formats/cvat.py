@@ -48,6 +48,12 @@ def build_annotation(image, annotation):
         box.attrib["xbr"] = str(annotation.data["x"] + annotation.data["w"])
         box.attrib["ybr"] = str(annotation.data["y"] + annotation.data["h"])
         box.attrib["occluded"] = "0"
+
+        for sub in annotation.subs:
+            if sub.annotation_type == 'attributes':
+                for attribute_i in sub.data:
+                    att = ET.SubElement(box, "attribute", attrib={"name": str(attribute_i)})
+                    att.text = str(attribute_i) # darwin doesn't support key-valued attibutes
     else:
         print(f"[warning] skipping {annotation.annotation_class.annotation_type}")
 
