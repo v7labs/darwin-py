@@ -66,10 +66,12 @@ def is_deprecated_project_dir(project_path: Path) -> bool:
     return (project_path / "annotations").exists() and (project_path / "images").exists()
 
 
-def get_progress_bar(array: List, description: str = "Progress", total: int = None):
+def get_progress_bar(array: List, description: str = "Progress", total: int = None, color: str = None):
     try:
         from rich.progress import track
 
+        if color:
+            description = f"[{color}]{description}"
         pbar = track(array, description=description, total=total)
     except ImportError:
         from tqdm import tqdm

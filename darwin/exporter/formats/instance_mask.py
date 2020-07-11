@@ -16,7 +16,7 @@ def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_di
     masks_dir.mkdir(parents=True)
     with open(output_dir / "instance_mask_annotations.csv", "w") as f:
         f.write("image_id,mask_id,class_name\n")
-        for annotation_file in get_progress_bar(list(annotation_files), "Processing annotations"):
+        for annotation_file in get_progress_bar(list(annotation_files), "Processing annotations", color="cyan"):
             image_id = annotation_file.path.stem
             height = annotation_file.image_height
             width = annotation_file.image_width

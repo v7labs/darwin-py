@@ -35,7 +35,7 @@ def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_di
         palette_rgb = {c: rgb for c, rgb in zip(categories, RGB_colors)}
         RGB_colors = [c for e in RGB_colors for c in e]
 
-    for annotation_file in get_progress_bar(list(annotation_files), "Processing annotations"):
+    for annotation_file in get_progress_bar(list(annotation_files), "Processing annotations", color="cyan"):
         outfile = masks_dir / f"{annotation_file.path.stem}.png"
         height = annotation_file.image_height
         width = annotation_file.image_width
