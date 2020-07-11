@@ -1,9 +1,8 @@
 from pathlib import Path
 from typing import Callable, List, Union
-from tqdm import tqdm
 
 import darwin.datatypes as dt
-from darwin.utils import secure_continue_request
+from darwin.utils import secure_continue_request, get_progress_bar
 
 
 def build_main_annotations_lookup_table(annotation_classes):
@@ -94,7 +93,7 @@ def import_annotations(
         parsed_files = importer(local_path)
         if type(parsed_files) is not list:
             parsed_files = [parsed_files]
-        for parsed_file in tqdm(parsed_files):
+        for parsed_file in get_progress_bar(parsed_files):
             image_id = remote_files[parsed_file.filename]
             _import_annotations(dataset.client, image_id, remote_classes, parsed_file.annotations, dataset)
 

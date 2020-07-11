@@ -3,7 +3,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING, List, Optional, Union
 
 import numpy as np
-from tqdm import tqdm
 from upolygon import draw_polygon
 
 import darwin.datatypes as dt
@@ -67,9 +66,14 @@ def is_deprecated_project_dir(project_path: Path) -> bool:
     return (project_path / "annotations").exists() and (project_path / "images").exists()
 
 
-def get_progress_bar(array: List, description: Optional[str] = None):
-    pbar = tqdm(array)
-    pbar.set_description(desc=description, refresh=True)
+def get_progress_bar(array: List, description: str = "Progress", total: int = None):
+    try:
+        from rich.progress import track
+        pbar = track(array, description=description, total=total)
+    except ImportError:
+        from tqdm import tqdm
+        pbar = tqdm(array)
+        pbar.set_description(desc=description, refresh=True, total=total)
     return pbar
 
 

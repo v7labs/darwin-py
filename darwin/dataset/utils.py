@@ -10,10 +10,10 @@ from typing import Generator, Iterable, List, Optional, Union
 
 import numpy as np
 from PIL import Image
-from tqdm import tqdm
+from rich.progress import Progress
 
 from darwin.exceptions import NotFound
-from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS
+from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS, get_progress_bar
 
 
 def get_release_path(dataset_path: Path, release_name: Optional[str] = None):
@@ -479,19 +479,20 @@ def exhaust_generator(progress: Generator, count: int, multi_threaded: bool):
     """
     responses = []
     if multi_threaded:
-        pbar = tqdm(total=count)
+        with Progress() as p:
+            pbar = p.add_task("Progress", total=count)
 
-        def update(*a):
-            pbar.update()
+            def update(*a):
+                p.update(pbar, advance=1)
 
-        with mp.Pool(mp.cpu_count()) as pool:
-            for f in progress:
-                responses.append(pool.apply_async(_f, args=(f,), callback=update))
-            pool.close()
-            pool.join()
-        responses = [response.get() for response in responses if response.successful()]
+            with mp.Pool(mp.cpu_count()) as pool:
+                for f in progress:
+                    responses.append(pool.apply_async(_f, args=(f,), callback=update))
+                pool.close()
+                pool.join()
+            responses = [response.get() for response in responses if response.successful()]
     else:
-        for f in tqdm(progress, total=count, desc="Progress"):
+        for f in get_progress_bar(progress, total=count):
             responses.append(_f(f))
     return responses
 
