@@ -10,7 +10,6 @@ from typing import Generator, Iterable, List, Optional, Union
 
 import numpy as np
 from PIL import Image
-from rich.progress import Progress
 
 from darwin.exceptions import NotFound
 from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS, get_progress_bar
@@ -479,6 +478,7 @@ def exhaust_generator(progress: Generator, count: int, multi_threaded: bool):
     """
     responses = []
     if multi_threaded:
+        from rich.progress import Progress
         with Progress() as p:
             pbar = p.add_task("Progress", total=count)
 
