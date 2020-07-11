@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Callable, List, Union
 
 import darwin.datatypes as dt
-from darwin.utils import secure_continue_request, get_progress_bar
+from darwin.utils import get_progress_bar, secure_continue_request
 
 
 def build_main_annotations_lookup_table(annotation_classes):

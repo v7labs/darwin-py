@@ -69,9 +69,11 @@ def is_deprecated_project_dir(project_path: Path) -> bool:
 def get_progress_bar(array: List, description: str = "Progress", total: int = None):
     try:
         from rich.progress import track
+
         pbar = track(array, description=description, total=total)
     except ImportError:
         from tqdm import tqdm
+
         pbar = tqdm(array)
         pbar.set_description(desc=description, refresh=True, total=total)
     return pbar
