@@ -299,6 +299,10 @@ class RemoteDataset:
             "annotation_classes"
         ]
 
+    def fetch_remote_attributes(self):
+        """Fetches all remote attributes on the remote dataset"""
+        return self.client.get(f"/datasets/{self.dataset_id}/attributes")
+
     def export(self, name: str, annotation_class_ids: Optional[List[str]] = None, include_url_token: bool = False):
         """Create a new release for the dataset
 
