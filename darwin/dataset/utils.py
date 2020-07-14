@@ -64,7 +64,7 @@ def ensure_sklearn_imported(requester):
         sys.exit(0)
 
 
-def extract_classes(annotations_path: Path, annotation_type: str):
+def extract_classes(annotations_path: Path, annotation_type: str, keep_classes: Optional[List[str]] = None):
     """
     Given a the GT as json files extracts all classes and an maps images index to classes
 
@@ -74,6 +74,8 @@ def extract_classes(annotations_path: Path, annotation_type: str):
         Path to the json files with the GT information of each image
     annotation_type : str
         Type of annotation to use to extract the Gt information
+    keep_classes: list
+        If provided, annotations with classes not present in this list are discarded
 
     Returns
     -------
@@ -97,6 +99,8 @@ def extract_classes(annotations_path: Path, annotation_type: str):
                     if annotation_type not in annotation:
                         continue
                     class_name = annotation["name"]
+                    if keep_classes and class_name not in keep_classes:
+                        continue
                     indices_to_classes[i].add(class_name)
                     classes[class_name].add(i)
     return classes, indices_to_classes
@@ -122,7 +126,7 @@ def make_class_lists(release_path: Path):
 
     for annotation_type in ["tag", "polygon", "bounding_box"]:
         fname = lists_path / f"classes_{annotation_type}.txt"
-        classes, _ = extract_classes(annotations_path, annotation_type=annotation_type)
+        classes, _ = extract_classes(annotations_path, annotation_type)
         classes_names = list(classes.keys())
         if len(classes_names) > 0:
             classes_names.sort()
@@ -160,7 +164,10 @@ def get_classes(
     release_path = get_release_path(dataset_path, release_name)
 
     classes_file = f"classes_{annotation_type}.txt"
-    classes = [e.strip() for e in open(release_path / "lists" / classes_file)]
+    try:
+        classes = [e.strip() for e in open(release_path / "lists" / classes_file)]
+    except FileNotFoundError:
+        return []
     if remove_background and classes[0] == "__background__":
         classes = classes[1:]
     return classes
@@ -332,8 +339,7 @@ def split_dataset(
         Keys are the different splits (random, tags, ...) and values are the relative file names
     """
     assert dataset_path is not None
-    if isinstance(dataset_path, str):
-        dataset_path = Path(dataset_path)
+    dataset_path = Path(dataset_path)
     release_path = get_release_path(dataset_path, release_name)
 
     annotation_path = release_path / "annotations"
@@ -407,8 +413,9 @@ def split_dataset(
         if add_stratified_split:
             # STRATIFIED SPLIT ON TAGS
             # Stratify
-            classes_tag, idx_to_classes_tag = extract_classes(annotation_path, "tag")
-            if len(idx_to_classes_tag) > 0:
+            classes_tag = get_classes(dataset_path, release_name, annotation_type="tag")
+            if classes_tag:
+                _, idx_to_classes_tag = extract_classes(annotation_path, "tag", keep_classes=classes_tag)
                 train_indices, val_indices, test_indices = _stratify_samples(
                     idx_to_classes_tag, split_seed, test_percentage, val_percentage
                 )
@@ -420,8 +427,9 @@ def split_dataset(
 
             # STRATIFIED SPLIT ON POLYGONS
             # Stratify
-            classes_polygon, idx_to_classes_polygon = extract_classes(annotation_path, "polygon")
-            if len(idx_to_classes_polygon) > 0:
+            classes_polygon = get_classes(dataset_path, release_name, annotation_type="polygon")
+            if classes_polygon:
+                _, idx_to_classes_polygon = extract_classes(annotation_path, "polygon", keep_classes=classes_polygon)
                 train_indices, val_indices, test_indices = _stratify_samples(
                     idx_to_classes_polygon, split_seed, test_percentage, val_percentage
                 )
@@ -433,8 +441,9 @@ def split_dataset(
 
             # STRATIFIED SPLIT ON BOUNDING BOXES
             # Stratify
-            classes_bbox, idx_to_classes_bbox = extract_classes(annotation_path, "bounding_box")
-            if len(idx_to_classes_bbox) > 0:
+            classes_bbox = get_classes(dataset_path, release_name, annotation_type="bounding_box")
+            if classes_bbox:
+                _, idx_to_classes_bbox = extract_classes(annotation_path, "bounding_box", keep_classes=classes_bbox)
                 train_indices, val_indices, test_indices = _stratify_samples(
                     idx_to_classes_bbox, split_seed, test_percentage, val_percentage
                 )
@@ -506,7 +515,6 @@ def get_coco_format_record(
     assert annotation_type in ["tag", "polygon", "bounding_box"]
     try:
         from detectron2.structures import BoxMode
-
         box_mode = BoxMode.XYXY_ABS
     except ImportError:
         box_mode = 0
@@ -531,6 +539,8 @@ def get_coco_format_record(
             continue
 
         if classes:
+            if obj["name"] not in classes:
+                continue
             category = classes.index(obj["name"])
         else:
             category = obj["name"]
@@ -562,6 +572,7 @@ def get_annotations(
     annotation_type: str = "polygon",
     release_name: Optional[str] = None,
     annotation_format: Optional[str] = "coco",
+    classes: Optional[List[str]] = None,
 ):
     """
     Returns all the annotations of a given dataset and split in a single dictionary
@@ -582,6 +593,8 @@ def get_annotations(
         Version of the dataset
     annotation_format: str
         Re-formatting of the annotation when loaded [coco, darwin]
+    classes: list
+        List of classes to be loaded (use None to load all the classes)
 
     Returns
     -------
@@ -606,7 +619,8 @@ def get_annotations(
         raise ValueError("annotation_type should be either 'tag', 'bounding_box', or 'polygon'")
 
     # Get the list of classes
-    classes = get_classes(dataset_path, release_name, annotation_type=annotation_type, remove_background=True)
+    if not classes:
+        classes = get_classes(dataset_path, release_name, annotation_type=annotation_type, remove_background=True)
     # Get the list of stems
     if partition:
         # Get the split

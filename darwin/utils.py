@@ -3,13 +3,12 @@ from pathlib import Path
 from typing import TYPE_CHECKING, List, Optional, Union
 
 import numpy as np
-from tqdm import tqdm
+from upolygon import draw_polygon
 
 import darwin.datatypes as dt
 from darwin.config import Config
-from upolygon import draw_polygon
 
-SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpeg", ".jpg", ".jfif", ".tif"]
+SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpeg", ".jpg", ".jfif", ".tif", ".JPG", ".PNG"]
 SUPPORTED_VIDEO_EXTENSIONS = [".bpm", ".mov", ".mp4"]
 SUPPORTED_EXTENSIONS = SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
 
@@ -67,9 +66,32 @@ def is_deprecated_project_dir(project_path: Path) -> bool:
     return (project_path / "annotations").exists() and (project_path / "images").exists()
 
 
-def get_progress_bar(array: List, description: Optional[str] = None):
-    pbar = tqdm(array)
-    pbar.set_description(desc=description, refresh=True)
+def get_progress_bar(array: List, description: str = "Progress", total: int = None, color: str = None):
+    """Creates a progress bar
+
+    Parameters
+    ----------
+    array : List
+        A sequence you wish to iterate over
+    description : str
+        Description of task show next to progress bar. Default is "Progress"
+    total : int
+        Total number of steps. Default is len(array)
+    color : str
+        Color of the description
+
+    Returns
+    -------
+        Progress bar
+    """
+    try:
+        from rich.progress import track
+        if color:
+            description = f"[{color}]{description}"
+        pbar = track(array, description=description, total=total)
+    except ImportError:
+        from tqdm import tqdm
+        pbar = tqdm(array, desc=description, refresh=True, total=total)
     return pbar
 
 
