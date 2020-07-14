@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Callable, List, Union
+
 from tqdm import tqdm
 
 import darwin.datatypes as dt
@@ -45,6 +46,17 @@ def find_and_parse(
     return local_files, local_files_missing_remotely
 
 
+def build_attribute_lookup(dataset):
+    attributes = dataset.fetch_remote_attributes()
+    lookup = {}
+    for attribute in attributes:
+        class_id = attribute["class_id"]
+        if class_id not in lookup:
+            lookup[class_id] = {}
+        lookup[class_id][attribute["name"]] = attribute["id"]
+    return lookup
+
+
 def import_annotations(
     dataset: "RemoteDataset",
     importer: Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]],
@@ -54,6 +66,7 @@ def import_annotations(
     remote_files = {f["filename"]: f["id"] for f in dataset.fetch_remote_files()}
     print("Fetching remote class list...")
     remote_classes = build_main_annotations_lookup_table(dataset.fetch_remote_classes())
+    attributes = build_attribute_lookup(dataset)
 
     print("Retrieving local annotations ...")
     local_files = []
@@ -96,17 +109,31 @@ def import_annotations(
             parsed_files = [parsed_files]
         for parsed_file in tqdm(parsed_files):
             image_id = remote_files[parsed_file.filename]
-            _import_annotations(dataset.client, image_id, remote_classes, parsed_file.annotations, dataset)
+            _import_annotations(dataset.client, image_id, remote_classes, attributes, parsed_file.annotations, dataset)
 
 
-def _import_annotations(client: "Client", id: int, remote_classes, annotations, dataset):
+def _import_annotations(client: "Client", id: int, remote_classes, attributes, annotations, dataset):
     serialized_annotations = []
     for annotation in annotations:
         annotation_class = annotation.annotation_class
         annotation_class_id = remote_classes[annotation_class.annotation_type][annotation_class.name]
-        serialized_annotations.append(
-            {"annotation_class_id": annotation_class_id, "data": {annotation_class.annotation_type: annotation.data}}
-        )
+        data = {annotation_class.annotation_type: annotation.data}
+        for sub in annotation.subs:
+            if sub.annotation_type == "text":
+                data["text"] = {"text": sub.data}
+            elif sub.annotation_type == "attributes":
+                data["attributes"] = {
+                    "attributes": [
+                        attributes[annotation_class_id][attr]
+                        for attr in sub.data
+                        if annotation_class_id in attributes and attr in attributes[annotation_class_id]
+                    ]
+                }
+            elif sub.annotation_type == "instance_id":
+                data["instance_id"] = {"value": sub.data}
+            else:
+                data[sub.annotation_type] = sub.data
+        serialized_annotations.append({"annotation_class_id": annotation_class_id, "data": data})
 
     if client.feature_enabled("WORKFLOW", dataset.team):
         res = client.post(f"/dataset_items/{id}/import", payload={"annotations": serialized_annotations})
