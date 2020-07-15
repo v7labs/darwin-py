@@ -458,6 +458,45 @@ def dataset_import(dataset_slug, format, files):
         _error(f"No dataset with name '{e.name}'")
 
 
+def list_files(dataset_slug, statuses, path, only_filenames):
+    client = _load_client(dataset_slug=dataset_slug)
+    try:
+        dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
+        filters = {}
+        if statuses:
+            for status in statuses.split(","):
+                if status not in ["new", "annotate", "review", "complete", "archived"]:
+                    _error(f"Invalid status '{status}', available statuses: annotate, archived, complete, new, review")
+            filters["statuses"] = statuses
+        else:
+            filters["statuses"] = "new,annotate,review,complete"
+        if path:
+            filters["path"] = path
+        for file in dataset.fetch_remote_files(filters):
+            if only_filenames:
+                print(file.filename)
+            else:
+                print(f"{file.filename}\t{file.status if not file.archived else 'archived'}")
+    except NotFound as e:
+        _error(f"No dataset with name '{e.name}'")
+
+
+def set_file_status(dataset_slug, status, files):
+    if status not in ["archived", "restore-archived"]:
+        _error(f"Invalid status '{status}', available statuses: archived, restore-archived")
+
+    client = _load_client(dataset_slug=dataset_slug)
+    try:
+        dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
+        items = dataset.fetch_remote_files({"filenames": ",".join(files)})
+        if status == "archived":
+            dataset.archive(items)
+        elif status == "restore-archived":
+            dataset.restore_archived(items)
+    except NotFound as e:
+        _error(f"No dataset with name '{e.name}'")
+
+
 def find_supported_format(query, supported_formats):
     for (fmt, fmt_parser) in supported_formats:
         if fmt == query:
@@ -520,7 +559,9 @@ def _config():
     return Config(Path.home() / ".darwin" / "config.yaml")
 
 
-def _load_client(team: Optional[str] = None, offline: bool = False, maybe_guest: bool = False):
+def _load_client(
+    team: Optional[str] = None, offline: bool = False, maybe_guest: bool = False, dataset_slug: Optional[str] = None
+):
     """Fetches a client, potentially offline
 
     Parameters
@@ -535,6 +576,9 @@ def _load_client(team: Optional[str] = None, offline: bool = False, maybe_guest:
     Client
     The client requested
     """
+    if not team and dataset_slug:
+        dataset_identifier = DatasetIdentifier.parse(dataset_slug)
+        team = dataset_identifier.team_slug
     try:
         config_dir = Path.home() / ".darwin" / "config.yaml"
         client = Client.from_config(config_dir, team_slug=team)

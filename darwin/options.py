@@ -122,7 +122,7 @@ class Options(object):
 
         parser_import.add_argument("files", type=str, nargs="+", help="Annotation files (or folders) to import")
 
-        # Convet
+        # Convert
         parser_convert = dataset_action.add_parser("convert", help="Converts darwin json to other annotation formats.")
         parser_convert.add_argument(
             "dataset",
@@ -147,6 +147,27 @@ class Options(object):
             "-t", "--test-percentage", type=float, required=False, default=0, help="Test percentage."
         )
         parser_split.add_argument("-s", "--seed", type=int, required=False, default=0, help="Split seed.")
+
+        # File listing
+        parser_files = dataset_action.add_parser("files", help="Lists file in a remote dataset")
+        parser_files.add_argument(
+            "dataset",
+            type=str,
+            help="[Remote] Dataset name: to list all the existing dataset, run 'darwin dataset remote'. ",
+        )
+        parser_files.add_argument("--only-filenames", action="store_true", help="Only prints out filenames")
+        parser_files.add_argument("--statuses", type=str, required=False, help="Comma separated list of statuses")
+        parser_files.add_argument("--path", type=str, required=False, help="")
+
+        # Set file status
+        parser_file_status = dataset_action.add_parser("set-file-status", help="Sets the status of one or more files")
+        parser_file_status.add_argument(
+            "dataset",
+            type=str,
+            help="[Remote] Dataset name: to list all the existing dataset, run 'darwin dataset remote'. ",
+        )
+        parser_file_status.add_argument("status", type=str, help="Status to change to")
+        parser_file_status.add_argument("files", type=str, nargs="+", help="Files to change status")
 
         # Help
         dataset_action.add_parser("help", help="Show this help message and exit.")
