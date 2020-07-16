@@ -71,6 +71,7 @@ class RemoteDataset:
         fps: int = 1,
         files_to_exclude: Optional[List[str]] = None,
         resume: bool = False,
+        path: Optional[str] = None,
     ):
         """Uploads a local dataset (images ONLY) in the datasets directory.
 
@@ -89,6 +90,8 @@ class RemoteDataset:
             Number of file per seconds to upload
         resume : bool
             Flag for signalling the resuming of a push
+        path: str
+            Optional path to put the files into
 
         Returns
         -------
@@ -97,6 +100,10 @@ class RemoteDataset:
         count : int
             The files count
         """
+
+        # paths needs to start with /
+        if path and path[0] != "/":
+            path = f"/{path}"
 
         # This is where the responses from the upload function will be saved/load for resume
         self.local_path.parent.mkdir(exist_ok=True)
@@ -126,7 +133,12 @@ class RemoteDataset:
             raise ValueError("No files to upload, check your path, exclusion filters and resume flag")
 
         progress, count = add_files_to_dataset(
-            client=self.client, dataset_id=str(self.dataset_id), filenames=files_to_upload, fps=fps, team=self.team
+            client=self.client,
+            dataset_id=str(self.dataset_id),
+            filenames=files_to_upload,
+            fps=fps,
+            team=self.team,
+            path=path,
         )
 
         # If blocking is selected, upload the dataset remotely
