@@ -5,7 +5,6 @@ import numpy as np
 from darwin.cli_functions import _error, _load_client
 from darwin.dataset import LocalDataset
 from darwin.dataset.identifier import DatasetIdentifier
-from darwin.dataset.utils import load_pil_image
 from darwin.torch.transforms import Compose, ConvertPolygonsToInstanceMasks, ConvertPolygonsToSemanticMask
 from darwin.torch.utils import polygon_area
 from darwin.utils import convert_polygons_to_sequences
@@ -96,7 +95,7 @@ class ClassificationDataset(LocalDataset):
             category_id : int
                 The single label of the image selected
         """
-        img = load_pil_image(self.images_path[index])
+        img = self.get_image(index)
         if self.transform is not None:
             img = self.transform(img)
 
@@ -120,6 +119,10 @@ class ClassificationDataset(LocalDataset):
             )
         target["category_id"] = tags[0]
         return target
+
+    def get_class_idx(self, index: int):
+        target = self.get_target(index)
+        return target["category_id"]
 
     def measure_weights(self, **kwargs) -> np.ndarray:
         """Computes the class balancing weights (not the frequencies!!) given the train loader
@@ -168,7 +171,7 @@ class InstanceSegmentationDataset(LocalDataset):
             area : float
                 Area in pixels of each one of the instances
         """
-        img = load_pil_image(self.images_path[index])
+        img = self.get_image(index)
         target = self.get_target(index)
 
         img, target = self.convert_polygons(img, target)
@@ -259,7 +262,7 @@ class SemanticSegmentationDataset(LocalDataset):
             mask : tensor(H, W)
                 Segmentation mask where each pixel encodes a class label
         """
-        img = load_pil_image(self.images_path[index])
+        img = self.get_image(index)
         target = self.get_target(index)
 
         img, target = self.convert_polygons(img, target)
