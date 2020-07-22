@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Callable, List, Union
+
 from tqdm import tqdm
 
 import darwin.datatypes as dt
