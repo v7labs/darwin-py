@@ -106,7 +106,7 @@ def set_team(team_slug: str):
 
 def create_dataset(name: str, team: Optional[str] = None):
     """Creates a dataset remotely"""
-    client = _load_client(team=team)
+    client = _load_client(team_slug=team)
     try:
         dataset = client.create_dataset(name=name)
         print(
@@ -460,8 +460,8 @@ def dataset_import(dataset_slug, format, files):
         _error(f"No dataset with name '{e.name}'")
 
 
-def list_files(dataset_slug, statuses, path, only_filenames):
-    client = _load_client(dataset_slug=dataset_slug)
+def list_files(dataset_slug: str, statuses: str, path: str, only_filenames: bool):
+    client = _load_client(dataset_identifier=dataset_slug)
     try:
         dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
         filters = {}
@@ -483,11 +483,11 @@ def list_files(dataset_slug, statuses, path, only_filenames):
         _error(f"No dataset with name '{e.name}'")
 
 
-def set_file_status(dataset_slug, status, files):
+def set_file_status(dataset_slug: str, status: str, files: List[str]):
     if status not in ["archived", "restore-archived"]:
         _error(f"Invalid status '{status}', available statuses: archived, restore-archived")
 
-    client = _load_client(dataset_slug=dataset_slug)
+    client = _load_client(dataset_identifier=dataset_slug)
     try:
         dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
         items = dataset.fetch_remote_files({"filenames": ",".join(files)})
@@ -562,7 +562,10 @@ def _config():
 
 
 def _load_client(
-    team: Optional[str] = None, offline: bool = False, maybe_guest: bool = False, dataset_slug: Optional[str] = None
+    team_slug: Optional[str] = None,
+    offline: bool = False,
+    maybe_guest: bool = False,
+    dataset_identifier: Optional[str] = None,
 ):
     """Fetches a client, potentially offline
 
@@ -578,12 +581,11 @@ def _load_client(
     Client
     The client requested
     """
-    if not team and dataset_slug:
-        dataset_identifier = DatasetIdentifier.parse(dataset_slug)
-        team = dataset_identifier.team_slug
+    if not team_slug and dataset_identifier:
+        team_slug = DatasetIdentifier.parse(dataset_identifier).team_slug
     try:
         config_dir = Path.home() / ".darwin" / "config.yaml"
-        client = Client.from_config(config_dir, team_slug=team)
+        client = Client.from_config(config_dir, team_slug=team_slug)
         return client
     except MissingConfig:
         if maybe_guest:

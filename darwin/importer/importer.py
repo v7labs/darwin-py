@@ -133,7 +133,6 @@ def _import_annotations(client: "Client", id: int, remote_classes, attributes, a
                 data["instance_id"] = {"value": sub.data}
             else:
                 data[sub.annotation_type] = sub.data
-        print(annotation_class.name)
         serialized_annotations.append({"annotation_class_id": annotation_class_id, "data": data})
 
     if client.feature_enabled("WORKFLOW", dataset.team):
