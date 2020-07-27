@@ -149,7 +149,7 @@ class RemoteDataset:
         multi_threaded: bool = True,
         only_annotations: bool = False,
         force_replace: bool = False,
-        remove_extra: bool = True,
+        remove_extra: bool = False,
         subset_filter_annotations_function: Optional[Callable] = None,
         subset_folder_name: Optional[str] = None,
     ):

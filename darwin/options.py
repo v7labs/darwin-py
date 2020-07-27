@@ -110,6 +110,9 @@ class Options(object):
         # Pull
         parser_pull = dataset_action.add_parser("pull", help="Download a version of a dataset.")
         parser_pull.add_argument("dataset", type=str, help="Remote dataset name to download.")
+        parser_pull.add_argument(
+            "--only-annotations", action="store_true", help="Download only annotations and no corresponding images"
+        )
 
         # Import
         parser_import = dataset_action.add_parser("import", help="Import data to an existing (remote) dataset.")
