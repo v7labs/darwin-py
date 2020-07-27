@@ -113,11 +113,6 @@ class Options(object):
         parser_pull.add_argument(
             "--only-annotations", action="store_true", help="Download only annotations and no corresponding images"
         )
-        parser_pull.add_argument(
-            "--remove-extra",
-            action="store_true",
-            help="Removes existing images for which there is no corresponding annotation",
-        )
 
         # Import
         parser_import = dataset_action.add_parser("import", help="Import data to an existing (remote) dataset.")

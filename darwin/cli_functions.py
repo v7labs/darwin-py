@@ -221,7 +221,7 @@ def export_dataset(
     print(f"Dataset {dataset_slug} successfully exported to {identifier}")
 
 
-def pull_dataset(dataset_slug: str, only_annotations: bool = False, remove_extra: bool = False):
+def pull_dataset(dataset_slug: str, only_annotations: bool = False):
     """Downloads a remote dataset (images and annotations) in the datasets directory.
 
     Parameters
@@ -230,8 +230,6 @@ def pull_dataset(dataset_slug: str, only_annotations: bool = False, remove_extra
         Slug of the dataset to which we perform the operation on
     only_annotations: bool
         Download only the annotations and no corresponding images
-    remove_extra: bool
-        Removes existing images for which there is not corresponding annotation
     """
     version = DatasetIdentifier.parse(dataset_slug).version or "latest"
     client = _load_client(offline=False, maybe_guest=True)
@@ -246,7 +244,7 @@ def pull_dataset(dataset_slug: str, only_annotations: bool = False, remove_extra
         _error(f"please re-authenticate")
     try:
         release = dataset.get_release(version)
-        dataset.pull(release=release, only_annotations=only_annotations, remove_extra=remove_extra)
+        dataset.pull(release=release, only_annotations=only_annotations)
     except NotFound:
         _error(
             f"Version '{dataset.identifier}:{version}' does not exist "
