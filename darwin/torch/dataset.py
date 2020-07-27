@@ -109,7 +109,7 @@ class ClassificationDataset(LocalDataset):
 
         target = self.parse_json(index)
         annotations = target.pop("annotations")
-        tags = [self.classes.index(a["name"]) for a in annotations if "tag" in a]
+        tags = [a["name"] for a in annotations if "tag" in a]
         if len(tags) > 1:
             raise ValueError(f"Multiple tags defined for this image ({tags}). This is not supported at the moment.")
         if len(tags) == 0:
@@ -117,7 +117,8 @@ class ClassificationDataset(LocalDataset):
                 f"No tags defined for this image ({self.annotations_path[index]})."
                 f"This is not valid in a classification dataset."
             )
-        target["category_id"] = tags[0]
+        target["category_id"] = self.classes.index(tags[0])
+        target["category_name"] = tags[0]
         return target
 
     def get_class_idx(self, index: int):

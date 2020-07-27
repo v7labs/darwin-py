@@ -7,4 +7,4 @@ except ImportError:
         f"darwin.torch requires pytorch and torchvision. Install it using: pip install torch torchvision"
     ) from None
 
-from .dataset import get_dataset  # noqa
+from .dataset import *  # noqa

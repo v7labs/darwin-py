@@ -147,6 +147,9 @@ class LocalDataset(object):
     def get_image(self, index: int):
         return load_pil_image(self.images_path[index])
 
+    def get_image_path(self, index: int):
+        return self.images_path[index]
+
     def parse_json(self, index: int):
         """
         Load an annotation and filter out the extra classes according to what
