@@ -45,14 +45,27 @@ def build_annotation(image, annotation):
     if annotation.annotation_class.annotation_type == "bounding_box":
         box = ET.SubElement(image, "box")
         box.attrib["label"] = annotation.annotation_class.name
-        print(annotation.data)
         box.attrib["xtl"] = str(annotation.data["x"])
         box.attrib["ytl"] = str(annotation.data["y"])
         box.attrib["xbr"] = str(annotation.data["x"] + annotation.data["w"])
         box.attrib["ybr"] = str(annotation.data["y"] + annotation.data["h"])
         box.attrib["occluded"] = "0"
+        build_attributes(box, annotation)
     else:
         print(f"[warning] skipping {annotation.annotation_class.annotation_type}")
+
+
+def build_attributes(box, annotation):
+    if annotation.get_sub("text"):
+        attribute = add_subelement_text(box, "attribute", annotation.get_sub("text").data)
+        attribute.attrib["name"] = "__text"
+    if annotation.get_sub("instance_id"):
+        attribute = add_subelement_text(box, "attribute", str(annotation.get_sub("instance_id").data))
+        attribute.attrib["name"] = "__instance_id"
+    if annotation.get_sub("attributes"):
+        for attrib in annotation.get_sub("attributes").data:
+            attribute = add_subelement_text(box, "attribute", "")
+            attribute.attrib["name"] = attrib
 
 
 def build_meta(root, annotation_files, label_lookup):

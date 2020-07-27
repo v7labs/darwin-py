@@ -264,7 +264,7 @@ class RemoteDataset:
         base_url = f"/datasets/{self.dataset_id}/items"
         if not self.client.feature_enabled("WORKFLOW", self.team):
             base_url = f"/datasets/{self.dataset_id}/dataset_images"
-        cursor = ""
+        cursor = "?page[size]=500"
         while True:
             response = self.client.get(f"{base_url}{cursor}", team=self.team)
             yield from response["items"]
@@ -298,6 +298,10 @@ class RemoteDataset:
         return self.client.get(f"/datasets/{self.dataset_id}/annotation_classes?include_tags=true")[
             "annotation_classes"
         ]
+
+    def fetch_remote_attributes(self):
+        """Fetches all remote attributes on the remote dataset"""
+        return self.client.get(f"/datasets/{self.dataset_id}/attributes")
 
     def export(self, name: str, annotation_class_ids: Optional[List[str]] = None, include_url_token: bool = False):
         """Create a new release for the dataset
