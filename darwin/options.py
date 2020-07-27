@@ -157,7 +157,7 @@ class Options(object):
             help="[Remote] Dataset name: to list all the existing dataset, run 'darwin dataset remote'. ",
         )
         parser_files.add_argument("--only-filenames", action="store_true", help="Only prints out filenames")
-        parser_files.add_argument("--statuses", type=str, required=False, help="Comma separated list of statuses")
+        parser_files.add_argument("--status", type=str, required=False, help="Comma separated list of statuses")
         parser_files.add_argument("--path", type=str, required=False, help="")
 
         # Set file status

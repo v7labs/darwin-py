@@ -71,7 +71,7 @@ def run(args, parser):
         elif args.action == "export":
             f.export_dataset(args.dataset, args.include_url_token, args.annotation_class, args.name)
         elif args.action == "files":
-            f.list_files(args.dataset, args.statuses, args.path, args.only_filenames)
+            f.list_files(args.dataset, args.status, args.path, args.only_filenames)
         elif args.action == "releases":
             f.dataset_list_releases(args.dataset)
         elif args.action == "pull":
