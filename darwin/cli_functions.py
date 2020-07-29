@@ -480,7 +480,8 @@ def list_files(dataset_slug: str, statuses: str, path: str, only_filenames: bool
             if only_filenames:
                 print(file.filename)
             else:
-                print(f"{file.filename}\t{file.status if not file.archived else 'archived'}")
+                image_url = dataset.workview_url_for_item(file)
+                print(f"{file.filename}\t{file.status if not file.archived else 'archived'}\t {image_url}")
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
 
