@@ -527,6 +527,9 @@ class RemoteDataset:
         ):
             yield annotation
 
+    def workview_url_for_item(self, item):
+        return urljoin(self.client.base_url, f"/workview?dataset={self.dataset_id}&image={item.seq}")
+
     @property
     def remote_path(self) -> Path:
         """Returns an URL specifying the location of the remote dataset"""
