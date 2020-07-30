@@ -24,6 +24,7 @@ def add_files_to_dataset(
     filenames: List[Path],
     team: str,
     fps: Optional[int] = 1,
+    as_video: Optional[bool] = False,
     path: Optional[str] = None,
 ):
     """Helper function: upload images to an existing remote dataset
@@ -52,7 +53,9 @@ def add_files_to_dataset(
         images, videos = _split_on_file_type(filenames_chunk)
         payload = {
             "image_filenames": [image.name for image in images],
-            "videos": [{"fps": fps, "original_filename": video.name} for video in videos],
+            "videos": [
+                {"fps": fps, "annotate_as_video": as_video, "original_filename": video.name} for video in videos
+            ],
         }
         if path:
             payload["path"] = path
