@@ -78,6 +78,10 @@ class Options(object):
         parser_push.add_argument(
             "-f", "--fps", type=int, default="1", help="Frames per second for video split (recommended: 1)."
         )
+        parser_push.add_argument(
+            "--as-video", action="store_true", help="Annotate a video as a video and not independent frames"
+        )
+
         parser_push.add_argument("--path", type=str, default=None, help="Folder to upload the files into.")
 
         # Remove

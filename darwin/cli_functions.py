@@ -419,7 +419,12 @@ def dataset_list_releases(dataset_slug: str):
 
 
 def upload_data(
-    dataset_slug: str, files: Optional[List[str]], files_to_exclude: Optional[List[str]], fps: int, path: Optional[str]
+    dataset_slug: str,
+    files: Optional[List[str]],
+    files_to_exclude: Optional[List[str]],
+    fps: int,
+    path: Optional[str],
+    as_video: Optional[bool],
 ):
     """Uploads the files provided as parameter to the remote dataset selected
 
@@ -444,7 +449,7 @@ def upload_data(
     client = _load_client()
     try:
         dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
-        dataset.push(files_to_exclude=files_to_exclude, fps=fps, files_to_upload=files, path=path)
+        dataset.push(files_to_exclude=files_to_exclude, fps=fps, as_video=as_video, files_to_upload=files, path=path)
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
     except ValueError:

@@ -43,7 +43,7 @@ def run(args, parser):
             f.list_teams()
     # Version
     elif args.command == "version":
-        print("0.5.9")
+        print("0.5.10")
 
     elif args.command == "convert":
         f.convert(args.format, args.files, args.output_dir)
@@ -62,7 +62,7 @@ def run(args, parser):
         elif args.action == "url":
             f.url(args.dataset)
         elif args.action == "push":
-            f.upload_data(args.dataset, args.files, args.exclude, args.fps, args.path)
+            f.upload_data(args.dataset, args.files, args.exclude, args.fps, args.path, args.as_video)
         # Remove a project (remotely)
         elif args.action == "remove":
             f.remove_remote_dataset(args.dataset)
