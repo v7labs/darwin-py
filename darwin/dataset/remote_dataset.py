@@ -170,6 +170,7 @@ class RemoteDataset:
         remove_extra: bool = False,
         subset_filter_annotations_function: Optional[Callable] = None,
         subset_folder_name: Optional[str] = None,
+        use_folders: bool = False,
     ):
         """Downloads a remote project (images and annotations) in the datasets directory.
 
@@ -193,6 +194,8 @@ class RemoteDataset:
             If it needs to receive other parameters is advised to use functools.partial() for it.
         subset_folder_name: str
             Name of the folder with the subset of the dataset. If not provided a timestamp is used.
+        use_folders: bool
+            Recreates folders from the dataset 
 
         Returns
         -------
@@ -262,6 +265,7 @@ class RemoteDataset:
             images_path=self.local_images_path,
             force_replace=force_replace,
             remove_extra=remove_extra,
+            use_folders=use_folders,
         )
         if count == 0:
             return None, count
