@@ -65,6 +65,10 @@
     </li>
     <li class="toctree-l3"><a class="reference internal" href="#list-remote-datasets">List remote datasets</a>
     </li>
+    <li class="toctree-l3"><a class="reference internal" href="#list-remote-files">List remote files</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#set-file-status">Set file status</a>
+    </li>
     <li class="toctree-l3"><a class="reference internal" href="#list-local-datasets">List local datasets</a>
     </li>
     <li class="toctree-l3"><a class="reference internal" href="#uploading-imagesvideos">Uploading images/videos</a>
@@ -180,6 +184,34 @@ NAME                       IMAGES     PROGRESS
 other-team/ct-scans           450        100.0%
 </code></pre>
 
+<h3 id="list-remote-files">List remote files</h3>
+<p>Lists all files in a remote dataset, can optional by filtered by file status and/or foldername. 
+Allowed statuses: <code>new</code>, <code>annotate</code>, <code>review</code>, <code>complete</code>, <code>archived</code></p>
+<pre><code>$ darwin dataset files example-team/mydataset 
+test1.png complete
+test2.png complete
+test3.png annotate
+</code></pre>
+
+<pre><code>$ darwin dataset files example-team/mydataset --path outdoors
+test1.png complete
+</code></pre>
+
+<pre><code>$ darwin dataset files example-team/mydataset --status complete
+test1.png complete
+test2.png complete
+</code></pre>
+
+<p>Add <code>--only-filenames</code> to only list the filename.</p>
+<h3 id="set-file-status">Set file status</h3>
+<p>Allows to set the status of a file in a dataset. Allowed statuses are: <code>archived</code> and <code>restore-archived</code> (More will be added soon).</p>
+<pre><code>$ darwin dataset set-file-status v7/my-new-dataset archived 00000010.jpg
+</code></pre>
+
+<p>This can be used in conjunction with <code>darwin dataset files</code>, for example:</p>
+<pre><code>$ darwin dataset set-file-status v7/my-new-dataset archived $(darwin dataset files v7/my-new-dataset --status error --only-filenames)
+</code></pre>
+
 <h3 id="list-local-datasets">List local datasets</h3>
 <p>Local datasets are datasets that have been downloaded, </p>
 <pre><code>$ darwin dataset local
@@ -194,8 +226,15 @@ other-team/ct-scans                                       450        May 20     
 100%|████████████████████████| 2/2 [00:01&lt;00:00,  1.27it/s] 
 </code></pre>
 
+<p>Videos can be uploaded in one of two modes, as a video or as a series of individual frames. 
+For backward compatibility the frame mode is currently the default, this will changed in the next major release.
+To specify video mode add <code>--as-video</code></p>
+<pre><code>$ darwin dataset push my-team/test --as-video --fps 1 my_video.mp4
+100%|████████████████████████| 1/1 [00:01&lt;00:00,  1.27it/s] 
+</code></pre>
+
 <p>Specifying framerate for videos</p>
-<pre><code>$ darwin dataset push my-team/test --fps 2 my_video.mp4
+<pre><code>$ darwin dataset push my-team/test --as-video --fps 2 my_video.mp4
 100%|████████████████████████| 1/1 [00:01&lt;00:00,  1.27it/s] 
 </code></pre>
 
@@ -207,6 +246,11 @@ e.g.: <code>-e .jpg</code></p>
 <li>Video files: [<code>.mp4</code>, <code>.bpm</code>, <code>.mov</code> formats].</li>
 <li>Image files [<code>.jpg</code>, <code>.jpeg</code>, <code>.png</code> formats].</li>
 </ul>
+<p>There is also an optional <code>--path</code> flag to move the uploaded files into the specified directory.</p>
+<pre><code>$ darwin dataset push my-team/test --path animals/cats cat1.png cat2.png
+100%|████████████████████████| 1/2 [00:01&lt;00:00,  2.42it/s] 
+</code></pre>
+
 <h3 id="releases">Releases</h3>
 <p>To download data from a dataset, a release first needs to be created. Several releases can be kept locally at the same time, images are shared between the releases to reduce disk usage. </p>
 <pre><code>/dataset_directory      # by default ~/.darwin/datasets
