@@ -59,7 +59,7 @@ def add_files_to_dataset(
         }
         if path:
             payload["path"] = path
-        data = client.put(endpoint=f"/datasets/{dataset_id}/data", payload=payload, team=team,)
+        data = client.put(endpoint=f"/datasets/{dataset_id}/data", payload=payload, team=team)
         if "errors" in data:
             raise ValueError(f"There are errors in the put request: {data['errors']['detail']}")
         if images:

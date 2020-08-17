@@ -50,6 +50,7 @@ def calculate_categories(annotation_files: List[dt.AnnotationFile]):
             if annotation_class.name not in categories and annotation_class.annotation_type in [
                 "polygon",
                 "complex_polygon",
+                "keypoint",
             ]:
                 categories[annotation_class.name] = len(categories)
     return categories
@@ -165,6 +166,16 @@ def build_annotation(annotation_file, annotation_id, annotation: dt.Annotation, 
             "area": 0,
             "bbox": [min_x, min_y, w, h],
             "iscrowd": 1,
+            "extra": build_extra(annotation),
+        }
+    elif annotation_type == "keypoint":
+        return {
+            "id": annotation_id,
+            "image_id": annotation_file.seq,
+            "category_id": categories[annotation.annotation_class.name],
+            "area": 0,
+            "point": [annotation.data["x"], annotation.data["y"]],
+            "iscrowd": 0,
             "extra": build_extra(annotation),
         }
     elif annotation_type == "tag":

@@ -5,7 +5,7 @@ with open("README.md", "r") as f:
 
 setuptools.setup(
     name="darwin-py",
-    version="0.5.10",
+    version="0.5.11",
     author="V7",
     author_email="info@v7labs.com",
     description="Library and command line interface for darwin.v7labs.com",
@@ -30,6 +30,9 @@ setuptools.setup(
     ],
     packages=setuptools.find_packages(),
     entry_points={"console_scripts": ["darwin=darwin.cli:main"]},
-    classifiers=["Programming Language :: Python :: 3", "License :: OSI Approved :: MIT License"],
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: MIT License",
+    ],
     python_requires=">=3.6",
 )
