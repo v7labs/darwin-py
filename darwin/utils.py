@@ -228,6 +228,33 @@ def ispolygon(annotation):
     return annotation.annotation_type in ["polygon", "complex_polygon"]
 
 
+def convert_nodes_to_keypoints(nodes: List) -> List:
+    """
+    Converts a list of skeleton nodes, encoded as a list of dictionaries into a list number.
+
+    Parameters
+    ----------
+    nodes: list
+        List of skeleton nodes in the format {name: string, occluded: boolean, point: {x: number, y: number}}
+
+    Returns
+    -------
+    sequences: list[float]
+        List of arrays of coordinates in the format [x1, y1, v1 x2, y2, v2, ..., xn, yn, vn], where x and y are
+        the keypoint coordinates, and v is 1 for occluded, 2 for visible
+    """
+    sequences = []
+    for node in nodes:
+        # Clip coordinates to the image size
+        x = node["x"]
+        y = node["y"]
+        v = 1 if node["occluded"] else 2
+        sequences.append(round(x))
+        sequences.append(round(y))
+        sequences.append(v)
+    return sequences
+
+
 def convert_polygons_to_sequences(polygons: List, height: Optional[int] = None, width: Optional[int] = None) -> List:
     """
     Converts a list of polygons, encoded as a list of dictionaries of into a list of nd.arrays

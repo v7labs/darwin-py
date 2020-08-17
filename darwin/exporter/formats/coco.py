@@ -6,7 +6,7 @@ from typing import Generator, List
 import numpy as np
 
 import darwin.datatypes as dt
-from darwin.utils import convert_polygons_to_sequences
+from darwin.utils import convert_nodes_to_keypoints, convert_polygons_to_sequences
 from upolygon import draw_polygon
 
 
@@ -191,7 +191,8 @@ def build_annotation(annotation_file, annotation_id, annotation: dt.Annotation, 
             "image_id": annotation_file.seq,
             "category_id": categories[annotation.annotation_class.name],
             "area": 0,
-            "point": [annotation.data["x"], annotation.data["y"]],
+            "num_keypoints": 1,
+            "keypoints": [annotation.data["x"], annotation.data["y"], 2],
             "iscrowd": 0,
             "extra": build_extra(annotation),
         }
@@ -201,7 +202,8 @@ def build_annotation(annotation_file, annotation_id, annotation: dt.Annotation, 
             "image_id": annotation_file.seq,
             "category_id": categories[annotation.annotation_class.name],
             "area": 0,
-            "nodes": annotation.data["nodes"],
+            "num_keypoints": len(annotation.data["nodes"]),
+            "keypoints": convert_nodes_to_keypoints(annotation.data["nodes"]),
             "iscrowd": 0,
             "extra": build_extra(annotation),
         }
