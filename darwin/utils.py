@@ -207,6 +207,8 @@ def parse_darwin_annotation(annotation: dict):
         main_annotation = dt.make_line(name, annotation["line"]["path"])
     elif "keypoint" in annotation:
         main_annotation = dt.make_keypoint(name, annotation["keypoint"]["x"], annotation["keypoint"]["y"])
+    elif "skeleton" in annotation:
+        main_annotation = dt.make_skeleton(name, annotation["skeleton"]["nodes"])
 
     if not main_annotation:
         print(f"[WARNING] Unsupported annotation type: '{annotation.keys()}'")

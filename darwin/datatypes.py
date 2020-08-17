@@ -68,6 +68,10 @@ def make_keypoint(class_name, x, y):
     return Annotation(AnnotationClass(class_name, "keypoint"), {"x": x, "y": y})
 
 
+def make_skeleton(class_name, nodes):
+    return Annotation(AnnotationClass(class_name, "skeleton"), {"nodes": nodes})
+
+
 def make_line(class_name, path):
     return Annotation(AnnotationClass(class_name, "line"), {"path": path})
 

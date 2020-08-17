@@ -51,6 +51,7 @@ def calculate_categories(annotation_files: List[dt.AnnotationFile]):
                 "polygon",
                 "complex_polygon",
                 "keypoint",
+                "skeleton",
             ]:
                 categories[annotation_class.name] = len(categories)
     return categories
@@ -175,6 +176,16 @@ def build_annotation(annotation_file, annotation_id, annotation: dt.Annotation, 
             "category_id": categories[annotation.annotation_class.name],
             "area": 0,
             "point": [annotation.data["x"], annotation.data["y"]],
+            "iscrowd": 0,
+            "extra": build_extra(annotation),
+        }
+    elif annotation_type == "skeleton":
+        return {
+            "id": annotation_id,
+            "image_id": annotation_file.seq,
+            "category_id": categories[annotation.annotation_class.name],
+            "area": 0,
+            "nodes": annotation.data["nodes"],
             "iscrowd": 0,
             "extra": build_extra(annotation),
         }
