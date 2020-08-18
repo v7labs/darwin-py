@@ -47,15 +47,37 @@ def calculate_categories(annotation_files: List[dt.AnnotationFile]):
     categories = {}
     for annotation_file in annotation_files:
         for annotation_class in annotation_file.annotation_classes:
-            if annotation_class.name not in categories and annotation_class.annotation_type in [
-                "bounding_box",
-                "complex_polygon",
-                "keypoint",
-                "polygon",
-                "skeleton",
-            ]:
-                categories[annotation_class.name] = len(categories)
+            if annotation_class.name in categories:
+                continue
+
+            if annotation_class.annotation_type == "skeleton":
+                categories[annotation_class.name] = calculate_skeleton_category(
+                    annotation_file, annotation_class, len(categories)
+                )
+            elif annotation_class.annotation_type in ["bounding_box", "complex_polygon", "keypoint", "polygon"]:
+                categories[annotation_class.name] = {"id": len(categories)}
     return categories
+
+
+def calculate_skeleton_category(annotation_file: dt.AnnotationFile, annotation_class: dt.AnnotationClass, id: int):
+    category = {"id": id}
+
+    manifest_path = Path(str(annotation_file.path).split("/annotations")[0]) / "manifest.json"
+    if not manifest_path.exists():
+        return category
+
+    with open(manifest_path) as f:
+        for c in json.load(f)["classes"]:
+            if c["name"] == annotation_class.name:
+                keypoints = [node["name"] for node in c["metadata"]["skeleton"]["nodes"]]
+                category["keypoints"] = keypoints
+
+                edges = c["metadata"]["skeleton"]["edges"]
+                category["skeleton"] = [
+                    [keypoints.index(edge["from"]) + 1, keypoints.index(edge["to"]) + 1] for edge in edges
+                ]
+
+    return category
 
 
 def calculate_tag_categories(annotation_files: List[dt.AnnotationFile]):
@@ -138,7 +160,7 @@ def build_annotation(annotation_file, annotation_id, annotation: dt.Annotation, 
         return {
             "id": annotation_id,
             "image_id": annotation_file.seq,
-            "category_id": categories[annotation.annotation_class.name],
+            "category_id": categories[annotation.annotation_class.name]["id"],
             "segmentation": sequences,
             "area": poly_area,
             "bbox": [min_x, min_y, w, h],
@@ -163,7 +185,7 @@ def build_annotation(annotation_file, annotation_id, annotation: dt.Annotation, 
         return {
             "id": annotation_id,
             "image_id": annotation_file.seq,
-            "category_id": categories[annotation.annotation_class.name],
+            "category_id": categories[annotation.annotation_class.name]["id"],
             "segmentation": {"counts": counts, "size": [annotation_file.image_width, annotation_file.image_height]},
             "area": 0,
             "bbox": [min_x, min_y, w, h],
@@ -179,7 +201,7 @@ def build_annotation(annotation_file, annotation_id, annotation: dt.Annotation, 
         return {
             "id": annotation_id,
             "image_id": annotation_file.seq,
-            "category_id": categories[annotation.annotation_class.name],
+            "category_id": categories[annotation.annotation_class.name]["id"],
             "area": round(w * h, 3),
             "bbox": [x, y, w, h],
             "iscrowd": 0,
@@ -189,7 +211,7 @@ def build_annotation(annotation_file, annotation_id, annotation: dt.Annotation, 
         return {
             "id": annotation_id,
             "image_id": annotation_file.seq,
-            "category_id": categories[annotation.annotation_class.name],
+            "category_id": categories[annotation.annotation_class.name]["id"],
             "area": 0,
             "num_keypoints": 1,
             "keypoints": [annotation.data["x"], annotation.data["y"], 2],
@@ -200,7 +222,7 @@ def build_annotation(annotation_file, annotation_id, annotation: dt.Annotation, 
         return {
             "id": annotation_id,
             "image_id": annotation_file.seq,
-            "category_id": categories[annotation.annotation_class.name],
+            "category_id": categories[annotation.annotation_class.name]["id"],
             "area": 0,
             "num_keypoints": len(annotation.data["nodes"]),
             "keypoints": convert_nodes_to_keypoints(annotation.data["nodes"]),
@@ -229,8 +251,10 @@ def build_extra(annotation):
 
 
 def build_categories(categories):
-    for name, id in categories.items():
-        yield {"id": id, "name": name, "supercategory": "root"}
+    for name, d in categories.items():
+        d["name"] = name
+        d["supercategory"] = "root"
+        yield d
 
 
 def build_tag_categories(categories):

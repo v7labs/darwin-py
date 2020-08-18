@@ -230,6 +230,9 @@ class RemoteDataset:
                 # Move the annotations into the right folder and rename them to have the image
                 # original filename as contained in the json
                 for annotation_path in tmp_dir.glob(f"*.json"):
+                    if str(annotation_path).endswith("manifest.json"):
+                        shutil.move(str(annotation_path), str(annotations_dir.parent / "manifest.json"))
+                        continue
                     annotation = json.load(annotation_path.open())
                     original_filename = Path(annotation["image"]["original_filename"])
                     filename = Path(annotation["image"]["filename"]).stem
