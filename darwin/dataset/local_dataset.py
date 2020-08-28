@@ -281,3 +281,6 @@ class LocalDataset(object):
             f"  Number of images: {len(self.images_path)}\n"
             f"  Number of classes: {len(self.classes)}"
         )
+
+    def __add__(self, dataset):
+        return self.extend(dataset, extend_classes=True)
