@@ -1,4 +1,4 @@
-# Requirements: pytorch, torchvision, pycocotools
+# Requirements: pytorch, torchvision
 try:
     import torch  # noqa
     import torchvision  # noqa
