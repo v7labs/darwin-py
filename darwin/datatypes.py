@@ -82,3 +82,25 @@ def make_attributes(attributes):
 
 def make_text(text):
     return SubAnnotation("text", text)
+
+
+def make_keyframe(annotation, idx):
+    return {"idx": idx, "annotation": annotation}
+
+
+def make_video(keyframes, start, end):
+    first_annotation = keyframes[0]["annotation"]
+    return Annotation(
+        first_annotation.annotation_class,
+        {
+            "frames": {
+                keyframe["idx"]: {
+                    **{first_annotation.annotation_class.annotation_type: keyframe["annotation"].data},
+                    **{"keyframe": True},
+                }
+                for keyframe in keyframes
+            },
+            "interpolated": False,
+            "segments": [[start, end]],
+        },
+    )
