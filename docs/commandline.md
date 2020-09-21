@@ -58,6 +58,43 @@ NAME                       IMAGES     PROGRESS
 other-team/ct-scans           450        100.0%
 ```
 
+### List remote files
+Lists all files in a remote dataset, can optional by filtered by file status and/or foldername. 
+Allowed statuses: `new`, `annotate`, `review`, `complete`, `archived`
+
+```
+$ darwin dataset files example-team/mydataset 
+test1.png complete
+test2.png complete
+test3.png annotate
+```
+
+```
+$ darwin dataset files example-team/mydataset --path outdoors
+test1.png complete
+```
+
+```
+$ darwin dataset files example-team/mydataset --status complete
+test1.png complete
+test2.png complete
+```
+
+Add `--only-filenames` to only list the filename.
+
+### Set file status
+Allows to set the status of a file in a dataset. Allowed statuses are: `archived` and `restore-archived` (More will be added soon).
+
+```
+$ darwin dataset set-file-status v7/my-new-dataset archived 00000010.jpg
+```
+
+This can be used in conjunction with `darwin dataset files`, for example:
+```
+$ darwin dataset set-file-status v7/my-new-dataset archived $(darwin dataset files v7/my-new-dataset --status error --only-filenames)
+```
+
+
 ### List local datasets
 Local datasets are datasets that have been downloaded, 
 ```
@@ -81,7 +118,6 @@ $ darwin dataset push my-team/test --fps 2 my_video.mp4
 100%|████████████████████████| 1/1 [00:01<00:00,  1.27it/s] 
 ```
 
-
 The `-e/--exclude` argument allows to indicate file extension/s to be ignored from the data_dir. 
 e.g.: `-e .jpg`
 
@@ -91,6 +127,12 @@ Supported extensions:
 
 -  Video files: [`.mp4`, `.bpm`, `.mov` formats].
 -  Image files [`.jpg`, `.jpeg`, `.png` formats].
+
+There is also an optional `--path` flag to move the uploaded files into the specified directory.
+```
+$ darwin dataset push my-team/test --path animals/cats cat1.png cat2.png
+100%|████████████████████████| 1/2 [00:01<00:00,  2.42it/s] 
+```
 
 
 ### Releases
