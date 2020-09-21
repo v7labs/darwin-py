@@ -106,7 +106,7 @@ def set_team(team_slug: str):
 
 def create_dataset(name: str, team: Optional[str] = None):
     """Creates a dataset remotely"""
-    client = _load_client(team=team)
+    client = _load_client(team_slug=team)
     try:
         dataset = client.create_dataset(name=name)
         print(
@@ -221,13 +221,15 @@ def export_dataset(
     print(f"Dataset {dataset_slug} successfully exported to {identifier}")
 
 
-def pull_dataset(dataset_slug: str):
+def pull_dataset(dataset_slug: str, only_annotations: bool = False):
     """Downloads a remote dataset (images and annotations) in the datasets directory.
 
     Parameters
     ----------
     dataset_slug: str
         Slug of the dataset to which we perform the operation on
+    only_annotations: bool
+        Download only the annotations and no corresponding images
     """
     version = DatasetIdentifier.parse(dataset_slug).version or "latest"
     client = _load_client(offline=False, maybe_guest=True)
@@ -242,7 +244,7 @@ def pull_dataset(dataset_slug: str):
         _error(f"please re-authenticate")
     try:
         release = dataset.get_release(version)
-        dataset.pull(release=release)
+        dataset.pull(release=release, only_annotations=only_annotations)
     except NotFound:
         _error(
             f"Version '{dataset.identifier}:{version}' does not exist "
@@ -416,7 +418,14 @@ def dataset_list_releases(dataset_slug: str):
         _error(f"No dataset with name '{dataset_slug}'")
 
 
-def upload_data(dataset_slug: str, files: Optional[List[str]], files_to_exclude: Optional[List[str]], fps: int):
+def upload_data(
+    dataset_slug: str,
+    files: Optional[List[str]],
+    files_to_exclude: Optional[List[str]],
+    fps: int,
+    path: Optional[str],
+    as_video: Optional[bool],
+):
     """Uploads the files provided as parameter to the remote dataset selected
 
     Parameters
@@ -440,7 +449,7 @@ def upload_data(dataset_slug: str, files: Optional[List[str]], files_to_exclude:
     client = _load_client()
     try:
         dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
-        dataset.push(files_to_exclude=files_to_exclude, fps=fps, files_to_upload=files)
+        dataset.push(files_to_exclude=files_to_exclude, fps=fps, as_video=as_video, files_to_upload=files, path=path)
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
     except ValueError:
@@ -454,6 +463,46 @@ def dataset_import(dataset_slug, format, files):
     try:
         dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
         importer.import_annotations(dataset, parser, files)
+    except NotFound as e:
+        _error(f"No dataset with name '{e.name}'")
+
+
+def list_files(dataset_slug: str, statuses: str, path: str, only_filenames: bool):
+    client = _load_client(dataset_identifier=dataset_slug)
+    try:
+        dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
+        filters = {}
+        if statuses:
+            for status in statuses.split(","):
+                if status not in ["new", "annotate", "review", "complete", "archived"]:
+                    _error(f"Invalid status '{status}', available statuses: annotate, archived, complete, new, review")
+            filters["statuses"] = statuses
+        else:
+            filters["statuses"] = "new,annotate,review,complete"
+        if path:
+            filters["path"] = path
+        for file in dataset.fetch_remote_files(filters):
+            if only_filenames:
+                print(file.filename)
+            else:
+                image_url = dataset.workview_url_for_item(file)
+                print(f"{file.filename}\t{file.status if not file.archived else 'archived'}\t {image_url}")
+    except NotFound as e:
+        _error(f"No dataset with name '{e.name}'")
+
+
+def set_file_status(dataset_slug: str, status: str, files: List[str]):
+    if status not in ["archived", "restore-archived"]:
+        _error(f"Invalid status '{status}', available statuses: archived, restore-archived")
+
+    client = _load_client(dataset_identifier=dataset_slug)
+    try:
+        dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
+        items = dataset.fetch_remote_files({"filenames": ",".join(files)})
+        if status == "archived":
+            dataset.archive(items)
+        elif status == "restore-archived":
+            dataset.restore_archived(items)
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
 
@@ -520,7 +569,12 @@ def _config():
     return Config(Path.home() / ".darwin" / "config.yaml")
 
 
-def _load_client(team: Optional[str] = None, offline: bool = False, maybe_guest: bool = False):
+def _load_client(
+    team_slug: Optional[str] = None,
+    offline: bool = False,
+    maybe_guest: bool = False,
+    dataset_identifier: Optional[str] = None,
+):
     """Fetches a client, potentially offline
 
     Parameters
@@ -535,9 +589,11 @@ def _load_client(team: Optional[str] = None, offline: bool = False, maybe_guest:
     Client
     The client requested
     """
+    if not team_slug and dataset_identifier:
+        team_slug = DatasetIdentifier.parse(dataset_identifier).team_slug
     try:
         config_dir = Path.home() / ".darwin" / "config.yaml"
-        client = Client.from_config(config_dir, team_slug=team)
+        client = Client.from_config(config_dir, team_slug=team_slug)
         return client
     except MissingConfig:
         if maybe_guest:

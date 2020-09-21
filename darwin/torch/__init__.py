@@ -1,4 +1,4 @@
-# Requirements: pytorch, torchvision, pycocotools
+# Requirements: pytorch, torchvision
 try:
     import torch  # noqa
     import torchvision  # noqa
@@ -7,4 +7,4 @@ except ImportError:
         f"darwin.torch requires pytorch and torchvision. Install it using: pip install torch torchvision"
     ) from None
 
-from .dataset import *  # noqa
+from .dataset import get_dataset  # noqa

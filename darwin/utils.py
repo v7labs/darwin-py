@@ -4,12 +4,12 @@ from typing import TYPE_CHECKING, List, Optional, Union
 
 import numpy as np
 from tqdm import tqdm
-from upolygon import draw_polygon
 
 import darwin.datatypes as dt
 from darwin.config import Config
+from upolygon import draw_polygon
 
-SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpeg", ".jpg", ".jfif", ".tif"]
+SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpeg", ".jpg", ".jfif", ".tif", ".bmp"]
 SUPPORTED_VIDEO_EXTENSIONS = [".bpm", ".mov", ".mp4"]
 SUPPORTED_EXTENSIONS = SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
 
