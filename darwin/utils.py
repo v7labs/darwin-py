@@ -270,6 +270,94 @@ def convert_polygons_to_sequences(polygons: List, height: Optional[int] = None, 
     return sequences
 
 
+def convert_sequences_to_polygons(sequences: List, height: Optional[int] = None, width: Optional[int] = None) -> List:
+    """
+    Converts a list of polygons, encoded as a list of dictionaries of into a list of nd.arrays
+    of coordinates.
+
+    Parameters
+    ----------
+    sequences: list
+        List of arrays of coordinates in the format [x1, y1, x2, y2, ..., xn, yn] or as a list of them
+        as [[x1, y1, x2, y2, ..., xn, yn], ..., [x1, y1, x2, y2, ..., xn, yn]]
+    height: int
+        Maximum height for a polygon coordinate
+    width: int
+        Maximum width for a polygon coordinate
+
+    Returns
+    -------
+    polygons: list[ndarray[float]]
+        List of coordinates in the format [[{x: x1, y:y1}, ..., {x: xn, y:yn}], ..., [{x: x1, y:y1}, ..., {x: xn, y:yn}]].
+    """
+    if not sequences:
+        raise ValueError("No sequences provided")
+    # If there is a single sequences composing the instance then this is
+    # transformed to polygons = [[x1, y1, ..., xn, yn]]
+    if not isinstance(sequences[0], list):
+        sequences = [sequences]
+
+    if not isinstance(sequences[0], list) or not isinstance(sequences[0][0], (int, float)):
+        raise ValueError("Unknown input format")
+
+    def grouped(iterable, n):
+        return zip(*[iter(iterable)]*n)
+
+    polygons = []
+    for sequence in sequences:
+        path = []
+        for x, y in grouped(sequence, 2):
+            # Clip coordinates to the image size
+            x = max(min(x, width - 1) if width else x, 0)
+            y = max(min(y, height - 1) if height else y, 0)
+            path.append({"x": x, "y": y})
+        polygons.append(path)
+    return {"path": polygons}
+
+
+def convert_xyxy_to_bounding_box(box: List) -> dict:
+    """
+    Converts a list of xy coordinates representing a bounding box into a dictionary
+
+    Parameters
+    ----------
+    box: list
+        List of arrays of coordinates in the format [x1, y1, x2, y2]
+
+    Returns
+    -------
+    bounding_box: dict
+        Bounding box in the format {x: x1, y: y1, h: height, w: width}
+    """
+    if not isinstance(box[0], (int, float)):
+        raise ValueError("Unknown input format")
+
+    x1, y1, x2, y2 = box
+    width = x2 - x1
+    height = y2 - y1
+    return {"x": x1, "y": y1, "w": width, "h": height}
+
+
+def convert_bounding_box_to_xyxy(box: dict) -> list:
+    """
+    Converts dictionary representing a bounding box into a list of xy coordinates
+
+    Parameters
+    ----------
+    box: dict
+        Bounding box in the format {x: x1, y: y1, h: height, w: width}
+
+    Returns
+    -------
+    bounding_box: dict
+        List of arrays of coordinates in the format [x1, y1, x2, y2]
+    """
+
+    x2 = box["x"] + box["width"]
+    y2 = box["y"] + box["height"]
+    return [box["x"], box["y"], x2, y2]
+
+
 def convert_polygons_to_mask(polygons: List, height: int, width: int, value: Optional[int] = 1) -> np.ndarray:
     """
     Converts a list of polygons, encoded as a list of dictionaries into an nd.array mask
