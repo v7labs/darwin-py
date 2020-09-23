@@ -297,7 +297,7 @@ def convert_sequences_to_polygons(sequences: List, height: Optional[int] = None,
     if not isinstance(sequences[0], list):
         sequences = [sequences]
 
-    if not isinstance(sequences[0], list) or not isinstance(sequences[0][0], (int, float)):
+    if not isinstance(sequences[0][0], (int, float)):
         raise ValueError("Unknown input format")
 
     def grouped(iterable, n):
