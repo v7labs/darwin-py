@@ -1,5 +1,7 @@
+import os
 import sys
 from typing import List, Optional
+from pathlib import Path
 
 import numpy as np
 import torch
@@ -41,7 +43,8 @@ def collate_fn(batch):
 
 
 def detectron2_register_dataset(
-    dataset_slug: str,
+    dataset: str,
+    release_name: Optional[str] = "latest",
     partition: Optional[str] = None,
     split: Optional[str] = "default",
     split_type: Optional[str] = "stratified",
@@ -51,8 +54,10 @@ def detectron2_register_dataset(
 
     Parameters
     ----------
-    dataset_slug: str
+    dataset: str
         Dataset slug
+    release_name: str
+        Version of the dataset
     partition: str
         Selects one of the partitions [train, val, test]
     split
@@ -69,35 +74,44 @@ def detectron2_register_dataset(
         sys.exit(1)
     from darwin.dataset.utils import get_annotations, get_classes
 
-    identifier = DatasetIdentifier.parse(dataset_slug)
-    client = _load_client(offline=True)
+    if os.path.isdir(dataset):
+        dataset_path = Path(dataset)
+    else:
+        identifier = DatasetIdentifier.parse(dataset)
+        if identifier.version:
+            release_name = identifier.version
 
-    for dataset_path in client.list_local_datasets(team=identifier.team_slug):
-        if identifier.dataset_slug == dataset_path.name:
-            catalog_name = f"darwin_{identifier.dataset_slug}"
-            if partition:
-                catalog_name += f"_{partition}"
-            classes = get_classes(dataset_path, annotation_type="polygon")
-            DatasetCatalog.register(
-                catalog_name,
-                lambda partition=partition: list(
-                    get_annotations(
-                        dataset_path,
-                        partition=partition,
-                        split_type=split_type,
-                        release_name=identifier.version,
-                        annotation_type="polygon",
-                        annotation_format="coco",
-                    )
-                ),
+        client = _load_client(offline=True)
+        dataset_path = None
+        for path in client.list_local_datasets(team=identifier.team_slug):
+            if identifier.dataset_slug == path.name:
+                dataset_path = path
+
+        if not dataset_path:
+            _error(
+                f"Dataset '{identifier.dataset_slug}' does not exist locally. "
+                f"Use 'darwin dataset remote' to see all the available datasets, "
+                f"and 'darwin dataset pull' to pull them."
             )
-            MetadataCatalog.get(catalog_name).set(thing_classes=classes)
-            if evaluator_type:
-                MetadataCatalog.get(catalog_name).set(evaluator_type=evaluator_type)
-            return catalog_name
 
-    _error(
-        f"Dataset '{identifier.dataset_slug}' does not exist locally. "
-        f"Use 'darwin dataset remote' to see all the available datasets, "
-        f"and 'darwin dataset pull' to pull them."
+    catalog_name = f"darwin_{dataset_path.name}"
+    if partition:
+        catalog_name += f"_{partition}"
+    classes = get_classes(dataset_path, annotation_type="polygon")
+    DatasetCatalog.register(
+        catalog_name,
+        lambda partition=partition: list(
+            get_annotations(
+                dataset_path,
+                partition=partition,
+                split_type=split_type,
+                release_name=release_name,
+                annotation_type="polygon",
+                annotation_format="coco",
+            )
+        ),
     )
+    MetadataCatalog.get(catalog_name).set(thing_classes=classes)
+    if evaluator_type:
+        MetadataCatalog.get(catalog_name).set(evaluator_type=evaluator_type)
+    return catalog_name
