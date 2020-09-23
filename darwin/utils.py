@@ -4,10 +4,10 @@ from typing import TYPE_CHECKING, List, Optional, Union
 
 import numpy as np
 from tqdm import tqdm
+from upolygon import draw_polygon
 
 import darwin.datatypes as dt
 from darwin.config import Config
-from upolygon import draw_polygon
 
 SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpeg", ".jpg", ".jfif", ".tif", ".bmp"]
 SUPPORTED_VIDEO_EXTENSIONS = [".bpm", ".mov", ".mp4"]
@@ -301,7 +301,7 @@ def convert_sequences_to_polygons(sequences: List, height: Optional[int] = None,
         raise ValueError("Unknown input format")
 
     def grouped(iterable, n):
-        return zip(*[iter(iterable)]*n)
+        return zip(*[iter(iterable)] * n)
 
     polygons = []
     for sequence in sequences:
