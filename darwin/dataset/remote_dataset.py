@@ -69,7 +69,7 @@ class RemoteDataset:
         blocking: bool = True,
         multi_threaded: bool = True,
         fps: int = 1,
-        as_video: bool = False,
+        as_frames: bool = False,
         files_to_exclude: Optional[List[str]] = None,
         resume: bool = False,
         path: Optional[str] = None,
@@ -89,7 +89,7 @@ class RemoteDataset:
             List of files to exclude from the file scan (which is done only if files is None)
         fps : int
             Number of file per seconds to upload
-        as_video: bool
+        as_frames: bool
             Annotate as video.
         resume : bool
             Flag for signalling the resuming of a push
@@ -140,7 +140,7 @@ class RemoteDataset:
             dataset_id=str(self.dataset_id),
             filenames=files_to_upload,
             fps=fps,
-            as_video=as_video,
+            as_frames=as_frames,
             team=self.team,
             path=path,
         )
