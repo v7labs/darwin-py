@@ -117,7 +117,10 @@ def _import_annotations(client: "Client", id: int, remote_classes, attributes, a
     for annotation in annotations:
         annotation_class = annotation.annotation_class
         annotation_class_id = remote_classes[annotation_class.annotation_type][annotation_class.name]
-        data = {annotation_class.annotation_type: annotation.data}
+        if "frames" in annotation.data:
+            data = annotation.data
+        else:
+            data = {annotation_class.annotation_type: annotation.data}
         for sub in annotation.subs:
             if sub.annotation_type == "text":
                 data["text"] = {"text": sub.data}
