@@ -203,7 +203,7 @@ class RemoteDataset:
         """
         if release is None:
             release = self.get_release()
-        
+
         if release.format != "json":
             raise UnsupportedExportFormat(release.format)
 
