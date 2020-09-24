@@ -12,7 +12,7 @@ from darwin.dataset.identifier import DatasetIdentifier
 from darwin.dataset.release import Release
 from darwin.dataset.upload_manager import add_files_to_dataset
 from darwin.dataset.utils import exhaust_generator, get_annotations, get_classes, make_class_lists, split_dataset
-from darwin.exceptions import NotFound
+from darwin.exceptions import NotFound, UnsupportedExportFormat
 from darwin.item import parse_dataset_item
 from darwin.utils import find_files, urljoin
 from darwin.validators import name_taken, validation_error
@@ -203,6 +203,9 @@ class RemoteDataset:
         """
         if release is None:
             release = self.get_release()
+        
+        if release.format != "json":
+            raise UnsupportedExportFormat(release.format)
 
         release_dir = self.local_releases_path / release.name
         release_dir.mkdir(parents=True, exist_ok=True)
