@@ -4,10 +4,10 @@ from pathlib import Path
 from typing import Generator, List
 
 import numpy as np
+from upolygon import draw_polygon
 
 import darwin.datatypes as dt
 from darwin.utils import convert_polygons_to_sequences
-from upolygon import draw_polygon
 
 
 class NumpyEncoder(json.JSONEncoder):

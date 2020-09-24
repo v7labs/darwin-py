@@ -8,7 +8,18 @@ from darwin.dataset.identifier import DatasetIdentifier
 
 class Release:
     def __init__(
-        self, dataset_slug, team_slug, version, name, url, export_date, image_count, class_count, available, latest, format
+        self,
+        dataset_slug,
+        team_slug,
+        version,
+        name,
+        url,
+        export_date,
+        image_count,
+        class_count,
+        available,
+        latest,
+        format,
     ):
         self.dataset_slug = dataset_slug
         self.team_slug = team_slug
@@ -41,7 +52,7 @@ class Release:
                 image_count=None,
                 class_count=None,
                 latest=False,
-                format=payload.get("format", "json")
+                format=payload.get("format", "json"),
             )
 
         return cls(
@@ -55,7 +66,7 @@ class Release:
             url=payload["download_url"],
             available=True,
             latest=payload["latest"],
-            format=payload.get("format", "json")
+            format=payload.get("format", "json"),
         )
 
     def download_zip(self, path):
