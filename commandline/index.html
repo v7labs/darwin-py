@@ -91,6 +91,28 @@
     </li>
     <li class="toctree-l3"><a class="reference internal" href="#convert-annotations">Convert annotations</a>
     </li>
+    <li class="toctree-l3"><a class="reference internal" href="#formats">Formats</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#darwin-darwin-import">Darwin darwin import</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#pascalvoc-pascal_voc-import-export">PascalVoc pascal_voc (import &amp; export)</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#dataloop-dataloop-import-export">Dataloop dataloop (import &amp; export)</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#csv-tags-csv_tags-import">CSV Tags csv_tags (import)</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#csv-tags-video-csv_tags_video">CSV Tags Video (csv_tags_video)</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#coco-coco-import-export">COCO coco (import &amp; export)</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#cvat-cvat-export">CVAT cvat (export)</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#instance-mask-instance-export">Instance Mask instance (export)</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#semenatic-mask-semantic-mask-export">Semenatic Mask semantic-mask (export)</a>
+    </li>
+        </ul>
+    </li>
         </ul>
     </li>
     </ul>
@@ -205,11 +227,11 @@ test2.png complete
 <p>Add <code>--only-filenames</code> to only list the filename.</p>
 <h3 id="set-file-status">Set file status</h3>
 <p>Allows to set the status of a file in a dataset. Allowed statuses are: <code>archived</code> and <code>restore-archived</code> (More will be added soon).</p>
-<pre><code>$ darwin dataset set-file-status v7/my-new-dataset archived 00000010.jpg
+<pre><code>$ darwin dataset set-file-status example-team/my-new-dataset archived 00000010.jpg
 </code></pre>
 
 <p>This can be used in conjunction with <code>darwin dataset files</code>, for example:</p>
-<pre><code>$ darwin dataset set-file-status v7/my-new-dataset archived $(darwin dataset files v7/my-new-dataset --status error --only-filenames)
+<pre><code>$ darwin dataset set-file-status example-team/my-new-dataset archived $(darwin dataset files example-team/my-new-dataset --status error --only-filenames)
 </code></pre>
 
 <h3 id="list-local-datasets">List local datasets</h3>
@@ -226,21 +248,15 @@ other-team/ct-scans                                       450        May 20     
 100%|████████████████████████| 2/2 [00:01&lt;00:00,  1.27it/s] 
 </code></pre>
 
-<p>Videos can be uploaded in one of two modes, as a video or as a series of individual frames. 
-For backward compatibility the frame mode is currently the default, this will changed in the next major release.
-To specify video mode add <code>--as-video</code></p>
-<pre><code>$ darwin dataset push my-team/test --as-video --fps 1 my_video.mp4
-100%|████████████████████████| 1/1 [00:01&lt;00:00,  1.27it/s] 
-</code></pre>
-
 <p>Specifying framerate for videos</p>
-<pre><code>$ darwin dataset push my-team/test --as-video --fps 2 my_video.mp4
+<pre><code>$ darwin dataset push my-team/test --fps 2 my_video.mp4
 100%|████████████████████████| 1/1 [00:01&lt;00:00,  1.27it/s] 
 </code></pre>
 
 <p>The <code>-e/--exclude</code> argument allows to indicate file extension/s to be ignored from the data_dir. 
 e.g.: <code>-e .jpg</code></p>
-<p>For videos, the frame rate extraction rate can be specified by adding <code>--fps &lt;frame_rate&gt;</code></p>
+<p>For videos, the frame rate extraction rate can be specified by adding <code>--fps &lt;frame_rate&gt;</code>
+To use the intrinsic frame rate of the video either leave out the fps flag or use <code>--fps native</code></p>
 <p>Supported extensions:</p>
 <ul>
 <li>Video files: [<code>.mp4</code>, <code>.bpm</code>, <code>.mov</code> formats].</li>
@@ -293,7 +309,9 @@ example-team/my-new-dataset:0.1             22           7     2020-04-17 09:57:
 Dataset example-team/my-new-dataset:0.4 downloaded at ~/.darwin/datasets/example-team
 </code></pre>
 
-<p>Note that if this was the latest release for this dataset, then this release can also be referred to it via <code>:latest</code> for local operations.</p>
+<p>If you dataset contains folders and you want to mirror the folder structure locally add <code>--folders</code></p>
+<p>Note that if this was the latest release for this dataset, then this release can also be referred to it via <code>:latest</code> for local operations.
+Only datasets exported in the Darwin (JSON) format are downloadable via darwin-py. </p>
 <h3 id="path-to-dataset">Path to dataset</h3>
 <p>A convenient command to find a dataset on the local filesystem (if downloaded)</p>
 <pre><code>$ darwin dataset path example-team/my-new-dataset
@@ -308,7 +326,7 @@ Do you want to continue? [y/N] y
 </code></pre>
 
 <h3 id="import-annotations">Import annotations</h3>
-<p>If you want to bootstrap your dataset by importing already existing annotations, first make sure that all the images are already uploaded. Then ensure that the annotations are in one of the following formats [PascalVoc, COCO, CSV Tags]. </p>
+<p>If you want to bootstrap your dataset by importing already existing annotations, first make sure that all the images are already uploaded. Then ensure that the annotations are in one of the following formats [Darwin, PascalVoc, COCO, CSV Tags, CSV Video Tag, Dataloop]. </p>
 <pre><code>$ darwin dataset import example-team/test pascal_voc sample_voc.xml
 Fetching remote file list...
 Fetching remote class list...
@@ -328,11 +346,40 @@ Do you want to continue? [y/N] y
 </ul>
 <p><strong>Note</strong> In the current version, old annotations are deleted before the imports are applied. </p>
 <h3 id="convert-annotations">Convert annotations</h3>
-<pre><code>$ darwin dataset convert v7/my-new-dataset:standard coco output_directory
+<pre><code>$ darwin dataset convert example-team/my-new-dataset:0.1 coco -o output_directory
 </code></pre>
 
 <p>This converts the downloaded annotations from the darwin format to an external format. Currently supported: [COCO, CVAT, Pascal VOC]</p>
 <p><strong>Note</strong> Some annotations types are not valid for some formats, when that happens the annotation is simply dropped. </p>
+<h3 id="formats">Formats</h3>
+<h4 id="darwin-darwin-import">Darwin <code>darwin</code> import</h4>
+<p>This is the standard format used when exporting annotations from darwin. </p>
+<h4 id="pascalvoc-pascal_voc-import-export">PascalVoc <code>pascal_voc</code> (import &amp; export)</h4>
+<p>An xml format specifying bounding boxes. </p>
+<h4 id="dataloop-dataloop-import-export">Dataloop <code>dataloop</code> (import &amp; export)</h4>
+<h4 id="csv-tags-csv_tags-import">CSV Tags <code>csv_tags</code> (import)</h4>
+<p>A csv file with one line per file, first column is the file name and the remaning columns are tags.</p>
+<p>Example:</p>
+<pre><code class="csv">a.png,outdoors,sunny,blurry
+b.png,indoors
+</code></pre>
+
+<h4 id="csv-tags-video-csv_tags_video">CSV Tags Video (<code>csv_tags_video</code>)</h4>
+<p>A csv file with one line per tag, the first column is the video filename, followed by tag name, start frame and end frame</p>
+<p>Example:</p>
+<pre><code class="csv">1.mp4,car,20,34
+1.mp4,bird,5,25
+2.mp4,bird,0,40
+</code></pre>
+
+<h4 id="coco-coco-import-export">COCO <code>coco</code> (import &amp; export)</h4>
+<p>A json file containing annotations for multiple images. See <a href="https://cocodataset.org/#format-data">https://cocodataset.org/#format-data</a> for the format definition. </p>
+<h4 id="cvat-cvat-export">CVAT <code>cvat</code> (export)</h4>
+<h4 id="instance-mask-instance-export">Instance Mask <code>instance</code> (export)</h4>
+<p>Creates one mask per object per image. </p>
+<h4 id="semenatic-mask-semantic-mask-export">Semenatic Mask <code>semantic-mask</code> (export)</h4>
+<p>Creates one mask per image, different colors per class. 
+A <code>class_mapping.csv</code> is also created containing a mapping between <code>class_name</code> and <code>class_color</code></p>
               
             </div>
           </div>
