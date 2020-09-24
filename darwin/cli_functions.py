@@ -15,7 +15,15 @@ from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset.identifier import DatasetIdentifier
 from darwin.dataset.utils import get_release_path, split_dataset
-from darwin.exceptions import InvalidLogin, MissingConfig, NameTaken, NotFound, Unauthenticated, ValidationError
+from darwin.exceptions import (
+    InvalidLogin,
+    MissingConfig,
+    NameTaken,
+    NotFound,
+    Unauthenticated,
+    UnsupportedExportFormat,
+    ValidationError,
+)
 from darwin.table import Table
 from darwin.utils import find_files, persist_client_configuration, prompt, secure_continue_request
 
@@ -251,6 +259,11 @@ def pull_dataset(dataset_slug: str, only_annotations: bool = False, folders: boo
         _error(
             f"Version '{dataset.identifier}:{version}' does not exist "
             f"Use 'darwin dataset releases' to list all available versions."
+        )
+    except UnsupportedExportFormat as uef:
+        _error(
+            f"Version '{dataset.identifier}:{version}' is of format '{uef.format}', "
+            f"only the darwin format ('json') is supported for `darwin dataset pull`"
         )
     print(f"Dataset {release.identifier} downloaded at {dataset.local_path}. ")
 
