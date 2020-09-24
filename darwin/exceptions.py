@@ -13,6 +13,10 @@ class InvalidTeam(Exception):
 class MissingConfig(Exception):
     pass
 
+class UnsupportedExportFormat(Exception):
+    def __init__(self, format):
+        super().__init__()
+        self.format = format
 
 class NotFound(Exception):
     def __init__(self, name):
