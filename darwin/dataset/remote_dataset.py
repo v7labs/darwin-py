@@ -195,7 +195,7 @@ class RemoteDataset:
         subset_folder_name: str
             Name of the folder with the subset of the dataset. If not provided a timestamp is used.
         use_folders: bool
-            Recreates folders from the dataset 
+            Recreates folders from the dataset
 
         Returns
         -------
@@ -427,7 +427,7 @@ class RemoteDataset:
 
     def split(
         self,
-        val_percentage: float = 0.1,
+        val_percentage: float = 10,
         test_percentage: float = 0,
         split_seed: int = 0,
         make_default_split: bool = True,
@@ -497,9 +497,10 @@ class RemoteDataset:
     def annotations(
         self,
         partition: str,
-        split: str = "split",
+        split: str = "default",
         split_type: str = "stratified",
         annotation_type: str = "polygon",
+        annotation_format: str = "coco",
         release_name: Optional[str] = None,
     ):
         """
@@ -515,6 +516,8 @@ class RemoteDataset:
             Heuristic used to do the split [random, stratified]
         annotation_type
             The type of annotation classes [tag, polygon]
+        annotation_format
+            Format of the annotation [coco, darwin]
         release_name: str
             Version of the dataset
 
@@ -534,6 +537,7 @@ class RemoteDataset:
             split=split,
             split_type=split_type,
             annotation_type=annotation_type,
+            annotation_format=annotation_format,
             release_name=release_name,
         ):
             yield annotation

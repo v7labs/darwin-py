@@ -534,7 +534,11 @@ def get_coco_format_record(
             category = classes.index(obj["name"])
         else:
             category = obj["name"]
-        new_obj = {"bbox_mode": box_mode, "category_id": category, "iscrowd": 0}
+
+        new_obj = {"category_id": category}
+        if annotation_type != "tag":
+            new_obj["bbox_mode"] =  box_mode
+            new_obj["iscrowd"] = 0
 
         if annotation_type == "polygon":
             for point in obj["polygon"]["path"]:
@@ -667,6 +671,11 @@ def get_annotations(
         for annotation_path in annotations_paths:
             with annotation_path.open() as f:
                 record = json.load(f)
+                annotations = []
+                for annotation in record["annotations"]:
+                    if annotation_type in annotation:
+                        annotations.append(annotation)
+                record["annotations"] = annotations
             yield record
 
 
