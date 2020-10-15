@@ -85,18 +85,23 @@ def import_annotations(
     local_classes_missing_remotely = set()
     for local_file in local_files:
         for cls in local_file.annotation_classes:
-            if cls.annotation_type not in remote_classes or cls.name not in remote_classes[cls.annotation_type]:
+            annotation_type = cls.annotation_internal_type or cls.annotation_type
+            if annotation_type not in remote_classes or cls.name not in remote_classes[annotation_type]:
                 local_classes_missing_remotely.add(cls)
 
     print(f"{len(local_classes_missing_remotely)} classes are missing remotely.")
     if local_classes_missing_remotely:
         print("About to create the following classes")
         for missing_class in local_classes_missing_remotely:
-            print(f"\t{missing_class.name}, type: {missing_class.annotation_type}")
+            print(
+                f"\t{missing_class.name}, type: {missing_class.annotation_internal_type or missing_class.annotation_type}"
+            )
         if not secure_continue_request():
             return
         for missing_class in local_classes_missing_remotely:
-            dataset.create_annotation_class(missing_class.name, missing_class.annotation_type)
+            dataset.create_annotation_class(
+                missing_class.name, missing_class.annotation_internal_type or missing_class.annotation_type
+            )
 
             # Refetch classes to update mappings
             remote_classes = build_main_annotations_lookup_table(dataset.fetch_remote_classes())
@@ -116,11 +121,16 @@ def _import_annotations(client: "Client", id: int, remote_classes, attributes, a
     serialized_annotations = []
     for annotation in annotations:
         annotation_class = annotation.annotation_class
-        annotation_class_id = remote_classes[annotation_class.annotation_type][annotation_class.name]
-        if "frames" in annotation.data:
-            data = annotation.data
-        else:
-            data = {annotation_class.annotation_type: annotation.data}
+        annotation_type = annotation_class.annotation_internal_type or annotation_class.annotation_type
+        annotation_class_id = remote_classes[annotation_type][annotation_class.name]
+
+        data = annotation.data
+        if annotation_class.annotation_type == "complex_polygon":
+            data = {"path": annotation.data["paths"][0], "additional_paths": annotation.data["paths"][1:]}
+
+        if "frames" not in annotation.data:
+            data = {annotation_type: data}
+
         for sub in annotation.subs:
             if sub.annotation_type == "text":
                 data["text"] = {"text": sub.data}
@@ -139,6 +149,7 @@ def _import_annotations(client: "Client", id: int, remote_classes, attributes, a
         serialized_annotations.append({"annotation_class_id": annotation_class_id, "data": data})
 
     if client.feature_enabled("WORKFLOW", dataset.team):
+        print(serialized_annotations)
         res = client.post(f"/dataset_items/{id}/import", payload={"annotations": serialized_annotations})
         if res["status_code"] != 200:
             print(f"warning, failed to upload annotation to {id}", res)
