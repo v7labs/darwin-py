@@ -164,13 +164,12 @@
 Authentication requires a <a href="https://darwin.v7labs.com/?settings=api-keys">team-specific API-key</a>.<br />
 If you do not already have a Darwin account, you can <a href="https://www.v7labs.com/contact">contact us</a> and we can set one up for you.</p>
 <p>To start the authentication process:</p>
-<pre><code class="sh">$ darwin authenticate
+<pre><code class="language-sh">$ darwin authenticate
 API key: ***********
 Make example-team the default team? [y/N] y
 Datasets directory [~/.darwin/datasets]: 
 Authentication succeeded.
 </code></pre>
-
 <p>You will be then prompted to enter your API-key, whether you want to set the corresponding team as 
 default and finally the desired location on the local file system for the datasets of that team.
 This process will create a configuration file at <code>~/.darwin/config.yaml</code>.
@@ -191,7 +190,6 @@ This file will be updated with future authentications for different teams.</p>
 Dataset 'mydataset' (example-team/mydataset) has been created.
 Access at https://darwin.v7labs.com/datasets/579
 </code></pre>
-
 <h3 id="list-remote-datasets">List remote datasets</h3>
 <p>Lists all datasets for the default team</p>
 <pre><code>$ darwin dataset remote
@@ -199,13 +197,11 @@ NAME                       IMAGES     PROGRESS
 example-team/mydataset     112025        73.0%
 example-team/fg-removal      3000        42.0%
 </code></pre>
-
 <p>Use the <code>-t</code> flag to specify a different team</p>
 <pre><code>$ darwin dataset remote -t other-team
 NAME                       IMAGES     PROGRESS
 other-team/ct-scans           450        100.0%
 </code></pre>
-
 <h3 id="list-remote-files">List remote files</h3>
 <p>Lists all files in a remote dataset, can optional by filtered by file status and/or foldername. 
 Allowed statuses: <code>new</code>, <code>annotate</code>, <code>review</code>, <code>complete</code>, <code>archived</code></p>
@@ -214,26 +210,21 @@ test1.png complete
 test2.png complete
 test3.png annotate
 </code></pre>
-
 <pre><code>$ darwin dataset files example-team/mydataset --path outdoors
 test1.png complete
 </code></pre>
-
 <pre><code>$ darwin dataset files example-team/mydataset --status complete
 test1.png complete
 test2.png complete
 </code></pre>
-
 <p>Add <code>--only-filenames</code> to only list the filename.</p>
 <h3 id="set-file-status">Set file status</h3>
 <p>Allows to set the status of a file in a dataset. Allowed statuses are: <code>archived</code> and <code>restore-archived</code> (More will be added soon).</p>
 <pre><code>$ darwin dataset set-file-status example-team/my-new-dataset archived 00000010.jpg
 </code></pre>
-
 <p>This can be used in conjunction with <code>darwin dataset files</code>, for example:</p>
 <pre><code>$ darwin dataset set-file-status example-team/my-new-dataset archived $(darwin dataset files example-team/my-new-dataset --status error --only-filenames)
 </code></pre>
-
 <h3 id="list-local-datasets">List local datasets</h3>
 <p>Local datasets are datasets that have been downloaded, </p>
 <pre><code>$ darwin dataset local
@@ -241,18 +232,15 @@ NAME                                                   IMAGES     SYNC_DATE     
 example-team/mydataset                                    999        May 25     150.2 MB
 other-team/ct-scans                                       450        May 20     500.1 MB
 </code></pre>
-
 <h3 id="uploading-imagesvideos">Uploading images/videos</h3>
 <p>For images and videos</p>
 <pre><code>$ darwin dataset push my-team/test /path/to/folder/with/images
 100%|████████████████████████| 2/2 [00:01&lt;00:00,  1.27it/s] 
 </code></pre>
-
 <p>Specifying framerate for videos</p>
 <pre><code>$ darwin dataset push my-team/test --fps 2 my_video.mp4
 100%|████████████████████████| 1/1 [00:01&lt;00:00,  1.27it/s] 
 </code></pre>
-
 <p>The <code>-e/--exclude</code> argument allows to indicate file extension/s to be ignored from the data_dir. 
 e.g.: <code>-e .jpg</code></p>
 <p>For videos, the frame rate extraction rate can be specified by adding <code>--fps &lt;frame_rate&gt;</code>
@@ -266,7 +254,6 @@ To use the intrinsic frame rate of the video either leave out the fps flag or us
 <pre><code>$ darwin dataset push my-team/test --path animals/cats cat1.png cat2.png
 100%|████████████████████████| 1/2 [00:01&lt;00:00,  2.42it/s] 
 </code></pre>
-
 <h3 id="releases">Releases</h3>
 <p>To download data from a dataset, a release first needs to be created. Several releases can be kept locally at the same time, images are shared between the releases to reduce disk usage. </p>
 <pre><code>/dataset_directory      # by default ~/.darwin/datasets
@@ -289,12 +276,10 @@ To use the intrinsic frame rate of the video either leave out the fps flag or us
                     1.json
 
 </code></pre>
-
 <h4 id="create-a-new-release">Create a new release</h4>
 <pre><code>$ darwin dataset export test 0.1
 Dataset test successfully exported to example-team/test:0.1
 </code></pre>
-
 <h4 id="list-all-releases">List all releases</h4>
 <pre><code>$ darwin dataset releases example-team/my-new-dataset
 NAME                                    IMAGES     CLASSES                   EXPORT_DATE
@@ -302,13 +287,11 @@ example-team/my-new-dataset:0.4             23           9     2020-05-11 14:48:
 example-team/my-new-dataset:0.2              1           8     2020-04-28 23:50:56+00:00
 example-team/my-new-dataset:0.1             22           7     2020-04-17 09:57:22+00:00
 </code></pre>
-
 <h4 id="download-a-release">Download a release</h4>
 <pre><code>$ darwin dataset pull example-team/my-new-dataset:0.1
 100%|███████████████████████████| 100/100 [00:20&lt;00:00,  7.18it/s]
 Dataset example-team/my-new-dataset:0.4 downloaded at ~/.darwin/datasets/example-team
 </code></pre>
-
 <p>If you dataset contains folders and you want to mirror the folder structure locally add <code>--folders</code></p>
 <p>Note that if this was the latest release for this dataset, then this release can also be referred to it via <code>:latest</code> for local operations.
 Only datasets exported in the Darwin (JSON) format are downloadable via darwin-py. </p>
@@ -317,14 +300,12 @@ Only datasets exported in the Darwin (JSON) format are downloadable via darwin-p
 <pre><code>$ darwin dataset path example-team/my-new-dataset
 /Users/me/.darwin/datasets/example-team/my-new-dataset
 </code></pre>
-
 <h3 id="delete-a-remote-dataset">Delete a remote dataset</h3>
 <p>This goes without saying, but be careful when deleting datasets. Their data will be cleared from Darwin's servers and unrecoverable after a couple of days. </p>
 <pre><code>$ darwin dataset remove test
 About to delete example-team/test on darwin.
 Do you want to continue? [y/N] y
 </code></pre>
-
 <h3 id="import-annotations">Import annotations</h3>
 <p>If you want to bootstrap your dataset by importing already existing annotations, first make sure that all the images are already uploaded. Then ensure that the annotations are in one of the following formats [Darwin, PascalVoc, COCO, CSV Tags, CSV Video Tag, Dataloop]. </p>
 <pre><code>$ darwin dataset import example-team/test pascal_voc sample_voc.xml
@@ -337,7 +318,6 @@ Retrieving local annotations ...
 Do you want to continue? [y/N] y
 0 classes are missing remotely.
 </code></pre>
-
 <p>There are few things going on here:</p>
 <ul>
 <li>first darwin-py tries to match each file in the import against files in the dataset, if that fails it will warn us and allow the operation to be cancelled. </li>
@@ -348,7 +328,6 @@ Do you want to continue? [y/N] y
 <h3 id="convert-annotations">Convert annotations</h3>
 <pre><code>$ darwin dataset convert example-team/my-new-dataset:0.1 coco -o output_directory
 </code></pre>
-
 <p>This converts the downloaded annotations from the darwin format to an external format. Currently supported: [COCO, CVAT, Pascal VOC]</p>
 <p><strong>Note</strong> Some annotations types are not valid for some formats, when that happens the annotation is simply dropped. </p>
 <h3 id="formats">Formats</h3>
@@ -360,18 +339,16 @@ Do you want to continue? [y/N] y
 <h4 id="csv-tags-csv_tags-import">CSV Tags <code>csv_tags</code> (import)</h4>
 <p>A csv file with one line per file, first column is the file name and the remaning columns are tags.</p>
 <p>Example:</p>
-<pre><code class="csv">a.png,outdoors,sunny,blurry
+<pre><code class="language-csv">a.png,outdoors,sunny,blurry
 b.png,indoors
 </code></pre>
-
 <h4 id="csv-tags-video-csv_tags_video-import">CSV Tags Video <code>csv_tags_video</code> (import)</h4>
 <p>A csv file with one line per tag, the first column is the video filename, followed by tag name, start frame and end frame</p>
 <p>Example:</p>
-<pre><code class="csv">1.mp4,car,20,34
+<pre><code class="language-csv">1.mp4,car,20,34
 1.mp4,bird,5,25
 2.mp4,bird,0,40
 </code></pre>
-
 <h4 id="coco-coco-import-export">COCO <code>coco</code> (import &amp; export)</h4>
 <p>A json file containing annotations for multiple images. See <a href="https://cocodataset.org/#format-data">https://cocodataset.org/#format-data</a> for the format definition. </p>
 <h4 id="cvat-cvat-export">CVAT <code>cvat</code> (export)</h4>

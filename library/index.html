@@ -107,28 +107,24 @@
                 <h1 id="library">Library</h1>
 <p>A central concept to <code>darwin-py</code> is the client object. It is authenticated with an API key and then used to create a Dataset Object (high level access) or diretly communicate with Darwin (low level access). </p>
 <p>Simple example</p>
-<pre><code class="python">
+<pre><code class="language-python">
 client = Client.local() # use the configuration in ~/.darwin/config.yaml
 dataset = client.get_remote_dataset(&quot;example-team/test&quot;)
 dataset.pull() # downloads annotations and images for the latest exported version
 </code></pre>
-
 <h2 id="creating-the-client">Creating the client</h2>
 <p>There are two ways of creating a Client object, directly from an API key</p>
-<pre><code class="python">from darwin.client import Client
+<pre><code class="language-python">from darwin.client import Client
 client = Client.from_api_key(&quot;DHMhAWr.BHucps-tKMAi6rWF1xieOpUvNe5WzrHP&quot;)
 </code></pre>
-
 <p>or via the local configuration <code>~/.darwin/config.yaml</code> (see <a href="../commandline/#Authentication">command line authentication</a>)</p>
-<pre><code class="python">from darwin.client import Client
+<pre><code class="language-python">from darwin.client import Client
 client = Client.local()
 </code></pre>
-
 <p>If the API key is invalid (malformed or archived) a <code>darwin.exceptions.InvalidLogin</code> will be raised.</p>
 <h2 id="find-a-remote-dataset">Find a remote dataset</h2>
-<pre><code class="python">dataset = client.get_remote_dataset(&quot;example-team/test&quot;)
+<pre><code class="language-python">dataset = client.get_remote_dataset(&quot;example-team/test&quot;)
 </code></pre>
-
 <p>If the team isn't valid, <code>darwin.exceptions.InvalidTeam</code> will be raised.
 If the dataset cannot be accessed, <code>darwin.exception.NotFound</code> will be raised. </p>
               

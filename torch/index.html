@@ -131,15 +131,13 @@ Output
 dataset: LocalDataset
   API class to the local dataset
 </code></pre>
-
 <p><strong>Note:</strong> For now, it only support three types of dataset: <code>classification</code>, <code>instance-segmentation</code>, and <code>semantic-segmentation</code>. These different modes use different API classes, which load and pre-process the data in different ways, suited for these specific tasks. If you need a different API or a different pre-processing for a different task you can take a look into the implementation of these APIs in <code>darwin.torch.dataset</code> and extend <code>LocalDataset</code> in the way it suits your needs best.</p>
 <p>This is an example of how to load the <code>v7-demo/bird-species</code> dataset ready to be used in a instance segmentation task by using <code>"instance-segmentation"</code> as <code>dataset_type</code>. First, we will pull it from Darwin using <code>darwin-py</code>'s CLI, and will create train, validation, and test partitions:</p>
-<pre><code class="bash">darwin dataset pull v7-demo/bird-species
+<pre><code class="language-bash">darwin dataset pull v7-demo/bird-species
 darwin dataset split v7-demo/bird-species --val-percentage 10 --test-percentage 20
 </code></pre>
-
 <p>Once downloaded, we can use <code>get_dataset</code> to load the different partitions, and pass different transformations for train and validation splits (some basic transformations are implemented in <code>darwin.torch.transforms</code> but you can also use your own transformations):</p>
-<pre><code class="python">from darwin.torch import get_dataset
+<pre><code class="language-python">from darwin.torch import get_dataset
 import darwin.torch.transforms as T
 
 dataset_slug = &quot;v7-demo/bird-species&quot;
@@ -159,16 +157,14 @@ print(db_train)
 #   Number of images: 1336
 #   Number of classes: 3
 </code></pre>
-
 <h2 id="darwin-torchvision">Darwin &#x2715; Torchvision</h2>
 <p>This tutorial shows how to train an instance segmentation model on a Darwin dataset using Pytorch's <a href="https://github.com/pytorch/vision">Torchvsion</a> and <code>darwin-py</code>. If you do not have Pytorch and Torchvision installed yet, you can follow these <a href="https://pytorch.org/get-started/locally/">installation instructions</a>.</p>
 <p>First, using <code>darwin-py</code>'s CLI, we will pull the dataset from Darwin and create train, validation, and test partitions.</p>
-<pre><code class="bash">darwin dataset pull v7-demo/bird-species
+<pre><code class="language-bash">darwin dataset pull v7-demo/bird-species
 darwin dataset split v7-demo/bird-species --val-percentage 10 --test-percentage 20
 </code></pre>
-
 <p>Now, in Python, we will start by importing some <code>torchvision</code> and <code>darwin-py</code> functions, and by defining the function <code>get_instance_segmentation_model</code> that we will use to instantiate a <a href="https://arxiv.org/abs/1703.06870">Mask-RCNN</a> model using Torchvision's API.</p>
-<pre><code class="python">import torch
+<pre><code class="language-python">import torch
 import torchvision
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.models.detection.mask_rcnn import MaskRCNNPredictor
@@ -196,16 +192,14 @@ def get_instance_segmentation_model(num_classes):
                                                        num_classes)
     return model
 </code></pre>
-
 <p>Then, we will load the dataset using <code>darwin-py</code>'s <code>get_dataset</code> function, specifying the dataset slug, the dataset type (in this case we need an <code>instance-segmentation</code> dataset), and the <code>train</code> partition. The dataset that we get back can be used directly into Pytorch's standard DataLoader.</p>
-<pre><code class="python">trfs_train = T.Compose([T.RandomHorizontalFlip(), T.ToTensor()])
+<pre><code class="language-python">trfs_train = T.Compose([T.RandomHorizontalFlip(), T.ToTensor()])
 dataset = get_dataset(&quot;v7-demo/bird-species&quot;, dataset_type=&quot;instance-segmentation&quot;,
                       partition=&quot;train&quot;, split_type=&quot;stratified&quot;, transform=trfs_train)
 data_loader = torch.utils.data.DataLoader(dataset, batch_size=2, shuffle=True, num_workers=4, collate_fn=collate_fn)
 </code></pre>
-
 <p>Next, we instantiate the instance segmentation model and define the optimizer and the learning rate scheduler.</p>
-<pre><code class="python">device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+<pre><code class="language-python">device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
 # get the model using our helper function
 num_classes = dataset.num_classes + 1 # number of classes in the dataset + background
@@ -218,9 +212,8 @@ optimizer = torch.optim.SGD(params, lr=0.005, momentum=0.9, weight_decay=0.0005)
 # and a learning rate scheduler
 lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
 </code></pre>
-
 <p>And finally, we write our training loop and train the model for 10 full epochs.</p>
-<pre><code class="python"># let's train it for 10 epochs
+<pre><code class="language-python"># let's train it for 10 epochs
 for epoch in range(10):
     # train for one epoch, printing every 10 iterations
     acumm_loss = 0
@@ -241,7 +234,6 @@ for epoch in range(10):
 
     lr_scheduler.step()
 </code></pre>
-
 <h2 id="darwin-detectron2">Darwin &#x2715; Detectron2</h2>
 <p>This tutorial shows how to train <a href="https://github.com/facebookresearch/detectron2">Detectron2</a> models in your Darwin datasets. If you do not have Detectron2 installed yet, please follow these <a href="https://github.com/facebookresearch/detectron2/blob/master/INSTALL.md">installation instructions</a>.</p>
 <p>Detectron2 organizes the datasets in <code>DatasetCatalog</code>, so the only thing we will need to do is to register our Darwin dataset in this catalog. For this, <code>darwin-py</code> provides the function <code>detectron2_register_dataset</code>, which takes the following parameters:</p>
@@ -267,14 +259,12 @@ Output
 catalog_name: str
   Name used to register this dataset partition in DatasetCatalog
 </code></pre>
-
 <p>Here's an example of how to use this function to register a Darwin dataset, and train an instance segmentation model on it. First, and as we did before, we will start by pulling the dataset from Darwin and splitting it into train and validation from the command line:</p>
-<pre><code class="bash">darwin dataset pull v7-demo/bird-species
+<pre><code class="language-bash">darwin dataset pull v7-demo/bird-species
 darwin dataset split v7-demo/bird-species --val-percentage 10 --test-percentage 20
 </code></pre>
-
 <p>Now, in Python, we will import some <code>detectron2</code> utils and we will register the Darwin dataset into Detectron2's catalog.</p>
-<pre><code class="python">import os
+<pre><code class="language-python">import os
 # import some common Detectron2 and Darwin utilities
 from detectron2.utils.logger import setup_logger
 from detectron2 import model_zoo
@@ -290,9 +280,8 @@ dataset_slug = 'v7-demo/bird-species'
 dataset_train = detectron2_register_dataset(dataset_slug, partition='train', split_type='stratified')
 dataset_val = detectron2_register_dataset(dataset_slug, partition='val', split_type='stratified')
 </code></pre>
-
 <p>Next, we will set up the model and the training configuration, and launch the training.</p>
-<pre><code class="python"># Set up training configuration and train the model
+<pre><code class="language-python"># Set up training configuration and train the model
 cfg = get_cfg()
 cfg.merge_from_file(model_zoo.get_config_file(&quot;COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml&quot;))
 cfg.DATASETS.TRAIN = (dataset_train,)
@@ -311,9 +300,8 @@ trainer.resume_or_load(resume=False)
 setup_logger()
 trainer.train()
 </code></pre>
-
 <p>Finally, we will evaluate the model using the built-in COCO evaluator.</p>
-<pre><code class="python"># Evaluate the model
+<pre><code class="language-python"># Evaluate the model
 cfg.MODEL.WEIGHTS = os.path.join(cfg.OUTPUT_DIR, &quot;model_final.pth&quot;)
 cfg.DATASETS.TEST = (dataset_val, )
 evaluator = COCOEvaluator(dataset_val, cfg, False, output_dir=&quot;./output/&quot;)
