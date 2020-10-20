@@ -86,8 +86,17 @@ def import_annotations(
     for local_file in local_files:
         for cls in local_file.annotation_classes:
             annotation_type = cls.annotation_internal_type or cls.annotation_type
-            if annotation_type not in remote_classes or cls.name not in remote_classes[annotation_type]:
-                local_classes_missing_remotely.add(cls)
+            # Only add the new class if the annotation type is supported remotely
+            if annotation_type not in remote_classes:
+                print(f'WARNING: {annotation_type} not supported remotely')
+                continue
+            # Only add the new class if it doesn't exist remotely already
+            if cls.name in remote_classes[annotation_type]:
+                continue
+            # Only add the new class if it's not included in the list of the missing classes already
+            if cls.name in [missing_class.name for missing_class in local_classes_missing_remotely]:
+                continue
+            local_classes_missing_remotely.add(cls)
 
     print(f"{len(local_classes_missing_remotely)} classes are missing remotely.")
     if local_classes_missing_remotely:
@@ -153,7 +162,7 @@ def _import_annotations(client: "Client", id: int, remote_classes, attributes, a
 
     if client.feature_enabled("WORKFLOW", dataset.team):
         res = client.post(f"/dataset_items/{id}/import", payload={"annotations": serialized_annotations})
-        if res["status_code"] != 200:
+        if res.get("status_code") != 200:
             print(f"warning, failed to upload annotation to {id}", res)
     else:
         client.post(f"/dataset_images/{id}/import", payload={"annotations": serialized_annotations})
