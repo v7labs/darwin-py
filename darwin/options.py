@@ -76,8 +76,13 @@ class Options(object):
             help="Excludes the files with the specified extension/s if a data folder is provided as data path. ",
         )
         parser_push.add_argument(
-            "-f", "--fps", type=int, default="1", help="Frames per second for video split (recommended: 1)."
+            "-f", "--fps", default="native", help="Frames per second for video split (recommended: 1), use 'native' to use the videos intrinsic fps."
         )
+        parser_push.add_argument(
+            "--frames", action="store_true", help="Annotate a video as independent frames"
+        )
+
+        parser_push.add_argument("--path", type=str, default=None, help="Folder to upload the files into.")
 
         # Remove
         parser_remove = dataset_action.add_parser("remove", help="Remove a remote or remote and local dataset.")
@@ -110,6 +115,10 @@ class Options(object):
         # Pull
         parser_pull = dataset_action.add_parser("pull", help="Download a version of a dataset.")
         parser_pull.add_argument("dataset", type=str, help="Remote dataset name to download.")
+        parser_pull.add_argument(
+            "--only-annotations", action="store_true", help="Download only annotations and no corresponding images"
+        )
+        parser_pull.add_argument("--folders", action="store_true", help="Recreates image folders")
 
         # Import
         parser_import = dataset_action.add_parser("import", help="Import data to an existing (remote) dataset.")
@@ -122,7 +131,7 @@ class Options(object):
 
         parser_import.add_argument("files", type=str, nargs="+", help="Annotation files (or folders) to import")
 
-        # Convet
+        # Convert
         parser_convert = dataset_action.add_parser("convert", help="Converts darwin json to other annotation formats.")
         parser_convert.add_argument(
             "dataset",
@@ -147,6 +156,27 @@ class Options(object):
             "-t", "--test-percentage", type=float, required=False, default=0, help="Test percentage."
         )
         parser_split.add_argument("-s", "--seed", type=int, required=False, default=0, help="Split seed.")
+
+        # File listing
+        parser_files = dataset_action.add_parser("files", help="Lists file in a remote dataset")
+        parser_files.add_argument(
+            "dataset",
+            type=str,
+            help="[Remote] Dataset name: to list all the existing dataset, run 'darwin dataset remote'. ",
+        )
+        parser_files.add_argument("--only-filenames", action="store_true", help="Only prints out filenames")
+        parser_files.add_argument("--status", type=str, required=False, help="Comma separated list of statuses")
+        parser_files.add_argument("--path", type=str, required=False, help="")
+
+        # Set file status
+        parser_file_status = dataset_action.add_parser("set-file-status", help="Sets the status of one or more files")
+        parser_file_status.add_argument(
+            "dataset",
+            type=str,
+            help="[Remote] Dataset name: to list all the existing dataset, run 'darwin dataset remote'. ",
+        )
+        parser_file_status.add_argument("status", type=str, help="Status to change to")
+        parser_file_status.add_argument("files", type=str, nargs="+", help="Files to change status")
 
         # Help
         dataset_action.add_parser("help", help="Show this help message and exit.")

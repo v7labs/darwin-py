@@ -43,7 +43,7 @@ def run(args, parser):
             f.list_teams()
     # Version
     elif args.command == "version":
-        print("0.5.8")
+        print("0.5.10")
 
     elif args.command == "convert":
         f.convert(args.format, args.files, args.output_dir)
@@ -62,7 +62,7 @@ def run(args, parser):
         elif args.action == "url":
             f.url(args.dataset)
         elif args.action == "push":
-            f.upload_data(args.dataset, args.files, args.exclude, args.fps)
+            f.upload_data(args.dataset, args.files, args.exclude, args.fps, args.path, args.frames)
         # Remove a project (remotely)
         elif args.action == "remove":
             f.remove_remote_dataset(args.dataset)
@@ -70,16 +70,20 @@ def run(args, parser):
             f.dataset_report(args.dataset, args.granularity or "day")
         elif args.action == "export":
             f.export_dataset(args.dataset, args.include_url_token, args.annotation_class, args.name)
+        elif args.action == "files":
+            f.list_files(args.dataset, args.status, args.path, args.only_filenames)
         elif args.action == "releases":
             f.dataset_list_releases(args.dataset)
         elif args.action == "pull":
-            f.pull_dataset(args.dataset)
+            f.pull_dataset(args.dataset, args.only_annotations, args.folders)
         elif args.action == "import":
             f.dataset_import(args.dataset, args.format, args.files)
         elif args.action == "convert":
             f.dataset_convert(args.dataset, args.format, args.output_dir)
         elif args.action == "migrate":
             f.migrate_dataset(args.dataset)
+        elif args.action == "set-file-status":
+            f.set_file_status(args.dataset, args.status, args.files)
         elif args.action == "split":
             f.split(args.dataset, args.val_percentage, args.test_percentage, args.seed)
         elif args.action == "help" or args.action is None:

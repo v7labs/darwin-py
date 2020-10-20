@@ -61,7 +61,7 @@ def import_annotations(
     file_paths: List[Union[str, Path]],
 ):
     print("Fetching remote file list...")
-    remote_files = {f["filename"]: f["id"] for f in dataset.fetch_remote_files()}
+    remote_files = {f.filename: f.id for f in dataset.fetch_remote_files()}
     print("Fetching remote class list...")
     remote_classes = build_main_annotations_lookup_table(dataset.fetch_remote_classes())
     attributes = build_attribute_lookup(dataset)
@@ -115,7 +115,10 @@ def _import_annotations(client: "Client", id: int, remote_classes, attributes, a
     for annotation in annotations:
         annotation_class = annotation.annotation_class
         annotation_class_id = remote_classes[annotation_class.annotation_type][annotation_class.name]
-        data = {annotation_class.annotation_type: annotation.data}
+        if "frames" in annotation.data:
+            data = annotation.data
+        else:
+            data = {annotation_class.annotation_type: annotation.data}
         for sub in annotation.subs:
             if sub.annotation_type == "text":
                 data["text"] = {"text": sub.data}
@@ -136,6 +139,6 @@ def _import_annotations(client: "Client", id: int, remote_classes, attributes, a
     if client.feature_enabled("WORKFLOW", dataset.team):
         res = client.post(f"/dataset_items/{id}/import", payload={"annotations": serialized_annotations})
         if res["status_code"] != 200:
-            print(f"warning, failed to upload annotation to {id}")
+            print(f"warning, failed to upload annotation to {id}", res)
     else:
         client.post(f"/dataset_images/{id}/import", payload={"annotations": serialized_annotations})

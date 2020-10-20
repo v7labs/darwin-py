@@ -18,7 +18,15 @@ if TYPE_CHECKING:
     from darwin.client import Client
 
 
-def add_files_to_dataset(client: "Client", dataset_id: str, filenames: List[Path], team: str, fps: Optional[int] = 1):
+def add_files_to_dataset(
+    client: "Client",
+    dataset_id: str,
+    filenames: List[Path],
+    team: str,
+    fps: Optional[int] = 1,
+    as_frames: Optional[bool] = False,
+    path: Optional[str] = None,
+):
     """Helper function: upload images to an existing remote dataset
 
     Parameters
@@ -31,6 +39,8 @@ def add_files_to_dataset(client: "Client", dataset_id: str, filenames: List[Path
         List of filenames to upload
     fps : int
         Frame rate to split videos in.
+    path: str
+        Which folder to upload the files to
     Returns
     -------
 
@@ -41,14 +51,15 @@ def add_files_to_dataset(client: "Client", dataset_id: str, filenames: List[Path
     generators = []
     for filenames_chunk in _chunk_filenames(filenames, 100):
         images, videos = _split_on_file_type(filenames_chunk)
-        data = client.put(
-            endpoint=f"/datasets/{dataset_id}/data",
-            payload={
-                "image_filenames": [image.name for image in images],
-                "videos": [{"fps": fps, "original_filename": video.name} for video in videos],
-            },
-            team=team,
-        )
+        payload = {
+            "image_filenames": [image.name for image in images],
+            "videos": [
+                {"fps": fps, "annotate_as_video": not as_frames, "original_filename": video.name} for video in videos
+            ],
+        }
+        if path:
+            payload["path"] = path
+        data = client.put(endpoint=f"/datasets/{dataset_id}/data", payload=payload, team=team,)
         if "errors" in data:
             raise ValueError(f"There are errors in the put request: {data['errors']['detail']}")
         if images:

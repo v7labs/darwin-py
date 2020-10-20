@@ -58,6 +58,43 @@ NAME                       IMAGES     PROGRESS
 other-team/ct-scans           450        100.0%
 ```
 
+### List remote files
+Lists all files in a remote dataset, can optional by filtered by file status and/or foldername. 
+Allowed statuses: `new`, `annotate`, `review`, `complete`, `archived`
+
+```
+$ darwin dataset files example-team/mydataset 
+test1.png complete
+test2.png complete
+test3.png annotate
+```
+
+```
+$ darwin dataset files example-team/mydataset --path outdoors
+test1.png complete
+```
+
+```
+$ darwin dataset files example-team/mydataset --status complete
+test1.png complete
+test2.png complete
+```
+
+Add `--only-filenames` to only list the filename.
+
+### Set file status
+Allows to set the status of a file in a dataset. Allowed statuses are: `archived` and `restore-archived` (More will be added soon).
+
+```
+$ darwin dataset set-file-status example-team/my-new-dataset archived 00000010.jpg
+```
+
+This can be used in conjunction with `darwin dataset files`, for example:
+```
+$ darwin dataset set-file-status example-team/my-new-dataset archived $(darwin dataset files example-team/my-new-dataset --status error --only-filenames)
+```
+
+
 ### List local datasets
 Local datasets are datasets that have been downloaded, 
 ```
@@ -81,16 +118,22 @@ $ darwin dataset push my-team/test --fps 2 my_video.mp4
 100%|████████████████████████| 1/1 [00:01<00:00,  1.27it/s] 
 ```
 
-
 The `-e/--exclude` argument allows to indicate file extension/s to be ignored from the data_dir. 
 e.g.: `-e .jpg`
 
 For videos, the frame rate extraction rate can be specified by adding `--fps <frame_rate>`
+To use the intrinsic frame rate of the video either leave out the fps flag or use `--fps native`
 
 Supported extensions:
 
 -  Video files: [`.mp4`, `.bpm`, `.mov` formats].
 -  Image files [`.jpg`, `.jpeg`, `.png` formats].
+
+There is also an optional `--path` flag to move the uploaded files into the specified directory.
+```
+$ darwin dataset push my-team/test --path animals/cats cat1.png cat2.png
+100%|████████████████████████| 1/2 [00:01<00:00,  2.42it/s] 
+```
 
 
 ### Releases
@@ -140,7 +183,11 @@ $ darwin dataset pull example-team/my-new-dataset:0.1
 Dataset example-team/my-new-dataset:0.4 downloaded at ~/.darwin/datasets/example-team
 ```
 
+If you dataset contains folders and you want to mirror the folder structure locally add `--folders`
+
+
 Note that if this was the latest release for this dataset, then this release can also be referred to it via `:latest` for local operations.
+Only datasets exported in the Darwin (JSON) format are downloadable via darwin-py. 
 
 ### Path to dataset
 A convenient command to find a dataset on the local filesystem (if downloaded)
@@ -158,7 +205,7 @@ Do you want to continue? [y/N] y
 ```
 
 ### Import annotations
-If you want to bootstrap your dataset by importing already existing annotations, first make sure that all the images are already uploaded. Then ensure that the annotations are in one of the following formats [PascalVoc, COCO, CSV Tags]. 
+If you want to bootstrap your dataset by importing already existing annotations, first make sure that all the images are already uploaded. Then ensure that the annotations are in one of the following formats [Darwin, PascalVoc, COCO, CSV Tags, CSV Video Tag, Dataloop]. 
 
 ```
 $ darwin dataset import example-team/test pascal_voc sample_voc.xml
@@ -183,9 +230,53 @@ There are few things going on here:
 ### Convert annotations
 
 ```
-$ darwin dataset convert v7/my-new-dataset:standard coco output_directory
+$ darwin dataset convert example-team/my-new-dataset:0.1 coco -o output_directory
 ```
 
 This converts the downloaded annotations from the darwin format to an external format. Currently supported: [COCO, CVAT, Pascal VOC]
 
 **Note** Some annotations types are not valid for some formats, when that happens the annotation is simply dropped. 
+
+
+### Formats
+
+#### Darwin `darwin` import
+This is the standard format used when exporting annotations from darwin. 
+
+#### PascalVoc `pascal_voc` (import & export)
+An xml format specifying bounding boxes. 
+
+#### Dataloop `dataloop` (import & export)
+
+#### CSV Tags `csv_tags` (import)
+A csv file with one line per file, first column is the file name and the remaning columns are tags.
+
+Example:
+```csv
+a.png,outdoors,sunny,blurry
+b.png,indoors
+```
+
+#### CSV Tags Video `csv_tags_video` (import)
+A csv file with one line per tag, the first column is the video filename, followed by tag name, start frame and end frame
+
+
+Example:
+```csv
+1.mp4,car,20,34
+1.mp4,bird,5,25
+2.mp4,bird,0,40
+```
+
+#### COCO `coco` (import & export)
+A json file containing annotations for multiple images. See [https://cocodataset.org/#format-data](https://cocodataset.org/#format-data) for the format definition. 
+
+
+#### CVAT `cvat` (export)
+
+#### Instance Mask `instance` (export)
+Creates one mask per object per image. 
+
+#### Semenatic Mask `semantic-mask` (export)
+Creates one mask per image, different colors per class. 
+A `class_mapping.csv` is also created containing a mapping between `class_name` and `class_color`
