@@ -15,7 +15,15 @@ from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset.identifier import DatasetIdentifier
 from darwin.dataset.utils import get_release_path, split_dataset
-from darwin.exceptions import InvalidLogin, MissingConfig, NameTaken, NotFound, Unauthenticated, ValidationError
+from darwin.exceptions import (
+    InvalidLogin,
+    MissingConfig,
+    NameTaken,
+    NotFound,
+    Unauthenticated,
+    UnsupportedExportFormat,
+    ValidationError,
+)
 from darwin.table import Table
 from darwin.utils import find_files, persist_client_configuration, prompt, secure_continue_request
 
@@ -221,7 +229,7 @@ def export_dataset(
     print(f"Dataset {dataset_slug} successfully exported to {identifier}")
 
 
-def pull_dataset(dataset_slug: str, only_annotations: bool = False):
+def pull_dataset(dataset_slug: str, only_annotations: bool = False, folders: bool = False):
     """Downloads a remote dataset (images and annotations) in the datasets directory.
 
     Parameters
@@ -230,6 +238,8 @@ def pull_dataset(dataset_slug: str, only_annotations: bool = False):
         Slug of the dataset to which we perform the operation on
     only_annotations: bool
         Download only the annotations and no corresponding images
+    folders: bool
+        Recreates the folders in the dataset
     """
     version = DatasetIdentifier.parse(dataset_slug).version or "latest"
     client = _load_client(offline=False, maybe_guest=True)
@@ -244,11 +254,16 @@ def pull_dataset(dataset_slug: str, only_annotations: bool = False):
         _error(f"please re-authenticate")
     try:
         release = dataset.get_release(version)
-        dataset.pull(release=release, only_annotations=only_annotations)
+        dataset.pull(release=release, only_annotations=only_annotations, use_folders=folders)
     except NotFound:
         _error(
             f"Version '{dataset.identifier}:{version}' does not exist "
             f"Use 'darwin dataset releases' to list all available versions."
+        )
+    except UnsupportedExportFormat as uef:
+        _error(
+            f"Version '{dataset.identifier}:{version}' is of format '{uef.format}', "
+            f"only the darwin format ('json') is supported for `darwin dataset pull`"
         )
     print(f"Dataset {release.identifier} downloaded at {dataset.local_path}. ")
 
@@ -424,7 +439,7 @@ def upload_data(
     files_to_exclude: Optional[List[str]],
     fps: int,
     path: Optional[str],
-    as_video: Optional[bool],
+    frames: Optional[bool],
 ):
     """Uploads the files provided as parameter to the remote dataset selected
 
@@ -449,7 +464,7 @@ def upload_data(
     client = _load_client()
     try:
         dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
-        dataset.push(files_to_exclude=files_to_exclude, fps=fps, as_video=as_video, files_to_upload=files, path=path)
+        dataset.push(files_to_exclude=files_to_exclude, fps=fps, as_frames=frames, files_to_upload=files, path=path)
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
     except ValueError:

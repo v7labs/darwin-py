@@ -76,10 +76,10 @@ class Options(object):
             help="Excludes the files with the specified extension/s if a data folder is provided as data path. ",
         )
         parser_push.add_argument(
-            "-f", "--fps", type=int, default="1", help="Frames per second for video split (recommended: 1)."
+            "-f", "--fps", default="native", help="Frames per second for video split (recommended: 1), use 'native' to use the videos intrinsic fps."
         )
         parser_push.add_argument(
-            "--as-video", action="store_true", help="Annotate a video as a video and not independent frames"
+            "--frames", action="store_true", help="Annotate a video as independent frames"
         )
 
         parser_push.add_argument("--path", type=str, default=None, help="Folder to upload the files into.")
@@ -118,6 +118,7 @@ class Options(object):
         parser_pull.add_argument(
             "--only-annotations", action="store_true", help="Download only annotations and no corresponding images"
         )
+        parser_pull.add_argument("--folders", action="store_true", help="Recreates image folders")
 
         # Import
         parser_import = dataset_action.add_parser("import", help="Import data to an existing (remote) dataset.")
