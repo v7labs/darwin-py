@@ -86,12 +86,8 @@ def import_annotations(
     for local_file in local_files:
         for cls in local_file.annotation_classes:
             annotation_type = cls.annotation_internal_type or cls.annotation_type
-            # Only add the new class if the annotation type is supported remotely
-            if annotation_type not in remote_classes:
-                print(f'WARNING: {annotation_type} not supported remotely')
-                continue
             # Only add the new class if it doesn't exist remotely already
-            if cls.name in remote_classes[annotation_type]:
+            if annotation_type in remote_classes and cls.name in remote_classes[annotation_type]:
                 continue
             # Only add the new class if it's not included in the list of the missing classes already
             if cls.name in [missing_class.name for missing_class in local_classes_missing_remotely]:
