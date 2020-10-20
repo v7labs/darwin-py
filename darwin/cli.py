@@ -62,7 +62,7 @@ def run(args, parser):
         elif args.action == "url":
             f.url(args.dataset)
         elif args.action == "push":
-            f.upload_data(args.dataset, args.files, args.exclude, args.fps, args.path, args.as_video)
+            f.upload_data(args.dataset, args.files, args.exclude, args.fps, args.path, args.frames)
         # Remove a project (remotely)
         elif args.action == "remove":
             f.remove_remote_dataset(args.dataset)
@@ -75,7 +75,7 @@ def run(args, parser):
         elif args.action == "releases":
             f.dataset_list_releases(args.dataset)
         elif args.action == "pull":
-            f.pull_dataset(args.dataset, args.only_annotations)
+            f.pull_dataset(args.dataset, args.only_annotations, args.folders)
         elif args.action == "import":
             f.dataset_import(args.dataset, args.format, args.files)
         elif args.action == "convert":

@@ -16,6 +16,7 @@ def download_all_images_from_annotations(
     force_replace: bool = False,
     remove_extra: bool = False,
     annotation_format: str = "json",
+    use_folders: bool = False
 ):
     """Helper function: downloads the all images corresponding to a project.
 
@@ -35,6 +36,8 @@ def download_all_images_from_annotations(
         Removes existing images for which there is not corresponding annotation
     annotation_format : str
         Format of the annotations. Currently only JSON and xml are expected
+    use_folders: bool
+        Recreate folders
 
     Returns
     -------
@@ -48,9 +51,9 @@ def download_all_images_from_annotations(
         raise ValueError(f"Annotation format {annotation_format} not supported")
 
     # Verify that there is not already image in the images folder
-    existing_images = {
-        image.stem: image for image in images_path.glob(f"*") if is_image_extension_allowed(image.suffix)
-    }
+    unfiltered_files = images_path.rglob(f"*") if use_folders else images_path.glob(f"*")
+    existing_images = {image.stem: image for image in unfiltered_files if is_image_extension_allowed(image.suffix)}
+
     annotations_to_download_path = []
     for annotation_path in annotations_path.glob(f"*.{annotation_format}"):
         annotation = json.load(annotation_path.open())
@@ -71,12 +74,17 @@ def download_all_images_from_annotations(
             if existing_image.stem not in annotations_downloaded_stem:
                 print(f"Removing {existing_image} as there is no corresponding annotation")
                 existing_image.unlink()
-
     # Create the generator with the partial functions
     count = len(annotations_to_download_path)
     generator = lambda: (
         functools.partial(
-            download_image_from_annotation, api_key, api_url, annotation_path, images_path, annotation_format
+            download_image_from_annotation,
+            api_key,
+            api_url,
+            annotation_path,
+            images_path,
+            annotation_format,
+            use_folders,
         )
         for annotation_path in annotations_to_download_path
     )
@@ -84,7 +92,7 @@ def download_all_images_from_annotations(
 
 
 def download_image_from_annotation(
-    api_key: str, api_url: str, annotation_path: Path, images_path: str, annotation_format: str
+    api_key: str, api_url: str, annotation_path: Path, images_path: str, annotation_format: str, use_folders: bool
 ):
     """Helper function: dispatcher of functions to download an image given an annotation
 
@@ -100,16 +108,20 @@ def download_image_from_annotation(
         Path where to download the image
     annotation_format : str
         Format of the annotations. Currently only JSON is supported
+    use_folders: bool
+        Recreate folder structure
     """
     if annotation_format == "json":
-        download_image_from_json_annotation(api_key, api_url, annotation_path, images_path)
+        download_image_from_json_annotation(api_key, api_url, annotation_path, images_path, use_folders)
     elif annotation_format == "xml":
         print("sorry can't let you do that dave")
         raise NotImplementedError
         # download_image_from_xml_annotation(annotation_path, images_path)
 
 
-def download_image_from_json_annotation(api_key: str, api_url: str, annotation_path: Path, image_path: str):
+def download_image_from_json_annotation(
+    api_key: str, api_url: str, annotation_path: Path, image_path: str, use_folders: bool
+):
     """
     Helper function: downloads an image given a .json annotation path
     and renames the json after the image filename
@@ -124,14 +136,20 @@ def download_image_from_json_annotation(api_key: str, api_url: str, annotation_p
         Path where the annotation is located
     image_path : Path
         Path where to download the image
+    use_folders: bool
+        Recreate folders
     """
-    Path(image_path).mkdir(exist_ok=True)
     annotation = json.load(annotation_path.open())
 
     # Make the image file name match the one of the JSON annotation
     original_filename_suffix = Path(annotation["image"]["original_filename"]).suffix
-    path = Path(image_path) / (annotation_path.stem + original_filename_suffix)
 
+    # If we are using folders, extract the path for the image and create the folder if needed
+    sub_path = annotation["image"].get("path", "/") if use_folders else "/"
+    parent_path = Path(image_path) / Path(sub_path).relative_to(Path(sub_path).anchor)
+    parent_path.mkdir(exist_ok=True, parents=True)
+
+    path = parent_path / (annotation_path.stem + original_filename_suffix)
     download_image(annotation["image"]["url"], path, api_key)
 
 

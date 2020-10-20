@@ -4,10 +4,10 @@ from typing import Generator, List
 
 import numpy as np
 from PIL import Image
+from upolygon import draw_polygon
 
 import darwin.datatypes as dt
 from darwin.utils import convert_polygons_to_sequences, get_progress_bar, ispolygon
-from upolygon import draw_polygon
 
 
 def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_dir: Path, mode: str = "grey"):
