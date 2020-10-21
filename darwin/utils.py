@@ -173,20 +173,26 @@ def parse_darwin_json(path: Path, count: int):
         data = json.load(f)
         if not data["annotations"]:
             return None
-        annotations = list(filter(None, map(parse_darwin_annotation, data["annotations"])))
-        annotation_classes = set([annotation.annotation_class for annotation in annotations])
 
-        return dt.AnnotationFile(
-            path,
-            data["image"]["original_filename"],
-            annotation_classes,
-            annotations,
-            data["image"]["width"],
-            data["image"]["height"],
-            data["image"]["url"],
-            data["image"].get("workview_url"),
-            data["image"].get("seq", count),
-        )
+        if 'frame_urls' not in data['image']:
+            annotations = list(filter(None, map(parse_darwin_annotation, data["annotations"])))
+            annotation_classes = set([annotation.annotation_class for annotation in annotations])
+
+            return dt.AnnotationFile(
+                path,
+                data["image"]["original_filename"],
+                annotation_classes,
+                annotations,
+                data["image"]["width"],
+                data["image"]["height"],
+                data["image"]["url"],
+                data["image"].get("workview_url"),
+                data["image"].get("seq", count),
+            )
+        else:
+            annotations = parse_darwin_video_annotation(data)
+            import pdb; pdb.set_trace()  # XXX BREAKPOINT
+            a=1
 
 
 def parse_darwin_annotation(annotation: dict):
@@ -207,6 +213,8 @@ def parse_darwin_annotation(annotation: dict):
         main_annotation = dt.make_line(name, annotation["line"]["path"])
     elif "keypoint" in annotation:
         main_annotation = dt.make_keypoint(name, annotation["keypoint"]["x"], annotation["keypoint"]["y"])
+    elif "skeleton" in annotation:
+        main_annotation = dt.make_skeleton(name, annotation["skeleton"]["nodes"])
 
     if not main_annotation:
         print(f"[WARNING] Unsupported annotation type: '{annotation.keys()}'")
@@ -220,6 +228,46 @@ def parse_darwin_annotation(annotation: dict):
         main_annotation.subs.append(dt.make_text(annotation["text"]["text"]))
 
     return main_annotation
+
+
+def parse_darwin_video_annotation(data: dict):
+    n_frames = data['image']['frame_count']
+    annotations = {i: list() for i in range(n_frames)}
+    for annotation in data['annotations']:
+        name = annotation["name"]
+        for f, frame in annotation['frames'].items():
+            main_annotation = None
+            if "polygon" in frame:
+                main_annotation = dt.make_polygon(name, frame["polygon"]["path"])
+            elif "complex_polygon" in frame:
+                main_annotation = dt.make_complex_polygon(name, frame["complex_polygon"]["path"])
+            elif "bounding_box" in frame:
+                bounding_box = annotation["bounding_box"]
+                main_annotation = dt.make_bounding_box(
+                    name, bounding_box["x"], bounding_box["y"], bounding_box["w"], bounding_box["h"]
+                )
+            elif "tag" in frame:
+                main_annotation = dt.make_tag(name)
+            elif "line" in frame:
+                main_annotation = dt.make_line(name, frame["line"]["path"])
+            elif "keypoint" in frame:
+                main_annotation = dt.make_keypoint(name, frame["keypoint"]["x"], frame["keypoint"]["y"])
+            elif "skeleton" in frame:
+                main_annotation = dt.make_skeleton(name, frame["skeleton"]["nodes"])
+
+            if not main_annotation:
+                print(f"[WARNING] Unsupported annotation type: '{annotation.keys()}'")
+                return None
+
+            if "instance_id" in annotation:
+                main_annotation.subs.append(dt.make_instance_id(annotation["instance_id"]["value"]))
+            if "attributes" in annotation:
+                main_annotation.subs.append(dt.make_attributes(annotation["attributes"]))
+            if "text" in annotation:
+                main_annotation.subs.append(dt.make_text(annotation["text"]["text"]))
+
+            annotations[int(f)].append(main_annotation)
+    return annotations
 
 
 def ispolygon(annotation):

@@ -546,7 +546,8 @@ def dataset_convert(dataset_slug, format, output_dir):
         annotations_path = release_path / "annotations"
         if output_dir is None:
             output_dir = release_path / "other_formats" / f"{format}"
-            output_dir.mkdir(parents=True, exist_ok=True)
+        output_dir = Path(output_dir)
+        output_dir.mkdir(parents=True, exist_ok=True)
         exporter.export_annotations(parser, [annotations_path], output_dir)
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")

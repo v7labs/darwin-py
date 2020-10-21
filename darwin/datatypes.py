@@ -72,6 +72,10 @@ def make_line(class_name, path):
     return Annotation(AnnotationClass(class_name, "line"), {"path": path})
 
 
+def make_skeleton(class_name, nodes):
+    return Annotation(AnnotationClass(class_name, "skeleton"), {"nodes": nodes})
+
+
 def make_instance_id(value):
     return SubAnnotation("instance_id", value)
 
