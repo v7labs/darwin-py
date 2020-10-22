@@ -1,3 +1,4 @@
+import os
 import json
 from pathlib import Path
 from typing import TYPE_CHECKING, List, Optional, Union
@@ -190,9 +191,27 @@ def parse_darwin_json(path: Path, count: int):
                 data["image"].get("seq", count),
             )
         else:
-            annotations = parse_darwin_video_annotation(data)
-            import pdb; pdb.set_trace()  # XXX BREAKPOINT
-            a=1
+            video_annotations = parse_darwin_video_annotation(data)
+            num_frames = data['image']['frame_count']
+            original_filename = data['image']['original_filename']
+            annotation_files = []
+            for i in range(num_frames):
+                annotations = video_annotations[i]
+                annotation_classes = set([annotation.annotation_class for annotation in annotations])
+                annotation_files.append(
+                    dt.AnnotationFile(
+                        path,
+                        original_filename,
+                        annotation_classes,
+                        annotations,
+                        # TODO: data["image"]["width"],
+                        # TODO: data["image"]["height"],
+                        image_url=data["image"]["frame_urls"][i],
+                        workview_url=data["image"].get("workview_url"),
+                        seq=data["image"].get("seq", count),
+                    )
+                )
+            return annotation_files
 
 
 def parse_darwin_annotation(annotation: dict):
@@ -231,8 +250,7 @@ def parse_darwin_annotation(annotation: dict):
 
 
 def parse_darwin_video_annotation(data: dict):
-    n_frames = data['image']['frame_count']
-    annotations = {i: list() for i in range(n_frames)}
+    annotations = {i: list() for i in range(data["image"]["frame_count"])}
     for annotation in data['annotations']:
         name = annotation["name"]
         for f, frame in annotation['frames'].items():

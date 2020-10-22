@@ -45,6 +45,18 @@ class AnnotationFile:
     seq: Optional[int] = None
 
 
+@dataclass
+class AnnotationVideo:
+    path: Path
+    filename: str
+    annotations: List[AnnotationFile]
+    image_width: Optional[int] = None
+    image_height: Optional[int] = None
+    image_url: Optional[str] = None
+    workview_url: Optional[str] = None
+    seq: Optional[int] = None
+
+
 def make_bounding_box(class_name, x, y, w, h):
     return Annotation(
         AnnotationClass(class_name, "bounding_box"),
