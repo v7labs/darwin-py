@@ -149,7 +149,7 @@ def download_image_from_json_annotation(
     parent_path = Path(image_path) / Path(sub_path).relative_to(Path(sub_path).anchor)
     parent_path.mkdir(exist_ok=True, parents=True)
 
-    path = parent_path / (annotation_path.stem + original_filename_suffix)
+    path = parent_path / annotation["image"]["original_filename"]
     download_image(annotation["image"]["url"], path, api_key)
 
 
