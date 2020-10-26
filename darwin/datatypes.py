@@ -39,7 +39,7 @@ class VideoAnnotation:
     keyframes: List[bool]
     segments: List[List[int]]
     interpolated: bool
-    
+
     def get_frame(self, frame_index):
         return frames[frame_index]
 
@@ -50,16 +50,18 @@ class VideoAnnotation:
             "frames": {
                 frame: {
                     **post_processing(
-                        self.frames[frame], 
-                        { self.frames[frame].annotation_class.annotation_type: self.frames[frame].data }
-                        ),
-                    **{"keyframe": self.keyframes[frame]}
+                        self.frames[frame],
+                        {self.frames[frame].annotation_class.annotation_type: self.frames[frame].data},
+                    ),
+                    **{"keyframe": self.keyframes[frame]},
                 }
-                for frame in self.frames if not only_keyframes or self.keyframes[frame]
+                for frame in self.frames
+                if not only_keyframes or self.keyframes[frame]
             },
             "segments": self.segments,
-            "interpolated": self.interpolated
+            "interpolated": self.interpolated,
         }
+
 
 @dataclass
 class AnnotationFile:
@@ -150,14 +152,10 @@ def make_video(keyframes, start, end):
         },
     )
 
+
 def make_video_annotation(frames, keyframes, segments, interpolated):
     first_annotation = list(frames.values())[0]
     if not all(frame.annotation_class.name == first_annotation.annotation_class.name for frame in frames.values()):
         raise ValueError("invalid argument to make_video_annotation")
-    
-    return VideoAnnotation(
-        first_annotation.annotation_class,
-        frames,
-        keyframes,
-        segments,
-        interpolated)
+
+    return VideoAnnotation(first_annotation.annotation_class, frames, keyframes, segments, interpolated)

@@ -1,4 +1,3 @@
-import os
 import json
 from pathlib import Path
 from typing import TYPE_CHECKING, List, Optional, Union
@@ -175,11 +174,11 @@ def parse_darwin_json(path: Union[str, Path], count: int):
         data = json.load(f)
         if not data["annotations"]:
             return None
-        if 'fps' in data['image'] or 'frame_count' in data['image']:
+        if "fps" in data["image"] or "frame_count" in data["image"]:
             return parse_darwin_video(path, data, count)
         else:
             return parse_darwin_image(path, data, count)
-    
+
 
 def parse_darwin_image(path, data, count):
     annotations = list(filter(None, map(parse_darwin_annotation, data["annotations"])))
@@ -194,7 +193,7 @@ def parse_darwin_image(path, data, count):
         data["image"]["height"],
         data["image"]["url"],
         data["image"].get("workview_url"),
-        data["image"].get("seq", count)
+        data["image"].get("seq", count),
     )
 
 
@@ -211,8 +210,9 @@ def parse_darwin_video(path, data, count):
         None,
         data["image"]["url"],
         data["image"].get("workview_url"),
-        data["image"].get("seq", count)
+        data["image"].get("seq", count),
     )
+
 
 def parse_darwin_annotation(annotation: dict):
     name = annotation["name"]
@@ -253,11 +253,10 @@ def parse_darwin_video_annotation(annotation: dict):
     name = annotation["name"]
     frame_annotations = {}
     keyframes = {}
-    for f, frame in annotation['frames'].items():
+    for f, frame in annotation["frames"].items():
         frame_annotations[int(f)] = parse_darwin_annotation({**frame, **{"name": name}})
         keyframes[int(f)] = frame["keyframe"]
     return dt.make_video_annotation(frame_annotations, keyframes, annotation["segments"], annotation["interpolated"])
-
 
 
 def ispolygon(annotation):

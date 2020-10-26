@@ -115,7 +115,7 @@ def import_annotations(
 def _handle_subs(annotation, data, attributes):
     for sub in annotation.subs:
         if sub.annotation_type == "text":
-                data["text"] = {"text": sub.data}
+            data["text"] = {"text": sub.data}
         elif sub.annotation_type == "attributes":
             data["attributes"] = {
                 "attributes": [
@@ -130,13 +130,16 @@ def _handle_subs(annotation, data, attributes):
             data[sub.annotation_type] = sub.data
     return data
 
+
 def _import_annotations(client: "Client", id: int, remote_classes, attributes, annotations, dataset):
     serialized_annotations = []
     for annotation in annotations:
         annotation_class = annotation.annotation_class
         annotation_class_id = remote_classes[annotation_class.annotation_type][annotation_class.name]
         if isinstance(annotation, dt.VideoAnnotation):
-            data = annotation.get_data(only_keyframes=True, post_processing=lambda annotation, data: _handle_subs(annotation, data, attributes) )
+            data = annotation.get_data(
+                only_keyframes=True, post_processing=lambda annotation, data: _handle_subs(annotation, data, attributes)
+            )
         elif "frames" in annotation.data:
             data = annotation.data
         else:
