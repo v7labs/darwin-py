@@ -169,50 +169,50 @@ def persist_client_configuration(
     return config
 
 
-def parse_darwin_json(path: Path, count: int):
+def parse_darwin_json(path: Union[str, Path], count: int):
+    path = Path(path)
     with path.open() as f:
         data = json.load(f)
         if not data["annotations"]:
             return None
-
-        if 'frame_urls' not in data['image']:
-            annotations = list(filter(None, map(parse_darwin_annotation, data["annotations"])))
-            annotation_classes = set([annotation.annotation_class for annotation in annotations])
-
-            return dt.AnnotationFile(
-                path,
-                data["image"]["original_filename"],
-                annotation_classes,
-                annotations,
-                data["image"]["width"],
-                data["image"]["height"],
-                data["image"]["url"],
-                data["image"].get("workview_url"),
-                data["image"].get("seq", count),
-            )
+        if 'fps' in data['image'] or 'frame_count' in data['image']:
+            return parse_darwin_video(path, data, count)
         else:
-            video_annotations = parse_darwin_video_annotation(data)
-            num_frames = data['image']['frame_count']
-            original_filename = data['image']['original_filename']
-            annotation_files = []
-            for i in range(num_frames):
-                annotations = video_annotations[i]
-                annotation_classes = set([annotation.annotation_class for annotation in annotations])
-                annotation_files.append(
-                    dt.AnnotationFile(
-                        path,
-                        original_filename,
-                        annotation_classes,
-                        annotations,
-                        # TODO: data["image"]["width"],
-                        # TODO: data["image"]["height"],
-                        image_url=data["image"]["frame_urls"][i],
-                        workview_url=data["image"].get("workview_url"),
-                        seq=data["image"].get("seq", count),
-                    )
-                )
-            return annotation_files
+            return parse_darwin_image(path, data, count)
+    
 
+def parse_darwin_image(path, data, count):
+    annotations = list(filter(None, map(parse_darwin_annotation, data["annotations"])))
+    annotation_classes = set([annotation.annotation_class for annotation in annotations])
+
+    return dt.AnnotationFile(
+        path,
+        data["image"]["original_filename"],
+        annotation_classes,
+        annotations,
+        data["image"]["width"],
+        data["image"]["height"],
+        data["image"]["url"],
+        data["image"].get("workview_url"),
+        data["image"].get("seq", count)
+    )
+
+
+def parse_darwin_video(path, data, count):
+    annotations = list(filter(None, map(parse_darwin_video_annotation, data["annotations"])))
+    annotation_classes = set([annotation.annotation_class for annotation in annotations])
+
+    return dt.AnnotationFile(
+        path,
+        data["image"]["original_filename"],
+        annotation_classes,
+        annotations,
+        None,
+        None,
+        data["image"]["url"],
+        data["image"].get("workview_url"),
+        data["image"].get("seq", count)
+    )
 
 def parse_darwin_annotation(annotation: dict):
     name = annotation["name"]
@@ -249,43 +249,15 @@ def parse_darwin_annotation(annotation: dict):
     return main_annotation
 
 
-def parse_darwin_video_annotation(data: dict):
-    annotations = {i: list() for i in range(data["image"]["frame_count"])}
-    for annotation in data['annotations']:
-        name = annotation["name"]
-        for f, frame in annotation['frames'].items():
-            main_annotation = None
-            if "polygon" in frame:
-                main_annotation = dt.make_polygon(name, frame["polygon"]["path"])
-            elif "complex_polygon" in frame:
-                main_annotation = dt.make_complex_polygon(name, frame["complex_polygon"]["path"])
-            elif "bounding_box" in frame:
-                bounding_box = annotation["bounding_box"]
-                main_annotation = dt.make_bounding_box(
-                    name, bounding_box["x"], bounding_box["y"], bounding_box["w"], bounding_box["h"]
-                )
-            elif "tag" in frame:
-                main_annotation = dt.make_tag(name)
-            elif "line" in frame:
-                main_annotation = dt.make_line(name, frame["line"]["path"])
-            elif "keypoint" in frame:
-                main_annotation = dt.make_keypoint(name, frame["keypoint"]["x"], frame["keypoint"]["y"])
-            elif "skeleton" in frame:
-                main_annotation = dt.make_skeleton(name, frame["skeleton"]["nodes"])
+def parse_darwin_video_annotation(annotation: dict):
+    name = annotation["name"]
+    frame_annotations = {}
+    keyframes = {}
+    for f, frame in annotation['frames'].items():
+        frame_annotations[int(f)] = parse_darwin_annotation({**frame, **{"name": name}})
+        keyframes[int(f)] = frame["keyframe"]
+    return dt.make_video_annotation(frame_annotations, keyframes, annotation["segments"], annotation["interpolated"])
 
-            if not main_annotation:
-                print(f"[WARNING] Unsupported annotation type: '{annotation.keys()}'")
-                return None
-
-            if "instance_id" in annotation:
-                main_annotation.subs.append(dt.make_instance_id(annotation["instance_id"]["value"]))
-            if "attributes" in annotation:
-                main_annotation.subs.append(dt.make_attributes(annotation["attributes"]))
-            if "text" in annotation:
-                main_annotation.subs.append(dt.make_text(annotation["text"]["text"]))
-
-            annotations[int(f)].append(main_annotation)
-    return annotations
 
 
 def ispolygon(annotation):

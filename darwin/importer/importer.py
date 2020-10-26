@@ -112,35 +112,42 @@ def import_annotations(
             _import_annotations(dataset.client, image_id, remote_classes, attributes, parsed_file.annotations, dataset)
 
 
+def _handle_subs(annotation, data, attributes):
+    for sub in annotation.subs:
+        if sub.annotation_type == "text":
+                data["text"] = {"text": sub.data}
+        elif sub.annotation_type == "attributes":
+            data["attributes"] = {
+                "attributes": [
+                    attributes[annotation_class_id][attr]
+                    for attr in sub.data
+                    if annotation_class_id in attributes and attr in attributes[annotation_class_id]
+                ]
+            }
+        elif sub.annotation_type == "instance_id":
+            data["instance_id"] = {"value": sub.data}
+        else:
+            data[sub.annotation_type] = sub.data
+    return data
+
 def _import_annotations(client: "Client", id: int, remote_classes, attributes, annotations, dataset):
     serialized_annotations = []
     for annotation in annotations:
         annotation_class = annotation.annotation_class
         annotation_class_id = remote_classes[annotation_class.annotation_type][annotation_class.name]
-        if "frames" in annotation.data:
+        if isinstance(annotation, dt.VideoAnnotation):
+            data = annotation.get_data(only_keyframes=True, post_processing=lambda annotation, data: _handle_subs(annotation, data, attributes) )
+        elif "frames" in annotation.data:
             data = annotation.data
         else:
             data = {annotation_class.annotation_type: annotation.data}
-        for sub in annotation.subs:
-            if sub.annotation_type == "text":
-                data["text"] = {"text": sub.data}
-            elif sub.annotation_type == "attributes":
-                data["attributes"] = {
-                    "attributes": [
-                        attributes[annotation_class_id][attr]
-                        for attr in sub.data
-                        if annotation_class_id in attributes and attr in attributes[annotation_class_id]
-                    ]
-                }
-            elif sub.annotation_type == "instance_id":
-                data["instance_id"] = {"value": sub.data}
-            else:
-                data[sub.annotation_type] = sub.data
+            data = _handle_subs(annotation, data)
+
         serialized_annotations.append({"annotation_class_id": annotation_class_id, "data": data})
 
     if client.feature_enabled("WORKFLOW", dataset.team):
         res = client.post(f"/dataset_items/{id}/import", payload={"annotations": serialized_annotations})
-        if res["status_code"] != 200:
+        if res.get("status_code") != 200:
             print(f"warning, failed to upload annotation to {id}", res)
     else:
         client.post(f"/dataset_images/{id}/import", payload={"annotations": serialized_annotations})

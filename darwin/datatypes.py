@@ -32,6 +32,35 @@ class Annotation:
                 return sub
 
 
+@dataclass(frozen=True, eq=True)
+class VideoAnnotation:
+    annotation_class: AnnotationClass
+    frames: Annotation
+    keyframes: List[bool]
+    segments: List[List[int]]
+    interpolated: bool
+    
+    def get_frame(self, frame_index):
+        return frames[frame_index]
+
+    def get_data(self, only_keyframes=True, post_processing=None):
+        if not post_processing:
+            post_processing = id
+        return {
+            "frames": {
+                frame: {
+                    **post_processing(
+                        self.frames[frame], 
+                        { self.frames[frame].annotation_class.annotation_type: self.frames[frame].data }
+                        ),
+                    **{"keyframe": self.keyframes[frame]}
+                }
+                for frame in self.frames if not only_keyframes or self.keyframes[frame]
+            },
+            "segments": self.segments,
+            "interpolated": self.interpolated
+        }
+
 @dataclass
 class AnnotationFile:
     path: Path
@@ -120,3 +149,15 @@ def make_video(keyframes, start, end):
             "segments": [[start, end]],
         },
     )
+
+def make_video_annotation(frames, keyframes, segments, interpolated):
+    first_annotation = list(frames.values())[0]
+    if not all(frame.annotation_class.name == first_annotation.annotation_class.name for frame in frames.values()):
+        raise ValueError("invalid argument to make_video_annotation")
+    
+    return VideoAnnotation(
+        first_annotation.annotation_class,
+        frames,
+        keyframes,
+        segments,
+        interpolated)
