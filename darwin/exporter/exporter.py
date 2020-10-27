@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Callable, Generator, List, Union
 
 import darwin.datatypes as dt
-from darwin.utils import parse_darwin_json
+from darwin.utils import parse_darwin_json, split_video_annotation
 
 
 def darwin_to_dt_gen(file_paths):
@@ -14,7 +14,11 @@ def darwin_to_dt_gen(file_paths):
                 continue
             data = parse_darwin_json(f, count)
             if data:
-                yield data
+                if data.is_video:
+                    for d in split_video_annotation(data):
+                        yield d
+                else:
+                    yield data
             count += 1
 
 

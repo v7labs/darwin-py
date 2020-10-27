@@ -1,3 +1,4 @@
+import os
 import json
 from pathlib import Path
 from typing import TYPE_CHECKING, List, Optional, Union
@@ -194,6 +195,8 @@ def parse_darwin_image(path, data, count):
         data["image"]["url"],
         data["image"].get("workview_url"),
         data["image"].get("seq", count),
+        path.stem,
+        False,
     )
 
 
@@ -206,11 +209,14 @@ def parse_darwin_video(path, data, count):
         data["image"]["original_filename"],
         annotation_classes,
         annotations,
-        None,
-        None,
+        data["image"].get("width", 1080),  # TODO
+        data["image"].get("height", 720),  # TODO
         data["image"]["url"],
         data["image"].get("workview_url"),
         data["image"].get("seq", count),
+        path.stem,
+        True,
+        data["image"]["frame_urls"]
     )
 
 
@@ -257,6 +263,34 @@ def parse_darwin_video_annotation(annotation: dict):
         frame_annotations[int(f)] = parse_darwin_annotation({**frame, **{"name": name}})
         keyframes[int(f)] = frame["keyframe"]
     return dt.make_video_annotation(frame_annotations, keyframes, annotation["segments"], annotation["interpolated"])
+
+
+def split_video_annotation(annotation):
+    if not annotation.is_video:
+        raise AttributeError("this is not a video annotation")
+
+    frame_annotations = []
+    for i, frame_url in enumerate(annotation.frame_urls):
+        annotations = [a.frames[i] for a in annotation.annotations if i in a.frames]
+        annotation_classes = set([annotation.annotation_class for annotation in annotations])
+        image_id = f"{annotation.image_id}_frame{i:07d}"
+
+        frame_annotations.append(
+            dt.AnnotationFile(
+                annotation.path,
+                annotation.filename,
+                annotation_classes,
+                annotations,
+                annotation.image_width,
+                annotation.image_height,
+                frame_url,
+                annotation.workview_url,
+                annotation.seq,
+                image_id,
+                False,
+            )
+        )
+    return frame_annotations
 
 
 def ispolygon(annotation):

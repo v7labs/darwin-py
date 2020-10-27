@@ -17,7 +17,7 @@ def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_di
     with open(output_dir / "instance_mask_annotations.csv", "w") as f:
         f.write("image_id,mask_id,class_name\n")
         for annotation_file in get_progress_bar(list(annotation_files), "Processing annotations"):
-            image_id = annotation_file.path.stem
+            image_id = annotation_file.image_id
             height = annotation_file.image_height
             width = annotation_file.image_width
             annotations = [a for a in annotation_file.annotations if ispolygon(a.annotation_class)]
