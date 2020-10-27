@@ -45,3 +45,6 @@ class ValidationError(Exception):
 
 class Unauthorized(Exception):
     pass
+
+class OutdatedDarwinJSONFormat(Exception):
+    pass
