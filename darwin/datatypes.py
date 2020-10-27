@@ -74,7 +74,6 @@ class AnnotationFile:
     image_url: Optional[str] = None
     workview_url: Optional[str] = None
     seq: Optional[int] = None
-    image_id: Optional[str] = None
     is_video: Optional[bool] = None
     frame_urls: Optional[List[str]] = None
 

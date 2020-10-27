@@ -169,6 +169,12 @@ def persist_client_configuration(
     return config
 
 
+def get_local_filename(metadata: dict):
+    filename = Path(metadata["filename"])
+    original_filename = Path(metadata["original_filename"])
+    return f"{filename.stem}_{original_filename.stem}{filename.suffix}"
+
+
 def parse_darwin_json(path: Union[str, Path], count: int):
     path = Path(path)
     with path.open() as f:
@@ -187,7 +193,7 @@ def parse_darwin_image(path, data, count):
 
     return dt.AnnotationFile(
         path,
-        data["image"]["original_filename"],
+        get_local_filename(data["image"]),
         annotation_classes,
         annotations,
         data["image"]["width"],
@@ -195,7 +201,6 @@ def parse_darwin_image(path, data, count):
         data["image"]["url"],
         data["image"].get("workview_url"),
         data["image"].get("seq", count),
-        path.stem,
         False,
     )
 
@@ -204,9 +209,10 @@ def parse_darwin_video(path, data, count):
     annotations = list(filter(None, map(parse_darwin_video_annotation, data["annotations"])))
     annotation_classes = set([annotation.annotation_class for annotation in annotations])
 
+    aaa = get_local_filename(data["image"])
     return dt.AnnotationFile(
         path,
-        data["image"]["original_filename"],
+        get_local_filename(data["image"]),
         annotation_classes,
         annotations,
         data["image"].get("width", 1080),  # TODO
@@ -214,7 +220,6 @@ def parse_darwin_video(path, data, count):
         data["image"]["url"],
         data["image"].get("workview_url"),
         data["image"].get("seq", count),
-        path.stem,
         True,
         data["image"]["frame_urls"]
     )
@@ -273,12 +278,12 @@ def split_video_annotation(annotation):
     for i, frame_url in enumerate(annotation.frame_urls):
         annotations = [a.frames[i] for a in annotation.annotations if i in a.frames]
         annotation_classes = set([annotation.annotation_class for annotation in annotations])
-        image_id = f"{annotation.image_id}_frame{i:07d}"
+        filename = f"{Path(annotation.filename).stem}/{i:07d}.jpg"
 
         frame_annotations.append(
             dt.AnnotationFile(
                 annotation.path,
-                annotation.filename,
+                filename,
                 annotation_classes,
                 annotations,
                 annotation.image_width,
@@ -286,7 +291,6 @@ def split_video_annotation(annotation):
                 frame_url,
                 annotation.workview_url,
                 annotation.seq,
-                image_id,
                 False,
             )
         )

@@ -1,4 +1,5 @@
 import colorsys
+import os
 from pathlib import Path
 from typing import Generator, List
 
@@ -36,7 +37,9 @@ def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_di
         RGB_colors = [c for e in RGB_colors for c in e]
 
     for annotation_file in get_progress_bar(list(annotation_files), "Processing annotations"):
-        outfile = masks_dir / f"{annotation_file.image_id}.png"
+        image_id = os.path.splitext(annotation_file.filename)[0]
+        outfile = masks_dir / f"{image_id}.png"
+        outfile.parent.mkdir(parents=True, exist_ok=True)
         height = annotation_file.image_height
         width = annotation_file.image_width
         mask = np.zeros((height, width)).astype(np.uint8)
