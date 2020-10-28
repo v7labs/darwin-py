@@ -1,6 +1,6 @@
 from functools import partial
 
-from . import coco, cvat, dataloop, instance_mask, pascalvoc, semantic_mask, darwin_image
+from . import coco, cvat, darwin_image, dataloop, instance_mask, pascalvoc, semantic_mask
 
 supported_formats = [
     ("coco", coco.export),

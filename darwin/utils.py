@@ -1,4 +1,3 @@
-import os
 import json
 from pathlib import Path
 from typing import TYPE_CHECKING, List, Optional, Union
@@ -196,12 +195,12 @@ def parse_darwin_image(path, data, count):
         get_local_filename(data["image"]),
         annotation_classes,
         annotations,
+        False,
         data["image"]["width"],
         data["image"]["height"],
         data["image"]["url"],
         data["image"].get("workview_url"),
         data["image"].get("seq", count),
-        False,
     )
 
 
@@ -209,19 +208,19 @@ def parse_darwin_video(path, data, count):
     annotations = list(filter(None, map(parse_darwin_video_annotation, data["annotations"])))
     annotation_classes = set([annotation.annotation_class for annotation in annotations])
 
-    aaa = get_local_filename(data["image"])
+    get_local_filename(data["image"])
     return dt.AnnotationFile(
         path,
         get_local_filename(data["image"]),
         annotation_classes,
         annotations,
+        True,
         data["image"].get("width", 1080),  # TODO
         data["image"].get("height", 720),  # TODO
         data["image"]["url"],
         data["image"].get("workview_url"),
         data["image"].get("seq", count),
-        True,
-        data["image"]["frame_urls"]
+        data["image"]["frame_urls"],
     )
 
 
@@ -286,12 +285,12 @@ def split_video_annotation(annotation):
                 filename,
                 annotation_classes,
                 annotations,
+                False,
                 annotation.image_width,
                 annotation.image_height,
                 frame_url,
                 annotation.workview_url,
                 annotation.seq,
-                False,
             )
         )
     return frame_annotations

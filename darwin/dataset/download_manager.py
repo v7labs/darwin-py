@@ -16,7 +16,7 @@ def download_all_images_from_annotations(
     force_replace: bool = False,
     remove_extra: bool = False,
     annotation_format: str = "json",
-    use_folders: bool = False
+    use_folders: bool = False,
 ):
     """Helper function: downloads the all images corresponding to a project.
 

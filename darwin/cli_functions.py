@@ -530,7 +530,7 @@ def find_supported_format(query, supported_formats):
     _error(f"Unsupported format, currently supported: {list_of_formats}")
 
 
-def dataset_convert(dataset_slug, format, output_dir):
+def dataset_convert(dataset_slug: str, format: str, output_dir: Path):
     client = _load_client()
     parser = find_supported_format(format, darwin.exporter.formats.supported_formats)
 
@@ -546,7 +546,6 @@ def dataset_convert(dataset_slug, format, output_dir):
         annotations_path = release_path / "annotations"
         if output_dir is None:
             output_dir = release_path / "other_formats" / f"{format}"
-        output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
         exporter.export_annotations(parser, [annotations_path], output_dir)
     except NotFound as e:

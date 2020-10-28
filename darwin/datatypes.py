@@ -40,7 +40,7 @@ class VideoAnnotation:
     segments: List[List[int]]
     interpolated: bool
 
-    def get_frame(self, frame_index):
+    def get_frame(self, frame_index: int):
         return frames[frame_index]
 
     def get_data(self, only_keyframes=True, post_processing=None):
@@ -69,12 +69,12 @@ class AnnotationFile:
     filename: str
     annotation_classes: Set[AnnotationClass]
     annotations: List[Annotation]
+    is_video: bool = False
     image_width: Optional[int] = None
     image_height: Optional[int] = None
     image_url: Optional[str] = None
     workview_url: Optional[str] = None
     seq: Optional[int] = None
-    is_video: Optional[bool] = None
     frame_urls: Optional[List[str]] = None
 
 
