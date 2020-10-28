@@ -7,6 +7,7 @@ from tqdm import tqdm
 from upolygon import draw_polygon
 
 import darwin.datatypes as dt
+from darwin.exceptions import OutdatedDarwinJSONFormat
 from darwin.config import Config
 
 SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpeg", ".jpg", ".jfif", ".tif", ".bmp"]
@@ -208,15 +209,17 @@ def parse_darwin_video(path, data, count):
     annotations = list(filter(None, map(parse_darwin_video_annotation, data["annotations"])))
     annotation_classes = set([annotation.annotation_class for annotation in annotations])
 
-    get_local_filename(data["image"])
+    if "width" not in data["image"] or "height" not in data["image"]:
+        raise OutdatedDarwinJSONFormat("Missing width/height in video, please re-export")
+
     return dt.AnnotationFile(
         path,
         get_local_filename(data["image"]),
         annotation_classes,
         annotations,
         True,
-        data["image"].get("width", 1080),  # TODO
-        data["image"].get("height", 720),  # TODO
+        data["image"]["width"],
+        data["image"]["height"],
         data["image"]["url"],
         data["image"].get("workview_url"),
         data["image"].get("seq", count),
