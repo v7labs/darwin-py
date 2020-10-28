@@ -45,7 +45,7 @@ class VideoAnnotation:
 
     def get_data(self, only_keyframes=True, post_processing=None):
         if not post_processing:
-            post_processing = id
+            post_processing = lambda annotation, data: data
         return {
             "frames": {
                 frame: {
