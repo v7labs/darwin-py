@@ -7,8 +7,8 @@ from tqdm import tqdm
 from upolygon import draw_polygon
 
 import darwin.datatypes as dt
-from darwin.exceptions import OutdatedDarwinJSONFormat
 from darwin.config import Config
+from darwin.exceptions import OutdatedDarwinJSONFormat
 
 SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpeg", ".jpg", ".jfif", ".tif", ".bmp"]
 SUPPORTED_VIDEO_EXTENSIONS = [".bpm", ".mov", ".mp4"]
