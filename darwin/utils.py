@@ -237,7 +237,11 @@ def parse_darwin_annotation(annotation: dict):
         else:
             main_annotation = dt.make_polygon(name, annotation["polygon"]["path"])
     elif "complex_polygon" in annotation:
-        main_annotation = dt.make_complex_polygon(name, annotation["complex_polygon"]["path"])
+        if "additional_paths" in annotation["complex_polygon"]:
+            paths = annotation["complex_polygon"]["path"] + annotation["complex_polygon"]["additional_paths"]
+            main_annotation = dt.make_complex_polygon(name, paths)
+        else:
+            main_annotation = dt.make_complex_polygon(name, annotation["complex_polygon"]["path"])
     elif "bounding_box" in annotation:
         bounding_box = annotation["bounding_box"]
         main_annotation = dt.make_bounding_box(
