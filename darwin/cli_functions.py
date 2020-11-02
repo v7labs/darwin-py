@@ -22,6 +22,7 @@ from darwin.exceptions import (
     NotFound,
     Unauthenticated,
     UnsupportedExportFormat,
+    UnsupportedFileType,
     ValidationError,
 )
 from darwin.table import Table
@@ -467,6 +468,8 @@ def upload_data(
         dataset.push(files_to_exclude=files_to_exclude, fps=fps, as_frames=frames, files_to_upload=files, path=path)
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
+    except UnsupportedFileType as e:
+        _error(f"Unsupported file type {e.path.suffix} ({e.path.name})")
     except ValueError:
         _error(f"No files found")
 
