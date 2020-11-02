@@ -472,7 +472,7 @@ def upload_data(
 
 
 def dataset_import(dataset_slug, format, files):
-    client = _load_client()
+    client = _load_client(dataset_identifier=dataset_slug)
     parser = find_supported_format(format, darwin.importer.formats.supported_formats)
 
     try:
