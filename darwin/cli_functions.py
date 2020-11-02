@@ -112,18 +112,19 @@ def set_team(team_slug: str):
     config.set_default_team(team_slug)
 
 
-def create_dataset(name: str, team: Optional[str] = None):
+def create_dataset(dataset_slug: str):
     """Creates a dataset remotely"""
-    client = _load_client(team_slug=team)
+    identifier = DatasetIdentifier.parse(dataset_slug)
+    client = _load_client(team_slug=identifier.team_slug)
     try:
-        dataset = client.create_dataset(name=name)
+        dataset = client.create_dataset(name=identifier.dataset_slug)
         print(
             f"Dataset '{dataset.name}' ({dataset.team}/{dataset.slug}) has been created.\nAccess at {dataset.remote_path}"
         )
     except NameTaken:
-        _error(f"Dataset name '{name}' is already taken.")
+        _error(f"Dataset name '{identifier.dataset_slug}' is already taken.")
     except ValidationError:
-        _error(f"Dataset name '{name}' is not valid.")
+        _error(f"Dataset name '{identifier.dataset_slug}' is not valid.")
 
 
 def local(team: Optional[str] = None):
