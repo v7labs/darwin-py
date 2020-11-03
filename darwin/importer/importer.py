@@ -140,8 +140,6 @@ def _import_annotations(client: "Client", id: int, remote_classes, attributes, a
             data = annotation.get_data(
                 only_keyframes=True, post_processing=lambda annotation, data: _handle_subs(annotation, data, attributes)
             )
-        elif "frames" in annotation.data:
-            data = annotation.data
         else:
             data = {annotation_class.annotation_type: annotation.data}
             data = _handle_subs(annotation, data)
