@@ -92,16 +92,6 @@ def download_all_images_from_annotations(
         )
         for annotation_path in annotations_to_download_path
     )
-    # for annotation_path in annotations_to_download_path:
-    #     download_image_from_annotation(
-    #         api_key,
-    #         api_url,
-    #         annotation_path,
-    #         images_path,
-    #         annotation_format,
-    #         use_folders,
-    #         video_frames,
-    #     )
     return generator, count
 
 
@@ -160,23 +150,20 @@ def download_image_from_json_annotation(
     annotation = json.load(annotation_path.open())
 
     filename = annotation_path.stem
-    if video_frames:
-        suffix = ".jpg"
-    else:
-        suffix = Path(annotation["image"]["original_filename"]).suffix
 
     # If we are using folders, extract the path for the image and create the folder if needed
     sub_path = annotation["image"].get("path", "/") if use_folders else "/"
     parent_path = Path(image_path) / Path(sub_path).relative_to(Path(sub_path).anchor)
     parent_path.mkdir(exist_ok=True, parents=True)
 
-    if video_frames:
+    if video_frames and "frame_urls" in annotation["image"]:
         video_path = parent_path / filename
         video_path.mkdir(exist_ok=True, parents=True)
         for i, frame_url in enumerate(annotation["image"]["frame_urls"]):
-            path = video_path / f"{i:07d}{suffix}"
+            path = video_path / f"{i:07d}.jpg"
             download_image(frame_url, path, api_key)
     else:
+        suffix = Path(annotation["image"]["original_filename"]).suffix
         path = parent_path / (filename + suffix)
         download_image(annotation["image"]["url"], path, api_key)
 
