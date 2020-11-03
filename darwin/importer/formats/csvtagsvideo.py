@@ -26,8 +26,8 @@ def parse_file(path: Path) -> Optional[List[dt.AnnotationFile]]:
             end_frame = int(end_frame)
 
             annotation = dt.make_tag(tag)
-            frames = {i: annotation for i in range(start_frame, end_frame+1)}
-            keyframes = {i: i == start_frame for i in range(start_frame, end_frame+1)}
+            frames = {i: annotation for i in range(start_frame, end_frame + 1)}
+            keyframes = {i: i == start_frame for i in range(start_frame, end_frame + 1)}
 
             annotation = dt.make_video_annotation(frames, keyframes, [[start_frame, end_frame]], False)
             if filename not in file_annotation_map:
