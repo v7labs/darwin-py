@@ -1,7 +1,8 @@
 import json
 from pathlib import Path
 from typing import List, Optional
-
+from upolygon import find_contours
+import numpy as np
 import darwin.datatypes as dt
 
 
@@ -45,8 +46,21 @@ def parse_annotation(annotation, category_lookup_table):
         return None
 
     if len(segmentation) > 1:
-        print("Warning complex polygon, skipping")
-        return None
+        print("warning, converting complex coco rle mask to polygon, could take some time")
+        mask = rle_decoding(segmentation['counts'], segmentation['size'])
+        _labels, external, _internal = find_contours(mask)
+        paths = []
+        for external_path in external:
+            path = []
+            points = iter(external_path)
+            while True:
+                try:
+                    x, y = next(points), next(points)
+                    path.append({"x": x, "y": y})
+                except StopIteration:
+                    break
+            paths.append(path)
+        return dt.make_complex_polygon(category["name"], paths)
     path = []
     points = iter(segmentation[0])
     while True:
@@ -56,3 +70,13 @@ def parse_annotation(annotation, category_lookup_table):
         except StopIteration:
             break
     return dt.make_polygon(category["name"], path)
+
+def rle_decoding(counts, shape):
+    img = np.zeros(shape[0]*shape[1], dtype=np.uint8)
+    val = 1
+    n = 0
+    for pos in range(len(counts)):
+        val = not val
+        img[n:n+counts[pos]] = val
+        n += counts[pos]
+    return img.reshape(shape)
