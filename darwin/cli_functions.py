@@ -3,7 +3,7 @@ import datetime
 import shutil
 import sys
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Union
 
 import humanize
 
@@ -534,7 +534,7 @@ def find_supported_format(query, supported_formats):
     _error(f"Unsupported format, currently supported: {list_of_formats}")
 
 
-def dataset_convert(dataset_slug: str, format: str, output_dir: Path):
+def dataset_convert(dataset_slug: str, format: str, output_dir: Optional[Union[str, Path]]):
     client = _load_client()
     parser = find_supported_format(format, darwin.exporter.formats.supported_formats)
 
@@ -550,6 +550,8 @@ def dataset_convert(dataset_slug: str, format: str, output_dir: Path):
         annotations_path = release_path / "annotations"
         if output_dir is None:
             output_dir = release_path / "other_formats" / f"{format}"
+        else:
+            output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
         exporter.export_annotations(parser, [annotations_path], output_dir)
     except NotFound as e:
