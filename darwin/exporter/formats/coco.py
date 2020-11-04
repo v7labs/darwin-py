@@ -234,5 +234,4 @@ def rle_encoding(binary_mask):
         running_length += 1
 
     counts.append(running_length)
-
     return counts
