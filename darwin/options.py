@@ -48,8 +48,7 @@ class Options(object):
 
         # Create
         parser_create = dataset_action.add_parser("create", help="Creates a new dataset on darwin")
-        parser_create.add_argument("dataset_name", type=str, help="Dataset name")
-        parser_create.add_argument("-t", "--team", help="Specify team")
+        parser_create.add_argument("dataset", type=str, help="Dataset name")
 
         # Path
         parser_path = dataset_action.add_parser("path", help="Print local path to dataset")

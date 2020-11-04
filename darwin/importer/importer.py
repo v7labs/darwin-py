@@ -85,18 +85,28 @@ def import_annotations(
     local_classes_missing_remotely = set()
     for local_file in local_files:
         for cls in local_file.annotation_classes:
-            if cls.annotation_type not in remote_classes or cls.name not in remote_classes[cls.annotation_type]:
-                local_classes_missing_remotely.add(cls)
+            annotation_type = cls.annotation_internal_type or cls.annotation_type
+            # Only add the new class if it doesn't exist remotely already
+            if annotation_type in remote_classes and cls.name in remote_classes[annotation_type]:
+                continue
+            # Only add the new class if it's not included in the list of the missing classes already
+            if cls.name in [missing_class.name for missing_class in local_classes_missing_remotely]:
+                continue
+            local_classes_missing_remotely.add(cls)
 
     print(f"{len(local_classes_missing_remotely)} classes are missing remotely.")
     if local_classes_missing_remotely:
         print("About to create the following classes")
         for missing_class in local_classes_missing_remotely:
-            print(f"\t{missing_class.name}, type: {missing_class.annotation_type}")
+            print(
+                f"\t{missing_class.name}, type: {missing_class.annotation_internal_type or missing_class.annotation_type}"
+            )
         if not secure_continue_request():
             return
         for missing_class in local_classes_missing_remotely:
-            dataset.create_annotation_class(missing_class.name, missing_class.annotation_type)
+            dataset.create_annotation_class(
+                missing_class.name, missing_class.annotation_internal_type or missing_class.annotation_type
+            )
 
             # Refetch classes to update mappings
             remote_classes = build_main_annotations_lookup_table(dataset.fetch_remote_classes())
@@ -107,7 +117,10 @@ def import_annotations(
         parsed_files = importer(local_path)
         if type(parsed_files) is not list:
             parsed_files = [parsed_files]
+        # remove files missing on the server
+        parsed_files = [parsed_file for parsed_file in parsed_files if parsed_file not in local_files_missing_remotely]
         for parsed_file in tqdm(parsed_files):
+            print(parsed_file.filename, remote_files)
             image_id = remote_files[parsed_file.filename]
             _import_annotations(dataset.client, image_id, remote_classes, attributes, parsed_file.annotations, dataset)
 
@@ -130,18 +143,26 @@ def _handle_subs(annotation, data, attributes):
             data[sub.annotation_type] = sub.data
     return data
 
+def _handle_complex_polygon(annotation, data):
+    if "complex_polygon" in data:
+        del data["complex_polygon"]
+        data["polygon"] = {"path": annotation.data["paths"][0], "additional_paths": annotation.data["paths"][1:]}
+    return data
 
 def _import_annotations(client: "Client", id: int, remote_classes, attributes, annotations, dataset):
     serialized_annotations = []
     for annotation in annotations:
         annotation_class = annotation.annotation_class
-        annotation_class_id = remote_classes[annotation_class.annotation_type][annotation_class.name]
+        annotation_type = annotation_class.annotation_internal_type or annotation_class.annotation_type
+        annotation_class_id = remote_classes[annotation_type][annotation_class.name]
+
         if isinstance(annotation, dt.VideoAnnotation):
             data = annotation.get_data(
-                only_keyframes=True, post_processing=lambda annotation, data: _handle_subs(annotation, data, attributes)
+                only_keyframes=True, post_processing=lambda annotation, data: _handle_subs(annotation, _handle_complex_polygon(annotation, data), attributes)
             )
         else:
             data = {annotation_class.annotation_type: annotation.data}
+            data = _handle_complex_polygon(annotation, data)
             data = _handle_subs(annotation, data)
 
         serialized_annotations.append({"annotation_class_id": annotation_class_id, "data": data})

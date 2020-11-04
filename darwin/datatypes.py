@@ -12,6 +12,7 @@ ComplexPolygon = List[Polygon]
 class AnnotationClass:
     name: str
     annotation_type: str
+    annotation_internal_type: Optional[str] = None
 
 
 @dataclass(frozen=True, eq=True)
@@ -94,7 +95,7 @@ def make_polygon(class_name, point_path):
 
 
 def make_complex_polygon(class_name, point_paths):
-    return Annotation(AnnotationClass(class_name, "complex_polygon"), {"paths": point_paths})
+    return Annotation(AnnotationClass(class_name, "complex_polygon", "polygon"), {"paths": point_paths})
 
 
 def make_keypoint(class_name, x, y):

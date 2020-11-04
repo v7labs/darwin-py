@@ -22,6 +22,7 @@ from darwin.exceptions import (
     NotFound,
     Unauthenticated,
     UnsupportedExportFormat,
+    UnsupportedFileType,
     ValidationError,
 )
 from darwin.table import Table
@@ -112,18 +113,19 @@ def set_team(team_slug: str):
     config.set_default_team(team_slug)
 
 
-def create_dataset(name: str, team: Optional[str] = None):
+def create_dataset(dataset_slug: str):
     """Creates a dataset remotely"""
-    client = _load_client(team_slug=team)
+    identifier = DatasetIdentifier.parse(dataset_slug)
+    client = _load_client(team_slug=identifier.team_slug)
     try:
-        dataset = client.create_dataset(name=name)
+        dataset = client.create_dataset(name=identifier.dataset_slug)
         print(
             f"Dataset '{dataset.name}' ({dataset.team}/{dataset.slug}) has been created.\nAccess at {dataset.remote_path}"
         )
     except NameTaken:
-        _error(f"Dataset name '{name}' is already taken.")
+        _error(f"Dataset name '{identifier.dataset_slug}' is already taken.")
     except ValidationError:
-        _error(f"Dataset name '{name}' is not valid.")
+        _error(f"Dataset name '{identifier.dataset_slug}' is not valid.")
 
 
 def local(team: Optional[str] = None):
@@ -467,12 +469,14 @@ def upload_data(
         dataset.push(files_to_exclude=files_to_exclude, fps=fps, as_frames=frames, files_to_upload=files, path=path)
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
+    except UnsupportedFileType as e:
+        _error(f"Unsupported file type {e.path.suffix} ({e.path.name})")
     except ValueError:
         _error(f"No files found")
 
 
 def dataset_import(dataset_slug, format, files):
-    client = _load_client()
+    client = _load_client(dataset_identifier=dataset_slug)
     parser = find_supported_format(format, darwin.importer.formats.supported_formats)
 
     try:

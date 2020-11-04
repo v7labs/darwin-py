@@ -8,10 +8,10 @@ from upolygon import draw_polygon
 
 import darwin.datatypes as dt
 from darwin.config import Config
-from darwin.exceptions import OutdatedDarwinJSONFormat
+from darwin.exceptions import OutdatedDarwinJSONFormat, UnsupportedFileType
 
 SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpeg", ".jpg", ".jfif", ".tif", ".bmp"]
-SUPPORTED_VIDEO_EXTENSIONS = [".bpm", ".mov", ".mp4"]
+SUPPORTED_VIDEO_EXTENSIONS = [".avi", ".bpm", ".mov", ".mp4"]
 SUPPORTED_EXTENSIONS = SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
 
 
@@ -129,6 +129,8 @@ def find_files(
             found_files.extend([f for f in path.glob(pattern) if is_extension_allowed(f.suffix)])
         elif is_extension_allowed(path.suffix):
             found_files.append(path)
+        else:
+            raise UnsupportedFileType(path)
 
     # Filter the list and return it
     files_to_exclude = set(files_to_exclude)
