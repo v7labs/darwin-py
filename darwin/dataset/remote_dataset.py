@@ -235,13 +235,10 @@ class RemoteDataset:
                 annotations_dir.mkdir(parents=True, exist_ok=False)
                 # Move the annotations into the right folder and rename them to have the image
                 # original filename as contained in the json
-                for annotation_path in tmp_dir.glob(f"*.json"):
+                for annotation_path in tmp_dir.glob("*.json"):
                     annotation = json.load(annotation_path.open())
-                    original_filename = Path(annotation["image"]["original_filename"])
                     filename = Path(annotation["image"]["filename"]).stem
-                    destination_name = annotations_dir / (
-                        filename + "_" + original_filename.stem + annotation_path.suffix
-                    )
+                    destination_name = annotations_dir / f"{filename}{annotation_path.suffix}"
                     shutil.move(str(annotation_path), str(destination_name))
 
         # Extract the list of classes and create the text files

@@ -141,16 +141,14 @@ def download_image_from_json_annotation(
     """
     annotation = json.load(annotation_path.open())
 
-    # Make the image file name match the one of the JSON annotation
-    original_filename_suffix = Path(annotation["image"]["original_filename"]).suffix
-
     # If we are using folders, extract the path for the image and create the folder if needed
     sub_path = annotation["image"].get("path", "/") if use_folders else "/"
     parent_path = Path(image_path) / Path(sub_path).relative_to(Path(sub_path).anchor)
     parent_path.mkdir(exist_ok=True, parents=True)
 
-    path = parent_path / (annotation_path.stem + original_filename_suffix)
-    download_image(annotation["image"]["url"], path, api_key)
+    image_url = annotation["image"]["url"]
+    path = parent_path / annotation["image"]["filename"]
+    download_image(image_url, path, api_key)
 
 
 def download_image(url: str, path: Path, api_key: str):
