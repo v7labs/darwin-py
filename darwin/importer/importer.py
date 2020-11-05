@@ -143,11 +143,13 @@ def _handle_subs(annotation, data, attributes):
             data[sub.annotation_type] = sub.data
     return data
 
+
 def _handle_complex_polygon(annotation, data):
     if "complex_polygon" in data:
         del data["complex_polygon"]
         data["polygon"] = {"path": annotation.data["paths"][0], "additional_paths": annotation.data["paths"][1:]}
     return data
+
 
 def _import_annotations(client: "Client", id: int, remote_classes, attributes, annotations, dataset):
     serialized_annotations = []
@@ -158,7 +160,10 @@ def _import_annotations(client: "Client", id: int, remote_classes, attributes, a
 
         if isinstance(annotation, dt.VideoAnnotation):
             data = annotation.get_data(
-                only_keyframes=True, post_processing=lambda annotation, data: _handle_subs(annotation, _handle_complex_polygon(annotation, data), attributes)
+                only_keyframes=True,
+                post_processing=lambda annotation, data: _handle_subs(
+                    annotation, _handle_complex_polygon(annotation, data), attributes
+                ),
             )
         else:
             data = {annotation_class.annotation_type: annotation.data}
