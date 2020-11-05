@@ -172,9 +172,7 @@ def persist_client_configuration(
 
 
 def get_local_filename(metadata: dict):
-    filename = Path(metadata["filename"])
-    original_filename = Path(metadata["original_filename"])
-    return f"{filename.stem}_{original_filename.stem}{filename.suffix}"
+    return metadata["filename"]
 
 
 def parse_darwin_json(path: Union[str, Path], count: int):
@@ -255,8 +253,13 @@ def parse_darwin_annotation(annotation: dict):
         main_annotation = dt.make_line(name, annotation["line"]["path"])
     elif "keypoint" in annotation:
         main_annotation = dt.make_keypoint(name, annotation["keypoint"]["x"], annotation["keypoint"]["y"])
-    elif "skeleton" in annotation:
-        main_annotation = dt.make_skeleton(name, annotation["skeleton"]["nodes"])
+    elif "ellipse" in annotation:
+        main_annotation = dt.make_ellipse(name, annotation["ellipse"])
+    elif "cuboid" in annotation:
+        main_annotation = dt.make_cuboid(name, annotation["cuboid"])
+    # TODO
+    # elif "skeleton" in annotation:
+    #     main_annotation = dt.make_skeleton(name, annotation["skeleton"]["nodes"])
 
     if not main_annotation:
         print(f"[WARNING] Unsupported annotation type: '{annotation.keys()}'")

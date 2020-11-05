@@ -195,7 +195,7 @@ class RemoteDataset:
         subset_folder_name: str
             Name of the folder with the subset of the dataset. If not provided a timestamp is used.
         use_folders: bool
-            Recreates folders from the dataset 
+            Recreates folders from the dataset
 
         Returns
         -------

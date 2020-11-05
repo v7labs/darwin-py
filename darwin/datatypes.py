@@ -110,6 +110,14 @@ def make_skeleton(class_name, nodes):
     return Annotation(AnnotationClass(class_name, "skeleton"), {"nodes": nodes})
 
 
+def make_ellipse(class_name, parameters):
+    return Annotation(AnnotationClass(class_name, "ellipse"), parameters)
+
+
+def make_cuboid(class_name, cuboid):
+    return Annotation(AnnotationClass(class_name, "cuboid"), cuboid)
+
+
 def make_instance_id(value):
     return SubAnnotation("instance_id", value)
 
