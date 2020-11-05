@@ -163,7 +163,7 @@ def _import_annotations(client: "Client", id: int, remote_classes, attributes, a
         else:
             data = {annotation_class.annotation_type: annotation.data}
             data = _handle_complex_polygon(annotation, data)
-            data = _handle_subs(annotation, data)
+            data = _handle_subs(annotation, data, attributes)
 
         serialized_annotations.append({"annotation_class_id": annotation_class_id, "data": data})
 
