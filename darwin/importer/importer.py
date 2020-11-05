@@ -125,6 +125,32 @@ def import_annotations(
             _import_annotations(dataset.client, image_id, remote_classes, attributes, parsed_file.annotations, dataset)
 
 
+def _handle_subs(annotation, data, attributes):
+    for sub in annotation.subs:
+        if sub.annotation_type == "text":
+            data["text"] = {"text": sub.data}
+        elif sub.annotation_type == "attributes":
+            data["attributes"] = {
+                "attributes": [
+                    attributes[annotation_class_id][attr]
+                    for attr in sub.data
+                    if annotation_class_id in attributes and attr in attributes[annotation_class_id]
+                ]
+            }
+        elif sub.annotation_type == "instance_id":
+            data["instance_id"] = {"value": sub.data}
+        else:
+            data[sub.annotation_type] = sub.data
+    return data
+
+
+def _handle_complex_polygon(annotation, data):
+    if "complex_polygon" in data:
+        del data["complex_polygon"]
+        data["polygon"] = {"path": annotation.data["paths"][0], "additional_paths": annotation.data["paths"][1:]}
+    return data
+
+
 def _import_annotations(client: "Client", id: int, remote_classes, attributes, annotations, dataset):
     serialized_annotations = []
     for annotation in annotations:
@@ -132,28 +158,18 @@ def _import_annotations(client: "Client", id: int, remote_classes, attributes, a
         annotation_type = annotation_class.annotation_internal_type or annotation_class.annotation_type
         annotation_class_id = remote_classes[annotation_type][annotation_class.name]
 
-        data = annotation.data
-        if annotation_class.annotation_type == "complex_polygon":
-            data = {"path": annotation.data["paths"][0], "additional_paths": annotation.data["paths"][1:]}
+        if isinstance(annotation, dt.VideoAnnotation):
+            data = annotation.get_data(
+                only_keyframes=True,
+                post_processing=lambda annotation, data: _handle_subs(
+                    annotation, _handle_complex_polygon(annotation, data), attributes
+                ),
+            )
+        else:
+            data = {annotation_class.annotation_type: annotation.data}
+            data = _handle_complex_polygon(annotation, data)
+            data = _handle_subs(annotation, data, attributes)
 
-        if "frames" not in annotation.data:
-            data = {annotation_type: data}
-
-        for sub in annotation.subs:
-            if sub.annotation_type == "text":
-                data["text"] = {"text": sub.data}
-            elif sub.annotation_type == "attributes":
-                data["attributes"] = {
-                    "attributes": [
-                        attributes[annotation_class_id][attr]
-                        for attr in sub.data
-                        if annotation_class_id in attributes and attr in attributes[annotation_class_id]
-                    ]
-                }
-            elif sub.annotation_type == "instance_id":
-                data["instance_id"] = {"value": sub.data}
-            else:
-                data[sub.annotation_type] = sub.data
         serialized_annotations.append({"annotation_class_id": annotation_class_id, "data": data})
 
     if client.feature_enabled("WORKFLOW", dataset.team):
