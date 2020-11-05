@@ -48,8 +48,7 @@ class Options(object):
 
         # Create
         parser_create = dataset_action.add_parser("create", help="Creates a new dataset on darwin")
-        parser_create.add_argument("dataset_name", type=str, help="Dataset name")
-        parser_create.add_argument("-t", "--team", help="Specify team")
+        parser_create.add_argument("dataset", type=str, help="Dataset name")
 
         # Path
         parser_path = dataset_action.add_parser("path", help="Print local path to dataset")
@@ -76,11 +75,12 @@ class Options(object):
             help="Excludes the files with the specified extension/s if a data folder is provided as data path. ",
         )
         parser_push.add_argument(
-            "-f", "--fps", default="native", help="Frames per second for video split (recommended: 1), use 'native' to use the videos intrinsic fps."
+            "-f",
+            "--fps",
+            default="native",
+            help="Frames per second for video split (recommended: 1), use 'native' to use the videos intrinsic fps.",
         )
-        parser_push.add_argument(
-            "--frames", action="store_true", help="Annotate a video as independent frames"
-        )
+        parser_push.add_argument("--frames", action="store_true", help="Annotate a video as independent frames")
 
         parser_push.add_argument("--path", type=str, default=None, help="Folder to upload the files into.")
 

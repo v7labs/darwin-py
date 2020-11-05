@@ -53,7 +53,7 @@ def run(args, parser):
         elif args.action == "local":
             f.local(args.team)
         elif args.action == "create":
-            f.create_dataset(args.dataset_name, args.team)
+            f.create_dataset(args.dataset)
         elif args.action == "path":
             path = f.path(args.dataset)
             if path:

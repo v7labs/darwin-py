@@ -1,3 +1,4 @@
+import os
 import shutil
 from pathlib import Path
 from typing import Generator
@@ -17,7 +18,7 @@ def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_di
     with open(output_dir / "instance_mask_annotations.csv", "w") as f:
         f.write("image_id,mask_id,class_name\n")
         for annotation_file in get_progress_bar(list(annotation_files), "Processing annotations"):
-            image_id = annotation_file.path.stem
+            image_id = os.path.splitext(annotation_file.filename)[0]
             height = annotation_file.image_height
             width = annotation_file.image_width
             annotations = [a for a in annotation_file.annotations if ispolygon(a.annotation_class)]
@@ -32,5 +33,7 @@ def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_di
                 mask = convert_polygons_to_mask(polygon, height=height, width=width, value=255)
                 mask = Image.fromarray(mask.astype(np.uint8))
                 mask_id = f"{image_id}_{i:05}"
-                mask.save(masks_dir / f"{mask_id}.png")
+                outfile = masks_dir / f"{mask_id}.png"
+                outfile.parent.mkdir(parents=True, exist_ok=True)
+                mask.save(outfile)
                 f.write(f"{image_id},{mask_id},{cat}\n")
