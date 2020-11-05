@@ -171,6 +171,7 @@ class RemoteDataset:
         subset_filter_annotations_function: Optional[Callable] = None,
         subset_folder_name: Optional[str] = None,
         use_folders: bool = False,
+        video_frames: Optional[bool] = False,
     ):
         """Downloads a remote project (images and annotations) in the datasets directory.
 
@@ -196,6 +197,8 @@ class RemoteDataset:
             Name of the folder with the subset of the dataset. If not provided a timestamp is used.
         use_folders: bool
             Recreates folders from the dataset
+        video_frames: bool
+            Pulls video frames images instead of video files
 
         Returns
         -------
@@ -269,6 +272,7 @@ class RemoteDataset:
             force_replace=force_replace,
             remove_extra=remove_extra,
             use_folders=use_folders,
+            video_frames=video_frames,
         )
         if count == 0:
             return None, count
