@@ -501,6 +501,7 @@ class RemoteDataset:
         split_type: str = "stratified",
         annotation_type: str = "polygon",
         release_name: Optional[str] = None,
+        annotation_format: Optional[str] = "darwin",
     ):
         """
         Returns all the annotations of a given split and partition in a single dictionary
@@ -517,6 +518,8 @@ class RemoteDataset:
             The type of annotation classes [tag, polygon]
         release_name: str
             Version of the dataset
+        annotation_format: str
+            Re-formatting of the annotation when loaded [coco, darwin]
 
         Returns
         -------
@@ -535,6 +538,7 @@ class RemoteDataset:
             split_type=split_type,
             annotation_type=annotation_type,
             release_name=release_name,
+            annotation_format=annotation_format,
         ):
             yield annotation
 
