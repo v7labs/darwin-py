@@ -171,6 +171,7 @@ class RemoteDataset:
         subset_filter_annotations_function: Optional[Callable] = None,
         subset_folder_name: Optional[str] = None,
         use_folders: bool = False,
+        video_frames: Optional[bool] = False,
     ):
         """Downloads a remote project (images and annotations) in the datasets directory.
 
@@ -196,6 +197,8 @@ class RemoteDataset:
             Name of the folder with the subset of the dataset. If not provided a timestamp is used.
         use_folders: bool
             Recreates folders from the dataset
+        video_frames: bool
+            Pulls video frames images instead of video files
 
         Returns
         -------
@@ -269,6 +272,7 @@ class RemoteDataset:
             force_replace=force_replace,
             remove_extra=remove_extra,
             use_folders=use_folders,
+            video_frames=video_frames,
         )
         if count == 0:
             return None, count
@@ -496,11 +500,11 @@ class RemoteDataset:
 
     def annotations(
         self,
-        partition: str,
-        split: str = "default",
-        split_type: str = "stratified",
-        annotation_type: str = "polygon",
-        annotation_format: str = "coco",
+        annotation_format: str = "darwin",
+        partition: Optional[str] = None,
+        split: Optional[str] = "default",
+        split_type: Optional[str] = None,
+        annotation_type: Optional[str] = "polygon",
         release_name: Optional[str] = None,
     ):
         """
@@ -508,6 +512,8 @@ class RemoteDataset:
 
         Parameters
         ----------
+        annotation_format: str
+            Re-formatting of the annotation when loaded [coco, darwin]
         partition
             Selects one of the partitions [train, val, test]
         split
@@ -515,7 +521,7 @@ class RemoteDataset:
         split_type
             Heuristic used to do the split [random, stratified]
         annotation_type
-            The type of annotation classes [tag, polygon]
+            The type of annotation classes [tag, bounding_box, polygon]
         annotation_format
             Format of the annotation [coco, darwin]
         release_name: str
@@ -533,11 +539,11 @@ class RemoteDataset:
 
         for annotation in get_annotations(
             self.local_path,
+            annotation_format=annotation_format,
             partition=partition,
             split=split,
             split_type=split_type,
             annotation_type=annotation_type,
-            annotation_format=annotation_format,
             release_name=release_name,
         ):
             yield annotation

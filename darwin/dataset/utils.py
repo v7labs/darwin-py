@@ -13,7 +13,7 @@ from PIL import Image
 from tqdm import tqdm
 
 from darwin.exceptions import NotFound
-from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS
+from darwin.utils import SUPPORTED_EXTENSIONS, SUPPORTED_VIDEO_EXTENSIONS
 
 
 def get_release_path(dataset_path: Path, release_name: Optional[str] = None):
@@ -537,7 +537,7 @@ def get_coco_format_record(
 
         new_obj = {"category_id": category}
         if annotation_type != "tag":
-            new_obj["bbox_mode"] =  box_mode
+            new_obj["bbox_mode"] = box_mode
             new_obj["iscrowd"] = 0
 
         if annotation_type == "polygon":
@@ -560,12 +560,12 @@ def get_coco_format_record(
 
 def get_annotations(
     dataset_path: Union[Path, str],
+    annotation_format: str = "coco",
     partition: Optional[str] = None,
     split: Optional[str] = "default",
     split_type: Optional[str] = None,
-    annotation_type: str = "polygon",
+    annotation_type: Optional[str] = "polygon",
     release_name: Optional[str] = None,
-    annotation_format: Optional[str] = "coco",
 ):
     """
     Returns all the annotations of a given dataset and split in a single dictionary
@@ -574,6 +574,8 @@ def get_annotations(
     ----------
     dataset_path
         Path to the location of the dataset on the file system
+    annotation_format: str
+        Re-formatting of the annotation when loaded [coco, darwin]
     partition
         Selects one of the partitions [train, val, test]
     split
@@ -584,8 +586,6 @@ def get_annotations(
         The type of annotation classes [tag, bounding_box, polygon]
     release_name: str
         Version of the dataset
-    annotation_format: str
-        Re-formatting of the annotation when loaded [coco, darwin]
 
     Returns
     -------
@@ -604,15 +604,16 @@ def get_annotations(
 
     if partition not in ["train", "val", "test", None]:
         raise ValueError("partition should be either 'train', 'val', 'test', or None")
-    if split_type not in ["random", "stratified", None]:
-        raise ValueError("split_type should be either 'random', 'stratified', or None")
-    if annotation_type not in ["tag", "polygon", "bounding_box"]:
-        raise ValueError("annotation_type should be either 'tag', 'bounding_box', or 'polygon'")
+    if partition not in ["darwin", "coco"]:
+        raise ValueError(f"format {annotation_format} not supported. Supported formats are 'darwin' or 'coco'")
 
-    # Get the list of classes
-    classes = get_classes(dataset_path, release_name, annotation_type=annotation_type, remove_background=True)
     # Get the list of stems
     if partition:
+        if split_type not in ["random", "stratified", None]:
+            raise ValueError("split_type should be either 'random', 'stratified', or None")
+        if annotation_type not in ["tag", "polygon", "bounding_box"]:
+            raise ValueError("annotation_type should be either 'tag', 'bounding_box', or 'polygon'")
+
         # Get the split
         if split_type is None:
             split_file = f"{partition}.txt"
@@ -639,8 +640,11 @@ def get_annotations(
     for stem in stems:
         annotation_path = annotations_dir / f"{stem}.json"
         images = []
-        for ext in SUPPORTED_IMAGE_EXTENSIONS:
+        for ext in SUPPORTED_EXTENSIONS:
             image_path = images_dir / f"{stem}{ext}"
+            if image_path.exists():
+                images.append(image_path)
+            image_path = images_dir / f"{stem}{ext.upper()}"
             if image_path.exists():
                 images.append(image_path)
         if len(images) < 1:
@@ -652,14 +656,19 @@ def get_annotations(
         annotations_paths.append(annotation_path)
 
     if len(images_paths) == 0:
-        raise ValueError(f"Could not find any {SUPPORTED_IMAGE_EXTENSIONS} file" f" in {dataset_path / 'images'}")
+        raise ValueError(f"Could not find any {SUPPORTED_EXTENSIONS} file" f" in {dataset_path / 'images'}")
 
     assert len(images_paths) == len(annotations_paths)
 
     # Load and re-format all the annotations
     if annotation_format == "coco":
+        # Get the list of classes
+        classes = get_classes(dataset_path, release_name, annotation_type=annotation_type, remove_background=True)
         images_ids = list(range(len(images_paths)))
         for annotation_path, image_path, image_id in zip(annotations_paths, images_paths, images_ids):
+            if image_path.suffix.lower() in SUPPORTED_VIDEO_EXTENSIONS:
+                print(f"[WARNING] Cannot load video annotation into COCO format. Skipping {image_path}")
+                continue
             yield get_coco_format_record(
                 annotation_path=annotation_path,
                 annotation_type=annotation_type,

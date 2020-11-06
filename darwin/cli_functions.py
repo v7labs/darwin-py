@@ -3,7 +3,7 @@ import datetime
 import shutil
 import sys
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Union
 
 import humanize
 
@@ -231,7 +231,7 @@ def export_dataset(
     print(f"Dataset {dataset_slug} successfully exported to {identifier}")
 
 
-def pull_dataset(dataset_slug: str, only_annotations: bool = False, folders: bool = False):
+def pull_dataset(dataset_slug: str, only_annotations: bool = False, folders: bool = False, video_frames: bool = False):
     """Downloads a remote dataset (images and annotations) in the datasets directory.
 
     Parameters
@@ -242,6 +242,8 @@ def pull_dataset(dataset_slug: str, only_annotations: bool = False, folders: boo
         Download only the annotations and no corresponding images
     folders: bool
         Recreates the folders in the dataset
+    video_frames: bool
+        Pulls video frames images instead of video files
     """
     version = DatasetIdentifier.parse(dataset_slug).version or "latest"
     client = _load_client(offline=False, maybe_guest=True)
@@ -256,7 +258,7 @@ def pull_dataset(dataset_slug: str, only_annotations: bool = False, folders: boo
         _error(f"please re-authenticate")
     try:
         release = dataset.get_release(version)
-        dataset.pull(release=release, only_annotations=only_annotations, use_folders=folders)
+        dataset.pull(release=release, only_annotations=only_annotations, use_folders=folders, video_frames=video_frames)
     except NotFound:
         _error(
             f"Version '{dataset.identifier}:{version}' does not exist "
@@ -534,7 +536,7 @@ def find_supported_format(query, supported_formats):
     _error(f"Unsupported format, currently supported: {list_of_formats}")
 
 
-def dataset_convert(dataset_slug, format, output_dir):
+def dataset_convert(dataset_slug: str, format: str, output_dir: Optional[Union[str, Path]]):
     client = _load_client()
     parser = find_supported_format(format, darwin.exporter.formats.supported_formats)
 
@@ -550,7 +552,9 @@ def dataset_convert(dataset_slug, format, output_dir):
         annotations_path = release_path / "annotations"
         if output_dir is None:
             output_dir = release_path / "other_formats" / f"{format}"
-            output_dir.mkdir(parents=True, exist_ok=True)
+        else:
+            output_dir = Path(output_dir)
+        output_dir.mkdir(parents=True, exist_ok=True)
         exporter.export_annotations(parser, [annotations_path], output_dir)
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
