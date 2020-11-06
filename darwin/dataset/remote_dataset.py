@@ -496,10 +496,10 @@ class RemoteDataset:
 
     def annotations(
         self,
-        partition: str,
-        split: str = "split",
-        split_type: str = "stratified",
-        annotation_type: str = "polygon",
+        partition: Optional[str] = None,
+        split: Optional[str] = "default",
+        split_type: Optional[str] = "stratified",
+        annotation_type: Optional[str] = "polygon",
         release_name: Optional[str] = None,
         annotation_format: Optional[str] = "darwin",
     ):

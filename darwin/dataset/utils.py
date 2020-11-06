@@ -559,7 +559,7 @@ def get_annotations(
     partition: Optional[str] = None,
     split: Optional[str] = "default",
     split_type: Optional[str] = None,
-    annotation_type: str = "polygon",
+    annotation_type: Optional[str] = "polygon",
     release_name: Optional[str] = None,
     annotation_format: Optional[str] = "coco",
 ):
@@ -577,7 +577,7 @@ def get_annotations(
     split_type
         Heuristic used to do the split [random, stratified, None]
     annotation_type
-        The type of annotation classes [tag, bounding_box, polygon]
+        The type of annotation classes [tag, bounding_box, polygon, None]
     release_name: str
         Version of the dataset
     annotation_format: str
@@ -602,11 +602,9 @@ def get_annotations(
         raise ValueError("partition should be either 'train', 'val', 'test', or None")
     if split_type not in ["random", "stratified", None]:
         raise ValueError("split_type should be either 'random', 'stratified', or None")
-    if annotation_type not in ["tag", "polygon", "bounding_box"]:
+    if annotation_type not in ["tag", "polygon", "bounding_box", None]:
         raise ValueError("annotation_type should be either 'tag', 'bounding_box', or 'polygon'")
 
-    # Get the list of classes
-    classes = get_classes(dataset_path, release_name, annotation_type=annotation_type, remove_background=True)
     # Get the list of stems
     if partition:
         # Get the split
@@ -657,6 +655,8 @@ def get_annotations(
 
     # Load and re-format all the annotations
     if annotation_format == "coco":
+        # Get the list of classes
+        classes = get_classes(dataset_path, release_name, annotation_type=annotation_type, remove_background=True)
         images_ids = list(range(len(images_paths)))
         for annotation_path, image_path, image_id in zip(annotations_paths, images_paths, images_ids):
             if image_path.suffix.lower() in SUPPORTED_VIDEO_EXTENSIONS:
