@@ -604,7 +604,7 @@ def get_annotations(
 
     if partition not in ["train", "val", "test", None]:
         raise ValueError("partition should be either 'train', 'val', 'test', or None")
-    if partition not in ["darwin", "coco"]:
+    if annotation_format not in ["darwin", "coco"]:
         raise ValueError(f"format {annotation_format} not supported. Supported formats are 'darwin' or 'coco'")
 
     # Get the list of stems
