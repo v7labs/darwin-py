@@ -47,7 +47,9 @@ def parse_annotation(annotation, category_lookup_table):
         print("Warning, unsupported RLE, skipping")
         return None
 
-    if len(segmentation) > 1:
+    if len(segmentation) == 0:
+        return None
+    elif len(segmentation) > 1:
         print("warning, converting complex coco rle mask to polygon, could take some time")
         mask = rle_decoding(segmentation["counts"], segmentation["size"])
         _labels, external, _internal = find_contours(mask)
