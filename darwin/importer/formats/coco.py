@@ -66,7 +66,7 @@ def parse_annotation(annotation, category_lookup_table):
                     break
             paths.append(path)
         return dt.make_complex_polygon(category["name"], paths)
-    elif len(segmentation) > 1:
+    elif len(segmentation) == 1:
         path = []
         points = iter(segmentation[0])
         while True:
