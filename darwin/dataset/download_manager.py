@@ -149,23 +149,21 @@ def download_image_from_json_annotation(
     """
     annotation = json.load(annotation_path.open())
 
-    filename = annotation_path.stem
-
     # If we are using folders, extract the path for the image and create the folder if needed
     sub_path = annotation["image"].get("path", "/") if use_folders else "/"
     parent_path = Path(image_path) / Path(sub_path).relative_to(Path(sub_path).anchor)
     parent_path.mkdir(exist_ok=True, parents=True)
 
     if video_frames and "frame_urls" in annotation["image"]:
-        video_path = parent_path / filename
+        video_path = parent_path / annotation_path.stem
         video_path.mkdir(exist_ok=True, parents=True)
         for i, frame_url in enumerate(annotation["image"]["frame_urls"]):
             path = video_path / f"{i:07d}.jpg"
             download_image(frame_url, path, api_key)
     else:
-        suffix = Path(annotation["image"]["original_filename"]).suffix
-        path = parent_path / (filename + suffix)
-        download_image(annotation["image"]["url"], path, api_key)
+        image_url = annotation["image"]["url"]
+        image_path = parent_path / annotation["image"]["filename"]
+        download_image(image_url, image_path, api_key)
 
 
 def download_image(url: str, path: Path, api_key: str):
