@@ -12,7 +12,7 @@ from darwin.dataset.identifier import DatasetIdentifier
 from darwin.dataset.release import Release
 from darwin.dataset.upload_manager import add_files_to_dataset
 from darwin.dataset.utils import exhaust_generator, get_annotations, get_classes, make_class_lists, split_dataset
-from darwin.exceptions import NotFound
+from darwin.exceptions import NotFound, UnsupportedExportFormat
 from darwin.item import parse_dataset_item
 from darwin.utils import find_files, urljoin
 from darwin.validators import name_taken, validation_error
@@ -69,7 +69,7 @@ class RemoteDataset:
         blocking: bool = True,
         multi_threaded: bool = True,
         fps: int = 1,
-        as_video: bool = False,
+        as_frames: bool = False,
         files_to_exclude: Optional[List[str]] = None,
         resume: bool = False,
         path: Optional[str] = None,
@@ -89,7 +89,7 @@ class RemoteDataset:
             List of files to exclude from the file scan (which is done only if files is None)
         fps : int
             Number of file per seconds to upload
-        as_video: bool
+        as_frames: bool
             Annotate as video.
         resume : bool
             Flag for signalling the resuming of a push
@@ -140,7 +140,7 @@ class RemoteDataset:
             dataset_id=str(self.dataset_id),
             filenames=files_to_upload,
             fps=fps,
-            as_video=as_video,
+            as_frames=as_frames,
             team=self.team,
             path=path,
         )
@@ -170,6 +170,8 @@ class RemoteDataset:
         remove_extra: bool = False,
         subset_filter_annotations_function: Optional[Callable] = None,
         subset_folder_name: Optional[str] = None,
+        use_folders: bool = False,
+        video_frames: Optional[bool] = False,
     ):
         """Downloads a remote project (images and annotations) in the datasets directory.
 
@@ -193,6 +195,10 @@ class RemoteDataset:
             If it needs to receive other parameters is advised to use functools.partial() for it.
         subset_folder_name: str
             Name of the folder with the subset of the dataset. If not provided a timestamp is used.
+        use_folders: bool
+            Recreates folders from the dataset
+        video_frames: bool
+            Pulls video frames images instead of video files
 
         Returns
         -------
@@ -203,6 +209,9 @@ class RemoteDataset:
         """
         if release is None:
             release = self.get_release()
+
+        if release.format != "json":
+            raise UnsupportedExportFormat(release.format)
 
         release_dir = self.local_releases_path / release.name
         release_dir.mkdir(parents=True, exist_ok=True)
@@ -229,13 +238,10 @@ class RemoteDataset:
                 annotations_dir.mkdir(parents=True, exist_ok=False)
                 # Move the annotations into the right folder and rename them to have the image
                 # original filename as contained in the json
-                for annotation_path in tmp_dir.glob(f"*.json"):
+                for annotation_path in tmp_dir.glob("*.json"):
                     annotation = json.load(annotation_path.open())
-                    original_filename = Path(annotation["image"]["original_filename"])
                     filename = Path(annotation["image"]["filename"]).stem
-                    destination_name = annotations_dir / (
-                        filename + "_" + original_filename.stem + annotation_path.suffix
-                    )
+                    destination_name = annotations_dir / f"{filename}{annotation_path.suffix}"
                     shutil.move(str(annotation_path), str(destination_name))
 
         # Extract the list of classes and create the text files
@@ -262,6 +268,8 @@ class RemoteDataset:
             images_path=self.local_images_path,
             force_replace=force_replace,
             remove_extra=remove_extra,
+            use_folders=use_folders,
+            video_frames=video_frames,
         )
         if count == 0:
             return None, count
@@ -494,6 +502,7 @@ class RemoteDataset:
         split_type: str = "stratified",
         annotation_type: str = "polygon",
         release_name: Optional[str] = None,
+        annotation_format: Optional[str] = "darwin",
     ):
         """
         Returns all the annotations of a given split and partition in a single dictionary
@@ -510,6 +519,8 @@ class RemoteDataset:
             The type of annotation classes [tag, polygon]
         release_name: str
             Version of the dataset
+        annotation_format: str
+            Re-formatting of the annotation when loaded [coco, darwin]
 
         Returns
         -------
@@ -528,6 +539,7 @@ class RemoteDataset:
             split_type=split_type,
             annotation_type=annotation_type,
             release_name=release_name,
+            annotation_format=annotation_format,
         ):
             yield annotation
 

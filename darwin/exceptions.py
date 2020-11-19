@@ -14,6 +14,12 @@ class MissingConfig(Exception):
     pass
 
 
+class UnsupportedExportFormat(Exception):
+    def __init__(self, format):
+        super().__init__()
+        self.format = format
+
+
 class NotFound(Exception):
     def __init__(self, name):
         super().__init__()
@@ -38,4 +44,8 @@ class ValidationError(Exception):
 
 
 class Unauthorized(Exception):
+    pass
+
+
+class OutdatedDarwinJSONFormat(Exception):
     pass

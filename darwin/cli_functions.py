@@ -3,7 +3,7 @@ import datetime
 import shutil
 import sys
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Union
 
 import humanize
 
@@ -15,7 +15,16 @@ from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset.identifier import DatasetIdentifier
 from darwin.dataset.utils import get_release_path, split_dataset
-from darwin.exceptions import InvalidLogin, MissingConfig, NameTaken, NotFound, Unauthenticated, ValidationError
+from darwin.exceptions import (
+    InvalidLogin,
+    MissingConfig,
+    NameTaken,
+    NotFound,
+    Unauthenticated,
+    UnsupportedExportFormat,
+    UnsupportedFileType,
+    ValidationError,
+)
 from darwin.table import Table
 from darwin.utils import find_files, persist_client_configuration, prompt, secure_continue_request
 
@@ -104,18 +113,19 @@ def set_team(team_slug: str):
     config.set_default_team(team_slug)
 
 
-def create_dataset(name: str, team: Optional[str] = None):
+def create_dataset(dataset_slug: str):
     """Creates a dataset remotely"""
-    client = _load_client(team_slug=team)
+    identifier = DatasetIdentifier.parse(dataset_slug)
+    client = _load_client(team_slug=identifier.team_slug)
     try:
-        dataset = client.create_dataset(name=name)
+        dataset = client.create_dataset(name=identifier.dataset_slug)
         print(
             f"Dataset '{dataset.name}' ({dataset.team}/{dataset.slug}) has been created.\nAccess at {dataset.remote_path}"
         )
     except NameTaken:
-        _error(f"Dataset name '{name}' is already taken.")
+        _error(f"Dataset name '{identifier.dataset_slug}' is already taken.")
     except ValidationError:
-        _error(f"Dataset name '{name}' is not valid.")
+        _error(f"Dataset name '{identifier.dataset_slug}' is not valid.")
 
 
 def local(team: Optional[str] = None):
@@ -221,7 +231,7 @@ def export_dataset(
     print(f"Dataset {dataset_slug} successfully exported to {identifier}")
 
 
-def pull_dataset(dataset_slug: str, only_annotations: bool = False):
+def pull_dataset(dataset_slug: str, only_annotations: bool = False, folders: bool = False, video_frames: bool = False):
     """Downloads a remote dataset (images and annotations) in the datasets directory.
 
     Parameters
@@ -230,6 +240,10 @@ def pull_dataset(dataset_slug: str, only_annotations: bool = False):
         Slug of the dataset to which we perform the operation on
     only_annotations: bool
         Download only the annotations and no corresponding images
+    folders: bool
+        Recreates the folders in the dataset
+    video_frames: bool
+        Pulls video frames images instead of video files
     """
     version = DatasetIdentifier.parse(dataset_slug).version or "latest"
     client = _load_client(offline=False, maybe_guest=True)
@@ -244,11 +258,16 @@ def pull_dataset(dataset_slug: str, only_annotations: bool = False):
         _error(f"please re-authenticate")
     try:
         release = dataset.get_release(version)
-        dataset.pull(release=release, only_annotations=only_annotations)
+        dataset.pull(release=release, only_annotations=only_annotations, use_folders=folders, video_frames=video_frames)
     except NotFound:
         _error(
             f"Version '{dataset.identifier}:{version}' does not exist "
             f"Use 'darwin dataset releases' to list all available versions."
+        )
+    except UnsupportedExportFormat as uef:
+        _error(
+            f"Version '{dataset.identifier}:{version}' is of format '{uef.format}', "
+            f"only the darwin format ('json') is supported for `darwin dataset pull`"
         )
     print(f"Dataset {release.identifier} downloaded at {dataset.local_path}. ")
 
@@ -424,7 +443,7 @@ def upload_data(
     files_to_exclude: Optional[List[str]],
     fps: int,
     path: Optional[str],
-    as_video: Optional[bool],
+    frames: Optional[bool],
 ):
     """Uploads the files provided as parameter to the remote dataset selected
 
@@ -449,15 +468,17 @@ def upload_data(
     client = _load_client()
     try:
         dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
-        dataset.push(files_to_exclude=files_to_exclude, fps=fps, as_video=as_video, files_to_upload=files, path=path)
+        dataset.push(files_to_exclude=files_to_exclude, fps=fps, as_frames=frames, files_to_upload=files, path=path)
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
+    except UnsupportedFileType as e:
+        _error(f"Unsupported file type {e.path.suffix} ({e.path.name})")
     except ValueError:
         _error(f"No files found")
 
 
 def dataset_import(dataset_slug, format, files):
-    client = _load_client()
+    client = _load_client(dataset_identifier=dataset_slug)
     parser = find_supported_format(format, darwin.importer.formats.supported_formats)
 
     try:
@@ -515,7 +536,7 @@ def find_supported_format(query, supported_formats):
     _error(f"Unsupported format, currently supported: {list_of_formats}")
 
 
-def dataset_convert(dataset_slug, format, output_dir):
+def dataset_convert(dataset_slug: str, format: str, output_dir: Optional[Union[str, Path]]):
     client = _load_client()
     parser = find_supported_format(format, darwin.exporter.formats.supported_formats)
 
@@ -531,7 +552,9 @@ def dataset_convert(dataset_slug, format, output_dir):
         annotations_path = release_path / "annotations"
         if output_dir is None:
             output_dir = release_path / "other_formats" / f"{format}"
-            output_dir.mkdir(parents=True, exist_ok=True)
+        else:
+            output_dir = Path(output_dir)
+        output_dir.mkdir(parents=True, exist_ok=True)
         exporter.export_annotations(parser, [annotations_path], output_dir)
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
