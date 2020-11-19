@@ -13,7 +13,7 @@ from PIL import Image
 from tqdm import tqdm
 
 from darwin.exceptions import NotFound
-from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS
+from darwin.utils import SUPPORTED_EXTENSIONS, SUPPORTED_VIDEO_EXTENSIONS
 
 
 def get_release_path(dataset_path: Path, release_name: Optional[str] = None):
@@ -635,8 +635,11 @@ def get_annotations(
     for stem in stems:
         annotation_path = annotations_dir / f"{stem}.json"
         images = []
-        for ext in SUPPORTED_IMAGE_EXTENSIONS:
+        for ext in SUPPORTED_EXTENSIONS:
             image_path = images_dir / f"{stem}{ext}"
+            if image_path.exists():
+                images.append(image_path)
+            image_path = images_dir / f"{stem}{ext.upper()}"
             if image_path.exists():
                 images.append(image_path)
         if len(images) < 1:
@@ -648,7 +651,7 @@ def get_annotations(
         annotations_paths.append(annotation_path)
 
     if len(images_paths) == 0:
-        raise ValueError(f"Could not find any {SUPPORTED_IMAGE_EXTENSIONS} file" f" in {dataset_path / 'images'}")
+        raise ValueError(f"Could not find any {SUPPORTED_EXTENSIONS} file" f" in {dataset_path / 'images'}")
 
     assert len(images_paths) == len(annotations_paths)
 
@@ -656,6 +659,9 @@ def get_annotations(
     if annotation_format == "coco":
         images_ids = list(range(len(images_paths)))
         for annotation_path, image_path, image_id in zip(annotations_paths, images_paths, images_ids):
+            if image_path.suffix.lower() in SUPPORTED_VIDEO_EXTENSIONS:
+                print(f"[WARNING] Cannot load video annotation into COCO format. Skipping {image_path}")
+                continue
             yield get_coco_format_record(
                 annotation_path=annotation_path,
                 annotation_type=annotation_type,

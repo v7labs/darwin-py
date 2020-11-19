@@ -68,7 +68,7 @@ def detectron2_register_dataset(
         Evaluator to be used in the val and test sets
     """
     try:
-        from detectron2.data import MetadataCatalog, DatasetCatalog
+        from detectron2.data import DatasetCatalog, MetadataCatalog
     except ImportError:
         print("Detectron2 not found.")
         sys.exit(1)
