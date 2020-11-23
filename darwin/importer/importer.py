@@ -120,7 +120,6 @@ def import_annotations(
         # remove files missing on the server
         parsed_files = [parsed_file for parsed_file in parsed_files if parsed_file not in local_files_missing_remotely]
         for parsed_file in tqdm(parsed_files):
-            print(parsed_file.filename, remote_files)
             image_id = remote_files[parsed_file.filename]
             _import_annotations(dataset.client, image_id, remote_classes, attributes, parsed_file.annotations, dataset)
 

@@ -43,7 +43,7 @@ def run(args, parser):
             f.list_teams()
     # Version
     elif args.command == "version":
-        print("0.5.10")
+        print("0.5.13")
 
     elif args.command == "convert":
         f.convert(args.format, args.files, args.output_dir)
