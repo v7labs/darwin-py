@@ -3,11 +3,10 @@ import shutil
 from pathlib import Path
 from typing import Generator
 
-import numpy as np
 from PIL import Image
 
 import darwin.datatypes as dt
-from darwin.utils import convert_polygons_to_mask, get_progress_bar, ispolygon
+from darwin.utils import convert_polygons_to_mask, convert_ellipse_to_mask, convert_bounding_box_to_mask, get_progress_bar
 
 
 def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_dir: Path):
@@ -21,17 +20,19 @@ def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_di
             image_id = os.path.splitext(annotation_file.filename)[0]
             height = annotation_file.image_height
             width = annotation_file.image_width
-            annotations = [a for a in annotation_file.annotations if ispolygon(a.annotation_class)]
-            for i, annotation in enumerate(annotations):
+            for i, annotation in enumerate(annotation_file.annotations):
                 cat = annotation.annotation_class.name
                 if annotation.annotation_class.annotation_type == "polygon":
-                    polygon = annotation.data["path"]
+                    mask = convert_polygons_to_mask(annotation.data["path"], height=height, width=width, value=255)
                 elif annotation.annotation_class.annotation_type == "complex_polygon":
-                    polygon = annotation.data["paths"]
+                    mask = convert_polygons_to_mask(annotation.data["paths"], height=height, width=width, value=255)
+                elif annotation.annotation_class.annotation_type == "ellipse":
+                    mask = convert_ellipse_to_mask(annotation.data, height=height, width=width, value=255)
+                elif annotation.annotation_class.annotation_type == "bounding_box":
+                    mask = convert_bounding_box_to_mask(annotation.data, height=height, width=width, value=255)
                 else:
                     continue
-                mask = convert_polygons_to_mask(polygon, height=height, width=width, value=255)
-                mask = Image.fromarray(mask.astype(np.uint8))
+                mask = Image.fromarray(mask)
                 mask_id = f"{image_id}_{i:05}"
                 outfile = masks_dir / f"{mask_id}.png"
                 outfile.parent.mkdir(parents=True, exist_ok=True)

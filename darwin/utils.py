@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, List, Optional, Union
 
 import numpy as np
+from skimage import draw
 from tqdm import tqdm
 from upolygon import draw_polygon
 
@@ -316,6 +317,10 @@ def ispolygon(annotation):
     return annotation.annotation_type in ["polygon", "complex_polygon"]
 
 
+def isdrawable(annotation):
+    return annotation.annotation_type in ["polygon", "complex_polygon", "ellipse", "bounding_box"]
+
+
 def convert_polygons_to_sequences(polygons: List, height: Optional[int] = None, width: Optional[int] = None) -> List:
     """
     Converts a list of polygons, encoded as a list of dictionaries of into a list of nd.arrays
@@ -360,7 +365,7 @@ def convert_polygons_to_sequences(polygons: List, height: Optional[int] = None, 
     return sequences
 
 
-def convert_polygons_to_mask(polygons: List, height: int, width: int, value: Optional[int] = 1) -> np.ndarray:
+def convert_polygons_to_mask(polygons: List, height: int, width: int, value: Optional[int] = 1, mask: Optional[np.ndarray] = None) -> np.ndarray:
     """
     Converts a list of polygons, encoded as a list of dictionaries into an nd.array mask
 
@@ -375,7 +380,64 @@ def convert_polygons_to_mask(polygons: List, height: int, width: int, value: Opt
     mask: ndarray[float]
         ndarray mask of the polygon(s)
     """
+    if mask is None:
+        mask = np.zeros((height, width), dtype=np.uint8)
+
     sequence = convert_polygons_to_sequences(polygons, height=height, width=width)
-    mask = np.zeros((height, width)).astype(np.uint8)
     draw_polygon(mask, sequence, value)
+    return mask
+
+
+def convert_ellipse_to_mask(ellipse: dict, height: int, width: int, value: Optional[int] = 1, mask: Optional[np.ndarray] = None) -> np.ndarray:
+    """
+    Converts an ellipse into an nd.array mask
+
+    Parameters
+    ----------
+    ellipse: dict
+        An ellipse represented using 'center', 'radius', and 'angle'
+
+    Returns
+    -------
+    mask: ndarray[float]
+        ndarray mask of the polygon(s)
+    """
+    if mask is None:
+        mask = np.zeros((height, width), dtype=np.uint8)
+
+    center = ellipse['center']
+    radius = ellipse['radius']
+    angle = ellipse['angle']
+    rr, cc = draw.ellipse(center['y'], center['x'], radius['y'], radius['x'], rotation=angle)
+    keep = (rr < height) & (rr >= 0) & (cc < width) & (cc >= 0)
+    rr = rr[keep]
+    cc = cc[keep]
+    mask[rr, cc] = value
+
+    return mask
+
+
+def convert_bounding_box_to_mask(bbox: dict, height: int, width: int, value: Optional[int] = 1, mask: Optional[np.ndarray] = None) -> np.ndarray:
+    """
+    Converts an ellipse into an nd.array mask
+
+    Parameters
+    ----------
+    bbox: dict
+        An bounding box represented using top left coordinates, width, and height
+
+    Returns
+    -------
+    mask: ndarray[float]
+        ndarray mask of the polygon(s)
+    """
+    if mask is None:
+        mask = np.zeros((height, width), dtype=np.uint8)
+
+    x1 = max(0, round(bbox['x']))
+    y1 = max(0, round(bbox['y']))
+    x2 = min(width, round(bbox['x'] + bbox['w']))
+    y2 = min(height, round(bbox['y'] + bbox['h']))
+    mask[y1:y2, x1:x2] = value
+
     return mask

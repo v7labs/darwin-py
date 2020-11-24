@@ -8,7 +8,7 @@ from PIL import Image
 from upolygon import draw_polygon
 
 import darwin.datatypes as dt
-from darwin.utils import convert_polygons_to_sequences, get_progress_bar, ispolygon
+from darwin.utils import convert_polygons_to_mask, convert_ellipse_to_mask, convert_bounding_box_to_mask, get_progress_bar, isdrawable
 
 
 def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_dir: Path, mode: str = "grey"):
@@ -43,15 +43,18 @@ def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_di
         height = annotation_file.image_height
         width = annotation_file.image_width
         mask = np.zeros((height, width)).astype(np.uint8)
-        annotations = [a for a in annotation_file.annotations if ispolygon(a.annotation_class)]
-        for a in annotations:
+        for a in annotation_file.annotations:
             cat = a.annotation_class.name
             if a.annotation_class.annotation_type == "polygon":
-                polygon = a.data["path"]
+                mask = convert_polygons_to_mask(a.data["path"], height=height, width=width, value=palette[cat], mask=mask)
             elif a.annotation_class.annotation_type == "complex_polygon":
-                polygon = a.data["paths"]
-            sequence = convert_polygons_to_sequences(polygon, height=height, width=width)
-            draw_polygon(mask, sequence, palette[cat])
+                mask = convert_polygons_to_mask(a.data["paths"], height=height, width=width, value=palette[cat], mask=mask)
+            elif a.annotation_class.annotation_type == "ellipse":
+                mask = convert_ellipse_to_mask(a.data, height=height, width=width, value=palette[cat], mask=mask)
+            elif a.annotation_class.annotation_type == "bounding_box":
+                mask = convert_bounding_box_to_mask(a.data, height=height, width=width, value=palette[cat], mask=mask)
+            else:
+                continue
         if mode == "rgb":
             mask = Image.fromarray(mask, "P")
             mask.putpalette(RGB_colors)
@@ -72,7 +75,7 @@ def extract_categories(annotation_files: List[dt.AnnotationFile]):
     categories = set()
     for annotation_file in annotation_files:
         for annotation_class in annotation_file.annotation_classes:
-            if ispolygon(annotation_class):
+            if isdrawable(annotation_class):
                 categories.add(annotation_class.name)
     categories = list(categories)
     categories.sort()
