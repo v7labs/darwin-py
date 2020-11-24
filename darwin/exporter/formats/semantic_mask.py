@@ -5,10 +5,15 @@ from typing import Generator, List
 
 import numpy as np
 from PIL import Image
-from upolygon import draw_polygon
 
 import darwin.datatypes as dt
-from darwin.utils import convert_polygons_to_mask, convert_ellipse_to_mask, convert_bounding_box_to_mask, get_progress_bar, isdrawable
+from darwin.utils import (
+    convert_bounding_box_to_mask,
+    convert_ellipse_to_mask,
+    convert_polygons_to_mask,
+    get_progress_bar,
+    isdrawable,
+)
 
 
 def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_dir: Path, mode: str = "grey"):
@@ -46,9 +51,13 @@ def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_di
         for a in annotation_file.annotations:
             cat = a.annotation_class.name
             if a.annotation_class.annotation_type == "polygon":
-                mask = convert_polygons_to_mask(a.data["path"], height=height, width=width, value=palette[cat], mask=mask)
+                mask = convert_polygons_to_mask(
+                    a.data["path"], height=height, width=width, value=palette[cat], mask=mask
+                )
             elif a.annotation_class.annotation_type == "complex_polygon":
-                mask = convert_polygons_to_mask(a.data["paths"], height=height, width=width, value=palette[cat], mask=mask)
+                mask = convert_polygons_to_mask(
+                    a.data["paths"], height=height, width=width, value=palette[cat], mask=mask
+                )
             elif a.annotation_class.annotation_type == "ellipse":
                 mask = convert_ellipse_to_mask(a.data, height=height, width=width, value=palette[cat], mask=mask)
             elif a.annotation_class.annotation_type == "bounding_box":

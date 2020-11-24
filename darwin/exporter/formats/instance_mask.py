@@ -6,7 +6,12 @@ from typing import Generator
 from PIL import Image
 
 import darwin.datatypes as dt
-from darwin.utils import convert_polygons_to_mask, convert_ellipse_to_mask, convert_bounding_box_to_mask, get_progress_bar
+from darwin.utils import (
+    convert_bounding_box_to_mask,
+    convert_ellipse_to_mask,
+    convert_polygons_to_mask,
+    get_progress_bar,
+)
 
 
 def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_dir: Path):
