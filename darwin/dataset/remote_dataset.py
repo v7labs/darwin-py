@@ -300,6 +300,8 @@ class RemoteDataset:
                         parameters[list_type] = filters[list_type]
             if "path" in filters:
                 parameters["path"] = filters["path"]
+            if "types" in filters:
+                parameters["types"] = filters["types"]
 
         cursor = {}
         while True:

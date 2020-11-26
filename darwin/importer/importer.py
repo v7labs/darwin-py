@@ -63,7 +63,7 @@ def import_annotations(
     file_paths: List[Union[str, Path]],
 ):
     print("Fetching remote file list...")
-    remote_files = {f.filename: f.id for f in dataset.fetch_remote_files()}
+    remote_files = {f.filename: f.id for f in dataset.fetch_remote_files({"types" :"image,playback_video,video_frame"})}
     print("Fetching remote class list...")
     remote_classes = build_main_annotations_lookup_table(dataset.fetch_remote_classes())
     attributes = build_attribute_lookup(dataset)
