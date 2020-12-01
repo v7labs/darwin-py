@@ -26,7 +26,7 @@ setuptools.setup(
         "sh",
         "tqdm",
         "pillow",
-        "upolygon==0.1.2",
+        "upolygon==0.1.4",
     ],
     packages=setuptools.find_packages(),
     entry_points={"console_scripts": ["darwin=darwin.cli:main"]},
