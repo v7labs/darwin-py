@@ -121,7 +121,7 @@ def build_annotations(annotation_files, categories):
 def build_annotation(annotation_file, annotation_id, annotation: dt.Annotation, categories):
     annotation_type = annotation.annotation_class.annotation_type
     if annotation_type == "polygon":
-        sequences = convert_polygons_to_sequences(annotation.data["path"])
+        sequences = convert_polygons_to_sequences(annotation.data["path"], rounding=False)
         x_coords = [s[0::2] for s in sequences]
         y_coords = [s[1::2] for s in sequences]
         min_x = np.min([np.min(x_coord) for x_coord in x_coords])
