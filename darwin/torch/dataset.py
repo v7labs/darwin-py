@@ -1,6 +1,7 @@
 from typing import List, Optional
 
 import numpy as np
+import torch
 
 from darwin.cli_functions import _error, _load_client
 from darwin.dataset import LocalDataset
@@ -25,7 +26,7 @@ def get_dataset(
     dataset_slug: str
         Slug of the dataset to retrieve
     dataset_type: str
-        The type of dataset [classification, instance-segmentation, semantic-segmentation]
+        The type of dataset [classification, bounding-box-detection, instance-segmentation, semantic-segmentation]
     partition: str
         Selects one of the partitions [train, val, test, None]. (Default: None)
     split: str
@@ -37,6 +38,7 @@ def get_dataset(
     """
     dataset_functions = {
         "classification": ClassificationDataset,
+        "bounding-box-detection": BoundingBoxDetectionDataset,
         "instance-segmentation": InstanceSegmentationDataset,
         "semantic-segmentation": SemanticSegmentationDataset,
     }
@@ -143,6 +145,87 @@ class ClassificationDataset(LocalDataset):
         return self._compute_weights(labels)
 
 
+class BoundingBoxDetectionDataset(LocalDataset):
+    def __init__(self, transform: Optional[List] = None, **kwargs):
+        """See `LocalDataset` class for documentation"""
+        super().__init__(annotation_type="bounding_box", **kwargs)
+
+        self.transform = transform
+        if self.transform is not None and isinstance(self.transform, list):
+            self.transform = Compose(self.transform)
+
+    def __getitem__(self, index: int):
+        """
+        Notes
+        -----
+        The return value is a dict with the following fields:
+            image_id : int
+                Index of the image inside the dataset
+            image_path: str
+                The path to the image on the file system
+            labels : tensor(n)
+                The class label of each one of the instances
+            boxes : tensor(n, 4)
+                Coordinates of the bounding box enclosing the instances as [x, y, x, y]
+            area : float
+                Area in pixels of each one of the instances
+        """
+        img = self.get_image(index)
+        target = self.get_target(index)
+
+        if self.transform is not None:
+            img, target = self.transform(img, target)
+
+        return img, target
+
+    def get_target(self, index: int):
+        """Returns the instance segmentation target
+        """
+        target = self.parse_json(index)
+        annotations = target.pop("annotations", [])
+
+        boxes = []
+        area = []
+        labels = []
+        for annotation in annotations:
+            if "bounding_box" not in annotation:
+                print(f"Warning: missing bounding_box in annotation {self.annotations_path[index]}")
+                continue
+            bbox = annotation["bounding_box"]
+
+            min_x = bbox["x"]
+            min_y = bbox["y"]
+            max_x = bbox["x"] + bbox["w"] - 1
+            max_y = bbox["y"] + bbox["h"] - 1
+
+            boxes.append([min_x, min_y, max_x, max_y])
+            area.append(bbox["w"] * bbox["h"])
+            labels.append(self.classes.index(annotation["name"]))
+
+        target["boxes"] = torch.tensor(boxes)
+        target["labels"] = torch.tensor(labels)
+        target["area"] = torch.tensor(area)
+
+        return target
+
+    def measure_weights(self, **kwargs):
+        """Computes the class balancing weights (not the frequencies!!) given the train loader
+        Get the weights proportional to the inverse of their class frequencies.
+        The vector sums up to 1
+
+        Returns
+        -------
+        class_weights : ndarray[double]
+            Weight for each class in the train set (one for each class) as a 1D array normalized
+        """
+        # Collect all the labels by iterating over the whole dataset
+        labels = []
+        for i, _ in enumerate(self.images_path):
+            target = self.get_target(i)
+            labels.extend([a["category_id"] for a in target["annotations"]])
+        return self._compute_weights(labels)
+
+
 class InstanceSegmentationDataset(LocalDataset):
     def __init__(self, transform: Optional[List] = None, **kwargs):
         """See `LocalDataset` class for documentation"""
@@ -202,8 +285,6 @@ class InstanceSegmentationDataset(LocalDataset):
             min_y = np.min([np.min(y_coord) for y_coord in y_coords])
             max_x = np.max([np.max(x_coord) for x_coord in x_coords])
             max_y = np.max([np.max(y_coord) for y_coord in y_coords])
-            w = max_x - min_x + 1
-            h = max_y - min_y + 1
             # Compute the area of the polygon
             # TODO fix with addictive/subtractive paths in complex polygons
             poly_area = np.sum([polygon_area(x_coord, y_coord) for x_coord, y_coord in zip(x_coords, y_coords)])
@@ -213,7 +294,7 @@ class InstanceSegmentationDataset(LocalDataset):
                 {
                     "category_id": self.classes.index(annotation["name"]),
                     "segmentation": sequences,
-                    "bbox": [min_x, min_y, w, h],
+                    "bbox": [min_x, min_y, max_x, max_y],
                     "area": poly_area,
                 }
             )
