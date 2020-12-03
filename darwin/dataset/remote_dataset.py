@@ -171,6 +171,7 @@ class RemoteDataset:
         subset_filter_annotations_function: Optional[Callable] = None,
         subset_folder_name: Optional[str] = None,
         use_folders: bool = False,
+        video_frames: Optional[bool] = False,
     ):
         """Downloads a remote project (images and annotations) in the datasets directory.
 
@@ -195,7 +196,9 @@ class RemoteDataset:
         subset_folder_name: str
             Name of the folder with the subset of the dataset. If not provided a timestamp is used.
         use_folders: bool
-            Recreates folders from the dataset 
+            Recreates folders from the dataset
+        video_frames: bool
+            Pulls video frames images instead of video files
 
         Returns
         -------
@@ -235,13 +238,10 @@ class RemoteDataset:
                 annotations_dir.mkdir(parents=True, exist_ok=False)
                 # Move the annotations into the right folder and rename them to have the image
                 # original filename as contained in the json
-                for annotation_path in tmp_dir.glob(f"*.json"):
+                for annotation_path in tmp_dir.glob("*.json"):
                     annotation = json.load(annotation_path.open())
-                    original_filename = Path(annotation["image"]["original_filename"])
                     filename = Path(annotation["image"]["filename"]).stem
-                    destination_name = annotations_dir / (
-                        filename + "_" + original_filename.stem + annotation_path.suffix
-                    )
+                    destination_name = annotations_dir / f"{filename}{annotation_path.suffix}"
                     shutil.move(str(annotation_path), str(destination_name))
 
         # Extract the list of classes and create the text files
@@ -269,6 +269,7 @@ class RemoteDataset:
             force_replace=force_replace,
             remove_extra=remove_extra,
             use_folders=use_folders,
+            video_frames=video_frames,
         )
         if count == 0:
             return None, count
@@ -501,6 +502,7 @@ class RemoteDataset:
         split_type: str = "stratified",
         annotation_type: str = "polygon",
         release_name: Optional[str] = None,
+        annotation_format: Optional[str] = "darwin",
     ):
         """
         Returns all the annotations of a given split and partition in a single dictionary
@@ -517,6 +519,8 @@ class RemoteDataset:
             The type of annotation classes [tag, polygon]
         release_name: str
             Version of the dataset
+        annotation_format: str
+            Re-formatting of the annotation when loaded [coco, darwin]
 
         Returns
         -------
@@ -535,6 +539,7 @@ class RemoteDataset:
             split_type=split_type,
             annotation_type=annotation_type,
             release_name=release_name,
+            annotation_format=annotation_format,
         ):
             yield annotation
 
