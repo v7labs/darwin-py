@@ -1,8 +1,10 @@
 import json
 from pathlib import Path
 from typing import List, Optional
-from upolygon import find_contours
+
 import numpy as np
+from upolygon import find_contours
+
 import darwin.datatypes as dt
 
 
@@ -45,9 +47,12 @@ def parse_annotation(annotation, category_lookup_table):
         print("Warning, unsupported RLE, skipping")
         return None
 
-    if len(segmentation) > 1:
+    if len(segmentation) == 0 and len(annotation["bbox"]) == 4:
+        x, y, w, h = map(int, annotation["bbox"])
+        return dt.make_bounding_box(category["name"], x, y, w, h)
+    elif len(segmentation) > 1:
         print("warning, converting complex coco rle mask to polygon, could take some time")
-        mask = rle_decoding(segmentation['counts'], segmentation['size'])
+        mask = rle_decoding(segmentation["counts"], segmentation["size"])
         _labels, external, _internal = find_contours(mask)
         paths = []
         for external_path in external:
@@ -61,22 +66,26 @@ def parse_annotation(annotation, category_lookup_table):
                     break
             paths.append(path)
         return dt.make_complex_polygon(category["name"], paths)
-    path = []
-    points = iter(segmentation[0])
-    while True:
-        try:
-            x, y = next(points), next(points)
-            path.append({"x": x, "y": y})
-        except StopIteration:
-            break
-    return dt.make_polygon(category["name"], path)
+    elif len(segmentation) == 1:
+        path = []
+        points = iter(segmentation[0])
+        while True:
+            try:
+                x, y = next(points), next(points)
+                path.append({"x": x, "y": y})
+            except StopIteration:
+                break
+        return dt.make_polygon(category["name"], path)
+    else:
+        return None
+
 
 def rle_decoding(counts, shape):
-    img = np.zeros(shape[0]*shape[1], dtype=np.uint8)
+    img = np.zeros(shape[0] * shape[1], dtype=np.uint8)
     val = 1
     n = 0
     for pos in range(len(counts)):
         val = not val
-        img[n:n+counts[pos]] = val
+        img[n : n + counts[pos]] = val
         n += counts[pos]
-    return img.reshape(shape)
+    return img.reshape(shape).T

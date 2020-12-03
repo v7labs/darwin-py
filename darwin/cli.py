@@ -43,7 +43,7 @@ def run(args, parser):
             f.list_teams()
     # Version
     elif args.command == "version":
-        print("0.5.10")
+        print("0.5.14")
 
     elif args.command == "convert":
         f.convert(args.format, args.files, args.output_dir)
@@ -75,7 +75,7 @@ def run(args, parser):
         elif args.action == "releases":
             f.dataset_list_releases(args.dataset)
         elif args.action == "pull":
-            f.pull_dataset(args.dataset, args.only_annotations, args.folders)
+            f.pull_dataset(args.dataset, args.only_annotations, args.folders, args.video_frames)
         elif args.action == "import":
             f.dataset_import(args.dataset, args.format, args.files)
         elif args.action == "convert":

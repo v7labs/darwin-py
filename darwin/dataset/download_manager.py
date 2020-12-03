@@ -16,7 +16,8 @@ def download_all_images_from_annotations(
     force_replace: bool = False,
     remove_extra: bool = False,
     annotation_format: str = "json",
-    use_folders: bool = False
+    use_folders: bool = False,
+    video_frames: bool = False,
 ):
     """Helper function: downloads the all images corresponding to a project.
 
@@ -38,6 +39,8 @@ def download_all_images_from_annotations(
         Format of the annotations. Currently only JSON and xml are expected
     use_folders: bool
         Recreate folders
+    video_frames: bool
+        Pulls video frames images instead of video files
 
     Returns
     -------
@@ -85,6 +88,7 @@ def download_all_images_from_annotations(
             images_path,
             annotation_format,
             use_folders,
+            video_frames,
         )
         for annotation_path in annotations_to_download_path
     )
@@ -92,7 +96,7 @@ def download_all_images_from_annotations(
 
 
 def download_image_from_annotation(
-    api_key: str, api_url: str, annotation_path: Path, images_path: str, annotation_format: str, use_folders: bool
+    api_key: str, api_url: str, annotation_path: Path, images_path: str, annotation_format: str, use_folders: bool, video_frames: bool
 ):
     """Helper function: dispatcher of functions to download an image given an annotation
 
@@ -110,9 +114,11 @@ def download_image_from_annotation(
         Format of the annotations. Currently only JSON is supported
     use_folders: bool
         Recreate folder structure
+    video_frames: bool
+        Pulls video frames images instead of video files
     """
     if annotation_format == "json":
-        download_image_from_json_annotation(api_key, api_url, annotation_path, images_path, use_folders)
+        download_image_from_json_annotation(api_key, api_url, annotation_path, images_path, use_folders, video_frames)
     elif annotation_format == "xml":
         print("sorry can't let you do that dave")
         raise NotImplementedError
@@ -120,7 +126,7 @@ def download_image_from_annotation(
 
 
 def download_image_from_json_annotation(
-    api_key: str, api_url: str, annotation_path: Path, image_path: str, use_folders: bool
+    api_key: str, api_url: str, annotation_path: Path, image_path: str, use_folders: bool, video_frames: bool
 ):
     """
     Helper function: downloads an image given a .json annotation path
@@ -138,19 +144,26 @@ def download_image_from_json_annotation(
         Path where to download the image
     use_folders: bool
         Recreate folders
+    video_frames: bool
+        Pulls video frames images instead of video files
     """
     annotation = json.load(annotation_path.open())
-
-    # Make the image file name match the one of the JSON annotation
-    original_filename_suffix = Path(annotation["image"]["original_filename"]).suffix
 
     # If we are using folders, extract the path for the image and create the folder if needed
     sub_path = annotation["image"].get("path", "/") if use_folders else "/"
     parent_path = Path(image_path) / Path(sub_path).relative_to(Path(sub_path).anchor)
     parent_path.mkdir(exist_ok=True, parents=True)
 
-    path = parent_path / (annotation_path.stem + original_filename_suffix)
-    download_image(annotation["image"]["url"], path, api_key)
+    if video_frames and "frame_urls" in annotation["image"]:
+        video_path = parent_path / annotation_path.stem
+        video_path.mkdir(exist_ok=True, parents=True)
+        for i, frame_url in enumerate(annotation["image"]["frame_urls"]):
+            path = video_path / f"{i:07d}.jpg"
+            download_image(frame_url, path, api_key)
+    else:
+        image_url = annotation["image"]["url"]
+        image_path = parent_path / annotation["image"]["filename"]
+        download_image(image_url, image_path, api_key)
 
 
 def download_image(url: str, path: Path, api_key: str):
