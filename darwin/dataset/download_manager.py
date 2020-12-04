@@ -96,7 +96,13 @@ def download_all_images_from_annotations(
 
 
 def download_image_from_annotation(
-    api_key: str, api_url: str, annotation_path: Path, images_path: str, annotation_format: str, use_folders: bool, video_frames: bool
+    api_key: str,
+    api_url: str,
+    annotation_path: Path,
+    images_path: str,
+    annotation_format: str,
+    use_folders: bool,
+    video_frames: bool,
 ):
     """Helper function: dispatcher of functions to download an image given an annotation
 
