@@ -104,7 +104,8 @@ class ClassificationDataset(LocalDataset):
         return img, target
 
     def get_target(self, index: int):
-        """Returns the classification target
+        """
+        Returns the classification target
         """
 
         target = self.parse_json(index)
