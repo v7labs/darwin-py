@@ -18,7 +18,8 @@ def get_dataset(
     split_type: str = "random",
     transform: Optional[List] = None,
 ):
-    """ Creates and returns a dataset
+    """
+    Creates and returns a dataset
 
     Parameters
     ----------
@@ -75,7 +76,9 @@ def get_dataset(
 
 class ClassificationDataset(LocalDataset):
     def __init__(self, transform: Optional[List] = None, **kwargs):
-        """See class `LocalDataset` for documentation"""
+        """
+        See class `LocalDataset` for documentation
+        """
         super().__init__(annotation_type="tag", **kwargs)
 
         self.transform = transform
@@ -83,7 +86,8 @@ class ClassificationDataset(LocalDataset):
             self.transform = Compose(self.transform)
 
     def __getitem__(self, index: int):
-        """See superclass for documentation
+        """
+        See superclass for documentation
 
         Notes
         -----
@@ -127,7 +131,8 @@ class ClassificationDataset(LocalDataset):
         return target["category_id"]
 
     def measure_weights(self, **kwargs) -> np.ndarray:
-        """Computes the class balancing weights (not the frequencies!!) given the train loader
+        """
+        Computes the class balancing weights (not the frequencies!!) given the train loader
         Get the weights proportional to the inverse of their class frequencies.
         The vector sums up to 1
 
@@ -146,7 +151,9 @@ class ClassificationDataset(LocalDataset):
 
 class InstanceSegmentationDataset(LocalDataset):
     def __init__(self, transform: Optional[List] = None, **kwargs):
-        """See `LocalDataset` class for documentation"""
+        """
+        See `LocalDataset` class for documentation
+        """
         super().__init__(annotation_type="polygon", **kwargs)
 
         self.transform = transform
@@ -183,7 +190,8 @@ class InstanceSegmentationDataset(LocalDataset):
         return img, target
 
     def get_target(self, index: int):
-        """Returns the instance segmentation target
+        """
+        Returns the instance segmentation target
         """
         target = self.parse_json(index)
 
@@ -223,7 +231,8 @@ class InstanceSegmentationDataset(LocalDataset):
         return target
 
     def measure_weights(self, **kwargs):
-        """Computes the class balancing weights (not the frequencies!!) given the train loader
+        """
+        Computes the class balancing weights (not the frequencies!!) given the train loader
         Get the weights proportional to the inverse of their class frequencies.
         The vector sums up to 1
 
@@ -242,7 +251,9 @@ class InstanceSegmentationDataset(LocalDataset):
 
 class SemanticSegmentationDataset(LocalDataset):
     def __init__(self, transform: Optional[List] = None, **kwargs):
-        """See `LocalDataset` class for documentation"""
+        """
+        See `LocalDataset` class for documentation
+        """
         super().__init__(annotation_type="polygon", **kwargs)
 
         self.transform = transform
@@ -252,7 +263,8 @@ class SemanticSegmentationDataset(LocalDataset):
         self.convert_polygons = ConvertPolygonsToSemanticMask()
 
     def __getitem__(self, index: int):
-        """See superclass for documentation
+        """
+        See superclass for documentation
 
         Notes
         -----
@@ -274,7 +286,8 @@ class SemanticSegmentationDataset(LocalDataset):
         return img, target
 
     def get_target(self, index: int):
-        """Returns the semantic segmentation target
+        """
+        Returns the semantic segmentation target
         """
         target = self.parse_json(index)
 
@@ -293,7 +306,8 @@ class SemanticSegmentationDataset(LocalDataset):
         return target
 
     def measure_weights(self, **kwargs):
-        """Computes the class balancing weights (not the frequencies!!) given the train loader
+        """
+        Computes the class balancing weights (not the frequencies!!) given the train loader
         Get the weights proportional to the inverse of their class frequencies.
         The vector sums up to 1
 
