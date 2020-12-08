@@ -164,7 +164,7 @@ def download_image_from_json_annotation(
         video_path = parent_path / annotation_path.stem
         video_path.mkdir(exist_ok=True, parents=True)
         for i, frame_url in enumerate(annotation["image"]["frame_urls"]):
-            path = video_path / f"{i:07d}.jpg"
+            path = video_path / f"{i:07d}.png"
             download_image(frame_url, path, api_key)
     else:
         image_url = annotation["image"]["url"]
