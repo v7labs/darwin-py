@@ -704,6 +704,10 @@ def load_pil_image(path: Path):
     elif pic.mode == "L":
         img = np.array(pic).astype(np.uint8)
         pic = Image.fromarray(np.stack((img, img, img), axis=2))
+    elif pic.mode == "1":
+        pic = pic.convert("L")
+        img = np.array(pic).astype(np.uint8)
+        pic = Image.fromarray(np.stack((img, img, img), axis=2))
     else:
         raise TypeError(f"unsupported image type {pic.mode}")
     return pic
