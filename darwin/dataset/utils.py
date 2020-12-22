@@ -676,21 +676,41 @@ def get_annotations(
             yield record
 
 
-def load_pil_image(path: Path):
+def load_pil_image(path: Path, to_rgb: Optional[bool] = True):
     """
-    Loads a PIL image and converts it into RGB.
+    Loads a PIL image and converts it into RGB (optional).
 
     Parameters
     ----------
     path: Path
         Path to the image file
+    to_rgb: bool
+        Converts the image to RGB
+
+    Returns
+    -------
+    PIL Image
+    """
+    pic = Image.open(path)
+    if to_rgb:
+        pic = convert_to_rgb(pic)
+    return pic
+
+
+def convert_to_rgb(pic: Image):
+    """
+    Converts a PIL image to RGB
+
+    Parameters
+    ----------
+    pic: Image
+        PIL Image
 
     Returns
     -------
     PIL Image
         Values between 0 and 255
     """
-    pic = Image.open(path)
     if pic.mode == "RGB":
         pass
     elif pic.mode in ("CMYK", "RGBA", "P"):
