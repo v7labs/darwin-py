@@ -21,11 +21,8 @@ class Compose(transforms.Compose):
         return image, target
 
 
-class RandomHorizontalFlip(object):
-    def __init__(self, p: float = 0.5):
-        self.p = p
-
-    def __call__(self, image: Image, target: Optional[TargetType] = None):
+class RandomHorizontalFlip(transforms.RandomHorizontalFlip):
+    def forward(self, image: Image, target: Optional[TargetType] = None):
         if random.random() < self.p:
             image = F.hflip(image)
             if target is None:
@@ -44,6 +41,26 @@ class RandomHorizontalFlip(object):
         return image, target
 
 
+class RandomVerticalFlip(transforms.RandomVerticalFlip):
+    def forward(self, image: Image, target: Optional[TargetType] = None):
+        if random.random() < self.p:
+            image = F.vflip(image)
+            if target is None:
+                return image
+
+            if "boxes" in target:
+                bbox = target["boxes"]
+                bbox[:, [1, 3]] = image.size[1] - bbox[:, [1, 3]]
+                target["boxes"] = bbox
+            if "masks" in target:
+                target["masks"] = target["masks"].flip(-2)
+            return image, target
+
+        if target is None:
+            return image
+        return image, target
+
+
 class ColorJitter(transforms.ColorJitter):
     def __call__(self, image: Image, target: Optional[TargetType] = None):
         transform = self.get_params(self.brightness, self.contrast, self.saturation, self.hue)
@@ -53,7 +70,7 @@ class ColorJitter(transforms.ColorJitter):
         return image, target
 
 
-class ToTensor(object):
+class ToTensor(transforms.ToTensor):
     def __call__(self, image: Image, target: Optional[TargetType] = None):
         image = F.to_tensor(image)
         if target is None:
@@ -61,12 +78,21 @@ class ToTensor(object):
         return image, target
 
 
-class ToPILImage(object):
+class ToPILImage(transforms.ToPILImage):
     def __call__(self, image: Image, target: Optional[TargetType] = None):
         image = F.to_pil_image(image)
         if target is None:
             return image
         return image, target
+
+
+class Normalize(transforms.Normalize):
+    def __call__(self, tensor, target: Optional[TargetType] = None):
+        tensor = F.normalize(tensor, self.mean, self.std, self.inplace)
+
+        if target is None:
+            return tensor
+        return tensor, target
 
 
 class ConvertPolygonsToInstanceMasks(object):
