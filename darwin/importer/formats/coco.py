@@ -88,4 +88,4 @@ def rle_decoding(counts, shape):
         val = not val
         img[n : n + counts[pos]] = val
         n += counts[pos]
-    return img.reshape(shape)
+    return img.reshape(shape).T

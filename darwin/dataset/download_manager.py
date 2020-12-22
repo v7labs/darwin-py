@@ -96,7 +96,13 @@ def download_all_images_from_annotations(
 
 
 def download_image_from_annotation(
-    api_key: str, api_url: str, annotation_path: Path, images_path: str, annotation_format: str, use_folders: bool, video_frames: bool
+    api_key: str,
+    api_url: str,
+    annotation_path: Path,
+    images_path: str,
+    annotation_format: str,
+    use_folders: bool,
+    video_frames: bool,
 ):
     """Helper function: dispatcher of functions to download an image given an annotation
 
@@ -158,7 +164,7 @@ def download_image_from_json_annotation(
         video_path = parent_path / annotation_path.stem
         video_path.mkdir(exist_ok=True, parents=True)
         for i, frame_url in enumerate(annotation["image"]["frame_urls"]):
-            path = video_path / f"{i:07d}.jpg"
+            path = video_path / f"{i:07d}.png"
             download_image(frame_url, path, api_key)
     else:
         image_url = annotation["image"]["url"]

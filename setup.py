@@ -5,7 +5,7 @@ with open("README.md", "r") as f:
 
 setuptools.setup(
     name="darwin-py",
-    version="0.5.13",
+    version="0.5.14",
     author="V7",
     author_email="info@v7labs.com",
     description="Library and command line interface for darwin.v7labs.com",
@@ -25,7 +25,7 @@ setuptools.setup(
         "scikit-learn",
         "sh",
         "tqdm",
-        "upolygon",
+        "upolygon==0.1.4",
     ],
     packages=setuptools.find_packages(),
     entry_points={"console_scripts": ["darwin=darwin.cli:main"]},
