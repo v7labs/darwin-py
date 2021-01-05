@@ -299,11 +299,12 @@ def _stratify_samples(idx_to_classes, split_seed, test_percentage, val_percentag
 def split_dataset(
     dataset_path: Union[Path, str],
     release_name: Optional[str] = None,
-    val_percentage: Optional[float] = 10,
-    test_percentage: Optional[float] = 20,
-    split_seed: Optional[int] = 0,
-    make_default_split: Optional[bool] = True,
-    add_stratified_split: Optional[bool] = True,
+    val_percentage: float = 10,
+    test_percentage: float = 20,
+    split_seed: int = 0,
+    make_default_split: bool = True,
+    add_stratified_split: bool = True,
+    stratified_types: List[str] = ["bounding_box", "polygon", "tag"],
 ):
     """
     Given a local a dataset (pulled from Darwin) creates lists of file names
@@ -364,23 +365,33 @@ def split_dataset(
     # Prepare the return value with the paths of the splits
     splits = {}
     splits["random"] = {"train": Path(split_path / "random_train.txt"), "val": Path(split_path / "random_val.txt")}
-    splits["stratified_tag"] = {
-        "train": Path(split_path / "stratified_tag_train.txt"),
-        "val": Path(split_path / "stratified_tag_val.txt"),
-    }
-    splits["stratified_polygon"] = {
-        "train": Path(split_path / "stratified_polygon_train.txt"),
-        "val": Path(split_path / "stratified_polygon_val.txt"),
-    }
-    splits["stratified_bounding_box"] = {
-        "train": Path(split_path / "stratified_bounding_box_train.txt"),
-        "val": Path(split_path / "stratified_bounding_box_val.txt"),
-    }
+
+    if "tag" in stratified_types:
+        splits["stratified_tag"] = {
+            "train": Path(split_path / "stratified_tag_train.txt"),
+            "val": Path(split_path / "stratified_tag_val.txt"),
+        }
+
+    if "polygon" in stratified_types:
+        splits["stratified_polygon"] = {
+            "train": Path(split_path / "stratified_polygon_train.txt"),
+            "val": Path(split_path / "stratified_polygon_val.txt"),
+        }
+
+    if "bounding_box" in stratified_types:
+        splits["stratified_bounding_box"] = {
+            "train": Path(split_path / "stratified_bounding_box_train.txt"),
+            "val": Path(split_path / "stratified_bounding_box_val.txt"),
+        }
+
     if test_percentage > 0.0:
         splits["random"]["test"] = Path(split_path) / "random_test.txt"
-        splits["stratified_tag"]["test"] = Path(split_path / "stratified_tag_test.txt")
-        splits["stratified_polygon"]["test"] = Path(split_path / "stratified_polygon_test.txt")
-        splits["stratified_bounding_box"]["test"] = Path(split_path / "stratified_bounding_box_test.txt")
+        if "tag" in stratified_types:
+            splits["stratified_tag"]["test"] = Path(split_path / "stratified_tag_test.txt")
+        if "polygon" in stratified_types:
+            splits["stratified_polygon"]["test"] = Path(split_path / "stratified_polygon_test.txt")
+        if "bounding_box" in stratified_types:
+            splits["stratified_bounding_box"]["test"] = Path(split_path / "stratified_bounding_box_test.txt")
 
     # Do the actual split
     if not split_path.exists():
@@ -405,44 +416,41 @@ def split_dataset(
             _write_to_file(annotation_files, splits["random"]["test"], test_indices)
 
         if add_stratified_split:
-            # STRATIFIED SPLIT ON TAGS
-            # Stratify
-            classes_tag, idx_to_classes_tag = extract_classes(annotation_path, "tag")
-            if len(idx_to_classes_tag) > 0:
-                train_indices, val_indices, test_indices = _stratify_samples(
-                    idx_to_classes_tag, split_seed, test_percentage, val_percentage
-                )
-                # Write files
-                _write_to_file(annotation_files, splits["stratified_tag"]["train"], train_indices)
-                _write_to_file(annotation_files, splits["stratified_tag"]["val"], val_indices)
-                if test_percentage > 0.0:
-                    _write_to_file(annotation_files, splits["stratified_tag"]["test"], test_indices)
+            if "tag" in stratified_types:
+                classes_tag, idx_to_classes_tag = extract_classes(annotation_path, "tag")
+                if len(idx_to_classes_tag) > 0:
+                    train_indices, val_indices, test_indices = _stratify_samples(
+                        idx_to_classes_tag, split_seed, test_percentage, val_percentage
+                    )
+                    # Write files
+                    _write_to_file(annotation_files, splits["stratified_tag"]["train"], train_indices)
+                    _write_to_file(annotation_files, splits["stratified_tag"]["val"], val_indices)
+                    if test_percentage > 0.0:
+                        _write_to_file(annotation_files, splits["stratified_tag"]["test"], test_indices)
 
-            # STRATIFIED SPLIT ON POLYGONS
-            # Stratify
-            classes_polygon, idx_to_classes_polygon = extract_classes(annotation_path, "polygon")
-            if len(idx_to_classes_polygon) > 0:
-                train_indices, val_indices, test_indices = _stratify_samples(
-                    idx_to_classes_polygon, split_seed, test_percentage, val_percentage
-                )
-                # Write files
-                _write_to_file(annotation_files, splits["stratified_polygon"]["train"], train_indices)
-                _write_to_file(annotation_files, splits["stratified_polygon"]["val"], val_indices)
-                if test_percentage > 0.0:
-                    _write_to_file(annotation_files, splits["stratified_polygon"]["test"], test_indices)
+            if "polygon" in stratified_types:
+                classes_polygon, idx_to_classes_polygon = extract_classes(annotation_path, "polygon")
+                if len(idx_to_classes_polygon) > 0:
+                    train_indices, val_indices, test_indices = _stratify_samples(
+                        idx_to_classes_polygon, split_seed, test_percentage, val_percentage
+                    )
+                    # Write files
+                    _write_to_file(annotation_files, splits["stratified_polygon"]["train"], train_indices)
+                    _write_to_file(annotation_files, splits["stratified_polygon"]["val"], val_indices)
+                    if test_percentage > 0.0:
+                        _write_to_file(annotation_files, splits["stratified_polygon"]["test"], test_indices)
 
-            # STRATIFIED SPLIT ON BOUNDING BOXES
-            # Stratify
-            classes_bbox, idx_to_classes_bbox = extract_classes(annotation_path, "bounding_box")
-            if len(idx_to_classes_bbox) > 0:
-                train_indices, val_indices, test_indices = _stratify_samples(
-                    idx_to_classes_bbox, split_seed, test_percentage, val_percentage
-                )
-                # Write files
-                _write_to_file(annotation_files, splits["stratified_bounding_box"]["train"], train_indices)
-                _write_to_file(annotation_files, splits["stratified_bounding_box"]["val"], val_indices)
-                if test_percentage > 0.0:
-                    _write_to_file(annotation_files, splits["stratified_bounding_box"]["test"], test_indices)
+            if "bounding_box" in stratified_types:
+                classes_bbox, idx_to_classes_bbox = extract_classes(annotation_path, "bounding_box")
+                if len(idx_to_classes_bbox) > 0:
+                    train_indices, val_indices, test_indices = _stratify_samples(
+                        idx_to_classes_bbox, split_seed, test_percentage, val_percentage
+                    )
+                    # Write files
+                    _write_to_file(annotation_files, splits["stratified_bounding_box"]["train"], train_indices)
+                    _write_to_file(annotation_files, splits["stratified_bounding_box"]["val"], val_indices)
+                    if test_percentage > 0.0:
+                        _write_to_file(annotation_files, splits["stratified_bounding_box"]["test"], test_indices)
 
     # Create symlink for default split
     split = lists_path / "default"
