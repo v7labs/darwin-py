@@ -744,8 +744,8 @@ def convert_to_rgb(pic: Image):
 def _is_pil_image(img):
     return isinstance(img, Image.Image)
 
-def compute_max_density(dataset_path: Path):
-    annotations_dir = dataset_path / "releases/latest/annotations"
+def compute_max_density(dataset_path: Path, release_name: str = "latest"):
+    annotations_dir = dataset_path / "releases" / release_name / "annotations"
     max_density = 0
     for annotation_path in annotations_dir.glob("*.json"):
         annotation_density = 0
