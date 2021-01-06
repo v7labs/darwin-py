@@ -743,3 +743,17 @@ def convert_to_rgb(pic: Image):
 
 def _is_pil_image(img):
     return isinstance(img, Image.Image)
+
+def compute_max_density(annotations_dir: Path):
+    max_density = 0
+    for annotation_path in annotations_dir.glob("*.json"):
+        annotation_density = 0
+        with open(annotation_path) as f:
+            darwin_json = json.load(f)
+            for annotation in darwin_json["annotations"]:
+                if "polygon" not in annotation and "complex_polygon" not in annotation:
+                    continue
+                annotation_density += 1
+            if annotation_density > max_density:
+                max_density = annotation_density
+    return max_density
