@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import List, Optional
 
 import numpy as np
-from upolygon import find_contours
+from upolygon import find_contours, rle_decode
 
 import darwin.datatypes as dt
 
@@ -52,7 +52,7 @@ def parse_annotation(annotation, category_lookup_table):
         return dt.make_bounding_box(category["name"], x, y, w, h)
     elif len(segmentation) > 1:
         print("warning, converting complex coco rle mask to polygon, could take some time")
-        mask = rle_decoding(segmentation["counts"], segmentation["size"])
+        mask = rle_decode(segmentation["counts"], segmentation["size"])
         _labels, external, _internal = find_contours(mask)
         paths = []
         for external_path in external:
