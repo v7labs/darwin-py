@@ -187,6 +187,7 @@ def unique(array):
     indexes = np.unique(array, return_index=True)[1]
     return array[sorted(indexes)]
 
+
 def remove_cross_contamination(X_a: np.ndarray, X_b: np.ndarray, y_a: np.ndarray, y_b: np.ndarray, b_min_size: int):
     """
     Remove cross contamination present in X_a and X_b by selecting one or the other on a flip coin decision.
@@ -286,7 +287,7 @@ def _stratify_samples(idx_to_classes, split_seed, test_percentage, val_percentag
             random_state=split_seed,
             stratify=labels,
         ),
-        val_size + test_size
+        val_size + test_size,
     )
 
     # Append files whose support set is 1 to train
@@ -303,7 +304,7 @@ def _stratify_samples(idx_to_classes, split_seed, test_percentage, val_percentag
             random_state=split_seed,
             stratify=y_tmp,
         ),
-        test_size
+        test_size,
     )
 
     # Remove duplicates within the same set
@@ -759,6 +760,7 @@ def convert_to_rgb(pic: Image):
 
 def _is_pil_image(img):
     return isinstance(img, Image.Image)
+
 
 def compute_max_density(annotations_dir: Path):
     max_density = 0
