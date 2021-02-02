@@ -1,7 +1,6 @@
 import itertools
 import json
 import multiprocessing as mp
-import os
 import sys
 import warnings
 from collections import defaultdict
@@ -183,7 +182,13 @@ def _write_to_file(annotation_files: List, file_path: Path, split_idx: Iterable)
             f.write(f"{annotation_files[i].stem}\n")
 
 
-def remove_cross_contamination(X_a: np.ndarray, X_b: np.ndarray, y_a: np.ndarray, y_b: np.ndarray):
+def unique(array):
+    """Returns unique elements of numpy array, maintaining the occurrency order"""
+    indexes = np.unique(array, return_index=True)[1]
+    return array[sorted(indexes)]
+
+
+def remove_cross_contamination(X_a: np.ndarray, X_b: np.ndarray, y_a: np.ndarray, y_b: np.ndarray, b_min_size: int):
     """
     Remove cross contamination present in X_a and X_b by selecting one or the other on a flip coin decision.
 
@@ -208,23 +213,27 @@ def remove_cross_contamination(X_a: np.ndarray, X_b: np.ndarray, y_a: np.ndarray
     X_a, X_b, y_a, y_b : ndarray
         All input parameters filtered by removing cross contamination across A and B
     """
-    for a in X_a:
-        if a in X_b:
-            # Remove from A or B based on random chance
-            if np.random.rand() > 0.5:
-                # Remove ALL entries from A
-                keep_locations = X_a != a
-                X_a = X_a[keep_locations]
-                y_a = y_a[keep_locations]
-            else:
-                # Remove ALL entries from B
-                keep_locations = X_b != a
-                X_b = X_b[keep_locations]
-                y_b = y_b[keep_locations]
+    for a in unique(X_a):
+        # If a not in X_b, don't remove a from anywhere
+        if a not in X_b:
+            continue
+
+        # Remove a from X_b if it's large enough
+        keep_locations = X_b != a
+        if len(unique(X_b[keep_locations])) >= b_min_size:
+            X_b = X_b[keep_locations]
+            y_b = y_b[keep_locations]
+            continue
+
+        # Remove from X_a otherwise
+        keep_locations = X_a != a
+        X_a = X_a[keep_locations]
+        y_a = y_a[keep_locations]
+
     return X_a, X_b, y_a, y_b
 
 
-def _stratify_samples(idx_to_classes, split_seed, test_percentage, val_percentage):
+def _stratify_samples(idx_to_classes, split_seed, test_percentage, val_percentage, test_size, val_size):
     """Splits the list of indices into train, val and test according to their labels (stratified)
 
     Parameters
@@ -238,6 +247,11 @@ def _stratify_samples(idx_to_classes, split_seed, test_percentage, val_percentag
         Percentage of images used in the validation set
     test_percentage : float
         Percentage of images used in the test set
+    test_size : int
+        Number of test images
+    val_size : int
+        Number of validation images
+
 
     Returns
     -------
@@ -272,8 +286,10 @@ def _stratify_samples(idx_to_classes, split_seed, test_percentage, val_percentag
             test_size=(val_percentage + test_percentage) / 100.0,
             random_state=split_seed,
             stratify=labels,
-        )
+        ),
+        val_size + test_size,
     )
+
     # Append files whose support set is 1 to train
     X_train = np.concatenate((X_train, np.array(single_files)), axis=0)
 
@@ -287,7 +303,8 @@ def _stratify_samples(idx_to_classes, split_seed, test_percentage, val_percentag
             test_size=(test_percentage / (val_percentage + test_percentage)),
             random_state=split_seed,
             stratify=y_tmp,
-        )
+        ),
+        test_size,
     )
 
     # Remove duplicates within the same set
@@ -395,7 +412,7 @@ def split_dataset(
 
     # Do the actual split
     if not split_path.exists():
-        os.makedirs(str(split_path), exist_ok=True)
+        split_path.mkdir()
 
         # RANDOM SPLIT
         # Compute split sizes
@@ -420,7 +437,7 @@ def split_dataset(
                 classes_tag, idx_to_classes_tag = extract_classes(annotation_path, "tag")
                 if len(idx_to_classes_tag) > 0:
                     train_indices, val_indices, test_indices = _stratify_samples(
-                        idx_to_classes_tag, split_seed, test_percentage, val_percentage
+                        idx_to_classes_tag, split_seed, test_percentage, val_percentage, test_size, val_size
                     )
                     # Write files
                     _write_to_file(annotation_files, splits["stratified_tag"]["train"], train_indices)
@@ -432,7 +449,7 @@ def split_dataset(
                 classes_polygon, idx_to_classes_polygon = extract_classes(annotation_path, "polygon")
                 if len(idx_to_classes_polygon) > 0:
                     train_indices, val_indices, test_indices = _stratify_samples(
-                        idx_to_classes_polygon, split_seed, test_percentage, val_percentage
+                        idx_to_classes_polygon, split_seed, test_percentage, val_percentage, test_size, val_size
                     )
                     # Write files
                     _write_to_file(annotation_files, splits["stratified_polygon"]["train"], train_indices)
@@ -444,7 +461,7 @@ def split_dataset(
                 classes_bbox, idx_to_classes_bbox = extract_classes(annotation_path, "bounding_box")
                 if len(idx_to_classes_bbox) > 0:
                     train_indices, val_indices, test_indices = _stratify_samples(
-                        idx_to_classes_bbox, split_seed, test_percentage, val_percentage
+                        idx_to_classes_bbox, split_seed, test_percentage, val_percentage, test_size, val_size
                     )
                     # Write files
                     _write_to_file(annotation_files, splits["stratified_bounding_box"]["train"], train_indices)
@@ -743,6 +760,7 @@ def convert_to_rgb(pic: Image):
 
 def _is_pil_image(img):
     return isinstance(img, Image.Image)
+
 
 def compute_max_density(annotations_dir: Path):
     max_density = 0
