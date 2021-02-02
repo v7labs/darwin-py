@@ -1,10 +1,9 @@
 from pathlib import Path
 from typing import Callable, List, Union
 
-from tqdm import tqdm
-
 import darwin.datatypes as dt
 from darwin.utils import secure_continue_request
+from tqdm import tqdm
 
 
 def build_main_annotations_lookup_table(annotation_classes):
@@ -20,12 +19,9 @@ def build_main_annotations_lookup_table(annotation_classes):
 
 
 def find_and_parse(
-    remote_files: List[str],
     importer: Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]],
     file_paths: List[Union[str, Path]],
 ) -> (List[dt.AnnotationFile], List[dt.AnnotationFile]):
-    local_files = []
-    local_files_missing_remotely = []
     # TODO: this could be done in parallel
     for file_path in map(Path, file_paths):
         files = file_path.glob("**/*") if file_path.is_dir() else [file_path]
@@ -39,11 +35,7 @@ def find_and_parse(
             for parsed_file in parsed_files:
                 # clear to save memory
                 parsed_file.annotations = []
-                if parsed_file.filename not in remote_files:
-                    local_files_missing_remotely.append(parsed_file)
-                    continue
-                local_files.append(parsed_file)
-    return local_files, local_files_missing_remotely
+                yield parsed_file
 
 
 def build_attribute_lookup(dataset):
@@ -57,13 +49,23 @@ def build_attribute_lookup(dataset):
     return lookup
 
 
+def get_remote_files(dataset, filenames):
+    """Fetches remote files from the datasets, in chunks of 100 filesnames at a time"""
+    remote_files = {}
+    for i in range(0, len(filenames), 100):
+        chunk = filenames[i : i + 100]
+        for remote_file in dataset.fetch_remote_files(
+            {"types": "image,playback_video,video_frame", "filenames": ",".join(chunk)}
+        ):
+            remote_files[remote_file.filename] = remote_file.id
+    return remote_files
+
+
 def import_annotations(
     dataset: "RemoteDataset",
     importer: Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]],
     file_paths: List[Union[str, Path]],
 ):
-    print("Fetching remote file list...")
-    remote_files = {f.filename: f.id for f in dataset.fetch_remote_files()}
     print("Fetching remote class list...")
     remote_classes = build_main_annotations_lookup_table(dataset.fetch_remote_classes())
     attributes = build_attribute_lookup(dataset)
@@ -71,7 +73,16 @@ def import_annotations(
     print("Retrieving local annotations ...")
     local_files = []
     local_files_missing_remotely = []
-    local_files, local_files_missing_remotely = find_and_parse(remote_files, importer, file_paths)
+    parsed_files = list(find_and_parse(importer, file_paths))
+    filenames = [parsed_file.filename for parsed_file in parsed_files]
+
+    print("Fetching remote file list...")
+    remote_files = get_remote_files(dataset, filenames)
+    for parsed_file in parsed_files:
+        if parsed_file.filename not in remote_files:
+            local_files_missing_remotely.append(parsed_file)
+        else:
+            local_files.append(parsed_file)
 
     print(f"{len(local_files) + len(local_files_missing_remotely)} annotation file(s) found.")
     if local_files_missing_remotely:
@@ -113,7 +124,6 @@ def import_annotations(
 
     # Need to re parse the files since we didn't save the annotations in memory
     for local_path in set(local_file.path for local_file in local_files):
-        print(f"importing {local_path}")
         parsed_files = importer(local_path)
         if type(parsed_files) is not list:
             parsed_files = [parsed_files]
