@@ -1,10 +1,9 @@
 from pathlib import Path
 from typing import Callable, List, Union
 
-from tqdm import tqdm
-
 import darwin.datatypes as dt
 from darwin.utils import secure_continue_request
+from tqdm import tqdm
 
 
 def build_main_annotations_lookup_table(annotation_classes):
@@ -54,10 +53,13 @@ def get_remote_files(dataset, filenames):
     """Fetches remote files from the datasets, in chunks of 100 filesnames at a time"""
     remote_files = {}
     for i in range(0, len(filenames), 100):
-        chunk = filenames[i:i + 100]
-        for remote_file in dataset.fetch_remote_files({"types" :"image,playback_video,video_frame", "filenames": ",".join(chunk)}):
+        chunk = filenames[i : i + 100]
+        for remote_file in dataset.fetch_remote_files(
+            {"types": "image,playback_video,video_frame", "filenames": ",".join(chunk)}
+        ):
             remote_files[remote_file.filename] = remote_file.id
     return remote_files
+
 
 def import_annotations(
     dataset: "RemoteDataset",
