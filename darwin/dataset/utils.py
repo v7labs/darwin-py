@@ -159,7 +159,7 @@ def get_classes(
     release_path = get_release_path(dataset_path, release_name)
 
     classes_file = f"classes_{annotation_type}.txt"
-    classes = [e.strip() for e in open(release_path / "lists" / classes_file)]
+    classes = [e for e in open(release_path / "lists" / classes_file)]
     if remove_background and classes[0] == "__background__":
         classes = classes[1:]
     return classes
