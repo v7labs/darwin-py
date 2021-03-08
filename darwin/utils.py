@@ -497,12 +497,7 @@ def build_filter(
     if files is None:
         export_filter["statuses"] = "complete"
     else:
-        remote_files = remote_dataset.fetch_remote_files({
-            "types": "image,playback_video,video_frame",
-            "filenames": ",".join(files)
-        })
-        dataset_item_ids = map(lambda remote_file: str(remote_file.id), remote_files)
-        export_filter["dataset_item_ids"] = ",".join(dataset_item_ids)        
+        export_filter["filenames"] = ",".join(files)        
 
     if statuses is not None:
         export_filter["statuses"] = ",".join(statuses)
