@@ -8,7 +8,8 @@ from upolygon import draw_polygon
 
 import darwin.datatypes as dt
 from darwin.config import Config
-from darwin.exceptions import OutdatedDarwinJSONFormat, UnsupportedFileType
+from darwin.exceptions import (OutdatedDarwinJSONFormat, UnmatchedRemoteClass,
+                               UnmatchedRemoteFile, UnsupportedFileType)
 
 SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpeg", ".jpg", ".jfif", ".tif", ".bmp", ".svs"]
 SUPPORTED_VIDEO_EXTENSIONS = [".avi", ".bpm", ".dcm", ".mov", ".mp4"]
@@ -473,3 +474,69 @@ def convert_polygons_to_mask(polygons: List, height: int, width: int, value: Opt
     mask = np.zeros((height, width)).astype(np.uint8)
     draw_polygon(mask, sequence, value)
     return mask
+
+
+def build_filter(
+    remote_dataset: 'RemoteDataset',
+    classes: Optional[List[str]] = None,
+    files: Optional[List[str]] = None,
+    statuses: Optional[List[str]] = None
+):
+    export_filter = {"select_all": True}
+    
+    if classes is not None:
+        annotation_class_ids = []
+        remote_classes = remote_dataset.fetch_remote_classes()
+        for class_name in classes:
+            matched_remote_class = match_remote_class_by_name(class_name, remote_classes, remote_dataset)
+            if matched_remote_class is None:
+                raise UnmatchedRemoteClass(class_name)
+            annotation_class_ids.append(str(matched_remote_class["id"]))
+        export_filter["annotation_class_ids"] = ",".join(annotation_class_ids)
+
+    if files is None:
+        export_filter["statuses"] = "complete"
+    else:
+        dataset_item_ids = []
+        remote_files = remote_dataset.fetch_remote_files()
+        for filename in files:
+            matched_remote_item = match_remote_file_by_name(filename, remote_files, remote_dataset)
+            if matched_remote_item is None:
+                raise UnmatchedRemoteFile(filename)
+            dataset_item_ids.append(str(matched_remote_item.id))
+        export_filter["dataset_item_ids"] = ",".join(dataset_item_ids)
+
+    if statuses is not None:
+        export_filter["statuses"] = ",".join(statuses)
+    
+    return export_filter
+
+
+def match_remote_class_by_name(
+    class_name: str,
+    remote_classes: Optional[List[str]] = None,
+    remote_dataset: Optional['RemoteDataset'] = None
+):
+    if remote_classes is None:
+        if remote_dataset is None:
+            raise ValueError("missing remote_dataset argument")
+        remote_classes = remote_dataset.fetch_remote_classes()
+
+    for remote_class in remote_classes:
+        if remote_class["name"] == class_name:
+            return remote_class
+
+
+def match_remote_file_by_name(
+    filename: str,
+    remote_files: Optional[List[str]] = None,
+    remote_dataset: Optional['RemoteDataset'] = None
+):
+    if remote_files is None:
+        if remote_dataset is None:
+            raise ValueError("missing remote_dataset argument")
+        remote_files = remote_dataset.fetch_remote_files()
+
+    for remote_file in remote_files:
+        if remote_file.filename == filename:
+            return remote_file

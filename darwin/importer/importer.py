@@ -1,9 +1,10 @@
 from pathlib import Path
 from typing import Callable, List, Union
 
+from tqdm import tqdm
+
 import darwin.datatypes as dt
 from darwin.utils import secure_continue_request
-from tqdm import tqdm
 
 
 def build_main_annotations_lookup_table(annotation_classes):

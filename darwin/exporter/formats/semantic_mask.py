@@ -8,7 +8,8 @@ from PIL import Image
 from upolygon import draw_polygon
 
 import darwin.datatypes as dt
-from darwin.utils import convert_polygons_to_sequences, get_progress_bar, ispolygon
+from darwin.utils import (convert_polygons_to_sequences, get_progress_bar,
+                          ispolygon)
 
 
 def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_dir: Path, mode: str = "grey"):

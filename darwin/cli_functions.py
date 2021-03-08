@@ -15,18 +15,14 @@ from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset.identifier import DatasetIdentifier
 from darwin.dataset.utils import get_release_path, split_dataset
-from darwin.exceptions import (
-    InvalidLogin,
-    MissingConfig,
-    NameTaken,
-    NotFound,
-    Unauthenticated,
-    UnsupportedExportFormat,
-    UnsupportedFileType,
-    ValidationError,
-)
+from darwin.exceptions import (InvalidLogin, MissingConfig, NameTaken,
+                               NotFound, Unauthenticated, UnmatchedRemoteClass,
+                               UnmatchedRemoteFile, UnsupportedExportFormat,
+                               UnsupportedFileType, ValidationError)
 from darwin.table import Table
-from darwin.utils import find_files, persist_client_configuration, prompt, secure_continue_request
+from darwin.utils import (build_filter, find_files,
+                          persist_client_configuration, prompt,
+                          secure_continue_request)
 
 
 def validate_api_key(api_key: str):
@@ -210,7 +206,12 @@ def dataset_report(dataset_slug: str, granularity) -> Path:
 
 
 def export_dataset(
-    dataset_slug: str, include_url_token: bool, annotation_class_ids: Optional[List] = None, name: Optional[str] = None
+    dataset_slug: str,
+    name: str,
+    classes: Optional[List] = None,
+    files: Optional[List[str]] = None,
+    statuses: Optional[List[str]] = None,
+    include_url_token: bool = False
 ):
     """Create a new release for the dataset
 
@@ -218,15 +219,31 @@ def export_dataset(
     ----------
     dataset_slug: str
         Slug of the dataset to which we perform the operation on
-    annotation_class_ids: List
-        List of the classes to filter
+    classes: List
+        List of the class names to filter
+    files: List
+        List of the filenames to filter
+    statuses: List
+        List of the statuses to filter
     name: str
         Name of the release
     """
     client = _load_client(offline=False)
+
     identifier = DatasetIdentifier.parse(dataset_slug)
     ds = client.get_remote_dataset(identifier)
-    ds.export(annotation_class_ids=annotation_class_ids, name=name, include_url_token=include_url_token)
+
+    try:
+        export_filter = build_filter(ds, classes, files, statuses)
+    except UnmatchedRemoteClass as e:
+        print(f"Unmatched remote class: {e.class_name}")
+        sys.exit(1)
+    except UnmatchedRemoteFile as e:
+        print(f"Unmatched remote file: {e.filename}")
+        sys.exit(1)
+
+    ds.export(name=name, export_filter=export_filter, include_url_token=include_url_token)
+    
     identifier.version = name
     print(f"Dataset {dataset_slug} successfully exported to {identifier}")
 
