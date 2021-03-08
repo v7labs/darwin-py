@@ -497,14 +497,12 @@ def build_filter(
     if files is None:
         export_filter["statuses"] = "complete"
     else:
-        dataset_item_ids = []
-        remote_files = remote_dataset.fetch_remote_files()
-        for filename in files:
-            matched_remote_item = match_remote_file_by_name(filename, remote_files, remote_dataset)
-            if matched_remote_item is None:
-                raise UnmatchedRemoteFile(filename)
-            dataset_item_ids.append(str(matched_remote_item.id))
-        export_filter["dataset_item_ids"] = ",".join(dataset_item_ids)
+        remote_files = remote_dataset.fetch_remote_files({
+            "types": "image,playback_video,video_frame",
+            "filenames": ",".join(files)
+        })
+        dataset_item_ids = map(lambda remote_file: str(remote_file.id), remote_files)
+        export_filter["dataset_item_ids"] = ",".join(dataset_item_ids)        
 
     if statuses is not None:
         export_filter["statuses"] = ",".join(statuses)
@@ -525,18 +523,3 @@ def match_remote_class_by_name(
     for remote_class in remote_classes:
         if remote_class["name"] == class_name:
             return remote_class
-
-
-def match_remote_file_by_name(
-    filename: str,
-    remote_files: Optional[List[str]] = None,
-    remote_dataset: Optional['RemoteDataset'] = None
-):
-    if remote_files is None:
-        if remote_dataset is None:
-            raise ValueError("missing remote_dataset argument")
-        remote_files = remote_dataset.fetch_remote_files()
-
-    for remote_file in remote_files:
-        if remote_file.filename == filename:
-            return remote_file
