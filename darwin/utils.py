@@ -482,8 +482,17 @@ def build_filter(
     files: Optional[List[str]] = None,
     statuses: Optional[List[str]] = None
 ):
+    # By default, "select_all" is always set to True
     export_filter = {"select_all": True}
+
+    # If no filters are specified, simply select all complete
+    if classes is None and files is None and statuses is None:
+        export_filter["statuses"] = "complete"
+        return export_filter
     
+    # If classes are specified as filter, then match the specified class
+    # names with existing remote classes. If a class cannot be matched,
+    # raise an exception.
     if classes is not None:
         annotation_class_ids = []
         remote_classes = {cls["name"]: cls["id"] for cls in remote_dataset.fetch_remote_classes()}
@@ -493,9 +502,7 @@ def build_filter(
             annotation_class_ids.append(str(remote_classes[class_name]))
         export_filter["annotation_class_ids"] = ",".join(annotation_class_ids)
 
-    if files is None:
-        export_filter["statuses"] = "complete"
-    else:
+    if files is not None:
         export_filter["filenames"] = ",".join(files)        
 
     if statuses is not None:
