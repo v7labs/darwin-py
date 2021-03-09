@@ -482,13 +482,11 @@ def build_filter(
     files: Optional[List[str]] = None,
     statuses: Optional[List[str]] = None
 ):
-    # By default, "select_all" is always set to True
-    export_filter = {"select_all": True}
-
     # If no filters are specified, simply select all complete
     if classes is None and files is None and statuses is None:
-        export_filter["statuses"] = "complete"
-        return export_filter
+        return {"statuses": "complete"}
+
+    export_filter = {}
     
     # If classes are specified as filter, then match the specified class
     # names with existing remote classes. If a class cannot be matched,
