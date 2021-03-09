@@ -53,7 +53,3 @@ class OutdatedDarwinJSONFormat(Exception):
 class UnmatchedRemoteClass(Exception):
     def __init__(self, class_name):
         self.class_name = class_name
-
-class UnmatchedRemoteFile(Exception):
-    def __init__(self, filename):
-        self.filename = filename

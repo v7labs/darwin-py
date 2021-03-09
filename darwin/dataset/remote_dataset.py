@@ -360,7 +360,7 @@ class RemoteDataset:
         export_filter: dict
             Dictionary encoding the export filters. Supported keys:
             - annotation_class_ids
-            - dataset_item_ids
+            - filenames
             - statuses
         include_url_token: bool
             Should the image url in the export be include a token enabling access without team membership
@@ -371,7 +371,7 @@ class RemoteDataset:
             "filter": export_filter,
             "include_export_token": include_url_token,
         }
-        
+
         self.client.post(
             f"/datasets/{self.dataset_id}/exports",
             payload=payload,

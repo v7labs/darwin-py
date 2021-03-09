@@ -9,7 +9,7 @@ from upolygon import draw_polygon
 import darwin.datatypes as dt
 from darwin.config import Config
 from darwin.exceptions import (OutdatedDarwinJSONFormat, UnmatchedRemoteClass,
-                               UnmatchedRemoteFile, UnsupportedFileType)
+                               UnsupportedFileType)
 
 SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpeg", ".jpg", ".jfif", ".tif", ".bmp", ".svs"]
 SUPPORTED_VIDEO_EXTENSIONS = [".avi", ".bpm", ".dcm", ".mov", ".mp4"]
@@ -486,12 +486,11 @@ def build_filter(
     
     if classes is not None:
         annotation_class_ids = []
-        remote_classes = remote_dataset.fetch_remote_classes()
+        remote_classes = {cls["name"]: cls["id"] for cls in remote_dataset.fetch_remote_classes()}
         for class_name in classes:
-            matched_remote_class = match_remote_class_by_name(class_name, remote_classes, remote_dataset)
-            if matched_remote_class is None:
-                raise UnmatchedRemoteClass(class_name)
-            annotation_class_ids.append(str(matched_remote_class["id"]))
+            if class_name not in remote_classes:
+                raise UnmatchedRemoteClass(class_name)                
+            annotation_class_ids.append(str(remote_classes[class_name]))
         export_filter["annotation_class_ids"] = ",".join(annotation_class_ids)
 
     if files is None:
@@ -503,18 +502,3 @@ def build_filter(
         export_filter["statuses"] = ",".join(statuses)
     
     return export_filter
-
-
-def match_remote_class_by_name(
-    class_name: str,
-    remote_classes: Optional[List[str]] = None,
-    remote_dataset: Optional['RemoteDataset'] = None
-):
-    if remote_classes is None:
-        if remote_dataset is None:
-            raise ValueError("missing remote_dataset argument")
-        remote_classes = remote_dataset.fetch_remote_classes()
-
-    for remote_class in remote_classes:
-        if remote_class["name"] == class_name:
-            return remote_class

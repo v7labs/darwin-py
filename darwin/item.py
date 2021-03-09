@@ -18,7 +18,7 @@ class DatasetItem:
 def parse_dataset_item(raw) -> DatasetItem:
     return DatasetItem(
         raw["id"],
-        parse_filename(raw),
+        raw["filename"],
         raw["status"],
         raw["archived"],
         raw["file_size"],
@@ -27,10 +27,3 @@ def parse_dataset_item(raw) -> DatasetItem:
         raw["seq"],
         raw.get("current_workflow_id"),
     )
-
-def parse_filename(raw):
-    if raw["dataset_image"] is not None:
-        return raw["dataset_image"]["image"]["original_filename"]
-    if raw["dataset_video"] is not None:
-        return raw["dataset_video"]["original_filename"]
-    return raw["filename"]

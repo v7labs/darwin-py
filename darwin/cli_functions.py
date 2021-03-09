@@ -17,8 +17,8 @@ from darwin.dataset.identifier import DatasetIdentifier
 from darwin.dataset.utils import get_release_path, split_dataset
 from darwin.exceptions import (InvalidLogin, MissingConfig, NameTaken,
                                NotFound, Unauthenticated, UnmatchedRemoteClass,
-                               UnmatchedRemoteFile, UnsupportedExportFormat,
-                               UnsupportedFileType, ValidationError)
+                               UnsupportedExportFormat, UnsupportedFileType,
+                               ValidationError)
 from darwin.table import Table
 from darwin.utils import (build_filter, find_files,
                           persist_client_configuration, prompt,
@@ -237,9 +237,6 @@ def export_dataset(
         export_filter = build_filter(ds, classes, files, statuses)
     except UnmatchedRemoteClass as e:
         print(f"Unmatched remote class: {e.class_name}")
-        sys.exit(1)
-    except UnmatchedRemoteFile as e:
-        print(f"Unmatched remote file: {e.filename}")
         sys.exit(1)
 
     ds.export(name=name, export_filter=export_filter, include_url_token=include_url_token)
