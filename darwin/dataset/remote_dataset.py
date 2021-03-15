@@ -313,10 +313,10 @@ class RemoteDataset:
                 return
 
     def archive(self, items):
-        self.client.put(f"datasets/{self.dataset_id}/items/archive", {"ids": [item.id for item in items]})
+        self.client.put(f"datasets/{self.dataset_id}/items/archive", {"filter": {"dataset_item_ids": [item.id for item in items]}})
 
     def restore_archived(self, items):
-        self.client.put(f"datasets/{self.dataset_id}/items/restore", {"ids": [item.id for item in items]})
+        self.client.put(f"datasets/{self.dataset_id}/items/restore", {"filter": {"dataset_item_ids": [item.id for item in items]}})
 
     def fetch_annotation_type_id_for_name(self, name: str):
         """Fetches annotation type id for a annotation type name, such as bounding_box"""
