@@ -1,4 +1,5 @@
 import json
+import os
 import shutil
 import tempfile
 import zipfile
@@ -252,7 +253,7 @@ class RemoteDataset:
 
         if release.latest:
             latest_dir = self.local_releases_path / "latest"
-            if latest_dir.exists():
+            if os.path.islink(latest_dir):
                 latest_dir.unlink()
             latest_dir.symlink_to(f"./{release_dir.name}")
 
