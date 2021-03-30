@@ -10,7 +10,7 @@ import darwin.datatypes as dt
 from darwin.config import Config
 from darwin.exceptions import OutdatedDarwinJSONFormat, UnsupportedFileType
 
-SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpeg", ".jpg", ".jfif", ".tif", ".bmp"]
+SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpeg", ".jpg", ".jfif", ".tif", ".tiff", ".bmp", ".svs"]
 SUPPORTED_VIDEO_EXTENSIONS = [".avi", ".bpm", ".dcm", ".mov", ".mp4"]
 SUPPORTED_EXTENSIONS = SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
 
@@ -281,9 +281,9 @@ def parse_darwin_video_annotation(annotation: dict):
     keyframes = {}
     for f, frame in annotation["frames"].items():
         frame_annotations[int(f)] = parse_darwin_annotation({**frame, **{"name": name}})
-        keyframes[int(f)] = frame["keyframe"]
-    return dt.make_video_annotation(frame_annotations, keyframes, annotation["segments"], annotation["interpolated"])
+        keyframes[int(f)] = frame.get("keyframe", False)
 
+    return dt.make_video_annotation(frame_annotations, keyframes, annotation["segments"], annotation.get("interpolated", False))
 
 def split_video_annotation(annotation):
     if not annotation.is_video:
