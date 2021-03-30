@@ -1,9 +1,10 @@
 from pathlib import Path
 from typing import Callable, List, Union
 
+from tqdm import tqdm
+
 import darwin.datatypes as dt
 from darwin.utils import secure_continue_request
-from tqdm import tqdm
 
 
 def build_main_annotations_lookup_table(annotation_classes):
@@ -134,7 +135,7 @@ def import_annotations(
             _import_annotations(dataset.client, image_id, remote_classes, attributes, parsed_file.annotations, dataset)
 
 
-def _handle_subs(annotation, data, attributes):
+def _handle_subs(annotation, data, annotation_class_id, attributes):
     for sub in annotation.subs:
         if sub.annotation_type == "text":
             data["text"] = {"text": sub.data}
@@ -171,13 +172,13 @@ def _import_annotations(client: "Client", id: int, remote_classes, attributes, a
             data = annotation.get_data(
                 only_keyframes=True,
                 post_processing=lambda annotation, data: _handle_subs(
-                    annotation, _handle_complex_polygon(annotation, data), attributes
+                    annotation, _handle_complex_polygon(annotation, data), annotation_class_id, attributes
                 ),
             )
         else:
             data = {annotation_class.annotation_type: annotation.data}
             data = _handle_complex_polygon(annotation, data)
-            data = _handle_subs(annotation, data, attributes)
+            data = _handle_subs(annotation, data, annotation_class_id, attributes)
 
         serialized_annotations.append({"annotation_class_id": annotation_class_id, "data": data})
 
