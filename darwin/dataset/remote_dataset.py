@@ -123,7 +123,6 @@ class RemoteDataset:
                 raise NotFound("Dataset location not found. Check your path.")
             with responses_path.open() as f:
                 logged_responses = json.load(f)
-                f.close()
             files_to_exclude.extend(
                 [
                     response["file_path"]
@@ -243,7 +242,6 @@ class RemoteDataset:
                 for annotation_path in tmp_dir.glob("*.json"):
                     with annotation_path.open() as file:
                         annotation = json.load(file)
-                        file.close()
                     filename = Path(annotation["image"]["filename"]).stem
                     destination_name = annotations_dir / f"{filename}{annotation_path.suffix}"
                     shutil.move(str(annotation_path), str(destination_name))

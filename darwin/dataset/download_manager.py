@@ -61,7 +61,6 @@ def download_all_images_from_annotations(
     for annotation_path in annotations_path.glob(f"*.{annotation_format}"):
         with annotation_path.open() as file:
             annotation = json.load(file)
-            file.close()
         if not force_replace:
             # Check collisions on image filename, original_filename and json filename on the system
             if Path(annotation["image"]["filename"]).stem in existing_images:
@@ -157,7 +156,6 @@ def download_image_from_json_annotation(
     """
     with annotation_path.open() as file:
         annotation = json.load(file)
-        file.close()
 
     # If we are using folders, extract the path for the image and create the folder if needed
     sub_path = annotation["image"].get("path", "/") if use_folders else "/"
