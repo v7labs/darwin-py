@@ -1,11 +1,13 @@
 import setuptools
 
+from darwin import __version__
+
 with open("README.md", "rb") as f:
     long_description = f.read().decode("utf-8")
 
 setuptools.setup(
     name="darwin-py",
-    version="0.5.15",
+    version=__version__,
     author="V7",
     author_email="info@v7labs.com",
     description="Library and command line interface for darwin.v7labs.com",
