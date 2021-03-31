@@ -3,6 +3,7 @@ import getpass
 import requests.exceptions
 
 import darwin.cli_functions as f
+from darwin import __version__
 from darwin.exceptions import InvalidTeam, Unauthenticated, Unauthorized
 from darwin.options import Options
 
@@ -43,7 +44,7 @@ def run(args, parser):
             f.list_teams()
     # Version
     elif args.command == "version":
-        print("0.5.14")
+        print(__version__)
 
     elif args.command == "convert":
         f.convert(args.format, args.files, args.output_dir)
