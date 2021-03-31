@@ -239,7 +239,8 @@ class RemoteDataset:
                 # Move the annotations into the right folder and rename them to have the image
                 # original filename as contained in the json
                 for annotation_path in tmp_dir.glob("*.json"):
-                    annotation = json.load(annotation_path.open())
+                    with annotation_path.open() as file:
+                        annotation = json.load(file)
                     filename = Path(annotation["image"]["filename"]).stem
                     destination_name = annotations_dir / f"{filename}{annotation_path.suffix}"
                     shutil.move(str(annotation_path), str(destination_name))
@@ -249,7 +250,7 @@ class RemoteDataset:
 
         if release.latest:
             latest_dir = self.local_releases_path / "latest"
-            if latest_dir.exists():
+            if latest_dir.is_symlink():
                 latest_dir.unlink()
             latest_dir.symlink_to(f"./{release_dir.name}")
 
