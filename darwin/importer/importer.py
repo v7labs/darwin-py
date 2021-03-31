@@ -181,9 +181,6 @@ def _import_annotations(client: "Client", id: int, remote_classes, attributes, a
 
         serialized_annotations.append({"annotation_class_id": annotation_class_id, "data": data})
 
-    if client.feature_enabled("WORKFLOW", dataset.team):
-        res = client.post(f"/dataset_items/{id}/import", payload={"annotations": serialized_annotations})
-        if res.get("status_code") != 200:
-            print(f"warning, failed to upload annotation to {id}", res)
-    else:
-        client.post(f"/dataset_images/{id}/import", payload={"annotations": serialized_annotations})
+    res = client.post(f"/dataset_items/{id}/import", payload={"annotations": serialized_annotations})
+    if res.get("status_code") != 200:
+        print(f"warning, failed to upload annotation to {id}", res)

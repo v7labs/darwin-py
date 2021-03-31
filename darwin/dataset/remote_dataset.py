@@ -288,8 +288,6 @@ class RemoteDataset:
     def fetch_remote_files(self, filters: Optional[dict] = None):
         """Fetch and lists all files on the remote dataset"""
         base_url = f"/datasets/{self.dataset_id}/items"
-        if not self.client.feature_enabled("WORKFLOW", self.team):
-            base_url = f"/datasets/{self.dataset_id}/dataset_images"
         parameters = {"page[size]": 500}
         if filters:
             for list_type in ["filenames", "statuses"]:
