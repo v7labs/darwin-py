@@ -50,7 +50,7 @@ def parse_annotation(annotation, category_lookup_table):
     if len(segmentation) == 0 and len(annotation["bbox"]) == 4:
         x, y, w, h = map(int, annotation["bbox"])
         return dt.make_bounding_box(category["name"], x, y, w, h)
-    elif len(segmentation) > 1:
+    elif isinstance(segmentation, dict):
         print("warning, converting complex coco rle mask to polygon, could take some time")
         mask = rle_decode(segmentation["counts"], segmentation["size"])
         _labels, external, _internal = find_contours(mask)
@@ -66,9 +66,9 @@ def parse_annotation(annotation, category_lookup_table):
                     break
             paths.append(path)
         return dt.make_complex_polygon(category["name"], paths)
-    elif len(segmentation) == 1:
+    elif isinstance(segmentation, list):
         path = []
-        points = iter(segmentation[0])
+        points = iter(segmentation[0] if isinstance(segmentation[0], list) else segmentation)
         while True:
             try:
                 x, y = next(points), next(points)
