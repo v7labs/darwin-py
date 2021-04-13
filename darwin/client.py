@@ -8,8 +8,13 @@ import requests
 from darwin.config import Config
 from darwin.dataset import RemoteDataset
 from darwin.dataset.identifier import DatasetIdentifier
-from darwin.exceptions import (InsufficientStorage, InvalidLogin,
-                               MissingConfig, NotFound, Unauthorized)
+from darwin.exceptions import (
+    InsufficientStorage,
+    InvalidLogin,
+    MissingConfig,
+    NotFound,
+    Unauthorized,
+)
 from darwin.utils import is_deprecated_project_dir, is_project_dir, urljoin
 from darwin.validators import name_taken, validation_error
 
@@ -23,7 +28,7 @@ class Client:
         self.features = {}
 
     def get(
-        self, endpoint: str, team: Optional[str] = None, retry: bool = False, raw: bool = False, debug: bool = False
+        self, endpoint: str, team: Optional[str] = None, retry: bool = False, raw: bool = False, debug: bool = False,
     ):
         """Get something from the server trough HTTP
 
@@ -71,7 +76,9 @@ class Client:
         else:
             return self._decode_response(response, debug)
 
-    def put(self, endpoint: str, payload: Dict, team: Optional[str] = None, retry: bool = False, debug: bool = False):
+    def put(
+        self, endpoint: str, payload: Dict, team: Optional[str] = None, retry: bool = False, debug: bool = False,
+    ):
         """Put something on the server trough HTTP
 
         Parameters
@@ -208,7 +215,7 @@ class Client:
                     f"Client get request response ({response.json()}) with unexpected status "
                     f"({response.status_code}). "
                     f"Client: ({self})"
-                    f"Request: (endpoint={endpoint}, payload={payload})"
+                    f"Request: (endpoint={endpoint})"
                 )
             if retry:
                 time.sleep(10)
@@ -302,7 +309,9 @@ class Client:
             # If there isn't a record of this team, create one.
             if not self.config.get_team(dataset_identifier.team_slug, raise_on_invalid_team=False):
                 datasets_dir = Path.home() / ".darwin" / "datasets"
-                self.config.set_team(team=dataset_identifier.team_slug, api_key="", datasets_dir=str(datasets_dir))
+                self.config.set_team(
+                    team=dataset_identifier.team_slug, api_key="", datasets_dir=str(datasets_dir),
+                )
 
             return RemoteDataset(
                 name=dataset["name"],
@@ -330,7 +339,7 @@ class Client:
         RemoteDataset
         The created dataset
         """
-        dataset = self.post("/datasets", {"name": name}, team=team, error_handlers=[name_taken, validation_error])
+        dataset = self.post("/datasets", {"name": name}, team=team, error_handlers=[name_taken, validation_error],)
         return RemoteDataset(
             name=dataset["name"],
             team=team or self.default_team,
@@ -461,7 +470,10 @@ class Client:
         """
         if datasets_dir is None:
             datasets_dir = Path.home() / ".darwin" / "datasets"
-        headers = {"Content-Type": "application/json", "Authorization": f"ApiKey {api_key}"}
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"ApiKey {api_key}",
+        }
         api_url = Client.default_api_url()
         response = requests.get(urljoin(api_url, "/users/token_info"), headers=headers)
 
@@ -508,7 +520,11 @@ class Client:
             if debug:
                 print(f"[ERROR {response.status_code}] {response.text}")
             response.close()
-            return {"error": "Response is not JSON encoded", "status_code": response.status_code, "text": response.text}
+            return {
+                "error": "Response is not JSON encoded",
+                "status_code": response.status_code,
+                "text": response.text,
+            }
 
     def __str__(self):
         return f"Client(default_team={self.default_team})"

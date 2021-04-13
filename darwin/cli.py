@@ -70,14 +70,7 @@ def run(args, parser):
         elif args.action == "report":
             f.dataset_report(args.dataset, args.granularity or "day")
         elif args.action == "export":
-            f.export_dataset(
-                args.dataset,
-                args.name,
-                args.classes,
-                args.files,
-                args.statuses,
-                args.include_url_token
-            )
+            f.export_dataset(args.dataset, args.name, args.classes, args.files, args.statuses, args.include_url_token)
         elif args.action == "files":
             f.list_files(args.dataset, args.status, args.path, args.only_filenames)
         elif args.action == "releases":

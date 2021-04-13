@@ -8,8 +8,7 @@ from upolygon import draw_polygon
 
 import darwin.datatypes as dt
 from darwin.config import Config
-from darwin.exceptions import (OutdatedDarwinJSONFormat, UnmatchedRemoteClass,
-                               UnsupportedFileType)
+from darwin.exceptions import OutdatedDarwinJSONFormat, UnmatchedRemoteClass, UnsupportedFileType
 
 SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpeg", ".jpg", ".jfif", ".tif", ".tiff", ".bmp", ".svs"]
 SUPPORTED_VIDEO_EXTENSIONS = [".avi", ".bpm", ".dcm", ".mov", ".mp4"]
@@ -284,7 +283,10 @@ def parse_darwin_video_annotation(annotation: dict):
         frame_annotations[int(f)] = parse_darwin_annotation({**frame, **{"name": name}})
         keyframes[int(f)] = frame.get("keyframe", False)
 
-    return dt.make_video_annotation(frame_annotations, keyframes, annotation["segments"], annotation.get("interpolated", False))
+    return dt.make_video_annotation(
+        frame_annotations, keyframes, annotation["segments"], annotation.get("interpolated", False)
+    )
+
 
 def split_video_annotation(annotation):
     if not annotation.is_video:
@@ -477,17 +479,18 @@ def convert_polygons_to_mask(polygons: List, height: int, width: int, value: Opt
 
 
 def build_filter(
-    remote_dataset: 'RemoteDataset',
+    remote_dataset: "RemoteDataset",
     classes: Optional[List[str]] = None,
     files: Optional[List[str]] = None,
-    statuses: Optional[List[str]] = None
+    statuses: Optional[List[str]] = None,
+    initial_filter: Optional[dict] = None,
 ):
+    export_filter = initial_filter or {}
+
     # If no filters are specified, simply select all complete
     if classes is None and files is None and statuses is None:
-        return {"statuses": "complete"}
+        return export_filter
 
-    export_filter = {}
-    
     # If classes are specified as filter, then match the specified class
     # names with existing remote classes. If a class cannot be matched,
     # raise an exception.
@@ -496,14 +499,14 @@ def build_filter(
         remote_classes = {cls["name"]: cls["id"] for cls in remote_dataset.fetch_remote_classes()}
         for class_name in classes:
             if class_name not in remote_classes:
-                raise UnmatchedRemoteClass(class_name)                
+                raise UnmatchedRemoteClass(class_name)
             annotation_class_ids.append(str(remote_classes[class_name]))
         export_filter["annotation_class_ids"] = ",".join(annotation_class_ids)
 
     if files is not None:
-        export_filter["filenames"] = ",".join(files)        
+        export_filter["filenames"] = ",".join(files)
 
     if statuses is not None:
         export_filter["statuses"] = ",".join(statuses)
-    
+
     return export_filter

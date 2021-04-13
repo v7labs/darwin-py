@@ -15,14 +15,19 @@ from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset.identifier import DatasetIdentifier
 from darwin.dataset.utils import get_release_path, split_dataset
-from darwin.exceptions import (InvalidLogin, MissingConfig, NameTaken,
-                               NotFound, Unauthenticated, UnmatchedRemoteClass,
-                               UnsupportedExportFormat, UnsupportedFileType,
-                               ValidationError)
+from darwin.exceptions import (
+    InvalidLogin,
+    MissingConfig,
+    NameTaken,
+    NotFound,
+    Unauthenticated,
+    UnmatchedRemoteClass,
+    UnsupportedExportFormat,
+    UnsupportedFileType,
+    ValidationError,
+)
 from darwin.table import Table
-from darwin.utils import (build_filter, find_files,
-                          persist_client_configuration, prompt,
-                          secure_continue_request)
+from darwin.utils import build_filter, find_files, persist_client_configuration, prompt, secure_continue_request
 
 
 def validate_api_key(api_key: str):
@@ -211,7 +216,7 @@ def export_dataset(
     classes: Optional[List] = None,
     files: Optional[List[str]] = None,
     statuses: Optional[List[str]] = None,
-    include_url_token: bool = False
+    include_url_token: bool = False,
 ):
     """Create a new release for the dataset
 
@@ -234,13 +239,13 @@ def export_dataset(
     ds = client.get_remote_dataset(identifier)
 
     try:
-        export_filter = build_filter(ds, classes, files, statuses)
+        export_filter = build_filter(ds, classes, files, statuses, initial_filter={"statuses": "complete"})
     except UnmatchedRemoteClass as e:
         print(f"Unmatched remote class: {e.class_name}")
         sys.exit(1)
 
     ds.export(name=name, export_filter=export_filter, include_url_token=include_url_token)
-    
+
     identifier.version = name
     print(f"Dataset {dataset_slug} successfully exported to {identifier}")
 
