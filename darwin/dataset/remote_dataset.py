@@ -241,7 +241,8 @@ class RemoteDataset:
                 # Move the annotations into the right folder and rename them to have the image
                 # original filename as contained in the json
                 for annotation_path in tmp_dir.glob("*.json"):
-                    annotation = json.load(annotation_path.open())
+                    with annotation_path.open() as file:
+                        annotation = json.load(file)
                     filename = Path(annotation["image"]["filename"]).stem
                     destination_name = annotations_dir / f"{filename}{annotation_path.suffix}"
                     shutil.move(str(annotation_path), str(destination_name))
@@ -251,7 +252,7 @@ class RemoteDataset:
 
         if release.latest:
             latest_dir = self.local_releases_path / "latest"
-            if latest_dir.exists():
+            if latest_dir.is_symlink():
                 latest_dir.unlink()
             latest_dir.symlink_to(f"./{release_dir.name}")
 
@@ -290,8 +291,6 @@ class RemoteDataset:
     def fetch_remote_files(self, filters: Optional[dict] = None):
         """Fetch and lists all files on the remote dataset"""
         base_url = f"/datasets/{self.dataset_id}/items"
-        if not self.client.feature_enabled("WORKFLOW", self.team):
-            base_url = f"/datasets/{self.dataset_id}/dataset_images"
         parameters = {"page[size]": 500}
         if filters:
             for list_type in ["filenames", "statuses"]:
@@ -315,10 +314,10 @@ class RemoteDataset:
                 return
 
     def archive(self, items):
-        self.client.put(f"datasets/{self.dataset_id}/items/archive", {"ids": [item.id for item in items]})
+        self.client.put(f"datasets/{self.dataset_id}/items/archive", {"filter": {"dataset_item_ids": [item.id for item in items]}})
 
     def restore_archived(self, items):
-        self.client.put(f"datasets/{self.dataset_id}/items/restore", {"ids": [item.id for item in items]})
+        self.client.put(f"datasets/{self.dataset_id}/items/restore", {"filter": {"dataset_item_ids": [item.id for item in items]}})
 
     def fetch_annotation_type_id_for_name(self, name: str):
         """Fetches annotation type id for a annotation type name, such as bounding_box"""

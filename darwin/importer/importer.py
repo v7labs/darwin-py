@@ -135,7 +135,7 @@ def import_annotations(
             _import_annotations(dataset.client, image_id, remote_classes, attributes, parsed_file.annotations, dataset)
 
 
-def _handle_subs(annotation, data, attributes):
+def _handle_subs(annotation, data, annotation_class_id, attributes):
     for sub in annotation.subs:
         if sub.annotation_type == "text":
             data["text"] = {"text": sub.data}
@@ -172,19 +172,16 @@ def _import_annotations(client: "Client", id: int, remote_classes, attributes, a
             data = annotation.get_data(
                 only_keyframes=True,
                 post_processing=lambda annotation, data: _handle_subs(
-                    annotation, _handle_complex_polygon(annotation, data), attributes
+                    annotation, _handle_complex_polygon(annotation, data), annotation_class_id, attributes
                 ),
             )
         else:
             data = {annotation_class.annotation_type: annotation.data}
             data = _handle_complex_polygon(annotation, data)
-            data = _handle_subs(annotation, data, attributes)
+            data = _handle_subs(annotation, data, annotation_class_id, attributes)
 
         serialized_annotations.append({"annotation_class_id": annotation_class_id, "data": data})
 
-    if client.feature_enabled("WORKFLOW", dataset.team):
-        res = client.post(f"/dataset_items/{id}/import", payload={"annotations": serialized_annotations})
-        if res.get("status_code") != 200:
-            print(f"warning, failed to upload annotation to {id}", res)
-    else:
-        client.post(f"/dataset_images/{id}/import", payload={"annotations": serialized_annotations})
+    res = client.post(f"/dataset_items/{id}/import", payload={"annotations": serialized_annotations})
+    if res.get("status_code") != 200:
+        print(f"warning, failed to upload annotation to {id}", res)
