@@ -8,7 +8,7 @@ from upolygon import draw_polygon
 
 import darwin.datatypes as dt
 from darwin.config import Config
-from darwin.exceptions import OutdatedDarwinJSONFormat, UnmatchedRemoteClass, UnsupportedFileType
+from darwin.exceptions import OutdatedDarwinJSONFormat, UnsupportedFileType
 
 SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpeg", ".jpg", ".jfif", ".tif", ".tiff", ".bmp", ".svs"]
 SUPPORTED_VIDEO_EXTENSIONS = [".avi", ".bpm", ".dcm", ".mov", ".mp4"]
@@ -491,17 +491,8 @@ def build_filter(
     if classes is None and files is None and statuses is None:
         return export_filter
 
-    # If classes are specified as filter, then match the specified class
-    # names with existing remote classes. If a class cannot be matched,
-    # raise an exception.
     if classes is not None:
-        annotation_class_ids = []
-        remote_classes = {cls["name"]: cls["id"] for cls in remote_dataset.fetch_remote_classes()}
-        for class_name in classes:
-            if class_name not in remote_classes:
-                raise UnmatchedRemoteClass(class_name)
-            annotation_class_ids.append(str(remote_classes[class_name]))
-        export_filter["annotation_class_ids"] = ",".join(annotation_class_ids)
+        export_filter["annotation_class_ids"] = ",".join(classes)
 
     if files is not None:
         export_filter["filenames"] = ",".join(files)

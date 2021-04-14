@@ -7,13 +7,11 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Callable, List, Optional
 from urllib import parse
 
-from darwin.dataset.download_manager import \
-    download_all_images_from_annotations
+from darwin.dataset.download_manager import download_all_images_from_annotations
 from darwin.dataset.identifier import DatasetIdentifier
 from darwin.dataset.release import Release
 from darwin.dataset.upload_manager import add_files_to_dataset
-from darwin.dataset.utils import (exhaust_generator, get_annotations,
-                                  get_classes, make_class_lists, split_dataset)
+from darwin.dataset.utils import exhaust_generator, get_annotations, get_classes, make_class_lists, split_dataset
 from darwin.exceptions import NotFound, UnsupportedExportFormat
 from darwin.item import parse_dataset_item
 from darwin.utils import find_files, urljoin
@@ -314,10 +312,14 @@ class RemoteDataset:
                 return
 
     def archive(self, items):
-        self.client.put(f"datasets/{self.dataset_id}/items/archive", {"filter": {"dataset_item_ids": [item.id for item in items]}})
+        self.client.put(
+            f"datasets/{self.dataset_id}/items/archive", {"filter": {"dataset_item_ids": [item.id for item in items]}}
+        )
 
     def restore_archived(self, items):
-        self.client.put(f"datasets/{self.dataset_id}/items/restore", {"filter": {"dataset_item_ids": [item.id for item in items]}})
+        self.client.put(
+            f"datasets/{self.dataset_id}/items/restore", {"filter": {"dataset_item_ids": [item.id for item in items]}}
+        )
 
     def fetch_annotation_type_id_for_name(self, name: str):
         """Fetches annotation type id for a annotation type name, such as bounding_box"""
@@ -349,25 +351,29 @@ class RemoteDataset:
         """Fetches all remote attributes on the remote dataset"""
         return self.client.get(f"/datasets/{self.dataset_id}/attributes")
 
-    def export(self, name: str, export_filter: dict, include_url_token: bool = False):
+    def export(self, name: str, item_filter: dict, annotation_filter: dict, include_url_token: bool = False):
         """Create a new release for the dataset
 
         Parameters
         ----------
         name: str
             Name of the release
-        export_filter: dict
-            Dictionary encoding the export filters. Supported keys:
+        item_filter: dict
+            Dictionary encoding the filter for items. Supported keys:
             - annotation_class_ids
             - filenames
             - statuses
+        annotation_filter: dict
+            Dictionary encoding the filter for annotations. Supported keys:
+            - annotation_class_ids
         include_url_token: bool
             Should the image url in the export be include a token enabling access without team membership
         """
 
         payload = {
             "name": name,
-            "filter": export_filter,
+            "filter": item_filter,
+            "annotation_filter": annotation_filter,
             "include_export_token": include_url_token,
         }
 

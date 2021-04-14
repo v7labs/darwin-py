@@ -99,15 +99,26 @@ class Options(object):
         parser_export = dataset_action.add_parser("export", help="Export a version of a dataset.")
         parser_export.add_argument("dataset", type=str, help="Remote dataset name to export.")
         parser_export.add_argument("name", type=str, help="Name with with the version gets tagged.")
-        parser_export.add_argument("--classes", type=str, nargs="+", help="List of class names to include in the export")
-        parser_export.add_argument("--files", type=str, nargs="+", help="List of filenames to include in the export")
-        parser_export.add_argument("--statuses", type=str, nargs="+", help="List of item statuses (annotate, review, complete)")
         parser_export.add_argument(
             "--include-url-token",
             default=False,
             action="store_true",
             help="Each annotation file includes a url with an access token."
             "Warning, anyone with the url can access the images, even without being a team member",
+        )
+
+        parser_export.add_argument(
+            "--classes", type=str, nargs="+", help="List of class names with which to filter items of the export"
+        )
+        parser_export.add_argument("--files", type=str, nargs="+", help="List of filenames to include in the export")
+        parser_export.add_argument(
+            "--statuses", type=str, nargs="+", help="List of item statuses (annotate, review, complete)"
+        )
+        parser_export.add_argument(
+            "--annotation-classes",
+            type=str,
+            nargs="+",
+            help="List of class names with which to filter annotations of the export",
         )
 
         # Releases

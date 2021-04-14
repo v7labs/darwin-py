@@ -21,7 +21,6 @@ from darwin.exceptions import (
     NameTaken,
     NotFound,
     Unauthenticated,
-    UnmatchedRemoteClass,
     UnsupportedExportFormat,
     UnsupportedFileType,
     ValidationError,
@@ -216,6 +215,7 @@ def export_dataset(
     classes: Optional[List] = None,
     files: Optional[List[str]] = None,
     statuses: Optional[List[str]] = None,
+    annotation_classes: Optional[List] = None,
     include_url_token: bool = False,
 ):
     """Create a new release for the dataset
@@ -225,29 +225,32 @@ def export_dataset(
     dataset_slug: str
         Slug of the dataset to which we perform the operation on
     classes: List
-        List of the class names to filter
+        List of the class names to filter items
     files: List
-        List of the filenames to filter
+        List of the filenames to filter items
     statuses: List
-        List of the statuses to filter
+        List of the statuses to filter items
     name: str
         Name of the release
+    annotation_classes: List
+        List of the class names to filter annotations
     """
     client = _load_client(offline=False)
 
     identifier = DatasetIdentifier.parse(dataset_slug)
     ds = client.get_remote_dataset(identifier)
 
+    item_filter = build_filter(ds, classes, files, statuses, initial_filter={"statuses": "complete"})
+    annotation_filter = build_filter(ds, annotation_classes, None, None)
+
     try:
-        export_filter = build_filter(ds, classes, files, statuses, initial_filter={"statuses": "complete"})
-    except UnmatchedRemoteClass as e:
-        print(f"Unmatched remote class: {e.class_name}")
-        sys.exit(1)
-
-    ds.export(name=name, export_filter=export_filter, include_url_token=include_url_token)
-
-    identifier.version = name
-    print(f"Dataset {dataset_slug} successfully exported to {identifier}")
+        ds.export(
+            name=name, item_filter=item_filter, annotation_filter=annotation_filter, include_url_token=include_url_token
+        )
+        identifier.version = name
+        print(f"Dataset {dataset_slug} successfully exported to {identifier}")
+    except NameTaken:
+        _error(f"Release name '{name}' is already taken.")
 
 
 def pull_dataset(dataset_slug: str, only_annotations: bool = False, folders: bool = False, video_frames: bool = False):

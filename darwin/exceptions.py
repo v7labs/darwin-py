@@ -49,7 +49,3 @@ class Unauthorized(Exception):
 
 class OutdatedDarwinJSONFormat(Exception):
     pass
-
-class UnmatchedRemoteClass(Exception):
-    def __init__(self, class_name):
-        self.class_name = class_name
