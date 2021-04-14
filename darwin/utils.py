@@ -487,12 +487,21 @@ def build_filter(
 ):
     export_filter = initial_filter or {}
 
-    # If no filters are specified, simply select all complete
     if classes is None and files is None and statuses is None:
         return export_filter
 
+    # If classes are specified as filter, then match the specified class
+    # names with existing remote classes. If a class cannot be matched,
+    # raise an exception.
     if classes is not None:
-        export_filter["annotation_class_ids"] = ",".join(classes)
+        annotation_class_ids = []
+        remote_classes = {cls["name"]: cls["id"] for cls in remote_dataset.fetch_remote_classes()}
+        for class_name in classes:
+            if class_name not in remote_classes:
+                print(f"Warning: class '{class_name}' does not match with any remote classes")
+                continue
+            annotation_class_ids.append(str(remote_classes[class_name]))
+        export_filter["annotation_class_ids"] = ",".join(annotation_class_ids)
 
     if files is not None:
         export_filter["filenames"] = ",".join(files)
