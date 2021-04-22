@@ -61,6 +61,9 @@ def parse_annotation(annotation, category_lookup_table):
         _labels, external, _internal = find_contours(mask)
         paths = []
         for external_path in external:
+            # skip paths with less than 2 points
+            if len(external_path) // 2 <= 2:
+                continue
             path = []
             points = iter(external_path)
             while True:
