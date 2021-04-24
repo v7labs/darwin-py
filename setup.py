@@ -24,7 +24,7 @@ setuptools.setup(
         "scikit-learn",
         "sh",
         "tqdm",
-        "upolygon==0.1.5",
+        "upolygon==0.1.6",
     ],
     packages=setuptools.find_packages(),
     entry_points={"console_scripts": ["darwin=darwin.cli:main"]},
