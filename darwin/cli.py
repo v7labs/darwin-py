@@ -78,7 +78,7 @@ def run(args, parser):
         elif args.action == "pull":
             f.pull_dataset(args.dataset, args.only_annotations, args.folders, args.video_frames)
         elif args.action == "import":
-            f.dataset_import(args.dataset, args.format, args.files)
+            f.dataset_import(args.dataset, args.format, args.files, args.append)
         elif args.action == "convert":
             f.dataset_convert(args.dataset, args.format, args.output_dir)
         elif args.action == "migrate":

@@ -133,6 +133,7 @@ class Options(object):
         parser_import.add_argument("format", type=str, help="Annotation import to import")
 
         parser_import.add_argument("files", type=str, nargs="+", help="Annotation files (or folders) to import")
+        parser_import.add_argument("--append", action="store_true", help="Append annotations instead of overwriting")
 
         # Convert
         parser_convert = dataset_action.add_parser("convert", help="Converts darwin json to other annotation formats.")
