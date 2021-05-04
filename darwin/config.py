@@ -12,7 +12,7 @@ class Config(object):
 
     def __init__(self, path: Union[Path, str, None]):
         """
-            If path is None the config will be in memory only
+        If path is None the config will be in memory only
         """
         if isinstance(path, str):
             path = Path(path)

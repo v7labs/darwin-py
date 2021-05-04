@@ -66,7 +66,7 @@ def import_annotations(
     dataset: "RemoteDataset",
     importer: Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]],
     file_paths: List[Union[str, Path]],
-    append: bool
+    append: bool,
 ):
     print("Fetching remote class list...")
     remote_classes = build_main_annotations_lookup_table(dataset.fetch_remote_classes())
@@ -133,7 +133,9 @@ def import_annotations(
         parsed_files = [parsed_file for parsed_file in parsed_files if parsed_file not in local_files_missing_remotely]
         for parsed_file in tqdm(parsed_files):
             image_id = remote_files[parsed_file.filename]
-            _import_annotations(dataset.client, image_id, remote_classes, attributes, parsed_file.annotations, dataset, append)
+            _import_annotations(
+                dataset.client, image_id, remote_classes, attributes, parsed_file.annotations, dataset, append
+            )
 
 
 def _handle_subs(annotation, data, annotation_class_id, attributes):
@@ -182,10 +184,10 @@ def _import_annotations(client: "Client", id: int, remote_classes, attributes, a
             data = _handle_subs(annotation, data, annotation_class_id, attributes)
 
         serialized_annotations.append({"annotation_class_id": annotation_class_id, "data": data})
-    
+
     payload = {"annotations": serialized_annotations}
     if append:
-        payload['overwrite'] = "false"
+        payload["overwrite"] = "false"
     res = client.post(f"/dataset_items/{id}/import", payload=payload)
     if res.get("status_code") != 200:
         print(f"warning, failed to upload annotation to {id}", res)
