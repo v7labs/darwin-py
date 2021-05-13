@@ -77,11 +77,11 @@ class LocalDataset(object):
             else:
                 raise FileNotFoundError(
                     f"could not find a dataset partition. "
-                    f"Split the dataset using `split_dataset()` from `darwin.dataset.utils`"
+                    f"Split the dataset using `split_dataset()` from `darwin.dataset.split_manager`"
                 ) from None
         else:
             # If the partition is not specified, get all the annotations
-            stems = [e.stem for e in annotations_dir.glob("*.json")]
+            stems = [e.stem for e in annotations_dir.glob("**/*.json")]
 
         # Find all the annotations and their corresponding images
         for stem in stems:

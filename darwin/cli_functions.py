@@ -14,7 +14,8 @@ import darwin.importer.formats
 from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset.identifier import DatasetIdentifier
-from darwin.dataset.utils import get_release_path, split_dataset
+from darwin.dataset.utils import get_release_path
+from darwin.dataset.split_manager import split_dataset
 from darwin.exceptions import (
     InvalidLogin,
     MissingConfig,
@@ -536,7 +537,7 @@ def find_supported_format(query, supported_formats):
     _error(f"Unsupported format, currently supported: {list_of_formats}")
 
 
-def dataset_convert(dataset_slug: str, format: str, output_dir: Optional[Union[str, Path]]):
+def dataset_convert(dataset_slug: str, format: str, output_dir: Optional[Union[str, Path]] = None):
     client = _load_client()
     parser = find_supported_format(format, darwin.exporter.formats.supported_formats)
 
