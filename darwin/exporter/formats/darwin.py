@@ -16,6 +16,7 @@ def build_annotation(annotation_file: dt.AnnotationFile):
             "filename": annotation_file.filename,
             "height": annotation_file.image_height,
             "width": annotation_file.image_width,
+            "url": annotation_file.image_url,
         },
     }
 
