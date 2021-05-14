@@ -2,7 +2,6 @@ import json
 from pathlib import Path
 from typing import List, Optional
 
-import numpy as np
 from upolygon import find_contours, rle_decode
 
 import darwin.datatypes as dt

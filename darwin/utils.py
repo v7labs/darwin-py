@@ -283,7 +283,10 @@ def parse_darwin_video_annotation(annotation: dict):
         frame_annotations[int(f)] = parse_darwin_annotation({**frame, **{"name": name}})
         keyframes[int(f)] = frame.get("keyframe", False)
 
-    return dt.make_video_annotation(frame_annotations, keyframes, annotation["segments"], annotation.get("interpolated", False))
+    return dt.make_video_annotation(
+        frame_annotations, keyframes, annotation["segments"], annotation.get("interpolated", False)
+    )
+
 
 def split_video_annotation(annotation):
     if not annotation.is_video:

@@ -370,7 +370,7 @@ class Client:
         return self.config.get_team(team or self.default_team)["datasets_dir"]
 
     def set_datasets_dir(self, datasets_dir: Path, team: Optional[str] = None):
-        """ Sets the dataset directory of the specified team or the default one
+        """Sets the dataset directory of the specified team or the default one
 
         Parameters
         ----------
@@ -487,7 +487,7 @@ class Client:
 
     @staticmethod
     def _decode_response(response, debug: bool = False):
-        """ Decode the response as JSON entry or return a dictionary with the error
+        """Decode the response as JSON entry or return a dictionary with the error
 
         Parameters
         ----------
