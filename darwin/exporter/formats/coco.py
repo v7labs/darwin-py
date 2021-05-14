@@ -9,6 +9,7 @@ from upolygon import draw_polygon, rle_encode
 import darwin.datatypes as dt
 from darwin.utils import convert_polygons_to_sequences
 
+
 class NumpyEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, np.integer):

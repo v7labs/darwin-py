@@ -477,13 +477,13 @@ def upload_data(
         _error(f"No files found")
 
 
-def dataset_import(dataset_slug, format, files):
+def dataset_import(dataset_slug, format, files, append):
     client = _load_client(dataset_identifier=dataset_slug)
     parser = find_supported_format(format, darwin.importer.formats.supported_formats)
 
     try:
         dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
-        importer.import_annotations(dataset, parser, files)
+        importer.import_annotations(dataset, parser, files, append)
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
 

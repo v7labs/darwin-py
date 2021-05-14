@@ -59,7 +59,11 @@ def add_files_to_dataset(
         }
         if path:
             payload["path"] = path
-        data = client.put(endpoint=f"/datasets/{dataset_id}/data", payload=payload, team=team,)
+        data = client.put(
+            endpoint=f"/datasets/{dataset_id}/data",
+            payload=payload,
+            team=team,
+        )
         if "errors" in data:
             raise ValueError(f"There are errors in the put request: {data['errors']['message']}")
         if images:
@@ -121,7 +125,7 @@ def _split_on_file_type(files: List[Path]):
 
 
 def _chunk_filenames(files: List[Path], size: int):
-    """ Chunks paths in batches of size.
+    """Chunks paths in batches of size.
     No batch has any duplicates with regards to file name.
     This is needed due to a limitation in the upload api.
 
