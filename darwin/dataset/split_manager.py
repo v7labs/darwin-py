@@ -72,14 +72,11 @@ def split_dataset(
     splits = build_split_paths_dict(split_path, stratified_types)
 
     # Do the actual splitting
-    if not split_path.exists():
-        split_path.mkdir()
-
-        random_split(annotation_path, annotation_files, splits, val_percentage, test_percentage, split_seed)
-
-        stratified_split(
-            annotation_path, splits, annotation_files, val_percentage, test_percentage, stratified_types, split_seed
-        )
+    split_path.mkdir(exist_ok=True)
+    random_split(annotation_path, annotation_files, splits, val_percentage, test_percentage, split_seed)
+    stratified_split(
+        annotation_path, splits, annotation_files, val_percentage, test_percentage, stratified_types, split_seed
+    )
 
     # Create symlink for default split
     split = lists_path / "default"

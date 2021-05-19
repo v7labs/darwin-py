@@ -108,6 +108,7 @@ def detectron2_register_dataset(
                 release_name=release_name,
                 annotation_type="polygon",
                 annotation_format="coco",
+                ignore_inconsistent_examples=True,
             )
         ),
     )
