@@ -472,14 +472,22 @@ def compute_max_density(annotations_dir: Path):
     return max_density
 
 
-def compute_distributions(annotations_dir: Path, split_path: Path, partitions: List[str] = ["train", "val", "test"]):
+def compute_distributions(
+    annotations_dir: Path,
+    split_path: Path,
+    split_strategy: str = "stratified",
+    partitions: List[str] = ["train", "val", "test"],
+):
     # The class distribution counts the presence of a class in images/videos for each partition
     class_distribution = {partition: {} for partition in partitions}
     # The instance distribution counts the annotations with a particular class for each partition
     instance_distribution = {partition: {} for partition in partitions}
 
     for partition in partitions:
-        split_file = split_path / f"stratified_polygon_{partition}.txt"
+        if split_strategy == "stratified":
+            split_file = split_path / f"stratified_polygon_{partition}.txt"
+        else:
+            split_file = split_path / f"random_{partition}.txt"
         stems = [e.strip() for e in split_file.open()]
         for stem in stems:
             annotation_path = annotations_dir / f"{stem}.json"
