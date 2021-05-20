@@ -104,6 +104,7 @@ def detectron2_register_dataset(
             get_annotations(
                 dataset_path,
                 partition=partition,
+                split=split,
                 split_type=split_type,
                 release_name=release_name,
                 annotation_type="polygon",
