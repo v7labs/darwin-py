@@ -527,29 +527,6 @@ def set_file_status(dataset_slug: str, status: str, files: List[str]):
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
 
-
-def list_files(dataset_slug: str, statuses: str, path: str, only_filenames: bool):
-    client = _load_client(dataset_identifier=dataset_slug)
-    try:
-        dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
-        filters = {}
-        if statuses:
-            for status in statuses.split(","):
-                if status not in ["new", "annotate", "review", "complete", "archived"]:
-                    _error(f"Invalid status '{status}', available statuses: annotate, archived, complete, new, review")
-            filters["statuses"] = statuses
-        else:
-            filters["statuses"] = "new,annotate,review,complete"
-        if path:
-            filters["path"] = path
-        for file in dataset.fetch_remote_files(filters):
-            if only_filenames:
-                print(file.filename)
-            else:
-                print(f"{file.filename}\t{file.status if not file.archived else 'archived'}")
-    except NotFound as e:
-        _error(f"No dataset with name '{e.name}'")
-
 def find_supported_format(query, supported_formats):
     for (fmt, fmt_parser) in supported_formats:
         if fmt == query:
