@@ -3,6 +3,7 @@ import getpass
 import requests.exceptions
 
 import darwin.cli_functions as f
+from darwin import __version__
 from darwin.exceptions import InvalidTeam, Unauthenticated, Unauthorized
 from darwin.options import Options
 
@@ -43,7 +44,7 @@ def run(args, parser):
             f.list_teams()
     # Version
     elif args.command == "version":
-        print("0.5.8")
+        print(__version__)
 
     elif args.command == "convert":
         f.convert(args.format, args.files, args.output_dir)
@@ -53,7 +54,7 @@ def run(args, parser):
         elif args.action == "local":
             f.local(args.team)
         elif args.action == "create":
-            f.create_dataset(args.dataset_name, args.team)
+            f.create_dataset(args.dataset)
         elif args.action == "path":
             path = f.path(args.dataset)
             if path:
@@ -62,7 +63,7 @@ def run(args, parser):
         elif args.action == "url":
             f.url(args.dataset)
         elif args.action == "push":
-            f.upload_data(args.dataset, args.files, args.exclude, args.fps, args.path)
+            f.upload_data(args.dataset, args.files, args.exclude, args.fps, args.path, args.frames)
         # Remove a project (remotely)
         elif args.action == "remove":
             f.remove_remote_dataset(args.dataset)
@@ -75,9 +76,9 @@ def run(args, parser):
         elif args.action == "releases":
             f.dataset_list_releases(args.dataset)
         elif args.action == "pull":
-            f.pull_dataset(args.dataset)
+            f.pull_dataset(args.dataset, args.only_annotations, args.folders, args.video_frames)
         elif args.action == "import":
-            f.dataset_import(args.dataset, args.format, args.files)
+            f.dataset_import(args.dataset, args.format, args.files, args.append)
         elif args.action == "convert":
             f.dataset_convert(args.dataset, args.format, args.output_dir)
         elif args.action == "migrate":

@@ -4,10 +4,10 @@ from pathlib import Path
 from typing import Generator, List
 
 import numpy as np
+from upolygon import draw_polygon, rle_encode
 
 import darwin.datatypes as dt
 from darwin.utils import convert_polygons_to_sequences
-from upolygon import draw_polygon
 
 
 class NumpyEncoder(json.JSONEncoder):
@@ -50,6 +50,7 @@ def calculate_categories(annotation_files: List[dt.AnnotationFile]):
             if annotation_class.name not in categories and annotation_class.annotation_type in [
                 "polygon",
                 "complex_polygon",
+                "bounding_box",
             ]:
                 categories[annotation_class.name] = len(categories)
     return categories
@@ -120,7 +121,7 @@ def build_annotations(annotation_files, categories):
 def build_annotation(annotation_file, annotation_id, annotation: dt.Annotation, categories):
     annotation_type = annotation.annotation_class.annotation_type
     if annotation_type == "polygon":
-        sequences = convert_polygons_to_sequences(annotation.data["path"])
+        sequences = convert_polygons_to_sequences(annotation.data["path"], rounding=False)
         x_coords = [s[0::2] for s in sequences]
         y_coords = [s[1::2] for s in sequences]
         min_x = np.min([np.min(x_coord) for x_coord in x_coords])
@@ -146,7 +147,7 @@ def build_annotation(annotation_file, annotation_id, annotation: dt.Annotation, 
         mask = np.zeros((annotation_file.image_height, annotation_file.image_width))
         sequences = convert_polygons_to_sequences(annotation.data["paths"])
         draw_polygon(mask, sequences, 1)
-        counts = rle_encoding(mask)
+        counts = rle_encode(mask)
 
         x_coords = [s[0::2] for s in sequences]
         y_coords = [s[1::2] for s in sequences]
@@ -161,7 +162,7 @@ def build_annotation(annotation_file, annotation_id, annotation: dt.Annotation, 
             "id": annotation_id,
             "image_id": annotation_file.seq,
             "category_id": categories[annotation.annotation_class.name],
-            "segmentation": {"counts": counts, "size": [annotation_file.image_width, annotation_file.image_height]},
+            "segmentation": {"counts": counts, "size": [annotation_file.image_height, annotation_file.image_width]},
             "area": 0,
             "bbox": [min_x, min_y, w, h],
             "iscrowd": 1,
@@ -169,6 +170,20 @@ def build_annotation(annotation_file, annotation_id, annotation: dt.Annotation, 
         }
     elif annotation_type == "tag":
         pass
+    elif annotation_type == "bounding_box":
+        x = annotation.data["x"]
+        y = annotation.data["y"]
+        w = annotation.data["w"]
+        h = annotation.data["h"]
+        return build_annotation(
+            annotation_file,
+            annotation_id,
+            dt.make_polygon(
+                annotation.annotation_class.name,
+                [{"x": x, "y": y}, {"x": x + w, "y": y}, {"x": x + w, "y": y + h}, {"x": x, "y": y + h}],
+            ),
+            categories,
+        )
     else:
         print(f"skipping unsupported annotation_type '{annotation_type}'")
 
@@ -204,20 +219,3 @@ def polygon_area(x: np.ndarray, y: np.ndarray) -> float:
     for x and y coordinates.
     """
     return 0.5 * np.abs(np.dot(x, np.roll(y, 1)) - np.dot(y, np.roll(x, 1)))
-
-
-def rle_encoding(binary_mask):
-    counts = []
-
-    last_elem = 0
-    running_length = 0
-    for i, elem in enumerate(binary_mask.ravel(order="F")):
-        if elem != last_elem:
-            counts.append(running_length)
-            running_length = 0
-            last_elem = elem
-        running_length += 1
-
-    counts.append(running_length)
-
-    return counts

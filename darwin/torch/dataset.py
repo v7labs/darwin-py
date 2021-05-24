@@ -5,7 +5,6 @@ import numpy as np
 from darwin.cli_functions import _error, _load_client
 from darwin.dataset import LocalDataset
 from darwin.dataset.identifier import DatasetIdentifier
-from darwin.dataset.utils import load_pil_image
 from darwin.torch.transforms import Compose, ConvertPolygonsToInstanceMasks, ConvertPolygonsToSemanticMask
 from darwin.torch.utils import polygon_area
 from darwin.utils import convert_polygons_to_sequences
@@ -19,7 +18,8 @@ def get_dataset(
     split_type: str = "random",
     transform: Optional[List] = None,
 ):
-    """ Creates and returns a dataset
+    """
+    Creates and returns a dataset
 
     Parameters
     ----------
@@ -76,7 +76,9 @@ def get_dataset(
 
 class ClassificationDataset(LocalDataset):
     def __init__(self, transform: Optional[List] = None, **kwargs):
-        """See class `LocalDataset` for documentation"""
+        """
+        See class `LocalDataset` for documentation
+        """
         super().__init__(annotation_type="tag", **kwargs)
 
         self.transform = transform
@@ -84,7 +86,8 @@ class ClassificationDataset(LocalDataset):
             self.transform = Compose(self.transform)
 
     def __getitem__(self, index: int):
-        """See superclass for documentation
+        """
+        See superclass for documentation
 
         Notes
         -----
@@ -96,13 +99,22 @@ class ClassificationDataset(LocalDataset):
             category_id : int
                 The single label of the image selected
         """
-        img = load_pil_image(self.images_path[index])
+        img = self.get_image(index)
         if self.transform is not None:
             img = self.transform(img)
 
+        target = self.get_target(index)
+
+        return img, target
+
+    def get_target(self, index: int):
+        """
+        Returns the classification target
+        """
+
         target = self.parse_json(index)
         annotations = target.pop("annotations")
-        tags = [self.classes.index(a["name"]) for a in annotations if "tag" in a]
+        tags = [a["name"] for a in annotations if "tag" in a]
         if len(tags) > 1:
             raise ValueError(f"Multiple tags defined for this image ({tags}). This is not supported at the moment.")
         if len(tags) == 0:
@@ -110,12 +122,17 @@ class ClassificationDataset(LocalDataset):
                 f"No tags defined for this image ({self.annotations_path[index]})."
                 f"This is not valid in a classification dataset."
             )
-        target["category_id"] = tags[0]
+        target["category_id"] = self.classes.index(tags[0])
+        target["category_name"] = tags[0]
+        return target
 
-        return img, target
+    def get_class_idx(self, index: int):
+        target = self.get_target(index)
+        return target["category_id"]
 
     def measure_weights(self, **kwargs) -> np.ndarray:
-        """Computes the class balancing weights (not the frequencies!!) given the train loader
+        """
+        Computes the class balancing weights (not the frequencies!!) given the train loader
         Get the weights proportional to the inverse of their class frequencies.
         The vector sums up to 1
 
@@ -127,14 +144,16 @@ class ClassificationDataset(LocalDataset):
         # Collect all the labels by iterating over the whole dataset
         labels = []
         for i, _filename in enumerate(self.images_path):
-            target = self._map_annotation(i)
+            target = self.get_target(i)
             labels.append(target["category_id"])
         return self._compute_weights(labels)
 
 
 class InstanceSegmentationDataset(LocalDataset):
     def __init__(self, transform: Optional[List] = None, **kwargs):
-        """See `LocalDataset` class for documentation"""
+        """
+        See `LocalDataset` class for documentation
+        """
         super().__init__(annotation_type="polygon", **kwargs)
 
         self.transform = transform
@@ -161,7 +180,19 @@ class InstanceSegmentationDataset(LocalDataset):
             area : float
                 Area in pixels of each one of the instances
         """
-        img = load_pil_image(self.images_path[index])
+        img = self.get_image(index)
+        target = self.get_target(index)
+
+        img, target = self.convert_polygons(img, target)
+        if self.transform is not None:
+            img, target = self.transform(img, target)
+
+        return img, target
+
+    def get_target(self, index: int):
+        """
+        Returns the instance segmentation target
+        """
         target = self.parse_json(index)
 
         annotations = []
@@ -171,7 +202,9 @@ class InstanceSegmentationDataset(LocalDataset):
             # Extract the sequences of coordinates from the polygon annotation
             annotation_type = "polygon" if "polygon" in annotation else "complex_polygon"
             sequences = convert_polygons_to_sequences(
-                annotation[annotation_type]["path"], height=target["height"], width=target["width"],
+                annotation[annotation_type]["path"],
+                height=target["height"],
+                width=target["width"],
             )
             # Compute the bbox of the polygon
             x_coords = [s[0::2] for s in sequences]
@@ -197,14 +230,11 @@ class InstanceSegmentationDataset(LocalDataset):
             )
         target["annotations"] = annotations
 
-        img, target = self.convert_polygons(img, target)
-        if self.transform is not None:
-            img, target = self.transform(img, target)
-
-        return img, target
+        return target
 
     def measure_weights(self, **kwargs):
-        """Computes the class balancing weights (not the frequencies!!) given the train loader
+        """
+        Computes the class balancing weights (not the frequencies!!) given the train loader
         Get the weights proportional to the inverse of their class frequencies.
         The vector sums up to 1
 
@@ -216,14 +246,16 @@ class InstanceSegmentationDataset(LocalDataset):
         # Collect all the labels by iterating over the whole dataset
         labels = []
         for i, _ in enumerate(self.images_path):
-            target = self._map_annotation(i)
+            target = self.get_target(i)
             labels.extend([a["category_id"] for a in target["annotations"]])
         return self._compute_weights(labels)
 
 
 class SemanticSegmentationDataset(LocalDataset):
     def __init__(self, transform: Optional[List] = None, **kwargs):
-        """See `LocalDataset` class for documentation"""
+        """
+        See `LocalDataset` class for documentation
+        """
         super().__init__(annotation_type="polygon", **kwargs)
 
         self.transform = transform
@@ -233,7 +265,8 @@ class SemanticSegmentationDataset(LocalDataset):
         self.convert_polygons = ConvertPolygonsToSemanticMask()
 
     def __getitem__(self, index: int):
-        """See superclass for documentation
+        """
+        See superclass for documentation
 
         Notes
         -----
@@ -245,13 +278,27 @@ class SemanticSegmentationDataset(LocalDataset):
             mask : tensor(H, W)
                 Segmentation mask where each pixel encodes a class label
         """
-        img = load_pil_image(self.images_path[index])
+        img = self.get_image(index)
+        target = self.get_target(index)
+
+        img, target = self.convert_polygons(img, target)
+        if self.transform is not None:
+            img, target = self.transform(img, target)
+
+        return img, target
+
+    def get_target(self, index: int):
+        """
+        Returns the semantic segmentation target
+        """
         target = self.parse_json(index)
 
         annotations = []
         for obj in target["annotations"]:
             sequences = convert_polygons_to_sequences(
-                obj["polygon"]["path"], height=target["height"], width=target["width"],
+                obj["polygon"]["path"],
+                height=target["height"],
+                width=target["width"],
             )
             # Discard polygons with less than three points
             sequences[:] = [s for s in sequences if len(s) >= 6]
@@ -260,14 +307,11 @@ class SemanticSegmentationDataset(LocalDataset):
             annotations.append({"category_id": self.classes.index(obj["name"]), "segmentation": sequences})
         target["annotations"] = annotations
 
-        img, target = self.convert_polygons(img, target)
-        if self.transform is not None:
-            img, target = self.transform(img, target)
-
-        return img, target
+        return target
 
     def measure_weights(self, **kwargs):
-        """Computes the class balancing weights (not the frequencies!!) given the train loader
+        """
+        Computes the class balancing weights (not the frequencies!!) given the train loader
         Get the weights proportional to the inverse of their class frequencies.
         The vector sums up to 1
 
@@ -279,6 +323,6 @@ class SemanticSegmentationDataset(LocalDataset):
         # Collect all the labels by iterating over the whole dataset
         labels = []
         for i, _ in enumerate(self.images_path):
-            target = self._map_annotation(i)
+            target = self.get_target(i)
             labels.extend([a["category_id"] for a in target["annotations"]])
         return self._compute_weights(labels)

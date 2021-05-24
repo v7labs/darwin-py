@@ -4,13 +4,14 @@ from typing import TYPE_CHECKING, List, Optional, Union
 
 import numpy as np
 from tqdm import tqdm
+from upolygon import draw_polygon
 
 import darwin.datatypes as dt
 from darwin.config import Config
-from upolygon import draw_polygon
+from darwin.exceptions import OutdatedDarwinJSONFormat, UnsupportedFileType
 
-SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpeg", ".jpg", ".jfif", ".tif", ".bmp"]
-SUPPORTED_VIDEO_EXTENSIONS = [".bpm", ".mov", ".mp4"]
+SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpeg", ".jpg", ".jfif", ".tif", ".tiff", ".bmp", ".svs"]
+SUPPORTED_VIDEO_EXTENSIONS = [".avi", ".bpm", ".dcm", ".mov", ".mp4"]
 SUPPORTED_EXTENSIONS = SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
 
 
@@ -128,6 +129,8 @@ def find_files(
             found_files.extend([f for f in path.glob(pattern) if is_extension_allowed(f.suffix)])
         elif is_extension_allowed(path.suffix):
             found_files.append(path)
+        else:
+            raise UnsupportedFileType(path)
 
     # Filter the list and return it
     files_to_exclude = set(files_to_exclude)
@@ -168,34 +171,77 @@ def persist_client_configuration(
     return config
 
 
-def parse_darwin_json(path: Path, count: int):
+def get_local_filename(metadata: dict):
+    return metadata["filename"]
+
+
+def parse_darwin_json(path: Union[str, Path], count: int):
+    path = Path(path)
     with path.open() as f:
         data = json.load(f)
         if not data["annotations"]:
             return None
-        annotations = list(filter(None, map(parse_darwin_annotation, data["annotations"])))
-        annotation_classes = set([annotation.annotation_class for annotation in annotations])
+        if "fps" in data["image"] or "frame_count" in data["image"]:
+            return parse_darwin_video(path, data, count)
+        else:
+            return parse_darwin_image(path, data, count)
 
-        return dt.AnnotationFile(
-            path,
-            data["image"]["original_filename"],
-            annotation_classes,
-            annotations,
-            data["image"]["width"],
-            data["image"]["height"],
-            data["image"]["url"],
-            data["image"].get("workview_url"),
-            data["image"].get("seq", count),
-        )
+
+def parse_darwin_image(path, data, count):
+    annotations = list(filter(None, map(parse_darwin_annotation, data["annotations"])))
+    annotation_classes = set([annotation.annotation_class for annotation in annotations])
+
+    return dt.AnnotationFile(
+        path,
+        get_local_filename(data["image"]),
+        annotation_classes,
+        annotations,
+        False,
+        data["image"]["width"],
+        data["image"]["height"],
+        data["image"]["url"],
+        data["image"].get("workview_url"),
+        data["image"].get("seq", count),
+    )
+
+
+def parse_darwin_video(path, data, count):
+    annotations = list(filter(None, map(parse_darwin_video_annotation, data["annotations"])))
+    annotation_classes = set([annotation.annotation_class for annotation in annotations])
+
+    if "width" not in data["image"] or "height" not in data["image"]:
+        raise OutdatedDarwinJSONFormat("Missing width/height in video, please re-export")
+
+    return dt.AnnotationFile(
+        path,
+        get_local_filename(data["image"]),
+        annotation_classes,
+        annotations,
+        True,
+        data["image"]["width"],
+        data["image"]["height"],
+        data["image"]["url"],
+        data["image"].get("workview_url"),
+        data["image"].get("seq", count),
+        data["image"]["frame_urls"],
+    )
 
 
 def parse_darwin_annotation(annotation: dict):
     name = annotation["name"]
     main_annotation = None
     if "polygon" in annotation:
-        main_annotation = dt.make_polygon(name, annotation["polygon"]["path"])
+        if "additional_paths" in annotation["polygon"]:
+            paths = [annotation["polygon"]["path"]] + annotation["polygon"]["additional_paths"]
+            main_annotation = dt.make_complex_polygon(name, paths)
+        else:
+            main_annotation = dt.make_polygon(name, annotation["polygon"]["path"])
     elif "complex_polygon" in annotation:
-        main_annotation = dt.make_complex_polygon(name, annotation["complex_polygon"]["path"])
+        if "additional_paths" in annotation["complex_polygon"]:
+            paths = annotation["complex_polygon"]["path"] + annotation["complex_polygon"]["additional_paths"]
+            main_annotation = dt.make_complex_polygon(name, paths)
+        else:
+            main_annotation = dt.make_complex_polygon(name, annotation["complex_polygon"]["path"])
     elif "bounding_box" in annotation:
         bounding_box = annotation["bounding_box"]
         main_annotation = dt.make_bounding_box(
@@ -207,6 +253,13 @@ def parse_darwin_annotation(annotation: dict):
         main_annotation = dt.make_line(name, annotation["line"]["path"])
     elif "keypoint" in annotation:
         main_annotation = dt.make_keypoint(name, annotation["keypoint"]["x"], annotation["keypoint"]["y"])
+    elif "ellipse" in annotation:
+        main_annotation = dt.make_ellipse(name, annotation["ellipse"])
+    elif "cuboid" in annotation:
+        main_annotation = dt.make_cuboid(name, annotation["cuboid"])
+    # TODO
+    # elif "skeleton" in annotation:
+    #     main_annotation = dt.make_skeleton(name, annotation["skeleton"]["nodes"])
 
     if not main_annotation:
         print(f"[WARNING] Unsupported annotation type: '{annotation.keys()}'")
@@ -222,11 +275,53 @@ def parse_darwin_annotation(annotation: dict):
     return main_annotation
 
 
+def parse_darwin_video_annotation(annotation: dict):
+    name = annotation["name"]
+    frame_annotations = {}
+    keyframes = {}
+    for f, frame in annotation["frames"].items():
+        frame_annotations[int(f)] = parse_darwin_annotation({**frame, **{"name": name}})
+        keyframes[int(f)] = frame.get("keyframe", False)
+
+    return dt.make_video_annotation(
+        frame_annotations, keyframes, annotation["segments"], annotation.get("interpolated", False)
+    )
+
+
+def split_video_annotation(annotation):
+    if not annotation.is_video:
+        raise AttributeError("this is not a video annotation")
+
+    frame_annotations = []
+    for i, frame_url in enumerate(annotation.frame_urls):
+        annotations = [a.frames[i] for a in annotation.annotations if i in a.frames]
+        annotation_classes = set([annotation.annotation_class for annotation in annotations])
+        filename = f"{Path(annotation.filename).stem}/{i:07d}.jpg"
+
+        frame_annotations.append(
+            dt.AnnotationFile(
+                annotation.path,
+                filename,
+                annotation_classes,
+                annotations,
+                False,
+                annotation.image_width,
+                annotation.image_height,
+                frame_url,
+                annotation.workview_url,
+                annotation.seq,
+            )
+        )
+    return frame_annotations
+
+
 def ispolygon(annotation):
     return annotation.annotation_type in ["polygon", "complex_polygon"]
 
 
-def convert_polygons_to_sequences(polygons: List, height: Optional[int] = None, width: Optional[int] = None) -> List:
+def convert_polygons_to_sequences(
+    polygons: List, height: Optional[int] = None, width: Optional[int] = None, rounding: bool = True
+) -> List:
     """
     Converts a list of polygons, encoded as a list of dictionaries of into a list of nd.arrays
     of coordinates.
@@ -264,10 +359,102 @@ def convert_polygons_to_sequences(polygons: List, height: Optional[int] = None, 
             # Clip coordinates to the image size
             x = max(min(point["x"], width - 1) if width else point["x"], 0)
             y = max(min(point["y"], height - 1) if height else point["y"], 0)
-            path.append(round(x))
-            path.append(round(y))
+            if rounding:
+                path.append(round(x))
+                path.append(round(y))
+            else:
+                path.append(x)
+                path.append(y)
         sequences.append(path)
     return sequences
+
+
+def convert_sequences_to_polygons(sequences: List, height: Optional[int] = None, width: Optional[int] = None) -> List:
+    """
+    Converts a list of polygons, encoded as a list of dictionaries of into a list of nd.arrays
+    of coordinates.
+
+    Parameters
+    ----------
+    sequences: list
+        List of arrays of coordinates in the format [x1, y1, x2, y2, ..., xn, yn] or as a list of them
+        as [[x1, y1, x2, y2, ..., xn, yn], ..., [x1, y1, x2, y2, ..., xn, yn]]
+    height: int
+        Maximum height for a polygon coordinate
+    width: int
+        Maximum width for a polygon coordinate
+
+    Returns
+    -------
+    polygons: list[ndarray[float]]
+        List of coordinates in the format [[{x: x1, y:y1}, ..., {x: xn, y:yn}], ..., [{x: x1, y:y1}, ..., {x: xn, y:yn}]].
+    """
+    if not sequences:
+        raise ValueError("No sequences provided")
+    # If there is a single sequences composing the instance then this is
+    # transformed to polygons = [[x1, y1, ..., xn, yn]]
+    if not isinstance(sequences[0], list):
+        sequences = [sequences]
+
+    if not isinstance(sequences[0][0], (int, float)):
+        raise ValueError("Unknown input format")
+
+    def grouped(iterable, n):
+        return zip(*[iter(iterable)] * n)
+
+    polygons = []
+    for sequence in sequences:
+        path = []
+        for x, y in grouped(sequence, 2):
+            # Clip coordinates to the image size
+            x = max(min(x, width - 1) if width else x, 0)
+            y = max(min(y, height - 1) if height else y, 0)
+            path.append({"x": x, "y": y})
+        polygons.append(path)
+    return {"path": polygons}
+
+
+def convert_xyxy_to_bounding_box(box: List) -> dict:
+    """
+    Converts a list of xy coordinates representing a bounding box into a dictionary
+
+    Parameters
+    ----------
+    box: list
+        List of arrays of coordinates in the format [x1, y1, x2, y2]
+
+    Returns
+    -------
+    bounding_box: dict
+        Bounding box in the format {x: x1, y: y1, h: height, w: width}
+    """
+    if not isinstance(box[0], (int, float)):
+        raise ValueError("Unknown input format")
+
+    x1, y1, x2, y2 = box
+    width = x2 - x1
+    height = y2 - y1
+    return {"x": x1, "y": y1, "w": width, "h": height}
+
+
+def convert_bounding_box_to_xyxy(box: dict) -> list:
+    """
+    Converts dictionary representing a bounding box into a list of xy coordinates
+
+    Parameters
+    ----------
+    box: dict
+        Bounding box in the format {x: x1, y: y1, h: height, w: width}
+
+    Returns
+    -------
+    bounding_box: dict
+        List of arrays of coordinates in the format [x1, y1, x2, y2]
+    """
+
+    x2 = box["x"] + box["width"]
+    y2 = box["y"] + box["height"]
+    return [box["x"], box["y"], x2, y2]
 
 
 def convert_polygons_to_mask(polygons: List, height: int, width: int, value: Optional[int] = 1) -> np.ndarray:

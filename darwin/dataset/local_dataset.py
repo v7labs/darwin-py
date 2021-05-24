@@ -19,7 +19,7 @@ class LocalDataset(object):
         split_type: str = "random",
         release_name: Optional[str] = None,
     ):
-        """ Creates a dataset
+        """Creates a dataset
 
         Parameters
         ----------
@@ -143,6 +143,12 @@ class LocalDataset(object):
         self.original_annotations_path = self.annotations_path
         self.annotations_path += dataset.annotations_path
         return self
+
+    def get_image(self, index: int):
+        return load_pil_image(self.images_path[index])
+
+    def get_image_path(self, index: int):
+        return self.images_path[index]
 
     def parse_json(self, index: int):
         """

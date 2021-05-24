@@ -12,6 +12,7 @@ ComplexPolygon = List[Polygon]
 class AnnotationClass:
     name: str
     annotation_type: str
+    annotation_internal_type: Optional[str] = None
 
 
 @dataclass(frozen=True, eq=True)
@@ -32,17 +33,50 @@ class Annotation:
                 return sub
 
 
+@dataclass(frozen=True, eq=True)
+class VideoAnnotation:
+    annotation_class: AnnotationClass
+    frames: Annotation
+    keyframes: List[bool]
+    segments: List[List[int]]
+    interpolated: bool
+
+    def get_frame(self, frame_index: int):
+        return frames[frame_index]
+
+    def get_data(self, only_keyframes=True, post_processing=None):
+        if not post_processing:
+            post_processing = lambda annotation, data: data
+        return {
+            "frames": {
+                frame: {
+                    **post_processing(
+                        self.frames[frame],
+                        {self.frames[frame].annotation_class.annotation_type: self.frames[frame].data},
+                    ),
+                    **{"keyframe": self.keyframes[frame]},
+                }
+                for frame in self.frames
+                if not only_keyframes or self.keyframes[frame]
+            },
+            "segments": self.segments,
+            "interpolated": self.interpolated,
+        }
+
+
 @dataclass
 class AnnotationFile:
     path: Path
     filename: str
     annotation_classes: Set[AnnotationClass]
     annotations: List[Annotation]
+    is_video: bool = False
     image_width: Optional[int] = None
     image_height: Optional[int] = None
     image_url: Optional[str] = None
     workview_url: Optional[str] = None
     seq: Optional[int] = None
+    frame_urls: Optional[List[str]] = None
 
 
 def make_bounding_box(class_name, x, y, w, h):
@@ -61,7 +95,7 @@ def make_polygon(class_name, point_path):
 
 
 def make_complex_polygon(class_name, point_paths):
-    return Annotation(AnnotationClass(class_name, "complex_polygon"), {"paths": point_paths})
+    return Annotation(AnnotationClass(class_name, "complex_polygon", "polygon"), {"paths": point_paths})
 
 
 def make_keypoint(class_name, x, y):
@@ -70,6 +104,18 @@ def make_keypoint(class_name, x, y):
 
 def make_line(class_name, path):
     return Annotation(AnnotationClass(class_name, "line"), {"path": path})
+
+
+def make_skeleton(class_name, nodes):
+    return Annotation(AnnotationClass(class_name, "skeleton"), {"nodes": nodes})
+
+
+def make_ellipse(class_name, parameters):
+    return Annotation(AnnotationClass(class_name, "ellipse"), parameters)
+
+
+def make_cuboid(class_name, cuboid):
+    return Annotation(AnnotationClass(class_name, "cuboid"), cuboid)
 
 
 def make_instance_id(value):
@@ -82,3 +128,33 @@ def make_attributes(attributes):
 
 def make_text(text):
     return SubAnnotation("text", text)
+
+
+def make_keyframe(annotation, idx):
+    return {"idx": idx, "annotation": annotation}
+
+
+def make_video(keyframes, start, end):
+    first_annotation = keyframes[0]["annotation"]
+    return Annotation(
+        first_annotation.annotation_class,
+        {
+            "frames": {
+                keyframe["idx"]: {
+                    **{first_annotation.annotation_class.annotation_type: keyframe["annotation"].data},
+                    **{"keyframe": True},
+                }
+                for keyframe in keyframes
+            },
+            "interpolated": False,
+            "segments": [[start, end]],
+        },
+    )
+
+
+def make_video_annotation(frames, keyframes, segments, interpolated):
+    first_annotation = list(frames.values())[0]
+    if not all(frame.annotation_class.name == first_annotation.annotation_class.name for frame in frames.values()):
+        raise ValueError("invalid argument to make_video_annotation")
+
+    return VideoAnnotation(first_annotation.annotation_class, frames, keyframes, segments, interpolated)

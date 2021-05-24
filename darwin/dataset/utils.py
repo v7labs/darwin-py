@@ -1,7 +1,6 @@
 import itertools
 import json
 import multiprocessing as mp
-import os
 import sys
 import warnings
 from collections import defaultdict
@@ -13,7 +12,7 @@ from PIL import Image
 from tqdm import tqdm
 
 from darwin.exceptions import NotFound
-from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS
+from darwin.utils import SUPPORTED_EXTENSIONS, SUPPORTED_VIDEO_EXTENSIONS
 
 
 def get_release_path(dataset_path: Path, release_name: Optional[str] = None):
@@ -159,8 +158,8 @@ def get_classes(
     dataset_path = Path(dataset_path)
     release_path = get_release_path(dataset_path, release_name)
 
-    classes_file = f"classes_{annotation_type}.txt"
-    classes = [e.strip() for e in open(release_path / "lists" / classes_file)]
+    classes_path = release_path / f"lists/classes_{annotation_type}.txt"
+    classes = classes_path.read_text().splitlines()
     if remove_background and classes[0] == "__background__":
         classes = classes[1:]
     return classes
@@ -183,7 +182,13 @@ def _write_to_file(annotation_files: List, file_path: Path, split_idx: Iterable)
             f.write(f"{annotation_files[i].stem}\n")
 
 
-def remove_cross_contamination(X_a: np.ndarray, X_b: np.ndarray, y_a: np.ndarray, y_b: np.ndarray):
+def unique(array):
+    """Returns unique elements of numpy array, maintaining the occurrency order"""
+    indexes = np.unique(array, return_index=True)[1]
+    return array[sorted(indexes)]
+
+
+def remove_cross_contamination(X_a: np.ndarray, X_b: np.ndarray, y_a: np.ndarray, y_b: np.ndarray, b_min_size: int):
     """
     Remove cross contamination present in X_a and X_b by selecting one or the other on a flip coin decision.
 
@@ -208,23 +213,27 @@ def remove_cross_contamination(X_a: np.ndarray, X_b: np.ndarray, y_a: np.ndarray
     X_a, X_b, y_a, y_b : ndarray
         All input parameters filtered by removing cross contamination across A and B
     """
-    for a in X_a:
-        if a in X_b:
-            # Remove from A or B based on random chance
-            if np.random.rand() > 0.5:
-                # Remove ALL entries from A
-                keep_locations = X_a != a
-                X_a = X_a[keep_locations]
-                y_a = y_a[keep_locations]
-            else:
-                # Remove ALL entries from B
-                keep_locations = X_b != a
-                X_b = X_b[keep_locations]
-                y_b = y_b[keep_locations]
+    for a in unique(X_a):
+        # If a not in X_b, don't remove a from anywhere
+        if a not in X_b:
+            continue
+
+        # Remove a from X_b if it's large enough
+        keep_locations = X_b != a
+        if len(unique(X_b[keep_locations])) >= b_min_size:
+            X_b = X_b[keep_locations]
+            y_b = y_b[keep_locations]
+            continue
+
+        # Remove from X_a otherwise
+        keep_locations = X_a != a
+        X_a = X_a[keep_locations]
+        y_a = y_a[keep_locations]
+
     return X_a, X_b, y_a, y_b
 
 
-def _stratify_samples(idx_to_classes, split_seed, test_percentage, val_percentage):
+def _stratify_samples(idx_to_classes, split_seed, test_percentage, val_percentage, test_size, val_size):
     """Splits the list of indices into train, val and test according to their labels (stratified)
 
     Parameters
@@ -238,6 +247,11 @@ def _stratify_samples(idx_to_classes, split_seed, test_percentage, val_percentag
         Percentage of images used in the validation set
     test_percentage : float
         Percentage of images used in the test set
+    test_size : int
+        Number of test images
+    val_size : int
+        Number of validation images
+
 
     Returns
     -------
@@ -272,8 +286,10 @@ def _stratify_samples(idx_to_classes, split_seed, test_percentage, val_percentag
             test_size=(val_percentage + test_percentage) / 100.0,
             random_state=split_seed,
             stratify=labels,
-        )
+        ),
+        val_size + test_size,
     )
+
     # Append files whose support set is 1 to train
     X_train = np.concatenate((X_train, np.array(single_files)), axis=0)
 
@@ -287,7 +303,8 @@ def _stratify_samples(idx_to_classes, split_seed, test_percentage, val_percentag
             test_size=(test_percentage / (val_percentage + test_percentage)),
             random_state=split_seed,
             stratify=y_tmp,
-        )
+        ),
+        test_size,
     )
 
     # Remove duplicates within the same set
@@ -299,11 +316,12 @@ def _stratify_samples(idx_to_classes, split_seed, test_percentage, val_percentag
 def split_dataset(
     dataset_path: Union[Path, str],
     release_name: Optional[str] = None,
-    val_percentage: Optional[float] = 10,
-    test_percentage: Optional[float] = 20,
-    split_seed: Optional[int] = 0,
-    make_default_split: Optional[bool] = True,
-    add_stratified_split: Optional[bool] = True,
+    val_percentage: float = 10,
+    test_percentage: float = 20,
+    split_seed: int = 0,
+    make_default_split: bool = True,
+    add_stratified_split: bool = True,
+    stratified_types: List[str] = ["bounding_box", "polygon", "tag"],
 ):
     """
     Given a local a dataset (pulled from Darwin) creates lists of file names
@@ -364,27 +382,37 @@ def split_dataset(
     # Prepare the return value with the paths of the splits
     splits = {}
     splits["random"] = {"train": Path(split_path / "random_train.txt"), "val": Path(split_path / "random_val.txt")}
-    splits["stratified_tag"] = {
-        "train": Path(split_path / "stratified_tag_train.txt"),
-        "val": Path(split_path / "stratified_tag_val.txt"),
-    }
-    splits["stratified_polygon"] = {
-        "train": Path(split_path / "stratified_polygon_train.txt"),
-        "val": Path(split_path / "stratified_polygon_val.txt"),
-    }
-    splits["stratified_bounding_box"] = {
-        "train": Path(split_path / "stratified_bounding_box_train.txt"),
-        "val": Path(split_path / "stratified_bounding_box_val.txt"),
-    }
+
+    if "tag" in stratified_types:
+        splits["stratified_tag"] = {
+            "train": Path(split_path / "stratified_tag_train.txt"),
+            "val": Path(split_path / "stratified_tag_val.txt"),
+        }
+
+    if "polygon" in stratified_types:
+        splits["stratified_polygon"] = {
+            "train": Path(split_path / "stratified_polygon_train.txt"),
+            "val": Path(split_path / "stratified_polygon_val.txt"),
+        }
+
+    if "bounding_box" in stratified_types:
+        splits["stratified_bounding_box"] = {
+            "train": Path(split_path / "stratified_bounding_box_train.txt"),
+            "val": Path(split_path / "stratified_bounding_box_val.txt"),
+        }
+
     if test_percentage > 0.0:
         splits["random"]["test"] = Path(split_path) / "random_test.txt"
-        splits["stratified_tag"]["test"] = Path(split_path / "stratified_tag_test.txt")
-        splits["stratified_polygon"]["test"] = Path(split_path / "stratified_polygon_test.txt")
-        splits["stratified_bounding_box"]["test"] = Path(split_path / "stratified_bounding_box_test.txt")
+        if "tag" in stratified_types:
+            splits["stratified_tag"]["test"] = Path(split_path / "stratified_tag_test.txt")
+        if "polygon" in stratified_types:
+            splits["stratified_polygon"]["test"] = Path(split_path / "stratified_polygon_test.txt")
+        if "bounding_box" in stratified_types:
+            splits["stratified_bounding_box"]["test"] = Path(split_path / "stratified_bounding_box_test.txt")
 
     # Do the actual split
     if not split_path.exists():
-        os.makedirs(str(split_path), exist_ok=True)
+        split_path.mkdir()
 
         # RANDOM SPLIT
         # Compute split sizes
@@ -405,44 +433,41 @@ def split_dataset(
             _write_to_file(annotation_files, splits["random"]["test"], test_indices)
 
         if add_stratified_split:
-            # STRATIFIED SPLIT ON TAGS
-            # Stratify
-            classes_tag, idx_to_classes_tag = extract_classes(annotation_path, "tag")
-            if len(idx_to_classes_tag) > 0:
-                train_indices, val_indices, test_indices = _stratify_samples(
-                    idx_to_classes_tag, split_seed, test_percentage, val_percentage
-                )
-                # Write files
-                _write_to_file(annotation_files, splits["stratified_tag"]["train"], train_indices)
-                _write_to_file(annotation_files, splits["stratified_tag"]["val"], val_indices)
-                if test_percentage > 0.0:
-                    _write_to_file(annotation_files, splits["stratified_tag"]["test"], test_indices)
+            if "tag" in stratified_types:
+                classes_tag, idx_to_classes_tag = extract_classes(annotation_path, "tag")
+                if len(idx_to_classes_tag) > 0:
+                    train_indices, val_indices, test_indices = _stratify_samples(
+                        idx_to_classes_tag, split_seed, test_percentage, val_percentage, test_size, val_size
+                    )
+                    # Write files
+                    _write_to_file(annotation_files, splits["stratified_tag"]["train"], train_indices)
+                    _write_to_file(annotation_files, splits["stratified_tag"]["val"], val_indices)
+                    if test_percentage > 0.0:
+                        _write_to_file(annotation_files, splits["stratified_tag"]["test"], test_indices)
 
-            # STRATIFIED SPLIT ON POLYGONS
-            # Stratify
-            classes_polygon, idx_to_classes_polygon = extract_classes(annotation_path, "polygon")
-            if len(idx_to_classes_polygon) > 0:
-                train_indices, val_indices, test_indices = _stratify_samples(
-                    idx_to_classes_polygon, split_seed, test_percentage, val_percentage
-                )
-                # Write files
-                _write_to_file(annotation_files, splits["stratified_polygon"]["train"], train_indices)
-                _write_to_file(annotation_files, splits["stratified_polygon"]["val"], val_indices)
-                if test_percentage > 0.0:
-                    _write_to_file(annotation_files, splits["stratified_polygon"]["test"], test_indices)
+            if "polygon" in stratified_types:
+                classes_polygon, idx_to_classes_polygon = extract_classes(annotation_path, "polygon")
+                if len(idx_to_classes_polygon) > 0:
+                    train_indices, val_indices, test_indices = _stratify_samples(
+                        idx_to_classes_polygon, split_seed, test_percentage, val_percentage, test_size, val_size
+                    )
+                    # Write files
+                    _write_to_file(annotation_files, splits["stratified_polygon"]["train"], train_indices)
+                    _write_to_file(annotation_files, splits["stratified_polygon"]["val"], val_indices)
+                    if test_percentage > 0.0:
+                        _write_to_file(annotation_files, splits["stratified_polygon"]["test"], test_indices)
 
-            # STRATIFIED SPLIT ON BOUNDING BOXES
-            # Stratify
-            classes_bbox, idx_to_classes_bbox = extract_classes(annotation_path, "bounding_box")
-            if len(idx_to_classes_bbox) > 0:
-                train_indices, val_indices, test_indices = _stratify_samples(
-                    idx_to_classes_bbox, split_seed, test_percentage, val_percentage
-                )
-                # Write files
-                _write_to_file(annotation_files, splits["stratified_bounding_box"]["train"], train_indices)
-                _write_to_file(annotation_files, splits["stratified_bounding_box"]["val"], val_indices)
-                if test_percentage > 0.0:
-                    _write_to_file(annotation_files, splits["stratified_bounding_box"]["test"], test_indices)
+            if "bounding_box" in stratified_types:
+                classes_bbox, idx_to_classes_bbox = extract_classes(annotation_path, "bounding_box")
+                if len(idx_to_classes_bbox) > 0:
+                    train_indices, val_indices, test_indices = _stratify_samples(
+                        idx_to_classes_bbox, split_seed, test_percentage, val_percentage, test_size, val_size
+                    )
+                    # Write files
+                    _write_to_file(annotation_files, splits["stratified_bounding_box"]["train"], train_indices)
+                    _write_to_file(annotation_files, splits["stratified_bounding_box"]["val"], val_indices)
+                    if test_percentage > 0.0:
+                        _write_to_file(annotation_files, splits["stratified_bounding_box"]["test"], test_indices)
 
     # Create symlink for default split
     split = lists_path / "default"
@@ -635,8 +660,11 @@ def get_annotations(
     for stem in stems:
         annotation_path = annotations_dir / f"{stem}.json"
         images = []
-        for ext in SUPPORTED_IMAGE_EXTENSIONS:
+        for ext in SUPPORTED_EXTENSIONS:
             image_path = images_dir / f"{stem}{ext}"
+            if image_path.exists():
+                images.append(image_path)
+            image_path = images_dir / f"{stem}{ext.upper()}"
             if image_path.exists():
                 images.append(image_path)
         if len(images) < 1:
@@ -648,7 +676,7 @@ def get_annotations(
         annotations_paths.append(annotation_path)
 
     if len(images_paths) == 0:
-        raise ValueError(f"Could not find any {SUPPORTED_IMAGE_EXTENSIONS} file" f" in {dataset_path / 'images'}")
+        raise ValueError(f"Could not find any {SUPPORTED_EXTENSIONS} file" f" in {dataset_path / 'images'}")
 
     assert len(images_paths) == len(annotations_paths)
 
@@ -656,6 +684,9 @@ def get_annotations(
     if annotation_format == "coco":
         images_ids = list(range(len(images_paths)))
         for annotation_path, image_path, image_id in zip(annotations_paths, images_paths, images_ids):
+            if image_path.suffix.lower() in SUPPORTED_VIDEO_EXTENSIONS:
+                print(f"[WARNING] Cannot load video annotation into COCO format. Skipping {image_path}")
+                continue
             yield get_coco_format_record(
                 annotation_path=annotation_path,
                 annotation_type=annotation_type,
@@ -670,21 +701,41 @@ def get_annotations(
             yield record
 
 
-def load_pil_image(path: Path):
+def load_pil_image(path: Path, to_rgb: Optional[bool] = True):
     """
-    Loads a PIL image and converts it into RGB.
+    Loads a PIL image and converts it into RGB (optional).
 
     Parameters
     ----------
     path: Path
         Path to the image file
+    to_rgb: bool
+        Converts the image to RGB
+
+    Returns
+    -------
+    PIL Image
+    """
+    pic = Image.open(path)
+    if to_rgb:
+        pic = convert_to_rgb(pic)
+    return pic
+
+
+def convert_to_rgb(pic: Image):
+    """
+    Converts a PIL image to RGB
+
+    Parameters
+    ----------
+    pic: Image
+        PIL Image
 
     Returns
     -------
     PIL Image
         Values between 0 and 255
     """
-    pic = Image.open(path)
     if pic.mode == "RGB":
         pass
     elif pic.mode in ("CMYK", "RGBA", "P"):
@@ -698,6 +749,10 @@ def load_pil_image(path: Path):
     elif pic.mode == "L":
         img = np.array(pic).astype(np.uint8)
         pic = Image.fromarray(np.stack((img, img, img), axis=2))
+    elif pic.mode == "1":
+        pic = pic.convert("L")
+        img = np.array(pic).astype(np.uint8)
+        pic = Image.fromarray(np.stack((img, img, img), axis=2))
     else:
         raise TypeError(f"unsupported image type {pic.mode}")
     return pic
@@ -705,3 +760,18 @@ def load_pil_image(path: Path):
 
 def _is_pil_image(img):
     return isinstance(img, Image.Image)
+
+
+def compute_max_density(annotations_dir: Path):
+    max_density = 0
+    for annotation_path in annotations_dir.glob("*.json"):
+        annotation_density = 0
+        with open(annotation_path) as f:
+            darwin_json = json.load(f)
+            for annotation in darwin_json["annotations"]:
+                if "polygon" not in annotation and "complex_polygon" not in annotation:
+                    continue
+                annotation_density += 1
+            if annotation_density > max_density:
+                max_density = annotation_density
+    return max_density

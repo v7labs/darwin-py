@@ -1,13 +1,14 @@
 import colorsys
+import os
 from pathlib import Path
 from typing import Generator, List
 
 import numpy as np
 from PIL import Image
+from upolygon import draw_polygon
 
 import darwin.datatypes as dt
 from darwin.utils import convert_polygons_to_sequences, get_progress_bar, ispolygon
-from upolygon import draw_polygon
 
 
 def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_dir: Path, mode: str = "grey"):
@@ -15,7 +16,7 @@ def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_di
     masks_dir.mkdir(exist_ok=True, parents=True)
     annotation_files = list(annotation_files)
 
-    categories = calculate_categories(annotation_files)
+    categories = extract_categories(annotation_files)
     N = len(categories)
     if mode == "index":
         if N > 254:
@@ -36,7 +37,9 @@ def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_di
         RGB_colors = [c for e in RGB_colors for c in e]
 
     for annotation_file in get_progress_bar(list(annotation_files), "Processing annotations"):
-        outfile = masks_dir / f"{annotation_file.path.stem}.png"
+        image_id = os.path.splitext(annotation_file.filename)[0]
+        outfile = masks_dir / f"{image_id}.png"
+        outfile.parent.mkdir(parents=True, exist_ok=True)
         height = annotation_file.image_height
         width = annotation_file.image_width
         mask = np.zeros((height, width)).astype(np.uint8)
@@ -65,7 +68,7 @@ def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_di
                 f.write(f"{c},{palette[c]}\n")
 
 
-def calculate_categories(annotation_files: List[dt.AnnotationFile]):
+def extract_categories(annotation_files: List[dt.AnnotationFile]):
     categories = set()
     for annotation_file in annotation_files:
         for annotation_class in annotation_file.annotation_classes:

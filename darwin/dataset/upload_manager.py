@@ -24,6 +24,7 @@ def add_files_to_dataset(
     filenames: List[Path],
     team: str,
     fps: Optional[int] = 1,
+    as_frames: Optional[bool] = False,
     path: Optional[str] = None,
 ):
     """Helper function: upload images to an existing remote dataset
@@ -52,13 +53,19 @@ def add_files_to_dataset(
         images, videos = _split_on_file_type(filenames_chunk)
         payload = {
             "image_filenames": [image.name for image in images],
-            "videos": [{"fps": fps, "original_filename": video.name} for video in videos],
+            "videos": [
+                {"fps": fps, "annotate_as_video": not as_frames, "original_filename": video.name} for video in videos
+            ],
         }
         if path:
             payload["path"] = path
-        data = client.put(endpoint=f"/datasets/{dataset_id}/data", payload=payload, team=team,)
+        data = client.put(
+            endpoint=f"/datasets/{dataset_id}/data",
+            payload=payload,
+            team=team,
+        )
         if "errors" in data:
-            raise ValueError(f"There are errors in the put request: {data['errors']['detail']}")
+            raise ValueError(f"There are errors in the put request: {data['errors']['message']}")
         if images:
             g = lambda images: (
                 functools.partial(
@@ -118,7 +125,7 @@ def _split_on_file_type(files: List[Path]):
 
 
 def _chunk_filenames(files: List[Path], size: int):
-    """ Chunks paths in batches of size.
+    """Chunks paths in batches of size.
     No batch has any duplicates with regards to file name.
     This is needed due to a limitation in the upload api.
 

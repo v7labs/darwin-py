@@ -166,6 +166,55 @@ class Client:
 
         return self._decode_response(response, debug)
 
+    def delete(
+        self,
+        endpoint: str,
+        team: Optional[str] = None,
+        retry: bool = False,
+        error_handlers: Optional[list] = None,
+        debug: bool = False,
+    ):
+        """Delete something new on the server trough HTTP
+
+        Parameters
+        ----------
+        endpoint : str
+            Recipient of the HTTP operation
+        retry : bool
+            Retry to perform the operation. Set to False on recursive calls.
+        refresh : bool
+            Flag for use the refresh token instead
+        debug : bool
+            Debugging flag. In this case failed requests get printed
+
+        Returns
+        -------
+        dict
+        Dictionary which contains the server response
+        """
+        if error_handlers is None:
+            error_handlers = []
+        response = requests.delete(urljoin(self.url, endpoint), headers=self._get_headers(team))
+        if response.status_code == 401:
+            raise Unauthorized()
+
+        if response.status_code != 200:
+            for error_handler in error_handlers:
+                error_handler(response.status_code, response.json())
+
+            if debug:
+                print(
+                    f"Client get request response ({response.json()}) with unexpected status "
+                    f"({response.status_code}). "
+                    f"Client: ({self})"
+                    f"Request: (endpoint={endpoint}, payload={payload})"
+                )
+            if retry:
+                time.sleep(10)
+                return self.delete(endpoint, retry=False)
+
+        return self._decode_response(response, debug)
+
     def list_local_datasets(self, team: Optional[str] = None) -> Iterator[Path]:
         """Returns a list of all local folders which are detected as dataset.
 
@@ -321,7 +370,7 @@ class Client:
         return self.config.get_team(team or self.default_team)["datasets_dir"]
 
     def set_datasets_dir(self, datasets_dir: Path, team: Optional[str] = None):
-        """ Sets the dataset directory of the specified team or the default one
+        """Sets the dataset directory of the specified team or the default one
 
         Parameters
         ----------
@@ -438,7 +487,7 @@ class Client:
 
     @staticmethod
     def _decode_response(response, debug: bool = False):
-        """ Decode the response as JSON entry or return a dictionary with the error
+        """Decode the response as JSON entry or return a dictionary with the error
 
         Parameters
         ----------

@@ -48,8 +48,7 @@ class Options(object):
 
         # Create
         parser_create = dataset_action.add_parser("create", help="Creates a new dataset on darwin")
-        parser_create.add_argument("dataset_name", type=str, help="Dataset name")
-        parser_create.add_argument("-t", "--team", help="Specify team")
+        parser_create.add_argument("dataset", type=str, help="Dataset name")
 
         # Path
         parser_path = dataset_action.add_parser("path", help="Print local path to dataset")
@@ -76,8 +75,13 @@ class Options(object):
             help="Excludes the files with the specified extension/s if a data folder is provided as data path. ",
         )
         parser_push.add_argument(
-            "-f", "--fps", type=int, default="1", help="Frames per second for video split (recommended: 1)."
+            "-f",
+            "--fps",
+            default="native",
+            help="Frames per second for video split (recommended: 1), use 'native' to use the videos intrinsic fps.",
         )
+        parser_push.add_argument("--frames", action="store_true", help="Annotate a video as independent frames")
+
         parser_push.add_argument("--path", type=str, default=None, help="Folder to upload the files into.")
 
         # Remove
@@ -111,6 +115,13 @@ class Options(object):
         # Pull
         parser_pull = dataset_action.add_parser("pull", help="Download a version of a dataset.")
         parser_pull.add_argument("dataset", type=str, help="Remote dataset name to download.")
+        parser_pull.add_argument(
+            "--only-annotations", action="store_true", help="Download only annotations and no corresponding images"
+        )
+        parser_pull.add_argument("--folders", action="store_true", help="Recreates image folders")
+        parser_pull.add_argument(
+            "--video-frames", action="store_true", help="Pulls video frame images instead of video files"
+        )
 
         # Import
         parser_import = dataset_action.add_parser("import", help="Import data to an existing (remote) dataset.")
@@ -122,6 +133,7 @@ class Options(object):
         parser_import.add_argument("format", type=str, help="Annotation import to import")
 
         parser_import.add_argument("files", type=str, nargs="+", help="Annotation files (or folders) to import")
+        parser_import.add_argument("--append", action="store_true", help="Append annotations instead of overwriting")
 
         # Convert
         parser_convert = dataset_action.add_parser("convert", help="Converts darwin json to other annotation formats.")
