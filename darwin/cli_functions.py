@@ -550,23 +550,6 @@ def list_files(dataset_slug: str, statuses: str, path: str, only_filenames: bool
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
 
-
-def set_file_status(dataset_slug: str, status: str, files: List[str]):
-    if status not in ["archived", "restore-archived"]:
-        _error(f"Invalid status '{status}', available statuses: archived, restore-archived")
-
-    client = _load_client(dataset_identifier=dataset_slug)
-    try:
-        dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
-        items = dataset.fetch_remote_files({"filenames": ",".join(files)})
-        if status == "archived":
-            dataset.archive(items)
-        elif status == "restore-archived":
-            dataset.restore_archived(items)
-    except NotFound as e:
-        _error(f"No dataset with name '{e.name}'")
-
-
 def find_supported_format(query, supported_formats):
     for (fmt, fmt_parser) in supported_formats:
         if fmt == query:
