@@ -68,11 +68,6 @@ def import_annotations(
     file_paths: List[Union[str, Path]],
     append: bool,
 ):
-<<<<<<< HEAD
-    print("Fetching remote file list...")
-    remote_files = {f.filename: f.id for f in dataset.fetch_remote_files()}
-=======
->>>>>>> master
     print("Fetching remote class list...")
     remote_classes = build_main_annotations_lookup_table(dataset.fetch_remote_classes())
     attributes = build_attribute_lookup(dataset)
@@ -190,18 +185,9 @@ def _import_annotations(client: "Client", id: int, remote_classes, attributes, a
 
         serialized_annotations.append({"annotation_class_id": annotation_class_id, "data": data})
 
-<<<<<<< HEAD
-    if client.feature_enabled("WORKFLOW", dataset.team):
-        res = client.post(f"/dataset_items/{id}/import", payload={"annotations": serialized_annotations})
-        if res["status_code"] != 200:
-            print(f"warning, failed to upload annotation to {id}", res)
-    else:
-        client.post(f"/dataset_images/{id}/import", payload={"annotations": serialized_annotations})
-=======
     payload = {"annotations": serialized_annotations}
     if append:
         payload["overwrite"] = "false"
     res = client.post(f"/dataset_items/{id}/import", payload=payload)
     if res.get("status_code") != 200:
         print(f"warning, failed to upload annotation to {id}", res)
->>>>>>> master
