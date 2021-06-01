@@ -474,7 +474,9 @@ def split_dataset(
     if make_default_split or not split.exists():
         if split.exists():
             split.unlink()
-        split.symlink_to(f"./{split_id}")
+
+        target_link = lists_path / f"{split_id}"
+        split.symlink_to(target_link)
 
     return split_path
 
