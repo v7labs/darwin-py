@@ -81,8 +81,6 @@ def run(args, parser):
             f.dataset_import(args.dataset, args.format, args.files, args.append)
         elif args.action == "convert":
             f.dataset_convert(args.dataset, args.format, args.output_dir)
-        elif args.action == "migrate":
-            f.migrate_dataset(args.dataset)
         elif args.action == "set-file-status":
             f.set_file_status(args.dataset, args.status, args.files)
         elif args.action == "split":
