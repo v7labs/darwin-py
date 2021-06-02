@@ -9,7 +9,7 @@ from darwin.config import Config
 from darwin.dataset import RemoteDataset
 from darwin.dataset.identifier import DatasetIdentifier
 from darwin.exceptions import InsufficientStorage, InvalidLogin, MissingConfig, NotFound, Unauthorized
-from darwin.utils import is_deprecated_project_dir, is_project_dir, urljoin
+from darwin.utils import is_project_dir, urljoin
 from darwin.validators import name_taken, validation_error
 
 
@@ -232,22 +232,6 @@ class Client:
             for project_path in projects_team.glob("*"):
                 if project_path.is_dir() and is_project_dir(project_path):
                     yield Path(project_path)
-
-    def list_deprecated_local_datasets(self, team: Optional[str] = None) -> Iterator[Path]:
-        """Returns a list of all local folders which are detected as datasets but use a deprecated local structure
-
-        Returns
-        -------
-        list[Path]
-        List of all local datasets
-        """
-        team = team or self.default_team
-        team_config = self.config.get_team(team)
-
-        projects_team = Path(team_config["datasets_dir"])
-        for project_path in projects_team.glob("*"):
-            if project_path.is_dir() and is_deprecated_project_dir(project_path):
-                yield Path(project_path)
 
     def list_remote_datasets(self, team: Optional[str] = None) -> Iterator[RemoteDataset]:
         """Returns a list of all available datasets with the team currently authenticated against

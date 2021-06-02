@@ -60,13 +60,6 @@ def get_dataset(
                 transform=transform,
             )
 
-    for p in client.list_deprecated_local_datasets(team=identifier.team_slug):
-        if identifier.dataset_slug == p.name:
-            _error(
-                f"Found a local version of the dataset {identifier.dataset_slug} which uses a deprecated format. "
-                f"Run `darwin dataset migrate {identifier}` if you want to be able to use it in darwin-py."
-            )
-
     _error(
         f"Dataset '{identifier.dataset_slug}' does not exist locally. "
         f"Use 'darwin dataset remote' to see all the available datasets, "
@@ -202,9 +195,7 @@ class InstanceSegmentationDataset(LocalDataset):
             # Extract the sequences of coordinates from the polygon annotation
             annotation_type = "polygon" if "polygon" in annotation else "complex_polygon"
             sequences = convert_polygons_to_sequences(
-                annotation[annotation_type]["path"],
-                height=target["height"],
-                width=target["width"],
+                annotation[annotation_type]["path"], height=target["height"], width=target["width"],
             )
             # Compute the bbox of the polygon
             x_coords = [s[0::2] for s in sequences]
@@ -296,9 +287,7 @@ class SemanticSegmentationDataset(LocalDataset):
         annotations = []
         for obj in target["annotations"]:
             sequences = convert_polygons_to_sequences(
-                obj["polygon"]["path"],
-                height=target["height"],
-                width=target["width"],
+                obj["polygon"]["path"], height=target["height"], width=target["width"],
             )
             # Discard polygons with less than three points
             sequences[:] = [s for s in sequences if len(s) >= 6]

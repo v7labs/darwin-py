@@ -52,22 +52,6 @@ def is_project_dir(project_path: Path) -> bool:
     return (project_path / "releases").exists() and (project_path / "images").exists()
 
 
-def is_deprecated_project_dir(project_path: Path) -> bool:
-    """Verifies if the directory is a project from Darwin that uses a deprecated local structure
-
-    Parameters
-    ----------
-    project_path : Path
-        Directory to examine
-
-    Returns
-    -------
-    bool
-        Is the directory a project from Darwin?
-    """
-    return (project_path / "annotations").exists() and (project_path / "images").exists()
-
-
 def get_progress_bar(array: List, description: Optional[str] = None):
     pbar = tqdm(array)
     pbar.set_description(desc=description, refresh=True)

@@ -252,7 +252,9 @@ class RemoteDataset:
             latest_dir = self.local_releases_path / "latest"
             if latest_dir.is_symlink():
                 latest_dir.unlink()
-            latest_dir.symlink_to(f"./{release_dir.name}")
+
+            target_link = self.local_releases_path / release_dir.name
+            latest_dir.symlink_to(target_link)
 
         if only_annotations:
             # No images will be downloaded
