@@ -17,8 +17,7 @@ class DatasetItem:
 
     @property
     def full_path(self) -> str:
-        path_items = filter(lambda item: item is not None, [self.path, self.filename])
-        return "/".join(path_items)
+        return "/".join(filter(None, [self.path, self.filename]))
 
 
 def parse_dataset_item(raw) -> DatasetItem:

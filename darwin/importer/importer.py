@@ -81,8 +81,7 @@ def import_annotations(
     print("Fetching remote file list...")
     remote_files = get_remote_files(dataset, filenames)
     for parsed_file in parsed_files:
-        filename = f"{parsed_file.remote_path}/{parsed_file.filename}"
-        if filename not in remote_files:
+        if parsed_file.full_path not in remote_files:
             local_files_missing_remotely.append(parsed_file)
         else:
             local_files.append(parsed_file)

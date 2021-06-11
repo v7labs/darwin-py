@@ -81,8 +81,7 @@ class AnnotationFile:
 
     @property
     def full_path(self) -> str:
-        path_items = filter(lambda item: item is not None, [self.remote_path, self.filename])
-        return "/".join(path_items)
+        return "/".join(filter(None, [self.remote_path, self.filename]))
 
 
 def make_bounding_box(class_name, x, y, w, h):
