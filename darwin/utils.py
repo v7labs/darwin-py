@@ -181,11 +181,13 @@ def parse_darwin_image(path, data, count):
         annotation_classes,
         annotations,
         False,
-        data["image"]["width"],
-        data["image"]["height"],
-        data["image"]["url"],
+        data["image"].get("width"),
+        data["image"].get("height"),
+        data["image"].get("url"),
         data["image"].get("workview_url"),
         data["image"].get("seq", count),
+        None,
+        data["image"].get("path"),
     )
 
 
@@ -202,12 +204,13 @@ def parse_darwin_video(path, data, count):
         annotation_classes,
         annotations,
         True,
-        data["image"]["width"],
-        data["image"]["height"],
-        data["image"]["url"],
+        data["image"].get("width"),
+        data["image"].get("height"),
+        data["image"].get("url"),
         data["image"].get("workview_url"),
         data["image"].get("seq", count),
-        data["image"]["frame_urls"],
+        data["image"].get("frame_urls"),
+        data["image"].get("path"),
     )
 
 
