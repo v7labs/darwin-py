@@ -79,6 +79,11 @@ class AnnotationFile:
     frame_urls: Optional[List[str]] = None
     remote_path: Optional[str] = None
 
+    @property
+    def full_path(self) -> str:
+        path_items = filter(lambda item: item is not None, [self.remote_path, self.filename])
+        return "/".join(path_items)
+
 
 def make_bounding_box(class_name, x, y, w, h):
     return Annotation(

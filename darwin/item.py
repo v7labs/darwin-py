@@ -15,6 +15,11 @@ class DatasetItem:
     current_workflow_id: Optional[int]
     path: str
 
+    @property
+    def full_path(self) -> str:
+        path_items = filter(lambda item: item is not None, [self.path, self.filename])
+        return "/".join(path_items)
+
 
 def parse_dataset_item(raw) -> DatasetItem:
     return DatasetItem(

@@ -58,8 +58,7 @@ def get_remote_files(dataset, filenames):
         for remote_file in dataset.fetch_remote_files(
             {"types": "image,playback_video,video_frame", "filenames": ",".join(chunk)}
         ):
-            filename = f"{remote_file.path}/{remote_file.filename}"
-            remote_files[filename] = remote_file.id
+            remote_files[remote_file.full_path] = remote_file.id
     return remote_files
 
 
@@ -134,8 +133,7 @@ def import_annotations(
         # remove files missing on the server
         parsed_files = [parsed_file for parsed_file in parsed_files if parsed_file not in local_files_missing_remotely]
         for parsed_file in tqdm(parsed_files):
-            filename = f"{parsed_file.remote_path}/{parsed_file.filename}"
-            image_id = remote_files[filename]
+            image_id = remote_files[parsed_file.full_path]
             _import_annotations(
                 dataset.client, image_id, remote_classes, attributes, parsed_file.annotations, dataset, append
             )
