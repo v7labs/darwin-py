@@ -183,9 +183,11 @@ def parse_darwin_image(path, data, count):
         False,
         data["image"]["width"],
         data["image"]["height"],
-        data["image"]["url"],
+        data["image"].get("url"),
         data["image"].get("workview_url"),
         data["image"].get("seq", count),
+        None,
+        data["image"].get("path"),
     )
 
 
@@ -204,10 +206,11 @@ def parse_darwin_video(path, data, count):
         True,
         data["image"]["width"],
         data["image"]["height"],
-        data["image"]["url"],
+        data["image"].get("url"),
         data["image"].get("workview_url"),
         data["image"].get("seq", count),
         data["image"]["frame_urls"],
+        data["image"].get("path"),
     )
 
 

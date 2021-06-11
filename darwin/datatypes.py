@@ -77,6 +77,7 @@ class AnnotationFile:
     workview_url: Optional[str] = None
     seq: Optional[int] = None
     frame_urls: Optional[List[str]] = None
+    remote_path: Optional[str] = None
 
 
 def make_bounding_box(class_name, x, y, w, h):
