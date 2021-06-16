@@ -2,7 +2,6 @@ from pathlib import Path
 
 from unittest.mock import patch
 
-import darwin.datatypes as dt
 from darwin.dataset.utils import compute_distributions
 
 
