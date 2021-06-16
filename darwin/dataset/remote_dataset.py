@@ -161,7 +161,7 @@ class RemoteDataset:
             return progress, count
 
     def split_video_annotations(self, release_name: str = "latest"):
-        release_dir = self.local_path / f"releases/{release_name}"
+        release_dir = self.local_path / "releases" / release_name
         video_frame_annotations_path = release_dir / "annotations"
 
         for count, annotation_file in enumerate(video_frame_annotations_path.glob("*.json")):
@@ -176,8 +176,8 @@ class RemoteDataset:
                 (video_frame_annotations_path / annotation_file.stem).mkdir(exist_ok=True, parents=True)
 
                 stem = frame_annotation.filename.split(".")[0]
-                output_path = f"{(video_frame_annotations_path / stem)}.json"
-                with open(output_path, "w") as f:
+                output_path = video_frame_annotations_path / f"{stem}.json"
+                with output_path.open("w") as f:
                     json.dump(annotation, f)
 
             # Finally delete video annotations
