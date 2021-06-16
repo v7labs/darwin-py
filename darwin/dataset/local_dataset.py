@@ -81,7 +81,8 @@ class LocalDataset(object):
                 ) from None
         else:
             # If the partition is not specified, get all the annotations
-            stems = [e.stem for e in annotations_dir.glob("**/*.json")]
+            prefix = f"{annotations_dir}/"
+            stems = [str(e).replace(prefix, "").split(".json")[0] for e in annotations_dir.glob("**/*.json")]
 
         # Find all the annotations and their corresponding images
         for stem in stems:
