@@ -456,32 +456,43 @@ def compute_max_density(annotations_dir: Path):
     return max_density
 
 
-def compute_distributions(annotations_dir: Path, split_path: Path, partitions: List[str] = ["train", "val", "test"]):
-    # The class distribution counts the presence of a class in images/videos for each partition
+def compute_distributions(
+    annotations_dir: Path,
+    split_path: Path,
+    partitions: List[str] = ["train", "val", "test"],
+    annotation_types=["polygon"],
+):
+    """
+    This function builds and returns the following dictionaries:
+      - class_distribution: count of all files where at least one instance of a given class exists for each partition
+      - instance_distribution: count of all instances of a given class exist for each partition
+
+    Note that this function can only be used after a dataset has been split with "stratified" strategy.
+    """
     class_distribution = {partition: {} for partition in partitions}
-    # The instance distribution counts the annotations with a particular class for each partition
     instance_distribution = {partition: {} for partition in partitions}
 
     for partition in partitions:
-        split_file = split_path / f"stratified_polygon_{partition}.txt"
-        stems = [e.strip() for e in split_file.open()]
-        for stem in stems:
-            annotation_path = annotations_dir / f"{stem}.json"
-            annotation_file = parse_file(annotation_path)
-            found_classes = []
-            for annotation in annotation_file.annotations:
-                annotation_class = annotation.annotation_class.name
-                # Count it in the class distribution, only if not found already
-                if annotation_class not in found_classes:
-                    if annotation_class in class_distribution[partition]:
-                        class_distribution[partition][annotation_class] += 1
+        for annotation_type in annotation_types:
+            split_file = split_path / f"stratified_{annotation_type}_{partition}.txt"
+            stems = [e.strip() for e in split_file.open()]
+            for stem in stems:
+                annotation_path = annotations_dir / f"{stem}.json"
+                annotation_file = parse_file(annotation_path)
+                found_classes = []
+                for annotation in annotation_file.annotations:
+                    annotation_class = annotation.annotation_class.name
+                    # Count it in the class distribution, only if not found already
+                    if annotation_class not in found_classes:
+                        if annotation_class in class_distribution[partition]:
+                            class_distribution[partition][annotation_class] += 1
+                        else:
+                            class_distribution[partition][annotation_class] = 1
+                        found_classes.append(annotation_class)
+                    # Count it in the instance distribution no matter what
+                    if annotation_class in instance_distribution[partition]:
+                        instance_distribution[partition][annotation_class] += 1
                     else:
-                        class_distribution[partition][annotation_class] = 1
-                    found_classes.append(annotation_class)
-                # Count it in the instance distribution no matter what
-                if annotation_class in instance_distribution[partition]:
-                    instance_distribution[partition][annotation_class] += 1
-                else:
-                    instance_distribution[partition][annotation_class] = 1
+                        instance_distribution[partition][annotation_class] = 1
 
     return {"class": class_distribution, "instance": instance_distribution}
