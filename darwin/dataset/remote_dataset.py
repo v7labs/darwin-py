@@ -279,7 +279,9 @@ class RemoteDataset:
             latest_dir = self.local_releases_path / "latest"
             if latest_dir.is_symlink():
                 latest_dir.unlink()
-            latest_dir.symlink_to(f"./{release_dir.name}")
+
+            target_link = self.local_releases_path / release_dir.name
+            latest_dir.symlink_to(target_link)
 
         if only_annotations:
             # No images will be downloaded
@@ -316,7 +318,7 @@ class RemoteDataset:
     def fetch_remote_files(self, filters: Optional[dict] = None):
         """Fetch and lists all files on the remote dataset"""
         base_url = f"/datasets/{self.dataset_id}/items"
-        parameters = {"page[size]": 500}
+        parameters = {}
         if filters:
             for list_type in ["filenames", "statuses"]:
                 if list_type in filters:
@@ -329,9 +331,9 @@ class RemoteDataset:
             if "types" in filters:
                 parameters["types"] = filters["types"]
 
-        cursor = {}
+        cursor = {"page[size]": 500}
         while True:
-            response = self.client.get(f"{base_url}?{parse.urlencode({**parameters, **cursor})}", team=self.team)
+            response = self.client.post(f"{base_url}?{parse.urlencode(cursor)}", {"filter": parameters}, team=self.team)
             yield from [parse_dataset_item(item) for item in response["items"]]
             if response["metadata"]["next"]:
                 cursor["page[from]"] = response["metadata"]["next"]

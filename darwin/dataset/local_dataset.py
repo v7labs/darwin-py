@@ -19,7 +19,7 @@ class LocalDataset(object):
         split_type: str = "random",
         release_name: Optional[str] = None,
     ):
-        """ Creates a dataset
+        """Creates a dataset
 
         Parameters
         ----------
