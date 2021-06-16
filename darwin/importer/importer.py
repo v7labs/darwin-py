@@ -1,9 +1,10 @@
 from pathlib import Path
 from typing import Callable, List, Union
 
+from tqdm import tqdm
+
 import darwin.datatypes as dt
 from darwin.utils import secure_continue_request
-from tqdm import tqdm
 
 
 def build_main_annotations_lookup_table(annotation_classes):
@@ -57,7 +58,7 @@ def get_remote_files(dataset, filenames):
         for remote_file in dataset.fetch_remote_files(
             {"types": "image,playback_video,video_frame", "filenames": ",".join(chunk)}
         ):
-            remote_files[remote_file.filename] = remote_file.id
+            remote_files[remote_file.full_path] = remote_file.id
     return remote_files
 
 
@@ -65,6 +66,7 @@ def import_annotations(
     dataset: "RemoteDataset",
     importer: Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]],
     file_paths: List[Union[str, Path]],
+    append: bool,
 ):
     print("Fetching remote class list...")
     remote_classes = build_main_annotations_lookup_table(dataset.fetch_remote_classes())
@@ -79,7 +81,7 @@ def import_annotations(
     print("Fetching remote file list...")
     remote_files = get_remote_files(dataset, filenames)
     for parsed_file in parsed_files:
-        if parsed_file.filename not in remote_files:
+        if parsed_file.full_path not in remote_files:
             local_files_missing_remotely.append(parsed_file)
         else:
             local_files.append(parsed_file)
@@ -130,11 +132,13 @@ def import_annotations(
         # remove files missing on the server
         parsed_files = [parsed_file for parsed_file in parsed_files if parsed_file not in local_files_missing_remotely]
         for parsed_file in tqdm(parsed_files):
-            image_id = remote_files[parsed_file.filename]
-            _import_annotations(dataset.client, image_id, remote_classes, attributes, parsed_file.annotations, dataset)
+            image_id = remote_files[parsed_file.full_path]
+            _import_annotations(
+                dataset.client, image_id, remote_classes, attributes, parsed_file.annotations, dataset, append
+            )
 
 
-def _handle_subs(annotation, data, attributes):
+def _handle_subs(annotation, data, annotation_class_id, attributes):
     for sub in annotation.subs:
         if sub.annotation_type == "text":
             data["text"] = {"text": sub.data}
@@ -160,7 +164,7 @@ def _handle_complex_polygon(annotation, data):
     return data
 
 
-def _import_annotations(client: "Client", id: int, remote_classes, attributes, annotations, dataset):
+def _import_annotations(client: "Client", id: int, remote_classes, attributes, annotations, dataset, append):
     serialized_annotations = []
     for annotation in annotations:
         annotation_class = annotation.annotation_class
@@ -171,19 +175,19 @@ def _import_annotations(client: "Client", id: int, remote_classes, attributes, a
             data = annotation.get_data(
                 only_keyframes=True,
                 post_processing=lambda annotation, data: _handle_subs(
-                    annotation, _handle_complex_polygon(annotation, data), attributes
+                    annotation, _handle_complex_polygon(annotation, data), annotation_class_id, attributes
                 ),
             )
         else:
             data = {annotation_class.annotation_type: annotation.data}
             data = _handle_complex_polygon(annotation, data)
-            data = _handle_subs(annotation, data, attributes)
+            data = _handle_subs(annotation, data, annotation_class_id, attributes)
 
         serialized_annotations.append({"annotation_class_id": annotation_class_id, "data": data})
 
-    if client.feature_enabled("WORKFLOW", dataset.team):
-        res = client.post(f"/dataset_items/{id}/import", payload={"annotations": serialized_annotations})
-        if res.get("status_code") != 200:
-            print(f"warning, failed to upload annotation to {id}", res)
-    else:
-        client.post(f"/dataset_images/{id}/import", payload={"annotations": serialized_annotations})
+    payload = {"annotations": serialized_annotations}
+    if append:
+        payload["overwrite"] = "false"
+    res = client.post(f"/dataset_items/{id}/import", payload=payload)
+    if res.get("status_code") != 200:
+        print(f"warning, failed to upload annotation to {id}", res)

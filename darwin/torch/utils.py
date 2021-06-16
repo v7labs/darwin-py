@@ -50,7 +50,7 @@ def detectron2_register_dataset(
     split_type: Optional[str] = "stratified",
     evaluator_type: Optional[str] = None,
 ):
-    """ Registers a local Darwin-formatted dataset in Detectron2
+    """Registers a local Darwin-formatted dataset in Detectron2
 
     Parameters
     ----------

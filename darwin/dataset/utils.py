@@ -36,17 +36,8 @@ def get_release_path(dataset_path: Path, release_name: Optional[str] = None):
 
     if not release_name:
         release_name = "latest"
-    releases_dir = dataset_path / "releases"
 
-    if not releases_dir.exists() and (dataset_path / "annotations").exists():
-        warnings.warn(
-            "darwin-py has adopted a new folder structure and the old structure will be depecrated. "
-            f"Migrate this dataset by running: 'darwin dataset migrate {dataset_path.name}",
-            DeprecationWarning,
-        )
-        return dataset_path
-
-    release_path = releases_dir / release_name
+    release_path = dataset_path / "releases" / release_name
     if not release_path.exists():
         raise NotFound(
             f"Local copy of release {release_name} not found: "
@@ -475,7 +466,9 @@ def split_dataset(
     if make_default_split or not split.exists():
         if split.exists():
             split.unlink()
-        split.symlink_to(f"./{split_id}")
+
+        target_link = lists_path / f"{split_id}"
+        split.symlink_to(target_link)
 
     return split_path
 

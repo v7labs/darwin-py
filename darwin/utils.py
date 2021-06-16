@@ -52,22 +52,6 @@ def is_project_dir(project_path: Path) -> bool:
     return (project_path / "releases").exists() and (project_path / "images").exists()
 
 
-def is_deprecated_project_dir(project_path: Path) -> bool:
-    """Verifies if the directory is a project from Darwin that uses a deprecated local structure
-
-    Parameters
-    ----------
-    project_path : Path
-        Directory to examine
-
-    Returns
-    -------
-    bool
-        Is the directory a project from Darwin?
-    """
-    return (project_path / "annotations").exists() and (project_path / "images").exists()
-
-
 def get_progress_bar(array: List, description: Optional[str] = None):
     pbar = tqdm(array)
     pbar.set_description(desc=description, refresh=True)
@@ -197,11 +181,13 @@ def parse_darwin_image(path, data, count):
         annotation_classes,
         annotations,
         False,
-        data["image"]["width"],
-        data["image"]["height"],
-        data["image"]["url"],
+        data["image"].get("width"),
+        data["image"].get("height"),
+        data["image"].get("url"),
         data["image"].get("workview_url"),
         data["image"].get("seq", count),
+        None,
+        data["image"].get("path"),
     )
 
 
@@ -218,12 +204,13 @@ def parse_darwin_video(path, data, count):
         annotation_classes,
         annotations,
         True,
-        data["image"]["width"],
-        data["image"]["height"],
-        data["image"]["url"],
+        data["image"].get("width"),
+        data["image"].get("height"),
+        data["image"].get("url"),
         data["image"].get("workview_url"),
         data["image"].get("seq", count),
-        data["image"]["frame_urls"],
+        data["image"].get("frame_urls"),
+        data["image"].get("path"),
     )
 
 
@@ -283,7 +270,10 @@ def parse_darwin_video_annotation(annotation: dict):
         frame_annotations[int(f)] = parse_darwin_annotation({**frame, **{"name": name}})
         keyframes[int(f)] = frame.get("keyframe", False)
 
-    return dt.make_video_annotation(frame_annotations, keyframes, annotation["segments"], annotation.get("interpolated", False))
+    return dt.make_video_annotation(
+        frame_annotations, keyframes, annotation["segments"], annotation.get("interpolated", False)
+    )
+
 
 def split_video_annotation(annotation):
     if not annotation.is_video:
