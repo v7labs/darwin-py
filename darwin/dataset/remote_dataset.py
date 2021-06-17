@@ -26,6 +26,7 @@ if TYPE_CHECKING:
 class RemoteDataset:
     def __init__(
         self,
+        *,
         client: "Client",
         team: str,
         name: str,

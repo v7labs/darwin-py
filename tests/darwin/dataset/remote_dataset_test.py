@@ -37,7 +37,7 @@ def test_split_video_annotations_on_images(
     json_load_mock, path_exists_mock, path_glob_mock, path_mkdir_mock, path_open_mock
 ):
     client = _load_client(offline=True)
-    remote_dataset = RemoteDataset(client, "v7", "test_dataset", "test-dataset", 1)
+    remote_dataset = RemoteDataset(client=client, team="v7", name="test_dataset", slug="test-dataset", dataset_id=1)
 
     remote_dataset.split_video_annotations()
 
@@ -59,7 +59,7 @@ def test_split_video_annotations_on_videos(
     json_dump_mock, json_load_mock, path_exists_mock, path_glob_mock, path_mkdir_mock, path_open_mock, path_unlink_mock
 ):
     client = _load_client(offline=True)
-    remote_dataset = RemoteDataset(client, "v7", "test_dataset", "test-dataset", 1)
+    remote_dataset = RemoteDataset(client=client, team="v7", name="test_dataset", slug="test-dataset", dataset_id=1)
 
     remote_dataset.split_video_annotations()
 
