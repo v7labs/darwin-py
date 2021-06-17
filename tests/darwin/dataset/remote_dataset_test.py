@@ -48,7 +48,6 @@ def create_annotation_file(
 ):
     annotations_path = darwin_path / "datasets" / team_name / dataset_name / "releases" / release_name / "annotations"
     annotations_path.mkdir(exist_ok=True, parents=True)
-    print("ladsjklf", annotations_path)
 
     with (annotations_path / annotation_name).open("w") as f:
         json.dump(annotation_content, f)
