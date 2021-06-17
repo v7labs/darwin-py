@@ -2,16 +2,16 @@ import itertools
 import json
 import multiprocessing as mp
 import sys
-import warnings
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
-from typing import Generator, Iterable, List, Optional, Union
+from typing import Dict, Generator, Iterable, List, Optional, Set, Union
 
 import numpy as np
 from PIL import Image
 from tqdm import tqdm
 
 from darwin.exceptions import NotFound
+from darwin.importer.formats.darwin import parse_file
 from darwin.utils import SUPPORTED_EXTENSIONS, SUPPORTED_VIDEO_EXTENSIONS
 
 
@@ -768,3 +768,45 @@ def compute_max_density(annotations_dir: Path):
             if annotation_density > max_density:
                 max_density = annotation_density
     return max_density
+
+
+# E.g.: {"partition" => {"class_name" => 123}}
+AnnotationDistribution = Dict[str, Dict[str, int]]
+
+
+def compute_distributions(
+    annotations_dir: Path,
+    split_path: Path,
+    partitions: List[str] = ["train", "val", "test"],
+    annotation_types=["polygon"],
+) -> Dict[str, AnnotationDistribution]:
+    """
+    This function builds and returns the following dictionaries:
+      - class_distribution: count of all files where at least one instance of a given class exists for each partition
+      - instance_distribution: count of all instances of a given class exist for each partition
+
+    Note that this function can only be used after a dataset has been split with "stratified" strategy.
+    """
+    class_distribution: AnnotationDistribution = {partition: Counter() for partition in partitions}
+    instance_distribution: AnnotationDistribution = {partition: Counter() for partition in partitions}
+
+    for partition in partitions:
+        for annotation_type in annotation_types:
+            split_file = split_path / f"stratified_{annotation_type}_{partition}.txt"
+            stems = [e.strip() for e in split_file.open()]
+
+            for stem in stems:
+                annotation_path = annotations_dir / f"{stem}.json"
+                annotation_file = parse_file(annotation_path)
+
+                if annotation_file is None:
+                    continue
+
+                annotation_class_names = [
+                    annotation.annotation_class.name for annotation in annotation_file.annotations
+                ]
+
+                class_distribution[partition] += Counter(set(annotation_class_names))
+                instance_distribution[partition] += Counter(annotation_class_names)
+
+    return {"class": class_distribution, "instance": instance_distribution}
