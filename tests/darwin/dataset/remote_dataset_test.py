@@ -1,13 +1,13 @@
 from pathlib import Path
 
-from unittest.mock import patch
+from unittest.mock import PropertyMock, patch
 
 from darwin.cli_functions import _load_client
 from darwin.dataset import RemoteDataset
 
 
 def glob():
-    filenames = ["frame_1.json", "frame_2.json", "frame_3.json"]
+    filenames = ["one.json", "two.json", "three.json"]
     return map(Path, filenames)
 
 
@@ -28,26 +28,23 @@ def parsed_video_annotation_file():
     }
 
 
+@patch("darwin.dataset.RemoteDataset.local_path", new_callable=PropertyMock, return_value=Path("test"))
 @patch("json.load", return_value=parsed_image_annotation_file())
 @patch("pathlib.Path.exists", return_value=True)
 @patch("pathlib.Path.glob", return_value=glob())
 @patch("pathlib.Path.mkdir")
 @patch("pathlib.Path.open")
-def test_split_video_annotations_on_images(
-    json_load_mock, path_exists_mock, path_glob_mock, path_mkdir_mock, path_open_mock
-):
+def test_split_video_annotations_on_images(*mocks):
     client = _load_client(offline=True)
     remote_dataset = RemoteDataset(client=client, team="v7", name="test_dataset", slug="test-dataset", dataset_id=1)
 
     remote_dataset.split_video_annotations()
 
-    json_load_mock.assert_called()
-    path_exists_mock.assert_called()
-    path_glob_mock.assert_called()
-    path_mkdir_mock.assert_called()
-    path_open_mock.assert_called()
+    for mock in mocks:
+        mock.assert_called()
 
 
+@patch("darwin.dataset.RemoteDataset.local_path", new_callable=PropertyMock, return_value=Path("test"))
 @patch("json.dump")
 @patch("json.load", return_value=parsed_video_annotation_file())
 @patch("pathlib.Path.exists", return_value=True)
@@ -55,20 +52,18 @@ def test_split_video_annotations_on_images(
 @patch("pathlib.Path.mkdir")
 @patch("pathlib.Path.open")
 @patch("pathlib.Path.unlink")
-def test_split_video_annotations_on_videos(
-    json_dump_mock, json_load_mock, path_exists_mock, path_glob_mock, path_mkdir_mock, path_open_mock, path_unlink_mock
-):
+def test_split_video_annotations_on_videos(*mocks):
     client = _load_client(offline=True)
     remote_dataset = RemoteDataset(client=client, team="v7", name="test_dataset", slug="test-dataset", dataset_id=1)
 
     remote_dataset.split_video_annotations()
 
-    # json.dump() is called once per frame
-    assert json_dump_mock.call_count == 3
-
-    json_load_mock.assert_called()
-    path_exists_mock.assert_called()
-    path_glob_mock.assert_called()
-    path_mkdir_mock.assert_called()
-    path_open_mock.assert_called()
-    path_unlink_mock.assert_called()
+    for mock in mocks:
+        mock_name = mock._extract_mock_name()
+        # 3 frames for each one of the 3 video annotations are loaded
+        if mock_name == "dump":
+            assert mock.call_count == 9
+        # 3 video annotations are loaded
+        elif mock_name == "load":
+            assert mock.call_count == 3
+        mock.assert_called()
