@@ -26,7 +26,7 @@ setuptools.setup(
         "tqdm",
         "upolygon==0.1.6",
     ],
-    packages=['darwin', 'darwin.importer', 'darwin.dataset', 'darwin.torch', 'darwin.exporter', 'darwin.importer.formats', 'darwin.exporter.formats', 'tests'],
+    packages=setuptools.find_packages(),
     entry_points={"console_scripts": ["darwin=darwin.cli:main"]},
     classifiers=["Programming Language :: Python :: 3", "License :: OSI Approved :: MIT License"],
     python_requires=">=3.6",
