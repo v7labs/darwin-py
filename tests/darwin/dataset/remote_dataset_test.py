@@ -3,9 +3,16 @@ import json
 import pytest
 from unittest.mock import PropertyMock, patch
 
+from darwin.client import Client
 from darwin.cli_functions import _load_client
+from darwin.config import Config
 from darwin.dataset import RemoteDataset
 from tests.fixtures import *
+
+
+@pytest.fixture
+def darwin_client() -> Client:
+    return Client(Config())
 
 
 @pytest.fixture
@@ -54,16 +61,16 @@ def create_annotation_file(
 
 
 @pytest.mark.usefixtures("file_read_write_test", "create_annotation_file")
-def test_split_video_annotations_on_videos(darwin_path: Path, dataset_name: str, release_name: str, team_name: str):
-    client = _load_client(offline=True)
-
+def test_split_video_annotations_on_videos(
+    darwin_client: Client, darwin_path: Path, dataset_name: str, release_name: str, team_name: str
+):
     with patch(
         "darwin.dataset.RemoteDataset.local_path",
         new_callable=PropertyMock,
         return_value=darwin_path / "datasets" / team_name / dataset_name,
     ):
         remote_dataset = RemoteDataset(
-            client=client, team=team_name, name=dataset_name, slug="test-dataset", dataset_id=1
+            client=darwin_client, team=team_name, name=dataset_name, slug="test-dataset", dataset_id=1
         )
 
         remote_dataset.split_video_annotations()
