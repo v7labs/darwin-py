@@ -19,7 +19,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pytest
+          pip install pytest argcomplete dataclasses docutils humanize numpy pillow pyyaml>=5.1 requests scikit-learn sh tqdm upolygon==0.1.6
           pip install .
       - name: Run tests
         run: pytest
