@@ -3,8 +3,6 @@ from pathlib import Path
 from darwin.datatypes import Annotation, AnnotationClass, AnnotationFile
 from darwin.exporter.formats.darwin import build_image_annotation
 
-# build_image_annotation
-
 
 def test_empty_annotation_file():
     annotation_file = AnnotationFile(
