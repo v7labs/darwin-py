@@ -1,7 +1,7 @@
 import darwin.datatypes as dt
 
 
-def build_annotation(annotation_file: dt.AnnotationFile):
+def build_image_annotation(annotation_file: dt.AnnotationFile):
     annotations = []
     for annotation in annotation_file.annotations:
         payload = {

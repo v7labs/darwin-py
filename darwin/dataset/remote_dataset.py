@@ -14,7 +14,7 @@ from darwin.dataset.split_manager import split_dataset
 from darwin.dataset.upload_manager import add_files_to_dataset
 from darwin.dataset.utils import exhaust_generator, get_annotations, get_classes, make_class_lists
 from darwin.exceptions import NotFound, UnsupportedExportFormat
-from darwin.exporter.formats.darwin import build_annotation
+from darwin.exporter.formats.darwin import build_image_annotation
 from darwin.item import parse_dataset_item
 from darwin.utils import find_files, parse_darwin_json, split_video_annotation, urljoin
 from darwin.validators import name_taken, validation_error
@@ -172,7 +172,7 @@ class RemoteDataset:
 
             frame_annotations = split_video_annotation(darwin_annotation)
             for frame_annotation in frame_annotations:
-                annotation = build_annotation(frame_annotation)
+                annotation = build_image_annotation(frame_annotation)
 
                 (video_frame_annotations_path / annotation_file.stem).mkdir(exist_ok=True, parents=True)
 
