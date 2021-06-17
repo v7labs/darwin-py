@@ -5,21 +5,16 @@ from unittest.mock import PropertyMock, patch
 
 from darwin.cli_functions import _load_client
 from darwin.dataset import RemoteDataset
-from tests.utils import *
+from tests.fixtures import *
 
 
-def image_annotation_file_content():
-    return {
-        "image": {"width": 1920, "height": 1080, "filename": "test_image.jpg"},
-        "annotations": [
-            {"name": "test_class_1", "polygon": {"path": [{"x": 0, "y": 0}, {"x": 1, "y": 1}, {"x": 1, "y": 0}]}},
-            {"name": "test_class_2", "polygon": {"path": [{"x": 5, "y": 5}, {"x": 6, "y": 6}, {"x": 6, "y": 5}]}},
-            {"name": "test_class_3", "polygon": {"path": [{"x": 9, "y": 9}, {"x": 8, "y": 8}, {"x": 8, "y": 9}]}},
-        ],
-    }
+@pytest.fixture
+def annotation_name() -> str:
+    return "test_video.json"
 
 
-def video_annotation_file_content():
+@pytest.fixture
+def annotation_content() -> dict:
     return {
         "image": {
             "width": 1920,
@@ -42,59 +37,40 @@ def video_annotation_file_content():
     }
 
 
-@patch(
-    "darwin.dataset.RemoteDataset.local_path",
-    new_callable=PropertyMock,
-    return_value=DARWIN_TEST_PATH / DARWIN_TEAM_NAME / DARWIN_DATASET_NAME,
-)
-@pytest.mark.usefixtures("file_read_write_test")
-def test_split_video_annotations_on_images(*mocks):
-    setup_darwin_test_path(team_name=DARWIN_TEAM_NAME, dataset_name=DARWIN_DATASET_NAME)
+@pytest.fixture
+def create_annotation_file(
+    darwin_path: Path,
+    team_name: str,
+    dataset_name: str,
+    release_name: str,
+    annotation_name: str,
+    annotation_content: dict,
+):
+    annotations_path = darwin_path / "datasets" / team_name / dataset_name / "releases" / release_name / "annotations"
+    annotations_path.mkdir(exist_ok=True, parents=True)
+    print("ladsjklf", annotations_path)
 
-    create_annotation_file(
-        name="image.json",
-        content=image_annotation_file_content(),
-        team_name=DARWIN_TEAM_NAME,
-        dataset_name=DARWIN_DATASET_NAME,
-    )
+    with (annotations_path / annotation_name).open("w") as f:
+        json.dump(annotation_content, f)
 
+
+@pytest.mark.usefixtures("file_read_write_test", "create_annotation_file")
+def test_split_video_annotations_on_videos(darwin_path: Path, dataset_name: str, release_name: str, team_name: str):
     client = _load_client(offline=True)
-    remote_dataset = RemoteDataset(
-        client=client, team=DARWIN_TEAM_NAME, name=DARWIN_DATASET_NAME, slug="test-dataset", dataset_id=1
-    )
 
-    remote_dataset.split_video_annotations()
+    with patch(
+        "darwin.dataset.RemoteDataset.local_path",
+        new_callable=PropertyMock,
+        return_value=darwin_path / "datasets" / team_name / dataset_name,
+    ):
+        remote_dataset = RemoteDataset(
+            client=client, team=team_name, name=dataset_name, slug="test-dataset", dataset_id=1
+        )
 
-    for mock in mocks:
-        mock.assert_called()
-
-
-@patch(
-    "darwin.dataset.RemoteDataset.local_path",
-    new_callable=PropertyMock,
-    return_value=DARWIN_TEST_PATH / DARWIN_TEAM_NAME / DARWIN_DATASET_NAME,
-)
-@pytest.mark.usefixtures("file_read_write_test")
-def test_split_video_annotations_on_videos(*mocks):
-    create_annotation_file(
-        name="test_video.json",
-        content=video_annotation_file_content(),
-        team_name=DARWIN_TEAM_NAME,
-        dataset_name=DARWIN_DATASET_NAME,
-    )
-
-    client = _load_client(offline=True)
-    remote_dataset = RemoteDataset(
-        client=client, team=DARWIN_TEAM_NAME, name=DARWIN_DATASET_NAME, slug="test-dataset", dataset_id=1
-    )
-
-    remote_dataset.split_video_annotations()
-
-    for mock in mocks:
-        mock.assert_called()
+        remote_dataset.split_video_annotations()
 
     video_path = (
-        DARWIN_TEST_PATH / DARWIN_TEAM_NAME / DARWIN_DATASET_NAME / "releases" / "latest" / "annotations" / "test_video"
+        darwin_path / "datasets" / team_name / dataset_name / "releases" / release_name / "annotations" / "test_video"
     )
     assert video_path.exists()
 
