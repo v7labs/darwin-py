@@ -11,11 +11,6 @@ from tests.fixtures import *
 
 
 @pytest.fixture
-def darwin_client() -> Client:
-    return Client(Config())
-
-
-@pytest.fixture
 def annotation_name() -> str:
     return "test_video.json"
 
@@ -45,15 +40,23 @@ def annotation_content() -> dict:
 
 
 @pytest.fixture
+def darwin_client(darwin_config_path: Path, darwin_datasets_path: Path, team_slug: str) -> Client:
+    config = Config(darwin_config_path)
+    config.put(["teams", team_slug, "api_key"], "mock_api_key")
+    config.put(["teams", team_slug, "datasets_dir"], str(darwin_datasets_path))
+    return Client(config)
+
+
+@pytest.fixture
 def create_annotation_file(
-    darwin_path: Path,
-    team_name: str,
-    dataset_name: str,
+    darwin_datasets_path: Path,
+    team_slug: str,
+    dataset_slug: str,
     release_name: str,
     annotation_name: str,
     annotation_content: dict,
 ):
-    annotations_path = darwin_path / "datasets" / team_name / dataset_name / "releases" / release_name / "annotations"
+    annotations_path = darwin_datasets_path / team_slug / dataset_slug / "releases" / release_name / "annotations"
     annotations_path.mkdir(exist_ok=True, parents=True)
 
     with (annotations_path / annotation_name).open("w") as f:
@@ -62,21 +65,21 @@ def create_annotation_file(
 
 @pytest.mark.usefixtures("file_read_write_test", "create_annotation_file")
 def test_split_video_annotations_on_videos(
-    darwin_client: Client, darwin_path: Path, dataset_name: str, release_name: str, team_name: str
+    darwin_client: Client,
+    darwin_datasets_path: Path,
+    dataset_name: str,
+    dataset_slug: str,
+    release_name: str,
+    team_slug: str,
 ):
-    with patch(
-        "darwin.dataset.RemoteDataset.local_path",
-        new_callable=PropertyMock,
-        return_value=darwin_path / "datasets" / team_name / dataset_name,
-    ):
-        remote_dataset = RemoteDataset(
-            client=darwin_client, team=team_name, name=dataset_name, slug="test-dataset", dataset_id=1
-        )
+    remote_dataset = RemoteDataset(
+        client=darwin_client, team=team_slug, name=dataset_name, slug=dataset_slug, dataset_id=1
+    )
 
-        remote_dataset.split_video_annotations()
+    remote_dataset.split_video_annotations()
 
     video_path = (
-        darwin_path / "datasets" / team_name / dataset_name / "releases" / release_name / "annotations" / "test_video"
+        darwin_datasets_path / team_slug / dataset_slug / "releases" / release_name / "annotations" / "test_video"
     )
     assert video_path.exists()
 
