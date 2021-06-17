@@ -2,10 +2,9 @@ import itertools
 import json
 import multiprocessing as mp
 import sys
-import warnings
 from collections import defaultdict
 from pathlib import Path
-from typing import Generator, Iterable, List, Optional, Union
+from typing import Dict, Generator, Iterable, List, Optional, Set, Union
 
 import numpy as np
 from PIL import Image
@@ -771,12 +770,16 @@ def compute_max_density(annotations_dir: Path):
     return max_density
 
 
+# E.g.: {"partition" => {"class_name" => 123}}
+AnnotationDistribution = Dict[str, Dict[str, int]]
+
+
 def compute_distributions(
     annotations_dir: Path,
     split_path: Path,
     partitions: List[str] = ["train", "val", "test"],
     annotation_types=["polygon"],
-):
+) -> Dict[str, AnnotationDistribution]:
     """
     This function builds and returns the following dictionaries:
       - class_distribution: count of all files where at least one instance of a given class exists for each partition
@@ -784,30 +787,48 @@ def compute_distributions(
 
     Note that this function can only be used after a dataset has been split with "stratified" strategy.
     """
-    class_distribution = {partition: {} for partition in partitions}
-    instance_distribution = {partition: {} for partition in partitions}
+    class_distribution: AnnotationDistribution = {partition: {} for partition in partitions}
+    instance_distribution: AnnotationDistribution = {partition: {} for partition in partitions}
 
     for partition in partitions:
         for annotation_type in annotation_types:
             split_file = split_path / f"stratified_{annotation_type}_{partition}.txt"
             stems = [e.strip() for e in split_file.open()]
+
             for stem in stems:
                 annotation_path = annotations_dir / f"{stem}.json"
                 annotation_file = parse_file(annotation_path)
-                found_classes = []
+
+                if annotation_file is None:
+                    continue
+
+                # We keep track of the classes we find while looping over annotations,
+                # so we can correctly decide when to increase the values in class_distribution.
+                # We increment values of instance_distribution no matter what.
+                found_classes: Set = set()
                 for annotation in annotation_file.annotations:
                     annotation_class = annotation.annotation_class.name
-                    # Count it in the class distribution, only if not found already
-                    if annotation_class not in found_classes:
-                        if annotation_class in class_distribution[partition]:
-                            class_distribution[partition][annotation_class] += 1
-                        else:
-                            class_distribution[partition][annotation_class] = 1
-                        found_classes.append(annotation_class)
-                    # Count it in the instance distribution no matter what
-                    if annotation_class in instance_distribution[partition]:
-                        instance_distribution[partition][annotation_class] += 1
-                    else:
-                        instance_distribution[partition][annotation_class] = 1
+
+                    increment_in_dictionary(instance_distribution, annotation_class, partition=partition)
+
+                    if annotation_class in found_classes:
+                        continue
+
+                    increment_in_dictionary(class_distribution, annotation_class, partition=partition)
+                    found_classes.add(annotation_class)
 
     return {"class": class_distribution, "instance": instance_distribution}
+
+
+def increment_in_dictionary(dictionary: dict, key: str, partition: Optional[str] = None, value: int = 1) -> None:
+    """
+    Helper function to increment integer values in potentially partitioned dictionaries.
+    Warning: the dictionary argument will be the target of a side effect.
+    """
+
+    target = dictionary[partition] if partition else dictionary
+
+    if key in target:
+        target[key] += value
+    else:
+        target[key] = value
