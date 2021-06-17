@@ -2,7 +2,7 @@ import itertools
 import json
 import multiprocessing as mp
 import sys
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Dict, Generator, Iterable, List, Optional, Set, Union
 
@@ -787,8 +787,8 @@ def compute_distributions(
 
     Note that this function can only be used after a dataset has been split with "stratified" strategy.
     """
-    class_distribution: AnnotationDistribution = {partition: {} for partition in partitions}
-    instance_distribution: AnnotationDistribution = {partition: {} for partition in partitions}
+    class_distribution: AnnotationDistribution = {partition: Counter() for partition in partitions}
+    instance_distribution: AnnotationDistribution = {partition: Counter() for partition in partitions}
 
     for partition in partitions:
         for annotation_type in annotation_types:
@@ -802,33 +802,11 @@ def compute_distributions(
                 if annotation_file is None:
                     continue
 
-                # We keep track of the classes we find while looping over annotations,
-                # so we can correctly decide when to increase the values in class_distribution.
-                # We increment values of instance_distribution no matter what.
-                found_classes: Set = set()
-                for annotation in annotation_file.annotations:
-                    annotation_class = annotation.annotation_class.name
+                annotation_class_names = [
+                    annotation.annotation_class.name for annotation in annotation_file.annotations
+                ]
 
-                    increment_in_dictionary(instance_distribution, annotation_class, partition=partition)
-
-                    if annotation_class in found_classes:
-                        continue
-
-                    increment_in_dictionary(class_distribution, annotation_class, partition=partition)
-                    found_classes.add(annotation_class)
+                class_distribution[partition] += Counter(set(annotation_class_names))
+                instance_distribution[partition] += Counter(annotation_class_names)
 
     return {"class": class_distribution, "instance": instance_distribution}
-
-
-def increment_in_dictionary(dictionary: dict, key: str, partition: Optional[str] = None, value: int = 1) -> None:
-    """
-    Helper function to increment integer values in potentially partitioned dictionaries.
-    Warning: the dictionary argument will be the target of a side effect.
-    """
-
-    target = dictionary[partition] if partition else dictionary
-
-    if key in target:
-        target[key] += value
-    else:
-        target[key] = value
