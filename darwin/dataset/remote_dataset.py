@@ -10,11 +10,13 @@ from urllib import parse
 from darwin.dataset.download_manager import download_all_images_from_annotations
 from darwin.dataset.identifier import DatasetIdentifier
 from darwin.dataset.release import Release
+from darwin.dataset.split_manager import split_dataset
 from darwin.dataset.upload_manager import add_files_to_dataset
-from darwin.dataset.utils import exhaust_generator, get_annotations, get_classes, make_class_lists, split_dataset
+from darwin.dataset.utils import exhaust_generator, get_annotations, get_classes, make_class_lists
 from darwin.exceptions import NotFound, UnsupportedExportFormat
+from darwin.exporter.formats.darwin import build_image_annotation
 from darwin.item import parse_dataset_item
-from darwin.utils import find_files, urljoin
+from darwin.utils import find_files, parse_darwin_json, split_video_annotation, urljoin
 from darwin.validators import name_taken, validation_error
 
 if TYPE_CHECKING:
@@ -25,13 +27,13 @@ class RemoteDataset:
     def __init__(
         self,
         *,
+        client: "Client",
         team: str,
         name: str,
-        slug: Optional[str] = None,
+        slug: str,
         dataset_id: int,
         image_count: int = 0,
         progress: float = 0,
-        client: "Client",
     ):
         """Inits a DarwinDataset.
         This class manages the remote and local versions of a dataset hosted on Darwin.
@@ -159,6 +161,32 @@ class RemoteDataset:
         else:
             return progress, count
 
+    def split_video_annotations(self, release_name: str = "latest"):
+        release_dir = self.local_path / "releases" / release_name
+        video_frame_annotations_path = release_dir / "annotations"
+
+        for count, annotation_file in enumerate(video_frame_annotations_path.glob("*.json")):
+            darwin_annotation = parse_darwin_json(annotation_file, count)
+            if not darwin_annotation.is_video:
+                continue
+
+            frame_annotations = split_video_annotation(darwin_annotation)
+            for frame_annotation in frame_annotations:
+                annotation = build_image_annotation(frame_annotation)
+
+                (video_frame_annotations_path / annotation_file.stem).mkdir(exist_ok=True, parents=True)
+
+                stem = frame_annotation.filename.split(".")[0]
+                output_path = video_frame_annotations_path / f"{stem}.json"
+                with output_path.open("w") as f:
+                    json.dump(annotation, f)
+
+            # Finally delete video annotations
+            annotation_file.unlink()
+
+        # Update class list, which is used when loading local annotations in a dataset
+        make_class_lists(release_dir)
+
     def pull(
         self,
         *,
@@ -171,7 +199,7 @@ class RemoteDataset:
         subset_filter_annotations_function: Optional[Callable] = None,
         subset_folder_name: Optional[str] = None,
         use_folders: bool = False,
-        video_frames: Optional[bool] = False,
+        video_frames: bool = False,
     ):
         """Downloads a remote project (images and annotations) in the datasets directory.
 
