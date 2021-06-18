@@ -44,7 +44,7 @@ def split_dataset(
     splits : dict
         Keys are the different splits (random, tags, ...) and values are the relative file names
     """
-    # Requirements: pytorch, torchvision
+    # Requirements: scikit-learn
     try:
         import sklearn  # noqa
     except ImportError:
