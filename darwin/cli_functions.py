@@ -274,6 +274,8 @@ def split(dataset_slug: str, val_percentage: float, test_percentage: float, seed
                 )
                 print(f"Partition lists saved at {split_path}")
                 return
+            except ImportError as e:
+                _error(e.msg)
             except NotFound as e:
                 _error(e.name)
             except ValueError as e:
