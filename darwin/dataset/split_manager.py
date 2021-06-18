@@ -48,9 +48,8 @@ def split_dataset(
     try:
         import sklearn  # noqa
     except ImportError:
-        raise ImportError(
-            f"Darwin requires scikit-learn to split a dataset. Install it using: pip install scikit-learn"
-        ) from None
+        print("Darwin requires scikit-learn to split a dataset. Install it using: pip install scikit-learn")
+        return
 
     validate_split(val_percentage, test_percentage)
 
