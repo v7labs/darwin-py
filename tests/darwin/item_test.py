@@ -1,8 +1,8 @@
-import darwin
+from darwin.item import DatasetItem
 
 
 def test_remote_path_gets_rid_of_initial_root_character_if_its_there():
-    dataset_item = darwin.item.DatasetItem(
+    dataset_item = DatasetItem(
         id=1,
         filename="filename.jpg",
         status="new",
@@ -18,7 +18,7 @@ def test_remote_path_gets_rid_of_initial_root_character_if_its_there():
 
 
 def test_remote_path_is_equal_to_path_otherwise():
-    dataset_item = darwin.item.DatasetItem(
+    dataset_item = DatasetItem(
         id=1,
         filename="filename.jpg",
         status="new",
@@ -34,7 +34,7 @@ def test_remote_path_is_equal_to_path_otherwise():
 
 
 def test_full_path_uses_remote_path():
-    dataset_item = darwin.item.DatasetItem(
+    dataset_item = DatasetItem(
         id=1,
         filename="filename.jpg",
         status="new",
