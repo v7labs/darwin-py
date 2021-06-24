@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import Optional
 
+from darwin.utils import urljoin
+
 
 @dataclass(frozen=True, eq=True)
 class DatasetItem:
@@ -17,7 +19,15 @@ class DatasetItem:
 
     @property
     def full_path(self) -> str:
-        return "/".join(filter(None, [self.path, self.filename]))
+        return urljoin(*filter(None, [self.remote_path, self.filename]))
+
+    @property
+    def remote_path(self) -> str:
+        if not self.path.startswith("/"):
+            return self.path
+
+        parts = self.path.split("/")[1:]
+        return urljoin(*parts)
 
 
 def parse_dataset_item(raw) -> DatasetItem:
