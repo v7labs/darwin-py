@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
-from darwin.utils import urljoin
+import darwin
 
 Point = Dict[str, float]
 BoundingBox = Dict[str, float]
@@ -83,7 +83,7 @@ class AnnotationFile:
 
     @property
     def full_path(self) -> str:
-        return urljoin(*filter(None, [self.remote_path, self.filename]))
+        return darwin.utils.urljoin(*filter(None, [self.remote_path, self.filename]))
 
 
 def make_bounding_box(class_name, x, y, w, h):
