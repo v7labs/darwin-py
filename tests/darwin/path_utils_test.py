@@ -1,6 +1,6 @@
 import os
 
-from darwin.utils import construct_full_path
+from darwin.path_utils import construct_full_path
 
 def test_os_path_construction():
     # A quick reference for expected behavior of os.path.join
