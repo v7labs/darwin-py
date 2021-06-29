@@ -10,6 +10,8 @@ import darwin.datatypes as dt
 from darwin.config import Config
 from darwin.exceptions import OutdatedDarwinJSONFormat, UnsupportedFileType
 
+import os
+
 SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpeg", ".jpg", ".jfif", ".tif", ".tiff", ".bmp", ".svs"]
 SUPPORTED_VIDEO_EXTENSIONS = [".avi", ".bpm", ".dcm", ".mov", ".mp4"]
 SUPPORTED_EXTENSIONS = SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
@@ -119,6 +121,12 @@ def find_files(
     # Filter the list and return it
     files_to_exclude = set(files_to_exclude)
     return [f for f in found_files if f.name not in files_to_exclude and str(f) not in files_to_exclude]
+
+def construct_full_path(remote_path: Optional[str], filename: str) -> str:
+    if remote_path is None:
+        return filename
+    else:
+        return os.path.join("/", remote_path, filename)
 
 
 def secure_continue_request() -> bool:
