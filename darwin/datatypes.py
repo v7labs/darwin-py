@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
-from darwin.utils import construct_full_path
+from darwin.path_utils import construct_full_path
 
 Point = Dict[str, float]
 BoundingBox = Dict[str, float]

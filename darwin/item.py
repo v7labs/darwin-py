@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from typing import Optional
-from darwin.utils import construct_full_path
+from darwin.path_utils import construct_full_path
 
 @dataclass(frozen=True, eq=True)
 class DatasetItem:
