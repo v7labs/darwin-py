@@ -11,7 +11,7 @@ from darwin.dataset.download_manager import download_all_images_from_annotations
 from darwin.dataset.identifier import DatasetIdentifier
 from darwin.dataset.release import Release
 from darwin.dataset.split_manager import split_dataset
-from darwin.dataset.upload_manager import add_files_to_dataset
+from darwin.dataset.upload_manager import UploadHandler, LocalFile
 from darwin.dataset.utils import exhaust_generator, get_annotations, get_classes, make_class_lists
 from darwin.exceptions import NotFound, UnsupportedExportFormat
 from darwin.exporter.formats.darwin import build_image_annotation
@@ -69,7 +69,7 @@ class RemoteDataset:
         self,
         files_to_upload: List[str],
         blocking: bool = True,
-        multi_threaded: bool = True,
+        multi_threaded: bool = not True,
         fps: int = 1,
         as_frames: bool = False,
         files_to_exclude: Optional[List[str]] = None,
@@ -110,53 +110,29 @@ class RemoteDataset:
         if path and path[0] != "/":
             path = f"/{path}"
 
-        # This is where the responses from the upload function will be saved/load for resume
-        self.local_path.parent.mkdir(exist_ok=True)
-        responses_path = self.local_path.parent / ".upload_responses.json"
         # Init optional parameters
         if files_to_exclude is None:
             files_to_exclude = []
         if files_to_upload is None:
-            raise NotFound("Dataset location not found. Check your path.")
-
-        if resume:
-            if not responses_path.exists():
-                raise NotFound("Dataset location not found. Check your path.")
-            with responses_path.open() as f:
-                logged_responses = json.load(f)
-            files_to_exclude.extend(
-                [
-                    response["file_path"]
-                    for response in logged_responses
-                    if response["s3_response_status_code"].startswith("2")
-                ]
-            )
+            raise ValueError("No files or directory specified.")
 
         files_to_upload = find_files(files=files_to_upload, recursive=True, files_to_exclude=files_to_exclude)
 
         if not files_to_upload:
             raise ValueError("No files to upload, check your path, exclusion filters and resume flag")
 
-        progress, count = add_files_to_dataset(
-            client=self.client,
-            dataset_id=str(self.dataset_id),
-            filenames=files_to_upload,
-            fps=fps,
-            as_frames=as_frames,
-            team=self.team,
-            path=path,
-        )
+        local_files = []
+        for file in files_to_upload:
+            local_files.append(LocalFile(file, fps=fps, as_frames=as_frames, path=path))
+
+        handler = UploadHandler(self.client, local_files, DatasetIdentifier(self.slug, self.team))
+        progress, count = handler.upload(), handler.pending_count
+        print("what's up", handler.pending_items, handler.blocked_count)
 
         # If blocking is selected, upload the dataset remotely
         if blocking:
             responses = exhaust_generator(progress=progress, count=count, multi_threaded=multi_threaded)
-            # Log responses to file
-            if responses:
-                responses = [{k: str(v) for k, v in response.items()} for response in responses]
-                if resume:
-                    responses.extend(logged_responses)
-                with responses_path.open("w") as f:
-                    json.dump(responses, f)
+            print(responses)
             return None, count
         else:
             return progress, count
