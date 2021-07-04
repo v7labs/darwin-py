@@ -340,6 +340,7 @@ def get_annotations(
             image_path = images_dir / f"{stem}{ext}"
             if image_path.exists():
                 images.append(image_path)
+                continue
             image_path = images_dir / f"{stem}{ext.upper()}"
             if image_path.exists():
                 images.append(image_path)
