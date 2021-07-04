@@ -19,7 +19,7 @@ class LocalDataset(object):
         split_type: str = "random",
         release_name: Optional[str] = None,
     ):
-        """ Creates a dataset
+        """Creates a dataset
 
         Parameters
         ----------
@@ -81,7 +81,7 @@ class LocalDataset(object):
                 ) from None
         else:
             # If the partition is not specified, get all the annotations
-            stems = [e.stem for e in annotations_dir.glob("**/*.json")]
+            stems = [e.relative_to(annotations_dir).parent / e.stem for e in annotations_dir.glob("**/*.json")]
 
         # Find all the annotations and their corresponding images
         for stem in stems:

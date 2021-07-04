@@ -13,6 +13,11 @@ class DatasetItem:
     dataset_slug: str
     seq: int
     current_workflow_id: Optional[int]
+    path: str
+
+    @property
+    def full_path(self) -> str:
+        return "/".join(filter(None, [self.path, self.filename]))
 
 
 def parse_dataset_item(raw) -> DatasetItem:
@@ -26,4 +31,5 @@ def parse_dataset_item(raw) -> DatasetItem:
         "n/a",
         raw["seq"],
         raw.get("current_workflow_id"),
+        raw["path"],
     )

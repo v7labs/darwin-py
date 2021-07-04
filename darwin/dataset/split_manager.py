@@ -44,6 +44,14 @@ def split_dataset(
     splits : dict
         Keys are the different splits (random, tags, ...) and values are the relative file names
     """
+    # Requirements: scikit-learn
+    try:
+        import sklearn  # noqa
+    except ImportError:
+        raise ImportError(
+            "Darwin requires scikit-learn to split a dataset. Install it using: pip install scikit-learn"
+        ) from None
+
     validate_split(val_percentage, test_percentage)
 
     # Infer release path
@@ -218,7 +226,6 @@ def _stratify_samples(idx_to_classes, split_seed, test_percentage, val_percentag
         List of indices of the images for each split
     """
 
-    ensure_sklearn_imported("split_dataset()")
     from sklearn.model_selection import train_test_split
 
     # Expand the list of files with all the classes
@@ -315,14 +322,6 @@ def remove_cross_contamination(X_a: np.ndarray, X_b: np.ndarray, y_a: np.ndarray
         y_a = y_a[keep_locations]
 
     return X_a, X_b, y_a, y_b
-
-
-def ensure_sklearn_imported(requester):
-    try:
-        import sklearn  # noqa
-    except ImportError:
-        print(f"`{requester}` requires sklearn to be installed, pip install scikit-learn")
-        sys.exit(0)
 
 
 def unique(array):

@@ -14,7 +14,7 @@ from darwin.dataset.split_manager import split_dataset
 from darwin.dataset.upload_manager import add_files_to_dataset
 from darwin.dataset.utils import exhaust_generator, get_annotations, get_classes, make_class_lists
 from darwin.exceptions import NotFound, UnsupportedExportFormat
-from darwin.exporter.formats.darwin import build_annotation
+from darwin.exporter.formats.darwin import build_image_annotation
 from darwin.item import parse_dataset_item
 from darwin.utils import find_files, parse_darwin_json, split_video_annotation, urljoin
 from darwin.validators import name_taken, validation_error
@@ -26,6 +26,7 @@ if TYPE_CHECKING:
 class RemoteDataset:
     def __init__(
         self,
+        *,
         client: "Client",
         team: str,
         name: str,
@@ -161,7 +162,7 @@ class RemoteDataset:
             return progress, count
 
     def split_video_annotations(self, release_name: str = "latest"):
-        release_dir = self.local_path / f"releases/{release_name}"
+        release_dir = self.local_path / "releases" / release_name
         video_frame_annotations_path = release_dir / "annotations"
 
         for count, annotation_file in enumerate(video_frame_annotations_path.glob("*.json")):
@@ -171,13 +172,13 @@ class RemoteDataset:
 
             frame_annotations = split_video_annotation(darwin_annotation)
             for frame_annotation in frame_annotations:
-                annotation = build_annotation(frame_annotation)
+                annotation = build_image_annotation(frame_annotation)
 
                 (video_frame_annotations_path / annotation_file.stem).mkdir(exist_ok=True, parents=True)
 
                 stem = frame_annotation.filename.split(".")[0]
-                output_path = f"{(video_frame_annotations_path / stem)}.json"
-                with open(output_path, "w") as f:
+                output_path = video_frame_annotations_path / f"{stem}.json"
+                with output_path.open("w") as f:
                     json.dump(annotation, f)
 
             # Finally delete video annotations
@@ -279,7 +280,9 @@ class RemoteDataset:
             latest_dir = self.local_releases_path / "latest"
             if latest_dir.is_symlink():
                 latest_dir.unlink()
-            latest_dir.symlink_to(f"./{release_dir.name}")
+
+            target_link = self.local_releases_path / release_dir.name
+            latest_dir.symlink_to(target_link)
 
         if only_annotations:
             # No images will be downloaded
@@ -316,7 +319,7 @@ class RemoteDataset:
     def fetch_remote_files(self, filters: Optional[dict] = None):
         """Fetch and lists all files on the remote dataset"""
         base_url = f"/datasets/{self.dataset_id}/items"
-        parameters = {"page[size]": 500}
+        parameters = {}
         if filters:
             for list_type in ["filenames", "statuses"]:
                 if list_type in filters:
@@ -329,9 +332,9 @@ class RemoteDataset:
             if "types" in filters:
                 parameters["types"] = filters["types"]
 
-        cursor = {}
+        cursor = {"page[size]": 500}
         while True:
-            response = self.client.get(f"{base_url}?{parse.urlencode({**parameters, **cursor})}", team=self.team)
+            response = self.client.post(f"{base_url}?{parse.urlencode(cursor)}", {"filter": parameters}, team=self.team)
             yield from [parse_dataset_item(item) for item in response["items"]]
             if response["metadata"]["next"]:
                 cursor["page[from]"] = response["metadata"]["next"]

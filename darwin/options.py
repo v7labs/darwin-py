@@ -133,6 +133,7 @@ class Options(object):
         parser_import.add_argument("format", type=str, help="Annotation import to import")
 
         parser_import.add_argument("files", type=str, nargs="+", help="Annotation files (or folders) to import")
+        parser_import.add_argument("--append", action="store_true", help="Append annotations instead of overwriting")
 
         # Convert
         parser_convert = dataset_action.add_parser("convert", help="Converts darwin json to other annotation formats.")
@@ -144,10 +145,6 @@ class Options(object):
         parser_convert.add_argument("format", type=str, help="Annotation import to convert to")
 
         parser_convert.add_argument("-o", "--output_dir", type=str, help="Where to store output files")
-
-        # Migrate
-        parser_migrate = dataset_action.add_parser("migrate", help="Migrate a local dataset to the latest version.")
-        parser_migrate.add_argument("dataset", type=str, help="Local dataset name to migrate.")
 
         # Split
         parser_split = dataset_action.add_parser(
