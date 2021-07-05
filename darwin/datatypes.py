@@ -2,6 +2,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
+from darwin.path_utils import construct_full_path
+
 Point = Dict[str, float]
 BoundingBox = Dict[str, float]
 Polygon = List[Point]
@@ -81,7 +83,7 @@ class AnnotationFile:
 
     @property
     def full_path(self) -> str:
-        return "/".join(filter(None, [self.remote_path, self.filename]))
+        return construct_full_path(self.remote_path, self.filename)
 
 
 def make_bounding_box(class_name, x, y, w, h):
