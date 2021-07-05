@@ -70,13 +70,16 @@ def _upload_files(client: "Client", files: List[LocalFile], items_pending_upload
         yield lambda: _upload_file(client, item["dataset_item_id"], file.local_path, team_slug=team_slug)
 
 def _upload_file(client: "Client", dataset_item_id: int, file_path: Path, team_slug: str):
+    print("about to request signature")
     sign_response = client.get(f"/dataset_items/{dataset_item_id}/sign_upload", team=team_slug)
     signature = sign_response["signature"]
     end_point = sign_response["postEndpoint"]
 
+    print("about to post to s3")
     upload_response = requests.post("http:" + end_point, data=signature, files={"file": file_path.open("rb")})
     upload_response.raise_for_status()
 
+    print("about to confirm upload complete")
     client.put(endpoint=f"/dataset_items/{dataset_item_id}/confirm_upload", payload={}, team=team_slug)
 
 
