@@ -79,6 +79,8 @@ def import_annotations(
     filenames = [parsed_file.filename for parsed_file in parsed_files]
 
     print("Fetching remote file list...")
+    # This call will only filter by filename; so can return a superset of matched files across different paths
+    # There is logic in this function to then include paths to narrow down to the single correct matching file
     remote_files = get_remote_files(dataset, filenames)
     for parsed_file in parsed_files:
         if parsed_file.full_path not in remote_files:
