@@ -256,6 +256,7 @@ def get_annotations(
     annotation_type: str = "polygon",
     release_name: Optional[str] = None,
     annotation_format: Optional[str] = "coco",
+    ignore_inconsistent_examples: bool = False,
 ):
     """
     Returns all the annotations of a given dataset and split in a single dictionary
@@ -276,6 +277,11 @@ def get_annotations(
         Version of the dataset
     annotation_format: str
         Re-formatting of the annotation when loaded [coco, darwin]
+    ignore_inconsistent_examples: bool
+        Ignore examples for which we have annotations, but either images are missing,
+        or more than one images exist for the same annotation.
+        If set to `True`, then filter those examples out of the dataset.
+        If set to `False`, then raise an error as soon as such an example is found.
 
     Returns
     -------
@@ -326,6 +332,7 @@ def get_annotations(
     annotations_paths = []
 
     # Find all the annotations and their corresponding images
+    invalid_annotation_paths = []
     for stem in stems:
         annotation_path = annotations_dir / f"{stem}.json"
         images = []
@@ -333,16 +340,26 @@ def get_annotations(
             image_path = images_dir / f"{stem}{ext}"
             if image_path.exists():
                 images.append(image_path)
+                continue
             image_path = images_dir / f"{stem}{ext.upper()}"
             if image_path.exists():
                 images.append(image_path)
-        if len(images) < 1:
+
+        image_count = len(images)
+        if image_count != 1 and ignore_inconsistent_examples:
+            invalid_annotation_paths.append(annotation_path)
+            continue
+        elif image_count < 1:
             raise ValueError(f"Annotation ({annotation_path}) does not have a corresponding image")
-        if len(images) > 1:
+        elif image_count > 1:
             raise ValueError(f"Image ({stem}) is present with multiple extensions. This is forbidden.")
 
         images_paths.append(images[0])
         annotations_paths.append(annotation_path)
+
+    print(f"Found {len(invalid_annotation_paths)} invalid annotations")
+    for p in invalid_annotation_paths:
+        print(p)
 
     if len(images_paths) == 0:
         raise ValueError(f"Could not find any {SUPPORTED_EXTENSIONS} file" f" in {dataset_path / 'images'}")

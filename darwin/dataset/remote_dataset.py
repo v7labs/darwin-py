@@ -163,9 +163,9 @@ class RemoteDataset:
 
     def split_video_annotations(self, release_name: str = "latest"):
         release_dir = self.local_path / "releases" / release_name
-        video_frame_annotations_path = release_dir / "annotations"
+        annotations_path = release_dir / "annotations"
 
-        for count, annotation_file in enumerate(video_frame_annotations_path.glob("*.json")):
+        for count, annotation_file in enumerate(annotations_path.glob("*.json")):
             darwin_annotation = parse_darwin_json(annotation_file, count)
             if not darwin_annotation.is_video:
                 continue
@@ -174,9 +174,10 @@ class RemoteDataset:
             for frame_annotation in frame_annotations:
                 annotation = build_image_annotation(frame_annotation)
 
-                (video_frame_annotations_path / annotation_file.stem).mkdir(exist_ok=True, parents=True)
+                video_frame_annotations_path = annotations_path / annotation_file.stem
+                video_frame_annotations_path.mkdir(exist_ok=True, parents=True)
 
-                stem = frame_annotation.filename.split(".")[0]
+                stem = Path(frame_annotation.filename).stem
                 output_path = video_frame_annotations_path / f"{stem}.json"
                 with output_path.open("w") as f:
                     json.dump(annotation, f)
