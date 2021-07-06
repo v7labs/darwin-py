@@ -34,7 +34,7 @@ def parse_json(path, data):
         image = image_lookup_table[image_id]
         annotations = list(filter(None, image_annotations[image_id]))
         annotation_classes = set([annotation.annotation_class for annotation in annotations])
-        yield dt.AnnotationFile(path, image["file_name"], annotation_classes, annotations)
+        yield dt.AnnotationFile(path, image["file_name"], annotation_classes, annotations, remote_path = "/")
 
 
 def parse_annotation(annotation, category_lookup_table):

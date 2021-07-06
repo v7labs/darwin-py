@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from typing import Optional
-
+from darwin.path_utils import construct_full_path
 
 @dataclass(frozen=True, eq=True)
 class DatasetItem:
@@ -17,7 +17,7 @@ class DatasetItem:
 
     @property
     def full_path(self) -> str:
-        return "/".join(filter(None, [self.path, self.filename]))
+        return construct_full_path(self.path, self.filename)
 
 
 def parse_dataset_item(raw) -> DatasetItem:
