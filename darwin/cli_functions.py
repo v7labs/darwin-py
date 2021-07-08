@@ -14,8 +14,8 @@ import darwin.importer.formats
 from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset.identifier import DatasetIdentifier
-from darwin.dataset.utils import get_release_path
 from darwin.dataset.split_manager import split_dataset
+from darwin.dataset.utils import get_release_path
 from darwin.exceptions import (
     InvalidLogin,
     MissingConfig,
@@ -27,7 +27,12 @@ from darwin.exceptions import (
     ValidationError,
 )
 from darwin.table import Table
-from darwin.utils import find_files, persist_client_configuration, prompt, secure_continue_request
+from darwin.utils import (
+    find_files,
+    persist_client_configuration,
+    prompt,
+    secure_continue_request,
+)
 
 
 def validate_api_key(api_key: str):
@@ -356,6 +361,7 @@ def upload_data(
     fps: int,
     path: Optional[str],
     frames: Optional[bool],
+    verbose: bool = False
 ):
     """Uploads the files provided as parameter to the remote dataset selected
 
@@ -380,7 +386,8 @@ def upload_data(
     client = _load_client()
     try:
         dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
-        dataset.push(files_to_exclude=files_to_exclude, fps=fps, as_frames=frames, files_to_upload=files, path=path)
+        upload_manager = dataset.push(files_to_exclude=files_to_exclude, fps=fps, as_frames=frames, files_to_upload=files, path=path)
+        upload_manager.show_breakdown(verbose)
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
     except UnsupportedFileType as e:

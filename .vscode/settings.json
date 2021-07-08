@@ -1,0 +1,14 @@
+{
+  "editor.formatOnSave": true,
+  "[python]": {
+    "editor.tabSize": 4,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": true,
+    }
+  },
+  "python.formatting.provider": "black",
+  "python.formatting.blackArgs": ["-l 120"],
+  "python.linting.mypyEnabled": true,
+  "python.sortImports.args": ["--profile", "black"],
+  "python.testing.pytestEnabled": true
+}

@@ -7,12 +7,11 @@ from pathlib import Path
 from typing import Dict, Generator, Iterable, List, Optional, Set, Union
 
 import numpy as np
-from PIL import Image
-from tqdm import tqdm
-
 from darwin.exceptions import NotFound
 from darwin.importer.formats.darwin import parse_file
 from darwin.utils import SUPPORTED_EXTENSIONS, SUPPORTED_VIDEO_EXTENSIONS
+from PIL import Image
+from tqdm import tqdm
 
 
 def get_release_path(dataset_path: Path, release_name: Optional[str] = None):

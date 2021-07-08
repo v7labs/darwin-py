@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 
 class Table(object):
@@ -7,11 +7,16 @@ class Table(object):
     R = True
     L = False
 
-    def __init__(self, columns: List[str], alignments: List[bool], column_margin: int = 5):
+    def __init__(self, columns: List[str], alignments: Optional[List[bool]] = None, column_margin: int = 5):
         if len(columns) == 0:
             raise Exception("No columns specified")
+
+        if alignments is None:
+            alignments = [Table.L for _ in columns]
+        
         if len(columns) != len(alignments):
             raise Exception("Columns and alignments should have the same length")
+
         self.alignments = alignments
         self.column_margin = column_margin
         self.table: dict = {column: [] for column in columns}

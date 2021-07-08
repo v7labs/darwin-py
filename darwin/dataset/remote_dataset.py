@@ -11,12 +11,23 @@ from darwin.dataset.download_manager import download_all_images_from_annotations
 from darwin.dataset.identifier import DatasetIdentifier
 from darwin.dataset.release import Release
 from darwin.dataset.split_manager import split_dataset
-from darwin.dataset.upload_manager import UploadHandler, LocalFile
-from darwin.dataset.utils import exhaust_generator, get_annotations, get_classes, make_class_lists
+from darwin.dataset.upload_manager import LocalFile, UploadHandler
+from darwin.dataset.utils import (
+    exhaust_generator,
+    get_annotations,
+    get_classes,
+    make_class_lists,
+)
 from darwin.exceptions import NotFound, UnsupportedExportFormat
 from darwin.exporter.formats.darwin import build_image_annotation
 from darwin.item import parse_dataset_item
-from darwin.utils import find_files, parse_darwin_json, split_video_annotation, urljoin
+from darwin.utils import (
+    find_files,
+    parse_darwin_json,
+    secure_continue_request,
+    split_video_annotation,
+    urljoin,
+)
 from darwin.validators import name_taken, validation_error
 
 if TYPE_CHECKING:
@@ -106,10 +117,6 @@ class RemoteDataset:
             The files count
         """
 
-        # paths needs to start with /
-        if path and path[0] != "/":
-            path = f"/{path}"
-
         # Init optional parameters
         if files_to_exclude is None:
             files_to_exclude = []
@@ -126,16 +133,13 @@ class RemoteDataset:
             local_files.append(LocalFile(file, fps=fps, as_frames=as_frames, path=path))
 
         handler = UploadHandler(self.client, local_files, DatasetIdentifier(self.slug, self.team))
-        progress, count = handler.upload(), handler.pending_count
-        print("what's up", handler.pending_items, handler.blocked_count)
+        handler.upload()
 
         # If blocking is selected, upload the dataset remotely
-        if blocking:
-            responses = exhaust_generator(progress=progress, count=count, multi_threaded=multi_threaded)
-            print(responses)
-            return None, count
-        else:
-            return progress, count
+        if blocking and handler.pending_count:
+            exhaust_generator(progress=handler.progress, count=handler.pending_count, multi_threaded=multi_threaded)
+
+        return handler
 
     def split_video_annotations(self, release_name: str = "latest"):
         release_dir = self.local_path / "releases" / release_name
