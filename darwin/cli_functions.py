@@ -1,11 +1,12 @@
 import argparse
 import datetime
-import shutil
 import sys
 from pathlib import Path
 from typing import List, Optional, Union
 
 import humanize
+from rich.console import Console
+from rich.table import Table
 
 import darwin.exporter as exporter
 import darwin.exporter.formats
@@ -15,6 +16,7 @@ from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset.identifier import DatasetIdentifier
 from darwin.dataset.split_manager import split_dataset
+from darwin.dataset.upload_manager import UploadRequestError, UploadStage
 from darwin.dataset.utils import get_release_path
 from darwin.exceptions import (
     InvalidLogin,
@@ -26,7 +28,6 @@ from darwin.exceptions import (
     UnsupportedFileType,
     ValidationError,
 )
-from darwin.table import Table
 from darwin.utils import (
     find_files,
     persist_client_configuration,
@@ -136,18 +137,23 @@ def create_dataset(dataset_slug: str):
 
 def local(team: Optional[str] = None):
     """Lists synced datasets, stored in the specified path. """
-    table = Table(["name", "images", "sync_date", "size"], [Table.L, Table.R, Table.R, Table.R])
+    
+    table = Table(show_header=True, header_style="bold blue")
+    table.add_column("Name")
+    table.add_column("Image Count", justify="right")
+    table.add_column("Sync Date", justify="right")
+    table.add_column("Size", justify="right")
+    
     client = _load_client(offline=True)
     for dataset_path in client.list_local_datasets(team=team):
         table.add_row(
-            {
-                "name": f"{dataset_path.parent.name}/{dataset_path.name}",
-                "images": sum(1 for _ in find_files([dataset_path])),
-                "sync_date": humanize.naturaldate(datetime.datetime.fromtimestamp(dataset_path.stat().st_mtime)),
-                "size": humanize.naturalsize(sum(p.stat().st_size for p in find_files([dataset_path]))),
-            }
+            f"{dataset_path.parent.name}/{dataset_path.name}",
+            str(sum(1 for _ in find_files([dataset_path]))),
+            humanize.naturaldate(datetime.datetime.fromtimestamp(dataset_path.stat().st_mtime)),
+            humanize.naturalsize(sum(p.stat().st_size for p in find_files([dataset_path])))
         )
-    print(table)
+    
+    Console().print(table)
 
 
 def path(dataset_slug: str) -> Path:
@@ -296,7 +302,11 @@ def split(dataset_slug: str, val_percentage: float, test_percentage: float, seed
 def list_remote_datasets(all_teams: bool, team: Optional[str] = None):
     """Lists remote datasets with its annotation progress"""
     # TODO: add listing open datasets
-    table = Table(["name", "images"], [Table.L, Table.R])
+
+    table = Table(show_header=True, header_style="bold blue")
+    table.add_column("Name")
+    table.add_column("Item Count", justify="right")
+    
     datasets = []
     if all_teams:
         for team in _config().get_all_teams():
@@ -307,11 +317,11 @@ def list_remote_datasets(all_teams: bool, team: Optional[str] = None):
         datasets = client.list_remote_datasets()
 
     for dataset in datasets:
-        table.add_row({"name": f"{dataset.team}/{dataset.slug}", "images": dataset.image_count})
-    if len(table) == 0:
+        table.add_row(f"{dataset.team}/{dataset.slug}", str(dataset.image_count))
+    if table.row_count == 0:
         print("No dataset available.")
     else:
-        print(table)
+        Console().print(table)
 
 
 def remove_remote_dataset(dataset_slug: str):
@@ -337,19 +347,24 @@ def dataset_list_releases(dataset_slug: str):
         if len(releases) == 0:
             print("No available releases, export one first.")
             return
-        table = Table(["name", "images", "classes", "export_date"], [Table.L, Table.R, Table.R, Table.R])
+
+        table = Table(show_header=True, header_style="bold blue")
+        table.add_column("Name")
+        table.add_column("Item Count", justify="right")
+        table.add_column("Class Count", justify="right")
+        table.add_column("Export Date", justify="right")
+        
         for release in releases:
             if not release.available:
                 continue
             table.add_row(
-                {
-                    "name": release.identifier,
-                    "images": release.image_count,
-                    "classes": release.class_count,
-                    "export_date": release.export_date,
-                }
+                str(release.identifier),
+                str(release.image_count),
+                str(release.class_count),
+                str(release.export_date)
             )
-        print(table)
+        
+        Console().print(table)
     except NotFound:
         _error(f"No dataset with name '{dataset_slug}'")
 
@@ -387,7 +402,72 @@ def upload_data(
     try:
         dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
         upload_manager = dataset.push(files_to_exclude=files_to_exclude, fps=fps, as_frames=frames, files_to_upload=files, path=path)
-        upload_manager.show_breakdown(verbose)
+        
+        console = Console()
+
+        console.print()
+
+        if not upload_manager.blocked_count and not upload_manager.error_count:
+            console.print(f"All {upload_manager.total_count} files have been successfully uploaded.")
+            return
+
+        if upload_manager.blocked_count:
+            console.print(f"{upload_manager.blocked_count} out of {upload_manager.total_count} files were prevented from being uploaded.")
+        
+        if upload_manager.error_count:
+            console.print(f"{upload_manager.error_count} out of {upload_manager.total_count} files couldn't be uploaded because an error occurred.")
+
+        if not verbose:
+            console.print('Re-run with "--verbose" for further details')
+            return
+
+        error_table = Table(show_header=True, header_style="bold blue")
+        error_table.add_column("Dataset Item ID")
+        error_table.add_column("Filename")
+        # error_table.add_column("Remote Path")
+        error_table.add_column("Stage")
+        error_table.add_column("Reason")
+        
+        for item in upload_manager.blocked_items:
+            dataset_item_id = str(item.dataset_item_id)
+            filename = item.filename
+            # remote_path = item.path
+            stage = "UPLOAD_REQUEST"
+            reason = item.reason
+            
+            error_table.add_row(
+                dataset_item_id,
+                filename,
+                # remote_path,
+                stage,
+                reason
+            )
+
+        for error in upload_manager.errors:
+            for local_file in upload_manager.local_files:
+                if local_file.local_path != error.file_path:
+                    continue
+
+                for pending_item in upload_manager.pending_items:
+                    if pending_item.filename != local_file.data["filename"]:
+                        continue
+
+                    dataset_item_id = str(pending_item.dataset_item_id)
+                    filename = pending_item.filename
+                    # remote_path = item.path
+                    stage = error.stage.name
+                    reason = ""
+
+                    error_table.add_row(
+                        dataset_item_id,
+                        filename,
+                        # remote_path,
+                        stage,
+                        reason
+                    )
+                    break
+
+        console.print(error_table)
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
     except UnsupportedFileType as e:

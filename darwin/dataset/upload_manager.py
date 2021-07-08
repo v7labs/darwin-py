@@ -1,17 +1,27 @@
+from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
 import requests
 
 if TYPE_CHECKING:
     from darwin.client import Client
+    from darwin.dataset.identifier import DatasetIdentifier
 
 from rich.console import Console
 from rich.table import Table
 
 
+class ItemPayload:
+    def __init__(self, *, dataset_item_id: int, filename: str, reason: Optional[str] = None):
+        self.dataset_item_id = dataset_item_id
+        self.filename = filename
+        self.reason = reason
+
+
 class LocalFile:
-    def __init__(self, local_path, **kwargs):
+    def __init__(self, local_path: str, **kwargs):
         self.local_path = Path(local_path)
         self.data = kwargs
         self._type_check(kwargs)
@@ -20,21 +30,38 @@ class LocalFile:
         self.data["filename"] = args.get("filename") or self.local_path.name
 
 
+class UploadStage(Enum):
+    REQUEST_SIGNATURE = 0
+    UPLOAD_TO_S3 = 1
+    CONFIRM_UPLOAD_COMPLETE = 2
+
+
+@dataclass
+class UploadRequestError(Exception):
+    file_path: Path
+    stage: UploadStage
+
+
 class UploadHandler:
-    def __init__(self, client, local_files, dataset_identifier):
+    def __init__(self, client: "Client", local_files: List[LocalFile], dataset_identifier: "DatasetIdentifier"):
         self.client = client
-        self.local_files = local_files
         self.dataset_identifier = dataset_identifier
+        self.errors: List[UploadRequestError] = []
+        self.local_files = local_files
 
-        self.blocked_items, self.pending_items = request_upload(client, local_files, dataset_identifier)
-
-    @property
-    def pending_count(self):
-        return len(self.pending_items)
+        self.blocked_items, self.pending_items = self._request_upload()
 
     @property
     def blocked_count(self):
         return len(self.blocked_items)
+
+    @property
+    def error_count(self):
+        return len(self.errors)
+
+    @property
+    def pending_count(self):
+        return len(self.pending_items)
 
     @property
     def total_count(self):
@@ -44,63 +71,68 @@ class UploadHandler:
     def progress(self):
         return self._progress
 
-    def show_breakdown(self, verbose: bool) -> None:
-        console = Console()
-
-        if not self.blocked_count:
-            console.print(f"All {self.total_count} files will be uploaded.")
-            return
-
-        console.print(f"{self.blocked_count} out of {self.total_count} files will not be uploaded.")
-
-        if not verbose:
-            console.print('Re-run with "--verbose" for further details')
-            return
-
-        blocked_items_table = Table(show_header=True, header_style="bold blue")
-        blocked_items_table.add_column("Dataset Item ID")
-        blocked_items_table.add_column("Filename")
-        blocked_items_table.add_column("Reason")
-        for item in self.blocked_items:
-            blocked_items_table.add_row(*map(str, item.values()))
-
-        console.print(blocked_items_table)
-
     def upload(self):
-        self._progress = _upload_files(
-            self.client, self.local_files, self.pending_items, self.dataset_identifier.team_slug
-        )
+        self._progress = self._upload_files()
         return self._progress
 
+    def _request_upload(self) -> Tuple[List[ItemPayload], List[ItemPayload]]:
+        upload_payload = {"items": [file.data for file in self.local_files]}
+        data = self.client.put(
+            endpoint=f"/teams/{self.dataset_identifier.team_slug}/datasets/{self.dataset_identifier.dataset_slug}/data",
+            payload=upload_payload,
+            team=self.dataset_identifier.team_slug,
+        )
+        blocked_items = [ItemPayload(**item) for item in data["blocked_items"]]
+        items = [ItemPayload(**item) for item in data["items"]]
+        return blocked_items, items
 
-def request_upload(client: "Client", files: List[LocalFile], dataset_identifier):
-    upload_payload = {"items": [file.data for file in files]}
-    data = client.put(
-        endpoint=f"/teams/{dataset_identifier.team_slug}/datasets/{dataset_identifier.dataset_slug}/data",
-        payload=upload_payload,
-        team=dataset_identifier.team_slug,
-    )
-    return data["blocked_items"], data["items"]
+    def _upload_files(self):
+        file_lookup = {file.data["filename"]: file for file in self.local_files}
+        for item in self.pending_items:
+            file = file_lookup.get(item.filename)
+            if not file:
+                raise ValueError(f"Can not match {item.filename} from payload with files to upload")
+            yield lambda: self._upload_file(item.dataset_item_id, file.local_path)
 
+    def _upload_file(self, dataset_item_id: int, file_path: Path):
+        try:
+            self._do_upload_file(dataset_item_id, file_path)
+        except UploadRequestError as e:
+            self.errors.append(e)
 
-def _upload_files(client: "Client", files: List[LocalFile], items_pending_upload, team_slug: str):
-    file_lookup = {file.data["filename"]: file for file in files}
-    for item in items_pending_upload:
-        file = file_lookup.get(item["filename"])
-        if not file:
-            raise ValueError(f"Can not match {item['filename']} from payload with files to upload")
-        yield lambda: _upload_file(client, item["dataset_item_id"], file.local_path, team_slug=team_slug)
+    def _do_upload_file(self, dataset_item_id: int, file_path: Path):
+        team_slug = self.dataset_identifier.team_slug
 
+        # from random import randint
 
-def _upload_file(client: "Client", dataset_item_id: int, file_path: Path, team_slug: str):
-    print("about to request signature")
-    sign_response = client.get(f"/dataset_items/{dataset_item_id}/sign_upload", team=team_slug)
-    signature = sign_response["signature"]
-    end_point = sign_response["postEndpoint"]
+        # stage = randint(0, 3)
 
-    print("about to post to s3")
-    upload_response = requests.post("http:" + end_point, data=signature, files={"file": file_path.open("rb")})
-    upload_response.raise_for_status()
+        try:
+            # if stage == 0:
+            #     raise
+            sign_response = self.client.get(f"/dataset_items/{dataset_item_id}/sign_upload", team=team_slug, raw=True)
+            sign_response.raise_for_status()
+            sign_response = sign_response.json()
+        except Exception:
+            raise UploadRequestError(file_path=file_path, stage=UploadStage.REQUEST_SIGNATURE)
 
-    print("about to confirm upload complete")
-    client.put(endpoint=f"/dataset_items/{dataset_item_id}/confirm_upload", payload={}, team=team_slug)
+        signature = sign_response["signature"]
+        end_point = sign_response["postEndpoint"]
+
+        try:
+            # if stage == 1:
+            #     raise
+            upload_response = requests.post(f"http:{end_point}", data=signature, files={"file": file_path.open("rb")})
+            upload_response.raise_for_status()
+        except Exception:
+            raise UploadRequestError(file_path=file_path, stage=UploadStage.UPLOAD_TO_S3)
+
+        try:
+            # if stage == 2:
+            #     raise
+            confirm_response = self.client.put(
+                endpoint=f"/dataset_items/{dataset_item_id}/confirm_upload", payload={}, team=team_slug, raw=True
+            )
+            confirm_response.raise_for_status()
+        except Exception:
+            raise UploadRequestError(file_path=file_path, stage=UploadStage.CONFIRM_UPLOAD_COMPLETE)

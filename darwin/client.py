@@ -8,7 +8,13 @@ import requests
 from darwin.config import Config
 from darwin.dataset import RemoteDataset
 from darwin.dataset.identifier import DatasetIdentifier
-from darwin.exceptions import InsufficientStorage, InvalidLogin, MissingConfig, NotFound, Unauthorized
+from darwin.exceptions import (
+    InsufficientStorage,
+    InvalidLogin,
+    MissingConfig,
+    NotFound,
+    Unauthorized,
+)
 from darwin.utils import is_project_dir, urljoin
 from darwin.validators import name_taken, validation_error
 
@@ -70,7 +76,7 @@ class Client:
         else:
             return self._decode_response(response, debug)
 
-    def put(self, endpoint: str, payload: Dict, team: Optional[str] = None, retry: bool = False, debug: bool = False):
+    def put(self, endpoint: str, payload: Dict, team: Optional[str] = None, retry: bool = False, debug: bool = False, raw: bool = False):
         """Put something on the server trough HTTP
 
         Parameters
@@ -83,6 +89,8 @@ class Client:
             Retry to perform the operation. Set to False on recursive calls.
         debug : bool
             Debugging flag. In this case failed requests get printed
+        raw : bool
+            Flag for returning raw response
 
         Returns
         -------
@@ -110,7 +118,10 @@ class Client:
             time.sleep(10)
             return self.put(endpoint, payload=payload, retry=False)
 
-        return self._decode_response(response, debug)
+        if raw:
+            return response
+        else:
+            return self._decode_response(response, debug)
 
     def post(
         self,
