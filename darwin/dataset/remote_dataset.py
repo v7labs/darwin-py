@@ -80,7 +80,7 @@ class RemoteDataset:
         self,
         files_to_upload: List[str],
         blocking: bool = True,
-        multi_threaded: bool = False,
+        multi_threaded: bool = True,
         fps: int = 1,
         as_frames: bool = False,
         files_to_exclude: Optional[List[str]] = None,
@@ -137,7 +137,17 @@ class RemoteDataset:
 
         # If blocking is selected, upload the dataset remotely
         if blocking and handler.pending_count:
-            exhaust_generator(progress=handler.progress, count=handler.pending_count, multi_threaded=multi_threaded)
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+                future_to_progress = {executor.submit(f): f for f in handler.progress}
+                for future in concurrent.futures.as_completed(future_to_progress):
+                    try:
+                        future.result()
+                    except Exception as exc:
+                        print('%r generated an exception: %s' % (url, exc))
+                    else:
+                        print("one more file uploaded :)")
+            print(handler.errors)
 
         return handler
 
