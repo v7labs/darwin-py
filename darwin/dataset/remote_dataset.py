@@ -81,7 +81,7 @@ class RemoteDataset:
         self,
         files_to_upload: List[str],
         blocking: bool = True,
-        multi_threaded: bool = False,
+        multi_threaded: bool = True,
         fps: int = 1,
         as_frames: bool = False,
         files_to_exclude: Optional[List[str]] = None,
@@ -134,28 +134,11 @@ class RemoteDataset:
             local_files.append(LocalFile(file, fps=fps, as_frames=as_frames, path=path))
 
         handler = UploadHandler(self.client, local_files, DatasetIdentifier(self.slug, self.team))
-        handler.upload()
+        if blocking:
+            handler.upload(multi_threaded=multi_threaded, progress_callback=progress_callback)
+        else:
+            handler.prepare_upload()
 
-        # If blocking is selected, upload the dataset remotely
-        if blocking and handler.pending_count:
-            if progress_callback:
-                progress_callback(handler.pending_count, 0)
-            if multi_threaded:
-                with concurrent.futures.ThreadPoolExecutor() as executor:
-                    future_to_progress = {executor.submit(f): f for f in handler.progress}
-                    for future in concurrent.futures.as_completed(future_to_progress):
-                        try:
-                            future.result()
-                        except Exception as exc:
-                            print(exc)
-                        else:
-                            if progress_callback:
-                                progress_callback(handler.pending_count, 1)
-            else:
-                for file_to_upload in handler.progress:
-                    file_to_upload()
-                    if progress_callback:
-                        progress_callback(handler.pending_count, 1)
         return handler
 
     def split_video_annotations(self, release_name: str = "latest"):

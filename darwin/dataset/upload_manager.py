@@ -1,7 +1,8 @@
+import concurrent.futures
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple
 
 import requests
 from darwin.path_utils import construct_full_path
@@ -58,7 +59,8 @@ class UploadHandler:
         self.dataset_identifier = dataset_identifier
         self.errors: List[UploadRequestError] = []
         self.local_files = local_files
-
+        self._progress = None
+        
         self.blocked_items, self.pending_items = self._request_upload()
 
     @property
@@ -81,9 +83,32 @@ class UploadHandler:
     def progress(self):
         return self._progress
 
-    def upload(self):
+    def prepare_upload(self):
         self._progress = self._upload_files()
         return self._progress
+
+    def upload(self, multi_threaded: bool = True, progress_callback: Optional[Callable[[int, int], None]] = None):
+        if not self._progress:
+            self.prepare_upload()
+        if progress_callback:
+            progress_callback(self.pending_count, 0)
+        
+        if multi_threaded:
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future_to_progress = {executor.submit(f): f for f in self.progress}
+                for future in concurrent.futures.as_completed(future_to_progress):
+                    try:
+                        future.result()
+                    except Exception as exc:
+                        print(exc)
+                    else:
+                        if progress_callback:
+                            progress_callback(self.pending_count, 1)
+        else:
+            for file_to_upload in self.progress:
+                file_to_upload()
+                if progress_callback:
+                    progress_callback(self.pending_count, 1)
 
     def _request_upload(self) -> Tuple[List[ItemPayload], List[ItemPayload]]:
         upload_payload = {"items": [file.data for file in self.local_files]}
