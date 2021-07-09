@@ -86,7 +86,7 @@ class RemoteDataset:
         files_to_exclude: Optional[List[str]] = None,
         resume: bool = False,
         path: Optional[str] = None,
-        progress_callback: Optional[Callable[[int, int], None]] = None
+        progress_callback: Optional[Callable[[int, int], None]] = None,
     ):
         """Uploads a local dataset (images ONLY) in the datasets directory.
 

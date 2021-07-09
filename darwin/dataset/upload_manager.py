@@ -92,7 +92,7 @@ class UploadHandler:
             self.prepare_upload()
         if progress_callback:
             progress_callback(self.pending_count, 0)
-        
+
         if multi_threaded:
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 future_to_progress = {executor.submit(f): f for f in self.progress}
@@ -136,7 +136,6 @@ class UploadHandler:
             self.errors.append(e)
         except Exception as e:
             self.errors.append(UploadRequestError(file_path=file_path, stage=UploadStage.OTHER, error=e))
-        
 
     def _do_upload_file(self, dataset_item_id: int, file_path: Path):
         team_slug = self.dataset_identifier.team_slug
