@@ -50,7 +50,7 @@ class UploadStage(Enum):
 class UploadRequestError(Exception):
     file_path: Path
     stage: UploadStage
-    error: Optional[Exception]
+    error: Optional[Exception] = None
 
 
 class UploadHandler:
@@ -60,7 +60,7 @@ class UploadHandler:
         self.errors: List[UploadRequestError] = []
         self.local_files = local_files
         self._progress = None
-        
+
         self.blocked_items, self.pending_items = self._request_upload()
 
     @property
@@ -145,8 +145,8 @@ class UploadHandler:
             sign_response = self.client.get(f"/dataset_items/{dataset_item_id}/sign_upload", team=team_slug, raw=True)
             sign_response.raise_for_status()
             sign_response = sign_response.json()
-        except Exception:
-            raise UploadRequestError(file_path=file_path, stage=UploadStage.REQUEST_SIGNATURE)
+        except Exception as e:
+            raise UploadRequestError(file_path=file_path, stage=UploadStage.REQUEST_SIGNATURE, error=e)
 
         signature = sign_response["signature"]
         end_point = sign_response["postEndpoint"]
@@ -154,13 +154,13 @@ class UploadHandler:
         try:
             upload_response = requests.post(f"http:{end_point}", data=signature, files={"file": file_path.open("rb")})
             upload_response.raise_for_status()
-        except Exception:
-            raise UploadRequestError(file_path=file_path, stage=UploadStage.UPLOAD_TO_S3)
+        except Exception as e:
+            raise UploadRequestError(file_path=file_path, stage=UploadStage.UPLOAD_TO_S3, error=e)
 
         try:
             confirm_response = self.client.put(
                 endpoint=f"/dataset_items/{dataset_item_id}/confirm_upload", payload={}, team=team_slug, raw=True
             )
             confirm_response.raise_for_status()
-        except Exception:
-            raise UploadRequestError(file_path=file_path, stage=UploadStage.CONFIRM_UPLOAD_COMPLETE)
+        except Exception as e:
+            raise UploadRequestError(file_path=file_path, stage=UploadStage.CONFIRM_UPLOAD_COMPLETE, error=e)

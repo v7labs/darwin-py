@@ -1,4 +1,3 @@
-import concurrent.futures
 import json
 import shutil
 import tempfile

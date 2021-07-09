@@ -55,6 +55,7 @@ class Client:
         Unauthorized
             Action is not authorized
         """
+
         response = requests.get(urljoin(self.url, endpoint), headers=self._get_headers(team))
 
         if response.status_code == 401:
