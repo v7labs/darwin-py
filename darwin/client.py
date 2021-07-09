@@ -97,6 +97,7 @@ class Client:
         dict
         Dictionary which contains the server response
         """
+        print('andrea', urljoin(self.url, endpoint))
         response = requests.put(urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team))
 
         if response.status_code == 401:
