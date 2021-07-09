@@ -42,12 +42,14 @@ class UploadStage(Enum):
     REQUEST_SIGNATURE = 0
     UPLOAD_TO_S3 = 1
     CONFIRM_UPLOAD_COMPLETE = 2
+    OTHER = 3
 
 
 @dataclass
 class UploadRequestError(Exception):
     file_path: Path
     stage: UploadStage
+    error: Optional[Exception]
 
 
 class UploadHandler:
@@ -108,6 +110,9 @@ class UploadHandler:
             self._do_upload_file(dataset_item_id, file_path)
         except UploadRequestError as e:
             self.errors.append(e)
+        except Exception as e:
+            self.errors.append(UploadRequestError(file_path=file_path, stage=UploadStage.OTHER, error=e))
+        
 
     def _do_upload_file(self, dataset_item_id: int, file_path: Path):
         team_slug = self.dataset_identifier.team_slug

@@ -1,3 +1,4 @@
+import concurrent.futures
 import json
 import shutil
 import tempfile
@@ -80,12 +81,13 @@ class RemoteDataset:
         self,
         files_to_upload: List[str],
         blocking: bool = True,
-        multi_threaded: bool = True,
+        multi_threaded: bool = False,
         fps: int = 1,
         as_frames: bool = False,
         files_to_exclude: Optional[List[str]] = None,
         resume: bool = False,
         path: Optional[str] = None,
+        progress_callback: Optional[Callable[[int, int], None]] = None
     ):
         """Uploads a local dataset (images ONLY) in the datasets directory.
 
@@ -108,13 +110,12 @@ class RemoteDataset:
             Flag for signalling the resuming of a push
         path: str
             Optional path to put the files into
-
+        progress_callback: (total_file_count, files_uploaded_deleta) => None
+            Optional callback, called with the total number of files to upload and a delta
         Returns
         -------
-        generator : function
-            Generator for doing the actual uploads. This is None if blocking is True
-        count : int
-            The files count
+        handler : UploadHandler
+           Class for handling uploads, progress and error messages
         """
 
         # Init optional parameters
@@ -137,18 +138,24 @@ class RemoteDataset:
 
         # If blocking is selected, upload the dataset remotely
         if blocking and handler.pending_count:
-            import concurrent.futures
-            with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-                future_to_progress = {executor.submit(f): f for f in handler.progress}
-                for future in concurrent.futures.as_completed(future_to_progress):
-                    try:
-                        future.result()
-                    except Exception as exc:
-                        print('%r generated an exception: %s' % (url, exc))
-                    else:
-                        print("one more file uploaded :)")
-            print(handler.errors)
-
+            if progress_callback:
+                progress_callback(handler.pending_count, 0)
+            if multi_threaded:
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    future_to_progress = {executor.submit(f): f for f in handler.progress}
+                    for future in concurrent.futures.as_completed(future_to_progress):
+                        try:
+                            future.result()
+                        except Exception as exc:
+                            print(exc)
+                        else:
+                            if progress_callback:
+                                progress_callback(handler.pending_count, 1)
+            else:
+                for file_to_upload in handler.progress:
+                    file_to_upload()
+                    if progress_callback:
+                        progress_callback(handler.pending_count, 1)
         return handler
 
     def split_video_annotations(self, release_name: str = "latest"):

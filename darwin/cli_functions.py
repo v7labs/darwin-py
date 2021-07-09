@@ -6,6 +6,7 @@ from typing import List, Optional, Union
 
 import humanize
 from rich.console import Console
+from rich.progress import Progress
 from rich.table import Table
 from rich.theme import Theme
 
@@ -402,8 +403,11 @@ def upload_data(
     client = _load_client()
     try:
         dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
-        upload_manager = dataset.push(files_to_exclude=files_to_exclude, fps=fps, as_frames=frames, files_to_upload=files, path=path)
-        
+        with Progress() as progress:
+            upload_tasks = progress.add_task("[green]Uploading...")
+            def upload_callback(total, advance):
+                progress.update(upload_tasks, total=total, advance=advance)
+            upload_manager = dataset.push(files_to_exclude=files_to_exclude, fps=fps, as_frames=frames, files_to_upload=files, path=path, progress_callback=upload_callback)        
         console = Console(theme=_console_theme())
 
         console.print()
@@ -454,7 +458,8 @@ def upload_data(
                         str(pending_item.dataset_item_id),
                         pending_item.filename,
                         pending_item.path,
-                        error.stage.name
+                        error.stage.name,
+                        str(error.error)
                     )
                     break
 
