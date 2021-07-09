@@ -4,20 +4,23 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
 import requests
+from darwin.path_utils import construct_full_path
 
 if TYPE_CHECKING:
     from darwin.client import Client
     from darwin.dataset.identifier import DatasetIdentifier
 
-from rich.console import Console
-from rich.table import Table
-
 
 class ItemPayload:
-    def __init__(self, *, dataset_item_id: int, filename: str, reason: Optional[str] = None):
+    def __init__(self, *, dataset_item_id: int, filename: str, path: str, reason: Optional[str] = None):
         self.dataset_item_id = dataset_item_id
         self.filename = filename
+        self.path = path
         self.reason = reason
+
+    @property
+    def full_path(self):
+        return construct_full_path(self.path, self.filename)
 
 
 class LocalFile:
@@ -28,6 +31,11 @@ class LocalFile:
 
     def _type_check(self, args):
         self.data["filename"] = args.get("filename") or self.local_path.name
+        self.data["remote_path"] = args.get("path")
+
+    @property
+    def full_path(self):
+        return construct_full_path(self.data["remote_path"], self.data["filename"])
 
 
 class UploadStage(Enum):
@@ -87,9 +95,9 @@ class UploadHandler:
         return blocked_items, items
 
     def _upload_files(self):
-        file_lookup = {file.data["filename"]: file for file in self.local_files}
+        file_lookup = {file.full_path: file for file in self.local_files}
         for item in self.pending_items:
-            file = file_lookup.get(item.filename)
+            file = file_lookup.get(item.full_path)
             if not file:
                 raise ValueError(f"Can not match {item.filename} from payload with files to upload")
             yield lambda: self._upload_file(item.dataset_item_id, file.local_path)
@@ -103,13 +111,7 @@ class UploadHandler:
     def _do_upload_file(self, dataset_item_id: int, file_path: Path):
         team_slug = self.dataset_identifier.team_slug
 
-        # from random import randint
-
-        # stage = randint(0, 3)
-
         try:
-            # if stage == 0:
-            #     raise
             sign_response = self.client.get(f"/dataset_items/{dataset_item_id}/sign_upload", team=team_slug, raw=True)
             sign_response.raise_for_status()
             sign_response = sign_response.json()
@@ -120,16 +122,12 @@ class UploadHandler:
         end_point = sign_response["postEndpoint"]
 
         try:
-            # if stage == 1:
-            #     raise
             upload_response = requests.post(f"http:{end_point}", data=signature, files={"file": file_path.open("rb")})
             upload_response.raise_for_status()
         except Exception:
             raise UploadRequestError(file_path=file_path, stage=UploadStage.UPLOAD_TO_S3)
 
         try:
-            # if stage == 2:
-            #     raise
             confirm_response = self.client.put(
                 endpoint=f"/dataset_items/{dataset_item_id}/confirm_upload", payload={}, team=team_slug, raw=True
             )

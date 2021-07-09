@@ -421,26 +421,23 @@ def upload_data(
             console.print('Re-run with "--verbose" for further details')
             return
 
-        error_table = Table(show_header=True, header_style="bold blue")
-        error_table.add_column("Dataset Item ID")
-        error_table.add_column("Filename")
-        # error_table.add_column("Remote Path")
-        error_table.add_column("Stage")
-        error_table.add_column("Reason")
+        error_table = Table(
+            "Dataset Item ID",
+            "Filename",
+            "Remote Path",
+            "Stage",
+            "Reason",
+            show_header=True,
+            header_style="bold blue"
+        )
         
-        for item in upload_manager.blocked_items:
-            dataset_item_id = str(item.dataset_item_id)
-            filename = item.filename
-            # remote_path = item.path
-            stage = "UPLOAD_REQUEST"
-            reason = item.reason
-            
+        for item in upload_manager.blocked_items:            
             error_table.add_row(
-                dataset_item_id,
-                filename,
-                # remote_path,
-                stage,
-                reason
+                str(item.dataset_item_id),
+                item.filename,
+                item.path,
+                "UPLOAD_REQUEST",
+                item.reason
             )
 
         for error in upload_manager.errors:
@@ -452,18 +449,11 @@ def upload_data(
                     if pending_item.filename != local_file.data["filename"]:
                         continue
 
-                    dataset_item_id = str(pending_item.dataset_item_id)
-                    filename = pending_item.filename
-                    # remote_path = item.path
-                    stage = error.stage.name
-                    reason = ""
-
                     error_table.add_row(
-                        dataset_item_id,
-                        filename,
-                        # remote_path,
-                        stage,
-                        reason
+                        str(pending_item.dataset_item_id),
+                        pending_item.filename,
+                        item.path,
+                        error.stage.name
                     )
                     break
 
