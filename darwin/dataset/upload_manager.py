@@ -101,7 +101,6 @@ class UploadHandler:
         for item in self.pending_items:
             file = file_lookup.get(item.full_path)
             if not file:
-                print(item.full_path, file_lookup)
                 raise ValueError(f"Cannot match {item.full_path} from payload with files to upload")
             yield lambda: self._upload_file(item.dataset_item_id, file.local_path)
 
