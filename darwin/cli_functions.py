@@ -7,6 +7,7 @@ from typing import List, Optional, Union
 import humanize
 from rich.console import Console
 from rich.table import Table
+from rich.theme import Theme
 
 import darwin.exporter as exporter
 import darwin.exporter.formats
@@ -138,7 +139,7 @@ def create_dataset(dataset_slug: str):
 def local(team: Optional[str] = None):
     """Lists synced datasets, stored in the specified path. """
     
-    table = Table(show_header=True, header_style="bold blue")
+    table = Table(show_header=True, header_style="bold cyan")
     table.add_column("Name")
     table.add_column("Image Count", justify="right")
     table.add_column("Sync Date", justify="right")
@@ -303,7 +304,7 @@ def list_remote_datasets(all_teams: bool, team: Optional[str] = None):
     """Lists remote datasets with its annotation progress"""
     # TODO: add listing open datasets
 
-    table = Table(show_header=True, header_style="bold blue")
+    table = Table(show_header=True, header_style="bold cyan")
     table.add_column("Name")
     table.add_column("Item Count", justify="right")
     
@@ -348,7 +349,7 @@ def dataset_list_releases(dataset_slug: str):
             print("No available releases, export one first.")
             return
 
-        table = Table(show_header=True, header_style="bold blue")
+        table = Table(show_header=True, header_style="bold cyan")
         table.add_column("Name")
         table.add_column("Item Count", justify="right")
         table.add_column("Class Count", justify="right")
@@ -403,19 +404,19 @@ def upload_data(
         dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
         upload_manager = dataset.push(files_to_exclude=files_to_exclude, fps=fps, as_frames=frames, files_to_upload=files, path=path)
         
-        console = Console()
+        console = Console(theme=_console_theme())
 
         console.print()
 
         if not upload_manager.blocked_count and not upload_manager.error_count:
-            console.print(f"All {upload_manager.total_count} files have been successfully uploaded.")
+            console.print(f"All {upload_manager.total_count} files have been successfully uploaded.\n", style="success")
             return
 
         if upload_manager.blocked_count:
-            console.print(f"{upload_manager.blocked_count} out of {upload_manager.total_count} files were prevented from being uploaded.")
+            console.print(f"{upload_manager.blocked_count} out of {upload_manager.total_count} files were prevented from being uploaded.\n", style="warning")
         
         if upload_manager.error_count:
-            console.print(f"{upload_manager.error_count} out of {upload_manager.total_count} files couldn't be uploaded because an error occurred.")
+            console.print(f"{upload_manager.error_count} out of {upload_manager.total_count} files couldn't be uploaded because an error occurred.\n", style="error")
 
         if not verbose:
             console.print('Re-run with "--verbose" for further details')
@@ -428,7 +429,7 @@ def upload_data(
             "Stage",
             "Reason",
             show_header=True,
-            header_style="bold blue"
+            header_style="bold cyan"
         )
         
         for item in upload_manager.blocked_items:            
@@ -452,7 +453,7 @@ def upload_data(
                     error_table.add_row(
                         str(pending_item.dataset_item_id),
                         pending_item.filename,
-                        item.path,
+                        pending_item.path,
                         error.stage.name
                     )
                     break
@@ -573,7 +574,8 @@ def help(parser, subparser: Optional[str] = None):
 
 
 def _error(message):
-    print(f"Error: {message}")
+    console = Console(theme=_console_theme())
+    console.print(f"Error: {message}", style="error")
     sys.exit(1)
 
 
@@ -616,3 +618,10 @@ def _load_client(
         _error("Please re-authenticate")
     except Unauthenticated:
         _error("Please re-authenticate")
+
+def _console_theme():
+    return Theme({
+        "success": "bold green",
+        "warning": "bold yellow",
+        "error": "bold red"
+    })
