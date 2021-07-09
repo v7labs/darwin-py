@@ -31,7 +31,7 @@ class LocalFile:
 
     def _type_check(self, args):
         self.data["filename"] = args.get("filename") or self.local_path.name
-        self.data["remote_path"] = args.get("path")
+        self.data["remote_path"] = args.get("path") or "/"
 
     @property
     def full_path(self):
@@ -99,7 +99,8 @@ class UploadHandler:
         for item in self.pending_items:
             file = file_lookup.get(item.full_path)
             if not file:
-                raise ValueError(f"Can not match {item.filename} from payload with files to upload")
+                print(item.full_path, file_lookup)
+                raise ValueError(f"Cannot match {item.full_path} from payload with files to upload")
             yield lambda: self._upload_file(item.dataset_item_id, file.local_path)
 
     def _upload_file(self, dataset_item_id: int, file_path: Path):
