@@ -56,9 +56,37 @@ def test_pending_count_is_correct(darwin_client: Client, dataset_identifier: Dat
     upload_handler = UploadHandler(darwin_client, [], dataset_identifier)
     
     assert upload_handler.pending_count == 1
+    assert upload_handler.blocked_count == 0
+    assert upload_handler.error_count == 0
 
     pending_item = upload_handler.pending_items[0]
 
     assert pending_item.dataset_item_id == 1
     assert pending_item.filename == "test.jpg"
     assert pending_item.path == "/"
+    assert pending_item.reason is None
+
+@pytest.mark.usefixtures("file_read_write_test")
+@responses.activate
+def test_blocked_count_is_correct(darwin_client: Client, dataset_identifier: DatasetIdentifier, request_upload_endpoint: str):
+    response = {
+        "blocked_items": [
+            {"dataset_item_id": 1, "filename": "test.jpg", "path": "/", "reason": "ALREADY_EXISTS"}
+        ],
+        "items": []
+    }
+
+    responses.add(responses.PUT, request_upload_endpoint, json=response, status=200)
+    
+    upload_handler = UploadHandler(darwin_client, [], dataset_identifier)
+    
+    assert upload_handler.pending_count == 0
+    assert upload_handler.blocked_count == 1
+    assert upload_handler.error_count == 0
+
+    blocked_item = upload_handler.blocked_items[0]
+
+    assert blocked_item.dataset_item_id == 1
+    assert blocked_item.filename == "test.jpg"
+    assert blocked_item.path == "/"
+    assert blocked_item.reason == "ALREADY_EXISTS"
