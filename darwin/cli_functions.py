@@ -6,6 +6,7 @@ from typing import List, Optional, Union
 
 import humanize
 from rich.console import Console
+from rich.markdown import Markdown
 from rich.progress import Progress
 from rich.table import Table
 from rich.theme import Theme
@@ -18,7 +19,7 @@ from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset.identifier import DatasetIdentifier
 from darwin.dataset.split_manager import split_dataset
-from darwin.dataset.upload_manager import UploadRequestError, UploadStage
+from darwin.dataset.upload_manager import UPLOAD_ERROR_LEGENDA
 from darwin.dataset.utils import get_release_path
 from darwin.exceptions import (
     InvalidLogin,
@@ -426,7 +427,7 @@ def upload_data(
 
         if upload_manager.blocked_count:
             console.print(
-                f"{upload_manager.blocked_count} out of {upload_manager.total_count} files were prevented from being uploaded.\n",
+                f"{upload_manager.blocked_count} out of {upload_manager.total_count} files were skipped.\n",
                 style="warning",
             )
 
@@ -441,7 +442,14 @@ def upload_data(
             return
 
         error_table = Table(
-            "Dataset Item ID", "Filename", "Remote Path", "Stage", "Reason", show_header=True, header_style="bold cyan"
+            "Dataset Item ID",
+            "Filename",
+            "Remote Path",
+            "Stage",
+            "Reason",
+            show_header=True,
+            header_style="bold cyan",
+            title="Files which were not successfully uploaded",
         )
 
         for item in upload_manager.blocked_items:
@@ -466,6 +474,9 @@ def upload_data(
                     break
 
         console.print(error_table)
+
+        legend = Markdown(UPLOAD_ERROR_LEGENDA)
+        console.print(legend)
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
     except UnsupportedFileType as e:
