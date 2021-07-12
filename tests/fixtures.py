@@ -56,13 +56,14 @@ def file_read_write_test(darwin_path: Path, team_slug: str, dataset_name: str):
 
 @pytest.fixture
 def local_config_file(team_slug: str):
-    config_path = Path.home() / ".darwin" / "config.yaml"
-    backup_config_path = Path.home() / ".darwin" / "config.yaml.bak"
+    darwin_path = Path.home() / ".darwin"
+    backup_darwin_path = Path.home() / ".darwin_backup"
+    config_path = darwin_path / "config.yaml"
 
     # Executed before the test
-    if config_path.exists():
-        shutil.move(config_path, backup_config_path)
-        config = Config(config_path)
+    if darwin_path.exists():
+        shutil.move(darwin_path, backup_darwin_path)
+    darwin_path.mkdir()
 
     config = Config(config_path)
     config.put(["global", "api_endpoint"], "http://localhost/api")
@@ -73,6 +74,5 @@ def local_config_file(team_slug: str):
     yield config
 
     # Executed after the test
-    config_path.unlink()
-    if backup_config_path.exists():
-        shutil.move(backup_config_path, config_path)
+    shutil.rmtree(darwin_path)
+    shutil.move(backup_darwin_path, darwin_path)
