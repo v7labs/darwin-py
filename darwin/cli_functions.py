@@ -6,6 +6,7 @@ from typing import List, Optional, Union
 
 import humanize
 from rich.console import Console
+from rich.markdown import Markdown
 from rich.progress import Progress
 from rich.table import Table
 from rich.theme import Theme
@@ -18,7 +19,7 @@ from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset.identifier import DatasetIdentifier
 from darwin.dataset.split_manager import split_dataset
-from darwin.dataset.upload_manager import UploadRequestError, UploadStage
+from darwin.dataset.upload_manager import UPLOAD_ERROR_LEGENDA
 from darwin.dataset.utils import get_release_path
 from darwin.exceptions import (
     InvalidLogin,
@@ -139,22 +140,22 @@ def create_dataset(dataset_slug: str):
 
 def local(team: Optional[str] = None):
     """Lists synced datasets, stored in the specified path. """
-    
+
     table = Table(show_header=True, header_style="bold cyan")
     table.add_column("Name")
     table.add_column("Image Count", justify="right")
     table.add_column("Sync Date", justify="right")
     table.add_column("Size", justify="right")
-    
+
     client = _load_client(offline=True)
     for dataset_path in client.list_local_datasets(team=team):
         table.add_row(
             f"{dataset_path.parent.name}/{dataset_path.name}",
             str(sum(1 for _ in find_files([dataset_path]))),
             humanize.naturaldate(datetime.datetime.fromtimestamp(dataset_path.stat().st_mtime)),
-            humanize.naturalsize(sum(p.stat().st_size for p in find_files([dataset_path])))
+            humanize.naturalsize(sum(p.stat().st_size for p in find_files([dataset_path]))),
         )
-    
+
     Console().print(table)
 
 
@@ -308,7 +309,7 @@ def list_remote_datasets(all_teams: bool, team: Optional[str] = None):
     table = Table(show_header=True, header_style="bold cyan")
     table.add_column("Name")
     table.add_column("Item Count", justify="right")
-    
+
     datasets = []
     if all_teams:
         for team in _config().get_all_teams():
@@ -355,17 +356,14 @@ def dataset_list_releases(dataset_slug: str):
         table.add_column("Item Count", justify="right")
         table.add_column("Class Count", justify="right")
         table.add_column("Export Date", justify="right")
-        
+
         for release in releases:
             if not release.available:
                 continue
             table.add_row(
-                str(release.identifier),
-                str(release.image_count),
-                str(release.class_count),
-                str(release.export_date)
+                str(release.identifier), str(release.image_count), str(release.class_count), str(release.export_date)
             )
-        
+
         Console().print(table)
     except NotFound:
         _error(f"No dataset with name '{dataset_slug}'")
@@ -378,7 +376,7 @@ def upload_data(
     fps: int,
     path: Optional[str],
     frames: Optional[bool],
-    verbose: bool = False
+    verbose: bool = False,
 ):
     """Uploads the files provided as parameter to the remote dataset selected
 
@@ -403,6 +401,7 @@ def upload_data(
     client = _load_client()
     try:
         dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
+
         with Progress() as progress:
             upload_tasks = progress.add_task("[green]Uploading...")
             file_tasks = {}
@@ -428,10 +427,16 @@ def upload_data(
             return
 
         if upload_manager.blocked_count:
-            console.print(f"{upload_manager.blocked_count} out of {upload_manager.total_count} files were prevented from being uploaded.\n", style="warning")
-        
+            console.print(
+                f"{upload_manager.blocked_count} out of {upload_manager.total_count} files were skipped.\n",
+                style="warning",
+            )
+
         if upload_manager.error_count:
-            console.print(f"{upload_manager.error_count} out of {upload_manager.total_count} files couldn't be uploaded because an error occurred.\n", style="error")
+            console.print(
+                f"{upload_manager.error_count} out of {upload_manager.total_count} files couldn't be uploaded because an error occurred.\n",
+                style="error",
+            )
 
         if not verbose:
             console.print('Re-run with "--verbose" for further details')
@@ -444,17 +449,12 @@ def upload_data(
             "Stage",
             "Reason",
             show_header=True,
-            header_style="bold cyan"
+            header_style="bold cyan",
+            title="Files which were not successfully uploaded",
         )
-        
-        for item in upload_manager.blocked_items:            
-            error_table.add_row(
-                str(item.dataset_item_id),
-                item.filename,
-                item.path,
-                "UPLOAD_REQUEST",
-                item.reason
-            )
+
+        for item in upload_manager.blocked_items:
+            error_table.add_row(str(item.dataset_item_id), item.filename, item.path, "UPLOAD_REQUEST", item.reason)
 
         for error in upload_manager.errors:
             for local_file in upload_manager.local_files:
@@ -470,11 +470,14 @@ def upload_data(
                         pending_item.filename,
                         pending_item.path,
                         error.stage.name,
-                        str(error.error)
+                        str(error.error),
                     )
                     break
 
         console.print(error_table)
+
+        legend = Markdown(UPLOAD_ERROR_LEGENDA)
+        console.print(legend)
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
     except UnsupportedFileType as e:
@@ -635,9 +638,7 @@ def _load_client(
     except Unauthenticated:
         _error("Please re-authenticate")
 
+
 def _console_theme():
-    return Theme({
-        "success": "bold green",
-        "warning": "bold yellow",
-        "error": "bold red"
-    })
+    return Theme({"success": "bold green", "warning": "bold yellow", "error": "bold red"})
+

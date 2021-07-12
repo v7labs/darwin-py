@@ -24,6 +24,7 @@ class NotFound(Exception):
     def __init__(self, name):
         super().__init__()
         self.name = name
+
     def __str__(self):
         return f"Not found: '{self.name}'"
 

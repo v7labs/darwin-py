@@ -85,7 +85,7 @@ class RemoteDataset:
         as_frames: bool = False,
         files_to_exclude: Optional[List[str]] = None,
         path: Optional[str] = None,
-        progress_callback: Optional[Callable[[int, int, Optional[str], float, float], None]] = None
+        progress_callback: Optional[Callable[[int, int, Optional[str], float, float], None]] = None,
     ):
         """Uploads a local dataset (images ONLY) in the datasets directory.
 
