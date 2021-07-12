@@ -188,18 +188,18 @@ class UploadHandler:
 
             m = MultipartEncoder(fields={**signature, **{"file": file_path.open("rb")}})
             monitor = MultipartEncoderMonitor(m, callback)
-            headers = {'Content-Type': monitor.content_type}
-            
+            headers = {"Content-Type": monitor.content_type}
+
             retries = 0
             while retries < 5:
                 upload_response = requests.post(f"http:{end_point}", data=monitor, headers=headers)
                 # If s3 is getting to many request it will return 503, we will sleep and retry
                 if upload_response.status_code != 503:
-                    break 
-                
+                    break
+
                 time.sleep(2 ** retries)
                 retries += 1
-                
+
             upload_response.raise_for_status()
         except Exception as e:
             raise UploadRequestError(file_path=file_path, stage=UploadStage.UPLOAD_TO_S3, error=e)

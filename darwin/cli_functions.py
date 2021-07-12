@@ -1,6 +1,7 @@
 import argparse
 import datetime
 import sys
+from itertools import tee
 from pathlib import Path
 from typing import List, Optional, Union
 
@@ -368,7 +369,7 @@ def dataset_list_releases(dataset_slug: str):
 
 
 def upload_data(
-    dataset_slug: str,
+    dataset_identifier: str,
     files: Optional[List[str]],
     files_to_exclude: Optional[List[str]],
     fps: int,
@@ -380,7 +381,7 @@ def upload_data(
 
     Parameters
     ----------
-    dataset_slug : str
+    dataset_identifier : str
         Slug of the dataset to retrieve
     files : list[str]
         List of files to upload. Can be None.
@@ -398,7 +399,7 @@ def upload_data(
     """
     client = _load_client()
     try:
-        dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
+        dataset = client.get_remote_dataset(dataset_identifier=dataset_identifier)
         from rich.live import Live
         from rich.panel import Panel
         from rich.progress import (
@@ -410,21 +411,33 @@ def upload_data(
         )
         from rich.table import Table
 
-        overall_progress = Progress(TextColumn("[bold blue]{task.fields[filename]}"), BarColumn(), "{task.completed} of {task.total}")
-        file_progress = Progress(TextColumn("[bold green]{task.fields[filename]}", justify="right"), BarColumn(), "[progress.percentage]{task.percentage:>3.1f}%", DownloadColumn(),     "•", TransferSpeedColumn(),     "•",TimeRemainingColumn())
+        overall_progress = Progress(
+            TextColumn("[bold blue]{task.fields[filename]}"), BarColumn(), "{task.completed} of {task.total}"
+        )
+        file_progress = Progress(
+            TextColumn("[bold green]{task.fields[filename]}", justify="right"),
+            BarColumn(),
+            "[progress.percentage]{task.percentage:>3.1f}%",
+            DownloadColumn(),
+            "•",
+            TransferSpeedColumn(),
+            "•",
+            TimeRemainingColumn(),
+        )
 
         progress_table = Table.grid()
         progress_table.add_row(file_progress)
         progress_table.add_row(overall_progress)
         with Live(progress_table):
-
             overall_task = overall_progress.add_task("[green]Total progress", filename="Total progress")
             file_tasks = {}
 
             def upload_callback(total_file_count, file_advancement, file_name, file_total_bytes, file_bytes_sent):
                 if file_name:
                     if file_name not in file_tasks:
-                        file_tasks[file_name] = file_progress.add_task(f"[blue]{file_name}", filename=file_name, total=file_total_bytes)
+                        file_tasks[file_name] = file_progress.add_task(
+                            f"[blue]{file_name}", filename=file_name, total=file_total_bytes
+                        )
 
                     file_progress.update(file_tasks[file_name], completed=file_bytes_sent)
 
@@ -450,16 +463,23 @@ def upload_data(
             console.print(f"All {upload_manager.total_count} files have been successfully uploaded.\n", style="success")
             return
 
-        if upload_manager.blocked_count:
+        already_existing_items, other_skipped_items = tee(
+            (item.reason == "ALREADY_EXISTS", item) for item in upload_manager.blocked_items
+        )
+        already_existing_items, other_skipped_items = (
+            list(item for condition, item in already_existing_items if condition),
+            list(item for condition, item in other_skipped_items if not condition),
+        )
+
+        if already_existing_items:
             console.print(
-                f"{upload_manager.blocked_count} out of {upload_manager.total_count} files were skipped.\n",
-                style="warning",
+                f"Skipped {len(already_existing_items)} files already in the dataset.\n", style="warning",
             )
 
-        if upload_manager.error_count:
+        if upload_manager.error_count or other_skipped_items:
+            error_count = upload_manager.error_count + len(other_skipped_items)
             console.print(
-                f"{upload_manager.error_count} out of {upload_manager.total_count} files couldn't be uploaded because an error occurred.\n",
-                style="error",
+                f"{error_count} files couldn't be uploaded because an error occurred.\n", style="error",
             )
 
         if not verbose:
@@ -467,18 +487,12 @@ def upload_data(
             return
 
         error_table = Table(
-            "Dataset Item ID",
-            "Filename",
-            "Remote Path",
-            "Stage",
-            "Reason",
-            show_header=True,
-            header_style="bold cyan",
-            title="Files which were not successfully uploaded",
+            "Dataset Item ID", "Filename", "Remote Path", "Stage", "Reason", show_header=True, header_style="bold cyan"
         )
 
         for item in upload_manager.blocked_items:
-            error_table.add_row(str(item.dataset_item_id), item.filename, item.path, "UPLOAD_REQUEST", item.reason)
+            if item.reason != "ALREADY_EXISTS":
+                error_table.add_row(str(item.dataset_item_id), item.filename, item.path, "UPLOAD_REQUEST", item.reason)
 
         for error in upload_manager.errors:
             for local_file in upload_manager.local_files:
@@ -498,7 +512,8 @@ def upload_data(
                     )
                     break
 
-        console.print(error_table)
+        if error_table.row_count:
+            console.print(error_table)
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
     except UnsupportedFileType as e:
