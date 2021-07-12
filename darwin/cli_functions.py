@@ -428,7 +428,7 @@ def upload_data(
         progress_table = Table.grid()
         progress_table.add_row(file_progress)
         progress_table.add_row(overall_progress)
-        with Live(progress_table):
+        with Live(progress_table) as l:
             overall_task = overall_progress.add_task("[green]Total progress", filename="Total progress")
             file_tasks = {}
 
@@ -439,12 +439,15 @@ def upload_data(
                             f"[blue]{file_name}", filename=file_name, total=file_total_bytes
                         )
 
-                    file_progress.update(file_tasks[file_name], completed=file_bytes_sent)
+                    # Rich has a concurrency issue, so sometimes this fails
+                    try:
+                        file_progress.update(file_tasks[file_name], completed=file_bytes_sent)
+                    except Exception as e:
+                        pass
 
                 for task in file_progress.tasks:
                     if task.finished and len(file_progress.tasks) >= 5:
                         file_progress.remove_task(task.id)
-
                 overall_progress.update(overall_task, total=total_file_count, advance=file_advancement)
 
             upload_manager = dataset.push(
@@ -502,6 +505,13 @@ def upload_data(
                 for pending_item in upload_manager.pending_items:
                     if pending_item.filename != local_file.data["filename"]:
                         continue
+
+                    print(error.error, dir(error.error))
+                    import traceback
+
+                    traceback.print_tb(error.__traceback__)
+                    print(error.error.args)
+                    print(error.error.__class__)
 
                     error_table.add_row(
                         str(pending_item.dataset_item_id),
