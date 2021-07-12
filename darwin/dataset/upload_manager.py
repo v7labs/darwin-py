@@ -92,26 +92,27 @@ class UploadHandler:
     def upload(
         self,
         multi_threaded: bool = True,
-        progress_callback: Optional[Callable[[Optional[str], float, float], None]] = None,
+        progress_callback: Optional[Callable[[int, float, Optional[str], float, float], None]] = None,
     ):
         if not self._progress:
             self.prepare_upload()
         if progress_callback:
             progress_callback(self.pending_count, 0, None, 0, 0)
 
-        # cache how much progress each item has made
-        progress_cache = {}
+        # needed to ensure that we don't mark a file as completed twice
+        file_complete = set()
 
         def callback(file_name, file_total_bytes, file_bytes_sent):
             if not progress_callback:
                 return
-            if file_name not in progress_cache:
-                progress_cache[file_name] = 0
 
-            progress = file_bytes_sent / file_total_bytes
-            progress_delta = progress - progress_cache[file_name]
-            progress_cache[file_name] = progress
-            progress_callback(self.pending_count, progress_delta, file_name, file_total_bytes, file_bytes_sent)
+            completed = 0
+            if file_total_bytes == file_bytes_sent:
+                if file_name not in file_complete:
+                    completed = 1
+                    file_complete.add(file_name)
+
+            progress_callback(self.pending_count, completed, file_name, file_total_bytes, file_bytes_sent)
 
         if multi_threaded:
             with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:

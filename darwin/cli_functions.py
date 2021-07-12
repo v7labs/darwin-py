@@ -399,23 +399,40 @@ def upload_data(
     client = _load_client()
     try:
         dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
+        from rich.live import Live
+        from rich.panel import Panel
+        from rich.progress import (
+            BarColumn,
+            DownloadColumn,
+            TextColumn,
+            TimeRemainingColumn,
+            TransferSpeedColumn,
+        )
+        from rich.table import Table
 
-        with Progress() as progress:
-            upload_tasks = progress.add_task("[green]Uploading...")
+        overall_progress = Progress(TextColumn("[bold blue]{task.fields[filename]}"), BarColumn(), "{task.completed} of {task.total}")
+        file_progress = Progress(TextColumn("[bold green]{task.fields[filename]}", justify="right"), BarColumn(), "[progress.percentage]{task.percentage:>3.1f}%", DownloadColumn(),     "•", TransferSpeedColumn(),     "•",TimeRemainingColumn())
+
+        progress_table = Table.grid()
+        progress_table.add_row(file_progress)
+        progress_table.add_row(overall_progress)
+        with Live(progress_table):
+
+            overall_task = overall_progress.add_task("[green]Total progress", filename="Total progress")
             file_tasks = {}
 
             def upload_callback(total_file_count, file_advancement, file_name, file_total_bytes, file_bytes_sent):
                 if file_name:
                     if file_name not in file_tasks:
-                        file_tasks[file_name] = progress.add_task(f"[blue]{file_name}", total=file_total_bytes)
+                        file_tasks[file_name] = file_progress.add_task(f"[blue]{file_name}", filename=file_name, total=file_total_bytes)
 
-                    progress.update(file_tasks[file_name], completed=file_bytes_sent)
+                    file_progress.update(file_tasks[file_name], completed=file_bytes_sent)
 
-                for task in progress.tasks:
-                    if task.finished and len(progress.tasks) >= 5:
-                        progress.remove_task(task.id)
+                for task in file_progress.tasks:
+                    if task.finished and len(file_progress.tasks) >= 5:
+                        file_progress.remove_task(task.id)
 
-                progress.update(upload_tasks, total=total_file_count, advance=file_advancement)
+                overall_progress.update(overall_task, total=total_file_count, advance=file_advancement)
 
             upload_manager = dataset.push(
                 files_to_exclude=files_to_exclude,
