@@ -12,6 +12,7 @@ from rich.progress import (
     BarColumn,
     DownloadColumn,
     Progress,
+    SpinnerColumn,
     TextColumn,
     TimeRemainingColumn,
     TransferSpeedColumn,
@@ -409,6 +410,10 @@ def upload_data(
     try:
         dataset = client.get_remote_dataset(dataset_identifier=dataset_identifier)
 
+        sync_metadata = Progress(
+            SpinnerColumn(), TextColumn("[bold blue]Syncing metadata")
+        )
+
         overall_progress = Progress(
             TextColumn("[bold blue]{task.fields[filename]}"), BarColumn(), "{task.completed} of {task.total}"
         )
@@ -424,13 +429,17 @@ def upload_data(
         )
 
         progress_table = Table.grid()
+        progress_table.add_row(sync_metadata)
         progress_table.add_row(file_progress)
         progress_table.add_row(overall_progress)
         with Live(progress_table) as l:
-            overall_task = overall_progress.add_task("[green]Total progress", filename="Total progress")
+            progress_table
+            sync_task = sync_metadata.add_task("")
             file_tasks = {}
+            overall_task = overall_progress.add_task("[green]Total progress", filename="Total progress", total=0, visible=False)
 
             def upload_callback(total_file_count, file_advancement, file_name, file_total_bytes, file_bytes_sent):
+                sync_metadata.update(sync_task, visible=False)
                 if file_name:
                     if file_name not in file_tasks:
                         file_tasks[file_name] = file_progress.add_task(
@@ -446,7 +455,8 @@ def upload_data(
                 for task in file_progress.tasks:
                     if task.finished and len(file_progress.tasks) >= 5:
                         file_progress.remove_task(task.id)
-                overall_progress.update(overall_task, total=total_file_count, advance=file_advancement)
+
+                overall_progress.update(overall_task, total=total_file_count, advance=file_advancement, visible=True)
 
             upload_manager = dataset.push(
                 files_to_exclude=files_to_exclude,
