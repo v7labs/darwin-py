@@ -21,6 +21,7 @@ setuptools.setup(
         "pillow",
         "pyyaml>=5.1",
         "requests",
+        "requests_toolbelt",
         "responses",
         "rich",
         "sh",

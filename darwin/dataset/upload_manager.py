@@ -88,25 +88,30 @@ class UploadHandler:
         self._progress = self._upload_files()
         return self._progress
 
-    def upload(self, multi_threaded: bool = True, progress_callback: Optional[Callable[[Optional[str], float, float], None]] = None):
+    def upload(
+        self,
+        multi_threaded: bool = True,
+        progress_callback: Optional[Callable[[Optional[str], float, float], None]] = None,
+    ):
         if not self._progress:
             self.prepare_upload()
         if progress_callback:
             progress_callback(self.pending_count, 0, None, 0, 0)
-        
+
         # cache how much progress each item has made
         progress_cache = {}
+
         def callback(file_name, file_total_bytes, file_bytes_sent):
             if not progress_callback:
                 return
             if file_name not in progress_cache:
                 progress_cache[file_name] = 0
-            
+
             progress = file_bytes_sent / file_total_bytes
-            progress_delta =  progress - progress_cache[file_name]
+            progress_delta = progress - progress_cache[file_name]
             progress_cache[file_name] = progress
             progress_callback(self.pending_count, progress_delta, file_name, file_total_bytes, file_bytes_sent)
-        
+
         if multi_threaded:
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 future_to_progress = {executor.submit(f, callback): f for f in self.progress}
@@ -136,7 +141,9 @@ class UploadHandler:
             file = file_lookup.get(item.full_path)
             if not file:
                 raise ValueError(f"Cannot match {item.full_path} from payload with files to upload")
-            yield lambda byte_read_callback=None: self._upload_file(item.dataset_item_id, file.local_path, byte_read_callback)
+            yield lambda byte_read_callback=None: self._upload_file(
+                item.dataset_item_id, file.local_path, byte_read_callback
+            )
 
     def _upload_file(self, dataset_item_id: int, file_path: Path, byte_read_callback):
         try:
@@ -146,7 +153,12 @@ class UploadHandler:
         except Exception as e:
             self.errors.append(UploadRequestError(file_path=file_path, stage=UploadStage.OTHER, error=e))
 
-    def _do_upload_file(self, dataset_item_id: int, file_path: Path, byte_read_callback: Optional[Callable[[Optional[str], float, float], None]] = None):
+    def _do_upload_file(
+        self,
+        dataset_item_id: int,
+        file_path: Path,
+        byte_read_callback: Optional[Callable[[Optional[str], float, float], None]] = None,
+    ):
         team_slug = self.dataset_identifier.team_slug
 
         try:
@@ -163,16 +175,17 @@ class UploadHandler:
             file_size = file_path.stat().st_size
             if byte_read_callback:
                 byte_read_callback(str(file_path), file_size, 0)
+
             def callback(monitor):
                 # The signature is part of the payload's bytes_read but not file_size
                 # therefor we should skip it in the upload progress
                 bytes_read = max(monitor.bytes_read - monitor.len + file_size, 0)
                 if byte_read_callback:
                     byte_read_callback(str(file_path), file_size, bytes_read)
-            
-            m = MultipartEncoder(fields={**signature, **{'file': file_path.open("rb")}})
+
+            m = MultipartEncoder(fields={**signature, **{"file": file_path.open("rb")}})
             monitor = MultipartEncoderMonitor(m, callback)
-            headers = {'Content-Type': monitor.content_type}
+            headers = {"Content-Type": monitor.content_type}
             upload_response = requests.post(f"http:{end_point}", data=monitor, headers=headers)
             upload_response.raise_for_status()
         except Exception as e:

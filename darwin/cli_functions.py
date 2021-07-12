@@ -403,6 +403,7 @@ def upload_data(
         with Progress() as progress:
             upload_tasks = progress.add_task("[green]Uploading...")
             file_tasks = {}
+
             def upload_callback(total_file_count, file_advancement, file_name, file_total_bytes, file_bytes_sent):
                 if file_name:
                     if file_name not in file_tasks:
@@ -410,12 +411,20 @@ def upload_data(
 
                     progress.update(file_tasks[file_name], completed=file_bytes_sent)
 
-                    #if file_total == file_bytes_sent:
+                    # if file_total == file_bytes_sent:
                     #    progress.remove_task(file_tasks[file])
                     #    del file_tasks[file]
 
                 progress.update(upload_tasks, total=total_file_count, advance=file_advancement)
-            upload_manager = dataset.push(files_to_exclude=files_to_exclude, fps=fps, as_frames=frames, files_to_upload=files, path=path, progress_callback=upload_callback)        
+
+            upload_manager = dataset.push(
+                files_to_exclude=files_to_exclude,
+                fps=fps,
+                as_frames=frames,
+                files_to_upload=files,
+                path=path,
+                progress_callback=upload_callback,
+            )
         console = Console(theme=_console_theme())
 
         console.print()
