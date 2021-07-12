@@ -483,7 +483,7 @@ def upload_data(
                 f"{error_count} files couldn't be uploaded because an error occurred.\n", style="error",
             )
 
-        if not verbose:
+        if not verbose and upload_manager.error_count:
             console.print('Re-run with "--verbose" for further details')
             return
 
@@ -503,13 +503,6 @@ def upload_data(
                 for pending_item in upload_manager.pending_items:
                     if pending_item.filename != local_file.data["filename"]:
                         continue
-
-                    print(error.error, dir(error.error))
-                    import traceback
-
-                    traceback.print_tb(error.__traceback__)
-                    print(error.error.args)
-                    print(error.error.__class__)
 
                     error_table.add_row(
                         str(pending_item.dataset_item_id),

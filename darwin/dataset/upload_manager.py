@@ -174,8 +174,7 @@ class UploadHandler:
         signature = sign_response["signature"]
         end_point = sign_response["postEndpoint"]
 
-        # try:
-        if True:
+        try:
             file_size = file_path.stat().st_size
             if byte_read_callback:
                 byte_read_callback(str(file_path), file_size, 0)
@@ -202,8 +201,8 @@ class UploadHandler:
                 retries += 1
 
             upload_response.raise_for_status()
-        # except Exception as e:
-        #    raise UploadRequestError(file_path=file_path, stage=UploadStage.UPLOAD_TO_S3, error=e)
+        except Exception as e:
+           raise UploadRequestError(file_path=file_path, stage=UploadStage.UPLOAD_TO_S3, error=e)
 
         try:
             confirm_response = self.client.put(
