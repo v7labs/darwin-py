@@ -31,7 +31,7 @@ def request_upload_endpoint(team_slug: str, dataset_slug: str):
     return f"http://localhost/api/teams/{team_slug}/datasets/{dataset_slug}/data"
 
 
-@pytest.mark.usefixtures("file_read_write_test")
+@pytest.mark.usefixtures("file_read_write_test", "darwin_client")
 @responses.activate
 def test_upload_data(team_slug: str, dataset_slug: str, remote_dataset: RemoteDataset, request_upload_endpoint: str):
     request_upload_response = {
@@ -59,7 +59,7 @@ def test_upload_data(team_slug: str, dataset_slug: str, remote_dataset: RemoteDa
             assert call('Re-run with "--verbose" for further details') in print_mock.call_args_list
 
 
-@pytest.mark.usefixtures("file_read_write_test")
+@pytest.mark.usefixtures("file_read_write_test", "darwin_client")
 @responses.activate
 def test_upload_data_verbose(
     team_slug: str, dataset_slug: str, remote_dataset: RemoteDataset, request_upload_endpoint: str
