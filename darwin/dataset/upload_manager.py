@@ -86,7 +86,7 @@ class UploadHandler:
         return self._progress
 
     def prepare_upload(self):
-        self._progress = list(self._upload_files())
+        self._progress = self._upload_files()
         return self._progress
 
     def upload(
