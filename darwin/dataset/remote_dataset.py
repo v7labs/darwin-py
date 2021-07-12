@@ -84,9 +84,8 @@ class RemoteDataset:
         fps: int = 1,
         as_frames: bool = False,
         files_to_exclude: Optional[List[str]] = None,
-        resume: bool = False,
         path: Optional[str] = None,
-        progress_callback: Optional[Callable[[int, int], None]] = None
+        progress_callback: Optional[Callable[[int, int, Optional[str], float, float], None]] = None
     ):
         """Uploads a local dataset (images ONLY) in the datasets directory.
 
@@ -105,12 +104,10 @@ class RemoteDataset:
             Number of file per seconds to upload
         as_frames: bool
             Annotate as video.
-        resume : bool
-            Flag for signalling the resuming of a push
         path: str
             Optional path to put the files into
-        progress_callback: (total_file_count, files_uploaded_deleta) => None
-            Optional callback, called with the total number of files to upload and a delta
+        progress_callback: (total_file_count, file_advancement, Optional[file_name], file_total_bytes, file_bytes_sent) => None
+            Optional callback, called with the total number of files to upload, how far the current file has uploaded and how many bytes have been read.
         Returns
         -------
         handler : UploadHandler
