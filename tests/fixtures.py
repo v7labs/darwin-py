@@ -75,4 +75,5 @@ def local_config_file(team_slug: str):
 
     # Executed after the test
     shutil.rmtree(darwin_path)
-    shutil.move(backup_darwin_path, darwin_path)
+    if backup_darwin_path.exists():
+        shutil.move(backup_darwin_path, darwin_path)
