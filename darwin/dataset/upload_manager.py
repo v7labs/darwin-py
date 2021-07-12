@@ -12,21 +12,6 @@ if TYPE_CHECKING:
     from darwin.dataset.identifier import DatasetIdentifier
 
 
-UPLOAD_ERROR_LEGENDA = """
-## Stages
-- **UPLOAD_REQUEST**: The files were skipped, because they already exist in the specified path.
-  Please, make sure the file is uniquely named or is not already in the specified path.
-- **REQUEST_SIGNATURE**: The files were created on the dataset, but couldn't be uploaded because it was not possible to sign the request.
-  Please, try again later, or contact support if the problem persists.
-- **UPLOAD_TO_S3**: The files were created on the dataset, but couldn't be uploaded because it was not possible to push them to S3.
-  Please, try again later, or contact support if the problem persists.
-- **CONFIRM_UPLOAD_COMPLETE**: The files were created on the dataset and were successfully uploaded to S3, but it was not possible to confirm that the upload was complete.
-  Please, try again later, or contact support if the problem persists.
-- **OTHER**: An unexpected error occurred while uploading the files. Please, contact support by reporting the reason of the error.
-  Please, try again later, or contact support if the problem persists.
-"""
-
-
 class ItemPayload:
     def __init__(self, *, dataset_item_id: int, filename: str, path: str, reason: Optional[str] = None):
         self.dataset_item_id = dataset_item_id

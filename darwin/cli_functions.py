@@ -6,7 +6,6 @@ from typing import List, Optional, Union
 
 import humanize
 from rich.console import Console
-from rich.markdown import Markdown
 from rich.progress import Progress
 from rich.table import Table
 from rich.theme import Theme
@@ -19,7 +18,6 @@ from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset.identifier import DatasetIdentifier
 from darwin.dataset.split_manager import split_dataset
-from darwin.dataset.upload_manager import UPLOAD_ERROR_LEGENDA
 from darwin.dataset.utils import get_release_path
 from darwin.exceptions import (
     InvalidLogin,
@@ -474,9 +472,6 @@ def upload_data(
                     break
 
         console.print(error_table)
-
-        legend = Markdown(UPLOAD_ERROR_LEGENDA)
-        console.print(legend)
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
     except UnsupportedFileType as e:

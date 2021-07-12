@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, List, Optional, Union
 
 import numpy as np
-from tqdm import tqdm
+from rich.progress import track
 from upolygon import draw_polygon
 
 import darwin.datatypes as dt
@@ -53,9 +53,9 @@ def is_project_dir(project_path: Path) -> bool:
 
 
 def get_progress_bar(array: List, description: Optional[str] = None):
-    pbar = tqdm(array)
-    pbar.set_description(desc=description, refresh=True)
-    return pbar
+    if description:
+        return track(array, description=description)
+    return track(array)
 
 
 def prompt(msg: str, default: Optional[str] = None) -> str:

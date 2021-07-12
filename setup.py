@@ -24,7 +24,6 @@ setuptools.setup(
         "responses",
         "rich",
         "sh",
-        "tqdm",
         "upolygon==0.1.6",
     ],
     packages=[
