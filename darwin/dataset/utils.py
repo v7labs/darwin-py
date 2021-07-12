@@ -11,7 +11,7 @@ from darwin.exceptions import NotFound
 from darwin.importer.formats.darwin import parse_file
 from darwin.utils import SUPPORTED_EXTENSIONS, SUPPORTED_VIDEO_EXTENSIONS
 from PIL import Image
-from tqdm import tqdm
+from rich.progress import track
 
 
 def get_release_path(dataset_path: Path, release_name: Optional[str] = None):
@@ -172,7 +172,7 @@ def exhaust_generator(progress: Generator, count: int, multi_threaded: bool):
     """
     responses = []
     if multi_threaded:
-        pbar = tqdm(total=count)
+        pbar = track(range(count))
 
         def update(*a):
             pbar.update()
@@ -184,7 +184,7 @@ def exhaust_generator(progress: Generator, count: int, multi_threaded: bool):
             pool.join()
         responses = [response.get() for response in responses if response.successful()]
     else:
-        for f in tqdm(progress, total=count, desc="Progress"):
+        for f in track(progress, total=count, description="Progress"):
             responses.append(_f(f))
     return responses
 

@@ -14,21 +14,6 @@ if TYPE_CHECKING:
     from darwin.dataset.identifier import DatasetIdentifier
 
 
-UPLOAD_ERROR_LEGENDA = """
-## Stages
-- **UPLOAD_REQUEST**: The files were skipped, because they already exist in the specified path.
-  Please, make sure the file is uniquely named or is not already in the specified path.
-- **REQUEST_SIGNATURE**: The files were created on the dataset, but couldn't be uploaded because it was not possible to sign the request.
-  Please, try again later, or contact support if the problem persists.
-- **UPLOAD_TO_S3**: The files were created on the dataset, but couldn't be uploaded because it was not possible to push them to S3.
-  Please, try again later, or contact support if the problem persists.
-- **CONFIRM_UPLOAD_COMPLETE**: The files were created on the dataset and were successfully uploaded to S3, but it was not possible to confirm that the upload was complete.
-  Please, try again later, or contact support if the problem persists.
-- **OTHER**: An unexpected error occurred while uploading the files. Please, contact support by reporting the reason of the error.
-  Please, try again later, or contact support if the problem persists.
-"""
-
-
 class ItemPayload:
     def __init__(self, *, dataset_item_id: int, filename: str, path: str, reason: Optional[str] = None):
         self.dataset_item_id = dataset_item_id
@@ -104,25 +89,30 @@ class UploadHandler:
         self._progress = list(self._upload_files())
         return self._progress
 
-    def upload(self, multi_threaded: bool = True, progress_callback: Optional[Callable[[Optional[str], float, float], None]] = None):
+    def upload(
+        self,
+        multi_threaded: bool = True,
+        progress_callback: Optional[Callable[[Optional[str], float, float], None]] = None,
+    ):
         if not self._progress:
             self.prepare_upload()
         if progress_callback:
             progress_callback(self.pending_count, 0, None, 0, 0)
-        
+
         # cache how much progress each item has made
         progress_cache = {}
+
         def callback(file_name, file_total_bytes, file_bytes_sent):
             if not progress_callback:
                 return
             if file_name not in progress_cache:
                 progress_cache[file_name] = 0
-            
+
             progress = file_bytes_sent / file_total_bytes
-            progress_delta =  progress - progress_cache[file_name]
+            progress_delta = progress - progress_cache[file_name]
             progress_cache[file_name] = progress
             progress_callback(self.pending_count, progress_delta, file_name, file_total_bytes, file_bytes_sent)
-        
+
         if multi_threaded:
             with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
                 future_to_progress = {executor.submit(f, callback) for f in self.progress}
@@ -165,7 +155,12 @@ class UploadHandler:
         except Exception as e:
             self.errors.append(UploadRequestError(file_path=file_path, stage=UploadStage.OTHER, error=e))
 
-    def _do_upload_file(self, dataset_item_id: int, file_path: Path, byte_read_callback: Optional[Callable[[Optional[str], float, float], None]] = None):
+    def _do_upload_file(
+        self,
+        dataset_item_id: int,
+        file_path: Path,
+        byte_read_callback: Optional[Callable[[Optional[str], float, float], None]] = None,
+    ):
         team_slug = self.dataset_identifier.team_slug
 
         try:
@@ -182,14 +177,15 @@ class UploadHandler:
             file_size = file_path.stat().st_size
             if byte_read_callback:
                 byte_read_callback(str(file_path), file_size, 0)
+
             def callback(monitor):
                 # The signature is part of the payload's bytes_read but not file_size
                 # therefor we should skip it in the upload progress
                 bytes_read = max(monitor.bytes_read - monitor.len + file_size, 0)
                 if byte_read_callback:
                     byte_read_callback(str(file_path), file_size, bytes_read)
-            
-            m = MultipartEncoder(fields={**signature, **{'file': file_path.open("rb")}})
+
+            m = MultipartEncoder(fields={**signature, **{"file": file_path.open("rb")}})
             monitor = MultipartEncoderMonitor(m, callback)
             headers = {'Content-Type': monitor.content_type}
             

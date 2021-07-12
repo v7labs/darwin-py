@@ -6,7 +6,6 @@ from typing import List, Optional, Union
 
 import humanize
 from rich.console import Console
-from rich.markdown import Markdown
 from rich.progress import Progress
 from rich.table import Table
 from rich.theme import Theme
@@ -19,7 +18,6 @@ from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset.identifier import DatasetIdentifier
 from darwin.dataset.split_manager import split_dataset
-from darwin.dataset.upload_manager import UPLOAD_ERROR_LEGENDA
 from darwin.dataset.utils import get_release_path
 from darwin.exceptions import (
     InvalidLogin,
@@ -405,6 +403,7 @@ def upload_data(
         with Progress() as progress:
             upload_tasks = progress.add_task("[green]Uploading...")
             file_tasks = {}
+
             def upload_callback(total_file_count, file_advancement, file_name, file_total_bytes, file_bytes_sent):
                 if file_name:
                     if file_name not in file_tasks:
@@ -417,7 +416,15 @@ def upload_data(
                         progress.remove_task(task.id)
 
                 progress.update(upload_tasks, total=total_file_count, advance=file_advancement)
-            upload_manager = dataset.push(files_to_exclude=files_to_exclude, fps=fps, as_frames=frames, files_to_upload=files, path=path, progress_callback=upload_callback)        
+
+            upload_manager = dataset.push(
+                files_to_exclude=files_to_exclude,
+                fps=fps,
+                as_frames=frames,
+                files_to_upload=files,
+                path=path,
+                progress_callback=upload_callback,
+            )
         console = Console(theme=_console_theme())
 
         console.print()
@@ -475,9 +482,6 @@ def upload_data(
                     break
 
         console.print(error_table)
-
-        legend = Markdown(UPLOAD_ERROR_LEGENDA)
-        console.print(legend)
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
     except UnsupportedFileType as e:
