@@ -1,4 +1,5 @@
 import concurrent.futures
+import time
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
@@ -100,7 +101,7 @@ class UploadHandler:
         return self._progress
 
     def prepare_upload(self):
-        self._progress = self._upload_files()
+        self._progress = list(self._upload_files())
         return self._progress
 
     def upload(self, multi_threaded: bool = True, progress_callback: Optional[Callable[[Optional[str], float, float], None]] = None):
@@ -123,13 +124,13 @@ class UploadHandler:
             progress_callback(self.pending_count, progress_delta, file_name, file_total_bytes, file_bytes_sent)
         
         if multi_threaded:
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                future_to_progress = {executor.submit(f, callback): f for f in self.progress}
+            with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+                future_to_progress = {executor.submit(f, callback) for f in self.progress}
                 for future in concurrent.futures.as_completed(future_to_progress):
                     try:
                         future.result()
                     except Exception as exc:
-                        print(exc)
+                        print("exception", exc)
         else:
             for file_to_upload in self.progress:
                 file_to_upload(callback)
@@ -146,12 +147,15 @@ class UploadHandler:
         return blocked_items, items
 
     def _upload_files(self):
+        def upload_function(dataset_item_id, local_path):
+            return lambda byte_read_callback=None: self._upload_file(dataset_item_id, local_path, byte_read_callback)
+
         file_lookup = {file.full_path: file for file in self.local_files}
         for item in self.pending_items:
             file = file_lookup.get(item.full_path)
             if not file:
                 raise ValueError(f"Cannot match {item.full_path} from payload with files to upload")
-            yield lambda byte_read_callback=None: self._upload_file(item.dataset_item_id, file.local_path, byte_read_callback)
+            yield upload_function(item.dataset_item_id, file.local_path)
 
     def _upload_file(self, dataset_item_id: int, file_path: Path, byte_read_callback):
         try:
@@ -188,7 +192,17 @@ class UploadHandler:
             m = MultipartEncoder(fields={**signature, **{'file': file_path.open("rb")}})
             monitor = MultipartEncoderMonitor(m, callback)
             headers = {'Content-Type': monitor.content_type}
-            upload_response = requests.post(f"http:{end_point}", data=monitor, headers=headers)
+            
+            retries = 0
+            while retries < 5:
+                upload_response = requests.post(f"http:{end_point}", data=monitor, headers=headers)
+                # If s3 is getting to many request it will return 503, we will sleep and retry
+                if upload_response.status_code != 503:
+                    break 
+                
+                time.sleep(2 ** retries)
+                retries += 1
+                
             upload_response.raise_for_status()
         except Exception as e:
             raise UploadRequestError(file_path=file_path, stage=UploadStage.UPLOAD_TO_S3, error=e)

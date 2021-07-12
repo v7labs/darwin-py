@@ -412,9 +412,9 @@ def upload_data(
 
                     progress.update(file_tasks[file_name], completed=file_bytes_sent)
 
-                    #if file_total == file_bytes_sent:
-                    #    progress.remove_task(file_tasks[file])
-                    #    del file_tasks[file]
+                for task in progress.tasks:
+                    if task.finished and len(progress.tasks) >= 5:
+                        progress.remove_task(task.id)
 
                 progress.update(upload_tasks, total=total_file_count, advance=file_advancement)
             upload_manager = dataset.push(files_to_exclude=files_to_exclude, fps=fps, as_frames=frames, files_to_upload=files, path=path, progress_callback=upload_callback)        
