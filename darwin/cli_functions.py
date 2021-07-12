@@ -7,7 +7,15 @@ from typing import List, Optional, Union
 
 import humanize
 from rich.console import Console
-from rich.progress import Progress
+from rich.live import Live
+from rich.progress import (
+    BarColumn,
+    DownloadColumn,
+    Progress,
+    TextColumn,
+    TimeRemainingColumn,
+    TransferSpeedColumn,
+)
 from rich.table import Table
 from rich.theme import Theme
 
@@ -400,16 +408,6 @@ def upload_data(
     client = _load_client()
     try:
         dataset = client.get_remote_dataset(dataset_identifier=dataset_identifier)
-        from rich.live import Live
-        from rich.panel import Panel
-        from rich.progress import (
-            BarColumn,
-            DownloadColumn,
-            TextColumn,
-            TimeRemainingColumn,
-            TransferSpeedColumn,
-        )
-        from rich.table import Table
 
         overall_progress = Progress(
             TextColumn("[bold blue]{task.fields[filename]}"), BarColumn(), "{task.completed} of {task.total}"

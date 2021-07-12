@@ -12,18 +12,9 @@ from darwin.dataset import RemoteDataset
 
 
 @pytest.fixture
-def darwin_client(darwin_config_path: Path, darwin_datasets_path: Path, team_slug: str) -> Client:
-    config = Config(darwin_config_path)
-    config.put(["global", "api_endpoint"], "http://localhost/api")
-    config.put(["global", "base_url"], "http://localhost")
-    config.put(["teams", team_slug, "api_key"], "mock_api_key")
-    config.put(["teams", team_slug, "datasets_dir"], str(darwin_datasets_path))
-    return Client(config)
-
-
-@pytest.fixture
-def remote_dataset(darwin_client: Client, dataset_slug: str):
-    return RemoteDataset(client=darwin_client, team="v7", name="TEST_DATASET", slug=dataset_slug, dataset_id=1)
+def remote_dataset(dataset_slug: str, local_config_file: Config):
+    client = Client(local_config_file)
+    return RemoteDataset(client=client, team="v7", name="TEST_DATASET", slug=dataset_slug, dataset_id=1)
 
 
 @pytest.fixture
@@ -31,7 +22,7 @@ def request_upload_endpoint(team_slug: str, dataset_slug: str):
     return f"http://localhost/api/teams/{team_slug}/datasets/{dataset_slug}/data"
 
 
-@pytest.mark.usefixtures("file_read_write_test", "darwin_client")
+@pytest.mark.usefixtures("file_read_write_test")
 @responses.activate
 def test_upload_data(team_slug: str, dataset_slug: str, remote_dataset: RemoteDataset, request_upload_endpoint: str):
     request_upload_response = {
@@ -59,7 +50,7 @@ def test_upload_data(team_slug: str, dataset_slug: str, remote_dataset: RemoteDa
             assert call('Re-run with "--verbose" for further details') in print_mock.call_args_list
 
 
-@pytest.mark.usefixtures("file_read_write_test", "darwin_client")
+@pytest.mark.usefixtures("file_read_write_test")
 @responses.activate
 def test_upload_data_verbose(
     team_slug: str, dataset_slug: str, remote_dataset: RemoteDataset, request_upload_endpoint: str
