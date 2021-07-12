@@ -127,14 +127,17 @@ class UploadHandler:
                 file_to_upload(callback)
 
     def _request_upload(self) -> Tuple[List[ItemPayload], List[ItemPayload]]:
-        upload_payload = {"items": [file.data for file in self.local_files]}
-        data = self.client.put(
-            endpoint=f"/teams/{self.dataset_identifier.team_slug}/datasets/{self.dataset_identifier.dataset_slug}/data",
-            payload=upload_payload,
-            team=self.dataset_identifier.team_slug,
-        )
-        blocked_items = [ItemPayload(**item) for item in data["blocked_items"]]
-        items = [ItemPayload(**item) for item in data["items"]]
+        blocked_items = []
+        items = []
+        for file_chunk in chunk(self.local_files, 500):
+            upload_payload = {"items": [file.data for file in file_chunk]}
+            data = self.client.put(
+                endpoint=f"/teams/{self.dataset_identifier.team_slug}/datasets/{self.dataset_identifier.dataset_slug}/data",
+                payload=upload_payload,
+                team=self.dataset_identifier.team_slug,
+            )
+            blocked_items.extend([ItemPayload(**item) for item in data["blocked_items"]])
+            items.extend([ItemPayload(**item) for item in data["items"]])
         return blocked_items, items
 
     def _upload_files(self):
@@ -211,3 +214,8 @@ class UploadHandler:
             confirm_response.raise_for_status()
         except Exception as e:
             raise UploadRequestError(file_path=file_path, stage=UploadStage.CONFIRM_UPLOAD_COMPLETE, error=e)
+
+
+def chunk(items, size):
+    for i in range(0, len(items), size):
+        yield items[i: i + size]
