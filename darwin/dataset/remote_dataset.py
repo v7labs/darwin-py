@@ -85,7 +85,8 @@ class RemoteDataset:
         as_frames: bool = False,
         files_to_exclude: Optional[List[str]] = None,
         path: Optional[str] = None,
-        progress_callback: Optional[Callable[[int, int, Optional[str], float, float], None]] = None,
+        progress_callback: Optional[Callable[[int, int], None]] = None,
+        file_upload_callback: Optional[Callable[[str, int, int], None]] = None,
     ):
         """Uploads a local dataset (images ONLY) in the datasets directory.
 
@@ -131,7 +132,7 @@ class RemoteDataset:
 
         handler = UploadHandler(self.client, local_files, DatasetIdentifier(self.slug, self.team))
         if blocking:
-            handler.upload(multi_threaded=multi_threaded, progress_callback=progress_callback)
+            handler.upload(multi_threaded=multi_threaded, progress_callback=progress_callback, file_upload_callback=file_upload_callback)
         else:
             handler.prepare_upload()
 

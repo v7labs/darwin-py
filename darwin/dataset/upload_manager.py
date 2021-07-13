@@ -57,7 +57,8 @@ class UploadRequestError(Exception):
 
 
 ByteReadCallback = Callable[[Optional[str], float, float], None]
-ProgressCallback = Callable[[int, float, Optional[str], float, float], None]
+ProgressCallback = Callable[[int, float], None]
+FileUploadCallback = Callable[[str, int, int], None]
 
 
 class UploadHandler:
@@ -95,28 +96,25 @@ class UploadHandler:
         return self._progress
 
     def upload(
-        self, multi_threaded: bool = True, progress_callback: Optional[ProgressCallback] = None,
+        self, multi_threaded: bool = True, progress_callback: Optional[ProgressCallback] = None, file_upload_callback: Optional[FileUploadCallback] = None
     ):
         if not self._progress:
             self.prepare_upload()
 
         if progress_callback:
-            progress_callback(self.pending_count, 0, None, 0, 0)
+            progress_callback(self.pending_count, 0)
 
         # needed to ensure that we don't mark a file as completed twice
         file_complete: Set[str] = set()
 
         def callback(file_name, file_total_bytes, file_bytes_sent):
-            if not progress_callback:
-                return
+            if file_upload_callback: 
+                file_upload_callback(file_name, file_total_bytes, file_bytes_sent)
 
-            completed = 0
-            if file_total_bytes == file_bytes_sent:
-                if file_name not in file_complete:
-                    completed = 1
+            if progress_callback:
+                if file_total_bytes == file_bytes_sent and file_name not in file_complete:
                     file_complete.add(file_name)
-
-            progress_callback(self.pending_count, completed, file_name, file_total_bytes, file_bytes_sent)
+                    progress_callback(self.pending_count, 1)
 
         if multi_threaded:
             with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:

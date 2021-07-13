@@ -440,25 +440,26 @@ def upload_data(
                 "[green]Total progress", filename="Total progress", total=0, visible=False
             )
 
-            def upload_callback(total_file_count, file_advancement, file_name, file_total_bytes, file_bytes_sent):
+            def progress_callback(total_file_count, file_advancement):
                 sync_metadata.update(sync_task, visible=False)
-                if file_name:
-                    if file_name not in file_tasks:
-                        file_tasks[file_name] = file_progress.add_task(
-                            f"[blue]{file_name}", filename=file_name, total=file_total_bytes
-                        )
+                overall_progress.update(overall_task, total=total_file_count, advance=file_advancement, visible=True)
 
-                    # Rich has a concurrency issue, so sometimes this fails
-                    try:
-                        file_progress.update(file_tasks[file_name], completed=file_bytes_sent)
-                    except Exception as e:
-                        pass
+
+            def file_upload_callback(file_name, file_total_bytes, file_bytes_sent):
+                if file_name not in file_tasks:
+                    file_tasks[file_name] = file_progress.add_task(
+                        f"[blue]{file_name}", filename=file_name, total=file_total_bytes
+                    )
+
+                # Rich has a concurrency issue, so sometimes this fails
+                try:
+                    file_progress.update(file_tasks[file_name], completed=file_bytes_sent)
+                except Exception as e:
+                    pass
 
                 for task in file_progress.tasks:
                     if task.finished and len(file_progress.tasks) >= 5:
                         file_progress.remove_task(task.id)
-
-                overall_progress.update(overall_task, total=total_file_count, advance=file_advancement, visible=True)
 
             upload_manager = dataset.push(
                 files_to_exclude=files_to_exclude,
@@ -466,7 +467,8 @@ def upload_data(
                 as_frames=frames,
                 files_to_upload=files,
                 path=path,
-                progress_callback=upload_callback,
+                progress_callback=progress_callback,
+                file_upload_callback=file_upload_callback
             )
         console = Console(theme=_console_theme())
 
