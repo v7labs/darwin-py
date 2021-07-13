@@ -3,10 +3,11 @@ import time
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Set, Tuple
+from typing import TYPE_CHECKING, Callable, List, Optional, Set, Tuple
 
 import requests
 from darwin.path_utils import construct_full_path
+from darwin.utils import chunk
 from requests_toolbelt import MultipartEncoder, MultipartEncoderMonitor
 
 if TYPE_CHECKING:
@@ -55,6 +56,10 @@ class UploadRequestError(Exception):
     error: Optional[Exception] = None
 
 
+ByteReadCallback = Callable[[Optional[str], float, float], None]
+ProgressCallback = Callable[[int, float, Optional[str], float, float], None]
+
+
 class UploadHandler:
     def __init__(self, client: "Client", local_files: List[LocalFile], dataset_identifier: "DatasetIdentifier"):
         self.client = client
@@ -90,9 +95,7 @@ class UploadHandler:
         return self._progress
 
     def upload(
-        self,
-        multi_threaded: bool = True,
-        progress_callback: Optional[Callable[[int, float, Optional[str], float, float], None]] = None,
+        self, multi_threaded: bool = True, progress_callback: Optional[ProgressCallback] = None,
     ):
         if not self._progress:
             self.prepare_upload()
@@ -161,10 +164,7 @@ class UploadHandler:
             self.errors.append(UploadRequestError(file_path=file_path, stage=UploadStage.OTHER, error=e))
 
     def _do_upload_file(
-        self,
-        dataset_item_id: int,
-        file_path: Path,
-        byte_read_callback: Optional[Callable[[Optional[str], float, float], None]] = None,
+        self, dataset_item_id: int, file_path: Path, byte_read_callback: Optional[ByteReadCallback] = None,
     ):
         team_slug = self.dataset_identifier.team_slug
 
@@ -215,9 +215,3 @@ class UploadHandler:
             confirm_response.raise_for_status()
         except Exception as e:
             raise UploadRequestError(file_path=file_path, stage=UploadStage.CONFIRM_UPLOAD_COMPLETE, error=e)
-
-
-def chunk(items, size):
-    for i in range(0, len(items), size):
-        yield items[i : i + size]
-

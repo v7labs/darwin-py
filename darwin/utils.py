@@ -463,3 +463,8 @@ def convert_polygons_to_mask(polygons: List, height: int, width: int, value: Opt
     mask = np.zeros((height, width)).astype(np.uint8)
     draw_polygon(mask, sequence, value)
     return mask
+
+
+def chunk(items, size):
+    for i in range(0, len(items), size):
+        yield items[i : i + size]
