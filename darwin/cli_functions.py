@@ -414,13 +414,12 @@ def list_files(dataset_slug: str, statuses: str, path: str, only_filenames: bool
             parameters["statuses"] = "new,annotate,review,complete"
         if path:
             parameters["path"] = path
-        if sort: 
-            if sort not in ["inserted_at", "updated_at", "file_size", "filename", "priority"]:
-                _error(f"Invalid sort parameter '{sort}', available sort parameters: inserted_at, updated_at, file_size, filename, priority")
-            if direction not in ["asc", "desc"]:
-                _error(f"Invalid direction for sort '{direction}', available directions: asc, desc")
-            parameters["sort"] = sort
-            parameters["direction"] = direction
+        if sort not in ["inserted_at", "updated_at", "file_size", "filename", "priority"]:
+            _error(f"Invalid sort parameter '{sort}', available sort parameters: inserted_at, updated_at, file_size, filename, priority")
+        parameters["sort"] = sort
+        if direction not in ["asc", "desc"]:
+            _error(f"Invalid direction for sort '{direction}', available directions: asc, desc")
+        parameters["direction"] = direction
         for file in dataset.fetch_remote_files(parameters):
             if only_filenames:
                 print(file.filename)
