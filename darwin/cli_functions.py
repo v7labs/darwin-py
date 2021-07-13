@@ -444,7 +444,6 @@ def upload_data(
                 sync_metadata.update(sync_task, visible=False)
                 overall_progress.update(overall_task, total=total_file_count, advance=file_advancement, visible=True)
 
-
             def file_upload_callback(file_name, file_total_bytes, file_bytes_sent):
                 if file_name not in file_tasks:
                     file_tasks[file_name] = file_progress.add_task(
@@ -468,7 +467,7 @@ def upload_data(
                 files_to_upload=files,
                 path=path,
                 progress_callback=progress_callback,
-                file_upload_callback=file_upload_callback
+                file_upload_callback=file_upload_callback,
             )
         console = Console(theme=_console_theme())
 
