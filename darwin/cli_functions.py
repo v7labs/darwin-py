@@ -400,21 +400,28 @@ def dataset_import(dataset_slug, format, files, append):
         _error(f"No dataset with name '{e.name}'")
 
 
-def list_files(dataset_slug: str, statuses: str, path: str, only_filenames: bool):
+def list_files(dataset_slug: str, statuses: str, path: str, only_filenames: bool, sort: str = "updated_at", direction: str = "desc"):
     client = _load_client(dataset_identifier=dataset_slug)
     try:
         dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
-        filters = {}
+        parameters = {}
         if statuses:
             for status in statuses.split(","):
                 if status not in ["new", "annotate", "review", "complete", "archived"]:
                     _error(f"Invalid status '{status}', available statuses: annotate, archived, complete, new, review")
-            filters["statuses"] = statuses
+            parameters["statuses"] = statuses
         else:
-            filters["statuses"] = "new,annotate,review,complete"
+            parameters["statuses"] = "new,annotate,review,complete"
         if path:
-            filters["path"] = path
-        for file in dataset.fetch_remote_files(filters):
+            parameters["path"] = path
+        if sort: 
+            if sort not in ["inserted_at", "updated_at", "file_size", "filename", "priority"]:
+                _error(f"Invalid sort parameter '{sort}', available sort parameters: inserted_at, updated_at, file_size, filename, priority")
+            if direction not in ["asc", "desc"]:
+                _error(f"Invalid direction for sort '{direction}', available directions: asc, desc")
+            parameters["sort"] = sort
+            parameters["direction"] = direction
+        for file in dataset.fetch_remote_files(parameters):
             if only_filenames:
                 print(file.filename)
             else:

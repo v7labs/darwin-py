@@ -317,25 +317,27 @@ class RemoteDataset:
         """Archives (soft-deletion) the remote dataset"""
         self.client.put(f"datasets/{self.dataset_id}/archive", payload={}, team=self.team)
 
-    def fetch_remote_files(self, filters: Optional[dict] = None):
+    def fetch_remote_files(self, parameters: Optional[dict] = None):
         """Fetch and lists all files on the remote dataset"""
         base_url = f"/datasets/{self.dataset_id}/items"
-        parameters = {}
-        if filters:
+        filters = {}
+        sort = {}
+        if parameters:
             for list_type in ["filenames", "statuses"]:
-                if list_type in filters:
-                    if type(filters[list_type]) is list:
-                        parameters[list_type] = ",".join(filters[list_type])
+                if list_type in parameters:
+                    if type(parameters[list_type]) is list:
+                        filters[list_type] = ",".join(parameters[list_type])
                     else:
-                        parameters[list_type] = filters[list_type]
-            if "path" in filters:
-                parameters["path"] = filters["path"]
-            if "types" in filters:
-                parameters["types"] = filters["types"]
-
+                        filters[list_type] = parameters[list_type]
+            if "path" in parameters:
+                filters["path"] = parameters["path"]
+            if "types" in parameters:
+                filters["types"] = parameters["types"]
+            if "sort" in parameters:
+                sort[parameters["sort"]] = parameters["direction"]
         cursor = {"page[size]": 500}
         while True:
-            response = self.client.post(f"{base_url}?{parse.urlencode(cursor)}", {"filter": parameters}, team=self.team)
+            response = self.client.post(f"{base_url}?{parse.urlencode(cursor)}", {"filter": filters, "sort": sort}, team=self.team)
             yield from [parse_dataset_item(item) for item in response["items"]]
             if response["metadata"]["next"]:
                 cursor["page[from]"] = response["metadata"]["next"]
