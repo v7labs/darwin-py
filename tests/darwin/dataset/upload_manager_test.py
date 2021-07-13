@@ -5,12 +5,7 @@ import responses
 from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset.identifier import DatasetIdentifier
-from darwin.dataset.upload_manager import (
-    LocalFile,
-    UploadHandler,
-    UploadRequestError,
-    UploadStage,
-)
+from darwin.dataset.upload_manager import LocalFile, UploadHandler, UploadStage
 from tests.fixtures import *
 
 
@@ -36,19 +31,16 @@ def request_upload_endpoint(team_slug: str, dataset_slug: str):
 
 @pytest.mark.usefixtures("file_read_write_test")
 @responses.activate
-def test_request_upload_is_called_on_init(
+def test_request_upload_is_not_called_on_init(
     darwin_client: Client, dataset_identifier: DatasetIdentifier, request_upload_endpoint: str
 ):
-    response = {"blocked_items": [], "items": []}
-    responses.add(responses.PUT, request_upload_endpoint, json=response, status=200)
-
     upload_handler = UploadHandler(darwin_client, [], dataset_identifier)
 
     assert upload_handler.pending_count == 0
     assert upload_handler.blocked_count == 0
     assert upload_handler.error_count == 0
 
-    responses.assert_call_count(request_upload_endpoint, 1) is True
+    responses.assert_call_count(request_upload_endpoint, 0)
 
 
 @pytest.mark.usefixtures("file_read_write_test")
@@ -126,10 +118,10 @@ def test_error_count_is_correct(
     for file_to_upload in upload_handler.progress:
         file_to_upload()
 
-    responses.assert_call_count(request_upload_endpoint, 1) is True
-    responses.assert_call_count(sign_upload_endpoint, 1) is True
-    responses.assert_call_count(upload_to_s3_endpoint, 0) is True
-    responses.assert_call_count(confirm_upload_endpoint, 0) is True
+    responses.assert_call_count(request_upload_endpoint, 1)
+    responses.assert_call_count(sign_upload_endpoint, 1)
+    responses.assert_call_count(upload_to_s3_endpoint, 0)
+    responses.assert_call_count(confirm_upload_endpoint, 0)
 
     assert upload_handler.pending_count == 1
     assert upload_handler.error_count == 1
@@ -180,10 +172,10 @@ def test_error_count_is_correct(
     for file_to_upload in upload_handler.progress:
         file_to_upload()
 
-    responses.assert_call_count(request_upload_endpoint, 1) is True
-    responses.assert_call_count(sign_upload_endpoint, 1) is True
-    responses.assert_call_count(upload_to_s3_endpoint, 1) is True
-    responses.assert_call_count(confirm_upload_endpoint, 0) is True
+    responses.assert_call_count(request_upload_endpoint, 1)
+    responses.assert_call_count(sign_upload_endpoint, 1)
+    responses.assert_call_count(upload_to_s3_endpoint, 1)
+    responses.assert_call_count(confirm_upload_endpoint, 0)
 
     assert upload_handler.pending_count == 1
     assert upload_handler.error_count == 1
@@ -235,10 +227,10 @@ def test_error_count_is_correct(
     for file_to_upload in upload_handler.progress:
         file_to_upload()
 
-    responses.assert_call_count(request_upload_endpoint, 1) is True
-    responses.assert_call_count(sign_upload_endpoint, 1) is True
-    responses.assert_call_count(upload_to_s3_endpoint, 1) is True
-    responses.assert_call_count(confirm_upload_endpoint, 1) is True
+    responses.assert_call_count(request_upload_endpoint, 1)
+    responses.assert_call_count(sign_upload_endpoint, 1)
+    responses.assert_call_count(upload_to_s3_endpoint, 1)
+    responses.assert_call_count(confirm_upload_endpoint, 1)
 
     assert upload_handler.pending_count == 1
     assert upload_handler.error_count == 1
@@ -288,9 +280,9 @@ def test_upload_files(darwin_client: Client, dataset_identifier: DatasetIdentifi
     for file_to_upload in upload_handler.progress:
         file_to_upload()
 
-    responses.assert_call_count(request_upload_endpoint, 1) is True
-    responses.assert_call_count(sign_upload_endpoint, 1) is True
-    responses.assert_call_count(upload_to_s3_endpoint, 1) is True
-    responses.assert_call_count(confirm_upload_endpoint, 1) is True
+    responses.assert_call_count(request_upload_endpoint, 1)
+    responses.assert_call_count(sign_upload_endpoint, 1)
+    responses.assert_call_count(upload_to_s3_endpoint, 1)
+    responses.assert_call_count(confirm_upload_endpoint, 1)
 
     assert upload_handler.error_count == 0
