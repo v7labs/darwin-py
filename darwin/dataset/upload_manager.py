@@ -35,11 +35,11 @@ class LocalFile:
 
     def _type_check(self, args):
         self.data["filename"] = args.get("filename") or self.local_path.name
-        self.data["remote_path"] = args.get("path") or "/"
+        self.data["path"] = args.get("path") or "/"
 
     @property
     def full_path(self):
-        return construct_full_path(self.data["remote_path"], self.data["filename"])
+        return construct_full_path(self.data["path"], self.data["filename"])
 
 
 class UploadStage(Enum):
@@ -96,7 +96,10 @@ class UploadHandler:
         return self._progress
 
     def upload(
-        self, multi_threaded: bool = True, progress_callback: Optional[ProgressCallback] = None, file_upload_callback: Optional[FileUploadCallback] = None
+        self,
+        multi_threaded: bool = True,
+        progress_callback: Optional[ProgressCallback] = None,
+        file_upload_callback: Optional[FileUploadCallback] = None,
     ):
         if not self._progress:
             self.prepare_upload()
@@ -108,7 +111,7 @@ class UploadHandler:
         file_complete: Set[str] = set()
 
         def callback(file_name, file_total_bytes, file_bytes_sent):
-            if file_upload_callback: 
+            if file_upload_callback:
                 file_upload_callback(file_name, file_total_bytes, file_bytes_sent)
 
             if progress_callback:
