@@ -3,7 +3,7 @@ import datetime
 import sys
 from itertools import tee
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import Dict, List, Optional, Union
 
 import humanize
 from rich.console import Console
@@ -12,7 +12,9 @@ from rich.progress import (
     BarColumn,
     DownloadColumn,
     Progress,
+    ProgressColumn,
     SpinnerColumn,
+    TaskID,
     TextColumn,
     TimeRemainingColumn,
     TransferSpeedColumn,
@@ -410,13 +412,12 @@ def upload_data(
     try:
         dataset = client.get_remote_dataset(dataset_identifier=dataset_identifier)
 
-        sync_metadata = Progress(
-            SpinnerColumn(), TextColumn("[bold blue]Syncing metadata")
-        )
+        sync_metadata = Progress(SpinnerColumn(), TextColumn("[bold blue]Syncing metadata"))
 
         overall_progress = Progress(
             TextColumn("[bold blue]{task.fields[filename]}"), BarColumn(), "{task.completed} of {task.total}"
         )
+
         file_progress = Progress(
             TextColumn("[bold green]{task.fields[filename]}", justify="right"),
             BarColumn(),
@@ -432,11 +433,12 @@ def upload_data(
         progress_table.add_row(sync_metadata)
         progress_table.add_row(file_progress)
         progress_table.add_row(overall_progress)
-        with Live(progress_table) as l:
-            progress_table
-            sync_task = sync_metadata.add_task("")
-            file_tasks = {}
-            overall_task = overall_progress.add_task("[green]Total progress", filename="Total progress", total=0, visible=False)
+        with Live(progress_table):
+            sync_task: TaskID = sync_metadata.add_task("")
+            file_tasks: Dict[str, TaskID] = {}
+            overall_task = overall_progress.add_task(
+                "[green]Total progress", filename="Total progress", total=0, visible=False
+            )
 
             def upload_callback(total_file_count, file_advancement, file_name, file_total_bytes, file_bytes_sent):
                 sync_metadata.update(sync_task, visible=False)

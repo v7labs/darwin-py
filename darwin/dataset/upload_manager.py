@@ -3,7 +3,7 @@ import time
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Set, Tuple
 
 import requests
 from darwin.path_utils import construct_full_path
@@ -96,11 +96,12 @@ class UploadHandler:
     ):
         if not self._progress:
             self.prepare_upload()
+
         if progress_callback:
             progress_callback(self.pending_count, 0, None, 0, 0)
 
         # needed to ensure that we don't mark a file as completed twice
-        file_complete = set()
+        file_complete: Set[str] = set()
 
         def callback(file_name, file_total_bytes, file_bytes_sent):
             if not progress_callback:
@@ -205,7 +206,7 @@ class UploadHandler:
 
             upload_response.raise_for_status()
         except Exception as e:
-           raise UploadRequestError(file_path=file_path, stage=UploadStage.UPLOAD_TO_S3, error=e)
+            raise UploadRequestError(file_path=file_path, stage=UploadStage.UPLOAD_TO_S3, error=e)
 
         try:
             confirm_response = self.client.put(
@@ -218,4 +219,5 @@ class UploadHandler:
 
 def chunk(items, size):
     for i in range(0, len(items), size):
-        yield items[i: i + size]
+        yield items[i : i + size]
+
