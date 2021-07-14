@@ -1,10 +1,9 @@
 from pathlib import Path
 from typing import Callable, List, Union
 
-from tqdm import tqdm
-
 import darwin.datatypes as dt
 from darwin.utils import secure_continue_request
+from rich.progress import track
 
 
 def build_main_annotations_lookup_table(annotation_classes):
@@ -133,7 +132,7 @@ def import_annotations(
             parsed_files = [parsed_files]
         # remove files missing on the server
         parsed_files = [parsed_file for parsed_file in parsed_files if parsed_file not in local_files_missing_remotely]
-        for parsed_file in tqdm(parsed_files):
+        for parsed_file in track(parsed_files):
             image_id = remote_files[parsed_file.full_path]
             _import_annotations(
                 dataset.client, image_id, remote_classes, attributes, parsed_file.annotations, dataset, append

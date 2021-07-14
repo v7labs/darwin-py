@@ -4,7 +4,6 @@ import time
 from pathlib import Path
 
 import requests
-
 from darwin.utils import is_image_extension_allowed
 
 
