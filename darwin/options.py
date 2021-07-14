@@ -63,7 +63,7 @@ class Options(object):
         parser_push.add_argument(
             "dataset",
             type=str,
-            help="[Remote] Dataset name: to list all the existing dataset, run 'darwin dataset remote'. ",
+            help="[Remote] Dataset name: to list all the existing dataset, run 'darwin dataset remote'.",
         )
         parser_push.add_argument("files", type=str, nargs="+", help="Files to upload")
         parser_push.add_argument(
@@ -72,7 +72,7 @@ class Options(object):
             type=str,
             nargs="+",
             default="",
-            help="Excludes the files with the specified extension/s if a data folder is provided as data path. ",
+            help="Excludes the files with the specified extension/s if a data folder is provided as data path.",
         )
         parser_push.add_argument(
             "-f",
@@ -80,9 +80,11 @@ class Options(object):
             default="native",
             help="Frames per second for video split (recommended: 1), use 'native' to use the videos intrinsic fps.",
         )
-        parser_push.add_argument("--frames", action="store_true", help="Annotate a video as independent frames")
+        parser_push.add_argument("--frames", action="store_true", help="Annotate a video as independent frames.")
 
         parser_push.add_argument("--path", type=str, default=None, help="Folder to upload the files into.")
+
+        parser_push.add_argument("--verbose", action="store_true", help="Flag to show upload details.")
 
         # Remove
         parser_remove = dataset_action.add_parser("remove", help="Remove a remote or remote and local dataset.")

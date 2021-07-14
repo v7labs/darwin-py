@@ -11,12 +11,23 @@ from darwin.dataset.download_manager import download_all_images_from_annotations
 from darwin.dataset.identifier import DatasetIdentifier
 from darwin.dataset.release import Release
 from darwin.dataset.split_manager import split_dataset
-from darwin.dataset.upload_manager import add_files_to_dataset
-from darwin.dataset.utils import exhaust_generator, get_annotations, get_classes, make_class_lists
+from darwin.dataset.upload_manager import LocalFile, UploadHandler
+from darwin.dataset.utils import (
+    exhaust_generator,
+    get_annotations,
+    get_classes,
+    make_class_lists,
+)
 from darwin.exceptions import NotFound, UnsupportedExportFormat
 from darwin.exporter.formats.darwin import build_image_annotation
 from darwin.item import parse_dataset_item
-from darwin.utils import find_files, parse_darwin_json, split_video_annotation, urljoin
+from darwin.utils import (
+    find_files,
+    parse_darwin_json,
+    secure_continue_request,
+    split_video_annotation,
+    urljoin,
+)
 from darwin.validators import name_taken, validation_error
 
 if TYPE_CHECKING:
@@ -73,8 +84,9 @@ class RemoteDataset:
         fps: int = 1,
         as_frames: bool = False,
         files_to_exclude: Optional[List[str]] = None,
-        resume: bool = False,
         path: Optional[str] = None,
+        progress_callback: Optional[Callable[[int, int], None]] = None,
+        file_upload_callback: Optional[Callable[[str, int, int], None]] = None,
     ):
         """Uploads a local dataset (images ONLY) in the datasets directory.
 
@@ -93,73 +105,38 @@ class RemoteDataset:
             Number of file per seconds to upload
         as_frames: bool
             Annotate as video.
-        resume : bool
-            Flag for signalling the resuming of a push
         path: str
             Optional path to put the files into
-
+        progress_callback: (total_file_count, file_advancement, Optional[file_name], file_total_bytes, file_bytes_sent) => None
+            Optional callback, called with the total number of files to upload, how far the current file has uploaded and how many bytes have been read.
         Returns
         -------
-        generator : function
-            Generator for doing the actual uploads. This is None if blocking is True
-        count : int
-            The files count
+        handler : UploadHandler
+           Class for handling uploads, progress and error messages
         """
 
-        # paths needs to start with /
-        if path and path[0] != "/":
-            path = f"/{path}"
-
-        # This is where the responses from the upload function will be saved/load for resume
-        self.local_path.parent.mkdir(exist_ok=True)
-        responses_path = self.local_path.parent / ".upload_responses.json"
         # Init optional parameters
         if files_to_exclude is None:
             files_to_exclude = []
         if files_to_upload is None:
-            raise NotFound("Dataset location not found. Check your path.")
-
-        if resume:
-            if not responses_path.exists():
-                raise NotFound("Dataset location not found. Check your path.")
-            with responses_path.open() as f:
-                logged_responses = json.load(f)
-            files_to_exclude.extend(
-                [
-                    response["file_path"]
-                    for response in logged_responses
-                    if response["s3_response_status_code"].startswith("2")
-                ]
-            )
+            raise ValueError("No files or directory specified.")
 
         files_to_upload = find_files(files=files_to_upload, recursive=True, files_to_exclude=files_to_exclude)
 
         if not files_to_upload:
             raise ValueError("No files to upload, check your path, exclusion filters and resume flag")
 
-        progress, count = add_files_to_dataset(
-            client=self.client,
-            dataset_id=str(self.dataset_id),
-            filenames=files_to_upload,
-            fps=fps,
-            as_frames=as_frames,
-            team=self.team,
-            path=path,
-        )
+        local_files = []
+        for file in files_to_upload:
+            local_files.append(LocalFile(file, fps=fps, as_frames=as_frames, path=path))
 
-        # If blocking is selected, upload the dataset remotely
+        handler = UploadHandler(self.client, local_files, DatasetIdentifier(self.slug, self.team))
         if blocking:
-            responses = exhaust_generator(progress=progress, count=count, multi_threaded=multi_threaded)
-            # Log responses to file
-            if responses:
-                responses = [{k: str(v) for k, v in response.items()} for response in responses]
-                if resume:
-                    responses.extend(logged_responses)
-                with responses_path.open("w") as f:
-                    json.dump(responses, f)
-            return None, count
+            handler.upload(multi_threaded=multi_threaded, progress_callback=progress_callback, file_upload_callback=file_upload_callback)
         else:
-            return progress, count
+            handler.prepare_upload()
+
+        return handler
 
     def split_video_annotations(self, release_name: str = "latest"):
         release_dir = self.local_path / "releases" / release_name

@@ -25,6 +25,9 @@ class NotFound(Exception):
         super().__init__()
         self.name = name
 
+    def __str__(self):
+        return f"Not found: '{self.name}'"
+
 
 class UnsupportedFileType(Exception):
     def __init__(self, path):
@@ -44,7 +47,8 @@ class ValidationError(Exception):
 
 
 class Unauthorized(Exception):
-    pass
+    def __str__(self):
+        return f"Unauthorized"
 
 
 class OutdatedDarwinJSONFormat(Exception):
