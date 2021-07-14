@@ -4,6 +4,7 @@ import pytest
 import responses
 from darwin.client import Client
 from darwin.config import Config
+from darwin.dataset import RemoteDataset
 from darwin.dataset.identifier import DatasetIdentifier
 from darwin.dataset.upload_manager import LocalFile, UploadHandler, UploadStage
 from tests.fixtures import *
@@ -29,12 +30,15 @@ def request_upload_endpoint(team_slug: str, dataset_slug: str):
     return f"http://localhost/api/teams/{team_slug}/datasets/{dataset_slug}/data"
 
 
+@pytest.fixture
+def dataset(darwin_client: Client, team_slug: str, dataset_slug: str) -> RemoteDataset:
+    return RemoteDataset(client=darwin_client, team=team_slug, name=dataset_slug, slug=dataset_slug, dataset_id=1)
+
+
 @pytest.mark.usefixtures("file_read_write_test")
 @responses.activate
-def test_request_upload_is_not_called_on_init(
-    darwin_client: Client, dataset_identifier: DatasetIdentifier, request_upload_endpoint: str
-):
-    upload_handler = UploadHandler(darwin_client, [], dataset_identifier)
+def test_request_upload_is_not_called_on_init(dataset: RemoteDataset, request_upload_endpoint: str):
+    upload_handler = UploadHandler(dataset, [])
 
     assert upload_handler.pending_count == 0
     assert upload_handler.blocked_count == 0
@@ -45,15 +49,13 @@ def test_request_upload_is_not_called_on_init(
 
 @pytest.mark.usefixtures("file_read_write_test")
 @responses.activate
-def test_pending_count_is_correct(
-    darwin_client: Client, dataset_identifier: DatasetIdentifier, request_upload_endpoint: str
-):
+def test_pending_count_is_correct(dataset: RemoteDataset, request_upload_endpoint: str):
     response = {"blocked_items": [], "items": [{"dataset_item_id": 1, "filename": "test.jpg", "path": "/"}]}
 
     responses.add(responses.PUT, request_upload_endpoint, json=response, status=200)
 
-    local_file = LocalFile(local_path="test.jpg")
-    upload_handler = UploadHandler(darwin_client, [local_file], dataset_identifier)
+    local_file = LocalFile(local_path=Path("test.jpg"))
+    upload_handler = UploadHandler(dataset, [local_file])
 
     assert upload_handler.pending_count == 1
     assert upload_handler.blocked_count == 0
@@ -69,9 +71,7 @@ def test_pending_count_is_correct(
 
 @pytest.mark.usefixtures("file_read_write_test")
 @responses.activate
-def test_blocked_count_is_correct(
-    darwin_client: Client, dataset_identifier: DatasetIdentifier, request_upload_endpoint: str
-):
+def test_blocked_count_is_correct(dataset: RemoteDataset, request_upload_endpoint: str):
     response = {
         "blocked_items": [{"dataset_item_id": 1, "filename": "test.jpg", "path": "/", "reason": "ALREADY_EXISTS"}],
         "items": [],
@@ -79,8 +79,8 @@ def test_blocked_count_is_correct(
 
     responses.add(responses.PUT, request_upload_endpoint, json=response, status=200)
 
-    local_file = LocalFile(local_path="test.jpg")
-    upload_handler = UploadHandler(darwin_client, [local_file], dataset_identifier)
+    local_file = LocalFile(local_path=Path("test.jpg"))
+    upload_handler = UploadHandler(dataset, [local_file])
 
     assert upload_handler.pending_count == 0
     assert upload_handler.blocked_count == 1
@@ -96,9 +96,7 @@ def test_blocked_count_is_correct(
 
 @pytest.mark.usefixtures("file_read_write_test")
 @responses.activate
-def test_error_count_is_correct(
-    darwin_client: Client, dataset_identifier: DatasetIdentifier, request_upload_endpoint: str
-):
+def test_error_count_is_correct(dataset: RemoteDataset, request_upload_endpoint: str):
     request_upload_response = {
         "blocked_items": [],
         "items": [{"dataset_item_id": 1, "filename": "test.jpg", "path": "/"}],
@@ -111,8 +109,8 @@ def test_error_count_is_correct(
     responses.add(responses.PUT, request_upload_endpoint, json=request_upload_response, status=200)
     responses.add(responses.GET, sign_upload_endpoint, status=500)
 
-    local_file = LocalFile(local_path="test.jpg")
-    upload_handler = UploadHandler(darwin_client, [local_file], dataset_identifier)
+    local_file = LocalFile(local_path=Path("test.jpg"))
+    upload_handler = UploadHandler(dataset, [local_file])
 
     upload_handler.upload()
     for file_to_upload in upload_handler.progress:
@@ -134,9 +132,7 @@ def test_error_count_is_correct(
 
 @pytest.mark.usefixtures("file_read_write_test")
 @responses.activate
-def test_error_count_is_correct(
-    darwin_client: Client, dataset_identifier: DatasetIdentifier, request_upload_endpoint: str
-):
+def test_error_count_is_correct(dataset: RemoteDataset, request_upload_endpoint: str):
     request_upload_response = {
         "blocked_items": [],
         "items": [{"dataset_item_id": 1, "filename": "test.jpg", "path": "/"}],
@@ -165,8 +161,8 @@ def test_error_count_is_correct(
     responses.add(responses.POST, upload_to_s3_endpoint, content_type="multipart/form-data", status=500)
 
     Path("test.jpg").touch()
-    local_file = LocalFile(local_path="test.jpg")
-    upload_handler = UploadHandler(darwin_client, [local_file], dataset_identifier)
+    local_file = LocalFile(local_path=Path("test.jpg"))
+    upload_handler = UploadHandler(dataset, [local_file])
 
     upload_handler.upload()
     for file_to_upload in upload_handler.progress:
@@ -188,9 +184,7 @@ def test_error_count_is_correct(
 
 @pytest.mark.usefixtures("file_read_write_test")
 @responses.activate
-def test_error_count_is_correct(
-    darwin_client: Client, dataset_identifier: DatasetIdentifier, request_upload_endpoint: str
-):
+def test_error_count_is_correct(dataset: RemoteDataset, request_upload_endpoint: str):
     request_upload_response = {
         "blocked_items": [],
         "items": [{"dataset_item_id": 1, "filename": "test.jpg", "path": "/"}],
@@ -220,8 +214,8 @@ def test_error_count_is_correct(
     responses.add(responses.PUT, confirm_upload_endpoint, status=500)
 
     Path("test.jpg").touch()
-    local_file = LocalFile(local_path="test.jpg")
-    upload_handler = UploadHandler(darwin_client, [local_file], dataset_identifier)
+    local_file = LocalFile(local_path=Path("test.jpg"))
+    upload_handler = UploadHandler(dataset, [local_file])
 
     upload_handler.upload()
     for file_to_upload in upload_handler.progress:
@@ -243,7 +237,7 @@ def test_error_count_is_correct(
 
 @pytest.mark.usefixtures("file_read_write_test")
 @responses.activate
-def test_upload_files(darwin_client: Client, dataset_identifier: DatasetIdentifier, request_upload_endpoint: str):
+def test_upload_files(dataset: RemoteDataset, request_upload_endpoint: str):
     request_upload_response = {
         "blocked_items": [],
         "items": [{"dataset_item_id": 1, "filename": "test.jpg", "path": "/"}],
@@ -273,8 +267,8 @@ def test_upload_files(darwin_client: Client, dataset_identifier: DatasetIdentifi
     responses.add(responses.PUT, confirm_upload_endpoint, status=200)
 
     Path("test.jpg").touch()
-    local_file = LocalFile(local_path="test.jpg")
-    upload_handler = UploadHandler(darwin_client, [local_file], dataset_identifier)
+    local_file = LocalFile(local_path=Path("test.jpg"))
+    upload_handler = UploadHandler(dataset, [local_file])
 
     upload_handler.upload()
     for file_to_upload in upload_handler.progress:

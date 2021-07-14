@@ -12,6 +12,7 @@ from requests_toolbelt import MultipartEncoder, MultipartEncoderMonitor
 
 if TYPE_CHECKING:
     from darwin.client import Client
+    from darwin.dataset import RemoteDataset
     from darwin.dataset.identifier import DatasetIdentifier
 
 
@@ -28,8 +29,8 @@ class ItemPayload:
 
 
 class LocalFile:
-    def __init__(self, local_path: str, **kwargs):
-        self.local_path = Path(local_path)
+    def __init__(self, local_path: Path, **kwargs):
+        self.local_path = local_path
         self.data = kwargs
         self._type_check(kwargs)
 
@@ -62,9 +63,8 @@ FileUploadCallback = Callable[[str, int, int], None]
 
 
 class UploadHandler:
-    def __init__(self, client: "Client", local_files: List[LocalFile], dataset_identifier: "DatasetIdentifier"):
-        self.client = client
-        self.dataset_identifier = dataset_identifier
+    def __init__(self, dataset: "RemoteDataset", local_files: List[LocalFile]):
+        self.dataset = dataset
         self.errors: List[UploadRequestError] = []
         self.local_files = local_files
         self._progress = None
@@ -72,19 +72,27 @@ class UploadHandler:
         self.blocked_items, self.pending_items = self._request_upload()
 
     @property
-    def blocked_count(self):
+    def client(self) -> "Client":
+        return self.dataset.client
+
+    @property
+    def dataset_identifier(self) -> "DatasetIdentifier":
+        return self.dataset.identifier
+
+    @property
+    def blocked_count(self) -> int:
         return len(self.blocked_items)
 
     @property
-    def error_count(self):
+    def error_count(self) -> int:
         return len(self.errors)
 
     @property
-    def pending_count(self):
+    def pending_count(self) -> int:
         return len(self.pending_items)
 
     @property
-    def total_count(self):
+    def total_count(self) -> int:
         return self.pending_count + self.blocked_count
 
     @property

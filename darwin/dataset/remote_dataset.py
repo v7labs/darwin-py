@@ -128,11 +128,15 @@ class RemoteDataset:
 
         local_files = []
         for file in files_to_upload:
-            local_files.append(LocalFile(file, fps=fps, as_frames=as_frames, path=path))
+            local_files.append(LocalFile(Path(file), fps=fps, as_frames=as_frames, path=path))
 
-        handler = UploadHandler(self.client, local_files, DatasetIdentifier(self.slug, self.team))
+        handler = UploadHandler(self, local_files)
         if blocking:
-            handler.upload(multi_threaded=multi_threaded, progress_callback=progress_callback, file_upload_callback=file_upload_callback)
+            handler.upload(
+                multi_threaded=multi_threaded,
+                progress_callback=progress_callback,
+                file_upload_callback=file_upload_callback,
+            )
         else:
             handler.prepare_upload()
 
