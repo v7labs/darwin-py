@@ -21,6 +21,7 @@ from darwin.dataset.utils import (
 from darwin.exceptions import NotFound, UnsupportedExportFormat
 from darwin.exporter.formats.darwin import build_image_annotation
 from darwin.item import parse_dataset_item
+from darwin.item_sorter import ItemSorter
 from darwin.utils import (
     find_files,
     parse_darwin_json,
@@ -298,7 +299,7 @@ class RemoteDataset:
         """Archives (soft-deletion) the remote dataset"""
         self.client.put(f"datasets/{self.dataset_id}/archive", payload={}, team=self.team)
 
-    def fetch_remote_files(self, filters: Optional[dict] = None, sort: Optional[dict] = None) -> Any:
+    def fetch_remote_files(self, filters: Optional[dict] = None, sort: Optional[ItemSorter] = None) -> Any:
         """Fetch and lists all files on the remote dataset"""
         base_url = f"/datasets/{self.dataset_id}/items"
         post_filters = {}
@@ -316,8 +317,7 @@ class RemoteDataset:
                 post_filters["types"] = filters["types"]
 
             if sort:
-                post_sort[sort["attribute"]] = sort["direction"]
-
+                post_sort[sort.field] = sort.direction.value
         cursor = {"page[size]": 500}
         while True:
             response = self.client.post(

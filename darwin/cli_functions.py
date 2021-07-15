@@ -41,6 +41,7 @@ from darwin.exceptions import (
     UnsupportedFileType,
     ValidationError,
 )
+from darwin.item_sorter import ItemSorter
 from darwin.utils import (
     find_files,
     persist_client_configuration,
@@ -552,7 +553,6 @@ def list_files(dataset_slug: str, statuses: str, path: str, only_filenames: bool
     try:
         dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
         filters = {}
-        sort = {}
         if statuses:
             for status in statuses.split(","):
                 if status not in ["new", "annotate", "review", "complete", "archived"]:
@@ -565,22 +565,11 @@ def list_files(dataset_slug: str, statuses: str, path: str, only_filenames: bool
 
         if not sort_by:
             sort_by = "updated_at:desc"
-
-        if not _has_valid_format(sort_by):
-            _error(
-                f"Invalid sort_by parameter '{sort_by}'. Correct format is 'attribute:direction', i.e., 'updated_at:desc'."
-            )
-        (attribute, direction) = sort_by.split(":")
-
-        if not _has_valid_attribute(attribute):
-            _error(
-                f"Invalid sort parameter '{sort_by}', available sort attributes: inserted_at, updated_at, file_size, filename, priority"
-            )
-        sort["attribute"] = attribute
-
-        if not _has_valid_direction(direction):
-            _error(f"Invalid direction for sort '{direction}', available directions: asc, desc")
-        sort["direction"] = direction
+        
+        try:
+            sort = ItemSorter.parse(sort_by)
+        except Exception as e:
+            _error(e)
 
         for file in dataset.fetch_remote_files(filters, sort):
             if only_filenames:
@@ -590,19 +579,6 @@ def list_files(dataset_slug: str, statuses: str, path: str, only_filenames: bool
                 print(f"{file.filename}\t{file.status if not file.archived else 'archived'}\t {image_url}")
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
-
-
-def _has_valid_format(sort_by: str) -> bool:
-    return len(sort_by.split(":")) == 2
-
-
-def _has_valid_attribute(sort: str) -> bool:
-    return sort in ["inserted_at", "updated_at", "file_size", "filename", "priority"]
-
-
-def _has_valid_direction(direction: str) -> bool:
-    return direction in ["asc", "desc"]
-
 
 def set_file_status(dataset_slug: str, status: str, files: List[str]):
     if status not in ["archived", "restore-archived"]:
