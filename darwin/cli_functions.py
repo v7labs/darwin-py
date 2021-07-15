@@ -1,5 +1,6 @@
 import argparse
 import datetime
+import os
 import sys
 from itertools import tee
 from pathlib import Path
@@ -159,11 +160,12 @@ def local(team: Optional[str] = None):
 
     client = _load_client(offline=True)
     for dataset_path in client.list_local_datasets(team=team):
+        files_in_dataset_path = find_files(dataset_path)
         table.add_row(
             f"{dataset_path.parent.name}/{dataset_path.name}",
-            str(sum(1 for _ in find_files([dataset_path]))),
+            str(len(files_in_dataset_path)),
             humanize.naturaldate(datetime.datetime.fromtimestamp(dataset_path.stat().st_mtime)),
-            humanize.naturalsize(sum(p.stat().st_size for p in find_files([dataset_path]))),
+            humanize.naturalsize(sum(p.stat().st_size for p in files_in_dataset_path)),
         )
 
     Console().print(table)
@@ -675,8 +677,12 @@ def _load_client(
     if not team_slug and dataset_identifier:
         team_slug = DatasetIdentifier.parse(dataset_identifier).team_slug
     try:
-        config_dir = Path.home() / ".darwin" / "config.yaml"
-        client = Client.from_config(config_dir, team_slug=team_slug)
+        api_key = os.getenv("DARWIN_API_KEY")
+        if api_key:
+            client = Client.from_api_key(api_key)
+        else:
+            config_dir = Path.home() / ".darwin" / "config.yaml"
+            client = Client.from_config(config_dir, team_slug=team_slug)
         return client
     except MissingConfig:
         if maybe_guest:
