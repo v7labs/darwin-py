@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Tuple
 
 
 class DatasetIdentifier:
@@ -9,7 +9,7 @@ class DatasetIdentifier:
 
     @classmethod
     def parse(cls, identifier: str):
-        team_slug, dataset_slug, version = parse(identifier)
+        team_slug, dataset_slug, version = _parse(identifier)
         return cls(dataset_slug=dataset_slug, team_slug=team_slug, version=version)
 
     def __str__(self):
@@ -22,18 +22,18 @@ class DatasetIdentifier:
         return output
 
 
-def parse(slug: str):
+def _parse(slug: str) -> Tuple[Optional[str], str, Optional[str]]:
+    team: Optional[str] = None
+    version: Optional[str] = None
+    dataset: str = slug
+
     try:
         if "/" in slug:
             team, slug = slug.split("/")
-        else:
-            team = None
 
         if ":" in slug:
             dataset, version = slug.split(":")
-        else:
-            dataset = slug
-            version = None
+
         return team, dataset, version
     except ValueError as e:
         raise type(e)(f"Invalid dataset identifier {slug}")

@@ -1,7 +1,7 @@
 import os
 import time
 from pathlib import Path
-from typing import Dict, Iterator, Optional, Union
+from typing import Dict, Iterator, List, Optional, Union
 
 import requests
 
@@ -25,7 +25,7 @@ class Client:
         self.url = config.get("global/api_endpoint")
         self.base_url = config.get("global/base_url")
         self.default_team = default_team or config.get("global/default_team")
-        self.features = {}
+        self.features: dict = {}
 
     def get(
         self, endpoint: str, team: Optional[str] = None, retry: bool = False, raw: bool = False, debug: bool = False
@@ -227,7 +227,7 @@ class Client:
                     f"Client get request response ({response.json()}) with unexpected status "
                     f"({response.status_code}). "
                     f"Client: ({self})"
-                    f"Request: (endpoint={endpoint}, payload={payload})"
+                    f"Request: (endpoint={endpoint})"
                 )
             if retry:
                 time.sleep(10)
@@ -272,7 +272,7 @@ class Client:
                 client=self,
             )
 
-    def get_remote_dataset(self, dataset_identifier: Union[str, DatasetIdentifier]) -> RemoteDataset:
+    def get_remote_dataset(self, dataset_identifier_name: Union[str, DatasetIdentifier]) -> RemoteDataset:
         """Get a remote dataset based on the parameter passed. You can only choose one of the
         possible parameters and calling this method with multiple ones will result in an
         error.
@@ -287,8 +287,11 @@ class Client:
         RemoteDataset
             Initialized dataset
         """
-        if isinstance(dataset_identifier, str):
-            dataset_identifier = DatasetIdentifier.parse(dataset_identifier)
+        if isinstance(dataset_identifier_name, str):
+            dataset_identifier = DatasetIdentifier.parse(dataset_identifier_name)
+        else:
+            dataset_identifier = dataset_identifier_name
+
         if not dataset_identifier.team_slug:
             dataset_identifier.team_slug = self.default_team
 
@@ -350,7 +353,7 @@ class Client:
         self.features[team_slug] = self.get(f"/teams/{team_slug}/features")
 
     def feature_enabled(self, feature_name: str, team: Optional[str] = None):
-        team_slug = self.config.get_team(team or self.default_team)["slug"]
+        team_slug: str = self.config.get_team(team or self.default_team)["slug"]
         if team_slug not in self.features:
             self.load_feature_flags(team)
         for feature in self.features[team_slug]:

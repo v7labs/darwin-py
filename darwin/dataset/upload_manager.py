@@ -3,7 +3,7 @@ import time
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, List, Optional, Set, Tuple
+from typing import TYPE_CHECKING, Callable, List, Optional, Set, Tuple, Union
 
 import requests
 from darwin.path_utils import construct_full_path
@@ -28,7 +28,7 @@ class ItemPayload:
 
 
 class LocalFile:
-    def __init__(self, local_path: str, **kwargs):
+    def __init__(self, local_path: Union[str, Path], **kwargs):
         self.local_path = Path(local_path)
         self.data = kwargs
         self._type_check(kwargs)

@@ -160,11 +160,12 @@ def local(team: Optional[str] = None):
 
     client = _load_client(offline=True)
     for dataset_path in client.list_local_datasets(team=team):
+        files_in_dataset_path = find_files(dataset_path)
         table.add_row(
             f"{dataset_path.parent.name}/{dataset_path.name}",
-            str(sum(1 for _ in find_files([dataset_path]))),
+            str(len(files_in_dataset_path)),
             humanize.naturaldate(datetime.datetime.fromtimestamp(dataset_path.stat().st_mtime)),
-            humanize.naturalsize(sum(p.stat().st_size for p in find_files([dataset_path]))),
+            humanize.naturalsize(sum(p.stat().st_size for p in files_in_dataset_path)),
         )
 
     Console().print(table)
