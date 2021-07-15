@@ -91,7 +91,7 @@ def import_annotations(
     if local_files_missing_remotely:
         print(f"{len(local_files_missing_remotely)} file(s) are missing from the dataset")
         for local_file in local_files_missing_remotely:
-            print(f"\t{local_file.path}: '{local_file.filename}'")
+            print(f"\t{local_file.path}: '{local_file.full_path}'")
 
         if not secure_continue_request():
             return
