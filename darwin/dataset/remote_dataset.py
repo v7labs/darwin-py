@@ -4,7 +4,7 @@ import tempfile
 import zipfile
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, List, Optional
+from typing import TYPE_CHECKING, Callable, List, Optional, Any
 from urllib import parse
 
 from darwin.dataset.download_manager import download_all_images_from_annotations
@@ -132,10 +132,12 @@ class RemoteDataset:
                 ]
             )
 
-        files_to_upload = find_files(files=files_to_upload, recursive=True, files_to_exclude=files_to_exclude)
+        files_to_upload = find_files(
+            files=files_to_upload, recursive=True, files_to_exclude=files_to_exclude)
 
         if not files_to_upload:
-            raise ValueError("No files to upload, check your path, exclusion filters and resume flag")
+            raise ValueError(
+                "No files to upload, check your path, exclusion filters and resume flag")
 
         progress, count = add_files_to_dataset(
             client=self.client,
@@ -149,10 +151,12 @@ class RemoteDataset:
 
         # If blocking is selected, upload the dataset remotely
         if blocking:
-            responses = exhaust_generator(progress=progress, count=count, multi_threaded=multi_threaded)
+            responses = exhaust_generator(
+                progress=progress, count=count, multi_threaded=multi_threaded)
             # Log responses to file
             if responses:
-                responses = [{k: str(v) for k, v in response.items()} for response in responses]
+                responses = [{k: str(v) for k, v in response.items()}
+                             for response in responses]
                 if resume:
                     responses.extend(logged_responses)
                 with responses_path.open("w") as f:
@@ -257,13 +261,15 @@ class RemoteDataset:
                     subset_filter_annotations_function(tmp_dir)
                     if subset_folder_name is None:
                         subset_folder_name = datetime.now().strftime("%m/%d/%Y_%H:%M:%S")
-                annotations_dir = release_dir / (subset_folder_name or "") / "annotations"
+                annotations_dir = release_dir / \
+                    (subset_folder_name or "") / "annotations"
                 # Remove existing annotations if necessary
                 if annotations_dir.exists():
                     try:
                         shutil.rmtree(annotations_dir)
                     except PermissionError:
-                        print(f"Could not remove dataset in {annotations_dir}. Permission denied.")
+                        print(
+                            f"Could not remove dataset in {annotations_dir}. Permission denied.")
                 annotations_dir.mkdir(parents=True, exist_ok=False)
                 # Move the annotations into the right folder and rename them to have the image
                 # original filename as contained in the json
@@ -271,7 +277,8 @@ class RemoteDataset:
                     with annotation_path.open() as file:
                         annotation = json.load(file)
                     filename = Path(annotation["image"]["filename"]).stem
-                    destination_name = annotations_dir / f"{filename}{annotation_path.suffix}"
+                    destination_name = annotations_dir / \
+                        f"{filename}{annotation_path.suffix}"
                     shutil.move(str(annotation_path), str(destination_name))
 
         # Extract the list of classes and create the text files
@@ -308,36 +315,41 @@ class RemoteDataset:
 
         # If blocking is selected, download the dataset on the file system
         if blocking:
-            exhaust_generator(progress=progress(), count=count, multi_threaded=multi_threaded)
+            exhaust_generator(progress=progress(), count=count,
+                              multi_threaded=multi_threaded)
             return None, count
         else:
             return progress, count
 
     def remove_remote(self):
         """Archives (soft-deletion) the remote dataset"""
-        self.client.put(f"datasets/{self.dataset_id}/archive", payload={}, team=self.team)
+        self.client.put(
+            f"datasets/{self.dataset_id}/archive", payload={}, team=self.team)
 
-    def fetch_remote_files(self, parameters: Optional[dict] = None):
+    def fetch_remote_files(self, filters: Optional[dict] = None, sort: Optional[dict] = None) -> Any:
         """Fetch and lists all files on the remote dataset"""
         base_url = f"/datasets/{self.dataset_id}/items"
-        filters = {}
-        sort = {}
-        if parameters:
+        post_filters = {}
+        post_sort = {}
+        if filters:
             for list_type in ["filenames", "statuses"]:
-                if list_type in parameters:
-                    if type(parameters[list_type]) is list:
-                        filters[list_type] = ",".join(parameters[list_type])
+                if list_type in filters:
+                    if type(filters[list_type]) is list:
+                        post_filters[list_type] = ",".join(filters[list_type])
                     else:
-                        filters[list_type] = parameters[list_type]
-            if "path" in parameters:
-                filters["path"] = parameters["path"]
-            if "types" in parameters:
-                filters["types"] = parameters["types"]
-            if "sort" in parameters:
-                sort[parameters["sort"]] = parameters["direction"]
+                        post_filters[list_type] = filters[list_type]
+            if "path" in filters:
+                post_filters["path"] = filters["path"]
+            if "types" in filters:
+                post_filters["types"] = filters["types"]
+
+            if sort:
+                post_sort[sort["attribute"]] = sort["direction"]
+
         cursor = {"page[size]": 500}
         while True:
-            response = self.client.post(f"{base_url}?{parse.urlencode(cursor)}", {"filter": filters, "sort": sort}, team=self.team)
+            response = self.client.post(f"{base_url}?{parse.urlencode(cursor)}", {
+                                        "filter": post_filters, "sort": post_sort}, team=self.team)
             yield from [parse_dataset_item(item) for item in response["items"]]
             if response["metadata"]["next"]:
                 cursor["page[from]"] = response["metadata"]["next"]
@@ -346,12 +358,14 @@ class RemoteDataset:
 
     def archive(self, items):
         self.client.put(
-            f"datasets/{self.dataset_id}/items/archive", {"filter": {"dataset_item_ids": [item.id for item in items]}}
+            f"datasets/{self.dataset_id}/items/archive", {
+                "filter": {"dataset_item_ids": [item.id for item in items]}}
         )
 
     def restore_archived(self, items):
         self.client.put(
-            f"datasets/{self.dataset_id}/items/restore", {"filter": {"dataset_item_ids": [item.id for item in items]}}
+            f"datasets/{self.dataset_id}/items/restore", {
+                "filter": {"dataset_item_ids": [item.id for item in items]}}
         )
 
     def fetch_annotation_type_id_for_name(self, name: str):
@@ -428,10 +442,12 @@ class RemoteDataset:
         ------
         """
         try:
-            releases_json = self.client.get(f"/datasets/{self.dataset_id}/exports", team=self.team)
+            releases_json = self.client.get(
+                f"/datasets/{self.dataset_id}/exports", team=self.team)
         except NotFound:
             return []
-        releases = [Release.parse_json(self.slug, self.team, payload) for payload in releases_json]
+        releases = [Release.parse_json(
+            self.slug, self.team, payload) for payload in releases_json]
         return sorted(filter(lambda x: x.available, releases), key=lambda x: x.version, reverse=True)
 
     def get_release(self, name: str = "latest"):

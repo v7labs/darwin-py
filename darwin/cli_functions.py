@@ -34,13 +34,16 @@ def validate_api_key(api_key: str):
     example_key = "DHMhAWr.BHucps-tKMAi6rWF1xieOpUvNe5WzrHP"
 
     if len(api_key) != 40:
-        _error(f"Expected key to be 40 characters long\n(example: {example_key})")
+        _error(
+            f"Expected key to be 40 characters long\n(example: {example_key})")
 
     if "." not in api_key:
-        _error(f"Expected key formatted as prefix . suffix\n(example: {example_key})")
+        _error(
+            f"Expected key formatted as prefix . suffix\n(example: {example_key})")
 
     if len(api_key.split(".")[0]) != 7:
-        _error(f"Expected key prefix to be 7 characters long\n(example: {example_key})")
+        _error(
+            f"Expected key prefix to be 7 characters long\n(example: {example_key})")
 
 
 def authenticate(api_key: str, default_team: Optional[bool] = None, datasets_dir: Optional[Path] = None) -> Config:
@@ -70,7 +73,8 @@ def authenticate(api_key: str, default_team: Optional[bool] = None, datasets_dir
         config_path.parent.mkdir(exist_ok=True)
 
         if default_team is None:
-            default_team = input(f"Make {client.default_team} the default team? [y/N] ") in ["Y", "y"]
+            default_team = input(
+                f"Make {client.default_team} the default team? [y/N] ") in ["Y", "y"]
         if datasets_dir is None:
             datasets_dir = prompt("Datasets directory", "~/.darwin/datasets")
 
@@ -131,7 +135,8 @@ def create_dataset(dataset_slug: str):
 
 def local(team: Optional[str] = None):
     """Lists synced datasets, stored in the specified path. """
-    table = Table(["name", "images", "sync_date", "size"], [Table.L, Table.R, Table.R, Table.R])
+    table = Table(["name", "images", "sync_date", "size"],
+                  [Table.L, Table.R, Table.R, Table.R])
     client = _load_client(offline=True)
     for dataset_path in client.list_local_datasets(team=team):
         table.add_row(
@@ -165,7 +170,8 @@ def url(dataset_slug: str) -> Path:
     """Returns the url of the specified dataset"""
     client = _load_client(offline=True)
     try:
-        remote_dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
+        remote_dataset = client.get_remote_dataset(
+            dataset_identifier=dataset_slug)
         print(remote_dataset.remote_path)
     except NotFound as e:
         _error(f"Dataset '{e.name}' does not exist.")
@@ -175,7 +181,8 @@ def dataset_report(dataset_slug: str, granularity) -> Path:
     """Returns the url of the specified dataset"""
     client = _load_client(offline=True)
     try:
-        remote_dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
+        remote_dataset = client.get_remote_dataset(
+            dataset_identifier=dataset_slug)
         report = remote_dataset.get_report(granularity)
         print(report)
     except NotFound:
@@ -199,7 +206,8 @@ def export_dataset(
     client = _load_client(offline=False)
     identifier = DatasetIdentifier.parse(dataset_slug)
     ds = client.get_remote_dataset(identifier)
-    ds.export(annotation_class_ids=annotation_class_ids, name=name, include_url_token=include_url_token)
+    ds.export(annotation_class_ids=annotation_class_ids,
+              name=name, include_url_token=include_url_token)
     identifier.version = name
     print(f"Dataset {dataset_slug} successfully exported to {identifier}")
 
@@ -231,7 +239,8 @@ def pull_dataset(dataset_slug: str, only_annotations: bool = False, folders: boo
         _error(f"please re-authenticate")
     try:
         release = dataset.get_release(version)
-        dataset.pull(release=release, only_annotations=only_annotations, use_folders=folders, video_frames=video_frames)
+        dataset.pull(release=release, only_annotations=only_annotations,
+                     use_folders=folders, video_frames=video_frames)
     except NotFound:
         _error(
             f"Version '{dataset.identifier}:{version}' does not exist "
@@ -302,7 +311,8 @@ def list_remote_datasets(all_teams: bool, team: Optional[str] = None):
         datasets = client.list_remote_datasets()
 
     for dataset in datasets:
-        table.add_row({"name": f"{dataset.team}/{dataset.slug}", "images": dataset.image_count})
+        table.add_row({"name": f"{dataset.team}/{dataset.slug}",
+                      "images": dataset.image_count})
     if len(table) == 0:
         print("No dataset available.")
     else:
@@ -332,7 +342,8 @@ def dataset_list_releases(dataset_slug: str):
         if len(releases) == 0:
             print("No available releases, export one first.")
             return
-        table = Table(["name", "images", "classes", "export_date"], [Table.L, Table.R, Table.R, Table.R])
+        table = Table(["name", "images", "classes", "export_date"], [
+                      Table.L, Table.R, Table.R, Table.R])
         for release in releases:
             if not release.available:
                 continue
@@ -380,7 +391,8 @@ def upload_data(
     client = _load_client()
     try:
         dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
-        dataset.push(files_to_exclude=files_to_exclude, fps=fps, as_frames=frames, files_to_upload=files, path=path)
+        dataset.push(files_to_exclude=files_to_exclude, fps=fps,
+                     as_frames=frames, files_to_upload=files, path=path)
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
     except UnsupportedFileType as e:
@@ -391,7 +403,8 @@ def upload_data(
 
 def dataset_import(dataset_slug, format, files, append):
     client = _load_client(dataset_identifier=dataset_slug)
-    parser = find_supported_format(format, darwin.importer.formats.supported_formats)
+    parser = find_supported_format(
+        format, darwin.importer.formats.supported_formats)
 
     try:
         dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
@@ -400,39 +413,70 @@ def dataset_import(dataset_slug, format, files, append):
         _error(f"No dataset with name '{e.name}'")
 
 
-def list_files(dataset_slug: str, statuses: str, path: str, only_filenames: bool, sort: str = "updated_at", direction: str = "desc"):
+def list_files(dataset_slug: str, statuses: str, path: str, only_filenames: bool, sort_by: str = "updated_at:desc"):
     client = _load_client(dataset_identifier=dataset_slug)
     try:
         dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
-        parameters = {}
+        filters = {}
+        sort = {}
         if statuses:
             for status in statuses.split(","):
                 if status not in ["new", "annotate", "review", "complete", "archived"]:
-                    _error(f"Invalid status '{status}', available statuses: annotate, archived, complete, new, review")
-            parameters["statuses"] = statuses
+                    _error(
+                        f"Invalid status '{status}', available statuses: annotate, archived, complete, new, review")
+            filters["statuses"] = statuses
         else:
-            parameters["statuses"] = "new,annotate,review,complete"
+            filters["statuses"] = "new,annotate,review,complete"
         if path:
-            parameters["path"] = path
-        if sort not in ["inserted_at", "updated_at", "file_size", "filename", "priority"]:
-            _error(f"Invalid sort parameter '{sort}', available sort parameters: inserted_at, updated_at, file_size, filename, priority")
-        parameters["sort"] = sort
-        if direction not in ["asc", "desc"]:
-            _error(f"Invalid direction for sort '{direction}', available directions: asc, desc")
-        parameters["direction"] = direction
-        for file in dataset.fetch_remote_files(parameters):
+            filters["path"] = path
+
+        if not sort_by:
+            sort_by = "updated_at:desc"
+
+        if not _has_valid_format(sort_by):
+            _error(
+                f"Invalid sort_by parameter '{sort_by}'. Correct format is 'attribute:direction', i.e., 'updated_at:desc'."
+            )
+        (attribute, direction) = sort_by.split(":")
+
+        if not _has_valid_attribute(attribute):
+            _error(
+                f"Invalid sort parameter '{sort_by}', available sort attributes: inserted_at, updated_at, file_size, filename, priority")
+        sort["attribute"] = attribute
+
+        if not _has_valid_direction(direction):
+            _error(
+                f"Invalid direction for sort '{direction}', available directions: asc, desc")
+        sort["direction"] = direction
+
+        for file in dataset.fetch_remote_files(filters, sort):
             if only_filenames:
                 print(file.filename)
             else:
                 image_url = dataset.workview_url_for_item(file)
-                print(f"{file.filename}\t{file.status if not file.archived else 'archived'}\t {image_url}")
+                print(
+                    f"{file.filename}\t{file.status if not file.archived else 'archived'}\t {image_url}")
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
 
 
+def _has_valid_format(sort_by: str) -> bool:
+    return len(sort_by.split(":")) == 2
+
+
+def _has_valid_attribute(sort: str) -> bool:
+    return sort in ["inserted_at", "updated_at",
+                    "file_size", "filename", "priority"]
+
+
+def _has_valid_direction(direction: str) -> bool:
+    return direction in ["asc", "desc"]
+
+
 def set_file_status(dataset_slug: str, status: str, files: List[str]):
     if status not in ["archived", "restore-archived"]:
-        _error(f"Invalid status '{status}', available statuses: archived, restore-archived")
+        _error(
+            f"Invalid status '{status}', available statuses: archived, restore-archived")
 
     client = _load_client(dataset_identifier=dataset_slug)
     try:
@@ -456,7 +500,8 @@ def find_supported_format(query, supported_formats):
 
 def dataset_convert(dataset_slug: str, format: str, output_dir: Optional[Union[str, Path]] = None):
     client = _load_client()
-    parser = find_supported_format(format, darwin.exporter.formats.supported_formats)
+    parser = find_supported_format(
+        format, darwin.exporter.formats.supported_formats)
 
     try:
         dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
@@ -479,7 +524,8 @@ def dataset_convert(dataset_slug: str, format: str, output_dir: Optional[Union[s
 
 
 def convert(format, files, output_dir):
-    parser = find_supported_format(format, darwin.exporter.formats.supported_formats)
+    parser = find_supported_format(
+        format, darwin.exporter.formats.supported_formats)
     exporter.export_annotations(parser, files, output_dir)
 
 
@@ -491,7 +537,8 @@ def help(parser, subparser: Optional[str] = None):
             if isinstance(action, argparse._SubParsersAction) and subparser in action.choices
         )
 
-    actions = [action for action in parser._actions if isinstance(action, argparse._SubParsersAction)]
+    actions = [action for action in parser._actions if isinstance(
+        action, argparse._SubParsersAction)]
 
     print(parser.description)
     print("\nCommands:")
