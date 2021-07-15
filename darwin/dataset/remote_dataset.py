@@ -83,7 +83,7 @@ class RemoteDataset:
 
     def push(
         self,
-        files_to_upload: List[Union[str, Path, LocalFile]],
+        files_to_upload: Optional[List[Union[str, Path, LocalFile]]],
         blocking: bool = True,
         multi_threaded: bool = True,
         fps: int = 0,
@@ -97,7 +97,7 @@ class RemoteDataset:
 
         Parameters
         ----------
-        files_to_upload : List[Union[str, Path, LocalFile]]
+        files_to_upload : Optional[List[Union[str, Path, LocalFile]]]
             List of files to upload. Those can be folders.
         blocking : bool
             If False, the dataset is not uploaded and a generator function is returned instead.
@@ -129,14 +129,13 @@ class RemoteDataset:
             raise ValueError("No files or directory specified.")
 
         generic_parameters_specified = path is not None or fps != 0 or as_frames
-
         if any(isinstance(item, LocalFile) for item in files_to_upload) and generic_parameters_specified:
             raise ValueError("Cannot specify a path when uploading a LocalFile object.")
 
         uploading_files: List[LocalFile] = []
         for item in files_to_upload:
             if isinstance(item, LocalFile):
-                files_to_upload.append(item)
+                uploading_files.append(item)
                 continue
 
             item = Path(item)
