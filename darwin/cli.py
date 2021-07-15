@@ -1,10 +1,10 @@
 __all__ = ["main"]
 
 import getpass
+from argparse import ArgumentParser, Namespace
 from typing import Any
 
 import requests.exceptions
-from argparse import Namespace, ArgumentParser
 
 import darwin.cli_functions as f
 from darwin import __version__
@@ -70,8 +70,7 @@ def _run(args: Namespace, parser: ArgumentParser) -> Any:
         elif args.action == "url":
             f.url(args.dataset)
         elif args.action == "push":
-            f.upload_data(args.dataset, args.files, args.exclude,
-                          args.fps, args.path, args.frames)
+            f.upload_data(args.dataset, args.files, args.exclude, args.fps, args.path, args.frames, args.verbose)
         # Remove a project (remotely)
         elif args.action == "remove":
             f.remove_remote_dataset(args.dataset)

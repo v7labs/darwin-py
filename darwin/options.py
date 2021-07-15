@@ -76,7 +76,7 @@ class Options(object):
         parser_push.add_argument(
             "dataset",
             type=str,
-            help="[Remote] Dataset name: to list all the existing dataset, run 'darwin dataset remote'. ",
+            help="[Remote] Dataset name: to list all the existing dataset, run 'darwin dataset remote'.",
         )
         parser_push.add_argument(
             "files", type=str, nargs="+", help="Files to upload")
@@ -86,7 +86,7 @@ class Options(object):
             type=str,
             nargs="+",
             default="",
-            help="Excludes the files with the specified extension/s if a data folder is provided as data path. ",
+            help="Excludes the files with the specified extension/s if a data folder is provided as data path.",
         )
         parser_push.add_argument(
             "-f",
@@ -99,6 +99,8 @@ class Options(object):
 
         parser_push.add_argument(
             "--path", type=str, default=None, help="Folder to upload the files into.")
+
+        parser_push.add_argument("--verbose", action="store_true", help="Flag to show upload details.")
 
         # Remove
         parser_remove = dataset_action.add_parser(

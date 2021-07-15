@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, List, Optional, Union
 
 import numpy as np
-from tqdm import tqdm
+from rich.progress import track
 from upolygon import draw_polygon
 
 import darwin.datatypes as dt
@@ -53,9 +53,9 @@ def is_project_dir(project_path: Path) -> bool:
 
 
 def get_progress_bar(array: List, description: Optional[str] = None):
-    pbar = tqdm(array)
-    pbar.set_description(desc=description, refresh=True)
-    return pbar
+    if description:
+        return track(array, description=description)
+    return track(array)
 
 
 def prompt(msg: str, default: Optional[str] = None) -> str:
@@ -119,6 +119,7 @@ def find_files(
     # Filter the list and return it
     files_to_exclude = set(files_to_exclude)
     return [f for f in found_files if f.name not in files_to_exclude and str(f) not in files_to_exclude]
+
 
 def secure_continue_request() -> bool:
     """Asks for explicit approval from the user. Empty string not accepted"""
@@ -462,3 +463,8 @@ def convert_polygons_to_mask(polygons: List, height: int, width: int, value: Opt
     mask = np.zeros((height, width)).astype(np.uint8)
     draw_polygon(mask, sequence, value)
     return mask
+
+
+def chunk(items, size):
+    for i in range(0, len(items), size):
+        yield items[i : i + size]

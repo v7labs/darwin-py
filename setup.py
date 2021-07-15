@@ -21,8 +21,10 @@ setuptools.setup(
         "pillow",
         "pyyaml>=5.1",
         "requests",
+        "requests_toolbelt",
+        "responses",
+        "rich",
         "sh",
-        "tqdm",
         "upolygon==0.1.6",
     ],
     packages=[
