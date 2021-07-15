@@ -1,5 +1,6 @@
 import argparse
 import datetime
+import os
 import sys
 from itertools import tee
 from pathlib import Path
@@ -675,8 +676,12 @@ def _load_client(
     if not team_slug and dataset_identifier:
         team_slug = DatasetIdentifier.parse(dataset_identifier).team_slug
     try:
-        config_dir = Path.home() / ".darwin" / "config.yaml"
-        client = Client.from_config(config_dir, team_slug=team_slug)
+        api_key = os.getenv("DARWIN_API_KEY")
+        if api_key:
+            client = Client.from_api_key(api_key)
+        else:
+            config_dir = Path.home() / ".darwin" / "config.yaml"
+            client = Client.from_config(config_dir, team_slug=team_slug)
         return client
     except MissingConfig:
         if maybe_guest:
