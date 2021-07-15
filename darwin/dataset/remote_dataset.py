@@ -4,7 +4,7 @@ import tempfile
 import zipfile
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, List, Optional
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
 from urllib import parse
 
 from darwin.dataset.download_manager import download_all_images_from_annotations
@@ -298,11 +298,12 @@ class RemoteDataset:
         """Archives (soft-deletion) the remote dataset"""
         self.client.put(f"datasets/{self.dataset_id}/archive", payload={}, team=self.team)
 
-    def fetch_remote_files(self, filters: Optional[dict] = None, sort: Optional[dict] = None) -> Any:
+    def fetch_remote_files(self, filters: Optional[dict] = None, sort: Optional[dict] = None):
         """Fetch and lists all files on the remote dataset"""
-        base_url = f"/datasets/{self.dataset_id}/items"
-        post_filters = {}
-        post_sort = {}
+        base_url: str = f"/datasets/{self.dataset_id}/items"
+        post_filters: Dict[str, str] = {}
+        post_sort: Dict[str, str] = {}
+
         if filters:
             for list_type in ["filenames", "statuses"]:
                 if list_type in filters:

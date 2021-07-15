@@ -3,7 +3,7 @@ import datetime
 import sys
 from itertools import tee
 from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, NoReturn, Optional, Tuple, Union
 
 import humanize
 from rich.console import Console
@@ -547,19 +547,27 @@ def dataset_import(dataset_slug, format, files, append):
         _error(f"No dataset with name '{e.name}'")
 
 
-def list_files(dataset_slug: str, statuses: str, path: str, only_filenames: bool, sort_by: str = "updated_at:desc"):
+def list_files(
+    dataset_slug: str,
+    statuses: Optional[str],
+    path: Optional[str],
+    only_filenames: bool,
+    sort_by: Optional[str] = "updated_at:desc",
+):
     client = _load_client(dataset_identifier=dataset_slug)
     try:
         dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
-        filters = {}
-        sort = {}
+        filters: Dict[str, str] = {}
+        sort: Dict[str, str] = {}
+
         if statuses:
             for status in statuses.split(","):
-                if status not in ["new", "annotate", "review", "complete", "archived"]:
+                if not _has_valid_status(status):
                     _error(f"Invalid status '{status}', available statuses: annotate, archived, complete, new, review")
             filters["statuses"] = statuses
         else:
             filters["statuses"] = "new,annotate,review,complete"
+
         if path:
             filters["path"] = path
 
@@ -590,6 +598,10 @@ def list_files(dataset_slug: str, statuses: str, path: str, only_filenames: bool
                 print(f"{file.filename}\t{file.status if not file.archived else 'archived'}\t {image_url}")
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
+
+
+def _has_valid_status(status: str) -> bool:
+    return status in ["new", "annotate", "review", "complete", "archived"]
 
 
 def _has_valid_format(sort_by: str) -> bool:
@@ -675,7 +687,7 @@ def help(parser, subparser: Optional[str] = None):
             print("    {:<19} {}".format(choice.dest, choice.help))
 
 
-def _error(message):
+def _error(message: str) -> NoReturn:
     console = Console(theme=_console_theme())
     console.print(f"Error: {message}", style="error")
     sys.exit(1)
