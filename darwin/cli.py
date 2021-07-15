@@ -21,11 +21,9 @@ def main() -> Any:
     except Unauthenticated:
         f._error("You need to specify a valid API key to do that action.")
     except InvalidTeam:
-        f._error(
-            "The team specified is not in the configuration, please authenticate first.")
+        f._error("The team specified is not in the configuration, please authenticate first.")
     except requests.exceptions.ConnectionError:
-        f._error(
-            "Darwin seems unreachable, please try again in a minute or contact support.")
+        f._error("Darwin seems unreachable, please try again in a minute or contact support.")
 
 
 def _run(args: Namespace, parser: ArgumentParser) -> Any:
@@ -36,8 +34,7 @@ def _run(args: Namespace, parser: ArgumentParser) -> Any:
         api_key = getpass.getpass(prompt="API key: ", stream=None)
         api_key = api_key.strip()
         if api_key == "":
-            print(
-                "API Key needed, generate one for your team: https://darwin.v7labs.com/?settings=api-keys")
+            print("API Key needed, generate one for your team: https://darwin.v7labs.com/?settings=api-keys")
             return
         f.authenticate(api_key)
         print("Authentication succeeded.")
@@ -77,26 +74,21 @@ def _run(args: Namespace, parser: ArgumentParser) -> Any:
         elif args.action == "report":
             f.dataset_report(args.dataset, args.granularity or "day")
         elif args.action == "export":
-            f.export_dataset(args.dataset, args.include_url_token,
-                             args.annotation_class, args.name)
+            f.export_dataset(args.dataset, args.include_url_token, args.annotation_class, args.name)
         elif args.action == "files":
-            f.list_files(args.dataset, args.status, args.path,
-                         args.only_filenames, args.sort_by)
+            f.list_files(args.dataset, args.status, args.path, args.only_filenames, args.sort_by)
         elif args.action == "releases":
             f.dataset_list_releases(args.dataset)
         elif args.action == "pull":
-            f.pull_dataset(args.dataset, args.only_annotations,
-                           args.folders, args.video_frames)
+            f.pull_dataset(args.dataset, args.only_annotations, args.folders, args.video_frames)
         elif args.action == "import":
-            f.dataset_import(args.dataset, args.format,
-                             args.files, args.append)
+            f.dataset_import(args.dataset, args.format, args.files, args.append)
         elif args.action == "convert":
             f.dataset_convert(args.dataset, args.format, args.output_dir)
         elif args.action == "set-file-status":
             f.set_file_status(args.dataset, args.status, args.files)
         elif args.action == "split":
-            f.split(args.dataset, args.val_percentage,
-                    args.test_percentage, args.seed)
+            f.split(args.dataset, args.val_percentage, args.test_percentage, args.seed)
         elif args.action == "help" or args.action is None:
             f.help(parser, "dataset")
 
