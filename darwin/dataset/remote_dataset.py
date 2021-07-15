@@ -130,7 +130,7 @@ class RemoteDataset:
 
         generic_parameters_specified = path is not None or fps != 0 or as_frames
 
-        if any(map(lambda item: isinstance(item, LocalFile), files_to_upload)) and generic_parameters_specified:
+        if any(isinstance(item, LocalFile) for item in files_to_upload) and generic_parameters_specified:
             raise ValueError("Cannot specify a path when uploading a LocalFile object.")
 
         uploading_files: List[LocalFile] = []

@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Union
 
 
 class DatasetIdentifier:
@@ -8,7 +8,10 @@ class DatasetIdentifier:
         self.version = version
 
     @classmethod
-    def parse(cls, identifier: str):
+    def parse(cls, identifier: Union[str, "DatasetIdentifier"]) -> "DatasetIdentifier":
+        if isinstance(identifier, DatasetIdentifier):
+            return identifier
+
         team_slug, dataset_slug, version = _parse(identifier)
         return cls(dataset_slug=dataset_slug, team_slug=team_slug, version=version)
 

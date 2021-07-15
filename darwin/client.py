@@ -272,7 +272,7 @@ class Client:
                 client=self,
             )
 
-    def get_remote_dataset(self, dataset_identifier_name: Union[str, DatasetIdentifier]) -> RemoteDataset:
+    def get_remote_dataset(self, dataset_identifier: Union[str, DatasetIdentifier]) -> RemoteDataset:
         """Get a remote dataset based on the parameter passed. You can only choose one of the
         possible parameters and calling this method with multiple ones will result in an
         error.
@@ -287,10 +287,7 @@ class Client:
         RemoteDataset
             Initialized dataset
         """
-        if isinstance(dataset_identifier_name, str):
-            dataset_identifier = DatasetIdentifier.parse(dataset_identifier_name)
-        else:
-            dataset_identifier = dataset_identifier_name
+        dataset_identifier = DatasetIdentifier.parse(dataset_identifier)
 
         if not dataset_identifier.team_slug:
             dataset_identifier.team_slug = self.default_team
