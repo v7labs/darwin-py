@@ -4,7 +4,7 @@ import tempfile
 import zipfile
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
+from typing import TYPE_CHECKING, Callable, Dict, Iterator, List, Optional, Union
 from urllib import parse
 
 from darwin.dataset.download_manager import download_all_images_from_annotations
@@ -20,7 +20,7 @@ from darwin.dataset.utils import (
 )
 from darwin.exceptions import NotFound, UnsupportedExportFormat
 from darwin.exporter.formats.darwin import build_image_annotation
-from darwin.item import parse_dataset_item
+from darwin.item import DatasetItem, parse_dataset_item
 from darwin.utils import (
     find_files,
     parse_darwin_json,
@@ -298,7 +298,9 @@ class RemoteDataset:
         """Archives (soft-deletion) the remote dataset"""
         self.client.put(f"datasets/{self.dataset_id}/archive", payload={}, team=self.team)
 
-    def fetch_remote_files(self, filters: Optional[dict] = None, sort: Optional[dict] = None):
+    def fetch_remote_files(
+        self, filters: Optional[Dict[str, Union[str, List[str]]]] = None, sort: Optional[Dict[str, str]] = None
+    ) -> Iterator[DatasetItem]:
         """Fetch and lists all files on the remote dataset"""
         base_url: str = f"/datasets/{self.dataset_id}/items"
         post_filters: Dict[str, str] = {}
@@ -310,11 +312,11 @@ class RemoteDataset:
                     if type(filters[list_type]) is list:
                         post_filters[list_type] = ",".join(filters[list_type])
                     else:
-                        post_filters[list_type] = filters[list_type]
+                        post_filters[list_type] = str(filters[list_type])
             if "path" in filters:
-                post_filters["path"] = filters["path"]
+                post_filters["path"] = str(filters["path"])
             if "types" in filters:
-                post_filters["types"] = filters["types"]
+                post_filters["types"] = str(filters["types"])
 
             if sort:
                 post_sort[sort["attribute"]] = sort["direction"]
@@ -325,6 +327,7 @@ class RemoteDataset:
                 f"{base_url}?{parse.urlencode(cursor)}", {"filter": post_filters, "sort": post_sort}, team=self.team
             )
             yield from [parse_dataset_item(item) for item in response["items"]]
+
             if response["metadata"]["next"]:
                 cursor["page[from]"] = response["metadata"]["next"]
             else:
