@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from darwin.path_utils import construct_full_path
 
@@ -22,7 +22,7 @@ class DatasetItem:
         return construct_full_path(self.path, self.filename)
 
 
-def parse_dataset_item(raw) -> DatasetItem:
+def parse_dataset_item(raw: Dict[str, Any]) -> DatasetItem:
     return DatasetItem(
         raw["id"],
         raw["filename"],
