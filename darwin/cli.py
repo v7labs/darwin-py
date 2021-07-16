@@ -1,6 +1,7 @@
 __all__ = ["main"]
 
 import getpass
+import os
 from argparse import ArgumentParser, Namespace
 from typing import Any
 
@@ -31,11 +32,15 @@ def _run(args: Namespace, parser: ArgumentParser) -> Any:
         f.help(parser)
     # Authenticate user
     if args.command == "authenticate":
-        api_key = getpass.getpass(prompt="API key: ", stream=None)
-        api_key = api_key.strip()
-        if api_key == "":
-            print("API Key needed, generate one for your team: https://darwin.v7labs.com/?settings=api-keys")
-            return
+        api_key = os.getenv("DARWIN_API_KEY")
+        if api_key:
+            print("Using API key from DARWIN_API_KEY")
+        else:
+            api_key = getpass.getpass(prompt="API key: ", stream=None)
+            api_key = api_key.strip()
+            if api_key == "":
+                print("API Key needed, generate one for your team: https://darwin.v7labs.com/?settings=api-keys")
+                return
         f.authenticate(api_key)
         print("Authentication succeeded.")
     # Select / List team
