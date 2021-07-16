@@ -128,13 +128,10 @@ class RemoteDataset:
         if files_to_upload is None:
             raise ValueError("No files or directory specified.")
 
-        generic_parameters_specified = path is not None or fps != 0 or as_frames
-        if any(isinstance(item, LocalFile) for item in files_to_upload) and generic_parameters_specified:
-            raise ValueError("Cannot specify a path when uploading a LocalFile object.")
-
         uploading_files = [item for item in files_to_upload if isinstance(item, LocalFile)]
         search_files = [item for item in files_to_upload if not isinstance(item, LocalFile)]
 
+        generic_parameters_specified = path is not None or fps != 0 or as_frames is not False
         if uploading_files and generic_parameters_specified:
             raise ValueError("Cannot specify a path when uploading a LocalFile object.")
 
