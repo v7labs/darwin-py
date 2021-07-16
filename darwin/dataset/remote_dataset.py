@@ -132,19 +132,20 @@ class RemoteDataset:
         if any(isinstance(item, LocalFile) for item in files_to_upload) and generic_parameters_specified:
             raise ValueError("Cannot specify a path when uploading a LocalFile object.")
 
-        uploading_files: List[LocalFile] = []
-        for item in files_to_upload:
-            if isinstance(item, LocalFile):
-                uploading_files.append(item)
-                continue
+        uploading_files = [item for item in files_to_upload if isinstance(item, LocalFile)]
+        search_files = [item for item in files_to_upload if not isinstance(item, LocalFile)]
 
-            item = Path(item)
-            if item.is_dir():
-                found_paths = find_files(item, paths_to_exclude=list(map(Path, files_to_exclude)))
-                found_files = map(lambda f: LocalFile(f, fps=fps, as_frames=as_frames, path=path), found_paths)
-                uploading_files.extend(found_files)
-            else:
-                uploading_files.append(LocalFile(item, fps=fps, as_frames=as_frames, path=path))
+        if uploading_files and generic_parameters_specified:
+            raise ValueError("Cannot specify a path when uploading a LocalFile object.")
+
+        for item in search_files:
+            paths_to_exclude = [Path(f) for f in files_to_exclude]
+            uploading_files.extend(
+                [
+                    LocalFile(found_file, fps=fps, as_frames=as_frames, path=path)
+                    for found_file in find_files(Path(item), paths_to_exclude=paths_to_exclude)
+                ]
+            )
 
         if not uploading_files:
             raise ValueError("No files to upload, check your path, exclusion filters and resume flag")
