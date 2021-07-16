@@ -1,5 +1,4 @@
 from enum import Enum
-from typing import Optional
 
 
 class SortDirection(Enum):
@@ -7,13 +6,24 @@ class SortDirection(Enum):
     DESCENDING = "desc"
 
     @classmethod
-    def parse(cls, direction):
-        direction = direction.lower()
-        if direction == "asc" or direction == "ascending":
+    def parse(cls, direction: str):
+        normalized_direction = direction.lower()
+
+        if cls._is_ascending(normalized_direction):
             return cls.ASCENDING
-        if direction == "desc" or direction == "descending":
+        if cls._is_descending(normalized_direction):
             return cls.DESCENDING
-        raise ValueError(f"Invalid direction '{direction}', use 'asc' or 'desc'")
+
+        raise ValueError(f"Invalid direction '{direction}', use 'asc' or 'ascending', 'desc' or 'descending'.")
+
+    @staticmethod
+    def _is_ascending(direction: str) -> bool:
+        return direction == "asc" or direction == "ascending"
+
+    @staticmethod
+    def _is_descending(direction: str) -> bool:
+        return direction == "desc" or direction == "descending"
+
 
 class ItemSorter:
     def __init__(self, field: str, direction: SortDirection):
@@ -21,23 +31,37 @@ class ItemSorter:
         self.direction = direction
 
     @classmethod
-    def parse(cls, sort_order: str):
-        if len(sort_order.split(":")) > 2:
-            raise ValueError(f"Invalid sort '{sort_order}'")
+    def parse(cls, sort: str):
 
-        if ":" not in sort_order:
-            field = sort_order
+        if not cls._has_valid_format(sort):
+            raise ValueError(
+                f"Invalid sort parameter '{sort}'. Correct format is 'field:direction' where 'direction' is optional and defaults to 'asc', i.e. 'updated_at:asc' or just 'updated_at'."
+            )
+
+        if not cls._has_direction(sort):
+            field = sort
             direction = "asc"
-        else: 
-            field, direction = sort_order.split(":")
+        else:
+            field, direction = sort.split(":")
 
-        if not _has_valid_attribute(field):
-            raise ValueError(f"Invalid sort field `{field}`, use one of inserted_at, updated_at, file_size, filename, priority")
-        
+        if not cls._has_valid_field(field):
+            raise ValueError(
+                f"Invalid sort parameter '{field}', available sort fields: 'inserted_at', 'updated_at', 'file_size', 'filename', 'priority'."
+            )
+
         return cls(field=field, direction=SortDirection.parse(direction))
 
-    def __str__(self):
-       return f"{self.field}:{self.direction.value}"
+    @staticmethod
+    def _has_direction(sort: str) -> bool:
+        return ":" in sort
 
-def _has_valid_attribute(sort: str) -> bool:
-    return sort in ["inserted_at", "updated_at", "file_size", "filename", "priority"]
+    @staticmethod
+    def _has_valid_format(sort_by: str) -> bool:
+        return len(sort_by.split(":")) in [1, 2]
+
+    @staticmethod
+    def _has_valid_field(sort: str) -> bool:
+        return sort in ["inserted_at", "updated_at", "file_size", "filename", "priority"]
+
+    def __str__(self):
+        return f"{self.field}:{self.direction.value}"
