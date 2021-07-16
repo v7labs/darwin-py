@@ -20,7 +20,7 @@ from darwin.dataset.utils import (
 )
 from darwin.exceptions import NotFound, UnsupportedExportFormat
 from darwin.exporter.formats.darwin import build_image_annotation
-from darwin.item import DatasetItem, parse_dataset_item
+from darwin.item import parse_dataset_item
 from darwin.utils import (
     find_files,
     parse_darwin_json,
@@ -29,6 +29,7 @@ from darwin.utils import (
     urljoin,
 )
 from darwin.validators import name_taken, validation_error
+from item import DatasetItem
 
 if TYPE_CHECKING:
     from darwin.client import Client
@@ -319,8 +320,7 @@ class RemoteDataset:
                 post_filters["types"] = str(filters["types"])
 
             if sort:
-                post_sort[sort["attribute"]] = sort["direction"]
-
+                post_sort[sort.field] = sort.direction.value
         cursor = {"page[size]": 500}
         while True:
             response = self.client.post(
