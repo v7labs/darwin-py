@@ -576,7 +576,7 @@ def list_files(
 
         if not _has_valid_format(sort_by):
             _error(
-                f"Invalid sort_by parameter '{sort_by}'. Correct format is 'attribute:direction', i.e., 'updated_at:desc'."
+                f"Invalid sort_by parameter '{sort_by}'. Correct format is 'attribute:direction', i.e. 'updated_at:desc'."
             )
         (attribute, direction) = sort_by.split(":")
 
