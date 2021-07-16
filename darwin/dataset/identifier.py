@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import re
 from typing import Optional, Tuple, Union
 
@@ -11,7 +9,7 @@ class DatasetIdentifier:
         self.version = version
 
     @classmethod
-    def parse(cls, identifier: Union[str, DatasetIdentifier]) -> DatasetIdentifier:
+    def parse(cls, identifier: Union[str, "DatasetIdentifier"]) -> "DatasetIdentifier":
         if isinstance(identifier, DatasetIdentifier):
             return identifier
 
