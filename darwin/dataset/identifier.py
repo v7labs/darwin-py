@@ -29,7 +29,7 @@ class DatasetIdentifier:
 def _parse(slug: str) -> Tuple[str, str, Optional[str]]:
     version: Optional[str] = None
 
-    if not re.fullmatch(r"[\w\-]+/[\w\-]+(:[\w\.]+)?", slug):
+    if not _is_slug_valid(slug):
         raise ValueError(f"Invalid dataset identifier {slug}")
 
     team, dataset = slug.split("/")
@@ -38,3 +38,7 @@ def _parse(slug: str) -> Tuple[str, str, Optional[str]]:
         dataset, version = dataset.split(":")
 
     return team, dataset, version
+
+
+def _is_slug_valid(slug: str) -> bool:
+    return re.fullmatch(r"[\w\-]+/[\w\-]+(:[\w\.]+)?", slug) is not None
