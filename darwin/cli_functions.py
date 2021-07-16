@@ -160,7 +160,7 @@ def local(team: Optional[str] = None):
 
     client = _load_client(offline=True)
     for dataset_path in client.list_local_datasets(team=team):
-        files_in_dataset_path = find_files(dataset_path)
+        files_in_dataset_path = find_files([dataset_path])
         table.add_row(
             f"{dataset_path.parent.name}/{dataset_path.name}",
             str(len(files_in_dataset_path)),
