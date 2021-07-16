@@ -83,18 +83,20 @@ def prompt(msg: str, default: Optional[str] = None) -> str:
     return result
 
 
-def find_files(path: Path, *, paths_to_exclude: List[Path] = [], recursive: bool = True) -> List[Path]:
+def find_files(
+    files: List[Union[str, Path]], *, files_to_exclude: List[Union[str, Path]] = [], recursive: bool = True
+) -> List[Path]:
     """Retrieve a list of all files belonging to supported extensions. The exploration can be made
     recursive and a list of files can be excluded if desired.
 
     Parameters
     ----------
-    path: Path
-        List of files that will be filtered with the supported file extensions and returned
-    files_to_exclude : List[Path]
-        List of files to exclude from the search
+    files: List[Union[str, Path]
+        List of files that will be filtered with the supported file extensions and returned.
+    files_to_exclude : List[Union[str, Path]
+        List of files to exclude from the search.
     recursive : bool
-        Flag for recursive search
+        Flag for recursive search.
 
     Returns
     -------
@@ -105,14 +107,16 @@ def find_files(path: Path, *, paths_to_exclude: List[Path] = [], recursive: bool
     found_files: List[Path] = []
     pattern = "**/*" if recursive else "*"
 
-    if path.is_dir():
-        found_files.extend([f for f in path.glob(pattern) if is_extension_allowed(f.suffix)])
-    elif is_extension_allowed(path.suffix):
-        found_files.append(path)
-    else:
-        raise UnsupportedFileType(path)
+    for f in files:
+        path = Path(f)
+        if path.is_dir():
+            found_files.extend([f for f in path.glob(pattern) if is_extension_allowed(f.suffix)])
+        elif is_extension_allowed(path.suffix):
+            found_files.append(path)
+        else:
+            raise UnsupportedFileType(path)
 
-    return [f for f in found_files if f not in paths_to_exclude]
+    return [f for f in found_files if f not in map(Path, files_to_exclude)]
 
 
 def secure_continue_request() -> bool:

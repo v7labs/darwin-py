@@ -1,3 +1,4 @@
+import re
 from typing import Optional, Tuple, Union
 
 
@@ -25,18 +26,15 @@ class DatasetIdentifier:
         return output
 
 
-def _parse(slug: str) -> Tuple[Optional[str], str, Optional[str]]:
-    team: Optional[str] = None
+def _parse(slug: str) -> Tuple[str, str, Optional[str]]:
     version: Optional[str] = None
-    dataset: str = slug
 
-    try:
-        if "/" in slug:
-            team, slug = slug.split("/")
+    if not re.fullmatch(r"[\w\-]+/[\w\-]+(:[\w\.]+)?", slug):
+        raise ValueError(f"Invalid dataset identifier {slug}")
 
-        if ":" in slug:
-            dataset, version = slug.split(":")
+    team, dataset = slug.split("/")
 
-        return team, dataset, version
-    except ValueError as e:
-        raise type(e)(f"Invalid dataset identifier {slug}")
+    if ":" in dataset:
+        dataset, version = dataset.split(":")
+
+    return team, dataset, version

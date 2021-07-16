@@ -463,10 +463,10 @@ def upload_data(
                         file_progress.remove_task(task.id)
 
             upload_manager = dataset.push(
+                files,
                 files_to_exclude=files_to_exclude,
                 fps=fps,
                 as_frames=frames,
-                files_to_upload=files,
                 path=path,
                 progress_callback=progress_callback,
                 file_upload_callback=file_upload_callback,
