@@ -84,6 +84,7 @@ class RemoteDataset:
     def push(
         self,
         files_to_upload: Optional[List[Union[str, Path, LocalFile]]],
+        *,
         blocking: bool = True,
         multi_threaded: bool = True,
         fps: int = 0,
