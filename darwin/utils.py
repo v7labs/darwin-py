@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Optional, Union
+from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
 import numpy as np
 from rich.progress import track
@@ -84,19 +84,19 @@ def prompt(msg: str, default: Optional[str] = None) -> str:
 
 
 def find_files(
-    files: List[Union[str, Path]] = [], recursive: bool = True, files_to_exclude: List[Union[str, Path]] = []
+    files: List[Union[str, Path]], *, files_to_exclude: List[Union[str, Path]] = [], recursive: bool = True
 ) -> List[Path]:
     """Retrieve a list of all files belonging to supported extensions. The exploration can be made
     recursive and a list of files can be excluded if desired.
 
     Parameters
     ----------
-    files: List[Union[str, Path]]
-        List of files that will be filtered with the supported file extensions and returned
+    files: List[Union[str, Path]
+        List of files that will be filtered with the supported file extensions and returned.
+    files_to_exclude : List[Union[str, Path]
+        List of files to exclude from the search.
     recursive : bool
-        Flag for recursive search
-    files_to_exclude : List[Union[str, Path]]
-        List of files to exclude from the search
+        Flag for recursive search.
 
     Returns
     -------
@@ -104,11 +104,11 @@ def find_files(
     List of all files belonging to supported extensions. Can't return None.
     """
 
-    # Init the return value
-    found_files = []
+    found_files: List[Path] = []
     pattern = "**/*" if recursive else "*"
 
-    for path in map(Path, files):
+    for f in files:
+        path = Path(f)
         if path.is_dir():
             found_files.extend([f for f in path.glob(pattern) if is_extension_allowed(f.suffix)])
         elif is_extension_allowed(path.suffix):
@@ -116,9 +116,7 @@ def find_files(
         else:
             raise UnsupportedFileType(path)
 
-    # Filter the list and return it
-    files_to_exclude = set(files_to_exclude)
-    return [f for f in found_files if f.name not in files_to_exclude and str(f) not in files_to_exclude]
+    return [f for f in found_files if f not in map(Path, files_to_exclude)]
 
 
 def secure_continue_request() -> bool:
@@ -356,7 +354,7 @@ def convert_polygons_to_sequences(
     return sequences
 
 
-def convert_sequences_to_polygons(sequences: List, height: Optional[int] = None, width: Optional[int] = None) -> List:
+def convert_sequences_to_polygons(sequences: List, height: Optional[int] = None, width: Optional[int] = None) -> Dict:
     """
     Converts a list of polygons, encoded as a list of dictionaries of into a list of nd.arrays
     of coordinates.

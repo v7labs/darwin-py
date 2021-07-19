@@ -1,7 +1,6 @@
 import itertools
 import json
 import multiprocessing as mp
-import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Dict, Generator, Iterable, List, Optional, Set, Union
@@ -11,7 +10,8 @@ from darwin.exceptions import NotFound
 from darwin.importer.formats.darwin import parse_file
 from darwin.utils import SUPPORTED_EXTENSIONS, SUPPORTED_VIDEO_EXTENSIONS
 from PIL import Image
-from rich.progress import track
+from rich.live import Live
+from rich.progress import ProgressBar, track
 
 
 def get_release_path(dataset_path: Path, release_name: Optional[str] = None):
@@ -172,17 +172,18 @@ def exhaust_generator(progress: Generator, count: int, multi_threaded: bool):
     """
     responses = []
     if multi_threaded:
-        pbar = track(range(count))
+        pbar = ProgressBar(total=count)
 
         def update(*a):
-            pbar.update()
+            pbar.completed += 1
 
-        with mp.Pool(mp.cpu_count()) as pool:
-            for f in progress:
-                responses.append(pool.apply_async(_f, args=(f,), callback=update))
-            pool.close()
-            pool.join()
-        responses = [response.get() for response in responses if response.successful()]
+        with Live(pbar):
+            with mp.Pool(mp.cpu_count()) as pool:
+                for f in progress:
+                    responses.append(pool.apply_async(_f, args=(f,), callback=update))
+                pool.close()
+                pool.join()
+            responses = [response.get() for response in responses if response.successful()]
     else:
         for f in track(progress, total=count, description="Progress"):
             responses.append(_f(f))

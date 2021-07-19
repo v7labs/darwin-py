@@ -1,11 +1,13 @@
 import json
 import types
+from unittest.mock import patch
 
 import pytest
 import responses
 from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset import RemoteDataset
+from darwin.dataset.upload_manager import LocalFile, UploadHandler
 from tests.fixtures import *
 
 
@@ -367,3 +369,44 @@ def test_fetch_remote_files_works(
 
     assert item_1.id == 386074
     assert item_2.id == 386073
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+def describe_push():
+    @pytest.fixture
+    def remote_dataset(darwin_client: Client, dataset_name: str, dataset_slug: str, team_slug: str):
+        return RemoteDataset(client=darwin_client, team=team_slug, name=dataset_name, slug=dataset_slug, dataset_id=1)
+
+    def raises_if_files_are_not_provided(remote_dataset: RemoteDataset):
+        with pytest.raises(ValueError):
+            remote_dataset.push(None)
+
+    def raises_if_both_path_and_local_files_are_given(remote_dataset: RemoteDataset):
+        with pytest.raises(ValueError):
+            remote_dataset.push([LocalFile("test.jpg")], path="test")
+
+    def raises_if_both_fps_and_local_files_are_given(remote_dataset: RemoteDataset):
+        with pytest.raises(ValueError):
+            remote_dataset.push([LocalFile("test.jpg")], fps=2)
+
+    def raises_if_both_as_frames_and_local_files_are_given(remote_dataset: RemoteDataset):
+        with pytest.raises(ValueError):
+            remote_dataset.push([LocalFile("test.jpg")], as_frames=True)
+
+    def works_with_local_files_list(remote_dataset: RemoteDataset):
+        assert_upload_mocks_are_correctly_called(remote_dataset, [LocalFile("test.jpg")])
+
+    def works_with_path_list(remote_dataset: RemoteDataset):
+        assert_upload_mocks_are_correctly_called(remote_dataset, [Path("test.jpg")])
+
+    def works_with_str_list(remote_dataset: RemoteDataset):
+        assert_upload_mocks_are_correctly_called(remote_dataset, ["test.jpg"])
+
+
+def assert_upload_mocks_are_correctly_called(remote_dataset: RemoteDataset, *args):
+    with patch.object(UploadHandler, "_request_upload", return_value=([], [])) as request_upload_mock:
+        with patch.object(UploadHandler, "upload") as upload_mock:
+            remote_dataset.push(*args)
+
+            request_upload_mock.assert_called_once()
+            upload_mock.assert_called_once_with(multi_threaded=True, progress_callback=None, file_upload_callback=None)
