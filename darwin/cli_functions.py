@@ -160,11 +160,12 @@ def local(team: Optional[str] = None):
 
     client = _load_client(offline=True)
     for dataset_path in client.list_local_datasets(team=team):
+        files_in_dataset_path = find_files([dataset_path])
         table.add_row(
             f"{dataset_path.parent.name}/{dataset_path.name}",
-            str(sum(1 for _ in find_files([dataset_path]))),
+            str(len(files_in_dataset_path)),
             humanize.naturaldate(datetime.datetime.fromtimestamp(dataset_path.stat().st_mtime)),
-            humanize.naturalsize(sum(p.stat().st_size for p in find_files([dataset_path]))),
+            humanize.naturalsize(sum(p.stat().st_size for p in files_in_dataset_path)),
         )
 
     Console().print(table)
@@ -462,10 +463,10 @@ def upload_data(
                         file_progress.remove_task(task.id)
 
             upload_manager = dataset.push(
+                files,
                 files_to_exclude=files_to_exclude,
                 fps=fps,
                 as_frames=frames,
-                files_to_upload=files,
                 path=path,
                 progress_callback=progress_callback,
                 file_upload_callback=file_upload_callback,
