@@ -312,7 +312,7 @@ class RemoteDataset:
         self.client.put(f"datasets/{self.dataset_id}/archive", payload={}, team=self.team)
 
     def fetch_remote_files(
-        self, filters: Optional[Dict[str, Union[str, List[str]]]] = None, sort: Optional[ItemSorter] = None
+        self, filters: Optional[Dict[str, Union[str, List[str]]]] = None, sort: Optional[Union[str, ItemSorter]] = None
     ) -> Iterator[DatasetItem]:
         """Fetch and lists all files on the remote dataset"""
         base_url: str = f"/datasets/{self.dataset_id}/items"
@@ -332,7 +332,8 @@ class RemoteDataset:
                 post_filters["types"] = str(filters["types"])
 
             if sort:
-                post_sort[sort.field] = sort.direction.value
+                item_sorter = ItemSorter.parse(sort)
+                post_sort[item_sorter.field] = item_sorter.direction.value
         cursor = {"page[size]": 500}
         while True:
             response = self.client.post(
