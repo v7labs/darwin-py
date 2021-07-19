@@ -4,10 +4,6 @@ from darwin.dataset.identifier import DatasetIdentifier
 
 def describe_dataset_identifier():
     def describe_parse():
-        def raises_without_separator():
-            with pytest.raises(ValueError):
-                DatasetIdentifier.parse("no-slash")
-
         def raises_with_team_only():
             with pytest.raises(ValueError):
                 DatasetIdentifier.parse("team/")
@@ -30,9 +26,21 @@ def describe_dataset_identifier():
             assert dataset_identifier.dataset_slug == "dataset"
             assert dataset_identifier.version is None
 
+        def optional_team():
+            dataset_identifier = DatasetIdentifier.parse("dataset")
+            assert dataset_identifier.team_slug is None
+            assert dataset_identifier.dataset_slug == "dataset"
+            assert dataset_identifier.version is None
+
         def with_version():
             dataset_identifier = DatasetIdentifier.parse("team/dataset:1.0")
             assert dataset_identifier.team_slug == "team"
+            assert dataset_identifier.dataset_slug == "dataset"
+            assert dataset_identifier.version == "1.0"
+
+        def optional_team_with_version():
+            dataset_identifier = DatasetIdentifier.parse("dataset:1.0")
+            assert dataset_identifier.team_slug is None
             assert dataset_identifier.dataset_slug == "dataset"
             assert dataset_identifier.version == "1.0"
 
