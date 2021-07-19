@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Collection, List, Optional
 
 import numpy as np
-
 from darwin.dataset.utils import get_classes, get_release_path, load_pil_image
 from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS
 
@@ -81,7 +80,7 @@ class LocalDataset(object):
                 ) from None
         else:
             # If the partition is not specified, get all the annotations
-            stems = [e.relative_to(annotations_dir).parent / e.stem for e in annotations_dir.glob("**/*.json")]
+            stems = (e.relative_to(annotations_dir).parent / e.stem for e in annotations_dir.glob("**/*.json"))
 
         # Find all the annotations and their corresponding images
         for stem in stems:

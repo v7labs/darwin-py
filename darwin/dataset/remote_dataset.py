@@ -4,14 +4,19 @@ import tempfile
 import zipfile
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, List, Optional
+from typing import TYPE_CHECKING, Callable, List, Optional, Union
 from urllib import parse
 
 from darwin.dataset.download_manager import download_all_images_from_annotations
 from darwin.dataset.identifier import DatasetIdentifier
 from darwin.dataset.release import Release
 from darwin.dataset.split_manager import split_dataset
-from darwin.dataset.upload_manager import LocalFile, UploadHandler
+from darwin.dataset.upload_manager import (
+    FileUploadCallback,
+    LocalFile,
+    ProgressCallback,
+    UploadHandler,
+)
 from darwin.dataset.utils import (
     exhaust_generator,
     get_annotations,
@@ -78,61 +83,72 @@ class RemoteDataset:
 
     def push(
         self,
-        files_to_upload: List[str],
+        files_to_upload: Optional[List[Union[str, Path, LocalFile]]],
+        *,
         blocking: bool = True,
         multi_threaded: bool = True,
-        fps: int = 1,
+        fps: int = 0,
         as_frames: bool = False,
-        files_to_exclude: Optional[List[str]] = None,
+        files_to_exclude: Optional[List[Union[str, Path]]] = None,
         path: Optional[str] = None,
-        progress_callback: Optional[Callable[[int, int], None]] = None,
-        file_upload_callback: Optional[Callable[[str, int, int], None]] = None,
+        progress_callback: Optional[ProgressCallback] = None,
+        file_upload_callback: Optional[FileUploadCallback] = None,
     ):
         """Uploads a local dataset (images ONLY) in the datasets directory.
 
         Parameters
         ----------
-        files_to_upload : list[Path]
-            List of files to upload. It can be a folder.
+        files_to_upload : Optional[List[Union[str, Path, LocalFile]]]
+            List of files to upload. Those can be folders.
         blocking : bool
-            If False, the dataset is not uploaded and a generator function is returned instead
+            If False, the dataset is not uploaded and a generator function is returned instead.
         multi_threaded : bool
             Uses multiprocessing to upload the dataset in parallel.
             If blocking is False this has no effect.
-        files_to_exclude : list[str]
-            List of files to exclude from the file scan (which is done only if files is None)
+        files_to_exclude : Optional[Union[str, Path]]]
+            Optional list of files to exclude from the file scan. Those can be folders.
         fps : int
-            Number of file per seconds to upload
+            When the uploading file is a video, specify its framerate.
         as_frames: bool
-            Annotate as video.
-        path: str
-            Optional path to put the files into
-        progress_callback: (total_file_count, file_advancement, Optional[file_name], file_total_bytes, file_bytes_sent) => None
-            Optional callback, called with the total number of files to upload, how far the current file has uploaded and how many bytes have been read.
+            When the uploading file is a video, specify whether it's going to be uploaded as a list of frames.
+        path: Optional[str]
+            Optional path to store the files in.
+        progress_callback: Optional[ProgressCallback]
+            Optional callback, called every time the progress of an uploading files is reported.
+        file_upload_callback: Optional[FileUploadCallback]
+            Optional callback, called every time a file chunk is uploaded.
         Returns
         -------
         handler : UploadHandler
            Class for handling uploads, progress and error messages
         """
 
-        # Init optional parameters
         if files_to_exclude is None:
             files_to_exclude = []
+
         if files_to_upload is None:
             raise ValueError("No files or directory specified.")
 
-        files_to_upload = find_files(files=files_to_upload, recursive=True, files_to_exclude=files_to_exclude)
+        uploading_files = [item for item in files_to_upload if isinstance(item, LocalFile)]
+        search_files = [item for item in files_to_upload if not isinstance(item, LocalFile)]
 
-        if not files_to_upload:
+        generic_parameters_specified = path is not None or fps != 0 or as_frames is not False
+        if uploading_files and generic_parameters_specified:
+            raise ValueError("Cannot specify a path when uploading a LocalFile object.")
+
+        for found_file in find_files(search_files, files_to_exclude=files_to_exclude):
+            uploading_files.append(LocalFile(found_file, fps=fps, as_frames=as_frames, path=path))
+
+        if not uploading_files:
             raise ValueError("No files to upload, check your path, exclusion filters and resume flag")
 
-        local_files = []
-        for file in files_to_upload:
-            local_files.append(LocalFile(file, fps=fps, as_frames=as_frames, path=path))
-
-        handler = UploadHandler(self.client, local_files, DatasetIdentifier(self.slug, self.team))
+        handler = UploadHandler(self, uploading_files)
         if blocking:
-            handler.upload(multi_threaded=multi_threaded, progress_callback=progress_callback, file_upload_callback=file_upload_callback)
+            handler.upload(
+                multi_threaded=multi_threaded,
+                progress_callback=progress_callback,
+                file_upload_callback=file_upload_callback,
+            )
         else:
             handler.prepare_upload()
 
@@ -222,8 +238,8 @@ class RemoteDataset:
         release_dir = self.local_releases_path / release.name
         release_dir.mkdir(parents=True, exist_ok=True)
 
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            tmp_dir = Path(tmp_dir)
+        with tempfile.TemporaryDirectory() as tmp_dir_str:
+            tmp_dir = Path(tmp_dir_str)
             # Download the release from Darwin
             zip_file_path = release.download_zip(tmp_dir / "dataset.zip")
             with zipfile.ZipFile(zip_file_path) as z:
