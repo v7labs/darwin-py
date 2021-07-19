@@ -1,5 +1,9 @@
+__all__ = ["main"]
+
 import getpass
 import os
+from argparse import ArgumentParser, Namespace
+from typing import Any
 
 import requests.exceptions
 
@@ -9,10 +13,10 @@ from darwin.exceptions import InvalidTeam, Unauthenticated, Unauthorized
 from darwin.options import Options
 
 
-def main():
+def main() -> Any:
     args, parser = Options().parse_args()
     try:
-        run(args, parser)
+        _run(args, parser)
     except Unauthorized:
         f._error("Your API key is not authorized to do that action.")
     except Unauthenticated:
@@ -23,7 +27,7 @@ def main():
         f._error("Darwin seems unreachable, please try again in a minute or contact support.")
 
 
-def run(args, parser):
+def _run(args: Namespace, parser: ArgumentParser) -> Any:
     if args.command == "help":
         f.help(parser)
     # Authenticate user
@@ -77,7 +81,7 @@ def run(args, parser):
         elif args.action == "export":
             f.export_dataset(args.dataset, args.include_url_token, args.annotation_class, args.name)
         elif args.action == "files":
-            f.list_files(args.dataset, args.status, args.path, args.only_filenames)
+            f.list_files(args.dataset, args.status, args.path, args.only_filenames, args.sort_by)
         elif args.action == "releases":
             f.dataset_list_releases(args.dataset)
         elif args.action == "pull":

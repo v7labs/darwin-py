@@ -4,7 +4,7 @@ import tempfile
 import zipfile
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, List, Optional, Union
+from typing import TYPE_CHECKING, Callable, Dict, Iterator, List, Optional, Union
 from urllib import parse
 
 from darwin.dataset.download_manager import download_all_images_from_annotations
@@ -25,7 +25,8 @@ from darwin.dataset.utils import (
 )
 from darwin.exceptions import NotFound, UnsupportedExportFormat
 from darwin.exporter.formats.darwin import build_image_annotation
-from darwin.item import parse_dataset_item
+from darwin.item import DatasetItem, parse_dataset_item
+from darwin.item_sorter import ItemSorter
 from darwin.utils import (
     find_files,
     parse_darwin_json,
@@ -310,26 +311,35 @@ class RemoteDataset:
         """Archives (soft-deletion) the remote dataset"""
         self.client.put(f"datasets/{self.dataset_id}/archive", payload={}, team=self.team)
 
-    def fetch_remote_files(self, filters: Optional[dict] = None):
+    def fetch_remote_files(
+        self, filters: Optional[Dict[str, Union[str, List[str]]]] = None, sort: Optional[ItemSorter] = None
+    ) -> Iterator[DatasetItem]:
         """Fetch and lists all files on the remote dataset"""
-        base_url = f"/datasets/{self.dataset_id}/items"
-        parameters = {}
+        base_url: str = f"/datasets/{self.dataset_id}/items"
+        post_filters: Dict[str, str] = {}
+        post_sort: Dict[str, str] = {}
+
         if filters:
             for list_type in ["filenames", "statuses"]:
                 if list_type in filters:
                     if type(filters[list_type]) is list:
-                        parameters[list_type] = ",".join(filters[list_type])
+                        post_filters[list_type] = ",".join(filters[list_type])
                     else:
-                        parameters[list_type] = filters[list_type]
+                        post_filters[list_type] = str(filters[list_type])
             if "path" in filters:
-                parameters["path"] = filters["path"]
+                post_filters["path"] = str(filters["path"])
             if "types" in filters:
-                parameters["types"] = filters["types"]
+                post_filters["types"] = str(filters["types"])
 
+            if sort:
+                post_sort[sort.field] = sort.direction.value
         cursor = {"page[size]": 500}
         while True:
-            response = self.client.post(f"{base_url}?{parse.urlencode(cursor)}", {"filter": parameters}, team=self.team)
+            response = self.client.post(
+                f"{base_url}?{parse.urlencode(cursor)}", {"filter": post_filters, "sort": post_sort}, team=self.team
+            )
             yield from [parse_dataset_item(item) for item in response["items"]]
+
             if response["metadata"]["next"]:
                 cursor["page[from]"] = response["metadata"]["next"]
             else:

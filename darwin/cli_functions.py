@@ -4,7 +4,7 @@ import os
 import sys
 from itertools import tee
 from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, NoReturn, Optional, Union
 
 import humanize
 from rich.console import Console
@@ -42,6 +42,7 @@ from darwin.exceptions import (
     UnsupportedFileType,
     ValidationError,
 )
+from darwin.item_sorter import ItemSorter
 from darwin.utils import (
     find_files,
     persist_client_configuration,
@@ -549,21 +550,39 @@ def dataset_import(dataset_slug, format, files, append):
         _error(f"No dataset with name '{e.name}'")
 
 
-def list_files(dataset_slug: str, statuses: str, path: str, only_filenames: bool):
+def list_files(
+    dataset_slug: str,
+    statuses: Optional[str],
+    path: Optional[str],
+    only_filenames: bool,
+    sort_by: Optional[str] = "updated_at:desc",
+):
     client = _load_client(dataset_identifier=dataset_slug)
     try:
         dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
-        filters = {}
+        filters: Dict[str, str] = {}
+        sort: Optional[ItemSorter] = None
+
         if statuses:
             for status in statuses.split(","):
-                if status not in ["new", "annotate", "review", "complete", "archived"]:
+                if not _has_valid_status(status):
                     _error(f"Invalid status '{status}', available statuses: annotate, archived, complete, new, review")
             filters["statuses"] = statuses
         else:
             filters["statuses"] = "new,annotate,review,complete"
+
         if path:
             filters["path"] = path
-        for file in dataset.fetch_remote_files(filters):
+
+        if not sort_by:
+            sort_by = "updated_at:desc"
+
+        try:
+            sort = ItemSorter.parse(str(sort_by))
+        except ValueError as error:
+            _error(str(error))
+
+        for file in dataset.fetch_remote_files(filters, sort):
             if only_filenames:
                 print(file.filename)
             else:
@@ -571,6 +590,10 @@ def list_files(dataset_slug: str, statuses: str, path: str, only_filenames: bool
                 print(f"{file.filename}\t{file.status if not file.archived else 'archived'}\t {image_url}")
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
+
+
+def _has_valid_status(status: str) -> bool:
+    return status in ["new", "annotate", "review", "complete", "archived"]
 
 
 def set_file_status(dataset_slug: str, status: str, files: List[str]):
@@ -644,7 +667,7 @@ def help(parser, subparser: Optional[str] = None):
             print("    {:<19} {}".format(choice.dest, choice.help))
 
 
-def _error(message):
+def _error(message: str) -> NoReturn:
     console = Console(theme=_console_theme())
     console.print(f"Error: {message}", style="error")
     sys.exit(1)
