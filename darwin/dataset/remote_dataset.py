@@ -21,6 +21,7 @@ from darwin.dataset.utils import (
     exhaust_generator,
     get_annotations,
     get_classes,
+    is_relative_to,
     make_class_lists,
 )
 from darwin.exceptions import NotFound, UnsupportedExportFormat
@@ -141,7 +142,7 @@ class RemoteDataset:
         for found_file in find_files(search_files, files_to_exclude=files_to_exclude):
             local_path = path
             if preserve_folders:
-                source_files = [source_file for source_file in search_files if found_file.is_relative_to(source_file)]
+                source_files = [source_file for source_file in search_files if is_relative_to(found_file, source_file)]
                 if source_files:
                     local_path = str(found_file.relative_to(source_files[0]).parent)
             uploading_files.append(LocalFile(found_file, fps=fps, as_frames=as_frames, path=local_path))

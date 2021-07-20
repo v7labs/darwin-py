@@ -504,3 +504,15 @@ def compute_distributions(
                 instance_distribution[partition] += Counter(annotation_class_names)
 
     return {"class": class_distribution, "instance": instance_distribution}
+
+
+# https://github.com/python/cpython/blob/main/Lib/pathlib.py#L812
+# TODO implemented here because it's not supported in Pythton < 3.9
+def is_relative_to(path: Path, *other):
+    """Return True if the path is relative to another path or False.
+    """
+    try:
+        path.relative_to(*other)
+        return True
+    except ValueError:
+        return False
