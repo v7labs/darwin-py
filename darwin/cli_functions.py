@@ -389,6 +389,7 @@ def upload_data(
     fps: int,
     path: Optional[str],
     frames: Optional[bool],
+    preserve_folders: bool = False, 
     verbose: bool = False,
 ):
     """Uploads the files provided as parameter to the remote dataset selected
@@ -469,6 +470,7 @@ def upload_data(
                 fps=fps,
                 as_frames=frames,
                 path=path,
+                preserve_folders=preserve_folders,
                 progress_callback=progress_callback,
                 file_upload_callback=file_upload_callback,
             )
