@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Union
 
 
 class SortDirection(Enum):
@@ -31,7 +32,9 @@ class ItemSorter:
         self.direction = direction
 
     @classmethod
-    def parse(cls, sort: str):
+    def parse(cls, sort: Union[str, "ItemSorter"]) -> "ItemSorter":
+        if isinstance(sort, ItemSorter):
+            return sort
 
         if not cls._has_valid_format(sort):
             raise ValueError(
