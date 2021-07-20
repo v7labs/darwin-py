@@ -72,7 +72,7 @@ def _run(args: Namespace, parser: ArgumentParser) -> Any:
         elif args.action == "url":
             f.url(args.dataset)
         elif args.action == "push":
-            f.upload_data(args.dataset, args.files, args.exclude, args.fps, args.path, args.frames, args.verbose)
+            f.upload_data(args.dataset, args.files, args.exclude, args.fps, args.path, args.frames, args.preserve_folders, args.verbose)
         # Remove a project (remotely)
         elif args.action == "remove":
             f.remove_remote_dataset(args.dataset)
