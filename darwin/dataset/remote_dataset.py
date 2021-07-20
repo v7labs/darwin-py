@@ -92,6 +92,7 @@ class RemoteDataset:
         as_frames: bool = False,
         files_to_exclude: Optional[List[Union[str, Path]]] = None,
         path: Optional[str] = None,
+        preserve_folders: bool = False,
         progress_callback: Optional[ProgressCallback] = None,
         file_upload_callback: Optional[FileUploadCallback] = None,
     ):
@@ -138,7 +139,12 @@ class RemoteDataset:
             raise ValueError("Cannot specify a path when uploading a LocalFile object.")
 
         for found_file in find_files(search_files, files_to_exclude=files_to_exclude):
-            uploading_files.append(LocalFile(found_file, fps=fps, as_frames=as_frames, path=path))
+            local_path = path
+            if preserve_folders:
+                source_files = [source_file for source_file in search_files if found_file.is_relative_to(source_file)]
+                if source_files:
+                    local_path = str(found_file.relative_to(source_files[0]).parent)
+            uploading_files.append(LocalFile(found_file, fps=fps, as_frames=as_frames, path=local_path))
 
         if not uploading_files:
             raise ValueError("No files to upload, check your path, exclusion filters and resume flag")
