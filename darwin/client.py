@@ -1,15 +1,21 @@
 import os
 import time
 from pathlib import Path
-from typing import Dict, Iterator, Optional, Union
+from typing import Dict, Iterator, List, Optional, Union
 
 import requests
 
 from darwin.config import Config
 from darwin.dataset import RemoteDataset
 from darwin.dataset.identifier import DatasetIdentifier
-from darwin.exceptions import InsufficientStorage, InvalidLogin, MissingConfig, NotFound, Unauthorized
-from darwin.utils import is_deprecated_project_dir, is_project_dir, urljoin
+from darwin.exceptions import (
+    InsufficientStorage,
+    InvalidLogin,
+    MissingConfig,
+    NotFound,
+    Unauthorized,
+)
+from darwin.utils import is_project_dir, urljoin
 from darwin.validators import name_taken, validation_error
 
 
@@ -19,7 +25,7 @@ class Client:
         self.url = config.get("global/api_endpoint")
         self.base_url = config.get("global/base_url")
         self.default_team = default_team or config.get("global/default_team")
-        self.features = {}
+        self.features: dict = {}
 
     def get(
         self, endpoint: str, team: Optional[str] = None, retry: bool = False, raw: bool = False, debug: bool = False
@@ -49,6 +55,7 @@ class Client:
         Unauthorized
             Action is not authorized
         """
+
         response = requests.get(urljoin(self.url, endpoint), headers=self._get_headers(team))
 
         if response.status_code == 401:
@@ -70,7 +77,15 @@ class Client:
         else:
             return self._decode_response(response, debug)
 
-    def put(self, endpoint: str, payload: Dict, team: Optional[str] = None, retry: bool = False, debug: bool = False):
+    def put(
+        self,
+        endpoint: str,
+        payload: Dict,
+        team: Optional[str] = None,
+        retry: bool = False,
+        debug: bool = False,
+        raw: bool = False,
+    ):
         """Put something on the server trough HTTP
 
         Parameters
@@ -83,6 +98,8 @@ class Client:
             Retry to perform the operation. Set to False on recursive calls.
         debug : bool
             Debugging flag. In this case failed requests get printed
+        raw : bool
+            Flag for returning raw response
 
         Returns
         -------
@@ -110,7 +127,10 @@ class Client:
             time.sleep(10)
             return self.put(endpoint, payload=payload, retry=False)
 
-        return self._decode_response(response, debug)
+        if raw:
+            return response
+        else:
+            return self._decode_response(response, debug)
 
     def post(
         self,
@@ -207,7 +227,7 @@ class Client:
                     f"Client get request response ({response.json()}) with unexpected status "
                     f"({response.status_code}). "
                     f"Client: ({self})"
-                    f"Request: (endpoint={endpoint}, payload={payload})"
+                    f"Request: (endpoint={endpoint})"
                 )
             if retry:
                 time.sleep(10)
@@ -232,22 +252,6 @@ class Client:
             for project_path in projects_team.glob("*"):
                 if project_path.is_dir() and is_project_dir(project_path):
                     yield Path(project_path)
-
-    def list_deprecated_local_datasets(self, team: Optional[str] = None) -> Iterator[Path]:
-        """Returns a list of all local folders which are detected as datasets but use a deprecated local structure
-
-        Returns
-        -------
-        list[Path]
-        List of all local datasets
-        """
-        team = team or self.default_team
-        team_config = self.config.get_team(team)
-
-        projects_team = Path(team_config["datasets_dir"])
-        for project_path in projects_team.glob("*"):
-            if project_path.is_dir() and is_deprecated_project_dir(project_path):
-                yield Path(project_path)
 
     def list_remote_datasets(self, team: Optional[str] = None) -> Iterator[RemoteDataset]:
         """Returns a list of all available datasets with the team currently authenticated against
@@ -283,8 +287,8 @@ class Client:
         RemoteDataset
             Initialized dataset
         """
-        if isinstance(dataset_identifier, str):
-            dataset_identifier = DatasetIdentifier.parse(dataset_identifier)
+        dataset_identifier = DatasetIdentifier.parse(dataset_identifier)
+
         if not dataset_identifier.team_slug:
             dataset_identifier.team_slug = self.default_team
 
@@ -346,7 +350,7 @@ class Client:
         self.features[team_slug] = self.get(f"/teams/{team_slug}/features")
 
     def feature_enabled(self, feature_name: str, team: Optional[str] = None):
-        team_slug = self.config.get_team(team or self.default_team)["slug"]
+        team_slug: str = self.config.get_team(team or self.default_team)["slug"]
         if team_slug not in self.features:
             self.load_feature_flags(team)
         for feature in self.features[team_slug]:
@@ -370,7 +374,7 @@ class Client:
         return self.config.get_team(team or self.default_team)["datasets_dir"]
 
     def set_datasets_dir(self, datasets_dir: Path, team: Optional[str] = None):
-        """ Sets the dataset directory of the specified team or the default one
+        """Sets the dataset directory of the specified team or the default one
 
         Parameters
         ----------
@@ -487,7 +491,7 @@ class Client:
 
     @staticmethod
     def _decode_response(response, debug: bool = False):
-        """ Decode the response as JSON entry or return a dictionary with the error
+        """Decode the response as JSON entry or return a dictionary with the error
 
         Parameters
         ----------

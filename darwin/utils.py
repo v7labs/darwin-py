@@ -1,16 +1,16 @@
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Optional, Union
+from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
 import numpy as np
-from tqdm import tqdm
+from rich.progress import track
 from upolygon import draw_polygon
 
 import darwin.datatypes as dt
 from darwin.config import Config
 from darwin.exceptions import OutdatedDarwinJSONFormat, UnsupportedFileType
 
-SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpeg", ".jpg", ".jfif", ".tif", ".bmp"]
+SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpeg", ".jpg", ".jfif", ".tif", ".tiff", ".bmp", ".svs"]
 SUPPORTED_VIDEO_EXTENSIONS = [".avi", ".bpm", ".dcm", ".mov", ".mp4"]
 SUPPORTED_EXTENSIONS = SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
 
@@ -52,26 +52,10 @@ def is_project_dir(project_path: Path) -> bool:
     return (project_path / "releases").exists() and (project_path / "images").exists()
 
 
-def is_deprecated_project_dir(project_path: Path) -> bool:
-    """Verifies if the directory is a project from Darwin that uses a deprecated local structure
-
-    Parameters
-    ----------
-    project_path : Path
-        Directory to examine
-
-    Returns
-    -------
-    bool
-        Is the directory a project from Darwin?
-    """
-    return (project_path / "annotations").exists() and (project_path / "images").exists()
-
-
 def get_progress_bar(array: List, description: Optional[str] = None):
-    pbar = tqdm(array)
-    pbar.set_description(desc=description, refresh=True)
-    return pbar
+    if description:
+        return track(array, description=description)
+    return track(array)
 
 
 def prompt(msg: str, default: Optional[str] = None) -> str:
@@ -100,19 +84,19 @@ def prompt(msg: str, default: Optional[str] = None) -> str:
 
 
 def find_files(
-    files: List[Union[str, Path]] = [], recursive: bool = True, files_to_exclude: List[Union[str, Path]] = []
+    files: List[Union[str, Path]], *, files_to_exclude: List[Union[str, Path]] = [], recursive: bool = True
 ) -> List[Path]:
     """Retrieve a list of all files belonging to supported extensions. The exploration can be made
     recursive and a list of files can be excluded if desired.
 
     Parameters
     ----------
-    files: List[Union[str, Path]]
-        List of files that will be filtered with the supported file extensions and returned
+    files: List[Union[str, Path]
+        List of files that will be filtered with the supported file extensions and returned.
+    files_to_exclude : List[Union[str, Path]
+        List of files to exclude from the search.
     recursive : bool
-        Flag for recursive search
-    files_to_exclude : List[Union[str, Path]]
-        List of files to exclude from the search
+        Flag for recursive search.
 
     Returns
     -------
@@ -120,11 +104,11 @@ def find_files(
     List of all files belonging to supported extensions. Can't return None.
     """
 
-    # Init the return value
-    found_files = []
+    found_files: List[Path] = []
     pattern = "**/*" if recursive else "*"
 
-    for path in map(Path, files):
+    for f in files:
+        path = Path(f)
         if path.is_dir():
             found_files.extend([f for f in path.glob(pattern) if is_extension_allowed(f.suffix)])
         elif is_extension_allowed(path.suffix):
@@ -132,9 +116,7 @@ def find_files(
         else:
             raise UnsupportedFileType(path)
 
-    # Filter the list and return it
-    files_to_exclude = set(files_to_exclude)
-    return [f for f in found_files if f.name not in files_to_exclude and str(f) not in files_to_exclude]
+    return [f for f in found_files if f not in map(Path, files_to_exclude)]
 
 
 def secure_continue_request() -> bool:
@@ -179,7 +161,7 @@ def parse_darwin_json(path: Union[str, Path], count: int):
     path = Path(path)
     with path.open() as f:
         data = json.load(f)
-        if not data["annotations"]:
+        if "annotations" not in data:
             return None
         if "fps" in data["image"] or "frame_count" in data["image"]:
             return parse_darwin_video(path, data, count)
@@ -197,11 +179,13 @@ def parse_darwin_image(path, data, count):
         annotation_classes,
         annotations,
         False,
-        data["image"]["width"],
-        data["image"]["height"],
-        data["image"]["url"],
+        data["image"].get("width"),
+        data["image"].get("height"),
+        data["image"].get("url"),
         data["image"].get("workview_url"),
         data["image"].get("seq", count),
+        None,
+        data["image"].get("path"),
     )
 
 
@@ -218,12 +202,13 @@ def parse_darwin_video(path, data, count):
         annotation_classes,
         annotations,
         True,
-        data["image"]["width"],
-        data["image"]["height"],
-        data["image"]["url"],
+        data["image"].get("width"),
+        data["image"].get("height"),
+        data["image"].get("url"),
         data["image"].get("workview_url"),
         data["image"].get("seq", count),
-        data["image"]["frame_urls"],
+        data["image"].get("frame_urls"),
+        data["image"].get("path"),
     )
 
 
@@ -281,8 +266,11 @@ def parse_darwin_video_annotation(annotation: dict):
     keyframes = {}
     for f, frame in annotation["frames"].items():
         frame_annotations[int(f)] = parse_darwin_annotation({**frame, **{"name": name}})
-        keyframes[int(f)] = frame["keyframe"]
-    return dt.make_video_annotation(frame_annotations, keyframes, annotation["segments"], annotation["interpolated"])
+        keyframes[int(f)] = frame.get("keyframe", False)
+
+    return dt.make_video_annotation(
+        frame_annotations, keyframes, annotation["segments"], annotation.get("interpolated", False)
+    )
 
 
 def split_video_annotation(annotation):
@@ -366,6 +354,94 @@ def convert_polygons_to_sequences(
     return sequences
 
 
+def convert_sequences_to_polygons(sequences: List, height: Optional[int] = None, width: Optional[int] = None) -> Dict:
+    """
+    Converts a list of polygons, encoded as a list of dictionaries of into a list of nd.arrays
+    of coordinates.
+
+    Parameters
+    ----------
+    sequences: list
+        List of arrays of coordinates in the format [x1, y1, x2, y2, ..., xn, yn] or as a list of them
+        as [[x1, y1, x2, y2, ..., xn, yn], ..., [x1, y1, x2, y2, ..., xn, yn]]
+    height: int
+        Maximum height for a polygon coordinate
+    width: int
+        Maximum width for a polygon coordinate
+
+    Returns
+    -------
+    polygons: list[ndarray[float]]
+        List of coordinates in the format [[{x: x1, y:y1}, ..., {x: xn, y:yn}], ..., [{x: x1, y:y1}, ..., {x: xn, y:yn}]].
+    """
+    if not sequences:
+        raise ValueError("No sequences provided")
+    # If there is a single sequences composing the instance then this is
+    # transformed to polygons = [[x1, y1, ..., xn, yn]]
+    if not isinstance(sequences[0], list):
+        sequences = [sequences]
+
+    if not isinstance(sequences[0][0], (int, float)):
+        raise ValueError("Unknown input format")
+
+    def grouped(iterable, n):
+        return zip(*[iter(iterable)] * n)
+
+    polygons = []
+    for sequence in sequences:
+        path = []
+        for x, y in grouped(sequence, 2):
+            # Clip coordinates to the image size
+            x = max(min(x, width - 1) if width else x, 0)
+            y = max(min(y, height - 1) if height else y, 0)
+            path.append({"x": x, "y": y})
+        polygons.append(path)
+    return {"path": polygons}
+
+
+def convert_xyxy_to_bounding_box(box: List) -> dict:
+    """
+    Converts a list of xy coordinates representing a bounding box into a dictionary
+
+    Parameters
+    ----------
+    box: list
+        List of arrays of coordinates in the format [x1, y1, x2, y2]
+
+    Returns
+    -------
+    bounding_box: dict
+        Bounding box in the format {x: x1, y: y1, h: height, w: width}
+    """
+    if not isinstance(box[0], (int, float)):
+        raise ValueError("Unknown input format")
+
+    x1, y1, x2, y2 = box
+    width = x2 - x1
+    height = y2 - y1
+    return {"x": x1, "y": y1, "w": width, "h": height}
+
+
+def convert_bounding_box_to_xyxy(box: dict) -> list:
+    """
+    Converts dictionary representing a bounding box into a list of xy coordinates
+
+    Parameters
+    ----------
+    box: dict
+        Bounding box in the format {x: x1, y: y1, h: height, w: width}
+
+    Returns
+    -------
+    bounding_box: dict
+        List of arrays of coordinates in the format [x1, y1, x2, y2]
+    """
+
+    x2 = box["x"] + box["width"]
+    y2 = box["y"] + box["height"]
+    return [box["x"], box["y"], x2, y2]
+
+
 def convert_polygons_to_mask(polygons: List, height: int, width: int, value: Optional[int] = 1) -> np.ndarray:
     """
     Converts a list of polygons, encoded as a list of dictionaries into an nd.array mask
@@ -385,3 +461,8 @@ def convert_polygons_to_mask(polygons: List, height: int, width: int, value: Opt
     mask = np.zeros((height, width)).astype(np.uint8)
     draw_polygon(mask, sequence, value)
     return mask
+
+
+def chunk(items, size):
+    for i in range(0, len(items), size):
+        yield items[i : i + size]

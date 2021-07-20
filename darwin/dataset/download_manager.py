@@ -4,7 +4,6 @@ import time
 from pathlib import Path
 
 import requests
-
 from darwin.utils import is_image_extension_allowed
 
 
@@ -59,7 +58,8 @@ def download_all_images_from_annotations(
 
     annotations_to_download_path = []
     for annotation_path in annotations_path.glob(f"*.{annotation_format}"):
-        annotation = json.load(annotation_path.open())
+        with annotation_path.open() as file:
+            annotation = json.load(file)
         if not force_replace:
             # Check collisions on image filename, original_filename and json filename on the system
             if Path(annotation["image"]["filename"]).stem in existing_images:
@@ -153,7 +153,8 @@ def download_image_from_json_annotation(
     video_frames: bool
         Pulls video frames images instead of video files
     """
-    annotation = json.load(annotation_path.open())
+    with annotation_path.open() as file:
+        annotation = json.load(file)
 
     # If we are using folders, extract the path for the image and create the folder if needed
     sub_path = annotation["image"].get("path", "/") if use_folders else "/"
@@ -164,7 +165,7 @@ def download_image_from_json_annotation(
         video_path = parent_path / annotation_path.stem
         video_path.mkdir(exist_ok=True, parents=True)
         for i, frame_url in enumerate(annotation["image"]["frame_urls"]):
-            path = video_path / f"{i:07d}.jpg"
+            path = video_path / f"{i:07d}.png"
             download_image(frame_url, path, api_key)
     else:
         image_url = annotation["image"]["url"]

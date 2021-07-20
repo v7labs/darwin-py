@@ -10,9 +10,9 @@ from darwin.exceptions import InvalidTeam
 class Config(object):
     """Handles YAML configuration files"""
 
-    def __init__(self, path: Union[Path, str, None]):
+    def __init__(self, path: Optional[Union[Path, str]] = None):
         """
-            If path is None the config will be in memory only
+        If path is None the config will be in memory only
         """
         if isinstance(path, str):
             path = Path(path)

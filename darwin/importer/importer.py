@@ -1,10 +1,9 @@
 from pathlib import Path
 from typing import Callable, List, Union
 
-from tqdm import tqdm
-
 import darwin.datatypes as dt
 from darwin.utils import secure_continue_request
+from rich.progress import track
 
 
 def build_main_annotations_lookup_table(annotation_classes):
@@ -20,12 +19,9 @@ def build_main_annotations_lookup_table(annotation_classes):
 
 
 def find_and_parse(
-    remote_files: List[str],
     importer: Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]],
     file_paths: List[Union[str, Path]],
 ) -> (List[dt.AnnotationFile], List[dt.AnnotationFile]):
-    local_files = []
-    local_files_missing_remotely = []
     # TODO: this could be done in parallel
     for file_path in map(Path, file_paths):
         files = file_path.glob("**/*") if file_path.is_dir() else [file_path]
@@ -39,11 +35,7 @@ def find_and_parse(
             for parsed_file in parsed_files:
                 # clear to save memory
                 parsed_file.annotations = []
-                if parsed_file.filename not in remote_files:
-                    local_files_missing_remotely.append(parsed_file)
-                    continue
-                local_files.append(parsed_file)
-    return local_files, local_files_missing_remotely
+                yield parsed_file
 
 
 def build_attribute_lookup(dataset):
@@ -57,13 +49,24 @@ def build_attribute_lookup(dataset):
     return lookup
 
 
+def get_remote_files(dataset, filenames):
+    """Fetches remote files from the datasets, in chunks of 100 filesnames at a time"""
+    remote_files = {}
+    for i in range(0, len(filenames), 100):
+        chunk = filenames[i : i + 100]
+        for remote_file in dataset.fetch_remote_files(
+            {"types": "image,playback_video,video_frame", "filenames": ",".join(chunk)}
+        ):
+            remote_files[remote_file.full_path] = remote_file.id
+    return remote_files
+
+
 def import_annotations(
     dataset: "RemoteDataset",
     importer: Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]],
     file_paths: List[Union[str, Path]],
+    append: bool,
 ):
-    print("Fetching remote file list...")
-    remote_files = {f.filename: f.id for f in dataset.fetch_remote_files()}
     print("Fetching remote class list...")
     remote_classes = build_main_annotations_lookup_table(dataset.fetch_remote_classes())
     attributes = build_attribute_lookup(dataset)
@@ -71,13 +74,24 @@ def import_annotations(
     print("Retrieving local annotations ...")
     local_files = []
     local_files_missing_remotely = []
-    local_files, local_files_missing_remotely = find_and_parse(remote_files, importer, file_paths)
+    parsed_files = list(find_and_parse(importer, file_paths))
+    filenames = [parsed_file.filename for parsed_file in parsed_files]
+
+    print("Fetching remote file list...")
+    # This call will only filter by filename; so can return a superset of matched files across different paths
+    # There is logic in this function to then include paths to narrow down to the single correct matching file
+    remote_files = get_remote_files(dataset, filenames)
+    for parsed_file in parsed_files:
+        if parsed_file.full_path not in remote_files:
+            local_files_missing_remotely.append(parsed_file)
+        else:
+            local_files.append(parsed_file)
 
     print(f"{len(local_files) + len(local_files_missing_remotely)} annotation file(s) found.")
     if local_files_missing_remotely:
         print(f"{len(local_files_missing_remotely)} file(s) are missing from the dataset")
         for local_file in local_files_missing_remotely:
-            print(f"\t{local_file.path}: '{local_file.filename}'")
+            print(f"\t{local_file.path}: '{local_file.full_path}'")
 
         if not secure_continue_request():
             return
@@ -113,18 +127,19 @@ def import_annotations(
 
     # Need to re parse the files since we didn't save the annotations in memory
     for local_path in set(local_file.path for local_file in local_files):
-        print(f"importing {local_path}")
         parsed_files = importer(local_path)
         if type(parsed_files) is not list:
             parsed_files = [parsed_files]
         # remove files missing on the server
         parsed_files = [parsed_file for parsed_file in parsed_files if parsed_file not in local_files_missing_remotely]
-        for parsed_file in tqdm(parsed_files):
-            image_id = remote_files[parsed_file.filename]
-            _import_annotations(dataset.client, image_id, remote_classes, attributes, parsed_file.annotations, dataset)
+        for parsed_file in track(parsed_files):
+            image_id = remote_files[parsed_file.full_path]
+            _import_annotations(
+                dataset.client, image_id, remote_classes, attributes, parsed_file.annotations, dataset, append
+            )
 
 
-def _handle_subs(annotation, data, attributes):
+def _handle_subs(annotation, data, annotation_class_id, attributes):
     for sub in annotation.subs:
         if sub.annotation_type == "text":
             data["text"] = {"text": sub.data}
@@ -150,7 +165,7 @@ def _handle_complex_polygon(annotation, data):
     return data
 
 
-def _import_annotations(client: "Client", id: int, remote_classes, attributes, annotations, dataset):
+def _import_annotations(client: "Client", id: int, remote_classes, attributes, annotations, dataset, append):
     serialized_annotations = []
     for annotation in annotations:
         annotation_class = annotation.annotation_class
@@ -161,19 +176,19 @@ def _import_annotations(client: "Client", id: int, remote_classes, attributes, a
             data = annotation.get_data(
                 only_keyframes=True,
                 post_processing=lambda annotation, data: _handle_subs(
-                    annotation, _handle_complex_polygon(annotation, data), attributes
+                    annotation, _handle_complex_polygon(annotation, data), annotation_class_id, attributes
                 ),
             )
         else:
             data = {annotation_class.annotation_type: annotation.data}
             data = _handle_complex_polygon(annotation, data)
-            data = _handle_subs(annotation, data, attributes)
+            data = _handle_subs(annotation, data, annotation_class_id, attributes)
 
         serialized_annotations.append({"annotation_class_id": annotation_class_id, "data": data})
 
-    if client.feature_enabled("WORKFLOW", dataset.team):
-        res = client.post(f"/dataset_items/{id}/import", payload={"annotations": serialized_annotations})
-        if res.get("status_code") != 200:
-            print(f"warning, failed to upload annotation to {id}", res)
-    else:
-        client.post(f"/dataset_images/{id}/import", payload={"annotations": serialized_annotations})
+    payload = {"annotations": serialized_annotations}
+    if append:
+        payload["overwrite"] = "false"
+    res = client.post(f"/dataset_items/{id}/import", payload=payload)
+    if res.get("status_code") != 200:
+        print(f"warning, failed to upload annotation to {id}", res)

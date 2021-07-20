@@ -1,11 +1,27 @@
 import argparse
 import datetime
-import shutil
+import os
 import sys
+from itertools import tee
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import Dict, List, NoReturn, Optional, Union
 
 import humanize
+from rich.console import Console
+from rich.live import Live
+from rich.progress import (
+    BarColumn,
+    DownloadColumn,
+    Progress,
+    ProgressColumn,
+    SpinnerColumn,
+    TaskID,
+    TextColumn,
+    TimeRemainingColumn,
+    TransferSpeedColumn,
+)
+from rich.table import Table
+from rich.theme import Theme
 
 import darwin.exporter as exporter
 import darwin.exporter.formats
@@ -14,7 +30,8 @@ import darwin.importer.formats
 from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset.identifier import DatasetIdentifier
-from darwin.dataset.utils import get_release_path, split_dataset
+from darwin.dataset.split_manager import split_dataset
+from darwin.dataset.utils import get_release_path
 from darwin.exceptions import (
     InvalidLogin,
     MissingConfig,
@@ -25,8 +42,13 @@ from darwin.exceptions import (
     UnsupportedFileType,
     ValidationError,
 )
-from darwin.table import Table
-from darwin.utils import find_files, persist_client_configuration, prompt, secure_continue_request
+from darwin.item_sorter import ItemSorter
+from darwin.utils import (
+    find_files,
+    persist_client_configuration,
+    prompt,
+    secure_continue_request,
+)
 
 
 def validate_api_key(api_key: str):
@@ -130,38 +152,24 @@ def create_dataset(dataset_slug: str):
 
 def local(team: Optional[str] = None):
     """Lists synced datasets, stored in the specified path. """
-    table = Table(["name", "images", "sync_date", "size"], [Table.L, Table.R, Table.R, Table.R])
+
+    table = Table(show_header=True, header_style="bold cyan")
+    table.add_column("Name")
+    table.add_column("Image Count", justify="right")
+    table.add_column("Sync Date", justify="right")
+    table.add_column("Size", justify="right")
+
     client = _load_client(offline=True)
     for dataset_path in client.list_local_datasets(team=team):
+        files_in_dataset_path = find_files([dataset_path])
         table.add_row(
-            {
-                "name": f"{dataset_path.parent.name}/{dataset_path.name}",
-                "images": sum(1 for _ in find_files([dataset_path])),
-                "sync_date": humanize.naturaldate(datetime.datetime.fromtimestamp(dataset_path.stat().st_mtime)),
-                "size": humanize.naturalsize(sum(p.stat().st_size for p in find_files([dataset_path]))),
-            }
+            f"{dataset_path.parent.name}/{dataset_path.name}",
+            str(len(files_in_dataset_path)),
+            humanize.naturaldate(datetime.datetime.fromtimestamp(dataset_path.stat().st_mtime)),
+            humanize.naturalsize(sum(p.stat().st_size for p in files_in_dataset_path)),
         )
-    # List deprecated datasets
-    deprecated_local_datasets = client.list_deprecated_local_datasets()
-    if deprecated_local_datasets:
-        for dataset_path in client.list_deprecated_local_datasets():
-            table.add_row(
-                {
-                    "name": dataset_path.name + " (deprecated format)",
-                    "images": sum(1 for _ in find_files([dataset_path])),
-                    "sync_date": humanize.naturaldate(datetime.datetime.fromtimestamp(dataset_path.stat().st_mtime)),
-                    "size": humanize.naturalsize(sum(p.stat().st_size for p in find_files([dataset_path]))),
-                }
-            )
 
-    print(table)
-    if len(list(deprecated_local_datasets)):
-        print(
-            f"\nWARNING: found some local datasets that use a deprecated format "
-            f"not supported by the recent version of darwin-py. "
-            f"Run `darwin dataset migrate team_slug/dataset_slug` "
-            "if you want to be able to use them in darwin-py."
-        )
+    Console().print(table)
 
 
 def path(dataset_slug: str) -> Path:
@@ -172,14 +180,6 @@ def path(dataset_slug: str) -> Path:
     for p in client.list_local_datasets(team=identifier.team_slug):
         if identifier.dataset_slug == p.name:
             return p
-
-    for p in client.list_deprecated_local_datasets(team=identifier.team_slug):
-        if identifier.dataset_slug == p.name:
-            _error(
-                f"Found a local version of the dataset {identifier.dataset_slug} which uses a deprecated format. "
-                f"Run `darwin dataset migrate {identifier}` if you want to be able to use it in darwin-py."
-                f"\n{p} (deprecated format)"
-            )
 
     _error(
         f"Dataset '{identifier.dataset_slug}' does not exist locally. "
@@ -272,62 +272,6 @@ def pull_dataset(dataset_slug: str, only_annotations: bool = False, folders: boo
     print(f"Dataset {release.identifier} downloaded at {dataset.local_path}. ")
 
 
-def migrate_dataset(dataset_slug: str):
-    """Migrates an outdated local dataset to the latest format.
-
-    Parameters
-    ----------
-    dataset_slug: str
-        Slug of the dataset to which we perform the operation on
-    """
-    identifier = DatasetIdentifier.parse(dataset_slug)
-    if not identifier.team_slug:
-        _error("Team name missing.\nUsage: darwin dataset migrate <team-name>/<dataset-name>")
-
-    client = _load_client(offline=True)
-    authenticated_teams = [e["slug"] for e in client.config.get_all_teams()]
-    if identifier.team_slug not in authenticated_teams:
-        _error(
-            f"Could not find '{identifier.team_slug}' in the authenticated teams. "
-            "Run 'darwin authenticate' to authenticate it."
-        )
-
-    for p in client.list_local_datasets(team=identifier.team_slug):
-        if identifier.dataset_slug == p.name:
-            print(f"Dataset '{dataset_slug}' already migrated.")
-            return
-
-    old_path = None
-    for p in client.list_deprecated_local_datasets(identifier.team_slug):
-        if identifier.dataset_slug == p.name:
-            old_path = p
-    if not old_path:
-        _error(
-            f"Could not find a deprecated local version of the dataset '{dataset_slug}'. "
-            f"Use 'darwin dataset pull {dataset_slug}' to pull the latest version from darwin."
-        )
-
-    # Move the dataset under the team_slug folder
-    team_config = client.config.get_team(identifier.team_slug)
-    team_path = Path(team_config["datasets_dir"]) / identifier.team_slug
-    team_path.mkdir(exist_ok=True)
-    shutil.move(str(old_path), str(team_path))
-
-    # Update internal structure
-    dataset_path = team_path / old_path.name
-    release_path = dataset_path / "releases/migrated"
-    for p in ["annotations", "lists"]:
-        if (dataset_path / p).exists():
-            shutil.move(str(dataset_path / p), str(release_path / p))
-
-    latest_release = dataset_path / "releases/latest"
-    if latest_release.exists():
-        latest_release.unlink()
-    latest_release.symlink_to("./migrated")
-
-    print(f"Dataset {identifier.dataset_slug} migrated to {dataset_path}.")
-
-
 def split(dataset_slug: str, val_percentage: float, test_percentage: float, seed: Optional[int] = 0):
     """Splits a local version of a dataset into train, validation, and test partitions
 
@@ -357,17 +301,12 @@ def split(dataset_slug: str, val_percentage: float, test_percentage: float, seed
                 )
                 print(f"Partition lists saved at {split_path}")
                 return
+            except ImportError as e:
+                _error(e.msg)
             except NotFound as e:
                 _error(e.name)
             except ValueError as e:
                 _error(e.args[0])
-
-    for p in client.list_deprecated_local_datasets(team=identifier.team_slug):
-        if identifier.dataset_slug == p.name:
-            _error(
-                f"Found a local version of the dataset {identifier.dataset_slug} which uses a deprecated format. "
-                f"Run `darwin dataset migrate {identifier}` if you want to be able to use it in darwin-py."
-            )
 
     _error(
         f"Dataset '{identifier.dataset_slug}' does not exist locally. "
@@ -379,7 +318,11 @@ def split(dataset_slug: str, val_percentage: float, test_percentage: float, seed
 def list_remote_datasets(all_teams: bool, team: Optional[str] = None):
     """Lists remote datasets with its annotation progress"""
     # TODO: add listing open datasets
-    table = Table(["name", "images"], [Table.L, Table.R])
+
+    table = Table(show_header=True, header_style="bold cyan")
+    table.add_column("Name")
+    table.add_column("Item Count", justify="right")
+
     datasets = []
     if all_teams:
         for team in _config().get_all_teams():
@@ -390,11 +333,11 @@ def list_remote_datasets(all_teams: bool, team: Optional[str] = None):
         datasets = client.list_remote_datasets()
 
     for dataset in datasets:
-        table.add_row({"name": f"{dataset.team}/{dataset.slug}", "images": dataset.image_count})
-    if len(table) == 0:
+        table.add_row(f"{dataset.team}/{dataset.slug}", str(dataset.image_count))
+    if table.row_count == 0:
         print("No dataset available.")
     else:
-        print(table)
+        Console().print(table)
 
 
 def remove_remote_dataset(dataset_slug: str):
@@ -420,36 +363,39 @@ def dataset_list_releases(dataset_slug: str):
         if len(releases) == 0:
             print("No available releases, export one first.")
             return
-        table = Table(["name", "images", "classes", "export_date"], [Table.L, Table.R, Table.R, Table.R])
+
+        table = Table(show_header=True, header_style="bold cyan")
+        table.add_column("Name")
+        table.add_column("Item Count", justify="right")
+        table.add_column("Class Count", justify="right")
+        table.add_column("Export Date", justify="right")
+
         for release in releases:
             if not release.available:
                 continue
             table.add_row(
-                {
-                    "name": release.identifier,
-                    "images": release.image_count,
-                    "classes": release.class_count,
-                    "export_date": release.export_date,
-                }
+                str(release.identifier), str(release.image_count), str(release.class_count), str(release.export_date)
             )
-        print(table)
+
+        Console().print(table)
     except NotFound:
         _error(f"No dataset with name '{dataset_slug}'")
 
 
 def upload_data(
-    dataset_slug: str,
+    dataset_identifier: str,
     files: Optional[List[str]],
     files_to_exclude: Optional[List[str]],
     fps: int,
     path: Optional[str],
     frames: Optional[bool],
+    verbose: bool = False,
 ):
     """Uploads the files provided as parameter to the remote dataset selected
 
     Parameters
     ----------
-    dataset_slug : str
+    dataset_identifier : str
         Slug of the dataset to retrieve
     files : list[str]
         List of files to upload. Can be None.
@@ -467,8 +413,124 @@ def upload_data(
     """
     client = _load_client()
     try:
-        dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
-        dataset.push(files_to_exclude=files_to_exclude, fps=fps, as_frames=frames, files_to_upload=files, path=path)
+        dataset = client.get_remote_dataset(dataset_identifier=dataset_identifier)
+
+        sync_metadata = Progress(SpinnerColumn(), TextColumn("[bold blue]Syncing metadata"))
+
+        overall_progress = Progress(
+            TextColumn("[bold blue]{task.fields[filename]}"), BarColumn(), "{task.completed} of {task.total}"
+        )
+
+        file_progress = Progress(
+            TextColumn("[bold green]{task.fields[filename]}", justify="right"),
+            BarColumn(),
+            "[progress.percentage]{task.percentage:>3.1f}%",
+            DownloadColumn(),
+            "•",
+            TransferSpeedColumn(),
+            "•",
+            TimeRemainingColumn(),
+        )
+
+        progress_table = Table.grid()
+        progress_table.add_row(sync_metadata)
+        progress_table.add_row(file_progress)
+        progress_table.add_row(overall_progress)
+        with Live(progress_table):
+            sync_task: TaskID = sync_metadata.add_task("")
+            file_tasks: Dict[str, TaskID] = {}
+            overall_task = overall_progress.add_task(
+                "[green]Total progress", filename="Total progress", total=0, visible=False
+            )
+
+            def progress_callback(total_file_count, file_advancement):
+                sync_metadata.update(sync_task, visible=False)
+                overall_progress.update(overall_task, total=total_file_count, advance=file_advancement, visible=True)
+
+            def file_upload_callback(file_name, file_total_bytes, file_bytes_sent):
+                if file_name not in file_tasks:
+                    file_tasks[file_name] = file_progress.add_task(
+                        f"[blue]{file_name}", filename=file_name, total=file_total_bytes
+                    )
+
+                # Rich has a concurrency issue, so sometimes this fails
+                try:
+                    file_progress.update(file_tasks[file_name], completed=file_bytes_sent)
+                except Exception as e:
+                    pass
+
+                for task in file_progress.tasks:
+                    if task.finished and len(file_progress.tasks) >= 5:
+                        file_progress.remove_task(task.id)
+
+            upload_manager = dataset.push(
+                files,
+                files_to_exclude=files_to_exclude,
+                fps=fps,
+                as_frames=frames,
+                path=path,
+                progress_callback=progress_callback,
+                file_upload_callback=file_upload_callback,
+            )
+        console = Console(theme=_console_theme())
+
+        console.print()
+
+        if not upload_manager.blocked_count and not upload_manager.error_count:
+            console.print(f"All {upload_manager.total_count} files have been successfully uploaded.\n", style="success")
+            return
+
+        already_existing_items, other_skipped_items = tee(
+            (item.reason == "ALREADY_EXISTS", item) for item in upload_manager.blocked_items
+        )
+        already_existing_items, other_skipped_items = (
+            list(item for condition, item in already_existing_items if condition),
+            list(item for condition, item in other_skipped_items if not condition),
+        )
+
+        if already_existing_items:
+            console.print(
+                f"Skipped {len(already_existing_items)} files already in the dataset.\n", style="warning",
+            )
+
+        if upload_manager.error_count or other_skipped_items:
+            error_count = upload_manager.error_count + len(other_skipped_items)
+            console.print(
+                f"{error_count} files couldn't be uploaded because an error occurred.\n", style="error",
+            )
+
+        if not verbose and upload_manager.error_count:
+            console.print('Re-run with "--verbose" for further details')
+            return
+
+        error_table = Table(
+            "Dataset Item ID", "Filename", "Remote Path", "Stage", "Reason", show_header=True, header_style="bold cyan"
+        )
+
+        for item in upload_manager.blocked_items:
+            if item.reason != "ALREADY_EXISTS":
+                error_table.add_row(str(item.dataset_item_id), item.filename, item.path, "UPLOAD_REQUEST", item.reason)
+
+        for error in upload_manager.errors:
+            for local_file in upload_manager.local_files:
+                if local_file.local_path != error.file_path:
+                    continue
+
+                for pending_item in upload_manager.pending_items:
+                    if pending_item.filename != local_file.data["filename"]:
+                        continue
+
+                    error_table.add_row(
+                        str(pending_item.dataset_item_id),
+                        pending_item.filename,
+                        pending_item.path,
+                        error.stage.name,
+                        str(error.error),
+                    )
+                    break
+
+        if error_table.row_count:
+            console.print(error_table)
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
     except UnsupportedFileType as e:
@@ -477,32 +539,50 @@ def upload_data(
         _error(f"No files found")
 
 
-def dataset_import(dataset_slug, format, files):
+def dataset_import(dataset_slug, format, files, append):
     client = _load_client(dataset_identifier=dataset_slug)
     parser = find_supported_format(format, darwin.importer.formats.supported_formats)
 
     try:
         dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
-        importer.import_annotations(dataset, parser, files)
+        importer.import_annotations(dataset, parser, files, append)
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
 
 
-def list_files(dataset_slug: str, statuses: str, path: str, only_filenames: bool):
+def list_files(
+    dataset_slug: str,
+    statuses: Optional[str],
+    path: Optional[str],
+    only_filenames: bool,
+    sort_by: Optional[str] = "updated_at:desc",
+):
     client = _load_client(dataset_identifier=dataset_slug)
     try:
         dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
-        filters = {}
+        filters: Dict[str, str] = {}
+        sort: Optional[ItemSorter] = None
+
         if statuses:
             for status in statuses.split(","):
-                if status not in ["new", "annotate", "review", "complete", "archived"]:
+                if not _has_valid_status(status):
                     _error(f"Invalid status '{status}', available statuses: annotate, archived, complete, new, review")
             filters["statuses"] = statuses
         else:
             filters["statuses"] = "new,annotate,review,complete"
+
         if path:
             filters["path"] = path
-        for file in dataset.fetch_remote_files(filters):
+
+        if not sort_by:
+            sort_by = "updated_at:desc"
+
+        try:
+            sort = ItemSorter.parse(str(sort_by))
+        except ValueError as error:
+            _error(str(error))
+
+        for file in dataset.fetch_remote_files(filters, sort):
             if only_filenames:
                 print(file.filename)
             else:
@@ -510,6 +590,10 @@ def list_files(dataset_slug: str, statuses: str, path: str, only_filenames: bool
                 print(f"{file.filename}\t{file.status if not file.archived else 'archived'}\t {image_url}")
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
+
+
+def _has_valid_status(status: str) -> bool:
+    return status in ["new", "annotate", "review", "complete", "archived"]
 
 
 def set_file_status(dataset_slug: str, status: str, files: List[str]):
@@ -536,7 +620,7 @@ def find_supported_format(query, supported_formats):
     _error(f"Unsupported format, currently supported: {list_of_formats}")
 
 
-def dataset_convert(dataset_slug: str, format: str, output_dir: Optional[Union[str, Path]]):
+def dataset_convert(dataset_slug: str, format: str, output_dir: Optional[Union[str, Path]] = None):
     client = _load_client()
     parser = find_supported_format(format, darwin.exporter.formats.supported_formats)
 
@@ -583,8 +667,9 @@ def help(parser, subparser: Optional[str] = None):
             print("    {:<19} {}".format(choice.dest, choice.help))
 
 
-def _error(message):
-    print(f"Error: {message}")
+def _error(message: str) -> NoReturn:
+    console = Console(theme=_console_theme())
+    console.print(f"Error: {message}", style="error")
     sys.exit(1)
 
 
@@ -615,8 +700,12 @@ def _load_client(
     if not team_slug and dataset_identifier:
         team_slug = DatasetIdentifier.parse(dataset_identifier).team_slug
     try:
-        config_dir = Path.home() / ".darwin" / "config.yaml"
-        client = Client.from_config(config_dir, team_slug=team_slug)
+        api_key = os.getenv("DARWIN_API_KEY")
+        if api_key:
+            client = Client.from_api_key(api_key)
+        else:
+            config_dir = Path.home() / ".darwin" / "config.yaml"
+            client = Client.from_config(config_dir, team_slug=team_slug)
         return client
     except MissingConfig:
         if maybe_guest:
@@ -627,3 +716,8 @@ def _load_client(
         _error("Please re-authenticate")
     except Unauthenticated:
         _error("Please re-authenticate")
+
+
+def _console_theme():
+    return Theme({"success": "bold green", "warning": "bold yellow", "error": "bold red"})
+

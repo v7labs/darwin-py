@@ -18,5 +18,5 @@ def parse_file(path: Path) -> Optional[List[dt.AnnotationFile]]:
                 continue
             annotations = [dt.make_tag(tag) for tag in tags if len(tag) > 0]
             annotation_classes = set([annotation.annotation_class for annotation in annotations])
-            files.append(dt.AnnotationFile(path, filename, annotation_classes, annotations))
+            files.append(dt.AnnotationFile(path, filename, annotation_classes, annotations, remote_path = "/"))
     return files

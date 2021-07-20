@@ -62,13 +62,6 @@ def get_dataset(
                 transform=transform,
             )
 
-    for p in client.list_deprecated_local_datasets(team=identifier.team_slug):
-        if identifier.dataset_slug == p.name:
-            _error(
-                f"Found a local version of the dataset {identifier.dataset_slug} which uses a deprecated format. "
-                f"Run `darwin dataset migrate {identifier}` if you want to be able to use it in darwin-py."
-            )
-
     _error(
         f"Dataset '{identifier.dataset_slug}' does not exist locally. "
         f"Use 'darwin dataset remote' to see all the available datasets, "

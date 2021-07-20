@@ -1,19 +1,17 @@
 import itertools
 import json
 import multiprocessing as mp
-import os
-import sys
-import warnings
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
-from typing import Generator, Iterable, List, Optional, Union
+from typing import Dict, Generator, Iterable, List, Optional, Set, Union
 
 import numpy as np
-from PIL import Image
-from tqdm import tqdm
-
 from darwin.exceptions import NotFound
+from darwin.importer.formats.darwin import parse_file
 from darwin.utils import SUPPORTED_EXTENSIONS, SUPPORTED_VIDEO_EXTENSIONS
+from PIL import Image
+from rich.live import Live
+from rich.progress import ProgressBar, track
 
 
 def get_release_path(dataset_path: Path, release_name: Optional[str] = None):
@@ -36,17 +34,8 @@ def get_release_path(dataset_path: Path, release_name: Optional[str] = None):
 
     if not release_name:
         release_name = "latest"
-    releases_dir = dataset_path / "releases"
 
-    if not releases_dir.exists() and (dataset_path / "annotations").exists():
-        warnings.warn(
-            "darwin-py has adopted a new folder structure and the old structure will be depecrated. "
-            f"Migrate this dataset by running: 'darwin dataset migrate {dataset_path.name}",
-            DeprecationWarning,
-        )
-        return dataset_path
-
-    release_path = releases_dir / release_name
+    release_path = dataset_path / "releases" / release_name
     if not release_path.exists():
         raise NotFound(
             f"Local copy of release {release_name} not found: "
@@ -54,14 +43,6 @@ def get_release_path(dataset_path: Path, release_name: Optional[str] = None):
             f"or use a different release."
         )
     return release_path
-
-
-def ensure_sklearn_imported(requester):
-    try:
-        import sklearn  # noqa
-    except ImportError:
-        print(f"`{requester}` requires sklearn to be installed, pip install scikit-learn")
-        sys.exit(0)
 
 
 def extract_classes(annotations_path: Path, annotation_type: str):
@@ -88,7 +69,7 @@ def extract_classes(annotations_path: Path, annotation_type: str):
 
     classes = defaultdict(set)
     indices_to_classes = defaultdict(set)
-    annotation_files = list(annotations_path.glob("*.json"))
+    annotation_files = list(annotations_path.glob("**/*.json"))
     for i, file_name in enumerate(annotation_files):
         with open(file_name) as f:
             annotations = json.load(f)["annotations"]
@@ -159,299 +140,11 @@ def get_classes(
     dataset_path = Path(dataset_path)
     release_path = get_release_path(dataset_path, release_name)
 
-    classes_file = f"classes_{annotation_type}.txt"
-    classes = [e.strip() for e in open(release_path / "lists" / classes_file)]
+    classes_path = release_path / f"lists/classes_{annotation_type}.txt"
+    classes = classes_path.read_text().splitlines()
     if remove_background and classes[0] == "__background__":
         classes = classes[1:]
     return classes
-
-
-def _write_to_file(annotation_files: List, file_path: Path, split_idx: Iterable):
-    """Support function for writing split indices to file
-
-    Parameters
-    ----------
-    annotation_files : list
-        List of json files with the GT information of each image
-    file_path : Path
-        Path to the file where to save the list of indices
-    split_idx : Iterable
-        Indices of files for this split
-    """
-    with open(str(file_path), "w") as f:
-        for i in split_idx:
-            f.write(f"{annotation_files[i].stem}\n")
-
-
-def remove_cross_contamination(X_a: np.ndarray, X_b: np.ndarray, y_a: np.ndarray, y_b: np.ndarray):
-    """
-    Remove cross contamination present in X_a and X_b by selecting one or the other on a flip coin decision.
-
-    The reason of cross contamination existence is
-        expanded_list = [(k, c) for k, v in idx_to_classes.items() for c in v]
-    in _stratify_samples(). This line creates as many entries for an image as there are lables
-    attached to it. For this reason it can be that the stratification algorithm splits
-    the image in both sets, A and B.
-    This is very bad and this function addressed exactly that issue, removing duplicates from
-    either A or B.
-
-    Parameters
-    ----------
-    X_a : ndarray
-    X_b : ndarray
-        Arrays of elements to remove cross contamination from
-    y_a : ndarray
-    y_b : ndarray
-        Arrays of labels relative to X_a and X_b to be filtered in the same fashion
-    Returns
-    -------
-    X_a, X_b, y_a, y_b : ndarray
-        All input parameters filtered by removing cross contamination across A and B
-    """
-    for a in X_a:
-        if a in X_b:
-            # Remove from A or B based on random chance
-            if np.random.rand() > 0.5:
-                # Remove ALL entries from A
-                keep_locations = X_a != a
-                X_a = X_a[keep_locations]
-                y_a = y_a[keep_locations]
-            else:
-                # Remove ALL entries from B
-                keep_locations = X_b != a
-                X_b = X_b[keep_locations]
-                y_b = y_b[keep_locations]
-    return X_a, X_b, y_a, y_b
-
-
-def _stratify_samples(idx_to_classes, split_seed, test_percentage, val_percentage):
-    """Splits the list of indices into train, val and test according to their labels (stratified)
-
-    Parameters
-    ----------
-    idx_to_classes: dict
-    Dictionary where keys are image indices and values are all classes
-    contained in that image
-    split_seed : int
-        Seed for the randomness
-    val_percentage : float
-        Percentage of images used in the validation set
-    test_percentage : float
-        Percentage of images used in the test set
-
-    Returns
-    -------
-    X_train, X_val, X_test : list
-        List of indices of the images for each split
-    """
-
-    ensure_sklearn_imported("split_dataset()")
-    from sklearn.model_selection import train_test_split
-
-    # Expand the list of files with all the classes
-    expanded_list = [(k, c) for k, v in idx_to_classes.items() for c in v]
-    # Stratify
-    file_indices, labels = zip(*expanded_list)
-    file_indices, labels = np.array(file_indices), np.array(labels)
-    # Extract entries whose support set is 1 (it would make sklearn crash) and append the to train later
-    unique_labels, count = np.unique(labels, return_counts=True)
-    single_files = []
-    for l in unique_labels[count == 1]:
-        index = np.where(labels == l)[0][0]
-        single_files.append(file_indices[index])
-        labels = np.delete(labels, index)
-        file_indices = np.delete(file_indices, index)
-    # If file_indices or labels are empty, the following train_test_split will crash (empty train set)
-    if len(file_indices) == 0 or len(labels) == 0:
-        return [], [], []
-
-    X_train, X_tmp, y_train, y_tmp = remove_cross_contamination(
-        *train_test_split(
-            np.array(file_indices),
-            np.array(labels),
-            test_size=(val_percentage + test_percentage) / 100.0,
-            random_state=split_seed,
-            stratify=labels,
-        )
-    )
-    # Append files whose support set is 1 to train
-    X_train = np.concatenate((X_train, np.array(single_files)), axis=0)
-
-    if test_percentage == 0.0:
-        return list(set(X_train.astype(np.int))), list(set(X_tmp.astype(np.int))), None
-
-    X_val, X_test, y_val, y_test = remove_cross_contamination(
-        *train_test_split(
-            X_tmp,
-            y_tmp,
-            test_size=(test_percentage / (val_percentage + test_percentage)),
-            random_state=split_seed,
-            stratify=y_tmp,
-        )
-    )
-
-    # Remove duplicates within the same set
-    # NOTE: doing that earlier (e.g. in remove_cross_contamination()) would produce mathematical
-    # mistakes in the class balancing between validation and test sets.
-    return (list(set(X_train.astype(np.int))), list(set(X_val.astype(np.int))), list(set(X_test.astype(np.int))))
-
-
-def split_dataset(
-    dataset_path: Union[Path, str],
-    release_name: Optional[str] = None,
-    val_percentage: Optional[float] = 10,
-    test_percentage: Optional[float] = 20,
-    split_seed: Optional[int] = 0,
-    make_default_split: Optional[bool] = True,
-    add_stratified_split: Optional[bool] = True,
-):
-    """
-    Given a local a dataset (pulled from Darwin) creates lists of file names
-    for each split for train, validation, and test.
-
-    Parameters
-    ----------
-    dataset_path : Path
-        Local path to the dataset
-    release_name: str
-        Version of the dataset
-    val_percentage : float
-        Percentage of images used in the validation set
-    test_percentage : float
-        Percentage of images used in the test set
-    split_seed : int
-        Fix seed for random split creation
-    make_default_split: bool
-        Makes this split the default split
-    add_stratified_split: bool
-        In addition to the random split it also adds a stratified split
-
-    Returns
-    -------
-    splits : dict
-        Keys are the different splits (random, tags, ...) and values are the relative file names
-    """
-    assert dataset_path is not None
-    if isinstance(dataset_path, str):
-        dataset_path = Path(dataset_path)
-    release_path = get_release_path(dataset_path, release_name)
-
-    annotation_path = release_path / "annotations"
-    assert annotation_path.exists()
-    annotation_files = list(annotation_path.glob("*.json"))
-
-    # Prepare the lists folder
-    lists_path = release_path / "lists"
-    lists_path.mkdir(parents=True, exist_ok=True)
-
-    # Create split id, path and final split paths
-    if val_percentage is None or not 0 <= val_percentage < 100:
-        raise ValueError(f"Invalid validation percentage ({val_percentage}). " f"Must be >= 0 and < 100")
-    if test_percentage is None or not 0 <= test_percentage < 100:
-        raise ValueError(f"Invalid test percentage ({test_percentage}). " f"Must be >= 0 and < 100")
-    if not 1 <= val_percentage + test_percentage < 100:
-        raise ValueError(
-            f"Invalid combination of validation ({val_percentage}) "
-            f"and test ({test_percentage}) percentages. Their sum must be > 1 and < 100"
-        )
-    if split_seed is None:
-        raise ValueError("Seed is None")
-    split_id = f"split_v{int(val_percentage)}_t{int(test_percentage)}"
-    if split_seed != 0:
-        split_id += f"_s{split_seed}"
-    split_path = lists_path / split_id
-
-    # Prepare the return value with the paths of the splits
-    splits = {}
-    splits["random"] = {"train": Path(split_path / "random_train.txt"), "val": Path(split_path / "random_val.txt")}
-    splits["stratified_tag"] = {
-        "train": Path(split_path / "stratified_tag_train.txt"),
-        "val": Path(split_path / "stratified_tag_val.txt"),
-    }
-    splits["stratified_polygon"] = {
-        "train": Path(split_path / "stratified_polygon_train.txt"),
-        "val": Path(split_path / "stratified_polygon_val.txt"),
-    }
-    splits["stratified_bounding_box"] = {
-        "train": Path(split_path / "stratified_bounding_box_train.txt"),
-        "val": Path(split_path / "stratified_bounding_box_val.txt"),
-    }
-    if test_percentage > 0.0:
-        splits["random"]["test"] = Path(split_path) / "random_test.txt"
-        splits["stratified_tag"]["test"] = Path(split_path / "stratified_tag_test.txt")
-        splits["stratified_polygon"]["test"] = Path(split_path / "stratified_polygon_test.txt")
-        splits["stratified_bounding_box"]["test"] = Path(split_path / "stratified_bounding_box_test.txt")
-
-    # Do the actual split
-    if not split_path.exists():
-        os.makedirs(str(split_path), exist_ok=True)
-
-        # RANDOM SPLIT
-        # Compute split sizes
-        dataset_size = sum(1 for _ in annotation_files)
-        val_size = int(dataset_size * (val_percentage / 100.0))
-        test_size = int(dataset_size * (test_percentage / 100.0))
-        train_size = dataset_size - val_size - test_size
-        # Slice a permuted array as big as the dataset
-        np.random.seed(split_seed)
-        indices = np.random.permutation(dataset_size)
-        train_indices = list(indices[:train_size])
-        val_indices = list(indices[train_size : train_size + val_size])
-        test_indices = list(indices[train_size + val_size :])
-        # Write files
-        _write_to_file(annotation_files, splits["random"]["train"], train_indices)
-        _write_to_file(annotation_files, splits["random"]["val"], val_indices)
-        if test_percentage > 0.0:
-            _write_to_file(annotation_files, splits["random"]["test"], test_indices)
-
-        if add_stratified_split:
-            # STRATIFIED SPLIT ON TAGS
-            # Stratify
-            classes_tag, idx_to_classes_tag = extract_classes(annotation_path, "tag")
-            if len(idx_to_classes_tag) > 0:
-                train_indices, val_indices, test_indices = _stratify_samples(
-                    idx_to_classes_tag, split_seed, test_percentage, val_percentage
-                )
-                # Write files
-                _write_to_file(annotation_files, splits["stratified_tag"]["train"], train_indices)
-                _write_to_file(annotation_files, splits["stratified_tag"]["val"], val_indices)
-                if test_percentage > 0.0:
-                    _write_to_file(annotation_files, splits["stratified_tag"]["test"], test_indices)
-
-            # STRATIFIED SPLIT ON POLYGONS
-            # Stratify
-            classes_polygon, idx_to_classes_polygon = extract_classes(annotation_path, "polygon")
-            if len(idx_to_classes_polygon) > 0:
-                train_indices, val_indices, test_indices = _stratify_samples(
-                    idx_to_classes_polygon, split_seed, test_percentage, val_percentage
-                )
-                # Write files
-                _write_to_file(annotation_files, splits["stratified_polygon"]["train"], train_indices)
-                _write_to_file(annotation_files, splits["stratified_polygon"]["val"], val_indices)
-                if test_percentage > 0.0:
-                    _write_to_file(annotation_files, splits["stratified_polygon"]["test"], test_indices)
-
-            # STRATIFIED SPLIT ON BOUNDING BOXES
-            # Stratify
-            classes_bbox, idx_to_classes_bbox = extract_classes(annotation_path, "bounding_box")
-            if len(idx_to_classes_bbox) > 0:
-                train_indices, val_indices, test_indices = _stratify_samples(
-                    idx_to_classes_bbox, split_seed, test_percentage, val_percentage
-                )
-                # Write files
-                _write_to_file(annotation_files, splits["stratified_bounding_box"]["train"], train_indices)
-                _write_to_file(annotation_files, splits["stratified_bounding_box"]["val"], val_indices)
-                if test_percentage > 0.0:
-                    _write_to_file(annotation_files, splits["stratified_bounding_box"]["test"], test_indices)
-
-    # Create symlink for default split
-    split = lists_path / "default"
-    if make_default_split or not split.exists():
-        if split.exists():
-            split.unlink()
-        split.symlink_to(f"./{split_id}")
-
-    return split_path
 
 
 def _f(x):
@@ -479,19 +172,20 @@ def exhaust_generator(progress: Generator, count: int, multi_threaded: bool):
     """
     responses = []
     if multi_threaded:
-        pbar = tqdm(total=count)
+        pbar = ProgressBar(total=count)
 
         def update(*a):
-            pbar.update()
+            pbar.completed += 1
 
-        with mp.Pool(mp.cpu_count()) as pool:
-            for f in progress:
-                responses.append(pool.apply_async(_f, args=(f,), callback=update))
-            pool.close()
-            pool.join()
-        responses = [response.get() for response in responses if response.successful()]
+        with Live(pbar):
+            with mp.Pool(mp.cpu_count()) as pool:
+                for f in progress:
+                    responses.append(pool.apply_async(_f, args=(f,), callback=update))
+                pool.close()
+                pool.join()
+            responses = [response.get() for response in responses if response.successful()]
     else:
-        for f in tqdm(progress, total=count, desc="Progress"):
+        for f in track(progress, total=count, description="Progress"):
             responses.append(_f(f))
     return responses
 
@@ -562,6 +256,7 @@ def get_annotations(
     annotation_type: str = "polygon",
     release_name: Optional[str] = None,
     annotation_format: Optional[str] = "coco",
+    ignore_inconsistent_examples: bool = False,
 ):
     """
     Returns all the annotations of a given dataset and split in a single dictionary
@@ -582,6 +277,11 @@ def get_annotations(
         Version of the dataset
     annotation_format: str
         Re-formatting of the annotation when loaded [coco, darwin]
+    ignore_inconsistent_examples: bool
+        Ignore examples for which we have annotations, but either images are missing,
+        or more than one images exist for the same annotation.
+        If set to `True`, then filter those examples out of the dataset.
+        If set to `False`, then raise an error as soon as such an example is found.
 
     Returns
     -------
@@ -622,16 +322,17 @@ def get_annotations(
         else:
             raise FileNotFoundError(
                 f"Could not find a dataset partition. ",
-                f"To split the dataset you can use 'split_dataset' from darwin.dataset.utils",
+                f"To split the dataset you can use 'split_dataset' from darwin.dataset.split_manager",
             )
     else:
         # If the partition is not specified, get all the annotations
-        stems = [e.stem for e in annotations_dir.glob("*.json")]
+        stems = [e.stem for e in annotations_dir.glob("**/*.json")]
 
     images_paths = []
     annotations_paths = []
 
     # Find all the annotations and their corresponding images
+    invalid_annotation_paths = []
     for stem in stems:
         annotation_path = annotations_dir / f"{stem}.json"
         images = []
@@ -639,16 +340,26 @@ def get_annotations(
             image_path = images_dir / f"{stem}{ext}"
             if image_path.exists():
                 images.append(image_path)
+                continue
             image_path = images_dir / f"{stem}{ext.upper()}"
             if image_path.exists():
                 images.append(image_path)
-        if len(images) < 1:
+
+        image_count = len(images)
+        if image_count != 1 and ignore_inconsistent_examples:
+            invalid_annotation_paths.append(annotation_path)
+            continue
+        elif image_count < 1:
             raise ValueError(f"Annotation ({annotation_path}) does not have a corresponding image")
-        if len(images) > 1:
+        elif image_count > 1:
             raise ValueError(f"Image ({stem}) is present with multiple extensions. This is forbidden.")
-        assert len(images) == 1
+
         images_paths.append(images[0])
         annotations_paths.append(annotation_path)
+
+    print(f"Found {len(invalid_annotation_paths)} invalid annotations")
+    for p in invalid_annotation_paths:
+        print(p)
 
     if len(images_paths) == 0:
         raise ValueError(f"Could not find any {SUPPORTED_EXTENSIONS} file" f" in {dataset_path / 'images'}")
@@ -676,21 +387,41 @@ def get_annotations(
             yield record
 
 
-def load_pil_image(path: Path):
+def load_pil_image(path: Path, to_rgb: Optional[bool] = True):
     """
-    Loads a PIL image and converts it into RGB.
+    Loads a PIL image and converts it into RGB (optional).
 
     Parameters
     ----------
     path: Path
         Path to the image file
+    to_rgb: bool
+        Converts the image to RGB
+
+    Returns
+    -------
+    PIL Image
+    """
+    pic = Image.open(path)
+    if to_rgb:
+        pic = convert_to_rgb(pic)
+    return pic
+
+
+def convert_to_rgb(pic: Image):
+    """
+    Converts a PIL image to RGB
+
+    Parameters
+    ----------
+    pic: Image
+        PIL Image
 
     Returns
     -------
     PIL Image
         Values between 0 and 255
     """
-    pic = Image.open(path)
     if pic.mode == "RGB":
         pass
     elif pic.mode in ("CMYK", "RGBA", "P"):
@@ -704,6 +435,10 @@ def load_pil_image(path: Path):
     elif pic.mode == "L":
         img = np.array(pic).astype(np.uint8)
         pic = Image.fromarray(np.stack((img, img, img), axis=2))
+    elif pic.mode == "1":
+        pic = pic.convert("L")
+        img = np.array(pic).astype(np.uint8)
+        pic = Image.fromarray(np.stack((img, img, img), axis=2))
     else:
         raise TypeError(f"unsupported image type {pic.mode}")
     return pic
@@ -711,3 +446,61 @@ def load_pil_image(path: Path):
 
 def _is_pil_image(img):
     return isinstance(img, Image.Image)
+
+
+def compute_max_density(annotations_dir: Path):
+    max_density = 0
+    for annotation_path in annotations_dir.glob("**/*.json"):
+        annotation_density = 0
+        with open(annotation_path) as f:
+            darwin_json = json.load(f)
+            for annotation in darwin_json["annotations"]:
+                if "polygon" not in annotation and "complex_polygon" not in annotation:
+                    continue
+                annotation_density += 1
+            if annotation_density > max_density:
+                max_density = annotation_density
+    return max_density
+
+
+# E.g.: {"partition" => {"class_name" => 123}}
+AnnotationDistribution = Dict[str, Dict[str, int]]
+
+
+def compute_distributions(
+    annotations_dir: Path,
+    split_path: Path,
+    partitions: List[str] = ["train", "val", "test"],
+    annotation_types=["polygon"],
+) -> Dict[str, AnnotationDistribution]:
+    """
+    This function builds and returns the following dictionaries:
+      - class_distribution: count of all files where at least one instance of a given class exists for each partition
+      - instance_distribution: count of all instances of a given class exist for each partition
+
+    Note that this function can only be used after a dataset has been split with "stratified" strategy.
+    """
+
+    class_distribution: AnnotationDistribution = {partition: Counter() for partition in partitions}
+    instance_distribution: AnnotationDistribution = {partition: Counter() for partition in partitions}
+
+    for partition in partitions:
+        for annotation_type in annotation_types:
+            split_file = split_path / f"stratified_{annotation_type}_{partition}.txt"
+            stems = [e.strip() for e in split_file.open()]
+
+            for stem in stems:
+                annotation_path = annotations_dir / f"{stem}.json"
+                annotation_file = parse_file(annotation_path)
+
+                if annotation_file is None:
+                    continue
+
+                annotation_class_names = [
+                    annotation.annotation_class.name for annotation in annotation_file.annotations
+                ]
+
+                class_distribution[partition] += Counter(set(annotation_class_names))
+                instance_distribution[partition] += Counter(annotation_class_names)
+
+    return {"class": class_distribution, "instance": instance_distribution}

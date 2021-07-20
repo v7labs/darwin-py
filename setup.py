@@ -1,11 +1,10 @@
 import setuptools
 
-with open("README.md", "r") as f:
-    long_description = f.read()
+with open("README.md", "rb") as f:
+    long_description = f.read().decode("utf-8")
 
 setuptools.setup(
     name="darwin-py",
-    version="0.5.14",
     author="V7",
     author_email="info@v7labs.com",
     description="Library and command line interface for darwin.v7labs.com",
@@ -22,13 +21,21 @@ setuptools.setup(
         "pillow",
         "pyyaml>=5.1",
         "requests",
-        "scikit-learn",
+        "requests_toolbelt",
+        "responses",
+        "rich",
         "sh",
-        "tqdm",
-        "pillow",
-        "upolygon==0.1.4",
+        "upolygon==0.1.6",
     ],
-    packages=setuptools.find_packages(),
+    packages=[
+        "darwin",
+        "darwin.importer",
+        "darwin.dataset",
+        "darwin.torch",
+        "darwin.exporter",
+        "darwin.importer.formats",
+        "darwin.exporter.formats",
+    ],
     entry_points={"console_scripts": ["darwin=darwin.cli:main"]},
     classifiers=["Programming Language :: Python :: 3", "License :: OSI Approved :: MIT License"],
     python_requires=">=3.6",

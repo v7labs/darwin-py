@@ -4,17 +4,36 @@ import tempfile
 import zipfile
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, List, Optional
+from typing import TYPE_CHECKING, Callable, Dict, Iterator, List, Optional, Union
 from urllib import parse
 
 from darwin.dataset.download_manager import download_all_images_from_annotations
 from darwin.dataset.identifier import DatasetIdentifier
 from darwin.dataset.release import Release
-from darwin.dataset.upload_manager import add_files_to_dataset
-from darwin.dataset.utils import exhaust_generator, get_annotations, get_classes, make_class_lists, split_dataset
+from darwin.dataset.split_manager import split_dataset
+from darwin.dataset.upload_manager import (
+    FileUploadCallback,
+    LocalFile,
+    ProgressCallback,
+    UploadHandler,
+)
+from darwin.dataset.utils import (
+    exhaust_generator,
+    get_annotations,
+    get_classes,
+    make_class_lists,
+)
 from darwin.exceptions import NotFound, UnsupportedExportFormat
-from darwin.item import parse_dataset_item
-from darwin.utils import find_files, urljoin
+from darwin.exporter.formats.darwin import build_image_annotation
+from darwin.item import DatasetItem, parse_dataset_item
+from darwin.item_sorter import ItemSorter
+from darwin.utils import (
+    find_files,
+    parse_darwin_json,
+    secure_continue_request,
+    split_video_annotation,
+    urljoin,
+)
 from darwin.validators import name_taken, validation_error
 
 if TYPE_CHECKING:
@@ -25,13 +44,13 @@ class RemoteDataset:
     def __init__(
         self,
         *,
+        client: "Client",
         team: str,
         name: str,
-        slug: Optional[str] = None,
+        slug: str,
         dataset_id: int,
         image_count: int = 0,
         progress: float = 0,
-        client: "Client",
     ):
         """Inits a DarwinDataset.
         This class manages the remote and local versions of a dataset hosted on Darwin.
@@ -65,99 +84,103 @@ class RemoteDataset:
 
     def push(
         self,
-        files_to_upload: List[str],
+        files_to_upload: Optional[List[Union[str, Path, LocalFile]]],
+        *,
         blocking: bool = True,
         multi_threaded: bool = True,
-        fps: int = 1,
+        fps: int = 0,
         as_frames: bool = False,
-        files_to_exclude: Optional[List[str]] = None,
-        resume: bool = False,
+        files_to_exclude: Optional[List[Union[str, Path]]] = None,
         path: Optional[str] = None,
+        progress_callback: Optional[ProgressCallback] = None,
+        file_upload_callback: Optional[FileUploadCallback] = None,
     ):
         """Uploads a local dataset (images ONLY) in the datasets directory.
 
         Parameters
         ----------
-        files_to_upload : list[Path]
-            List of files to upload. It can be a folder.
+        files_to_upload : Optional[List[Union[str, Path, LocalFile]]]
+            List of files to upload. Those can be folders.
         blocking : bool
-            If False, the dataset is not uploaded and a generator function is returned instead
+            If False, the dataset is not uploaded and a generator function is returned instead.
         multi_threaded : bool
             Uses multiprocessing to upload the dataset in parallel.
             If blocking is False this has no effect.
-        files_to_exclude : list[str]
-            List of files to exclude from the file scan (which is done only if files is None)
+        files_to_exclude : Optional[Union[str, Path]]]
+            Optional list of files to exclude from the file scan. Those can be folders.
         fps : int
-            Number of file per seconds to upload
+            When the uploading file is a video, specify its framerate.
         as_frames: bool
-            Annotate as video.
-        resume : bool
-            Flag for signalling the resuming of a push
-        path: str
-            Optional path to put the files into
-
+            When the uploading file is a video, specify whether it's going to be uploaded as a list of frames.
+        path: Optional[str]
+            Optional path to store the files in.
+        progress_callback: Optional[ProgressCallback]
+            Optional callback, called every time the progress of an uploading files is reported.
+        file_upload_callback: Optional[FileUploadCallback]
+            Optional callback, called every time a file chunk is uploaded.
         Returns
         -------
-        generator : function
-            Generator for doing the actual uploads. This is None if blocking is True
-        count : int
-            The files count
+        handler : UploadHandler
+           Class for handling uploads, progress and error messages
         """
 
-        # paths needs to start with /
-        if path and path[0] != "/":
-            path = f"/{path}"
-
-        # This is where the responses from the upload function will be saved/load for resume
-        self.local_path.parent.mkdir(exist_ok=True)
-        responses_path = self.local_path.parent / ".upload_responses.json"
-        # Init optional parameters
         if files_to_exclude is None:
             files_to_exclude = []
+
         if files_to_upload is None:
-            raise NotFound("Dataset location not found. Check your path.")
+            raise ValueError("No files or directory specified.")
 
-        if resume:
-            if not responses_path.exists():
-                raise NotFound("Dataset location not found. Check your path.")
-            with responses_path.open() as f:
-                logged_responses = json.load(f)
-            files_to_exclude.extend(
-                [
-                    response["file_path"]
-                    for response in logged_responses
-                    if response["s3_response_status_code"].startswith("2")
-                ]
-            )
+        uploading_files = [item for item in files_to_upload if isinstance(item, LocalFile)]
+        search_files = [item for item in files_to_upload if not isinstance(item, LocalFile)]
 
-        files_to_upload = find_files(files=files_to_upload, recursive=True, files_to_exclude=files_to_exclude)
+        generic_parameters_specified = path is not None or fps != 0 or as_frames is not False
+        if uploading_files and generic_parameters_specified:
+            raise ValueError("Cannot specify a path when uploading a LocalFile object.")
 
-        if not files_to_upload:
+        for found_file in find_files(search_files, files_to_exclude=files_to_exclude):
+            uploading_files.append(LocalFile(found_file, fps=fps, as_frames=as_frames, path=path))
+
+        if not uploading_files:
             raise ValueError("No files to upload, check your path, exclusion filters and resume flag")
 
-        progress, count = add_files_to_dataset(
-            client=self.client,
-            dataset_id=str(self.dataset_id),
-            filenames=files_to_upload,
-            fps=fps,
-            as_frames=as_frames,
-            team=self.team,
-            path=path,
-        )
-
-        # If blocking is selected, upload the dataset remotely
+        handler = UploadHandler(self, uploading_files)
         if blocking:
-            responses = exhaust_generator(progress=progress, count=count, multi_threaded=multi_threaded)
-            # Log responses to file
-            if responses:
-                responses = [{k: str(v) for k, v in response.items()} for response in responses]
-                if resume:
-                    responses.extend(logged_responses)
-                with responses_path.open("w") as f:
-                    json.dump(responses, f)
-            return None, count
+            handler.upload(
+                multi_threaded=multi_threaded,
+                progress_callback=progress_callback,
+                file_upload_callback=file_upload_callback,
+            )
         else:
-            return progress, count
+            handler.prepare_upload()
+
+        return handler
+
+    def split_video_annotations(self, release_name: str = "latest"):
+        release_dir = self.local_path / "releases" / release_name
+        annotations_path = release_dir / "annotations"
+
+        for count, annotation_file in enumerate(annotations_path.glob("*.json")):
+            darwin_annotation = parse_darwin_json(annotation_file, count)
+            if not darwin_annotation.is_video:
+                continue
+
+            frame_annotations = split_video_annotation(darwin_annotation)
+            for frame_annotation in frame_annotations:
+                annotation = build_image_annotation(frame_annotation)
+
+                video_frame_annotations_path = annotations_path / annotation_file.stem
+                video_frame_annotations_path.mkdir(exist_ok=True, parents=True)
+
+                stem = Path(frame_annotation.filename).stem
+                output_path = video_frame_annotations_path / f"{stem}.json"
+                with output_path.open("w") as f:
+                    json.dump(annotation, f)
+
+            # Finally delete video annotations
+            annotation_file.unlink()
+
+        # Update class list, which is used when loading local annotations in a dataset
+        make_class_lists(release_dir)
 
     def pull(
         self,
@@ -171,7 +194,7 @@ class RemoteDataset:
         subset_filter_annotations_function: Optional[Callable] = None,
         subset_folder_name: Optional[str] = None,
         use_folders: bool = False,
-        video_frames: Optional[bool] = False,
+        video_frames: bool = False,
     ):
         """Downloads a remote project (images and annotations) in the datasets directory.
 
@@ -216,8 +239,8 @@ class RemoteDataset:
         release_dir = self.local_releases_path / release.name
         release_dir.mkdir(parents=True, exist_ok=True)
 
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            tmp_dir = Path(tmp_dir)
+        with tempfile.TemporaryDirectory() as tmp_dir_str:
+            tmp_dir = Path(tmp_dir_str)
             # Download the release from Darwin
             zip_file_path = release.download_zip(tmp_dir / "dataset.zip")
             with zipfile.ZipFile(zip_file_path) as z:
@@ -239,7 +262,8 @@ class RemoteDataset:
                 # Move the annotations into the right folder and rename them to have the image
                 # original filename as contained in the json
                 for annotation_path in tmp_dir.glob("*.json"):
-                    annotation = json.load(annotation_path.open())
+                    with annotation_path.open() as file:
+                        annotation = json.load(file)
                     filename = Path(annotation["image"]["filename"]).stem
                     destination_name = annotations_dir / f"{filename}{annotation_path.suffix}"
                     shutil.move(str(annotation_path), str(destination_name))
@@ -249,9 +273,11 @@ class RemoteDataset:
 
         if release.latest:
             latest_dir = self.local_releases_path / "latest"
-            if latest_dir.exists():
+            if latest_dir.is_symlink():
                 latest_dir.unlink()
-            latest_dir.symlink_to(f"./{release_dir.name}")
+
+            target_link = self.local_releases_path / release_dir.name
+            latest_dir.symlink_to(target_link)
 
         if only_annotations:
             # No images will be downloaded
@@ -285,36 +311,49 @@ class RemoteDataset:
         """Archives (soft-deletion) the remote dataset"""
         self.client.put(f"datasets/{self.dataset_id}/archive", payload={}, team=self.team)
 
-    def fetch_remote_files(self, filters: Optional[dict] = None):
+    def fetch_remote_files(
+        self, filters: Optional[Dict[str, Union[str, List[str]]]] = None, sort: Optional[ItemSorter] = None
+    ) -> Iterator[DatasetItem]:
         """Fetch and lists all files on the remote dataset"""
-        base_url = f"/datasets/{self.dataset_id}/items"
-        if not self.client.feature_enabled("WORKFLOW", self.team):
-            base_url = f"/datasets/{self.dataset_id}/dataset_images"
-        parameters = {"page[size]": 500}
+        base_url: str = f"/datasets/{self.dataset_id}/items"
+        post_filters: Dict[str, str] = {}
+        post_sort: Dict[str, str] = {}
+
         if filters:
             for list_type in ["filenames", "statuses"]:
                 if list_type in filters:
                     if type(filters[list_type]) is list:
-                        parameters[list_type] = ",".join(filters[list_type])
+                        post_filters[list_type] = ",".join(filters[list_type])
                     else:
-                        parameters[list_type] = filters[list_type]
+                        post_filters[list_type] = str(filters[list_type])
             if "path" in filters:
-                parameters["path"] = filters["path"]
+                post_filters["path"] = str(filters["path"])
+            if "types" in filters:
+                post_filters["types"] = str(filters["types"])
 
-        cursor = {}
+            if sort:
+                post_sort[sort.field] = sort.direction.value
+        cursor = {"page[size]": 500}
         while True:
-            response = self.client.get(f"{base_url}?{parse.urlencode({**parameters, **cursor})}", team=self.team)
+            response = self.client.post(
+                f"{base_url}?{parse.urlencode(cursor)}", {"filter": post_filters, "sort": post_sort}, team=self.team
+            )
             yield from [parse_dataset_item(item) for item in response["items"]]
+
             if response["metadata"]["next"]:
                 cursor["page[from]"] = response["metadata"]["next"]
             else:
                 return
 
     def archive(self, items):
-        self.client.put(f"datasets/{self.dataset_id}/items/archive", {"ids": [item.id for item in items]})
+        self.client.put(
+            f"datasets/{self.dataset_id}/items/archive", {"filter": {"dataset_item_ids": [item.id for item in items]}}
+        )
 
     def restore_archived(self, items):
-        self.client.put(f"datasets/{self.dataset_id}/items/restore", {"ids": [item.id for item in items]})
+        self.client.put(
+            f"datasets/{self.dataset_id}/items/restore", {"filter": {"dataset_item_ids": [item.id for item in items]}}
+        )
 
     def fetch_annotation_type_id_for_name(self, name: str):
         """Fetches annotation type id for a annotation type name, such as bounding_box"""
