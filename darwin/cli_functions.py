@@ -561,7 +561,6 @@ def list_files(
     try:
         dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
         filters: Dict[str, str] = {}
-        sort: Optional[ItemSorter] = None
 
         if statuses:
             for status in statuses.split(","):
@@ -577,12 +576,7 @@ def list_files(
         if not sort_by:
             sort_by = "updated_at:desc"
 
-        try:
-            sort = ItemSorter.parse(str(sort_by))
-        except ValueError as error:
-            _error(str(error))
-
-        for file in dataset.fetch_remote_files(filters, sort):
+        for file in dataset.fetch_remote_files(filters, sort_by):
             if only_filenames:
                 print(file.filename)
             else:
@@ -590,6 +584,8 @@ def list_files(
                 print(f"{file.filename}\t{file.status if not file.archived else 'archived'}\t {image_url}")
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
+    except ValueError as e:
+        _error(str(e))
 
 
 def _has_valid_status(status: str) -> bool:
