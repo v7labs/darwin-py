@@ -71,7 +71,7 @@ def extract_classes(annotations_path: Path, annotation_type: str) -> Tuple[Dict[
     classes: Dict[str, Set[int]] = defaultdict(set)
     indices_to_classes: Dict[int, Set[str]] = defaultdict(set)
 
-    for i, file_name in enumerate(annotations_path.glob("**/*.json")):
+    for i, file_name in enumerate(sorted(annotations_path.glob("**/*.json"))):
         annotation_file = parse_file(file_name)
         if not annotation_file:
             continue
