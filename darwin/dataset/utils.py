@@ -3,7 +3,7 @@ import json
 import multiprocessing as mp
 from collections import Counter, defaultdict
 from pathlib import Path
-from typing import Dict, Generator, Iterable, List, Optional, Set, Union
+from typing import Dict, Generator, List, Optional, Set, Tuple, Union
 
 import numpy as np
 from darwin.exceptions import NotFound
@@ -45,7 +45,7 @@ def get_release_path(dataset_path: Path, release_name: Optional[str] = None):
     return release_path
 
 
-def extract_classes(annotations_path: Path, annotation_type: str):
+def extract_classes(annotations_path: Path, annotation_type: str) -> Tuple[Dict[str, Set[int]], Dict[int, Set[str]]]:
     """
     Given a the GT as json files extracts all classes and an maps images index to classes
 
@@ -61,25 +61,29 @@ def extract_classes(annotations_path: Path, annotation_type: str):
     classes: dict
     Dictionary where keys are the classes found in the GT and values
     are a list of file numbers which contain it
-    idx_to_classes: dict
+    indices_to_classes: dict
     Dictionary where keys are image indices and values are all classes
     contained in that image
     """
-    assert annotation_type in ["tag", "polygon", "bounding_box"]
 
-    classes = defaultdict(set)
-    indices_to_classes = defaultdict(set)
-    annotation_files = list(annotations_path.glob("**/*.json"))
-    for i, file_name in enumerate(annotation_files):
-        with open(file_name) as f:
-            annotations = json.load(f)["annotations"]
-            if annotations:
-                for annotation in annotations:
-                    if annotation_type not in annotation:
-                        continue
-                    class_name = annotation["name"]
-                    indices_to_classes[i].add(class_name)
-                    classes[class_name].add(i)
+    assert annotation_type in ["bounding_box", "polygon", "tag"]
+
+    classes: Dict[str, Set[int]] = defaultdict(set)
+    indices_to_classes: Dict[int, Set[str]] = defaultdict(set)
+
+    for i, file_name in enumerate(annotations_path.glob("**/*.json")):
+        annotation_file = parse_file(file_name)
+        if not annotation_file:
+            continue
+
+        for annotation in annotation_file.annotations:
+            if annotation.annotation_class.annotation_type != annotation_type:
+                continue
+
+            class_name = annotation.annotation_class.name
+            indices_to_classes[i].add(class_name)
+            classes[class_name].add(i)
+
     return classes, indices_to_classes
 
 
