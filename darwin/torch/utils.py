@@ -4,11 +4,11 @@ from pathlib import Path
 from typing import List, Optional
 
 import numpy as np
-import torch
-from upolygon import draw_polygon
-
 from darwin.cli_functions import _error, _load_client
 from darwin.dataset.identifier import DatasetIdentifier
+from upolygon import draw_polygon
+
+import torch
 
 
 def convert_segmentation_to_mask(segmentations: List[List[float]], height: int, width: int):
@@ -23,6 +23,9 @@ def convert_segmentation_to_mask(segmentations: List[List[float]], height: int, 
     Output:
         torch.tensor
     """
+    if not segmentations:
+        return torch.zeros((0, height, width), dtype=torch.uint8)
+
     masks = []
     for contour in segmentations:
         mask = torch.zeros((height, width)).numpy().astype(np.uint8)
