@@ -16,9 +16,9 @@ def describe_dataset_identifier():
             with pytest.raises(ValueError):
                 DatasetIdentifier.parse("team/dataset:")
 
-        def raises_with_non_alphanumeric_characters():
-            with pytest.raises(ValueError):
-                DatasetIdentifier.parse("no_alphanumeric")
+        def allows_underscores():
+            dataset_identifier = DatasetIdentifier.parse("with_underscore")
+            assert dataset_identifier.dataset_slug == "with_underscore"
 
         def standard_format():
             dataset_identifier = DatasetIdentifier.parse("team/dataset")
