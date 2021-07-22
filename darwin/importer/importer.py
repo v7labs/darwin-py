@@ -131,7 +131,8 @@ def import_annotations(
         if type(parsed_files) is not list:
             parsed_files = [parsed_files]
         # remove files missing on the server
-        parsed_files = [parsed_file for parsed_file in parsed_files if parsed_file not in local_files_missing_remotely]
+        missing_files = [missing_file.full_path for missing_file in local_files_missing_remotely]
+        parsed_files = [parsed_file for parsed_file in parsed_files if parsed_file.full_path not in missing_files]
         for parsed_file in track(parsed_files):
             image_id = remote_files[parsed_file.full_path]
             _import_annotations(
