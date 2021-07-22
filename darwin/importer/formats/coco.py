@@ -34,7 +34,7 @@ def parse_json(path, data):
         image = image_lookup_table[image_id]
         annotations = list(filter(None, image_annotations[image_id]))
         annotation_classes = set([annotation.annotation_class for annotation in annotations])
-        yield dt.AnnotationFile(path, image["file_name"], annotation_classes, annotations, remote_path = "/")
+        yield dt.AnnotationFile(path, image["file_name"], annotation_classes, annotations, remote_path="/")
 
 
 def parse_annotation(annotation, category_lookup_table):
@@ -48,6 +48,9 @@ def parse_annotation(annotation, category_lookup_table):
 
     if len(segmentation) == 0 and len(annotation["bbox"]) == 4:
         x, y, w, h = map(int, annotation["bbox"])
+        return dt.make_bounding_box(category["name"], x, y, w, h)
+    elif len(segmentation) == 0 and len(annotation["bbox"]) == 1 and len(annotation["bbox"][0]) == 4:
+        x, y, w, h = map(int, annotation["bbox"][0])
         return dt.make_bounding_box(category["name"], x, y, w, h)
     elif isinstance(segmentation, dict):
         print("warning, converting complex coco rle mask to polygon, could take some time")
