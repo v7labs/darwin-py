@@ -7,5 +7,5 @@ from darwin.utils import parse_darwin_json
 
 def parse_file(path: Path) -> Optional[dt.AnnotationFile]:
     if path.suffix != ".json":
-        return
+        return None
     return parse_darwin_json(path, 0)
