@@ -1,12 +1,11 @@
 import json
 import shutil
-from collections import defaultdict
 from pathlib import Path
 from typing import Dict
 from unittest.mock import patch
 
 import pytest
-from darwin.dataset.utils import compute_distributions, extract_classes
+from darwin.dataset.utils import compute_distributions, extract_classes, sanitize
 
 
 def open_resource_file():
@@ -94,6 +93,22 @@ def describe_extract_classes():
 
         assert dict(class_dict) == {"class_4": {0, 1}}
         assert dict(index_dict) == {0: {"class_4"}, 1: {"class_4"}}
+
+
+def describe_sanitize():
+    def normal_filenames_stay_untouched():
+        assert sanitize("test.jpg") == "test.jpg"
+
+    def special_characters_are_replaced_with_underscores():
+        assert sanitize("2020-06-18T08:50:13.14815Z.json") == "2020-06-18T08_50_13.14815Z.json"
+        assert sanitize("2020-06-18T08<50<13.14815Z.json") == "2020-06-18T08_50_13.14815Z.json"
+        assert sanitize("2020-06-18T08>50>13.14815Z.json") == "2020-06-18T08_50_13.14815Z.json"
+        assert sanitize('2020-06-18T08"50"13.14815Z.json') == "2020-06-18T08_50_13.14815Z.json"
+        assert sanitize("2020-06-18T08/50/13.14815Z.json") == "2020-06-18T08_50_13.14815Z.json"
+        assert sanitize("2020-06-18T08\\50\\13.14815Z.json") == "2020-06-18T08_50_13.14815Z.json"
+        assert sanitize("2020-06-18T08|50|13.14815Z.json") == "2020-06-18T08_50_13.14815Z.json"
+        assert sanitize("2020-06-18T08?50?13.14815Z.json") == "2020-06-18T08_50_13.14815Z.json"
+        assert sanitize("2020-06-18T08*50*13.14815Z.json") == "2020-06-18T08_50_13.14815Z.json"
 
 
 def _create_annotation_file(annotation_path: Path, filename: str, payload: Dict):

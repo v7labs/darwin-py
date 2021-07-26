@@ -3,7 +3,7 @@ import json
 import multiprocessing as mp
 from collections import Counter, defaultdict
 from pathlib import Path
-from typing import Dict, Generator, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, Generator, List, Optional, Set, Tuple, Union
 
 import numpy as np
 from darwin.exceptions import NotFound
@@ -214,7 +214,7 @@ def get_coco_format_record(
     height, width = data["image"]["height"], data["image"]["width"]
     annotations = data["annotations"]
 
-    record = {}
+    record: Dict[str, Any] = {}
     if image_path is not None:
         record["file_name"] = str(image_path)
     if image_id is not None:
@@ -330,7 +330,7 @@ def get_annotations(
             )
     else:
         # If the partition is not specified, get all the annotations
-        stems = [e.stem for e in annotations_dir.glob("**/*.json")]
+        stems = (e.stem for e in annotations_dir.glob("**/*.json"))
 
     images_paths = []
     annotations_paths = []
@@ -468,7 +468,7 @@ def compute_max_density(annotations_dir: Path):
 
 
 # E.g.: {"partition" => {"class_name" => 123}}
-AnnotationDistribution = Dict[str, Dict[str, int]]
+AnnotationDistribution = Dict[str, Counter]
 
 
 def compute_distributions(
@@ -504,6 +504,7 @@ def compute_distributions(
                     annotation.annotation_class.name for annotation in annotation_file.annotations
                 ]
 
+                ciao = class_distribution[partition]
                 class_distribution[partition] += Counter(set(annotation_class_names))
                 instance_distribution[partition] += Counter(annotation_class_names)
 
@@ -512,7 +513,7 @@ def compute_distributions(
 
 # https://github.com/python/cpython/blob/main/Lib/pathlib.py#L812
 # TODO implemented here because it's not supported in Pythton < 3.9
-def is_relative_to(path: Path, *other):
+def is_relative_to(path: Path, *other) -> bool:
     """Return True if the path is relative to another path or False.
     """
     try:
@@ -520,3 +521,10 @@ def is_relative_to(path: Path, *other):
         return True
     except ValueError:
         return False
+
+
+def sanitize(filename: str) -> str:
+    chars = ["<", ">", ":", '"', "/", "\\", "|", "?", "*"]
+    for char in chars:
+        filename = filename.replace(char, "_")
+    return filename

@@ -4,6 +4,7 @@ import time
 from pathlib import Path
 
 import requests
+from darwin.dataset.utils import sanitize
 from darwin.utils import is_image_extension_allowed
 
 
@@ -62,11 +63,11 @@ def download_all_images_from_annotations(
             annotation = json.load(file)
         if not force_replace:
             # Check collisions on image filename, original_filename and json filename on the system
-            if Path(annotation["image"]["filename"]).stem in existing_images:
+            if sanitize(Path(annotation["image"]["filename"]).stem) in existing_images:
                 continue
-            if Path(annotation["image"]["original_filename"]).stem in existing_images:
+            if sanitize(Path(annotation["image"]["original_filename"]).stem) in existing_images:
                 continue
-            if annotation_path.stem in existing_images:
+            if sanitize(annotation_path.stem) in existing_images:
                 continue
         annotations_to_download_path.append(annotation_path)
 
@@ -99,7 +100,7 @@ def download_image_from_annotation(
     api_key: str,
     api_url: str,
     annotation_path: Path,
-    images_path: str,
+    images_path: Path,
     annotation_format: str,
     use_folders: bool,
     video_frames: bool,
@@ -132,7 +133,7 @@ def download_image_from_annotation(
 
 
 def download_image_from_json_annotation(
-    api_key: str, api_url: str, annotation_path: Path, image_path: str, use_folders: bool, video_frames: bool
+    api_key: str, api_url: str, annotation_path: Path, image_path: Path, use_folders: bool, video_frames: bool
 ):
     """
     Helper function: downloads an image given a .json annotation path
@@ -169,7 +170,7 @@ def download_image_from_json_annotation(
             download_image(frame_url, path, api_key)
     else:
         image_url = annotation["image"]["url"]
-        image_path = parent_path / annotation["image"]["filename"]
+        image_path = parent_path / sanitize(annotation["image"]["filename"])
         download_image(image_url, image_path, api_key)
 
 
