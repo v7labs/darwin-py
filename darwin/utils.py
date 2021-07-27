@@ -470,9 +470,4 @@ def chunk(items, size):
 
 
 def is_unix_like_os() -> bool:
-    plt = platform.system()
-
-    if plt == "Windows":
-        return False
-
-    return True
+    return platform.system() != "Windows"
