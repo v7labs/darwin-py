@@ -1,4 +1,5 @@
 import json
+import platform
 from pathlib import Path
 from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
@@ -466,3 +467,12 @@ def convert_polygons_to_mask(polygons: List, height: int, width: int, value: Opt
 def chunk(items, size):
     for i in range(0, len(items), size):
         yield items[i : i + size]
+
+
+def is_unix_like_os() -> bool:
+    plt = platform.system()
+
+    if plt == "Windows":
+        return False
+
+    return True
