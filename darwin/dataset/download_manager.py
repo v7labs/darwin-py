@@ -4,7 +4,7 @@ import time
 from pathlib import Path
 
 import requests
-from darwin.dataset.utils import sanitize
+from darwin.dataset.utils import sanitize_filename
 from darwin.utils import is_image_extension_allowed
 
 
@@ -63,11 +63,11 @@ def download_all_images_from_annotations(
             annotation = json.load(file)
         if not force_replace:
             # Check collisions on image filename, original_filename and json filename on the system
-            if sanitize(Path(annotation["image"]["filename"]).stem) in existing_images:
+            if sanitize_filename(Path(annotation["image"]["filename"]).stem) in existing_images:
                 continue
-            if sanitize(Path(annotation["image"]["original_filename"]).stem) in existing_images:
+            if sanitize_filename(Path(annotation["image"]["original_filename"]).stem) in existing_images:
                 continue
-            if sanitize(annotation_path.stem) in existing_images:
+            if sanitize_filename(annotation_path.stem) in existing_images:
                 continue
         annotations_to_download_path.append(annotation_path)
 
@@ -170,7 +170,7 @@ def download_image_from_json_annotation(
             download_image(frame_url, path, api_key)
     else:
         image_url = annotation["image"]["url"]
-        image_path = parent_path / sanitize(annotation["image"]["filename"])
+        image_path = parent_path / sanitize_filename(annotation["image"]["filename"])
         download_image(image_url, image_path, api_key)
 
 

@@ -8,7 +8,11 @@ from typing import Any, Dict, Generator, List, Optional, Set, Tuple, Union
 import numpy as np
 from darwin.exceptions import NotFound
 from darwin.importer.formats.darwin import parse_file
-from darwin.utils import SUPPORTED_EXTENSIONS, SUPPORTED_VIDEO_EXTENSIONS
+from darwin.utils import (
+    SUPPORTED_EXTENSIONS,
+    SUPPORTED_VIDEO_EXTENSIONS,
+    is_unix_like_os,
+)
 from PIL import Image
 from rich.live import Live
 from rich.progress import ProgressBar, track
@@ -523,8 +527,13 @@ def is_relative_to(path: Path, *other) -> bool:
         return False
 
 
-def sanitize(filename: str) -> str:
-    chars = ["<", ">", ":", '"', "/", "\\", "|", "?", "*"]
+def sanitize_filename(filename: str) -> str:
+    chars = ["<", ">", '"', "/", "\\", "|", "?", "*"]
+
+    if not is_unix_like_os():
+        chars.append(":")
+
     for char in chars:
         filename = filename.replace(char, "_")
+
     return filename
