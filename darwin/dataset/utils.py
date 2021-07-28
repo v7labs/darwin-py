@@ -3,12 +3,16 @@ import json
 import multiprocessing as mp
 from collections import Counter, defaultdict
 from pathlib import Path
-from typing import Dict, Generator, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, Generator, List, Optional, Set, Tuple, Union
 
 import numpy as np
 from darwin.exceptions import NotFound
 from darwin.importer.formats.darwin import parse_file
-from darwin.utils import SUPPORTED_EXTENSIONS, SUPPORTED_VIDEO_EXTENSIONS
+from darwin.utils import (
+    SUPPORTED_EXTENSIONS,
+    SUPPORTED_VIDEO_EXTENSIONS,
+    is_unix_like_os,
+)
 from PIL import Image
 from rich.live import Live
 from rich.progress import ProgressBar, track
@@ -214,7 +218,7 @@ def get_coco_format_record(
     height, width = data["image"]["height"], data["image"]["width"]
     annotations = data["annotations"]
 
-    record = {}
+    record: Dict[str, Any] = {}
     if image_path is not None:
         record["file_name"] = str(image_path)
     if image_id is not None:
@@ -330,7 +334,7 @@ def get_annotations(
             )
     else:
         # If the partition is not specified, get all the annotations
-        stems = [e.stem for e in annotations_dir.glob("**/*.json")]
+        stems = (e.stem for e in annotations_dir.glob("**/*.json"))
 
     images_paths = []
     annotations_paths = []
@@ -468,7 +472,7 @@ def compute_max_density(annotations_dir: Path):
 
 
 # E.g.: {"partition" => {"class_name" => 123}}
-AnnotationDistribution = Dict[str, Dict[str, int]]
+AnnotationDistribution = Dict[str, Counter]
 
 
 def compute_distributions(
@@ -512,7 +516,7 @@ def compute_distributions(
 
 # https://github.com/python/cpython/blob/main/Lib/pathlib.py#L812
 # TODO implemented here because it's not supported in Pythton < 3.9
-def is_relative_to(path: Path, *other):
+def is_relative_to(path: Path, *other) -> bool:
     """Return True if the path is relative to another path or False.
     """
     try:
@@ -520,3 +524,15 @@ def is_relative_to(path: Path, *other):
         return True
     except ValueError:
         return False
+
+
+def sanitize_filename(filename: str) -> str:
+    chars = ["<", ">", '"', "/", "\\", "|", "?", "*"]
+
+    if not is_unix_like_os():
+        chars.append(":")
+
+    for char in chars:
+        filename = filename.replace(char, "_")
+
+    return filename
