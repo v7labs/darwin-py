@@ -508,7 +508,6 @@ def compute_distributions(
                     annotation.annotation_class.name for annotation in annotation_file.annotations
                 ]
 
-                ciao = class_distribution[partition]
                 class_distribution[partition] += Counter(set(annotation_class_names))
                 instance_distribution[partition] += Counter(annotation_class_names)
 
