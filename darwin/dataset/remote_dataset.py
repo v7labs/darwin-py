@@ -23,18 +23,13 @@ from darwin.dataset.utils import (
     get_classes,
     is_relative_to,
     make_class_lists,
+    sanitize_filename,
 )
 from darwin.exceptions import NotFound, UnsupportedExportFormat
 from darwin.exporter.formats.darwin import build_image_annotation
 from darwin.item import DatasetItem, parse_dataset_item
 from darwin.item_sorter import ItemSorter
-from darwin.utils import (
-    find_files,
-    parse_darwin_json,
-    secure_continue_request,
-    split_video_annotation,
-    urljoin,
-)
+from darwin.utils import find_files, parse_darwin_json, split_video_annotation, urljoin
 from darwin.validators import name_taken, validation_error
 
 if TYPE_CHECKING:
@@ -271,7 +266,7 @@ class RemoteDataset:
                 for annotation_path in tmp_dir.glob("*.json"):
                     with annotation_path.open() as file:
                         annotation = json.load(file)
-                    filename = Path(annotation["image"]["filename"]).stem
+                    filename = sanitize_filename(Path(annotation["image"]["filename"]).stem)
                     destination_name = annotations_dir / f"{filename}{annotation_path.suffix}"
                     shutil.move(str(annotation_path), str(destination_name))
 
