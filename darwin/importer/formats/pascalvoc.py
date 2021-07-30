@@ -1,28 +1,46 @@
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import Optional
+from typing import List, NoReturn, Optional, Union
 
 import darwin.datatypes as dt
 
 
-def parse_file(path: Path) -> Optional[dt.AnnotationFile]:
+def parse_file(path: Path) -> Union[Optional[dt.AnnotationFile], NoReturn]:
     if path.suffix != ".xml":
-        return
+        return None
 
-    tree = ET.parse(path)
+    tree = ET.parse(str(path))
     root = tree.getroot()
-    filename = root.find("filename").text
-    annotations = list(filter(None, map(_parse_annotation, root.findall("object"))))
+
+    filename = _find_text_value(root, "filename")
+
+    annotations: List[dt.Annotation] = list(filter(None, map(_parse_annotation, root.findall("object"))))
     annotation_classes = set([annotation.annotation_class for annotation in annotations])
-    return dt.AnnotationFile(path, filename, annotation_classes, annotations, remote_path = "/")
+
+    return dt.AnnotationFile(path, filename, annotation_classes, annotations, remote_path="/")
 
 
-def _parse_annotation(annotation_object):
-    class_name = annotation_object.find("name").text
-    bndbox = annotation_object.find("bndbox")
-    xmin = int(bndbox.find("xmin").text)
-    xmax = int(bndbox.find("xmax").text)
-    ymin = int(bndbox.find("ymin").text)
-    ymax = int(bndbox.find("ymax").text)
+def _parse_annotation(annotation_object: ET.Element) -> Union[dt.Annotation, NoReturn]:
+    class_name = _find_text_value(annotation_object, "name")
+
+    bndbox = _find_element(annotation_object, "bndbox")
+    xmin = int(float(_find_text_value(bndbox, "xmin")))
+    xmax = int(float(_find_text_value(bndbox, "xmax")))
+    ymin = int(float(_find_text_value(bndbox, "ymin")))
+    ymax = int(float(_find_text_value(bndbox, "ymax")))
 
     return dt.make_bounding_box(class_name, xmin, ymin, xmax - xmin, ymax - ymin)
+
+
+def _find_element(source: ET.Element, name: str) -> Union[ET.Element, NoReturn]:
+    element = source.find(name)
+    if element is None:
+        raise ValueError(f"Could not find {name} element in annotation file")
+    return element
+
+
+def _find_text_value(source: ET.Element, name: str) -> Union[str, NoReturn]:
+    element = _find_element(source, name)
+    if element is None or element.text is None:
+        raise ValueError(f"{name} element does not have a text value")
+    return element.text
