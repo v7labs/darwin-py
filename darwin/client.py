@@ -396,15 +396,18 @@ class Client:
         dict
         Contains the Content-Type and Authorization token
         """
-        header = {"Content-Type": "application/json"}
+        headers = {"Content-Type": "application/json"}
         api_key = None
         team_config = self.config.get_team(team or self.default_team, raise_on_invalid_team=False)
         if team_config:
             api_key = team_config.get("api_key")
 
         if api_key is not None and len(api_key) > 0:
-            header["Authorization"] = f"ApiKey {api_key}"
-        return header
+            headers["Authorization"] = f"ApiKey {api_key}"
+            
+        from darwin import __version__
+        headers["User-Agent"] = f"darwin-py/{__version__}"
+        return headers
 
     @classmethod
     def local(cls, team_slug: Optional[str] = None):
