@@ -1,11 +1,11 @@
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import List, NoReturn, Optional, Union
+from typing import List, NoReturn, Union
 
 import darwin.datatypes as dt
 
 
-def parse_file(path: Path) -> Union[Optional[dt.AnnotationFile], NoReturn]:
+def parse_file(path: Path) -> Union[dt.AnnotationFile, None, NoReturn]:
     if path.suffix != ".xml":
         return None
 
@@ -20,6 +20,7 @@ def parse_file(path: Path) -> Union[Optional[dt.AnnotationFile], NoReturn]:
     return dt.AnnotationFile(path, filename, annotation_classes, annotations, remote_path="/")
 
 
+# Private
 def _parse_annotation(annotation_object: ET.Element) -> Union[dt.Annotation, NoReturn]:
     class_name = _find_text_value(annotation_object, "name")
 
@@ -32,6 +33,7 @@ def _parse_annotation(annotation_object: ET.Element) -> Union[dt.Annotation, NoR
     return dt.make_bounding_box(class_name, xmin, ymin, xmax - xmin, ymax - ymin)
 
 
+# Private
 def _find_element(source: ET.Element, name: str) -> Union[ET.Element, NoReturn]:
     element = source.find(name)
     if element is None:
@@ -39,6 +41,7 @@ def _find_element(source: ET.Element, name: str) -> Union[ET.Element, NoReturn]:
     return element
 
 
+# Private
 def _find_text_value(source: ET.Element, name: str) -> Union[str, NoReturn]:
     element = _find_element(source, name)
     if element is None or element.text is None:
