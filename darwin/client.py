@@ -26,6 +26,7 @@ class Client:
         self.base_url = config.get("global/base_url")
         self.default_team = default_team or config.get("global/default_team")
         self.features: dict = {}
+        self._newer_version = None
 
     def get(
         self, endpoint: str, team: Optional[str] = None, retry: bool = False, raw: bool = False, debug: bool = False
@@ -404,7 +405,7 @@ class Client:
 
         if api_key is not None and len(api_key) > 0:
             headers["Authorization"] = f"ApiKey {api_key}"
-            
+
         from darwin import __version__
         headers["User-Agent"] = f"darwin-py/{__version__}"
         return headers
@@ -492,8 +493,7 @@ class Client:
         """Returns the default base url"""
         return os.getenv("DARWIN_BASE_URL", "https://darwin.v7labs.com")
 
-    @staticmethod
-    def _decode_response(response, debug: bool = False):
+    def _decode_response(self, response, debug: bool = False):
         """Decode the response as JSON entry or return a dictionary with the error
 
         Parameters
@@ -508,6 +508,10 @@ class Client:
         dict
         JSON decoded entry or error
         """
+
+        if 'latest-darwin-py' in response.headers:
+            self._handle_latest_darwin_py(response.headers['latest-darwin-py'])
+
         try:
             return response.json()
         except ValueError:
@@ -515,6 +519,21 @@ class Client:
                 print(f"[ERROR {response.status_code}] {response.text}")
             response.close()
             return {"error": "Response is not JSON encoded", "status_code": response.status_code, "text": response.text}
+
+    def _handle_latest_darwin_py(self, server_latest_version):
+        def parse_version(version_str):
+            return tuple([int(x) for x in version_str.split(",")])
+        
+        from darwin import __version__
+        current_version = parse_version(__version__)
+        latest_version = parse_version(server_latest_version)
+
+        if current_version >= latest_version:
+            return 
+        self._newer_version = latest_version
+
+    def newer_darwin_version(self):
+        return self._newer_version
 
     def __str__(self):
         return f"Client(default_team={self.default_team})"
