@@ -14,8 +14,6 @@ setuptools.setup(
     install_requires=[
         "argcomplete",
         "dataclasses",
-        "docutils",
-        "factory_boy",
         "humanize",
         "numpy",
         "pillow",
@@ -24,7 +22,6 @@ setuptools.setup(
         "requests_toolbelt",
         "responses",
         "rich",
-        "sh",
         "upolygon==0.1.6",
     ],
     packages=[
