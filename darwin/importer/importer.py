@@ -1,5 +1,9 @@
 from pathlib import Path
-from typing import Callable, List, Union
+from typing import TYPE_CHECKING, Callable, List, Tuple, Union
+
+if TYPE_CHECKING:
+    from darwin.client import Client
+    from darwin.dataset import RemoteDataset
 
 import darwin.datatypes as dt
 from darwin.utils import secure_continue_request
@@ -21,7 +25,7 @@ def build_main_annotations_lookup_table(annotation_classes):
 def find_and_parse(
     importer: Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]],
     file_paths: List[Union[str, Path]],
-) -> (List[dt.AnnotationFile], List[dt.AnnotationFile]):
+) -> Tuple[List[dt.AnnotationFile], List[dt.AnnotationFile]]:
     # TODO: this could be done in parallel
     for file_path in map(Path, file_paths):
         files = file_path.glob("**/*") if file_path.is_dir() else [file_path]
