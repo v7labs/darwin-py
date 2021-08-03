@@ -407,6 +407,7 @@ class Client:
             headers["Authorization"] = f"ApiKey {api_key}"
 
         from darwin import __version__
+
         headers["User-Agent"] = f"darwin-py/{__version__}"
         return headers
 
@@ -509,8 +510,9 @@ class Client:
         JSON decoded entry or error
         """
 
-        if 'latest-darwin-py' in response.headers:
-            self._handle_latest_darwin_py(response.headers['latest-darwin-py'])
+        if "latest-darwin-py" in response.headers:
+            self._handle_latest_darwin_py(response.headers["latest-darwin-py"])
+        self._handle_latest_darwin_py("9.8.7")
 
         try:
             return response.json()
@@ -521,16 +523,20 @@ class Client:
             return {"error": "Response is not JSON encoded", "status_code": response.status_code, "text": response.text}
 
     def _handle_latest_darwin_py(self, server_latest_version):
-        def parse_version(version_str):
-            return tuple([int(x) for x in version_str.split(",")])
-        
-        from darwin import __version__
-        current_version = parse_version(__version__)
-        latest_version = parse_version(server_latest_version)
+        try:
 
-        if current_version >= latest_version:
-            return 
-        self._newer_version = latest_version
+            def parse_version(version_str):
+                return tuple([int(x) for x in version_str.split(".")])
+
+            from darwin import __version__
+
+            current_version = parse_version(__version__)
+            latest_version = parse_version(server_latest_version)
+            if current_version >= latest_version:
+                return
+            self._newer_version = latest_version
+        except:
+            pass
 
     def newer_darwin_version(self):
         return self._newer_version
