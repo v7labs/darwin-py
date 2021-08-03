@@ -144,6 +144,7 @@ def create_dataset(dataset_slug: str):
         print(
             f"Dataset '{dataset.name}' ({dataset.team}/{dataset.slug}) has been created.\nAccess at {dataset.remote_path}"
         )
+        print_new_version_info(client)
     except NameTaken:
         _error(f"Dataset name '{identifier.dataset_slug}' is already taken.")
     except ValidationError:
@@ -151,7 +152,7 @@ def create_dataset(dataset_slug: str):
 
 
 def local(team: Optional[str] = None):
-    """Lists synced datasets, stored in the specified path. """
+    """Lists synced datasets, stored in the specified path."""
 
     table = Table(show_header=True, header_style="bold cyan")
     table.add_column("Name")
@@ -229,6 +230,7 @@ def export_dataset(
     ds.export(annotation_class_ids=annotation_class_ids, name=name, include_url_token=include_url_token)
     identifier.version = name
     print(f"Dataset {dataset_slug} successfully exported to {identifier}")
+    print_new_version_info(client)
 
 
 def pull_dataset(dataset_slug: str, only_annotations: bool = False, folders: bool = False, video_frames: bool = False):
@@ -259,6 +261,7 @@ def pull_dataset(dataset_slug: str, only_annotations: bool = False, folders: boo
     try:
         release = dataset.get_release(version)
         dataset.pull(release=release, only_annotations=only_annotations, use_folders=folders, video_frames=video_frames)
+        print_new_version_info(client)
     except NotFound:
         _error(
             f"Version '{dataset.identifier}:{version}' does not exist "
@@ -324,6 +327,7 @@ def list_remote_datasets(all_teams: bool, team: Optional[str] = None):
     table.add_column("Item Count", justify="right")
 
     datasets = []
+    client = None
     if all_teams:
         for team in _config().get_all_teams():
             client = _load_client(team["slug"])
@@ -339,9 +343,11 @@ def list_remote_datasets(all_teams: bool, team: Optional[str] = None):
     else:
         Console().print(table)
 
+    print_new_version_info(client)
+
 
 def remove_remote_dataset(dataset_slug: str):
-    """Remove a remote dataset from the workview. The dataset gets archived. """
+    """Remove a remote dataset from the workview. The dataset gets archived."""
     client = _load_client(offline=False)
     try:
         dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
@@ -351,6 +357,7 @@ def remove_remote_dataset(dataset_slug: str):
             return
 
         dataset.remove_remote()
+        print_new_version_info(client)
     except NotFound:
         _error(f"No dataset with name '{dataset_slug}'")
 
@@ -378,6 +385,7 @@ def dataset_list_releases(dataset_slug: str):
             )
 
         Console().print(table)
+        print_new_version_info(client)
     except NotFound:
         _error(f"No dataset with name '{dataset_slug}'")
 
@@ -389,7 +397,7 @@ def upload_data(
     fps: int,
     path: Optional[str],
     frames: Optional[bool],
-    preserve_folders: bool = False, 
+    preserve_folders: bool = False,
     verbose: bool = False,
 ):
     """Uploads the files provided as parameter to the remote dataset selected
@@ -533,6 +541,7 @@ def upload_data(
 
         if error_table.row_count:
             console.print(error_table)
+        print_new_version_info(client)
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
     except UnsupportedFileType as e:
@@ -719,3 +728,20 @@ def _load_client(
 def _console_theme():
     return Theme({"success": "bold green", "warning": "bold yellow", "error": "bold red"})
 
+
+def print_new_version_info(client):
+    if client and not client.newer_darwin_version:
+        return
+
+    (a, b, c) = client.newer_darwin_version
+
+    console = Console(theme=_console_theme(), stderr=True)
+    console.print(
+        f"A newer version of darwin-py ({a}.{b}.{c}) is available!",
+        "Run the following command to install it:",
+        "",
+        f"    pip install darwin-py=={a}.{b}.{c}",
+        "",
+        sep="\n",
+        style="warning",
+    )
