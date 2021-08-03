@@ -537,6 +537,7 @@ class Client:
         except:
             pass
 
+    @property
     def newer_darwin_version(self):
         return self._newer_version
 

@@ -342,6 +342,7 @@ def list_remote_datasets(all_teams: bool, team: Optional[str] = None):
         print("No dataset available.")
     else:
         Console().print(table)
+
     print_new_version_info(client)
 
 
@@ -499,15 +500,13 @@ def upload_data(
 
         if already_existing_items:
             console.print(
-                f"Skipped {len(already_existing_items)} files already in the dataset.\n",
-                style="warning",
+                f"Skipped {len(already_existing_items)} files already in the dataset.\n", style="warning",
             )
 
         if upload_manager.error_count or other_skipped_items:
             error_count = upload_manager.error_count + len(other_skipped_items)
             console.print(
-                f"{error_count} files couldn't be uploaded because an error occurred.\n",
-                style="error",
+                f"{error_count} files couldn't be uploaded because an error occurred.\n", style="error",
             )
 
         if not verbose and upload_manager.error_count:
@@ -731,10 +730,18 @@ def _console_theme():
 
 
 def print_new_version_info(client):
-    if client and not client.newer_darwin_version():
+    if client and not client.newer_darwin_version:
         return
-    (a, b, c) = client.newer_darwin_version()
-    print(
-        f"A newer version of darwin-py is available [{a}.{b}.{c}]\ninstall with: pip install darwin-py=={a}.{b}.{c}",
-        file=sys.stderr,
+
+    (a, b, c) = client.newer_darwin_version
+
+    console = Console(theme=_console_theme(), stderr=True)
+    console.print(
+        f"A newer version of darwin-py ({a}.{b}.{c}) is available!",
+        "Run the following command to install it:",
+        "",
+        f"    pip install darwin-py=={a}.{b}.{c}",
+        "",
+        sep="\n",
+        style="warning",
     )
