@@ -512,7 +512,6 @@ class Client:
 
         if "latest-darwin-py" in response.headers:
             self._handle_latest_darwin_py(response.headers["latest-darwin-py"])
-        self._handle_latest_darwin_py("9.8.7")
 
         try:
             return response.json()
