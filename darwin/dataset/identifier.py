@@ -49,5 +49,5 @@ def _parse(slug: str) -> Tuple[Optional[str], str, Optional[str]]:
 
 def _is_slug_valid(slug: str) -> bool:
     slug_format = "[\\_a-zA-Z0-9.-]+"
-    version_format = "[a-zA-Z0-9.]+"
+    version_format = "[\\_a-zA-Z0-9.:-]+"
     return re.fullmatch(fr"({slug_format}/)?{slug_format}(:{version_format})?", slug) is not None

@@ -38,6 +38,12 @@ def describe_dataset_identifier():
             assert dataset_identifier.dataset_slug == "dataset"
             assert dataset_identifier.version == "1.0"
 
+        def with_version_with_underscores():
+            dataset_identifier = DatasetIdentifier.parse("team/dataset:1_0-3")
+            assert dataset_identifier.team_slug == "team"
+            assert dataset_identifier.dataset_slug == "dataset"
+            assert dataset_identifier.version == "1_0-3"
+
         def optional_team_with_version():
             dataset_identifier = DatasetIdentifier.parse("dataset:1.0")
             assert dataset_identifier.team_slug is None
