@@ -75,11 +75,11 @@ def get_remote_files(dataset, filenames):
     return remote_files
 
 
-def _resolve_annotation_classes(annotation_class: List[dt.AnnotationClass], classes_in_dataset, classes_in_team):
+def _resolve_annotation_classes(annotation_classes: List[dt.AnnotationClass], classes_in_dataset, classes_in_team):
     local_classes_not_in_dataset = set()
     local_classes_not_in_team = set()
 
-    for cls in annotation_class:
+    for cls in annotation_classes:
         annotation_type = cls.annotation_internal_type or cls.annotation_type
         # Only add the new class if it doesn't exist remotely already
         if annotation_type in classes_in_dataset and cls.name in classes_in_dataset[annotation_type]:
@@ -95,7 +95,7 @@ def _resolve_annotation_classes(annotation_class: List[dt.AnnotationClass], clas
             local_classes_not_in_dataset.add(cls)
         else:
             local_classes_not_in_team.add(cls)
-    return (local_classes_not_in_dataset, local_classes_not_in_team)
+    return local_classes_not_in_dataset, local_classes_not_in_team
 
 
 def import_annotations(

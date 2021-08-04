@@ -400,14 +400,14 @@ class RemoteDataset:
         datasets.append({"id": self.dataset_id})
         return self.client.put(f"/annotation_classes/{match[0]['id']}", {"datasets": datasets, "id": match[0]["id"]})
 
-    def fetch_remote_classes(self, all=False):
+    def fetch_remote_classes(self, team_wide=False):
         """Fetches all remote classes on the remote dataset"""
         all_classes = self.client.fetch_remote_classes()
         classes_to_return = []
         for cls in all_classes:
             belongs_to_current_dataset = any([dataset["id"] == self.dataset_id for dataset in cls["datasets"]])
             cls["available"] = belongs_to_current_dataset
-            if all or belongs_to_current_dataset:
+            if team_wide or belongs_to_current_dataset:
                 classes_to_return.append(cls)
         return classes_to_return
 
