@@ -37,6 +37,12 @@ def describe_urljoin():
     def it_returns_an_url():
         assert urljoin("api", "teams") == "api/teams"
 
+    def it_strips_correctly():
+        assert (
+            urljoin("http://www.darwin.v7labs.com/", "/users/token_info")
+            == "http://www.darwin.v7labs.com/users/token_info"
+        )
+
 
 def describe_is_unix_like_os():
     @patch("platform.system", return_value="Linux")
