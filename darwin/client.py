@@ -345,6 +345,11 @@ class Client:
             client=self,
         )
 
+    def fetch_remote_classes(self, team: Optional[str] = None):
+        """Fetches all remote classes on the remote dataset"""
+        team_slug = self.config.get_team(team or self.default_team)["slug"]
+        return self.get(f"/teams/{team_slug}/annotation_classes?include_tags=true")["annotation_classes"]
+
     def load_feature_flags(self, team: Optional[str] = None):
         """Gets current features enabled for a team"""
         team_slug = self.config.get_team(team or self.default_team)["slug"]
