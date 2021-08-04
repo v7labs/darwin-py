@@ -374,15 +374,42 @@ class RemoteDataset:
                 "name": name,
                 "metadata": {"_color": "auto"},
                 "annotation_type_ids": [type_id],
+                "datasets": [{"id": self.dataset_id}],
             },
             error_handlers=[name_taken, validation_error],
         )
 
-    def fetch_remote_classes(self):
-        """Fetches all remote classes on the remote dataset"""
-        return self.client.get(f"/datasets/{self.dataset_id}/annotation_classes?include_tags=true")[
-            "annotation_classes"
+    def add_annotation_class(self, annotation_class):
+        # Waiting for a better api for setting classes
+        # in the meantime this will do
+        all_classes = self.fetch_remote_classes(True)
+        match = [
+            cls
+            for cls in all_classes
+            if cls["name"] == annotation_class.name
+            and annotation_class.annotation_internal_type in cls["annotation_types"]
         ]
+        if not match:
+            raise ValueError(f"Unknown annotation class {annotation_class.name}, id: {annotation_class.id}")
+
+        datasets = match[0]["datasets"]
+        # check that we are not already part of the dataset
+        for dataset in datasets:
+            if dataset["id"] == self.dataset_id:
+                return
+        datasets.append({"id": self.dataset_id})
+        return self.client.put(f"/annotation_classes/{match[0]['id']}", {"datasets": datasets, "id": match[0]["id"]})
+
+    def fetch_remote_classes(self, team_wide=False):
+        """Fetches all remote classes on the remote dataset"""
+        all_classes = self.client.fetch_remote_classes()
+        classes_to_return = []
+        for cls in all_classes:
+            belongs_to_current_dataset = any([dataset["id"] == self.dataset_id for dataset in cls["datasets"]])
+            cls["available"] = belongs_to_current_dataset
+            if team_wide or belongs_to_current_dataset:
+                classes_to_return.append(cls)
+        return classes_to_return
 
     def fetch_remote_attributes(self):
         """Fetches all remote attributes on the remote dataset"""
