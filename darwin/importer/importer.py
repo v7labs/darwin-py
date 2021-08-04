@@ -11,14 +11,24 @@ from rich.progress import track
 
 
 def build_main_annotations_lookup_table(annotation_classes):
+    MAIN_ANNOTATION_TYPES = [
+        "bounding_box",
+        "cuboid",
+        "ellipse",
+        "keypoint",
+        "line",
+        "link",
+        "polygon",
+        "skeleton",
+        "tag",
+    ]
     lookup = {}
     for cls in annotation_classes:
         for annotation_type in cls["annotation_types"]:
-            if annotation_type["granularity"] == "main":
-                if annotation_type["name"] not in lookup:
-                    lookup[annotation_type["name"]] = {}
-
-                lookup[annotation_type["name"]][cls["name"]] = cls["id"]
+            if annotation_type in MAIN_ANNOTATION_TYPES:
+                if annotation_type not in lookup:
+                    lookup[annotation_type] = {}
+                lookup[annotation_type][cls["name"]] = cls["id"]
     return lookup
 
 
@@ -65,6 +75,29 @@ def get_remote_files(dataset, filenames):
     return remote_files
 
 
+def _resolve_annotation_classes(annotation_class: List[dt.AnnotationClass], classes_in_dataset, classes_in_team):
+    local_classes_not_in_dataset = set()
+    local_classes_not_in_team = set()
+
+    for cls in annotation_class:
+        annotation_type = cls.annotation_internal_type or cls.annotation_type
+        # Only add the new class if it doesn't exist remotely already
+        if annotation_type in classes_in_dataset and cls.name in classes_in_dataset[annotation_type]:
+            continue
+
+        # Only add the new class if it's not included in the list of the missing classes already
+        if cls.name in [missing_class.name for missing_class in local_classes_not_in_dataset]:
+            continue
+        if cls.name in [missing_class.name for missing_class in local_classes_not_in_team]:
+            continue
+
+        if annotation_type in classes_in_team and cls.name in classes_in_team[annotation_type]:
+            local_classes_not_in_dataset.add(cls)
+        else:
+            local_classes_not_in_team.add(cls)
+    return (local_classes_not_in_dataset, local_classes_not_in_team)
+
+
 def import_annotations(
     dataset: "RemoteDataset",
     importer: Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]],
@@ -72,7 +105,9 @@ def import_annotations(
     append: bool,
 ):
     print("Fetching remote class list...")
-    remote_classes = build_main_annotations_lookup_table(dataset.fetch_remote_classes())
+    team_classes = dataset.fetch_remote_classes(True)
+    classes_in_dataset = build_main_annotations_lookup_table([cls for cls in team_classes if cls["available"]])
+    classes_in_team = build_main_annotations_lookup_table([cls for cls in team_classes if not cls["available"]])
     attributes = build_attribute_lookup(dataset)
 
     print("Retrieving local annotations ...")
@@ -100,34 +135,37 @@ def import_annotations(
         if not secure_continue_request():
             return
 
-    local_classes_missing_remotely = set()
-    for local_file in local_files:
-        for cls in local_file.annotation_classes:
-            annotation_type = cls.annotation_internal_type or cls.annotation_type
-            # Only add the new class if it doesn't exist remotely already
-            if annotation_type in remote_classes and cls.name in remote_classes[annotation_type]:
-                continue
-            # Only add the new class if it's not included in the list of the missing classes already
-            if cls.name in [missing_class.name for missing_class in local_classes_missing_remotely]:
-                continue
-            local_classes_missing_remotely.add(cls)
+    local_classes_not_in_dataset, local_classes_not_in_team = _resolve_annotation_classes(
+        [annotation_class for file in local_files for annotation_class in file.annotation_classes],
+        classes_in_dataset,
+        classes_in_team,
+    )
 
-    print(f"{len(local_classes_missing_remotely)} classes are missing remotely.")
-    if local_classes_missing_remotely:
+    print(f"{len(local_classes_not_in_team)} classes needs to be created.")
+    print(f"{len(local_classes_not_in_dataset)} classes needs to be added to {dataset.identifier}")
+
+    if local_classes_not_in_team:
         print("About to create the following classes")
-        for missing_class in local_classes_missing_remotely:
+        for missing_class in local_classes_not_in_team:
             print(
                 f"\t{missing_class.name}, type: {missing_class.annotation_internal_type or missing_class.annotation_type}"
             )
         if not secure_continue_request():
             return
-        for missing_class in local_classes_missing_remotely:
+        for missing_class in local_classes_not_in_team:
             dataset.create_annotation_class(
                 missing_class.name, missing_class.annotation_internal_type or missing_class.annotation_type
             )
+    if local_classes_not_in_dataset:
+        print(f"About to add the following classes to {dataset.identifier}")
+        for cls in local_classes_not_in_dataset:
+            dataset.add_annotation_class(cls)
 
-            # Refetch classes to update mappings
-            remote_classes = build_main_annotations_lookup_table(dataset.fetch_remote_classes())
+    # Refetch classes to update mappings
+    if local_classes_not_in_team or local_classes_not_in_dataset:
+        remote_classes = build_main_annotations_lookup_table(dataset.fetch_remote_classes())
+    else:
+        remote_classes = build_main_annotations_lookup_table(team_classes)
 
     # Need to re parse the files since we didn't save the annotations in memory
     for local_path in set(local_file.path for local_file in local_files):

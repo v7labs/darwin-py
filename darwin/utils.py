@@ -173,7 +173,6 @@ def parse_darwin_json(path: Union[str, Path], count: int):
 def parse_darwin_image(path, data, count):
     annotations = list(filter(None, map(parse_darwin_annotation, data["annotations"])))
     annotation_classes = set([annotation.annotation_class for annotation in annotations])
-
     return dt.AnnotationFile(
         path,
         get_local_filename(data["image"]),
