@@ -1,6 +1,41 @@
 from unittest.mock import MagicMock, patch
 
-from darwin.utils import is_unix_like_os
+from darwin.utils import (
+    is_extension_allowed,
+    is_image_extension_allowed,
+    is_unix_like_os,
+    is_video_extension_allowed,
+    urljoin,
+)
+
+
+def describe_is_extension_allowed():
+    def it_returns_true_for_allowed_extensions():
+        assert is_extension_allowed(".png")
+
+    def it_returns_false_for_unknown_extensions():
+        assert not is_extension_allowed(".mkv")
+
+
+def describe_is_image_extension_allowed():
+    def it_returns_true_for_allowed_extensions():
+        assert is_image_extension_allowed(".png")
+
+    def it_returns_false_for_unknown_extensions():
+        assert not is_image_extension_allowed(".not_an_image")
+
+
+def describe_is_video_extension_allowed():
+    def it_returns_true_for_allowed_extensions():
+        assert is_video_extension_allowed(".mp4")
+
+    def it_returns_false_for_unknown_extensions():
+        assert not is_video_extension_allowed(".not_video")
+
+
+def describe_urljoin():
+    def it_returns_an_url():
+        assert urljoin("api", "teams") == "api/teams"
 
 
 def describe_is_unix_like_os():
