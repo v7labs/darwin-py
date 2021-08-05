@@ -11,25 +11,28 @@ import darwin.datatypes as dt
 from darwin.config import Config
 from darwin.exceptions import OutdatedDarwinJSONFormat, UnsupportedFileType
 
+if TYPE_CHECKING:
+    from darwin.client import Client
+
+
 SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpeg", ".jpg", ".jfif", ".tif", ".tiff", ".bmp", ".svs"]
 SUPPORTED_VIDEO_EXTENSIONS = [".avi", ".bpm", ".dcm", ".mov", ".mp4"]
 SUPPORTED_EXTENSIONS = SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
 
 
-def is_extension_allowed(extension):
+def is_extension_allowed(extension: str) -> bool:
+    """Returns whether or not the given video or image extension is allowed."""
     return extension.lower() in SUPPORTED_EXTENSIONS
 
 
-def is_image_extension_allowed(extension):
+def is_image_extension_allowed(extension: str) -> bool:
+    """Returns whether or not the given image extension is allowed."""
     return extension.lower() in SUPPORTED_IMAGE_EXTENSIONS
 
 
-def is_video_extension_allowed(extension):
+def is_video_extension_allowed(extension: str) -> bool:
+    """Returns whether or not the given video extension is allowed."""
     return extension.lower() in SUPPORTED_VIDEO_EXTENSIONS
-
-
-if TYPE_CHECKING:
-    from darwin.client import Client
 
 
 def urljoin(*parts: str) -> str:
