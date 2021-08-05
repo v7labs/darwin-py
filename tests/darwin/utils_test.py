@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 from darwin.utils import (
     is_extension_allowed,
     is_image_extension_allowed,
+    is_project_dir,
     is_unix_like_os,
     is_video_extension_allowed,
     urljoin,
@@ -42,6 +43,20 @@ def describe_urljoin():
             urljoin("http://www.darwin.v7labs.com/", "/users/token_info")
             == "http://www.darwin.v7labs.com/users/token_info"
         )
+
+
+def describe_is_project_dir():
+    def it_returns_true_if_path_is_project_dir(tmp_path):
+        releases_path = tmp_path / "releases"
+        releases_path.mkdir()
+
+        images_path = tmp_path / "images"
+        images_path.mkdir()
+
+        assert is_project_dir(tmp_path)
+
+    def it_returns_false_if_path_is_not_project_dir(tmp_path):
+        assert not is_project_dir(tmp_path)
 
 
 def describe_is_unix_like_os():
