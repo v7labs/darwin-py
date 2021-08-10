@@ -1,3 +1,4 @@
+import concurrent.futures
 import functools
 import json
 import time
@@ -165,9 +166,16 @@ def download_image_from_json_annotation(
     if video_frames and "frame_urls" in annotation["image"]:
         video_path = parent_path / annotation_path.stem
         video_path.mkdir(exist_ok=True, parents=True)
-        for i, frame_url in enumerate(annotation["image"]["frame_urls"]):
-            path = video_path / f"{i:07d}.png"
-            download_image(frame_url, path, api_key)
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future_to_progress = {
+                executor.submit(download_image, frame_url, video_path / f"{i:07d}.png", api_key)
+                for (i, frame_url) in enumerate(annotation["image"]["frame_urls"])
+            }
+            for _future in concurrent.futures.as_completed(future_to_progress):
+                pass
+        # for i, frame_url in enumerate(annotation["image"]["frame_urls"]):
+        #     path = video_path / f"{i:07d}.png"
+        #     download_image(frame_url, path, api_key)
     else:
         image_url = annotation["image"]["url"]
         image_path = parent_path / sanitize_filename(annotation["image"]["filename"])
