@@ -75,26 +75,26 @@ def get_remote_files(dataset, filenames):
     return remote_files
 
 
-def _resolve_annotation_classes(annotation_classes: List[dt.AnnotationClass], classes_in_dataset, classes_in_team):
+def _resolve_annotation_classes(local_annotation_classes: List[dt.AnnotationClass], classes_in_dataset, classes_in_team):
     local_classes_not_in_dataset = set()
     local_classes_not_in_team = set()
 
-    for cls in annotation_classes:
-        annotation_type = cls.annotation_internal_type or cls.annotation_type
+    for local_cls in local_annotation_classes:
+        local_annotation_type = local_cls.annotation_internal_type or local_cls.annotation_type
         # Only add the new class if it doesn't exist remotely already
-        if annotation_type in classes_in_dataset and cls.name in classes_in_dataset[annotation_type]:
+        if local_annotation_type in classes_in_dataset and local_cls.name in classes_in_dataset[local_annotation_type]:
             continue
 
         # Only add the new class if it's not included in the list of the missing classes already
-        if cls.name in [missing_class.name for missing_class in local_classes_not_in_dataset]:
+        if local_cls.name in [missing_class.name for missing_class in local_classes_not_in_dataset]:
             continue
-        if cls.name in [missing_class.name for missing_class in local_classes_not_in_team]:
+        if local_cls.name in [missing_class.name for missing_class in local_classes_not_in_team]:
             continue
 
-        if annotation_type in classes_in_team and cls.name in classes_in_team[annotation_type]:
-            local_classes_not_in_dataset.add(cls)
+        if local_annotation_type in classes_in_team and local_cls.name in classes_in_team[local_annotation_type]:
+            local_classes_not_in_dataset.add(local_cls)
         else:
-            local_classes_not_in_team.add(cls)
+            local_classes_not_in_team.add(local_cls)
     return local_classes_not_in_dataset, local_classes_not_in_team
 
 

@@ -387,7 +387,10 @@ class RemoteDataset:
             cls
             for cls in all_classes
             if cls["name"] == annotation_class.name
-            and annotation_class.annotation_internal_type in cls["annotation_types"]
+            and (
+                annotation_class.annotation_internal_type in cls["annotation_types"] or
+                annotation_class.annotation_type in cls["annotation_types"]
+            )
         ]
         if not match:
             raise ValueError(f"Unknown annotation class {annotation_class.name}, id: {annotation_class.id}")
