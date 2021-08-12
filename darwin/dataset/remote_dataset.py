@@ -388,7 +388,7 @@ class RemoteDataset:
             cls
             for cls in all_classes
             if cls["name"] == annotation_class.name
-            and (annotation_class_type in cls["annotation_types"])
+            and annotation_class_type in cls["annotation_types"]
         ]
         if not match:
             # We do not expect to reach here; as pervious logic divides annotation classes in imports
