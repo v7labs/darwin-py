@@ -393,7 +393,9 @@ class RemoteDataset:
             )
         ]
         if not match:
-            raise ValueError(f"Unknown annotation class {annotation_class.name}, id: {annotation_class.id}")
+            # We do not expect to reach here; as pervious logic divides annotation classes in imports
+            # between `in team` and `new to platform`
+            raise ValueError(f"Unknown annotation class {annotation_class.name} in import.")
 
         datasets = match[0]["datasets"]
         # check that we are not already part of the dataset

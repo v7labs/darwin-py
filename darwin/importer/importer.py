@@ -76,8 +76,8 @@ def get_remote_files(dataset, filenames):
 
 
 def _resolve_annotation_classes(local_annotation_classes: List[dt.AnnotationClass], classes_in_dataset, classes_in_team):
-    local_classes_not_in_dataset = set()
-    local_classes_not_in_team = set()
+    local_classes_not_in_dataset: set[dt.AnnotationClass] = set()
+    local_classes_not_in_team: set[dt.AnnotationClass] = set()
 
     for local_cls in local_annotation_classes:
         local_annotation_type = local_cls.annotation_internal_type or local_cls.annotation_type
