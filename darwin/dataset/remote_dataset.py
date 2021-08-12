@@ -48,7 +48,8 @@ class RemoteDataset:
         image_count: int = 0,
         progress: float = 0,
     ):
-        """Inits a DarwinDataset.
+        """
+        Inits a DarwinDataset.
         This class manages the remote and local versions of a dataset hosted on Darwin.
         It allows several dataset management operations such as syncing between
         remote and local, pulling a remote dataset, removing the local files, ...

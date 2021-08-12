@@ -1,7 +1,7 @@
 import os
 import time
 from pathlib import Path
-from typing import Dict, Iterator, List, Optional, Union
+from typing import Dict, Iterator, Optional, Union
 
 import requests
 
@@ -237,7 +237,8 @@ class Client:
         return self._decode_response(response, debug)
 
     def list_local_datasets(self, team: Optional[str] = None) -> Iterator[Path]:
-        """Returns a list of all local folders which are detected as dataset.
+        """
+        Returns a list of all local folders which are detected as dataset.
 
         Returns
         -------
@@ -255,7 +256,8 @@ class Client:
                     yield Path(project_path)
 
     def list_remote_datasets(self, team: Optional[str] = None) -> Iterator[RemoteDataset]:
-        """Returns a list of all available datasets with the team currently authenticated against
+        """
+        Returns a list of all available datasets with the team currently authenticated against.
 
         Returns
         -------
@@ -274,14 +276,15 @@ class Client:
             )
 
     def get_remote_dataset(self, dataset_identifier: Union[str, DatasetIdentifier]) -> RemoteDataset:
-        """Get a remote dataset based on the parameter passed. You can only choose one of the
+        """
+        Get a remote dataset based on the parameter passed. You can only choose one of the
         possible parameters and calling this method with multiple ones will result in an
         error.
 
         Parameters
         ----------
-        dataset_identifier : int
-            ID of the dataset to return
+        dataset_identifier : Union[str, DatasetIdentifier]
+            Identifier of the dataset. Can be the string version or a DatasetIdentifier object.
 
         Returns
         -------
@@ -418,19 +421,21 @@ class Client:
 
     @classmethod
     def local(cls, team_slug: Optional[str] = None):
-        """Factory method to use the default configuration file to init the client
+        """
+        Factory method to use the default configuration file to init the client
 
         Returns
         -------
         Client
-        The inited client
+        The initialized client
         """
         config_path = Path.home() / ".darwin" / "config.yaml"
         return Client.from_config(config_path, team_slug=team_slug)
 
     @classmethod
     def from_config(cls, config_path: Path, team_slug: Optional[str] = None):
-        """Factory method to create a client from the configuration file passed as parameter
+        """
+        Factory method to create a client from the configuration file passed as parameter
 
         Parameters
         ----------
@@ -440,7 +445,7 @@ class Client:
         Returns
         -------
         Client
-        The inited client
+        The initialized client
         """
         if not config_path.exists():
             raise MissingConfig()
@@ -450,6 +455,19 @@ class Client:
 
     @classmethod
     def from_guest(cls, datasets_dir: Optional[Path] = None):
+        """
+        Factory method to create a client and access datasets as a guest
+
+        Parameters
+        ----------
+        datasets_dir : str
+            String where the client should be initialized from (aka the root path)
+
+        Returns
+        -------
+        Client
+            The initialized client
+        """
         if datasets_dir is None:
             datasets_dir = Path.home() / ".darwin" / "datasets"
         config = Config(path=None)
@@ -458,7 +476,8 @@ class Client:
 
     @classmethod
     def from_api_key(cls, api_key: str, datasets_dir: Optional[Path] = None):
-        """Factory method to create a client given an API key
+        """
+        Factory method to create a client given an API key
 
         Parameters
         ----------
@@ -470,7 +489,7 @@ class Client:
         Returns
         -------
         Client
-            The inited client
+            The initialized client
         """
         if datasets_dir is None:
             datasets_dir = Path.home() / ".darwin" / "datasets"
