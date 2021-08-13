@@ -7,3 +7,8 @@ def construct_full_path(remote_path: Optional[str], filename: str) -> str:
         return filename
     else:
         return (PurePosixPath("/") / remote_path / filename).as_posix()
+
+
+def deconstruct_full_path(filename: str):
+    posix_path = PurePosixPath("/") / PurePosixPath(filename)
+    return (str(posix_path.parent), posix_path.name)
