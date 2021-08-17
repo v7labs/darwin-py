@@ -4,7 +4,7 @@ import tempfile
 import zipfile
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Dict, Iterator, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, Iterator, List, Optional, Union
 from urllib import parse
 
 from darwin.dataset.download_manager import download_all_images_from_annotations
@@ -315,7 +315,7 @@ class RemoteDataset:
         else:
             return progress, count
 
-    def remove_remote(self):
+    def remove_remote(self) -> None:
         """Archives (soft-deletion) the remote dataset"""
         self.client.put(f"datasets/{self.dataset_id}/archive", payload={}, team=self.team)
 
@@ -354,12 +354,12 @@ class RemoteDataset:
             else:
                 return
 
-    def archive(self, items):
+    def archive(self, items) -> None:
         self.client.put(
             f"datasets/{self.dataset_id}/items/archive", {"filter": {"dataset_item_ids": [item.id for item in items]}}
         )
 
-    def restore_archived(self, items):
+    def restore_archived(self, items) -> None:
         self.client.put(
             f"datasets/{self.dataset_id}/items/restore", {"filter": {"dataset_item_ids": [item.id for item in items]}}
         )
@@ -439,9 +439,27 @@ class RemoteDataset:
         # we typecast to dictionary because we are not passing the raw=True parameter.
         return self.client.put(f"/annotation_classes/{match[0]['id']}", {"datasets": datasets, "id": match[0]["id"]})
 
-    def fetch_remote_classes(self, team_wide=False):
-        """Fetches all remote classes on the remote dataset"""
+    def fetch_remote_classes(self, team_wide=False) -> Optional[List]:
+        """
+        Fetches all remote classes on the remote dataset.
+
+        Parameters
+        ----------
+        team_wide : bool
+             If `True` will instead get the Annotation Classes from all Datasets that belong this
+             Dataset's team.
+       
+        Returns
+        -------
+        Optional[List]:
+            List of Annotation Classes (can be empty) or None, if the team was not able to be 
+            determined.
+        """
         all_classes = self.client.fetch_remote_classes()
+
+        if not all_classes:
+            return None
+
         classes_to_return = []
         for cls in all_classes:
             belongs_to_current_dataset = any([dataset["id"] == self.dataset_id for dataset in cls["datasets"]])
