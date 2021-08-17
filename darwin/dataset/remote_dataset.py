@@ -2,7 +2,6 @@ import json
 import shutil
 import tempfile
 import zipfile
-from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Dict, Iterator, List, Optional, Union
@@ -367,7 +366,7 @@ class RemoteDataset:
 
     def fetch_annotation_type_id_for_name(self, name: str):
         """Fetches annotation type id for a annotation type name, such as bounding_box"""
-        annotation_types = self.client.get("/annotation_types")
+        annotation_types: Dict = self.client.get("/annotation_types")
         for annotation_type in annotation_types:
             if annotation_type["name"] == name:
                 return annotation_type["id"]
@@ -438,9 +437,7 @@ class RemoteDataset:
                 return None
         datasets.append({"id": self.dataset_id})
         # we typecast to dictionary because we are not passing the raw=True parameter.
-        return asdict(
-            self.client.put(f"/annotation_classes/{match[0]['id']}", {"datasets": datasets, "id": match[0]["id"]})
-        )
+        return self.client.put(f"/annotation_classes/{match[0]['id']}", {"datasets": datasets, "id": match[0]["id"]})
 
     def fetch_remote_classes(self, team_wide=False):
         """Fetches all remote classes on the remote dataset"""
