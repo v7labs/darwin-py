@@ -2,6 +2,7 @@ import json
 import shutil
 import tempfile
 import zipfile
+from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Dict, Iterator, List, Optional, Union
@@ -400,7 +401,7 @@ class RemoteDataset:
             error_handlers=[name_taken, validation_error],
         )
 
-    def add_annotation_class(self, annotation_class: AnnotationClass) -> Dict:
+    def add_annotation_class(self, annotation_class: AnnotationClass) -> Union[Dict, None]:
         """
         Adds an annotation class to this dataset.
 
@@ -411,31 +412,35 @@ class RemoteDataset:
        
         Returns
         -------
-        dict
-            Dictionary with the server response.
+        dict or None
+            Dictionary with the server response or None if the annotations class already exists.
         """
         # Waiting for a better api for setting classes
         # in the meantime this will do
         all_classes = self.fetch_remote_classes(True)
-        annotation_class_type = (annotation_class.annotation_internal_type or annotation_class.annotation_type)
+        annotation_class_type = annotation_class.annotation_internal_type or annotation_class.annotation_type
         match = [
             cls
             for cls in all_classes
-            if cls["name"] == annotation_class.name
-            and annotation_class_type in cls["annotation_types"]
+            if cls["name"] == annotation_class.name and annotation_class_type in cls["annotation_types"]
         ]
         if not match:
             # We do not expect to reach here; as pervious logic divides annotation classes in imports
             # between `in team` and `new to platform`
-            raise ValueError(f"Annotation class name: `{annotation_class.name}`, type: `{annotation_class_type}`; does not exist in Team.")
+            raise ValueError(
+                f"Annotation class name: `{annotation_class.name}`, type: `{annotation_class_type}`; does not exist in Team."
+            )
 
         datasets = match[0]["datasets"]
         # check that we are not already part of the dataset
         for dataset in datasets:
             if dataset["id"] == self.dataset_id:
-                break
+                return None
         datasets.append({"id": self.dataset_id})
-        return self.client.put(f"/annotation_classes/{match[0]['id']}", {"datasets": datasets, "id": match[0]["id"]})
+        # we typecast to dictionary because we are not passing the raw=True parameter.
+        return asdict(
+            self.client.put(f"/annotation_classes/{match[0]['id']}", {"datasets": datasets, "id": match[0]["id"]})
+        )
 
     def fetch_remote_classes(self, team_wide=False):
         """Fetches all remote classes on the remote dataset"""
