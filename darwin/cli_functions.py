@@ -13,7 +13,6 @@ from rich.progress import (
     BarColumn,
     DownloadColumn,
     Progress,
-    ProgressColumn,
     SpinnerColumn,
     TaskID,
     TextColumn,
@@ -31,6 +30,7 @@ from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset.identifier import DatasetIdentifier
 from darwin.dataset.split_manager import split_dataset
+from darwin.dataset.upload_manager import LocalFile
 from darwin.dataset.utils import get_release_path
 from darwin.exceptions import (
     InvalidLogin,
@@ -42,7 +42,6 @@ from darwin.exceptions import (
     UnsupportedFileType,
     ValidationError,
 )
-from darwin.item_sorter import ItemSorter
 from darwin.utils import (
     find_files,
     persist_client_configuration,
@@ -392,26 +391,35 @@ def dataset_list_releases(dataset_slug: str):
 
 def upload_data(
     dataset_identifier: str,
-    files: Optional[List[str]],
-    files_to_exclude: Optional[List[str]],
+    files: Optional[List[Union[str, Path, LocalFile]]],
+    files_to_exclude: Optional[List[Union[str, Path]]],
     fps: int,
     path: Optional[str],
-    frames: Optional[bool],
+    frames: bool,
     preserve_folders: bool = False,
     verbose: bool = False,
 ):
-    """Uploads the files provided as parameter to the remote dataset selected
+    """
+    Uploads the provided files the remote given dataset.
 
     Parameters
     ----------
     dataset_identifier : str
         Slug of the dataset to retrieve
-    files : list[str]
+    files : List[Union[str, Path, LocalFile]]
         List of files to upload. Can be None.
-    files_to_exclude : list[str]
+    files_to_exclude : List[Union[str, Path]]
         List of files to exclude from the file scan (which is done only if files is None)
     fps : int
         Frame rate to split videos in
+    path : Optional[str]
+        Optional path to store the files in
+    frames : bool
+        Specify whether the files will be uploaded as a list of frames or not
+    preserve_folders : bool
+        Specify whether or not to preserve folder paths when uploading
+    verbose : bool
+        Specify whther to have full traces print when uploading files or not
 
     Returns
     -------
@@ -627,7 +635,7 @@ def find_supported_format(query, supported_formats):
     _error(f"Unsupported format, currently supported: {list_of_formats}")
 
 
-def dataset_convert(dataset_slug: str, format: str, output_dir: Optional[Union[str, Path]] = None):
+def dataset_convert(dataset_slug: str, format: str, output_dir: Union[str, Path, None] = None):
     client = _load_client()
     parser = find_supported_format(format, darwin.exporter.formats.supported_formats)
 
@@ -640,7 +648,7 @@ def dataset_convert(dataset_slug: str, format: str, output_dir: Optional[Union[s
             )
 
         release_path = get_release_path(dataset.local_path)
-        annotations_path = release_path / "annotations"
+        annotations_path: Path = release_path / "annotations"
         if output_dir is None:
             output_dir = release_path / "other_formats" / f"{format}"
         else:
@@ -651,7 +659,7 @@ def dataset_convert(dataset_slug: str, format: str, output_dir: Optional[Union[s
         _error(f"No dataset with name '{e.name}'")
 
 
-def convert(format, files, output_dir):
+def convert(format: str, files: List[Union[str, Path]], output_dir: Path):
     parser = find_supported_format(format, darwin.exporter.formats.supported_formats)
     exporter.export_annotations(parser, files, output_dir)
 

@@ -417,7 +417,8 @@ class RemoteDataset:
         return self.client.get(f"/datasets/{self.dataset_id}/attributes")
 
     def export(self, name: str, annotation_class_ids: Optional[List[str]] = None, include_url_token: bool = False):
-        """Create a new release for the dataset
+        """
+        Create a new release for the dataset
 
         Parameters
         ----------
@@ -426,7 +427,7 @@ class RemoteDataset:
         annotation_class_ids: List
             List of the classes to filter
         include_url_token: bool
-            Should the image url in the export be include a token enabling access without team membership
+            Should the image url in the export include a token enabling access without team membership
         """
         if annotation_class_ids is None:
             annotation_class_ids = []
@@ -450,7 +451,8 @@ class RemoteDataset:
         ).text
 
     def get_releases(self):
-        """Get a sorted list of releases with the most recent first
+        """
+        Get a sorted list of releases with the most recent first.
 
         Returns
         -------
@@ -467,7 +469,8 @@ class RemoteDataset:
         return sorted(filter(lambda x: x.available, releases), key=lambda x: x.version, reverse=True)
 
     def get_release(self, name: str = "latest"):
-        """Get a specific release for this dataset
+        """
+        Get a specific release for this dataset.
 
         Parameters
         ----------
