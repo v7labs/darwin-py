@@ -1,7 +1,7 @@
 import os
 import time
 from pathlib import Path
-from typing import Dict, Iterator, Optional, Union
+from typing import Any, Dict, Iterator, Optional, Union
 
 import requests
 
@@ -348,9 +348,15 @@ class Client:
             client=self,
         )
 
-    def fetch_remote_classes(self, team: Optional[str] = None):
+    def fetch_remote_classes(self, team: Optional[str] = None) -> Optional[Dict[str, Any]]:
         """Fetches all remote classes on the remote dataset"""
-        team_slug = self.config.get_team(team or self.default_team)["slug"]
+        team = self.config.get_team(team or self.default_team)
+
+        if not team:
+            return None
+
+        team_slug: str = team["slug"]
+
         return self.get(f"/teams/{team_slug}/annotation_classes?include_tags=true")["annotation_classes"]
 
     def load_feature_flags(self, team: Optional[str] = None):
