@@ -30,7 +30,7 @@ class Client:
 
     def get(
         self, endpoint: str, team: Optional[str] = None, retry: bool = False, raw: bool = False, debug: bool = False
-    ):
+    ) -> Union[Dict, requests.Response]:
         """Get something from the server trough HTTP
 
         Parameters
@@ -86,7 +86,7 @@ class Client:
         retry: bool = False,
         debug: bool = False,
         raw: bool = False,
-    ):
+    ) -> Union[Dict, requests.Response]:
         """Put something on the server trough HTTP
 
         Parameters
@@ -141,7 +141,7 @@ class Client:
         retry: bool = False,
         error_handlers: Optional[list] = None,
         debug: bool = False,
-    ):
+    ) -> Dict:
         """Post something new on the server trough HTTP
 
         Parameters
@@ -194,7 +194,7 @@ class Client:
         retry: bool = False,
         error_handlers: Optional[list] = None,
         debug: bool = False,
-    ):
+    ) -> Dict:
         """Delete something new on the server trough HTTP
 
         Parameters

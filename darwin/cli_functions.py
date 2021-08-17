@@ -405,28 +405,28 @@ def upload_data(
     Parameters
     ----------
     dataset_identifier : str
-        Slug of the dataset to retrieve
+        Slug of the dataset to retrieve.
     files : List[Union[str, Path, LocalFile]]
         List of files to upload. Can be None.
     files_to_exclude : List[Union[str, Path]]
-        List of files to exclude from the file scan (which is done only if files is None)
+        List of files to exclude from the file scan (which is done only if files is None).
     fps : int
-        Frame rate to split videos in
+        Frame rate to split videos in.
     path : Optional[str]
-        Optional path to store the files in
+        Optional path to store the files in.
     frames : bool
-        Specify whether the files will be uploaded as a list of frames or not
+        Specify whether the files will be uploaded as a list of frames or not.
     preserve_folders : bool
-        Specify whether or not to preserve folder paths when uploading
+        Specify whether or not to preserve folder paths when uploading.
     verbose : bool
-        Specify whther to have full traces print when uploading files or not
+        Specify whther to have full traces print when uploading files or not.
 
     Returns
     -------
     generator : function
-            Generator for doing the actual uploads. This is None if blocking is True
+        Generator for doing the actual uploads. This is None if blocking is True
     count : int
-        The files count
+        The file's count
     """
     client = _load_client()
     try:

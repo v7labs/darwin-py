@@ -25,6 +25,7 @@ from darwin.dataset.utils import (
     make_class_lists,
     sanitize_filename,
 )
+from darwin.datatypes import AnnotationClass
 from darwin.exceptions import NotFound, UnsupportedExportFormat
 from darwin.exporter.formats.darwin import build_image_annotation
 from darwin.item import DatasetItem, parse_dataset_item
@@ -112,10 +113,13 @@ class RemoteDataset:
             When the uploading file is a video, specify whether it's going to be uploaded as a list of frames.
         path: Optional[str]
             Optional path to store the files in.
+        preserve_folders : bool
+            Specify whether or not to preserve folder paths when uploading
         progress_callback: Optional[ProgressCallback]
             Optional callback, called every time the progress of an uploading files is reported.
         file_upload_callback: Optional[FileUploadCallback]
             Optional callback, called every time a file chunk is uploaded.
+        
         Returns
         -------
         handler : UploadHandler
@@ -199,7 +203,8 @@ class RemoteDataset:
         use_folders: bool = False,
         video_frames: bool = False,
     ):
-        """Downloads a remote project (images and annotations) in the datasets directory.
+        """
+        Downloads a remote project (images and annotations) in the datasets directory.
 
         Parameters
         ----------
@@ -366,7 +371,22 @@ class RemoteDataset:
             if annotation_type["name"] == name:
                 return annotation_type["id"]
 
-    def create_annotation_class(self, name: str, type: str):
+    def create_annotation_class(self, name: str, type: str) -> Dict:
+        """
+        Creates an annotation class for this dataset.
+
+        Parameters
+        ----------
+        name : str
+            The name of the annotation class.
+        type : str
+            The type of the annotation class.
+
+        Returns
+        -------
+        dict
+            Dictionary with the server response.
+        """
         type_id = self.fetch_annotation_type_id_for_name(type)
         return self.client.post(
             f"/annotation_classes",
@@ -380,7 +400,20 @@ class RemoteDataset:
             error_handlers=[name_taken, validation_error],
         )
 
-    def add_annotation_class(self, annotation_class):
+    def add_annotation_class(self, annotation_class: AnnotationClass) -> Dict:
+        """
+        Adds an annotation class to this dataset.
+
+        Parameters
+        ----------
+        annotation_class : AnnotationClass
+            The annotation class to add.
+       
+        Returns
+        -------
+        dict
+            Dictionary with the server response.
+        """
         # Waiting for a better api for setting classes
         # in the meantime this will do
         all_classes = self.fetch_remote_classes(True)
@@ -397,7 +430,7 @@ class RemoteDataset:
         # check that we are not already part of the dataset
         for dataset in datasets:
             if dataset["id"] == self.dataset_id:
-                return
+                break
         datasets.append({"id": self.dataset_id})
         return self.client.put(f"/annotation_classes/{match[0]['id']}", {"datasets": datasets, "id": match[0]["id"]})
 
