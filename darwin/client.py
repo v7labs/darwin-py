@@ -426,7 +426,7 @@ class Client:
         return headers
 
     @classmethod
-    def local(cls, team_slug: Optional[str] = None):
+    def local(cls, team_slug: Optional[str] = None) -> "Client":
         """
         Factory method to use the default configuration file to init the client
 
@@ -439,7 +439,7 @@ class Client:
         return Client.from_config(config_path, team_slug=team_slug)
 
     @classmethod
-    def from_config(cls, config_path: Path, team_slug: Optional[str] = None):
+    def from_config(cls, config_path: Path, team_slug: Optional[str] = None) -> "Client":
         """
         Factory method to create a client from the configuration file passed as parameter
 
@@ -460,7 +460,7 @@ class Client:
         return cls(config=config, default_team=team_slug)
 
     @classmethod
-    def from_guest(cls, datasets_dir: Optional[Path] = None):
+    def from_guest(cls, datasets_dir: Optional[Path] = None) -> "Client":
         """
         Factory method to create a client and access datasets as a guest
 
@@ -481,7 +481,7 @@ class Client:
         return cls(config=config)
 
     @classmethod
-    def from_api_key(cls, api_key: str, datasets_dir: Optional[Path] = None):
+    def from_api_key(cls, api_key: str, datasets_dir: Optional[Path] = None) -> "Client":
         """
         Factory method to create a client given an API key
 
@@ -515,12 +515,12 @@ class Client:
         return cls(config=config, default_team=team)
 
     @staticmethod
-    def default_api_url():
+    def default_api_url() -> str:
         """Returns the default api url"""
         return f"{Client.default_base_url()}/api/"
 
     @staticmethod
-    def default_base_url():
+    def default_base_url() -> str:
         """Returns the default base url"""
         return os.getenv("DARWIN_BASE_URL", "https://darwin.v7labs.com")
 
