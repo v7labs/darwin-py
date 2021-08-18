@@ -400,7 +400,7 @@ def upload_data(
     verbose: bool = False,
 ):
     """
-    Uploads the provided files the remote given dataset.
+    Uploads the provided files to the remote dataset.
 
     Parameters
     ----------
@@ -413,7 +413,9 @@ def upload_data(
     fps : int
         Frame rate to split videos in.
     path : Optional[str]
-        Optional path to store the files in.
+        If provided; files will be placed under this path in the v7 platform. If `preserve_folders` 
+        is `True` then it must be possible to draw a relative path from this folder to the one the 
+        files are in, otherwise an error will be raised.
     frames : bool
         Specify whether the files will be uploaded as a list of frames or not.
     preserve_folders : bool

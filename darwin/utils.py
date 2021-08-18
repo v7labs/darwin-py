@@ -41,7 +41,8 @@ def urljoin(*parts: str) -> str:
 
 
 def is_project_dir(project_path: Path) -> bool:
-    """Verifies if the directory is a project from Darwin by inspecting its sturcture
+    """
+    Verifies if the directory is a project from Darwin by inspecting its structure.
 
     Parameters
     ----------

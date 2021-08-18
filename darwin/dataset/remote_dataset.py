@@ -50,7 +50,7 @@ class RemoteDataset:
         progress: float = 0,
     ):
         """
-        Inits a DarwinDataset.
+        Initializes a DarwinDataset.
         This class manages the remote and local versions of a dataset hosted on Darwin.
         It allows several dataset management operations such as syncing between
         remote and local, pulling a remote dataset, removing the local files, ...
@@ -204,7 +204,7 @@ class RemoteDataset:
         video_frames: bool = False,
     ):
         """
-        Downloads a remote project (images and annotations) in the datasets directory.
+        Downloads a remote dataset (images and annotations) to the datasets directory.
 
         Parameters
         ----------
@@ -441,7 +441,7 @@ class RemoteDataset:
 
     def fetch_remote_classes(self, team_wide=False) -> Optional[List]:
         """
-        Fetches all remote classes on the remote dataset.
+        Fetches all the Annotation Classes from the given remote dataset.
 
         Parameters
         ----------

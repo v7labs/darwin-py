@@ -31,7 +31,8 @@ class Client:
     def get(
         self, endpoint: str, team: Optional[str] = None, retry: bool = False, raw: bool = False, debug: bool = False
     ) -> Union[Dict, requests.Response]:
-        """Get something from the server trough HTTP
+        """
+        Get something from the server through HTTP
 
         Parameters
         ----------
@@ -87,7 +88,8 @@ class Client:
         debug: bool = False,
         raw: bool = False,
     ) -> Union[Dict, requests.Response]:
-        """Put something on the server trough HTTP
+        """
+        Put something on the server trough HTTP
 
         Parameters
         ----------
@@ -105,7 +107,7 @@ class Client:
         Returns
         -------
         dict
-        Dictionary which contains the server response
+            Dictionary which contains the server response
         """
         response = requests.put(urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team))
 
@@ -277,9 +279,7 @@ class Client:
 
     def get_remote_dataset(self, dataset_identifier: Union[str, DatasetIdentifier]) -> RemoteDataset:
         """
-        Get a remote dataset based on the parameter passed. You can only choose one of the
-        possible parameters and calling this method with multiple ones will result in an
-        error.
+        Get a remote dataset based on the parameter passed.
 
         Parameters
         ----------
