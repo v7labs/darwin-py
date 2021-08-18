@@ -446,8 +446,8 @@ class RemoteDataset:
         Parameters
         ----------
         team_wide : bool
-             If `True` will instead get the Annotation Classes from all Datasets that belong this
-             Dataset's team.
+            If `True` will return all Annotation Classes that belong to the team. If `False` will 
+            only return Annotation Classes which have been added to the dataset.
        
         Returns
         -------
