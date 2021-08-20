@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, List, Optional, Set, Tuple, Union
-
+import multiprocessing
 import requests
 from darwin.path_utils import construct_full_path
 from darwin.utils import chunk
@@ -128,7 +128,7 @@ class UploadHandler:
                     progress_callback(self.pending_count, 1)
 
         if multi_threaded:
-            with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=multiprocessing.cpu_count()) as executor:
                 future_to_progress = {executor.submit(f, callback) for f in self.progress}
                 for future in concurrent.futures.as_completed(future_to_progress):
                     try:
