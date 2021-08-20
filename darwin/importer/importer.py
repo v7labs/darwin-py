@@ -101,7 +101,7 @@ def _resolve_annotation_classes(
 
 
 def import_annotations(
-    dataset: RemoteDataset,
+    dataset: "RemoteDataset",
     importer: Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]],
     file_paths: List[Union[str, Path]],
     append: bool,
