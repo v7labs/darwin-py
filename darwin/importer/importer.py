@@ -75,7 +75,9 @@ def get_remote_files(dataset, filenames):
     return remote_files
 
 
-def _resolve_annotation_classes(local_annotation_classes: List[dt.AnnotationClass], classes_in_dataset, classes_in_team):
+def _resolve_annotation_classes(
+    local_annotation_classes: List[dt.AnnotationClass], classes_in_dataset, classes_in_team
+):
     local_classes_not_in_dataset: set[dt.AnnotationClass] = set()
     local_classes_not_in_team: set[dt.AnnotationClass] = set()
 
@@ -103,7 +105,26 @@ def import_annotations(
     importer: Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]],
     file_paths: List[Union[str, Path]],
     append: bool,
-):
+) -> None:
+    """
+    Imports the given given Annotations into the given Dataset.
+
+    Parameters
+    ----------
+    dataset : RemoteDataset
+        Dataset where the Annotations will be imported to.
+    importer : Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]]
+        Parsing module containing the logic to parse the given Annotation files given in 
+        `files_path`. See `importer/format` for a list of out of supported parsers.
+    file_paths : List[Union[str, Path]],
+        A list of `Path`s or strings containing the Annotations we wish to import.
+    append : bool
+        If `True` appends the given annotations to the datasets. If `False` will override them.
+    
+    Returns
+        -------
+        None
+    """
     print("Fetching remote class list...")
     team_classes = dataset.fetch_remote_classes(True)
     classes_in_dataset = build_main_annotations_lookup_table([cls for cls in team_classes if cls["available"]])
