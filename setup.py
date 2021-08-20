@@ -1,10 +1,18 @@
+import re
 import setuptools
+from pathlib import Path
 
 with open("README.md", "rb") as f:
     long_description = f.read().decode("utf-8")
 
+with open(Path(__file__).parent / 'darwin' / '__init__.py', 'r') as f:
+    content = f.read()
+    # from https://www.py4u.net/discuss/139845
+    version = re.search(r'__version__\s*=\s*[\'"]([^\'"]*)[\'"]', content).group(1)
+
 setuptools.setup(
     name="darwin-py",
+    version = version,
     author="V7",
     author_email="info@v7labs.com",
     description="Library and command line interface for darwin.v7labs.com",
