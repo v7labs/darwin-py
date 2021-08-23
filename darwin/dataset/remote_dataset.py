@@ -378,7 +378,7 @@ class RemoteDataset:
         for annotation_type in [type] + subtypes:
             type_id = self.fetch_annotation_type_id_for_name(annotation_type)
             if not type_id:
-                list_of_annotation_types = ", ".join(self.annotation_types)
+                list_of_annotation_types = ", ".join([type["name"] for type in self.annotation_types])
                 raise ValueError(
                     f"Unknown annotation type: '{annotation_type}', valid values: {list_of_annotation_types}"
                 )
