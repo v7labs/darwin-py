@@ -6,7 +6,7 @@ import requests
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, List, Optional, Set, Tuple, Unio
+from typing import TYPE_CHECKING, Callable, List, Optional, Set, Tuple, Union
 from darwin.path_utils import construct_full_path
 from darwin.utils import chunk
 from requests_toolbelt import MultipartEncoder, MultipartEncoderMonitor
