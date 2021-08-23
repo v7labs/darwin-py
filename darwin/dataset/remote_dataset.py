@@ -79,6 +79,7 @@ class RemoteDataset:
         self.image_count = image_count
         self.progress = progress
         self.client = client
+        self.annotation_types = None
 
     def push(
         self,
@@ -119,7 +120,7 @@ class RemoteDataset:
             Optional callback, called every time the progress of an uploading files is reported.
         file_upload_callback: Optional[FileUploadCallback]
             Optional callback, called every time a file chunk is uploaded.
-        
+
         Returns
         -------
         handler : UploadHandler
@@ -366,35 +367,30 @@ class RemoteDataset:
 
     def fetch_annotation_type_id_for_name(self, name: str):
         """Fetches annotation type id for a annotation type name, such as bounding_box"""
-        annotation_types: Dict = self.client.get("/annotation_types")
-        for annotation_type in annotation_types:
+        if not self.annotation_types:
+            self.annotation_types = self.client.get("/annotation_types")
+        for annotation_type in self.annotation_types:
             if annotation_type["name"] == name:
                 return annotation_type["id"]
 
-    def create_annotation_class(self, name: str, type: str) -> Dict:
-        """
-        Creates an annotation class for this dataset.
+    def create_annotation_class(self, name: str, type: str, subtypes: List[str] = []):
+        type_ids = []
+        for annotation_type in [type] + subtypes:
+            type_id = self.fetch_annotation_type_id_for_name(annotation_type)
+            if not type_id:
+                list_of_annotation_types = ", ".join(self.annotation_types)
+                raise ValueError(
+                    f"Unknown annotation type: '{annotation_type}', valid values: {list_of_annotation_types}"
+                )
+            type_ids.append(type_id)
 
-        Parameters
-        ----------
-        name : str
-            The name of the annotation class.
-        type : str
-            The type of the annotation class.
-
-        Returns
-        -------
-        dict
-            Dictionary with the server response.
-        """
-        type_id = self.fetch_annotation_type_id_for_name(type)
         return self.client.post(
             f"/annotation_classes",
             payload={
                 "dataset_id": self.dataset_id,
                 "name": name,
                 "metadata": {"_color": "auto"},
-                "annotation_type_ids": [type_id],
+                "annotation_type_ids": type_ids,
                 "datasets": [{"id": self.dataset_id}],
             },
             error_handlers=[name_taken, validation_error],
@@ -408,7 +404,7 @@ class RemoteDataset:
         ----------
         annotation_class : AnnotationClass
             The annotation class to add.
-       
+
         Returns
         -------
         dict or None
@@ -446,13 +442,13 @@ class RemoteDataset:
         Parameters
         ----------
         team_wide : bool
-            If `True` will return all Annotation Classes that belong to the team. If `False` will 
+            If `True` will return all Annotation Classes that belong to the team. If `False` will
             only return Annotation Classes which have been added to the dataset.
-       
+
         Returns
         -------
         Optional[List]:
-            List of Annotation Classes (can be empty) or None, if the team was not able to be 
+            List of Annotation Classes (can be empty) or None, if the team was not able to be
             determined.
         """
         all_classes = self.client.fetch_remote_classes()
