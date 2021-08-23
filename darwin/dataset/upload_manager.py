@@ -11,8 +11,6 @@ from darwin.path_utils import construct_full_path
 from darwin.utils import chunk
 from requests_toolbelt import MultipartEncoder, MultipartEncoderMonitor
 
-MIN_WORKERS = 5
-
 if TYPE_CHECKING:
     from darwin.client import Client
     from darwin.dataset import RemoteDataset
@@ -111,6 +109,7 @@ class UploadHandler:
         multi_threaded: bool = True,
         progress_callback: Optional[ProgressCallback] = None,
         file_upload_callback: Optional[FileUploadCallback] = None,
+        max_workers: Optional[int] = None
     ):
         if not self._progress:
             self.prepare_upload()
@@ -131,7 +130,6 @@ class UploadHandler:
                     progress_callback(self.pending_count, 1)
 
         if multi_threaded:
-            max_workers = min(MIN_WORKERS, len(os.sched_getaffinity(0)))
             with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
                 future_to_progress = {executor.submit(f, callback) for f in self.progress}
                 for future in concurrent.futures.as_completed(future_to_progress):
