@@ -1,7 +1,6 @@
 import concurrent.futures
 import time
 import multiprocessing
-import os
 import requests
 from dataclasses import dataclass
 from enum import Enum
