@@ -1,11 +1,12 @@
 import concurrent.futures
 import time
+import multiprocessing
+import os
+import requests
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, List, Optional, Set, Tuple, Union
-import multiprocessing
-import requests
+from typing import TYPE_CHECKING, Callable, List, Optional, Set, Tuple, Unio
 from darwin.path_utils import construct_full_path
 from darwin.utils import chunk
 from requests_toolbelt import MultipartEncoder, MultipartEncoderMonitor
