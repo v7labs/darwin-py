@@ -380,9 +380,10 @@ class RemoteDataset:
         generator : Optional[int]
             The id of the annotation type or None if it doesn't exist.
         
-        Raises:
-            ConnectionError 
-                If it fails to establish a connection. 
+        Raises
+        ------
+        ConnectionError 
+            If it fails to establish a connection. 
         """
         if not self.annotation_types:
             self.annotation_types: List[Dict[str, Any]] = self.client.get("/annotation_types")
