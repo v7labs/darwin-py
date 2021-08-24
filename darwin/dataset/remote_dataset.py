@@ -365,18 +365,61 @@ class RemoteDataset:
             f"datasets/{self.dataset_id}/items/restore", {"filter": {"dataset_item_ids": [item.id for item in items]}}
         )
 
-    def fetch_annotation_type_id_for_name(self, name: str):
-        """Fetches annotation type id for a annotation type name, such as bounding_box"""
+    def fetch_annotation_type_id_for_name(self, name: str) -> Optional[int]:
+        """
+        Fetches annotation type id for a annotation type name, such as bounding_box
+        
+        Parameters
+        ----------
+        name: str
+            The name of the annotation we want the id for.
+        
+
+        Returns
+        -------
+        generator : Optional[int]
+            The id of the annotation type or None if it doesn't exist.
+        
+        Raises
+        ------
+        ConnectionError 
+            If it fails to establish a connection. 
+        """
         if not self.annotation_types:
-            self.annotation_types = self.client.get("/annotation_types")
+            self.annotation_types: List[Dict[str, Any]] = self.client.get("/annotation_types")
         for annotation_type in self.annotation_types:
             if annotation_type["name"] == name:
                 return annotation_type["id"]
 
-    def create_annotation_class(self, name: str, type: str, subtypes: List[str] = []):
-        type_ids = []
+    def create_annotation_class(self, name: str, type: str, subtypes: List[str] = []) -> Dict:
+        """
+        Creates an annotation class for this dataset.
+
+        Parameters
+        ----------
+        name : str
+            The name of the annotation class.
+        type : str
+            The type of the annotation class.
+        subtypes : List[str]
+            Annotation class subtypes.  
+
+        Returns
+        -------
+        dict
+            Dictionary with the server response.
+        
+        Raises
+        ------
+        ConnectionError
+            If it is unable to connect.
+
+        ValueError
+            If a given annotation type or subtype is unknown.
+        """
+        type_ids: List[int] = []
         for annotation_type in [type] + subtypes:
-            type_id = self.fetch_annotation_type_id_for_name(annotation_type)
+            type_id: Optional[int] = self.fetch_annotation_type_id_for_name(annotation_type)
             if not type_id:
                 list_of_annotation_types = ", ".join([type["name"] for type in self.annotation_types])
                 raise ValueError(
@@ -510,8 +553,11 @@ class RemoteDataset:
         -------
         list(Release)
             Return a sorted list of releases with the most recent first
+
         Raises
         ------
+        ConnectionError
+            If it is unable to connect.
         """
         try:
             releases_json = self.client.get(f"/datasets/{self.dataset_id}/exports", team=self.team)
