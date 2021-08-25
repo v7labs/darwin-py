@@ -4,11 +4,11 @@ from pathlib import Path
 from typing import List, Optional
 
 import numpy as np
-import torch
-from upolygon import draw_polygon
-
 from darwin.cli_functions import _error, _load_client
 from darwin.dataset.identifier import DatasetIdentifier
+from upolygon import draw_polygon
+
+import torch
 
 
 def convert_segmentation_to_mask(segmentations: List[List[float]], height: int, width: int):
@@ -49,6 +49,7 @@ def detectron2_register_dataset(
     split: Optional[str] = "default",
     split_type: Optional[str] = "stratified",
     evaluator_type: Optional[str] = None,
+    annotation_type: str = "polygon",
 ):
     """Registers a local Darwin-formatted dataset in Detectron2
 
@@ -97,7 +98,7 @@ def detectron2_register_dataset(
     catalog_name = f"darwin_{dataset_path.name}"
     if partition:
         catalog_name += f"_{partition}"
-    classes = get_classes(dataset_path, annotation_type="polygon")
+    classes = get_classes(dataset_path, annotation_type=annotation_type)
     DatasetCatalog.register(
         catalog_name,
         lambda partition=partition: list(
@@ -107,7 +108,7 @@ def detectron2_register_dataset(
                 split=split,
                 split_type=split_type,
                 release_name=release_name,
-                annotation_type="polygon",
+                annotation_type=annotation_type,
                 annotation_format="coco",
                 ignore_inconsistent_examples=True,
             )
