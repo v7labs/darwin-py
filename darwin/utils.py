@@ -162,7 +162,31 @@ def get_local_filename(metadata: dict):
     return metadata["filename"]
 
 
-def parse_darwin_json(path: Union[str, Path], count: int):
+def parse_darwin_json(path: Path, count: Optional[int]) -> Optional[dt.AnnotationFile]:
+    """
+    Parses the given JSON file in v7's darwin proprietary format. Works for images, split frame 
+    videos (treated as images) and playback videos.
+
+    Parameters
+    ----------
+    path : Path
+        Path to the file to parse.
+    count : Optional[int]
+        Optional count parameter. Used only if the Annotation's image sequence is None.
+
+    Returns
+    -------
+    Optional[dt.AnnotationFile]
+        An AnnotationFile with the information from the parsed JSON file, or None, if there were no
+        annotations in the JSON.
+
+    Raises 
+    ------
+    OutdatedDarwinJSONFormat
+        If the given darwin video JSON file is missing the 'width' and 'height' keys in the 'image'
+        dictionary.
+    """
+
     path = Path(path)
     with path.open() as f:
         data = json.load(f)
@@ -174,7 +198,7 @@ def parse_darwin_json(path: Union[str, Path], count: int):
             return parse_darwin_image(path, data, count)
 
 
-def parse_darwin_image(path, data, count):
+def parse_darwin_image(path: Path, data: Dict, count: Optional[int]) -> dt.AnnotationFile:
     annotations = list(filter(None, map(parse_darwin_annotation, data["annotations"])))
     annotation_classes = set([annotation.annotation_class for annotation in annotations])
     return dt.AnnotationFile(
@@ -189,11 +213,11 @@ def parse_darwin_image(path, data, count):
         data["image"].get("workview_url"),
         data["image"].get("seq", count),
         None,
-        data["image"].get("path"),
+        data["image"].get("path", "/"),
     )
 
 
-def parse_darwin_video(path, data, count):
+def parse_darwin_video(path: Path, data: Dict, count: Optional[int]) -> dt.AnnotationFile:
     annotations = list(filter(None, map(parse_darwin_video_annotation, data["annotations"])))
     annotation_classes = set([annotation.annotation_class for annotation in annotations])
 
@@ -212,7 +236,7 @@ def parse_darwin_video(path, data, count):
         data["image"].get("workview_url"),
         data["image"].get("seq", count),
         data["image"].get("frame_urls"),
-        data["image"].get("path"),
+        data["image"].get("path", "/"),
     )
 
 
