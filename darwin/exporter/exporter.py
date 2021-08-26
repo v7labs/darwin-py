@@ -16,6 +16,8 @@ def darwin_to_dt_gen(file_paths):
             if data:
                 if data.is_video:
                     for d in split_video_annotation(data):
+                        d.seq = count
+                        count += 1
                         yield d
                 else:
                     yield data
