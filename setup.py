@@ -33,7 +33,7 @@ setuptools.setup(
         "rich",
         "upolygon==0.1.6",
     ],
-    test_requires=["responses"],
+    extras_require={"test": ["responses"]},
     packages=[
         "darwin",
         "darwin.importer",
