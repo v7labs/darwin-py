@@ -1,4 +1,5 @@
 # Darwin
+
 Official library to manage datasets along with
 [V7 Darwin annotation platform](https://darwin.v7labs.com).
 
@@ -19,8 +20,14 @@ Support tested for python 3.8.
 ```
 pip install darwin-py
 ```
+
 You can now type `darwin` in your terminal and access the command line interface.
 
+To run test, first install the `test` extra package
+
+```
+pip install darwin-py[test]
+```
 
 ---
 
@@ -29,7 +36,6 @@ You can now type `darwin` in your terminal and access the command line interface
 Once installed, `darwin` is accessible as a command line tool.
 A useful way to navigate the CLI usage is through the help command `-h/--help` which will
 provide additional information for each command available.
-
 
 ### Client Authentication
 
@@ -52,10 +58,10 @@ default and finally the desired location on the local file system for the datase
 This process will create a configuration file at `~/.darwin/config.yaml`.
 This file will be updated with future authentications for different teams.
 
-
 ### Listing local and remote datasets
 
 Lists a summary of local existing datasets
+
 ```
 $ darwin dataset local
 NAME            IMAGES     SYNC_DATE         SIZE
@@ -70,7 +76,6 @@ NAME                       IMAGES     PROGRESS
 example-team/mydataset     112025        73.0%
 ```
 
-
 ### Create/remove a dataset
 
 To create an empty dataset remotely:
@@ -84,12 +89,12 @@ Access at https://darwin.v7labs.com/datasets/579
 The dataset will be created in the team you're authenticated for.
 
 To delete the project on the server:
+
 ```
 $ darwin dataset remove test
 About to delete example-team/test on darwin.
 Do you want to continue? [y/N] y
 ```
-
 
 ### Upload/download data to/from a remote dataset
 
@@ -103,8 +108,9 @@ e.g.: `-e .jpg`
 For videos, the frame rate extraction rate can be specified by adding `--fps <frame_rate>`
 
 Supported extensions:
--  Video files: [`.mp4`, `.bpm`, `.mov` formats].
--  Image files [`.jpg`, `.jpeg`, `.png` formats].
+
+- Video files: [`.mp4`, `.bpm`, `.mov` formats].
+- Image files [`.jpg`, `.jpeg`, `.png` formats].
 
 ```
 $ darwin dataset push test /path/to/folder/with/images
@@ -112,6 +118,7 @@ $ darwin dataset push test /path/to/folder/with/images
 ```
 
 Before a dataset can be downloaded, a release needs to be generated:
+
 ```
 $ darwin dataset export test 0.1
 Dataset test successfully exported to example-team/test:0.1
@@ -134,8 +141,8 @@ $ darwin dataset pull test:0.1
 Dataset example-team/test:0.1 downloaded at /directory/choosen/at/authentication/time.
 ```
 
-
 ---
+
 ## Usage as a Python library
 
 The framework is designed to be usable as a standalone python library.
@@ -150,6 +157,5 @@ client = Client.local() # use the configuration in ~/.darwin/config.yaml
 dataset = client.get_remote_dataset("example-team/test")
 dataset.pull() # downloads annotations and images for the latest exported version
 ```
-
 
 Follow [this guide](https://docs.v7labs.com/docs/loading-a-dataset-in-python) for how to integrate darwin datasets directly in PyTorch.
