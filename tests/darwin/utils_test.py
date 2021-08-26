@@ -273,51 +273,51 @@ def describe_parse_darwin_json():
                 },
                 "annotations": [
                     {
-                    "bounding_box": {
-                        "h": 547.0,
-                        "w": 1709.0,
-                        "x": 96.0,
-                        "y": 437.0
-                    },
-                    "name": "car",
-                    "polygon": {
-                        "path": [
-                        {
-                            "x": 1805.0,
-                            "y": 586.0
+                        "bounding_box": {
+                            "h": 547.0,
+                            "w": 1709.0,
+                            "x": 96.0,
+                            "y": 437.0
                         },
-                        {
-                            "x": 1802.0,
-                            "y": 586.0
-                        },
-                        {
-                            "x": 1805.0,
-                            "y": 588.0
+                        "name": "car",
+                        "polygon": {
+                            "path": [
+                                {
+                                    "x": 1805.0,
+                                    "y": 586.0
+                                },
+                                {
+                                    "x": 1802.0,
+                                    "y": 586.0
+                                },
+                                {
+                                    "x": 1805.0,
+                                    "y": 588.0
+                                }
+                            ]
                         }
-                        ]
-                    }
                     },
                     {
-                    "name": "wheels",
-                    "skeleton": {
-                        "nodes": [
-                        {
-                            "name": "1",
-                            "occluded": false,
-                            "x": 829.56,
-                            "y": 824.5
-                        },
-                        {
-                            "name": "2",
-                            "occluded": false,
-                            "x": 1670.5,
-                            "y": 741.76
+                        "name": "wheels",
+                        "skeleton": {
+                            "nodes": [
+                                {
+                                    "name": "1",
+                                    "occluded": false,
+                                    "x": 829.56,
+                                    "y": 824.5
+                                },
+                                {
+                                    "name": "2",
+                                    "occluded": false,
+                                    "x": 1670.5,
+                                    "y": 741.76
+                                }
+                            ]
                         }
-                        ]
-                    }
                     }
                 ]
-                }
+            }
             """
 
         directory = tmp_path / "imports"
