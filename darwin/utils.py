@@ -270,9 +270,8 @@ def parse_darwin_annotation(annotation: dict):
         main_annotation = dt.make_ellipse(name, annotation["ellipse"])
     elif "cuboid" in annotation:
         main_annotation = dt.make_cuboid(name, annotation["cuboid"])
-    # TODO
-    # elif "skeleton" in annotation:
-    #     main_annotation = dt.make_skeleton(name, annotation["skeleton"]["nodes"])
+    elif "skeleton" in annotation:
+        main_annotation = dt.make_skeleton(name, annotation["skeleton"]["nodes"])
 
     if not main_annotation:
         print(f"[WARNING] Unsupported annotation type: '{annotation.keys()}'")
