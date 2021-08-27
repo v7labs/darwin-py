@@ -125,6 +125,7 @@ def import_annotations(
         -------
         None
     """
+
     print("Fetching remote class list...")
     team_classes = dataset.fetch_remote_classes(True)
     classes_in_dataset = build_main_annotations_lookup_table([cls for cls in team_classes if cls["available"]])
@@ -165,6 +166,14 @@ def import_annotations(
     print(f"{len(local_classes_not_in_team)} classes needs to be created.")
     print(f"{len(local_classes_not_in_dataset)} classes needs to be added to {dataset.identifier}")
 
+    missing_skeletons: List[dt.AnnotationClass] = list(filter(_is_skeleton_class, local_classes_not_in_team))
+    missing_skeleton_names: str = ", ".join(map(_get_skeleton_name, missing_skeletons))
+    if missing_skeletons:
+        print(
+            f"Found missing skeleton classes: {missing_skeleton_names}. Missing Skeleton classes cannot be created. Exiting now."
+        )
+        return
+
     if local_classes_not_in_team:
         print("About to create the following classes")
         for missing_class in local_classes_not_in_team:
@@ -201,6 +210,14 @@ def import_annotations(
             _import_annotations(
                 dataset.client, image_id, remote_classes, attributes, parsed_file.annotations, dataset, append
             )
+
+
+def _is_skeleton_class(the_class: dt.AnnotationClass) -> bool:
+    return (the_class.annotation_internal_type or the_class.annotation_type) == "skeleton"
+
+
+def _get_skeleton_name(skeleton: dt.AnnotationClass) -> str:
+    return skeleton.name
 
 
 def _handle_subs(annotation, data, annotation_class_id, attributes):
