@@ -1,7 +1,7 @@
 import json
 import platform
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Union
 
 import numpy as np
 from rich.progress import track
@@ -125,7 +125,14 @@ def find_files(
 
 
 def secure_continue_request() -> bool:
-    """Asks for explicit approval from the user. Empty string not accepted"""
+    """
+    Asks for explicit approval from the user. Empty string not accepted
+    
+    Returns
+    -------
+    bool
+        True if the user wishes to continue, False otherwise.
+    """
     return input("Do you want to continue? [y/N] ") in ["Y", "y"]
 
 
@@ -198,9 +205,27 @@ def parse_darwin_json(path: Path, count: Optional[int]) -> Optional[dt.Annotatio
             return parse_darwin_image(path, data, count)
 
 
-def parse_darwin_image(path: Path, data: Dict, count: Optional[int]) -> dt.AnnotationFile:
-    annotations = list(filter(None, map(parse_darwin_annotation, data["annotations"])))
-    annotation_classes = set([annotation.annotation_class for annotation in annotations])
+def parse_darwin_image(path: Path, data: Dict[str, Any], count: Optional[int]) -> dt.AnnotationFile:
+    """
+    Parses the given JSON file in v7's darwin proprietary format. Works only for images.
+
+    Parameters
+    ----------
+    path : Path
+        Path to the file to parse.
+    data : Dict[str, Any]
+        The decoded JSON file in Python format.
+    count : Optional[int]
+        Optional count parameter. Used only if the Annotation's image sequence is None.
+
+    Returns
+    -------
+    dt.AnnotationFile
+        An AnnotationFile with the information from the parsed JSON file.
+    """
+
+    annotations: List[dt.Annotation] = list(filter(None, map(parse_darwin_annotation, data["annotations"])))
+    annotation_classes: Set[dt.AnnotationClass] = set([annotation.annotation_class for annotation in annotations])
     return dt.AnnotationFile(
         path,
         get_local_filename(data["image"]),
@@ -217,9 +242,27 @@ def parse_darwin_image(path: Path, data: Dict, count: Optional[int]) -> dt.Annot
     )
 
 
-def parse_darwin_video(path: Path, data: Dict, count: Optional[int]) -> dt.AnnotationFile:
-    annotations = list(filter(None, map(parse_darwin_video_annotation, data["annotations"])))
-    annotation_classes = set([annotation.annotation_class for annotation in annotations])
+def parse_darwin_video(path: Path, data: Dict[str, Any], count: Optional[int]) -> dt.AnnotationFile:
+    """
+    Parses the given JSON file in v7's darwin proprietary format. Works for playback videos.
+
+    Parameters
+    ----------
+    path : Path
+        Path to the file to parse.
+    data : Dict[str, Any]
+        The decoded JSON file in Python format.
+    count : Optional[int]
+        Optional count parameter. Used only if the data["image"]["seq"] sequence is None.
+
+    Returns
+    -------
+    dt.AnnotationFile
+        An AnnotationFile with the information from the parsed JSON file.
+    """
+
+    annotations: List[dt.VideoAnnotation] = list(filter(None, map(parse_darwin_video_annotation, data["annotations"])))
+    annotation_classes: Set[dt.AnnotationClass] = set([annotation.annotation_class for annotation in annotations])
 
     if "width" not in data["image"] or "height" not in data["image"]:
         raise OutdatedDarwinJSONFormat("Missing width/height in video, please re-export")
@@ -240,7 +283,7 @@ def parse_darwin_video(path: Path, data: Dict, count: Optional[int]) -> dt.Annot
     )
 
 
-def parse_darwin_annotation(annotation: dict):
+def parse_darwin_annotation(annotation: Dict[str, Any]):
     name = annotation["name"]
     main_annotation = None
     if "polygon" in annotation:
@@ -270,9 +313,8 @@ def parse_darwin_annotation(annotation: dict):
         main_annotation = dt.make_ellipse(name, annotation["ellipse"])
     elif "cuboid" in annotation:
         main_annotation = dt.make_cuboid(name, annotation["cuboid"])
-    # TODO
-    # elif "skeleton" in annotation:
-    #     main_annotation = dt.make_skeleton(name, annotation["skeleton"]["nodes"])
+    elif "skeleton" in annotation:
+        main_annotation = dt.make_skeleton(name, annotation["skeleton"]["nodes"])
 
     if not main_annotation:
         print(f"[WARNING] Unsupported annotation type: '{annotation.keys()}'")
