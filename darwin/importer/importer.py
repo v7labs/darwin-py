@@ -166,8 +166,12 @@ def import_annotations(
     print(f"{len(local_classes_not_in_team)} classes needs to be created.")
     print(f"{len(local_classes_not_in_dataset)} classes needs to be added to {dataset.identifier}")
 
-    if filter(_is_skeleton_class, local_classes_not_in_team):
-        print("Found missing skeleton classes. Missing Skeleton classes cannot be created. Exiting now.")
+    missing_skeletons: List[dt.AnnotationClass] = list(filter(_is_skeleton_class, local_classes_not_in_team))
+    missing_skeleton_names: str = ", ".join(map(_get_skeleton_name, missing_skeletons))
+    if missing_skeletons:
+        print(
+            f"Found missing skeleton classes: {missing_skeleton_names}. Missing Skeleton classes cannot be created. Exiting now."
+        )
         return
 
     if local_classes_not_in_team:
@@ -210,6 +214,10 @@ def import_annotations(
 
 def _is_skeleton_class(the_class: dt.AnnotationClass) -> bool:
     return (the_class.annotation_internal_type or the_class.annotation_type) == "skeleton"
+
+
+def _get_skeleton_name(skeleton: dt.AnnotationClass) -> str:
+    return skeleton.name
 
 
 def _handle_subs(annotation, data, annotation_class_id, attributes):
