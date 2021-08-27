@@ -417,6 +417,7 @@ class RemoteDataset:
         ValueError
             If a given annotation type or subtype is unknown.
         """
+
         type_ids: List[int] = []
         for annotation_type in [type] + subtypes:
             type_id: Optional[int] = self.fetch_annotation_type_id_for_name(annotation_type)
