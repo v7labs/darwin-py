@@ -1,0 +1,439 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>darwin.dataset.local_dataset &#8212; darwin-py 0.6.6 documentation</title>
+    
+  <link href="../../../_static/css/theme.css" rel="stylesheet" />
+  <link href="../../../_static/css/index.c5995385ac14fb8791e8eb36b4908be2.css" rel="stylesheet" />
+
+    
+  <link rel="stylesheet"
+    href="../../../_static/vendor/fontawesome/5.13.0/css/all.min.css">
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+    href="../../../_static/vendor/fontawesome/5.13.0/webfonts/fa-solid-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+    href="../../../_static/vendor/fontawesome/5.13.0/webfonts/fa-brands-400.woff2">
+
+    
+      
+
+    
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/sphinx-book-theme.e8f53015daec13862f6db5e763c41738.css" type="text/css" />
+    
+  <link rel="preload" as="script" href="../../../_static/js/index.1c5a1a01449ed65a7b51.js">
+
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/sphinx-book-theme.12a9622fbb08dcb3a2a40b2c02b83a57.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="docsearch:language" content="en" />
+    
+  </head>
+  <body data-spy="scroll" data-target="#bd-toc-nav" data-offset="80">
+    
+    <div class="container-fluid" id="banner"></div>
+
+    
+
+    <div class="container-xl">
+      <div class="row">
+          
+<div class="col-12 col-md-3 bd-sidebar site-navigation show" id="site-navigation">
+    
+        <div class="navbar-brand-box">
+    <a class="navbar-brand text-wrap" href="../../../index.html">
+      
+      
+      <h1 class="site-logo" id="site-title">darwin-py 0.6.6 documentation</h1>
+      
+    </a>
+</div><form class="bd-search d-flex align-items-center" action="../../../search.html" method="get">
+  <i class="icon fas fa-search"></i>
+  <input type="search" class="form-control" name="q" id="search-input" placeholder="Search the docs ..." aria-label="Search the docs ..." autocomplete="off" >
+</form><nav class="bd-links" id="bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item active">
+        
+    </div>
+</nav> <!-- To handle the deprecated key -->
+
+<div class="navbar_extra_footer">
+  Theme by the <a href="https://ebp.jupyterbook.org">Executable Book Project</a>
+</div>
+
+</div>
+
+
+          
+
+
+          
+<main class="col py-md-3 pl-md-4 bd-content overflow-auto" role="main">
+    
+    <div class="topbar container-xl fixed-top">
+    <div class="topbar-contents row">
+        <div class="col-12 col-md-3 bd-topbar-whitespace site-navigation show"></div>
+        <div class="col pl-md-4 topbar-main">
+            
+            <button id="navbar-toggler" class="navbar-toggler ml-0" type="button" data-toggle="collapse"
+                data-toggle="tooltip" data-placement="bottom" data-target=".site-navigation" aria-controls="navbar-menu"
+                aria-expanded="true" aria-label="Toggle navigation" aria-controls="site-navigation"
+                title="Toggle navigation" data-toggle="tooltip" data-placement="left">
+                <i class="fas fa-bars"></i>
+                <i class="fas fa-arrow-left"></i>
+                <i class="fas fa-arrow-up"></i>
+            </button>
+            
+            
+            <!-- Source interaction buttons -->
+
+            <!-- Full screen (wrap in <a> to have style consistency -->
+
+<a class="full-screen-button"><button type="button" class="btn btn-secondary topbarbtn" data-toggle="tooltip"
+        data-placement="bottom" onclick="toggleFullScreen()" aria-label="Fullscreen mode"
+        title="Fullscreen mode"><i
+            class="fas fa-expand"></i></button></a>
+
+            <!-- Launch buttons -->
+
+        </div>
+
+        <!-- Table of contents -->
+        <div class="d-none d-md-block col-md-2 bd-toc show">
+            
+        </div>
+    </div>
+</div>
+    <div id="main-content" class="row">
+        <div class="col-12 col-md-9 pl-md-3 pr-md-0">
+        
+              <div>
+                
+  <h1>Source code for darwin.dataset.local_dataset</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">multiprocessing</span> <span class="k">as</span> <span class="nn">mp</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Collection</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">darwin.dataset.utils</span> <span class="kn">import</span> <span class="n">get_classes</span><span class="p">,</span> <span class="n">get_release_path</span><span class="p">,</span> <span class="n">load_pil_image</span>
+<span class="kn">from</span> <span class="nn">darwin.utils</span> <span class="kn">import</span> <span class="n">SUPPORTED_IMAGE_EXTENSIONS</span>
+
+
+<div class="viewcode-block" id="LocalDataset"><a class="viewcode-back" href="../../../darwin.dataset.html#darwin.dataset.local_dataset.LocalDataset">[docs]</a><span class="k">class</span> <span class="nc">LocalDataset</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">dataset_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
+        <span class="n">annotation_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">partition</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">split</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;default&quot;</span><span class="p">,</span>
+        <span class="n">split_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;random&quot;</span><span class="p">,</span>
+        <span class="n">release_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Creates a dataset</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        dataset_path: Path, str</span>
+<span class="sd">            Path to the location of the dataset on the file system</span>
+<span class="sd">        annotation_type: str</span>
+<span class="sd">            The type of annotation classes [tag, bounding_box, polygon]</span>
+<span class="sd">        partition: str</span>
+<span class="sd">            Selects one of the partitions [train, val, test]</span>
+<span class="sd">        split: str</span>
+<span class="sd">            Selects the split that defines the percentages used (use &#39;default&#39; to select the default split)</span>
+<span class="sd">        split_type: str</span>
+<span class="sd">            Heuristic used to do the split [random, stratified]</span>
+<span class="sd">        release_name: str</span>
+<span class="sd">            Version of the dataset</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="n">dataset_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="n">release_path</span> <span class="o">=</span> <span class="n">get_release_path</span><span class="p">(</span><span class="n">dataset_path</span><span class="p">,</span> <span class="n">release_name</span><span class="p">)</span>
+        <span class="n">annotations_dir</span> <span class="o">=</span> <span class="n">release_path</span> <span class="o">/</span> <span class="s2">&quot;annotations&quot;</span>
+        <span class="k">assert</span> <span class="n">annotations_dir</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
+        <span class="n">images_dir</span> <span class="o">=</span> <span class="n">dataset_path</span> <span class="o">/</span> <span class="s2">&quot;images&quot;</span>
+        <span class="k">assert</span> <span class="n">images_dir</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">partition</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;train&quot;</span><span class="p">,</span> <span class="s2">&quot;val&quot;</span><span class="p">,</span> <span class="s2">&quot;test&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;partition should be either &#39;train&#39;, &#39;val&#39;, or &#39;test&#39;&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">split_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;random&quot;</span><span class="p">,</span> <span class="s2">&quot;stratified&quot;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;split_type should be either &#39;random&#39;, &#39;stratified&#39;&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">annotation_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;tag&quot;</span><span class="p">,</span> <span class="s2">&quot;polygon&quot;</span><span class="p">,</span> <span class="s2">&quot;bounding_box&quot;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;annotation_type should be either &#39;tag&#39;, &#39;bounding_box&#39;, or &#39;polygon&#39;&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataset_path</span> <span class="o">=</span> <span class="n">dataset_path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">annotation_type</span> <span class="o">=</span> <span class="n">annotation_type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">images_path</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">annotations_path</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">original_classes</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">original_images_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Path</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">original_annotations_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Path</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># Get the list of classes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">classes</span> <span class="o">=</span> <span class="n">get_classes</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dataset_path</span><span class="p">,</span> <span class="n">release_name</span><span class="p">,</span> <span class="n">annotation_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">annotation_type</span><span class="p">,</span> <span class="n">remove_background</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_classes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">classes</span><span class="p">)</span>
+
+        <span class="c1"># Get the list of stems</span>
+        <span class="k">if</span> <span class="n">partition</span><span class="p">:</span>
+            <span class="c1"># Get the split</span>
+            <span class="k">if</span> <span class="n">split_type</span> <span class="o">==</span> <span class="s2">&quot;random&quot;</span><span class="p">:</span>
+                <span class="n">split_file</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">split_type</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">partition</span><span class="si">}</span><span class="s2">.txt&quot;</span>
+            <span class="k">elif</span> <span class="n">split_type</span> <span class="o">==</span> <span class="s2">&quot;stratified&quot;</span><span class="p">:</span>
+                <span class="n">split_file</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">split_type</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">annotation_type</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">partition</span><span class="si">}</span><span class="s2">.txt&quot;</span>
+            <span class="n">split_path</span> <span class="o">=</span> <span class="n">release_path</span> <span class="o">/</span> <span class="s2">&quot;lists&quot;</span> <span class="o">/</span> <span class="n">split</span> <span class="o">/</span> <span class="n">split_file</span>
+            <span class="k">if</span> <span class="n">split_path</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
+                <span class="n">stems</span> <span class="o">=</span> <span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">split_path</span><span class="o">.</span><span class="n">open</span><span class="p">())</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;could not find a dataset partition. &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;Split the dataset using `split_dataset()` from `darwin.dataset.split_manager`&quot;</span>
+                <span class="p">)</span> <span class="kn">from</span> <span class="bp">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># If the partition is not specified, get all the annotations</span>
+            <span class="n">stems</span> <span class="o">=</span> <span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">relative_to</span><span class="p">(</span><span class="n">annotations_dir</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="n">e</span><span class="o">.</span><span class="n">stem</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">annotations_dir</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;**/*.json&quot;</span><span class="p">))</span>
+
+        <span class="c1"># Find all the annotations and their corresponding images</span>
+        <span class="k">for</span> <span class="n">stem</span> <span class="ow">in</span> <span class="n">stems</span><span class="p">:</span>
+            <span class="n">annotation_path</span> <span class="o">=</span> <span class="n">annotations_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">stem</span><span class="si">}</span><span class="s2">.json&quot;</span>
+            <span class="n">images</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">ext</span> <span class="ow">in</span> <span class="n">SUPPORTED_IMAGE_EXTENSIONS</span><span class="p">:</span>
+                <span class="n">image_path</span> <span class="o">=</span> <span class="n">images_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">stem</span><span class="si">}{</span><span class="n">ext</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="k">if</span> <span class="n">image_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                    <span class="n">images</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">image_path</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">images</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Annotation (</span><span class="si">{</span><span class="n">annotation_path</span><span class="si">}</span><span class="s2">) does not have a corresponding image&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">images</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Image (</span><span class="si">{</span><span class="n">stem</span><span class="si">}</span><span class="s2">) is present with multiple extensions. This is forbidden.&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">images</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">images_path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">images</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">annotations_path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">annotation_path</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">images_path</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Could not find any </span><span class="si">{</span><span class="n">SUPPORTED_IMAGE_EXTENSIONS</span><span class="si">}</span><span class="s2"> file&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot; in </span><span class="si">{</span><span class="n">images_dir</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">images_path</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">annotations_path</span><span class="p">)</span>
+
+<div class="viewcode-block" id="LocalDataset.get_img_info"><a class="viewcode-back" href="../../../darwin.dataset.html#darwin.dataset.local_dataset.LocalDataset.get_img_info">[docs]</a>    <span class="k">def</span> <span class="nf">get_img_info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">annotations_path</span><span class="p">[</span><span class="n">index</span><span class="p">]</span><span class="o">.</span><span class="n">open</span><span class="p">()</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)[</span><span class="s2">&quot;image&quot;</span><span class="p">]</span>
+            <span class="k">return</span> <span class="n">data</span></div>
+
+<div class="viewcode-block" id="LocalDataset.get_height_and_width"><a class="viewcode-back" href="../../../darwin.dataset.html#darwin.dataset.local_dataset.LocalDataset.get_height_and_width">[docs]</a>    <span class="k">def</span> <span class="nf">get_height_and_width</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_img_info</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;height&quot;</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;width&quot;</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="LocalDataset.extend"><a class="viewcode-back" href="../../../darwin.dataset.html#darwin.dataset.local_dataset.LocalDataset.extend">[docs]</a>    <span class="k">def</span> <span class="nf">extend</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">extend_classes</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Extends the current dataset with another one</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        dataset : Dataset</span>
+<span class="sd">            Dataset to merge</span>
+<span class="sd">        extend_classes : bool</span>
+<span class="sd">            Extend the current set of classes by merging with the passed dataset ones</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Dataset</span>
+<span class="sd">            self</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">annotation_type</span> <span class="o">!=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">annotation_type</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Annotation type of both datasets should match&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">classes</span> <span class="o">!=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">classes</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">extend_classes</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Operation dataset_a + dataset_b could not be computed: classes &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;should match. Use flag extend_classes=True to combine both lists &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;of classes.&quot;</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">classes</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">classes</span><span class="p">)</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">classes</span><span class="p">)))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">original_images_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">images_path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">images_path</span> <span class="o">+=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">images_path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">original_annotations_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">annotations_path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">annotations_path</span> <span class="o">+=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">annotations_path</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+<div class="viewcode-block" id="LocalDataset.get_image"><a class="viewcode-back" href="../../../darwin.dataset.html#darwin.dataset.local_dataset.LocalDataset.get_image">[docs]</a>    <span class="k">def</span> <span class="nf">get_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">load_pil_image</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">images_path</span><span class="p">[</span><span class="n">index</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="LocalDataset.get_image_path"><a class="viewcode-back" href="../../../darwin.dataset.html#darwin.dataset.local_dataset.LocalDataset.get_image_path">[docs]</a>    <span class="k">def</span> <span class="nf">get_image_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">images_path</span><span class="p">[</span><span class="n">index</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="LocalDataset.parse_json"><a class="viewcode-back" href="../../../darwin.dataset.html#darwin.dataset.local_dataset.LocalDataset.parse_json">[docs]</a>    <span class="k">def</span> <span class="nf">parse_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load an annotation and filter out the extra classes according to what</span>
+<span class="sd">        specified in `self.classes` and the annotation_type</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        index : int</span>
+<span class="sd">            Index of the annotation to read</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict</span>
+<span class="sd">        A new dictionary containing the index and the filtered annotation</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">annotations_path</span><span class="p">[</span><span class="n">index</span><span class="p">]</span><span class="o">.</span><span class="n">open</span><span class="p">()</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+        <span class="c1"># Filter out unused classes and annotations of a different type</span>
+        <span class="n">annotations</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;annotations&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">classes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">annotations</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">annotations</span> <span class="k">if</span> <span class="n">a</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">classes</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">annotation_type</span> <span class="ow">in</span> <span class="n">a</span><span class="p">]</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;image_id&quot;</span><span class="p">:</span> <span class="n">index</span><span class="p">,</span>
+            <span class="s2">&quot;image_path&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">images_path</span><span class="p">[</span><span class="n">index</span><span class="p">]),</span>
+            <span class="s2">&quot;height&quot;</span><span class="p">:</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;image&quot;</span><span class="p">][</span><span class="s2">&quot;height&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;image&quot;</span><span class="p">][</span><span class="s2">&quot;width&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;annotations&quot;</span><span class="p">:</span> <span class="n">annotations</span><span class="p">,</span>
+        <span class="p">}</span></div>
+
+<div class="viewcode-block" id="LocalDataset.measure_mean_std"><a class="viewcode-back" href="../../../darwin.dataset.html#darwin.dataset.local_dataset.LocalDataset.measure_mean_std">[docs]</a>    <span class="k">def</span> <span class="nf">measure_mean_std</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">multi_threaded</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Computes mean and std of train images, given the train loader</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        multi_threaded : bool</span>
+<span class="sd">            Uses multiprocessing to download the dataset in parallel.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        mean : ndarray[double]</span>
+<span class="sd">            Mean value (for each channel) of all pixels of the images in the input folder</span>
+<span class="sd">        std : ndarray[double]</span>
+<span class="sd">            Standard deviation (for each channel) of all pixels of the images in the input folder</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">multi_threaded</span><span class="p">:</span>
+            <span class="c1"># Set up a pool of workers</span>
+            <span class="k">with</span> <span class="n">mp</span><span class="o">.</span><span class="n">Pool</span><span class="p">(</span><span class="n">mp</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">())</span> <span class="k">as</span> <span class="n">pool</span><span class="p">:</span>
+                <span class="c1"># Online mean</span>
+                <span class="n">results</span> <span class="o">=</span> <span class="n">pool</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_return_mean</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">images_path</span><span class="p">)</span>
+                <span class="n">mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">results</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">images_path</span><span class="p">)</span>
+                <span class="c1"># Online image_classification deviation</span>
+                <span class="n">results</span> <span class="o">=</span> <span class="n">pool</span><span class="o">.</span><span class="n">starmap</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_return_std</span><span class="p">,</span> <span class="p">[[</span><span class="n">item</span><span class="p">,</span> <span class="n">mean</span><span class="p">]</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">images_path</span><span class="p">])</span>
+                <span class="n">std_sum</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">item</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">results</span><span class="p">]),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                <span class="n">total_pixel_count</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">item</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">results</span><span class="p">]))</span>
+                <span class="n">std</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">std_sum</span> <span class="o">/</span> <span class="n">total_pixel_count</span><span class="p">)</span>
+                <span class="c1"># Shut down the pool</span>
+                <span class="n">pool</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+                <span class="n">pool</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+            <span class="k">return</span> <span class="n">mean</span><span class="p">,</span> <span class="n">std</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Online mean</span>
+            <span class="n">results</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_return_mean</span><span class="p">(</span><span class="n">f</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">images_path</span><span class="p">]</span>
+            <span class="n">mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">results</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">images_path</span><span class="p">)</span>
+            <span class="c1"># Online image_classification deviation</span>
+            <span class="n">results</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_return_std</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">mean</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">images_path</span><span class="p">]</span>
+            <span class="n">std_sum</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">item</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">results</span><span class="p">]),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">total_pixel_count</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">item</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">results</span><span class="p">]))</span>
+            <span class="n">std</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">std_sum</span> <span class="o">/</span> <span class="n">total_pixel_count</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">mean</span><span class="p">,</span> <span class="n">std</span></div>
+
+<div class="viewcode-block" id="LocalDataset.measure_weights"><a class="viewcode-back" href="../../../darwin.dataset.html#darwin.dataset.local_dataset.LocalDataset.measure_weights">[docs]</a>    <span class="k">def</span> <span class="nf">measure_weights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Computes the class balancing weights (not the frequencies!!) given the train loader</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        class_weights : ndarray[double]</span>
+<span class="sd">            Weight for each class in the train set (one for each class)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Base class Dataset does not have an implementation for this&quot;</span><span class="p">)</span></div>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_compute_weights</span><span class="p">(</span><span class="n">labels</span><span class="p">:</span> <span class="n">Collection</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Given an array of labels computes the weights normalized</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        labels : ndarray[int]</span>
+<span class="sd">            Array of labels</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ndarray[float]</span>
+<span class="sd">            Array of weights (one for each unique class) which are the inverse of their frequency</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">class_support</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">return_counts</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">class_frequencies</span> <span class="o">=</span> <span class="n">class_support</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span>
+        <span class="c1"># Class weights are the inverse of the class frequencies</span>
+        <span class="n">class_weights</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">class_frequencies</span>
+        <span class="c1"># Normalize vector to sum up to 1.0 (in case the Loss function does not do it)</span>
+        <span class="n">class_weights</span> <span class="o">/=</span> <span class="n">class_weights</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">class_weights</span>
+
+    <span class="c1"># Loads an image with Pillow and returns the channel wise means of the image.</span>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_return_mean</span><span class="p">(</span><span class="n">image_path</span><span class="p">):</span>
+        <span class="n">img</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">load_pil_image</span><span class="p">(</span><span class="n">image_path</span><span class="p">))</span>
+        <span class="n">mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">img</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">img</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">1</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">img</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">2</span><span class="p">])])</span>
+        <span class="k">return</span> <span class="n">mean</span> <span class="o">/</span> <span class="mf">255.0</span>
+
+    <span class="c1"># Loads an image with OpenCV and returns the channel wise std of the image.</span>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_return_std</span><span class="p">(</span><span class="n">image_path</span><span class="p">,</span> <span class="n">mean</span><span class="p">):</span>
+        <span class="n">img</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">load_pil_image</span><span class="p">(</span><span class="n">image_path</span><span class="p">))</span> <span class="o">/</span> <span class="mf">255.0</span>
+        <span class="n">m2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">img</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">mean</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">img</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">mean</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">img</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">mean</span><span class="p">[</span><span class="mi">2</span><span class="p">]]))</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">m2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="mi">1</span><span class="p">),</span> <span class="n">m2</span><span class="o">.</span><span class="n">size</span> <span class="o">/</span> <span class="mf">3.0</span>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="n">img</span> <span class="o">=</span> <span class="n">load_pil_image</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">images_path</span><span class="p">[</span><span class="n">index</span><span class="p">])</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parse_json</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">img</span><span class="p">,</span> <span class="n">target</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">images_path</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">():</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;  Root: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_path</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;  Number of images: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">images_path</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;  Number of classes: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">classes</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span></div>
+</pre></div>
+
+              </div>
+              
+        
+            
+
+
+
+<div class='prev-next-bottom'>
+    
+
+</div>
+        
+        </div>
+    </div>
+    <footer class="footer mt-5 mt-md-0">
+    <div class="container">
+      <p>
+        
+          By V7<br/>
+        
+            &copy; Copyright MIT License.<br/>
+      </p>
+    </div>
+  </footer>
+</main>
+
+
+      </div>
+    </div>
+  
+  <script src="../../../_static/js/index.1c5a1a01449ed65a7b51.js"></script>
+
+  
+  </body>
+</html>

@@ -1,0 +1,512 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>darwin.exporter.formats package &#8212; darwin-py 0.6.6 documentation</title>
+    
+  <link href="_static/css/theme.css" rel="stylesheet" />
+  <link href="_static/css/index.c5995385ac14fb8791e8eb36b4908be2.css" rel="stylesheet" />
+
+    
+  <link rel="stylesheet"
+    href="_static/vendor/fontawesome/5.13.0/css/all.min.css">
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+    href="_static/vendor/fontawesome/5.13.0/webfonts/fa-solid-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+    href="_static/vendor/fontawesome/5.13.0/webfonts/fa-brands-400.woff2">
+
+    
+      
+
+    
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/sphinx-book-theme.e8f53015daec13862f6db5e763c41738.css" type="text/css" />
+    
+  <link rel="preload" as="script" href="_static/js/index.1c5a1a01449ed65a7b51.js">
+
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/sphinx-book-theme.12a9622fbb08dcb3a2a40b2c02b83a57.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="docsearch:language" content="en" />
+    
+  </head>
+  <body data-spy="scroll" data-target="#bd-toc-nav" data-offset="80">
+    
+    <div class="container-fluid" id="banner"></div>
+
+    
+
+    <div class="container-xl">
+      <div class="row">
+          
+<div class="col-12 col-md-3 bd-sidebar site-navigation show" id="site-navigation">
+    
+        <div class="navbar-brand-box">
+    <a class="navbar-brand text-wrap" href="index.html">
+      
+      
+      <h1 class="site-logo" id="site-title">darwin-py 0.6.6 documentation</h1>
+      
+    </a>
+</div><form class="bd-search d-flex align-items-center" action="search.html" method="get">
+  <i class="icon fas fa-search"></i>
+  <input type="search" class="form-control" name="q" id="search-input" placeholder="Search the docs ..." aria-label="Search the docs ..." autocomplete="off" >
+</form><nav class="bd-links" id="bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item active">
+        
+    </div>
+</nav> <!-- To handle the deprecated key -->
+
+<div class="navbar_extra_footer">
+  Theme by the <a href="https://ebp.jupyterbook.org">Executable Book Project</a>
+</div>
+
+</div>
+
+
+          
+
+
+          
+<main class="col py-md-3 pl-md-4 bd-content overflow-auto" role="main">
+    
+    <div class="topbar container-xl fixed-top">
+    <div class="topbar-contents row">
+        <div class="col-12 col-md-3 bd-topbar-whitespace site-navigation show"></div>
+        <div class="col pl-md-4 topbar-main">
+            
+            <button id="navbar-toggler" class="navbar-toggler ml-0" type="button" data-toggle="collapse"
+                data-toggle="tooltip" data-placement="bottom" data-target=".site-navigation" aria-controls="navbar-menu"
+                aria-expanded="true" aria-label="Toggle navigation" aria-controls="site-navigation"
+                title="Toggle navigation" data-toggle="tooltip" data-placement="left">
+                <i class="fas fa-bars"></i>
+                <i class="fas fa-arrow-left"></i>
+                <i class="fas fa-arrow-up"></i>
+            </button>
+            
+            
+<div class="dropdown-buttons-trigger">
+    <button id="dropdown-buttons-trigger" class="btn btn-secondary topbarbtn" aria-label="Download this page"><i
+            class="fas fa-download"></i></button>
+
+    <div class="dropdown-buttons">
+        <!-- ipynb file if we had a myst markdown file -->
+        
+        <!-- Download raw file -->
+        <a class="dropdown-buttons" href="_sources/darwin.exporter.formats.rst.txt"><button type="button"
+                class="btn btn-secondary topbarbtn" title="Download source file" data-toggle="tooltip"
+                data-placement="left">.rst</button></a>
+        <!-- Download PDF via print -->
+        <button type="button" id="download-print" class="btn btn-secondary topbarbtn" title="Print to PDF"
+            onClick="window.print()" data-toggle="tooltip" data-placement="left">.pdf</button>
+    </div>
+</div>
+
+            <!-- Source interaction buttons -->
+
+            <!-- Full screen (wrap in <a> to have style consistency -->
+
+<a class="full-screen-button"><button type="button" class="btn btn-secondary topbarbtn" data-toggle="tooltip"
+        data-placement="bottom" onclick="toggleFullScreen()" aria-label="Fullscreen mode"
+        title="Fullscreen mode"><i
+            class="fas fa-expand"></i></button></a>
+
+            <!-- Launch buttons -->
+
+        </div>
+
+        <!-- Table of contents -->
+        <div class="d-none d-md-block col-md-2 bd-toc show">
+            
+            <div class="tocsection onthispage pt-5 pb-3">
+                <i class="fas fa-list"></i> Contents
+            </div>
+            <nav id="bd-toc-nav" aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#submodules">
+   Submodules
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#module-darwin.exporter.formats.coco">
+   darwin.exporter.formats.coco module
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#module-darwin.exporter.formats.cvat">
+   darwin.exporter.formats.cvat module
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#module-darwin.exporter.formats.darwin">
+   darwin.exporter.formats.darwin module
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#module-darwin.exporter.formats.dataloop">
+   darwin.exporter.formats.dataloop module
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#module-darwin.exporter.formats.instance_mask">
+   darwin.exporter.formats.instance_mask module
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#module-darwin.exporter.formats.pascalvoc">
+   darwin.exporter.formats.pascalvoc module
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#module-darwin.exporter.formats.semantic_mask">
+   darwin.exporter.formats.semantic_mask module
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#module-darwin.exporter.formats">
+   Module contents
+  </a>
+ </li>
+</ul>
+
+            </nav>
+        </div>
+    </div>
+</div>
+    <div id="main-content" class="row">
+        <div class="col-12 col-md-9 pl-md-3 pr-md-0">
+        
+              <div>
+                
+  <div class="section" id="darwin-exporter-formats-package">
+<h1>darwin.exporter.formats package<a class="headerlink" href="#darwin-exporter-formats-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-darwin.exporter.formats.coco">
+<span id="darwin-exporter-formats-coco-module"></span><h2>darwin.exporter.formats.coco module<a class="headerlink" href="#module-darwin.exporter.formats.coco" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="darwin.exporter.formats.coco.NumpyEncoder">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">darwin.exporter.formats.coco.</span></code><code class="sig-name descname"><span class="pre">NumpyEncoder</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skipkeys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ensure_ascii</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">check_circular</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_nan</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sort_keys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">indent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">separators</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/exporter/formats/coco.html#NumpyEncoder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.exporter.formats.coco.NumpyEncoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">json.encoder.JSONEncoder</span></code></p>
+<dl class="py method">
+<dt id="darwin.exporter.formats.coco.NumpyEncoder.default">
+<code class="sig-name descname"><span class="pre">default</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/exporter/formats/coco.html#NumpyEncoder.default"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.exporter.formats.coco.NumpyEncoder.default" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implement this method in a subclass such that it returns
+a serializable object for <code class="docutils literal notranslate"><span class="pre">o</span></code>, or calls the base implementation
+(to raise a <code class="docutils literal notranslate"><span class="pre">TypeError</span></code>).</p>
+<p>For example, to support arbitrary iterators, you could
+implement default like this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">default</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">o</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">iterable</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="n">o</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+        <span class="k">pass</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">iterable</span><span class="p">)</span>
+    <span class="c1"># Let the base class default method raise the TypeError</span>
+    <span class="k">return</span> <span class="n">JSONEncoder</span><span class="o">.</span><span class="n">default</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">o</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="darwin.exporter.formats.coco.build_annotation">
+<code class="sig-prename descclassname"><span class="pre">darwin.exporter.formats.coco.</span></code><code class="sig-name descname"><span class="pre">build_annotation</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotation_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotation_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotation</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="darwin.html#darwin.datatypes.Annotation" title="darwin.datatypes.Annotation"><span class="pre">darwin.datatypes.Annotation</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">categories</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/exporter/formats/coco.html#build_annotation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.exporter.formats.coco.build_annotation" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="darwin.exporter.formats.coco.build_annotations">
+<code class="sig-prename descclassname"><span class="pre">darwin.exporter.formats.coco.</span></code><code class="sig-name descname"><span class="pre">build_annotations</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotation_files</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">categories</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/exporter/formats/coco.html#build_annotations"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.exporter.formats.coco.build_annotations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="darwin.exporter.formats.coco.build_categories">
+<code class="sig-prename descclassname"><span class="pre">darwin.exporter.formats.coco.</span></code><code class="sig-name descname"><span class="pre">build_categories</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">categories</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/exporter/formats/coco.html#build_categories"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.exporter.formats.coco.build_categories" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="darwin.exporter.formats.coco.build_extra">
+<code class="sig-prename descclassname"><span class="pre">darwin.exporter.formats.coco.</span></code><code class="sig-name descname"><span class="pre">build_extra</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotation</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/exporter/formats/coco.html#build_extra"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.exporter.formats.coco.build_extra" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="darwin.exporter.formats.coco.build_image">
+<code class="sig-prename descclassname"><span class="pre">darwin.exporter.formats.coco.</span></code><code class="sig-name descname"><span class="pre">build_image</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotation_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tag_categories</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/exporter/formats/coco.html#build_image"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.exporter.formats.coco.build_image" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="darwin.exporter.formats.coco.build_images">
+<code class="sig-prename descclassname"><span class="pre">darwin.exporter.formats.coco.</span></code><code class="sig-name descname"><span class="pre">build_images</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotation_files</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tag_categories</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/exporter/formats/coco.html#build_images"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.exporter.formats.coco.build_images" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="darwin.exporter.formats.coco.build_info">
+<code class="sig-prename descclassname"><span class="pre">darwin.exporter.formats.coco.</span></code><code class="sig-name descname"><span class="pre">build_info</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/exporter/formats/coco.html#build_info"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.exporter.formats.coco.build_info" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="darwin.exporter.formats.coco.build_json">
+<code class="sig-prename descclassname"><span class="pre">darwin.exporter.formats.coco.</span></code><code class="sig-name descname"><span class="pre">build_json</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotation_files</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/exporter/formats/coco.html#build_json"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.exporter.formats.coco.build_json" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="darwin.exporter.formats.coco.build_licenses">
+<code class="sig-prename descclassname"><span class="pre">darwin.exporter.formats.coco.</span></code><code class="sig-name descname"><span class="pre">build_licenses</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/exporter/formats/coco.html#build_licenses"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.exporter.formats.coco.build_licenses" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="darwin.exporter.formats.coco.build_tag_categories">
+<code class="sig-prename descclassname"><span class="pre">darwin.exporter.formats.coco.</span></code><code class="sig-name descname"><span class="pre">build_tag_categories</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">categories</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/exporter/formats/coco.html#build_tag_categories"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.exporter.formats.coco.build_tag_categories" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="darwin.exporter.formats.coco.calculate_categories">
+<code class="sig-prename descclassname"><span class="pre">darwin.exporter.formats.coco.</span></code><code class="sig-name descname"><span class="pre">calculate_categories</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotation_files</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="darwin.html#darwin.datatypes.AnnotationFile" title="darwin.datatypes.AnnotationFile"><span class="pre">darwin.datatypes.AnnotationFile</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/exporter/formats/coco.html#calculate_categories"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.exporter.formats.coco.calculate_categories" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="darwin.exporter.formats.coco.calculate_tag_categories">
+<code class="sig-prename descclassname"><span class="pre">darwin.exporter.formats.coco.</span></code><code class="sig-name descname"><span class="pre">calculate_tag_categories</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotation_files</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="darwin.html#darwin.datatypes.AnnotationFile" title="darwin.datatypes.AnnotationFile"><span class="pre">darwin.datatypes.AnnotationFile</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/exporter/formats/coco.html#calculate_tag_categories"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.exporter.formats.coco.calculate_tag_categories" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="darwin.exporter.formats.coco.export">
+<code class="sig-prename descclassname"><span class="pre">darwin.exporter.formats.coco.</span></code><code class="sig-name descname"><span class="pre">export</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotation_files</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Generator</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="darwin.html#darwin.datatypes.AnnotationFile" title="darwin.datatypes.AnnotationFile"><span class="pre">darwin.datatypes.AnnotationFile</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">None</span><span class="p"><span class="pre">,</span> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dir</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">pathlib.Path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/exporter/formats/coco.html#export"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.exporter.formats.coco.export" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="darwin.exporter.formats.coco.polygon_area">
+<code class="sig-prename descclassname"><span class="pre">darwin.exporter.formats.coco.</span></code><code class="sig-name descname"><span class="pre">polygon_area</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">float</span><a class="reference internal" href="_modules/darwin/exporter/formats/coco.html#polygon_area"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.exporter.formats.coco.polygon_area" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the area of the input polygon, represented with two numpy arrays
+for x and y coordinates.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-darwin.exporter.formats.cvat">
+<span id="darwin-exporter-formats-cvat-module"></span><h2>darwin.exporter.formats.cvat module<a class="headerlink" href="#module-darwin.exporter.formats.cvat" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="darwin.exporter.formats.cvat.add_subelement_text">
+<code class="sig-prename descclassname"><span class="pre">darwin.exporter.formats.cvat.</span></code><code class="sig-name descname"><span class="pre">add_subelement_text</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parent</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/exporter/formats/cvat.html#add_subelement_text"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.exporter.formats.cvat.add_subelement_text" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="darwin.exporter.formats.cvat.build_annotation">
+<code class="sig-prename descclassname"><span class="pre">darwin.exporter.formats.cvat.</span></code><code class="sig-name descname"><span class="pre">build_annotation</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotation</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/exporter/formats/cvat.html#build_annotation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.exporter.formats.cvat.build_annotation" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="darwin.exporter.formats.cvat.build_attributes">
+<code class="sig-prename descclassname"><span class="pre">darwin.exporter.formats.cvat.</span></code><code class="sig-name descname"><span class="pre">build_attributes</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">box</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotation</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/exporter/formats/cvat.html#build_attributes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.exporter.formats.cvat.build_attributes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="darwin.exporter.formats.cvat.build_images">
+<code class="sig-prename descclassname"><span class="pre">darwin.exporter.formats.cvat.</span></code><code class="sig-name descname"><span class="pre">build_images</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">root</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotation_files</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label_lookup</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/exporter/formats/cvat.html#build_images"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.exporter.formats.cvat.build_images" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="darwin.exporter.formats.cvat.build_label_lookup">
+<code class="sig-prename descclassname"><span class="pre">darwin.exporter.formats.cvat.</span></code><code class="sig-name descname"><span class="pre">build_label_lookup</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotation_files</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/exporter/formats/cvat.html#build_label_lookup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.exporter.formats.cvat.build_label_lookup" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="darwin.exporter.formats.cvat.build_labels">
+<code class="sig-prename descclassname"><span class="pre">darwin.exporter.formats.cvat.</span></code><code class="sig-name descname"><span class="pre">build_labels</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label_lookup</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/exporter/formats/cvat.html#build_labels"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.exporter.formats.cvat.build_labels" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="darwin.exporter.formats.cvat.build_meta">
+<code class="sig-prename descclassname"><span class="pre">darwin.exporter.formats.cvat.</span></code><code class="sig-name descname"><span class="pre">build_meta</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">root</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotation_files</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label_lookup</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/exporter/formats/cvat.html#build_meta"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.exporter.formats.cvat.build_meta" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="darwin.exporter.formats.cvat.build_segments">
+<code class="sig-prename descclassname"><span class="pre">darwin.exporter.formats.cvat.</span></code><code class="sig-name descname"><span class="pre">build_segments</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">segments</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotation_files</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/exporter/formats/cvat.html#build_segments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.exporter.formats.cvat.build_segments" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="darwin.exporter.formats.cvat.build_xml">
+<code class="sig-prename descclassname"><span class="pre">darwin.exporter.formats.cvat.</span></code><code class="sig-name descname"><span class="pre">build_xml</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotation_files</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/exporter/formats/cvat.html#build_xml"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.exporter.formats.cvat.build_xml" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="darwin.exporter.formats.cvat.export">
+<code class="sig-prename descclassname"><span class="pre">darwin.exporter.formats.cvat.</span></code><code class="sig-name descname"><span class="pre">export</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotation_files</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Generator</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="darwin.html#darwin.datatypes.AnnotationFile" title="darwin.datatypes.AnnotationFile"><span class="pre">darwin.datatypes.AnnotationFile</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">None</span><span class="p"><span class="pre">,</span> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dir</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">pathlib.Path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/exporter/formats/cvat.html#export"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.exporter.formats.cvat.export" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-darwin.exporter.formats.darwin">
+<span id="darwin-exporter-formats-darwin-module"></span><h2>darwin.exporter.formats.darwin module<a class="headerlink" href="#module-darwin.exporter.formats.darwin" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="darwin.exporter.formats.darwin.build_annotation_data">
+<code class="sig-prename descclassname"><span class="pre">darwin.exporter.formats.darwin.</span></code><code class="sig-name descname"><span class="pre">build_annotation_data</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotation</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="darwin.html#darwin.datatypes.Annotation" title="darwin.datatypes.Annotation"><span class="pre">darwin.datatypes.Annotation</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/exporter/formats/darwin.html#build_annotation_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.exporter.formats.darwin.build_annotation_data" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="darwin.exporter.formats.darwin.build_image_annotation">
+<code class="sig-prename descclassname"><span class="pre">darwin.exporter.formats.darwin.</span></code><code class="sig-name descname"><span class="pre">build_image_annotation</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotation_file</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="darwin.html#darwin.datatypes.AnnotationFile" title="darwin.datatypes.AnnotationFile"><span class="pre">darwin.datatypes.AnnotationFile</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/exporter/formats/darwin.html#build_image_annotation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.exporter.formats.darwin.build_image_annotation" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-darwin.exporter.formats.dataloop">
+<span id="darwin-exporter-formats-dataloop-module"></span><h2>darwin.exporter.formats.dataloop module<a class="headerlink" href="#module-darwin.exporter.formats.dataloop" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="darwin.exporter.formats.dataloop.NumpyEncoder">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">darwin.exporter.formats.dataloop.</span></code><code class="sig-name descname"><span class="pre">NumpyEncoder</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skipkeys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ensure_ascii</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">check_circular</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_nan</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sort_keys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">indent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">separators</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/exporter/formats/dataloop.html#NumpyEncoder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.exporter.formats.dataloop.NumpyEncoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">json.encoder.JSONEncoder</span></code></p>
+<dl class="py method">
+<dt id="darwin.exporter.formats.dataloop.NumpyEncoder.default">
+<code class="sig-name descname"><span class="pre">default</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/exporter/formats/dataloop.html#NumpyEncoder.default"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.exporter.formats.dataloop.NumpyEncoder.default" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implement this method in a subclass such that it returns
+a serializable object for <code class="docutils literal notranslate"><span class="pre">o</span></code>, or calls the base implementation
+(to raise a <code class="docutils literal notranslate"><span class="pre">TypeError</span></code>).</p>
+<p>For example, to support arbitrary iterators, you could
+implement default like this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">default</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">o</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">iterable</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="n">o</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+        <span class="k">pass</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">iterable</span><span class="p">)</span>
+    <span class="c1"># Let the base class default method raise the TypeError</span>
+    <span class="k">return</span> <span class="n">JSONEncoder</span><span class="o">.</span><span class="n">default</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">o</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="darwin.exporter.formats.dataloop.build_annotations">
+<code class="sig-prename descclassname"><span class="pre">darwin.exporter.formats.dataloop.</span></code><code class="sig-name descname"><span class="pre">build_annotations</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotation_file</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="darwin.html#darwin.datatypes.AnnotationFile" title="darwin.datatypes.AnnotationFile"><span class="pre">darwin.datatypes.AnnotationFile</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">id</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/exporter/formats/dataloop.html#build_annotations"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.exporter.formats.dataloop.build_annotations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="darwin.exporter.formats.dataloop.build_json">
+<code class="sig-prename descclassname"><span class="pre">darwin.exporter.formats.dataloop.</span></code><code class="sig-name descname"><span class="pre">build_json</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotation_file</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="darwin.html#darwin.datatypes.AnnotationFile" title="darwin.datatypes.AnnotationFile"><span class="pre">darwin.datatypes.AnnotationFile</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">id</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/exporter/formats/dataloop.html#build_json"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.exporter.formats.dataloop.build_json" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="darwin.exporter.formats.dataloop.export">
+<code class="sig-prename descclassname"><span class="pre">darwin.exporter.formats.dataloop.</span></code><code class="sig-name descname"><span class="pre">export</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotation_files</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dir</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/exporter/formats/dataloop.html#export"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.exporter.formats.dataloop.export" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="darwin.exporter.formats.dataloop.export_file">
+<code class="sig-prename descclassname"><span class="pre">darwin.exporter.formats.dataloop.</span></code><code class="sig-name descname"><span class="pre">export_file</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotation_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dir</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/exporter/formats/dataloop.html#export_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.exporter.formats.dataloop.export_file" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-darwin.exporter.formats.instance_mask">
+<span id="darwin-exporter-formats-instance-mask-module"></span><h2>darwin.exporter.formats.instance_mask module<a class="headerlink" href="#module-darwin.exporter.formats.instance_mask" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="darwin.exporter.formats.instance_mask.export">
+<code class="sig-prename descclassname"><span class="pre">darwin.exporter.formats.instance_mask.</span></code><code class="sig-name descname"><span class="pre">export</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotation_files</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Generator</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="darwin.html#darwin.datatypes.AnnotationFile" title="darwin.datatypes.AnnotationFile"><span class="pre">darwin.datatypes.AnnotationFile</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">None</span><span class="p"><span class="pre">,</span> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dir</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">pathlib.Path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/exporter/formats/instance_mask.html#export"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.exporter.formats.instance_mask.export" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-darwin.exporter.formats.pascalvoc">
+<span id="darwin-exporter-formats-pascalvoc-module"></span><h2>darwin.exporter.formats.pascalvoc module<a class="headerlink" href="#module-darwin.exporter.formats.pascalvoc" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="darwin.exporter.formats.pascalvoc.add_subelement_text">
+<code class="sig-prename descclassname"><span class="pre">darwin.exporter.formats.pascalvoc.</span></code><code class="sig-name descname"><span class="pre">add_subelement_text</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parent</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/exporter/formats/pascalvoc.html#add_subelement_text"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.exporter.formats.pascalvoc.add_subelement_text" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="darwin.exporter.formats.pascalvoc.build_voc">
+<code class="sig-prename descclassname"><span class="pre">darwin.exporter.formats.pascalvoc.</span></code><code class="sig-name descname"><span class="pre">build_voc</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">metadata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotations</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/exporter/formats/pascalvoc.html#build_voc"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.exporter.formats.pascalvoc.build_voc" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="darwin.exporter.formats.pascalvoc.build_xml">
+<code class="sig-prename descclassname"><span class="pre">darwin.exporter.formats.pascalvoc.</span></code><code class="sig-name descname"><span class="pre">build_xml</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotation_file</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/exporter/formats/pascalvoc.html#build_xml"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.exporter.formats.pascalvoc.build_xml" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="darwin.exporter.formats.pascalvoc.convert_file">
+<code class="sig-prename descclassname"><span class="pre">darwin.exporter.formats.pascalvoc.</span></code><code class="sig-name descname"><span class="pre">convert_file</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/exporter/formats/pascalvoc.html#convert_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.exporter.formats.pascalvoc.convert_file" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="darwin.exporter.formats.pascalvoc.export">
+<code class="sig-prename descclassname"><span class="pre">darwin.exporter.formats.pascalvoc.</span></code><code class="sig-name descname"><span class="pre">export</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotation_files</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dir</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/exporter/formats/pascalvoc.html#export"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.exporter.formats.pascalvoc.export" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="darwin.exporter.formats.pascalvoc.export_file">
+<code class="sig-prename descclassname"><span class="pre">darwin.exporter.formats.pascalvoc.</span></code><code class="sig-name descname"><span class="pre">export_file</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotation_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dir</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/exporter/formats/pascalvoc.html#export_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.exporter.formats.pascalvoc.export_file" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="darwin.exporter.formats.pascalvoc.save_xml">
+<code class="sig-prename descclassname"><span class="pre">darwin.exporter.formats.pascalvoc.</span></code><code class="sig-name descname"><span class="pre">save_xml</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xml</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/exporter/formats/pascalvoc.html#save_xml"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.exporter.formats.pascalvoc.save_xml" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-darwin.exporter.formats.semantic_mask">
+<span id="darwin-exporter-formats-semantic-mask-module"></span><h2>darwin.exporter.formats.semantic_mask module<a class="headerlink" href="#module-darwin.exporter.formats.semantic_mask" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="darwin.exporter.formats.semantic_mask.export">
+<code class="sig-prename descclassname"><span class="pre">darwin.exporter.formats.semantic_mask.</span></code><code class="sig-name descname"><span class="pre">export</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotation_files</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Generator</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="darwin.html#darwin.datatypes.AnnotationFile" title="darwin.datatypes.AnnotationFile"><span class="pre">darwin.datatypes.AnnotationFile</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">None</span><span class="p"><span class="pre">,</span> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dir</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">pathlib.Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'grey'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/exporter/formats/semantic_mask.html#export"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.exporter.formats.semantic_mask.export" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="darwin.exporter.formats.semantic_mask.extract_categories">
+<code class="sig-prename descclassname"><span class="pre">darwin.exporter.formats.semantic_mask.</span></code><code class="sig-name descname"><span class="pre">extract_categories</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotation_files</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="darwin.html#darwin.datatypes.AnnotationFile" title="darwin.datatypes.AnnotationFile"><span class="pre">darwin.datatypes.AnnotationFile</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/exporter/formats/semantic_mask.html#extract_categories"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.exporter.formats.semantic_mask.extract_categories" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-darwin.exporter.formats">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-darwin.exporter.formats" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+              </div>
+              
+        
+            
+
+
+
+<div class='prev-next-bottom'>
+    
+
+</div>
+        
+        </div>
+    </div>
+    <footer class="footer mt-5 mt-md-0">
+    <div class="container">
+      <p>
+        
+          By V7<br/>
+        
+            &copy; Copyright MIT License.<br/>
+      </p>
+    </div>
+  </footer>
+</main>
+
+
+      </div>
+    </div>
+  
+  <script src="_static/js/index.1c5a1a01449ed65a7b51.js"></script>
+
+  
+  </body>
+</html>

@@ -1,0 +1,275 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>darwin.exporter.formats.cvat &#8212; darwin-py 0.6.6 documentation</title>
+    
+  <link href="../../../../_static/css/theme.css" rel="stylesheet" />
+  <link href="../../../../_static/css/index.c5995385ac14fb8791e8eb36b4908be2.css" rel="stylesheet" />
+
+    
+  <link rel="stylesheet"
+    href="../../../../_static/vendor/fontawesome/5.13.0/css/all.min.css">
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+    href="../../../../_static/vendor/fontawesome/5.13.0/webfonts/fa-solid-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+    href="../../../../_static/vendor/fontawesome/5.13.0/webfonts/fa-brands-400.woff2">
+
+    
+      
+
+    
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/sphinx-book-theme.e8f53015daec13862f6db5e763c41738.css" type="text/css" />
+    
+  <link rel="preload" as="script" href="../../../../_static/js/index.1c5a1a01449ed65a7b51.js">
+
+    <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <script src="../../../../_static/sphinx-book-theme.12a9622fbb08dcb3a2a40b2c02b83a57.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="docsearch:language" content="en" />
+    
+  </head>
+  <body data-spy="scroll" data-target="#bd-toc-nav" data-offset="80">
+    
+    <div class="container-fluid" id="banner"></div>
+
+    
+
+    <div class="container-xl">
+      <div class="row">
+          
+<div class="col-12 col-md-3 bd-sidebar site-navigation show" id="site-navigation">
+    
+        <div class="navbar-brand-box">
+    <a class="navbar-brand text-wrap" href="../../../../index.html">
+      
+      
+      <h1 class="site-logo" id="site-title">darwin-py 0.6.6 documentation</h1>
+      
+    </a>
+</div><form class="bd-search d-flex align-items-center" action="../../../../search.html" method="get">
+  <i class="icon fas fa-search"></i>
+  <input type="search" class="form-control" name="q" id="search-input" placeholder="Search the docs ..." aria-label="Search the docs ..." autocomplete="off" >
+</form><nav class="bd-links" id="bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item active">
+        
+    </div>
+</nav> <!-- To handle the deprecated key -->
+
+<div class="navbar_extra_footer">
+  Theme by the <a href="https://ebp.jupyterbook.org">Executable Book Project</a>
+</div>
+
+</div>
+
+
+          
+
+
+          
+<main class="col py-md-3 pl-md-4 bd-content overflow-auto" role="main">
+    
+    <div class="topbar container-xl fixed-top">
+    <div class="topbar-contents row">
+        <div class="col-12 col-md-3 bd-topbar-whitespace site-navigation show"></div>
+        <div class="col pl-md-4 topbar-main">
+            
+            <button id="navbar-toggler" class="navbar-toggler ml-0" type="button" data-toggle="collapse"
+                data-toggle="tooltip" data-placement="bottom" data-target=".site-navigation" aria-controls="navbar-menu"
+                aria-expanded="true" aria-label="Toggle navigation" aria-controls="site-navigation"
+                title="Toggle navigation" data-toggle="tooltip" data-placement="left">
+                <i class="fas fa-bars"></i>
+                <i class="fas fa-arrow-left"></i>
+                <i class="fas fa-arrow-up"></i>
+            </button>
+            
+            
+            <!-- Source interaction buttons -->
+
+            <!-- Full screen (wrap in <a> to have style consistency -->
+
+<a class="full-screen-button"><button type="button" class="btn btn-secondary topbarbtn" data-toggle="tooltip"
+        data-placement="bottom" onclick="toggleFullScreen()" aria-label="Fullscreen mode"
+        title="Fullscreen mode"><i
+            class="fas fa-expand"></i></button></a>
+
+            <!-- Launch buttons -->
+
+        </div>
+
+        <!-- Table of contents -->
+        <div class="d-none d-md-block col-md-2 bd-toc show">
+            
+        </div>
+    </div>
+</div>
+    <div id="main-content" class="row">
+        <div class="col-12 col-md-9 pl-md-3 pr-md-0">
+        
+              <div>
+                
+  <h1>Source code for darwin.exporter.formats.cvat</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">datetime</span>
+<span class="kn">import</span> <span class="nn">xml.etree.ElementTree</span> <span class="k">as</span> <span class="nn">ET</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Generator</span>
+
+<span class="kn">import</span> <span class="nn">darwin.datatypes</span> <span class="k">as</span> <span class="nn">dt</span>
+
+
+<div class="viewcode-block" id="add_subelement_text"><a class="viewcode-back" href="../../../../darwin.exporter.formats.html#darwin.exporter.formats.cvat.add_subelement_text">[docs]</a><span class="k">def</span> <span class="nf">add_subelement_text</span><span class="p">(</span><span class="n">parent</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+    <span class="n">sub</span> <span class="o">=</span> <span class="n">ET</span><span class="o">.</span><span class="n">SubElement</span><span class="p">(</span><span class="n">parent</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+    <span class="n">sub</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">sub</span></div>
+
+
+<div class="viewcode-block" id="export"><a class="viewcode-back" href="../../../../darwin.exporter.formats.html#darwin.exporter.formats.cvat.export">[docs]</a><span class="k">def</span> <span class="nf">export</span><span class="p">(</span><span class="n">annotation_files</span><span class="p">:</span> <span class="n">Generator</span><span class="p">[</span><span class="n">dt</span><span class="o">.</span><span class="n">AnnotationFile</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">output_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">):</span>
+    <span class="n">output</span> <span class="o">=</span> <span class="n">build_xml</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">annotation_files</span><span class="p">))</span>
+    <span class="c1"># TODO, maybe an optional output name (like the dataset name if available)</span>
+    <span class="n">output_file_path</span> <span class="o">=</span> <span class="p">(</span><span class="n">output_dir</span> <span class="o">/</span> <span class="s2">&quot;output&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">with_suffix</span><span class="p">(</span><span class="s2">&quot;.xml&quot;</span><span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">output_file_path</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">ET</span><span class="o">.</span><span class="n">tostring</span><span class="p">(</span><span class="n">output</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="build_xml"><a class="viewcode-back" href="../../../../darwin.exporter.formats.html#darwin.exporter.formats.cvat.build_xml">[docs]</a><span class="k">def</span> <span class="nf">build_xml</span><span class="p">(</span><span class="n">annotation_files</span><span class="p">):</span>
+    <span class="n">label_lookup</span> <span class="o">=</span> <span class="n">build_label_lookup</span><span class="p">(</span><span class="n">annotation_files</span><span class="p">)</span>
+    <span class="n">root</span> <span class="o">=</span> <span class="n">ET</span><span class="o">.</span><span class="n">Element</span><span class="p">(</span><span class="s2">&quot;annotations&quot;</span><span class="p">)</span>
+    <span class="n">add_subelement_text</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="s2">&quot;version&quot;</span><span class="p">,</span> <span class="s2">&quot;1.1&quot;</span><span class="p">)</span>
+    <span class="n">build_meta</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">annotation_files</span><span class="p">,</span> <span class="n">label_lookup</span><span class="p">)</span>
+    <span class="n">build_images</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">annotation_files</span><span class="p">,</span> <span class="n">label_lookup</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">root</span></div>
+
+
+<div class="viewcode-block" id="build_images"><a class="viewcode-back" href="../../../../darwin.exporter.formats.html#darwin.exporter.formats.cvat.build_images">[docs]</a><span class="k">def</span> <span class="nf">build_images</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">annotation_files</span><span class="p">,</span> <span class="n">label_lookup</span><span class="p">):</span>
+    <span class="k">for</span> <span class="nb">id</span><span class="p">,</span> <span class="n">annotation_file</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">annotation_files</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="n">ET</span><span class="o">.</span><span class="n">SubElement</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="s2">&quot;image&quot;</span><span class="p">)</span>
+        <span class="n">image</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">id</span><span class="p">)</span>
+        <span class="n">image</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">annotation_file</span><span class="o">.</span><span class="n">filename</span>
+        <span class="n">image</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s2">&quot;width&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">annotation_file</span><span class="o">.</span><span class="n">image_width</span><span class="p">)</span>
+        <span class="n">image</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s2">&quot;height&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">annotation_file</span><span class="o">.</span><span class="n">image_height</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">annotation</span> <span class="ow">in</span> <span class="n">annotation_file</span><span class="o">.</span><span class="n">annotations</span><span class="p">:</span>
+            <span class="n">build_annotation</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">annotation</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="build_annotation"><a class="viewcode-back" href="../../../../darwin.exporter.formats.html#darwin.exporter.formats.cvat.build_annotation">[docs]</a><span class="k">def</span> <span class="nf">build_annotation</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">annotation</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">annotation</span><span class="o">.</span><span class="n">annotation_class</span><span class="o">.</span><span class="n">annotation_type</span> <span class="o">==</span> <span class="s2">&quot;bounding_box&quot;</span><span class="p">:</span>
+        <span class="n">box</span> <span class="o">=</span> <span class="n">ET</span><span class="o">.</span><span class="n">SubElement</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="s2">&quot;box&quot;</span><span class="p">)</span>
+        <span class="n">box</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s2">&quot;label&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">annotation</span><span class="o">.</span><span class="n">annotation_class</span><span class="o">.</span><span class="n">name</span>
+        <span class="n">box</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s2">&quot;xtl&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">annotation</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">])</span>
+        <span class="n">box</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s2">&quot;ytl&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">annotation</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;y&quot;</span><span class="p">])</span>
+        <span class="n">box</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s2">&quot;xbr&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">annotation</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">annotation</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;w&quot;</span><span class="p">])</span>
+        <span class="n">box</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s2">&quot;ybr&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">annotation</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;y&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">annotation</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;h&quot;</span><span class="p">])</span>
+        <span class="n">box</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s2">&quot;occluded&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;0&quot;</span>
+        <span class="n">build_attributes</span><span class="p">(</span><span class="n">box</span><span class="p">,</span> <span class="n">annotation</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[warning] skipping </span><span class="si">{</span><span class="n">annotation</span><span class="o">.</span><span class="n">annotation_class</span><span class="o">.</span><span class="n">annotation_type</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="build_attributes"><a class="viewcode-back" href="../../../../darwin.exporter.formats.html#darwin.exporter.formats.cvat.build_attributes">[docs]</a><span class="k">def</span> <span class="nf">build_attributes</span><span class="p">(</span><span class="n">box</span><span class="p">,</span> <span class="n">annotation</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">annotation</span><span class="o">.</span><span class="n">get_sub</span><span class="p">(</span><span class="s2">&quot;text&quot;</span><span class="p">):</span>
+        <span class="n">attribute</span> <span class="o">=</span> <span class="n">add_subelement_text</span><span class="p">(</span><span class="n">box</span><span class="p">,</span> <span class="s2">&quot;attribute&quot;</span><span class="p">,</span> <span class="n">annotation</span><span class="o">.</span><span class="n">get_sub</span><span class="p">(</span><span class="s2">&quot;text&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">attribute</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;__text&quot;</span>
+    <span class="k">if</span> <span class="n">annotation</span><span class="o">.</span><span class="n">get_sub</span><span class="p">(</span><span class="s2">&quot;instance_id&quot;</span><span class="p">):</span>
+        <span class="n">attribute</span> <span class="o">=</span> <span class="n">add_subelement_text</span><span class="p">(</span><span class="n">box</span><span class="p">,</span> <span class="s2">&quot;attribute&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">annotation</span><span class="o">.</span><span class="n">get_sub</span><span class="p">(</span><span class="s2">&quot;instance_id&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">data</span><span class="p">))</span>
+        <span class="n">attribute</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;__instance_id&quot;</span>
+    <span class="k">if</span> <span class="n">annotation</span><span class="o">.</span><span class="n">get_sub</span><span class="p">(</span><span class="s2">&quot;attributes&quot;</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">attrib</span> <span class="ow">in</span> <span class="n">annotation</span><span class="o">.</span><span class="n">get_sub</span><span class="p">(</span><span class="s2">&quot;attributes&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
+            <span class="n">attribute</span> <span class="o">=</span> <span class="n">add_subelement_text</span><span class="p">(</span><span class="n">box</span><span class="p">,</span> <span class="s2">&quot;attribute&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+            <span class="n">attribute</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">attrib</span></div>
+
+
+<div class="viewcode-block" id="build_meta"><a class="viewcode-back" href="../../../../darwin.exporter.formats.html#darwin.exporter.formats.cvat.build_meta">[docs]</a><span class="k">def</span> <span class="nf">build_meta</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">annotation_files</span><span class="p">,</span> <span class="n">label_lookup</span><span class="p">):</span>
+    <span class="n">meta</span> <span class="o">=</span> <span class="n">ET</span><span class="o">.</span><span class="n">SubElement</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="s2">&quot;meta&quot;</span><span class="p">)</span>
+    <span class="n">add_subelement_text</span><span class="p">(</span><span class="n">meta</span><span class="p">,</span> <span class="s2">&quot;dumped&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">tz</span><span class="o">=</span><span class="n">datetime</span><span class="o">.</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)))</span>
+
+    <span class="n">task</span> <span class="o">=</span> <span class="n">ET</span><span class="o">.</span><span class="n">SubElement</span><span class="p">(</span><span class="n">meta</span><span class="p">,</span> <span class="s2">&quot;task&quot;</span><span class="p">)</span>
+    <span class="n">add_subelement_text</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">add_subelement_text</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="s2">&quot;exported_task_from_darwin&quot;</span><span class="p">)</span>
+    <span class="n">add_subelement_text</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="s2">&quot;size&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">annotation_files</span><span class="p">))</span>
+    <span class="n">add_subelement_text</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="s2">&quot;mode&quot;</span><span class="p">,</span> <span class="s2">&quot;annotation&quot;</span><span class="p">)</span>
+    <span class="n">add_subelement_text</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="s2">&quot;overlapp&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">add_subelement_text</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="s2">&quot;bugtracker&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">add_subelement_text</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="s2">&quot;flipped&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">add_subelement_text</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="s2">&quot;created&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">tz</span><span class="o">=</span><span class="n">datetime</span><span class="o">.</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)))</span>
+    <span class="n">add_subelement_text</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="s2">&quot;updated&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">tz</span><span class="o">=</span><span class="n">datetime</span><span class="o">.</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)))</span>
+
+    <span class="n">labels</span> <span class="o">=</span> <span class="n">ET</span><span class="o">.</span><span class="n">SubElement</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="s2">&quot;labels&quot;</span><span class="p">)</span>
+    <span class="n">build_labels</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">label_lookup</span><span class="p">)</span>
+
+    <span class="n">segments</span> <span class="o">=</span> <span class="n">ET</span><span class="o">.</span><span class="n">SubElement</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="s2">&quot;segments&quot;</span><span class="p">)</span>
+    <span class="n">build_segments</span><span class="p">(</span><span class="n">segments</span><span class="p">,</span> <span class="n">annotation_files</span><span class="p">)</span>
+
+    <span class="n">owner</span> <span class="o">=</span> <span class="n">ET</span><span class="o">.</span><span class="n">SubElement</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="s2">&quot;owner&quot;</span><span class="p">)</span>
+    <span class="n">add_subelement_text</span><span class="p">(</span><span class="n">owner</span><span class="p">,</span> <span class="s2">&quot;username&quot;</span><span class="p">,</span> <span class="s2">&quot;example_username&quot;</span><span class="p">)</span>
+    <span class="n">add_subelement_text</span><span class="p">(</span><span class="n">owner</span><span class="p">,</span> <span class="s2">&quot;email&quot;</span><span class="p">,</span> <span class="s2">&quot;user@example.com&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="build_segments"><a class="viewcode-back" href="../../../../darwin.exporter.formats.html#darwin.exporter.formats.cvat.build_segments">[docs]</a><span class="k">def</span> <span class="nf">build_segments</span><span class="p">(</span><span class="n">segments</span><span class="p">,</span> <span class="n">annotation_files</span><span class="p">):</span>
+    <span class="n">segment</span> <span class="o">=</span> <span class="n">ET</span><span class="o">.</span><span class="n">SubElement</span><span class="p">(</span><span class="n">segments</span><span class="p">,</span> <span class="s2">&quot;segment&quot;</span><span class="p">)</span>
+    <span class="n">add_subelement_text</span><span class="p">(</span><span class="n">segment</span><span class="p">,</span> <span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">add_subelement_text</span><span class="p">(</span><span class="n">segment</span><span class="p">,</span> <span class="s2">&quot;start&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">add_subelement_text</span><span class="p">(</span><span class="n">segment</span><span class="p">,</span> <span class="s2">&quot;end&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">annotation_files</span><span class="p">))</span>
+    <span class="n">add_subelement_text</span><span class="p">(</span><span class="n">segment</span><span class="p">,</span> <span class="s2">&quot;url&quot;</span><span class="p">,</span> <span class="s2">&quot;not applicable&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="build_labels"><a class="viewcode-back" href="../../../../darwin.exporter.formats.html#darwin.exporter.formats.cvat.build_labels">[docs]</a><span class="k">def</span> <span class="nf">build_labels</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">label_lookup</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">label_lookup</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="n">label</span> <span class="o">=</span> <span class="n">ET</span><span class="o">.</span><span class="n">SubElement</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="s2">&quot;label&quot;</span><span class="p">)</span>
+        <span class="n">add_subelement_text</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+        <span class="n">ET</span><span class="o">.</span><span class="n">SubElement</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="s2">&quot;attributes&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="build_label_lookup"><a class="viewcode-back" href="../../../../darwin.exporter.formats.html#darwin.exporter.formats.cvat.build_label_lookup">[docs]</a><span class="k">def</span> <span class="nf">build_label_lookup</span><span class="p">(</span><span class="n">annotation_files</span><span class="p">):</span>
+    <span class="n">labels</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">annotation_file</span> <span class="ow">in</span> <span class="n">annotation_files</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">annotation_class</span> <span class="ow">in</span> <span class="n">annotation_file</span><span class="o">.</span><span class="n">annotation_classes</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">annotation_class</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">labels</span> <span class="ow">and</span> <span class="n">annotation_class</span><span class="o">.</span><span class="n">annotation_type</span> <span class="o">==</span> <span class="s2">&quot;bounding_box&quot;</span><span class="p">:</span>
+                <span class="n">labels</span><span class="p">[</span><span class="n">annotation_class</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">labels</span></div>
+</pre></div>
+
+              </div>
+              
+        
+            
+
+
+
+<div class='prev-next-bottom'>
+    
+
+</div>
+        
+        </div>
+    </div>
+    <footer class="footer mt-5 mt-md-0">
+    <div class="container">
+      <p>
+        
+          By V7<br/>
+        
+            &copy; Copyright MIT License.<br/>
+      </p>
+    </div>
+  </footer>
+</main>
+
+
+      </div>
+    </div>
+  
+  <script src="../../../../_static/js/index.1c5a1a01449ed65a7b51.js"></script>
+
+  
+  </body>
+</html>

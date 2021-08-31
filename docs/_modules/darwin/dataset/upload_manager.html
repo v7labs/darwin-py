@@ -1,0 +1,384 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>darwin.dataset.upload_manager &#8212; darwin-py 0.6.6 documentation</title>
+    
+  <link href="../../../_static/css/theme.css" rel="stylesheet" />
+  <link href="../../../_static/css/index.c5995385ac14fb8791e8eb36b4908be2.css" rel="stylesheet" />
+
+    
+  <link rel="stylesheet"
+    href="../../../_static/vendor/fontawesome/5.13.0/css/all.min.css">
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+    href="../../../_static/vendor/fontawesome/5.13.0/webfonts/fa-solid-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+    href="../../../_static/vendor/fontawesome/5.13.0/webfonts/fa-brands-400.woff2">
+
+    
+      
+
+    
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/sphinx-book-theme.e8f53015daec13862f6db5e763c41738.css" type="text/css" />
+    
+  <link rel="preload" as="script" href="../../../_static/js/index.1c5a1a01449ed65a7b51.js">
+
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/sphinx-book-theme.12a9622fbb08dcb3a2a40b2c02b83a57.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="docsearch:language" content="en" />
+    
+  </head>
+  <body data-spy="scroll" data-target="#bd-toc-nav" data-offset="80">
+    
+    <div class="container-fluid" id="banner"></div>
+
+    
+
+    <div class="container-xl">
+      <div class="row">
+          
+<div class="col-12 col-md-3 bd-sidebar site-navigation show" id="site-navigation">
+    
+        <div class="navbar-brand-box">
+    <a class="navbar-brand text-wrap" href="../../../index.html">
+      
+      
+      <h1 class="site-logo" id="site-title">darwin-py 0.6.6 documentation</h1>
+      
+    </a>
+</div><form class="bd-search d-flex align-items-center" action="../../../search.html" method="get">
+  <i class="icon fas fa-search"></i>
+  <input type="search" class="form-control" name="q" id="search-input" placeholder="Search the docs ..." aria-label="Search the docs ..." autocomplete="off" >
+</form><nav class="bd-links" id="bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item active">
+        
+    </div>
+</nav> <!-- To handle the deprecated key -->
+
+<div class="navbar_extra_footer">
+  Theme by the <a href="https://ebp.jupyterbook.org">Executable Book Project</a>
+</div>
+
+</div>
+
+
+          
+
+
+          
+<main class="col py-md-3 pl-md-4 bd-content overflow-auto" role="main">
+    
+    <div class="topbar container-xl fixed-top">
+    <div class="topbar-contents row">
+        <div class="col-12 col-md-3 bd-topbar-whitespace site-navigation show"></div>
+        <div class="col pl-md-4 topbar-main">
+            
+            <button id="navbar-toggler" class="navbar-toggler ml-0" type="button" data-toggle="collapse"
+                data-toggle="tooltip" data-placement="bottom" data-target=".site-navigation" aria-controls="navbar-menu"
+                aria-expanded="true" aria-label="Toggle navigation" aria-controls="site-navigation"
+                title="Toggle navigation" data-toggle="tooltip" data-placement="left">
+                <i class="fas fa-bars"></i>
+                <i class="fas fa-arrow-left"></i>
+                <i class="fas fa-arrow-up"></i>
+            </button>
+            
+            
+            <!-- Source interaction buttons -->
+
+            <!-- Full screen (wrap in <a> to have style consistency -->
+
+<a class="full-screen-button"><button type="button" class="btn btn-secondary topbarbtn" data-toggle="tooltip"
+        data-placement="bottom" onclick="toggleFullScreen()" aria-label="Fullscreen mode"
+        title="Fullscreen mode"><i
+            class="fas fa-expand"></i></button></a>
+
+            <!-- Launch buttons -->
+
+        </div>
+
+        <!-- Table of contents -->
+        <div class="d-none d-md-block col-md-2 bd-toc show">
+            
+        </div>
+    </div>
+</div>
+    <div id="main-content" class="row">
+        <div class="col-12 col-md-9 pl-md-3 pr-md-0">
+        
+              <div>
+                
+  <h1>Source code for darwin.dataset.upload_manager</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">concurrent.futures</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">multiprocessing</span>
+<span class="kn">import</span> <span class="nn">requests</span>
+<span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span> <span class="nn">enum</span> <span class="kn">import</span> <span class="n">Enum</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span> <span class="nn">darwin.path_utils</span> <span class="kn">import</span> <span class="n">construct_full_path</span>
+<span class="kn">from</span> <span class="nn">darwin.utils</span> <span class="kn">import</span> <span class="n">chunk</span>
+<span class="kn">from</span> <span class="nn">requests_toolbelt</span> <span class="kn">import</span> <span class="n">MultipartEncoder</span><span class="p">,</span> <span class="n">MultipartEncoderMonitor</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">darwin.client</span> <span class="kn">import</span> <span class="n">Client</span>
+    <span class="kn">from</span> <span class="nn">darwin.dataset</span> <span class="kn">import</span> <span class="n">RemoteDataset</span>
+    <span class="kn">from</span> <span class="nn">darwin.dataset.identifier</span> <span class="kn">import</span> <span class="n">DatasetIdentifier</span>
+
+
+<div class="viewcode-block" id="ItemPayload"><a class="viewcode-back" href="../../../darwin.dataset.html#darwin.dataset.upload_manager.ItemPayload">[docs]</a><span class="k">class</span> <span class="nc">ItemPayload</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">dataset_item_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">reason</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataset_item_id</span> <span class="o">=</span> <span class="n">dataset_item_id</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reason</span> <span class="o">=</span> <span class="n">reason</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">full_path</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">construct_full_path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="LocalFile"><a class="viewcode-back" href="../../../darwin.dataset.html#darwin.dataset.upload_manager.LocalFile">[docs]</a><span class="k">class</span> <span class="nc">LocalFile</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">local_path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">local_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">local_path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">kwargs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_type_check</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_type_check</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;filename&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;filename&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">local_path</span><span class="o">.</span><span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;path&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;/&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">full_path</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">construct_full_path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;filename&quot;</span><span class="p">])</span></div>
+
+
+<div class="viewcode-block" id="UploadStage"><a class="viewcode-back" href="../../../darwin.dataset.html#darwin.dataset.upload_manager.UploadStage">[docs]</a><span class="k">class</span> <span class="nc">UploadStage</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="n">REQUEST_SIGNATURE</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">UPLOAD_TO_S3</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">CONFIRM_UPLOAD_COMPLETE</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">OTHER</span> <span class="o">=</span> <span class="mi">3</span></div>
+
+
+<div class="viewcode-block" id="UploadRequestError"><a class="viewcode-back" href="../../../darwin.dataset.html#darwin.dataset.upload_manager.UploadRequestError">[docs]</a><span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">UploadRequestError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="n">file_path</span><span class="p">:</span> <span class="n">Path</span>
+    <span class="n">stage</span><span class="p">:</span> <span class="n">UploadStage</span>
+    <span class="n">error</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="ne">Exception</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+
+<span class="n">ByteReadCallback</span> <span class="o">=</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span>
+<span class="n">ProgressCallback</span> <span class="o">=</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span>
+<span class="n">FileUploadCallback</span> <span class="o">=</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="UploadHandler"><a class="viewcode-back" href="../../../darwin.dataset.html#darwin.dataset.upload_manager.UploadHandler">[docs]</a><span class="k">class</span> <span class="nc">UploadHandler</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">:</span> <span class="s2">&quot;RemoteDataset&quot;</span><span class="p">,</span> <span class="n">local_files</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LocalFile</span><span class="p">]):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">errors</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">UploadRequestError</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">local_files</span> <span class="o">=</span> <span class="n">local_files</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_progress</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">blocked_items</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pending_items</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_request_upload</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">client</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;Client&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">client</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">dataset_identifier</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;DatasetIdentifier&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">identifier</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">blocked_count</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">blocked_items</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">error_count</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">errors</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">pending_count</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pending_items</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">total_count</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">pending_count</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">blocked_count</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">progress</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_progress</span>
+
+<div class="viewcode-block" id="UploadHandler.prepare_upload"><a class="viewcode-back" href="../../../darwin.dataset.html#darwin.dataset.upload_manager.UploadHandler.prepare_upload">[docs]</a>    <span class="k">def</span> <span class="nf">prepare_upload</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_progress</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_upload_files</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_progress</span></div>
+
+<div class="viewcode-block" id="UploadHandler.upload"><a class="viewcode-back" href="../../../darwin.dataset.html#darwin.dataset.upload_manager.UploadHandler.upload">[docs]</a>    <span class="k">def</span> <span class="nf">upload</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">multi_threaded</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">progress_callback</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ProgressCallback</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">file_upload_callback</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">FileUploadCallback</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">max_workers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_progress</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">prepare_upload</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">progress_callback</span><span class="p">:</span>
+            <span class="n">progress_callback</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pending_count</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># needed to ensure that we don&#39;t mark a file as completed twice</span>
+        <span class="n">file_complete</span><span class="p">:</span> <span class="n">Set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+        <span class="k">def</span> <span class="nf">callback</span><span class="p">(</span><span class="n">file_name</span><span class="p">,</span> <span class="n">file_total_bytes</span><span class="p">,</span> <span class="n">file_bytes_sent</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">file_upload_callback</span><span class="p">:</span>
+                <span class="n">file_upload_callback</span><span class="p">(</span><span class="n">file_name</span><span class="p">,</span> <span class="n">file_total_bytes</span><span class="p">,</span> <span class="n">file_bytes_sent</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">progress_callback</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">file_total_bytes</span> <span class="o">==</span> <span class="n">file_bytes_sent</span> <span class="ow">and</span> <span class="n">file_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">file_complete</span><span class="p">:</span>
+                    <span class="n">file_complete</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">file_name</span><span class="p">)</span>
+                    <span class="n">progress_callback</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pending_count</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">multi_threaded</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">concurrent</span><span class="o">.</span><span class="n">futures</span><span class="o">.</span><span class="n">ThreadPoolExecutor</span><span class="p">(</span><span class="n">max_workers</span><span class="o">=</span><span class="n">max_workers</span><span class="p">)</span> <span class="k">as</span> <span class="n">executor</span><span class="p">:</span>
+                <span class="n">future_to_progress</span> <span class="o">=</span> <span class="p">{</span><span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">callback</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">progress</span><span class="p">}</span>
+                <span class="k">for</span> <span class="n">future</span> <span class="ow">in</span> <span class="n">concurrent</span><span class="o">.</span><span class="n">futures</span><span class="o">.</span><span class="n">as_completed</span><span class="p">(</span><span class="n">future_to_progress</span><span class="p">):</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">future</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+                    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;exception&quot;</span><span class="p">,</span> <span class="n">exc</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">file_to_upload</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">progress</span><span class="p">:</span>
+                <span class="n">file_to_upload</span><span class="p">(</span><span class="n">callback</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_request_upload</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">ItemPayload</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="n">ItemPayload</span><span class="p">]]:</span>
+        <span class="n">blocked_items</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">items</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">file_chunk</span> <span class="ow">in</span> <span class="n">chunk</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">local_files</span><span class="p">,</span> <span class="mi">500</span><span class="p">):</span>
+            <span class="n">upload_payload</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;items&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">file</span><span class="o">.</span><span class="n">data</span> <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">file_chunk</span><span class="p">]}</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">put</span><span class="p">(</span>
+                <span class="n">endpoint</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;/teams/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_identifier</span><span class="o">.</span><span class="n">team_slug</span><span class="si">}</span><span class="s2">/datasets/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_identifier</span><span class="o">.</span><span class="n">dataset_slug</span><span class="si">}</span><span class="s2">/data&quot;</span><span class="p">,</span>
+                <span class="n">payload</span><span class="o">=</span><span class="n">upload_payload</span><span class="p">,</span>
+                <span class="n">team</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_identifier</span><span class="o">.</span><span class="n">team_slug</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">blocked_items</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">ItemPayload</span><span class="p">(</span><span class="o">**</span><span class="n">item</span><span class="p">)</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;blocked_items&quot;</span><span class="p">]])</span>
+            <span class="n">items</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">ItemPayload</span><span class="p">(</span><span class="o">**</span><span class="n">item</span><span class="p">)</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;items&quot;</span><span class="p">]])</span>
+        <span class="k">return</span> <span class="n">blocked_items</span><span class="p">,</span> <span class="n">items</span>
+
+    <span class="k">def</span> <span class="nf">_upload_files</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">upload_function</span><span class="p">(</span><span class="n">dataset_item_id</span><span class="p">,</span> <span class="n">local_path</span><span class="p">):</span>
+            <span class="k">return</span> <span class="k">lambda</span> <span class="n">byte_read_callback</span><span class="o">=</span><span class="kc">None</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_upload_file</span><span class="p">(</span><span class="n">dataset_item_id</span><span class="p">,</span> <span class="n">local_path</span><span class="p">,</span> <span class="n">byte_read_callback</span><span class="p">)</span>
+
+        <span class="n">file_lookup</span> <span class="o">=</span> <span class="p">{</span><span class="n">file</span><span class="o">.</span><span class="n">full_path</span><span class="p">:</span> <span class="n">file</span> <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">local_files</span><span class="p">}</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">pending_items</span><span class="p">:</span>
+            <span class="n">file</span> <span class="o">=</span> <span class="n">file_lookup</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">full_path</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">file</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Cannot match </span><span class="si">{</span><span class="n">item</span><span class="o">.</span><span class="n">full_path</span><span class="si">}</span><span class="s2"> from payload with files to upload&quot;</span><span class="p">)</span>
+            <span class="k">yield</span> <span class="n">upload_function</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">dataset_item_id</span><span class="p">,</span> <span class="n">file</span><span class="o">.</span><span class="n">local_path</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_upload_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset_item_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">file_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">byte_read_callback</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_do_upload_file</span><span class="p">(</span><span class="n">dataset_item_id</span><span class="p">,</span> <span class="n">file_path</span><span class="p">,</span> <span class="n">byte_read_callback</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">UploadRequestError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">UploadRequestError</span><span class="p">(</span><span class="n">file_path</span><span class="o">=</span><span class="n">file_path</span><span class="p">,</span> <span class="n">stage</span><span class="o">=</span><span class="n">UploadStage</span><span class="o">.</span><span class="n">OTHER</span><span class="p">,</span> <span class="n">error</span><span class="o">=</span><span class="n">e</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">_do_upload_file</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">dataset_item_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">file_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">byte_read_callback</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ByteReadCallback</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="n">team_slug</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset_identifier</span><span class="o">.</span><span class="n">team_slug</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">sign_response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;/dataset_items/</span><span class="si">{</span><span class="n">dataset_item_id</span><span class="si">}</span><span class="s2">/sign_upload&quot;</span><span class="p">,</span> <span class="n">team</span><span class="o">=</span><span class="n">team_slug</span><span class="p">,</span> <span class="n">raw</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">sign_response</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
+            <span class="n">sign_response</span> <span class="o">=</span> <span class="n">sign_response</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">UploadRequestError</span><span class="p">(</span><span class="n">file_path</span><span class="o">=</span><span class="n">file_path</span><span class="p">,</span> <span class="n">stage</span><span class="o">=</span><span class="n">UploadStage</span><span class="o">.</span><span class="n">REQUEST_SIGNATURE</span><span class="p">,</span> <span class="n">error</span><span class="o">=</span><span class="n">e</span><span class="p">)</span>
+
+        <span class="n">signature</span> <span class="o">=</span> <span class="n">sign_response</span><span class="p">[</span><span class="s2">&quot;signature&quot;</span><span class="p">]</span>
+        <span class="n">end_point</span> <span class="o">=</span> <span class="n">sign_response</span><span class="p">[</span><span class="s2">&quot;postEndpoint&quot;</span><span class="p">]</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">file_size</span> <span class="o">=</span> <span class="n">file_path</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_size</span>
+            <span class="k">if</span> <span class="n">byte_read_callback</span><span class="p">:</span>
+                <span class="n">byte_read_callback</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">file_path</span><span class="p">),</span> <span class="n">file_size</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+            <span class="k">def</span> <span class="nf">callback</span><span class="p">(</span><span class="n">monitor</span><span class="p">):</span>
+                <span class="c1"># The signature is part of the payload&#39;s bytes_read but not file_size</span>
+                <span class="c1"># therefor we should skip it in the upload progress</span>
+                <span class="n">bytes_read</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">monitor</span><span class="o">.</span><span class="n">bytes_read</span> <span class="o">-</span> <span class="n">monitor</span><span class="o">.</span><span class="n">len</span> <span class="o">+</span> <span class="n">file_size</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">byte_read_callback</span><span class="p">:</span>
+                    <span class="n">byte_read_callback</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">file_path</span><span class="p">),</span> <span class="n">file_size</span><span class="p">,</span> <span class="n">bytes_read</span><span class="p">)</span>
+
+            <span class="n">m</span> <span class="o">=</span> <span class="n">MultipartEncoder</span><span class="p">(</span><span class="n">fields</span><span class="o">=</span><span class="p">{</span><span class="o">**</span><span class="n">signature</span><span class="p">,</span> <span class="o">**</span><span class="p">{</span><span class="s2">&quot;file&quot;</span><span class="p">:</span> <span class="n">file_path</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">&quot;rb&quot;</span><span class="p">)}})</span>
+            <span class="n">monitor</span> <span class="o">=</span> <span class="n">MultipartEncoderMonitor</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">callback</span><span class="p">)</span>
+            <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;Content-Type&quot;</span><span class="p">:</span> <span class="n">monitor</span><span class="o">.</span><span class="n">content_type</span><span class="p">}</span>
+
+            <span class="n">retries</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">while</span> <span class="n">retries</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">:</span>
+                <span class="n">upload_response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;http:</span><span class="si">{</span><span class="n">end_point</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">monitor</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span>
+                <span class="c1"># If s3 is getting to many request it will return 503, we will sleep and retry</span>
+                <span class="k">if</span> <span class="n">upload_response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">!=</span> <span class="mi">503</span><span class="p">:</span>
+                    <span class="k">break</span>
+
+                <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="n">retries</span><span class="p">)</span>
+                <span class="n">retries</span> <span class="o">+=</span> <span class="mi">1</span>
+
+            <span class="n">upload_response</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">UploadRequestError</span><span class="p">(</span><span class="n">file_path</span><span class="o">=</span><span class="n">file_path</span><span class="p">,</span> <span class="n">stage</span><span class="o">=</span><span class="n">UploadStage</span><span class="o">.</span><span class="n">UPLOAD_TO_S3</span><span class="p">,</span> <span class="n">error</span><span class="o">=</span><span class="n">e</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">confirm_response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">put</span><span class="p">(</span>
+                <span class="n">endpoint</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;/dataset_items/</span><span class="si">{</span><span class="n">dataset_item_id</span><span class="si">}</span><span class="s2">/confirm_upload&quot;</span><span class="p">,</span> <span class="n">payload</span><span class="o">=</span><span class="p">{},</span> <span class="n">team</span><span class="o">=</span><span class="n">team_slug</span><span class="p">,</span> <span class="n">raw</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span>
+            <span class="n">confirm_response</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">UploadRequestError</span><span class="p">(</span><span class="n">file_path</span><span class="o">=</span><span class="n">file_path</span><span class="p">,</span> <span class="n">stage</span><span class="o">=</span><span class="n">UploadStage</span><span class="o">.</span><span class="n">CONFIRM_UPLOAD_COMPLETE</span><span class="p">,</span> <span class="n">error</span><span class="o">=</span><span class="n">e</span><span class="p">)</span></div>
+</pre></div>
+
+              </div>
+              
+        
+            
+
+
+
+<div class='prev-next-bottom'>
+    
+
+</div>
+        
+        </div>
+    </div>
+    <footer class="footer mt-5 mt-md-0">
+    <div class="container">
+      <p>
+        
+          By V7<br/>
+        
+            &copy; Copyright MIT License.<br/>
+      </p>
+    </div>
+  </footer>
+</main>
+
+
+      </div>
+    </div>
+  
+  <script src="../../../_static/js/index.1c5a1a01449ed65a7b51.js"></script>
+
+  
+  </body>
+</html>

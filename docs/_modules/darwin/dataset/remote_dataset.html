@@ -1,0 +1,903 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>darwin.dataset.remote_dataset &#8212; darwin-py 0.6.6 documentation</title>
+    
+  <link href="../../../_static/css/theme.css" rel="stylesheet" />
+  <link href="../../../_static/css/index.c5995385ac14fb8791e8eb36b4908be2.css" rel="stylesheet" />
+
+    
+  <link rel="stylesheet"
+    href="../../../_static/vendor/fontawesome/5.13.0/css/all.min.css">
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+    href="../../../_static/vendor/fontawesome/5.13.0/webfonts/fa-solid-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+    href="../../../_static/vendor/fontawesome/5.13.0/webfonts/fa-brands-400.woff2">
+
+    
+      
+
+    
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/sphinx-book-theme.e8f53015daec13862f6db5e763c41738.css" type="text/css" />
+    
+  <link rel="preload" as="script" href="../../../_static/js/index.1c5a1a01449ed65a7b51.js">
+
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/sphinx-book-theme.12a9622fbb08dcb3a2a40b2c02b83a57.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="docsearch:language" content="en" />
+    
+  </head>
+  <body data-spy="scroll" data-target="#bd-toc-nav" data-offset="80">
+    
+    <div class="container-fluid" id="banner"></div>
+
+    
+
+    <div class="container-xl">
+      <div class="row">
+          
+<div class="col-12 col-md-3 bd-sidebar site-navigation show" id="site-navigation">
+    
+        <div class="navbar-brand-box">
+    <a class="navbar-brand text-wrap" href="../../../index.html">
+      
+      
+      <h1 class="site-logo" id="site-title">darwin-py 0.6.6 documentation</h1>
+      
+    </a>
+</div><form class="bd-search d-flex align-items-center" action="../../../search.html" method="get">
+  <i class="icon fas fa-search"></i>
+  <input type="search" class="form-control" name="q" id="search-input" placeholder="Search the docs ..." aria-label="Search the docs ..." autocomplete="off" >
+</form><nav class="bd-links" id="bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item active">
+        
+    </div>
+</nav> <!-- To handle the deprecated key -->
+
+<div class="navbar_extra_footer">
+  Theme by the <a href="https://ebp.jupyterbook.org">Executable Book Project</a>
+</div>
+
+</div>
+
+
+          
+
+
+          
+<main class="col py-md-3 pl-md-4 bd-content overflow-auto" role="main">
+    
+    <div class="topbar container-xl fixed-top">
+    <div class="topbar-contents row">
+        <div class="col-12 col-md-3 bd-topbar-whitespace site-navigation show"></div>
+        <div class="col pl-md-4 topbar-main">
+            
+            <button id="navbar-toggler" class="navbar-toggler ml-0" type="button" data-toggle="collapse"
+                data-toggle="tooltip" data-placement="bottom" data-target=".site-navigation" aria-controls="navbar-menu"
+                aria-expanded="true" aria-label="Toggle navigation" aria-controls="site-navigation"
+                title="Toggle navigation" data-toggle="tooltip" data-placement="left">
+                <i class="fas fa-bars"></i>
+                <i class="fas fa-arrow-left"></i>
+                <i class="fas fa-arrow-up"></i>
+            </button>
+            
+            
+            <!-- Source interaction buttons -->
+
+            <!-- Full screen (wrap in <a> to have style consistency -->
+
+<a class="full-screen-button"><button type="button" class="btn btn-secondary topbarbtn" data-toggle="tooltip"
+        data-placement="bottom" onclick="toggleFullScreen()" aria-label="Fullscreen mode"
+        title="Fullscreen mode"><i
+            class="fas fa-expand"></i></button></a>
+
+            <!-- Launch buttons -->
+
+        </div>
+
+        <!-- Table of contents -->
+        <div class="d-none d-md-block col-md-2 bd-toc show">
+            
+        </div>
+    </div>
+</div>
+    <div id="main-content" class="row">
+        <div class="col-12 col-md-9 pl-md-3 pr-md-0">
+        
+              <div>
+                
+  <h1>Source code for darwin.dataset.remote_dataset</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">shutil</span>
+<span class="kn">import</span> <span class="nn">tempfile</span>
+<span class="kn">import</span> <span class="nn">zipfile</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span> <span class="nn">urllib</span> <span class="kn">import</span> <span class="n">parse</span>
+
+<span class="kn">from</span> <span class="nn">darwin.dataset.download_manager</span> <span class="kn">import</span> <span class="n">download_all_images_from_annotations</span>
+<span class="kn">from</span> <span class="nn">darwin.dataset.identifier</span> <span class="kn">import</span> <span class="n">DatasetIdentifier</span>
+<span class="kn">from</span> <span class="nn">darwin.dataset.release</span> <span class="kn">import</span> <span class="n">Release</span>
+<span class="kn">from</span> <span class="nn">darwin.dataset.split_manager</span> <span class="kn">import</span> <span class="n">split_dataset</span>
+<span class="kn">from</span> <span class="nn">darwin.dataset.upload_manager</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">FileUploadCallback</span><span class="p">,</span>
+    <span class="n">LocalFile</span><span class="p">,</span>
+    <span class="n">ProgressCallback</span><span class="p">,</span>
+    <span class="n">UploadHandler</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">darwin.dataset.utils</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">exhaust_generator</span><span class="p">,</span>
+    <span class="n">get_annotations</span><span class="p">,</span>
+    <span class="n">get_classes</span><span class="p">,</span>
+    <span class="n">is_relative_to</span><span class="p">,</span>
+    <span class="n">make_class_lists</span><span class="p">,</span>
+    <span class="n">sanitize_filename</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">darwin.datatypes</span> <span class="kn">import</span> <span class="n">AnnotationClass</span>
+<span class="kn">from</span> <span class="nn">darwin.exceptions</span> <span class="kn">import</span> <span class="n">NotFound</span><span class="p">,</span> <span class="n">UnsupportedExportFormat</span>
+<span class="kn">from</span> <span class="nn">darwin.exporter.formats.darwin</span> <span class="kn">import</span> <span class="n">build_image_annotation</span>
+<span class="kn">from</span> <span class="nn">darwin.item</span> <span class="kn">import</span> <span class="n">DatasetItem</span><span class="p">,</span> <span class="n">parse_dataset_item</span>
+<span class="kn">from</span> <span class="nn">darwin.item_sorter</span> <span class="kn">import</span> <span class="n">ItemSorter</span>
+<span class="kn">from</span> <span class="nn">darwin.utils</span> <span class="kn">import</span> <span class="n">find_files</span><span class="p">,</span> <span class="n">parse_darwin_json</span><span class="p">,</span> <span class="n">split_video_annotation</span><span class="p">,</span> <span class="n">urljoin</span>
+<span class="kn">from</span> <span class="nn">darwin.validators</span> <span class="kn">import</span> <span class="n">name_taken</span><span class="p">,</span> <span class="n">validation_error</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">darwin.client</span> <span class="kn">import</span> <span class="n">Client</span>
+
+
+<div class="viewcode-block" id="RemoteDataset"><a class="viewcode-back" href="../../../darwin.dataset.html#darwin.dataset.remote_dataset.RemoteDataset">[docs]</a><span class="k">class</span> <span class="nc">RemoteDataset</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">client</span><span class="p">:</span> <span class="s2">&quot;Client&quot;</span><span class="p">,</span>
+        <span class="n">team</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">slug</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">dataset_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">image_count</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">progress</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initializes a DarwinDataset.</span>
+<span class="sd">        This class manages the remote and local versions of a dataset hosted on Darwin.</span>
+<span class="sd">        It allows several dataset management operations such as syncing between</span>
+<span class="sd">        remote and local, pulling a remote dataset, removing the local files, ...</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            Name of the datasets as originally displayed on Darwin.</span>
+<span class="sd">            It may contain white spaces, capital letters and special characters, e.g. `Bird Species!`</span>
+<span class="sd">        slug : str</span>
+<span class="sd">            This is the dataset name with everything lower-case, removed specials characters and</span>
+<span class="sd">            spaces are replaced by dashes, e.g., `bird-species`. This string is unique within a team</span>
+<span class="sd">        dataset_id : int</span>
+<span class="sd">            Unique internal reference from the Darwin backend</span>
+<span class="sd">        image_count : int</span>
+<span class="sd">            Dataset size (number of images)</span>
+<span class="sd">        progress : float</span>
+<span class="sd">            How much of the dataset has been annotated 0.0 to 1.0 (1.0 == 100%)</span>
+<span class="sd">        client : Client</span>
+<span class="sd">            Client to use for interaction with the server</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">team</span> <span class="o">=</span> <span class="n">team</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">slug</span> <span class="o">=</span> <span class="n">slug</span> <span class="ow">or</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataset_id</span> <span class="o">=</span> <span class="n">dataset_id</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">image_count</span> <span class="o">=</span> <span class="n">image_count</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">progress</span> <span class="o">=</span> <span class="n">progress</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">client</span> <span class="o">=</span> <span class="n">client</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">annotation_types</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="RemoteDataset.push"><a class="viewcode-back" href="../../../darwin.dataset.html#darwin.dataset.remote_dataset.RemoteDataset.push">[docs]</a>    <span class="k">def</span> <span class="nf">push</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">files_to_upload</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">,</span> <span class="n">LocalFile</span><span class="p">]]],</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">blocking</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">multi_threaded</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">fps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">as_frames</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">files_to_exclude</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">preserve_folders</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">progress_callback</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ProgressCallback</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">file_upload_callback</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">FileUploadCallback</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Uploads a local dataset (images ONLY) in the datasets directory.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        files_to_upload : Optional[List[Union[str, Path, LocalFile]]]</span>
+<span class="sd">            List of files to upload. Those can be folders.</span>
+<span class="sd">        blocking : bool</span>
+<span class="sd">            If False, the dataset is not uploaded and a generator function is returned instead.</span>
+<span class="sd">        multi_threaded : bool</span>
+<span class="sd">            Uses multiprocessing to upload the dataset in parallel.</span>
+<span class="sd">            If blocking is False this has no effect.</span>
+<span class="sd">        files_to_exclude : Optional[Union[str, Path]]]</span>
+<span class="sd">            Optional list of files to exclude from the file scan. Those can be folders.</span>
+<span class="sd">        fps : int</span>
+<span class="sd">            When the uploading file is a video, specify its framerate.</span>
+<span class="sd">        as_frames: bool</span>
+<span class="sd">            When the uploading file is a video, specify whether it&#39;s going to be uploaded as a list of frames.</span>
+<span class="sd">        path: Optional[str]</span>
+<span class="sd">            Optional path to store the files in.</span>
+<span class="sd">        preserve_folders : bool</span>
+<span class="sd">            Specify whether or not to preserve folder paths when uploading</span>
+<span class="sd">        progress_callback: Optional[ProgressCallback]</span>
+<span class="sd">            Optional callback, called every time the progress of an uploading files is reported.</span>
+<span class="sd">        file_upload_callback: Optional[FileUploadCallback]</span>
+<span class="sd">            Optional callback, called every time a file chunk is uploaded.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        handler : UploadHandler</span>
+<span class="sd">           Class for handling uploads, progress and error messages</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">files_to_exclude</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">files_to_exclude</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="n">files_to_upload</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No files or directory specified.&quot;</span><span class="p">)</span>
+
+        <span class="n">uploading_files</span> <span class="o">=</span> <span class="p">[</span><span class="n">item</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">files_to_upload</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">LocalFile</span><span class="p">)]</span>
+        <span class="n">search_files</span> <span class="o">=</span> <span class="p">[</span><span class="n">item</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">files_to_upload</span> <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">LocalFile</span><span class="p">)]</span>
+
+        <span class="n">generic_parameters_specified</span> <span class="o">=</span> <span class="n">path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">fps</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">as_frames</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="n">uploading_files</span> <span class="ow">and</span> <span class="n">generic_parameters_specified</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Cannot specify a path when uploading a LocalFile object.&quot;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">found_file</span> <span class="ow">in</span> <span class="n">find_files</span><span class="p">(</span><span class="n">search_files</span><span class="p">,</span> <span class="n">files_to_exclude</span><span class="o">=</span><span class="n">files_to_exclude</span><span class="p">):</span>
+            <span class="n">local_path</span> <span class="o">=</span> <span class="n">path</span>
+            <span class="k">if</span> <span class="n">preserve_folders</span><span class="p">:</span>
+                <span class="n">source_files</span> <span class="o">=</span> <span class="p">[</span><span class="n">source_file</span> <span class="k">for</span> <span class="n">source_file</span> <span class="ow">in</span> <span class="n">search_files</span> <span class="k">if</span> <span class="n">is_relative_to</span><span class="p">(</span><span class="n">found_file</span><span class="p">,</span> <span class="n">source_file</span><span class="p">)]</span>
+                <span class="k">if</span> <span class="n">source_files</span><span class="p">:</span>
+                    <span class="n">local_path</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">found_file</span><span class="o">.</span><span class="n">relative_to</span><span class="p">(</span><span class="n">source_files</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">parent</span><span class="p">)</span>
+            <span class="n">uploading_files</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">LocalFile</span><span class="p">(</span><span class="n">found_file</span><span class="p">,</span> <span class="n">fps</span><span class="o">=</span><span class="n">fps</span><span class="p">,</span> <span class="n">as_frames</span><span class="o">=</span><span class="n">as_frames</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">local_path</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">uploading_files</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No files to upload, check your path, exclusion filters and resume flag&quot;</span><span class="p">)</span>
+
+        <span class="n">handler</span> <span class="o">=</span> <span class="n">UploadHandler</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">uploading_files</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">blocking</span><span class="p">:</span>
+            <span class="n">handler</span><span class="o">.</span><span class="n">upload</span><span class="p">(</span>
+                <span class="n">multi_threaded</span><span class="o">=</span><span class="n">multi_threaded</span><span class="p">,</span>
+                <span class="n">progress_callback</span><span class="o">=</span><span class="n">progress_callback</span><span class="p">,</span>
+                <span class="n">file_upload_callback</span><span class="o">=</span><span class="n">file_upload_callback</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">handler</span><span class="o">.</span><span class="n">prepare_upload</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">handler</span></div>
+
+<div class="viewcode-block" id="RemoteDataset.split_video_annotations"><a class="viewcode-back" href="../../../darwin.dataset.html#darwin.dataset.remote_dataset.RemoteDataset.split_video_annotations">[docs]</a>    <span class="k">def</span> <span class="nf">split_video_annotations</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">release_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;latest&quot;</span><span class="p">):</span>
+        <span class="n">release_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">local_path</span> <span class="o">/</span> <span class="s2">&quot;releases&quot;</span> <span class="o">/</span> <span class="n">release_name</span>
+        <span class="n">annotations_path</span> <span class="o">=</span> <span class="n">release_dir</span> <span class="o">/</span> <span class="s2">&quot;annotations&quot;</span>
+
+        <span class="k">for</span> <span class="n">count</span><span class="p">,</span> <span class="n">annotation_file</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">annotations_path</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;*.json&quot;</span><span class="p">)):</span>
+            <span class="n">darwin_annotation</span> <span class="o">=</span> <span class="n">parse_darwin_json</span><span class="p">(</span><span class="n">annotation_file</span><span class="p">,</span> <span class="n">count</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">darwin_annotation</span><span class="o">.</span><span class="n">is_video</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="n">frame_annotations</span> <span class="o">=</span> <span class="n">split_video_annotation</span><span class="p">(</span><span class="n">darwin_annotation</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">frame_annotation</span> <span class="ow">in</span> <span class="n">frame_annotations</span><span class="p">:</span>
+                <span class="n">annotation</span> <span class="o">=</span> <span class="n">build_image_annotation</span><span class="p">(</span><span class="n">frame_annotation</span><span class="p">)</span>
+
+                <span class="n">video_frame_annotations_path</span> <span class="o">=</span> <span class="n">annotations_path</span> <span class="o">/</span> <span class="n">annotation_file</span><span class="o">.</span><span class="n">stem</span>
+                <span class="n">video_frame_annotations_path</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+                <span class="n">stem</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">frame_annotation</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span><span class="o">.</span><span class="n">stem</span>
+                <span class="n">output_path</span> <span class="o">=</span> <span class="n">video_frame_annotations_path</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">stem</span><span class="si">}</span><span class="s2">.json&quot;</span>
+                <span class="k">with</span> <span class="n">output_path</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                    <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">annotation</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+
+            <span class="c1"># Finally delete video annotations</span>
+            <span class="n">annotation_file</span><span class="o">.</span><span class="n">unlink</span><span class="p">()</span>
+
+        <span class="c1"># Update class list, which is used when loading local annotations in a dataset</span>
+        <span class="n">make_class_lists</span><span class="p">(</span><span class="n">release_dir</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="RemoteDataset.pull"><a class="viewcode-back" href="../../../darwin.dataset.html#darwin.dataset.remote_dataset.RemoteDataset.pull">[docs]</a>    <span class="k">def</span> <span class="nf">pull</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">release</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Release</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">blocking</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">multi_threaded</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">only_annotations</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">force_replace</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">remove_extra</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">subset_filter_annotations_function</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">subset_folder_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">use_folders</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">video_frames</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Downloads a remote dataset (images and annotations) to the datasets directory.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        release: Release</span>
+<span class="sd">            The release to pull</span>
+<span class="sd">        blocking : bool</span>
+<span class="sd">            If False, the dataset is not downloaded and a generator function is returned instead</span>
+<span class="sd">        multi_threaded : bool</span>
+<span class="sd">            Uses multiprocessing to download the dataset in parallel. If blocking is False this has no effect.</span>
+<span class="sd">        only_annotations: bool</span>
+<span class="sd">            Download only the annotations and no corresponding images</span>
+<span class="sd">        force_replace: bool</span>
+<span class="sd">            Forces the re-download of an existing image</span>
+<span class="sd">        remove_extra: bool</span>
+<span class="sd">            Removes existing images for which there is not corresponding annotation</span>
+<span class="sd">        subset_filter_annotations_function: Callable</span>
+<span class="sd">            This function receives the directory where the annotations are downloaded and can</span>
+<span class="sd">            perform any operation on them i.e. filtering them with custom rules or else.</span>
+<span class="sd">            If it needs to receive other parameters is advised to use functools.partial() for it.</span>
+<span class="sd">        subset_folder_name: str</span>
+<span class="sd">            Name of the folder with the subset of the dataset. If not provided a timestamp is used.</span>
+<span class="sd">        use_folders: bool</span>
+<span class="sd">            Recreates folders from the dataset</span>
+<span class="sd">        video_frames: bool</span>
+<span class="sd">            Pulls video frames images instead of video files</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        generator : function</span>
+<span class="sd">            Generator for doing the actual downloads. This is None if blocking is True</span>
+<span class="sd">        count : int</span>
+<span class="sd">            The files count</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">release</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">release</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_release</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">release</span><span class="o">.</span><span class="n">format</span> <span class="o">!=</span> <span class="s2">&quot;json&quot;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">UnsupportedExportFormat</span><span class="p">(</span><span class="n">release</span><span class="o">.</span><span class="n">format</span><span class="p">)</span>
+
+        <span class="n">release_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">local_releases_path</span> <span class="o">/</span> <span class="n">release</span><span class="o">.</span><span class="n">name</span>
+        <span class="n">release_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">TemporaryDirectory</span><span class="p">()</span> <span class="k">as</span> <span class="n">tmp_dir_str</span><span class="p">:</span>
+            <span class="n">tmp_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">tmp_dir_str</span><span class="p">)</span>
+            <span class="c1"># Download the release from Darwin</span>
+            <span class="n">zip_file_path</span> <span class="o">=</span> <span class="n">release</span><span class="o">.</span><span class="n">download_zip</span><span class="p">(</span><span class="n">tmp_dir</span> <span class="o">/</span> <span class="s2">&quot;dataset.zip&quot;</span><span class="p">)</span>
+            <span class="k">with</span> <span class="n">zipfile</span><span class="o">.</span><span class="n">ZipFile</span><span class="p">(</span><span class="n">zip_file_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">z</span><span class="p">:</span>
+                <span class="c1"># Extract annotations</span>
+                <span class="n">z</span><span class="o">.</span><span class="n">extractall</span><span class="p">(</span><span class="n">tmp_dir</span><span class="p">)</span>
+                <span class="c1"># If a filtering function is provided, apply it</span>
+                <span class="k">if</span> <span class="n">subset_filter_annotations_function</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">subset_filter_annotations_function</span><span class="p">(</span><span class="n">tmp_dir</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">subset_folder_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">subset_folder_name</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%m/</span><span class="si">%d</span><span class="s2">/%Y_%H:%M:%S&quot;</span><span class="p">)</span>
+                <span class="n">annotations_dir</span> <span class="o">=</span> <span class="n">release_dir</span> <span class="o">/</span> <span class="p">(</span><span class="n">subset_folder_name</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="o">/</span> <span class="s2">&quot;annotations&quot;</span>
+                <span class="c1"># Remove existing annotations if necessary</span>
+                <span class="k">if</span> <span class="n">annotations_dir</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">annotations_dir</span><span class="p">)</span>
+                    <span class="k">except</span> <span class="ne">PermissionError</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Could not remove dataset in </span><span class="si">{</span><span class="n">annotations_dir</span><span class="si">}</span><span class="s2">. Permission denied.&quot;</span><span class="p">)</span>
+                <span class="n">annotations_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+                <span class="c1"># Move the annotations into the right folder and rename them to have the image</span>
+                <span class="c1"># original filename as contained in the json</span>
+                <span class="k">for</span> <span class="n">annotation_path</span> <span class="ow">in</span> <span class="n">tmp_dir</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;*.json&quot;</span><span class="p">):</span>
+                    <span class="k">with</span> <span class="n">annotation_path</span><span class="o">.</span><span class="n">open</span><span class="p">()</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
+                        <span class="n">annotation</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+                    <span class="n">filename</span> <span class="o">=</span> <span class="n">sanitize_filename</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">annotation</span><span class="p">[</span><span class="s2">&quot;image&quot;</span><span class="p">][</span><span class="s2">&quot;filename&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">stem</span><span class="p">)</span>
+                    <span class="n">destination_name</span> <span class="o">=</span> <span class="n">annotations_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">filename</span><span class="si">}{</span><span class="n">annotation_path</span><span class="o">.</span><span class="n">suffix</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="n">shutil</span><span class="o">.</span><span class="n">move</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">annotation_path</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">destination_name</span><span class="p">))</span>
+
+        <span class="c1"># Extract the list of classes and create the text files</span>
+        <span class="n">make_class_lists</span><span class="p">(</span><span class="n">release_dir</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">release</span><span class="o">.</span><span class="n">latest</span><span class="p">:</span>
+            <span class="n">latest_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">local_releases_path</span> <span class="o">/</span> <span class="s2">&quot;latest&quot;</span>
+            <span class="k">if</span> <span class="n">latest_dir</span><span class="o">.</span><span class="n">is_symlink</span><span class="p">():</span>
+                <span class="n">latest_dir</span><span class="o">.</span><span class="n">unlink</span><span class="p">()</span>
+
+            <span class="n">target_link</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">local_releases_path</span> <span class="o">/</span> <span class="n">release_dir</span><span class="o">.</span><span class="n">name</span>
+            <span class="n">latest_dir</span><span class="o">.</span><span class="n">symlink_to</span><span class="p">(</span><span class="n">target_link</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">only_annotations</span><span class="p">:</span>
+            <span class="c1"># No images will be downloaded</span>
+            <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="mi">0</span>
+
+        <span class="n">team_config</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">get_team</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">team</span><span class="p">)</span>
+        <span class="n">api_key</span> <span class="o">=</span> <span class="n">team_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;api_key&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Create the generator with the download instructions</span>
+        <span class="n">progress</span><span class="p">,</span> <span class="n">count</span> <span class="o">=</span> <span class="n">download_all_images_from_annotations</span><span class="p">(</span>
+            <span class="n">api_key</span><span class="o">=</span><span class="n">api_key</span><span class="p">,</span>
+            <span class="n">api_url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">url</span><span class="p">,</span>
+            <span class="n">annotations_path</span><span class="o">=</span><span class="n">annotations_dir</span><span class="p">,</span>
+            <span class="n">images_path</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">local_images_path</span><span class="p">,</span>
+            <span class="n">force_replace</span><span class="o">=</span><span class="n">force_replace</span><span class="p">,</span>
+            <span class="n">remove_extra</span><span class="o">=</span><span class="n">remove_extra</span><span class="p">,</span>
+            <span class="n">use_folders</span><span class="o">=</span><span class="n">use_folders</span><span class="p">,</span>
+            <span class="n">video_frames</span><span class="o">=</span><span class="n">video_frames</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">count</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="n">count</span>
+
+        <span class="c1"># If blocking is selected, download the dataset on the file system</span>
+        <span class="k">if</span> <span class="n">blocking</span><span class="p">:</span>
+            <span class="n">exhaust_generator</span><span class="p">(</span><span class="n">progress</span><span class="o">=</span><span class="n">progress</span><span class="p">(),</span> <span class="n">count</span><span class="o">=</span><span class="n">count</span><span class="p">,</span> <span class="n">multi_threaded</span><span class="o">=</span><span class="n">multi_threaded</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="n">count</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">progress</span><span class="p">,</span> <span class="n">count</span></div>
+
+<div class="viewcode-block" id="RemoteDataset.remove_remote"><a class="viewcode-back" href="../../../darwin.dataset.html#darwin.dataset.remote_dataset.RemoteDataset.remove_remote">[docs]</a>    <span class="k">def</span> <span class="nf">remove_remote</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Archives (soft-deletion) the remote dataset&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;datasets/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_id</span><span class="si">}</span><span class="s2">/archive&quot;</span><span class="p">,</span> <span class="n">payload</span><span class="o">=</span><span class="p">{},</span> <span class="n">team</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">team</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="RemoteDataset.fetch_remote_files"><a class="viewcode-back" href="../../../darwin.dataset.html#darwin.dataset.remote_dataset.RemoteDataset.fetch_remote_files">[docs]</a>    <span class="k">def</span> <span class="nf">fetch_remote_files</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">filters</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">sort</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">ItemSorter</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">DatasetItem</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Fetch and lists all files on the remote dataset&quot;&quot;&quot;</span>
+        <span class="n">base_url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;/datasets/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_id</span><span class="si">}</span><span class="s2">/items&quot;</span>
+        <span class="n">post_filters</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">post_sort</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">if</span> <span class="n">filters</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">list_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;filenames&quot;</span><span class="p">,</span> <span class="s2">&quot;statuses&quot;</span><span class="p">]:</span>
+                <span class="k">if</span> <span class="n">list_type</span> <span class="ow">in</span> <span class="n">filters</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">filters</span><span class="p">[</span><span class="n">list_type</span><span class="p">])</span> <span class="ow">is</span> <span class="nb">list</span><span class="p">:</span>
+                        <span class="n">post_filters</span><span class="p">[</span><span class="n">list_type</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">filters</span><span class="p">[</span><span class="n">list_type</span><span class="p">])</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">post_filters</span><span class="p">[</span><span class="n">list_type</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">filters</span><span class="p">[</span><span class="n">list_type</span><span class="p">])</span>
+            <span class="k">if</span> <span class="s2">&quot;path&quot;</span> <span class="ow">in</span> <span class="n">filters</span><span class="p">:</span>
+                <span class="n">post_filters</span><span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">filters</span><span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">])</span>
+            <span class="k">if</span> <span class="s2">&quot;types&quot;</span> <span class="ow">in</span> <span class="n">filters</span><span class="p">:</span>
+                <span class="n">post_filters</span><span class="p">[</span><span class="s2">&quot;types&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">filters</span><span class="p">[</span><span class="s2">&quot;types&quot;</span><span class="p">])</span>
+
+            <span class="k">if</span> <span class="n">sort</span><span class="p">:</span>
+                <span class="n">item_sorter</span> <span class="o">=</span> <span class="n">ItemSorter</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">sort</span><span class="p">)</span>
+                <span class="n">post_sort</span><span class="p">[</span><span class="n">item_sorter</span><span class="o">.</span><span class="n">field</span><span class="p">]</span> <span class="o">=</span> <span class="n">item_sorter</span><span class="o">.</span><span class="n">direction</span><span class="o">.</span><span class="n">value</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;page[size]&quot;</span><span class="p">:</span> <span class="mi">500</span><span class="p">}</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">post</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">base_url</span><span class="si">}</span><span class="s2">?</span><span class="si">{</span><span class="n">parse</span><span class="o">.</span><span class="n">urlencode</span><span class="p">(</span><span class="n">cursor</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;filter&quot;</span><span class="p">:</span> <span class="n">post_filters</span><span class="p">,</span> <span class="s2">&quot;sort&quot;</span><span class="p">:</span> <span class="n">post_sort</span><span class="p">},</span> <span class="n">team</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">team</span>
+            <span class="p">)</span>
+            <span class="k">yield from</span> <span class="p">[</span><span class="n">parse_dataset_item</span><span class="p">(</span><span class="n">item</span><span class="p">)</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">response</span><span class="p">[</span><span class="s2">&quot;items&quot;</span><span class="p">]]</span>
+
+            <span class="k">if</span> <span class="n">response</span><span class="p">[</span><span class="s2">&quot;metadata&quot;</span><span class="p">][</span><span class="s2">&quot;next&quot;</span><span class="p">]:</span>
+                <span class="n">cursor</span><span class="p">[</span><span class="s2">&quot;page[from]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">response</span><span class="p">[</span><span class="s2">&quot;metadata&quot;</span><span class="p">][</span><span class="s2">&quot;next&quot;</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span></div>
+
+<div class="viewcode-block" id="RemoteDataset.archive"><a class="viewcode-back" href="../../../darwin.dataset.html#darwin.dataset.remote_dataset.RemoteDataset.archive">[docs]</a>    <span class="k">def</span> <span class="nf">archive</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">items</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">put</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;datasets/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_id</span><span class="si">}</span><span class="s2">/items/archive&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;filter&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;dataset_item_ids&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">item</span><span class="o">.</span><span class="n">id</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">items</span><span class="p">]}}</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="RemoteDataset.restore_archived"><a class="viewcode-back" href="../../../darwin.dataset.html#darwin.dataset.remote_dataset.RemoteDataset.restore_archived">[docs]</a>    <span class="k">def</span> <span class="nf">restore_archived</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">items</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">put</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;datasets/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_id</span><span class="si">}</span><span class="s2">/items/restore&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;filter&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;dataset_item_ids&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">item</span><span class="o">.</span><span class="n">id</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">items</span><span class="p">]}}</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="RemoteDataset.fetch_annotation_type_id_for_name"><a class="viewcode-back" href="../../../darwin.dataset.html#darwin.dataset.remote_dataset.RemoteDataset.fetch_annotation_type_id_for_name">[docs]</a>    <span class="k">def</span> <span class="nf">fetch_annotation_type_id_for_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Fetches annotation type id for a annotation type name, such as bounding_box</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name: str</span>
+<span class="sd">            The name of the annotation we want the id for.</span>
+<span class="sd">        </span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        generator : Optional[int]</span>
+<span class="sd">            The id of the annotation type or None if it doesn&#39;t exist.</span>
+<span class="sd">        </span>
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ConnectionError </span>
+<span class="sd">            If it fails to establish a connection. </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">annotation_types</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">annotation_types</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;/annotation_types&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">annotation_type</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">annotation_types</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">annotation_type</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">name</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">annotation_type</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="RemoteDataset.create_annotation_class"><a class="viewcode-back" href="../../../darwin.dataset.html#darwin.dataset.remote_dataset.RemoteDataset.create_annotation_class">[docs]</a>    <span class="k">def</span> <span class="nf">create_annotation_class</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">subtypes</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates an annotation class for this dataset.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            The name of the annotation class.</span>
+<span class="sd">        type : str</span>
+<span class="sd">            The type of the annotation class.</span>
+<span class="sd">        subtypes : List[str]</span>
+<span class="sd">            Annotation class subtypes.  </span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict</span>
+<span class="sd">            Dictionary with the server response.</span>
+<span class="sd">        </span>
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ConnectionError</span>
+<span class="sd">            If it is unable to connect.</span>
+
+<span class="sd">        ValueError</span>
+<span class="sd">            If a given annotation type or subtype is unknown.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">type_ids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">annotation_type</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">type</span><span class="p">]</span> <span class="o">+</span> <span class="n">subtypes</span><span class="p">:</span>
+            <span class="n">type_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fetch_annotation_type_id_for_name</span><span class="p">(</span><span class="n">annotation_type</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">type_id</span><span class="p">:</span>
+                <span class="n">list_of_annotation_types</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">type</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="nb">type</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">annotation_types</span><span class="p">])</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Unknown annotation type: &#39;</span><span class="si">{</span><span class="n">annotation_type</span><span class="si">}</span><span class="s2">&#39;, valid values: </span><span class="si">{</span><span class="n">list_of_annotation_types</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+            <span class="n">type_ids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">type_id</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">post</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;/annotation_classes&quot;</span><span class="p">,</span>
+            <span class="n">payload</span><span class="o">=</span><span class="p">{</span>
+                <span class="s2">&quot;dataset_id&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset_id</span><span class="p">,</span>
+                <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span>
+                <span class="s2">&quot;metadata&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;_color&quot;</span><span class="p">:</span> <span class="s2">&quot;auto&quot;</span><span class="p">},</span>
+                <span class="s2">&quot;annotation_type_ids&quot;</span><span class="p">:</span> <span class="n">type_ids</span><span class="p">,</span>
+                <span class="s2">&quot;datasets&quot;</span><span class="p">:</span> <span class="p">[{</span><span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset_id</span><span class="p">}],</span>
+            <span class="p">},</span>
+            <span class="n">error_handlers</span><span class="o">=</span><span class="p">[</span><span class="n">name_taken</span><span class="p">,</span> <span class="n">validation_error</span><span class="p">],</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="RemoteDataset.add_annotation_class"><a class="viewcode-back" href="../../../darwin.dataset.html#darwin.dataset.remote_dataset.RemoteDataset.add_annotation_class">[docs]</a>    <span class="k">def</span> <span class="nf">add_annotation_class</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">annotation_class</span><span class="p">:</span> <span class="n">AnnotationClass</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Adds an annotation class to this dataset.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        annotation_class : AnnotationClass</span>
+<span class="sd">            The annotation class to add.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict or None</span>
+<span class="sd">            Dictionary with the server response or None if the annotations class already exists.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Waiting for a better api for setting classes</span>
+        <span class="c1"># in the meantime this will do</span>
+        <span class="n">all_classes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fetch_remote_classes</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">annotation_class_type</span> <span class="o">=</span> <span class="n">annotation_class</span><span class="o">.</span><span class="n">annotation_internal_type</span> <span class="ow">or</span> <span class="n">annotation_class</span><span class="o">.</span><span class="n">annotation_type</span>
+        <span class="n">match</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="bp">cls</span>
+            <span class="k">for</span> <span class="bp">cls</span> <span class="ow">in</span> <span class="n">all_classes</span>
+            <span class="k">if</span> <span class="bp">cls</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">annotation_class</span><span class="o">.</span><span class="n">name</span> <span class="ow">and</span> <span class="n">annotation_class_type</span> <span class="ow">in</span> <span class="bp">cls</span><span class="p">[</span><span class="s2">&quot;annotation_types&quot;</span><span class="p">]</span>
+        <span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">match</span><span class="p">:</span>
+            <span class="c1"># We do not expect to reach here; as pervious logic divides annotation classes in imports</span>
+            <span class="c1"># between `in team` and `new to platform`</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Annotation class name: `</span><span class="si">{</span><span class="n">annotation_class</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">`, type: `</span><span class="si">{</span><span class="n">annotation_class_type</span><span class="si">}</span><span class="s2">`; does not exist in Team.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">datasets</span> <span class="o">=</span> <span class="n">match</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;datasets&quot;</span><span class="p">]</span>
+        <span class="c1"># check that we are not already part of the dataset</span>
+        <span class="k">for</span> <span class="n">dataset</span> <span class="ow">in</span> <span class="n">datasets</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">dataset</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset_id</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">None</span>
+        <span class="n">datasets</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset_id</span><span class="p">})</span>
+        <span class="c1"># we typecast to dictionary because we are not passing the raw=True parameter.</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;/annotation_classes/</span><span class="si">{</span><span class="n">match</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;id&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;datasets&quot;</span><span class="p">:</span> <span class="n">datasets</span><span class="p">,</span> <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="n">match</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;id&quot;</span><span class="p">]})</span></div>
+
+<div class="viewcode-block" id="RemoteDataset.fetch_remote_classes"><a class="viewcode-back" href="../../../darwin.dataset.html#darwin.dataset.remote_dataset.RemoteDataset.fetch_remote_classes">[docs]</a>    <span class="k">def</span> <span class="nf">fetch_remote_classes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">team_wide</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Fetches all the Annotation Classes from the given remote dataset.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        team_wide : bool</span>
+<span class="sd">            If `True` will return all Annotation Classes that belong to the team. If `False` will</span>
+<span class="sd">            only return Annotation Classes which have been added to the dataset.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Optional[List]:</span>
+<span class="sd">            List of Annotation Classes (can be empty) or None, if the team was not able to be</span>
+<span class="sd">            determined.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">all_classes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">fetch_remote_classes</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">all_classes</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="n">classes_to_return</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="bp">cls</span> <span class="ow">in</span> <span class="n">all_classes</span><span class="p">:</span>
+            <span class="n">belongs_to_current_dataset</span> <span class="o">=</span> <span class="nb">any</span><span class="p">([</span><span class="n">dataset</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset_id</span> <span class="k">for</span> <span class="n">dataset</span> <span class="ow">in</span> <span class="bp">cls</span><span class="p">[</span><span class="s2">&quot;datasets&quot;</span><span class="p">]])</span>
+            <span class="bp">cls</span><span class="p">[</span><span class="s2">&quot;available&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">belongs_to_current_dataset</span>
+            <span class="k">if</span> <span class="n">team_wide</span> <span class="ow">or</span> <span class="n">belongs_to_current_dataset</span><span class="p">:</span>
+                <span class="n">classes_to_return</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">classes_to_return</span></div>
+
+<div class="viewcode-block" id="RemoteDataset.fetch_remote_attributes"><a class="viewcode-back" href="../../../darwin.dataset.html#darwin.dataset.remote_dataset.RemoteDataset.fetch_remote_attributes">[docs]</a>    <span class="k">def</span> <span class="nf">fetch_remote_attributes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Fetches all remote attributes on the remote dataset&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;/datasets/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_id</span><span class="si">}</span><span class="s2">/attributes&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="RemoteDataset.export"><a class="viewcode-back" href="../../../darwin.dataset.html#darwin.dataset.remote_dataset.RemoteDataset.export">[docs]</a>    <span class="k">def</span> <span class="nf">export</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">annotation_class_ids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">include_url_token</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a new release for the dataset</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name: str</span>
+<span class="sd">            Name of the release</span>
+<span class="sd">        annotation_class_ids: List</span>
+<span class="sd">            List of the classes to filter</span>
+<span class="sd">        include_url_token: bool</span>
+<span class="sd">            Should the image url in the export include a token enabling access without team membership</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">annotation_class_ids</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">annotation_class_ids</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">payload</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;annotation_class_ids&quot;</span><span class="p">:</span> <span class="n">annotation_class_ids</span><span class="p">,</span>
+            <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span>
+            <span class="s2">&quot;include_export_token&quot;</span><span class="p">:</span> <span class="n">include_url_token</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">post</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;/datasets/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_id</span><span class="si">}</span><span class="s2">/exports&quot;</span><span class="p">,</span>
+            <span class="n">payload</span><span class="o">=</span><span class="n">payload</span><span class="p">,</span>
+            <span class="n">team</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">team</span><span class="p">,</span>
+            <span class="n">error_handlers</span><span class="o">=</span><span class="p">[</span><span class="n">name_taken</span><span class="p">,</span> <span class="n">validation_error</span><span class="p">],</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="RemoteDataset.get_report"><a class="viewcode-back" href="../../../darwin.dataset.html#darwin.dataset.remote_dataset.RemoteDataset.get_report">[docs]</a>    <span class="k">def</span> <span class="nf">get_report</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">granularity</span><span class="o">=</span><span class="s2">&quot;day&quot;</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;/reports/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">team</span><span class="si">}</span><span class="s2">/annotation?group_by=dataset,user&amp;dataset_ids=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_id</span><span class="si">}</span><span class="s2">&amp;granularity=</span><span class="si">{</span><span class="n">granularity</span><span class="si">}</span><span class="s2">&amp;format=csv&amp;include=dataset.name,user.first_name,user.last_name,user.email&quot;</span><span class="p">,</span>
+            <span class="n">team</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">team</span><span class="p">,</span>
+            <span class="n">raw</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">text</span></div>
+
+<div class="viewcode-block" id="RemoteDataset.get_releases"><a class="viewcode-back" href="../../../darwin.dataset.html#darwin.dataset.remote_dataset.RemoteDataset.get_releases">[docs]</a>    <span class="k">def</span> <span class="nf">get_releases</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get a sorted list of releases with the most recent first.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        list(Release)</span>
+<span class="sd">            Return a sorted list of releases with the most recent first</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ConnectionError</span>
+<span class="sd">            If it is unable to connect.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">releases_json</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;/datasets/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_id</span><span class="si">}</span><span class="s2">/exports&quot;</span><span class="p">,</span> <span class="n">team</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">team</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">NotFound</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[]</span>
+        <span class="n">releases</span> <span class="o">=</span> <span class="p">[</span><span class="n">Release</span><span class="o">.</span><span class="n">parse_json</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">slug</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">team</span><span class="p">,</span> <span class="n">payload</span><span class="p">)</span> <span class="k">for</span> <span class="n">payload</span> <span class="ow">in</span> <span class="n">releases_json</span><span class="p">]</span>
+        <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">available</span><span class="p">,</span> <span class="n">releases</span><span class="p">),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">version</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="RemoteDataset.get_release"><a class="viewcode-back" href="../../../darwin.dataset.html#darwin.dataset.remote_dataset.RemoteDataset.get_release">[docs]</a>    <span class="k">def</span> <span class="nf">get_release</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;latest&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get a specific release for this dataset.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name: str</span>
+<span class="sd">            Name of the export</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        release: Release</span>
+<span class="sd">            The selected release</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        NotFound</span>
+<span class="sd">            The selected release does not exists</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">releases</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_releases</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">releases</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">NotFound</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">identifier</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;latest&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">next</span><span class="p">((</span><span class="n">release</span> <span class="k">for</span> <span class="n">release</span> <span class="ow">in</span> <span class="n">releases</span> <span class="k">if</span> <span class="n">release</span><span class="o">.</span><span class="n">latest</span><span class="p">))</span>
+
+        <span class="k">for</span> <span class="n">release</span> <span class="ow">in</span> <span class="n">releases</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">release</span><span class="o">.</span><span class="n">name</span><span class="p">)</span> <span class="o">==</span> <span class="n">name</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">release</span>
+        <span class="k">raise</span> <span class="n">NotFound</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">identifier</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="RemoteDataset.split"><a class="viewcode-back" href="../../../darwin.dataset.html#darwin.dataset.remote_dataset.RemoteDataset.split">[docs]</a>    <span class="k">def</span> <span class="nf">split</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">val_percentage</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
+        <span class="n">test_percentage</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">split_seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">make_default_split</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">release_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates lists of file names for each split for train, validation, and test.</span>
+<span class="sd">        Note: This functions needs a local copy of the dataset</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        val_percentage : float</span>
+<span class="sd">            Percentage of images used in the validation set</span>
+<span class="sd">        test_percentage : float</span>
+<span class="sd">            Percentage of images used in the test set</span>
+<span class="sd">        force_resplit : bool</span>
+<span class="sd">            Discard previous split and create a new one</span>
+<span class="sd">        split_seed : int</span>
+<span class="sd">            Fix seed for random split creation</span>
+<span class="sd">        make_default_split: bool</span>
+<span class="sd">            Makes this split the default split</span>
+<span class="sd">        release_name: str</span>
+<span class="sd">            Version of the dataset</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">local_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="n">NotFound</span><span class="p">(</span>
+                <span class="s2">&quot;Local dataset not found: the split is performed on the local copy of the dataset. </span><span class="se">\</span>
+<span class="s2">                           Pull the dataset from Darwin first using pull()&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">release_name</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;latest&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+            <span class="n">release</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_release</span><span class="p">(</span><span class="s2">&quot;latest&quot;</span><span class="p">)</span>
+            <span class="n">release_name</span> <span class="o">=</span> <span class="n">release</span><span class="o">.</span><span class="n">name</span>
+
+        <span class="n">split_dataset</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">local_path</span><span class="p">,</span>
+            <span class="n">release_name</span><span class="o">=</span><span class="n">release_name</span><span class="p">,</span>
+            <span class="n">val_percentage</span><span class="o">=</span><span class="n">val_percentage</span><span class="p">,</span>
+            <span class="n">test_percentage</span><span class="o">=</span><span class="n">test_percentage</span><span class="p">,</span>
+            <span class="n">split_seed</span><span class="o">=</span><span class="n">split_seed</span><span class="p">,</span>
+            <span class="n">make_default_split</span><span class="o">=</span><span class="n">make_default_split</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="RemoteDataset.classes"><a class="viewcode-back" href="../../../darwin.dataset.html#darwin.dataset.remote_dataset.RemoteDataset.classes">[docs]</a>    <span class="k">def</span> <span class="nf">classes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">annotation_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">release_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the list of `class_type` classes</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        annotation_type</span>
+<span class="sd">            The type of annotation classes, e.g. &#39;tag&#39; or &#39;polygon&#39;</span>
+<span class="sd">        release_name: str</span>
+<span class="sd">            Version of the dataset</span>
+
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        classes: list</span>
+<span class="sd">            List of classes in the dataset of type `class_type`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">local_path</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">release_name</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;latest&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+            <span class="n">release</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_release</span><span class="p">(</span><span class="s2">&quot;latest&quot;</span><span class="p">)</span>
+            <span class="n">release_name</span> <span class="o">=</span> <span class="n">release</span><span class="o">.</span><span class="n">name</span>
+
+        <span class="k">return</span> <span class="n">get_classes</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">local_path</span><span class="p">,</span> <span class="n">release_name</span><span class="o">=</span><span class="n">release_name</span><span class="p">,</span> <span class="n">annotation_type</span><span class="o">=</span><span class="n">annotation_type</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="RemoteDataset.annotations"><a class="viewcode-back" href="../../../darwin.dataset.html#darwin.dataset.remote_dataset.RemoteDataset.annotations">[docs]</a>    <span class="k">def</span> <span class="nf">annotations</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">partition</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">split</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;split&quot;</span><span class="p">,</span>
+        <span class="n">split_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;stratified&quot;</span><span class="p">,</span>
+        <span class="n">annotation_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;polygon&quot;</span><span class="p">,</span>
+        <span class="n">release_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">annotation_format</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;darwin&quot;</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns all the annotations of a given split and partition in a single dictionary</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        partition</span>
+<span class="sd">            Selects one of the partitions [train, val, test]</span>
+<span class="sd">        split</span>
+<span class="sd">            Selects the split that defines the percetages used (use &#39;split&#39; to select the default split</span>
+<span class="sd">        split_type</span>
+<span class="sd">            Heuristic used to do the split [random, stratified]</span>
+<span class="sd">        annotation_type</span>
+<span class="sd">            The type of annotation classes [tag, polygon]</span>
+<span class="sd">        release_name: str</span>
+<span class="sd">            Version of the dataset</span>
+<span class="sd">        annotation_format: str</span>
+<span class="sd">            Re-formatting of the annotation when loaded [coco, darwin]</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict</span>
+<span class="sd">            Dictionary containing all the annotations of the dataset</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">local_path</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">release_name</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;latest&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+            <span class="n">release</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_release</span><span class="p">(</span><span class="s2">&quot;latest&quot;</span><span class="p">)</span>
+            <span class="n">release_name</span> <span class="o">=</span> <span class="n">release</span><span class="o">.</span><span class="n">name</span>
+
+        <span class="k">for</span> <span class="n">annotation</span> <span class="ow">in</span> <span class="n">get_annotations</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">local_path</span><span class="p">,</span>
+            <span class="n">partition</span><span class="o">=</span><span class="n">partition</span><span class="p">,</span>
+            <span class="n">split</span><span class="o">=</span><span class="n">split</span><span class="p">,</span>
+            <span class="n">split_type</span><span class="o">=</span><span class="n">split_type</span><span class="p">,</span>
+            <span class="n">annotation_type</span><span class="o">=</span><span class="n">annotation_type</span><span class="p">,</span>
+            <span class="n">release_name</span><span class="o">=</span><span class="n">release_name</span><span class="p">,</span>
+            <span class="n">annotation_format</span><span class="o">=</span><span class="n">annotation_format</span><span class="p">,</span>
+        <span class="p">):</span>
+            <span class="k">yield</span> <span class="n">annotation</span></div>
+
+<div class="viewcode-block" id="RemoteDataset.workview_url_for_item"><a class="viewcode-back" href="../../../darwin.dataset.html#darwin.dataset.remote_dataset.RemoteDataset.workview_url_for_item">[docs]</a>    <span class="k">def</span> <span class="nf">workview_url_for_item</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">urljoin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">base_url</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;/workview?dataset=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_id</span><span class="si">}</span><span class="s2">&amp;image=</span><span class="si">{</span><span class="n">item</span><span class="o">.</span><span class="n">seq</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">remote_path</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Returns an URL specifying the location of the remote dataset&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="n">urljoin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">base_url</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;/datasets/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">))</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">local_path</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Returns a Path to the local dataset&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">slug</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">get_datasets_dir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">team</span><span class="p">))</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">team</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">slug</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">get_datasets_dir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">team</span><span class="p">))</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">team</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">local_releases_path</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Returns a Path to the local dataset releases&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">local_path</span> <span class="o">/</span> <span class="s2">&quot;releases&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">local_images_path</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Returns a local Path to the images folder&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">local_path</span> <span class="o">/</span> <span class="s2">&quot;images&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">identifier</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DatasetIdentifier</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">DatasetIdentifier</span><span class="p">(</span><span class="n">team_slug</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">team</span><span class="p">,</span> <span class="n">dataset_slug</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">slug</span><span class="p">)</span></div>
+</pre></div>
+
+              </div>
+              
+        
+            
+
+
+
+<div class='prev-next-bottom'>
+    
+
+</div>
+        
+        </div>
+    </div>
+    <footer class="footer mt-5 mt-md-0">
+    <div class="container">
+      <p>
+        
+          By V7<br/>
+        
+            &copy; Copyright MIT License.<br/>
+      </p>
+    </div>
+  </footer>
+</main>
+
+
+      </div>
+    </div>
+  
+  <script src="../../../_static/js/index.1c5a1a01449ed65a7b51.js"></script>
+
+  
+  </body>
+</html>
