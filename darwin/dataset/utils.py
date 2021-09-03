@@ -326,7 +326,7 @@ def get_annotations(
             split_file = f"{split_type}_{annotation_type}_{partition}.txt"
         split_path = release_path / "lists" / split / split_file
         if split_path.is_file():
-            stems = (e.strip() for e in split_path.open())
+            stems = filter(len, split_path.read_text().split("\n"))
         else:
             raise FileNotFoundError(
                 f"Could not find a dataset partition. ",
@@ -495,7 +495,7 @@ def compute_distributions(
     for partition in partitions:
         for annotation_type in annotation_types:
             split_file = split_path / f"stratified_{annotation_type}_{partition}.txt"
-            stems = [e.strip() for e in split_file.open()]
+            stems = filter(len, split_file.read_text().split("\n"))
 
             for stem in stems:
                 annotation_path = annotations_dir / f"{stem}.json"
