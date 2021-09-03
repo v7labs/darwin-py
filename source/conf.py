@@ -11,8 +11,10 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 
 import os
+import re
 import sys
-from typing import List
+from pathlib import Path
+from typing import List, Match, Optional
 
 sys.path.insert(0, os.path.abspath("../darwin/"))
 
@@ -24,8 +26,14 @@ copyright: str = "MIT License"
 author: str = "V7"
 
 # The full version, including alpha/beta/rc tags
-release: str = "0.6.6"
+release: str = "0.0.0"
 
+with open(Path(__file__).parent / "darwin" / "__init__.py", "r") as f:
+    # from https://www.py4u.net/discuss/139845
+    content: str = f.read()
+    search_result: Optional[Match[str]] = re.search(r'__version__\s*=\s*[\'"]([^\'"]*)[\'"]', content)
+    if search_result:
+        release = search_result.group(1)
 
 # -- General configuration ---------------------------------------------------
 
