@@ -5,6 +5,7 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any, Dict, Generator, List, Optional, Set, Tuple, Union
 
+import darwin.datatypes as dt
 import numpy as np
 from darwin.exceptions import NotFound
 from darwin.importer.formats.darwin import parse_file
@@ -494,17 +495,17 @@ def compute_distributions(
 
     for partition in partitions:
         for annotation_type in annotation_types:
-            split_file = split_path / f"stratified_{annotation_type}_{partition}.txt"
-            stems = filter(len, split_file.read_text().split("\n"))
+            split_file: Path = split_path / f"stratified_{annotation_type}_{partition}.txt"
+            stems: List[str] = [e.strip("\n\r") for e in split_file.open()]
 
             for stem in stems:
-                annotation_path = annotations_dir / f"{stem}.json"
-                annotation_file = parse_file(annotation_path)
+                annotation_path: Path = annotations_dir / f"{stem}.json"
+                annotation_file: Optional[dt.AnnotationFile] = parse_file(annotation_path)
 
                 if annotation_file is None:
                     continue
 
-                annotation_class_names = [
+                annotation_class_names: List[str] = [
                     annotation.annotation_class.name for annotation in annotation_file.annotations
                 ]
 
