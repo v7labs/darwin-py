@@ -433,6 +433,8 @@ def upload_data(
     """
     client = _load_client()
     try:
+        max_workers = concurrent.futures.ThreadPoolExecutor()._max_workers
+
         dataset = client.get_remote_dataset(dataset_identifier=dataset_identifier)
 
         sync_metadata = Progress(SpinnerColumn(), TextColumn("[bold blue]Syncing metadata"))
@@ -477,7 +479,6 @@ def upload_data(
                 # or removing a task fails. Wrapping this logic around a try/catch block
                 # is a workaround, we should consider solving this properly (e.g.: using locks)
                 try:
-                    max_workers = concurrent.futures.ThreadPoolExecutor()._max_workers
                     file_progress.update(file_tasks[file_name], completed=file_bytes_sent)
 
                     for task in file_progress.tasks:
