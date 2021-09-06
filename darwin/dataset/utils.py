@@ -3,7 +3,7 @@ import json
 import multiprocessing as mp
 from collections import Counter, defaultdict
 from pathlib import Path
-from typing import Any, Dict, Generator, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, Generator, Iterator, List, Optional, Set, Tuple, Union
 
 import darwin.datatypes as dt
 import numpy as np
@@ -19,7 +19,7 @@ from rich.live import Live
 from rich.progress import ProgressBar, track
 
 
-def get_release_path(dataset_path: Path, release_name: Optional[str] = None):
+def get_release_path(dataset_path: Path, release_name: Optional[str] = None) -> Path:
     """
     Given a dataset path and a release name, returns the path to the release
 
@@ -40,7 +40,7 @@ def get_release_path(dataset_path: Path, release_name: Optional[str] = None):
     if not release_name:
         release_name = "latest"
 
-    release_path = dataset_path / "releases" / release_name
+    release_path: Path = dataset_path / "releases" / release_name
     if not release_path.exists():
         raise NotFound(
             f"Local copy of release {release_name} not found: "
@@ -300,7 +300,7 @@ def get_annotations(
     assert dataset_path is not None
     dataset_path = Path(dataset_path)
 
-    release_path = get_release_path(dataset_path, release_name)
+    release_path: Path = get_release_path(dataset_path, release_name)
 
     annotations_dir = release_path / "annotations"
     assert annotations_dir.exists()
@@ -325,9 +325,13 @@ def get_annotations(
             split_file = f"{split_type}_{partition}.txt"
         elif split_type == "stratified":
             split_file = f"{split_type}_{annotation_type}_{partition}.txt"
-        split_path = release_path / "lists" / split / split_file
+        else:
+            raise ValueError(f"Invalid split_type ({split_type})")
+
+        split_path: Path = release_path / "lists" / str(split) / split_file
+
         if split_path.is_file():
-            stems: Generator[str, None, None] = (e.rstrip("\n\r") for e in split_path.open())
+            stems: Iterator[str] = (e.rstrip("\n\r") for e in split_path.open())
         else:
             raise FileNotFoundError(
                 f"Could not find a dataset partition. ",
