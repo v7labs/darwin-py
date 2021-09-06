@@ -496,7 +496,7 @@ def compute_distributions(
     for partition in partitions:
         for annotation_type in annotation_types:
             split_file: Path = split_path / f"stratified_{annotation_type}_{partition}.txt"
-            stems: Generator[str, None, None] = (e.rstrip("\n\r") for e in split_file.open())
+            stems: List[str] = [e.rstrip("\n\r") for e in split_file.open()]
 
             for stem in stems:
                 annotation_path: Path = annotations_dir / f"{stem}.json"
