@@ -1,5 +1,9 @@
 from pathlib import Path
-from typing import Callable, List, Union
+from typing import TYPE_CHECKING, Callable, List, Tuple, Union
+
+if TYPE_CHECKING:
+    from darwin.client import Client
+    from darwin.dataset import RemoteDataset
 
 import darwin.datatypes as dt
 from darwin.utils import secure_continue_request
@@ -7,21 +11,31 @@ from rich.progress import track
 
 
 def build_main_annotations_lookup_table(annotation_classes):
+    MAIN_ANNOTATION_TYPES = [
+        "bounding_box",
+        "cuboid",
+        "ellipse",
+        "keypoint",
+        "line",
+        "link",
+        "polygon",
+        "skeleton",
+        "tag",
+    ]
     lookup = {}
     for cls in annotation_classes:
         for annotation_type in cls["annotation_types"]:
-            if annotation_type["granularity"] == "main":
-                if annotation_type["name"] not in lookup:
-                    lookup[annotation_type["name"]] = {}
-
-                lookup[annotation_type["name"]][cls["name"]] = cls["id"]
+            if annotation_type in MAIN_ANNOTATION_TYPES:
+                if annotation_type not in lookup:
+                    lookup[annotation_type] = {}
+                lookup[annotation_type][cls["name"]] = cls["id"]
     return lookup
 
 
 def find_and_parse(
     importer: Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]],
     file_paths: List[Union[str, Path]],
-) -> (List[dt.AnnotationFile], List[dt.AnnotationFile]):
+) -> Tuple[List[dt.AnnotationFile], List[dt.AnnotationFile]]:
     # TODO: this could be done in parallel
     for file_path in map(Path, file_paths):
         files = file_path.glob("**/*") if file_path.is_dir() else [file_path]
@@ -61,14 +75,61 @@ def get_remote_files(dataset, filenames):
     return remote_files
 
 
+def _resolve_annotation_classes(
+    local_annotation_classes: List[dt.AnnotationClass], classes_in_dataset, classes_in_team
+):
+    local_classes_not_in_dataset: set[dt.AnnotationClass] = set()
+    local_classes_not_in_team: set[dt.AnnotationClass] = set()
+
+    for local_cls in local_annotation_classes:
+        local_annotation_type = local_cls.annotation_internal_type or local_cls.annotation_type
+        # Only add the new class if it doesn't exist remotely already
+        if local_annotation_type in classes_in_dataset and local_cls.name in classes_in_dataset[local_annotation_type]:
+            continue
+
+        # Only add the new class if it's not included in the list of the missing classes already
+        if local_cls.name in [missing_class.name for missing_class in local_classes_not_in_dataset]:
+            continue
+        if local_cls.name in [missing_class.name for missing_class in local_classes_not_in_team]:
+            continue
+
+        if local_annotation_type in classes_in_team and local_cls.name in classes_in_team[local_annotation_type]:
+            local_classes_not_in_dataset.add(local_cls)
+        else:
+            local_classes_not_in_team.add(local_cls)
+    return local_classes_not_in_dataset, local_classes_not_in_team
+
+
 def import_annotations(
     dataset: "RemoteDataset",
     importer: Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]],
     file_paths: List[Union[str, Path]],
     append: bool,
-):
+) -> None:
+    """
+    Imports the given given Annotations into the given Dataset.
+
+    Parameters
+    ----------
+    dataset : RemoteDataset
+        Dataset where the Annotations will be imported to.
+    importer : Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]]
+        Parsing module containing the logic to parse the given Annotation files given in 
+        `files_path`. See `importer/format` for a list of out of supported parsers.
+    file_paths : List[Union[str, Path]],
+        A list of `Path`s or strings containing the Annotations we wish to import.
+    append : bool
+        If `True` appends the given annotations to the datasets. If `False` will override them.
+    
+    Returns
+        -------
+        None
+    """
+
     print("Fetching remote class list...")
-    remote_classes = build_main_annotations_lookup_table(dataset.fetch_remote_classes())
+    team_classes = dataset.fetch_remote_classes(True)
+    classes_in_dataset = build_main_annotations_lookup_table([cls for cls in team_classes if cls["available"]])
+    classes_in_team = build_main_annotations_lookup_table([cls for cls in team_classes if not cls["available"]])
     attributes = build_attribute_lookup(dataset)
 
     print("Retrieving local annotations ...")
@@ -96,34 +157,45 @@ def import_annotations(
         if not secure_continue_request():
             return
 
-    local_classes_missing_remotely = set()
-    for local_file in local_files:
-        for cls in local_file.annotation_classes:
-            annotation_type = cls.annotation_internal_type or cls.annotation_type
-            # Only add the new class if it doesn't exist remotely already
-            if annotation_type in remote_classes and cls.name in remote_classes[annotation_type]:
-                continue
-            # Only add the new class if it's not included in the list of the missing classes already
-            if cls.name in [missing_class.name for missing_class in local_classes_missing_remotely]:
-                continue
-            local_classes_missing_remotely.add(cls)
+    local_classes_not_in_dataset, local_classes_not_in_team = _resolve_annotation_classes(
+        [annotation_class for file in local_files for annotation_class in file.annotation_classes],
+        classes_in_dataset,
+        classes_in_team,
+    )
 
-    print(f"{len(local_classes_missing_remotely)} classes are missing remotely.")
-    if local_classes_missing_remotely:
+    print(f"{len(local_classes_not_in_team)} classes needs to be created.")
+    print(f"{len(local_classes_not_in_dataset)} classes needs to be added to {dataset.identifier}")
+
+    missing_skeletons: List[dt.AnnotationClass] = list(filter(_is_skeleton_class, local_classes_not_in_team))
+    missing_skeleton_names: str = ", ".join(map(_get_skeleton_name, missing_skeletons))
+    if missing_skeletons:
+        print(
+            f"Found missing skeleton classes: {missing_skeleton_names}. Missing Skeleton classes cannot be created. Exiting now."
+        )
+        return
+
+    if local_classes_not_in_team:
         print("About to create the following classes")
-        for missing_class in local_classes_missing_remotely:
+        for missing_class in local_classes_not_in_team:
             print(
                 f"\t{missing_class.name}, type: {missing_class.annotation_internal_type or missing_class.annotation_type}"
             )
         if not secure_continue_request():
             return
-        for missing_class in local_classes_missing_remotely:
+        for missing_class in local_classes_not_in_team:
             dataset.create_annotation_class(
                 missing_class.name, missing_class.annotation_internal_type or missing_class.annotation_type
             )
+    if local_classes_not_in_dataset:
+        print(f"About to add the following classes to {dataset.identifier}")
+        for cls in local_classes_not_in_dataset:
+            dataset.add_annotation_class(cls)
 
-            # Refetch classes to update mappings
-            remote_classes = build_main_annotations_lookup_table(dataset.fetch_remote_classes())
+    # Refetch classes to update mappings
+    if local_classes_not_in_team or local_classes_not_in_dataset:
+        remote_classes = build_main_annotations_lookup_table(dataset.fetch_remote_classes())
+    else:
+        remote_classes = build_main_annotations_lookup_table(team_classes)
 
     # Need to re parse the files since we didn't save the annotations in memory
     for local_path in set(local_file.path for local_file in local_files):
@@ -138,6 +210,14 @@ def import_annotations(
             _import_annotations(
                 dataset.client, image_id, remote_classes, attributes, parsed_file.annotations, dataset, append
             )
+
+
+def _is_skeleton_class(the_class: dt.AnnotationClass) -> bool:
+    return (the_class.annotation_internal_type or the_class.annotation_type) == "skeleton"
+
+
+def _get_skeleton_name(skeleton: dt.AnnotationClass) -> str:
+    return skeleton.name
 
 
 def _handle_subs(annotation, data, annotation_class_id, attributes):

@@ -128,8 +128,8 @@ def build_annotation(annotation_file, annotation_id, annotation: dt.Annotation, 
         min_y = np.min([np.min(y_coord) for y_coord in y_coords])
         max_x = np.max([np.max(x_coord) for x_coord in x_coords])
         max_y = np.max([np.max(y_coord) for y_coord in y_coords])
-        w = max_x - min_x + 1
-        h = max_y - min_y + 1
+        w = max_x - min_x
+        h = max_y - min_y
         # Compute the area of the polygon
         poly_area = np.sum([polygon_area(x_coord, y_coord) for x_coord, y_coord in zip(x_coords, y_coords)])
 

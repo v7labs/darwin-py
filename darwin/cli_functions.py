@@ -13,7 +13,6 @@ from rich.progress import (
     BarColumn,
     DownloadColumn,
     Progress,
-    ProgressColumn,
     SpinnerColumn,
     TaskID,
     TextColumn,
@@ -31,6 +30,7 @@ from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset.identifier import DatasetIdentifier
 from darwin.dataset.split_manager import split_dataset
+from darwin.dataset.upload_manager import LocalFile
 from darwin.dataset.utils import get_release_path
 from darwin.exceptions import (
     InvalidLogin,
@@ -42,7 +42,6 @@ from darwin.exceptions import (
     UnsupportedFileType,
     ValidationError,
 )
-from darwin.item_sorter import ItemSorter
 from darwin.utils import (
     find_files,
     persist_client_configuration,
@@ -144,6 +143,7 @@ def create_dataset(dataset_slug: str):
         print(
             f"Dataset '{dataset.name}' ({dataset.team}/{dataset.slug}) has been created.\nAccess at {dataset.remote_path}"
         )
+        print_new_version_info(client)
     except NameTaken:
         _error(f"Dataset name '{identifier.dataset_slug}' is already taken.")
     except ValidationError:
@@ -151,7 +151,7 @@ def create_dataset(dataset_slug: str):
 
 
 def local(team: Optional[str] = None):
-    """Lists synced datasets, stored in the specified path. """
+    """Lists synced datasets, stored in the specified path."""
 
     table = Table(show_header=True, header_style="bold cyan")
     table.add_column("Name")
@@ -229,6 +229,7 @@ def export_dataset(
     ds.export(annotation_class_ids=annotation_class_ids, name=name, include_url_token=include_url_token)
     identifier.version = name
     print(f"Dataset {dataset_slug} successfully exported to {identifier}")
+    print_new_version_info(client)
 
 
 def pull_dataset(dataset_slug: str, only_annotations: bool = False, folders: bool = False, video_frames: bool = False):
@@ -259,6 +260,7 @@ def pull_dataset(dataset_slug: str, only_annotations: bool = False, folders: boo
     try:
         release = dataset.get_release(version)
         dataset.pull(release=release, only_annotations=only_annotations, use_folders=folders, video_frames=video_frames)
+        print_new_version_info(client)
     except NotFound:
         _error(
             f"Version '{dataset.identifier}:{version}' does not exist "
@@ -324,6 +326,7 @@ def list_remote_datasets(all_teams: bool, team: Optional[str] = None):
     table.add_column("Item Count", justify="right")
 
     datasets = []
+    client = None
     if all_teams:
         for team in _config().get_all_teams():
             client = _load_client(team["slug"])
@@ -339,9 +342,11 @@ def list_remote_datasets(all_teams: bool, team: Optional[str] = None):
     else:
         Console().print(table)
 
+    print_new_version_info(client)
+
 
 def remove_remote_dataset(dataset_slug: str):
-    """Remove a remote dataset from the workview. The dataset gets archived. """
+    """Remove a remote dataset from the workview. The dataset gets archived."""
     client = _load_client(offline=False)
     try:
         dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
@@ -351,6 +356,7 @@ def remove_remote_dataset(dataset_slug: str):
             return
 
         dataset.remove_remote()
+        print_new_version_info(client)
     except NotFound:
         _error(f"No dataset with name '{dataset_slug}'")
 
@@ -378,39 +384,51 @@ def dataset_list_releases(dataset_slug: str):
             )
 
         Console().print(table)
+        print_new_version_info(client)
     except NotFound:
         _error(f"No dataset with name '{dataset_slug}'")
 
 
 def upload_data(
     dataset_identifier: str,
-    files: Optional[List[str]],
-    files_to_exclude: Optional[List[str]],
+    files: Optional[List[Union[str, Path, LocalFile]]],
+    files_to_exclude: Optional[List[Union[str, Path]]],
     fps: int,
     path: Optional[str],
-    frames: Optional[bool],
-    preserve_folders: bool = False, 
+    frames: bool,
+    preserve_folders: bool = False,
     verbose: bool = False,
 ):
-    """Uploads the files provided as parameter to the remote dataset selected
+    """
+    Uploads the provided files to the remote dataset.
 
     Parameters
     ----------
     dataset_identifier : str
-        Slug of the dataset to retrieve
-    files : list[str]
+        Slug of the dataset to retrieve.
+    files : List[Union[str, Path, LocalFile]]
         List of files to upload. Can be None.
-    files_to_exclude : list[str]
-        List of files to exclude from the file scan (which is done only if files is None)
+    files_to_exclude : List[Union[str, Path]]
+        List of files to exclude from the file scan (which is done only if files is None).
     fps : int
-        Frame rate to split videos in
+        Frame rate to split videos in.
+    path : Optional[str]
+        If provided; files will be placed under this path in the v7 platform. If `preserve_folders` 
+        is `True` then it must be possible to draw a relative path from this folder to the one the 
+        files are in, otherwise an error will be raised.
+    frames : bool
+        Specify whether the files will be uploaded as a list of frames or not.
+    preserve_folders : bool
+        Specify whether or not to preserve folder paths when uploading.
+    verbose : bool
+        Specify whther to have full traces print when uploading files or not.
 
     Returns
     -------
     generator : function
-            Generator for doing the actual uploads. This is None if blocking is True
+        Generator for doing the actual uploads. This is None if blocking is True
     count : int
-        The files count
+        The file's count
     """
     client = _load_client()
     try:
@@ -533,6 +551,7 @@ def upload_data(
 
         if error_table.row_count:
             console.print(error_table)
+        print_new_version_info(client)
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
     except UnsupportedFileType as e:
@@ -618,7 +637,7 @@ def find_supported_format(query, supported_formats):
     _error(f"Unsupported format, currently supported: {list_of_formats}")
 
 
-def dataset_convert(dataset_slug: str, format: str, output_dir: Optional[Union[str, Path]] = None):
+def dataset_convert(dataset_slug: str, format: str, output_dir: Union[str, Path, None] = None):
     client = _load_client()
     parser = find_supported_format(format, darwin.exporter.formats.supported_formats)
 
@@ -631,7 +650,7 @@ def dataset_convert(dataset_slug: str, format: str, output_dir: Optional[Union[s
             )
 
         release_path = get_release_path(dataset.local_path)
-        annotations_path = release_path / "annotations"
+        annotations_path: Path = release_path / "annotations"
         if output_dir is None:
             output_dir = release_path / "other_formats" / f"{format}"
         else:
@@ -642,7 +661,7 @@ def dataset_convert(dataset_slug: str, format: str, output_dir: Optional[Union[s
         _error(f"No dataset with name '{e.name}'")
 
 
-def convert(format, files, output_dir):
+def convert(format: str, files: List[Union[str, Path]], output_dir: Path):
     parser = find_supported_format(format, darwin.exporter.formats.supported_formats)
     exporter.export_annotations(parser, files, output_dir)
 
@@ -719,3 +738,20 @@ def _load_client(
 def _console_theme():
     return Theme({"success": "bold green", "warning": "bold yellow", "error": "bold red"})
 
+
+def print_new_version_info(client):
+    if client and not client.newer_darwin_version:
+        return
+
+    (a, b, c) = client.newer_darwin_version
+
+    console = Console(theme=_console_theme(), stderr=True)
+    console.print(
+        f"A newer version of darwin-py ({a}.{b}.{c}) is available!",
+        "Run the following command to install it:",
+        "",
+        f"    pip install darwin-py=={a}.{b}.{c}",
+        "",
+        sep="\n",
+        style="warning",
+    )
