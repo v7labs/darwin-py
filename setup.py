@@ -37,6 +37,7 @@ setuptools.setup(
     packages=[
         "darwin",
         "darwin.importer",
+        "darwin.integrations",
         "darwin.dataset",
         "darwin.torch",
         "darwin.exporter",
