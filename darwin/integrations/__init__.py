@@ -1,1 +1,1 @@
-from strategy import IntegrationStrategy
+from .strategy import IntegrationStrategy
