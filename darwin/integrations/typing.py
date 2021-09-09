@@ -1,21 +1,26 @@
-from typing import Dict, List, NewType, TypedDict
+from dataclasses import dataclass
+from typing import Dict, List
 
 from darwin.datatypes import Annotation
 
 
-class LoadParams(TypedDict):
+@dataclass(frozen=True, eq=True)
+class LoadParams:
     classes: List[str]
 
 
-class InferParams(TypedDict):
+@dataclass(frozen=True, eq=True)
+class InferParams:
     pass
 
 
 InferResult = List[Annotation]
 
 
-class TrainParams(TypedDict):
+@dataclass(frozen=True, eq=True)
+class TrainParams:
     pass
+
 
 TrainResult = Dict
 
