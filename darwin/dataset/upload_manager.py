@@ -4,7 +4,7 @@ import time
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, List, Optional, Set, Tuple, Union
+from typing import TYPE_CHECKING, BinaryIO, Callable, List, Optional, Set, Tuple, Union
 
 import requests
 from darwin.path_utils import construct_full_path
@@ -42,6 +42,35 @@ class LocalFile:
     @property
     def full_path(self):
         return construct_full_path(self.data["path"], self.data["filename"])
+
+
+class FileMonitor(object):
+    """
+    An object used to monitor the progress of a :class:`BufferedReader`.
+
+    To use this monitor, you construct your :class:`BufferedReader` as you
+    normally would, then construct this object with it as argument.
+    """
+
+    def __init__(self, io: BinaryIO, file_size: int, callback):
+        #: Instance of the :class:`BufferedReader` being monitored
+        self.io = io
+
+        #: Optionally function to call after a read
+        self.callback = callback
+
+        #: Number of bytes already read from the :class:`BufferedReader`
+        #: instance
+        self.bytes_read = 0
+
+        self.len = file_size
+
+    def read(self, size=-1):
+        data = self.io.read(size)
+        self.bytes_read += len(data)
+        self.callback(self)
+
+        return data
 
 
 class UploadStage(Enum):
@@ -189,8 +218,7 @@ class UploadHandler:
         except Exception as e:
             raise UploadRequestError(file_path=file_path, stage=UploadStage.REQUEST_SIGNATURE, error=e)
 
-        signature = sign_response["signature"]
-        end_point = sign_response["postEndpoint"]
+        upload_url = sign_response["upload_url"]
 
         try:
             file_size = file_path.stat().st_size
@@ -198,25 +226,21 @@ class UploadHandler:
                 byte_read_callback(str(file_path), file_size, 0)
 
             def callback(monitor):
-                # The signature is part of the payload's bytes_read but not file_size
-                # therefore we should skip it in the upload progress
-                bytes_read = max(monitor.bytes_read - monitor.len + file_size, 0)
                 if byte_read_callback:
-                    byte_read_callback(str(file_path), file_size, bytes_read)
+                    byte_read_callback(str(file_path), file_size, monitor.bytes_read)
 
-            m = MultipartEncoder(fields={**signature, **{"file": file_path.open("rb")}})
-            monitor = MultipartEncoderMonitor(m, callback)
-            headers = {"Content-Type": monitor.content_type}
+            with file_path.open("rb") as m:
+                monitor = FileMonitor(m, file_size, callback)
 
-            retries = 0
-            while retries < 5:
-                upload_response = requests.post(f"http:{end_point}", data=monitor, headers=headers)
-                # If s3 is getting to many request it will return 503, we will sleep and retry
-                if upload_response.status_code != 503:
-                    break
+                retries = 0
+                while retries < 5:
+                    upload_response = requests.put(f"{upload_url}", data=monitor)
+                    # If s3 is getting to many request it will return 503, we will sleep and retry
+                    if upload_response.status_code != 503:
+                        break
 
-                time.sleep(2 ** retries)
-                retries += 1
+                    time.sleep(2 ** retries)
+                    retries += 1
 
             upload_response.raise_for_status()
         except Exception as e:
