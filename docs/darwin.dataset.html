@@ -1,1220 +1,282 @@
+<!doctype html>
+<html class="no-js">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" />
 
-<!DOCTYPE html>
-
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>darwin.dataset package &#8212; darwin-py 0.6.6 documentation</title>
+    <meta name="generator" content="sphinx-4.1.2, furo 2021.09.08"/>
+        <title>darwin.dataset package - darwin-py 0.6.6 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?digest=c7c65a82b42f6b978e58466c1e9ef2509836d916" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?digest=16fb25fabf47304eee183a5e9af80b1ba98259b1" />
     
-  <link href="_static/css/theme.css" rel="stylesheet" />
-  <link href="_static/css/index.c5995385ac14fb8791e8eb36b4908be2.css" rel="stylesheet" />
-
     
-  <link rel="stylesheet"
-    href="_static/vendor/fontawesome/5.13.0/css/all.min.css">
-  <link rel="preload" as="font" type="font/woff2" crossorigin
-    href="_static/vendor/fontawesome/5.13.0/webfonts/fa-solid-900.woff2">
-  <link rel="preload" as="font" type="font/woff2" crossorigin
-    href="_static/vendor/fontawesome/5.13.0/webfonts/fa-brands-400.woff2">
 
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  body[data-theme="dark"] {
+    --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+  }
+  @media (prefers-color-scheme: dark) {
+    body:not([data-theme="light"]) {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+  }
+</style></head>
+  <body>
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
     
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path stroke="none" d="M0 0h24v24H0z" />
+      <line x1="4" y1="6" x2="20" y2="6" />
+      <line x1="10" y1="12" x2="20" y2="12" />
+      <line x1="6" y1="18" x2="20" y2="18" />
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-half" viewBox="0 0 24 24">
+    <title>Auto light/dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M13 12h5" />
+      <path d="M13 15h4" />
+      <path d="M13 18h1" />
+      <path d="M13 9h4" />
+      <path d="M13 6h1" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">darwin-py 0.6.6 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
       
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  
+  
+  <span class="sidebar-brand-text">darwin-py 0.6.6 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder=Search name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul>
+<li class="toctree-l1"><a class="reference internal" href="README.html">Darwin</a></li>
+</ul>
 
-    
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="_static/sphinx-book-theme.e8f53015daec13862f6db5e763c41738.css" type="text/css" />
-    
-  <link rel="preload" as="script" href="_static/js/index.1c5a1a01449ed65a7b51.js">
+</div>
+</div>
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <div class="content-icon-container">
+          <div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main">
+          <section id="darwin-dataset-package">
+<h1>darwin.dataset package<a class="headerlink" href="#darwin-dataset-package" title="Permalink to this headline">¶</a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="darwin-dataset-download-manager-module">
+<h2>darwin.dataset.download_manager module<a class="headerlink" href="#darwin-dataset-download-manager-module" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="darwin-dataset-identifier-module">
+<h2>darwin.dataset.identifier module<a class="headerlink" href="#darwin-dataset-identifier-module" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="darwin-dataset-local-dataset-module">
+<h2>darwin.dataset.local_dataset module<a class="headerlink" href="#darwin-dataset-local-dataset-module" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="darwin-dataset-release-module">
+<h2>darwin.dataset.release module<a class="headerlink" href="#darwin-dataset-release-module" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="darwin-dataset-remote-dataset-module">
+<h2>darwin.dataset.remote_dataset module<a class="headerlink" href="#darwin-dataset-remote-dataset-module" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="darwin-dataset-split-manager-module">
+<h2>darwin.dataset.split_manager module<a class="headerlink" href="#darwin-dataset-split-manager-module" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="darwin-dataset-upload-manager-module">
+<h2>darwin.dataset.upload_manager module<a class="headerlink" href="#darwin-dataset-upload-manager-module" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="darwin-dataset-utils-module">
+<h2>darwin.dataset.utils module<a class="headerlink" href="#darwin-dataset-utils-module" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="module-contents">
+<h2>Module contents<a class="headerlink" href="#module-contents" title="Permalink to this headline">¶</a></h2>
+</section>
+</section>
 
-    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+
+        <div class="related-information">
+              Copyright &#169; MIT License |
+            Built with <a href="https://www.sphinx-doc.org/">Sphinx</a>
+              and
+              <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+              <a href="https://github.com/pradyunsg/furo">Furo theme</a>. |
+            <a class="muted-link" href="_sources/darwin.dataset.rst.txt"
+               rel="nofollow">
+              Show Source
+            </a>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            Contents
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">darwin.dataset package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#darwin-dataset-download-manager-module">darwin.dataset.download_manager module</a></li>
+<li><a class="reference internal" href="#darwin-dataset-identifier-module">darwin.dataset.identifier module</a></li>
+<li><a class="reference internal" href="#darwin-dataset-local-dataset-module">darwin.dataset.local_dataset module</a></li>
+<li><a class="reference internal" href="#darwin-dataset-release-module">darwin.dataset.release module</a></li>
+<li><a class="reference internal" href="#darwin-dataset-remote-dataset-module">darwin.dataset.remote_dataset module</a></li>
+<li><a class="reference internal" href="#darwin-dataset-split-manager-module">darwin.dataset.split_manager module</a></li>
+<li><a class="reference internal" href="#darwin-dataset-upload-manager-module">darwin.dataset.upload_manager module</a></li>
+<li><a class="reference internal" href="#darwin-dataset-utils-module">darwin.dataset.utils module</a></li>
+<li><a class="reference internal" href="#module-contents">Module contents</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
     <script src="_static/jquery.js"></script>
     <script src="_static/underscore.js"></script>
     <script src="_static/doctools.js"></script>
-    <script src="_static/sphinx-book-theme.12a9622fbb08dcb3a2a40b2c02b83a57.js"></script>
-    <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="docsearch:language" content="en" />
-    
-  </head>
-  <body data-spy="scroll" data-target="#bd-toc-nav" data-offset="80">
-    
-    <div class="container-fluid" id="banner"></div>
-
-    
-
-    <div class="container-xl">
-      <div class="row">
-          
-<div class="col-12 col-md-3 bd-sidebar site-navigation show" id="site-navigation">
-    
-        <div class="navbar-brand-box">
-    <a class="navbar-brand text-wrap" href="index.html">
-      
-      
-      <h1 class="site-logo" id="site-title">darwin-py 0.6.6 documentation</h1>
-      
-    </a>
-</div><form class="bd-search d-flex align-items-center" action="search.html" method="get">
-  <i class="icon fas fa-search"></i>
-  <input type="search" class="form-control" name="q" id="search-input" placeholder="Search the docs ..." aria-label="Search the docs ..." autocomplete="off" >
-</form><nav class="bd-links" id="bd-docs-nav" aria-label="Main">
-    <div class="bd-toc-item active">
-        
-    </div>
-</nav> <!-- To handle the deprecated key -->
-
-<div class="navbar_extra_footer">
-  Theme by the <a href="https://ebp.jupyterbook.org">Executable Book Project</a>
-</div>
-
-</div>
-
-
-          
-
-
-          
-<main class="col py-md-3 pl-md-4 bd-content overflow-auto" role="main">
-    
-    <div class="topbar container-xl fixed-top">
-    <div class="topbar-contents row">
-        <div class="col-12 col-md-3 bd-topbar-whitespace site-navigation show"></div>
-        <div class="col pl-md-4 topbar-main">
-            
-            <button id="navbar-toggler" class="navbar-toggler ml-0" type="button" data-toggle="collapse"
-                data-toggle="tooltip" data-placement="bottom" data-target=".site-navigation" aria-controls="navbar-menu"
-                aria-expanded="true" aria-label="Toggle navigation" aria-controls="site-navigation"
-                title="Toggle navigation" data-toggle="tooltip" data-placement="left">
-                <i class="fas fa-bars"></i>
-                <i class="fas fa-arrow-left"></i>
-                <i class="fas fa-arrow-up"></i>
-            </button>
-            
-            
-<div class="dropdown-buttons-trigger">
-    <button id="dropdown-buttons-trigger" class="btn btn-secondary topbarbtn" aria-label="Download this page"><i
-            class="fas fa-download"></i></button>
-
-    <div class="dropdown-buttons">
-        <!-- ipynb file if we had a myst markdown file -->
-        
-        <!-- Download raw file -->
-        <a class="dropdown-buttons" href="_sources/darwin.dataset.rst.txt"><button type="button"
-                class="btn btn-secondary topbarbtn" title="Download source file" data-toggle="tooltip"
-                data-placement="left">.rst</button></a>
-        <!-- Download PDF via print -->
-        <button type="button" id="download-print" class="btn btn-secondary topbarbtn" title="Print to PDF"
-            onClick="window.print()" data-toggle="tooltip" data-placement="left">.pdf</button>
-    </div>
-</div>
-
-            <!-- Source interaction buttons -->
-
-            <!-- Full screen (wrap in <a> to have style consistency -->
-
-<a class="full-screen-button"><button type="button" class="btn btn-secondary topbarbtn" data-toggle="tooltip"
-        data-placement="bottom" onclick="toggleFullScreen()" aria-label="Fullscreen mode"
-        title="Fullscreen mode"><i
-            class="fas fa-expand"></i></button></a>
-
-            <!-- Launch buttons -->
-
-        </div>
-
-        <!-- Table of contents -->
-        <div class="d-none d-md-block col-md-2 bd-toc show">
-            
-            <div class="tocsection onthispage pt-5 pb-3">
-                <i class="fas fa-list"></i> Contents
-            </div>
-            <nav id="bd-toc-nav" aria-label="Page">
-                <ul class="visible nav section-nav flex-column">
- <li class="toc-h2 nav-item toc-entry">
-  <a class="reference internal nav-link" href="#submodules">
-   Submodules
-  </a>
- </li>
- <li class="toc-h2 nav-item toc-entry">
-  <a class="reference internal nav-link" href="#module-darwin.dataset.download_manager">
-   darwin.dataset.download_manager module
-  </a>
- </li>
- <li class="toc-h2 nav-item toc-entry">
-  <a class="reference internal nav-link" href="#module-darwin.dataset.identifier">
-   darwin.dataset.identifier module
-  </a>
- </li>
- <li class="toc-h2 nav-item toc-entry">
-  <a class="reference internal nav-link" href="#module-darwin.dataset.local_dataset">
-   darwin.dataset.local_dataset module
-  </a>
- </li>
- <li class="toc-h2 nav-item toc-entry">
-  <a class="reference internal nav-link" href="#module-darwin.dataset.release">
-   darwin.dataset.release module
-  </a>
- </li>
- <li class="toc-h2 nav-item toc-entry">
-  <a class="reference internal nav-link" href="#module-darwin.dataset.remote_dataset">
-   darwin.dataset.remote_dataset module
-  </a>
- </li>
- <li class="toc-h2 nav-item toc-entry">
-  <a class="reference internal nav-link" href="#module-darwin.dataset.split_manager">
-   darwin.dataset.split_manager module
-  </a>
- </li>
- <li class="toc-h2 nav-item toc-entry">
-  <a class="reference internal nav-link" href="#module-darwin.dataset.upload_manager">
-   darwin.dataset.upload_manager module
-  </a>
- </li>
- <li class="toc-h2 nav-item toc-entry">
-  <a class="reference internal nav-link" href="#module-darwin.dataset.utils">
-   darwin.dataset.utils module
-  </a>
- </li>
- <li class="toc-h2 nav-item toc-entry">
-  <a class="reference internal nav-link" href="#module-darwin.dataset">
-   Module contents
-  </a>
- </li>
-</ul>
-
-            </nav>
-        </div>
-    </div>
-</div>
-    <div id="main-content" class="row">
-        <div class="col-12 col-md-9 pl-md-3 pr-md-0">
-        
-              <div>
-                
-  <div class="section" id="darwin-dataset-package">
-<h1>darwin.dataset package<a class="headerlink" href="#darwin-dataset-package" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="submodules">
-<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
-</div>
-<div class="section" id="module-darwin.dataset.download_manager">
-<span id="darwin-dataset-download-manager-module"></span><h2>darwin.dataset.download_manager module<a class="headerlink" href="#module-darwin.dataset.download_manager" title="Permalink to this headline">¶</a></h2>
-<dl class="py function">
-<dt id="darwin.dataset.download_manager.download_all_images_from_annotations">
-<code class="sig-prename descclassname"><span class="pre">darwin.dataset.download_manager.</span></code><code class="sig-name descname"><span class="pre">download_all_images_from_annotations</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">api_key</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">api_url</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotations_path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">pathlib.Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">images_path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">pathlib.Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force_replace</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remove_extra</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotation_format</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'json'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_folders</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">video_frames</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/download_manager.html#download_all_images_from_annotations"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.download_manager.download_all_images_from_annotations" title="Permalink to this definition">¶</a></dt>
-<dd><p>Helper function: downloads the all images corresponding to a project.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>api_key</strong> (<em>str</em>) – API Key of the current team</p></li>
-<li><p><strong>api_url</strong> (<em>str</em>) – Url of the darwin API (e.g. ‘<a class="reference external" href="https://darwin.v7labs.com/api/">https://darwin.v7labs.com/api/</a>’)</p></li>
-<li><p><strong>annotations_path</strong> (<em>Path</em>) – Path where the annotations are located</p></li>
-<li><p><strong>images_path</strong> (<em>Path</em>) – Path where to download the images</p></li>
-<li><p><strong>force_replace</strong> (<em>bool</em>) – Forces the re-download of an existing image</p></li>
-<li><p><strong>remove_extra</strong> (<em>bool</em>) – Removes existing images for which there is not corresponding annotation</p></li>
-<li><p><strong>annotation_format</strong> (<em>str</em>) – Format of the annotations. Currently only JSON and xml are expected</p></li>
-<li><p><strong>use_folders</strong> (<em>bool</em>) – Recreate folders</p></li>
-<li><p><strong>video_frames</strong> (<em>bool</em>) – Pulls video frames images instead of video files</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p><ul class="simple">
-<li><p><strong>generator</strong> (<em>function</em>) – Generator for doing the actual downloads,</p></li>
-<li><p><strong>count</strong> (<em>int</em>) – The files count</p></li>
-</ul>
-</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt id="darwin.dataset.download_manager.download_image">
-<code class="sig-prename descclassname"><span class="pre">darwin.dataset.download_manager.</span></code><code class="sig-name descname"><span class="pre">download_image</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">url</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">pathlib.Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">api_key</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/download_manager.html#download_image"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.download_manager.download_image" title="Permalink to this definition">¶</a></dt>
-<dd><p>Helper function: downloads one image from url.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>url</strong> (<em>str</em>) – Url of the image to download</p></li>
-<li><p><strong>path</strong> (<em>Path</em>) – Path where to download the image, with filename</p></li>
-<li><p><strong>api_key</strong> (<em>str</em>) – API Key of the current team</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt id="darwin.dataset.download_manager.download_image_from_annotation">
-<code class="sig-prename descclassname"><span class="pre">darwin.dataset.download_manager.</span></code><code class="sig-name descname"><span class="pre">download_image_from_annotation</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">api_key</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">api_url</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotation_path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">pathlib.Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">images_path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">pathlib.Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotation_format</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_folders</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">video_frames</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/download_manager.html#download_image_from_annotation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.download_manager.download_image_from_annotation" title="Permalink to this definition">¶</a></dt>
-<dd><p>Helper function: dispatcher of functions to download an image given an annotation</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>api_key</strong> (<em>str</em>) – API Key of the current team</p></li>
-<li><p><strong>api_url</strong> (<em>str</em>) – Url of the darwin API (e.g. ‘<a class="reference external" href="https://darwin.v7labs.com/api/">https://darwin.v7labs.com/api/</a>’)</p></li>
-<li><p><strong>annotation_path</strong> (<em>Path</em>) – Path where the annotation is located</p></li>
-<li><p><strong>images_path</strong> (<em>Path</em>) – Path where to download the image</p></li>
-<li><p><strong>annotation_format</strong> (<em>str</em>) – Format of the annotations. Currently only JSON is supported</p></li>
-<li><p><strong>use_folders</strong> (<em>bool</em>) – Recreate folder structure</p></li>
-<li><p><strong>video_frames</strong> (<em>bool</em>) – Pulls video frames images instead of video files</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt id="darwin.dataset.download_manager.download_image_from_json_annotation">
-<code class="sig-prename descclassname"><span class="pre">darwin.dataset.download_manager.</span></code><code class="sig-name descname"><span class="pre">download_image_from_json_annotation</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">api_key</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">api_url</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotation_path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">pathlib.Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">pathlib.Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_folders</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">video_frames</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/download_manager.html#download_image_from_json_annotation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.download_manager.download_image_from_json_annotation" title="Permalink to this definition">¶</a></dt>
-<dd><p>Helper function: downloads an image given a .json annotation path
-and renames the json after the image filename</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>api_key</strong> (<em>str</em>) – API Key of the current team</p></li>
-<li><p><strong>api_url</strong> (<em>str</em>) – Url of the darwin API (e.g. ‘<a class="reference external" href="https://darwin.v7labs.com/api/">https://darwin.v7labs.com/api/</a>’)</p></li>
-<li><p><strong>annotation_path</strong> (<em>Path</em>) – Path where the annotation is located</p></li>
-<li><p><strong>image_path</strong> (<em>Path</em>) – Path where to download the image</p></li>
-<li><p><strong>use_folders</strong> (<em>bool</em>) – Recreate folders</p></li>
-<li><p><strong>video_frames</strong> (<em>bool</em>) – Pulls video frames images instead of video files</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-</div>
-<div class="section" id="module-darwin.dataset.identifier">
-<span id="darwin-dataset-identifier-module"></span><h2>darwin.dataset.identifier module<a class="headerlink" href="#module-darwin.dataset.identifier" title="Permalink to this headline">¶</a></h2>
-<dl class="py class">
-<dt id="darwin.dataset.identifier.DatasetIdentifier">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">darwin.dataset.identifier.</span></code><code class="sig-name descname"><span class="pre">DatasetIdentifier</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset_slug</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">team_slug</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">version</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/identifier.html#DatasetIdentifier"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.identifier.DatasetIdentifier" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<dl class="py method">
-<dt id="darwin.dataset.identifier.DatasetIdentifier.parse">
-<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">parse</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">identifier</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><a class="reference internal" href="#darwin.dataset.identifier.DatasetIdentifier" title="darwin.dataset.identifier.DatasetIdentifier"><span class="pre">darwin.dataset.identifier.DatasetIdentifier</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#darwin.dataset.identifier.DatasetIdentifier" title="darwin.dataset.identifier.DatasetIdentifier"><span class="pre">darwin.dataset.identifier.DatasetIdentifier</span></a><a class="reference internal" href="_modules/darwin/dataset/identifier.html#DatasetIdentifier.parse"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.identifier.DatasetIdentifier.parse" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-</div>
-<div class="section" id="module-darwin.dataset.local_dataset">
-<span id="darwin-dataset-local-dataset-module"></span><h2>darwin.dataset.local_dataset module<a class="headerlink" href="#module-darwin.dataset.local_dataset" title="Permalink to this headline">¶</a></h2>
-<dl class="py class">
-<dt id="darwin.dataset.local_dataset.LocalDataset">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">darwin.dataset.local_dataset.</span></code><code class="sig-name descname"><span class="pre">LocalDataset</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset_path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">pathlib.Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotation_type</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">partition</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">split</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'default'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">split_type</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'random'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">release_name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/local_dataset.html#LocalDataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.local_dataset.LocalDataset" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<dl class="py method">
-<dt id="darwin.dataset.local_dataset.LocalDataset.extend">
-<code class="sig-name descname"><span class="pre">extend</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extend_classes</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/local_dataset.html#LocalDataset.extend"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.local_dataset.LocalDataset.extend" title="Permalink to this definition">¶</a></dt>
-<dd><p>Extends the current dataset with another one</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>dataset</strong> (<em>Dataset</em>) – Dataset to merge</p></li>
-<li><p><strong>extend_classes</strong> (<em>bool</em>) – Extend the current set of classes by merging with the passed dataset ones</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>self</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>Dataset</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt id="darwin.dataset.local_dataset.LocalDataset.get_height_and_width">
-<code class="sig-name descname"><span class="pre">get_height_and_width</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">index</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/local_dataset.html#LocalDataset.get_height_and_width"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.local_dataset.LocalDataset.get_height_and_width" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt id="darwin.dataset.local_dataset.LocalDataset.get_image">
-<code class="sig-name descname"><span class="pre">get_image</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">index</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/local_dataset.html#LocalDataset.get_image"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.local_dataset.LocalDataset.get_image" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt id="darwin.dataset.local_dataset.LocalDataset.get_image_path">
-<code class="sig-name descname"><span class="pre">get_image_path</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">index</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/local_dataset.html#LocalDataset.get_image_path"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.local_dataset.LocalDataset.get_image_path" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt id="darwin.dataset.local_dataset.LocalDataset.get_img_info">
-<code class="sig-name descname"><span class="pre">get_img_info</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">index</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/local_dataset.html#LocalDataset.get_img_info"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.local_dataset.LocalDataset.get_img_info" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt id="darwin.dataset.local_dataset.LocalDataset.measure_mean_std">
-<code class="sig-name descname"><span class="pre">measure_mean_std</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">multi_threaded</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/local_dataset.html#LocalDataset.measure_mean_std"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.local_dataset.LocalDataset.measure_mean_std" title="Permalink to this definition">¶</a></dt>
-<dd><p>Computes mean and std of train images, given the train loader</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>multi_threaded</strong> (<em>bool</em>) – Uses multiprocessing to download the dataset in parallel.</p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p><ul class="simple">
-<li><p><strong>mean</strong> (<em>ndarray[double]</em>) – Mean value (for each channel) of all pixels of the images in the input folder</p></li>
-<li><p><strong>std</strong> (<em>ndarray[double]</em>) – Standard deviation (for each channel) of all pixels of the images in the input folder</p></li>
-</ul>
-</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt id="darwin.dataset.local_dataset.LocalDataset.measure_weights">
-<code class="sig-name descname"><span class="pre">measure_weights</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/local_dataset.html#LocalDataset.measure_weights"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.local_dataset.LocalDataset.measure_weights" title="Permalink to this definition">¶</a></dt>
-<dd><p>Computes the class balancing weights (not the frequencies!!) given the train loader</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p><strong>class_weights</strong> – Weight for each class in the train set (one for each class)</p>
-</dd>
-<dt class="field-even">Return type</dt>
-<dd class="field-even"><p>ndarray[double]</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt id="darwin.dataset.local_dataset.LocalDataset.parse_json">
-<code class="sig-name descname"><span class="pre">parse_json</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">index</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/local_dataset.html#LocalDataset.parse_json"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.local_dataset.LocalDataset.parse_json" title="Permalink to this definition">¶</a></dt>
-<dd><p>Load an annotation and filter out the extra classes according to what
-specified in <cite>self.classes</cite> and the annotation_type</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>index</strong> (<em>int</em>) – Index of the annotation to read</p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p><ul class="simple">
-<li><p><em>dict</em></p></li>
-<li><p><em>A new dictionary containing the index and the filtered annotation</em></p></li>
-</ul>
-</p>
-</dd>
-</dl>
-</dd></dl>
-
-</dd></dl>
-
-</div>
-<div class="section" id="module-darwin.dataset.release">
-<span id="darwin-dataset-release-module"></span><h2>darwin.dataset.release module<a class="headerlink" href="#module-darwin.dataset.release" title="Permalink to this headline">¶</a></h2>
-<dl class="py class">
-<dt id="darwin.dataset.release.Release">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">darwin.dataset.release.</span></code><code class="sig-name descname"><span class="pre">Release</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset_slug</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">team_slug</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">version</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">url</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">export_date</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_count</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">class_count</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">available</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">latest</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">format</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/release.html#Release"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.release.Release" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<dl class="py method">
-<dt id="darwin.dataset.release.Release.download_zip">
-<code class="sig-name descname"><span class="pre">download_zip</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/release.html#Release.download_zip"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.release.Release.download_zip" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt id="darwin.dataset.release.Release.identifier">
-<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">identifier</span></code><a class="headerlink" href="#darwin.dataset.release.Release.identifier" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt id="darwin.dataset.release.Release.parse_json">
-<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">parse_json</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset_slug</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">team_slug</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">payload</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/release.html#Release.parse_json"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.release.Release.parse_json" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-</div>
-<div class="section" id="module-darwin.dataset.remote_dataset">
-<span id="darwin-dataset-remote-dataset-module"></span><h2>darwin.dataset.remote_dataset module<a class="headerlink" href="#module-darwin.dataset.remote_dataset" title="Permalink to this headline">¶</a></h2>
-<dl class="py class">
-<dt id="darwin.dataset.remote_dataset.RemoteDataset">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">darwin.dataset.remote_dataset.</span></code><code class="sig-name descname"><span class="pre">RemoteDataset</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">client</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Client</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">team</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slug</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataset_id</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_count</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">progress</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/remote_dataset.html#RemoteDataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.remote_dataset.RemoteDataset" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<dl class="py method">
-<dt id="darwin.dataset.remote_dataset.RemoteDataset.add_annotation_class">
-<code class="sig-name descname"><span class="pre">add_annotation_class</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotation_class</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="darwin.html#darwin.datatypes.AnnotationClass" title="darwin.datatypes.AnnotationClass"><span class="pre">darwin.datatypes.AnnotationClass</span></a></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/darwin/dataset/remote_dataset.html#RemoteDataset.add_annotation_class"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.remote_dataset.RemoteDataset.add_annotation_class" title="Permalink to this definition">¶</a></dt>
-<dd><p>Adds an annotation class to this dataset.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>annotation_class</strong> (<a class="reference internal" href="darwin.html#darwin.datatypes.AnnotationClass" title="darwin.datatypes.AnnotationClass"><em>AnnotationClass</em></a>) – The annotation class to add.</p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Dictionary with the server response or None if the annotations class already exists.</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>dict or None</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt id="darwin.dataset.remote_dataset.RemoteDataset.annotations">
-<code class="sig-name descname"><span class="pre">annotations</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">partition</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">split</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'split'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">split_type</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'stratified'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotation_type</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'polygon'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">release_name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotation_format</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'darwin'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/remote_dataset.html#RemoteDataset.annotations"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.remote_dataset.RemoteDataset.annotations" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns all the annotations of a given split and partition in a single dictionary</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>partition</strong> – Selects one of the partitions [train, val, test]</p></li>
-<li><p><strong>split</strong> – Selects the split that defines the percetages used (use ‘split’ to select the default split</p></li>
-<li><p><strong>split_type</strong> – Heuristic used to do the split [random, stratified]</p></li>
-<li><p><strong>annotation_type</strong> – The type of annotation classes [tag, polygon]</p></li>
-<li><p><strong>release_name</strong> (<em>str</em>) – Version of the dataset</p></li>
-<li><p><strong>annotation_format</strong> (<em>str</em>) – Re-formatting of the annotation when loaded [coco, darwin]</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Dictionary containing all the annotations of the dataset</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>dict</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt id="darwin.dataset.remote_dataset.RemoteDataset.archive">
-<code class="sig-name descname"><span class="pre">archive</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">items</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">None</span><a class="reference internal" href="_modules/darwin/dataset/remote_dataset.html#RemoteDataset.archive"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.remote_dataset.RemoteDataset.archive" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt id="darwin.dataset.remote_dataset.RemoteDataset.classes">
-<code class="sig-name descname"><span class="pre">classes</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotation_type</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">release_name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/remote_dataset.html#RemoteDataset.classes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.remote_dataset.RemoteDataset.classes" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the list of <cite>class_type</cite> classes</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>annotation_type</strong> – The type of annotation classes, e.g. ‘tag’ or ‘polygon’</p></li>
-<li><p><strong>release_name</strong> (<em>str</em>) – Version of the dataset</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p><strong>classes</strong> – List of classes in the dataset of type <cite>class_type</cite></p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>list</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt id="darwin.dataset.remote_dataset.RemoteDataset.create_annotation_class">
-<code class="sig-name descname"><span class="pre">create_annotation_class</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subtypes</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">[]</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">Dict</span><a class="reference internal" href="_modules/darwin/dataset/remote_dataset.html#RemoteDataset.create_annotation_class"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.remote_dataset.RemoteDataset.create_annotation_class" title="Permalink to this definition">¶</a></dt>
-<dd><p>Creates an annotation class for this dataset.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>name</strong> (<em>str</em>) – The name of the annotation class.</p></li>
-<li><p><strong>type</strong> (<em>str</em>) – The type of the annotation class.</p></li>
-<li><p><strong>subtypes</strong> (<em>List</em><em>[</em><em>str</em><em>]</em>) – Annotation class subtypes.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Dictionary with the server response.</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>dict</p>
-</dd>
-<dt class="field-even">Raises</dt>
-<dd class="field-even"><ul class="simple">
-<li><p><strong>ConnectionError</strong> – If it is unable to connect.</p></li>
-<li><p><strong>ValueError</strong> – If a given annotation type or subtype is unknown.</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt id="darwin.dataset.remote_dataset.RemoteDataset.export">
-<code class="sig-name descname"><span class="pre">export</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotation_class_ids</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_url_token</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/remote_dataset.html#RemoteDataset.export"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.remote_dataset.RemoteDataset.export" title="Permalink to this definition">¶</a></dt>
-<dd><p>Create a new release for the dataset</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>name</strong> (<em>str</em>) – Name of the release</p></li>
-<li><p><strong>annotation_class_ids</strong> (<em>List</em>) – List of the classes to filter</p></li>
-<li><p><strong>include_url_token</strong> (<em>bool</em>) – Should the image url in the export include a token enabling access without team membership</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt id="darwin.dataset.remote_dataset.RemoteDataset.fetch_annotation_type_id_for_name">
-<code class="sig-name descname"><span class="pre">fetch_annotation_type_id_for_name</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/darwin/dataset/remote_dataset.html#RemoteDataset.fetch_annotation_type_id_for_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.remote_dataset.RemoteDataset.fetch_annotation_type_id_for_name" title="Permalink to this definition">¶</a></dt>
-<dd><p>Fetches annotation type id for a annotation type name, such as bounding_box</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>name</strong> (<em>str</em>) – The name of the annotation we want the id for.</p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p><strong>generator</strong> – The id of the annotation type or None if it doesn’t exist.</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>Optional[int]</p>
-</dd>
-<dt class="field-even">Raises</dt>
-<dd class="field-even"><p><strong>ConnectionError</strong> – If it fails to establish a connection.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt id="darwin.dataset.remote_dataset.RemoteDataset.fetch_remote_attributes">
-<code class="sig-name descname"><span class="pre">fetch_remote_attributes</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/remote_dataset.html#RemoteDataset.fetch_remote_attributes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.remote_dataset.RemoteDataset.fetch_remote_attributes" title="Permalink to this definition">¶</a></dt>
-<dd><p>Fetches all remote attributes on the remote dataset</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="darwin.dataset.remote_dataset.RemoteDataset.fetch_remote_classes">
-<code class="sig-name descname"><span class="pre">fetch_remote_classes</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">team_wide</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/darwin/dataset/remote_dataset.html#RemoteDataset.fetch_remote_classes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.remote_dataset.RemoteDataset.fetch_remote_classes" title="Permalink to this definition">¶</a></dt>
-<dd><p>Fetches all the Annotation Classes from the given remote dataset.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>team_wide</strong> (<em>bool</em>) – If <cite>True</cite> will return all Annotation Classes that belong to the team. If <cite>False</cite> will
-only return Annotation Classes which have been added to the dataset.</p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>List of Annotation Classes (can be empty) or None, if the team was not able to be
-determined.</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>Optional[List]</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt id="darwin.dataset.remote_dataset.RemoteDataset.fetch_remote_files">
-<code class="sig-name descname"><span class="pre">fetch_remote_files</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filters</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sort</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><a class="reference internal" href="darwin.html#darwin.item_sorter.ItemSorter" title="darwin.item_sorter.ItemSorter"><span class="pre">darwin.item_sorter.ItemSorter</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">Iterator</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="darwin.html#darwin.item.DatasetItem" title="darwin.item.DatasetItem"><span class="pre">darwin.item.DatasetItem</span></a><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/darwin/dataset/remote_dataset.html#RemoteDataset.fetch_remote_files"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.remote_dataset.RemoteDataset.fetch_remote_files" title="Permalink to this definition">¶</a></dt>
-<dd><p>Fetch and lists all files on the remote dataset</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="darwin.dataset.remote_dataset.RemoteDataset.get_release">
-<code class="sig-name descname"><span class="pre">get_release</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'latest'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/remote_dataset.html#RemoteDataset.get_release"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.remote_dataset.RemoteDataset.get_release" title="Permalink to this definition">¶</a></dt>
-<dd><p>Get a specific release for this dataset.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>name</strong> (<em>str</em>) – Name of the export</p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p><strong>release</strong> – The selected release</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p><a class="reference internal" href="#darwin.dataset.release.Release" title="darwin.dataset.release.Release">Release</a></p>
-</dd>
-<dt class="field-even">Raises</dt>
-<dd class="field-even"><p><a class="reference internal" href="darwin.html#darwin.exceptions.NotFound" title="darwin.exceptions.NotFound"><strong>NotFound</strong></a> – The selected release does not exists</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt id="darwin.dataset.remote_dataset.RemoteDataset.get_releases">
-<code class="sig-name descname"><span class="pre">get_releases</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/remote_dataset.html#RemoteDataset.get_releases"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.remote_dataset.RemoteDataset.get_releases" title="Permalink to this definition">¶</a></dt>
-<dd><p>Get a sorted list of releases with the most recent first.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>Return a sorted list of releases with the most recent first</p>
-</dd>
-<dt class="field-even">Return type</dt>
-<dd class="field-even"><p>list(<a class="reference internal" href="#darwin.dataset.release.Release" title="darwin.dataset.release.Release">Release</a>)</p>
-</dd>
-<dt class="field-odd">Raises</dt>
-<dd class="field-odd"><p><strong>ConnectionError</strong> – If it is unable to connect.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt id="darwin.dataset.remote_dataset.RemoteDataset.get_report">
-<code class="sig-name descname"><span class="pre">get_report</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">granularity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'day'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/remote_dataset.html#RemoteDataset.get_report"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.remote_dataset.RemoteDataset.get_report" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt id="darwin.dataset.remote_dataset.RemoteDataset.identifier">
-<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">identifier</span></code><a class="headerlink" href="#darwin.dataset.remote_dataset.RemoteDataset.identifier" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt id="darwin.dataset.remote_dataset.RemoteDataset.local_images_path">
-<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">local_images_path</span></code><a class="headerlink" href="#darwin.dataset.remote_dataset.RemoteDataset.local_images_path" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns a local Path to the images folder</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="darwin.dataset.remote_dataset.RemoteDataset.local_path">
-<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">local_path</span></code><a class="headerlink" href="#darwin.dataset.remote_dataset.RemoteDataset.local_path" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns a Path to the local dataset</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="darwin.dataset.remote_dataset.RemoteDataset.local_releases_path">
-<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">local_releases_path</span></code><a class="headerlink" href="#darwin.dataset.remote_dataset.RemoteDataset.local_releases_path" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns a Path to the local dataset releases</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="darwin.dataset.remote_dataset.RemoteDataset.pull">
-<code class="sig-name descname"><span class="pre">pull</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">release</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#darwin.dataset.release.Release" title="darwin.dataset.release.Release"><span class="pre">darwin.dataset.release.Release</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">blocking</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">multi_threaded</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">only_annotations</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force_replace</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remove_extra</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subset_filter_annotations_function</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Callable</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subset_folder_name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_folders</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">video_frames</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/remote_dataset.html#RemoteDataset.pull"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.remote_dataset.RemoteDataset.pull" title="Permalink to this definition">¶</a></dt>
-<dd><p>Downloads a remote dataset (images and annotations) to the datasets directory.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>release</strong> (<a class="reference internal" href="#darwin.dataset.release.Release" title="darwin.dataset.release.Release"><em>Release</em></a>) – The release to pull</p></li>
-<li><p><strong>blocking</strong> (<em>bool</em>) – If False, the dataset is not downloaded and a generator function is returned instead</p></li>
-<li><p><strong>multi_threaded</strong> (<em>bool</em>) – Uses multiprocessing to download the dataset in parallel. If blocking is False this has no effect.</p></li>
-<li><p><strong>only_annotations</strong> (<em>bool</em>) – Download only the annotations and no corresponding images</p></li>
-<li><p><strong>force_replace</strong> (<em>bool</em>) – Forces the re-download of an existing image</p></li>
-<li><p><strong>remove_extra</strong> (<em>bool</em>) – Removes existing images for which there is not corresponding annotation</p></li>
-<li><p><strong>subset_filter_annotations_function</strong> (<em>Callable</em>) – This function receives the directory where the annotations are downloaded and can
-perform any operation on them i.e. filtering them with custom rules or else.
-If it needs to receive other parameters is advised to use functools.partial() for it.</p></li>
-<li><p><strong>subset_folder_name</strong> (<em>str</em>) – Name of the folder with the subset of the dataset. If not provided a timestamp is used.</p></li>
-<li><p><strong>use_folders</strong> (<em>bool</em>) – Recreates folders from the dataset</p></li>
-<li><p><strong>video_frames</strong> (<em>bool</em>) – Pulls video frames images instead of video files</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p><ul class="simple">
-<li><p><strong>generator</strong> (<em>function</em>) – Generator for doing the actual downloads. This is None if blocking is True</p></li>
-<li><p><strong>count</strong> (<em>int</em>) – The files count</p></li>
-</ul>
-</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt id="darwin.dataset.remote_dataset.RemoteDataset.push">
-<code class="sig-name descname"><span class="pre">push</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files_to_upload</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">pathlib.Path</span><span class="p"><span class="pre">,</span> </span><a class="reference internal" href="#darwin.dataset.upload_manager.LocalFile" title="darwin.dataset.upload_manager.LocalFile"><span class="pre">darwin.dataset.upload_manager.LocalFile</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">blocking</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">multi_threaded</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fps</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">as_frames</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">files_to_exclude</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">pathlib.Path</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">preserve_folders</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">progress_callback</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_upload_callback</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">int</span><span class="p"><span class="pre">,</span> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/remote_dataset.html#RemoteDataset.push"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.remote_dataset.RemoteDataset.push" title="Permalink to this definition">¶</a></dt>
-<dd><p>Uploads a local dataset (images ONLY) in the datasets directory.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>files_to_upload</strong> (<em>Optional</em><em>[</em><em>List</em><em>[</em><em>Union</em><em>[</em><em>str</em><em>, </em><em>Path</em><em>, </em><a class="reference internal" href="#darwin.dataset.upload_manager.LocalFile" title="darwin.dataset.upload_manager.LocalFile"><em>LocalFile</em></a><em>]</em><em>]</em><em>]</em>) – List of files to upload. Those can be folders.</p></li>
-<li><p><strong>blocking</strong> (<em>bool</em>) – If False, the dataset is not uploaded and a generator function is returned instead.</p></li>
-<li><p><strong>multi_threaded</strong> (<em>bool</em>) – Uses multiprocessing to upload the dataset in parallel.
-If blocking is False this has no effect.</p></li>
-<li><p><strong>files_to_exclude</strong> (<em>Optional</em><em>[</em><em>Union</em><em>[</em><em>str</em><em>, </em><em>Path</em><em>]</em><em>]</em><em>]</em>) – Optional list of files to exclude from the file scan. Those can be folders.</p></li>
-<li><p><strong>fps</strong> (<em>int</em>) – When the uploading file is a video, specify its framerate.</p></li>
-<li><p><strong>as_frames</strong> (<em>bool</em>) – When the uploading file is a video, specify whether it’s going to be uploaded as a list of frames.</p></li>
-<li><p><strong>path</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – Optional path to store the files in.</p></li>
-<li><p><strong>preserve_folders</strong> (<em>bool</em>) – Specify whether or not to preserve folder paths when uploading</p></li>
-<li><p><strong>progress_callback</strong> (<em>Optional</em><em>[</em><em>ProgressCallback</em><em>]</em>) – Optional callback, called every time the progress of an uploading files is reported.</p></li>
-<li><p><strong>file_upload_callback</strong> (<em>Optional</em><em>[</em><em>FileUploadCallback</em><em>]</em>) – Optional callback, called every time a file chunk is uploaded.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p><strong>handler</strong> – Class for handling uploads, progress and error messages</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p><a class="reference internal" href="#darwin.dataset.upload_manager.UploadHandler" title="darwin.dataset.upload_manager.UploadHandler">UploadHandler</a></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt id="darwin.dataset.remote_dataset.RemoteDataset.remote_path">
-<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">remote_path</span></code><a class="headerlink" href="#darwin.dataset.remote_dataset.RemoteDataset.remote_path" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns an URL specifying the location of the remote dataset</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="darwin.dataset.remote_dataset.RemoteDataset.remove_remote">
-<code class="sig-name descname"><span class="pre">remove_remote</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">None</span><a class="reference internal" href="_modules/darwin/dataset/remote_dataset.html#RemoteDataset.remove_remote"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.remote_dataset.RemoteDataset.remove_remote" title="Permalink to this definition">¶</a></dt>
-<dd><p>Archives (soft-deletion) the remote dataset</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="darwin.dataset.remote_dataset.RemoteDataset.restore_archived">
-<code class="sig-name descname"><span class="pre">restore_archived</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">items</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">None</span><a class="reference internal" href="_modules/darwin/dataset/remote_dataset.html#RemoteDataset.restore_archived"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.remote_dataset.RemoteDataset.restore_archived" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt id="darwin.dataset.remote_dataset.RemoteDataset.split">
-<code class="sig-name descname"><span class="pre">split</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val_percentage</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_percentage</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">split_seed</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">make_default_split</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">release_name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/remote_dataset.html#RemoteDataset.split"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.remote_dataset.RemoteDataset.split" title="Permalink to this definition">¶</a></dt>
-<dd><p>Creates lists of file names for each split for train, validation, and test.
-Note: This functions needs a local copy of the dataset</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>val_percentage</strong> (<em>float</em>) – Percentage of images used in the validation set</p></li>
-<li><p><strong>test_percentage</strong> (<em>float</em>) – Percentage of images used in the test set</p></li>
-<li><p><strong>force_resplit</strong> (<em>bool</em>) – Discard previous split and create a new one</p></li>
-<li><p><strong>split_seed</strong> (<em>int</em>) – Fix seed for random split creation</p></li>
-<li><p><strong>make_default_split</strong> (<em>bool</em>) – Makes this split the default split</p></li>
-<li><p><strong>release_name</strong> (<em>str</em>) – Version of the dataset</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt id="darwin.dataset.remote_dataset.RemoteDataset.split_video_annotations">
-<code class="sig-name descname"><span class="pre">split_video_annotations</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">release_name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'latest'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/remote_dataset.html#RemoteDataset.split_video_annotations"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.remote_dataset.RemoteDataset.split_video_annotations" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt id="darwin.dataset.remote_dataset.RemoteDataset.workview_url_for_item">
-<code class="sig-name descname"><span class="pre">workview_url_for_item</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">item</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/remote_dataset.html#RemoteDataset.workview_url_for_item"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.remote_dataset.RemoteDataset.workview_url_for_item" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-</div>
-<div class="section" id="module-darwin.dataset.split_manager">
-<span id="darwin-dataset-split-manager-module"></span><h2>darwin.dataset.split_manager module<a class="headerlink" href="#module-darwin.dataset.split_manager" title="Permalink to this headline">¶</a></h2>
-<dl class="py function">
-<dt id="darwin.dataset.split_manager.build_split_paths_dict">
-<code class="sig-prename descclassname"><span class="pre">darwin.dataset.split_manager.</span></code><code class="sig-name descname"><span class="pre">build_split_paths_dict</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">split_path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">pathlib.Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stratified_types</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">pathlib.Path</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/darwin/dataset/split_manager.html#build_split_paths_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.split_manager.build_split_paths_dict" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt id="darwin.dataset.split_manager.random_split">
-<code class="sig-prename descclassname"><span class="pre">darwin.dataset.split_manager.</span></code><code class="sig-name descname"><span class="pre">random_split</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotation_path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">pathlib.Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotation_files</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">pathlib.Path</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">splits</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">pathlib.Path</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_percentage</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_percentage</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">split_seed</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/split_manager.html#random_split"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.split_manager.random_split" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt id="darwin.dataset.split_manager.remove_cross_contamination">
-<code class="sig-prename descclassname"><span class="pre">darwin.dataset.split_manager.</span></code><code class="sig-name descname"><span class="pre">remove_cross_contamination</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X_a</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X_b</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_a</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_b</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b_min_size</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/split_manager.html#remove_cross_contamination"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.split_manager.remove_cross_contamination" title="Permalink to this definition">¶</a></dt>
-<dd><p>Remove cross contamination present in X_a and X_b by selecting one or the other on a flip coin decision.</p>
-<dl class="simple">
-<dt>The reason of cross contamination existence is</dt><dd><p>expanded_list = [(k, c) for k, v in idx_to_classes.items() for c in v]</p>
-</dd>
-</dl>
-<p>in _stratify_samples(). This line creates as many entries for an image as there are lables
-attached to it. For this reason it can be that the stratification algorithm splits
-the image in both sets, A and B.
-This is very bad and this function addressed exactly that issue, removing duplicates from
-either A or B.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>X_a</strong> (<em>ndarray</em>) – </p></li>
-<li><p><strong>X_b</strong> (<em>ndarray</em>) – Arrays of elements to remove cross contamination from</p></li>
-<li><p><strong>y_a</strong> (<em>ndarray</em>) – </p></li>
-<li><p><strong>y_b</strong> (<em>ndarray</em>) – Arrays of labels relative to X_a and X_b to be filtered in the same fashion</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p><strong>X_a, X_b, y_a, y_b</strong> – All input parameters filtered by removing cross contamination across A and B</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>ndarray</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt id="darwin.dataset.split_manager.split_dataset">
-<code class="sig-prename descclassname"><span class="pre">darwin.dataset.split_manager.</span></code><code class="sig-name descname"><span class="pre">split_dataset</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset_path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">pathlib.Path</span><span class="p"><span class="pre">,</span> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">release_name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_percentage</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_percentage</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">split_seed</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">make_default_split</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stratified_types</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">['bounding_box',</span> <span class="pre">'polygon',</span> <span class="pre">'tag']</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/split_manager.html#split_dataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.split_manager.split_dataset" title="Permalink to this definition">¶</a></dt>
-<dd><p>Given a local a dataset (pulled from Darwin), split it by creating lists of filenames.
-The partitions to split the dataset into are called train, val and test.</p>
-<p>The dataset is always split randomly, and can be additionally split according to the
-stratified strategy by providing a list of stratified types.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>dataset_path</strong> (<em>Path</em>) – Local path to the dataset</p></li>
-<li><p><strong>release_name</strong> (<em>str</em>) – Version of the dataset</p></li>
-<li><p><strong>val_percentage</strong> (<em>float</em>) – Percentage of images used in the validation set</p></li>
-<li><p><strong>test_percentage</strong> (<em>float</em>) – Percentage of images used in the test set</p></li>
-<li><p><strong>split_seed</strong> (<em>int</em>) – Fix seed for random split creation</p></li>
-<li><p><strong>make_default_split</strong> (<em>bool</em>) – Makes this split the default split</p></li>
-<li><p><strong>stratified_types</strong> (<em>List</em><em>[</em><em>str</em><em>]</em>) – List of annotation types to split with the stratified strategy</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p><strong>splits</strong> – Keys are the different splits (random, tags, …) and values are the relative file names</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>dict</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt id="darwin.dataset.split_manager.stratified_split">
-<code class="sig-prename descclassname"><span class="pre">darwin.dataset.split_manager.</span></code><code class="sig-name descname"><span class="pre">stratified_split</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotation_path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">pathlib.Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">splits</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">pathlib.Path</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotation_files</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">pathlib.Path</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_percentage</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_percentage</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stratified_types</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">split_seed</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/split_manager.html#stratified_split"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.split_manager.stratified_split" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt id="darwin.dataset.split_manager.unique">
-<code class="sig-prename descclassname"><span class="pre">darwin.dataset.split_manager.</span></code><code class="sig-name descname"><span class="pre">unique</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">array</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/split_manager.html#unique"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.split_manager.unique" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns unique elements of numpy array, maintaining the occurrency order</p>
-</dd></dl>
-
-<dl class="py function">
-<dt id="darwin.dataset.split_manager.validate_split">
-<code class="sig-prename descclassname"><span class="pre">darwin.dataset.split_manager.</span></code><code class="sig-name descname"><span class="pre">validate_split</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val_percentage</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_percentage</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/split_manager.html#validate_split"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.split_manager.validate_split" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt id="darwin.dataset.split_manager.write_to_file">
-<code class="sig-prename descclassname"><span class="pre">darwin.dataset.split_manager.</span></code><code class="sig-name descname"><span class="pre">write_to_file</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotation_path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">pathlib.Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotation_files</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">pathlib.Path</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">pathlib.Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">split_idx</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Iterable</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/split_manager.html#write_to_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.split_manager.write_to_file" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</div>
-<div class="section" id="module-darwin.dataset.upload_manager">
-<span id="darwin-dataset-upload-manager-module"></span><h2>darwin.dataset.upload_manager module<a class="headerlink" href="#module-darwin.dataset.upload_manager" title="Permalink to this headline">¶</a></h2>
-<dl class="py class">
-<dt id="darwin.dataset.upload_manager.ItemPayload">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">darwin.dataset.upload_manager.</span></code><code class="sig-name descname"><span class="pre">ItemPayload</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataset_item_id</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reason</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/upload_manager.html#ItemPayload"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.upload_manager.ItemPayload" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<dl class="py method">
-<dt id="darwin.dataset.upload_manager.ItemPayload.full_path">
-<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">full_path</span></code><a class="headerlink" href="#darwin.dataset.upload_manager.ItemPayload.full_path" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt id="darwin.dataset.upload_manager.LocalFile">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">darwin.dataset.upload_manager.</span></code><code class="sig-name descname"><span class="pre">LocalFile</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">local_path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">pathlib.Path</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/upload_manager.html#LocalFile"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.upload_manager.LocalFile" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<dl class="py method">
-<dt id="darwin.dataset.upload_manager.LocalFile.full_path">
-<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">full_path</span></code><a class="headerlink" href="#darwin.dataset.upload_manager.LocalFile.full_path" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt id="darwin.dataset.upload_manager.UploadHandler">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">darwin.dataset.upload_manager.</span></code><code class="sig-name descname"><span class="pre">UploadHandler</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">RemoteDataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">local_files</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#darwin.dataset.upload_manager.LocalFile" title="darwin.dataset.upload_manager.LocalFile"><span class="pre">darwin.dataset.upload_manager.LocalFile</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/upload_manager.html#UploadHandler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.upload_manager.UploadHandler" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<dl class="py method">
-<dt id="darwin.dataset.upload_manager.UploadHandler.blocked_count">
-<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">blocked_count</span></code><a class="headerlink" href="#darwin.dataset.upload_manager.UploadHandler.blocked_count" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt id="darwin.dataset.upload_manager.UploadHandler.client">
-<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">client</span></code><a class="headerlink" href="#darwin.dataset.upload_manager.UploadHandler.client" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt id="darwin.dataset.upload_manager.UploadHandler.dataset_identifier">
-<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">dataset_identifier</span></code><a class="headerlink" href="#darwin.dataset.upload_manager.UploadHandler.dataset_identifier" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt id="darwin.dataset.upload_manager.UploadHandler.error_count">
-<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">error_count</span></code><a class="headerlink" href="#darwin.dataset.upload_manager.UploadHandler.error_count" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt id="darwin.dataset.upload_manager.UploadHandler.pending_count">
-<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">pending_count</span></code><a class="headerlink" href="#darwin.dataset.upload_manager.UploadHandler.pending_count" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt id="darwin.dataset.upload_manager.UploadHandler.prepare_upload">
-<code class="sig-name descname"><span class="pre">prepare_upload</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/upload_manager.html#UploadHandler.prepare_upload"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.upload_manager.UploadHandler.prepare_upload" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt id="darwin.dataset.upload_manager.UploadHandler.progress">
-<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">progress</span></code><a class="headerlink" href="#darwin.dataset.upload_manager.UploadHandler.progress" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt id="darwin.dataset.upload_manager.UploadHandler.total_count">
-<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">total_count</span></code><a class="headerlink" href="#darwin.dataset.upload_manager.UploadHandler.total_count" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt id="darwin.dataset.upload_manager.UploadHandler.upload">
-<code class="sig-name descname"><span class="pre">upload</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">multi_threaded</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">progress_callback</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_upload_callback</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">int</span><span class="p"><span class="pre">,</span> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_workers</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/upload_manager.html#UploadHandler.upload"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.upload_manager.UploadHandler.upload" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="py exception">
-<dt id="darwin.dataset.upload_manager.UploadRequestError">
-<em class="property"><span class="pre">exception</span> </em><code class="sig-prename descclassname"><span class="pre">darwin.dataset.upload_manager.</span></code><code class="sig-name descname"><span class="pre">UploadRequestError</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">pathlib.Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stage</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="#darwin.dataset.upload_manager.UploadStage" title="darwin.dataset.upload_manager.UploadStage"><span class="pre">darwin.dataset.upload_manager.UploadStage</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">error</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Exception</span><span class="p"><span class="pre">,</span> </span><span class="pre">NoneType</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/upload_manager.html#UploadRequestError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.upload_manager.UploadRequestError" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></p>
-<dl class="py attribute">
-<dt id="darwin.dataset.upload_manager.UploadRequestError.error">
-<code class="sig-name descname"><span class="pre">error</span></code><em class="property"><span class="pre">:</span> <span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Exception</span><span class="p"><span class="pre">]</span></span></em><em class="property"> <span class="pre">=</span> <span class="pre">None</span></em><a class="headerlink" href="#darwin.dataset.upload_manager.UploadRequestError.error" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt id="darwin.dataset.upload_manager.UploadRequestError.file_path">
-<code class="sig-name descname"><span class="pre">file_path</span></code><em class="property"><span class="pre">:</span> <span class="pre">pathlib.Path</span></em><a class="headerlink" href="#darwin.dataset.upload_manager.UploadRequestError.file_path" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt id="darwin.dataset.upload_manager.UploadRequestError.stage">
-<code class="sig-name descname"><span class="pre">stage</span></code><em class="property"><span class="pre">:</span> <a class="reference internal" href="#darwin.dataset.upload_manager.UploadStage" title="darwin.dataset.upload_manager.UploadStage"><span class="pre">darwin.dataset.upload_manager.UploadStage</span></a></em><a class="headerlink" href="#darwin.dataset.upload_manager.UploadRequestError.stage" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt id="darwin.dataset.upload_manager.UploadStage">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">darwin.dataset.upload_manager.</span></code><code class="sig-name descname"><span class="pre">UploadStage</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/upload_manager.html#UploadStage"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.upload_manager.UploadStage" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">enum.Enum</span></code></p>
-<p>An enumeration.</p>
-<dl class="py attribute">
-<dt id="darwin.dataset.upload_manager.UploadStage.CONFIRM_UPLOAD_COMPLETE">
-<code class="sig-name descname"><span class="pre">CONFIRM_UPLOAD_COMPLETE</span></code><em class="property"> <span class="pre">=</span> <span class="pre">2</span></em><a class="headerlink" href="#darwin.dataset.upload_manager.UploadStage.CONFIRM_UPLOAD_COMPLETE" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt id="darwin.dataset.upload_manager.UploadStage.OTHER">
-<code class="sig-name descname"><span class="pre">OTHER</span></code><em class="property"> <span class="pre">=</span> <span class="pre">3</span></em><a class="headerlink" href="#darwin.dataset.upload_manager.UploadStage.OTHER" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt id="darwin.dataset.upload_manager.UploadStage.REQUEST_SIGNATURE">
-<code class="sig-name descname"><span class="pre">REQUEST_SIGNATURE</span></code><em class="property"> <span class="pre">=</span> <span class="pre">0</span></em><a class="headerlink" href="#darwin.dataset.upload_manager.UploadStage.REQUEST_SIGNATURE" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt id="darwin.dataset.upload_manager.UploadStage.UPLOAD_TO_S3">
-<code class="sig-name descname"><span class="pre">UPLOAD_TO_S3</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1</span></em><a class="headerlink" href="#darwin.dataset.upload_manager.UploadStage.UPLOAD_TO_S3" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-</div>
-<div class="section" id="module-darwin.dataset.utils">
-<span id="darwin-dataset-utils-module"></span><h2>darwin.dataset.utils module<a class="headerlink" href="#module-darwin.dataset.utils" title="Permalink to this headline">¶</a></h2>
-<dl class="py function">
-<dt id="darwin.dataset.utils.compute_distributions">
-<code class="sig-prename descclassname"><span class="pre">darwin.dataset.utils.</span></code><code class="sig-name descname"><span class="pre">compute_distributions</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotations_dir</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">pathlib.Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">split_path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">pathlib.Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">partitions</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">['train',</span> <span class="pre">'val',</span> <span class="pre">'test']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotation_types</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['polygon']</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">collections.Counter</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/darwin/dataset/utils.html#compute_distributions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.utils.compute_distributions" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="simple">
-<dt>This function builds and returns the following dictionaries:</dt><dd><ul class="simple">
-<li><p>class_distribution: count of all files where at least one instance of a given class exists for each partition</p></li>
-<li><p>instance_distribution: count of all instances of a given class exist for each partition</p></li>
-</ul>
-</dd>
-</dl>
-<p>Note that this function can only be used after a dataset has been split with “stratified” strategy.</p>
-</dd></dl>
-
-<dl class="py function">
-<dt id="darwin.dataset.utils.compute_max_density">
-<code class="sig-prename descclassname"><span class="pre">darwin.dataset.utils.</span></code><code class="sig-name descname"><span class="pre">compute_max_density</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotations_dir</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">pathlib.Path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/utils.html#compute_max_density"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.utils.compute_max_density" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt id="darwin.dataset.utils.convert_to_rgb">
-<code class="sig-prename descclassname"><span class="pre">darwin.dataset.utils.</span></code><code class="sig-name descname"><span class="pre">convert_to_rgb</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="pre">pic:</span> <span class="pre">&lt;module</span> <span class="pre">'PIL.Image'</span> <span class="pre">from</span> <span class="pre">'/home/pedro/anaconda3/lib/python3.8/site-packages/PIL/Image.py'&gt;</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/utils.html#convert_to_rgb"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.utils.convert_to_rgb" title="Permalink to this definition">¶</a></dt>
-<dd><p>Converts a PIL image to RGB</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>pic</strong> (<em>Image</em>) – PIL Image</p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Values between 0 and 255</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>PIL Image</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt id="darwin.dataset.utils.exhaust_generator">
-<code class="sig-prename descclassname"><span class="pre">darwin.dataset.utils.</span></code><code class="sig-name descname"><span class="pre">exhaust_generator</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">progress</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Generator</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">count</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">multi_threaded</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/utils.html#exhaust_generator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.utils.exhaust_generator" title="Permalink to this definition">¶</a></dt>
-<dd><p>Exhausts the generator passed as parameter. Can be done multi threaded if desired</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>progress</strong> (<em>Generator</em>) – Generator to exhaust</p></li>
-<li><p><strong>count</strong> (<em>int</em>) – Size of the generator</p></li>
-<li><p><strong>multi_threaded</strong> (<em>bool</em>) – Flag for multi-threaded enabled operations</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>List of responses from the generator execution</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>List[dict]</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt id="darwin.dataset.utils.extract_classes">
-<code class="sig-prename descclassname"><span class="pre">darwin.dataset.utils.</span></code><code class="sig-name descname"><span class="pre">extract_classes</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotations_path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">pathlib.Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotation_type</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">Set</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span> </span><span class="pre">Set</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/darwin/dataset/utils.html#extract_classes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.utils.extract_classes" title="Permalink to this definition">¶</a></dt>
-<dd><p>Given a the GT as json files extracts all classes and an maps images index to classes</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>annotations_files</strong> (<em>Path</em>) – Path to the json files with the GT information of each image</p></li>
-<li><p><strong>annotation_type</strong> (<em>str</em>) – Type of annotation to use to extract the Gt information</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p><ul class="simple">
-<li><p><strong>classes</strong> (<em>dict</em>)</p></li>
-<li><p><em>Dictionary where keys are the classes found in the GT and values</em></p></li>
-<li><p><em>are a list of file numbers which contain it</em></p></li>
-<li><p><strong>indices_to_classes</strong> (<em>dict</em>)</p></li>
-<li><p><em>Dictionary where keys are image indices and values are all classes</em></p></li>
-<li><p><em>contained in that image</em></p></li>
-</ul>
-</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt id="darwin.dataset.utils.get_annotations">
-<code class="sig-prename descclassname"><span class="pre">darwin.dataset.utils.</span></code><code class="sig-name descname"><span class="pre">get_annotations</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset_path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">pathlib.Path</span><span class="p"><span class="pre">,</span> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">partition</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">split</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'default'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">split_type</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotation_type</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'polygon'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">release_name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotation_format</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'coco'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_inconsistent_examples</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/utils.html#get_annotations"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.utils.get_annotations" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns all the annotations of a given dataset and split in a single dictionary</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>dataset_path</strong> – Path to the location of the dataset on the file system</p></li>
-<li><p><strong>partition</strong> – Selects one of the partitions [train, val, test]</p></li>
-<li><p><strong>split</strong> – Selects the split that defines the percetages used (use ‘default’ to select the default split)</p></li>
-<li><p><strong>split_type</strong> – Heuristic used to do the split [random, stratified, None]</p></li>
-<li><p><strong>annotation_type</strong> – The type of annotation classes [tag, bounding_box, polygon]</p></li>
-<li><p><strong>release_name</strong> (<em>str</em>) – Version of the dataset</p></li>
-<li><p><strong>annotation_format</strong> (<em>str</em>) – Re-formatting of the annotation when loaded [coco, darwin]</p></li>
-<li><p><strong>ignore_inconsistent_examples</strong> (<em>bool</em>) – Ignore examples for which we have annotations, but either images are missing,
-or more than one images exist for the same annotation.
-If set to <cite>True</cite>, then filter those examples out of the dataset.
-If set to <cite>False</cite>, then raise an error as soon as such an example is found.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Dictionary containing all the annotations of the dataset</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>dict</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt id="darwin.dataset.utils.get_classes">
-<code class="sig-prename descclassname"><span class="pre">darwin.dataset.utils.</span></code><code class="sig-name descname"><span class="pre">get_classes</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset_path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">pathlib.Path</span><span class="p"><span class="pre">,</span> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">release_name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotation_type</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'polygon'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remove_background</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/utils.html#get_classes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.utils.get_classes" title="Permalink to this definition">¶</a></dt>
-<dd><p>Given a dataset and an annotation_type returns the list of classes</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>dataset_path</strong> – Path to the location of the dataset on the file system</p></li>
-<li><p><strong>release_name</strong> (<em>str</em>) – Version of the dataset</p></li>
-<li><p><strong>annotation_type</strong> – The type of annotation classes [tag, polygon]</p></li>
-<li><p><strong>remove_background</strong> – Removes the background class (if exists) from the list of classes</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p><strong>classes</strong> – List of classes in the dataset of type classes_type</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>list</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt id="darwin.dataset.utils.get_coco_format_record">
-<code class="sig-prename descclassname"><span class="pre">darwin.dataset.utils.</span></code><code class="sig-name descname"><span class="pre">get_coco_format_record</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotation_path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">pathlib.Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotation_type</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'polygon'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">pathlib.Path</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_id</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">classes</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/utils.html#get_coco_format_record"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.utils.get_coco_format_record" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt id="darwin.dataset.utils.get_release_path">
-<code class="sig-prename descclassname"><span class="pre">darwin.dataset.utils.</span></code><code class="sig-name descname"><span class="pre">get_release_path</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset_path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">pathlib.Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">release_name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/utils.html#get_release_path"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.utils.get_release_path" title="Permalink to this definition">¶</a></dt>
-<dd><p>Given a dataset path and a release name, returns the path to the release</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>dataset_path</strong> – Path to the location of the dataset on the file system</p></li>
-<li><p><strong>release_name</strong> (<em>str</em>) – Version of the dataset</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p><strong>release_path</strong> – Path to the location of the dataset release on the file system</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>Path</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt id="darwin.dataset.utils.is_relative_to">
-<code class="sig-prename descclassname"><span class="pre">darwin.dataset.utils.</span></code><code class="sig-name descname"><span class="pre">is_relative_to</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">pathlib.Path</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">bool</span><a class="reference internal" href="_modules/darwin/dataset/utils.html#is_relative_to"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.utils.is_relative_to" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return True if the path is relative to another path or False.</p>
-</dd></dl>
-
-<dl class="py function">
-<dt id="darwin.dataset.utils.load_pil_image">
-<code class="sig-prename descclassname"><span class="pre">darwin.dataset.utils.</span></code><code class="sig-name descname"><span class="pre">load_pil_image</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">pathlib.Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">to_rgb</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">bool</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/utils.html#load_pil_image"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.utils.load_pil_image" title="Permalink to this definition">¶</a></dt>
-<dd><p>Loads a PIL image and converts it into RGB (optional).</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>path</strong> (<em>Path</em>) – Path to the image file</p></li>
-<li><p><strong>to_rgb</strong> (<em>bool</em>) – Converts the image to RGB</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p></p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>PIL Image</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt id="darwin.dataset.utils.make_class_lists">
-<code class="sig-prename descclassname"><span class="pre">darwin.dataset.utils.</span></code><code class="sig-name descname"><span class="pre">make_class_lists</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">release_path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">pathlib.Path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/darwin/dataset/utils.html#make_class_lists"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.utils.make_class_lists" title="Permalink to this definition">¶</a></dt>
-<dd><p>Support function to extract classes and save the output to file</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>release_path</strong> (<em>Path</em>) – Path to the location of the dataset on the file system</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt id="darwin.dataset.utils.sanitize_filename">
-<code class="sig-prename descclassname"><span class="pre">darwin.dataset.utils.</span></code><code class="sig-name descname"><span class="pre">sanitize_filename</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">str</span><a class="reference internal" href="_modules/darwin/dataset/utils.html#sanitize_filename"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#darwin.dataset.utils.sanitize_filename" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</div>
-<div class="section" id="module-darwin.dataset">
-<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-darwin.dataset" title="Permalink to this headline">¶</a></h2>
-</div>
-</div>
-
-
-              </div>
-              
-        
-            
-
-
-
-<div class='prev-next-bottom'>
-    
-
-</div>
-        
-        </div>
-    </div>
-    <footer class="footer mt-5 mt-md-0">
-    <div class="container">
-      <p>
-        
-          By V7<br/>
-        
-            &copy; Copyright MIT License.<br/>
-      </p>
-    </div>
-  </footer>
-</main>
-
-
-      </div>
-    </div>
-  
-  <script src="_static/js/index.1c5a1a01449ed65a7b51.js"></script>
-
-  
-  </body>
+    <script src="_static/scripts/main.js"></script>
+    </body>
 </html>

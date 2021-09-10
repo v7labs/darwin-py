@@ -28,7 +28,7 @@ author: str = "V7"
 # The full version, including alpha/beta/rc tags
 release: str = "0.0.0"
 
-with open(Path(__file__).parent / "darwin" / "__init__.py", "r") as f:
+with open(Path(__file__).parent.parent / "darwin" / "__init__.py", "r") as f:
     # from https://www.py4u.net/discuss/139845
     content: str = f.read()
     search_result: Optional[Match[str]] = re.search(r'__version__\s*=\s*[\'"]([^\'"]*)[\'"]', content)
@@ -40,7 +40,17 @@ with open(Path(__file__).parent / "darwin" / "__init__.py", "r") as f:
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions: List[str] = ["sphinx.ext.autodoc"]
+extensions: List[str] = [
+    "sphinx.ext.autodoc",
+    "sphinx.ext.doctest",
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.todo",
+    "sphinx.ext.coverage",
+    "sphinx.ext.mathjax",
+    "sphinx.ext.viewcode",
+    "sphinx.ext.napoleon",
+    "recommonmark",
+]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path: List[str] = ["_templates"]
@@ -56,20 +66,9 @@ exclude_patterns: List[str] = []
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme: str = "sphinx_book_theme"
+html_theme: str = "furo"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path: List[str] = ["_static"]
-
-extensions = [
-    "sphinx.ext.autodoc",
-    "sphinx.ext.doctest",
-    "sphinx.ext.intersphinx",
-    "sphinx.ext.todo",
-    "sphinx.ext.coverage",
-    "sphinx.ext.mathjax",
-    "sphinx.ext.viewcode",
-    "sphinx.ext.napoleon",
-]

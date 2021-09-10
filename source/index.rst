@@ -8,8 +8,8 @@ Welcome to darwin-py's documentation!
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
 
+   README
 
 
 Indices and tables
