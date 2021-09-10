@@ -154,3 +154,6 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+
+# conda environment
+environment.yml
