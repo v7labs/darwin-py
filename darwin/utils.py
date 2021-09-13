@@ -539,4 +539,13 @@ def chunk(items, size):
 
 
 def is_unix_like_os() -> bool:
+    """
+    Returns True if the executing OS is Unix-based (Ubuntu or MacOS, for example) or False 
+    otherwise.
+
+    Returns
+    --------
+    bool:
+        True for Unix-based systems, False otherwise.
+    """
     return platform.system() != "Windows"
