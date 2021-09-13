@@ -414,7 +414,6 @@ def describe_pull():
 
     @patch("platform.system", return_value="Linux")
     def it_gets_latest_release_when_not_given_one(system_mock: MagicMock, remote_dataset: RemoteDataset):
-        # Arrange
         stub_release_response = Release(
             "dataset-slug",
             "team-slug",
@@ -434,7 +433,6 @@ def describe_pull():
             shutil.copy(zip, path)
             return path
 
-        # Act & Assert
         with patch.object(RemoteDataset, "get_release", return_value=stub_release_response) as get_release_stub:
             with patch.object(Release, "download_zip", new=fake_download_zip):
                 remote_dataset.pull()
@@ -442,7 +440,6 @@ def describe_pull():
 
     @patch("platform.system", return_value="Windows")
     def it_does_not_create_symlink_on_windows(mocker: MagicMock, remote_dataset: RemoteDataset):
-        # Arrange
         stub_release_response = Release(
             "dataset-slug",
             "team-slug",
@@ -464,7 +461,6 @@ def describe_pull():
 
         latest: Path = remote_dataset.local_releases_path / "latest"
 
-        # Act & Assert
         with patch.object(RemoteDataset, "get_release", return_value=stub_release_response) as get_release_stub:
             with patch.object(Release, "download_zip", new=fake_download_zip):
                 remote_dataset.pull()
@@ -472,7 +468,6 @@ def describe_pull():
 
     @patch("platform.system", return_value="Linux")
     def it_raises_if_release_format_is_not_json(system_mock: MagicMock, remote_dataset: RemoteDataset):
-        # Arrange
         a_release = Release(
             remote_dataset.slug,
             remote_dataset.team,
@@ -487,7 +482,6 @@ def describe_pull():
             "xml",
         )
 
-        # Act & Arrange
         with pytest.raises(UnsupportedExportFormat):
             remote_dataset.pull(release=a_release)
 
