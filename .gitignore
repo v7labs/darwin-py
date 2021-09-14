@@ -23,8 +23,9 @@ __pycache__/
 
 # C extensions
 *.so
-
+# develop
 playground.py
+.vscode/
 # Distribution / packaging
 .Python
 build/
