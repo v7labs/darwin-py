@@ -1,13 +1,18 @@
-from typing import List, Optional
+from typing import Callable, List, Optional, Union
 
 import numpy as np
-
 from darwin.cli_functions import _error, _load_client
 from darwin.dataset import LocalDataset
 from darwin.dataset.identifier import DatasetIdentifier
-from darwin.torch.transforms import Compose, ConvertPolygonsToInstanceMasks, ConvertPolygonsToSemanticMask
+from darwin.torch.transforms import (
+    Compose,
+    ConvertPolygonsToInstanceMasks,
+    ConvertPolygonsToSemanticMask,
+)
 from darwin.torch.utils import polygon_area
 from darwin.utils import convert_polygons_to_sequences
+
+import torch
 
 
 def get_dataset(
@@ -68,7 +73,7 @@ def get_dataset(
 
 
 class ClassificationDataset(LocalDataset):
-    def __init__(self, transform: Optional[List] = None, **kwargs):
+    def __init__(self, transform: Optional[Union[Callable, List]] = None, **kwargs):
         """
         See class `LocalDataset` for documentation
         """
@@ -108,15 +113,17 @@ class ClassificationDataset(LocalDataset):
         target = self.parse_json(index)
         annotations = target.pop("annotations")
         tags = [a["name"] for a in annotations if "tag" in a]
-        if len(tags) > 1:
-            raise ValueError(f"Multiple tags defined for this image ({tags}). This is not supported at the moment.")
-        if len(tags) == 0:
-            raise ValueError(
-                f"No tags defined for this image ({self.annotations_path[index]})."
-                f"This is not valid in a classification dataset."
-            )
-        target["category_id"] = self.classes.index(tags[0])
-        target["category_name"] = tags[0]
+
+        is_multi_label = len(tags) > 1
+        if is_multi_label:
+            target = torch.zeros(len(self.classes))
+            # one hot encode all the targets
+            for tag in tags:
+                idx = self.classes.index(tag)
+                target[idx] = 1
+        else:
+            target = self.classes.index(tags[0])
+
         return target
 
     def get_class_idx(self, index: int):
@@ -195,7 +202,9 @@ class InstanceSegmentationDataset(LocalDataset):
             # Extract the sequences of coordinates from the polygon annotation
             annotation_type = "polygon" if "polygon" in annotation else "complex_polygon"
             sequences = convert_polygons_to_sequences(
-                annotation[annotation_type]["path"], height=target["height"], width=target["width"],
+                annotation[annotation_type]["path"],
+                height=target["height"],
+                width=target["width"],
             )
             # Compute the bbox of the polygon
             x_coords = [s[0::2] for s in sequences]
@@ -287,7 +296,9 @@ class SemanticSegmentationDataset(LocalDataset):
         annotations = []
         for obj in target["annotations"]:
             sequences = convert_polygons_to_sequences(
-                obj["polygon"]["path"], height=target["height"], width=target["width"],
+                obj["polygon"]["path"],
+                height=target["height"],
+                width=target["width"],
             )
             # Discard polygons with less than three points
             sequences[:] = [s for s in sequences if len(s) >= 6]
