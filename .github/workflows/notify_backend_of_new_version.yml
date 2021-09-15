@@ -1,0 +1,16 @@
+name: Python package
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  new-version-notifier:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Notify backend of new darwin-py version
+        run: ./.github/scripts/notify_backend_of_new_version.sh
