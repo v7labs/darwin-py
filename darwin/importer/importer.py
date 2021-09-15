@@ -114,17 +114,25 @@ def import_annotations(
     dataset : RemoteDataset
         Dataset where the Annotations will be imported to.
     importer : Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]]
-        Parsing module containing the logic to parse the given Annotation files given in 
+        Parsing module containing the logic to parse the given Annotation files given in
         `files_path`. See `importer/format` for a list of out of supported parsers.
     file_paths : List[Union[str, Path]],
         A list of `Path`s or strings containing the Annotations we wish to import.
     append : bool
         If `True` appends the given annotations to the datasets. If `False` will override them.
-    
+
     Returns
-        -------
+    -------
         None
+
+    Raises
+    -------
+    ValueError
+        If file_paths is not a list.
     """
+
+    if not isinstance(file_paths, list):
+        raise ValueError(f"file_paths must be a list of 'Path' or 'str'. Current value: {file_paths}")
 
     print("Fetching remote class list...")
     team_classes = dataset.fetch_remote_classes(True)
