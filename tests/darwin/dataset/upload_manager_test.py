@@ -139,26 +139,14 @@ def test_error_count_is_correct(dataset: RemoteDataset, request_upload_endpoint:
     }
 
     sign_upload_endpoint = "http://localhost/api/dataset_items/1/sign_upload"
-    sign_upload_response = {
-        "postEndpoint": "//s3-eu-west-1.amazonaws.com/bucket",
-        "signature": {
-            "X-amz-algorithm": "AWS4-HMAC-SHA256",
-            "X-amz-credential": "AAAAAAAAAAAAAAAAAAAA/20210630/eu-west-1/s3/aws4_request",
-            "X-amz-date": "20210630T155613Z",
-            "X-amz-signature": "b7cf89d35cf67322187086c542aa10fd39d4b6b661bf1111a05f5263f9fcc353",
-            "acl": "private",
-            "key": "0/datasets/1/originals/00000001.jpg",
-            "policy": "eyJjb25kaXRpb25zIjpbeyJIdWNrZXQiOiJncmFwaG90YXRlLWRldiJ9LHsiYWNsIjoicHJpdmF0ZSJ9LHsic3VjY2Vzc19hY3Rpb25fc3RhdHVzIjoiMjAxIn0sWyJzdGFydHMtd2l0aCIsIiRrZXkiLCIiXSx7IngtYW16LWNyZWRlbnRpYWwiOiJBS0lBSVFKSDNJWEhHQ1M2TUJCQS8yMDIxMDYzMC9ldS13ZXN0LTIvczMvYXdzNF9yZXF1ZXN0In0seyJ4LWFtei1hbGdvcml0aG0iOiJBV1M0LUhNQUMtU0hBMjU2In0seyJ4LWFtei1kYXRlIjoiMjAyMTA2MzBUMTU1NjEzWiJ9XSwiZXhwaXJhdGlvbiI6IjIwMjEtMDctMDFUMTU6NTY6MTMuMDAwWiJ9",
-            "success_action_status": "201",
-        },
-    }
+    sign_upload_response = {"upload_url": "http://s3-eu-west-1.amazonaws.com/bucket"}
 
     upload_to_s3_endpoint = "http://s3-eu-west-1.amazonaws.com/bucket"
     confirm_upload_endpoint = "http://localhost/api/dataset_items/1/confirm_upload"
 
     responses.add(responses.PUT, request_upload_endpoint, json=request_upload_response, status=200)
     responses.add(responses.GET, sign_upload_endpoint, json=sign_upload_response, status=200)
-    responses.add(responses.POST, upload_to_s3_endpoint, content_type="multipart/form-data", status=500)
+    responses.add(responses.PUT, upload_to_s3_endpoint, status=500)
 
     Path("test.jpg").touch()
     local_file = LocalFile(local_path=Path("test.jpg"))
@@ -191,26 +179,14 @@ def test_error_count_is_correct(dataset: RemoteDataset, request_upload_endpoint:
     }
 
     sign_upload_endpoint = "http://localhost/api/dataset_items/1/sign_upload"
-    sign_upload_response = {
-        "postEndpoint": "//s3-eu-west-1.amazonaws.com/bucket",
-        "signature": {
-            "X-amz-algorithm": "AWS4-HMAC-SHA256",
-            "X-amz-credential": "AAAAAAAAAAAAAAAAAAAA/20210630/eu-west-1/s3/aws4_request",
-            "X-amz-date": "20210630T155613Z",
-            "X-amz-signature": "b7cf89d35cf67322187086c542aa10fd39d4b6b661bf1111a05f5263f9fcc353",
-            "acl": "private",
-            "key": "0/datasets/1/originals/00000001.jpg",
-            "policy": "eyJjb25kaXRpb25zIjpbeyJIdWNrZXQiOiJncmFwaG90YXRlLWRldiJ9LHsiYWNsIjoicHJpdmF0ZSJ9LHsic3VjY2Vzc19hY3Rpb25fc3RhdHVzIjoiMjAxIn0sWyJzdGFydHMtd2l0aCIsIiRrZXkiLCIiXSx7IngtYW16LWNyZWRlbnRpYWwiOiJBS0lBSVFKSDNJWEhHQ1M2TUJCQS8yMDIxMDYzMC9ldS13ZXN0LTIvczMvYXdzNF9yZXF1ZXN0In0seyJ4LWFtei1hbGdvcml0aG0iOiJBV1M0LUhNQUMtU0hBMjU2In0seyJ4LWFtei1kYXRlIjoiMjAyMTA2MzBUMTU1NjEzWiJ9XSwiZXhwaXJhdGlvbiI6IjIwMjEtMDctMDFUMTU6NTY6MTMuMDAwWiJ9",
-            "success_action_status": "201",
-        },
-    }
+    sign_upload_response = {"upload_url": "http://s3-eu-west-1.amazonaws.com/bucket"}
 
     upload_to_s3_endpoint = "http://s3-eu-west-1.amazonaws.com/bucket"
     confirm_upload_endpoint = "http://localhost/api/dataset_items/1/confirm_upload"
 
     responses.add(responses.PUT, request_upload_endpoint, json=request_upload_response, status=200)
     responses.add(responses.GET, sign_upload_endpoint, json=sign_upload_response, status=200)
-    responses.add(responses.POST, upload_to_s3_endpoint, content_type="multipart/form-data", status=201)
+    responses.add(responses.PUT, upload_to_s3_endpoint, status=201)
     responses.add(responses.PUT, confirm_upload_endpoint, status=500)
 
     Path("test.jpg").touch()
@@ -244,26 +220,14 @@ def test_upload_files(dataset: RemoteDataset, request_upload_endpoint: str):
     }
 
     sign_upload_endpoint = "http://localhost/api/dataset_items/1/sign_upload"
-    sign_upload_response = {
-        "postEndpoint": "//s3-eu-west-1.amazonaws.com/bucket",
-        "signature": {
-            "X-amz-algorithm": "AWS4-HMAC-SHA256",
-            "X-amz-credential": "AAAAAAAAAAAAAAAAAAAA/20210630/eu-west-1/s3/aws4_request",
-            "X-amz-date": "20210630T155613Z",
-            "X-amz-signature": "b7cf89d35cf67322187086c542aa10fd39d4b6b661bf1111a05f5263f9fcc353",
-            "acl": "private",
-            "key": "0/datasets/1/originals/00000001.jpg",
-            "policy": "eyJjb25kaXRpb25zIjpbeyJIdWNrZXQiOiJncmFwaG90YXRlLWRldiJ9LHsiYWNsIjoicHJpdmF0ZSJ9LHsic3VjY2Vzc19hY3Rpb25fc3RhdHVzIjoiMjAxIn0sWyJzdGFydHMtd2l0aCIsIiRrZXkiLCIiXSx7IngtYW16LWNyZWRlbnRpYWwiOiJBS0lBSVFKSDNJWEhHQ1M2TUJCQS8yMDIxMDYzMC9ldS13ZXN0LTIvczMvYXdzNF9yZXF1ZXN0In0seyJ4LWFtei1hbGdvcml0aG0iOiJBV1M0LUhNQUMtU0hBMjU2In0seyJ4LWFtei1kYXRlIjoiMjAyMTA2MzBUMTU1NjEzWiJ9XSwiZXhwaXJhdGlvbiI6IjIwMjEtMDctMDFUMTU6NTY6MTMuMDAwWiJ9",
-            "success_action_status": "201",
-        },
-    }
+    sign_upload_response = {"upload_url": "http://s3-eu-west-1.amazonaws.com/bucket"}
 
     upload_to_s3_endpoint = "http://s3-eu-west-1.amazonaws.com/bucket"
     confirm_upload_endpoint = "http://localhost/api/dataset_items/1/confirm_upload"
 
     responses.add(responses.PUT, request_upload_endpoint, json=request_upload_response, status=200)
     responses.add(responses.GET, sign_upload_endpoint, json=sign_upload_response, status=200)
-    responses.add(responses.POST, upload_to_s3_endpoint, content_type="multipart/form-data", status=201)
+    responses.add(responses.PUT, upload_to_s3_endpoint, status=201)
     responses.add(responses.PUT, confirm_upload_endpoint, status=200)
 
     Path("test.jpg").touch()
