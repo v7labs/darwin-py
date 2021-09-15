@@ -22,6 +22,7 @@ from darwin.dataset.utils import (
     get_annotations,
     get_classes,
     is_relative_to,
+    is_unix_like_os,
     make_class_lists,
     sanitize_filename,
 )
@@ -260,7 +261,7 @@ class RemoteDataset:
                     subset_filter_annotations_function(tmp_dir)
                     if subset_folder_name is None:
                         subset_folder_name = datetime.now().strftime("%m/%d/%Y_%H:%M:%S")
-                annotations_dir = release_dir / (subset_folder_name or "") / "annotations"
+                annotations_dir: Path = release_dir / (subset_folder_name or "") / "annotations"
                 # Remove existing annotations if necessary
                 if annotations_dir.exists():
                     try:
@@ -280,12 +281,12 @@ class RemoteDataset:
         # Extract the list of classes and create the text files
         make_class_lists(release_dir)
 
-        if release.latest:
-            latest_dir = self.local_releases_path / "latest"
+        if release.latest and is_unix_like_os():
+            latest_dir: Path = self.local_releases_path / "latest"
             if latest_dir.is_symlink():
                 latest_dir.unlink()
 
-            target_link = self.local_releases_path / release_dir.name
+            target_link: Path = self.local_releases_path / release_dir.name
             latest_dir.symlink_to(target_link)
 
         if only_annotations:
@@ -546,14 +547,14 @@ class RemoteDataset:
             raw=True,
         ).text
 
-    def get_releases(self):
+    def get_releases(self) -> List["Release"]:
         """
         Get a sorted list of releases with the most recent first.
 
         Returns
         -------
-        list(Release)
-            Return a sorted list of releases with the most recent first
+        List["Release"]
+            Return a sorted list of available releases with the most recent first
 
         Raises
         ------
@@ -567,7 +568,7 @@ class RemoteDataset:
         releases = [Release.parse_json(self.slug, self.team, payload) for payload in releases_json]
         return sorted(filter(lambda x: x.available, releases), key=lambda x: x.version, reverse=True)
 
-    def get_release(self, name: str = "latest"):
+    def get_release(self, name: str = "latest") -> "Release":
         """
         Get a specific release for this dataset.
 
@@ -578,7 +579,7 @@ class RemoteDataset:
 
         Returns
         -------
-        release: Release
+        Release
             The selected release
 
         Raises
