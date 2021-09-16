@@ -129,6 +129,9 @@ class ClassificationDataset(LocalDataset):
         return target
 
     def check_if_multi_label(self):
+        """
+        This function loops over all the .json files and check if we have more than one tags in at least one file, if yes we assume the dataset is for multi label classification. 
+        """
         for idx in range(len(self)):
             target = self.parse_json(idx)
             annotations = target.pop("annotations")
