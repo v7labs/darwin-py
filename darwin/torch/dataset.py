@@ -83,6 +83,9 @@ class ClassificationDataset(LocalDataset):
         if self.transform is not None and isinstance(self.transform, list):
             self.transform = Compose(self.transform)
 
+        self.is_multi_label = False
+        self.check_if_multi_label()
+
     def __getitem__(self, index: int):
         """
         See superclass for documentation
@@ -113,9 +116,8 @@ class ClassificationDataset(LocalDataset):
         target = self.parse_json(index)
         annotations = target.pop("annotations")
         tags = [a["name"] for a in annotations if "tag" in a]
-
-        is_multi_label = len(tags) > 1
-        if is_multi_label:
+        
+        if self.is_multi_label:
             target = torch.zeros(len(self.classes))
             # one hot encode all the targets
             for tag in tags:
@@ -125,6 +127,16 @@ class ClassificationDataset(LocalDataset):
             target = self.classes.index(tags[0])
 
         return target
+
+    def check_if_multi_label(self):
+        for idx in range(len(self)):
+            target = self.parse_json(idx)
+            annotations = target.pop("annotations")
+            tags = [a["name"] for a in annotations if "tag" in a]
+
+            if len(tags) > 1:
+                self.is_multi_label = True
+                break
 
     def get_class_idx(self, index: int):
         target = self.get_target(index)
