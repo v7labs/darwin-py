@@ -9,12 +9,12 @@ from .typing import InferParams, InferResult, LoadParams, TrainParams, TrainResu
 class IntegrationStrategy(ABC):
     @abstractmethod
     def load(self, weights_path: Optional[Path], params: LoadParams) -> None:
-        raise NotImplementedError()
+        pass
 
     @abstractmethod
     def infer(self, file_paths: List[Path], params: InferParams) -> InferResult:
-        raise NotImplementedError()
+        pass
 
     @abstractmethod
     def train(self, train_handler: TrainHandler, params: TrainParams) -> TrainResult:
-        raise NotImplementedError()
+        pass
