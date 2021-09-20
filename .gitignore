@@ -8,6 +8,7 @@ output/
 data/
 darwin_py.egg-info/PKG-INFO
 
+playground.py
 *.png
 *.jpeg
 *.jpg 
@@ -20,7 +21,6 @@ darwin_py.egg-info/PKG-INFO
 __pycache__/
 *.py[cod]
 *$py.class
-
 # C extensions
 *.so
 
