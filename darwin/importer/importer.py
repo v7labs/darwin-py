@@ -75,7 +75,9 @@ def get_remote_files(dataset, filenames):
     return remote_files
 
 
-def _resolve_annotation_classes(local_annotation_classes: List[dt.AnnotationClass], classes_in_dataset, classes_in_team):
+def _resolve_annotation_classes(
+    local_annotation_classes: List[dt.AnnotationClass], classes_in_dataset, classes_in_team
+):
     local_classes_not_in_dataset: set[dt.AnnotationClass] = set()
     local_classes_not_in_team: set[dt.AnnotationClass] = set()
 
@@ -103,7 +105,35 @@ def import_annotations(
     importer: Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]],
     file_paths: List[Union[str, Path]],
     append: bool,
-):
+) -> None:
+    """
+    Imports the given given Annotations into the given Dataset.
+
+    Parameters
+    ----------
+    dataset : RemoteDataset
+        Dataset where the Annotations will be imported to.
+    importer : Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]]
+        Parsing module containing the logic to parse the given Annotation files given in
+        `files_path`. See `importer/format` for a list of out of supported parsers.
+    file_paths : List[Union[str, Path]],
+        A list of `Path`s or strings containing the Annotations we wish to import.
+    append : bool
+        If `True` appends the given annotations to the datasets. If `False` will override them.
+
+    Returns
+    -------
+        None
+
+    Raises
+    -------
+    ValueError
+        If file_paths is not a list.
+    """
+
+    if not isinstance(file_paths, list):
+        raise ValueError(f"file_paths must be a list of 'Path' or 'str'. Current value: {file_paths}")
+
     print("Fetching remote class list...")
     team_classes = dataset.fetch_remote_classes(True)
     classes_in_dataset = build_main_annotations_lookup_table([cls for cls in team_classes if cls["available"]])
@@ -144,6 +174,14 @@ def import_annotations(
     print(f"{len(local_classes_not_in_team)} classes needs to be created.")
     print(f"{len(local_classes_not_in_dataset)} classes needs to be added to {dataset.identifier}")
 
+    missing_skeletons: List[dt.AnnotationClass] = list(filter(_is_skeleton_class, local_classes_not_in_team))
+    missing_skeleton_names: str = ", ".join(map(_get_skeleton_name, missing_skeletons))
+    if missing_skeletons:
+        print(
+            f"Found missing skeleton classes: {missing_skeleton_names}. Missing Skeleton classes cannot be created. Exiting now."
+        )
+        return
+
     if local_classes_not_in_team:
         print("About to create the following classes")
         for missing_class in local_classes_not_in_team:
@@ -180,6 +218,14 @@ def import_annotations(
             _import_annotations(
                 dataset.client, image_id, remote_classes, attributes, parsed_file.annotations, dataset, append
             )
+
+
+def _is_skeleton_class(the_class: dt.AnnotationClass) -> bool:
+    return (the_class.annotation_internal_type or the_class.annotation_type) == "skeleton"
+
+
+def _get_skeleton_name(skeleton: dt.AnnotationClass) -> str:
+    return skeleton.name
 
 
 def _handle_subs(annotation, data, annotation_class_id, attributes):

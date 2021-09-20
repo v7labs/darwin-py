@@ -1,4 +1,5 @@
 import concurrent.futures
+import multiprocessing
 import time
 import multiprocessing
 import requests
@@ -174,7 +175,10 @@ class UploadHandler:
             self.errors.append(UploadRequestError(file_path=file_path, stage=UploadStage.OTHER, error=e))
 
     def _do_upload_file(
-        self, dataset_item_id: int, file_path: Path, byte_read_callback: Optional[ByteReadCallback] = None,
+        self,
+        dataset_item_id: int,
+        file_path: Path,
+        byte_read_callback: Optional[ByteReadCallback] = None,
     ):
         team_slug = self.dataset_identifier.team_slug
 
@@ -195,7 +199,7 @@ class UploadHandler:
 
             def callback(monitor):
                 # The signature is part of the payload's bytes_read but not file_size
-                # therefor we should skip it in the upload progress
+                # therefore we should skip it in the upload progress
                 bytes_read = max(monitor.bytes_read - monitor.len + file_size, 0)
                 if byte_read_callback:
                     byte_read_callback(str(file_path), file_size, bytes_read)

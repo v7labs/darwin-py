@@ -1,4 +1,5 @@
 import argparse
+import concurrent.futures
 import datetime
 import os
 import sys
@@ -413,8 +414,8 @@ def upload_data(
     fps : int
         Frame rate to split videos in.
     path : Optional[str]
-        If provided; files will be placed under this path in the v7 platform. If `preserve_folders` 
-        is `True` then it must be possible to draw a relative path from this folder to the one the 
+        If provided; files will be placed under this path in the v7 platform. If `preserve_folders`
+        is `True` then it must be possible to draw a relative path from this folder to the one the
         files are in, otherwise an error will be raised.
     frames : bool
         Specify whether the files will be uploaded as a list of frames or not.
@@ -432,6 +433,8 @@ def upload_data(
     """
     client = _load_client()
     try:
+        max_workers = concurrent.futures.ThreadPoolExecutor()._max_workers
+
         dataset = client.get_remote_dataset(dataset_identifier=dataset_identifier)
 
         sync_metadata = Progress(SpinnerColumn(), TextColumn("[bold blue]Syncing metadata"))
@@ -472,15 +475,17 @@ def upload_data(
                         f"[blue]{file_name}", filename=file_name, total=file_total_bytes
                     )
 
-                # Rich has a concurrency issue, so sometimes this fails
+                # Rich has a concurrency issue, so sometimes updating progress
+                # or removing a task fails. Wrapping this logic around a try/catch block
+                # is a workaround, we should consider solving this properly (e.g.: using locks)
                 try:
                     file_progress.update(file_tasks[file_name], completed=file_bytes_sent)
+
+                    for task in file_progress.tasks:
+                        if task.finished and len(file_progress.tasks) >= max_workers:
+                            file_progress.remove_task(task.id)
                 except Exception as e:
                     pass
-
-                for task in file_progress.tasks:
-                    if task.finished and len(file_progress.tasks) >= 5:
-                        file_progress.remove_task(task.id)
 
             upload_manager = dataset.push(
                 files,
@@ -510,13 +515,15 @@ def upload_data(
 
         if already_existing_items:
             console.print(
-                f"Skipped {len(already_existing_items)} files already in the dataset.\n", style="warning",
+                f"Skipped {len(already_existing_items)} files already in the dataset.\n",
+                style="warning",
             )
 
         if upload_manager.error_count or other_skipped_items:
             error_count = upload_manager.error_count + len(other_skipped_items)
             console.print(
-                f"{error_count} files couldn't be uploaded because an error occurred.\n", style="error",
+                f"{error_count} files couldn't be uploaded because an error occurred.\n",
+                style="error",
             )
 
         if not verbose and upload_manager.error_count:

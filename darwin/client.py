@@ -48,7 +48,7 @@ class Client:
         Returns
         -------
         dict
-        Dictionary which contains the server response
+            Dictionary which contains the server response
 
         Raises
         ------

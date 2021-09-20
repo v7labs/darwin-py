@@ -22,6 +22,7 @@ from darwin.dataset.utils import (
     get_annotations,
     get_classes,
     is_relative_to,
+    is_unix_like_os,
     make_class_lists,
     sanitize_filename,
 )
@@ -79,6 +80,7 @@ class RemoteDataset:
         self.image_count = image_count
         self.progress = progress
         self.client = client
+        self.annotation_types = None
 
     def push(
         self,
@@ -119,7 +121,7 @@ class RemoteDataset:
             Optional callback, called every time the progress of an uploading files is reported.
         file_upload_callback: Optional[FileUploadCallback]
             Optional callback, called every time a file chunk is uploaded.
-        
+
         Returns
         -------
         handler : UploadHandler
@@ -259,7 +261,7 @@ class RemoteDataset:
                     subset_filter_annotations_function(tmp_dir)
                     if subset_folder_name is None:
                         subset_folder_name = datetime.now().strftime("%m/%d/%Y_%H:%M:%S")
-                annotations_dir = release_dir / (subset_folder_name or "") / "annotations"
+                annotations_dir: Path = release_dir / (subset_folder_name or "") / "annotations"
                 # Remove existing annotations if necessary
                 if annotations_dir.exists():
                     try:
@@ -279,12 +281,12 @@ class RemoteDataset:
         # Extract the list of classes and create the text files
         make_class_lists(release_dir)
 
-        if release.latest:
-            latest_dir = self.local_releases_path / "latest"
+        if release.latest and is_unix_like_os():
+            latest_dir: Path = self.local_releases_path / "latest"
             if latest_dir.is_symlink():
                 latest_dir.unlink()
 
-            target_link = self.local_releases_path / release_dir.name
+            target_link: Path = self.local_releases_path / release_dir.name
             latest_dir.symlink_to(target_link)
 
         if only_annotations:
@@ -364,14 +366,33 @@ class RemoteDataset:
             f"datasets/{self.dataset_id}/items/restore", {"filter": {"dataset_item_ids": [item.id for item in items]}}
         )
 
-    def fetch_annotation_type_id_for_name(self, name: str):
-        """Fetches annotation type id for a annotation type name, such as bounding_box"""
-        annotation_types: Dict = self.client.get("/annotation_types")
-        for annotation_type in annotation_types:
+    def fetch_annotation_type_id_for_name(self, name: str) -> Optional[int]:
+        """
+        Fetches annotation type id for a annotation type name, such as bounding_box
+        
+        Parameters
+        ----------
+        name: str
+            The name of the annotation we want the id for.
+        
+
+        Returns
+        -------
+        generator : Optional[int]
+            The id of the annotation type or None if it doesn't exist.
+        
+        Raises
+        ------
+        ConnectionError 
+            If it fails to establish a connection. 
+        """
+        if not self.annotation_types:
+            self.annotation_types: List[Dict[str, Any]] = self.client.get("/annotation_types")
+        for annotation_type in self.annotation_types:
             if annotation_type["name"] == name:
                 return annotation_type["id"]
 
-    def create_annotation_class(self, name: str, type: str) -> Dict:
+    def create_annotation_class(self, name: str, type: str, subtypes: List[str] = []) -> Dict:
         """
         Creates an annotation class for this dataset.
 
@@ -381,20 +402,40 @@ class RemoteDataset:
             The name of the annotation class.
         type : str
             The type of the annotation class.
+        subtypes : List[str]
+            Annotation class subtypes.  
 
         Returns
         -------
         dict
             Dictionary with the server response.
+        
+        Raises
+        ------
+        ConnectionError
+            If it is unable to connect.
+
+        ValueError
+            If a given annotation type or subtype is unknown.
         """
-        type_id = self.fetch_annotation_type_id_for_name(type)
+
+        type_ids: List[int] = []
+        for annotation_type in [type] + subtypes:
+            type_id: Optional[int] = self.fetch_annotation_type_id_for_name(annotation_type)
+            if not type_id:
+                list_of_annotation_types = ", ".join([type["name"] for type in self.annotation_types])
+                raise ValueError(
+                    f"Unknown annotation type: '{annotation_type}', valid values: {list_of_annotation_types}"
+                )
+            type_ids.append(type_id)
+
         return self.client.post(
             f"/annotation_classes",
             payload={
                 "dataset_id": self.dataset_id,
                 "name": name,
                 "metadata": {"_color": "auto"},
-                "annotation_type_ids": [type_id],
+                "annotation_type_ids": type_ids,
                 "datasets": [{"id": self.dataset_id}],
             },
             error_handlers=[name_taken, validation_error],
@@ -408,7 +449,7 @@ class RemoteDataset:
         ----------
         annotation_class : AnnotationClass
             The annotation class to add.
-       
+
         Returns
         -------
         dict or None
@@ -446,13 +487,13 @@ class RemoteDataset:
         Parameters
         ----------
         team_wide : bool
-            If `True` will return all Annotation Classes that belong to the team. If `False` will 
+            If `True` will return all Annotation Classes that belong to the team. If `False` will
             only return Annotation Classes which have been added to the dataset.
-       
+
         Returns
         -------
         Optional[List]:
-            List of Annotation Classes (can be empty) or None, if the team was not able to be 
+            List of Annotation Classes (can be empty) or None, if the team was not able to be
             determined.
         """
         all_classes = self.client.fetch_remote_classes()
@@ -506,16 +547,19 @@ class RemoteDataset:
             raw=True,
         ).text
 
-    def get_releases(self):
+    def get_releases(self) -> List["Release"]:
         """
         Get a sorted list of releases with the most recent first.
 
         Returns
         -------
-        list(Release)
-            Return a sorted list of releases with the most recent first
+        List["Release"]
+            Return a sorted list of available releases with the most recent first
+
         Raises
         ------
+        ConnectionError
+            If it is unable to connect.
         """
         try:
             releases_json = self.client.get(f"/datasets/{self.dataset_id}/exports", team=self.team)
@@ -524,7 +568,7 @@ class RemoteDataset:
         releases = [Release.parse_json(self.slug, self.team, payload) for payload in releases_json]
         return sorted(filter(lambda x: x.available, releases), key=lambda x: x.version, reverse=True)
 
-    def get_release(self, name: str = "latest"):
+    def get_release(self, name: str = "latest") -> "Release":
         """
         Get a specific release for this dataset.
 
@@ -535,7 +579,7 @@ class RemoteDataset:
 
         Returns
         -------
-        release: Release
+        Release
             The selected release
 
         Raises
