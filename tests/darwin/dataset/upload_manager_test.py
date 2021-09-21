@@ -103,7 +103,8 @@ def test_error_count_is_correct(dataset: RemoteDataset, request_upload_endpoint:
     }
 
     sign_upload_endpoint = "http://localhost/api/dataset_items/1/sign_upload"
-    upload_to_s3_endpoint = "http://s3-eu-west-1.amazonaws.com/bucket"
+    upload_to_s3_endpoint = "https://darwin-data.s3.eu-west-1.amazonaws.com/test.jpg?X-Amz-Signature=abc"
+
     confirm_upload_endpoint = "http://localhost/api/dataset_items/1/confirm_upload"
 
     responses.add(responses.PUT, request_upload_endpoint, json=request_upload_response, status=200)
@@ -138,11 +139,11 @@ def test_error_count_is_correct(dataset: RemoteDataset, request_upload_endpoint:
         "items": [{"dataset_item_id": 1, "filename": "test.jpg", "path": "/"}],
     }
 
-    sign_upload_endpoint = "http://localhost/api/dataset_items/1/sign_upload"
-    sign_upload_response = {"upload_url": "http://s3-eu-west-1.amazonaws.com/bucket"}
-
-    upload_to_s3_endpoint = "http://s3-eu-west-1.amazonaws.com/bucket"
+    upload_to_s3_endpoint = "https://darwin-data.s3.eu-west-1.amazonaws.com/test.jpg?X-Amz-Signature=abc"
     confirm_upload_endpoint = "http://localhost/api/dataset_items/1/confirm_upload"
+
+    sign_upload_endpoint = "http://localhost/api/dataset_items/1/sign_upload"
+    sign_upload_response = {"upload_url": upload_to_s3_endpoint}
 
     responses.add(responses.PUT, request_upload_endpoint, json=request_upload_response, status=200)
     responses.add(responses.GET, sign_upload_endpoint, json=sign_upload_response, status=200)
@@ -178,11 +179,11 @@ def test_error_count_is_correct(dataset: RemoteDataset, request_upload_endpoint:
         "items": [{"dataset_item_id": 1, "filename": "test.jpg", "path": "/"}],
     }
 
-    sign_upload_endpoint = "http://localhost/api/dataset_items/1/sign_upload"
-    sign_upload_response = {"upload_url": "http://s3-eu-west-1.amazonaws.com/bucket"}
-
-    upload_to_s3_endpoint = "http://s3-eu-west-1.amazonaws.com/bucket"
+    upload_to_s3_endpoint = "https://darwin-data.s3.eu-west-1.amazonaws.com/test.jpg?X-Amz-Signature=abc"
     confirm_upload_endpoint = "http://localhost/api/dataset_items/1/confirm_upload"
+
+    sign_upload_endpoint = "http://localhost/api/dataset_items/1/sign_upload"
+    sign_upload_response = {"upload_url": upload_to_s3_endpoint}
 
     responses.add(responses.PUT, request_upload_endpoint, json=request_upload_response, status=200)
     responses.add(responses.GET, sign_upload_endpoint, json=sign_upload_response, status=200)
@@ -219,11 +220,11 @@ def test_upload_files(dataset: RemoteDataset, request_upload_endpoint: str):
         "items": [{"dataset_item_id": 1, "filename": "test.jpg", "path": "/"}],
     }
 
-    sign_upload_endpoint = "http://localhost/api/dataset_items/1/sign_upload"
-    sign_upload_response = {"upload_url": "http://s3-eu-west-1.amazonaws.com/bucket"}
-
-    upload_to_s3_endpoint = "http://s3-eu-west-1.amazonaws.com/bucket"
+    upload_to_s3_endpoint = "https://darwin-data.s3.eu-west-1.amazonaws.com/test.jpg?X-Amz-Signature=abc"
     confirm_upload_endpoint = "http://localhost/api/dataset_items/1/confirm_upload"
+
+    sign_upload_endpoint = "http://localhost/api/dataset_items/1/sign_upload"
+    sign_upload_response = {"upload_url": upload_to_s3_endpoint}
 
     responses.add(responses.PUT, request_upload_endpoint, json=request_upload_response, status=200)
     responses.add(responses.GET, sign_upload_endpoint, json=sign_upload_response, status=200)
