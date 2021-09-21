@@ -18,7 +18,7 @@ class DarwinDatasetFS:
     Handy mapping to the correct darwin's dataset folder structure in the file system.
 
     .. warning::
-        `DarwinDatasetFS` works only on mac and linux
+        `DarwinDatasetFS` works only on mac and linux by default
     """
 
     root: Path = Path("/tmp/.darwin/datasets/tmp")
