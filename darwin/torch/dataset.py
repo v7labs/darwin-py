@@ -1,4 +1,6 @@
-from typing import Callable, List, Optional, Union
+from __future__ import annotations
+
+from typing import Callable, List, Optional
 
 import numpy as np
 from darwin.cli_functions import _error, _load_client
@@ -73,7 +75,7 @@ def get_dataset(
 
 
 class ClassificationDataset(LocalDataset):
-    def __init__(self, transform: Optional[Union[Callable, List]] = None, **kwargs):
+    def __init__(self, transform: Optional[Callable | List] = None, **kwargs):
         """
         See class `LocalDataset` for documentation
         """
@@ -116,7 +118,7 @@ class ClassificationDataset(LocalDataset):
         target = self.parse_json(index)
         annotations = target.pop("annotations")
         tags = [a["name"] for a in annotations if "tag" in a]
-        
+
         if self.is_multi_label:
             target = torch.zeros(len(self.classes))
             # one hot encode all the targets
@@ -130,7 +132,7 @@ class ClassificationDataset(LocalDataset):
 
     def check_if_multi_label(self):
         """
-        This function loops over all the .json files and check if we have more than one tags in at least one file, if yes we assume the dataset is for multi label classification. 
+        This function loops over all the .json files and check if we have more than one tags in at least one file, if yes we assume the dataset is for multi label classification.
         """
         for idx in range(len(self)):
             target = self.parse_json(idx)

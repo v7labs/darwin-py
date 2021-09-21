@@ -1,12 +1,12 @@
 import concurrent.futures
 import multiprocessing
 import time
-import multiprocessing
-import requests
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, List, Optional, Set, Tuple, Union
+
+import requests
 from darwin.path_utils import construct_full_path
 from darwin.utils import chunk
 from requests_toolbelt import MultipartEncoder, MultipartEncoderMonitor
@@ -109,7 +109,7 @@ class UploadHandler:
         multi_threaded: bool = True,
         progress_callback: Optional[ProgressCallback] = None,
         file_upload_callback: Optional[FileUploadCallback] = None,
-        max_workers: Optional[int] = None
+        max_workers: Optional[int] = None,
     ):
         if not self._progress:
             self.prepare_upload()
