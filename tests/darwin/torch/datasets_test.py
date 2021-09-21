@@ -1,14 +1,14 @@
+from pathlib import Path
 from pprint import pprint
 
-from darwin.dataset.data import AnnotationFile, BoundingBoxAnnotation
 from darwin.torch.dataset import BoundingBoxDetectionDataset
 from PIL import Image
-from tests.utils import TestDarwinDataset
+from tests.utils import DarwinDatasetFS, TestDarwinDataset
 
 
-def test_bbox_dataset():
+def test_bbox_dataset(tmp_path: Path):
     # let's create the test dataset
-    tds = TestDarwinDataset()
+    tds = TestDarwinDataset(fs=DarwinDatasetFS(Path(tmp_path) / ".darwin/datasets/tmp"))
     tds.build()
     ds = BoundingBoxDetectionDataset(dataset_path=tds.fs.root, release_name="latest")
 
@@ -18,7 +18,7 @@ def test_bbox_dataset():
         # get the original index form the path
         original_path = ds.annotations_path[i]
         real_idx = int(original_path.stem)
-        ann: AnnotationFile = tds[real_idx][1]
+        ann = tds[real_idx][1]
         assert img.size[0] == 100
         assert img.size[1] == 100
 
@@ -33,7 +33,6 @@ def test_bbox_dataset():
         assert bboxes.shape[-1] == 4
         for i, ann_el in enumerate(ann.annotations):
             bbox = bboxes[i]
-            assert isinstance(ann_el, BoundingBoxAnnotation)
             bbox_ann = ann_el.bounding_box
 
             assert bbox[0].item() == bbox_ann.h

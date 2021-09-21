@@ -9,7 +9,7 @@ from typing import List, Tuple
 import numpy as np
 from PIL import Image
 
-import darwin.dataset.data as D
+from . import data as D
 
 
 @dataclass
@@ -22,13 +22,13 @@ class DarwinDatasetFS:
     """
 
     root: Path = Path("/tmp/.darwin/datasets/tmp")
-    images: Path = root / "images"
-    releases: Path = root / "releases"
-    release: Path = releases / "latest"
-    annotations: Path = release / "annotations"
-    lists: Path = release / "lists"
 
     def __post_init__(self):
+        self.images: Path = self.root / "images"
+        self.releases: Path = self.root / "releases"
+        self.release: Path = self.releases / "latest"
+        self.annotations: Path = self.release / "annotations"
+        self.lists: Path = self.release / "lists"
         self.mkdirs()
 
     def mkdirs(self):

@@ -367,9 +367,6 @@ class BoundingBoxDetectionDataset(LocalDataset):
 
         targets = []
         for annotation in annotations:
-            # if "bounding_box" not in annotation:
-            #     print(f"Warning: missing bounding_box in annotation {self.annotations_path[index]}")
-            #     continue
             bbox = annotation["bounding_box"]
 
             h = bbox["h"]
