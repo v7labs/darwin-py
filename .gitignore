@@ -15,6 +15,7 @@ darwin_py.egg-info/PKG-INFO
 *.mov
 *.mp4
 *.txt
+
 # from https://raw.githubusercontent.com/github/gitignore/master/Python.gitignore
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -23,7 +24,8 @@ __pycache__/
 
 # C extensions
 *.so
-
+# develop
+playground.py
 # Distribution / packaging
 .Python
 build/
@@ -157,3 +159,4 @@ cython_debug/
 
 # conda environment
 environment.yml
+
