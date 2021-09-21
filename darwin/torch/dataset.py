@@ -130,7 +130,7 @@ class ClassificationDataset(LocalDataset):
 
         return target
 
-    def check_if_multi_label(self):
+    def check_if_multi_label(self) -> None:
         """
         This function loops over all the .json files and check if we have more than one tags in at least one file, if yes we assume the dataset is for multi label classification.
         """
@@ -217,7 +217,7 @@ class InstanceSegmentationDataset(LocalDataset):
             if "polygon" not in annotation and "complex_polygon" not in annotation:
                 print(f"Warning: missing polygon in annotation {self.annotations_path[index]}")
             # Extract the sequences of coordinates from the polygon annotation
-            annotation_type = "polygon" if "polygon" in annotation else "complex_polygon"
+            annotation_type: str = "polygon" if "polygon" in annotation else "complex_polygon"
             sequences = convert_polygons_to_sequences(
                 annotation[annotation_type]["path"],
                 height=target["height"],
