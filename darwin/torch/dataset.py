@@ -1,13 +1,18 @@
 from typing import List, Optional
 
 import numpy as np
-
 from darwin.cli_functions import _error, _load_client
 from darwin.dataset import LocalDataset
 from darwin.dataset.identifier import DatasetIdentifier
-from darwin.torch.transforms import Compose, ConvertPolygonsToInstanceMasks, ConvertPolygonsToSemanticMask
+from darwin.torch.transforms import (
+    Compose,
+    ConvertPolygonsToInstanceMasks,
+    ConvertPolygonsToSemanticMask,
+)
 from darwin.torch.utils import polygon_area
 from darwin.utils import convert_polygons_to_sequences
+
+import torch
 
 
 def get_dataset(
@@ -38,6 +43,7 @@ def get_dataset(
     """
     dataset_functions = {
         "classification": ClassificationDataset,
+        "bounding-box-detection": BoundingBoxDetectionDataset,
         "instance-segmentation": InstanceSegmentationDataset,
         "semantic-segmentation": SemanticSegmentationDataset,
     }
@@ -195,7 +201,9 @@ class InstanceSegmentationDataset(LocalDataset):
             # Extract the sequences of coordinates from the polygon annotation
             annotation_type = "polygon" if "polygon" in annotation else "complex_polygon"
             sequences = convert_polygons_to_sequences(
-                annotation[annotation_type]["path"], height=target["height"], width=target["width"],
+                annotation[annotation_type]["path"],
+                height=target["height"],
+                width=target["width"],
             )
             # Compute the bbox of the polygon
             x_coords = [s[0::2] for s in sequences]
@@ -287,7 +295,9 @@ class SemanticSegmentationDataset(LocalDataset):
         annotations = []
         for obj in target["annotations"]:
             sequences = convert_polygons_to_sequences(
-                obj["polygon"]["path"], height=target["height"], width=target["width"],
+                obj["polygon"]["path"],
+                height=target["height"],
+                width=target["width"],
             )
             # Discard polygons with less than three points
             sequences[:] = [s for s in sequences if len(s) >= 6]
@@ -304,6 +314,92 @@ class SemanticSegmentationDataset(LocalDataset):
         Get the weights proportional to the inverse of their class frequencies.
         The vector sums up to 1
 
+        Returns
+        -------
+        class_weights : ndarray[double]
+            Weight for each class in the train set (one for each class) as a 1D array normalized
+        """
+        # Collect all the labels by iterating over the whole dataset
+        labels = []
+        for i, _ in enumerate(self.images_path):
+            target = self.get_target(i)
+            labels.extend([a["category_id"] for a in target["annotations"]])
+        return self._compute_weights(labels)
+
+
+class BoundingBoxDetectionDataset(LocalDataset):
+    def __init__(self, transform: Optional[List] = None, **kwargs):
+        """See `LocalDataset` class for documentation"""
+        super().__init__(annotation_type="bounding_box", **kwargs)
+
+        self.transform = transform
+        if self.transform is not None and isinstance(self.transform, list):
+            self.transform = Compose(self.transform)
+
+    def __getitem__(self, index: int):
+        """
+        Notes
+        -----
+        The return value is a dict with the following fields:
+            image_id : int
+                Index of the image inside the dataset
+            image_path: str
+                The path to the image on the file system
+            labels : tensor(n)
+                The class label of each one of the instances
+            boxes : tensor(n, 4)
+                Coordinates of the bounding box enclosing the instances as [x, y, x, y]
+            area : float
+                Area in pixels of each one of the instances
+        """
+        img = self.get_image(index)
+        target = self.get_target(index)
+
+        if self.transform is not None:
+            img, target = self.transform(img, target)
+
+        return img, target
+
+    def get_target(self, index: int):
+        """Returns the instance segmentation target"""
+        target = self.parse_json(index)
+        annotations = target.pop("annotations")
+
+        targets = []
+        for annotation in annotations:
+            # if "bounding_box" not in annotation:
+            #     print(f"Warning: missing bounding_box in annotation {self.annotations_path[index]}")
+            #     continue
+            bbox = annotation["bounding_box"]
+
+            h = bbox["h"]
+            w = bbox["w"]
+            x = bbox["x"]
+            y = bbox["y"]
+
+            bbox = torch.tensor([h, w, x, y])
+            area = bbox[0] * bbox[1]
+            label = torch.tensor(self.classes.index(annotation["name"]))
+
+            ann = {"bbox": bbox, "area": area, "label": label}
+
+            targets.append(ann)
+        # following https://pytorch.org/tutorials/intermediate/torchvision_tutorial.html
+        stacked_targets = {
+            "boxes": torch.stack([v["bbox"] for v in targets]),
+            "area": torch.stack([v["area"] for v in targets]),
+            "labels": torch.stack([v["label"] for v in targets]),
+            "image_id": torch.tensor([index]),
+        }
+
+        stacked_targets["iscrowd"] = torch.zeros_like(stacked_targets["labels"])
+
+        return stacked_targets
+
+    def measure_weights(self, **kwargs):
+        """Computes the class balancing weights (not the frequencies!!) given the train loader
+        Get the weights proportional to the inverse of their class frequencies.
+        The vector sums up to 1
         Returns
         -------
         class_weights : ndarray[double]
