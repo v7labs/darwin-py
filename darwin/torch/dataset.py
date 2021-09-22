@@ -121,7 +121,7 @@ class ClassificationDataset(LocalDataset):
 
         assert len(tags) >= 1
 
-        target = torch.tensor([self.classes.index(tags[0])])
+        target = torch.tensor(self.classes.index(tags[0]))
 
         if self.is_multi_label:
             target = torch.zeros(len(self.classes))
