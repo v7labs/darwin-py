@@ -1,6 +1,4 @@
-from __future__ import annotations
-
-from typing import Callable, List, Optional
+from typing import List, Optional
 
 import numpy as np
 from darwin.cli_functions import _error, _load_client
@@ -45,6 +43,7 @@ def get_dataset(
     """
     dataset_functions = {
         "classification": ClassificationDataset,
+        "bounding-box-detection": BoundingBoxDetectionDataset,
         "instance-segmentation": InstanceSegmentationDataset,
         "semantic-segmentation": SemanticSegmentationDataset,
     }
@@ -75,7 +74,7 @@ def get_dataset(
 
 
 class ClassificationDataset(LocalDataset):
-    def __init__(self, transform: Optional[Callable | List] = None, **kwargs):
+    def __init__(self, transform: Optional[List] = None, **kwargs):
         """
         See class `LocalDataset` for documentation
         """
@@ -84,9 +83,6 @@ class ClassificationDataset(LocalDataset):
         self.transform = transform
         if self.transform is not None and isinstance(self.transform, list):
             self.transform = Compose(self.transform)
-
-        self.is_multi_label = False
-        self.check_if_multi_label()
 
     def __getitem__(self, index: int):
         """
@@ -118,30 +114,16 @@ class ClassificationDataset(LocalDataset):
         target = self.parse_json(index)
         annotations = target.pop("annotations")
         tags = [a["name"] for a in annotations if "tag" in a]
-
-        if self.is_multi_label:
-            target = torch.zeros(len(self.classes))
-            # one hot encode all the targets
-            for tag in tags:
-                idx = self.classes.index(tag)
-                target[idx] = 1
-        else:
-            target = torch.tensor([self.classes.index(tags[0])])
-
+        if len(tags) > 1:
+            raise ValueError(f"Multiple tags defined for this image ({tags}). This is not supported at the moment.")
+        if len(tags) == 0:
+            raise ValueError(
+                f"No tags defined for this image ({self.annotations_path[index]})."
+                f"This is not valid in a classification dataset."
+            )
+        target["category_id"] = self.classes.index(tags[0])
+        target["category_name"] = tags[0]
         return target
-
-    def check_if_multi_label(self) -> None:
-        """
-        This function loops over all the .json files and check if we have more than one tags in at least one file, if yes we assume the dataset is for multi label classification.
-        """
-        for idx in range(len(self)):
-            target = self.parse_json(idx)
-            annotations = target.pop("annotations")
-            tags = [a["name"] for a in annotations if "tag" in a]
-
-            if len(tags) > 1:
-                self.is_multi_label = True
-                break
 
     def get_class_idx(self, index: int):
         target = self.get_target(index)
@@ -217,7 +199,7 @@ class InstanceSegmentationDataset(LocalDataset):
             if "polygon" not in annotation and "complex_polygon" not in annotation:
                 print(f"Warning: missing polygon in annotation {self.annotations_path[index]}")
             # Extract the sequences of coordinates from the polygon annotation
-            annotation_type: str = "polygon" if "polygon" in annotation else "complex_polygon"
+            annotation_type = "polygon" if "polygon" in annotation else "complex_polygon"
             sequences = convert_polygons_to_sequences(
                 annotation[annotation_type]["path"],
                 height=target["height"],
@@ -332,6 +314,89 @@ class SemanticSegmentationDataset(LocalDataset):
         Get the weights proportional to the inverse of their class frequencies.
         The vector sums up to 1
 
+        Returns
+        -------
+        class_weights : ndarray[double]
+            Weight for each class in the train set (one for each class) as a 1D array normalized
+        """
+        # Collect all the labels by iterating over the whole dataset
+        labels = []
+        for i, _ in enumerate(self.images_path):
+            target = self.get_target(i)
+            labels.extend([a["category_id"] for a in target["annotations"]])
+        return self._compute_weights(labels)
+
+
+class BoundingBoxDetectionDataset(LocalDataset):
+    def __init__(self, transform: Optional[List] = None, **kwargs):
+        """See `LocalDataset` class for documentation"""
+        super().__init__(annotation_type="bounding_box", **kwargs)
+
+        self.transform = transform
+        if self.transform is not None and isinstance(self.transform, list):
+            self.transform = Compose(self.transform)
+
+    def __getitem__(self, index: int):
+        """
+        Notes
+        -----
+        The return value is a dict with the following fields:
+            image_id : int
+                Index of the image inside the dataset
+            image_path: str
+                The path to the image on the file system
+            labels : tensor(n)
+                The class label of each one of the instances
+            boxes : tensor(n, 4)
+                Coordinates of the bounding box enclosing the instances as [x, y, x, y]
+            area : float
+                Area in pixels of each one of the instances
+        """
+        img = self.get_image(index)
+        target = self.get_target(index)
+
+        if self.transform is not None:
+            img, target = self.transform(img, target)
+
+        return img, target
+
+    def get_target(self, index: int):
+        """Returns the instance segmentation target"""
+        target = self.parse_json(index)
+        annotations = target.pop("annotations")
+
+        targets = []
+        for annotation in annotations:
+            bbox = annotation["bounding_box"]
+
+            h = bbox["h"]
+            w = bbox["w"]
+            x = bbox["x"]
+            y = bbox["y"]
+
+            bbox = torch.tensor([h, w, x, y])
+            area = bbox[0] * bbox[1]
+            label = torch.tensor(self.classes.index(annotation["name"]))
+
+            ann = {"bbox": bbox, "area": area, "label": label}
+
+            targets.append(ann)
+        # following https://pytorch.org/tutorials/intermediate/torchvision_tutorial.html
+        stacked_targets = {
+            "boxes": torch.stack([v["bbox"] for v in targets]),
+            "area": torch.stack([v["area"] for v in targets]),
+            "labels": torch.stack([v["label"] for v in targets]),
+            "image_id": torch.tensor([index]),
+        }
+
+        stacked_targets["iscrowd"] = torch.zeros_like(stacked_targets["labels"])
+
+        return stacked_targets
+
+    def measure_weights(self, **kwargs):
+        """Computes the class balancing weights (not the frequencies!!) given the train loader
+        Get the weights proportional to the inverse of their class frequencies.
+        The vector sums up to 1
         Returns
         -------
         class_weights : ndarray[double]
