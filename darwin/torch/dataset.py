@@ -126,7 +126,7 @@ class ClassificationDataset(LocalDataset):
                 idx = self.classes.index(tag)
                 target[idx] = 1
         else:
-            target = self.classes.index(tags[0])
+            target = torch.tensor([self.classes.index(tags[0])])
 
         return target
 
