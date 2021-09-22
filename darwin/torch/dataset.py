@@ -119,7 +119,7 @@ class ClassificationDataset(LocalDataset):
         annotations = data.pop("annotations")
         tags = [a["name"] for a in annotations if "tag" in a]
 
-        assert len(tags) >= 1
+        assert len(tags) >= 1, f"No tags were found for index={index}"
 
         target = torch.tensor(self.classes.index(tags[0]))
 
