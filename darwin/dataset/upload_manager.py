@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 import concurrent.futures
-import multiprocessing
 import time
 from dataclasses import dataclass
 from enum import Enum
@@ -52,7 +53,7 @@ class FileMonitor(object):
     normally would, then construct this object with it as argument.
     """
 
-    def __init__(self, io: BinaryIO, file_size: int, callback):
+    def __init__(self, io: BinaryIO, file_size: int, callback: Callable[[FileMonitor], None]):
         #: Instance of the :class:`BufferedReader` being monitored
         self.io = io
 
