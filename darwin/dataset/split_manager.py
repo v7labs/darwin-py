@@ -2,7 +2,6 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Union
 
 import numpy as np
-
 from darwin.dataset.utils import extract_classes, get_release_path
 
 
@@ -284,7 +283,7 @@ def remove_cross_contamination(X_a: np.ndarray, X_b: np.ndarray, y_a: np.ndarray
     Remove cross contamination present in X_a and X_b by selecting one or the other on a flip coin decision.
 
     The reason of cross contamination existence is
-        expanded_list = [(k, c) for k, v in idx_to_classes.items() for c in v]
+    expanded_list = [(k, c) for k, v in idx_to_classes.items() for c in v]
     in _stratify_samples(). This line creates as many entries for an image as there are lables
     attached to it. For this reason it can be that the stratification algorithm splits
     the image in both sets, A and B.
