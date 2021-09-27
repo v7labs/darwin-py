@@ -1,13 +1,17 @@
 import json
 import types
-from unittest.mock import patch
+from datetime import datetime
+from typing import Any, Dict
+from unittest.mock import MagicMock, patch
 
 import pytest
 import responses
 from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset import RemoteDataset
+from darwin.dataset.release import Release
 from darwin.dataset.upload_manager import LocalFile, UploadHandler
+from darwin.exceptions import UnsupportedExportFormat
 from tests.fixtures import *
 
 
@@ -17,7 +21,7 @@ def annotation_name() -> str:
 
 
 @pytest.fixture
-def annotation_content() -> dict:
+def annotation_content() -> Dict[str, Any]:
     return {
         "image": {
             "width": 1920,
@@ -59,15 +63,15 @@ def create_annotation_file(
     annotation_name: str,
     annotation_content: dict,
 ):
-    annotations_path = darwin_datasets_path / team_slug / dataset_slug / "releases" / release_name / "annotations"
-    annotations_path.mkdir(exist_ok=True, parents=True)
+    annotations: Path = darwin_datasets_path / team_slug / dataset_slug / "releases" / release_name / "annotations"
+    annotations.mkdir(exist_ok=True, parents=True)
 
-    with (annotations_path / annotation_name).open("w") as f:
+    with (annotations / annotation_name).open("w") as f:
         json.dump(annotation_content, f)
 
 
 @pytest.fixture()
-def files_content() -> dict:
+def files_content() -> Dict[str, Any]:
     return {
         "items": [
             {
@@ -298,77 +302,76 @@ def files_content() -> dict:
 
 
 @pytest.mark.usefixtures("file_read_write_test", "create_annotation_file")
-def test_split_video_annotations_on_videos(
-    darwin_client: Client,
-    darwin_datasets_path: Path,
-    dataset_name: str,
-    dataset_slug: str,
-    release_name: str,
-    team_slug: str,
-):
+def describe_split_video_annotations():
+    def it_works_on_videos(
+        darwin_client: Client,
+        darwin_datasets_path: Path,
+        dataset_name: str,
+        dataset_slug: str,
+        release_name: str,
+        team_slug: str,
+    ):
+        remote_dataset = RemoteDataset(
+            client=darwin_client, team=team_slug, name=dataset_name, slug=dataset_slug, dataset_id=1
+        )
 
-    remote_dataset = RemoteDataset(
-        client=darwin_client, team=team_slug, name=dataset_name, slug=dataset_slug, dataset_id=1
-    )
+        remote_dataset.split_video_annotations()
 
-    remote_dataset.split_video_annotations()
+        video_path = (
+            darwin_datasets_path / team_slug / dataset_slug / "releases" / release_name / "annotations" / "test_video"
+        )
+        assert video_path.exists()
 
-    video_path = (
-        darwin_datasets_path / team_slug / dataset_slug / "releases" / release_name / "annotations" / "test_video"
-    )
-    assert video_path.exists()
+        assert (video_path / "0000000.json").exists()
+        assert (video_path / "0000001.json").exists()
+        assert (video_path / "0000002.json").exists()
+        assert not (video_path / "0000003.json").exists()
 
-    assert (video_path / "0000000.json").exists()
-    assert (video_path / "0000001.json").exists()
-    assert (video_path / "0000002.json").exists()
-    assert not (video_path / "0000003.json").exists()
+        with (video_path / "0000000.json").open() as f:
+            assert json.load(f) == {
+                "annotations": [
+                    {"name": "test_class", "polygon": {"path": [{"x": 0, "y": 0}, {"x": 1, "y": 1}, {"x": 1, "y": 0}]}}
+                ],
+                "image": {"filename": "test_video/0000000.jpg", "height": 1080, "url": "frame_1.jpg", "width": 1920},
+            }
 
-    with (video_path / "0000000.json").open() as f:
-        assert json.load(f) == {
-            "annotations": [
-                {"name": "test_class", "polygon": {"path": [{"x": 0, "y": 0}, {"x": 1, "y": 1}, {"x": 1, "y": 0}]}}
-            ],
-            "image": {"filename": "test_video/0000000.jpg", "height": 1080, "url": "frame_1.jpg", "width": 1920},
-        }
+        with (video_path / "0000001.json").open() as f:
+            assert json.load(f) == {
+                "annotations": [],
+                "image": {"filename": "test_video/0000001.jpg", "height": 1080, "url": "frame_2.jpg", "width": 1920},
+            }
 
-    with (video_path / "0000001.json").open() as f:
-        assert json.load(f) == {
-            "annotations": [],
-            "image": {"filename": "test_video/0000001.jpg", "height": 1080, "url": "frame_2.jpg", "width": 1920},
-        }
-
-    with (video_path / "0000002.json").open() as f:
-        assert json.load(f) == {
-            "annotations": [
-                {"name": "test_class", "polygon": {"path": [{"x": 5, "y": 5}, {"x": 6, "y": 6}, {"x": 6, "y": 5}]}}
-            ],
-            "image": {"filename": "test_video/0000002.jpg", "height": 1080, "url": "frame_3.jpg", "width": 1920},
-        }
+        with (video_path / "0000002.json").open() as f:
+            assert json.load(f) == {
+                "annotations": [
+                    {"name": "test_class", "polygon": {"path": [{"x": 5, "y": 5}, {"x": 6, "y": 6}, {"x": 6, "y": 5}]}}
+                ],
+                "image": {"filename": "test_video/0000002.jpg", "height": 1080, "url": "frame_3.jpg", "width": 1920},
+            }
 
 
 @pytest.mark.usefixtures("files_content", "file_read_write_test")
-@responses.activate
-def test_fetch_remote_files_works(
-    darwin_client: Client, dataset_name: str, dataset_slug: str, team_slug: str, files_content: dict
-):
-    remote_dataset = RemoteDataset(
-        client=darwin_client, team=team_slug, name=dataset_name, slug=dataset_slug, dataset_id=1
-    )
-    url = "http://localhost/api/datasets/1/items?page%5Bsize%5D=500"
-    responses.add(
-        responses.POST, url, json=files_content, status=200,
-    )
+def describe_fetch_remote_files():
+    @responses.activate
+    def it_works(darwin_client: Client, dataset_name: str, dataset_slug: str, team_slug: str, files_content: dict):
+        remote_dataset = RemoteDataset(
+            client=darwin_client, team=team_slug, name=dataset_name, slug=dataset_slug, dataset_id=1
+        )
+        url = "http://localhost/api/datasets/1/items?page%5Bsize%5D=500"
+        responses.add(
+            responses.POST, url, json=files_content, status=200,
+        )
 
-    actual = remote_dataset.fetch_remote_files()
+        actual = remote_dataset.fetch_remote_files()
 
-    assert isinstance(actual, types.GeneratorType)
+        assert isinstance(actual, types.GeneratorType)
 
-    (item_1, item_2) = list(actual)
+        (item_1, item_2) = list(actual)
 
-    assert responses.assert_call_count(url, 1) is True
+        assert responses.assert_call_count(url, 1) is True
 
-    assert item_1.id == 386074
-    assert item_2.id == 386073
+        assert item_1.id == 386074
+        assert item_2.id == 386073
 
 
 @pytest.mark.usefixtures("file_read_write_test")
@@ -401,6 +404,86 @@ def describe_push():
 
     def works_with_str_list(remote_dataset: RemoteDataset):
         assert_upload_mocks_are_correctly_called(remote_dataset, ["test.jpg"])
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+def describe_pull():
+    @pytest.fixture
+    def remote_dataset(darwin_client: Client, dataset_name: str, dataset_slug: str, team_slug: str):
+        return RemoteDataset(client=darwin_client, team=team_slug, name=dataset_name, slug=dataset_slug, dataset_id=1)
+
+    @patch("platform.system", return_value="Linux")
+    def it_gets_latest_release_when_not_given_one(system_mock: MagicMock, remote_dataset: RemoteDataset):
+        stub_release_response = Release(
+            "dataset-slug",
+            "team-slug",
+            "0.1.0",
+            "release-name",
+            "http://darwin-fake-url.com",
+            datetime.now(),
+            None,
+            None,
+            True,
+            True,
+            "json",
+        )
+
+        def fake_download_zip(self, path):
+            zip: Path = Path("tests/dataset.zip")
+            shutil.copy(zip, path)
+            return path
+
+        with patch.object(RemoteDataset, "get_release", return_value=stub_release_response) as get_release_stub:
+            with patch.object(Release, "download_zip", new=fake_download_zip):
+                remote_dataset.pull()
+                get_release_stub.assert_called_once()
+
+    @patch("platform.system", return_value="Windows")
+    def it_does_not_create_symlink_on_windows(mocker: MagicMock, remote_dataset: RemoteDataset):
+        stub_release_response = Release(
+            "dataset-slug",
+            "team-slug",
+            "0.1.0",
+            "release-name",
+            "http://darwin-fake-url.com",
+            datetime.now(),
+            None,
+            None,
+            True,
+            True,
+            "json",
+        )
+
+        def fake_download_zip(self, path):
+            zip: Path = Path("tests/dataset.zip")
+            shutil.copy(zip, path)
+            return path
+
+        latest: Path = remote_dataset.local_releases_path / "latest"
+
+        with patch.object(RemoteDataset, "get_release", return_value=stub_release_response) as get_release_stub:
+            with patch.object(Release, "download_zip", new=fake_download_zip):
+                remote_dataset.pull()
+                assert not latest.is_symlink()
+
+    @patch("platform.system", return_value="Linux")
+    def it_raises_if_release_format_is_not_json(system_mock: MagicMock, remote_dataset: RemoteDataset):
+        a_release = Release(
+            remote_dataset.slug,
+            remote_dataset.team,
+            "0.1.0",
+            "release-name",
+            "http://darwin-fake-url.com",
+            datetime.now(),
+            None,
+            None,
+            True,
+            True,
+            "xml",
+        )
+
+        with pytest.raises(UnsupportedExportFormat):
+            remote_dataset.pull(release=a_release)
 
 
 def assert_upload_mocks_are_correctly_called(remote_dataset: RemoteDataset, *args):
