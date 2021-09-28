@@ -116,8 +116,8 @@ def import_annotations(
     importer : Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]]
         Parsing module containing the logic to parse the given Annotation files given in
         `files_path`. See `importer/format` for a list of out of supported parsers.
-    file_paths : List[Union[str, Path]],
-        A list of `Path`s or strings containing the Annotations we wish to import.
+    file_paths : List[Union[str, Path]]
+        A list of `Path`'s or strings containing the Annotations we wish to import.
     append : bool
         If `True` appends the given annotations to the datasets. If `False` will override them.
 
