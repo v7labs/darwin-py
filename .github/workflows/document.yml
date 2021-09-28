@@ -28,7 +28,7 @@ jobs:
           pip install sphinx_rtd_theme
       - name: Parse README
         run: |
-          rm README.rst
+          rm -f README.rst
           m2r README.md
           mv README.rst source/
       - name: Generate new docs
