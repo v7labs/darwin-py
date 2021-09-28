@@ -115,9 +115,13 @@ class ClassificationDataset(LocalDataset):
         Returns the classification target
         """
 
-        target = self.parse_json(index)
-        annotations = target.pop("annotations")
+        data = self.parse_json(index)
+        annotations = data.pop("annotations")
         tags = [a["name"] for a in annotations if "tag" in a]
+
+        assert len(tags) >= 1, f"No tags were found for index={index}"
+
+        target = torch.tensor(self.classes.index(tags[0]))
 
         if self.is_multi_label:
             target = torch.zeros(len(self.classes))
@@ -125,8 +129,6 @@ class ClassificationDataset(LocalDataset):
             for tag in tags:
                 idx = self.classes.index(tag)
                 target[idx] = 1
-        else:
-            target = torch.tensor([self.classes.index(tags[0])])
 
         return target
 
