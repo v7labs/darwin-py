@@ -4,12 +4,13 @@ from pathlib import Path
 try:
     import torchvision  # noqa
 
-    # Here we remove `darwin_directory` from `sys.path` to force the importer
+    # Here we remove `darwin` directory from `sys.path` to force the importer
     # to import the library `torch`, rather than the internal package.
     # This hack resolves this naming conflict for Sphinx.
-    darwin_directory = str(Path.home() / "darwin-py" / "darwin")
-    if darwin_directory in sys.path:
-        sys.path.remove(darwin_directory)
+    for path in sys.path:
+        path_str = str(Path("darwin-py") / "darwin")
+        if path.endswith(path_str):
+            sys.path.remove(path)
 
     import torch  # noqa
 except ImportError:
