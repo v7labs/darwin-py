@@ -5,14 +5,15 @@ on: [push]
 jobs:
   upload-s3:
     runs-on: ubuntu-latest
-    name: Print AWS version
+
     steps:
       - uses: actions/checkout@v2
-      - id: install-aws-cli
+      - name: Upload README to bucket 
         uses: unfor19/install-aws-cli-action@v1
       - run: |
-        aws configure set region eu-west-3
-        aws configure set access_key ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws configure set secret_key ${{ secrets.AWS_SECRET_ACCESS_KEY}}
-        aws s3 cp README.md s3://darwin-py-docs/
+          aws configure set region eu-west-3
+          aws configure set access_key $(secrets.AWS_ACCESS_KEY_ID)
+          aws configure set secret_key $(secrets.AWS_SECRET_ACCESS_KEY)
+          aws s3 cp README.md s3://darwin-py-docs/
 
+        
