@@ -7,10 +7,20 @@
       "source.organizeImports": true,
     }
   },
+  "[javascript]": {
+    "editor.formatOnSave": true,
+    "editor.insertSpaces": true,
+    "editor.tabSize": 2
+  },
   "python.formatting.blackPath": "black",
   "python.formatting.provider": "black",
-  "python.formatting.blackArgs": ["-l 120"],
+  "python.formatting.blackArgs": [
+    "-l 120"
+  ],
   "python.linting.mypyEnabled": true,
-  "python.sortImports.args": ["--profile", "black"],
+  "python.sortImports.args": [
+    "--profile",
+    "black"
+  ],
   "python.testing.pytestEnabled": true
 }
