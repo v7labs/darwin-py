@@ -12,8 +12,8 @@ jobs:
         uses: unfor19/install-aws-cli-action@v1
       - run: |
           aws configure set region eu-west-3
-          aws configure set access_key $(secrets.AWS_ACCESS_KEY_ID)
-          aws configure set secret_key $(secrets.AWS_SECRET_ACCESS_KEY)
+          aws configure set access_key ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws configure set secret_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws s3 cp README.md s3://darwin-py-docs/
 
         
