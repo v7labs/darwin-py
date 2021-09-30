@@ -5,16 +5,14 @@ on: [push]
 jobs:
   upload-s3:
     runs-on: ubuntu-latest
-
+    name: Print AWS version
     steps:
       - uses: actions/checkout@v2
-
-      - name: Upload to S3
-        uses: shallwefootball/s3-upload-action@master
-        with:
-          aws_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY}}
-          aws_bucket: ${{ secrets.AWS_BUCKET }}
-          source_dir: '.'
-          destination_dir: ''
+      - id: install-aws-cli
+        uses: unfor19/install-aws-cli-action@v1
+      - run: |
+        aws configure set region eu-west-3
+        aws configure set access_key ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws configure set secret_key ${{ secrets.AWS_SECRET_ACCESS_KEY}}
+        aws s3 cp README.md s3://darwin-py-docs/
 
