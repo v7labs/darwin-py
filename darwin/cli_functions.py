@@ -325,7 +325,7 @@ def list_remote_datasets(all_teams: bool, team: Optional[str] = None):
     table = Table(show_header=True, header_style="bold cyan")
     table.add_column("Name")
     table.add_column("Item Count", justify="right")
-    table.add_column("Progress", justify="right")
+    table.add_column("Complete Items", justify="right")
 
     datasets = []
     client = None
