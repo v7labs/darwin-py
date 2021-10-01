@@ -132,8 +132,8 @@ class Client:
             time.sleep(10)
             return self.put(endpoint, payload=payload, retry=False)
 
-        if response.status_code != 200 and block_unsuccessful_requests:
-            raise UnsuccessfulResponse()
+        if block_unsuccessful_requests:
+            response.raise_for_status()
 
         if raw:
             return response
