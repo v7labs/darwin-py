@@ -14,6 +14,7 @@ from darwin.exceptions import (
     MissingConfig,
     NotFound,
     Unauthorized,
+    UnsuccessfulResponse,
 )
 from darwin.utils import is_project_dir, urljoin
 from darwin.validators import name_taken, validation_error
@@ -87,6 +88,7 @@ class Client:
         retry: bool = False,
         debug: bool = False,
         raw: bool = False,
+        block_unsuccessful_requests: bool = False,
     ) -> Union[Dict, requests.Response]:
         """
         Put something on the server trough HTTP
@@ -129,6 +131,9 @@ class Client:
                 )
             time.sleep(10)
             return self.put(endpoint, payload=payload, retry=False)
+
+        if response.status_code != 200 and block_unsuccessful_requests:
+            raise UnsuccessfulResponse()
 
         if raw:
             return response

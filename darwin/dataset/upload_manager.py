@@ -150,6 +150,7 @@ class UploadHandler:
                 endpoint=f"/teams/{self.dataset_identifier.team_slug}/datasets/{self.dataset_identifier.dataset_slug}/data",
                 payload=upload_payload,
                 team=self.dataset_identifier.team_slug,
+                block_unsuccessful_requests=True,
             )
             blocked_items.extend([ItemPayload(**item) for item in data["blocked_items"]])
             items.extend([ItemPayload(**item) for item in data["items"]])
