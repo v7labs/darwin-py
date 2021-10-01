@@ -3,7 +3,17 @@ import time
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, BinaryIO, Callable, List, Optional, Set, Tuple, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    BinaryIO,
+    Callable,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    Union,
+)
 
 import requests
 from darwin.path_utils import construct_full_path
@@ -49,22 +59,31 @@ class FileMonitor(object):
 
     To use this monitor, you construct your :class:`BufferedReader` as you
     normally would, then construct this object with it as argument.
+
+    Attributes:
+        bytes_read     Amount of bytes read from the IO.
+        len            Total size of the IO.
     """
 
     def __init__(self, io: BinaryIO, file_size: int, callback: Callable[["FileMonitor"], None]):
-        #: Instance of the :class:`BufferedReader` being monitored
         self.io = io
-
-        #: Optionally function to call after a read
         self.callback = callback
 
-        #: Number of bytes already read from the :class:`BufferedReader`
-        #: instance
         self.bytes_read = 0
 
         self.len = file_size
 
-    def read(self, size=-1):
+    def read(self, size: int = -1) -> Any:
+        """
+        Reads given amount of bytes from configured IO and calls the configured callback for each
+        block read. The callback is passed a reference this object that can be used to get current
+        self.bytes_read.
+
+        Returns
+        -------
+        data: Any
+            Data read from the IO.
+        """
         data = self.io.read(size)
         self.bytes_read += len(data)
         self.callback(self)
