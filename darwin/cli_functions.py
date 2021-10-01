@@ -325,6 +325,7 @@ def list_remote_datasets(all_teams: bool, team: Optional[str] = None):
     table = Table(show_header=True, header_style="bold cyan")
     table.add_column("Name")
     table.add_column("Item Count", justify="right")
+    table.add_column("Progress", justify="right")
 
     datasets = []
     client = None
@@ -337,7 +338,7 @@ def list_remote_datasets(all_teams: bool, team: Optional[str] = None):
         datasets = client.list_remote_datasets()
 
     for dataset in datasets:
-        table.add_row(f"{dataset.team}/{dataset.slug}", str(dataset.image_count))
+        table.add_row(f"{dataset.team}/{dataset.slug}", str(dataset.image_count), f"{dataset.progress * 100:.1f}%")
     if table.row_count == 0:
         print("No dataset available.")
     else:
