@@ -14,7 +14,6 @@ from darwin.exceptions import (
     MissingConfig,
     NotFound,
     Unauthorized,
-    UnsuccessfulResponse,
 )
 from darwin.utils import is_project_dir, urljoin
 from darwin.validators import name_taken, validation_error

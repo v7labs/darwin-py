@@ -1,7 +1,3 @@
-class UnsuccessfulResponse(Exception):
-    pass
-
-
 class Unauthenticated(Exception):
     pass
 
