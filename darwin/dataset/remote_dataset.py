@@ -282,12 +282,15 @@ class RemoteDataset:
         make_class_lists(release_dir)
 
         if release.latest and is_unix_like_os():
-            latest_dir: Path = self.local_releases_path / "latest"
-            if latest_dir.is_symlink():
-                latest_dir.unlink()
+            try:
+                latest_dir: Path = self.local_releases_path / "latest"
+                if latest_dir.is_symlink():
+                    latest_dir.unlink()
 
-            target_link: Path = self.local_releases_path / release_dir.name
-            latest_dir.symlink_to(target_link)
+                target_link: Path = self.local_releases_path / release_dir.name
+                latest_dir.symlink_to(target_link)
+            except OSError:
+                print("WARNING: Tried to create Symlink and failed. Continuing ...")
 
         if only_annotations:
             # No images will be downloaded
