@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterator, Optional, Union
 
 import requests
+from requests.models import Response
 
 from darwin.config import Config
 from darwin.dataset import RemoteDataset
@@ -104,13 +105,16 @@ class Client:
             Debugging flag. In this case failed requests get printed
         raw : bool
             Flag for returning raw response
+        block_unsuccessful_requests : bool
+            If True, raises an error when the status code of a request does not belong into the 
+            2XX group. If False, continues normal execution.
 
         Returns
         -------
         dict
             Dictionary which contains the server response
         """
-        response = requests.put(urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team))
+        response: Response = requests.put(urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team))
 
         if response.status_code == 401:
             raise Unauthorized()
@@ -122,22 +126,27 @@ class Client:
 
         if response.status_code != 200 and retry:
             if debug:
-                print(
-                    f"Client get request response ({response.json()}) with unexpected status "
-                    f"({response.status_code}). "
-                    f"Client: ({self})"
-                    f"Request: (endpoint={endpoint}, payload={payload})"
-                )
+                self._print_debug(response, endpoint, payload)
+
             time.sleep(10)
             return self.put(endpoint, payload=payload, retry=False)
 
         if block_unsuccessful_requests:
+            self._print_debug(response, endpoint, payload)
             response.raise_for_status()
 
         if raw:
             return response
         else:
             return self._decode_response(response, debug)
+
+    def _print_debug(self, response: Response, endpoint: str, payload: Dict) -> None:
+        print(
+            f"Client get request got response ({response.json()}) with unexpected status "
+            f"({response.status_code}). "
+            f"Client: ({self})"
+            f"Request: (endpoint={endpoint}, payload={payload})"
+        )
 
     def post(
         self,
