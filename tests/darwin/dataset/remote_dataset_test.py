@@ -1,6 +1,7 @@
 import json
 import types
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Dict
 from unittest.mock import MagicMock, patch
 
@@ -461,10 +462,40 @@ def describe_pull():
 
         latest: Path = remote_dataset.local_releases_path / "latest"
 
-        with patch.object(RemoteDataset, "get_release", return_value=stub_release_response) as get_release_stub:
+        with patch.object(RemoteDataset, "get_release", return_value=stub_release_response):
             with patch.object(Release, "download_zip", new=fake_download_zip):
                 remote_dataset.pull()
                 assert not latest.is_symlink()
+
+    @patch("platform.system", return_value="Linux")
+    def it_continues_if_symlink_creation_fails(system_mock: MagicMock, remote_dataset: RemoteDataset):
+        stub_release_response = Release(
+            "dataset-slug",
+            "team-slug",
+            "0.1.0",
+            "release-name",
+            "http://darwin-fake-url.com",
+            datetime.now(),
+            None,
+            None,
+            True,
+            True,
+            "json",
+        )
+
+        def fake_download_zip(self, path):
+            zip: Path = Path("tests/dataset.zip")
+            shutil.copy(zip, path)
+            return path
+
+        latest: Path = remote_dataset.local_releases_path / "latest"
+
+        with patch.object(Path, "symlink_to") as mock_symlink_to:
+            with patch.object(RemoteDataset, "get_release", return_value=stub_release_response):
+                with patch.object(Release, "download_zip", new=fake_download_zip):
+                    mock_symlink_to.side_effect = OSError()
+                    remote_dataset.pull()
+                    assert not latest.is_symlink()
 
     @patch("platform.system", return_value="Linux")
     def it_raises_if_release_format_is_not_json(system_mock: MagicMock, remote_dataset: RemoteDataset):
