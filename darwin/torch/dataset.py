@@ -1,13 +1,20 @@
-from typing import List, Optional
+from __future__ import annotations
+
+from typing import Callable, List, Optional
 
 import numpy as np
-
 from darwin.cli_functions import _error, _load_client
 from darwin.dataset import LocalDataset
 from darwin.dataset.identifier import DatasetIdentifier
-from darwin.torch.transforms import Compose, ConvertPolygonsToInstanceMasks, ConvertPolygonsToSemanticMask
+from darwin.torch.transforms import (
+    Compose,
+    ConvertPolygonsToInstanceMasks,
+    ConvertPolygonsToSemanticMask,
+)
 from darwin.torch.utils import polygon_area
 from darwin.utils import convert_polygons_to_sequences
+
+import torch
 
 
 def get_dataset(
@@ -68,7 +75,7 @@ def get_dataset(
 
 
 class ClassificationDataset(LocalDataset):
-    def __init__(self, transform: Optional[List] = None, **kwargs):
+    def __init__(self, transform: Optional[Callable | List] = None, **kwargs):
         """
         See class `LocalDataset` for documentation
         """
@@ -77,6 +84,9 @@ class ClassificationDataset(LocalDataset):
         self.transform = transform
         if self.transform is not None and isinstance(self.transform, list):
             self.transform = Compose(self.transform)
+
+        self.is_multi_label = False
+        self.check_if_multi_label()
 
     def __getitem__(self, index: int):
         """
@@ -105,19 +115,35 @@ class ClassificationDataset(LocalDataset):
         Returns the classification target
         """
 
-        target = self.parse_json(index)
-        annotations = target.pop("annotations")
+        data = self.parse_json(index)
+        annotations = data.pop("annotations")
         tags = [a["name"] for a in annotations if "tag" in a]
-        if len(tags) > 1:
-            raise ValueError(f"Multiple tags defined for this image ({tags}). This is not supported at the moment.")
-        if len(tags) == 0:
-            raise ValueError(
-                f"No tags defined for this image ({self.annotations_path[index]})."
-                f"This is not valid in a classification dataset."
-            )
-        target["category_id"] = self.classes.index(tags[0])
-        target["category_name"] = tags[0]
+
+        assert len(tags) >= 1, f"No tags were found for index={index}"
+
+        target = torch.tensor(self.classes.index(tags[0]))
+
+        if self.is_multi_label:
+            target = torch.zeros(len(self.classes))
+            # one hot encode all the targets
+            for tag in tags:
+                idx = self.classes.index(tag)
+                target[idx] = 1
+
         return target
+
+    def check_if_multi_label(self) -> None:
+        """
+        This function loops over all the .json files and check if we have more than one tags in at least one file, if yes we assume the dataset is for multi label classification.
+        """
+        for idx in range(len(self)):
+            target = self.parse_json(idx)
+            annotations = target.pop("annotations")
+            tags = [a["name"] for a in annotations if "tag" in a]
+
+            if len(tags) > 1:
+                self.is_multi_label = True
+                break
 
     def get_class_idx(self, index: int):
         target = self.get_target(index)
@@ -193,9 +219,11 @@ class InstanceSegmentationDataset(LocalDataset):
             if "polygon" not in annotation and "complex_polygon" not in annotation:
                 print(f"Warning: missing polygon in annotation {self.annotations_path[index]}")
             # Extract the sequences of coordinates from the polygon annotation
-            annotation_type = "polygon" if "polygon" in annotation else "complex_polygon"
+            annotation_type: str = "polygon" if "polygon" in annotation else "complex_polygon"
             sequences = convert_polygons_to_sequences(
-                annotation[annotation_type]["path"], height=target["height"], width=target["width"],
+                annotation[annotation_type]["path"],
+                height=target["height"],
+                width=target["width"],
             )
             # Compute the bbox of the polygon
             x_coords = [s[0::2] for s in sequences]
@@ -287,7 +315,9 @@ class SemanticSegmentationDataset(LocalDataset):
         annotations = []
         for obj in target["annotations"]:
             sequences = convert_polygons_to_sequences(
-                obj["polygon"]["path"], height=target["height"], width=target["width"],
+                obj["polygon"]["path"],
+                height=target["height"],
+                width=target["width"],
             )
             # Discard polygons with less than three points
             sequences[:] = [s for s in sequences if len(s) >= 6]

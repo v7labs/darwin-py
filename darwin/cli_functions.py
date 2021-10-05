@@ -1,4 +1,5 @@
 import argparse
+import concurrent.futures
 import datetime
 import os
 import sys
@@ -13,7 +14,6 @@ from rich.progress import (
     BarColumn,
     DownloadColumn,
     Progress,
-    ProgressColumn,
     SpinnerColumn,
     TaskID,
     TextColumn,
@@ -31,6 +31,7 @@ from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset.identifier import DatasetIdentifier
 from darwin.dataset.split_manager import split_dataset
+from darwin.dataset.upload_manager import LocalFile
 from darwin.dataset.utils import get_release_path
 from darwin.exceptions import (
     InvalidLogin,
@@ -42,7 +43,6 @@ from darwin.exceptions import (
     UnsupportedFileType,
     ValidationError,
 )
-from darwin.item_sorter import ItemSorter
 from darwin.utils import (
     find_files,
     persist_client_configuration,
@@ -325,6 +325,7 @@ def list_remote_datasets(all_teams: bool, team: Optional[str] = None):
     table = Table(show_header=True, header_style="bold cyan")
     table.add_column("Name")
     table.add_column("Item Count", justify="right")
+    table.add_column("Complete Items", justify="right")
 
     datasets = []
     client = None
@@ -337,7 +338,7 @@ def list_remote_datasets(all_teams: bool, team: Optional[str] = None):
         datasets = client.list_remote_datasets()
 
     for dataset in datasets:
-        table.add_row(f"{dataset.team}/{dataset.slug}", str(dataset.image_count))
+        table.add_row(f"{dataset.team}/{dataset.slug}", str(dataset.image_count), f"{dataset.progress * 100:.1f}%")
     if table.row_count == 0:
         print("No dataset available.")
     else:
@@ -392,36 +393,49 @@ def dataset_list_releases(dataset_slug: str):
 
 def upload_data(
     dataset_identifier: str,
-    files: Optional[List[str]],
-    files_to_exclude: Optional[List[str]],
+    files: Optional[List[Union[str, Path, LocalFile]]],
+    files_to_exclude: Optional[List[Union[str, Path]]],
     fps: int,
     path: Optional[str],
-    frames: Optional[bool],
+    frames: bool,
     preserve_folders: bool = False,
     verbose: bool = False,
 ):
-    """Uploads the files provided as parameter to the remote dataset selected
+    """
+    Uploads the provided files to the remote dataset.
 
     Parameters
     ----------
     dataset_identifier : str
-        Slug of the dataset to retrieve
-    files : list[str]
+        Slug of the dataset to retrieve.
+    files : List[Union[str, Path, LocalFile]]
         List of files to upload. Can be None.
-    files_to_exclude : list[str]
-        List of files to exclude from the file scan (which is done only if files is None)
+    files_to_exclude : List[Union[str, Path]]
+        List of files to exclude from the file scan (which is done only if files is None).
     fps : int
-        Frame rate to split videos in
+        Frame rate to split videos in.
+    path : Optional[str]
+        If provided; files will be placed under this path in the v7 platform. If `preserve_folders`
+        is `True` then it must be possible to draw a relative path from this folder to the one the
+        files are in, otherwise an error will be raised.
+    frames : bool
+        Specify whether the files will be uploaded as a list of frames or not.
+    preserve_folders : bool
+        Specify whether or not to preserve folder paths when uploading.
+    verbose : bool
+        Specify whther to have full traces print when uploading files or not.
 
     Returns
     -------
     generator : function
-            Generator for doing the actual uploads. This is None if blocking is True
+        Generator for doing the actual uploads. This is None if blocking is True
     count : int
-        The files count
+        The file's count
     """
     client = _load_client()
     try:
+        max_workers = concurrent.futures.ThreadPoolExecutor()._max_workers
+
         dataset = client.get_remote_dataset(dataset_identifier=dataset_identifier)
 
         sync_metadata = Progress(SpinnerColumn(), TextColumn("[bold blue]Syncing metadata"))
@@ -462,15 +476,17 @@ def upload_data(
                         f"[blue]{file_name}", filename=file_name, total=file_total_bytes
                     )
 
-                # Rich has a concurrency issue, so sometimes this fails
+                # Rich has a concurrency issue, so sometimes updating progress
+                # or removing a task fails. Wrapping this logic around a try/catch block
+                # is a workaround, we should consider solving this properly (e.g.: using locks)
                 try:
                     file_progress.update(file_tasks[file_name], completed=file_bytes_sent)
+
+                    for task in file_progress.tasks:
+                        if task.finished and len(file_progress.tasks) >= max_workers:
+                            file_progress.remove_task(task.id)
                 except Exception as e:
                     pass
-
-                for task in file_progress.tasks:
-                    if task.finished and len(file_progress.tasks) >= 5:
-                        file_progress.remove_task(task.id)
 
             upload_manager = dataset.push(
                 files,
@@ -500,13 +516,15 @@ def upload_data(
 
         if already_existing_items:
             console.print(
-                f"Skipped {len(already_existing_items)} files already in the dataset.\n", style="warning",
+                f"Skipped {len(already_existing_items)} files already in the dataset.\n",
+                style="warning",
             )
 
         if upload_manager.error_count or other_skipped_items:
             error_count = upload_manager.error_count + len(other_skipped_items)
             console.print(
-                f"{error_count} files couldn't be uploaded because an error occurred.\n", style="error",
+                f"{error_count} files couldn't be uploaded because an error occurred.\n",
+                style="error",
             )
 
         if not verbose and upload_manager.error_count:
@@ -627,7 +645,7 @@ def find_supported_format(query, supported_formats):
     _error(f"Unsupported format, currently supported: {list_of_formats}")
 
 
-def dataset_convert(dataset_slug: str, format: str, output_dir: Optional[Union[str, Path]] = None):
+def dataset_convert(dataset_slug: str, format: str, output_dir: Union[str, Path, None] = None):
     client = _load_client()
     parser = find_supported_format(format, darwin.exporter.formats.supported_formats)
 
@@ -640,7 +658,7 @@ def dataset_convert(dataset_slug: str, format: str, output_dir: Optional[Union[s
             )
 
         release_path = get_release_path(dataset.local_path)
-        annotations_path = release_path / "annotations"
+        annotations_path: Path = release_path / "annotations"
         if output_dir is None:
             output_dir = release_path / "other_formats" / f"{format}"
         else:
@@ -651,7 +669,7 @@ def dataset_convert(dataset_slug: str, format: str, output_dir: Optional[Union[s
         _error(f"No dataset with name '{e.name}'")
 
 
-def convert(format, files, output_dir):
+def convert(format: str, files: List[Union[str, Path]], output_dir: Path):
     parser = find_supported_format(format, darwin.exporter.formats.supported_formats)
     exporter.export_annotations(parser, files, output_dir)
 

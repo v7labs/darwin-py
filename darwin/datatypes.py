@@ -8,6 +8,9 @@ Point = Dict[str, float]
 BoundingBox = Dict[str, float]
 Polygon = List[Point]
 ComplexPolygon = List[Polygon]
+Node = Dict[str, Any]
+EllipseData = Dict[str, Any]
+CuboidData = Dict[str, Any]
 
 
 @dataclass(frozen=True, eq=True)
@@ -33,6 +36,7 @@ class Annotation:
         for sub in self.subs:
             if sub.annotation_type == annotation_type:
                 return sub
+        return None
 
 
 @dataclass(frozen=True, eq=True)
@@ -42,9 +46,6 @@ class VideoAnnotation:
     keyframes: List[bool]
     segments: List[List[int]]
     interpolated: bool
-
-    def get_frame(self, frame_index: int):
-        return frames[frame_index]
 
     def get_data(self, only_keyframes=True, post_processing=None):
         if not post_processing:
@@ -86,43 +87,46 @@ class AnnotationFile:
         return construct_full_path(self.remote_path, self.filename)
 
 
-def make_bounding_box(class_name, x, y, w, h):
+def make_bounding_box(
+    class_name: str, x: float, y: float, w: float, h: float, subs: Optional[List[SubAnnotation]] = None
+):
     return Annotation(
         AnnotationClass(class_name, "bounding_box"),
         {"x": round(x, 3), "y": round(y, 3), "w": round(w, 3), "h": round(h, 3)},
+        subs or [],
     )
 
 
-def make_tag(class_name):
-    return Annotation(AnnotationClass(class_name, "tag"), {})
+def make_tag(class_name: str, subs: Optional[List[SubAnnotation]] = None):
+    return Annotation(AnnotationClass(class_name, "tag"), {}, subs or [])
 
 
-def make_polygon(class_name, point_path):
-    return Annotation(AnnotationClass(class_name, "polygon"), {"path": point_path})
+def make_polygon(class_name: str, point_path: List[Point], subs: Optional[List[SubAnnotation]] = None):
+    return Annotation(AnnotationClass(class_name, "polygon"), {"path": point_path}, subs or [])
 
 
-def make_complex_polygon(class_name, point_paths):
-    return Annotation(AnnotationClass(class_name, "complex_polygon", "polygon"), {"paths": point_paths})
+def make_complex_polygon(class_name: str, point_paths: List[List[Point]], subs: Optional[List[SubAnnotation]] = None):
+    return Annotation(AnnotationClass(class_name, "complex_polygon", "polygon"), {"paths": point_paths}, subs or [])
 
 
-def make_keypoint(class_name, x, y):
-    return Annotation(AnnotationClass(class_name, "keypoint"), {"x": x, "y": y})
+def make_keypoint(class_name: str, x: float, y: float, subs: Optional[List[SubAnnotation]] = None):
+    return Annotation(AnnotationClass(class_name, "keypoint"), {"x": x, "y": y}, subs or [])
 
 
-def make_line(class_name, path):
-    return Annotation(AnnotationClass(class_name, "line"), {"path": path})
+def make_line(class_name: str, path: List[Point], subs: Optional[List[SubAnnotation]] = None):
+    return Annotation(AnnotationClass(class_name, "line"), {"path": path}, subs or [])
 
 
-def make_skeleton(class_name, nodes):
-    return Annotation(AnnotationClass(class_name, "skeleton"), {"nodes": nodes})
+def make_skeleton(class_name: str, nodes: List[Node], subs: Optional[List[SubAnnotation]] = None):
+    return Annotation(AnnotationClass(class_name, "skeleton"), {"nodes": nodes}, subs or [])
 
 
-def make_ellipse(class_name, parameters):
-    return Annotation(AnnotationClass(class_name, "ellipse"), parameters)
+def make_ellipse(class_name: str, parameters: EllipseData, subs: Optional[List[SubAnnotation]] = None):
+    return Annotation(AnnotationClass(class_name, "ellipse"), parameters, subs or [])
 
 
-def make_cuboid(class_name, cuboid):
-    return Annotation(AnnotationClass(class_name, "cuboid"), cuboid)
+def make_cuboid(class_name: str, cuboid: CuboidData, subs: Optional[List[SubAnnotation]] = None):
+    return Annotation(AnnotationClass(class_name, "cuboid"), cuboid, subs or [])
 
 
 def make_instance_id(value):

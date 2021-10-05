@@ -1,7 +1,7 @@
 import json
 import platform
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Union
 
 import numpy as np
 from rich.progress import track
@@ -41,7 +41,8 @@ def urljoin(*parts: str) -> str:
 
 
 def is_project_dir(project_path: Path) -> bool:
-    """Verifies if the directory is a project from Darwin by inspecting its sturcture
+    """
+    Verifies if the directory is a project from Darwin by inspecting its structure.
 
     Parameters
     ----------
@@ -124,7 +125,14 @@ def find_files(
 
 
 def secure_continue_request() -> bool:
-    """Asks for explicit approval from the user. Empty string not accepted"""
+    """
+    Asks for explicit approval from the user. Empty string not accepted
+    
+    Returns
+    -------
+    bool
+        True if the user wishes to continue, False otherwise.
+    """
     return input("Do you want to continue? [y/N] ") in ["Y", "y"]
 
 
@@ -161,7 +169,31 @@ def get_local_filename(metadata: dict):
     return metadata["filename"]
 
 
-def parse_darwin_json(path: Union[str, Path], count: int):
+def parse_darwin_json(path: Path, count: Optional[int]) -> Optional[dt.AnnotationFile]:
+    """
+    Parses the given JSON file in v7's darwin proprietary format. Works for images, split frame 
+    videos (treated as images) and playback videos.
+
+    Parameters
+    ----------
+    path : Path
+        Path to the file to parse.
+    count : Optional[int]
+        Optional count parameter. Used only if the Annotation's image sequence is None.
+
+    Returns
+    -------
+    Optional[dt.AnnotationFile]
+        An AnnotationFile with the information from the parsed JSON file, or None, if there were no
+        annotations in the JSON.
+
+    Raises 
+    ------
+    OutdatedDarwinJSONFormat
+        If the given darwin video JSON file is missing the 'width' and 'height' keys in the 'image'
+        dictionary.
+    """
+
     path = Path(path)
     with path.open() as f:
         data = json.load(f)
@@ -173,9 +205,27 @@ def parse_darwin_json(path: Union[str, Path], count: int):
             return parse_darwin_image(path, data, count)
 
 
-def parse_darwin_image(path, data, count):
-    annotations = list(filter(None, map(parse_darwin_annotation, data["annotations"])))
-    annotation_classes = set([annotation.annotation_class for annotation in annotations])
+def parse_darwin_image(path: Path, data: Dict[str, Any], count: Optional[int]) -> dt.AnnotationFile:
+    """
+    Parses the given JSON file in v7's darwin proprietary format. Works only for images.
+
+    Parameters
+    ----------
+    path : Path
+        Path to the file to parse.
+    data : Dict[str, Any]
+        The decoded JSON file in Python format.
+    count : Optional[int]
+        Optional count parameter. Used only if the Annotation's image sequence is None.
+
+    Returns
+    -------
+    dt.AnnotationFile
+        An AnnotationFile with the information from the parsed JSON file.
+    """
+
+    annotations: List[dt.Annotation] = list(filter(None, map(parse_darwin_annotation, data["annotations"])))
+    annotation_classes: Set[dt.AnnotationClass] = set([annotation.annotation_class for annotation in annotations])
     return dt.AnnotationFile(
         path,
         get_local_filename(data["image"]),
@@ -188,13 +238,31 @@ def parse_darwin_image(path, data, count):
         data["image"].get("workview_url"),
         data["image"].get("seq", count),
         None,
-        data["image"].get("path"),
+        data["image"].get("path", "/"),
     )
 
 
-def parse_darwin_video(path, data, count):
-    annotations = list(filter(None, map(parse_darwin_video_annotation, data["annotations"])))
-    annotation_classes = set([annotation.annotation_class for annotation in annotations])
+def parse_darwin_video(path: Path, data: Dict[str, Any], count: Optional[int]) -> dt.AnnotationFile:
+    """
+    Parses the given JSON file in v7's darwin proprietary format. Works for playback videos.
+
+    Parameters
+    ----------
+    path : Path
+        Path to the file to parse.
+    data : Dict[str, Any]
+        The decoded JSON file in Python format.
+    count : Optional[int]
+        Optional count parameter. Used only if the data["image"]["seq"] sequence is None.
+
+    Returns
+    -------
+    dt.AnnotationFile
+        An AnnotationFile with the information from the parsed JSON file.
+    """
+
+    annotations: List[dt.VideoAnnotation] = list(filter(None, map(parse_darwin_video_annotation, data["annotations"])))
+    annotation_classes: Set[dt.AnnotationClass] = set([annotation.annotation_class for annotation in annotations])
 
     if "width" not in data["image"] or "height" not in data["image"]:
         raise OutdatedDarwinJSONFormat("Missing width/height in video, please re-export")
@@ -211,11 +279,11 @@ def parse_darwin_video(path, data, count):
         data["image"].get("workview_url"),
         data["image"].get("seq", count),
         data["image"].get("frame_urls"),
-        data["image"].get("path"),
+        data["image"].get("path", "/"),
     )
 
 
-def parse_darwin_annotation(annotation: dict):
+def parse_darwin_annotation(annotation: Dict[str, Any]):
     name = annotation["name"]
     main_annotation = None
     if "polygon" in annotation:
@@ -245,9 +313,8 @@ def parse_darwin_annotation(annotation: dict):
         main_annotation = dt.make_ellipse(name, annotation["ellipse"])
     elif "cuboid" in annotation:
         main_annotation = dt.make_cuboid(name, annotation["cuboid"])
-    # TODO
-    # elif "skeleton" in annotation:
-    #     main_annotation = dt.make_skeleton(name, annotation["skeleton"]["nodes"])
+    elif "skeleton" in annotation:
+        main_annotation = dt.make_skeleton(name, annotation["skeleton"]["nodes"])
 
     if not main_annotation:
         print(f"[WARNING] Unsupported annotation type: '{annotation.keys()}'")
@@ -472,4 +539,13 @@ def chunk(items, size):
 
 
 def is_unix_like_os() -> bool:
+    """
+    Returns True if the executing OS is Unix-based (Ubuntu or MacOS, for example) or False 
+    otherwise.
+
+    Returns
+    --------
+    bool:
+        True for Unix-based systems, False otherwise.
+    """
     return platform.system() != "Windows"

@@ -1,6 +1,6 @@
 import io
 from pathlib import Path
-from typing import Any, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import yaml
 
@@ -92,7 +92,7 @@ class Config(object):
         if default_team:
             self.put("global/default_team", default_team)
 
-    def get_team(self, team: Optional[str] = None, raise_on_invalid_team: bool = True):
+    def get_team(self, team: Optional[str] = None, raise_on_invalid_team: bool = True) -> Optional[Dict[str, Any]]:
         if not team:
             return self.get_default_team(raise_on_invalid_team=raise_on_invalid_team)
 

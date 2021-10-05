@@ -1,7 +1,7 @@
 import os
 import time
 from pathlib import Path
-from typing import Dict, Iterator, List, Optional, Union
+from typing import Any, Dict, Iterator, Optional, Union
 
 import requests
 
@@ -30,8 +30,9 @@ class Client:
 
     def get(
         self, endpoint: str, team: Optional[str] = None, retry: bool = False, raw: bool = False, debug: bool = False
-    ):
-        """Get something from the server trough HTTP
+    ) -> Union[Dict, requests.Response]:
+        """
+        Get something from the server through HTTP
 
         Parameters
         ----------
@@ -47,7 +48,7 @@ class Client:
         Returns
         -------
         dict
-        Dictionary which contains the server response
+            Dictionary which contains the server response
 
         Raises
         ------
@@ -86,8 +87,9 @@ class Client:
         retry: bool = False,
         debug: bool = False,
         raw: bool = False,
-    ):
-        """Put something on the server trough HTTP
+    ) -> Union[Dict, requests.Response]:
+        """
+        Put something on the server trough HTTP
 
         Parameters
         ----------
@@ -105,7 +107,7 @@ class Client:
         Returns
         -------
         dict
-        Dictionary which contains the server response
+            Dictionary which contains the server response
         """
         response = requests.put(urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team))
 
@@ -141,7 +143,7 @@ class Client:
         retry: bool = False,
         error_handlers: Optional[list] = None,
         debug: bool = False,
-    ):
+    ) -> Dict:
         """Post something new on the server trough HTTP
 
         Parameters
@@ -194,7 +196,7 @@ class Client:
         retry: bool = False,
         error_handlers: Optional[list] = None,
         debug: bool = False,
-    ):
+    ) -> Dict:
         """Delete something new on the server trough HTTP
 
         Parameters
@@ -237,7 +239,8 @@ class Client:
         return self._decode_response(response, debug)
 
     def list_local_datasets(self, team: Optional[str] = None) -> Iterator[Path]:
-        """Returns a list of all local folders which are detected as dataset.
+        """
+        Returns a list of all local folders which are detected as dataset.
 
         Returns
         -------
@@ -255,7 +258,8 @@ class Client:
                     yield Path(project_path)
 
     def list_remote_datasets(self, team: Optional[str] = None) -> Iterator[RemoteDataset]:
-        """Returns a list of all available datasets with the team currently authenticated against
+        """
+        Returns a list of all available datasets with the team currently authenticated against.
 
         Returns
         -------
@@ -269,19 +273,18 @@ class Client:
                 team=team or self.default_team,
                 dataset_id=dataset["id"],
                 image_count=dataset["num_images"],
-                progress=0,
+                progress=dataset["progress"],
                 client=self,
             )
 
     def get_remote_dataset(self, dataset_identifier: Union[str, DatasetIdentifier]) -> RemoteDataset:
-        """Get a remote dataset based on the parameter passed. You can only choose one of the
-        possible parameters and calling this method with multiple ones will result in an
-        error.
+        """
+        Get a remote dataset based on the parameter passed.
 
         Parameters
         ----------
-        dataset_identifier : int
-            ID of the dataset to return
+        dataset_identifier : Union[str, DatasetIdentifier]
+            Identifier of the dataset. Can be the string version or a DatasetIdentifier object.
 
         Returns
         -------
@@ -345,9 +348,15 @@ class Client:
             client=self,
         )
 
-    def fetch_remote_classes(self, team: Optional[str] = None):
+    def fetch_remote_classes(self, team: Optional[str] = None) -> Optional[Dict[str, Any]]:
         """Fetches all remote classes on the remote dataset"""
-        team_slug = self.config.get_team(team or self.default_team)["slug"]
+        team = self.config.get_team(team or self.default_team)
+
+        if not team:
+            return None
+
+        team_slug: str = team["slug"]
+
         return self.get(f"/teams/{team_slug}/annotation_classes?include_tags=true")["annotation_classes"]
 
     def load_feature_flags(self, team: Optional[str] = None):
@@ -417,20 +426,22 @@ class Client:
         return headers
 
     @classmethod
-    def local(cls, team_slug: Optional[str] = None):
-        """Factory method to use the default configuration file to init the client
+    def local(cls, team_slug: Optional[str] = None) -> "Client":
+        """
+        Factory method to use the default configuration file to init the client
 
         Returns
         -------
         Client
-        The inited client
+        The initialized client
         """
         config_path = Path.home() / ".darwin" / "config.yaml"
         return Client.from_config(config_path, team_slug=team_slug)
 
     @classmethod
-    def from_config(cls, config_path: Path, team_slug: Optional[str] = None):
-        """Factory method to create a client from the configuration file passed as parameter
+    def from_config(cls, config_path: Path, team_slug: Optional[str] = None) -> "Client":
+        """
+        Factory method to create a client from the configuration file passed as parameter
 
         Parameters
         ----------
@@ -440,7 +451,7 @@ class Client:
         Returns
         -------
         Client
-        The inited client
+        The initialized client
         """
         if not config_path.exists():
             raise MissingConfig()
@@ -449,7 +460,20 @@ class Client:
         return cls(config=config, default_team=team_slug)
 
     @classmethod
-    def from_guest(cls, datasets_dir: Optional[Path] = None):
+    def from_guest(cls, datasets_dir: Optional[Path] = None) -> "Client":
+        """
+        Factory method to create a client and access datasets as a guest
+
+        Parameters
+        ----------
+        datasets_dir : str
+            String where the client should be initialized from (aka the root path)
+
+        Returns
+        -------
+        Client
+            The initialized client
+        """
         if datasets_dir is None:
             datasets_dir = Path.home() / ".darwin" / "datasets"
         config = Config(path=None)
@@ -457,8 +481,9 @@ class Client:
         return cls(config=config)
 
     @classmethod
-    def from_api_key(cls, api_key: str, datasets_dir: Optional[Path] = None):
-        """Factory method to create a client given an API key
+    def from_api_key(cls, api_key: str, datasets_dir: Optional[Path] = None) -> "Client":
+        """
+        Factory method to create a client given an API key
 
         Parameters
         ----------
@@ -470,7 +495,7 @@ class Client:
         Returns
         -------
         Client
-            The inited client
+            The initialized client
         """
         if datasets_dir is None:
             datasets_dir = Path.home() / ".darwin" / "datasets"
@@ -490,12 +515,12 @@ class Client:
         return cls(config=config, default_team=team)
 
     @staticmethod
-    def default_api_url():
+    def default_api_url() -> str:
         """Returns the default api url"""
         return f"{Client.default_base_url()}/api/"
 
     @staticmethod
-    def default_base_url():
+    def default_base_url() -> str:
         """Returns the default base url"""
         return os.getenv("DARWIN_BASE_URL", "https://darwin.v7labs.com")
 
