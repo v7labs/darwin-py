@@ -369,22 +369,22 @@ class RemoteDataset:
     def fetch_annotation_type_id_for_name(self, name: str) -> Optional[int]:
         """
         Fetches annotation type id for a annotation type name, such as bounding_box
-        
+
         Parameters
         ----------
         name: str
             The name of the annotation we want the id for.
-        
+
 
         Returns
         -------
         generator : Optional[int]
             The id of the annotation type or None if it doesn't exist.
-        
+
         Raises
         ------
-        ConnectionError 
-            If it fails to establish a connection. 
+        ConnectionError
+            If it fails to establish a connection.
         """
         if not self.annotation_types:
             self.annotation_types: List[Dict[str, Any]] = self.client.get("/annotation_types")
@@ -403,13 +403,13 @@ class RemoteDataset:
         type : str
             The type of the annotation class.
         subtypes : List[str]
-            Annotation class subtypes.  
+            Annotation class subtypes.
 
         Returns
         -------
         dict
             Dictionary with the server response.
-        
+
         Raises
         ------
         ConnectionError
@@ -441,13 +441,13 @@ class RemoteDataset:
             error_handlers=[name_taken, validation_error],
         )
 
-    def add_annotation_class(self, annotation_class: AnnotationClass) -> Union[Dict, None]:
+    def add_annotation_class(self, annotation_class: Union[AnnotationClass, int]) -> Union[Dict, None]:
         """
         Adds an annotation class to this dataset.
 
         Parameters
         ----------
-        annotation_class : AnnotationClass
+        annotation_class : AnnotationClass or annotation_class_id (int)
             The annotation class to add.
 
         Returns
@@ -458,18 +458,24 @@ class RemoteDataset:
         # Waiting for a better api for setting classes
         # in the meantime this will do
         all_classes = self.fetch_remote_classes(True)
-        annotation_class_type = annotation_class.annotation_internal_type or annotation_class.annotation_type
-        match = [
-            cls
-            for cls in all_classes
-            if cls["name"] == annotation_class.name and annotation_class_type in cls["annotation_types"]
-        ]
-        if not match:
-            # We do not expect to reach here; as pervious logic divides annotation classes in imports
-            # between `in team` and `new to platform`
-            raise ValueError(
-                f"Annotation class name: `{annotation_class.name}`, type: `{annotation_class_type}`; does not exist in Team."
-            )
+
+        if isinstance(annotation_class, int):
+            match = [cls for cls in all_classes if cls["id"] == annotation_class]
+            if not match:
+                raise ValueError(f"Annotation class id: `{annotation_class}` does not exist in Team.")
+        else:
+            annotation_class_type = annotation_class.annotation_internal_type or annotation_class.annotation_type
+            match = [
+                cls
+                for cls in all_classes
+                if cls["name"] == annotation_class.name and annotation_class_type in cls["annotation_types"]
+            ]
+            if not match:
+                # We do not expect to reach here; as pervious logic divides annotation classes in imports
+                # between `in team` and `new to platform`
+                raise ValueError(
+                    f"Annotation class name: `{annotation_class.name}`, type: `{annotation_class_type}`; does not exist in Team."
+                )
 
         datasets = match[0]["datasets"]
         # check that we are not already part of the dataset
