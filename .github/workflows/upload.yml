@@ -1,20 +1,23 @@
 name: Documentation
 
-on: [push]
-
+on: 
+  push:
+  workflow_dispatch:
+  
 jobs:
   upload-s3:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v2
-      - name: Upload README to bucket 
+      
+      - name: Authenticate against aws 
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: eu-west-1
-      - run: |
-          aws s3 cp README.md s3://darwin-py-docs/
+      
+      - name: Upload README to bucket 
+        run: aws s3 cp README.md s3://darwin-py-docs/
 
-        
