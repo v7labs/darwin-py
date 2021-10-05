@@ -18,7 +18,6 @@ from typing import (
 import requests
 from darwin.path_utils import construct_full_path
 from darwin.utils import chunk
-from requests_toolbelt import MultipartEncoder, MultipartEncoderMonitor
 
 if TYPE_CHECKING:
     from darwin.client import Client
@@ -60,18 +59,24 @@ class FileMonitor(object):
     To use this monitor, you construct your :class:`BufferedReader` as you
     normally would, then construct this object with it as argument.
 
-    Attributes:
-        bytes_read     Amount of bytes read from the IO.
-        len            Total size of the IO.
+    Attributes
+    ----------
+    bytes_read: int
+      Amount of bytes read from the IO.
+    len: int         
+        Total size of the IO.
+    io: BinaryIO
+        IO object used by this class. Depency injection.
+    callback: Callable[["FileMonitor"], None]
+        Callable function used by this class. Depency injection.
     """
 
     def __init__(self, io: BinaryIO, file_size: int, callback: Callable[["FileMonitor"], None]):
-        self.io = io
-        self.callback = callback
+        self.io: BinaryIO = io
+        self.callback: Callable[["FileMonitor"], None] = callback
 
-        self.bytes_read = 0
-
-        self.len = file_size
+        self.bytes_read: int = 0
+        self.len: int = file_size
 
     def read(self, size: int = -1) -> Any:
         """
@@ -79,12 +84,17 @@ class FileMonitor(object):
         block read. The callback is passed a reference this object that can be used to get current
         self.bytes_read.
 
+        Parameters
+        ----------
+        size: int
+            The number of bytes to read. Defaults to -1, so all bytes until EOF are read.
+
         Returns
         -------
         data: Any
             Data read from the IO.
         """
-        data = self.io.read(size)
+        data: Any = self.io.read(size)
         self.bytes_read += len(data)
         self.callback(self)
 
@@ -222,10 +232,7 @@ class UploadHandler:
             self.errors.append(UploadRequestError(file_path=file_path, stage=UploadStage.OTHER, error=e))
 
     def _do_upload_file(
-        self,
-        dataset_item_id: int,
-        file_path: Path,
-        byte_read_callback: Optional[ByteReadCallback] = None,
+        self, dataset_item_id: int, file_path: Path, byte_read_callback: Optional[ByteReadCallback] = None,
     ):
         team_slug = self.dataset_identifier.team_slug
 
