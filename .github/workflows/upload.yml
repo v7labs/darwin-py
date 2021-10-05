@@ -9,14 +9,12 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Upload README to bucket 
-        uses: unfor19/install-aws-cli-action@v1
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-west-1
       - run: |
-          aws configure set region eu-west-3
-          aws configure set access_key ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws configure set secret_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws configure list
-          aws configure get secret_key
-          aws configure get access_key
           aws s3 cp README.md s3://darwin-py-docs/
 
         
