@@ -28,6 +28,8 @@ jobs:
           m2r README.md
           mv README.rst source/
       - name: Generate new docs
+        env: 
+          PYTHONPATH: "."
         run: |
           rm -rf docs/* 
           sphinx-apidoc -f -o source darwin   
