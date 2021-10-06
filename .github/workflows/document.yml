@@ -18,7 +18,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install rich
+          pip install --editable ".[test]"
           pip install torch torchvision
           pip install -U sphinx
           pip install m2r
