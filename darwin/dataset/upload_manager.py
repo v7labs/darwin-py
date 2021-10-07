@@ -210,8 +210,8 @@ class UploadHandler:
                 payload=upload_payload,
                 team=self.dataset_identifier.team_slug,
             )
-            blocked_items.extend([ItemPayload(**item) for item in data.get("blocked_items", [])])
-            items.extend([ItemPayload(**item) for item in data.get("items", [])])
+            blocked_items.extend([ItemPayload(**item) for item in data["blocked_items"]])
+            items.extend([ItemPayload(**item) for item in data["items"]])
         return blocked_items, items
 
     def _upload_files(self):
