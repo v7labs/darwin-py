@@ -287,6 +287,15 @@ DEFAULT_UPLOAD_CHUNK_SIZE: int = 500
 
 
 def _upload_chunk_size() -> int:
+    """
+    Gets the chunk size to be used from the OS environment, or uses the default one if that is not
+    possible. The default chunk size is 500.
+
+    Returns
+    -------
+    int
+        The chunk size to be used.
+    """
     env_chunk: Optional[str] = os.getenv("DARWIN_UPLOAD_CHUNK_SIZE")
     if env_chunk is None:
         return DEFAULT_UPLOAD_CHUNK_SIZE
