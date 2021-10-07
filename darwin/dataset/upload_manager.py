@@ -19,6 +19,7 @@ from typing import (
 import requests
 from darwin.path_utils import construct_full_path
 from darwin.utils import chunk
+from rich.console import Console
 
 if TYPE_CHECKING:
     from darwin.client import Client
@@ -293,4 +294,6 @@ def _upload_chunk_size() -> int:
     try:
         return int(env_chunk)
     except ValueError:
+        print("Cannot cast environment variable DEFAULT_UPLOAD_CHUNK_SIZE to integer")
+        print(f"Setting chunk size to {DEFAULT_UPLOAD_CHUNK_SIZE}")
         return DEFAULT_UPLOAD_CHUNK_SIZE
