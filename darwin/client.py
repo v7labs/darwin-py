@@ -273,7 +273,7 @@ class Client:
                 team=team or self.default_team,
                 dataset_id=dataset["id"],
                 image_count=dataset["num_images"],
-                progress=0,
+                progress=dataset["progress"],
                 client=self,
             )
 

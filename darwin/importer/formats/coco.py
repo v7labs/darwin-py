@@ -5,6 +5,7 @@ from typing import List, Optional
 from upolygon import find_contours, rle_decode
 
 import darwin.datatypes as dt
+from darwin.path_utils import deconstruct_full_path
 
 
 def parse_file(path: Path) -> Optional[List[dt.AnnotationFile]]:
@@ -34,7 +35,8 @@ def parse_json(path, data):
         image = image_lookup_table[image_id]
         annotations = list(filter(None, image_annotations[image_id]))
         annotation_classes = set([annotation.annotation_class for annotation in annotations])
-        yield dt.AnnotationFile(path, image["file_name"], annotation_classes, annotations, remote_path="/")
+        remote_path, filename = deconstruct_full_path(image["file_name"])
+        yield dt.AnnotationFile(path, filename, annotation_classes, annotations, remote_path=remote_path)
 
 
 def parse_annotation(annotation, category_lookup_table):

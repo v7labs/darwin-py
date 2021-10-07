@@ -14,7 +14,7 @@ import os
 import re
 import sys
 from pathlib import Path
-from typing import List, Match, Optional
+from typing import Any, Dict, List, Match, Optional
 
 sys.path.insert(0, os.path.abspath("../darwin/"))
 
@@ -61,4 +61,15 @@ html_theme: str = "sphinx_rtd_theme"
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path: List[str] = []
+html_static_path: List[str] = ["_static"]
+
+# This is a hack so we can have the left menu bar expand automatically upon opening a page.
+# This hack is needed because of a bug in Sphinx:
+# https://github.com/readthedocs/sphinx_rtd_theme/issues/455
+#
+# If one day the bug gets fixed, then `html_js_files` and `html_theme_options` can be removed
+# as well as the files/directories they rely on.
+html_js_files: List[str] = ["js/custom.js"]
+html_theme_options: Dict[str, Any] = {
+    "collapse_navigation": False,
+}
