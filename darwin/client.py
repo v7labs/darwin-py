@@ -88,7 +88,6 @@ class Client:
         retry: bool = False,
         debug: bool = False,
         raw: bool = False,
-        block_unsuccessful_requests: bool = False,
     ) -> Union[Dict, requests.Response]:
         """
         Put something on the server trough HTTP
@@ -105,10 +104,7 @@ class Client:
             Debugging flag. In this case failed requests get printed
         raw : bool
             Flag for returning raw response
-        block_unsuccessful_requests : bool
-            If True, raises an error when the status code of a request does not belong into the 
-            2XX group. If False, continues normal execution.
-
+    
         Returns
         -------
         dict
@@ -126,27 +122,20 @@ class Client:
 
         if response.status_code != 200 and retry:
             if debug:
-                self._print_debug(response, endpoint, payload)
+                print(
+                    f"Client get request got response ({response.json()}) with unexpected status "
+                    f"({response.status_code}). "
+                    f"Client: ({self})"
+                    f"Request: (endpoint={endpoint}, payload={payload})"
+                )
 
             time.sleep(10)
             return self.put(endpoint, payload=payload, retry=False)
-
-        if block_unsuccessful_requests:
-            self._print_debug(response, endpoint, payload)
-            response.raise_for_status()
 
         if raw:
             return response
         else:
             return self._decode_response(response, debug)
-
-    def _print_debug(self, response: Response, endpoint: str, payload: Dict) -> None:
-        print(
-            f"Client get request got response ({response.json()}) with unexpected status "
-            f"({response.status_code}). "
-            f"Client: ({self})"
-            f"Request: (endpoint={endpoint}, payload={payload})"
-        )
 
     def post(
         self,

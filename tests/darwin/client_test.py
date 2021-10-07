@@ -32,9 +32,7 @@ def describe_put():
         responses.add(responses.PUT, api + endpoint, status=401)
 
         with pytest.raises(Unauthorized):
-            client.put(
-                endpoint=endpoint, payload=upload_payload, team=team_slug, block_unsuccessful_requests=True,
-            )
+            client.put(endpoint=endpoint, payload=upload_payload, team=team_slug)
 
     @responses.activate
     def it_raises_if_there_is_not_enough_storage():
@@ -59,9 +57,7 @@ def describe_put():
         )
 
         with pytest.raises(InsufficientStorage):
-            client.put(
-                endpoint=endpoint, payload=upload_payload, team=team_slug, block_unsuccessful_requests=True,
-            )
+            client.put(endpoint=endpoint, payload=upload_payload, team=team_slug)
 
     @responses.activate
     def it_returns_content_if_status_is_429_but_error_code_is_unknown():
@@ -87,31 +83,3 @@ def describe_put():
         response = client.put(endpoint=endpoint, payload=upload_payload, team=team_slug)
 
         assert response == json_response
-
-    @responses.activate
-    def it_raises_error_if_status_is_not_200_and_block_unsuccessful_requests_is_true():
-        team_slug: str = "team-slug"
-        dataset_slug: str = "dataset-slug"
-        upload_payload: Dict[Any, Any] = {"key": "value"}
-
-        darwin_datasets_path: Path = Path.home() / ".darwin" / "datasets"
-
-        config = Config()
-        config.put(["global", "api_endpoint"], "http://localhost/api")
-        config.put(["global", "base_url"], "http://localhost")
-        config.put(["teams", team_slug, "api_key"], "mock_api_key")
-        config.put(["teams", team_slug, "datasets_dir"], str(darwin_datasets_path))
-        client = Client(config)
-
-        api: str = config.get(["global", "api_endpoint"])
-        endpoint: str = f"/teams/{team_slug}/datasets/{dataset_slug}/data"
-        json_response = {"errors": {"code": "SOME_ERROR"}}
-
-        responses.add(responses.PUT, api + endpoint, json=json_response, status=500)
-
-        client.put(endpoint=endpoint, payload=upload_payload, team=team_slug)
-
-        with pytest.raises(HTTPError):
-            client.put(
-                endpoint=endpoint, payload=upload_payload, team=team_slug, block_unsuccessful_requests=True,
-            )
