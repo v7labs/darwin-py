@@ -44,6 +44,6 @@ def _find_element(source: ET.Element, name: str) -> Union[ET.Element, NoReturn]:
 # Private
 def _find_text_value(source: ET.Element, name: str) -> Union[str, NoReturn]:
     element = _find_element(source, name)
-    if element is None or element.text is None:
+    if not element.text.strip():
         raise ValueError(f"{name} element does not have a text value")
     return element.text
