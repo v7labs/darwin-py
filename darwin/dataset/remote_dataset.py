@@ -447,8 +447,8 @@ class RemoteDataset:
 
         Parameters
         ----------
-        annotation_class : AnnotationClass or annotation_class_id (int)
-            The annotation class to add.
+        annotation_class : Union[AnnotationClass, int]
+            The annotation class to add or its id.
 
         Returns
         -------
