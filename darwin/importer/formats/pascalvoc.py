@@ -1,11 +1,11 @@
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import List, NoReturn, Union
+from typing import List, Union
 
 import darwin.datatypes as dt
 
 
-def parse_file(path: Path) -> Union[dt.AnnotationFile, None, NoReturn]:
+def parse_file(path: Path) -> Union[dt.AnnotationFile, None]:
     if path.suffix != ".xml":
         return None
 
@@ -21,7 +21,7 @@ def parse_file(path: Path) -> Union[dt.AnnotationFile, None, NoReturn]:
 
 
 # Private
-def _parse_annotation(annotation_object: ET.Element) -> Union[dt.Annotation, NoReturn]:
+def _parse_annotation(annotation_object: ET.Element) -> dt.Annotation:
     class_name = _find_text_value(annotation_object, "name")
 
     bndbox = _find_element(annotation_object, "bndbox")
@@ -34,7 +34,7 @@ def _parse_annotation(annotation_object: ET.Element) -> Union[dt.Annotation, NoR
 
 
 # Private
-def _find_element(source: ET.Element, name: str) -> Union[ET.Element, NoReturn]:
+def _find_element(source: ET.Element, name: str) -> ET.Element:
     element = source.find(name)
     if element is None:
         raise ValueError(f"Could not find {name} element in annotation file")
@@ -42,8 +42,8 @@ def _find_element(source: ET.Element, name: str) -> Union[ET.Element, NoReturn]:
 
 
 # Private
-def _find_text_value(source: ET.Element, name: str) -> Union[str, NoReturn]:
+def _find_text_value(source: ET.Element, name: str) -> str:
     element = _find_element(source, name)
-    if not element.text.strip():
+    if element.text is None or not element.text.strip():
         raise ValueError(f"{name} element does not have a text value")
     return element.text
