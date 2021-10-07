@@ -1,4 +1,5 @@
 import concurrent.futures
+import os
 import time
 from dataclasses import dataclass
 from enum import Enum
@@ -201,15 +202,16 @@ class UploadHandler:
     def _request_upload(self) -> Tuple[List[ItemPayload], List[ItemPayload]]:
         blocked_items = []
         items = []
-        for file_chunk in chunk(self.local_files, 500):
+        chunk_size: int = _upload_chunk_size()
+        for file_chunk in chunk(self.local_files, chunk_size):
             upload_payload = {"items": [file.data for file in file_chunk]}
             data = self.client.put(
                 endpoint=f"/teams/{self.dataset_identifier.team_slug}/datasets/{self.dataset_identifier.dataset_slug}/data",
                 payload=upload_payload,
                 team=self.dataset_identifier.team_slug,
             )
-            blocked_items.extend([ItemPayload(**item) for item in data["blocked_items"]])
-            items.extend([ItemPayload(**item) for item in data["items"]])
+            blocked_items.extend([ItemPayload(**item) for item in data.get("blocked_items", [])])
+            items.extend([ItemPayload(**item) for item in data.get("items", [])])
         return blocked_items, items
 
     def _upload_files(self):
@@ -278,3 +280,17 @@ class UploadHandler:
             confirm_response.raise_for_status()
         except Exception as e:
             raise UploadRequestError(file_path=file_path, stage=UploadStage.CONFIRM_UPLOAD_COMPLETE, error=e)
+
+
+DEFAULT_UPLOAD_CHUNK_SIZE: int = 500
+
+
+def _upload_chunk_size() -> int:
+    env_chunk: Optional[str] = os.getenv("DARWIN_UPLOAD_CHUNK_SIZE")
+    if env_chunk is None:
+        return DEFAULT_UPLOAD_CHUNK_SIZE
+
+    try:
+        return int(env_chunk)
+    except ValueError:
+        return DEFAULT_UPLOAD_CHUNK_SIZE

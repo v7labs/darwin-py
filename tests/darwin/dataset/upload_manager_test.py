@@ -1,4 +1,5 @@
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import pytest
 import responses
@@ -6,7 +7,12 @@ from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset import RemoteDataset
 from darwin.dataset.identifier import DatasetIdentifier
-from darwin.dataset.upload_manager import LocalFile, UploadHandler, UploadStage
+from darwin.dataset.upload_manager import (
+    LocalFile,
+    UploadHandler,
+    UploadStage,
+    _upload_chunk_size,
+)
 from tests.fixtures import *
 
 
@@ -245,3 +251,19 @@ def test_upload_files(dataset: RemoteDataset, request_upload_endpoint: str):
     responses.assert_call_count(confirm_upload_endpoint, 1)
 
     assert upload_handler.error_count == 0
+
+
+def describe_upload_chunk_size():
+    def default_value_when_env_var_is_not_set():
+        assert _upload_chunk_size() == 500
+
+    @patch("os.getenv", return_value="hello")
+    def default_value_when_env_var_is_not_integer(mock: MagicMock):
+        assert _upload_chunk_size() == 500
+        mock.assert_called_once_with("DARWIN_UPLOAD_CHUNK_SIZE")
+
+    @patch("os.getenv", return_value="123")
+    def value_specified_by_env_var(mock: MagicMock):
+        assert _upload_chunk_size() == 123
+        mock.assert_called_once_with("DARWIN_UPLOAD_CHUNK_SIZE")
+
