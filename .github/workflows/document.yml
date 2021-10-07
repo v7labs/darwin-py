@@ -42,4 +42,4 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: eu-west-1
       - name: Upload docs to S3
-        run: aws s3 cp docs/ s3://darwin-py-docs/ --recursive
+        run: aws s3 cp docs/ s3://darwin-py-sdk.v7labs.com/ --recursive
