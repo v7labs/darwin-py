@@ -104,7 +104,7 @@ class Client:
             Debugging flag. In this case failed requests get printed
         raw : bool
             Flag for returning raw response
-    
+
         Returns
         -------
         dict
@@ -123,7 +123,7 @@ class Client:
         if response.status_code != 200 and retry:
             if debug:
                 print(
-                    f"Client get request got response ({response.json()}) with unexpected status "
+                    f"Client GET request got response ({response.json()}) with unexpected status "
                     f"({response.status_code}). "
                     f"Client: ({self})"
                     f"Request: (endpoint={endpoint}, payload={payload})"
