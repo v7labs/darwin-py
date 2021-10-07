@@ -1,4 +1,5 @@
 import concurrent.futures
+import os
 import time
 from dataclasses import dataclass
 from enum import Enum
@@ -18,6 +19,7 @@ from typing import (
 import requests
 from darwin.path_utils import construct_full_path
 from darwin.utils import chunk
+from rich.console import Console
 
 if TYPE_CHECKING:
     from darwin.client import Client
@@ -201,7 +203,8 @@ class UploadHandler:
     def _request_upload(self) -> Tuple[List[ItemPayload], List[ItemPayload]]:
         blocked_items = []
         items = []
-        for file_chunk in chunk(self.local_files, 500):
+        chunk_size: int = _upload_chunk_size()
+        for file_chunk in chunk(self.local_files, chunk_size):
             upload_payload = {"items": [file.data for file in file_chunk]}
             data = self.client.put(
                 endpoint=f"/teams/{self.dataset_identifier.team_slug}/datasets/{self.dataset_identifier.dataset_slug}/data",
@@ -278,3 +281,28 @@ class UploadHandler:
             confirm_response.raise_for_status()
         except Exception as e:
             raise UploadRequestError(file_path=file_path, stage=UploadStage.CONFIRM_UPLOAD_COMPLETE, error=e)
+
+
+DEFAULT_UPLOAD_CHUNK_SIZE: int = 500
+
+
+def _upload_chunk_size() -> int:
+    """
+    Gets the chunk size to be used from the OS environment, or uses the default one if that is not
+    possible. The default chunk size is 500.
+
+    Returns
+    -------
+    int
+        The chunk size to be used.
+    """
+    env_chunk: Optional[str] = os.getenv("DARWIN_UPLOAD_CHUNK_SIZE")
+    if env_chunk is None:
+        return DEFAULT_UPLOAD_CHUNK_SIZE
+
+    try:
+        return int(env_chunk)
+    except ValueError:
+        print("Cannot cast environment variable DEFAULT_UPLOAD_CHUNK_SIZE to integer")
+        print(f"Setting chunk size to {DEFAULT_UPLOAD_CHUNK_SIZE}")
+        return DEFAULT_UPLOAD_CHUNK_SIZE
