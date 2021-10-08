@@ -33,6 +33,7 @@ from darwin.item import DatasetItem, parse_dataset_item
 from darwin.item_sorter import ItemSorter
 from darwin.utils import find_files, parse_darwin_json, split_video_annotation, urljoin
 from darwin.validators import name_taken, validation_error
+from rich.console import Console
 
 if TYPE_CHECKING:
     from darwin.client import Client
@@ -81,6 +82,7 @@ class RemoteDataset:
         self.progress = progress
         self.client = client
         self.annotation_types = None
+        self.console: Console = Console()
 
     def push(
         self,
@@ -282,12 +284,15 @@ class RemoteDataset:
         make_class_lists(release_dir)
 
         if release.latest and is_unix_like_os():
-            latest_dir: Path = self.local_releases_path / "latest"
-            if latest_dir.is_symlink():
-                latest_dir.unlink()
+            try:
+                latest_dir: Path = self.local_releases_path / "latest"
+                if latest_dir.is_symlink():
+                    latest_dir.unlink()
 
-            target_link: Path = self.local_releases_path / release_dir.name
-            latest_dir.symlink_to(target_link)
+                target_link: Path = self.local_releases_path / release_dir.name
+                latest_dir.symlink_to(target_link)
+            except OSError:
+                self.console.log(f"Could not mark release {release.name} as latest. Continuing...")
 
         if only_annotations:
             # No images will be downloaded
