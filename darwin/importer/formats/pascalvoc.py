@@ -8,6 +8,23 @@ import darwin.datatypes as dt
 def parse_file(path: Path) -> Optional[dt.AnnotationFile]:
     """
     Parses the given pascalvoc file and maybe returns the corresponding annotation.
+    The file must have the following structure:
+    
+    ```xml
+    <filename>SOME_FILE_NAME</filename>
+    <object>
+        <name>CLASS_NAME</name>
+        <bndbox>
+            <xmax>NUMBER</xmax>
+            <xmin>NUMBER</xmin>
+            <ymax>NUMBER</ymax>
+            <ymin>NUMBER</ymin>
+        </bndbox>
+    </object>
+    <object>
+        ...
+    </object>
+    ```
 
     Parameters
     --------
