@@ -33,6 +33,7 @@ from darwin.item import DatasetItem, parse_dataset_item
 from darwin.item_sorter import ItemSorter
 from darwin.utils import find_files, parse_darwin_json, split_video_annotation, urljoin
 from darwin.validators import name_taken, validation_error
+from rich.console import Console
 
 if TYPE_CHECKING:
     from darwin.client import Client
@@ -81,6 +82,7 @@ class RemoteDataset:
         self.progress = progress
         self.client = client
         self.annotation_types = None
+        self.console: Console = Console()
 
     def push(
         self,
@@ -290,7 +292,7 @@ class RemoteDataset:
                 target_link: Path = self.local_releases_path / release_dir.name
                 latest_dir.symlink_to(target_link)
             except OSError:
-                print("WARNING: Tried to create Symlink and failed. Continuing ...")
+                self.console.log("WARNING: Tried to create Symlink and failed. Continuing ...")
 
         if only_annotations:
             # No images will be downloaded
