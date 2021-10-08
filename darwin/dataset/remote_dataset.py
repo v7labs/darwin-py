@@ -292,7 +292,7 @@ class RemoteDataset:
                 target_link: Path = self.local_releases_path / release_dir.name
                 latest_dir.symlink_to(target_link)
             except OSError:
-                self.console.log("WARNING: Tried to create Symlink and failed. Continuing ...")
+                self.console.log(f"Could not mark release {release.name} as latest. Continuing...")
 
         if only_annotations:
             # No images will be downloaded
