@@ -1,9 +1,12 @@
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, List, Tuple, Union
+from typing import TYPE_CHECKING, Callable, List, Optional, Tuple, Union
 
 if TYPE_CHECKING:
     from darwin.client import Client
     from darwin.dataset import RemoteDataset
+
+from concurrent.futures import ThreadPoolExecutor
+from itertools import chain
 
 import darwin.datatypes as dt
 from darwin.utils import secure_continue_request
@@ -105,6 +108,7 @@ def import_annotations(
     importer: Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]],
     file_paths: List[Union[str, Path]],
     append: bool,
+    max_workers: Optional[int] = 4,
 ) -> None:
     """
     Imports the given given Annotations into the given Dataset.
@@ -120,6 +124,8 @@ def import_annotations(
         A list of `Path`'s or strings containing the Annotations we wish to import.
     append : bool
         If `True` appends the given annotations to the datasets. If `False` will override them.
+    max_workers: Optional[int]
+        The number of workers to be used when uploading the annnotations. Defaults to 4
 
     Returns
     -------
@@ -130,7 +136,6 @@ def import_annotations(
     ValueError
         If file_paths is not a list.
     """
-
     if not isinstance(file_paths, list):
         raise ValueError(f"file_paths must be a list of 'Path' or 'str'. Current value: {file_paths}")
 
@@ -205,19 +210,40 @@ def import_annotations(
     else:
         remote_classes = build_main_annotations_lookup_table(team_classes)
 
-    # Need to re parse the files since we didn't save the annotations in memory
-    for local_path in set(local_file.path for local_file in local_files):
-        parsed_files = importer(local_path)
-        if type(parsed_files) is not list:
-            parsed_files = [parsed_files]
-        # remove files missing on the server
-        missing_files = [missing_file.full_path for missing_file in local_files_missing_remotely]
-        parsed_files = [parsed_file for parsed_file in parsed_files if parsed_file.full_path not in missing_files]
-        for parsed_file in track(parsed_files):
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+
+        def get_parsed_files(local_path):
+            parsed_files = importer(local_path)
+            if type(parsed_files) is not list:
+                parsed_files = [parsed_files]
+            # remove files missing on the server
+            missing_files = [missing_file.full_path for missing_file in local_files_missing_remotely]
+            parsed_files = [parsed_file for parsed_file in parsed_files if parsed_file.full_path not in missing_files]
+            return parsed_files
+
+        def import_annotation(parsed_file):
             image_id = remote_files[parsed_file.full_path]
             _import_annotations(
-                dataset.client, image_id, remote_classes, attributes, parsed_file.annotations, dataset, append
+                dataset.client,
+                image_id,
+                remote_classes,
+                attributes,
+                parsed_file.annotations,
+                dataset,
+                append,
             )
+
+        print(f"Uploading annotations with {max_workers} workers")
+        data = set(local_file.path for local_file in local_files)
+        # let's get the files we need to process
+        stage = executor.map(get_parsed_files, data)
+        out = list(stage)
+        parsed_files = chain.from_iterable(out)
+        # we have to get the total size, so let's convert parsed_files to list
+        parsed_files = list(parsed_files)
+        # process the file
+        stage = track(executor.map(import_annotation, parsed_files), total=len(parsed_files))
+        list(stage)
 
 
 def _is_skeleton_class(the_class: dt.AnnotationClass) -> bool:
