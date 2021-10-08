@@ -29,7 +29,7 @@ class Config(object):
         except FileNotFoundError:
             return {}
 
-    def get(self, key: Union[str, List[str]], default: Optional[any] = None) -> Any:
+    def get(self, key: Union[str, List[str]], default: Optional[Any] = None) -> Any:
         """Gets value defined by key
 
         Args:
@@ -51,7 +51,7 @@ class Config(object):
             else:
                 key = keys
 
-    def put(self, key: Union[str, List[str]], value: any, save: bool = True):
+    def put(self, key: Union[str, List[str]], value: Any, save: bool = True):
         """Sets value for specified key
 
         Args:

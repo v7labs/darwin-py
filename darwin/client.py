@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterator, Optional, Union
 
 import requests
+from requests.models import Response
 
 from darwin.config import Config
 from darwin.dataset import RemoteDataset
@@ -109,7 +110,7 @@ class Client:
         dict
             Dictionary which contains the server response
         """
-        response = requests.put(urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team))
+        response: Response = requests.put(urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team))
 
         if response.status_code == 401:
             raise Unauthorized()
@@ -122,11 +123,12 @@ class Client:
         if response.status_code != 200 and retry:
             if debug:
                 print(
-                    f"Client get request response ({response.json()}) with unexpected status "
+                    f"Client GET request got response ({response.json()}) with unexpected status "
                     f"({response.status_code}). "
                     f"Client: ({self})"
                     f"Request: (endpoint={endpoint}, payload={payload})"
                 )
+
             time.sleep(10)
             return self.put(endpoint, payload=payload, retry=False)
 
