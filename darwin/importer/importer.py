@@ -108,7 +108,7 @@ def import_annotations(
     importer: Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]],
     file_paths: List[Union[str, Path]],
     append: bool,
-    max_workers: Optional[int] = 4,
+    max_workers: int = 4,
 ) -> None:
     """
     Imports the given given Annotations into the given Dataset.
@@ -234,15 +234,19 @@ def import_annotations(
             )
 
         print(f"Uploading annotations with {max_workers} workers")
+        # let's get the data we need
         data = set(local_file.path for local_file in local_files)
-        # let's get the files we need to process
+        # create our multi threading stage
         stage = executor.map(get_parsed_files, data)
+        # resolve the stage
         out = list(stage)
+        # out is a list of lists, we need to flat it
         parsed_files = chain.from_iterable(out)
-        # we have to get the total size, so let's convert parsed_files to list
+        # we also have to get the total size, so let's convert parsed_files to list
         parsed_files = list(parsed_files)
-        # process the file
+        # create our multi threading stage to import the annotations
         stage = track(executor.map(import_annotation, parsed_files), total=len(parsed_files))
+        # resolve the stage
         list(stage)
 
 
