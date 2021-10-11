@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Callable, Iterator, List, Optional, Set, Tuple, Union
 
 if TYPE_CHECKING:
     from darwin.client import Client
@@ -109,6 +109,7 @@ def import_annotations(
     file_paths: List[Union[str, Path]],
     append: bool,
     max_workers: int = 4,
+    force: bool = False,
 ) -> None:
     """
     Imports the given given Annotations into the given Dataset.
@@ -150,7 +151,6 @@ def import_annotations(
     local_files_missing_remotely = []
     parsed_files = list(find_and_parse(importer, file_paths))
     filenames = [parsed_file.filename for parsed_file in parsed_files]
-
     print("Fetching remote file list...")
     # This call will only filter by filename; so can return a superset of matched files across different paths
     # There is logic in this function to then include paths to narrow down to the single correct matching file
@@ -167,8 +167,9 @@ def import_annotations(
         for local_file in local_files_missing_remotely:
             print(f"\t{local_file.path}: '{local_file.full_path}'")
 
-        if not secure_continue_request():
-            return
+        if not force:
+            if not secure_continue_request():
+                return
 
     local_classes_not_in_dataset, local_classes_not_in_team = _resolve_annotation_classes(
         [annotation_class for file in local_files for annotation_class in file.annotation_classes],
@@ -212,7 +213,7 @@ def import_annotations(
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
 
-        def get_parsed_files(local_path):
+        def get_parsed_files(local_path: Path) -> List[Path]:
             parsed_files = importer(local_path)
             if type(parsed_files) is not list:
                 parsed_files = [parsed_files]
@@ -221,7 +222,7 @@ def import_annotations(
             parsed_files = [parsed_file for parsed_file in parsed_files if parsed_file.full_path not in missing_files]
             return parsed_files
 
-        def import_annotation(parsed_file):
+        def import_annotation(parsed_file: Path):
             image_id = remote_files[parsed_file.full_path]
             _import_annotations(
                 dataset.client,
@@ -234,20 +235,21 @@ def import_annotations(
             )
 
         print(f"Uploading annotations with {max_workers} workers")
-        # let's get the data we need
-        data = set(local_file.path for local_file in local_files)
-        # create our multi threading stage
-        stage = executor.map(get_parsed_files, data)
+        # let's get the file paths we need
+        paths: Set[Path] = set(local_file.path for local_file in local_files)
+        # create our multi threading stage to get the files we need to import
+        parsed_files_stage: Iterator = executor.map(get_parsed_files, paths)
         # resolve the stage
-        out = list(stage)
+        parsed_files: List[Path] = list(parsed_files_stage)
         # out is a list of lists, we need to flat it
-        parsed_files = chain.from_iterable(out)
-        # we also have to get the total size, so let's convert parsed_files to list
-        parsed_files = list(parsed_files)
+        # we also convert it to list because we need to know its len
+        parsed_files_flat: List[Path] = list(chain.from_iterable(parsed_files))
         # create our multi threading stage to import the annotations
-        stage = track(executor.map(import_annotation, parsed_files), total=len(parsed_files))
+        import_annotation_stage: Iterator = track(
+            executor.map(import_annotation, parsed_files_flat), total=len(parsed_files_flat)
+        )
         # resolve the stage
-        list(stage)
+        list(import_annotation_stage)
 
 
 def _is_skeleton_class(the_class: dt.AnnotationClass) -> bool:
