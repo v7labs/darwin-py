@@ -32,7 +32,7 @@ def describe__build_stems():
         assert str(e.value) == 'Unknown split type "unknown"'
 
     def stems_ending_with_spaces(team_dataset_release_path: Path, annotations_path: Path, split_path: Path):
-        resource_file = Path("tests") / "darwin" / "dataset" / "resources" / "random_train.txt"
+        resource_file = Path("tests") / "darwin" / "dataset" / "resources" / "random_train"
         copyfile(resource_file, split_path / "random_train.txt")
 
         stems = list(build_stems(team_dataset_release_path, annotations_path, "tag", split_path.name, "train"))
