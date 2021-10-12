@@ -20,8 +20,8 @@ def describe__build_stems():
         stems = list(build_stems(team_dataset_release_path, annotations_path, "tag", split_path.name))
 
         assert "1" in stems
-        assert "2/2" in stems
-        assert "test/3/3" in stems
+        assert "2/2" in stems or "2\\2" in stems
+        assert "test/3/3" in stems or "test\\3\\3" in stems
 
     def raise_value_error_if_split_type_is_unknown(
         team_dataset_release_path: Path, annotations_path: Path, split_path: Path
