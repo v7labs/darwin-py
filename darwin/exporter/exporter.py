@@ -1,7 +1,7 @@
 from pathlib import Path
-from typing import Callable, Generator, List, Union
+from typing import Callable, List, Union
 
-import darwin.datatypes as dt
+from darwin.datatypes import AnnotationFile
 from darwin.utils import parse_darwin_json, split_video_annotation
 
 
@@ -25,7 +25,7 @@ def darwin_to_dt_gen(file_paths):
 
 
 def export_annotations(
-    exporter: Callable[[Generator[dt.AnnotationFile, None, None], Path], None],
+    exporter: Callable[[Path], Union[List[AnnotationFile], AnnotationFile, None]],
     file_paths: List[Union[str, Path]],
     output_directory: Union[str, Path],
 ):

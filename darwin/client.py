@@ -1,7 +1,7 @@
 import os
 import time
 from pathlib import Path
-from typing import Any, Dict, Iterator, Optional, Union
+from typing import Any, Dict, Iterator, Optional, Union, Tuple
 
 import requests
 from requests.models import Response
@@ -27,7 +27,7 @@ class Client:
         self.base_url = config.get("global/base_url")
         self.default_team = default_team or config.get("global/default_team")
         self.features: dict = {}
-        self._newer_version = None
+        self._newer_version: Optional[Tuple[int, int, int]] = None
 
     def get(
         self, endpoint: str, team: Optional[str] = None, retry: bool = False, raw: bool = False, debug: bool = False
@@ -570,7 +570,7 @@ class Client:
             pass
 
     @property
-    def newer_darwin_version(self):
+    def newer_darwin_version(self) -> Optional[Tuple[int, int, int]]:
         return self._newer_version
 
     def __str__(self):

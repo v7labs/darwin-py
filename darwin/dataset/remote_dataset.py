@@ -551,7 +551,7 @@ class RemoteDataset:
             error_handlers=[name_taken, validation_error],
         )
 
-    def get_report(self, granularity="day"):
+    def get_report(self, granularity="day") -> str:
         return self.client.get(
             f"/reports/{self.team}/annotation?group_by=dataset,user&dataset_ids={self.dataset_id}&granularity={granularity}&format=csv&include=dataset.name,user.first_name,user.last_name,user.email",
             team=self.team,
