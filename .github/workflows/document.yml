@@ -1,6 +1,8 @@
 name: Documentation
 
-on: [push]
+on:
+  pull_request:
+    branches: master
 
 jobs:
   generate-docs:
