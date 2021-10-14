@@ -5,7 +5,7 @@ import os
 import sys
 from itertools import tee
 from pathlib import Path
-from typing import Dict, Iterator, List, NoReturn, Optional, Union
+from typing import Any, Dict, Iterator, List, NoReturn, Optional, Union
 from darwin.dataset.release import Release
 import humanize
 from rich.console import Console
@@ -336,9 +336,11 @@ def list_remote_datasets(all_teams: bool, team: Optional[str] = None) -> None:
     datasets: List[RemoteDataset] = []
     client: Optional[Client] = None
     if all_teams:
-        for team in _config().get_all_teams():
-            client = _load_client(team["slug"])
-            datasets += list(client.list_remote_datasets())
+        teams: List[Optional[Dict[str, Any]]] = _config().get_all_teams()
+        for a_team in teams:
+            if a_team:
+                client = _load_client(a_team["slug"])
+                datasets += list(client.list_remote_datasets())
     else:
         client = _load_client(team)
         datasets = list(client.list_remote_datasets())

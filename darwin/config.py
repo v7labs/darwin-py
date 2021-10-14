@@ -119,6 +119,6 @@ class Config(object):
                 return None
         return self.get_team(teams[0])
 
-    def get_all_teams(self):
+    def get_all_teams(self) -> List[Optional[Dict[str, Any]]]:
         teams = list(self.get("teams").keys())
         return [self.get_team(slug) for slug in teams]
