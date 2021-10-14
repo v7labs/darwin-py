@@ -31,6 +31,7 @@ from darwin.exceptions import NotFound, UnsupportedExportFormat
 from darwin.exporter.formats.darwin import build_image_annotation
 from darwin.item import DatasetItem, parse_dataset_item
 from darwin.item_sorter import ItemSorter
+from darwin.types import PathLike
 from darwin.utils import find_files, parse_darwin_json, split_video_annotation, urljoin
 from darwin.validators import name_taken, validation_error
 from rich.console import Console
@@ -86,13 +87,13 @@ class RemoteDataset:
 
     def push(
         self,
-        files_to_upload: Optional[List[Union[str, Path, LocalFile]]],
+        files_to_upload: Optional[List[Union[PathLike, LocalFile]]],
         *,
         blocking: bool = True,
         multi_threaded: bool = True,
         fps: int = 0,
         as_frames: bool = False,
-        files_to_exclude: Optional[List[Union[str, Path]]] = None,
+        files_to_exclude: Optional[List[PathLike]] = None,
         path: Optional[str] = None,
         preserve_folders: bool = False,
         progress_callback: Optional[ProgressCallback] = None,
@@ -102,14 +103,14 @@ class RemoteDataset:
 
         Parameters
         ----------
-        files_to_upload : Optional[List[Union[str, Path, LocalFile]]]
+        files_to_upload : Optional[List[Union[PathLike, LocalFile]]]
             List of files to upload. Those can be folders.
         blocking : bool
             If False, the dataset is not uploaded and a generator function is returned instead.
         multi_threaded : bool
             Uses multiprocessing to upload the dataset in parallel.
             If blocking is False this has no effect.
-        files_to_exclude : Optional[Union[str, Path]]]
+        files_to_exclude : Optional[PathLike]]
             Optional list of files to exclude from the file scan. Those can be folders.
         fps : int
             When the uploading file is a video, specify its framerate.
@@ -551,7 +552,7 @@ class RemoteDataset:
             error_handlers=[name_taken, validation_error],
         )
 
-    def get_report(self, granularity="day"):
+    def get_report(self, granularity="day") -> str:
         return self.client.get(
             f"/reports/{self.team}/annotation?group_by=dataset,user&dataset_ids={self.dataset_id}&granularity={granularity}&format=csv&include=dataset.name,user.first_name,user.last_name,user.email",
             team=self.team,

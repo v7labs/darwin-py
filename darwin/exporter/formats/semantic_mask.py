@@ -1,7 +1,7 @@
 import colorsys
 import os
 from pathlib import Path
-from typing import Generator, List
+from typing import Iterator, List
 
 import numpy as np
 from PIL import Image
@@ -11,7 +11,7 @@ import darwin.datatypes as dt
 from darwin.utils import convert_polygons_to_sequences, get_progress_bar, ispolygon
 
 
-def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_dir: Path, mode: str = "grey"):
+def export(annotation_files: Iterator[dt.AnnotationFile], output_dir: Path, mode: str = "grey") -> None:
     masks_dir = output_dir / "masks"
     masks_dir.mkdir(exist_ok=True, parents=True)
     annotation_files = list(annotation_files)

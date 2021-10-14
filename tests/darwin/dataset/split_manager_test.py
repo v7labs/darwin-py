@@ -1,7 +1,6 @@
 import sys
 
 import pytest
-
 from darwin.dataset.split_manager import split_dataset
 
 

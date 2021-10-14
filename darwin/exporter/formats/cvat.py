@@ -1,7 +1,7 @@
 import datetime
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import Generator
+from typing import Iterator
 
 import darwin.datatypes as dt
 
@@ -12,7 +12,7 @@ def add_subelement_text(parent, name, value):
     return sub
 
 
-def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_dir: Path):
+def export(annotation_files: Iterator[dt.AnnotationFile], output_dir: Path) -> None:
     output = build_xml(list(annotation_files))
     # TODO, maybe an optional output name (like the dataset name if available)
     output_file_path = (output_dir / "output").with_suffix(".xml")

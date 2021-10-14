@@ -86,8 +86,9 @@ class Options(object):
 
         parser_push.add_argument("--verbose", action="store_true", help="Flag to show upload details.")
 
-        parser_push.add_argument("-p", "--preserve-folders", action="store_true", help="Preserve the local folder structure in the dataset")
-
+        parser_push.add_argument(
+            "-p", "--preserve-folders", action="store_true", help="Preserve the local folder structure in the dataset"
+        )
 
         # Remove
         parser_remove = dataset_action.add_parser("remove", help="Remove a remote or remote and local dataset.")

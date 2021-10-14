@@ -3,10 +3,11 @@ from typing import Dict, Iterable, List, Optional, Union
 
 import numpy as np
 from darwin.dataset.utils import extract_classes, get_release_path
+from darwin.types import PathLike
 
 
 def split_dataset(
-    dataset_path: Union[Path, str],
+    dataset_path: PathLike,
     release_name: Optional[str] = None,
     val_percentage: float = 10,
     test_percentage: float = 20,

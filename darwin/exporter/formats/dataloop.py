@@ -1,4 +1,6 @@
 import json
+from pathlib import Path
+from typing import Iterator
 
 import numpy as np
 
@@ -17,7 +19,7 @@ class NumpyEncoder(json.JSONEncoder):
             return super(NumpyEncoder, self).default(obj)
 
 
-def export(annotation_files, output_dir):
+def export(annotation_files: Iterator[dt.AnnotationFile], output_dir: Path) -> None:
     for id, annotation_file in enumerate(annotation_files):
         export_file(annotation_file, id, output_dir)
 

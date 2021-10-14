@@ -1,8 +1,12 @@
 import json
 import xml.etree.ElementTree as ET
+from pathlib import Path
+from typing import Iterator
+
+import darwin.datatypes as dt
 
 
-def export(annotation_files, output_dir):
+def export(annotation_files: Iterator[dt.AnnotationFile], output_dir: Path) -> None:
     for annotation_file in annotation_files:
         export_file(annotation_file, output_dir)
 

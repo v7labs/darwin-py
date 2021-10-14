@@ -7,12 +7,14 @@ import darwin.datatypes as dt
 
 def parse_file(path: Path) -> Optional[dt.AnnotationFile]:
     if path.suffix != ".json":
-        return
+        return None
     with path.open() as f:
         data = json.load(f)
         annotations = list(filter(None, map(_parse_annotation, data["annotations"])))
         annotation_classes = set([annotation.annotation_class for annotation in annotations])
-        return dt.AnnotationFile(path, _remove_leading_slash(data["filename"]), annotation_classes, annotations, remote_path = "/")
+        return dt.AnnotationFile(
+            path, _remove_leading_slash(data["filename"]), annotation_classes, annotations, remote_path="/"
+        )
 
 
 def _remove_leading_slash(filename):
