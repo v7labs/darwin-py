@@ -40,7 +40,7 @@ with open(Path(__file__).parent.parent / "darwin" / "__init__.py", "r") as f:
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions: List[str] = ["sphinx.ext.viewcode", "sphinx.ext.napoleon"]
+extensions: List[str] = ["sphinx.ext.viewcode", "sphinx.ext.napoleon", "sphinx.ext.autodoc"]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path: List[str] = ["_templates"]
