@@ -25,9 +25,7 @@ def darwin_to_dt_gen(file_paths):
 
 
 def export_annotations(
-    exporter: ExportParser,
-    file_paths: List[PathLike],
-    output_directory: PathLike,
+    exporter: ExportParser, file_paths: List[PathLike], output_directory: PathLike,
 ):
     """Converts a set of files to a different annotation format"""
     exporter(darwin_to_dt_gen(file_paths), Path(output_directory))

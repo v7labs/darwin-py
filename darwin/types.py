@@ -1,7 +1,7 @@
-from typing import Dict, List, Tuple, Callable, Iterator, Union, Any
-from darwin.datatypes import AnnotationFile
 from pathlib import Path
+from typing import Any, Callable, Dict, Iterator, List, Tuple, Union
 
+from darwin.datatypes import AnnotationFile
 
 Point = Dict[str, float]
 BoundingBox = Dict[str, float]
