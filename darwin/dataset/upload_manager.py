@@ -236,10 +236,7 @@ class UploadHandler:
             self.errors.append(UploadRequestError(file_path=file_path, stage=UploadStage.OTHER, error=e))
 
     def _do_upload_file(
-        self,
-        dataset_item_id: int,
-        file_path: Path,
-        byte_read_callback: Optional[ByteReadCallback] = None,
+        self, dataset_item_id: int, file_path: Path, byte_read_callback: Optional[ByteReadCallback] = None,
     ):
         team_slug = self.dataset_identifier.team_slug
 

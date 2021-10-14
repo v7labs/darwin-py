@@ -5,7 +5,7 @@ import os
 import sys
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, NoReturn, Optional, Union
-from darwin.dataset.release import Release
+
 import humanize
 from rich.console import Console
 from rich.live import Live
@@ -19,15 +19,16 @@ from rich.progress import (
     TimeRemainingColumn,
     TransferSpeedColumn,
 )
-from darwin.item import DatasetItem
 from rich.table import Table
 from rich.theme import Theme
+
 import darwin.exporter as exporter
 import darwin.importer as importer
 from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset import RemoteDataset
 from darwin.dataset.identifier import DatasetIdentifier
+from darwin.dataset.release import Release
 from darwin.dataset.split_manager import split_dataset
 from darwin.dataset.upload_manager import LocalFile
 from darwin.dataset.utils import get_release_path
@@ -41,19 +42,23 @@ from darwin.exceptions import (
     UnsupportedFileType,
     ValidationError,
 )
+from darwin.exporter.formats import supported_formats as ExportSupportedFormats
+from darwin.importer.formats import supported_formats as ImportSupportedFormats
+from darwin.item import DatasetItem
+from darwin.types import (
+    ExporterFormat,
+    ExportParser,
+    ImporterFormat,
+    ImportParser,
+    PathLike,
+    Team,
+)
 from darwin.utils import (
     find_files,
     persist_client_configuration,
     prompt,
     secure_continue_request,
 )
-
-from darwin.types import ExportParser, ExporterFormat, ImportParser, ImporterFormat
-
-from darwin.importer.formats import supported_formats as ImportSupportedFormats
-from darwin.exporter.formats import supported_formats as ExportSupportedFormats
-
-from darwin.types import PathLike, Team
 
 
 def validate_api_key(api_key: str) -> None:
@@ -442,7 +447,7 @@ def upload_data(
     """
     client: Client = _load_client()
     try:
-        max_workers: int = concurrent.futures.ThreadPoolExecutor()._max_workers
+        max_workers: int = concurrent.futures.ThreadPoolExecutor()._max_workers  # type: ignore
 
         dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_identifier)
 

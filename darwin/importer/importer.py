@@ -34,8 +34,7 @@ def build_main_annotations_lookup_table(annotation_classes):
 
 
 def find_and_parse(
-    importer: Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]],
-    file_paths: List[PathLike],
+    importer: Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]], file_paths: List[PathLike],
 ) -> Tuple[List[dt.AnnotationFile], List[dt.AnnotationFile]]:
     # TODO: this could be done in parallel
     for file_path in map(Path, file_paths):
