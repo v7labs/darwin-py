@@ -3,9 +3,8 @@ import concurrent.futures
 import datetime
 import os
 import sys
-from itertools import tee
 from pathlib import Path
-from typing import Dict, Iterator, List, NoReturn, Optional, Union
+from typing import Any, Dict, Iterator, List, NoReturn, Optional, Union
 from darwin.dataset.release import Release
 import humanize
 from rich.console import Console
@@ -515,13 +514,13 @@ def upload_data(
             console.print(f"All {upload_manager.total_count} files have been successfully uploaded.\n", style="success")
             return
 
-        already_existing_items, other_skipped_items = tee(
-            (item.reason == "ALREADY_EXISTS", item) for item in upload_manager.blocked_items
-        )
-        already_existing_items, other_skipped_items = (
-            list(item for condition, item in already_existing_items if condition),
-            list(item for condition, item in other_skipped_items if not condition),
-        )
+        already_existing_items = []
+        other_skipped_items = []
+        for item in upload_manager.blocked_items:
+            if item.reason == "ALREADY_EXISTS":
+                already_existing_items.append(item)
+            else:
+                other_skipped_items.append(item)
 
         if already_existing_items:
             console.print(
@@ -598,7 +597,7 @@ def list_files(
     client: Client = _load_client(dataset_identifier=dataset_slug)
     try:
         dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
-        filters: Dict[str, str] = {}
+        filters: Dict[str, Any] = {}
 
         if statuses:
             for status in statuses.split(","):
