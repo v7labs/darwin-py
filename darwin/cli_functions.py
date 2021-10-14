@@ -5,7 +5,7 @@ import os
 import sys
 from itertools import tee
 from pathlib import Path
-from typing import Callable, Dict, Iterator, List, NoReturn, Optional, Union, Tuple
+from typing import Dict, Iterator, List, NoReturn, Optional, Union
 from darwin.dataset.release import Release
 import humanize
 from rich.console import Console
@@ -23,11 +23,8 @@ from rich.progress import (
 from darwin.item import DatasetItem
 from rich.table import Table
 from rich.theme import Theme
-from darwin.datatypes import AnnotationFile
 import darwin.exporter as exporter
-import darwin.exporter.formats
 import darwin.importer as importer
-import darwin.importer.formats
 from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset import RemoteDataset
@@ -52,6 +49,11 @@ from darwin.utils import (
     secure_continue_request,
 )
 
+from darwin.types import ExportParser, ExporterFormat, ImportParser, ImporterFormat
+
+from darwin.importer.formats import supported_formats as ImportSupportedFormats
+from darwin.exporter.formats import supported_formats as ExportSupportedFormats
+
 
 def validate_api_key(api_key: str) -> None:
     example_key = "DHMhAWr.BHucps-tKMAi6rWF1xieOpUvNe5WzrHP"
@@ -75,8 +77,8 @@ def authenticate(api_key: str, default_team: Optional[bool] = None, datasets_dir
         API key to use for the client login
     default_team: bool
         Flag to make the team the default one
-    datasets_dir: Path
-        Dataset directory on the file system
+    datasets_dir: Optional[Path]
+        Dataset directory on the file system. Defaults to None.
 
     Returns
     -------
@@ -95,15 +97,15 @@ def authenticate(api_key: str, default_team: Optional[bool] = None, datasets_dir
         if default_team is None:
             default_team = input(f"Make {client.default_team} the default team? [y/N] ") in ["Y", "y"]
         if datasets_dir is None:
-            datasets_dir = prompt("Datasets directory", "~/.darwin/datasets")
+            datasets_dir = Path(prompt("Datasets directory", "~/.darwin/datasets"))
 
         datasets_dir = Path(datasets_dir).expanduser()
         Path(datasets_dir).mkdir(parents=True, exist_ok=True)
 
         client.set_datasets_dir(datasets_dir)
 
-        default_team = client.default_team if default_team else None
-        return persist_client_configuration(client, default_team=default_team)
+        default_team_name: Optional[str] = client.default_team if default_team else None
+        return persist_client_configuration(client, default_team=default_team_name)
 
     except InvalidLogin:
         _error("Invalid API key")
@@ -520,13 +522,15 @@ def upload_data(
 
         if already_existing_items:
             console.print(
-                f"Skipped {len(already_existing_items)} files already in the dataset.\n", style="warning",
+                f"Skipped {len(already_existing_items)} files already in the dataset.\n",
+                style="warning",
             )
 
         if upload_manager.error_count or other_skipped_items:
             error_count = upload_manager.error_count + len(other_skipped_items)
             console.print(
-                f"{error_count} files couldn't be uploaded because an error occurred.\n", style="error",
+                f"{error_count} files couldn't be uploaded because an error occurred.\n",
+                style="error",
             )
 
         if not verbose and upload_manager.error_count:
@@ -572,9 +576,7 @@ def upload_data(
 
 def dataset_import(dataset_slug, format, files, append) -> None:
     client: Client = _load_client(dataset_identifier=dataset_slug)
-    parser: Callable[[Path], Union[List[AnnotationFile], AnnotationFile, None]] = find_supported_format(
-        format, darwin.importer.formats.supported_formats
-    )
+    parser: ImportParser = find_import_supported_format(format, ImportSupportedFormats)
 
     try:
         dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
@@ -641,22 +643,31 @@ def set_file_status(dataset_slug: str, status: str, files: List[str]) -> None:
         _error(f"No dataset with name '{e.name}'")
 
 
-def find_supported_format(
+def find_import_supported_format(
     query: str,
-    supported_formats: List[Tuple[str, Callable[[Path], Union[List[AnnotationFile], AnnotationFile, None]]]],
-) -> Callable[[Path], Union[List[AnnotationFile], AnnotationFile, None]]:
+    supported_formats: List[ImporterFormat],
+) -> ImportParser:
     for (fmt, fmt_parser) in supported_formats:
         if fmt == query:
             return fmt_parser
     list_of_formats = ", ".join([fmt for fmt, _ in supported_formats])
-    _error(f"Unsupported format, currently supported: {list_of_formats}")
+    _error(f"Unsupported import format, currently supported: {list_of_formats}")
+
+
+def find_export_supported_format(
+    query: str,
+    supported_formats: List[ExporterFormat],
+) -> ExportParser:
+    for (fmt, fmt_parser) in supported_formats:
+        if fmt == query:
+            return fmt_parser
+    list_of_formats = ", ".join([fmt for fmt, _ in supported_formats])
+    _error(f"Unsupported export format, currently supported: {list_of_formats}")
 
 
 def dataset_convert(dataset_slug: str, format: str, output_dir: Union[str, Path, None] = None) -> None:
     client: Client = _load_client()
-    parser: Callable[[Path], Union[List[AnnotationFile], AnnotationFile, None]] = find_supported_format(
-        format, darwin.exporter.formats.supported_formats
-    )
+    parser: ExportParser = find_export_supported_format(format, ExportSupportedFormats)
 
     try:
         dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
@@ -679,9 +690,7 @@ def dataset_convert(dataset_slug: str, format: str, output_dir: Union[str, Path,
 
 
 def convert(format: str, files: List[Union[str, Path]], output_dir: Path) -> None:
-    parser: Callable[[Path], Union[List[AnnotationFile], AnnotationFile, None]] = find_supported_format(
-        format, darwin.exporter.formats.supported_formats
-    )
+    parser: ExportParser = find_export_supported_format(format, ExportSupportedFormats)
     exporter.export_annotations(parser, files, output_dir)
 
 
@@ -758,8 +767,8 @@ def _console_theme() -> Theme:
     return Theme({"success": "bold green", "warning": "bold yellow", "error": "bold red"})
 
 
-def print_new_version_info(client: Client) -> None:
-    if client and not client.newer_darwin_version:
+def print_new_version_info(client: Optional[Client]) -> None:
+    if not client or not client.newer_darwin_version:
         return
 
     (a, b, c) = tuple(client.newer_darwin_version)

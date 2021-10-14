@@ -7,7 +7,7 @@ import darwin.datatypes as dt
 
 def parse_file(path: Path) -> Optional[dt.AnnotationFile]:
     if path.suffix != ".json":
-        return
+        return None
     with path.open() as f:
         data = json.load(f)
         annotations = list(filter(None, map(_parse_annotation, data["annotations"])))

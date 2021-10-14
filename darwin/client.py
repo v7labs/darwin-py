@@ -1,7 +1,7 @@
 import os
 import time
 from pathlib import Path
-from typing import Any, Dict, Iterator, Optional, Union, Tuple
+from typing import Any, Dict, Iterator, Optional, Union
 
 import requests
 from requests.models import Response
@@ -16,6 +16,7 @@ from darwin.exceptions import (
     NotFound,
     Unauthorized,
 )
+from darwin.types import DarwinVersionNumber
 from darwin.utils import is_project_dir, urljoin
 from darwin.validators import name_taken, validation_error
 
@@ -27,7 +28,7 @@ class Client:
         self.base_url = config.get("global/base_url")
         self.default_team = default_team or config.get("global/default_team")
         self.features: dict = {}
-        self._newer_version: Optional[Tuple[int, int, int]] = None
+        self._newer_version: Optional[DarwinVersionNumber] = None
 
     def get(
         self, endpoint: str, team: Optional[str] = None, retry: bool = False, raw: bool = False, debug: bool = False
@@ -570,7 +571,7 @@ class Client:
             pass
 
     @property
-    def newer_darwin_version(self) -> Optional[Tuple[int, int, int]]:
+    def newer_darwin_version(self) -> Optional[DarwinVersionNumber]:
         return self._newer_version
 
     def __str__(self):
