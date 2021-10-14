@@ -6,6 +6,7 @@ if TYPE_CHECKING:
     from darwin.dataset import RemoteDataset
 
 import darwin.datatypes as dt
+from darwin.types import PathLike
 from darwin.utils import secure_continue_request
 from rich.progress import track
 
@@ -34,7 +35,7 @@ def build_main_annotations_lookup_table(annotation_classes):
 
 def find_and_parse(
     importer: Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]],
-    file_paths: List[Union[str, Path]],
+    file_paths: List[PathLike],
 ) -> Tuple[List[dt.AnnotationFile], List[dt.AnnotationFile]]:
     # TODO: this could be done in parallel
     for file_path in map(Path, file_paths):
@@ -103,7 +104,7 @@ def _resolve_annotation_classes(
 def import_annotations(
     dataset: "RemoteDataset",
     importer: Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]],
-    file_paths: List[Union[str, Path]],
+    file_paths: List[PathLike],
     append: bool,
 ) -> None:
     """
@@ -116,7 +117,7 @@ def import_annotations(
     importer : Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]]
         Parsing module containing the logic to parse the given Annotation files given in
         `files_path`. See `importer/format` for a list of out of supported parsers.
-    file_paths : List[Union[str, Path]]
+    file_paths : List[PathLike]
         A list of `Path`'s or strings containing the Annotations we wish to import.
     append : bool
         If `True` appends the given annotations to the datasets. If `False` will override them.

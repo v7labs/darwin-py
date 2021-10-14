@@ -1,7 +1,7 @@
 from pathlib import Path
-from typing import List, Union
+from typing import List
 
-from darwin.types import ExportParser
+from darwin.types import ExportParser, PathLike
 from darwin.utils import parse_darwin_json, split_video_annotation
 
 
@@ -26,8 +26,8 @@ def darwin_to_dt_gen(file_paths):
 
 def export_annotations(
     exporter: ExportParser,
-    file_paths: List[Union[str, Path]],
-    output_directory: Union[str, Path],
+    file_paths: List[PathLike],
+    output_directory: PathLike,
 ):
     """Converts a set of files to a different annotation format"""
     exporter(darwin_to_dt_gen(file_paths), Path(output_directory))

@@ -9,6 +9,7 @@ import darwin.datatypes as dt
 import numpy as np
 from darwin.exceptions import NotFound
 from darwin.importer.formats.darwin import parse_file
+from darwin.types import PathLike
 from darwin.utils import (
     SUPPORTED_EXTENSIONS,
     SUPPORTED_VIDEO_EXTENSIONS,
@@ -121,7 +122,7 @@ def make_class_lists(release_path: Path):
 
 
 def get_classes(
-    dataset_path: Union[Path, str],
+    dataset_path: PathLike,
     release_name: Optional[str] = None,
     annotation_type: str = "polygon",
     remove_background: bool = True,
@@ -258,7 +259,7 @@ def get_coco_format_record(
 
 
 def get_annotations(
-    dataset_path: Union[Path, str],
+    dataset_path: PathLike,
     partition: Optional[str] = None,
     split: Optional[str] = "default",
     split_type: Optional[str] = None,
@@ -522,8 +523,7 @@ def compute_distributions(
 # https://github.com/python/cpython/blob/main/Lib/pathlib.py#L812
 # TODO implemented here because it's not supported in Pythton < 3.9
 def is_relative_to(path: Path, *other) -> bool:
-    """Return True if the path is relative to another path or False.
-    """
+    """Return True if the path is relative to another path or False."""
     try:
         path.relative_to(*other)
         return True

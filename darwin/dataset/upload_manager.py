@@ -18,6 +18,7 @@ from typing import (
 
 import requests
 from darwin.path_utils import construct_full_path
+from darwin.types import PathLike
 from darwin.utils import chunk
 from rich.console import Console
 
@@ -40,7 +41,7 @@ class ItemPayload:
 
 
 class LocalFile:
-    def __init__(self, local_path: Union[str, Path], **kwargs):
+    def __init__(self, local_path: PathLike, **kwargs):
         self.local_path = Path(local_path)
         self.data = kwargs
         self._type_check(kwargs)
@@ -65,7 +66,7 @@ class FileMonitor(object):
     ----------
     bytes_read: int
       Amount of bytes read from the IO.
-    len: int         
+    len: int
         Total size of the IO.
     io: BinaryIO
         IO object used by this class. Depency injection.
@@ -235,7 +236,10 @@ class UploadHandler:
             self.errors.append(UploadRequestError(file_path=file_path, stage=UploadStage.OTHER, error=e))
 
     def _do_upload_file(
-        self, dataset_item_id: int, file_path: Path, byte_read_callback: Optional[ByteReadCallback] = None,
+        self,
+        dataset_item_id: int,
+        file_path: Path,
+        byte_read_callback: Optional[ByteReadCallback] = None,
     ):
         team_slug = self.dataset_identifier.team_slug
 

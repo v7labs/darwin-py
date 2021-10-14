@@ -5,7 +5,7 @@ import os
 import sys
 from itertools import tee
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, NoReturn, Optional, Union
+from typing import Dict, Iterator, List, NoReturn, Optional, Union
 from darwin.dataset.release import Release
 import humanize
 from rich.console import Console
@@ -54,6 +54,8 @@ from darwin.types import ExportParser, ExporterFormat, ImportParser, ImporterFor
 from darwin.importer.formats import supported_formats as ImportSupportedFormats
 from darwin.exporter.formats import supported_formats as ExportSupportedFormats
 
+from darwin.types import PathLike, Team
+
 
 def validate_api_key(api_key: str) -> None:
     example_key = "DHMhAWr.BHucps-tKMAi6rWF1xieOpUvNe5WzrHP"
@@ -75,7 +77,7 @@ def authenticate(api_key: str, default_team: Optional[bool] = None, datasets_dir
     ----------
     api_key : str
         API key to use for the client login
-    default_team: bool
+    default_team: Optional[bool]
         Flag to make the team the default one
     datasets_dir: Optional[Path]
         Dataset directory on the file system. Defaults to None.
@@ -203,7 +205,7 @@ def url(dataset_slug: str) -> None:
         _error(f"Dataset '{e.name}' does not exist.")
 
 
-def dataset_report(dataset_slug: str, granularity) -> None:
+def dataset_report(dataset_slug: str, granularity: str) -> None:
     """Prints the url of the specified dataset"""
     client: Client = _load_client(offline=True)
     try:
@@ -215,7 +217,7 @@ def dataset_report(dataset_slug: str, granularity) -> None:
 
 
 def export_dataset(
-    dataset_slug: str, include_url_token: bool, name: str, annotation_class_ids: Optional[List] = None
+    dataset_slug: str, include_url_token: bool, name: str, annotation_class_ids: Optional[List[str]] = None
 ) -> None:
     """Create a new release for the dataset
 
@@ -336,11 +338,10 @@ def list_remote_datasets(all_teams: bool, team: Optional[str] = None) -> None:
     datasets: List[RemoteDataset] = []
     client: Optional[Client] = None
     if all_teams:
-        teams: List[Optional[Dict[str, Any]]] = _config().get_all_teams()
+        teams: List[Team] = _config().get_all_teams()
         for a_team in teams:
-            if a_team:
-                client = _load_client(a_team["slug"])
-                datasets += list(client.list_remote_datasets())
+            client = _load_client(a_team["slug"])
+            datasets += list(client.list_remote_datasets())
     else:
         client = _load_client(team)
         datasets = list(client.list_remote_datasets())
@@ -401,8 +402,8 @@ def dataset_list_releases(dataset_slug: str) -> None:
 
 def upload_data(
     dataset_identifier: str,
-    files: Optional[List[Union[str, Path, LocalFile]]],
-    files_to_exclude: Optional[List[Union[str, Path]]],
+    files: Optional[List[Union[PathLike, LocalFile]]],
+    files_to_exclude: Optional[List[PathLike]],
     fps: int,
     path: Optional[str],
     frames: bool,
@@ -416,9 +417,9 @@ def upload_data(
     ----------
     dataset_identifier : str
         Slug of the dataset to retrieve.
-    files : List[Union[str, Path, LocalFile]]
+    files : List[Union[PathLike, LocalFile]]
         List of files to upload. Can be None.
-    files_to_exclude : List[Union[str, Path]]
+    files_to_exclude : List[PathLike]
         List of files to exclude from the file scan (which is done only if files is None).
     fps : int
         Frame rate to split videos in.
@@ -667,7 +668,7 @@ def find_export_supported_format(
     _error(f"Unsupported export format, currently supported: {list_of_formats}")
 
 
-def dataset_convert(dataset_slug: str, format: str, output_dir: Union[str, Path, None] = None) -> None:
+def dataset_convert(dataset_slug: str, format: str, output_dir: Optional[PathLike] = None) -> None:
     client: Client = _load_client()
     parser: ExportParser = find_export_supported_format(format, ExportSupportedFormats)
 
@@ -691,12 +692,12 @@ def dataset_convert(dataset_slug: str, format: str, output_dir: Union[str, Path,
         _error(f"No dataset with name '{e.name}'")
 
 
-def convert(format: str, files: List[Union[str, Path]], output_dir: Path) -> None:
+def convert(format: str, files: List[PathLike], output_dir: Path) -> None:
     parser: ExportParser = find_export_supported_format(format, ExportSupportedFormats)
     exporter.export_annotations(parser, files, output_dir)
 
 
-def help(parser, subparser: Optional[str] = None) -> None:
+def help(parser: argparse.ArgumentParser, subparser: Optional[str] = None) -> None:
     if subparser:
         parser = next(
             action.choices[subparser]

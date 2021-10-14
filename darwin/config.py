@@ -1,16 +1,17 @@
 import io
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, List, Optional, Union
 
 import yaml
 
 from darwin.exceptions import InvalidTeam
+from darwin.types import PathLike, Team
 
 
 class Config(object):
     """Handles YAML configuration files"""
 
-    def __init__(self, path: Optional[Union[Path, str]] = None):
+    def __init__(self, path: Optional[PathLike] = None):
         """
         If path is None the config will be in memory only
         """
@@ -92,7 +93,7 @@ class Config(object):
         if default_team:
             self.put("global/default_team", default_team)
 
-    def get_team(self, team: Optional[str] = None, raise_on_invalid_team: bool = True) -> Optional[Dict[str, Any]]:
+    def get_team(self, team: Optional[str] = None, raise_on_invalid_team: bool = True) -> Optional[Team]:
         if not team:
             return self.get_default_team(raise_on_invalid_team=raise_on_invalid_team)
 
@@ -119,6 +120,12 @@ class Config(object):
                 return None
         return self.get_team(teams[0])
 
-    def get_all_teams(self) -> List[Optional[Dict[str, Any]]]:
+    def get_all_teams(self) -> List[Team]:
         teams = list(self.get("teams").keys())
-        return [self.get_team(slug) for slug in teams]
+        teams_data: List[Team] = []
+        for slug in teams:
+            the_team_data = self.get_team(slug)
+            if the_team_data:
+                teams_data.append(the_team_data)
+
+        return teams_data

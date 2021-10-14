@@ -11,6 +11,8 @@ import darwin.datatypes as dt
 from darwin.config import Config
 from darwin.exceptions import OutdatedDarwinJSONFormat, UnsupportedFileType
 
+from darwin.types import PathLike
+
 if TYPE_CHECKING:
     from darwin.client import Client
 
@@ -88,17 +90,15 @@ def prompt(msg: str, default: Optional[str] = None) -> str:
     return result
 
 
-def find_files(
-    files: List[Union[str, Path]], *, files_to_exclude: List[Union[str, Path]] = [], recursive: bool = True
-) -> List[Path]:
+def find_files(files: List[PathLike], *, files_to_exclude: List[PathLike] = [], recursive: bool = True) -> List[Path]:
     """Retrieve a list of all files belonging to supported extensions. The exploration can be made
     recursive and a list of files can be excluded if desired.
 
     Parameters
     ----------
-    files: List[Union[str, Path]
+    files: List[PathLike]
         List of files that will be filtered with the supported file extensions and returned.
-    files_to_exclude : List[Union[str, Path]
+    files_to_exclude : List[PathLike]
         List of files to exclude from the search.
     recursive : bool
         Flag for recursive search.
@@ -127,7 +127,7 @@ def find_files(
 def secure_continue_request() -> bool:
     """
     Asks for explicit approval from the user. Empty string not accepted
-    
+
     Returns
     -------
     bool
@@ -171,7 +171,7 @@ def get_local_filename(metadata: dict):
 
 def parse_darwin_json(path: Path, count: Optional[int]) -> Optional[dt.AnnotationFile]:
     """
-    Parses the given JSON file in v7's darwin proprietary format. Works for images, split frame 
+    Parses the given JSON file in v7's darwin proprietary format. Works for images, split frame
     videos (treated as images) and playback videos.
 
     Parameters
@@ -187,7 +187,7 @@ def parse_darwin_json(path: Path, count: Optional[int]) -> Optional[dt.Annotatio
         An AnnotationFile with the information from the parsed JSON file, or None, if there were no
         annotations in the JSON.
 
-    Raises 
+    Raises
     ------
     OutdatedDarwinJSONFormat
         If the given darwin video JSON file is missing the 'width' and 'height' keys in the 'image'
@@ -540,7 +540,7 @@ def chunk(items, size):
 
 def is_unix_like_os() -> bool:
     """
-    Returns True if the executing OS is Unix-based (Ubuntu or MacOS, for example) or False 
+    Returns True if the executing OS is Unix-based (Ubuntu or MacOS, for example) or False
     otherwise.
 
     Returns
