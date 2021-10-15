@@ -3,7 +3,6 @@ __all__ = ["main"]
 import getpass
 import os
 from argparse import ArgumentParser, Namespace
-from typing import Any
 
 import requests.exceptions
 
@@ -13,7 +12,7 @@ from darwin.exceptions import InvalidTeam, Unauthenticated, Unauthorized
 from darwin.options import Options
 
 
-def main() -> Any:
+def main() -> None:
     args, parser = Options().parse_args()
     try:
         _run(args, parser)
@@ -27,9 +26,10 @@ def main() -> Any:
         f._error("Darwin seems unreachable, please try again in a minute or contact support.")
 
 
-def _run(args: Namespace, parser: ArgumentParser) -> Any:
+def _run(args: Namespace, parser: ArgumentParser) -> None:
     if args.command == "help":
         f.help(parser)
+
     # Authenticate user
     if args.command == "authenticate":
         api_key = os.getenv("DARWIN_API_KEY")
