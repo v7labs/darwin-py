@@ -101,12 +101,39 @@ def make_tag(class_name: str, subs: Optional[List[SubAnnotation]] = None):
     return Annotation(AnnotationClass(class_name, "tag"), {}, subs or [])
 
 
-def make_polygon(class_name: str, point_path: List[Point], subs: Optional[List[SubAnnotation]] = None):
-    return Annotation(AnnotationClass(class_name, "polygon"), {"path": point_path}, subs or [])
+def make_polygon(
+    class_name: str, point_path: List[Point], bounding_box: Optional[Dict], subs: Optional[List[SubAnnotation]] = None
+):
+    data: Dict[str, Any] = {"path": point_path}
+
+    if bounding_box:
+        data["bounding_box"] = {
+            "x": bounding_box["x"],
+            "y": bounding_box["y"],
+            "w": bounding_box["w"],
+            "h": bounding_box["h"],
+        }
+
+    return Annotation(AnnotationClass(class_name, "polygon"), data, subs or [])
 
 
-def make_complex_polygon(class_name: str, point_paths: List[List[Point]], subs: Optional[List[SubAnnotation]] = None):
-    return Annotation(AnnotationClass(class_name, "complex_polygon", "polygon"), {"paths": point_paths}, subs or [])
+def make_complex_polygon(
+    class_name: str,
+    point_paths: List[List[Point]],
+    bounding_box: Optional[Dict],
+    subs: Optional[List[SubAnnotation]] = None,
+):
+    data: Dict[str, Any] = {"paths": point_paths}
+
+    if bounding_box:
+        data["bounding_box"] = {
+            "x": bounding_box["x"],
+            "y": bounding_box["y"],
+            "w": bounding_box["w"],
+            "h": bounding_box["h"],
+        }
+
+    return Annotation(AnnotationClass(class_name, "complex_polygon", "polygon"), data, subs or [])
 
 
 def make_keypoint(class_name: str, x: float, y: float, subs: Optional[List[SubAnnotation]] = None):
