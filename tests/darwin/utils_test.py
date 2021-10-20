@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock, patch
 
-from darwin.datatypes import AnnotationFile
+import darwin.datatypes as dt
 from darwin.utils import (
     is_extension_allowed,
     is_image_extension_allowed,
@@ -114,7 +114,7 @@ def describe_parse_darwin_json():
         import_file = directory / "darwin-file.json"
         import_file.write_text(content)
 
-        annotation_file: AnnotationFile = parse_darwin_json(import_file, None)
+        annotation_file: dt.AnnotationFile = parse_darwin_json(import_file, None)
 
         assert annotation_file.path == import_file
         assert annotation_file.filename == "P49-RediPad-ProPlayLEFTY_442.jpg"
@@ -131,7 +131,7 @@ def describe_parse_darwin_json():
 
     def it_parses_darwin_videos_correctly(tmp_path):
         content = """
-       {
+        {
             "dataset": "my-dataset",
             "image": {
                 "width": 3840,
@@ -149,48 +149,48 @@ def describe_parse_darwin_json():
             },
             "annotations": [
                 {
-                "frames": {
-                    "3": {
-                    "bounding_box": {
-                        "h": 547.0,
-                        "w": 400.0,
-                        "x": 363.0,
-                        "y": 701.0
-                    },
-                    "instance_id": {
-                        "value": 119
-                    },
-                    "keyframe": true,
-                    "polygon": {
-                        "path": [
-                        {
-                            "x": 748.0,
-                            "y": 732.0
-                        },
-                        {
-                            "x": 751.0,
-                            "y": 735.0
-                        },
-                        {
-                            "x": 748.0,
-                            "y": 733.0
+                    "frames": {
+                        "3": {
+                            "bounding_box": {
+                                "h": 547.0,
+                                "w": 400.0,
+                                "x": 363.0,
+                                "y": 701.0
+                            },
+                            "instance_id": {
+                                "value": 119
+                            },
+                            "keyframe": true,
+                            "polygon": {
+                                "path": [
+                                    {
+                                        "x": 748.0,
+                                        "y": 732.0
+                                    },
+                                    {
+                                        "x": 751.0,
+                                        "y": 735.0
+                                    },
+                                    {
+                                        "x": 748.0,
+                                        "y": 733.0
+                                    }
+                                ]
+                            }
                         }
+                    },
+                    "interpolate_algorithm": "linear-1.1",
+                    "interpolated": true,
+                    "name": "Hand",
+                    "segments": [
+                        [
+                            3,
+                            46
                         ]
-                    }
-                    }
-                },
-                "interpolate_algorithm": "linear-1.1",
-                "interpolated": true,
-                "name": "Hand",
-                "segments": [
-                    [
-                    3,
-                    46
                     ]
-                ]
                 }
             ]
-            }
+        }
         """
 
         directory = tmp_path / "imports"
@@ -198,7 +198,7 @@ def describe_parse_darwin_json():
         import_file = directory / "darwin-file.json"
         import_file.write_text(content)
 
-        annotation_file: AnnotationFile = parse_darwin_json(import_file, None)
+        annotation_file: dt.AnnotationFile = parse_darwin_json(import_file, None)
 
         assert annotation_file.path == import_file
         assert annotation_file.filename == "above tractor.mp4"
@@ -212,6 +212,29 @@ def describe_parse_darwin_json():
         assert not annotation_file.seq
         assert annotation_file.frame_urls == ["https://my-website.com/api/videos/209/frames/0"]
         assert annotation_file.remote_path == "/"
+
+        assert annotation_file.annotations == [
+            dt.VideoAnnotation(
+                annotation_class=dt.AnnotationClass(
+                    name="Hand", annotation_type="polygon", annotation_internal_type=None
+                ),
+                frames={
+                    3: dt.Annotation(
+                        annotation_class=dt.AnnotationClass(
+                            name="Hand", annotation_type="polygon", annotation_internal_type=None
+                        ),
+                        data={
+                            "path": [{"x": 748.0, "y": 732.0}, {"x": 751.0, "y": 735.0}, {"x": 748.0, "y": 733.0}],
+                            "bounding_box": {"x": 363.0, "y": 701.0, "w": 400.0, "h": 547.0},
+                        },
+                        subs=[dt.SubAnnotation(annotation_type="instance_id", data=119)],
+                    )
+                },
+                keyframes={3: True},
+                segments=[[3, 46]],
+                interpolated=True,
+            )
+        ]
 
     def it_returns_None_if_no_annotations_exist(tmp_path):
         content = """
@@ -232,7 +255,7 @@ def describe_parse_darwin_json():
         import_file = directory / "darwin-file.json"
         import_file.write_text(content)
 
-        annotation_file: AnnotationFile = parse_darwin_json(import_file, None)
+        annotation_file: dt.AnnotationFile = parse_darwin_json(import_file, None)
 
         assert not annotation_file
 
@@ -260,11 +283,11 @@ def describe_parse_darwin_json():
         import_file = directory / "darwin-file.json"
         import_file.write_text(content)
 
-        annotation_file: AnnotationFile = parse_darwin_json(import_file, None)
+        annotation_file: dt.AnnotationFile = parse_darwin_json(import_file, None)
 
         assert annotation_file.remote_path == "/"
 
-    def it_imports_a_skeleteton(tmp_path):
+    def it_imports_a_skeleton(tmp_path):
         content = """
             {
                 "dataset": "cars",
@@ -325,7 +348,7 @@ def describe_parse_darwin_json():
         import_file = directory / "darwin-file.json"
         import_file.write_text(content)
 
-        annotation_file: AnnotationFile = parse_darwin_json(import_file, None)
+        annotation_file: dt.AnnotationFile = parse_darwin_json(import_file, None)
 
         assert annotation_file.annotations[0].annotation_class.annotation_type == "polygon"
         assert annotation_file.annotations[1].annotation_class.annotation_type == "skeleton"
@@ -422,7 +445,7 @@ def describe_parse_darwin_json():
         import_file = directory / "darwin-file.json"
         import_file.write_text(content)
 
-        annotation_file: AnnotationFile = parse_darwin_json(import_file, None)
+        annotation_file: dt.AnnotationFile = parse_darwin_json(import_file, None)
 
         assert annotation_file.annotations[0].annotation_class.annotation_type == "polygon"
         assert annotation_file.annotations[1].annotation_class.annotation_type == "skeleton"
