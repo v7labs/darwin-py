@@ -33,7 +33,7 @@ setuptools.setup(
         "rich",
         "upolygon==0.1.6",
     ],
-    extras_require={"test": ["responses", "pytest", "pytest-describe"]},
+    extras_require={"test": ["responses", "pytest", "pytest-describe"], "ml": ["sklearn", "torch", "torchvision"]},
     packages=[
         "darwin",
         "darwin.importer",
