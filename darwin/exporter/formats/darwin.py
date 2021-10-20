@@ -32,7 +32,7 @@ def build_annotation_data(annotation: dt.Annotation):
     if annotation.annotation_class.annotation_type == "complex_polygon":
         return {"path": annotation.data["paths"]}
 
-    if annotation.annotation_class.annotation_type == "polygon" and "bounding_box" in annotation.data:
+    if annotation.annotation_class.annotation_type == "polygon":
         return dict(filter(lambda item: item[0] != "bounding_box", annotation.data.items()))
 
     return dict(annotation.data)
