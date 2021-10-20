@@ -352,7 +352,7 @@ def split_video_annotation(annotation):
     for i, frame_url in enumerate(annotation.frame_urls):
         annotations = [a.frames[i] for a in annotation.annotations if i in a.frames]
         annotation_classes = set([annotation.annotation_class for annotation in annotations])
-        filename = f"{Path(annotation.filename).stem}/{i:07d}.jpg"
+        filename = f"{Path(annotation.filename).stem}/{i:07d}.png"
 
         frame_annotations.append(
             dt.AnnotationFile(
