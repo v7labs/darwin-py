@@ -101,12 +101,27 @@ def make_tag(class_name: str, subs: Optional[List[SubAnnotation]] = None):
     return Annotation(AnnotationClass(class_name, "tag"), {}, subs or [])
 
 
-def make_polygon(class_name: str, point_path: List[Point], subs: Optional[List[SubAnnotation]] = None):
-    return Annotation(AnnotationClass(class_name, "polygon"), {"path": point_path}, subs or [])
+def make_polygon(
+    class_name: str, point_path: List[Point], bounding_box: Optional[Dict], subs: Optional[List[SubAnnotation]] = None
+):
+    return Annotation(
+        AnnotationClass(class_name, "polygon"),
+        _maybe_add_bounding_box_data({"path": point_path}, bounding_box),
+        subs or [],
+    )
 
 
-def make_complex_polygon(class_name: str, point_paths: List[List[Point]], subs: Optional[List[SubAnnotation]] = None):
-    return Annotation(AnnotationClass(class_name, "complex_polygon", "polygon"), {"paths": point_paths}, subs or [])
+def make_complex_polygon(
+    class_name: str,
+    point_paths: List[List[Point]],
+    bounding_box: Optional[Dict],
+    subs: Optional[List[SubAnnotation]] = None,
+):
+    return Annotation(
+        AnnotationClass(class_name, "complex_polygon", "polygon"),
+        _maybe_add_bounding_box_data({"paths": point_paths}, bounding_box),
+        subs or [],
+    )
 
 
 def make_keypoint(class_name: str, x: float, y: float, subs: Optional[List[SubAnnotation]] = None):
@@ -169,3 +184,14 @@ def make_video_annotation(frames, keyframes, segments, interpolated):
         raise ValueError("invalid argument to make_video_annotation")
 
     return VideoAnnotation(first_annotation.annotation_class, frames, keyframes, segments, interpolated)
+
+
+def _maybe_add_bounding_box_data(data: Dict[str, Any], bounding_box: Optional[Dict]) -> Dict[str, Any]:
+    if bounding_box:
+        data["bounding_box"] = {
+            "x": bounding_box["x"],
+            "y": bounding_box["y"],
+            "w": bounding_box["w"],
+            "h": bounding_box["h"],
+        }
+    return data

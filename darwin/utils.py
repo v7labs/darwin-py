@@ -286,17 +286,19 @@ def parse_darwin_annotation(annotation: Dict[str, Any]):
     name = annotation["name"]
     main_annotation = None
     if "polygon" in annotation:
+        bounding_box = annotation.get("bounding_box")
         if "additional_paths" in annotation["polygon"]:
             paths = [annotation["polygon"]["path"]] + annotation["polygon"]["additional_paths"]
-            main_annotation = dt.make_complex_polygon(name, paths)
+            main_annotation = dt.make_complex_polygon(name, paths, bounding_box)
         else:
-            main_annotation = dt.make_polygon(name, annotation["polygon"]["path"])
+            main_annotation = dt.make_polygon(name, annotation["polygon"]["path"], bounding_box)
     elif "complex_polygon" in annotation:
+        bounding_box = annotation.get("bounding_box")
         if "additional_paths" in annotation["complex_polygon"]:
             paths = annotation["complex_polygon"]["path"] + annotation["complex_polygon"]["additional_paths"]
-            main_annotation = dt.make_complex_polygon(name, paths)
+            main_annotation = dt.make_complex_polygon(name, paths, bounding_box)
         else:
-            main_annotation = dt.make_complex_polygon(name, annotation["complex_polygon"]["path"])
+            main_annotation = dt.make_complex_polygon(name, annotation["complex_polygon"]["path"], bounding_box)
     elif "bounding_box" in annotation:
         bounding_box = annotation["bounding_box"]
         main_annotation = dt.make_bounding_box(
@@ -350,7 +352,7 @@ def split_video_annotation(annotation):
     for i, frame_url in enumerate(annotation.frame_urls):
         annotations = [a.frames[i] for a in annotation.annotations if i in a.frames]
         annotation_classes = set([annotation.annotation_class for annotation in annotations])
-        filename = f"{Path(annotation.filename).stem}/{i:07d}.jpg"
+        filename = f"{Path(annotation.filename).stem}/{i:07d}.png"
 
         frame_annotations.append(
             dt.AnnotationFile(
