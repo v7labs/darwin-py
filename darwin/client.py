@@ -8,6 +8,7 @@ import requests
 from darwin.config import Config
 from darwin.dataset import RemoteDataset
 from darwin.dataset.identifier import DatasetIdentifier
+from darwin.datatypes import Feature
 from darwin.exceptions import (
     InsufficientStorage,
     InvalidLogin,
@@ -26,12 +27,12 @@ class Client:
         self.url: str = config.get("global/api_endpoint")
         self.base_url: str = config.get("global/base_url")
         self.default_team: str = default_team or config.get("global/default_team")
-        self.features: Dict[str, Any] = {}
+        self.features: Dict[str, List[Feature]] = {}
         self._newer_version: Optional[DarwinVersionNumber] = None
 
     def get(
         self, endpoint: str, team: Optional[str] = None, retry: bool = False, raw: bool = False, debug: bool = False
-    ) -> Union[Dict[str, Any], requests.Response]:
+    ) -> Union[Any, requests.Response]:
         """
         Get something from the server through HTTP
 
@@ -382,7 +383,29 @@ class Client:
             return None
 
         team_slug: str = the_team["slug"]
-        self.features[team_slug] = self.get(f"/teams/{team_slug}/features")
+        self.features[team_slug] = self.get_team_features(team_slug)
+
+    def get_team_features(self, team_slug: str) -> List[Feature]:
+        """
+        Gets all the features for the given team together with their statuses.
+
+        Parameters
+        ----------
+        team_slug : str
+            Slug of the team.
+
+        Returns
+        -------
+        List[FeaturePayload]
+            List of feature for the given team.
+        """
+        response: List[Dict[str, Any]] = self.get(f"/teams/{team_slug}/features")
+
+        features: List[Feature] = []
+        for feature in response:
+            features.append(Feature(name=str(feature["name"]), enabled=bool(feature["enabled"])))
+
+        return features
 
     def feature_enabled(self, feature_name: str, team: Optional[str] = None) -> bool:
         the_team: Optional[Team] = self.config.get_team(team or self.default_team)
@@ -395,9 +418,10 @@ class Client:
         if team_slug not in self.features:
             self.load_feature_flags(team)
 
-        for feature in self.features[team_slug]:
-            if feature["name"] == feature_name:
-                return feature["enabled"]
+        team_features: List[Feature] = self.features[team_slug]
+        for feature in team_features:
+            if feature.name == feature_name:
+                return feature.enabled
 
         return False
 

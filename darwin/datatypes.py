@@ -13,6 +13,14 @@ EllipseData = Dict[str, Any]
 CuboidData = Dict[str, Any]
 
 
+@dataclass(frozen=True)
+class Feature:
+    """Structured payload of a Feature record on V7 Darwin"""
+
+    name: str
+    enabled: bool
+
+
 @dataclass(frozen=True, eq=True)
 class AnnotationClass:
     name: str
