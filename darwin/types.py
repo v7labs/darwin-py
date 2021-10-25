@@ -18,3 +18,5 @@ ImporterFormat = Tuple[str, ImportParser]
 
 PathLike = Union[str, Path]
 Team = Dict[str, Any]
+
+ErrorHandler = Callable[[int, str], None]

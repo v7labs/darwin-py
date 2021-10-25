@@ -1,7 +1,7 @@
 import os
 import time
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterator, List, Optional, Union
+from typing import Any, Dict, Iterator, List, Optional, Union
 
 import requests
 
@@ -16,7 +16,7 @@ from darwin.exceptions import (
     NotFound,
     Unauthorized,
 )
-from darwin.types import DarwinVersionNumber, Team
+from darwin.types import DarwinVersionNumber, ErrorHandler, Team
 from darwin.utils import is_project_dir, urljoin
 from darwin.validators import name_taken, validation_error
 
@@ -84,7 +84,7 @@ class Client:
     def put(
         self,
         endpoint: str,
-        payload: Dict[Any, Any],
+        payload: Dict[str, Any],
         team: Optional[str] = None,
         retry: bool = False,
         debug: bool = False,
@@ -203,7 +203,7 @@ class Client:
         endpoint: str,
         team: Optional[str] = None,
         retry: bool = False,
-        error_handlers: Optional[List[Callable[[int, str], None]]] = None,
+        error_handlers: Optional[List[ErrorHandler]] = None,
         debug: bool = False,
     ) -> Dict[str, Any]:
         """Delete something new on the server trough HTTP
