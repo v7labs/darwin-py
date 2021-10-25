@@ -1,8 +1,7 @@
 import os
 import time
 from pathlib import Path
-from typing import Any, Dict, Iterator, Optional, Tuple, Union, List, Callable
-from darwin.types import Team
+from typing import Any, Callable, Dict, Iterator, List, Optional, Union
 
 import requests
 
@@ -16,7 +15,7 @@ from darwin.exceptions import (
     NotFound,
     Unauthorized,
 )
-from darwin.types import DarwinVersionNumber
+from darwin.types import DarwinVersionNumber, Team
 from darwin.utils import is_project_dir, urljoin
 from darwin.validators import name_taken, validation_error
 
