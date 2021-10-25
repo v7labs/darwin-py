@@ -17,8 +17,9 @@ class Config(object):
         """
         if isinstance(path, str):
             path = Path(path)
-        self._path = path
-        self._data = self._parse()
+
+        self._path: Optional[Path] = path
+        self._data: Dict[str, Any] = self._parse()
 
     def _parse(self) -> Dict[str, Any]:
         """Parses the YAML configuration file"""
@@ -38,7 +39,7 @@ class Config(object):
         It can be formatted as a simple string, or as a path/like/string to fetch nested values.
         """
 
-        acc = self._data.copy()
+        acc: Any = self._data.copy()
 
         while True:
             if isinstance(key, str):
