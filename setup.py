@@ -33,7 +33,7 @@ setuptools.setup(
         "rich",
         "upolygon==0.1.6",
     ],
-    extras_require={"test":  ["responses", "pytest", "pytest-describe", "git+https://github.com/v7labs/darwin-dataset-pets"], "ml": ["sklearn", "torch", "torchvision"]},
+    extras_require={"test": ["responses", "pytest", "pytest-describe"], "ml": ["sklearn", "torch", "torchvision"]},
     packages=[
         "darwin",
         "darwin.importer",
