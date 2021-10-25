@@ -1,7 +1,7 @@
 __pycache__/
 .pytest_cache/
 .cache/
-
+.vscode/
 /.mypy_cache/
 
 output/

@@ -167,9 +167,11 @@ class ClassificationDataset(LocalDataset):
             if self.is_multi_label:
                 # get the indixes of the class present
                 target = torch.where(target == 1)[0]
-            labels.extend(target.tolist())
-        return self._compute_weights(labels)
+                labels.extend(target.tolist())
+            else:
+                labels.append(target.item())
 
+        return self._compute_weights(labels)
 
 
 class InstanceSegmentationDataset(LocalDataset):
