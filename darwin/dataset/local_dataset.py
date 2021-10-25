@@ -1,7 +1,7 @@
 import json
 import multiprocessing as mp
 from pathlib import Path
-from typing import Collection, List, Optional
+from typing import Collection, Iterator, List, Optional
 
 import numpy as np
 from darwin.dataset.utils import get_classes, get_release_path, load_pil_image
@@ -63,24 +63,7 @@ class LocalDataset(object):
         )
         self.num_classes = len(self.classes)
 
-        # Get the list of stems
-        if partition:
-            # Get the split
-            if split_type == "random":
-                split_file = f"{split_type}_{partition}.txt"
-            elif split_type == "stratified":
-                split_file = f"{split_type}_{annotation_type}_{partition}.txt"
-            split_path = release_path / "lists" / split / split_file
-            if split_path.is_file():
-                stems = (e.strip() for e in split_path.open())
-            else:
-                raise FileNotFoundError(
-                    f"could not find a dataset partition. "
-                    f"Split the dataset using `split_dataset()` from `darwin.dataset.split_manager`"
-                ) from None
-        else:
-            # If the partition is not specified, get all the annotations
-            stems = (e.relative_to(annotations_dir).parent / e.stem for e in annotations_dir.glob("**/*.json"))
+        stems = build_stems(release_path, annotations_dir, annotation_type, split, partition, split_type)
 
         # Find all the annotations and their corresponding images
         for stem in stems:
@@ -280,3 +263,38 @@ class LocalDataset(object):
             f"  Number of images: {len(self.images_path)}\n"
             f"  Number of classes: {len(self.classes)}"
         )
+
+
+def build_stems(
+    release_path: Path,
+    annotations_dir: Path,
+    annotation_type: str,
+    split: str,
+    partition: Optional[str] = None,
+    split_type: str = "random",
+) -> Iterator[str]:
+    # If no partition is specified, then take all json files in the annotations directory.
+    # The resulting generator prepends parent directories relative to the main annotation directory.
+    #
+    # E.g.: ["annotations/test/1.json", "annotations/2.json", "annotations/test/2/3.json"]:
+    #     - annotations/test/1
+    #     - annotations/2
+    #     - annotations/test/2/3
+    if partition is None:
+        return (str(e.relative_to(annotations_dir).parent / e.stem) for e in annotations_dir.glob("**/*.json"))
+
+    if split_type == "random":
+        split_filename = f"{split_type}_{partition}.txt"
+    elif split_type == "stratified":
+        split_filename = f"{split_type}_{annotation_type}_{partition}.txt"
+    else:
+        raise ValueError(f'Unknown split type "{split_type}"')
+
+    split_path = release_path / "lists" / split / split_filename
+    if split_path.is_file():
+        return (e.strip("\n\r") for e in split_path.open())
+
+    raise FileNotFoundError(
+        f"could not find a dataset partition. "
+        f"Split the dataset using `split_dataset()` from `darwin.dataset.split_manager`"
+    )
