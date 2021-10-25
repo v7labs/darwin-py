@@ -23,6 +23,12 @@ pip install darwin-py
 
 You can now type `darwin` in your terminal and access the command line interface.
 
+If you wish to use the PyTorch bindings, then you can use the `ml` flag to install all the additional requirements
+
+```
+pip install darwin-py[ml]
+```
+
 To run test, first install the `test` extra package
 
 ```

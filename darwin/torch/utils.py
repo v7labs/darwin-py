@@ -100,7 +100,9 @@ def detectron2_register_dataset(
     catalog_name = f"darwin_{dataset_path.name}"
     if partition:
         catalog_name += f"_{partition}"
-    classes = get_classes(dataset_path, annotation_type="polygon")
+        
+    classes = get_classes(dataset_path=dataset_path, release_name=release_name, annotation_type="polygon")
+    
     DatasetCatalog.register(
         catalog_name,
         lambda partition=partition: list(

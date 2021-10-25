@@ -333,13 +333,13 @@ def describe_split_video_annotations():
                 "annotations": [
                     {"name": "test_class", "polygon": {"path": [{"x": 0, "y": 0}, {"x": 1, "y": 1}, {"x": 1, "y": 0}]}}
                 ],
-                "image": {"filename": "test_video/0000000.jpg", "height": 1080, "url": "frame_1.jpg", "width": 1920},
+                "image": {"filename": "test_video/0000000.png", "height": 1080, "url": "frame_1.jpg", "width": 1920},
             }
 
         with (video_path / "0000001.json").open() as f:
             assert json.load(f) == {
                 "annotations": [],
-                "image": {"filename": "test_video/0000001.jpg", "height": 1080, "url": "frame_2.jpg", "width": 1920},
+                "image": {"filename": "test_video/0000001.png", "height": 1080, "url": "frame_2.jpg", "width": 1920},
             }
 
         with (video_path / "0000002.json").open() as f:
@@ -347,7 +347,7 @@ def describe_split_video_annotations():
                 "annotations": [
                     {"name": "test_class", "polygon": {"path": [{"x": 5, "y": 5}, {"x": 6, "y": 6}, {"x": 6, "y": 5}]}}
                 ],
-                "image": {"filename": "test_video/0000002.jpg", "height": 1080, "url": "frame_3.jpg", "width": 1920},
+                "image": {"filename": "test_video/0000002.png", "height": 1080, "url": "frame_3.jpg", "width": 1920},
             }
 
 

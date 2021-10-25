@@ -182,6 +182,7 @@ def build_annotation(annotation_file, annotation_id, annotation: dt.Annotation, 
             dt.make_polygon(
                 annotation.annotation_class.name,
                 [{"x": x, "y": y}, {"x": x + w, "y": y}, {"x": x + w, "y": y + h}, {"x": x, "y": y + h}],
+                None,
                 annotation.subs,
             ),
             categories,
