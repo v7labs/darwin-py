@@ -6,7 +6,7 @@ if TYPE_CHECKING:
     from darwin.dataset import RemoteDataset
 
 import darwin.datatypes as dt
-from darwin.types import ImportParser, PathLike
+from darwin.datatypes import ImportParser, PathLike
 from darwin.utils import secure_continue_request
 from rich.progress import track
 

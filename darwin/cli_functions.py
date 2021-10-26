@@ -32,6 +32,14 @@ from darwin.dataset.release import Release
 from darwin.dataset.split_manager import split_dataset
 from darwin.dataset.upload_manager import LocalFile
 from darwin.dataset.utils import get_release_path
+from darwin.datatypes import (
+    ExporterFormat,
+    ExportParser,
+    ImporterFormat,
+    ImportParser,
+    PathLike,
+    Team,
+)
 from darwin.exceptions import (
     InvalidLogin,
     MissingConfig,
@@ -45,14 +53,6 @@ from darwin.exceptions import (
 from darwin.exporter.formats import supported_formats as ExportSupportedFormats
 from darwin.importer.formats import supported_formats as ImportSupportedFormats
 from darwin.item import DatasetItem
-from darwin.types import (
-    ExporterFormat,
-    ExportParser,
-    ImporterFormat,
-    ImportParser,
-    PathLike,
-    Team,
-)
 from darwin.utils import (
     find_files,
     persist_client_configuration,
