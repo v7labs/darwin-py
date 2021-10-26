@@ -7,7 +7,7 @@ import darwin.datatypes as dt
 
 def parse_file(path: Path) -> Optional[List[dt.AnnotationFile]]:
     if path.suffix != ".csv":
-        return
+        return None
 
     files = []
 

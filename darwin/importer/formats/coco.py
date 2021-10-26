@@ -10,7 +10,7 @@ from darwin.path_utils import deconstruct_full_path
 
 def parse_file(path: Path) -> Optional[List[dt.AnnotationFile]]:
     if path.suffix != ".json":
-        return
+        return None
 
     with path.open() as f:
         data = json.load(f)
