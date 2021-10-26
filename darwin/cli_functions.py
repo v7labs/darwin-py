@@ -529,15 +529,13 @@ def upload_data(
 
         if already_existing_items:
             console.print(
-                f"Skipped {len(already_existing_items)} files already in the dataset.\n",
-                style="warning",
+                f"Skipped {len(already_existing_items)} files already in the dataset.\n", style="warning",
             )
 
         if upload_manager.error_count or other_skipped_items:
             error_count = upload_manager.error_count + len(other_skipped_items)
             console.print(
-                f"{error_count} files couldn't be uploaded because an error occurred.\n",
-                style="error",
+                f"{error_count} files couldn't be uploaded because an error occurred.\n", style="error",
             )
 
         if not verbose and upload_manager.error_count:
@@ -586,7 +584,7 @@ def dataset_import(dataset_slug, format, files, append) -> None:
     parser: ImportParser = find_import_supported_format(format, ImportSupportedFormats)
 
     try:
-        dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
+        dataset: RemoteDataset = client.get_remote_dataset(a_dataset_identifier=dataset_slug)
         importer.import_annotations(dataset, parser, files, append)
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
@@ -650,10 +648,7 @@ def set_file_status(dataset_slug: str, status: str, files: List[str]) -> None:
         _error(f"No dataset with name '{e.name}'")
 
 
-def find_import_supported_format(
-    query: str,
-    supported_formats: List[ImporterFormat],
-) -> ImportParser:
+def find_import_supported_format(query: str, supported_formats: List[ImporterFormat],) -> ImportParser:
     for (fmt, fmt_parser) in supported_formats:
         if fmt == query:
             return fmt_parser
@@ -661,10 +656,7 @@ def find_import_supported_format(
     _error(f"Unsupported import format, currently supported: {list_of_formats}")
 
 
-def find_export_supported_format(
-    query: str,
-    supported_formats: List[ExporterFormat],
-) -> ExportParser:
+def find_export_supported_format(query: str, supported_formats: List[ExporterFormat]) -> ExportParser:
     for (fmt, fmt_parser) in supported_formats:
         if fmt == query:
             return fmt_parser

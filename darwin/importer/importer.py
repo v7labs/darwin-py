@@ -1,12 +1,12 @@
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, List, Tuple, Union
+from typing import TYPE_CHECKING, List, Set, Tuple
 
 if TYPE_CHECKING:
     from darwin.client import Client
     from darwin.dataset import RemoteDataset
 
 import darwin.datatypes as dt
-from darwin.types import PathLike
+from darwin.types import ImportParser, PathLike
 from darwin.utils import secure_continue_request
 from rich.progress import track
 
@@ -34,7 +34,7 @@ def build_main_annotations_lookup_table(annotation_classes):
 
 
 def find_and_parse(
-    importer: Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]], file_paths: List[PathLike],
+    importer: ImportParser, file_paths: List[PathLike]
 ) -> Tuple[List[dt.AnnotationFile], List[dt.AnnotationFile]]:
     # TODO: this could be done in parallel
     for file_path in map(Path, file_paths):
@@ -78,8 +78,8 @@ def get_remote_files(dataset, filenames):
 def _resolve_annotation_classes(
     local_annotation_classes: List[dt.AnnotationClass], classes_in_dataset, classes_in_team
 ):
-    local_classes_not_in_dataset: set[dt.AnnotationClass] = set()
-    local_classes_not_in_team: set[dt.AnnotationClass] = set()
+    local_classes_not_in_dataset: Set[dt.AnnotationClass] = set()
+    local_classes_not_in_team: Set[dt.AnnotationClass] = set()
 
     for local_cls in local_annotation_classes:
         local_annotation_type = local_cls.annotation_internal_type or local_cls.annotation_type
@@ -87,24 +87,20 @@ def _resolve_annotation_classes(
         if local_annotation_type in classes_in_dataset and local_cls.name in classes_in_dataset[local_annotation_type]:
             continue
 
-        # Only add the new class if it's not included in the list of the missing classes already
-        if local_cls.name in [missing_class.name for missing_class in local_classes_not_in_dataset]:
-            continue
-        if local_cls.name in [missing_class.name for missing_class in local_classes_not_in_team]:
-            continue
-
         if local_annotation_type in classes_in_team and local_cls.name in classes_in_team[local_annotation_type]:
             local_classes_not_in_dataset.add(local_cls)
         else:
             local_classes_not_in_team.add(local_cls)
+
+    all_classes = local_classes_not_in_dataset.union(local_classes_not_in_team)
+    if len(set([annotation_class.name for annotation_class in all_classes])) < len(all_classes):
+        raise ValueError("Duplicate annotation class names found")
+
     return local_classes_not_in_dataset, local_classes_not_in_team
 
 
 def import_annotations(
-    dataset: "RemoteDataset",
-    importer: Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]],
-    file_paths: List[PathLike],
-    append: bool,
+    dataset: "RemoteDataset", importer: ImportParser, file_paths: List[PathLike], append: bool,
 ) -> None:
     """
     Imports the given given Annotations into the given Dataset.
@@ -113,7 +109,7 @@ def import_annotations(
     ----------
     dataset : RemoteDataset
         Dataset where the Annotations will be imported to.
-    importer : Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]]
+    importer : ImportParser
         Parsing module containing the logic to parse the given Annotation files given in
         `files_path`. See `importer/format` for a list of out of supported parsers.
     file_paths : List[PathLike]

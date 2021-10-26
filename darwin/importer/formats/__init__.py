@@ -2,7 +2,7 @@ from typing import List
 
 from darwin.types import ImporterFormat
 
-from . import coco, csvtags, csvtagsvideo, darwin, dataloop, pascalvoc
+from . import coco, csvtags, csvtagsvideo, darwin, dataloop, pascalvoc, superannotate
 
 supported_formats: List[ImporterFormat] = [
     ("pascal_voc", pascalvoc.parse_file),
@@ -11,4 +11,5 @@ supported_formats: List[ImporterFormat] = [
     ("csv_tags_video", csvtagsvideo.parse_file),
     ("coco", coco.parse_file),
     ("darwin", darwin.parse_file),
+    ("superannotate", superannotate.parse_file),
 ]
