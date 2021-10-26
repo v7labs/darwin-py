@@ -18,9 +18,30 @@ import numpy as np
 from rich.progress import ProgressType, track
 from upolygon import draw_polygon
 
-import darwin.datatypes as dt
 from darwin.config import Config
-from darwin.datatypes import Annotation, PathLike, Polygon, Team, VideoAnnotation
+from darwin.datatypes import (
+    Annotation,
+    AnnotationClass,
+    AnnotationFile,
+    BoundingBox,
+    PathLike,
+    Polygon,
+    Team,
+    VideoAnnotation,
+    make_attributes,
+    make_bounding_box,
+    make_complex_polygon,
+    make_cuboid,
+    make_ellipse,
+    make_instance_id,
+    make_keypoint,
+    make_line,
+    make_polygon,
+    make_skeleton,
+    make_tag,
+    make_text,
+    make_video_annotation,
+)
 from darwin.exceptions import OutdatedDarwinJSONFormat, UnsupportedFileType
 
 if TYPE_CHECKING:
@@ -182,7 +203,7 @@ def get_local_filename(metadata: Dict[str, Any]) -> str:
     return metadata["filename"]
 
 
-def parse_darwin_json(path: Path, count: Optional[int]) -> Optional[dt.AnnotationFile]:
+def parse_darwin_json(path: Path, count: Optional[int]) -> Optional[AnnotationFile]:
     """
     Parses the given JSON file in v7's darwin proprietary format. Works for images, split frame
     videos (treated as images) and playback videos.
@@ -196,7 +217,7 @@ def parse_darwin_json(path: Path, count: Optional[int]) -> Optional[dt.Annotatio
 
     Returns
     -------
-    Optional[dt.AnnotationFile]
+    Optional[AnnotationFile]
         An AnnotationFile with the information from the parsed JSON file, or None, if there were no
         annotations in the JSON.
 
@@ -218,7 +239,7 @@ def parse_darwin_json(path: Path, count: Optional[int]) -> Optional[dt.Annotatio
             return parse_darwin_image(path, data, count)
 
 
-def parse_darwin_image(path: Path, data: Dict[str, Any], count: Optional[int]) -> dt.AnnotationFile:
+def parse_darwin_image(path: Path, data: Dict[str, Any], count: Optional[int]) -> AnnotationFile:
     """
     Parses the given JSON file in v7's darwin proprietary format. Works only for images.
 
@@ -233,13 +254,13 @@ def parse_darwin_image(path: Path, data: Dict[str, Any], count: Optional[int]) -
 
     Returns
     -------
-    dt.AnnotationFile
+    AnnotationFile
         An AnnotationFile with the information from the parsed JSON file.
     """
 
-    annotations: List[dt.Annotation] = list(filter(None, map(parse_darwin_annotation, data["annotations"])))
-    annotation_classes: Set[dt.AnnotationClass] = set([annotation.annotation_class for annotation in annotations])
-    return dt.AnnotationFile(
+    annotations: List[Annotation] = list(filter(None, map(parse_darwin_annotation, data["annotations"])))
+    annotation_classes: Set[AnnotationClass] = set([annotation.annotation_class for annotation in annotations])
+    return AnnotationFile(
         path,
         get_local_filename(data["image"]),
         annotation_classes,
@@ -255,7 +276,7 @@ def parse_darwin_image(path: Path, data: Dict[str, Any], count: Optional[int]) -
     )
 
 
-def parse_darwin_video(path: Path, data: Dict[str, Any], count: Optional[int]) -> dt.AnnotationFile:
+def parse_darwin_video(path: Path, data: Dict[str, Any], count: Optional[int]) -> AnnotationFile:
     """
     Parses the given JSON file in v7's darwin proprietary format. Works for playback videos.
 
@@ -270,17 +291,17 @@ def parse_darwin_video(path: Path, data: Dict[str, Any], count: Optional[int]) -
 
     Returns
     -------
-    dt.AnnotationFile
+    AnnotationFile
         An AnnotationFile with the information from the parsed JSON file.
     """
 
-    annotations: List[dt.VideoAnnotation] = list(filter(None, map(parse_darwin_video_annotation, data["annotations"])))
-    annotation_classes: Set[dt.AnnotationClass] = set([annotation.annotation_class for annotation in annotations])
+    annotations: List[VideoAnnotation] = list(filter(None, map(parse_darwin_video_annotation, data["annotations"])))
+    annotation_classes: Set[AnnotationClass] = set([annotation.annotation_class for annotation in annotations])
 
     if "width" not in data["image"] or "height" not in data["image"]:
         raise OutdatedDarwinJSONFormat("Missing width/height in video, please re-export")
 
-    return dt.AnnotationFile(
+    return AnnotationFile(
         path,
         get_local_filename(data["image"]),
         annotation_classes,
@@ -303,49 +324,49 @@ def parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[Annotation]:
         bounding_box = annotation.get("bounding_box")
         if "additional_paths" in annotation["polygon"]:
             paths = [annotation["polygon"]["path"]] + annotation["polygon"]["additional_paths"]
-            main_annotation = dt.make_complex_polygon(name, paths, bounding_box)
+            main_annotation = make_complex_polygon(name, paths, bounding_box)
         else:
-            main_annotation = dt.make_polygon(name, annotation["polygon"]["path"], bounding_box)
+            main_annotation = make_polygon(name, annotation["polygon"]["path"], bounding_box)
     elif "complex_polygon" in annotation:
         bounding_box = annotation.get("bounding_box")
         if "additional_paths" in annotation["complex_polygon"]:
             paths = annotation["complex_polygon"]["path"] + annotation["complex_polygon"]["additional_paths"]
-            main_annotation = dt.make_complex_polygon(name, paths, bounding_box)
+            main_annotation = make_complex_polygon(name, paths, bounding_box)
         else:
-            main_annotation = dt.make_complex_polygon(name, annotation["complex_polygon"]["path"], bounding_box)
+            main_annotation = make_complex_polygon(name, annotation["complex_polygon"]["path"], bounding_box)
     elif "bounding_box" in annotation:
         bounding_box = annotation["bounding_box"]
-        main_annotation = dt.make_bounding_box(
+        main_annotation = make_bounding_box(
             name, bounding_box["x"], bounding_box["y"], bounding_box["w"], bounding_box["h"]
         )
     elif "tag" in annotation:
-        main_annotation = dt.make_tag(name)
+        main_annotation = make_tag(name)
     elif "line" in annotation:
-        main_annotation = dt.make_line(name, annotation["line"]["path"])
+        main_annotation = make_line(name, annotation["line"]["path"])
     elif "keypoint" in annotation:
-        main_annotation = dt.make_keypoint(name, annotation["keypoint"]["x"], annotation["keypoint"]["y"])
+        main_annotation = make_keypoint(name, annotation["keypoint"]["x"], annotation["keypoint"]["y"])
     elif "ellipse" in annotation:
-        main_annotation = dt.make_ellipse(name, annotation["ellipse"])
+        main_annotation = make_ellipse(name, annotation["ellipse"])
     elif "cuboid" in annotation:
-        main_annotation = dt.make_cuboid(name, annotation["cuboid"])
+        main_annotation = make_cuboid(name, annotation["cuboid"])
     elif "skeleton" in annotation:
-        main_annotation = dt.make_skeleton(name, annotation["skeleton"]["nodes"])
+        main_annotation = make_skeleton(name, annotation["skeleton"]["nodes"])
 
     if not main_annotation:
         print(f"[WARNING] Unsupported annotation type: '{annotation.keys()}'")
         return None
 
     if "instance_id" in annotation:
-        main_annotation.subs.append(dt.make_instance_id(annotation["instance_id"]["value"]))
+        main_annotation.subs.append(make_instance_id(annotation["instance_id"]["value"]))
     if "attributes" in annotation:
-        main_annotation.subs.append(dt.make_attributes(annotation["attributes"]))
+        main_annotation.subs.append(make_attributes(annotation["attributes"]))
     if "text" in annotation:
-        main_annotation.subs.append(dt.make_text(annotation["text"]["text"]))
+        main_annotation.subs.append(make_text(annotation["text"]["text"]))
 
     return main_annotation
 
 
-def parse_darwin_video_annotation(annotation: dict) -> dt.VideoAnnotation:
+def parse_darwin_video_annotation(annotation: dict) -> VideoAnnotation:
     name = annotation["name"]
     frame_annotations = {}
     keyframes: Dict[int, bool] = {}
@@ -353,12 +374,12 @@ def parse_darwin_video_annotation(annotation: dict) -> dt.VideoAnnotation:
         frame_annotations[int(f)] = parse_darwin_annotation({**frame, **{"name": name}})
         keyframes[int(f)] = frame.get("keyframe", False)
 
-    return dt.make_video_annotation(
+    return make_video_annotation(
         frame_annotations, keyframes, annotation["segments"], annotation.get("interpolated", False)
     )
 
 
-def split_video_annotation(annotation: dt.AnnotationFile) -> List[dt.AnnotationFile]:
+def split_video_annotation(annotation: AnnotationFile) -> List[AnnotationFile]:
     if not annotation.is_video:
         raise AttributeError("this is not a video annotation")
 
@@ -368,13 +389,13 @@ def split_video_annotation(annotation: dt.AnnotationFile) -> List[dt.AnnotationF
     frame_annotations = []
     for i, frame_url in enumerate(annotation.frame_urls):
 
-        # a is a dt.VideoAnnotation
+        # a is a VideoAnnotation
         annotations = [a.frames[i] for a in annotation.annotations if i in a.frames]
-        annotation_classes: Set[dt.AnnotationClass] = set([annotation.annotation_class for annotation in annotations])
+        annotation_classes: Set[AnnotationClass] = set([annotation.annotation_class for annotation in annotations])
         filename: str = f"{Path(annotation.filename).stem}/{i:07d}.png"
 
         frame_annotations.append(
-            dt.AnnotationFile(
+            AnnotationFile(
                 annotation.path,
                 filename,
                 annotation_classes,
@@ -390,7 +411,7 @@ def split_video_annotation(annotation: dt.AnnotationFile) -> List[dt.AnnotationF
     return frame_annotations
 
 
-def ispolygon(annotation: dt.AnnotationClass) -> bool:
+def ispolygon(annotation: AnnotationClass) -> bool:
     return annotation.annotation_type in ["polygon", "complex_polygon"]
 
 
@@ -497,7 +518,7 @@ def convert_sequences_to_polygons(
     return {"path": polygons}
 
 
-def convert_xyxy_to_bounding_box(box: List[Tuple[int, float]]) -> dt.BoundingBox:
+def convert_xyxy_to_bounding_box(box: List[Tuple[int, float]]) -> BoundingBox:
     """
     Converts a list of xy coordinates representing a bounding box into a dictionary
 
@@ -520,7 +541,7 @@ def convert_xyxy_to_bounding_box(box: List[Tuple[int, float]]) -> dt.BoundingBox
     return {"x": x1, "y": y1, "w": width, "h": height}
 
 
-def convert_bounding_box_to_xyxy(box: dt.BoundingBox) -> List[dt.BoundingBox]:
+def convert_bounding_box_to_xyxy(box: BoundingBox) -> List[BoundingBox]:
     """
     Converts dictionary representing a bounding box into a list of xy coordinates
 
