@@ -25,6 +25,7 @@ from darwin.datatypes import (
     AnnotationFile,
     BoundingBox,
     PathLike,
+    Point,
     Polygon,
     Team,
     VideoAnnotation,
@@ -90,7 +91,7 @@ def is_project_dir(project_path: Path) -> bool:
     return (project_path / "releases").exists() and (project_path / "images").exists()
 
 
-def get_progress_bar(array: List, description: Optional[str] = None) -> Iterable[ProgressType]:
+def get_progress_bar(array: List, description: Optional[str] = None) -> Iterable["ProgressType"]:
     if description:
         return track(array, description=description)
     return track(array)
@@ -389,8 +390,8 @@ def split_video_annotation(annotation: AnnotationFile) -> List[AnnotationFile]:
     frame_annotations = []
     for i, frame_url in enumerate(annotation.frame_urls):
 
-        # a is a VideoAnnotation
-        annotations = [a.frames[i] for a in annotation.annotations if i in a.frames]
+        # "a" is a VideoAnnotation
+        annotations = [a.frames[i] for a in annotation.annotations if isinstance(a, VideoAnnotation) and i in a.frames]
         annotation_classes: Set[AnnotationClass] = set([annotation.annotation_class for annotation in annotations])
         filename: str = f"{Path(annotation.filename).stem}/{i:07d}.png"
 
@@ -416,11 +417,8 @@ def ispolygon(annotation: AnnotationClass) -> bool:
 
 
 def convert_polygons_to_sequences(
-    polygons: Union[dt.Polygon, List[dt.Polygon]],
-    height: Optional[int] = None,
-    width: Optional[int] = None,
-    rounding: bool = True,
-) -> List[Union[List[int], List[float]]]:
+    polygons: Any, height: Optional[int] = None, width: Optional[int] = None, rounding: bool = True,
+) -> List[List[Union[int, float]]]:
     """
     Converts a list of polygons, encoded as a list of dictionaries of into a list of nd.arrays
     of coordinates.
@@ -446,17 +444,17 @@ def convert_polygons_to_sequences(
     # If there is a single polygon composing the instance then this is
     # transformed to polygons = [[{x: x1, y:y1}, ..., {x: xn, y:yn}]]
     list_polygons: List[Polygon] = []
-    if polygons[0] and isinstance(polygons[0], dict):
-        list_polygons.append(polygons)
-    else:
+    if isinstance(polygons[0], list):
         list_polygons = polygons
+    else:
+        list_polygons = [polygons]
 
     if not isinstance(list_polygons[0], list) or not isinstance(list_polygons[0][0], dict):
         raise ValueError("Unknown input format")
 
-    sequences: List[Union[List[int], List[float]]] = []
+    sequences: List[List[Union[int, float]]] = []
     for polygon in list_polygons:
-        path: Union[List[int], List[float]] = []
+        path: List[Union[int, float]] = []
         for point in polygon:
             # Clip coordinates to the image size
             x = max(min(point["x"], width - 1) if width else point["x"], 0)
@@ -518,7 +516,7 @@ def convert_sequences_to_polygons(
     return {"path": polygons}
 
 
-def convert_xyxy_to_bounding_box(box: List[Tuple[int, float]]) -> BoundingBox:
+def convert_xyxy_to_bounding_box(box: List[Union[int, float]]) -> BoundingBox:
     """
     Converts a list of xy coordinates representing a bounding box into a dictionary
 
@@ -532,7 +530,7 @@ def convert_xyxy_to_bounding_box(box: List[Tuple[int, float]]) -> BoundingBox:
     bounding_box: dict
         Bounding box in the format {x: x1, y: y1, h: height, w: width}
     """
-    if not isinstance(box[0], (int, float)):
+    if not isinstance(box[0], float) and not isinstance(box[0], int):
         raise ValueError("Unknown input format")
 
     x1, y1, x2, y2 = box
@@ -541,7 +539,7 @@ def convert_xyxy_to_bounding_box(box: List[Tuple[int, float]]) -> BoundingBox:
     return {"x": x1, "y": y1, "w": width, "h": height}
 
 
-def convert_bounding_box_to_xyxy(box: BoundingBox) -> List[BoundingBox]:
+def convert_bounding_box_to_xyxy(box: BoundingBox) -> List[float]:
     """
     Converts dictionary representing a bounding box into a list of xy coordinates
 

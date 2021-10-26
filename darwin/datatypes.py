@@ -17,9 +17,18 @@ Segment = List[float]
 DarwinVersionNumber = Tuple[int, int, int]
 
 PathLike = Union[str, Path]
-Team = Dict[str, Any]
-
 ErrorHandler = Callable[[int, str], None]
+
+
+@dataclass
+class Team:
+    """Definition of a V7 team"""
+
+    default: bool
+    slug: str
+    datasets_dir: str
+    api_key: str
+    selected: bool = False
 
 
 @dataclass(frozen=True)
@@ -92,7 +101,7 @@ class AnnotationFile:
     path: Path
     filename: str
     annotation_classes: Set[AnnotationClass]
-    annotations: Union[List[VideoAnnotation], List[Annotation]]
+    annotations: List[Union[VideoAnnotation, Annotation]]
     is_video: bool = False
     image_width: Optional[int] = None
     image_height: Optional[int] = None
