@@ -9,7 +9,7 @@ import darwin.datatypes as dt
 import numpy as np
 from darwin.exceptions import NotFound
 from darwin.importer.formats.darwin import parse_file
-from darwin.types import PathLike
+from darwin.datatypes import PathLike
 from darwin.utils import (
     SUPPORTED_EXTENSIONS,
     SUPPORTED_VIDEO_EXTENSIONS,

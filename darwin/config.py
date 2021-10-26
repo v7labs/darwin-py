@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional, Union
 import yaml
 
 from darwin.exceptions import InvalidTeam
-from darwin.types import PathLike, Team
+from darwin.datatypes import PathLike, Team
 
 
 class Config(object):

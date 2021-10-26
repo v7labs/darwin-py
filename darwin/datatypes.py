@@ -1,9 +1,25 @@
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Set
+from typing import Any, Callable, Dict, Iterator, List, Optional, Set, Tuple, Union
 
 from darwin.path_utils import construct_full_path
-from darwin.types import CuboidData, EllipseData, KeyFrame, Node, Point, Segment
+
+Point = Dict[str, float]
+BoundingBox = Dict[str, float]
+Polygon = List[Point]
+ComplexPolygon = List[Polygon]
+Node = Dict[str, Any]
+EllipseData = Dict[str, Any]
+CuboidData = Dict[str, Any]
+KeyFrame = Dict[str, Any]
+Segment = List[int]
+
+DarwinVersionNumber = Tuple[int, int, int]
+
+PathLike = Union[str, Path]
+Team = Dict[str, Any]
+
+ErrorHandler = Callable[[int, str], None]
 
 
 @dataclass(frozen=True)
@@ -43,7 +59,7 @@ class Annotation:
 @dataclass(frozen=True, eq=True)
 class VideoAnnotation:
     annotation_class: AnnotationClass
-    frames: Annotation
+    frames: Dict[int, Any]
     keyframes: List[KeyFrame]
     segments: List[Segment]
     interpolated: bool
@@ -183,7 +199,7 @@ def make_video(keyframes: List[KeyFrame], start, end) -> Annotation:
 
 
 def make_video_annotation(
-    frames: Annotation, keyframes: List[KeyFrame], segments: List[Segment], interpolated: bool
+    frames: Dict[int, Any], keyframes: List[KeyFrame], segments: List[Segment], interpolated: bool
 ) -> VideoAnnotation:
     first_annotation: Annotation = list(frames.values())[0]
     if not all(frame.annotation_class.name == first_annotation.annotation_class.name for frame in frames.values()):
@@ -201,3 +217,10 @@ def _maybe_add_bounding_box_data(data: Dict[str, Any], bounding_box: Optional[Di
             "h": bounding_box["h"],
         }
     return data
+
+
+ExportParser = Callable[[Iterator[AnnotationFile], Path], None]
+ExporterFormat = Tuple[str, ExportParser]
+
+ImportParser = Callable[[Path], Union[List[AnnotationFile], AnnotationFile, None]]
+ImporterFormat = Tuple[str, ImportParser]

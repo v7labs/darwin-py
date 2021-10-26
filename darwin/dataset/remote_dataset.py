@@ -31,7 +31,7 @@ from darwin.exceptions import NotFound, UnsupportedExportFormat
 from darwin.exporter.formats.darwin import build_image_annotation
 from darwin.item import DatasetItem, parse_dataset_item
 from darwin.item_sorter import ItemSorter
-from darwin.types import PathLike
+from darwin.datatypes import PathLike
 from darwin.utils import find_files, parse_darwin_json, split_video_annotation, urljoin
 from darwin.validators import name_taken, validation_error
 from rich.console import Console

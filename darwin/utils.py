@@ -10,7 +10,7 @@ from upolygon import draw_polygon
 import darwin.datatypes as dt
 from darwin.config import Config
 from darwin.exceptions import OutdatedDarwinJSONFormat, UnsupportedFileType
-from darwin.types import PathLike
+from darwin.datatypes import PathLike
 
 if TYPE_CHECKING:
     from darwin.client import Client

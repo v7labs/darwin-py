@@ -1,6 +1,6 @@
 from typing import List
 
-from darwin.types import ImporterFormat
+from darwin.datatypes import ImporterFormat
 
 from . import coco, csvtags, csvtagsvideo, darwin, dataloop, pascalvoc
 

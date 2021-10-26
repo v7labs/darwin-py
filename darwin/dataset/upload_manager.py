@@ -18,7 +18,7 @@ from typing import (
 
 import requests
 from darwin.path_utils import construct_full_path
-from darwin.types import PathLike
+from darwin.datatypes import PathLike
 from darwin.utils import chunk
 from rich.console import Console
 
