@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Callable, Dict, Iterator, List, Optional, Set, Tuple, Union
 
 from darwin.path_utils import construct_full_path
 
@@ -11,6 +11,15 @@ ComplexPolygon = List[Polygon]
 Node = Dict[str, Any]
 EllipseData = Dict[str, Any]
 CuboidData = Dict[str, Any]
+KeyFrame = Dict[str, Any]
+Segment = List[int]
+
+DarwinVersionNumber = Tuple[int, int, int]
+
+PathLike = Union[str, Path]
+Team = Dict[str, Any]
+
+ErrorHandler = Callable[[int, str], None]
 
 
 @dataclass(frozen=True)
@@ -50,14 +59,17 @@ class Annotation:
 @dataclass(frozen=True, eq=True)
 class VideoAnnotation:
     annotation_class: AnnotationClass
-    frames: Annotation
-    keyframes: List[bool]
-    segments: List[List[int]]
+    frames: Dict[int, Any]
+    keyframes: List[KeyFrame]
+    segments: List[Segment]
     interpolated: bool
 
-    def get_data(self, only_keyframes=True, post_processing=None):
+    def get_data(
+        self, only_keyframes: bool = True, post_processing: Callable[[Annotation, Any], Any] = None
+    ) -> Dict[str, Any]:
         if not post_processing:
             post_processing = lambda annotation, data: data
+
         return {
             "frames": {
                 frame: {
@@ -97,7 +109,7 @@ class AnnotationFile:
 
 def make_bounding_box(
     class_name: str, x: float, y: float, w: float, h: float, subs: Optional[List[SubAnnotation]] = None
-):
+) -> Annotation:
     return Annotation(
         AnnotationClass(class_name, "bounding_box"),
         {"x": round(x, 3), "y": round(y, 3), "w": round(w, 3), "h": round(h, 3)},
@@ -105,13 +117,13 @@ def make_bounding_box(
     )
 
 
-def make_tag(class_name: str, subs: Optional[List[SubAnnotation]] = None):
+def make_tag(class_name: str, subs: Optional[List[SubAnnotation]] = None) -> Annotation:
     return Annotation(AnnotationClass(class_name, "tag"), {}, subs or [])
 
 
 def make_polygon(
     class_name: str, point_path: List[Point], bounding_box: Optional[Dict], subs: Optional[List[SubAnnotation]] = None
-):
+) -> Annotation:
     return Annotation(
         AnnotationClass(class_name, "polygon"),
         _maybe_add_bounding_box_data({"path": point_path}, bounding_box),
@@ -124,7 +136,7 @@ def make_complex_polygon(
     point_paths: List[List[Point]],
     bounding_box: Optional[Dict],
     subs: Optional[List[SubAnnotation]] = None,
-):
+) -> Annotation:
     return Annotation(
         AnnotationClass(class_name, "complex_polygon", "polygon"),
         _maybe_add_bounding_box_data({"paths": point_paths}, bounding_box),
@@ -132,44 +144,44 @@ def make_complex_polygon(
     )
 
 
-def make_keypoint(class_name: str, x: float, y: float, subs: Optional[List[SubAnnotation]] = None):
+def make_keypoint(class_name: str, x: float, y: float, subs: Optional[List[SubAnnotation]] = None) -> Annotation:
     return Annotation(AnnotationClass(class_name, "keypoint"), {"x": x, "y": y}, subs or [])
 
 
-def make_line(class_name: str, path: List[Point], subs: Optional[List[SubAnnotation]] = None):
+def make_line(class_name: str, path: List[Point], subs: Optional[List[SubAnnotation]] = None) -> Annotation:
     return Annotation(AnnotationClass(class_name, "line"), {"path": path}, subs or [])
 
 
-def make_skeleton(class_name: str, nodes: List[Node], subs: Optional[List[SubAnnotation]] = None):
+def make_skeleton(class_name: str, nodes: List[Node], subs: Optional[List[SubAnnotation]] = None) -> Annotation:
     return Annotation(AnnotationClass(class_name, "skeleton"), {"nodes": nodes}, subs or [])
 
 
-def make_ellipse(class_name: str, parameters: EllipseData, subs: Optional[List[SubAnnotation]] = None):
+def make_ellipse(class_name: str, parameters: EllipseData, subs: Optional[List[SubAnnotation]] = None) -> Annotation:
     return Annotation(AnnotationClass(class_name, "ellipse"), parameters, subs or [])
 
 
-def make_cuboid(class_name: str, cuboid: CuboidData, subs: Optional[List[SubAnnotation]] = None):
+def make_cuboid(class_name: str, cuboid: CuboidData, subs: Optional[List[SubAnnotation]] = None) -> Annotation:
     return Annotation(AnnotationClass(class_name, "cuboid"), cuboid, subs or [])
 
 
-def make_instance_id(value):
+def make_instance_id(value: int) -> SubAnnotation:
     return SubAnnotation("instance_id", value)
 
 
-def make_attributes(attributes):
+def make_attributes(attributes: Any) -> SubAnnotation:
     return SubAnnotation("attributes", attributes)
 
 
-def make_text(text):
+def make_text(text: str) -> SubAnnotation:
     return SubAnnotation("text", text)
 
 
-def make_keyframe(annotation, idx):
+def make_keyframe(annotation: Annotation, idx: int) -> KeyFrame:
     return {"idx": idx, "annotation": annotation}
 
 
-def make_video(keyframes, start, end):
-    first_annotation = keyframes[0]["annotation"]
+def make_video(keyframes: List[KeyFrame], start, end) -> Annotation:
+    first_annotation: Annotation = keyframes[0]["annotation"]
     return Annotation(
         first_annotation.annotation_class,
         {
@@ -186,8 +198,10 @@ def make_video(keyframes, start, end):
     )
 
 
-def make_video_annotation(frames, keyframes, segments, interpolated):
-    first_annotation = list(frames.values())[0]
+def make_video_annotation(
+    frames: Dict[int, Any], keyframes: List[KeyFrame], segments: List[Segment], interpolated: bool
+) -> VideoAnnotation:
+    first_annotation: Annotation = list(frames.values())[0]
     if not all(frame.annotation_class.name == first_annotation.annotation_class.name for frame in frames.values()):
         raise ValueError("invalid argument to make_video_annotation")
 
@@ -203,3 +217,10 @@ def _maybe_add_bounding_box_data(data: Dict[str, Any], bounding_box: Optional[Di
             "h": bounding_box["h"],
         }
     return data
+
+
+ExportParser = Callable[[Iterator[AnnotationFile], Path], None]
+ExporterFormat = Tuple[str, ExportParser]
+
+ImportParser = Callable[[Path], Union[List[AnnotationFile], AnnotationFile, None]]
+ImporterFormat = Tuple[str, ImportParser]

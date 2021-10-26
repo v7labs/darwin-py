@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import List
 
-from darwin.types import ExportParser, PathLike
+from darwin.datatypes import ExportParser, PathLike
 from darwin.utils import parse_darwin_json, split_video_annotation
 
 

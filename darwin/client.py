@@ -8,7 +8,7 @@ import requests
 from darwin.config import Config
 from darwin.dataset import RemoteDataset
 from darwin.dataset.identifier import DatasetIdentifier
-from darwin.datatypes import Feature
+from darwin.datatypes import DarwinVersionNumber, ErrorHandler, Feature, Team
 from darwin.exceptions import (
     InsufficientStorage,
     InvalidLogin,
@@ -16,7 +16,6 @@ from darwin.exceptions import (
     NotFound,
     Unauthorized,
 )
-from darwin.types import DarwinVersionNumber, ErrorHandler, Team
 from darwin.utils import is_project_dir, urljoin
 from darwin.validators import name_taken, validation_error
 

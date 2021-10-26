@@ -32,6 +32,14 @@ from darwin.dataset.release import Release
 from darwin.dataset.split_manager import split_dataset
 from darwin.dataset.upload_manager import LocalFile
 from darwin.dataset.utils import get_release_path
+from darwin.datatypes import (
+    ExporterFormat,
+    ExportParser,
+    ImporterFormat,
+    ImportParser,
+    PathLike,
+    Team,
+)
 from darwin.exceptions import (
     InvalidLogin,
     MissingConfig,
@@ -45,14 +53,6 @@ from darwin.exceptions import (
 from darwin.exporter.formats import supported_formats as ExportSupportedFormats
 from darwin.importer.formats import supported_formats as ImportSupportedFormats
 from darwin.item import DatasetItem
-from darwin.types import (
-    ExporterFormat,
-    ExportParser,
-    ImporterFormat,
-    ImportParser,
-    PathLike,
-    Team,
-)
 from darwin.utils import (
     find_files,
     persist_client_configuration,
@@ -529,15 +529,13 @@ def upload_data(
 
         if already_existing_items:
             console.print(
-                f"Skipped {len(already_existing_items)} files already in the dataset.\n",
-                style="warning",
+                f"Skipped {len(already_existing_items)} files already in the dataset.\n", style="warning",
             )
 
         if upload_manager.error_count or other_skipped_items:
             error_count = upload_manager.error_count + len(other_skipped_items)
             console.print(
-                f"{error_count} files couldn't be uploaded because an error occurred.\n",
-                style="error",
+                f"{error_count} files couldn't be uploaded because an error occurred.\n", style="error",
             )
 
         if not verbose and upload_manager.error_count:
@@ -650,10 +648,7 @@ def set_file_status(dataset_slug: str, status: str, files: List[str]) -> None:
         _error(f"No dataset with name '{e.name}'")
 
 
-def find_import_supported_format(
-    query: str,
-    supported_formats: List[ImporterFormat],
-) -> ImportParser:
+def find_import_supported_format(query: str, supported_formats: List[ImporterFormat],) -> ImportParser:
     for (fmt, fmt_parser) in supported_formats:
         if fmt == query:
             return fmt_parser
@@ -661,10 +656,7 @@ def find_import_supported_format(
     _error(f"Unsupported import format, currently supported: {list_of_formats}")
 
 
-def find_export_supported_format(
-    query: str,
-    supported_formats: List[ExporterFormat],
-) -> ExportParser:
+def find_export_supported_format(query: str, supported_formats: List[ExporterFormat],) -> ExportParser:
     for (fmt, fmt_parser) in supported_formats:
         if fmt == query:
             return fmt_parser
