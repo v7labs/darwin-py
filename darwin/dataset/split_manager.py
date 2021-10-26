@@ -3,7 +3,7 @@ from typing import Dict, Iterable, List, Optional, Union
 
 import numpy as np
 from darwin.dataset.utils import extract_classes, get_release_path
-from darwin.types import PathLike
+from darwin.datatypes import PathLike
 
 
 def split_dataset(
