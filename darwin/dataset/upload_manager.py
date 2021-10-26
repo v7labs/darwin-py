@@ -4,21 +4,11 @@ import time
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    BinaryIO,
-    Callable,
-    List,
-    Optional,
-    Set,
-    Tuple,
-    Union,
-)
+from typing import TYPE_CHECKING, Any, BinaryIO, Callable, List, Optional, Set, Tuple
 
 import requests
-from darwin.path_utils import construct_full_path
 from darwin.datatypes import PathLike
+from darwin.path_utils import construct_full_path
 from darwin.utils import chunk
 from rich.console import Console
 
