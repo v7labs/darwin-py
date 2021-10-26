@@ -1,6 +1,6 @@
 import io
 from pathlib import Path
-from typing import Any, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import yaml
 
@@ -17,10 +17,11 @@ class Config(object):
         """
         if isinstance(path, str):
             path = Path(path)
-        self._path = path
-        self._data = self._parse()
 
-    def _parse(self):
+        self._path: Optional[Path] = path
+        self._data: Dict[str, Any] = self._parse()
+
+    def _parse(self) -> Dict[str, Any]:
         """Parses the YAML configuration file"""
         if not self._path:
             return {}
@@ -38,7 +39,7 @@ class Config(object):
         It can be formatted as a simple string, or as a path/like/string to fetch nested values.
         """
 
-        acc = self._data.copy()
+        acc: Any = self._data.copy()
 
         while True:
             if isinstance(key, str):
@@ -52,7 +53,7 @@ class Config(object):
             else:
                 key = keys
 
-    def put(self, key: Union[str, List[str]], value: Any, save: bool = True):
+    def put(self, key: Union[str, List[str]], value: Any, save: bool = True) -> None:
         """Sets value for specified key
 
         Args:
@@ -71,23 +72,23 @@ class Config(object):
         if save:
             self._save()
 
-    def _save(self):
+    def _save(self) -> None:
         """Persist the configuration to the file system"""
         if not self._path:
             return
         with io.open(self._path, "w", encoding="utf8") as f:
             yaml.dump(self._data, f, default_flow_style=False, allow_unicode=True)
 
-    def set_team(self, team: str, api_key: str, datasets_dir: str):
+    def set_team(self, team: str, api_key: str, datasets_dir: str) -> None:
         self.put(f"teams/{team}/api_key", api_key)
         self.put(f"teams/{team}/datasets_dir", datasets_dir)
 
-    def set_default_team(self, team: str):
+    def set_default_team(self, team: str) -> None:
         if self.get(f"teams/{team}") is None:
             raise InvalidTeam()
         self.put("global/default_team", team)
 
-    def set_global(self, api_endpoint: str, base_url: str, default_team: Optional[str] = None):
+    def set_global(self, api_endpoint: str, base_url: str, default_team: Optional[str] = None) -> None:
         self.put("global/api_endpoint", api_endpoint)
         self.put("global/base_url", base_url)
         if default_team:
@@ -108,7 +109,7 @@ class Config(object):
         datasets_dir = self.get(f"teams/{team}/datasets_dir")
         return {"slug": team, "api_key": api_key, "default": default, "datasets_dir": datasets_dir}
 
-    def get_default_team(self, raise_on_invalid_team: bool = True):
+    def get_default_team(self, raise_on_invalid_team: bool = True) -> Optional[Team]:
         default_team = self.get("global/default_team")
         if default_team:
             return self.get_team(default_team)
