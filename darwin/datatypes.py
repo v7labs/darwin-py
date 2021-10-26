@@ -12,7 +12,7 @@ Node = Dict[str, Any]
 EllipseData = Dict[str, Any]
 CuboidData = Dict[str, Any]
 KeyFrame = Dict[str, Any]
-Segment = List[int]
+Segment = List[float]
 
 DarwinVersionNumber = Tuple[int, int, int]
 
@@ -60,7 +60,7 @@ class Annotation:
 class VideoAnnotation:
     annotation_class: AnnotationClass
     frames: Dict[int, Any]
-    keyframes: List[KeyFrame]
+    keyframes: Dict[int, bool]
     segments: List[Segment]
     interpolated: bool
 
@@ -92,7 +92,7 @@ class AnnotationFile:
     path: Path
     filename: str
     annotation_classes: Set[AnnotationClass]
-    annotations: List[Annotation]
+    annotations: Union[List[VideoAnnotation], List[Annotation]]
     is_video: bool = False
     image_width: Optional[int] = None
     image_height: Optional[int] = None
@@ -199,7 +199,7 @@ def make_video(keyframes: List[KeyFrame], start, end) -> Annotation:
 
 
 def make_video_annotation(
-    frames: Dict[int, Any], keyframes: List[KeyFrame], segments: List[Segment], interpolated: bool
+    frames: Dict[int, Any], keyframes: Dict[int, bool], segments: List[Segment], interpolated: bool
 ) -> VideoAnnotation:
     first_annotation: Annotation = list(frames.values())[0]
     if not all(frame.annotation_class.name == first_annotation.annotation_class.name for frame in frames.values()):

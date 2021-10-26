@@ -1,15 +1,26 @@
 import json
 import platform
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    Union,
+)
 
 import numpy as np
-from rich.progress import track
+from rich.progress import ProgressType, track
 from upolygon import draw_polygon
 
 import darwin.datatypes as dt
 from darwin.config import Config
-from darwin.datatypes import PathLike
+from darwin.datatypes import Annotation, PathLike, Polygon, Team, VideoAnnotation
 from darwin.exceptions import OutdatedDarwinJSONFormat, UnsupportedFileType
 
 if TYPE_CHECKING:
@@ -58,7 +69,7 @@ def is_project_dir(project_path: Path) -> bool:
     return (project_path / "releases").exists() and (project_path / "images").exists()
 
 
-def get_progress_bar(array: List, description: Optional[str] = None):
+def get_progress_bar(array: List, description: Optional[str] = None) -> Iterable[ProgressType]:
     if description:
         return track(array, description=description)
     return track(array)
@@ -156,15 +167,18 @@ def persist_client_configuration(
         config_path = Path.home() / ".darwin" / "config.yaml"
         config_path.parent.mkdir(exist_ok=True)
 
-    team_config = client.config.get_default_team()
-    config = Config(config_path)
+    team_config: Optional[Team] = client.config.get_default_team()
+    if not team_config:
+        raise ValueError("Unable to get default team.")
+
+    config: Config = Config(config_path)
     config.set_team(team=team_config["slug"], api_key=team_config["api_key"], datasets_dir=team_config["datasets_dir"])
     config.set_global(api_endpoint=client.url, base_url=client.base_url, default_team=default_team)
 
     return config
 
 
-def get_local_filename(metadata: dict):
+def get_local_filename(metadata: Dict[str, Any]) -> str:
     return metadata["filename"]
 
 
@@ -282,9 +296,9 @@ def parse_darwin_video(path: Path, data: Dict[str, Any], count: Optional[int]) -
     )
 
 
-def parse_darwin_annotation(annotation: Dict[str, Any]):
-    name = annotation["name"]
-    main_annotation = None
+def parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[Annotation]:
+    name: str = annotation["name"]
+    main_annotation: Optional[Annotation] = None
     if "polygon" in annotation:
         bounding_box = annotation.get("bounding_box")
         if "additional_paths" in annotation["polygon"]:
@@ -331,10 +345,10 @@ def parse_darwin_annotation(annotation: Dict[str, Any]):
     return main_annotation
 
 
-def parse_darwin_video_annotation(annotation: dict):
+def parse_darwin_video_annotation(annotation: dict) -> dt.VideoAnnotation:
     name = annotation["name"]
     frame_annotations = {}
-    keyframes = {}
+    keyframes: Dict[int, bool] = {}
     for f, frame in annotation["frames"].items():
         frame_annotations[int(f)] = parse_darwin_annotation({**frame, **{"name": name}})
         keyframes[int(f)] = frame.get("keyframe", False)
@@ -344,15 +358,20 @@ def parse_darwin_video_annotation(annotation: dict):
     )
 
 
-def split_video_annotation(annotation):
+def split_video_annotation(annotation: dt.AnnotationFile) -> List[dt.AnnotationFile]:
     if not annotation.is_video:
         raise AttributeError("this is not a video annotation")
 
+    if not annotation.frame_urls:
+        raise AttributeError("This Annotation has no frame urls")
+
     frame_annotations = []
     for i, frame_url in enumerate(annotation.frame_urls):
+
+        # a is a dt.VideoAnnotation
         annotations = [a.frames[i] for a in annotation.annotations if i in a.frames]
-        annotation_classes = set([annotation.annotation_class for annotation in annotations])
-        filename = f"{Path(annotation.filename).stem}/{i:07d}.png"
+        annotation_classes: Set[dt.AnnotationClass] = set([annotation.annotation_class for annotation in annotations])
+        filename: str = f"{Path(annotation.filename).stem}/{i:07d}.png"
 
         frame_annotations.append(
             dt.AnnotationFile(
@@ -371,13 +390,16 @@ def split_video_annotation(annotation):
     return frame_annotations
 
 
-def ispolygon(annotation):
+def ispolygon(annotation: dt.AnnotationClass) -> bool:
     return annotation.annotation_type in ["polygon", "complex_polygon"]
 
 
 def convert_polygons_to_sequences(
-    polygons: List, height: Optional[int] = None, width: Optional[int] = None, rounding: bool = True
-) -> List:
+    polygons: Union[dt.Polygon, List[dt.Polygon]],
+    height: Optional[int] = None,
+    width: Optional[int] = None,
+    rounding: bool = True,
+) -> List[Union[List[int], List[float]]]:
     """
     Converts a list of polygons, encoded as a list of dictionaries of into a list of nd.arrays
     of coordinates.
@@ -402,15 +424,18 @@ def convert_polygons_to_sequences(
         raise ValueError("No polygons provided")
     # If there is a single polygon composing the instance then this is
     # transformed to polygons = [[{x: x1, y:y1}, ..., {x: xn, y:yn}]]
-    if isinstance(polygons[0], dict):
-        polygons = [polygons]
+    list_polygons: List[Polygon] = []
+    if polygons[0] and isinstance(polygons[0], dict):
+        list_polygons.append(polygons)
+    else:
+        list_polygons = polygons
 
-    if not isinstance(polygons[0], list) or not isinstance(polygons[0][0], dict):
+    if not isinstance(list_polygons[0], list) or not isinstance(list_polygons[0][0], dict):
         raise ValueError("Unknown input format")
 
-    sequences = []
-    for polygon in polygons:
-        path = []
+    sequences: List[Union[List[int], List[float]]] = []
+    for polygon in list_polygons:
+        path: Union[List[int], List[float]] = []
         for point in polygon:
             # Clip coordinates to the image size
             x = max(min(point["x"], width - 1) if width else point["x"], 0)
@@ -425,7 +450,9 @@ def convert_polygons_to_sequences(
     return sequences
 
 
-def convert_sequences_to_polygons(sequences: List, height: Optional[int] = None, width: Optional[int] = None) -> Dict:
+def convert_sequences_to_polygons(
+    sequences: List[Union[List[int], List[float]]], height: Optional[int] = None, width: Optional[int] = None
+) -> Dict[str, List[Polygon]]:
     """
     Converts a list of polygons, encoded as a list of dictionaries of into a list of nd.arrays
     of coordinates.
@@ -470,7 +497,7 @@ def convert_sequences_to_polygons(sequences: List, height: Optional[int] = None,
     return {"path": polygons}
 
 
-def convert_xyxy_to_bounding_box(box: List) -> dict:
+def convert_xyxy_to_bounding_box(box: List[Tuple[int, float]]) -> dt.BoundingBox:
     """
     Converts a list of xy coordinates representing a bounding box into a dictionary
 
@@ -493,7 +520,7 @@ def convert_xyxy_to_bounding_box(box: List) -> dict:
     return {"x": x1, "y": y1, "w": width, "h": height}
 
 
-def convert_bounding_box_to_xyxy(box: dict) -> list:
+def convert_bounding_box_to_xyxy(box: dt.BoundingBox) -> List[dt.BoundingBox]:
     """
     Converts dictionary representing a bounding box into a list of xy coordinates
 
@@ -534,7 +561,7 @@ def convert_polygons_to_mask(polygons: List, height: int, width: int, value: Opt
     return mask
 
 
-def chunk(items, size):
+def chunk(items: List[Any], size: int) -> Iterator[Any]:
     for i in range(0, len(items), size):
         yield items[i : i + size]
 
