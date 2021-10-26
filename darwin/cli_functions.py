@@ -584,7 +584,7 @@ def dataset_import(dataset_slug, format, files, append) -> None:
     parser: ImportParser = find_import_supported_format(format, ImportSupportedFormats)
 
     try:
-        dataset: RemoteDataset = client.get_remote_dataset(a_dataset_identifier=dataset_slug)
+        dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
         importer.import_annotations(dataset, parser, files, append)
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
