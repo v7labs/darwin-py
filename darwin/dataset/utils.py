@@ -15,7 +15,7 @@ from darwin.utils import (
     SUPPORTED_VIDEO_EXTENSIONS,
     is_unix_like_os,
 )
-from PIL import Image
+from PIL import Image as PILImage
 from rich.live import Live
 from rich.progress import ProgressBar, track
 
@@ -401,7 +401,7 @@ def get_annotations(
             yield record
 
 
-def load_pil_image(path: Path, to_rgb: Optional[bool] = True):
+def load_pil_image(path: Path, to_rgb: Optional[bool] = True) -> PILImage.Image:
     """
     Loads a PIL image and converts it into RGB (optional).
 
@@ -416,13 +416,13 @@ def load_pil_image(path: Path, to_rgb: Optional[bool] = True):
     -------
     PIL Image
     """
-    pic = Image.open(path)
+    pic = PILImage.open(path)
     if to_rgb:
         pic = convert_to_rgb(pic)
     return pic
 
 
-def convert_to_rgb(pic: Image):
+def convert_to_rgb(pic: PILImage.Image) -> PILImage.Image:
     """
     Converts a PIL image to RGB
 
@@ -442,24 +442,20 @@ def convert_to_rgb(pic: Image):
         pic = pic.convert("RGB")
     elif pic.mode == "I":
         img = (np.divide(np.array(pic, np.int32), 2 ** 16 - 1) * 255).astype(np.uint8)
-        pic = Image.fromarray(np.stack((img, img, img), axis=2))
+        pic = PILImage.fromarray(np.stack((img, img, img), axis=2))
     elif pic.mode == "I;16":
         img = (np.divide(np.array(pic, np.int16), 2 ** 8 - 1) * 255).astype(np.uint8)
-        pic = Image.fromarray(np.stack((img, img, img), axis=2))
+        pic = PILImage.fromarray(np.stack((img, img, img), axis=2))
     elif pic.mode == "L":
         img = np.array(pic).astype(np.uint8)
-        pic = Image.fromarray(np.stack((img, img, img), axis=2))
+        pic = PILImage.fromarray(np.stack((img, img, img), axis=2))
     elif pic.mode == "1":
         pic = pic.convert("L")
         img = np.array(pic).astype(np.uint8)
-        pic = Image.fromarray(np.stack((img, img, img), axis=2))
+        pic = PILImage.fromarray(np.stack((img, img, img), axis=2))
     else:
         raise TypeError(f"unsupported image type {pic.mode}")
     return pic
-
-
-def _is_pil_image(img):
-    return isinstance(img, Image.Image)
 
 
 def compute_max_density(annotations_dir: Path):
