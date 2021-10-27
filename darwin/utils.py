@@ -389,8 +389,6 @@ def split_video_annotation(annotation: AnnotationFile) -> List[AnnotationFile]:
 
     frame_annotations = []
     for i, frame_url in enumerate(annotation.frame_urls):
-
-        # "a" is a VideoAnnotation
         annotations = [a.frames[i] for a in annotation.annotations if isinstance(a, VideoAnnotation) and i in a.frames]
         annotation_classes: Set[AnnotationClass] = set([annotation.annotation_class for annotation in annotations])
         filename: str = f"{Path(annotation.filename).stem}/{i:07d}.png"

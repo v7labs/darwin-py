@@ -108,7 +108,6 @@ class Config(object):
 
         datasets_dir = self.get(f"teams/{team}/datasets_dir")
         return Team(slug=team, api_key=api_key, default=default, datasets_dir=datasets_dir)
-        # {"slug": team, "api_key": api_key, "default": default, "datasets_dir": datasets_dir}
 
     def get_default_team(self, raise_on_invalid_team: bool = True) -> Optional[Team]:
         default_team = self.get("global/default_team")
