@@ -4,7 +4,17 @@ import tempfile
 import zipfile
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Dict, Iterator, List, Optional, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    Iterator,
+    List,
+    Optional,
+    Tuple,
+    Union,
+)
 from urllib import parse
 
 from darwin.dataset.download_manager import download_all_images_from_annotations
@@ -26,7 +36,7 @@ from darwin.dataset.utils import (
     make_class_lists,
     sanitize_filename,
 )
-from darwin.datatypes import AnnotationClass, PathLike
+from darwin.datatypes import AnnotationClass, AnnotationFile, PathLike, Team
 from darwin.exceptions import NotFound, UnsupportedExportFormat
 from darwin.exporter.formats.darwin import build_image_annotation
 from darwin.item import DatasetItem, parse_dataset_item
@@ -81,7 +91,7 @@ class RemoteDataset:
         self.image_count = image_count
         self.progress = progress
         self.client = client
-        self.annotation_types = None
+        self.annotation_types: Optional[List[Dict[str, Any]]] = None
         self.console: Console = Console()
 
     def push(
@@ -97,7 +107,7 @@ class RemoteDataset:
         preserve_folders: bool = False,
         progress_callback: Optional[ProgressCallback] = None,
         file_upload_callback: Optional[FileUploadCallback] = None,
-    ):
+    ) -> UploadHandler:
         """Uploads a local dataset (images ONLY) in the datasets directory.
 
         Parameters
@@ -166,13 +176,13 @@ class RemoteDataset:
 
         return handler
 
-    def split_video_annotations(self, release_name: str = "latest"):
-        release_dir = self.local_path / "releases" / release_name
-        annotations_path = release_dir / "annotations"
+    def split_video_annotations(self, release_name: str = "latest") -> None:
+        release_dir: Path = self.local_path / "releases" / release_name
+        annotations_path: Path = release_dir / "annotations"
 
         for count, annotation_file in enumerate(annotations_path.glob("*.json")):
-            darwin_annotation = parse_darwin_json(annotation_file, count)
-            if not darwin_annotation.is_video:
+            darwin_annotation: Optional[AnnotationFile] = parse_darwin_json(annotation_file, count)
+            if not darwin_annotation or not darwin_annotation.is_video:
                 continue
 
             frame_annotations = split_video_annotation(darwin_annotation)
@@ -206,7 +216,7 @@ class RemoteDataset:
         subset_folder_name: Optional[str] = None,
         use_folders: bool = False,
         video_frames: bool = False,
-    ):
+    ) -> Tuple[Optional[Callable[[], Iterator[Any]]], int]:
         """
         Downloads a remote dataset (images and annotations) to the datasets directory.
 
@@ -298,7 +308,10 @@ class RemoteDataset:
             # No images will be downloaded
             return None, 0
 
-        team_config = self.client.config.get_team(self.team)
+        team_config: Optional[Team] = self.client.config.get_team(self.team)
+        if not team_config:
+            raise ValueError("Unable to get Team configuration.")
+
         api_key = team_config.get("api_key")
 
         # Create the generator with the download instructions
@@ -392,7 +405,7 @@ class RemoteDataset:
             If it fails to establish a connection.
         """
         if not self.annotation_types:
-            self.annotation_types: List[Dict[str, Any]] = self.client.get("/annotation_types")
+            self.annotation_types = self.client.get("/annotation_types")
         for annotation_type in self.annotation_types:
             if annotation_type["name"] == name:
                 return annotation_type["id"]
