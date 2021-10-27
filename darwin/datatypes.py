@@ -12,7 +12,7 @@ Node = Dict[str, Any]
 EllipseData = Dict[str, Any]
 CuboidData = Dict[str, Any]
 KeyFrame = Dict[str, Any]
-Segment = List[float]
+Segment = List[int]
 
 DarwinVersionNumber = Tuple[int, int, int]
 
