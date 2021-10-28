@@ -4,7 +4,18 @@ import tempfile
 import zipfile
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Dict, Iterator, List, Optional, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    Tuple,
+    Union,
+)
 from urllib import parse
 
 from darwin.dataset.download_manager import download_all_images_from_annotations
@@ -26,7 +37,7 @@ from darwin.dataset.utils import (
     make_class_lists,
     sanitize_filename,
 )
-from darwin.datatypes import AnnotationClass, PathLike
+from darwin.datatypes import Annotation, AnnotationClass, AnnotationFile, PathLike, Team
 from darwin.exceptions import NotFound, UnsupportedExportFormat
 from darwin.exporter.formats.darwin import build_image_annotation
 from darwin.item import DatasetItem, parse_dataset_item
@@ -81,7 +92,7 @@ class RemoteDataset:
         self.image_count = image_count
         self.progress = progress
         self.client = client
-        self.annotation_types = None
+        self.annotation_types: Optional[List[Dict[str, Any]]] = None
         self.console: Console = Console()
 
     def push(
@@ -97,7 +108,7 @@ class RemoteDataset:
         preserve_folders: bool = False,
         progress_callback: Optional[ProgressCallback] = None,
         file_upload_callback: Optional[FileUploadCallback] = None,
-    ):
+    ) -> UploadHandler:
         """Uploads a local dataset (images ONLY) in the datasets directory.
 
         Parameters
@@ -166,13 +177,13 @@ class RemoteDataset:
 
         return handler
 
-    def split_video_annotations(self, release_name: str = "latest"):
-        release_dir = self.local_path / "releases" / release_name
-        annotations_path = release_dir / "annotations"
+    def split_video_annotations(self, release_name: str = "latest") -> None:
+        release_dir: Path = self.local_path / "releases" / release_name
+        annotations_path: Path = release_dir / "annotations"
 
         for count, annotation_file in enumerate(annotations_path.glob("*.json")):
-            darwin_annotation = parse_darwin_json(annotation_file, count)
-            if not darwin_annotation.is_video:
+            darwin_annotation: Optional[AnnotationFile] = parse_darwin_json(annotation_file, count)
+            if not darwin_annotation or not darwin_annotation.is_video:
                 continue
 
             frame_annotations = split_video_annotation(darwin_annotation)
@@ -206,7 +217,7 @@ class RemoteDataset:
         subset_folder_name: Optional[str] = None,
         use_folders: bool = False,
         video_frames: bool = False,
-    ):
+    ) -> Tuple[Optional[Callable[[], Iterator[Any]]], int]:
         """
         Downloads a remote dataset (images and annotations) to the datasets directory.
 
@@ -298,7 +309,10 @@ class RemoteDataset:
             # No images will be downloaded
             return None, 0
 
-        team_config = self.client.config.get_team(self.team)
+        team_config: Optional[Team] = self.client.config.get_team(self.team)
+        if not team_config:
+            raise ValueError("Unable to get Team configuration.")
+
         api_key = team_config.api_key
 
         # Create the generator with the download instructions
@@ -361,12 +375,12 @@ class RemoteDataset:
             else:
                 return
 
-    def archive(self, items) -> None:
+    def archive(self, items: Iterator[DatasetItem]) -> None:
         self.client.put(
             f"datasets/{self.dataset_id}/items/archive", {"filter": {"dataset_item_ids": [item.id for item in items]}}
         )
 
-    def restore_archived(self, items) -> None:
+    def restore_archived(self, items: Iterator[DatasetItem]) -> None:
         self.client.put(
             f"datasets/{self.dataset_id}/items/restore", {"filter": {"dataset_item_ids": [item.id for item in items]}}
         )
@@ -392,12 +406,15 @@ class RemoteDataset:
             If it fails to establish a connection.
         """
         if not self.annotation_types:
-            self.annotation_types: List[Dict[str, Any]] = self.client.get("/annotation_types")
+            self.annotation_types = self.client.get("/annotation_types")
+
         for annotation_type in self.annotation_types:
             if annotation_type["name"] == name:
                 return annotation_type["id"]
 
-    def create_annotation_class(self, name: str, type: str, subtypes: List[str] = []) -> Dict:
+        return None
+
+    def create_annotation_class(self, name: str, type: str, subtypes: List[str] = []) -> Dict[str, Any]:
         """
         Creates an annotation class for this dataset.
 
@@ -446,7 +463,7 @@ class RemoteDataset:
             error_handlers=[name_taken, validation_error],
         )
 
-    def add_annotation_class(self, annotation_class: Union[AnnotationClass, int]) -> Union[Dict, None]:
+    def add_annotation_class(self, annotation_class: Union[AnnotationClass, int]) -> Optional[Dict[str, Any]]:
         """
         Adds an annotation class to this dataset.
 
@@ -520,11 +537,13 @@ class RemoteDataset:
                 classes_to_return.append(cls)
         return classes_to_return
 
-    def fetch_remote_attributes(self):
+    def fetch_remote_attributes(self) -> Any:
         """Fetches all remote attributes on the remote dataset"""
         return self.client.get(f"/datasets/{self.dataset_id}/attributes")
 
-    def export(self, name: str, annotation_class_ids: Optional[List[str]] = None, include_url_token: bool = False):
+    def export(
+        self, name: str, annotation_class_ids: Optional[List[str]] = None, include_url_token: bool = False
+    ) -> None:
         """
         Create a new release for the dataset
 
@@ -551,7 +570,7 @@ class RemoteDataset:
             error_handlers=[name_taken, validation_error],
         )
 
-    def get_report(self, granularity="day") -> str:
+    def get_report(self, granularity: str = "day") -> str:
         return self.client.get(
             f"/reports/{self.team}/annotation?group_by=dataset,user&dataset_ids={self.dataset_id}&granularity={granularity}&format=csv&include=dataset.name,user.first_name,user.last_name,user.email",
             team=self.team,
@@ -617,7 +636,7 @@ class RemoteDataset:
         split_seed: int = 0,
         make_default_split: bool = True,
         release_name: Optional[str] = None,
-    ):
+    ) -> None:
         """
         Creates lists of file names for each split for train, validation, and test.
         Note: This functions needs a local copy of the dataset
@@ -655,7 +674,7 @@ class RemoteDataset:
             make_default_split=make_default_split,
         )
 
-    def classes(self, annotation_type: str, release_name: Optional[str] = None):
+    def classes(self, annotation_type: str, release_name: Optional[str] = None) -> List[str]:
         """
         Returns the list of `class_type` classes
 
@@ -687,7 +706,7 @@ class RemoteDataset:
         annotation_type: str = "polygon",
         release_name: Optional[str] = None,
         annotation_format: Optional[str] = "darwin",
-    ):
+    ) -> Iterable[Dict[str, Any]]:
         """
         Returns all the annotations of a given split and partition in a single dictionary
 
@@ -727,7 +746,7 @@ class RemoteDataset:
         ):
             yield annotation
 
-    def workview_url_for_item(self, item):
+    def workview_url_for_item(self, item: DatasetItem) -> str:
         return urljoin(self.client.base_url, f"/workview?dataset={self.dataset_id}&image={item.seq}")
 
     @property
@@ -738,10 +757,14 @@ class RemoteDataset:
     @property
     def local_path(self) -> Path:
         """Returns a Path to the local dataset"""
-        if self.slug is not None:
-            return Path(self.client.get_datasets_dir(self.team)) / self.team / self.slug
+        datasets_dir: Optional[str] = self.client.get_datasets_dir(self.team)
+        if not datasets_dir:
+            raise ValueError(f"Unable to find datasets directory for {self.team}")
+
+        if self.slug:
+            return Path(datasets_dir) / self.team / self.slug
         else:
-            return Path(self.client.get_datasets_dir(self.team)) / self.team
+            return Path(datasets_dir) / self.team
 
     @property
     def local_releases_path(self) -> Path:

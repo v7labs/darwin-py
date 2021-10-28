@@ -93,7 +93,7 @@ def extract_classes(annotations_path: Path, annotation_type: str) -> Tuple[Dict[
     return classes, indices_to_classes
 
 
-def make_class_lists(release_path: Path):
+def make_class_lists(release_path: Path) -> None:
     """
     Support function to extract classes and save the output to file
 
