@@ -1,14 +1,13 @@
 import datetime
-import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional
-from xml.etree.ElementTree import Element
+from xml.etree.ElementTree import Element, SubElement, tostring
 
 import darwin.datatypes as dt
 
 
 def add_subelement_text(parent: Element, name: str, value: Any) -> Element:
-    sub = ET.SubElement(parent, name)
+    sub = SubElement(parent, name)
     sub.text = str(value)
     return sub
 
@@ -18,12 +17,12 @@ def export(annotation_files: Iterator[dt.AnnotationFile], output_dir: Path) -> N
     # TODO, maybe an optional output name (like the dataset name if available)
     output_file_path = (output_dir / "output").with_suffix(".xml")
     with open(output_file_path, "wb") as f:
-        f.write(ET.tostring(output))
+        f.write(tostring(output))
 
 
 def build_xml(annotation_files: List[dt.AnnotationFile]) -> Element:
     label_lookup: Dict[str, int] = build_label_lookup(annotation_files)
-    root: Element = ET.Element("annotations")
+    root: Element = Element("annotations")
     add_subelement_text(root, "version", "1.1")
     build_meta(root, annotation_files, label_lookup)
     build_images(root, annotation_files, label_lookup)
@@ -32,7 +31,7 @@ def build_xml(annotation_files: List[dt.AnnotationFile]) -> Element:
 
 def build_images(root: Element, annotation_files: List[dt.AnnotationFile], label_lookup: Dict[str, int]) -> None:
     for id, annotation_file in enumerate(annotation_files, 1):
-        image = ET.SubElement(root, "image")
+        image = SubElement(root, "image")
         image.attrib["id"] = str(id)
         image.attrib["name"] = annotation_file.filename
         image.attrib["width"] = str(annotation_file.image_width)
@@ -44,7 +43,7 @@ def build_images(root: Element, annotation_files: List[dt.AnnotationFile], label
 
 def build_annotation(image: Element, annotation: dt.Annotation) -> None:
     if annotation.annotation_class.annotation_type == "bounding_box":
-        box = ET.SubElement(image, "box")
+        box = SubElement(image, "box")
         box.attrib["label"] = annotation.annotation_class.name
         box.attrib["xtl"] = str(annotation.data["x"])
         box.attrib["ytl"] = str(annotation.data["y"])
@@ -75,10 +74,10 @@ def build_attributes(box: Element, annotation: dt.Annotation) -> None:
 
 
 def build_meta(root: Element, annotation_files: List[dt.AnnotationFile], label_lookup: Dict[str, int]) -> None:
-    meta: Element = ET.SubElement(root, "meta")
+    meta: Element = SubElement(root, "meta")
     add_subelement_text(meta, "dumped", str(datetime.datetime.now(tz=datetime.timezone.utc)))
 
-    task: Element = ET.SubElement(meta, "task")
+    task: Element = SubElement(meta, "task")
     add_subelement_text(task, "id", 1)
     add_subelement_text(task, "name", "exported_task_from_darwin")
     add_subelement_text(task, "size", len(annotation_files))
@@ -89,19 +88,19 @@ def build_meta(root: Element, annotation_files: List[dt.AnnotationFile], label_l
     add_subelement_text(task, "created", str(datetime.datetime.now(tz=datetime.timezone.utc)))
     add_subelement_text(task, "updated", str(datetime.datetime.now(tz=datetime.timezone.utc)))
 
-    labels: Element = ET.SubElement(task, "labels")
+    labels: Element = SubElement(task, "labels")
     build_labels(labels, label_lookup)
 
-    segments: Element = ET.SubElement(task, "segments")
+    segments: Element = SubElement(task, "segments")
     build_segments(segments, annotation_files)
 
-    owner: Element = ET.SubElement(task, "owner")
+    owner: Element = SubElement(task, "owner")
     add_subelement_text(owner, "username", "example_username")
     add_subelement_text(owner, "email", "user@example.com")
 
 
 def build_segments(segments: Element, annotation_files: List[dt.AnnotationFile]) -> None:
-    segment: Element = ET.SubElement(segments, "segment")
+    segment: Element = SubElement(segments, "segment")
     add_subelement_text(segment, "id", 1)
     add_subelement_text(segment, "start", 1)
     add_subelement_text(segment, "end", len(annotation_files))
@@ -110,9 +109,9 @@ def build_segments(segments: Element, annotation_files: List[dt.AnnotationFile])
 
 def build_labels(labels: Element, label_lookup: Dict[str, int]) -> None:
     for key in label_lookup.keys():
-        label: Element = ET.SubElement(labels, "label")
+        label: Element = SubElement(labels, "label")
         add_subelement_text(label, "name", key)
-        ET.SubElement(label, "attributes")
+        SubElement(label, "attributes")
 
 
 def build_label_lookup(annotation_files: List[dt.AnnotationFile]) -> Dict[str, int]:
