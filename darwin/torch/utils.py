@@ -6,12 +6,13 @@ from typing import List, Optional
 import numpy as np
 from darwin.cli_functions import _error, _load_client
 from darwin.dataset.identifier import DatasetIdentifier
+from darwin.datatypes import Segment
 from upolygon import draw_polygon
 
 import torch
 
 
-def convert_segmentation_to_mask(segmentations: List[List[float]], height: int, width: int):
+def convert_segmentation_to_mask(segmentations: List[Segment], height: int, width: int):
     """
     Converts a polygon represented as a sequence of coordinates into a mask.
 
@@ -100,9 +101,9 @@ def detectron2_register_dataset(
     catalog_name = f"darwin_{dataset_path.name}"
     if partition:
         catalog_name += f"_{partition}"
-        
+
     classes = get_classes(dataset_path=dataset_path, release_name=release_name, annotation_type="polygon")
-    
+
     DatasetCatalog.register(
         catalog_name,
         lambda partition=partition: list(

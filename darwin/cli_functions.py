@@ -126,10 +126,10 @@ def current_team() -> None:
 def list_teams() -> None:
     """Print a table of teams to which the client belong to"""
     for team in _config().get_all_teams():
-        if team["default"]:
-            print(f"{team['slug']} (default)")
+        if team.default:
+            print(f"{team.slug} (default)")
         else:
-            print(team["slug"])
+            print(team.slug)
 
 
 def set_team(team_slug: str) -> None:
@@ -344,7 +344,7 @@ def list_remote_datasets(all_teams: bool, team: Optional[str] = None) -> None:
     if all_teams:
         teams: List[Team] = _config().get_all_teams()
         for a_team in teams:
-            client = _load_client(a_team["slug"])
+            client = _load_client(a_team.slug)
             datasets += list(client.list_remote_datasets())
     else:
         client = _load_client(team)

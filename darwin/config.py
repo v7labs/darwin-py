@@ -104,10 +104,10 @@ class Config(object):
                 raise InvalidTeam()
             else:
                 return None
-        default = self.get("global/default_team") == team or len(list(self.get("teams").keys())) == 1
+        default: bool = self.get("global/default_team") == team or len(list(self.get("teams").keys())) == 1
 
         datasets_dir = self.get(f"teams/{team}/datasets_dir")
-        return {"slug": team, "api_key": api_key, "default": default, "datasets_dir": datasets_dir}
+        return Team(slug=team, api_key=api_key, default=default, datasets_dir=datasets_dir)
 
     def get_default_team(self, raise_on_invalid_team: bool = True) -> Optional[Team]:
         default_team = self.get("global/default_team")

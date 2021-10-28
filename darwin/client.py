@@ -372,7 +372,7 @@ class Client:
         if not the_team:
             return None
 
-        team_slug: str = the_team["slug"]
+        team_slug: str = the_team.slug
 
         return self.get(f"/teams/{team_slug}/annotation_classes?include_tags=true")["annotation_classes"]
 
@@ -383,7 +383,7 @@ class Client:
         if not the_team:
             return None
 
-        team_slug: str = the_team["slug"]
+        team_slug: str = the_team.slug
         self.features[team_slug] = self.get_team_features(team_slug)
 
     def get_team_features(self, team_slug: str) -> List[Feature]:
@@ -414,7 +414,7 @@ class Client:
         if not the_team:
             return False
 
-        team_slug: str = the_team["slug"]
+        team_slug: str = the_team.slug
 
         if team_slug not in self.features:
             self.load_feature_flags(team)
@@ -444,7 +444,7 @@ class Client:
         if not the_team:
             return None
 
-        return the_team["datasets_dir"]
+        return the_team.datasets_dir
 
     def set_datasets_dir(self, datasets_dir: Path, team: Optional[str] = None) -> None:
         """Sets the dataset directory of the specified team or the default one
@@ -474,7 +474,7 @@ class Client:
         team_config: Optional[Team] = self.config.get_team(team or self.default_team, raise_on_invalid_team=False)
 
         if team_config:
-            api_key = team_config.get("api_key")
+            api_key = team_config.api_key
 
         if api_key and len(api_key) > 0:
             headers["Authorization"] = f"ApiKey {api_key}"

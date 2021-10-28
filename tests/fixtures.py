@@ -87,7 +87,7 @@ def local_config_file(team_slug: str):
 
     # Executed before the test
     if darwin_path.exists():
-        shutil.move(darwin_path, backup_darwin_path)
+        shutil.move(str(darwin_path), str(backup_darwin_path))
     darwin_path.mkdir()
 
     config = Config(config_path)

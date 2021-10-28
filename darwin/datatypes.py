@@ -17,9 +17,18 @@ Segment = List[int]
 DarwinVersionNumber = Tuple[int, int, int]
 
 PathLike = Union[str, Path]
-Team = Dict[str, Any]
-
 ErrorHandler = Callable[[int, str], None]
+
+
+@dataclass
+class Team:
+    """Definition of a V7 team"""
+
+    default: bool
+    slug: str
+    datasets_dir: str
+    api_key: str
+    selected: bool = False
 
 
 @dataclass(frozen=True)
@@ -60,7 +69,7 @@ class Annotation:
 class VideoAnnotation:
     annotation_class: AnnotationClass
     frames: Dict[int, Any]
-    keyframes: List[KeyFrame]
+    keyframes: Dict[int, bool]
     segments: List[Segment]
     interpolated: bool
 
@@ -92,7 +101,7 @@ class AnnotationFile:
     path: Path
     filename: str
     annotation_classes: Set[AnnotationClass]
-    annotations: List[Annotation]
+    annotations: List[Union[VideoAnnotation, Annotation]]
     is_video: bool = False
     image_width: Optional[int] = None
     image_height: Optional[int] = None
@@ -199,7 +208,7 @@ def make_video(keyframes: List[KeyFrame], start, end) -> Annotation:
 
 
 def make_video_annotation(
-    frames: Dict[int, Any], keyframes: List[KeyFrame], segments: List[Segment], interpolated: bool
+    frames: Dict[int, Any], keyframes: Dict[int, bool], segments: List[Segment], interpolated: bool
 ) -> VideoAnnotation:
     first_annotation: Annotation = list(frames.values())[0]
     if not all(frame.annotation_class.name == first_annotation.annotation_class.name for frame in frames.values()):
