@@ -1,5 +1,16 @@
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, List, Tuple, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    Union,
+)
 
 if TYPE_CHECKING:
     from darwin.client import Client
@@ -11,7 +22,7 @@ from darwin.utils import secure_continue_request
 from rich.progress import track
 
 
-def build_main_annotations_lookup_table(annotation_classes):
+def build_main_annotations_lookup_table(annotation_classes: List[Dict[str, Any]]) -> Dict[str, Any]:
     MAIN_ANNOTATION_TYPES = [
         "bounding_box",
         "cuboid",
@@ -23,38 +34,41 @@ def build_main_annotations_lookup_table(annotation_classes):
         "skeleton",
         "tag",
     ]
-    lookup = {}
+    lookup: Dict[str, Any] = {}
     for cls in annotation_classes:
         for annotation_type in cls["annotation_types"]:
             if annotation_type in MAIN_ANNOTATION_TYPES:
                 if annotation_type not in lookup:
                     lookup[annotation_type] = {}
                 lookup[annotation_type][cls["name"]] = cls["id"]
+
     return lookup
 
 
 def find_and_parse(
-    importer: Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]], file_paths: List[PathLike],
-) -> Tuple[List[dt.AnnotationFile], List[dt.AnnotationFile]]:
+    importer: Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]], file_paths: List[PathLike]
+) -> Optional[Iterable[dt.AnnotationFile]]:
     # TODO: this could be done in parallel
     for file_path in map(Path, file_paths):
         files = file_path.glob("**/*") if file_path.is_dir() else [file_path]
         for f in files:
             # importer returns either None, 1 annotation file or a list of annotation files
-            parsed_files = importer(f)
+            parsed_files: Union[List[dt.AnnotationFile], dt.AnnotationFile, None] = importer(f)
             if parsed_files is None:
                 continue
+
             if type(parsed_files) is not list:
                 parsed_files = [parsed_files]
+
             for parsed_file in parsed_files:
                 # clear to save memory
                 parsed_file.annotations = []
                 yield parsed_file
 
 
-def build_attribute_lookup(dataset):
-    attributes = dataset.fetch_remote_attributes()
-    lookup = {}
+def build_attribute_lookup(dataset: "RemoteDataset") -> Dict[str, Any]:
+    attributes: Any = dataset.fetch_remote_attributes()
+    lookup: Dict[str, Any] = {}
     for attribute in attributes:
         class_id = attribute["class_id"]
         if class_id not in lookup:
@@ -63,7 +77,7 @@ def build_attribute_lookup(dataset):
     return lookup
 
 
-def get_remote_files(dataset, filenames):
+def get_remote_files(dataset: "RemoteDataset", filenames: List[str]) -> Dict[str, int]:
     """Fetches remote files from the datasets, in chunks of 100 filesnames at a time"""
     remote_files = {}
     for i in range(0, len(filenames), 100):
@@ -76,10 +90,12 @@ def get_remote_files(dataset, filenames):
 
 
 def _resolve_annotation_classes(
-    local_annotation_classes: List[dt.AnnotationClass], classes_in_dataset, classes_in_team
-):
-    local_classes_not_in_dataset: set[dt.AnnotationClass] = set()
-    local_classes_not_in_team: set[dt.AnnotationClass] = set()
+    local_annotation_classes: List[dt.AnnotationClass],
+    classes_in_dataset: Dict[str, Any],
+    classes_in_team: Dict[str, Any],
+) -> Tuple[Set[dt.AnnotationClass], Set[dt.AnnotationClass]]:
+    local_classes_not_in_dataset: Set[dt.AnnotationClass] = set()
+    local_classes_not_in_team: Set[dt.AnnotationClass] = set()
 
     for local_cls in local_annotation_classes:
         local_annotation_type = local_cls.annotation_internal_type or local_cls.annotation_type
@@ -97,6 +113,7 @@ def _resolve_annotation_classes(
             local_classes_not_in_dataset.add(local_cls)
         else:
             local_classes_not_in_team.add(local_cls)
+
     return local_classes_not_in_dataset, local_classes_not_in_team
 
 
@@ -135,16 +152,27 @@ def import_annotations(
         raise ValueError(f"file_paths must be a list of 'Path' or 'str'. Current value: {file_paths}")
 
     print("Fetching remote class list...")
-    team_classes = dataset.fetch_remote_classes(True)
-    classes_in_dataset = build_main_annotations_lookup_table([cls for cls in team_classes if cls["available"]])
-    classes_in_team = build_main_annotations_lookup_table([cls for cls in team_classes if not cls["available"]])
+    team_classes: Optional[List[Dict[str, Any]]] = dataset.fetch_remote_classes(True)
+    if not team_classes:
+        raise ValueError("Unable to fetch remote class list.")
+
+    classes_in_dataset: Dict[str, Any] = build_main_annotations_lookup_table(
+        [cls for cls in team_classes if cls["available"]]
+    )
+    classes_in_team: Dict[str, Any] = build_main_annotations_lookup_table(
+        [cls for cls in team_classes if not cls["available"]]
+    )
     attributes = build_attribute_lookup(dataset)
 
     print("Retrieving local annotations ...")
     local_files = []
     local_files_missing_remotely = []
-    parsed_files = list(find_and_parse(importer, file_paths))
-    filenames = [parsed_file.filename for parsed_file in parsed_files]
+    maybe_parsed_files: Optional[Iterable[dt.AnnotationFile]] = find_and_parse(importer, file_paths)
+    if not maybe_parsed_files:
+        raise ValueError("Not able to parse any files.")
+
+    parsed_files = list(maybe_parsed_files)
+    filenames: List[str] = [parsed_file.filename for parsed_file in parsed_files]
 
     print("Fetching remote file list...")
     # This call will only filter by filename; so can return a superset of matched files across different paths
@@ -201,15 +229,23 @@ def import_annotations(
 
     # Refetch classes to update mappings
     if local_classes_not_in_team or local_classes_not_in_dataset:
-        remote_classes = build_main_annotations_lookup_table(dataset.fetch_remote_classes())
+        maybe_remote_classes: Optional[List[Dict[str, Any]]] = dataset.fetch_remote_classes()
+        if not maybe_remote_classes:
+            raise ValueError("Unable to fetch remote classes.")
+
+        remote_classes = build_main_annotations_lookup_table(maybe_remote_classes)
     else:
         remote_classes = build_main_annotations_lookup_table(team_classes)
 
     # Need to re parse the files since we didn't save the annotations in memory
     for local_path in set(local_file.path for local_file in local_files):
-        parsed_files = importer(local_path)
-        if type(parsed_files) is not list:
-            parsed_files = [parsed_files]
+
+        imported_files: Union[List[dt.AnnotationFile], dt.AnnotationFile, None] = importer(local_path)
+        if imported_files is None:
+            parsed_files = []
+        elif not isinstance(imported_files, List):
+            parsed_files = [imported_files]
+
         # remove files missing on the server
         missing_files = [missing_file.full_path for missing_file in local_files_missing_remotely]
         parsed_files = [parsed_file for parsed_file in parsed_files if parsed_file.full_path not in missing_files]
@@ -228,7 +264,9 @@ def _get_skeleton_name(skeleton: dt.AnnotationClass) -> str:
     return skeleton.name
 
 
-def _handle_subs(annotation, data, annotation_class_id, attributes):
+def _handle_subs(
+    annotation: dt.Annotation, data: Dict[str, Any], annotation_class_id: str, attributes: Dict[str, Any]
+) -> Dict[str, Any]:
     for sub in annotation.subs:
         if sub.annotation_type == "text":
             data["text"] = {"text": sub.data}
@@ -247,14 +285,22 @@ def _handle_subs(annotation, data, annotation_class_id, attributes):
     return data
 
 
-def _handle_complex_polygon(annotation, data):
+def _handle_complex_polygon(annotation: dt.Annotation, data: Dict[str, Any]) -> Dict[str, Any]:
     if "complex_polygon" in data:
         del data["complex_polygon"]
         data["polygon"] = {"path": annotation.data["paths"][0], "additional_paths": annotation.data["paths"][1:]}
     return data
 
 
-def _import_annotations(client: "Client", id: int, remote_classes, attributes, annotations, dataset, append):
+def _import_annotations(
+    client: "Client",
+    id: int,
+    remote_classes: Dict[str, Any],
+    attributes: Dict[str, Any],
+    annotations: List[dt.Annotation],
+    dataset: "RemoteDataset",
+    append: bool,
+):
     serialized_annotations = []
     for annotation in annotations:
         annotation_class = annotation.annotation_class
@@ -275,9 +321,10 @@ def _import_annotations(client: "Client", id: int, remote_classes, attributes, a
 
         serialized_annotations.append({"annotation_class_id": annotation_class_id, "data": data})
 
-    payload = {"annotations": serialized_annotations}
+    payload: Dict[str, Any] = {"annotations": serialized_annotations}
     if append:
         payload["overwrite"] = "false"
+
     res = client.post(f"/dataset_items/{id}/import", payload=payload)
     if res.get("status_code") != 200:
         print(f"warning, failed to upload annotation to {id}", res)

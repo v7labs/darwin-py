@@ -508,7 +508,7 @@ class RemoteDataset:
         # we typecast to dictionary because we are not passing the raw=True parameter.
         return self.client.put(f"/annotation_classes/{match[0]['id']}", {"datasets": datasets, "id": match[0]["id"]})
 
-    def fetch_remote_classes(self, team_wide=False) -> Optional[List]:
+    def fetch_remote_classes(self, team_wide=False) -> Optional[List[Dict[str, Any]]]:
         """
         Fetches all the Annotation Classes from the given remote dataset.
 
