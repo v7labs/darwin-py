@@ -1,7 +1,9 @@
+from typing import Any, Dict
+
 import darwin.datatypes as dt
 
 
-def build_image_annotation(annotation_file: dt.AnnotationFile):
+def build_image_annotation(annotation_file: dt.AnnotationFile) -> Dict[str, Any]:
     annotations = []
     for annotation in annotation_file.annotations:
         payload = {
@@ -28,7 +30,7 @@ def build_image_annotation(annotation_file: dt.AnnotationFile):
     }
 
 
-def build_annotation_data(annotation: dt.Annotation):
+def build_annotation_data(annotation: dt.Annotation) -> Dict[str, Any]:
     if annotation.annotation_class.annotation_type == "complex_polygon":
         return {"path": annotation.data["paths"]}
 
