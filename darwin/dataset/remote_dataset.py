@@ -312,7 +312,7 @@ class RemoteDataset:
         if not team_config:
             raise ValueError("Unable to get Team configuration.")
 
-        api_key = team_config.get("api_key")
+        api_key = team_config.api_key
 
         # Create the generator with the download instructions
         progress, count = download_all_images_from_annotations(

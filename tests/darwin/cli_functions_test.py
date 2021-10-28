@@ -44,7 +44,7 @@ def describe_upload_data():
                     [],
                     0,
                     None,
-                    None,
+                    False,
                     False,
                     False,
                 )

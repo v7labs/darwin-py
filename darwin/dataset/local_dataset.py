@@ -1,11 +1,12 @@
 import json
 import multiprocessing as mp
 from pathlib import Path
-from typing import Collection, Iterator, List, Optional
+from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 import numpy as np
 from darwin.dataset.utils import get_classes, get_release_path, load_pil_image
 from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS
+from PIL import Image as PILImage
 
 
 class LocalDataset(object):
@@ -86,16 +87,16 @@ class LocalDataset(object):
 
         assert len(self.images_path) == len(self.annotations_path)
 
-    def get_img_info(self, index: int):
+    def get_img_info(self, index: int) -> Dict[str, Any]:
         with self.annotations_path[index].open() as f:
             data = json.load(f)["image"]
             return data
 
-    def get_height_and_width(self, index: int):
-        data = self.get_img_info(index)
+    def get_height_and_width(self, index: int) -> Tuple[float, float]:
+        data: Dict[str, Any] = self.get_img_info(index)
         return data["height"], data["width"]
 
-    def extend(self, dataset, extend_classes: bool = False):
+    def extend(self, dataset: "LocalDataset", extend_classes: bool = False) -> "LocalDataset":
         """Extends the current dataset with another one
 
         Parameters
@@ -126,13 +127,13 @@ class LocalDataset(object):
         self.annotations_path += dataset.annotations_path
         return self
 
-    def get_image(self, index: int):
+    def get_image(self, index: int) -> PILImage.Image:
         return load_pil_image(self.images_path[index])
 
-    def get_image_path(self, index: int):
+    def get_image_path(self, index: int) -> Path:
         return self.images_path[index]
 
-    def parse_json(self, index: int):
+    def parse_json(self, index: int) -> Dict[str, Any]:
         """
         Load an annotation and filter out the extra classes according to what
         specified in `self.classes` and the annotation_type
@@ -161,7 +162,7 @@ class LocalDataset(object):
             "annotations": annotations,
         }
 
-    def measure_mean_std(self, multi_threaded: bool = True):
+    def measure_mean_std(self, multi_threaded: bool = True) -> Tuple[np.ndarray, np.ndarray]:
         """Computes mean and std of train images, given the train loader
 
         Parameters
@@ -213,7 +214,7 @@ class LocalDataset(object):
         raise NotImplementedError("Base class Dataset does not have an implementation for this")
 
     @staticmethod
-    def _compute_weights(labels: Collection):
+    def _compute_weights(labels: np.ndarray) -> np.ndarray:
         """Given an array of labels computes the weights normalized
 
         Parameters
@@ -236,14 +237,14 @@ class LocalDataset(object):
 
     # Loads an image with Pillow and returns the channel wise means of the image.
     @staticmethod
-    def _return_mean(image_path):
+    def _return_mean(image_path: Path) -> np.ndarray:
         img = np.array(load_pil_image(image_path))
         mean = np.array([np.mean(img[:, :, 0]), np.mean(img[:, :, 1]), np.mean(img[:, :, 2])])
         return mean / 255.0
 
     # Loads an image with OpenCV and returns the channel wise std of the image.
     @staticmethod
-    def _return_std(image_path, mean):
+    def _return_std(image_path: Path, mean: np.ndarray) -> Tuple[np.ndarray, float]:
         img = np.array(load_pil_image(image_path)) / 255.0
         m2 = np.square(np.array([img[:, :, 0] - mean[0], img[:, :, 1] - mean[1], img[:, :, 2] - mean[2]]))
         return np.sum(np.sum(m2, axis=1), 1), m2.size / 3.0
