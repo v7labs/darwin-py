@@ -19,6 +19,9 @@ from PIL import Image as PILImage
 from rich.live import Live
 from rich.progress import ProgressBar, track
 
+# E.g.: {"partition" => {"class_name" => 123}}
+AnnotationDistribution = Dict[str, Counter]
+
 
 def get_release_path(dataset_path: Path, release_name: Optional[str] = None) -> Path:
     """
@@ -126,7 +129,7 @@ def get_classes(
     release_name: Optional[str] = None,
     annotation_type: str = "polygon",
     remove_background: bool = True,
-):
+) -> List[str]:
     """
     Given a dataset and an annotation_type returns the list of classes
 
@@ -157,13 +160,13 @@ def get_classes(
     return classes
 
 
-def _f(x):
+def _f(x: Any) -> Any:
     """Support function for pool.map() in _exhaust_generator()"""
     if callable(x):
         return x()
 
 
-def exhaust_generator(progress: Generator, count: int, multi_threaded: bool):
+def exhaust_generator(progress: Generator, count: int, multi_threaded: bool) -> List[Dict[str, Any]]:
     """Exhausts the generator passed as parameter. Can be done multi threaded if desired
 
     Parameters
@@ -206,7 +209,7 @@ def get_coco_format_record(
     image_path: Optional[Path] = None,
     image_id: Optional[Union[str, int]] = None,
     classes: Optional[List[str]] = None,
-):
+) -> Dict[str, Any]:
     assert annotation_type in ["tag", "polygon", "bounding_box"]
     try:
         from detectron2.structures import BoxMode
@@ -267,7 +270,7 @@ def get_annotations(
     release_name: Optional[str] = None,
     annotation_format: Optional[str] = "coco",
     ignore_inconsistent_examples: bool = False,
-):
+) -> Iterator[Dict[str, Any]]:
     """
     Returns all the annotations of a given dataset and split in a single dictionary
 
@@ -458,7 +461,7 @@ def convert_to_rgb(pic: PILImage.Image) -> PILImage.Image:
     return pic
 
 
-def compute_max_density(annotations_dir: Path):
+def compute_max_density(annotations_dir: Path) -> int:
     max_density = 0
     for annotation_path in annotations_dir.glob("**/*.json"):
         annotation_density = 0
@@ -471,10 +474,6 @@ def compute_max_density(annotations_dir: Path):
             if annotation_density > max_density:
                 max_density = annotation_density
     return max_density
-
-
-# E.g.: {"partition" => {"class_name" => 123}}
-AnnotationDistribution = Dict[str, Counter]
 
 
 def compute_distributions(
