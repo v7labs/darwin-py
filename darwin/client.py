@@ -267,7 +267,7 @@ class Client:
             team_configs = self.config.get_all_teams()
 
         for team_config in team_configs:
-            projects_team: Path = Path(team_config["datasets_dir"]) / team_config["slug"]
+            projects_team: Path = Path(team_config.datasets_dir) / team_config.slug
             for project_path in projects_team.glob("*"):
                 if project_path.is_dir() and is_project_dir(project_path):
                     yield Path(project_path)

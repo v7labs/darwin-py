@@ -172,7 +172,7 @@ def persist_client_configuration(
         raise ValueError("Unable to get default team.")
 
     config: Config = Config(config_path)
-    config.set_team(team=team_config["slug"], api_key=team_config["api_key"], datasets_dir=team_config["datasets_dir"])
+    config.set_team(team=team_config.slug, api_key=team_config.api_key, datasets_dir=team_config.datasets_dir)
     config.set_global(api_endpoint=client.url, base_url=client.base_url, default_team=default_team)
 
     return config
