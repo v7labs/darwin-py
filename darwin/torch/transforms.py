@@ -1,5 +1,5 @@
 import random
-from typing import Dict, Optional, Union
+from typing import Any, Dict, Optional, Tuple, Union
 
 import torchvision.transforms as transforms
 import torchvision.transforms.functional as F
@@ -22,7 +22,9 @@ class Compose(transforms.Compose):
 
 
 class RandomHorizontalFlip(transforms.RandomHorizontalFlip):
-    def forward(self, image: PILImage.Image, target: Optional[TargetType] = None):
+    def forward(
+        self, image: PILImage.Image, target: Optional[TargetType] = None
+    ) -> Union[Union[torch.Tensor, PILImage.Image], Tuple[Union[torch.Tensor, PILImage.Image], TargetType]]:
         if random.random() < self.p:
             image = F.hflip(image)
             if target is None:
@@ -38,11 +40,14 @@ class RandomHorizontalFlip(transforms.RandomHorizontalFlip):
 
         if target is None:
             return image
+
         return image, target
 
 
 class RandomVerticalFlip(transforms.RandomVerticalFlip):
-    def forward(self, image: PILImage.Image, target: Optional[TargetType] = None):
+    def forward(
+        self, image: PILImage.Image, target: Optional[TargetType] = None
+    ) -> Union[Union[torch.Tensor, PILImage.Image], Tuple[Union[torch.Tensor, PILImage.Image], TargetType]]:
         if random.random() < self.p:
             image = F.vflip(image)
             if target is None:
@@ -62,7 +67,9 @@ class RandomVerticalFlip(transforms.RandomVerticalFlip):
 
 
 class ColorJitter(transforms.ColorJitter):
-    def __call__(self, image: PILImage.Image, target: Optional[TargetType] = None):
+    def __call__(
+        self, image: PILImage.Image, target: Optional[TargetType] = None
+    ) -> Union[PILImage.Image, Tuple[PILImage.Image, TargetType]]:
         transform = self.get_params(self.brightness, self.contrast, self.saturation, self.hue)
         image = transform(image)
         if target is None:
@@ -71,7 +78,9 @@ class ColorJitter(transforms.ColorJitter):
 
 
 class ToTensor(transforms.ToTensor):
-    def __call__(self, image: PILImage.Image, target: Optional[TargetType] = None):
+    def __call__(
+        self, image: torch.Tensor, target: Optional[TargetType] = None
+    ) -> Union[torch.Tensor, Tuple[torch.Tensor, TargetType]]:
         image = F.to_tensor(image)
         if target is None:
             return image
@@ -79,7 +88,9 @@ class ToTensor(transforms.ToTensor):
 
 
 class ToPILImage(transforms.ToPILImage):
-    def __call__(self, image: PILImage.Image, target: Optional[TargetType] = None):
+    def __call__(
+        self, image: PILImage.Image, target: Optional[TargetType] = None
+    ) -> Union[PILImage.Image, Tuple[PILImage.Image, TargetType]]:
         image = F.to_pil_image(image)
         if target is None:
             return image
@@ -87,7 +98,9 @@ class ToPILImage(transforms.ToPILImage):
 
 
 class Normalize(transforms.Normalize):
-    def __call__(self, tensor, target: Optional[TargetType] = None):
+    def __call__(
+        self, tensor: torch.Tensor, target: Optional[TargetType] = None
+    ) -> Union[torch.Tensor, Tuple[torch.Tensor, TargetType]]:
         tensor = F.normalize(tensor, self.mean, self.std, self.inplace)
 
         if target is None:
@@ -96,7 +109,7 @@ class Normalize(transforms.Normalize):
 
 
 class ConvertPolygonsToInstanceMasks(object):
-    def __call__(self, image: PILImage.Image, target: TargetType):
+    def __call__(self, image: PILImage.Image, target: TargetType) -> Tuple[PILImage.Image, TargetType]:
         w, h = image.size
 
         image_id = target["image_id"]
@@ -151,7 +164,7 @@ class ConvertPolygonsToInstanceMasks(object):
 
 
 class ConvertPolygonsToSemanticMask(object):
-    def __call__(self, image, target):
+    def __call__(self, image: PILImage.Image, target: TargetType) -> Tuple[PILImage.Image, TargetType]:
         w, h = image.size
         image_id = target["image_id"]
         image_id = torch.tensor([image_id])
@@ -176,7 +189,7 @@ class ConvertPolygonsToSemanticMask(object):
 
 
 class ConvertPolygonToMask(object):
-    def __call__(self, image, annotation):
+    def __call__(self, image: PILImage.Image, annotation: Dict[str, Any]) -> Tuple[PILImage.Image, PILImage.Image]:
         w, h = image.size
         segmentations = [obj["segmentation"] for obj in annotation]
         cats = [obj["category_id"] for obj in annotation]
