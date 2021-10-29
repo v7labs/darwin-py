@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 import numpy as np
 from darwin.cli_functions import _error, _load_client
@@ -24,7 +24,7 @@ def get_dataset(
     split: str = "default",
     split_type: str = "random",
     transform: Optional[List] = None,
-):
+) -> None:
     """
     Creates and returns a dataset
 
@@ -110,7 +110,7 @@ class ClassificationDataset(LocalDataset):
 
         return img, target
 
-    def get_target(self, index: int):
+    def get_target(self, index: int) -> torch.Tensor:
         """
         Returns the classification target
         """
@@ -121,7 +121,7 @@ class ClassificationDataset(LocalDataset):
 
         assert len(tags) >= 1, f"No tags were found for index={index}"
 
-        target = torch.tensor(self.classes.index(tags[0]))
+        target: torch.Tensor = torch.tensor(self.classes.index(tags[0]))
 
         if self.is_multi_label:
             target = torch.zeros(len(self.classes))
@@ -145,8 +145,8 @@ class ClassificationDataset(LocalDataset):
                 self.is_multi_label = True
                 break
 
-    def get_class_idx(self, index: int):
-        target = self.get_target(index)
+    def get_class_idx(self, index: int) -> int:
+        target: torch.Tensor = self.get_target(index)
         return target["category_id"]
 
     def measure_weights(self, **kwargs) -> np.ndarray:
@@ -208,7 +208,7 @@ class InstanceSegmentationDataset(LocalDataset):
 
         return img, target
 
-    def get_target(self, index: int):
+    def get_target(self, index: int) -> Dict[str, Any]:
         """
         Returns the instance segmentation target
         """
@@ -221,9 +221,7 @@ class InstanceSegmentationDataset(LocalDataset):
             # Extract the sequences of coordinates from the polygon annotation
             annotation_type: str = "polygon" if "polygon" in annotation else "complex_polygon"
             sequences = convert_polygons_to_sequences(
-                annotation[annotation_type]["path"],
-                height=target["height"],
-                width=target["width"],
+                annotation[annotation_type]["path"], height=target["height"], width=target["width"],
             )
             # Compute the bbox of the polygon
             x_coords = [s[0::2] for s in sequences]
@@ -251,7 +249,7 @@ class InstanceSegmentationDataset(LocalDataset):
 
         return target
 
-    def measure_weights(self, **kwargs):
+    def measure_weights(self, **kwargs) -> np.ndarray:
         """
         Computes the class balancing weights (not the frequencies!!) given the train loader
         Get the weights proportional to the inverse of their class frequencies.
@@ -306,7 +304,7 @@ class SemanticSegmentationDataset(LocalDataset):
 
         return img, target
 
-    def get_target(self, index: int):
+    def get_target(self, index: int) -> Dict[str, Any]:
         """
         Returns the semantic segmentation target
         """
@@ -315,9 +313,7 @@ class SemanticSegmentationDataset(LocalDataset):
         annotations = []
         for obj in target["annotations"]:
             sequences = convert_polygons_to_sequences(
-                obj["polygon"]["path"],
-                height=target["height"],
-                width=target["width"],
+                obj["polygon"]["path"], height=target["height"], width=target["width"],
             )
             # Discard polygons with less than three points
             sequences[:] = [s for s in sequences if len(s) >= 6]
@@ -328,7 +324,7 @@ class SemanticSegmentationDataset(LocalDataset):
 
         return target
 
-    def measure_weights(self, **kwargs):
+    def measure_weights(self, **kwargs) -> np.ndarray:
         """
         Computes the class balancing weights (not the frequencies!!) given the train loader
         Get the weights proportional to the inverse of their class frequencies.
