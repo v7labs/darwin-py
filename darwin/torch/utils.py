@@ -1,7 +1,7 @@
 import os
 import sys
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import numpy as np
 from darwin.cli_functions import _error, _load_client
@@ -12,7 +12,7 @@ from upolygon import draw_polygon
 import torch
 
 
-def convert_segmentation_to_mask(segmentations: List[Segment], height: int, width: int):
+def convert_segmentation_to_mask(segmentations: List[Segment], height: int, width: int) -> torch.Tensor:
     """
     Converts a polygon represented as a sequence of coordinates into a mask.
 
@@ -42,7 +42,7 @@ def polygon_area(x: np.ndarray, y: np.ndarray) -> float:
     return 0.5 * np.abs(np.dot(x, np.roll(y, 1)) - np.dot(y, np.roll(x, 1)))
 
 
-def collate_fn(batch):
+def collate_fn(batch) -> Tuple:
     return tuple(zip(*batch))
 
 
@@ -53,7 +53,7 @@ def detectron2_register_dataset(
     split: Optional[str] = "default",
     split_type: Optional[str] = "stratified",
     evaluator_type: Optional[str] = None,
-):
+) -> str:
     """Registers a local Darwin-formatted dataset in Detectron2
 
     Parameters
@@ -78,6 +78,7 @@ def detectron2_register_dataset(
         sys.exit(1)
     from darwin.dataset.utils import get_annotations, get_classes
 
+    dataset_path: Optional[Path] = None
     if os.path.isdir(dataset):
         dataset_path = Path(dataset)
     else:
