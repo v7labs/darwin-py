@@ -214,7 +214,7 @@ class LocalDataset(object):
         raise NotImplementedError("Base class Dataset does not have an implementation for this")
 
     @staticmethod
-    def _compute_weights(labels: np.ndarray) -> np.ndarray:
+    def _compute_weights(labels: List[int]) -> np.ndarray:
         """Given an array of labels computes the weights normalized
 
         Parameters
@@ -227,7 +227,7 @@ class LocalDataset(object):
         ndarray[float]
             Array of weights (one for each unique class) which are the inverse of their frequency
         """
-        class_support = np.unique(labels, return_counts=True)[1]
+        class_support: np.ndarray = np.unique(labels, return_counts=True)[1]
         class_frequencies = class_support / len(labels)
         # Class weights are the inverse of the class frequencies
         class_weights = 1 / class_frequencies
