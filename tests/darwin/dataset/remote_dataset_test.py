@@ -12,7 +12,7 @@ from darwin.config import Config
 from darwin.dataset import RemoteDataset
 from darwin.dataset.release import Release
 from darwin.dataset.upload_manager import LocalFile, UploadHandler
-from darwin.exceptions import UnsupportedExportFormat
+from darwin.exceptions import UnsupportedExportFormat, UnsupportedFileType
 from tests.fixtures import *
 
 
@@ -405,6 +405,30 @@ def describe_push():
 
     def works_with_str_list(remote_dataset: RemoteDataset):
         assert_upload_mocks_are_correctly_called(remote_dataset, ["test.jpg"])
+
+    def works_with_supported_files(remote_dataset: RemoteDataset):
+        supported_extensions = [
+            ".png",
+            ".jpeg",
+            ".jpg",
+            ".jfif",
+            ".tif",
+            ".tiff",
+            ".bmp",
+            ".svs",
+            ".avi",
+            ".bpm",
+            ".dcm",
+            ".mov",
+            ".mp4",
+            ".pdf",
+        ]
+        filenames = [f"test{extension}" for extension in supported_extensions]
+        assert_upload_mocks_are_correctly_called(remote_dataset, filenames)
+
+    def raises_with_unsupported_files(remote_dataset: RemoteDataset):
+        with pytest.raises(UnsupportedFileType):
+            remote_dataset.push(["test.txt"])
 
 
 @pytest.mark.usefixtures("file_read_write_test")
