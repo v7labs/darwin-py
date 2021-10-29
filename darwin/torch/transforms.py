@@ -4,7 +4,7 @@ from typing import Dict, Optional, Union
 import torchvision.transforms as transforms
 import torchvision.transforms.functional as F
 from darwin.torch.utils import convert_segmentation_to_mask
-from PIL import Image
+from PIL import Image as PILImage
 
 import torch
 
@@ -13,7 +13,7 @@ TargetType = Dict[TargetKey, torch.Tensor]
 
 
 class Compose(transforms.Compose):
-    def __call__(self, image: Image, target: Optional[TargetType] = None):
+    def __call__(self, image: PILImage.Image, target: Optional[TargetType] = None):
         if target is None:
             return super(Compose, self).__call__(image)
         for transform in self.transforms:
@@ -22,7 +22,7 @@ class Compose(transforms.Compose):
 
 
 class RandomHorizontalFlip(transforms.RandomHorizontalFlip):
-    def forward(self, image: Image, target: Optional[TargetType] = None):
+    def forward(self, image: PILImage.Image, target: Optional[TargetType] = None):
         if random.random() < self.p:
             image = F.hflip(image)
             if target is None:
@@ -42,7 +42,7 @@ class RandomHorizontalFlip(transforms.RandomHorizontalFlip):
 
 
 class RandomVerticalFlip(transforms.RandomVerticalFlip):
-    def forward(self, image: Image, target: Optional[TargetType] = None):
+    def forward(self, image: PILImage.Image, target: Optional[TargetType] = None):
         if random.random() < self.p:
             image = F.vflip(image)
             if target is None:
@@ -62,7 +62,7 @@ class RandomVerticalFlip(transforms.RandomVerticalFlip):
 
 
 class ColorJitter(transforms.ColorJitter):
-    def __call__(self, image: Image, target: Optional[TargetType] = None):
+    def __call__(self, image: PILImage.Image, target: Optional[TargetType] = None):
         transform = self.get_params(self.brightness, self.contrast, self.saturation, self.hue)
         image = transform(image)
         if target is None:
@@ -71,7 +71,7 @@ class ColorJitter(transforms.ColorJitter):
 
 
 class ToTensor(transforms.ToTensor):
-    def __call__(self, image: Image, target: Optional[TargetType] = None):
+    def __call__(self, image: PILImage.Image, target: Optional[TargetType] = None):
         image = F.to_tensor(image)
         if target is None:
             return image
@@ -79,7 +79,7 @@ class ToTensor(transforms.ToTensor):
 
 
 class ToPILImage(transforms.ToPILImage):
-    def __call__(self, image: Image, target: Optional[TargetType] = None):
+    def __call__(self, image: PILImage.Image, target: Optional[TargetType] = None):
         image = F.to_pil_image(image)
         if target is None:
             return image
@@ -96,7 +96,7 @@ class Normalize(transforms.Normalize):
 
 
 class ConvertPolygonsToInstanceMasks(object):
-    def __call__(self, image: Image, target: TargetType):
+    def __call__(self, image: PILImage.Image, target: TargetType):
         w, h = image.size
 
         image_id = target["image_id"]
@@ -190,5 +190,5 @@ class ConvertPolygonToMask(object):
             target[masks.sum(0) > 1] = 255
         else:
             target = torch.zeros((h, w), dtype=torch.uint8)
-        target = Image.fromarray(target.numpy())
+        target = PILImage.fromarray(target.numpy())
         return image, target
