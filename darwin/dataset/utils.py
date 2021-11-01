@@ -3,9 +3,11 @@ import json
 import multiprocessing as mp
 from collections import Counter, defaultdict
 from pathlib import Path
-from typing import Any, Dict, Generator, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, Generator, Iterator, List, Optional, Set, Tuple, Union
 
+import darwin.datatypes as dt
 import numpy as np
+from darwin.datatypes import PathLike
 from darwin.exceptions import NotFound
 from darwin.importer.formats.darwin import parse_file
 from darwin.utils import (
@@ -13,12 +15,15 @@ from darwin.utils import (
     SUPPORTED_VIDEO_EXTENSIONS,
     is_unix_like_os,
 )
-from PIL import Image
+from PIL import Image as PILImage
 from rich.live import Live
 from rich.progress import ProgressBar, track
 
+# E.g.: {"partition" => {"class_name" => 123}}
+AnnotationDistribution = Dict[str, Counter]
 
-def get_release_path(dataset_path: Path, release_name: Optional[str] = None):
+
+def get_release_path(dataset_path: Path, release_name: Optional[str] = None) -> Path:
     """
     Given a dataset path and a release name, returns the path to the release
 
@@ -39,7 +44,7 @@ def get_release_path(dataset_path: Path, release_name: Optional[str] = None):
     if not release_name:
         release_name = "latest"
 
-    release_path = dataset_path / "releases" / release_name
+    release_path: Path = dataset_path / "releases" / release_name
     if not release_path.exists():
         raise NotFound(
             f"Local copy of release {release_name} not found: "
@@ -91,7 +96,7 @@ def extract_classes(annotations_path: Path, annotation_type: str) -> Tuple[Dict[
     return classes, indices_to_classes
 
 
-def make_class_lists(release_path: Path):
+def make_class_lists(release_path: Path) -> None:
     """
     Support function to extract classes and save the output to file
 
@@ -120,11 +125,11 @@ def make_class_lists(release_path: Path):
 
 
 def get_classes(
-    dataset_path: Union[Path, str],
+    dataset_path: PathLike,
     release_name: Optional[str] = None,
     annotation_type: str = "polygon",
     remove_background: bool = True,
-):
+) -> List[str]:
     """
     Given a dataset and an annotation_type returns the list of classes
 
@@ -155,13 +160,13 @@ def get_classes(
     return classes
 
 
-def _f(x):
+def _f(x: Any) -> Any:
     """Support function for pool.map() in _exhaust_generator()"""
     if callable(x):
         return x()
 
 
-def exhaust_generator(progress: Generator, count: int, multi_threaded: bool):
+def exhaust_generator(progress: Generator, count: int, multi_threaded: bool) -> List[Dict[str, Any]]:
     """Exhausts the generator passed as parameter. Can be done multi threaded if desired
 
     Parameters
@@ -204,7 +209,7 @@ def get_coco_format_record(
     image_path: Optional[Path] = None,
     image_id: Optional[Union[str, int]] = None,
     classes: Optional[List[str]] = None,
-):
+) -> Dict[str, Any]:
     assert annotation_type in ["tag", "polygon", "bounding_box"]
     try:
         from detectron2.structures import BoxMode
@@ -257,7 +262,7 @@ def get_coco_format_record(
 
 
 def get_annotations(
-    dataset_path: Union[Path, str],
+    dataset_path: PathLike,
     partition: Optional[str] = None,
     split: Optional[str] = "default",
     split_type: Optional[str] = None,
@@ -265,7 +270,7 @@ def get_annotations(
     release_name: Optional[str] = None,
     annotation_format: Optional[str] = "coco",
     ignore_inconsistent_examples: bool = False,
-):
+) -> Iterator[Dict[str, Any]]:
     """
     Returns all the annotations of a given dataset and split in a single dictionary
 
@@ -299,7 +304,7 @@ def get_annotations(
     assert dataset_path is not None
     dataset_path = Path(dataset_path)
 
-    release_path = get_release_path(dataset_path, release_name)
+    release_path: Path = get_release_path(dataset_path, release_name)
 
     annotations_dir = release_path / "annotations"
     assert annotations_dir.exists()
@@ -324,9 +329,13 @@ def get_annotations(
             split_file = f"{split_type}_{partition}.txt"
         elif split_type == "stratified":
             split_file = f"{split_type}_{annotation_type}_{partition}.txt"
-        split_path = release_path / "lists" / split / split_file
+        else:
+            raise ValueError(f"Invalid split_type ({split_type})")
+
+        split_path: Path = release_path / "lists" / str(split) / split_file
+
         if split_path.is_file():
-            stems = (e.strip() for e in split_path.open())
+            stems: Iterator[str] = (e.rstrip("\n\r") for e in split_path.open())
         else:
             raise FileNotFoundError(
                 f"Could not find a dataset partition. ",
@@ -395,7 +404,7 @@ def get_annotations(
             yield record
 
 
-def load_pil_image(path: Path, to_rgb: Optional[bool] = True):
+def load_pil_image(path: Path, to_rgb: Optional[bool] = True) -> PILImage.Image:
     """
     Loads a PIL image and converts it into RGB (optional).
 
@@ -410,13 +419,13 @@ def load_pil_image(path: Path, to_rgb: Optional[bool] = True):
     -------
     PIL Image
     """
-    pic = Image.open(path)
+    pic = PILImage.open(path)
     if to_rgb:
         pic = convert_to_rgb(pic)
     return pic
 
 
-def convert_to_rgb(pic: Image):
+def convert_to_rgb(pic: PILImage.Image) -> PILImage.Image:
     """
     Converts a PIL image to RGB
 
@@ -436,27 +445,23 @@ def convert_to_rgb(pic: Image):
         pic = pic.convert("RGB")
     elif pic.mode == "I":
         img = (np.divide(np.array(pic, np.int32), 2 ** 16 - 1) * 255).astype(np.uint8)
-        pic = Image.fromarray(np.stack((img, img, img), axis=2))
+        pic = PILImage.fromarray(np.stack((img, img, img), axis=2))
     elif pic.mode == "I;16":
         img = (np.divide(np.array(pic, np.int16), 2 ** 8 - 1) * 255).astype(np.uint8)
-        pic = Image.fromarray(np.stack((img, img, img), axis=2))
+        pic = PILImage.fromarray(np.stack((img, img, img), axis=2))
     elif pic.mode == "L":
         img = np.array(pic).astype(np.uint8)
-        pic = Image.fromarray(np.stack((img, img, img), axis=2))
+        pic = PILImage.fromarray(np.stack((img, img, img), axis=2))
     elif pic.mode == "1":
         pic = pic.convert("L")
         img = np.array(pic).astype(np.uint8)
-        pic = Image.fromarray(np.stack((img, img, img), axis=2))
+        pic = PILImage.fromarray(np.stack((img, img, img), axis=2))
     else:
         raise TypeError(f"unsupported image type {pic.mode}")
     return pic
 
 
-def _is_pil_image(img):
-    return isinstance(img, Image.Image)
-
-
-def compute_max_density(annotations_dir: Path):
+def compute_max_density(annotations_dir: Path) -> int:
     max_density = 0
     for annotation_path in annotations_dir.glob("**/*.json"):
         annotation_density = 0
@@ -469,10 +474,6 @@ def compute_max_density(annotations_dir: Path):
             if annotation_density > max_density:
                 max_density = annotation_density
     return max_density
-
-
-# E.g.: {"partition" => {"class_name" => 123}}
-AnnotationDistribution = Dict[str, Counter]
 
 
 def compute_distributions(
@@ -494,17 +495,17 @@ def compute_distributions(
 
     for partition in partitions:
         for annotation_type in annotation_types:
-            split_file = split_path / f"stratified_{annotation_type}_{partition}.txt"
-            stems = [e.strip() for e in split_file.open()]
+            split_file: Path = split_path / f"stratified_{annotation_type}_{partition}.txt"
+            stems: List[str] = [e.rstrip("\n\r") for e in split_file.open()]
 
             for stem in stems:
-                annotation_path = annotations_dir / f"{stem}.json"
-                annotation_file = parse_file(annotation_path)
+                annotation_path: Path = annotations_dir / f"{stem}.json"
+                annotation_file: Optional[dt.AnnotationFile] = parse_file(annotation_path)
 
                 if annotation_file is None:
                     continue
 
-                annotation_class_names = [
+                annotation_class_names: List[str] = [
                     annotation.annotation_class.name for annotation in annotation_file.annotations
                 ]
 
@@ -517,8 +518,7 @@ def compute_distributions(
 # https://github.com/python/cpython/blob/main/Lib/pathlib.py#L812
 # TODO implemented here because it's not supported in Pythton < 3.9
 def is_relative_to(path: Path, *other) -> bool:
-    """Return True if the path is relative to another path or False.
-    """
+    """Return True if the path is relative to another path or False."""
     try:
         path.relative_to(*other)
         return True

@@ -1,4 +1,3 @@
-import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import pytest
@@ -29,6 +28,22 @@ def describe_parse_file():
             parse_file(annotation_path)
 
         assert str(info.value) == "Could not find filename element in annotation file"
+
+    def it_raises_value_error_if_filename_tag_has_empty_text(annotation_path: Path):
+        annotation_path.write_text("<root><filename> </filename></root>")
+
+        with pytest.raises(ValueError) as info:
+            parse_file(annotation_path)
+
+        assert str(info.value) == "filename element does not have a text value"
+
+    def it_raises_value_error_if_filename_is_empty(annotation_path: Path):
+        annotation_path.write_text("<root><filename></filename></root>")
+
+        with pytest.raises(ValueError) as info:
+            parse_file(annotation_path)
+
+        assert str(info.value) == "filename element does not have a text value"
 
     def it_returns_annotation_file_with_empty_annotations_otherwise(annotation_path: Path):
         annotation_path.write_text("<root><filename>image.jpg</filename></root>")

@@ -4,7 +4,18 @@ import tempfile
 import zipfile
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Dict, Iterator, List, Optional, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    Tuple,
+    Union,
+)
 from urllib import parse
 
 from darwin.dataset.download_manager import download_all_images_from_annotations
@@ -22,15 +33,18 @@ from darwin.dataset.utils import (
     get_annotations,
     get_classes,
     is_relative_to,
+    is_unix_like_os,
     make_class_lists,
     sanitize_filename,
 )
+from darwin.datatypes import Annotation, AnnotationClass, AnnotationFile, PathLike, Team
 from darwin.exceptions import NotFound, UnsupportedExportFormat
 from darwin.exporter.formats.darwin import build_image_annotation
 from darwin.item import DatasetItem, parse_dataset_item
 from darwin.item_sorter import ItemSorter
 from darwin.utils import find_files, parse_darwin_json, split_video_annotation, urljoin
 from darwin.validators import name_taken, validation_error
+from rich.console import Console
 
 if TYPE_CHECKING:
     from darwin.client import Client
@@ -48,7 +62,8 @@ class RemoteDataset:
         image_count: int = 0,
         progress: float = 0,
     ):
-        """Inits a DarwinDataset.
+        """
+        Initializes a DarwinDataset.
         This class manages the remote and local versions of a dataset hosted on Darwin.
         It allows several dataset management operations such as syncing between
         remote and local, pulling a remote dataset, removing the local files, ...
@@ -77,33 +92,35 @@ class RemoteDataset:
         self.image_count = image_count
         self.progress = progress
         self.client = client
+        self.annotation_types: Optional[List[Dict[str, Any]]] = None
+        self.console: Console = Console()
 
     def push(
         self,
-        files_to_upload: Optional[List[Union[str, Path, LocalFile]]],
+        files_to_upload: Optional[List[Union[PathLike, LocalFile]]],
         *,
         blocking: bool = True,
         multi_threaded: bool = True,
         fps: int = 0,
         as_frames: bool = False,
-        files_to_exclude: Optional[List[Union[str, Path]]] = None,
+        files_to_exclude: Optional[List[PathLike]] = None,
         path: Optional[str] = None,
         preserve_folders: bool = False,
         progress_callback: Optional[ProgressCallback] = None,
         file_upload_callback: Optional[FileUploadCallback] = None,
-    ):
+    ) -> UploadHandler:
         """Uploads a local dataset (images ONLY) in the datasets directory.
 
         Parameters
         ----------
-        files_to_upload : Optional[List[Union[str, Path, LocalFile]]]
+        files_to_upload : Optional[List[Union[PathLike, LocalFile]]]
             List of files to upload. Those can be folders.
         blocking : bool
             If False, the dataset is not uploaded and a generator function is returned instead.
         multi_threaded : bool
             Uses multiprocessing to upload the dataset in parallel.
             If blocking is False this has no effect.
-        files_to_exclude : Optional[Union[str, Path]]]
+        files_to_exclude : Optional[PathLike]]
             Optional list of files to exclude from the file scan. Those can be folders.
         fps : int
             When the uploading file is a video, specify its framerate.
@@ -111,10 +128,13 @@ class RemoteDataset:
             When the uploading file is a video, specify whether it's going to be uploaded as a list of frames.
         path: Optional[str]
             Optional path to store the files in.
+        preserve_folders : bool
+            Specify whether or not to preserve folder paths when uploading
         progress_callback: Optional[ProgressCallback]
             Optional callback, called every time the progress of an uploading files is reported.
         file_upload_callback: Optional[FileUploadCallback]
             Optional callback, called every time a file chunk is uploaded.
+
         Returns
         -------
         handler : UploadHandler
@@ -157,13 +177,13 @@ class RemoteDataset:
 
         return handler
 
-    def split_video_annotations(self, release_name: str = "latest"):
-        release_dir = self.local_path / "releases" / release_name
-        annotations_path = release_dir / "annotations"
+    def split_video_annotations(self, release_name: str = "latest") -> None:
+        release_dir: Path = self.local_path / "releases" / release_name
+        annotations_path: Path = release_dir / "annotations"
 
         for count, annotation_file in enumerate(annotations_path.glob("*.json")):
-            darwin_annotation = parse_darwin_json(annotation_file, count)
-            if not darwin_annotation.is_video:
+            darwin_annotation: Optional[AnnotationFile] = parse_darwin_json(annotation_file, count)
+            if not darwin_annotation or not darwin_annotation.is_video:
                 continue
 
             frame_annotations = split_video_annotation(darwin_annotation)
@@ -197,8 +217,9 @@ class RemoteDataset:
         subset_folder_name: Optional[str] = None,
         use_folders: bool = False,
         video_frames: bool = False,
-    ):
-        """Downloads a remote project (images and annotations) in the datasets directory.
+    ) -> Tuple[Optional[Callable[[], Iterator[Any]]], int]:
+        """
+        Downloads a remote dataset (images and annotations) to the datasets directory.
 
         Parameters
         ----------
@@ -253,7 +274,7 @@ class RemoteDataset:
                     subset_filter_annotations_function(tmp_dir)
                     if subset_folder_name is None:
                         subset_folder_name = datetime.now().strftime("%m/%d/%Y_%H:%M:%S")
-                annotations_dir = release_dir / (subset_folder_name or "") / "annotations"
+                annotations_dir: Path = release_dir / (subset_folder_name or "") / "annotations"
                 # Remove existing annotations if necessary
                 if annotations_dir.exists():
                     try:
@@ -273,20 +294,26 @@ class RemoteDataset:
         # Extract the list of classes and create the text files
         make_class_lists(release_dir)
 
-        if release.latest:
-            latest_dir = self.local_releases_path / "latest"
-            if latest_dir.is_symlink():
-                latest_dir.unlink()
+        if release.latest and is_unix_like_os():
+            try:
+                latest_dir: Path = self.local_releases_path / "latest"
+                if latest_dir.is_symlink():
+                    latest_dir.unlink()
 
-            target_link = self.local_releases_path / release_dir.name
-            latest_dir.symlink_to(target_link)
+                target_link: Path = self.local_releases_path / release_dir.name
+                latest_dir.symlink_to(target_link)
+            except OSError:
+                self.console.log(f"Could not mark release {release.name} as latest. Continuing...")
 
         if only_annotations:
             # No images will be downloaded
             return None, 0
 
-        team_config = self.client.config.get_team(self.team)
-        api_key = team_config.get("api_key")
+        team_config: Optional[Team] = self.client.config.get_team(self.team)
+        if not team_config:
+            raise ValueError("Unable to get Team configuration.")
+
+        api_key = team_config.api_key
 
         # Create the generator with the download instructions
         progress, count = download_all_images_from_annotations(
@@ -309,7 +336,7 @@ class RemoteDataset:
         else:
             return progress, count
 
-    def remove_remote(self):
+    def remove_remote(self) -> None:
         """Archives (soft-deletion) the remote dataset"""
         self.client.put(f"datasets/{self.dataset_id}/archive", payload={}, team=self.team)
 
@@ -348,61 +375,160 @@ class RemoteDataset:
             else:
                 return
 
-    def archive(self, items):
+    def archive(self, items: Iterator[DatasetItem]) -> None:
         self.client.put(
             f"datasets/{self.dataset_id}/items/archive", {"filter": {"dataset_item_ids": [item.id for item in items]}}
         )
 
-    def restore_archived(self, items):
+    def restore_archived(self, items: Iterator[DatasetItem]) -> None:
         self.client.put(
             f"datasets/{self.dataset_id}/items/restore", {"filter": {"dataset_item_ids": [item.id for item in items]}}
         )
 
-    def fetch_annotation_type_id_for_name(self, name: str):
-        """Fetches annotation type id for a annotation type name, such as bounding_box"""
-        annotation_types = self.client.get("/annotation_types")
-        for annotation_type in annotation_types:
+    def fetch_annotation_type_id_for_name(self, name: str) -> Optional[int]:
+        """
+        Fetches annotation type id for a annotation type name, such as bounding_box
+
+        Parameters
+        ----------
+        name: str
+            The name of the annotation we want the id for.
+
+
+        Returns
+        -------
+        generator : Optional[int]
+            The id of the annotation type or None if it doesn't exist.
+
+        Raises
+        ------
+        ConnectionError
+            If it fails to establish a connection.
+        """
+        if not self.annotation_types:
+            self.annotation_types = self.client.get("/annotation_types")
+
+        for annotation_type in self.annotation_types:
             if annotation_type["name"] == name:
                 return annotation_type["id"]
 
-    def create_annotation_class(self, name: str, type: str):
-        type_id = self.fetch_annotation_type_id_for_name(type)
+        return None
+
+    def create_annotation_class(self, name: str, type: str, subtypes: List[str] = []) -> Dict[str, Any]:
+        """
+        Creates an annotation class for this dataset.
+
+        Parameters
+        ----------
+        name : str
+            The name of the annotation class.
+        type : str
+            The type of the annotation class.
+        subtypes : List[str]
+            Annotation class subtypes.
+
+        Returns
+        -------
+        dict
+            Dictionary with the server response.
+
+        Raises
+        ------
+        ConnectionError
+            If it is unable to connect.
+
+        ValueError
+            If a given annotation type or subtype is unknown.
+        """
+
+        type_ids: List[int] = []
+        for annotation_type in [type] + subtypes:
+            type_id: Optional[int] = self.fetch_annotation_type_id_for_name(annotation_type)
+            if not type_id:
+                list_of_annotation_types = ", ".join([type["name"] for type in self.annotation_types])
+                raise ValueError(
+                    f"Unknown annotation type: '{annotation_type}', valid values: {list_of_annotation_types}"
+                )
+            type_ids.append(type_id)
+
         return self.client.post(
             f"/annotation_classes",
             payload={
                 "dataset_id": self.dataset_id,
                 "name": name,
                 "metadata": {"_color": "auto"},
-                "annotation_type_ids": [type_id],
+                "annotation_type_ids": type_ids,
                 "datasets": [{"id": self.dataset_id}],
             },
             error_handlers=[name_taken, validation_error],
         )
 
-    def add_annotation_class(self, annotation_class):
+    def add_annotation_class(self, annotation_class: Union[AnnotationClass, int]) -> Optional[Dict[str, Any]]:
+        """
+        Adds an annotation class to this dataset.
+
+        Parameters
+        ----------
+        annotation_class : Union[AnnotationClass, int]
+            The annotation class to add or its id.
+
+        Returns
+        -------
+        dict or None
+            Dictionary with the server response or None if the annotations class already exists.
+        """
         # Waiting for a better api for setting classes
         # in the meantime this will do
         all_classes = self.fetch_remote_classes(True)
-        match = [
-            cls
-            for cls in all_classes
-            if cls["name"] == annotation_class.name
-            and annotation_class.annotation_internal_type in cls["annotation_types"]
-        ]
-        if not match:
-            raise ValueError(f"Unknown annotation class {annotation_class.name}, id: {annotation_class.id}")
+
+        if isinstance(annotation_class, int):
+            match = [cls for cls in all_classes if cls["id"] == annotation_class]
+            if not match:
+                raise ValueError(f"Annotation class id: `{annotation_class}` does not exist in Team.")
+        else:
+            annotation_class_type = annotation_class.annotation_internal_type or annotation_class.annotation_type
+            match = [
+                cls
+                for cls in all_classes
+                if cls["name"] == annotation_class.name and annotation_class_type in cls["annotation_types"]
+            ]
+            if not match:
+                # We do not expect to reach here; as pervious logic divides annotation classes in imports
+                # between `in team` and `new to platform`
+                raise ValueError(
+                    f"Annotation class name: `{annotation_class.name}`, type: `{annotation_class_type}`; does not exist in Team."
+                )
 
         datasets = match[0]["datasets"]
         # check that we are not already part of the dataset
         for dataset in datasets:
             if dataset["id"] == self.dataset_id:
-                return
+                return None
         datasets.append({"id": self.dataset_id})
+        # we typecast to dictionary because we are not passing the raw=True parameter.
         return self.client.put(f"/annotation_classes/{match[0]['id']}", {"datasets": datasets, "id": match[0]["id"]})
 
-    def fetch_remote_classes(self, team_wide=False):
-        """Fetches all remote classes on the remote dataset"""
+    def fetch_remote_classes(self, team_wide=False) -> Optional[List[Dict[str, Any]]]:
+        """
+        Fetches all the Annotation Classes from the given remote dataset.
+
+        Parameters
+        ----------
+        team_wide : bool
+            If `True` will return all Annotation Classes that belong to the team. If `False` will
+            only return Annotation Classes which have been added to the dataset.
+
+        Returns
+        -------
+        Optional[List]:
+            List of Annotation Classes (can be empty) or None, if the team was not able to be
+            determined.
+        """
         all_classes = self.client.fetch_remote_classes()
+
+        if not all_classes:
+            return None
+
         classes_to_return = []
         for cls in all_classes:
             belongs_to_current_dataset = any([dataset["id"] == self.dataset_id for dataset in cls["datasets"]])
@@ -411,12 +537,15 @@ class RemoteDataset:
                 classes_to_return.append(cls)
         return classes_to_return
 
-    def fetch_remote_attributes(self):
+    def fetch_remote_attributes(self) -> Any:
         """Fetches all remote attributes on the remote dataset"""
         return self.client.get(f"/datasets/{self.dataset_id}/attributes")
 
-    def export(self, name: str, annotation_class_ids: Optional[List[str]] = None, include_url_token: bool = False):
-        """Create a new release for the dataset
+    def export(
+        self, name: str, annotation_class_ids: Optional[List[str]] = None, include_url_token: bool = False
+    ) -> None:
+        """
+        Create a new release for the dataset
 
         Parameters
         ----------
@@ -425,7 +554,7 @@ class RemoteDataset:
         annotation_class_ids: List
             List of the classes to filter
         include_url_token: bool
-            Should the image url in the export be include a token enabling access without team membership
+            Should the image url in the export include a token enabling access without team membership
         """
         if annotation_class_ids is None:
             annotation_class_ids = []
@@ -441,22 +570,26 @@ class RemoteDataset:
             error_handlers=[name_taken, validation_error],
         )
 
-    def get_report(self, granularity="day"):
+    def get_report(self, granularity: str = "day") -> str:
         return self.client.get(
             f"/reports/{self.team}/annotation?group_by=dataset,user&dataset_ids={self.dataset_id}&granularity={granularity}&format=csv&include=dataset.name,user.first_name,user.last_name,user.email",
             team=self.team,
             raw=True,
         ).text
 
-    def get_releases(self):
-        """Get a sorted list of releases with the most recent first
+    def get_releases(self) -> List["Release"]:
+        """
+        Get a sorted list of releases with the most recent first.
 
         Returns
         -------
-        list(Release)
-            Return a sorted list of releases with the most recent first
+        List["Release"]
+            Return a sorted list of available releases with the most recent first
+
         Raises
         ------
+        ConnectionError
+            If it is unable to connect.
         """
         try:
             releases_json = self.client.get(f"/datasets/{self.dataset_id}/exports", team=self.team)
@@ -465,8 +598,9 @@ class RemoteDataset:
         releases = [Release.parse_json(self.slug, self.team, payload) for payload in releases_json]
         return sorted(filter(lambda x: x.available, releases), key=lambda x: x.version, reverse=True)
 
-    def get_release(self, name: str = "latest"):
-        """Get a specific release for this dataset
+    def get_release(self, name: str = "latest") -> "Release":
+        """
+        Get a specific release for this dataset.
 
         Parameters
         ----------
@@ -475,7 +609,7 @@ class RemoteDataset:
 
         Returns
         -------
-        release: Release
+        Release
             The selected release
 
         Raises
@@ -502,7 +636,7 @@ class RemoteDataset:
         split_seed: int = 0,
         make_default_split: bool = True,
         release_name: Optional[str] = None,
-    ):
+    ) -> None:
         """
         Creates lists of file names for each split for train, validation, and test.
         Note: This functions needs a local copy of the dataset
@@ -540,7 +674,7 @@ class RemoteDataset:
             make_default_split=make_default_split,
         )
 
-    def classes(self, annotation_type: str, release_name: Optional[str] = None):
+    def classes(self, annotation_type: str, release_name: Optional[str] = None) -> List[str]:
         """
         Returns the list of `class_type` classes
 
@@ -572,7 +706,7 @@ class RemoteDataset:
         annotation_type: str = "polygon",
         release_name: Optional[str] = None,
         annotation_format: Optional[str] = "darwin",
-    ):
+    ) -> Iterable[Dict[str, Any]]:
         """
         Returns all the annotations of a given split and partition in a single dictionary
 
@@ -612,7 +746,7 @@ class RemoteDataset:
         ):
             yield annotation
 
-    def workview_url_for_item(self, item):
+    def workview_url_for_item(self, item: DatasetItem) -> str:
         return urljoin(self.client.base_url, f"/workview?dataset={self.dataset_id}&image={item.seq}")
 
     @property
@@ -623,10 +757,14 @@ class RemoteDataset:
     @property
     def local_path(self) -> Path:
         """Returns a Path to the local dataset"""
-        if self.slug is not None:
-            return Path(self.client.get_datasets_dir(self.team)) / self.team / self.slug
+        datasets_dir: Optional[str] = self.client.get_datasets_dir(self.team)
+        if not datasets_dir:
+            raise ValueError(f"Unable to find datasets directory for {self.team}")
+
+        if self.slug:
+            return Path(datasets_dir) / self.team / self.slug
         else:
-            return Path(self.client.get_datasets_dir(self.team)) / self.team
+            return Path(datasets_dir) / self.team
 
     @property
     def local_releases_path(self) -> Path:

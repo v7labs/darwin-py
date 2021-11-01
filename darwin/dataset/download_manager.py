@@ -3,6 +3,7 @@ import functools
 import json
 import time
 from pathlib import Path
+from typing import Any, Callable, Iterator, Tuple
 
 import requests
 from darwin.dataset.utils import sanitize_filename
@@ -19,7 +20,7 @@ def download_all_images_from_annotations(
     annotation_format: str = "json",
     use_folders: bool = False,
     video_frames: bool = False,
-):
+) -> Tuple[Callable[[], Iterator[Any]], int]:
     """Helper function: downloads the all images corresponding to a project.
 
     Parameters
@@ -105,7 +106,7 @@ def download_image_from_annotation(
     annotation_format: str,
     use_folders: bool,
     video_frames: bool,
-):
+) -> None:
     """Helper function: dispatcher of functions to download an image given an annotation
 
     Parameters
@@ -135,7 +136,7 @@ def download_image_from_annotation(
 
 def download_image_from_json_annotation(
     api_key: str, api_url: str, annotation_path: Path, image_path: Path, use_folders: bool, video_frames: bool
-):
+) -> None:
     """
     Helper function: downloads an image given a .json annotation path
     and renames the json after the image filename
@@ -164,7 +165,7 @@ def download_image_from_json_annotation(
     parent_path.mkdir(exist_ok=True, parents=True)
 
     if video_frames and "frame_urls" in annotation["image"]:
-        video_path = parent_path / annotation_path.stem
+        video_path: Path = parent_path / annotation_path.stem
         video_path.mkdir(exist_ok=True, parents=True)
         with concurrent.futures.ThreadPoolExecutor() as executor:
             future_to_progress = {
@@ -182,7 +183,7 @@ def download_image_from_json_annotation(
         download_image(image_url, image_path, api_key)
 
 
-def download_image(url: str, path: Path, api_key: str):
+def download_image(url: str, path: Path, api_key: str) -> None:
     """Helper function: downloads one image from url.
 
     Parameters
@@ -196,11 +197,11 @@ def download_image(url: str, path: Path, api_key: str):
     """
     if path.exists():
         return
-    TIMEOUT = 60
-    start = time.time()
+    TIMEOUT: int = 60
+    start: float = time.time()
     while True:
         if "token" in url:
-            response = requests.get(url, stream=True)
+            response: requests.Response = requests.get(url, stream=True)
         else:
             response = requests.get(url, headers={"Authorization": f"ApiKey {api_key}"}, stream=True)
         # Correct status: download image

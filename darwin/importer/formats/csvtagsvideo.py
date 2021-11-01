@@ -36,5 +36,5 @@ def parse_file(path: Path) -> Optional[List[dt.AnnotationFile]]:
     for filename in file_annotation_map:
         annotations = file_annotation_map[filename]
         annotation_classes = set([annotation.annotation_class for annotation in annotations])
-        files.append(dt.AnnotationFile(path, filename, annotation_classes, annotations, is_video=True, remote_path = "/"))
+        files.append(dt.AnnotationFile(path, filename, annotation_classes, annotations, is_video=True, remote_path="/"))
     return files

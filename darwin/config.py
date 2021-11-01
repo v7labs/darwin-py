@@ -1,25 +1,27 @@
 import io
 from pathlib import Path
-from typing import Any, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import yaml
 
+from darwin.datatypes import PathLike, Team
 from darwin.exceptions import InvalidTeam
 
 
 class Config(object):
     """Handles YAML configuration files"""
 
-    def __init__(self, path: Optional[Union[Path, str]] = None):
+    def __init__(self, path: Optional[PathLike] = None):
         """
         If path is None the config will be in memory only
         """
         if isinstance(path, str):
             path = Path(path)
-        self._path = path
-        self._data = self._parse()
 
-    def _parse(self):
+        self._path: Optional[Path] = path
+        self._data: Dict[str, Any] = self._parse()
+
+    def _parse(self) -> Dict[str, Any]:
         """Parses the YAML configuration file"""
         if not self._path:
             return {}
@@ -29,7 +31,7 @@ class Config(object):
         except FileNotFoundError:
             return {}
 
-    def get(self, key: Union[str, List[str]], default: Optional[any] = None) -> Any:
+    def get(self, key: Union[str, List[str]], default: Optional[Any] = None) -> Any:
         """Gets value defined by key
 
         Args:
@@ -37,7 +39,7 @@ class Config(object):
         It can be formatted as a simple string, or as a path/like/string to fetch nested values.
         """
 
-        acc = self._data.copy()
+        acc: Any = self._data.copy()
 
         while True:
             if isinstance(key, str):
@@ -51,7 +53,7 @@ class Config(object):
             else:
                 key = keys
 
-    def put(self, key: Union[str, List[str]], value: any, save: bool = True):
+    def put(self, key: Union[str, List[str]], value: Any, save: bool = True) -> None:
         """Sets value for specified key
 
         Args:
@@ -70,29 +72,29 @@ class Config(object):
         if save:
             self._save()
 
-    def _save(self):
+    def _save(self) -> None:
         """Persist the configuration to the file system"""
         if not self._path:
             return
         with io.open(self._path, "w", encoding="utf8") as f:
             yaml.dump(self._data, f, default_flow_style=False, allow_unicode=True)
 
-    def set_team(self, team: str, api_key: str, datasets_dir: str):
+    def set_team(self, team: str, api_key: str, datasets_dir: str) -> None:
         self.put(f"teams/{team}/api_key", api_key)
         self.put(f"teams/{team}/datasets_dir", datasets_dir)
 
-    def set_default_team(self, team: str):
+    def set_default_team(self, team: str) -> None:
         if self.get(f"teams/{team}") is None:
             raise InvalidTeam()
         self.put("global/default_team", team)
 
-    def set_global(self, api_endpoint: str, base_url: str, default_team: Optional[str] = None):
+    def set_global(self, api_endpoint: str, base_url: str, default_team: Optional[str] = None) -> None:
         self.put("global/api_endpoint", api_endpoint)
         self.put("global/base_url", base_url)
         if default_team:
             self.put("global/default_team", default_team)
 
-    def get_team(self, team: Optional[str] = None, raise_on_invalid_team: bool = True):
+    def get_team(self, team: Optional[str] = None, raise_on_invalid_team: bool = True) -> Optional[Team]:
         if not team:
             return self.get_default_team(raise_on_invalid_team=raise_on_invalid_team)
 
@@ -102,12 +104,12 @@ class Config(object):
                 raise InvalidTeam()
             else:
                 return None
-        default = self.get("global/default_team") == team or len(list(self.get("teams").keys())) == 1
+        default: bool = self.get("global/default_team") == team or len(list(self.get("teams").keys())) == 1
 
         datasets_dir = self.get(f"teams/{team}/datasets_dir")
-        return {"slug": team, "api_key": api_key, "default": default, "datasets_dir": datasets_dir}
+        return Team(slug=team, api_key=api_key, default=default, datasets_dir=datasets_dir)
 
-    def get_default_team(self, raise_on_invalid_team: bool = True):
+    def get_default_team(self, raise_on_invalid_team: bool = True) -> Optional[Team]:
         default_team = self.get("global/default_team")
         if default_team:
             return self.get_team(default_team)
@@ -119,6 +121,12 @@ class Config(object):
                 return None
         return self.get_team(teams[0])
 
-    def get_all_teams(self):
+    def get_all_teams(self) -> List[Team]:
         teams = list(self.get("teams").keys())
-        return [self.get_team(slug) for slug in teams]
+        teams_data: List[Team] = []
+        for slug in teams:
+            the_team_data = self.get_team(slug)
+            if the_team_data:
+                teams_data.append(the_team_data)
+
+        return teams_data

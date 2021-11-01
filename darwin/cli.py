@@ -3,7 +3,6 @@ __all__ = ["main"]
 import getpass
 import os
 from argparse import ArgumentParser, Namespace
-from typing import Any
 
 import requests.exceptions
 
@@ -13,7 +12,7 @@ from darwin.exceptions import InvalidTeam, Unauthenticated, Unauthorized
 from darwin.options import Options
 
 
-def main() -> Any:
+def main() -> None:
     args, parser = Options().parse_args()
     try:
         _run(args, parser)
@@ -27,9 +26,10 @@ def main() -> Any:
         f._error("Darwin seems unreachable, please try again in a minute or contact support.")
 
 
-def _run(args: Namespace, parser: ArgumentParser) -> Any:
+def _run(args: Namespace, parser: ArgumentParser) -> None:
     if args.command == "help":
         f.help(parser)
+
     # Authenticate user
     if args.command == "authenticate":
         api_key = os.getenv("DARWIN_API_KEY")
@@ -72,14 +72,23 @@ def _run(args: Namespace, parser: ArgumentParser) -> Any:
         elif args.action == "url":
             f.url(args.dataset)
         elif args.action == "push":
-            f.upload_data(args.dataset, args.files, args.exclude, args.fps, args.path, args.frames, args.preserve_folders, args.verbose)
+            f.upload_data(
+                args.dataset,
+                args.files,
+                args.exclude,
+                args.fps,
+                args.path,
+                args.frames,
+                args.preserve_folders,
+                args.verbose,
+            )
         # Remove a project (remotely)
         elif args.action == "remove":
             f.remove_remote_dataset(args.dataset)
         elif args.action == "report":
             f.dataset_report(args.dataset, args.granularity or "day")
         elif args.action == "export":
-            f.export_dataset(args.dataset, args.include_url_token, args.annotation_class, args.name)
+            f.export_dataset(args.dataset, args.include_url_token, args.name, args.annotation_class)
         elif args.action == "files":
             f.list_files(args.dataset, args.status, args.path, args.only_filenames, args.sort_by)
         elif args.action == "releases":

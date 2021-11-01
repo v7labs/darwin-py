@@ -42,10 +42,35 @@ def release_name() -> str:
 
 
 @pytest.fixture
-def file_read_write_test(darwin_path: Path, team_slug: str, dataset_name: str):
+def team_dataset_path(darwin_datasets_path: Path, team_slug: str, dataset_name: str) -> Path:
+    return darwin_datasets_path / team_slug / dataset_name
+
+
+@pytest.fixture
+def team_dataset_release_path(team_dataset_path: Path, release_name: str) -> Path:
+    return team_dataset_path / "releases" / release_name
+
+
+@pytest.fixture
+def split_name() -> str:
+    return "test_split"
+
+
+@pytest.fixture
+def split_path(team_dataset_release_path: Path, split_name: str) -> Path:
+    return team_dataset_release_path / "lists" / split_name
+
+
+@pytest.fixture
+def annotations_path(team_dataset_release_path: Path) -> Path:
+    return team_dataset_release_path / "annotations"
+
+
+@pytest.fixture
+def file_read_write_test(darwin_path: Path, annotations_path: Path, split_path: Path):
     # Executed before the test
-    dataset_path = darwin_path / "datasets" / team_slug / dataset_name
-    dataset_path.mkdir(parents=True)
+    annotations_path.mkdir(parents=True)
+    split_path.mkdir(parents=True)
 
     # Useful if the test needs to reuse attrs
     yield
@@ -62,7 +87,7 @@ def local_config_file(team_slug: str):
 
     # Executed before the test
     if darwin_path.exists():
-        shutil.move(darwin_path, backup_darwin_path)
+        shutil.move(str(darwin_path), str(backup_darwin_path))
     darwin_path.mkdir()
 
     config = Config(config_path)
