@@ -376,14 +376,24 @@ class RemoteDataset:
                 return
 
     def archive(self, items: Iterator[DatasetItem]) -> None:
-        self.client.put(
-            f"datasets/{self.dataset_id}/items/archive", {"filter": {"dataset_item_ids": [item.id for item in items]}}
-        )
+        endpoint: str = f"teams/{self.team}/datasets/{self.slug}/items/archive"
+        payload: Dict[str, Any] = {"filter": {"dataset_item_ids": [item.id for item in items]}}
+        self.client.put(endpoint, payload)
 
     def restore_archived(self, items: Iterator[DatasetItem]) -> None:
-        self.client.put(
-            f"datasets/{self.dataset_id}/items/restore", {"filter": {"dataset_item_ids": [item.id for item in items]}}
-        )
+        endpoint: str = f"teams/{self.team}/datasets/{self.slug}/items/restore"
+        payload: Dict[str, Any] = {"filter": {"dataset_item_ids": [item.id for item in items]}}
+        self.client.put(endpoint, payload)
+
+    def move_to_new(self, items: Iterator[DatasetItem]) -> None:
+        endpoint: str = f"teams/{self.team}/datasets/{self.slug}/items/move_to_new"
+        payload: Dict[str, Any] = {"filter": {"dataset_item_ids": [item.id for item in items]}}
+        self.client.put(endpoint, payload)
+
+    def reset(self, items: Iterator[DatasetItem]) -> None:
+        endpoint: str = f"teams/{self.team}/datasets/{self.slug}/items/reset"
+        payload: Dict[str, Any] = {"filter": {"dataset_item_ids": [item.id for item in items]}}
+        self.client.put(endpoint, payload)
 
     def fetch_annotation_type_id_for_name(self, name: str) -> Optional[int]:
         """

@@ -13,6 +13,7 @@ from darwin.dataset import RemoteDataset
 from darwin.dataset.release import Release
 from darwin.dataset.upload_manager import LocalFile, UploadHandler
 from darwin.exceptions import UnsupportedExportFormat, UnsupportedFileType
+from darwin.item import DatasetItem
 from tests.fixtures import *
 
 
@@ -360,7 +361,10 @@ def describe_fetch_remote_files():
         )
         url = "http://localhost/api/datasets/1/items?page%5Bsize%5D=500"
         responses.add(
-            responses.POST, url, json=files_content, status=200,
+            responses.POST,
+            url,
+            json=files_content,
+            status=200,
         )
 
         actual = remote_dataset.fetch_remote_files()
@@ -375,12 +379,13 @@ def describe_fetch_remote_files():
         assert item_2.id == 386073
 
 
+@pytest.fixture
+def remote_dataset(darwin_client: Client, dataset_name: str, dataset_slug: str, team_slug: str):
+    return RemoteDataset(client=darwin_client, team=team_slug, name=dataset_name, slug=dataset_slug, dataset_id=1)
+
+
 @pytest.mark.usefixtures("file_read_write_test")
 def describe_push():
-    @pytest.fixture
-    def remote_dataset(darwin_client: Client, dataset_name: str, dataset_slug: str, team_slug: str):
-        return RemoteDataset(client=darwin_client, team=team_slug, name=dataset_name, slug=dataset_slug, dataset_id=1)
-
     def raises_if_files_are_not_provided(remote_dataset: RemoteDataset):
         with pytest.raises(ValueError):
             remote_dataset.push(None)
@@ -433,10 +438,6 @@ def describe_push():
 
 @pytest.mark.usefixtures("file_read_write_test")
 def describe_pull():
-    @pytest.fixture
-    def remote_dataset(darwin_client: Client, dataset_name: str, dataset_slug: str, team_slug: str):
-        return RemoteDataset(client=darwin_client, team=team_slug, name=dataset_name, slug=dataset_slug, dataset_id=1)
-
     @patch("platform.system", return_value="Linux")
     def it_gets_latest_release_when_not_given_one(system_mock: MagicMock, remote_dataset: RemoteDataset):
         stub_release_response = Release(
@@ -539,6 +540,62 @@ def describe_pull():
 
         with pytest.raises(UnsupportedExportFormat):
             remote_dataset.pull(release=a_release)
+
+
+@pytest.fixture
+def dataset_item(dataset_slug: str) -> DatasetItem:
+    return DatasetItem(
+        id=1,
+        filename="test.jpg",
+        status="new",
+        archived=False,
+        filesize=1,
+        dataset_id=1,
+        dataset_slug=dataset_slug,
+        seq=1,
+        current_workflow_id=None,
+        path="/",
+    )
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+def describe_archive():
+    def calls_client_put(remote_dataset: RemoteDataset, dataset_item: DatasetItem, team_slug: str, dataset_slug: str):
+        with patch.object(Client, "put", return_value={}) as stub:
+            remote_dataset.archive([dataset_item])
+            stub.assert_called_once_with(
+                f"teams/{team_slug}/datasets/{dataset_slug}/items/archive", {"filter": {"dataset_item_ids": [1]}}
+            )
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+def describe_move_to_new():
+    def calls_client_put(remote_dataset: RemoteDataset, dataset_item: DatasetItem, team_slug: str, dataset_slug: str):
+        with patch.object(Client, "put", return_value={}) as stub:
+            remote_dataset.move_to_new([dataset_item])
+            stub.assert_called_once_with(
+                f"teams/{team_slug}/datasets/{dataset_slug}/items/move_to_new", {"filter": {"dataset_item_ids": [1]}}
+            )
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+def describe_reset():
+    def calls_client_put(remote_dataset: RemoteDataset, dataset_item: DatasetItem, team_slug: str, dataset_slug: str):
+        with patch.object(Client, "put", return_value={}) as stub:
+            remote_dataset.reset([dataset_item])
+            stub.assert_called_once_with(
+                f"teams/{team_slug}/datasets/{dataset_slug}/items/reset", {"filter": {"dataset_item_ids": [1]}}
+            )
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+def describe_restore_archived():
+    def calls_client_put(remote_dataset: RemoteDataset, dataset_item: DatasetItem, team_slug: str, dataset_slug: str):
+        with patch.object(Client, "put", return_value={}) as stub:
+            remote_dataset.restore_archived([dataset_item])
+            stub.assert_called_once_with(
+                f"teams/{team_slug}/datasets/{dataset_slug}/items/restore", {"filter": {"dataset_item_ids": [1]}}
+            )
 
 
 def assert_upload_mocks_are_correctly_called(remote_dataset: RemoteDataset, *args):
