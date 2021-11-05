@@ -101,6 +101,8 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
             f.dataset_convert(args.dataset, args.format, args.output_dir)
         elif args.action == "set-file-status":
             f.set_file_status(args.dataset, args.status, args.files)
+        elif args.action == "delete-files":
+            f.delete_files(args.dataset, args.files)
         elif args.action == "split":
             f.split(args.dataset, args.val_percentage, args.test_percentage, args.seed)
         elif args.action == "help" or args.action is None:

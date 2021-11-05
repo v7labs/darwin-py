@@ -5,7 +5,7 @@ import responses
 from rich.console import Console
 from tests.fixtures import *
 
-from darwin.cli_functions import set_file_status, upload_data
+from darwin.cli_functions import delete_files, set_file_status, upload_data
 from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset import RemoteDataset
@@ -137,6 +137,15 @@ def describe_set_file_status():
             with patch.object(RemoteDataset, "fetch_remote_files") as fetch_remote_files_mock:
                 with patch.object(RemoteDataset, "restore_archived") as mock:
                     set_file_status(dataset_identifier, "restore-archived", ["one.jpg", "two.jpg"])
+                    get_remote_dataset_mock.assert_called_once_with(dataset_identifier=dataset_identifier)
+                    fetch_remote_files_mock.assert_called_once_with({"filenames": "one.jpg,two.jpg"})
+                    mock.assert_called_once_with(fetch_remote_files_mock.return_value)
+
+    def calls_dataset_delete_items(dataset_identifier: str, remote_dataset: RemoteDataset):
+        with patch.object(Client, "get_remote_dataset", return_value=remote_dataset) as get_remote_dataset_mock:
+            with patch.object(RemoteDataset, "fetch_remote_files") as fetch_remote_files_mock:
+                with patch.object(RemoteDataset, "delete_items") as mock:
+                    delete_files(dataset_identifier, ["one.jpg", "two.jpg"])
                     get_remote_dataset_mock.assert_called_once_with(dataset_identifier=dataset_identifier)
                     fetch_remote_files_mock.assert_called_once_with({"filenames": "one.jpg,two.jpg"})
                     mock.assert_called_once_with(fetch_remote_files_mock.return_value)

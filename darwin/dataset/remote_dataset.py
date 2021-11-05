@@ -395,6 +395,11 @@ class RemoteDataset:
         payload: Dict[str, Any] = {"filter": {"dataset_item_ids": [item.id for item in items]}}
         self.client.put(endpoint, payload)
 
+    def delete_items(self, items: Iterator[DatasetItem]) -> None:
+        endpoint: str = f"teams/{self.team}/datasets/{self.slug}/items"
+        payload: Dict[str, Any] = {"filter": {"dataset_item_ids": [item.id for item in items]}}
+        self.client.delete(endpoint, payload)
+
     def fetch_annotation_type_id_for_name(self, name: str) -> Optional[int]:
         """
         Fetches annotation type id for a annotation type name, such as bounding_box

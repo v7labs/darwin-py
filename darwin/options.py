@@ -1,11 +1,9 @@
 import argparse
 import sys
-
+from argparse import ArgumentParser, Namespace
 from typing import Tuple
 
 import argcomplete
-
-from argparse import Namespace, ArgumentParser
 
 
 class Options(object):
@@ -193,6 +191,16 @@ class Options(object):
         )
         parser_file_status.add_argument("status", type=str, help="Status to change to.")
         parser_file_status.add_argument("files", type=str, nargs="+", help="Files to change status.")
+
+        # Delete files
+        parser_delete_files = dataset_action.add_parser("delete-files", help="Delete one or more files remotely.")
+        parser_delete_files.add_argument(
+            "dataset",
+            type=str,
+            help="[Remote] Dataset name: to list all the existing dataset, run 'darwin dataset remote'.",
+        )
+        parser_delete_files.add_argument("files", type=str, nargs="+", help="Files to delete.")
+
         # Help
         dataset_action.add_parser("help", help="Show this help message and exit.")
 

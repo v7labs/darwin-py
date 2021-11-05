@@ -200,6 +200,7 @@ class Client:
     def delete(
         self,
         endpoint: str,
+        payload: Optional[Dict[Any, Any]] = None,
         team: Optional[str] = None,
         retry: bool = False,
         error_handlers: Optional[List[ErrorHandler]] = None,
@@ -210,11 +211,15 @@ class Client:
         Parameters
         ----------
         endpoint : str
-            Recipient of the HTTP operation
+            Recipient of the HTTP operation.
+        payload : Optional[Dict[Any, Any]]
+            JSON-encoded extra information that might be necessary to perform the deletion.
+        team : Optional[str]
+            Optional team slug, used to build the request headers.
         retry : bool
             Retry to perform the operation. Set to False on recursive calls.
-        refresh : bool
-            Flag for use the refresh token instead
+        error_handlers : Optional[List[ErrorHandler]]
+            List of functions to be called should the requests be unsuccessful.
         debug : bool
             Debugging flag. In this case failed requests get printed
 
@@ -223,10 +228,14 @@ class Client:
         dict
         Dictionary which contains the server response
         """
+        if payload is None:
+            payload = {}
         if error_handlers is None:
             error_handlers = []
 
-        response: requests.Response = requests.delete(urljoin(self.url, endpoint), headers=self._get_headers(team))
+        response: requests.Response = requests.delete(
+            urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team)
+        )
 
         if response.status_code == 401:
             raise Unauthorized()
@@ -244,7 +253,7 @@ class Client:
                 )
             if retry:
                 time.sleep(10)
-                return self.delete(endpoint, retry=False)
+                return self.delete(endpoint, payload=payload, retry=False)
 
         return self._decode_response(response, debug)
 
