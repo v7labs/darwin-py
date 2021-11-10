@@ -35,7 +35,8 @@ def build_xml(annotation_file: dt.AnnotationFile) -> Element:
     add_subelement_text(root, "segmented", "0")
 
     for annotation in annotation_file.annotations:
-        if annotation.annotation_class.annotation_type != "bounding_box":
+        annotation_type = annotation.annotation_class.annotation_type
+        if annotation_type not in ["bounding_box", "polygon"]:
             continue
         data = annotation.data
         sub_annotation = SubElement(root, "object")
@@ -44,10 +45,22 @@ def build_xml(annotation_file: dt.AnnotationFile) -> Element:
         add_subelement_text(sub_annotation, "truncated", "0")
         add_subelement_text(sub_annotation, "difficult", "0")
         bndbox = SubElement(sub_annotation, "bndbox")
-        add_subelement_text(bndbox, "xmin", str(round(data["x"])))
-        add_subelement_text(bndbox, "ymin", str(round(data["y"])))
-        add_subelement_text(bndbox, "xmax", str(round(data["x"] + data["w"])))
-        add_subelement_text(bndbox, "ymax", str(round(data["y"] + data["h"])))
+
+        if annotation_type == "bounding_box":
+            add_subelement_text(bndbox, "xmin", str(round(data["x"])))
+            add_subelement_text(bndbox, "ymin", str(round(data["y"])))
+            add_subelement_text(bndbox, "xmax", str(round(data["x"] + data["w"])))
+            add_subelement_text(bndbox, "ymax", str(round(data["y"] + data["h"])))
+        elif annotation_type == "polygon":
+            polygon_bbox = data.get("bounding_box")
+            xmin = polygon_bbox.get("x")
+            ymin = polygon_bbox.get("y")
+            xmax = xmin + polygon_bbox.get("w")
+            ymax = ymin + polygon_bbox.get("h")
+            add_subelement_text(bndbox, "xmin", str(round(xmin)))
+            add_subelement_text(bndbox, "ymin", str(round(ymin)))
+            add_subelement_text(bndbox, "xmax", str(round(xmax)))
+            add_subelement_text(bndbox, "ymax", str(round(ymax)))
 
     return root
 
