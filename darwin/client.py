@@ -287,7 +287,7 @@ class Client:
                 slug=dataset["slug"],
                 team=team or self.default_team,
                 dataset_id=dataset["id"],
-                image_count=dataset["num_images"],
+                item_count=dataset["num_images"] + dataset["num_videos"],
                 progress=dataset["progress"],
                 client=self,
             )
@@ -333,7 +333,7 @@ class Client:
                 slug=dataset["slug"],
                 team=parsed_dataset_identifier.team_slug,
                 dataset_id=dataset["id"],
-                image_count=dataset["num_images"],
+                item_count=dataset["num_images"] + dataset["num_videos"],
                 progress=0,
                 client=self,
             )
@@ -360,7 +360,7 @@ class Client:
             team=team or self.default_team,
             slug=dataset["slug"],
             dataset_id=dataset["id"],
-            image_count=dataset["num_images"],
+            item_count=dataset["num_images"] + dataset["num_videos"],
             progress=0,
             client=self,
         )
