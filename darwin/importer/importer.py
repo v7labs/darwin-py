@@ -245,6 +245,8 @@ def import_annotations(
             parsed_files = []
         elif not isinstance(imported_files, List):
             parsed_files = [imported_files]
+        else:
+            parsed_files = imported_files
 
         # remove files missing on the server
         missing_files = [missing_file.full_path for missing_file in local_files_missing_remotely]
