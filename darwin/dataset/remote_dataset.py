@@ -59,7 +59,7 @@ class RemoteDataset:
         name: str,
         slug: str,
         dataset_id: int,
-        image_count: int = 0,
+        item_count: int = 0,
         progress: float = 0,
     ):
         """
@@ -78,8 +78,8 @@ class RemoteDataset:
             spaces are replaced by dashes, e.g., `bird-species`. This string is unique within a team
         dataset_id : int
             Unique internal reference from the Darwin backend
-        image_count : int
-            Dataset size (number of images)
+        item_count : int
+            Dataset size (number of items)
         progress : float
             How much of the dataset has been annotated 0.0 to 1.0 (1.0 == 100%)
         client : Client
@@ -89,7 +89,7 @@ class RemoteDataset:
         self.name = name
         self.slug = slug or name
         self.dataset_id = dataset_id
-        self.image_count = image_count
+        self.item_count = item_count
         self.progress = progress
         self.client = client
         self.annotation_types: Optional[List[Dict[str, Any]]] = None
