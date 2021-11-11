@@ -360,7 +360,7 @@ class Client:
             team=team or self.default_team,
             slug=dataset["slug"],
             dataset_id=dataset["id"],
-            item_count=dataset["num_images"] + dataset["num_videos"],
+            item_count=dataset["num_images"],
             progress=0,
             client=self,
         )
