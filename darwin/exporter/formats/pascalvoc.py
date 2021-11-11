@@ -36,8 +36,9 @@ def build_xml(annotation_file: dt.AnnotationFile) -> Element:
 
     for annotation in annotation_file.annotations:
         annotation_type = annotation.annotation_class.annotation_type
-        if annotation_type not in ["bounding_box", "polygon"]:
+        if annotation_type not in ["bounding_box", "polygon", "complex_polygon"]:
             continue
+
         data = annotation.data
         sub_annotation = SubElement(root, "object")
         add_subelement_text(sub_annotation, "name", annotation.annotation_class.name)
@@ -46,21 +47,17 @@ def build_xml(annotation_file: dt.AnnotationFile) -> Element:
         add_subelement_text(sub_annotation, "difficult", "0")
         bndbox = SubElement(sub_annotation, "bndbox")
 
-        if annotation_type == "bounding_box":
-            add_subelement_text(bndbox, "xmin", str(round(data["x"])))
-            add_subelement_text(bndbox, "ymin", str(round(data["y"])))
-            add_subelement_text(bndbox, "xmax", str(round(data["x"] + data["w"])))
-            add_subelement_text(bndbox, "ymax", str(round(data["y"] + data["h"])))
-        elif annotation_type == "polygon":
-            polygon_bbox = data.get("bounding_box")
-            xmin = polygon_bbox.get("x")
-            ymin = polygon_bbox.get("y")
-            xmax = xmin + polygon_bbox.get("w")
-            ymax = ymin + polygon_bbox.get("h")
-            add_subelement_text(bndbox, "xmin", str(round(xmin)))
-            add_subelement_text(bndbox, "ymin", str(round(ymin)))
-            add_subelement_text(bndbox, "xmax", str(round(xmax)))
-            add_subelement_text(bndbox, "ymax", str(round(ymax)))
+        if annotation_type == "polygon" or annotation_type == "complex_polygon":
+            data = data.get("bounding_box")
+
+        xmin = data.get("x")
+        ymin = data.get("y")
+        xmax = xmin + data.get("w")
+        ymax = ymin + data.get("h")
+        add_subelement_text(bndbox, "xmin", str(round(xmin)))
+        add_subelement_text(bndbox, "ymin", str(round(ymin)))
+        add_subelement_text(bndbox, "xmax", str(round(xmax)))
+        add_subelement_text(bndbox, "ymax", str(round(ymax)))
 
     return root
 
