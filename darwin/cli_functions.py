@@ -657,6 +657,10 @@ def delete_files(dataset_slug: str, files: List[str]) -> None:
     try:
         dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
         items: Iterator[DatasetItem] = dataset.fetch_remote_files({"filenames": ",".join(files)})
+        if not secure_continue_request():
+            print("Cancelled.")
+            return
+
         dataset.delete_items(items)
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
