@@ -22,7 +22,6 @@ jobs:
           pip install pytest-describe
           pip install --upgrade setuptools
           pip install --editable ".[test]"
-          pip install git+https://${{ secrets.GITHUB_TOKEN }}@github.com/v7labs/darwin-dataset-pets.git
       - name: Run tests
         run: pytest
   windows:

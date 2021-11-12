@@ -1,5 +1,6 @@
 import shutil
 from pathlib import Path
+from zipfile import ZipFile
 
 import pytest
 
@@ -18,6 +19,7 @@ def darwin_config_path(darwin_path: Path) -> Path:
 
 @pytest.fixture
 def darwin_datasets_path(darwin_path: Path) -> Path:
+
     return darwin_path / "datasets"
 
 
@@ -39,6 +41,15 @@ def dataset_slug() -> str:
 @pytest.fixture
 def release_name() -> str:
     return "latest"
+
+
+@pytest.fixture
+def test_datasets_dir(darwin_path: Path):
+    test_datasets_dir = darwin_path / "test" / "datasets"
+    with ZipFile("./tests/data.zip", "r") as zipObj:
+        zipObj.extractall(path=test_datasets_dir)
+
+    return test_datasets_dir
 
 
 @pytest.fixture
