@@ -61,20 +61,24 @@ class Client:
 
         response: requests.Response = requests.get(urljoin(self.url, endpoint), headers=self._get_headers(team))
 
+        if debug:
+            print(
+                f"Client get request response ({response.json()}) with unexpected status "
+                f"({response.status_code}). "
+                f"Client: ({self})"
+                f"Request: (endpoint={endpoint})"
+            )
+
         if response.status_code == 401:
             raise Unauthorized()
+
         if response.status_code == 404:
             raise NotFound(urljoin(self.url, endpoint))
+
         if response.status_code != 200 and retry:
-            if debug:
-                print(
-                    f"Client get request response ({response.json()}) with unexpected status "
-                    f"({response.status_code}). "
-                    f"Client: ({self})"
-                    f"Request: (endpoint={endpoint})"
-                )
             time.sleep(10)
             return self.get(endpoint=endpoint, retry=False)
+
         if raw:
             return response
         else:
@@ -114,6 +118,14 @@ class Client:
             urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team)
         )
 
+        if debug:
+            print(
+                f"Client GET request got response ({response.json()}) with unexpected status "
+                f"({response.status_code}). "
+                f"Client: ({self})"
+                f"Request: (endpoint={endpoint}, payload={payload})"
+            )
+
         if response.status_code == 401:
             raise Unauthorized()
 
@@ -123,14 +135,6 @@ class Client:
                 raise InsufficientStorage()
 
         if response.status_code != 200 and retry:
-            if debug:
-                print(
-                    f"Client GET request got response ({response.json()}) with unexpected status "
-                    f"({response.status_code}). "
-                    f"Client: ({self})"
-                    f"Request: (endpoint={endpoint}, payload={payload})"
-                )
-
             time.sleep(10)
             return self.put(endpoint, payload=payload, retry=False)
 
@@ -177,20 +181,24 @@ class Client:
             urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team)
         )
 
+        if debug:
+            print(
+                f"Client get request response ({response.json()}) with unexpected status "
+                f"({response.status_code}). "
+                f"Client: ({self})"
+                f"Request: (endpoint={endpoint}, payload={payload})"
+            )
+
         if response.status_code == 401:
             raise Unauthorized()
+
+        if not error_handlers and not retry:
+            response.raise_for_status()
 
         if response.status_code != 200:
             for error_handler in error_handlers:
                 error_handler(response.status_code, response.json())
 
-            if debug:
-                print(
-                    f"Client get request response ({response.json()}) with unexpected status "
-                    f"({response.status_code}). "
-                    f"Client: ({self})"
-                    f"Request: (endpoint={endpoint}, payload={payload})"
-                )
             if retry:
                 time.sleep(10)
                 return self.post(endpoint, payload=payload, retry=False)
@@ -237,20 +245,24 @@ class Client:
             urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team)
         )
 
+        if debug:
+            print(
+                f"Client get request response ({response.json()}) with unexpected status "
+                f"({response.status_code}). "
+                f"Client: ({self})"
+                f"Request: (endpoint={endpoint})"
+            )
+
         if response.status_code == 401:
             raise Unauthorized()
+
+        if not error_handlers and not retry:
+            response.raise_for_status()
 
         if response.status_code != 200:
             for error_handler in error_handlers:
                 error_handler(response.status_code, response.json())
 
-            if debug:
-                print(
-                    f"Client get request response ({response.json()}) with unexpected status "
-                    f"({response.status_code}). "
-                    f"Client: ({self})"
-                    f"Request: (endpoint={endpoint})"
-                )
             if retry:
                 time.sleep(10)
                 return self.delete(endpoint, payload=payload, retry=False)

@@ -200,6 +200,14 @@ class Options(object):
             help="[Remote] Dataset name: to list all the existing dataset, run 'darwin dataset remote'.",
         )
         parser_delete_files.add_argument("files", type=str, nargs="+", help="Files to delete.")
+        parser_delete_files.add_argument(
+            "-y",
+            "--yes",
+            default=False,
+            action="store_true",
+            required=False,
+            help="Confirmation flag to delete the file without prompting for manual input.",
+        )
 
         # Help
         dataset_action.add_parser("help", help="Show this help message and exit.")
