@@ -1,7 +1,7 @@
 import json
 from datetime import date
 from pathlib import Path
-from typing import Iterator, List
+from typing import Any, Dict, Iterator, List, Optional
 
 import numpy as np
 from upolygon import draw_polygon, rle_encode
@@ -11,7 +11,7 @@ from darwin.utils import convert_polygons_to_sequences
 
 
 class NumpyEncoder(json.JSONEncoder):
-    def default(self, obj):
+    def default(self, obj: Any) -> Any:
         if isinstance(obj, np.integer):
             return int(obj)
         elif isinstance(obj, np.floating):
@@ -30,9 +30,9 @@ def export(annotation_files: Iterator[dt.AnnotationFile], output_dir: Path) -> N
         json.dump(output, f, cls=NumpyEncoder, indent=1)
 
 
-def build_json(annotation_files):
-    categories = calculate_categories(annotation_files)
-    tag_categories = calculate_tag_categories(annotation_files)
+def build_json(annotation_files: List[dt.AnnotationFile]) -> Dict[str, Any]:
+    categories: Dict[str, int] = calculate_categories(annotation_files)
+    tag_categories: Dict[str, int] = calculate_tag_categories(annotation_files)
     return {
         "info": build_info(),
         "licenses": build_licenses(),
@@ -43,8 +43,8 @@ def build_json(annotation_files):
     }
 
 
-def calculate_categories(annotation_files: List[dt.AnnotationFile]):
-    categories = {}
+def calculate_categories(annotation_files: List[dt.AnnotationFile]) -> Dict[str, int]:
+    categories: Dict[str, int] = {}
     for annotation_file in annotation_files:
         for annotation_class in annotation_file.annotation_classes:
             if annotation_class.name not in categories and annotation_class.annotation_type in [
@@ -56,8 +56,8 @@ def calculate_categories(annotation_files: List[dt.AnnotationFile]):
     return categories
 
 
-def calculate_tag_categories(annotation_files: List[dt.AnnotationFile]):
-    categories = {}
+def calculate_tag_categories(annotation_files: List[dt.AnnotationFile]) -> Dict[str, int]:
+    categories: Dict[str, int] = {}
     for annotation_file in annotation_files:
         for annotation_class in annotation_file.annotation_classes:
             if annotation_class.name not in categories and annotation_class.annotation_type == "tag":
@@ -65,7 +65,7 @@ def calculate_tag_categories(annotation_files: List[dt.AnnotationFile]):
     return categories
 
 
-def build_info():
+def build_info() -> Dict[str, Any]:
     # TODO fill out these fields in a meaningful way
     today = date.today()
     return {
@@ -78,18 +78,18 @@ def build_info():
     }
 
 
-def build_licenses():
+def build_licenses() -> List[Dict[str, Any]]:
     return [{"url": "n/a", "id": 0, "name": "placeholder license"}]
 
 
-def build_images(annotation_files, tag_categories):
+def build_images(annotation_files: List[dt.AnnotationFile], tag_categories: Dict[str, int]) -> List[Dict[str, Any]]:
     return [
         build_image(annotation_file, tag_categories)
         for annotation_file in sorted(annotation_files, key=lambda x: x.seq)
     ]
 
 
-def build_image(annotation_file, tag_categories):
+def build_image(annotation_file: dt.AnnotationFile, tag_categories: Dict[str, int]) -> Dict[str, Any]:
     tags = [
         annotation for annotation in annotation_file.annotations if annotation.annotation_class.annotation_type == "tag"
     ]
@@ -108,7 +108,9 @@ def build_image(annotation_file, tag_categories):
     }
 
 
-def build_annotations(annotation_files, categories):
+def build_annotations(
+    annotation_files: List[dt.AnnotationFile], categories: Dict[str, int]
+) -> Iterator[Optional[Dict[str, Any]]]:
     annotation_id = 0
     for annotation_file in annotation_files:
         for annotation in annotation_file.annotations:
@@ -118,7 +120,9 @@ def build_annotations(annotation_files, categories):
                 yield annotation_data
 
 
-def build_annotation(annotation_file, annotation_id, annotation: dt.Annotation, categories):
+def build_annotation(
+    annotation_file: dt.AnnotationFile, annotation_id: int, annotation: dt.Annotation, categories: Dict[str, int]
+) -> Optional[Dict[str, Any]]:
     annotation_type = annotation.annotation_class.annotation_type
     if annotation_type == "polygon":
         sequences = convert_polygons_to_sequences(annotation.data["path"], rounding=False)
@@ -191,7 +195,7 @@ def build_annotation(annotation_file, annotation_id, annotation: dt.Annotation, 
         print(f"skipping unsupported annotation_type '{annotation_type}'")
 
 
-def build_extra(annotation):
+def build_extra(annotation: dt.Annotation) -> Dict[str, Any]:
     data = {}
     instance_id_sub = annotation.get_sub("instance_id")
     attributes_sub = annotation.get_sub("attributes")
@@ -206,12 +210,12 @@ def build_extra(annotation):
     return data
 
 
-def build_categories(categories):
+def build_categories(categories: Dict[str, int]) -> Iterator[Dict[str, Any]]:
     for name, id in categories.items():
         yield {"id": id, "name": name, "supercategory": "root"}
 
 
-def build_tag_categories(categories):
+def build_tag_categories(categories: Dict[str, int]) -> Iterator[Dict[str, Any]]:
     for name, id in categories.items():
         yield {"id": id, "name": name}
 

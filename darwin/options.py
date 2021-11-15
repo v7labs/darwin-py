@@ -1,13 +1,17 @@
 import argparse
 import sys
 
+from typing import Tuple
+
 import argcomplete
+
+from argparse import Namespace, ArgumentParser
 
 
 class Options(object):
     def __init__(self):
 
-        self.parser = argparse.ArgumentParser(
+        self.parser: ArgumentParser = ArgumentParser(
             description="Commandline tool to create/upload/download datasets on darwin."
         )
 
@@ -197,9 +201,11 @@ class Options(object):
 
         argcomplete.autocomplete(self.parser)
 
-    def parse_args(self):
+    def parse_args(self) -> Tuple[Namespace, ArgumentParser]:
         args = self.parser.parse_args()
+
         if not args.command:
             self.parser.print_help()
             sys.exit()
+
         return args, self.parser

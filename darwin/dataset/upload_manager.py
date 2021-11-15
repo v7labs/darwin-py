@@ -9,18 +9,17 @@ from typing import (
     Any,
     BinaryIO,
     Callable,
+    Iterator,
     List,
     Optional,
     Set,
     Tuple,
-    Union,
 )
 
 import requests
+from darwin.datatypes import PathLike
 from darwin.path_utils import construct_full_path
-from darwin.types import PathLike
 from darwin.utils import chunk
-from rich.console import Console
 
 if TYPE_CHECKING:
     from darwin.client import Client
@@ -36,7 +35,7 @@ class ItemPayload:
         self.reason = reason
 
     @property
-    def full_path(self):
+    def full_path(self) -> str:
         return construct_full_path(self.path, self.filename)
 
 
@@ -46,12 +45,12 @@ class LocalFile:
         self.data = kwargs
         self._type_check(kwargs)
 
-    def _type_check(self, args):
+    def _type_check(self, args) -> None:
         self.data["filename"] = args.get("filename") or self.local_path.name
         self.data["path"] = args.get("path") or "/"
 
     @property
-    def full_path(self):
+    def full_path(self) -> str:
         return construct_full_path(self.data["path"], self.data["filename"])
 
 
@@ -125,10 +124,10 @@ FileUploadCallback = Callable[[str, int, int], None]
 
 class UploadHandler:
     def __init__(self, dataset: "RemoteDataset", local_files: List[LocalFile]):
-        self.dataset = dataset
+        self.dataset: RemoteDataset = dataset
         self.errors: List[UploadRequestError] = []
-        self.local_files = local_files
-        self._progress = None
+        self.local_files: List[LocalFile] = local_files
+        self._progress: Optional[Iterator[Callable[[Optional[ByteReadCallback]], None]]] = None
 
         self.blocked_items, self.pending_items = self._request_upload()
 
@@ -160,7 +159,7 @@ class UploadHandler:
     def progress(self):
         return self._progress
 
-    def prepare_upload(self):
+    def prepare_upload(self) -> Optional[Iterator[Callable[[Optional[ByteReadCallback]], None]]]:
         self._progress = self._upload_files()
         return self._progress
 
@@ -170,7 +169,7 @@ class UploadHandler:
         progress_callback: Optional[ProgressCallback] = None,
         file_upload_callback: Optional[FileUploadCallback] = None,
         max_workers: Optional[int] = None,
-    ):
+    ) -> None:
         if not self._progress:
             self.prepare_upload()
 
@@ -189,7 +188,7 @@ class UploadHandler:
                     file_complete.add(file_name)
                     progress_callback(self.pending_count, 1)
 
-        if multi_threaded:
+        if multi_threaded and self.progress:
             with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
                 future_to_progress = {executor.submit(f, callback) for f in self.progress}
                 for future in concurrent.futures.as_completed(future_to_progress):
@@ -197,7 +196,7 @@ class UploadHandler:
                         future.result()
                     except Exception as exc:
                         print("exception", exc)
-        else:
+        elif self.progress:
             for file_to_upload in self.progress:
                 file_to_upload(callback)
 
@@ -216,8 +215,8 @@ class UploadHandler:
             items.extend([ItemPayload(**item) for item in data["items"]])
         return blocked_items, items
 
-    def _upload_files(self):
-        def upload_function(dataset_item_id, local_path):
+    def _upload_files(self) -> Iterator[Callable[[Optional[ByteReadCallback]], None]]:
+        def upload_function(dataset_item_id, local_path) -> Callable[[Optional[ByteReadCallback]], None]:
             return lambda byte_read_callback=None: self._upload_file(dataset_item_id, local_path, byte_read_callback)
 
         file_lookup = {file.full_path: file for file in self.local_files}
@@ -227,7 +226,9 @@ class UploadHandler:
                 raise ValueError(f"Cannot match {item.full_path} from payload with files to upload")
             yield upload_function(item.dataset_item_id, file.local_path)
 
-    def _upload_file(self, dataset_item_id: int, file_path: Path, byte_read_callback):
+    def _upload_file(
+        self, dataset_item_id: int, file_path: Path, byte_read_callback: Optional[ByteReadCallback]
+    ) -> None:
         try:
             self._do_upload_file(dataset_item_id, file_path, byte_read_callback)
         except UploadRequestError as e:
@@ -237,7 +238,7 @@ class UploadHandler:
 
     def _do_upload_file(
         self, dataset_item_id: int, file_path: Path, byte_read_callback: Optional[ByteReadCallback] = None,
-    ):
+    ) -> None:
         team_slug = self.dataset_identifier.team_slug
 
         try:

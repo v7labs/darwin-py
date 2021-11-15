@@ -32,6 +32,14 @@ from darwin.dataset.release import Release
 from darwin.dataset.split_manager import split_dataset
 from darwin.dataset.upload_manager import LocalFile
 from darwin.dataset.utils import get_release_path
+from darwin.datatypes import (
+    ExporterFormat,
+    ExportParser,
+    ImporterFormat,
+    ImportParser,
+    PathLike,
+    Team,
+)
 from darwin.exceptions import (
     InvalidLogin,
     MissingConfig,
@@ -45,14 +53,6 @@ from darwin.exceptions import (
 from darwin.exporter.formats import supported_formats as ExportSupportedFormats
 from darwin.importer.formats import supported_formats as ImportSupportedFormats
 from darwin.item import DatasetItem
-from darwin.types import (
-    ExporterFormat,
-    ExportParser,
-    ImporterFormat,
-    ImportParser,
-    PathLike,
-    Team,
-)
 from darwin.utils import (
     find_files,
     persist_client_configuration,
@@ -126,10 +126,10 @@ def current_team() -> None:
 def list_teams() -> None:
     """Print a table of teams to which the client belong to"""
     for team in _config().get_all_teams():
-        if team["default"]:
-            print(f"{team['slug']} (default)")
+        if team.default:
+            print(f"{team.slug} (default)")
         else:
-            print(team["slug"])
+            print(team.slug)
 
 
 def set_team(team_slug: str) -> None:
@@ -344,14 +344,14 @@ def list_remote_datasets(all_teams: bool, team: Optional[str] = None) -> None:
     if all_teams:
         teams: List[Team] = _config().get_all_teams()
         for a_team in teams:
-            client = _load_client(a_team["slug"])
+            client = _load_client(a_team.slug)
             datasets += list(client.list_remote_datasets())
     else:
         client = _load_client(team)
         datasets = list(client.list_remote_datasets())
 
     for dataset in datasets:
-        table.add_row(f"{dataset.team}/{dataset.slug}", str(dataset.image_count), f"{dataset.progress * 100:.1f}%")
+        table.add_row(f"{dataset.team}/{dataset.slug}", str(dataset.item_count), f"{dataset.progress * 100:.1f}%")
     if table.row_count == 0:
         print("No dataset available.")
     else:
@@ -529,15 +529,13 @@ def upload_data(
 
         if already_existing_items:
             console.print(
-                f"Skipped {len(already_existing_items)} files already in the dataset.\n",
-                style="warning",
+                f"Skipped {len(already_existing_items)} files already in the dataset.\n", style="warning",
             )
 
         if upload_manager.error_count or other_skipped_items:
             error_count = upload_manager.error_count + len(other_skipped_items)
             console.print(
-                f"{error_count} files couldn't be uploaded because an error occurred.\n",
-                style="error",
+                f"{error_count} files couldn't be uploaded because an error occurred.\n", style="error",
             )
 
         if not verbose and upload_manager.error_count:
@@ -635,8 +633,8 @@ def _has_valid_status(status: str) -> bool:
 
 
 def set_file_status(dataset_slug: str, status: str, files: List[str]) -> None:
-    if status not in ["archived", "restore-archived"]:
-        _error(f"Invalid status '{status}', available statuses: archived, restore-archived")
+    if status not in ["archived", "clear", "new", "restore-archived"]:
+        _error(f"Invalid status '{status}', available statuses: archived, clear, new, restore-archived")
 
     client: Client = _load_client(dataset_identifier=dataset_slug)
     try:
@@ -644,16 +642,17 @@ def set_file_status(dataset_slug: str, status: str, files: List[str]) -> None:
         items: Iterator[DatasetItem] = dataset.fetch_remote_files({"filenames": ",".join(files)})
         if status == "archived":
             dataset.archive(items)
+        elif status == "clear":
+            dataset.reset(items)
+        elif status == "new":
+            dataset.move_to_new(items)
         elif status == "restore-archived":
             dataset.restore_archived(items)
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
 
 
-def find_import_supported_format(
-    query: str,
-    supported_formats: List[ImporterFormat],
-) -> ImportParser:
+def find_import_supported_format(query: str, supported_formats: List[ImporterFormat],) -> ImportParser:
     for (fmt, fmt_parser) in supported_formats:
         if fmt == query:
             return fmt_parser
@@ -661,10 +660,7 @@ def find_import_supported_format(
     _error(f"Unsupported import format, currently supported: {list_of_formats}")
 
 
-def find_export_supported_format(
-    query: str,
-    supported_formats: List[ExporterFormat],
-) -> ExportParser:
+def find_export_supported_format(query: str, supported_formats: List[ExporterFormat],) -> ExportParser:
     for (fmt, fmt_parser) in supported_formats:
         if fmt == query:
             return fmt_parser

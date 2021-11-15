@@ -7,17 +7,20 @@ from typing import Any, Dict, Generator, Iterator, List, Optional, Set, Tuple, U
 
 import darwin.datatypes as dt
 import numpy as np
+from darwin.datatypes import PathLike
 from darwin.exceptions import NotFound
 from darwin.importer.formats.darwin import parse_file
-from darwin.types import PathLike
 from darwin.utils import (
     SUPPORTED_EXTENSIONS,
     SUPPORTED_VIDEO_EXTENSIONS,
     is_unix_like_os,
 )
-from PIL import Image
+from PIL import Image as PILImage
 from rich.live import Live
 from rich.progress import ProgressBar, track
+
+# E.g.: {"partition" => {"class_name" => 123}}
+AnnotationDistribution = Dict[str, Counter]
 
 
 def get_release_path(dataset_path: Path, release_name: Optional[str] = None) -> Path:
@@ -93,7 +96,7 @@ def extract_classes(annotations_path: Path, annotation_type: str) -> Tuple[Dict[
     return classes, indices_to_classes
 
 
-def make_class_lists(release_path: Path):
+def make_class_lists(release_path: Path) -> None:
     """
     Support function to extract classes and save the output to file
 
@@ -126,7 +129,7 @@ def get_classes(
     release_name: Optional[str] = None,
     annotation_type: str = "polygon",
     remove_background: bool = True,
-):
+) -> List[str]:
     """
     Given a dataset and an annotation_type returns the list of classes
 
@@ -157,13 +160,13 @@ def get_classes(
     return classes
 
 
-def _f(x):
+def _f(x: Any) -> Any:
     """Support function for pool.map() in _exhaust_generator()"""
     if callable(x):
         return x()
 
 
-def exhaust_generator(progress: Generator, count: int, multi_threaded: bool):
+def exhaust_generator(progress: Generator, count: int, multi_threaded: bool) -> List[Dict[str, Any]]:
     """Exhausts the generator passed as parameter. Can be done multi threaded if desired
 
     Parameters
@@ -206,7 +209,7 @@ def get_coco_format_record(
     image_path: Optional[Path] = None,
     image_id: Optional[Union[str, int]] = None,
     classes: Optional[List[str]] = None,
-):
+) -> Dict[str, Any]:
     assert annotation_type in ["tag", "polygon", "bounding_box"]
     try:
         from detectron2.structures import BoxMode
@@ -267,7 +270,7 @@ def get_annotations(
     release_name: Optional[str] = None,
     annotation_format: Optional[str] = "coco",
     ignore_inconsistent_examples: bool = False,
-):
+) -> Iterator[Dict[str, Any]]:
     """
     Returns all the annotations of a given dataset and split in a single dictionary
 
@@ -401,7 +404,7 @@ def get_annotations(
             yield record
 
 
-def load_pil_image(path: Path, to_rgb: Optional[bool] = True):
+def load_pil_image(path: Path, to_rgb: Optional[bool] = True) -> PILImage.Image:
     """
     Loads a PIL image and converts it into RGB (optional).
 
@@ -416,13 +419,13 @@ def load_pil_image(path: Path, to_rgb: Optional[bool] = True):
     -------
     PIL Image
     """
-    pic = Image.open(path)
+    pic = PILImage.open(path)
     if to_rgb:
         pic = convert_to_rgb(pic)
     return pic
 
 
-def convert_to_rgb(pic: Image):
+def convert_to_rgb(pic: PILImage.Image) -> PILImage.Image:
     """
     Converts a PIL image to RGB
 
@@ -442,27 +445,23 @@ def convert_to_rgb(pic: Image):
         pic = pic.convert("RGB")
     elif pic.mode == "I":
         img = (np.divide(np.array(pic, np.int32), 2 ** 16 - 1) * 255).astype(np.uint8)
-        pic = Image.fromarray(np.stack((img, img, img), axis=2))
+        pic = PILImage.fromarray(np.stack((img, img, img), axis=2))
     elif pic.mode == "I;16":
         img = (np.divide(np.array(pic, np.int16), 2 ** 8 - 1) * 255).astype(np.uint8)
-        pic = Image.fromarray(np.stack((img, img, img), axis=2))
+        pic = PILImage.fromarray(np.stack((img, img, img), axis=2))
     elif pic.mode == "L":
         img = np.array(pic).astype(np.uint8)
-        pic = Image.fromarray(np.stack((img, img, img), axis=2))
+        pic = PILImage.fromarray(np.stack((img, img, img), axis=2))
     elif pic.mode == "1":
         pic = pic.convert("L")
         img = np.array(pic).astype(np.uint8)
-        pic = Image.fromarray(np.stack((img, img, img), axis=2))
+        pic = PILImage.fromarray(np.stack((img, img, img), axis=2))
     else:
         raise TypeError(f"unsupported image type {pic.mode}")
     return pic
 
 
-def _is_pil_image(img):
-    return isinstance(img, Image.Image)
-
-
-def compute_max_density(annotations_dir: Path):
+def compute_max_density(annotations_dir: Path) -> int:
     max_density = 0
     for annotation_path in annotations_dir.glob("**/*.json"):
         annotation_density = 0
@@ -475,10 +474,6 @@ def compute_max_density(annotations_dir: Path):
             if annotation_density > max_density:
                 max_density = annotation_density
     return max_density
-
-
-# E.g.: {"partition" => {"class_name" => 123}}
-AnnotationDistribution = Dict[str, Counter]
 
 
 def compute_distributions(

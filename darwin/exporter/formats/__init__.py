@@ -1,7 +1,7 @@
 from functools import partial
 from typing import List
 
-from darwin.types import ExporterFormat
+from darwin.datatypes import ExporterFormat
 
 from . import coco, cvat, dataloop, instance_mask, pascalvoc, semantic_mask
 
