@@ -361,10 +361,7 @@ def describe_fetch_remote_files():
         )
         url = "http://localhost/api/datasets/1/items?page%5Bsize%5D=500"
         responses.add(
-            responses.POST,
-            url,
-            json=files_content,
-            status=200,
+            responses.POST, url, json=files_content, status=200,
         )
 
         actual = remote_dataset.fetch_remote_files()
@@ -595,6 +592,18 @@ def describe_restore_archived():
             remote_dataset.restore_archived([dataset_item])
             stub.assert_called_once_with(
                 f"teams/{team_slug}/datasets/{dataset_slug}/items/restore", {"filter": {"dataset_item_ids": [1]}}
+            )
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+def describe_delete_items():
+    def calls_client_delete(
+        remote_dataset: RemoteDataset, dataset_item: DatasetItem, team_slug: str, dataset_slug: str
+    ):
+        with patch.object(Client, "delete", return_value={}) as stub:
+            remote_dataset.delete_items([dataset_item])
+            stub.assert_called_once_with(
+                f"teams/{team_slug}/datasets/{dataset_slug}/items", {"filter": {"dataset_item_ids": [1]}}
             )
 
 

@@ -270,6 +270,7 @@ def pull_dataset(
         )
     except Unauthenticated:
         _error(f"please re-authenticate")
+
     try:
         release: Release = dataset.get_release(version)
         dataset.pull(release=release, only_annotations=only_annotations, use_folders=folders, video_frames=video_frames)
@@ -284,6 +285,7 @@ def pull_dataset(
             f"Version '{dataset.identifier}:{version}' is of format '{uef.format}', "
             f"only the darwin format ('json') is supported for `darwin dataset pull`"
         )
+
     print(f"Dataset {release.identifier} downloaded at {dataset.local_path}. ")
 
 
@@ -650,6 +652,26 @@ def set_file_status(dataset_slug: str, status: str, files: List[str]) -> None:
             dataset.restore_archived(items)
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
+
+
+def delete_files(dataset_slug: str, files: List[str], skip_user_confirmation: bool = False) -> None:
+    client: Client = _load_client(dataset_identifier=dataset_slug)
+    try:
+        console = Console()
+        dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
+        items: Iterator[DatasetItem] = dataset.fetch_remote_files({"filenames": ",".join(files)})
+        if not skip_user_confirmation and not secure_continue_request():
+            console.print("Cancelled.")
+            return
+
+        with console.status("[bold red]Deleting files..."):
+            dataset.delete_items(items)
+            console.print("[bold green]Files successfully deleted!")
+
+    except NotFound as e:
+        _error(f"No dataset with name '{e.name}'")
+    except:
+        _error(f"An error has occurred, please try again later.")
 
 
 def find_import_supported_format(query: str, supported_formats: List[ImporterFormat],) -> ImportParser:

@@ -1,3 +1,5 @@
+import builtins
+import sys
 from unittest.mock import call, patch
 
 import pytest
@@ -5,7 +7,7 @@ import responses
 from rich.console import Console
 from tests.fixtures import *
 
-from darwin.cli_functions import set_file_status, upload_data
+from darwin.cli_functions import delete_files, set_file_status, upload_data
 from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset import RemoteDataset
@@ -140,3 +142,55 @@ def describe_set_file_status():
                     get_remote_dataset_mock.assert_called_once_with(dataset_identifier=dataset_identifier)
                     fetch_remote_files_mock.assert_called_once_with({"filenames": "one.jpg,two.jpg"})
                     mock.assert_called_once_with(fetch_remote_files_mock.return_value)
+
+
+def describe_delete_files():
+    @pytest.fixture
+    def dataset_identifier(team_slug: str, dataset_slug: str):
+        return f"{team_slug}/{dataset_slug}"
+
+    def test_bypasses_user_prompt_if_yes_flag_is_true(dataset_identifier: str, remote_dataset: RemoteDataset):
+        with patch.object(Client, "get_remote_dataset", return_value=remote_dataset) as get_remote_dataset_mock:
+            with patch.object(RemoteDataset, "fetch_remote_files") as fetch_remote_files_mock:
+                with patch.object(RemoteDataset, "delete_items") as mock:
+                    delete_files(dataset_identifier, ["one.jpg", "two.jpg"], True)
+                    get_remote_dataset_mock.assert_called_once_with(dataset_identifier=dataset_identifier)
+                    fetch_remote_files_mock.assert_called_once_with({"filenames": "one.jpg,two.jpg"})
+                    mock.assert_called_once_with(fetch_remote_files_mock.return_value)
+
+    def test_deletes_items_if_user_accepts_prompt(dataset_identifier: str, remote_dataset: RemoteDataset):
+        with patch.object(Client, "get_remote_dataset", return_value=remote_dataset) as get_remote_dataset_mock:
+            with patch.object(RemoteDataset, "fetch_remote_files") as fetch_remote_files_mock:
+                with patch.object(builtins, "input", lambda _: "y"):
+                    with patch.object(RemoteDataset, "delete_items") as mock:
+                        delete_files(dataset_identifier, ["one.jpg", "two.jpg"])
+                        get_remote_dataset_mock.assert_called_once_with(dataset_identifier=dataset_identifier)
+                        fetch_remote_files_mock.assert_called_once_with({"filenames": "one.jpg,two.jpg"})
+                        mock.assert_called_once_with(fetch_remote_files_mock.return_value)
+
+    def test_does_not_delete_items_if_user_refuses_prompt(dataset_identifier: str, remote_dataset: RemoteDataset):
+        with patch.object(Client, "get_remote_dataset", return_value=remote_dataset) as get_remote_dataset_mock:
+            with patch.object(RemoteDataset, "fetch_remote_files") as fetch_remote_files_mock:
+                with patch.object(builtins, "input", lambda _: "n"):
+                    with patch.object(RemoteDataset, "delete_items") as mock:
+                        delete_files(dataset_identifier, ["one.jpg", "two.jpg"])
+                        get_remote_dataset_mock.assert_called_once_with(dataset_identifier=dataset_identifier)
+                        fetch_remote_files_mock.assert_called_once_with({"filenames": "one.jpg,two.jpg"})
+                        mock.assert_not_called()
+
+    def test_exits_if_error_occurs(dataset_identifier: str, remote_dataset: RemoteDataset):
+        def error_mock():
+            raise ValueError("Something went Wrong")
+
+        with patch.object(sys, "exit") as exception:
+            with patch.object(Client, "get_remote_dataset", return_value=remote_dataset) as get_remote_dataset_mock:
+                with patch.object(RemoteDataset, "fetch_remote_files") as fetch_remote_files_mock:
+                    with patch.object(RemoteDataset, "delete_items", side_effect=error_mock) as mock:
+
+                        delete_files(dataset_identifier, ["one.jpg", "two.jpg"], True)
+
+                        get_remote_dataset_mock.assert_called_once_with(dataset_identifier=dataset_identifier)
+                        fetch_remote_files_mock.assert_called_once_with({"filenames": "one.jpg,two.jpg"})
+                        mock.assert_called_once_with(fetch_remote_files_mock.return_value)
+                        exception.assert_called_once_with(1)
+
