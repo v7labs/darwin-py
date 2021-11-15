@@ -59,3 +59,9 @@ def describe_object_detection_dataset():
 
         generic_dataset_test(ds, n=5, size=(50, 50))
         assert type(ds[0][1]) is dict
+        ann = ds.parse_json(0)
+        n = len(ann["annotations"])
+
+        assert len(ds[0][1]["labels"]) == n
+        assert len(ds[0][1]["boxes"]) == n
+        assert ds[0][1]["image_id"].item() == 0
