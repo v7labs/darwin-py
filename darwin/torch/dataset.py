@@ -454,6 +454,5 @@ class BoundingBoxDetectionDataset(LocalDataset):
         labels = []
         for i, _ in enumerate(self.images_path):
             target = self.get_target(i)
-            print(target)
             labels.extend(target["labels"].tolist())
         return self._compute_weights(labels)
