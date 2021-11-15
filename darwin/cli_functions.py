@@ -654,13 +654,13 @@ def set_file_status(dataset_slug: str, status: str, files: List[str]) -> None:
         _error(f"No dataset with name '{e.name}'")
 
 
-def delete_files(dataset_slug: str, files: List[str], yes: bool = False) -> None:
+def delete_files(dataset_slug: str, files: List[str], skip_user_confirmation: bool = False) -> None:
     client: Client = _load_client(dataset_identifier=dataset_slug)
     try:
         console = Console()
         dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
         items: Iterator[DatasetItem] = dataset.fetch_remote_files({"filenames": ",".join(files)})
-        if not yes and not secure_continue_request():
+        if not skip_user_confirmation and not secure_continue_request():
             console.print("Cancelled.")
             return
 
