@@ -171,7 +171,13 @@ class ClassificationDataset(LocalDataset):
         labels = []
         for i, _filename in enumerate(self.images_path):
             target = self.get_target(i)
-            labels.append(target["category_id"])
+            if self.is_multi_label:
+                # get the indixes of the class present
+                target = torch.where(target == 1)[0]
+                labels.extend(target.tolist())
+            else:
+                labels.append(target.item())
+
         return self._compute_weights(labels)
 
 
