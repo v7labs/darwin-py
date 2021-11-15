@@ -1,26 +1,27 @@
 import json
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, Dict, Iterator, List, Optional
 
 from upolygon import find_contours, rle_decode
 
 import darwin.datatypes as dt
+from darwin.path_utils import deconstruct_full_path
 
 
 def parse_file(path: Path) -> Optional[List[dt.AnnotationFile]]:
     if path.suffix != ".json":
-        return
+        return None
 
     with path.open() as f:
         data = json.load(f)
         return list(parse_json(path, data))
 
 
-def parse_json(path, data):
+def parse_json(path: Path, data: Dict[str, Any]) -> Iterator[dt.AnnotationFile]:
     annotations = data["annotations"]
     image_lookup_table = {image["id"]: image for image in data["images"]}
     category_lookup_table = {category["id"]: category for category in data["categories"]}
-    image_annotations = {}
+    image_annotations: Dict[str, Any] = {}
 
     for annotation in annotations:
         image_id = annotation["image_id"]
@@ -34,10 +35,11 @@ def parse_json(path, data):
         image = image_lookup_table[image_id]
         annotations = list(filter(None, image_annotations[image_id]))
         annotation_classes = set([annotation.annotation_class for annotation in annotations])
-        yield dt.AnnotationFile(path, image["file_name"], annotation_classes, annotations, remote_path="/")
+        remote_path, filename = deconstruct_full_path(image["file_name"])
+        yield dt.AnnotationFile(path, filename, annotation_classes, annotations, remote_path=remote_path)
 
 
-def parse_annotation(annotation, category_lookup_table):
+def parse_annotation(annotation: Dict[str, Any], category_lookup_table: Dict[str, Any]) -> Optional[dt.Annotation]:
     category = category_lookup_table[annotation["category_id"]]
     segmentation = annotation["segmentation"]
     iscrowd = annotation.get("iscrowd") == 1
@@ -90,7 +92,7 @@ def parse_annotation(annotation, category_lookup_table):
         return None
 
 
-def decode_binary_rle(data):
+def decode_binary_rle(data: str) -> List[int]:
     """
     decodes binary rle to integer list rle
     """

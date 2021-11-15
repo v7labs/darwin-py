@@ -1,5 +1,7 @@
 import argparse
 import sys
+from argparse import ArgumentParser, Namespace
+from typing import Tuple
 
 import argcomplete
 
@@ -7,7 +9,7 @@ import argcomplete
 class Options(object):
     def __init__(self):
 
-        self.parser = argparse.ArgumentParser(
+        self.parser: ArgumentParser = ArgumentParser(
             description="Commandline tool to create/upload/download datasets on darwin."
         )
 
@@ -86,8 +88,9 @@ class Options(object):
 
         parser_push.add_argument("--verbose", action="store_true", help="Flag to show upload details.")
 
-        parser_push.add_argument("-p", "--preserve-folders", action="store_true", help="Preserve the local folder structure in the dataset")
-
+        parser_push.add_argument(
+            "-p", "--preserve-folders", action="store_true", help="Preserve the local folder structure in the dataset"
+        )
 
         # Remove
         parser_remove = dataset_action.add_parser("remove", help="Remove a remote or remote and local dataset.")
@@ -188,6 +191,24 @@ class Options(object):
         )
         parser_file_status.add_argument("status", type=str, help="Status to change to.")
         parser_file_status.add_argument("files", type=str, nargs="+", help="Files to change status.")
+
+        # Delete files
+        parser_delete_files = dataset_action.add_parser("delete-files", help="Delete one or more files remotely.")
+        parser_delete_files.add_argument(
+            "dataset",
+            type=str,
+            help="[Remote] Dataset name: to list all the existing dataset, run 'darwin dataset remote'.",
+        )
+        parser_delete_files.add_argument("files", type=str, nargs="+", help="Files to delete.")
+        parser_delete_files.add_argument(
+            "-y",
+            "--yes",
+            default=False,
+            action="store_true",
+            required=False,
+            help="Confirmation flag to delete the file without prompting for manual input.",
+        )
+
         # Help
         dataset_action.add_parser("help", help="Show this help message and exit.")
 
@@ -196,9 +217,11 @@ class Options(object):
 
         argcomplete.autocomplete(self.parser)
 
-    def parse_args(self):
+    def parse_args(self) -> Tuple[Namespace, ArgumentParser]:
         args = self.parser.parse_args()
+
         if not args.command:
             self.parser.print_help()
             sys.exit()
+
         return args, self.parser

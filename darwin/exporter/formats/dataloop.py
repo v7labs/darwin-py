@@ -1,4 +1,6 @@
 import json
+from pathlib import Path
+from typing import Any, Dict, Iterable, Iterator
 
 import numpy as np
 
@@ -6,7 +8,7 @@ import darwin.datatypes as dt
 
 
 class NumpyEncoder(json.JSONEncoder):
-    def default(self, obj):
+    def default(self, obj: Any) -> Any:
         if isinstance(obj, np.integer):
             return int(obj)
         elif isinstance(obj, np.floating):
@@ -17,19 +19,19 @@ class NumpyEncoder(json.JSONEncoder):
             return super(NumpyEncoder, self).default(obj)
 
 
-def export(annotation_files, output_dir):
+def export(annotation_files: Iterator[dt.AnnotationFile], output_dir: Path) -> None:
     for id, annotation_file in enumerate(annotation_files):
         export_file(annotation_file, id, output_dir)
 
 
-def export_file(annotation_file, id, output_dir):
-    output = build_json(annotation_file, id)
-    output_file_path = (output_dir / annotation_file.filename).with_suffix(".json")
+def export_file(annotation_file: dt.AnnotationFile, id: int, output_dir: Path) -> None:
+    output: Dict[str, Any] = build_json(annotation_file, id)
+    output_file_path: Path = (output_dir / annotation_file.filename).with_suffix(".json")
     with open(output_file_path, "w") as f:
         json.dump(output, f, cls=NumpyEncoder, indent=1)
 
 
-def build_json(annotation_file: dt.AnnotationFile, id):
+def build_json(annotation_file: dt.AnnotationFile, id: int) -> Dict[str, Any]:
     return {
         "_id": id,
         "filename": annotation_file.filename,
@@ -38,7 +40,7 @@ def build_json(annotation_file: dt.AnnotationFile, id):
     }
 
 
-def build_annotations(annotation_file: dt.AnnotationFile, id):
+def build_annotations(annotation_file: dt.AnnotationFile, id: int) -> Iterable[Dict[str, Any]]:
     output = []
     for annotation_id, annotation in enumerate(annotation_file.annotations):
         print(annotation)
@@ -71,5 +73,5 @@ def build_annotations(annotation_file: dt.AnnotationFile, id):
                 "metadata": {},
             }
             output.append(entry)
-    #   elif annotation.annotation_class.name == "bounding_box":
+
     return output

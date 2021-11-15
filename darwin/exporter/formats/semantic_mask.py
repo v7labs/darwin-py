@@ -1,7 +1,7 @@
 import colorsys
 import os
 from pathlib import Path
-from typing import Generator, List
+from typing import Iterable, List
 
 import numpy as np
 from PIL import Image
@@ -11,13 +11,13 @@ import darwin.datatypes as dt
 from darwin.utils import convert_polygons_to_sequences, get_progress_bar, ispolygon
 
 
-def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_dir: Path, mode: str = "grey"):
-    masks_dir = output_dir / "masks"
+def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path, mode: str = "grey") -> None:
+    masks_dir: Path = output_dir / "masks"
     masks_dir.mkdir(exist_ok=True, parents=True)
     annotation_files = list(annotation_files)
 
-    categories = extract_categories(annotation_files)
-    N = len(categories)
+    categories: List[str] = extract_categories(annotation_files)
+    N: int = len(categories)
     if mode == "index":
         if N > 254:
             raise ValueError("maximum number of classes supported: 254")
@@ -68,13 +68,15 @@ def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_di
                 f.write(f"{c},{palette[c]}\n")
 
 
-def extract_categories(annotation_files: List[dt.AnnotationFile]):
+def extract_categories(annotation_files: List[dt.AnnotationFile]) -> List[str]:
     categories = set()
     for annotation_file in annotation_files:
         for annotation_class in annotation_file.annotation_classes:
             if ispolygon(annotation_class):
                 categories.add(annotation_class.name)
-    categories = list(categories)
-    categories.sort()
-    categories.insert(0, "__background__")
-    return categories
+
+    result = list(categories)
+    result.sort()
+    result.insert(0, "__background__")
+
+    return result

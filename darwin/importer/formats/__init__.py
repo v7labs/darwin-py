@@ -1,6 +1,10 @@
+from typing import List
+
+from darwin.datatypes import ImporterFormat
+
 from . import coco, csvtags, csvtagsvideo, darwin, dataloop, pascalvoc
 
-supported_formats = [
+supported_formats: List[ImporterFormat] = [
     ("pascal_voc", pascalvoc.parse_file),
     ("dataloop", dataloop.parse_file),
     ("csv_tags", csvtags.parse_file),

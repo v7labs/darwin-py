@@ -1,0 +1,47 @@
+name: Documentation
+
+on:
+  push:
+    branches: master
+
+jobs:
+  generate-docs:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.7, 3.8, 3.9]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --editable ".[test]"
+          pip install torch torchvision
+          pip install -U sphinx
+          pip install m2r
+          pip install sphinx_rtd_theme
+      - name: Parse README
+        run: |
+          rm -f README.rst
+          m2r README.md
+          mv README.rst source/
+      - name: Generate new docs
+        env: 
+          PYTHONPATH: "."
+        run: |
+          rm -rf docs/* 
+          sphinx-apidoc -f -o source darwin   
+          sphinx-build -b html source/ docs/
+      - name: Setup access to AWS
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-west-1
+      - name: Upload docs to S3
+        run: aws s3 cp docs/ s3://darwin-py-sdk.v7labs.com/ --recursive

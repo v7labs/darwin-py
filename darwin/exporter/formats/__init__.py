@@ -1,8 +1,11 @@
 from functools import partial
+from typing import List
+
+from darwin.datatypes import ExporterFormat
 
 from . import coco, cvat, dataloop, instance_mask, pascalvoc, semantic_mask
 
-supported_formats = [
+supported_formats: List[ExporterFormat] = [
     ("coco", coco.export),
     ("cvat", cvat.export),
     ("dataloop", dataloop.export),

@@ -7,7 +7,7 @@ class SortDirection(Enum):
     DESCENDING = "desc"
 
     @classmethod
-    def parse(cls, direction: str):
+    def parse(cls, direction: str) -> "SortDirection":
         normalized_direction = direction.lower()
 
         if cls._is_ascending(normalized_direction):

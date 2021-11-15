@@ -1,28 +1,30 @@
 import json
 from pathlib import Path
-from typing import Optional
+from typing import Any, Dict, Optional
 
 import darwin.datatypes as dt
 
 
 def parse_file(path: Path) -> Optional[dt.AnnotationFile]:
     if path.suffix != ".json":
-        return
+        return None
     with path.open() as f:
         data = json.load(f)
         annotations = list(filter(None, map(_parse_annotation, data["annotations"])))
         annotation_classes = set([annotation.annotation_class for annotation in annotations])
-        return dt.AnnotationFile(path, _remove_leading_slash(data["filename"]), annotation_classes, annotations, remote_path = "/")
+        return dt.AnnotationFile(
+            path, _remove_leading_slash(data["filename"]), annotation_classes, annotations, remote_path="/"
+        )
 
 
-def _remove_leading_slash(filename):
+def _remove_leading_slash(filename: str) -> str:
     if filename[0] == "/":
         return filename[1:]
     else:
         return filename
 
 
-def _parse_annotation(annotation):
+def _parse_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotation]:
     annotation_type = annotation["type"]
     annotation_label = annotation["label"]
     if annotation_type not in ["box", "class"]:
@@ -33,7 +35,8 @@ def _parse_annotation(annotation):
 
     # Class is metadata that we can ignore
     if annotation_type == "class":
-        return
+        return None
+
     if annotation_type == "box":
         coords = annotation["coordinates"]
         x1, y1 = coords[0]["x"], coords[0]["y"]

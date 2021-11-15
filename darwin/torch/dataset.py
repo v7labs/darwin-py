@@ -1,9 +1,13 @@
-from typing import List, Optional
+from __future__ import annotations
+
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import numpy as np
+import PIL
 from darwin.cli_functions import _error, _load_client
 from darwin.dataset import LocalDataset
 from darwin.dataset.identifier import DatasetIdentifier
+from darwin.datatypes import Annotation
 from darwin.torch.transforms import (
     Compose,
     ConvertPolygonsToInstanceMasks,
@@ -11,6 +15,8 @@ from darwin.torch.transforms import (
 )
 from darwin.torch.utils import polygon_area
 from darwin.utils import convert_polygons_to_sequences
+from PIL import Image as PILImage
+from torchvision.transforms.functional import to_tensor
 
 import torch
 
@@ -22,7 +28,7 @@ def get_dataset(
     split: str = "default",
     split_type: str = "random",
     transform: Optional[List] = None,
-):
+) -> LocalDataset:
     """
     Creates and returns a dataset
 
@@ -80,11 +86,15 @@ class ClassificationDataset(LocalDataset):
         """
         super().__init__(annotation_type="tag", **kwargs)
 
-        self.transform = transform
-        if self.transform is not None and isinstance(self.transform, list):
-            self.transform = Compose(self.transform)
+        if transform is not None and isinstance(transform, list):
+            transform = Compose(transform)
 
-    def __getitem__(self, index: int):
+        self.transform: Optional[Callable] = transform
+
+        self.is_multi_label = False
+        self.check_if_multi_label()
+
+    def __getitem__(self, index: int) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         See superclass for documentation
 
@@ -98,35 +108,53 @@ class ClassificationDataset(LocalDataset):
             category_id : int
                 The single label of the image selected
         """
-        img = self.get_image(index)
+        img: PILImage.Image = self.get_image(index)
         if self.transform is not None:
-            img = self.transform(img)
+            img_tensor = self.transform(img)
+        else:
+            img_tensor = to_tensor(img)
 
         target = self.get_target(index)
 
-        return img, target
+        return img_tensor, target
 
-    def get_target(self, index: int):
+    def get_target(self, index: int) -> torch.Tensor:
         """
         Returns the classification target
         """
 
-        target = self.parse_json(index)
-        annotations = target.pop("annotations")
+        data = self.parse_json(index)
+        annotations = data.pop("annotations")
         tags = [a["name"] for a in annotations if "tag" in a]
-        if len(tags) > 1:
-            raise ValueError(f"Multiple tags defined for this image ({tags}). This is not supported at the moment.")
-        if len(tags) == 0:
-            raise ValueError(
-                f"No tags defined for this image ({self.annotations_path[index]})."
-                f"This is not valid in a classification dataset."
-            )
-        target["category_id"] = self.classes.index(tags[0])
-        target["category_name"] = tags[0]
+
+        assert len(tags) >= 1, f"No tags were found for index={index}"
+
+        target: torch.Tensor = torch.tensor(self.classes.index(tags[0]))
+
+        if self.is_multi_label:
+            target = torch.zeros(len(self.classes))
+            # one hot encode all the targets
+            for tag in tags:
+                idx = self.classes.index(tag)
+                target[idx] = 1
+
         return target
 
-    def get_class_idx(self, index: int):
-        target = self.get_target(index)
+    def check_if_multi_label(self) -> None:
+        """
+        This function loops over all the .json files and check if we have more than one tags in at least one file, if yes we assume the dataset is for multi label classification.
+        """
+        for idx in range(len(self)):
+            target = self.parse_json(idx)
+            annotations = target.pop("annotations")
+            tags = [a["name"] for a in annotations if "tag" in a]
+
+            if len(tags) > 1:
+                self.is_multi_label = True
+                break
+
+    def get_class_idx(self, index: int) -> int:
+        target: torch.Tensor = self.get_target(index)
         return target["category_id"]
 
     def measure_weights(self, **kwargs) -> np.ndarray:
@@ -144,24 +172,31 @@ class ClassificationDataset(LocalDataset):
         labels = []
         for i, _filename in enumerate(self.images_path):
             target = self.get_target(i)
-            labels.append(target["category_id"])
+            if self.is_multi_label:
+                # get the indixes of the class present
+                target = torch.where(target == 1)[0]
+                labels.extend(target.tolist())
+            else:
+                labels.append(target.item())
+
         return self._compute_weights(labels)
 
 
 class InstanceSegmentationDataset(LocalDataset):
-    def __init__(self, transform: Optional[List] = None, **kwargs):
+    def __init__(self, transform: Optional[Callable | List] = None, **kwargs):
         """
         See `LocalDataset` class for documentation
         """
         super().__init__(annotation_type="polygon", **kwargs)
 
-        self.transform = transform
-        if self.transform is not None and isinstance(self.transform, list):
-            self.transform = Compose(self.transform)
+        if transform is not None and isinstance(transform, list):
+            transform = Compose(transform)
+
+        self.transform: Optional[Callable] = transform
 
         self.convert_polygons = ConvertPolygonsToInstanceMasks()
 
-    def __getitem__(self, index: int):
+    def __getitem__(self, index: int) -> Tuple[torch.Tensor, Dict[str, Any]]:
         """
         Notes
         -----
@@ -179,16 +214,18 @@ class InstanceSegmentationDataset(LocalDataset):
             area : float
                 Area in pixels of each one of the instances
         """
-        img = self.get_image(index)
-        target = self.get_target(index)
+        img: PILImage.Image = self.get_image(index)
+        target: Dict[str, Any] = self.get_target(index)
 
         img, target = self.convert_polygons(img, target)
         if self.transform is not None:
-            img, target = self.transform(img, target)
+            img_tensor, target = self.transform(img, target)
+        else:
+            img_tensor = to_tensor(img)
 
-        return img, target
+        return img_tensor, target
 
-    def get_target(self, index: int):
+    def get_target(self, index: int) -> Dict[str, Any]:
         """
         Returns the instance segmentation target
         """
@@ -231,7 +268,7 @@ class InstanceSegmentationDataset(LocalDataset):
 
         return target
 
-    def measure_weights(self, **kwargs):
+    def measure_weights(self, **kwargs) -> np.ndarray:
         """
         Computes the class balancing weights (not the frequencies!!) given the train loader
         Get the weights proportional to the inverse of their class frequencies.
@@ -243,7 +280,7 @@ class InstanceSegmentationDataset(LocalDataset):
             Weight for each class in the train set (one for each class) as a 1D array normalized
         """
         # Collect all the labels by iterating over the whole dataset
-        labels = []
+        labels: List[int] = []
         for i, _ in enumerate(self.images_path):
             target = self.get_target(i)
             labels.extend([a["category_id"] for a in target["annotations"]])
@@ -251,19 +288,19 @@ class InstanceSegmentationDataset(LocalDataset):
 
 
 class SemanticSegmentationDataset(LocalDataset):
-    def __init__(self, transform: Optional[List] = None, **kwargs):
+    def __init__(self, transform: Optional[List | Callable] = None, **kwargs):
         """
         See `LocalDataset` class for documentation
         """
         super().__init__(annotation_type="polygon", **kwargs)
 
-        self.transform = transform
-        if self.transform is not None and isinstance(self.transform, list):
-            self.transform = Compose(self.transform)
+        if transform is not None and isinstance(transform, list):
+            transform = Compose(transform)
 
+        self.transform: Optional[Callable] = transform
         self.convert_polygons = ConvertPolygonsToSemanticMask()
 
-    def __getitem__(self, index: int):
+    def __getitem__(self, index: int) -> Tuple[torch.Tensor, Dict[str, Any]]:
         """
         See superclass for documentation
 
@@ -277,16 +314,18 @@ class SemanticSegmentationDataset(LocalDataset):
             mask : tensor(H, W)
                 Segmentation mask where each pixel encodes a class label
         """
-        img = self.get_image(index)
-        target = self.get_target(index)
+        img: PILImage.Image = self.get_image(index)
+        target: Dict[str, Any] = self.get_target(index)
 
         img, target = self.convert_polygons(img, target)
         if self.transform is not None:
-            img, target = self.transform(img, target)
+            img_tensor, target = self.transform(img, target)
+        else:
+            img_tensor = to_tensor(img)
 
-        return img, target
+        return img_tensor, target
 
-    def get_target(self, index: int):
+    def get_target(self, index: int) -> Dict[str, Any]:
         """
         Returns the semantic segmentation target
         """
@@ -308,7 +347,7 @@ class SemanticSegmentationDataset(LocalDataset):
 
         return target
 
-    def measure_weights(self, **kwargs):
+    def measure_weights(self, **kwargs) -> np.ndarray:
         """
         Computes the class balancing weights (not the frequencies!!) given the train loader
         Get the weights proportional to the inverse of their class frequencies.
@@ -328,13 +367,14 @@ class SemanticSegmentationDataset(LocalDataset):
 
 
 class BoundingBoxDetectionDataset(LocalDataset):
-    def __init__(self, transform: Optional[List] = None, **kwargs):
+    def __init__(self, transform: Optional[Callable | List] = None, **kwargs):
         """See `LocalDataset` class for documentation"""
         super().__init__(annotation_type="bounding_box", **kwargs)
 
-        self.transform = transform
-        if self.transform is not None and isinstance(self.transform, list):
-            self.transform = Compose(self.transform)
+        if transform is not None and isinstance(transform, list):
+            transform = Compose(transform)
+
+        self.transform: Optional[Callable] = transform
 
     def __getitem__(self, index: int):
         """
@@ -352,13 +392,16 @@ class BoundingBoxDetectionDataset(LocalDataset):
             area : float
                 Area in pixels of each one of the instances
         """
-        img = self.get_image(index)
-        target = self.get_target(index)
+
+        img: PILImage.Image = self.get_image(index)
+        target: Dict[str, Any] = self.get_target(index)
 
         if self.transform is not None:
-            img, target = self.transform(img, target)
+            img_tensor, target = self.transform(img, target)
+        else:
+            img_tensor = to_tensor(img)
 
-        return img, target
+        return img_tensor, target
 
     def get_target(self, index: int):
         """Returns the instance segmentation target"""
@@ -406,5 +449,6 @@ class BoundingBoxDetectionDataset(LocalDataset):
         labels = []
         for i, _ in enumerate(self.images_path):
             target = self.get_target(i)
-            labels.extend([a["category_id"] for a in target["annotations"]])
+            print(target)
+            labels.extend(target["labels"].tolist())
         return self._compute_weights(labels)

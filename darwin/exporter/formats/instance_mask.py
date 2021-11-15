@@ -1,7 +1,7 @@
 import os
 import shutil
 from pathlib import Path
-from typing import Generator
+from typing import Iterator
 
 import numpy as np
 from PIL import Image
@@ -10,7 +10,7 @@ import darwin.datatypes as dt
 from darwin.utils import convert_polygons_to_mask, get_progress_bar, ispolygon
 
 
-def export(annotation_files: Generator[dt.AnnotationFile, None, None], output_dir: Path):
+def export(annotation_files: Iterator[dt.AnnotationFile], output_dir: Path) -> None:
     masks_dir = output_dir / "masks"
     if masks_dir.exists():
         shutil.rmtree(masks_dir)

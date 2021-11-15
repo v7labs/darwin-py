@@ -1,13 +1,14 @@
 import os
 import time
 from pathlib import Path
-from typing import Any, Dict, Iterator, Optional, Union
+from typing import Any, Dict, Iterator, List, Optional, Union
 
 import requests
 
 from darwin.config import Config
 from darwin.dataset import RemoteDataset
 from darwin.dataset.identifier import DatasetIdentifier
+from darwin.datatypes import DarwinVersionNumber, ErrorHandler, Feature, Team
 from darwin.exceptions import (
     InsufficientStorage,
     InvalidLogin,
@@ -21,16 +22,16 @@ from darwin.validators import name_taken, validation_error
 
 class Client:
     def __init__(self, config: Config, default_team: Optional[str] = None):
-        self.config = config
-        self.url = config.get("global/api_endpoint")
-        self.base_url = config.get("global/base_url")
-        self.default_team = default_team or config.get("global/default_team")
-        self.features: dict = {}
-        self._newer_version = None
+        self.config: Config = config
+        self.url: str = config.get("global/api_endpoint")
+        self.base_url: str = config.get("global/base_url")
+        self.default_team: str = default_team or config.get("global/default_team")
+        self.features: Dict[str, List[Feature]] = {}
+        self._newer_version: Optional[DarwinVersionNumber] = None
 
     def get(
         self, endpoint: str, team: Optional[str] = None, retry: bool = False, raw: bool = False, debug: bool = False
-    ) -> Union[Dict, requests.Response]:
+    ) -> Union[Any, requests.Response]:
         """
         Get something from the server through HTTP
 
@@ -58,22 +59,26 @@ class Client:
             Action is not authorized
         """
 
-        response = requests.get(urljoin(self.url, endpoint), headers=self._get_headers(team))
+        response: requests.Response = requests.get(urljoin(self.url, endpoint), headers=self._get_headers(team))
+
+        if debug:
+            print(
+                f"Client get request response ({response.json()}) with unexpected status "
+                f"({response.status_code}). "
+                f"Client: ({self})"
+                f"Request: (endpoint={endpoint})"
+            )
 
         if response.status_code == 401:
             raise Unauthorized()
+
         if response.status_code == 404:
             raise NotFound(urljoin(self.url, endpoint))
+
         if response.status_code != 200 and retry:
-            if debug:
-                print(
-                    f"Client get request response ({response.json()}) with unexpected status "
-                    f"({response.status_code}). "
-                    f"Client: ({self})"
-                    f"Request: (endpoint={endpoint})"
-                )
             time.sleep(10)
             return self.get(endpoint=endpoint, retry=False)
+
         if raw:
             return response
         else:
@@ -82,12 +87,12 @@ class Client:
     def put(
         self,
         endpoint: str,
-        payload: Dict,
+        payload: Dict[str, Any],
         team: Optional[str] = None,
         retry: bool = False,
         debug: bool = False,
         raw: bool = False,
-    ) -> Union[Dict, requests.Response]:
+    ) -> Union[Dict[str, Any], requests.Response]:
         """
         Put something on the server trough HTTP
 
@@ -109,7 +114,17 @@ class Client:
         dict
             Dictionary which contains the server response
         """
-        response = requests.put(urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team))
+        response: requests.Response = requests.put(
+            urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team)
+        )
+
+        if debug:
+            print(
+                f"Client GET request got response ({response.json()}) with unexpected status "
+                f"({response.status_code}). "
+                f"Client: ({self})"
+                f"Request: (endpoint={endpoint}, payload={payload})"
+            )
 
         if response.status_code == 401:
             raise Unauthorized()
@@ -120,13 +135,6 @@ class Client:
                 raise InsufficientStorage()
 
         if response.status_code != 200 and retry:
-            if debug:
-                print(
-                    f"Client get request response ({response.json()}) with unexpected status "
-                    f"({response.status_code}). "
-                    f"Client: ({self})"
-                    f"Request: (endpoint={endpoint}, payload={payload})"
-                )
             time.sleep(10)
             return self.put(endpoint, payload=payload, retry=False)
 
@@ -138,12 +146,12 @@ class Client:
     def post(
         self,
         endpoint: str,
-        payload: Optional[Dict] = None,
+        payload: Optional[Dict[Any, Any]] = None,
         team: Optional[str] = None,
         retry: bool = False,
         error_handlers: Optional[list] = None,
         debug: bool = False,
-    ) -> Dict:
+    ) -> Dict[str, Any]:
         """Post something new on the server trough HTTP
 
         Parameters
@@ -168,21 +176,29 @@ class Client:
             payload = {}
         if error_handlers is None:
             error_handlers = []
-        response = requests.post(urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team))
+
+        response: requests.Response = requests.post(
+            urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team)
+        )
+
+        if debug:
+            print(
+                f"Client get request response ({response.json()}) with unexpected status "
+                f"({response.status_code}). "
+                f"Client: ({self})"
+                f"Request: (endpoint={endpoint}, payload={payload})"
+            )
+
         if response.status_code == 401:
             raise Unauthorized()
+
+        if not error_handlers and not retry:
+            response.raise_for_status()
 
         if response.status_code != 200:
             for error_handler in error_handlers:
                 error_handler(response.status_code, response.json())
 
-            if debug:
-                print(
-                    f"Client get request response ({response.json()}) with unexpected status "
-                    f"({response.status_code}). "
-                    f"Client: ({self})"
-                    f"Request: (endpoint={endpoint}, payload={payload})"
-                )
             if retry:
                 time.sleep(10)
                 return self.post(endpoint, payload=payload, retry=False)
@@ -192,21 +208,26 @@ class Client:
     def delete(
         self,
         endpoint: str,
+        payload: Optional[Dict[Any, Any]] = None,
         team: Optional[str] = None,
         retry: bool = False,
-        error_handlers: Optional[list] = None,
+        error_handlers: Optional[List[ErrorHandler]] = None,
         debug: bool = False,
-    ) -> Dict:
+    ) -> Dict[str, Any]:
         """Delete something new on the server trough HTTP
 
         Parameters
         ----------
         endpoint : str
-            Recipient of the HTTP operation
+            Recipient of the HTTP operation.
+        payload : Optional[Dict[Any, Any]]
+            JSON-encoded extra information that might be necessary to perform the deletion.
+        team : Optional[str]
+            Optional team slug, used to build the request headers.
         retry : bool
             Retry to perform the operation. Set to False on recursive calls.
-        refresh : bool
-            Flag for use the refresh token instead
+        error_handlers : Optional[List[ErrorHandler]]
+            List of functions to be called should the requests be unsuccessful.
         debug : bool
             Debugging flag. In this case failed requests get printed
 
@@ -215,26 +236,36 @@ class Client:
         dict
         Dictionary which contains the server response
         """
+        if payload is None:
+            payload = {}
         if error_handlers is None:
             error_handlers = []
-        response = requests.delete(urljoin(self.url, endpoint), headers=self._get_headers(team))
+
+        response: requests.Response = requests.delete(
+            urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team)
+        )
+
+        if debug:
+            print(
+                f"Client get request response ({response.json()}) with unexpected status "
+                f"({response.status_code}). "
+                f"Client: ({self})"
+                f"Request: (endpoint={endpoint})"
+            )
+
         if response.status_code == 401:
             raise Unauthorized()
+
+        if not error_handlers and not retry:
+            response.raise_for_status()
 
         if response.status_code != 200:
             for error_handler in error_handlers:
                 error_handler(response.status_code, response.json())
 
-            if debug:
-                print(
-                    f"Client get request response ({response.json()}) with unexpected status "
-                    f"({response.status_code}). "
-                    f"Client: ({self})"
-                    f"Request: (endpoint={endpoint})"
-                )
             if retry:
                 time.sleep(10)
-                return self.delete(endpoint, retry=False)
+                return self.delete(endpoint, payload=payload, retry=False)
 
         return self._decode_response(response, debug)
 
@@ -247,12 +278,17 @@ class Client:
         list[Path]
         List of all local datasets
         """
-        if team is not None:
-            team_configs = [self.config.get_team(team)]
+
+        team_configs: List[Team] = []
+        if team:
+            team_data: Optional[Team] = self.config.get_team(team)
+            if team_data:
+                team_configs.append(team_data)
         else:
             team_configs = self.config.get_all_teams()
+
         for team_config in team_configs:
-            projects_team = Path(team_config["datasets_dir"]) / team_config["slug"]
+            projects_team: Path = Path(team_config.datasets_dir) / team_config.slug
             for project_path in projects_team.glob("*"):
                 if project_path.is_dir() and is_project_dir(project_path):
                     yield Path(project_path)
@@ -272,8 +308,8 @@ class Client:
                 slug=dataset["slug"],
                 team=team or self.default_team,
                 dataset_id=dataset["id"],
-                image_count=dataset["num_images"],
-                progress=0,
+                item_count=dataset["num_images"] + dataset["num_videos"],
+                progress=dataset["progress"],
                 client=self,
             )
 
@@ -291,37 +327,39 @@ class Client:
         RemoteDataset
             Initialized dataset
         """
-        dataset_identifier = DatasetIdentifier.parse(dataset_identifier)
+        parsed_dataset_identifier: DatasetIdentifier = DatasetIdentifier.parse(dataset_identifier)
 
-        if not dataset_identifier.team_slug:
-            dataset_identifier.team_slug = self.default_team
+        if not parsed_dataset_identifier.team_slug:
+            parsed_dataset_identifier.team_slug = self.default_team
 
         try:
-            matching_datasets = [
+            matching_datasets: List[RemoteDataset] = [
                 dataset
-                for dataset in self.list_remote_datasets(team=dataset_identifier.team_slug)
-                if dataset.slug == dataset_identifier.dataset_slug
+                for dataset in self.list_remote_datasets(team=parsed_dataset_identifier.team_slug)
+                if dataset.slug == parsed_dataset_identifier.dataset_slug
             ]
         except Unauthorized:
             # There is a chance that we tried to access an open dataset
-            dataset = self.get(f"{dataset_identifier.team_slug}/{dataset_identifier.dataset_slug}")
+            dataset = self.get(f"{parsed_dataset_identifier.team_slug}/{parsed_dataset_identifier.dataset_slug}")
 
             # If there isn't a record of this team, create one.
-            if not self.config.get_team(dataset_identifier.team_slug, raise_on_invalid_team=False):
-                datasets_dir = Path.home() / ".darwin" / "datasets"
-                self.config.set_team(team=dataset_identifier.team_slug, api_key="", datasets_dir=str(datasets_dir))
+            if not self.config.get_team(parsed_dataset_identifier.team_slug, raise_on_invalid_team=False):
+                datasets_dir: Path = Path.home() / ".darwin" / "datasets"
+                self.config.set_team(
+                    team=parsed_dataset_identifier.team_slug, api_key="", datasets_dir=str(datasets_dir)
+                )
 
             return RemoteDataset(
                 name=dataset["name"],
                 slug=dataset["slug"],
-                team=dataset_identifier.team_slug,
+                team=parsed_dataset_identifier.team_slug,
                 dataset_id=dataset["id"],
-                image_count=dataset["num_images"],
+                item_count=dataset["num_images"] + dataset["num_videos"],
                 progress=0,
                 client=self,
             )
         if not matching_datasets:
-            raise NotFound(dataset_identifier)
+            raise NotFound(parsed_dataset_identifier)
         return matching_datasets[0]
 
     def create_dataset(self, name: str, team: Optional[str] = None) -> RemoteDataset:
@@ -343,37 +381,73 @@ class Client:
             team=team or self.default_team,
             slug=dataset["slug"],
             dataset_id=dataset["id"],
-            image_count=dataset["num_images"],
+            item_count=dataset["num_images"],
             progress=0,
             client=self,
         )
 
     def fetch_remote_classes(self, team: Optional[str] = None) -> Optional[Dict[str, Any]]:
         """Fetches all remote classes on the remote dataset"""
-        team = self.config.get_team(team or self.default_team)
+        the_team: Optional[Team] = self.config.get_team(team or self.default_team)
 
-        if not team:
+        if not the_team:
             return None
 
-        team_slug: str = team["slug"]
+        team_slug: str = the_team.slug
 
         return self.get(f"/teams/{team_slug}/annotation_classes?include_tags=true")["annotation_classes"]
 
-    def load_feature_flags(self, team: Optional[str] = None):
+    def load_feature_flags(self, team: Optional[str] = None) -> None:
         """Gets current features enabled for a team"""
-        team_slug = self.config.get_team(team or self.default_team)["slug"]
-        self.features[team_slug] = self.get(f"/teams/{team_slug}/features")
+        the_team: Optional[Team] = self.config.get_team(team or self.default_team)
 
-    def feature_enabled(self, feature_name: str, team: Optional[str] = None):
-        team_slug: str = self.config.get_team(team or self.default_team)["slug"]
+        if not the_team:
+            return None
+
+        team_slug: str = the_team.slug
+        self.features[team_slug] = self.get_team_features(team_slug)
+
+    def get_team_features(self, team_slug: str) -> List[Feature]:
+        """
+        Gets all the features for the given team together with their statuses.
+
+        Parameters
+        ----------
+        team_slug : str
+            Slug of the team.
+
+        Returns
+        -------
+        List[FeaturePayload]
+            List of feature for the given team.
+        """
+        response: List[Dict[str, Any]] = self.get(f"/teams/{team_slug}/features")
+
+        features: List[Feature] = []
+        for feature in response:
+            features.append(Feature(name=str(feature["name"]), enabled=bool(feature["enabled"])))
+
+        return features
+
+    def feature_enabled(self, feature_name: str, team: Optional[str] = None) -> bool:
+        the_team: Optional[Team] = self.config.get_team(team or self.default_team)
+
+        if not the_team:
+            return False
+
+        team_slug: str = the_team.slug
+
         if team_slug not in self.features:
             self.load_feature_flags(team)
-        for feature in self.features[team_slug]:
-            if feature["name"] == feature_name:
-                return feature["enabled"]
+
+        team_features: List[Feature] = self.features[team_slug]
+        for feature in team_features:
+            if feature.name == feature_name:
+                return feature.enabled
+
         return False
 
-    def get_datasets_dir(self, team: Optional[str] = None):
+    def get_datasets_dir(self, team: Optional[str] = None) -> Optional[str]:
         """Gets the dataset directory of the specified team or the default one
 
         Parameters
@@ -386,9 +460,14 @@ class Client:
         str
             Path of the datasets for the selected team or the default one
         """
-        return self.config.get_team(team or self.default_team)["datasets_dir"]
+        the_team: Optional[Team] = self.config.get_team(team or self.default_team)
 
-    def set_datasets_dir(self, datasets_dir: Path, team: Optional[str] = None):
+        if not the_team:
+            return None
+
+        return the_team.datasets_dir
+
+    def set_datasets_dir(self, datasets_dir: Path, team: Optional[str] = None) -> None:
         """Sets the dataset directory of the specified team or the default one
 
         Parameters
@@ -400,7 +479,7 @@ class Client:
         """
         self.config.put(f"teams/{team or self.default_team}/datasets_dir", datasets_dir)
 
-    def _get_headers(self, team: Optional[str] = None):
+    def _get_headers(self, team: Optional[str] = None) -> Dict[str, str]:
         """Get the headers of the API calls to the backend.
 
         Parameters
@@ -411,13 +490,14 @@ class Client:
         dict
         Contains the Content-Type and Authorization token
         """
-        headers = {"Content-Type": "application/json"}
-        api_key = None
-        team_config = self.config.get_team(team or self.default_team, raise_on_invalid_team=False)
-        if team_config:
-            api_key = team_config.get("api_key")
+        headers: Dict[str, str] = {"Content-Type": "application/json"}
+        api_key: Optional[str] = None
+        team_config: Optional[Team] = self.config.get_team(team or self.default_team, raise_on_invalid_team=False)
 
-        if api_key is not None and len(api_key) > 0:
+        if team_config:
+            api_key = team_config.api_key
+
+        if api_key and len(api_key) > 0:
             headers["Authorization"] = f"ApiKey {api_key}"
 
         from darwin import __version__
@@ -435,7 +515,7 @@ class Client:
         Client
         The initialized client
         """
-        config_path = Path.home() / ".darwin" / "config.yaml"
+        config_path: Path = Path.home() / ".darwin" / "config.yaml"
         return Client.from_config(config_path, team_slug=team_slug)
 
     @classmethod
@@ -476,8 +556,10 @@ class Client:
         """
         if datasets_dir is None:
             datasets_dir = Path.home() / ".darwin" / "datasets"
-        config = Config(path=None)
+
+        config: Config = Config(path=None)
         config.set_global(api_endpoint=Client.default_api_url(), base_url=Client.default_base_url())
+
         return cls(config=config)
 
     @classmethod
@@ -497,18 +579,20 @@ class Client:
         Client
             The initialized client
         """
-        if datasets_dir is None:
+        if not datasets_dir:
             datasets_dir = Path.home() / ".darwin" / "datasets"
-        headers = {"Content-Type": "application/json", "Authorization": f"ApiKey {api_key}"}
-        api_url = Client.default_api_url()
-        response = requests.get(urljoin(api_url, "/users/token_info"), headers=headers)
+
+        headers: Dict[str, str] = {"Content-Type": "application/json", "Authorization": f"ApiKey {api_key}"}
+        api_url: str = Client.default_api_url()
+        response: requests.Response = requests.get(urljoin(api_url, "/users/token_info"), headers=headers)
 
         if response.status_code != 200:
             raise InvalidLogin()
-        data = response.json()
-        team = data["selected_team"]["slug"]
 
-        config = Config(path=None)
+        data: Dict[str, Any] = response.json()
+        team: str = data["selected_team"]["slug"]
+
+        config: Config = Config(path=None)
         config.set_team(team=team, api_key=api_key, datasets_dir=str(datasets_dir))
         config.set_global(api_endpoint=api_url, base_url=Client.default_base_url())
 
@@ -524,7 +608,7 @@ class Client:
         """Returns the default base url"""
         return os.getenv("DARWIN_BASE_URL", "https://darwin.v7labs.com")
 
-    def _decode_response(self, response, debug: bool = False):
+    def _decode_response(self, response: requests.Response, debug: bool = False) -> Dict[str, Any]:
         """Decode the response as JSON entry or return a dictionary with the error
 
         Parameters
@@ -551,11 +635,12 @@ class Client:
             response.close()
             return {"error": "Response is not JSON encoded", "status_code": response.status_code, "text": response.text}
 
-    def _handle_latest_darwin_py(self, server_latest_version):
+    def _handle_latest_darwin_py(self, server_latest_version: str) -> None:
         try:
 
-            def parse_version(version_str):
-                return tuple([int(x) for x in version_str.split(".")])
+            def parse_version(version: str) -> DarwinVersionNumber:
+                (major, minor, patch) = version.split(".")
+                return (int(major), int(minor), int(patch))
 
             from darwin import __version__
 
@@ -568,8 +653,8 @@ class Client:
             pass
 
     @property
-    def newer_darwin_version(self):
+    def newer_darwin_version(self) -> Optional[DarwinVersionNumber]:
         return self._newer_version
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Client(default_team={self.default_team})"
