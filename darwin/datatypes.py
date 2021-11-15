@@ -74,7 +74,9 @@ class VideoAnnotation:
     interpolated: bool
 
     def get_data(
-        self, only_keyframes: bool = True, post_processing: Callable[[Annotation, Any], Any] = None
+        self,
+        only_keyframes: bool = True,
+        post_processing: Callable[[Annotation, Any], Any] = None,
     ) -> Dict[str, Any]:
         if not post_processing:
             post_processing = lambda annotation, data: data
@@ -117,7 +119,12 @@ class AnnotationFile:
 
 
 def make_bounding_box(
-    class_name: str, x: float, y: float, w: float, h: float, subs: Optional[List[SubAnnotation]] = None
+    class_name: str,
+    x: float,
+    y: float,
+    w: float,
+    h: float,
+    subs: Optional[List[SubAnnotation]] = None,
 ) -> Annotation:
     return Annotation(
         AnnotationClass(class_name, "bounding_box"),
@@ -131,7 +138,10 @@ def make_tag(class_name: str, subs: Optional[List[SubAnnotation]] = None) -> Ann
 
 
 def make_polygon(
-    class_name: str, point_path: List[Point], bounding_box: Optional[Dict], subs: Optional[List[SubAnnotation]] = None
+    class_name: str,
+    point_path: List[Point],
+    bounding_box: Optional[Dict],
+    subs: Optional[List[SubAnnotation]] = None,
 ) -> Annotation:
     return Annotation(
         AnnotationClass(class_name, "polygon"),
@@ -208,7 +218,10 @@ def make_video(keyframes: List[KeyFrame], start, end) -> Annotation:
 
 
 def make_video_annotation(
-    frames: Dict[int, Any], keyframes: Dict[int, bool], segments: List[Segment], interpolated: bool
+    frames: Dict[int, Any],
+    keyframes: Dict[int, bool],
+    segments: List[Segment],
+    interpolated: bool,
 ) -> VideoAnnotation:
     first_annotation: Annotation = list(frames.values())[0]
     if not all(frame.annotation_class.name == first_annotation.annotation_class.name for frame in frames.values()):

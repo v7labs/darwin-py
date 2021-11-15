@@ -38,7 +38,13 @@ def request_upload_endpoint(team_slug: str, dataset_slug: str):
 
 @pytest.fixture
 def dataset(darwin_client: Client, team_slug: str, dataset_slug: str) -> RemoteDataset:
-    return RemoteDataset(client=darwin_client, team=team_slug, name=dataset_slug, slug=dataset_slug, dataset_id=1)
+    return RemoteDataset(
+        client=darwin_client,
+        team=team_slug,
+        name=dataset_slug,
+        slug=dataset_slug,
+        dataset_id=1,
+    )
 
 
 @pytest.mark.usefixtures("file_read_write_test")
@@ -56,7 +62,10 @@ def test_request_upload_is_not_called_on_init(dataset: RemoteDataset, request_up
 @pytest.mark.usefixtures("file_read_write_test")
 @responses.activate
 def test_pending_count_is_correct(dataset: RemoteDataset, request_upload_endpoint: str):
-    response = {"blocked_items": [], "items": [{"dataset_item_id": 1, "filename": "test.jpg", "path": "/"}]}
+    response = {
+        "blocked_items": [],
+        "items": [{"dataset_item_id": 1, "filename": "test.jpg", "path": "/"}],
+    }
 
     responses.add(responses.PUT, request_upload_endpoint, json=response, status=200)
 
@@ -79,7 +88,14 @@ def test_pending_count_is_correct(dataset: RemoteDataset, request_upload_endpoin
 @responses.activate
 def test_blocked_count_is_correct(dataset: RemoteDataset, request_upload_endpoint: str):
     response = {
-        "blocked_items": [{"dataset_item_id": 1, "filename": "test.jpg", "path": "/", "reason": "ALREADY_EXISTS"}],
+        "blocked_items": [
+            {
+                "dataset_item_id": 1,
+                "filename": "test.jpg",
+                "path": "/",
+                "reason": "ALREADY_EXISTS",
+            }
+        ],
         "items": [],
     }
 
@@ -266,4 +282,3 @@ def describe_upload_chunk_size():
     def value_specified_by_env_var(mock: MagicMock):
         assert _upload_chunk_size() == 123
         mock.assert_called_once_with("DARWIN_UPLOAD_CHUNK_SIZE")
-

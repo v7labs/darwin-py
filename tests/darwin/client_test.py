@@ -53,7 +53,10 @@ def describe_put():
         endpoint: str = f"/teams/{team_slug}/datasets/{dataset_slug}/data"
 
         responses.add(
-            responses.PUT, api + endpoint, json={"errors": {"code": "INSUFFICIENT_REMAINING_STORAGE"}}, status=429
+            responses.PUT,
+            api + endpoint,
+            json={"errors": {"code": "INSUFFICIENT_REMAINING_STORAGE"}},
+            status=429,
         )
 
         with pytest.raises(InsufficientStorage):

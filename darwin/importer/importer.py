@@ -46,7 +46,8 @@ def build_main_annotations_lookup_table(annotation_classes: List[Dict[str, Any]]
 
 
 def find_and_parse(
-    importer: Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]], file_paths: List[PathLike]
+    importer: Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]],
+    file_paths: List[PathLike],
 ) -> Optional[Iterable[dt.AnnotationFile]]:
     # TODO: this could be done in parallel
     for file_path in map(Path, file_paths):
@@ -193,7 +194,7 @@ def import_annotations(
         if not secure_continue_request():
             return
 
-    local_classes_not_in_dataset, local_classes_not_in_team = _resolve_annotation_classes(
+    (local_classes_not_in_dataset, local_classes_not_in_team,) = _resolve_annotation_classes(
         [annotation_class for file in local_files for annotation_class in file.annotation_classes],
         classes_in_dataset,
         classes_in_team,
@@ -220,7 +221,8 @@ def import_annotations(
             return
         for missing_class in local_classes_not_in_team:
             dataset.create_annotation_class(
-                missing_class.name, missing_class.annotation_internal_type or missing_class.annotation_type
+                missing_class.name,
+                missing_class.annotation_internal_type or missing_class.annotation_type,
             )
     if local_classes_not_in_dataset:
         print(f"About to add the following classes to {dataset.identifier}")
@@ -254,7 +256,13 @@ def import_annotations(
         for parsed_file in track(parsed_files):
             image_id = remote_files[parsed_file.full_path]
             _import_annotations(
-                dataset.client, image_id, remote_classes, attributes, parsed_file.annotations, dataset, append
+                dataset.client,
+                image_id,
+                remote_classes,
+                attributes,
+                parsed_file.annotations,
+                dataset,
+                append,
             )
 
 
@@ -267,7 +275,10 @@ def _get_skeleton_name(skeleton: dt.AnnotationClass) -> str:
 
 
 def _handle_subs(
-    annotation: dt.Annotation, data: Dict[str, Any], annotation_class_id: str, attributes: Dict[str, Any]
+    annotation: dt.Annotation,
+    data: Dict[str, Any],
+    annotation_class_id: str,
+    attributes: Dict[str, Any],
 ) -> Dict[str, Any]:
     for sub in annotation.subs:
         if sub.annotation_type == "text":
@@ -290,7 +301,10 @@ def _handle_subs(
 def _handle_complex_polygon(annotation: dt.Annotation, data: Dict[str, Any]) -> Dict[str, Any]:
     if "complex_polygon" in data:
         del data["complex_polygon"]
-        data["polygon"] = {"path": annotation.data["paths"][0], "additional_paths": annotation.data["paths"][1:]}
+        data["polygon"] = {
+            "path": annotation.data["paths"][0],
+            "additional_paths": annotation.data["paths"][1:],
+        }
     return data
 
 
@@ -313,7 +327,10 @@ def _import_annotations(
             data = annotation.get_data(
                 only_keyframes=True,
                 post_processing=lambda annotation, data: _handle_subs(
-                    annotation, _handle_complex_polygon(annotation, data), annotation_class_id, attributes
+                    annotation,
+                    _handle_complex_polygon(annotation, data),
+                    annotation_class_id,
+                    attributes,
                 ),
             )
         else:

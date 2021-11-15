@@ -81,9 +81,22 @@ def split_dataset(
 
     # Do the actual splitting
     split_path.mkdir(exist_ok=True)
-    random_split(annotation_path, annotation_files, splits, val_percentage, test_percentage, split_seed)
+    random_split(
+        annotation_path,
+        annotation_files,
+        splits,
+        val_percentage,
+        test_percentage,
+        split_seed,
+    )
     stratified_split(
-        annotation_path, splits, annotation_files, val_percentage, test_percentage, stratified_types, split_seed
+        annotation_path,
+        splits,
+        annotation_files,
+        val_percentage,
+        test_percentage,
+        stratified_types,
+        split_seed,
     )
 
     # Create symlink for default split
@@ -180,7 +193,12 @@ def stratified_split(
         train_size = dataset_size - val_size - test_size
 
         train_indices, val_indices, test_indices = _stratify_samples(
-            idx_to_classes, split_seed, test_percentage, val_percentage, test_size, val_size
+            idx_to_classes,
+            split_seed,
+            test_percentage,
+            val_percentage,
+            test_size,
+            val_size,
         )
 
         stratified_indices = train_indices + val_indices + test_indices
@@ -195,9 +213,24 @@ def stratified_split(
             else:
                 test_indices.append(idx)
 
-        write_to_file(annotation_path, annotation_files, splits["stratified"][stratified_type]["train"], train_indices)
-        write_to_file(annotation_path, annotation_files, splits["stratified"][stratified_type]["val"], val_indices)
-        write_to_file(annotation_path, annotation_files, splits["stratified"][stratified_type]["test"], test_indices)
+        write_to_file(
+            annotation_path,
+            annotation_files,
+            splits["stratified"][stratified_type]["train"],
+            train_indices,
+        )
+        write_to_file(
+            annotation_path,
+            annotation_files,
+            splits["stratified"][stratified_type]["val"],
+            val_indices,
+        )
+        write_to_file(
+            annotation_path,
+            annotation_files,
+            splits["stratified"][stratified_type]["test"],
+            test_indices,
+        )
 
 
 def _stratify_samples(
@@ -283,7 +316,11 @@ def _stratify_samples(
     # Remove duplicates within the same set
     # NOTE: doing that earlier (e.g. in remove_cross_contamination()) would produce mathematical
     # mistakes in the class balancing between validation and test sets.
-    return (list(set(X_train.astype(np.int))), list(set(X_val.astype(np.int))), list(set(X_test.astype(np.int))))
+    return (
+        list(set(X_train.astype(np.int))),
+        list(set(X_val.astype(np.int))),
+        list(set(X_test.astype(np.int))),
+    )
 
 
 def remove_cross_contamination(
@@ -339,7 +376,12 @@ def unique(array: np.ndarray) -> np.ndarray:
     return array[sorted(indexes)]
 
 
-def write_to_file(annotation_path: Path, annotation_files: List[Path], file_path: Path, split_idx: Iterable) -> None:
+def write_to_file(
+    annotation_path: Path,
+    annotation_files: List[Path],
+    file_path: Path,
+    split_idx: Iterable,
+) -> None:
     with open(str(file_path), "w") as f:
         for i in split_idx:
             # To deal with recursive search, we want to write the difference between the annotation path

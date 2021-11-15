@@ -27,17 +27,35 @@ def describe_upload_data():
     @pytest.mark.usefixtures("file_read_write_test")
     @responses.activate
     def default_non_verbose(
-        team_slug: str, dataset_slug: str, remote_dataset: RemoteDataset, request_upload_endpoint: str
+        team_slug: str,
+        dataset_slug: str,
+        remote_dataset: RemoteDataset,
+        request_upload_endpoint: str,
     ):
         request_upload_response = {
             "blocked_items": [
-                {"dataset_item_id": 1, "filename": "test_1.jpg", "path": "/", "reason": "ALREADY_EXISTS"},
-                {"dataset_item_id": 2, "filename": "test_2.jpg", "path": "/", "reason": "UNKNOWN_TAGS"},
+                {
+                    "dataset_item_id": 1,
+                    "filename": "test_1.jpg",
+                    "path": "/",
+                    "reason": "ALREADY_EXISTS",
+                },
+                {
+                    "dataset_item_id": 2,
+                    "filename": "test_2.jpg",
+                    "path": "/",
+                    "reason": "UNKNOWN_TAGS",
+                },
             ],
             "items": [{"dataset_item_id": 3, "filename": "test_3.jpg", "path": "/"}],
         }
 
-        responses.add(responses.PUT, request_upload_endpoint, json=request_upload_response, status=200)
+        responses.add(
+            responses.PUT,
+            request_upload_endpoint,
+            json=request_upload_response,
+            status=200,
+        )
 
         with patch.object(Client, "get_remote_dataset", return_value=remote_dataset) as get_remote_dataset_mock:
             with patch.object(Console, "print", return_value=None) as print_mock:
@@ -55,7 +73,10 @@ def describe_upload_data():
 
                 assert call("Skipped 1 files already in the dataset.\n", style="warning") in print_mock.call_args_list
                 assert (
-                    call("2 files couldn't be uploaded because an error occurred.\n", style="error")
+                    call(
+                        "2 files couldn't be uploaded because an error occurred.\n",
+                        style="error",
+                    )
                     in print_mock.call_args_list
                 )
                 assert call('Re-run with "--verbose" for further details') in print_mock.call_args_list
@@ -63,17 +84,35 @@ def describe_upload_data():
     @pytest.mark.usefixtures("file_read_write_test")
     @responses.activate
     def with_verbose_flag(
-        team_slug: str, dataset_slug: str, remote_dataset: RemoteDataset, request_upload_endpoint: str
+        team_slug: str,
+        dataset_slug: str,
+        remote_dataset: RemoteDataset,
+        request_upload_endpoint: str,
     ):
         request_upload_response = {
             "blocked_items": [
-                {"dataset_item_id": 1, "filename": "test_1.jpg", "path": "/", "reason": "ALREADY_EXISTS"},
-                {"dataset_item_id": 2, "filename": "test_2.jpg", "path": "/", "reason": "UNKNOWN_TAGS"},
+                {
+                    "dataset_item_id": 1,
+                    "filename": "test_1.jpg",
+                    "path": "/",
+                    "reason": "ALREADY_EXISTS",
+                },
+                {
+                    "dataset_item_id": 2,
+                    "filename": "test_2.jpg",
+                    "path": "/",
+                    "reason": "UNKNOWN_TAGS",
+                },
             ],
             "items": [{"dataset_item_id": 3, "filename": "test_3.jpg", "path": "/"}],
         }
 
-        responses.add(responses.PUT, request_upload_endpoint, json=request_upload_response, status=200)
+        responses.add(
+            responses.PUT,
+            request_upload_endpoint,
+            json=request_upload_response,
+            status=200,
+        )
 
         with patch.object(Client, "get_remote_dataset", return_value=remote_dataset) as get_remote_dataset_mock:
             with patch.object(Console, "print", return_value=None) as print_mock:
@@ -91,7 +130,10 @@ def describe_upload_data():
 
                 assert call("Skipped 1 files already in the dataset.\n", style="warning") in print_mock.call_args_list
                 assert (
-                    call("2 files couldn't be uploaded because an error occurred.\n", style="error")
+                    call(
+                        "2 files couldn't be uploaded because an error occurred.\n",
+                        style="error",
+                    )
                     in print_mock.call_args_list
                 )
                 assert call('Re-run with "--verbose" for further details') not in print_mock.call_args_list
@@ -193,4 +235,3 @@ def describe_delete_files():
                         fetch_remote_files_mock.assert_called_once_with({"filenames": "one.jpg,two.jpg"})
                         mock.assert_called_once_with(fetch_remote_files_mock.return_value)
                         exception.assert_called_once_with(1)
-

@@ -27,7 +27,14 @@ def describe__build_stems():
         team_dataset_release_path: Path, annotations_path: Path, split_path: Path
     ):
         with pytest.raises(ValueError) as e:
-            build_stems(team_dataset_release_path, annotations_path, "tag", split_path.name, "train", "unknown")
+            build_stems(
+                team_dataset_release_path,
+                annotations_path,
+                "tag",
+                split_path.name,
+                "train",
+                "unknown",
+            )
 
         assert str(e.value) == 'Unknown split type "unknown"'
 
@@ -35,7 +42,15 @@ def describe__build_stems():
         resource_file = Path("tests") / "darwin" / "dataset" / "resources" / "random_train"
         copyfile(resource_file, split_path / "random_train.txt")
 
-        stems = list(build_stems(team_dataset_release_path, annotations_path, "tag", split_path.name, "train"))
+        stems = list(
+            build_stems(
+                team_dataset_release_path,
+                annotations_path,
+                "tag",
+                split_path.name,
+                "train",
+            )
+        )
 
         assert "one" in stems
         assert "two " in stems
@@ -45,7 +60,13 @@ def describe__build_stems():
         team_dataset_release_path: Path, annotations_path: Path, split_path: Path
     ):
         with pytest.raises(FileNotFoundError) as e:
-            build_stems(team_dataset_release_path, annotations_path, "tag", split_path.name, "train")
+            build_stems(
+                team_dataset_release_path,
+                annotations_path,
+                "tag",
+                split_path.name,
+                "train",
+            )
 
         assert (
             str(e.value)

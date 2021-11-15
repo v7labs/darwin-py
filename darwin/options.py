@@ -23,19 +23,30 @@ class Options(object):
         parser_create = subparsers.add_parser("team", help="List or pick teams.")
         parser_create.add_argument("team_name", nargs="?", type=str, help="Team name to use.")
         parser_create.add_argument(
-            "-c", "--current", action="store_true", required=False, help="Shows only the current team."
+            "-c",
+            "--current",
+            action="store_true",
+            required=False,
+            help="Shows only the current team.",
         )
 
         parser_convert = subparsers.add_parser("convert", help="Converts darwin json to other annotation formats.")
         parser_convert.add_argument("format", type=str, help="Annotation import to convert to.")
 
-        parser_convert.add_argument("files", type=str, nargs="+", help="Annotation files (or folders) to convert.")
+        parser_convert.add_argument(
+            "files",
+            type=str,
+            nargs="+",
+            help="Annotation files (or folders) to convert.",
+        )
 
         parser_convert.add_argument("output_dir", type=str, help="Where to store output files.")
 
         # DATASET
         dataset = subparsers.add_parser(
-            "dataset", help="Dataset related functions.", description="Arguments to interact with datasets"
+            "dataset",
+            help="Dataset related functions.",
+            description="Arguments to interact with datasets",
         )
         dataset_action = dataset.add_subparsers(dest="action")
 
@@ -82,14 +93,21 @@ class Options(object):
             default="native",
             help="Frames per second for video split (recommended: 1), use 'native' to use the videos intrinsic fps.",
         )
-        parser_push.add_argument("--frames", action="store_true", help="Annotate a video as independent frames.")
+        parser_push.add_argument(
+            "--frames",
+            action="store_true",
+            help="Annotate a video as independent frames.",
+        )
 
         parser_push.add_argument("--path", type=str, default=None, help="Folder to upload the files into.")
 
         parser_push.add_argument("--verbose", action="store_true", help="Flag to show upload details.")
 
         parser_push.add_argument(
-            "-p", "--preserve-folders", action="store_true", help="Preserve the local folder structure in the dataset"
+            "-p",
+            "--preserve-folders",
+            action="store_true",
+            help="Preserve the local folder structure in the dataset",
         )
 
         # Remove
@@ -100,7 +118,10 @@ class Options(object):
         parser_report = dataset_action.add_parser("report", help="Report about the annotators.")
         parser_report.add_argument("dataset", type=str, help="Remote dataset name to report on.")
         parser_report.add_argument(
-            "-g", "--granularity", choices=["day", "week", "month", "total"], help="Granularity of the report."
+            "-g",
+            "--granularity",
+            choices=["day", "week", "month", "total"],
+            help="Granularity of the report.",
         )
 
         # Export
@@ -124,11 +145,15 @@ class Options(object):
         parser_pull = dataset_action.add_parser("pull", help="Download a version of a dataset.")
         parser_pull.add_argument("dataset", type=str, help="Remote dataset name to download.")
         parser_pull.add_argument(
-            "--only-annotations", action="store_true", help="Download only annotations and no corresponding images."
+            "--only-annotations",
+            action="store_true",
+            help="Download only annotations and no corresponding images.",
         )
         parser_pull.add_argument("--folders", action="store_true", help="Recreates image folders.")
         parser_pull.add_argument(
-            "--video-frames", action="store_true", help="Pulls video frame images instead of video files."
+            "--video-frames",
+            action="store_true",
+            help="Pulls video frame images instead of video files.",
         )
 
         # Import
@@ -140,8 +165,17 @@ class Options(object):
         )
         parser_import.add_argument("format", type=str, help="Annotation import to import.")
 
-        parser_import.add_argument("files", type=str, nargs="+", help="Annotation files (or folders) to import.")
-        parser_import.add_argument("--append", action="store_true", help="Append annotations instead of overwriting.")
+        parser_import.add_argument(
+            "files",
+            type=str,
+            nargs="+",
+            help="Annotation files (or folders) to import.",
+        )
+        parser_import.add_argument(
+            "--append",
+            action="store_true",
+            help="Append annotations instead of overwriting.",
+        )
 
         # Convert
         parser_convert = dataset_action.add_parser("convert", help="Converts darwin json to other annotation formats.")
@@ -156,12 +190,24 @@ class Options(object):
 
         # Split
         parser_split = dataset_action.add_parser(
-            "split", help="Splits a local dataset following random and stratified split types."
+            "split",
+            help="Splits a local dataset following random and stratified split types.",
         )
         parser_split.add_argument("dataset", type=str, help="Local dataset name to split.")
-        parser_split.add_argument("-v", "--val-percentage", type=float, required=True, help="Validation percentage.")
         parser_split.add_argument(
-            "-t", "--test-percentage", type=float, required=False, default=0, help="Test percentage."
+            "-v",
+            "--val-percentage",
+            type=float,
+            required=True,
+            help="Validation percentage.",
+        )
+        parser_split.add_argument(
+            "-t",
+            "--test-percentage",
+            type=float,
+            required=False,
+            default=0,
+            help="Test percentage.",
         )
         parser_split.add_argument("-s", "--seed", type=int, required=False, default=0, help="Split seed.")
 
@@ -173,7 +219,12 @@ class Options(object):
             help="[Remote] Dataset name: to list all the existing dataset, run 'darwin dataset remote'.",
         )
         parser_files.add_argument("--only-filenames", action="store_true", help="Only prints out filenames.")
-        parser_files.add_argument("--status", type=str, required=False, help="Comma separated list of statuses.")
+        parser_files.add_argument(
+            "--status",
+            type=str,
+            required=False,
+            help="Comma separated list of statuses.",
+        )
         parser_files.add_argument("--path", type=str, required=False, help="")
         parser_files.add_argument(
             "--sort-by",

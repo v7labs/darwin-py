@@ -60,7 +60,10 @@ class LocalDataset(object):
 
         # Get the list of classes
         self.classes = get_classes(
-            self.dataset_path, release_name, annotation_type=self.annotation_type, remove_background=True
+            self.dataset_path,
+            release_name,
+            annotation_type=self.annotation_type,
+            remove_background=True,
         )
         self.num_classes = len(self.classes)
 
@@ -83,7 +86,10 @@ class LocalDataset(object):
             self.annotations_path.append(annotation_path)
 
         if len(self.images_path) == 0:
-            raise ValueError(f"Could not find any {SUPPORTED_IMAGE_EXTENSIONS} file", f" in {images_dir}")
+            raise ValueError(
+                f"Could not find any {SUPPORTED_IMAGE_EXTENSIONS} file",
+                f" in {images_dir}",
+            )
 
         assert len(self.images_path) == len(self.annotations_path)
 

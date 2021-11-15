@@ -84,7 +84,7 @@ class Release:
         --------
         Path
             Same Path as provided in the parameters.
-        
+
         Raises
         ------
         ValueError

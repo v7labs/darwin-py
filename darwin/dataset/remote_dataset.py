@@ -341,7 +341,9 @@ class RemoteDataset:
         self.client.put(f"datasets/{self.dataset_id}/archive", payload={}, team=self.team)
 
     def fetch_remote_files(
-        self, filters: Optional[Dict[str, Union[str, List[str]]]] = None, sort: Optional[Union[str, ItemSorter]] = None
+        self,
+        filters: Optional[Dict[str, Union[str, List[str]]]] = None,
+        sort: Optional[Union[str, ItemSorter]] = None,
     ) -> Iterator[DatasetItem]:
         """Fetch and lists all files on the remote dataset"""
         base_url: str = f"/datasets/{self.dataset_id}/items"
@@ -366,7 +368,9 @@ class RemoteDataset:
         cursor = {"page[size]": 500}
         while True:
             response = self.client.post(
-                f"{base_url}?{parse.urlencode(cursor)}", {"filter": post_filters, "sort": post_sort}, team=self.team
+                f"{base_url}?{parse.urlencode(cursor)}",
+                {"filter": post_filters, "sort": post_sort},
+                team=self.team,
             )
             yield from [parse_dataset_item(item) for item in response["items"]]
 
@@ -521,7 +525,10 @@ class RemoteDataset:
                 return None
         datasets.append({"id": self.dataset_id})
         # we typecast to dictionary because we are not passing the raw=True parameter.
-        return self.client.put(f"/annotation_classes/{match[0]['id']}", {"datasets": datasets, "id": match[0]["id"]})
+        return self.client.put(
+            f"/annotation_classes/{match[0]['id']}",
+            {"datasets": datasets, "id": match[0]["id"]},
+        )
 
     def fetch_remote_classes(self, team_wide=False) -> Optional[List[Dict[str, Any]]]:
         """
@@ -557,7 +564,10 @@ class RemoteDataset:
         return self.client.get(f"/datasets/{self.dataset_id}/attributes")
 
     def export(
-        self, name: str, annotation_class_ids: Optional[List[str]] = None, include_url_token: bool = False
+        self,
+        name: str,
+        annotation_class_ids: Optional[List[str]] = None,
+        include_url_token: bool = False,
     ) -> None:
         """
         Create a new release for the dataset
@@ -611,7 +621,11 @@ class RemoteDataset:
         except NotFound:
             return []
         releases = [Release.parse_json(self.slug, self.team, payload) for payload in releases_json]
-        return sorted(filter(lambda x: x.available, releases), key=lambda x: x.version, reverse=True)
+        return sorted(
+            filter(lambda x: x.available, releases),
+            key=lambda x: x.version,
+            reverse=True,
+        )
 
     def get_release(self, name: str = "latest") -> "Release":
         """
@@ -762,7 +776,10 @@ class RemoteDataset:
             yield annotation
 
     def workview_url_for_item(self, item: DatasetItem) -> str:
-        return urljoin(self.client.base_url, f"/workview?dataset={self.dataset_id}&image={item.seq}")
+        return urljoin(
+            self.client.base_url,
+            f"/workview?dataset={self.dataset_id}&image={item.seq}",
+        )
 
     @property
     def remote_path(self) -> Path:

@@ -134,7 +134,12 @@ def download_image_from_annotation(
 
 
 def download_image_from_json_annotation(
-    api_key: str, api_url: str, annotation_path: Path, image_path: Path, use_folders: bool, video_frames: bool
+    api_key: str,
+    api_url: str,
+    annotation_path: Path,
+    image_path: Path,
+    use_folders: bool,
+    video_frames: bool,
 ) -> None:
     """
     Helper function: downloads an image given a .json annotation path

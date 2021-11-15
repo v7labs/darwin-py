@@ -56,7 +56,9 @@ def calculate_categories(annotation_files: List[dt.AnnotationFile]) -> Dict[str,
     return categories
 
 
-def calculate_tag_categories(annotation_files: List[dt.AnnotationFile]) -> Dict[str, int]:
+def calculate_tag_categories(
+    annotation_files: List[dt.AnnotationFile],
+) -> Dict[str, int]:
     categories: Dict[str, int] = {}
     for annotation_file in annotation_files:
         for annotation_class in annotation_file.annotation_classes:
@@ -121,7 +123,10 @@ def build_annotations(
 
 
 def build_annotation(
-    annotation_file: dt.AnnotationFile, annotation_id: int, annotation: dt.Annotation, categories: Dict[str, int]
+    annotation_file: dt.AnnotationFile,
+    annotation_id: int,
+    annotation: dt.Annotation,
+    categories: Dict[str, int],
 ) -> Optional[Dict[str, Any]]:
     annotation_type = annotation.annotation_class.annotation_type
     if annotation_type == "polygon":
@@ -166,7 +171,10 @@ def build_annotation(
             "id": annotation_id,
             "image_id": annotation_file.seq,
             "category_id": categories[annotation.annotation_class.name],
-            "segmentation": {"counts": counts, "size": [annotation_file.image_height, annotation_file.image_width]},
+            "segmentation": {
+                "counts": counts,
+                "size": [annotation_file.image_height, annotation_file.image_width],
+            },
             "area": 0,
             "bbox": [min_x, min_y, w, h],
             "iscrowd": 1,
@@ -185,7 +193,12 @@ def build_annotation(
             annotation_id,
             dt.make_polygon(
                 annotation.annotation_class.name,
-                [{"x": x, "y": y}, {"x": x + w, "y": y}, {"x": x + w, "y": y + h}, {"x": x, "y": y + h}],
+                [
+                    {"x": x, "y": y},
+                    {"x": x + w, "y": y},
+                    {"x": x + w, "y": y + h},
+                    {"x": x, "y": y + h},
+                ],
                 None,
                 annotation.subs,
             ),

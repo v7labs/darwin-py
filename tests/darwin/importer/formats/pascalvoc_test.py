@@ -45,7 +45,9 @@ def describe_parse_file():
 
         assert str(info.value) == "filename element does not have a text value"
 
-    def it_returns_annotation_file_with_empty_annotations_otherwise(annotation_path: Path):
+    def it_returns_annotation_file_with_empty_annotations_otherwise(
+        annotation_path: Path,
+    ):
         annotation_path.write_text("<root><filename>image.jpg</filename></root>")
 
         annotation_file = parse_file(annotation_path)
@@ -113,7 +115,9 @@ def describe_parse_file():
 
         assert str(info.value) == "Could not find ymax element in annotation file"
 
-    def it_returns_annotation_file_with_correct_annotations_otherwise(annotation_path: Path):
+    def it_returns_annotation_file_with_correct_annotations_otherwise(
+        annotation_path: Path,
+    ):
         annotation_path.write_text(
             "<root><filename>image.jpg</filename><object><name>Class</name><bndbox><xmin>10</xmin><xmax>10</xmax><ymin>10</ymin><ymax>10</ymax></bndbox></object></root>"
         )
@@ -135,7 +139,9 @@ def describe_parse_file():
 
         assert annotation_file.remote_path == "/"
 
-    def it_returns_annotation_file_with_correct_annotations_with_float_values(annotation_path: Path):
+    def it_returns_annotation_file_with_correct_annotations_with_float_values(
+        annotation_path: Path,
+    ):
         annotation_path.write_text(
             "<root><filename>image.jpg</filename><object><name>Class</name><bndbox><xmin>10.0</xmin><xmax>10.0</xmax><ymin>10.0</ymin><ymax>10.0</ymax></bndbox></object></root>"
         )

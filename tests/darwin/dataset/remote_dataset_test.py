@@ -35,9 +35,33 @@ def annotation_content() -> Dict[str, Any]:
         "annotations": [
             {
                 "frames": {
-                    "0": {"polygon": {"path": [{"x": 0, "y": 0}, {"x": 1, "y": 1}, {"x": 1, "y": 0}]}},
-                    "2": {"polygon": {"path": [{"x": 5, "y": 5}, {"x": 6, "y": 6}, {"x": 6, "y": 5}]}},
-                    "4": {"polygon": {"path": [{"x": 9, "y": 9}, {"x": 8, "y": 8}, {"x": 8, "y": 9}]}},
+                    "0": {
+                        "polygon": {
+                            "path": [
+                                {"x": 0, "y": 0},
+                                {"x": 1, "y": 1},
+                                {"x": 1, "y": 0},
+                            ]
+                        }
+                    },
+                    "2": {
+                        "polygon": {
+                            "path": [
+                                {"x": 5, "y": 5},
+                                {"x": 6, "y": 6},
+                                {"x": 6, "y": 5},
+                            ]
+                        }
+                    },
+                    "4": {
+                        "polygon": {
+                            "path": [
+                                {"x": 9, "y": 9},
+                                {"x": 8, "y": 8},
+                                {"x": 8, "y": 9},
+                            ]
+                        }
+                    },
                 },
                 "name": "test_class",
                 "segments": [[0, 3]],
@@ -314,7 +338,11 @@ def describe_split_video_annotations():
         team_slug: str,
     ):
         remote_dataset = RemoteDataset(
-            client=darwin_client, team=team_slug, name=dataset_name, slug=dataset_slug, dataset_id=1
+            client=darwin_client,
+            team=team_slug,
+            name=dataset_name,
+            slug=dataset_slug,
+            dataset_id=1,
         )
 
         remote_dataset.split_video_annotations()
@@ -332,36 +360,82 @@ def describe_split_video_annotations():
         with (video_path / "0000000.json").open() as f:
             assert json.load(f) == {
                 "annotations": [
-                    {"name": "test_class", "polygon": {"path": [{"x": 0, "y": 0}, {"x": 1, "y": 1}, {"x": 1, "y": 0}]}}
+                    {
+                        "name": "test_class",
+                        "polygon": {
+                            "path": [
+                                {"x": 0, "y": 0},
+                                {"x": 1, "y": 1},
+                                {"x": 1, "y": 0},
+                            ]
+                        },
+                    }
                 ],
-                "image": {"filename": "test_video/0000000.png", "height": 1080, "url": "frame_1.jpg", "width": 1920},
+                "image": {
+                    "filename": "test_video/0000000.png",
+                    "height": 1080,
+                    "url": "frame_1.jpg",
+                    "width": 1920,
+                },
             }
 
         with (video_path / "0000001.json").open() as f:
             assert json.load(f) == {
                 "annotations": [],
-                "image": {"filename": "test_video/0000001.png", "height": 1080, "url": "frame_2.jpg", "width": 1920},
+                "image": {
+                    "filename": "test_video/0000001.png",
+                    "height": 1080,
+                    "url": "frame_2.jpg",
+                    "width": 1920,
+                },
             }
 
         with (video_path / "0000002.json").open() as f:
             assert json.load(f) == {
                 "annotations": [
-                    {"name": "test_class", "polygon": {"path": [{"x": 5, "y": 5}, {"x": 6, "y": 6}, {"x": 6, "y": 5}]}}
+                    {
+                        "name": "test_class",
+                        "polygon": {
+                            "path": [
+                                {"x": 5, "y": 5},
+                                {"x": 6, "y": 6},
+                                {"x": 6, "y": 5},
+                            ]
+                        },
+                    }
                 ],
-                "image": {"filename": "test_video/0000002.png", "height": 1080, "url": "frame_3.jpg", "width": 1920},
+                "image": {
+                    "filename": "test_video/0000002.png",
+                    "height": 1080,
+                    "url": "frame_3.jpg",
+                    "width": 1920,
+                },
             }
 
 
 @pytest.mark.usefixtures("files_content", "file_read_write_test")
 def describe_fetch_remote_files():
     @responses.activate
-    def it_works(darwin_client: Client, dataset_name: str, dataset_slug: str, team_slug: str, files_content: dict):
+    def it_works(
+        darwin_client: Client,
+        dataset_name: str,
+        dataset_slug: str,
+        team_slug: str,
+        files_content: dict,
+    ):
         remote_dataset = RemoteDataset(
-            client=darwin_client, team=team_slug, name=dataset_name, slug=dataset_slug, dataset_id=1
+            client=darwin_client,
+            team=team_slug,
+            name=dataset_name,
+            slug=dataset_slug,
+            dataset_id=1,
         )
         url = "http://localhost/api/datasets/1/items?page%5Bsize%5D=500"
         responses.add(
-            responses.POST, url, json=files_content, status=200,
+            responses.POST,
+            url,
+            json=files_content,
+            status=200,
         )
 
         actual = remote_dataset.fetch_remote_files()
@@ -378,7 +452,13 @@ def describe_fetch_remote_files():
 
 @pytest.fixture
 def remote_dataset(darwin_client: Client, dataset_name: str, dataset_slug: str, team_slug: str):
-    return RemoteDataset(client=darwin_client, team=team_slug, name=dataset_name, slug=dataset_slug, dataset_id=1)
+    return RemoteDataset(
+        client=darwin_client,
+        team=team_slug,
+        name=dataset_name,
+        slug=dataset_slug,
+        dataset_id=1,
+    )
 
 
 @pytest.mark.usefixtures("file_read_write_test")
@@ -395,7 +475,9 @@ def describe_push():
         with pytest.raises(ValueError):
             remote_dataset.push([LocalFile("test.jpg")], fps=2)
 
-    def raises_if_both_as_frames_and_local_files_are_given(remote_dataset: RemoteDataset):
+    def raises_if_both_as_frames_and_local_files_are_given(
+        remote_dataset: RemoteDataset,
+    ):
         with pytest.raises(ValueError):
             remote_dataset.push([LocalFile("test.jpg")], as_frames=True)
 
@@ -557,53 +639,81 @@ def dataset_item(dataset_slug: str) -> DatasetItem:
 
 @pytest.mark.usefixtures("file_read_write_test")
 def describe_archive():
-    def calls_client_put(remote_dataset: RemoteDataset, dataset_item: DatasetItem, team_slug: str, dataset_slug: str):
+    def calls_client_put(
+        remote_dataset: RemoteDataset,
+        dataset_item: DatasetItem,
+        team_slug: str,
+        dataset_slug: str,
+    ):
         with patch.object(Client, "put", return_value={}) as stub:
             remote_dataset.archive([dataset_item])
             stub.assert_called_once_with(
-                f"teams/{team_slug}/datasets/{dataset_slug}/items/archive", {"filter": {"dataset_item_ids": [1]}}
+                f"teams/{team_slug}/datasets/{dataset_slug}/items/archive",
+                {"filter": {"dataset_item_ids": [1]}},
             )
 
 
 @pytest.mark.usefixtures("file_read_write_test")
 def describe_move_to_new():
-    def calls_client_put(remote_dataset: RemoteDataset, dataset_item: DatasetItem, team_slug: str, dataset_slug: str):
+    def calls_client_put(
+        remote_dataset: RemoteDataset,
+        dataset_item: DatasetItem,
+        team_slug: str,
+        dataset_slug: str,
+    ):
         with patch.object(Client, "put", return_value={}) as stub:
             remote_dataset.move_to_new([dataset_item])
             stub.assert_called_once_with(
-                f"teams/{team_slug}/datasets/{dataset_slug}/items/move_to_new", {"filter": {"dataset_item_ids": [1]}}
+                f"teams/{team_slug}/datasets/{dataset_slug}/items/move_to_new",
+                {"filter": {"dataset_item_ids": [1]}},
             )
 
 
 @pytest.mark.usefixtures("file_read_write_test")
 def describe_reset():
-    def calls_client_put(remote_dataset: RemoteDataset, dataset_item: DatasetItem, team_slug: str, dataset_slug: str):
+    def calls_client_put(
+        remote_dataset: RemoteDataset,
+        dataset_item: DatasetItem,
+        team_slug: str,
+        dataset_slug: str,
+    ):
         with patch.object(Client, "put", return_value={}) as stub:
             remote_dataset.reset([dataset_item])
             stub.assert_called_once_with(
-                f"teams/{team_slug}/datasets/{dataset_slug}/items/reset", {"filter": {"dataset_item_ids": [1]}}
+                f"teams/{team_slug}/datasets/{dataset_slug}/items/reset",
+                {"filter": {"dataset_item_ids": [1]}},
             )
 
 
 @pytest.mark.usefixtures("file_read_write_test")
 def describe_restore_archived():
-    def calls_client_put(remote_dataset: RemoteDataset, dataset_item: DatasetItem, team_slug: str, dataset_slug: str):
+    def calls_client_put(
+        remote_dataset: RemoteDataset,
+        dataset_item: DatasetItem,
+        team_slug: str,
+        dataset_slug: str,
+    ):
         with patch.object(Client, "put", return_value={}) as stub:
             remote_dataset.restore_archived([dataset_item])
             stub.assert_called_once_with(
-                f"teams/{team_slug}/datasets/{dataset_slug}/items/restore", {"filter": {"dataset_item_ids": [1]}}
+                f"teams/{team_slug}/datasets/{dataset_slug}/items/restore",
+                {"filter": {"dataset_item_ids": [1]}},
             )
 
 
 @pytest.mark.usefixtures("file_read_write_test")
 def describe_delete_items():
     def calls_client_delete(
-        remote_dataset: RemoteDataset, dataset_item: DatasetItem, team_slug: str, dataset_slug: str
+        remote_dataset: RemoteDataset,
+        dataset_item: DatasetItem,
+        team_slug: str,
+        dataset_slug: str,
     ):
         with patch.object(Client, "delete", return_value={}) as stub:
             remote_dataset.delete_items([dataset_item])
             stub.assert_called_once_with(
-                f"teams/{team_slug}/datasets/{dataset_slug}/items", {"filter": {"dataset_item_ids": [1]}}
+                f"teams/{team_slug}/datasets/{dataset_slug}/items",
+                {"filter": {"dataset_item_ids": [1]}},
             )
 
 

@@ -30,7 +30,12 @@ class Client:
         self._newer_version: Optional[DarwinVersionNumber] = None
 
     def get(
-        self, endpoint: str, team: Optional[str] = None, retry: bool = False, raw: bool = False, debug: bool = False
+        self,
+        endpoint: str,
+        team: Optional[str] = None,
+        retry: bool = False,
+        raw: bool = False,
+        debug: bool = False,
     ) -> Union[Any, requests.Response]:
         """
         Get something from the server through HTTP
@@ -346,7 +351,9 @@ class Client:
             if not self.config.get_team(parsed_dataset_identifier.team_slug, raise_on_invalid_team=False):
                 datasets_dir: Path = Path.home() / ".darwin" / "datasets"
                 self.config.set_team(
-                    team=parsed_dataset_identifier.team_slug, api_key="", datasets_dir=str(datasets_dir)
+                    team=parsed_dataset_identifier.team_slug,
+                    api_key="",
+                    datasets_dir=str(datasets_dir),
                 )
 
             return RemoteDataset(
@@ -375,7 +382,12 @@ class Client:
         RemoteDataset
         The created dataset
         """
-        dataset = self.post("/datasets", {"name": name}, team=team, error_handlers=[name_taken, validation_error])
+        dataset = self.post(
+            "/datasets",
+            {"name": name},
+            team=team,
+            error_handlers=[name_taken, validation_error],
+        )
         return RemoteDataset(
             name=dataset["name"],
             team=team or self.default_team,
@@ -582,7 +594,10 @@ class Client:
         if not datasets_dir:
             datasets_dir = Path.home() / ".darwin" / "datasets"
 
-        headers: Dict[str, str] = {"Content-Type": "application/json", "Authorization": f"ApiKey {api_key}"}
+        headers: Dict[str, str] = {
+            "Content-Type": "application/json",
+            "Authorization": f"ApiKey {api_key}",
+        }
         api_url: str = Client.default_api_url()
         response: requests.Response = requests.get(urljoin(api_url, "/users/token_info"), headers=headers)
 
@@ -633,7 +648,11 @@ class Client:
             if debug:
                 print(f"[ERROR {response.status_code}] {response.text}")
             response.close()
-            return {"error": "Response is not JSON encoded", "status_code": response.status_code, "text": response.text}
+            return {
+                "error": "Response is not JSON encoded",
+                "status_code": response.status_code,
+                "text": response.text,
+            }
 
     def _handle_latest_darwin_py(self, server_latest_version: str) -> None:
         try:

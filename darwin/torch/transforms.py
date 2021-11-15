@@ -24,7 +24,7 @@ class Compose(transforms.Compose):
 class RandomHorizontalFlip(transforms.RandomHorizontalFlip):
     def forward(
         self, image: PILImage.Image, target: Optional[TargetType] = None
-    ) -> Union[Union[torch.Tensor, PILImage.Image], Tuple[Union[torch.Tensor, PILImage.Image], TargetType]]:
+    ) -> Union[Union[torch.Tensor, PILImage.Image], Tuple[Union[torch.Tensor, PILImage.Image], TargetType],]:
         if random.random() < self.p:
             image = F.hflip(image)
             if target is None:
@@ -47,7 +47,7 @@ class RandomHorizontalFlip(transforms.RandomHorizontalFlip):
 class RandomVerticalFlip(transforms.RandomVerticalFlip):
     def forward(
         self, image: PILImage.Image, target: Optional[TargetType] = None
-    ) -> Union[Union[torch.Tensor, PILImage.Image], Tuple[Union[torch.Tensor, PILImage.Image], TargetType]]:
+    ) -> Union[Union[torch.Tensor, PILImage.Image], Tuple[Union[torch.Tensor, PILImage.Image], TargetType],]:
         if random.random() < self.p:
             image = F.vflip(image)
             if target is None:

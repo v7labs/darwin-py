@@ -33,7 +33,10 @@ setuptools.setup(
         "rich",
         "upolygon==0.1.6",
     ],
-    extras_require={"test": ["responses", "pytest", "pytest-describe"], "ml": ["sklearn", "torch", "torchvision"]},
+    extras_require={
+        "test": ["responses", "pytest", "pytest-describe"],
+        "ml": ["sklearn", "torch", "torchvision"],
+    },
     packages=[
         "darwin",
         "darwin.importer",
@@ -44,6 +47,9 @@ setuptools.setup(
         "darwin.exporter.formats",
     ],
     entry_points={"console_scripts": ["darwin=darwin.cli:main"]},
-    classifiers=["Programming Language :: Python :: 3", "License :: OSI Approved :: MIT License"],
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: MIT License",
+    ],
     python_requires=">=3.6",
 )

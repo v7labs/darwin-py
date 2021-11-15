@@ -216,16 +216,29 @@ def describe_parse_darwin_json():
         assert annotation_file.annotations == [
             dt.VideoAnnotation(
                 annotation_class=dt.AnnotationClass(
-                    name="Hand", annotation_type="polygon", annotation_internal_type=None
+                    name="Hand",
+                    annotation_type="polygon",
+                    annotation_internal_type=None,
                 ),
                 frames={
                     3: dt.Annotation(
                         annotation_class=dt.AnnotationClass(
-                            name="Hand", annotation_type="polygon", annotation_internal_type=None
+                            name="Hand",
+                            annotation_type="polygon",
+                            annotation_internal_type=None,
                         ),
                         data={
-                            "path": [{"x": 748.0, "y": 732.0}, {"x": 751.0, "y": 735.0}, {"x": 748.0, "y": 733.0}],
-                            "bounding_box": {"x": 363.0, "y": 701.0, "w": 400.0, "h": 547.0},
+                            "path": [
+                                {"x": 748.0, "y": 732.0},
+                                {"x": 751.0, "y": 735.0},
+                                {"x": 748.0, "y": 733.0},
+                            ],
+                            "bounding_box": {
+                                "x": 363.0,
+                                "y": 701.0,
+                                "w": 400.0,
+                                "h": 547.0,
+                            },
                         },
                         subs=[dt.SubAnnotation(annotation_type="instance_id", data=119)],
                     )
@@ -450,4 +463,3 @@ def describe_parse_darwin_json():
         assert annotation_file.annotations[0].annotation_class.annotation_type == "polygon"
         assert annotation_file.annotations[1].annotation_class.annotation_type == "skeleton"
         assert annotation_file.annotations[2].annotation_class.annotation_type == "skeleton"
-

@@ -25,7 +25,16 @@ if TYPE_CHECKING:
     from darwin.client import Client
 
 
-SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpeg", ".jpg", ".jfif", ".tif", ".tiff", ".bmp", ".svs"]
+SUPPORTED_IMAGE_EXTENSIONS = [
+    ".png",
+    ".jpeg",
+    ".jpg",
+    ".jfif",
+    ".tif",
+    ".tiff",
+    ".bmp",
+    ".svs",
+]
 SUPPORTED_VIDEO_EXTENSIONS = [".avi", ".bpm", ".dcm", ".mov", ".mp4", ".pdf"]
 SUPPORTED_EXTENSIONS = SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
 
@@ -99,7 +108,10 @@ def prompt(msg: str, default: Optional[str] = None) -> str:
 
 
 def find_files(
-    files: List[dt.PathLike], *, files_to_exclude: List[dt.PathLike] = [], recursive: bool = True
+    files: List[dt.PathLike],
+    *,
+    files_to_exclude: List[dt.PathLike] = [],
+    recursive: bool = True,
 ) -> List[Path]:
     """Retrieve a list of all files belonging to supported extensions. The exploration can be made
     recursive and a list of files can be excluded if desired.
@@ -147,7 +159,9 @@ def secure_continue_request() -> bool:
 
 
 def persist_client_configuration(
-    client: "Client", default_team: Optional[str] = None, config_path: Optional[Path] = None
+    client: "Client",
+    default_team: Optional[str] = None,
+    config_path: Optional[Path] = None,
 ) -> Config:
     """Authenticate user against the server and creates a configuration file for it
 
@@ -172,7 +186,11 @@ def persist_client_configuration(
         raise ValueError("Unable to get default team.")
 
     config: Config = Config(config_path)
-    config.set_team(team=team_config.slug, api_key=team_config.api_key, datasets_dir=team_config.datasets_dir)
+    config.set_team(
+        team=team_config.slug,
+        api_key=team_config.api_key,
+        datasets_dir=team_config.datasets_dir,
+    )
     config.set_global(api_endpoint=client.url, base_url=client.base_url, default_team=default_team)
 
     return config
@@ -316,7 +334,11 @@ def parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotatio
     elif "bounding_box" in annotation:
         bounding_box = annotation["bounding_box"]
         main_annotation = dt.make_bounding_box(
-            name, bounding_box["x"], bounding_box["y"], bounding_box["w"], bounding_box["h"]
+            name,
+            bounding_box["x"],
+            bounding_box["y"],
+            bounding_box["w"],
+            bounding_box["h"],
         )
     elif "tag" in annotation:
         main_annotation = dt.make_tag(name)
@@ -354,7 +376,10 @@ def parse_darwin_video_annotation(annotation: dict) -> dt.VideoAnnotation:
         keyframes[int(f)] = frame.get("keyframe", False)
 
     return dt.make_video_annotation(
-        frame_annotations, keyframes, annotation["segments"], annotation.get("interpolated", False)
+        frame_annotations,
+        keyframes,
+        annotation["segments"],
+        annotation.get("interpolated", False),
     )
 
 
@@ -395,7 +420,10 @@ def ispolygon(annotation: dt.AnnotationClass) -> bool:
 
 
 def convert_polygons_to_sequences(
-    polygons: Any, height: Optional[int] = None, width: Optional[int] = None, rounding: bool = True,
+    polygons: Any,
+    height: Optional[int] = None,
+    width: Optional[int] = None,
+    rounding: bool = True,
 ) -> List[List[Union[int, float]]]:
     """
     Converts a list of polygons, encoded as a list of dictionaries of into a list of nd.arrays
@@ -448,7 +476,9 @@ def convert_polygons_to_sequences(
 
 
 def convert_sequences_to_polygons(
-    sequences: List[Union[List[int], List[float]]], height: Optional[int] = None, width: Optional[int] = None
+    sequences: List[Union[List[int], List[float]]],
+    height: Optional[int] = None,
+    width: Optional[int] = None,
 ) -> Dict[str, List[dt.Polygon]]:
     """
     Converts a list of polygons, encoded as a list of dictionaries of into a list of nd.arrays

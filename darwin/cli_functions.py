@@ -74,7 +74,11 @@ def validate_api_key(api_key: str) -> None:
         _error(f"Expected key prefix to be 7 characters long\n(example: {example_key})")
 
 
-def authenticate(api_key: str, default_team: Optional[bool] = None, datasets_dir: Optional[Path] = None) -> Config:
+def authenticate(
+    api_key: str,
+    default_team: Optional[bool] = None,
+    datasets_dir: Optional[Path] = None,
+) -> Config:
     """Authenticate the API key against the server and creates a configuration file for it
 
     Parameters
@@ -221,7 +225,10 @@ def dataset_report(dataset_slug: str, granularity: str) -> None:
 
 
 def export_dataset(
-    dataset_slug: str, include_url_token: bool, name: str, annotation_class_ids: Optional[List[str]] = None
+    dataset_slug: str,
+    include_url_token: bool,
+    name: str,
+    annotation_class_ids: Optional[List[str]] = None,
 ) -> None:
     """Create a new release for the dataset
 
@@ -237,14 +244,21 @@ def export_dataset(
     client: Client = _load_client(offline=False)
     identifier: DatasetIdentifier = DatasetIdentifier.parse(dataset_slug)
     ds: RemoteDataset = client.get_remote_dataset(identifier)
-    ds.export(annotation_class_ids=annotation_class_ids, name=name, include_url_token=include_url_token)
+    ds.export(
+        annotation_class_ids=annotation_class_ids,
+        name=name,
+        include_url_token=include_url_token,
+    )
     identifier.version = name
     print(f"Dataset {dataset_slug} successfully exported to {identifier}")
     print_new_version_info(client)
 
 
 def pull_dataset(
-    dataset_slug: str, only_annotations: bool = False, folders: bool = False, video_frames: bool = False
+    dataset_slug: str,
+    only_annotations: bool = False,
+    folders: bool = False,
+    video_frames: bool = False,
 ) -> None:
     """Downloads a remote dataset (images and annotations) in the datasets directory.
 
@@ -273,7 +287,12 @@ def pull_dataset(
 
     try:
         release: Release = dataset.get_release(version)
-        dataset.pull(release=release, only_annotations=only_annotations, use_folders=folders, video_frames=video_frames)
+        dataset.pull(
+            release=release,
+            only_annotations=only_annotations,
+            use_folders=folders,
+            video_frames=video_frames,
+        )
         print_new_version_info(client)
     except NotFound:
         _error(
@@ -353,7 +372,11 @@ def list_remote_datasets(all_teams: bool, team: Optional[str] = None) -> None:
         datasets = list(client.list_remote_datasets())
 
     for dataset in datasets:
-        table.add_row(f"{dataset.team}/{dataset.slug}", str(dataset.item_count), f"{dataset.progress * 100:.1f}%")
+        table.add_row(
+            f"{dataset.team}/{dataset.slug}",
+            str(dataset.item_count),
+            f"{dataset.progress * 100:.1f}%",
+        )
     if table.row_count == 0:
         print("No dataset available.")
     else:
@@ -397,7 +420,10 @@ def dataset_list_releases(dataset_slug: str) -> None:
             if not release.available:
                 continue
             table.add_row(
-                str(release.identifier), str(release.image_count), str(release.class_count), str(release.export_date)
+                str(release.identifier),
+                str(release.image_count),
+                str(release.class_count),
+                str(release.export_date),
             )
 
         Console().print(table)
@@ -456,7 +482,9 @@ def upload_data(
         sync_metadata: Progress = Progress(SpinnerColumn(), TextColumn("[bold blue]Syncing metadata"))
 
         overall_progress = Progress(
-            TextColumn("[bold blue]{task.fields[filename]}"), BarColumn(), "{task.completed} of {task.total}"
+            TextColumn("[bold blue]{task.fields[filename]}"),
+            BarColumn(),
+            "{task.completed} of {task.total}",
         )
 
         file_progress = Progress(
@@ -478,12 +506,20 @@ def upload_data(
             sync_task: TaskID = sync_metadata.add_task("")
             file_tasks: Dict[str, TaskID] = {}
             overall_task = overall_progress.add_task(
-                "[green]Total progress", filename="Total progress", total=0, visible=False
+                "[green]Total progress",
+                filename="Total progress",
+                total=0,
+                visible=False,
             )
 
             def progress_callback(total_file_count, file_advancement):
                 sync_metadata.update(sync_task, visible=False)
-                overall_progress.update(overall_task, total=total_file_count, advance=file_advancement, visible=True)
+                overall_progress.update(
+                    overall_task,
+                    total=total_file_count,
+                    advance=file_advancement,
+                    visible=True,
+                )
 
             def file_upload_callback(file_name, file_total_bytes, file_bytes_sent):
                 if file_name not in file_tasks:
@@ -518,7 +554,10 @@ def upload_data(
         console.print()
 
         if not upload_manager.blocked_count and not upload_manager.error_count:
-            console.print(f"All {upload_manager.total_count} files have been successfully uploaded.\n", style="success")
+            console.print(
+                f"All {upload_manager.total_count} files have been successfully uploaded.\n",
+                style="success",
+            )
             return
 
         already_existing_items = []
@@ -531,13 +570,15 @@ def upload_data(
 
         if already_existing_items:
             console.print(
-                f"Skipped {len(already_existing_items)} files already in the dataset.\n", style="warning",
+                f"Skipped {len(already_existing_items)} files already in the dataset.\n",
+                style="warning",
             )
 
         if upload_manager.error_count or other_skipped_items:
             error_count = upload_manager.error_count + len(other_skipped_items)
             console.print(
-                f"{error_count} files couldn't be uploaded because an error occurred.\n", style="error",
+                f"{error_count} files couldn't be uploaded because an error occurred.\n",
+                style="error",
             )
 
         if not verbose and upload_manager.error_count:
@@ -545,12 +586,24 @@ def upload_data(
             return
 
         error_table: Table = Table(
-            "Dataset Item ID", "Filename", "Remote Path", "Stage", "Reason", show_header=True, header_style="bold cyan"
+            "Dataset Item ID",
+            "Filename",
+            "Remote Path",
+            "Stage",
+            "Reason",
+            show_header=True,
+            header_style="bold cyan",
         )
 
         for item in upload_manager.blocked_items:
             if item.reason != "ALREADY_EXISTS":
-                error_table.add_row(str(item.dataset_item_id), item.filename, item.path, "UPLOAD_REQUEST", item.reason)
+                error_table.add_row(
+                    str(item.dataset_item_id),
+                    item.filename,
+                    item.path,
+                    "UPLOAD_REQUEST",
+                    item.reason,
+                )
 
         for error in upload_manager.errors:
             for local_file in upload_manager.local_files:
@@ -674,7 +727,10 @@ def delete_files(dataset_slug: str, files: List[str], skip_user_confirmation: bo
         _error(f"An error has occurred, please try again later.")
 
 
-def find_import_supported_format(query: str, supported_formats: List[ImporterFormat],) -> ImportParser:
+def find_import_supported_format(
+    query: str,
+    supported_formats: List[ImporterFormat],
+) -> ImportParser:
     for (fmt, fmt_parser) in supported_formats:
         if fmt == query:
             return fmt_parser
@@ -682,7 +738,10 @@ def find_import_supported_format(query: str, supported_formats: List[ImporterFor
     _error(f"Unsupported import format, currently supported: {list_of_formats}")
 
 
-def find_export_supported_format(query: str, supported_formats: List[ExporterFormat],) -> ExportParser:
+def find_export_supported_format(
+    query: str,
+    supported_formats: List[ExporterFormat],
+) -> ExportParser:
     for (fmt, fmt_parser) in supported_formats:
         if fmt == query:
             return fmt_parser

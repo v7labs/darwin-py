@@ -8,7 +8,12 @@ from darwin.exporter.formats import coco
 def describe_build_annotation():
     @pytest.fixture
     def annotation_file() -> dt.AnnotationFile:
-        return dt.AnnotationFile(path=Path("test.json"), filename="test.json", annotation_classes=set(), annotations=[])
+        return dt.AnnotationFile(
+            path=Path("test.json"),
+            filename="test.json",
+            annotation_classes=set(),
+            annotations=[],
+        )
 
     def polygon_include_extras(annotation_file: dt.AnnotationFile):
         polygon = dt.Annotation(

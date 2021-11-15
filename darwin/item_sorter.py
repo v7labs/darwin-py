@@ -64,7 +64,13 @@ class ItemSorter:
 
     @staticmethod
     def _has_valid_field(sort: str) -> bool:
-        return sort in ["inserted_at", "updated_at", "file_size", "filename", "priority"]
+        return sort in [
+            "inserted_at",
+            "updated_at",
+            "file_size",
+            "filename",
+            "priority",
+        ]
 
     def __str__(self):
         return f"{self.field}:{self.direction.value}"

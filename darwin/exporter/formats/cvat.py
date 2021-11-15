@@ -29,7 +29,11 @@ def build_xml(annotation_files: List[dt.AnnotationFile]) -> Element:
     return root
 
 
-def build_images(root: Element, annotation_files: List[dt.AnnotationFile], label_lookup: Dict[str, int]) -> None:
+def build_images(
+    root: Element,
+    annotation_files: List[dt.AnnotationFile],
+    label_lookup: Dict[str, int],
+) -> None:
     for id, annotation_file in enumerate(annotation_files, 1):
         image = SubElement(root, "image")
         image.attrib["id"] = str(id)
@@ -73,7 +77,11 @@ def build_attributes(box: Element, annotation: dt.Annotation) -> None:
             attribute.attrib["name"] = attrib
 
 
-def build_meta(root: Element, annotation_files: List[dt.AnnotationFile], label_lookup: Dict[str, int]) -> None:
+def build_meta(
+    root: Element,
+    annotation_files: List[dt.AnnotationFile],
+    label_lookup: Dict[str, int],
+) -> None:
     meta: Element = SubElement(root, "meta")
     add_subelement_text(meta, "dumped", str(datetime.datetime.now(tz=datetime.timezone.utc)))
 

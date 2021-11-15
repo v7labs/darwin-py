@@ -80,7 +80,7 @@ def get_dataset(
 
 
 class ClassificationDataset(LocalDataset):
-    def __init__(self, transform: Optional[List] = None, **kwargs):
+    def __init__(self, transform: Optional[Callable | List] = None, **kwargs):
         """
         See class `LocalDataset` for documentation
         """
@@ -342,7 +342,12 @@ class SemanticSegmentationDataset(LocalDataset):
             sequences[:] = [s for s in sequences if len(s) >= 6]
             if not sequences:
                 continue
-            annotations.append({"category_id": self.classes.index(obj["name"]), "segmentation": sequences})
+            annotations.append(
+                {
+                    "category_id": self.classes.index(obj["name"]),
+                    "segmentation": sequences,
+                }
+            )
         target["annotations"] = annotations
 
         return target

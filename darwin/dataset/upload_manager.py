@@ -28,7 +28,14 @@ if TYPE_CHECKING:
 
 
 class ItemPayload:
-    def __init__(self, *, dataset_item_id: int, filename: str, path: str, reason: Optional[str] = None):
+    def __init__(
+        self,
+        *,
+        dataset_item_id: int,
+        filename: str,
+        path: str,
+        reason: Optional[str] = None,
+    ):
         self.dataset_item_id = dataset_item_id
         self.filename = filename
         self.path = path
@@ -159,7 +166,9 @@ class UploadHandler:
     def progress(self):
         return self._progress
 
-    def prepare_upload(self) -> Optional[Iterator[Callable[[Optional[ByteReadCallback]], None]]]:
+    def prepare_upload(
+        self,
+    ) -> Optional[Iterator[Callable[[Optional[ByteReadCallback]], None]]]:
         self._progress = self._upload_files()
         return self._progress
 
@@ -227,7 +236,10 @@ class UploadHandler:
             yield upload_function(item.dataset_item_id, file.local_path)
 
     def _upload_file(
-        self, dataset_item_id: int, file_path: Path, byte_read_callback: Optional[ByteReadCallback]
+        self,
+        dataset_item_id: int,
+        file_path: Path,
+        byte_read_callback: Optional[ByteReadCallback],
     ) -> None:
         try:
             self._do_upload_file(dataset_item_id, file_path, byte_read_callback)
@@ -237,12 +249,19 @@ class UploadHandler:
             self.errors.append(UploadRequestError(file_path=file_path, stage=UploadStage.OTHER, error=e))
 
     def _do_upload_file(
-        self, dataset_item_id: int, file_path: Path, byte_read_callback: Optional[ByteReadCallback] = None,
+        self,
+        dataset_item_id: int,
+        file_path: Path,
+        byte_read_callback: Optional[ByteReadCallback] = None,
     ) -> None:
         team_slug = self.dataset_identifier.team_slug
 
         try:
-            sign_response = self.client.get(f"/dataset_items/{dataset_item_id}/sign_upload", team=team_slug, raw=True)
+            sign_response = self.client.get(
+                f"/dataset_items/{dataset_item_id}/sign_upload",
+                team=team_slug,
+                raw=True,
+            )
             sign_response.raise_for_status()
             sign_response = sign_response.json()
         except Exception as e:
@@ -278,7 +297,10 @@ class UploadHandler:
 
         try:
             confirm_response = self.client.put(
-                endpoint=f"/dataset_items/{dataset_item_id}/confirm_upload", payload={}, team=team_slug, raw=True
+                endpoint=f"/dataset_items/{dataset_item_id}/confirm_upload",
+                payload={},
+                team=team_slug,
+                raw=True,
             )
             confirm_response.raise_for_status()
         except Exception as e:

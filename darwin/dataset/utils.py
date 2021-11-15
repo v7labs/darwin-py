@@ -254,7 +254,12 @@ def get_coco_format_record(
             new_obj["bbox"] = [np.min(px), np.min(py), np.max(px), np.max(py)]
         elif annotation_type == "bounding_box":
             bbox = obj["bounding_box"]
-            new_obj["bbox"] = [bbox["x"], bbox["y"], bbox["x"] + bbox["w"], bbox["y"] + bbox["h"]]
+            new_obj["bbox"] = [
+                bbox["x"],
+                bbox["y"],
+                bbox["x"] + bbox["w"],
+                bbox["y"] + bbox["h"],
+            ]
 
         objs.append(new_obj)
     record["annotations"] = objs
@@ -319,7 +324,12 @@ def get_annotations(
         raise ValueError("annotation_type should be either 'tag', 'bounding_box', or 'polygon'")
 
     # Get the list of classes
-    classes = get_classes(dataset_path, release_name, annotation_type=annotation_type, remove_background=True)
+    classes = get_classes(
+        dataset_path,
+        release_name,
+        annotation_type=annotation_type,
+        remove_background=True,
+    )
     # Get the list of stems
     if partition:
         # Get the split
