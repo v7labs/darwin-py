@@ -40,7 +40,7 @@ def parse_file(path: Path) -> Optional[dt.AnnotationFile]:
     Raises
     ------
     ValueError
-        If a mandatory chield element is missing or is empty. Mandatory child elements are: 
+        If a mandatory child element is missing or is empty. Mandatory child elements are: 
         filename, name, bndbox, xmin, xmax, ymin and ymax.
 
     """
