@@ -3,7 +3,7 @@ from typing import List, Optional
 
 import pytest
 from darwin.datatypes import Annotation, AnnotationClass, AnnotationFile
-from darwin.importer.formats.label_box import parse_file
+from darwin.importer.formats.labelbox import parse_file
 
 
 def describe_parse_file():
