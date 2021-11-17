@@ -70,47 +70,47 @@ def _convert(file_data: Dict[str, Any], path) -> AnnotationFile:
     if not filename:
         raise ValueError(f"LabelBox Object must have an 'External ID' key: {file_data}")
 
-    label = file_data.get("Label")
+    label: Optional[Dict[str, Any]] = file_data.get("Label")
     if label is None:
         raise ValueError(f"LabelBox Object must have a 'Label' key: {file_data}")
 
-    label_objects = label.get("objects")
+    label_objects: Optional[List[Dict[str, Any]]] = label.get("objects")
     if label_objects is None:
         raise ValueError(f"LabelBox Label must have an 'objects' key: {file_data}")
 
     annotations: List[Annotation] = list(map(_convert_label_objects, label_objects))
     classes: Set[AnnotationClass] = set(map(_get_class, annotations))
-    return AnnotationFile(annotations=annotations, path=path, filename=filename, annotation_classes=classes)
+    return AnnotationFile(
+        annotations=annotations, path=path, filename=filename, annotation_classes=classes, remote_path="/"
+    )
 
 
 def _convert_label_objects(obj: Dict[str, Any]) -> Annotation:
-    title = obj.get("title")
+    title: Optional[str] = obj.get("title")
     if not title:
         raise ValueError(f"LabelBox objects must have a title: {obj}")
 
-    if obj.get("bbox"):
-        return _to_bbox(obj, title)
+    bbox: Optional[Dict[str, Any]] = obj.get("bbox")
+    if bbox:
+        return _to_bbox_annotation(bbox, title)
 
     raise ValueError(f"Unsupported object type {obj}")
 
 
-def _to_bbox(obj: Dict[str, Any], title: str) -> Annotation:
-    bbox = obj.get("bbox")
-    assert bbox
-
-    x = bbox.get("left")
+def _to_bbox_annotation(bbox: Dict[str, Any], title: str) -> Annotation:
+    x: Optional[float] = bbox.get("left")
     if x is None:
         raise ValueError(f"bbox objects must have a 'left' value: {bbox}")
 
-    y = bbox.get("top")
+    y: Optional[float] = bbox.get("top")
     if y is None:
         raise ValueError(f"bbox objects must have a 'top' value: {bbox}")
 
-    width = bbox.get("width")
+    width: Optional[float] = bbox.get("width")
     if width is None:
         raise ValueError(f"bbox objects must have a 'width' value: {bbox}")
 
-    height = bbox.get("height")
+    height: Optional[float] = bbox.get("height")
     if height is None:
         raise ValueError(f"bbox objects must have a 'height' value: {bbox}")
 

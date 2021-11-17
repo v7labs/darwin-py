@@ -257,6 +257,7 @@ def describe_parse_file():
         assert annotation_file.path == file_path
         assert annotation_file.filename == "demo-image-7.jpg"
         assert annotation_file.annotation_classes
+        assert annotation_file.remote_path == "/"
 
         assert annotation_file.annotations
         bbox_annotation = annotation_file.annotations.pop()
