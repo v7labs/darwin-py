@@ -7,7 +7,9 @@ from darwin.datatypes import (
     Annotation,
     AnnotationClass,
     AnnotationFile,
+    Point,
     make_bounding_box,
+    make_polygon,
 )
 
 
@@ -94,6 +96,10 @@ def _convert_label_objects(obj: Dict[str, Any]) -> Annotation:
     if bbox:
         return _to_bbox_annotation(bbox, title)
 
+    polygon: Optional[List[Point]] = obj.get("polygon")
+    if polygon:
+        return _to_polygon_annotation(polygon, title)
+
     raise ValueError(f"Unsupported object type {obj}")
 
 
@@ -115,6 +121,10 @@ def _to_bbox_annotation(bbox: Dict[str, Any], title: str) -> Annotation:
         raise ValueError(f"bbox objects must have a 'height' value: {bbox}")
 
     return make_bounding_box(title, x, y, width, height)
+
+
+def _to_polygon_annotation(polygon: List[Point], title: str) -> Annotation:
+    return make_polygon(title, polygon, None)
 
 
 def _get_class(annotation: Annotation) -> AnnotationClass:

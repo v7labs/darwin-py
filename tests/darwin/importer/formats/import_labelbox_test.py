@@ -226,7 +226,7 @@ def describe_parse_file():
 
         assert f"bbox objects must have a 'height' value" in str(error.value)
 
-    def test_it_imports_bboxes(file_path: Path):
+    def test_it_imports_bbox_images(file_path: Path):
         json: str = """
          [
             {
@@ -265,6 +265,48 @@ def describe_parse_file():
 
         annotation_class = bbox_annotation.annotation_class
         assert_annotation_class(annotation_class, "Fruit", "bounding_box")
+
+    def test_it_imports_polygon_images(file_path: Path):
+        json: str = """
+            [
+               {
+                  "Label":{
+                     "objects":[
+                        {
+                           "title":"Fish",
+                           "polygon": [
+                              {"x": 3665.814, "y": 351.628},
+                              {"x": 3762.93, "y": 810.419},
+                              {"x": 3042.93, "y": 914.233},
+                              {"x": 2996.047, "y": 864},
+                              {"x": 3036.233, "y": 753.488}
+                           ]
+                        }
+                     ]
+                  },
+                  "External ID": "demo-image-7.jpg"
+               }
+            ]
+        """
+
+        file_path.write_text(json)
+
+        annotation_files: Optional[List[AnnotationFile]] = parse_file(file_path)
+        assert annotation_files is not None
+
+        annotation_file: AnnotationFile = annotation_files.pop()
+        assert annotation_file.path == file_path
+        assert annotation_file.filename == "demo-image-7.jpg"
+        assert annotation_file.annotation_classes
+        assert annotation_file.remote_path == "/"
+
+        assert annotation_file.annotations
+
+    #   bbox_annotation = annotation_file.annotations.pop()
+    #   assert_bbox(bbox_annotation, 145, 3558, 623, 449)
+
+    #   annotation_class = bbox_annotation.annotation_class
+    #   assert_annotation_class(annotation_class, "Fruit", "bounding_box")
 
 
 def assert_bbox(annotation: Annotation, x: float, y: float, h: float, w: float) -> None:
