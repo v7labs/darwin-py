@@ -79,7 +79,7 @@ def _convert(file_data: Dict[str, Any], path) -> AnnotationFile:
         raise ValueError(f"LabelBox Label must have an 'objects' key: {file_data}")
 
     annotations: List[Annotation] = list(map(_convert_label_objects, label_objects))
-    classes: Set[AnnotationClass] = set(map(_get_classes, annotations))
+    classes: Set[AnnotationClass] = set(map(_get_class, annotations))
     return AnnotationFile(annotations=annotations, path=path, filename=filename, annotation_classes=classes)
 
 
@@ -98,14 +98,25 @@ def _to_bbox(obj: Dict[str, Any], title: str) -> Annotation:
     bbox = obj.get("bbox")
     assert bbox
 
-    x = bbox.get("top")
-    y = bbox.get("left")
+    x = bbox.get("left")
+    if x is None:
+        raise ValueError(f"bbox objects must have a 'left' value: {bbox}")
+
+    y = bbox.get("top")
+    if y is None:
+        raise ValueError(f"bbox objects must have a 'top' value: {bbox}")
+
     width = bbox.get("width")
+    if width is None:
+        raise ValueError(f"bbox objects must have a 'width' value: {bbox}")
+
     height = bbox.get("height")
+    if height is None:
+        raise ValueError(f"bbox objects must have a 'height' value: {bbox}")
 
     return make_bounding_box(title, x, y, width, height)
 
 
-def _get_classes(annotation: Annotation) -> AnnotationClass:
+def _get_class(annotation: Annotation) -> AnnotationClass:
     return annotation.annotation_class
 

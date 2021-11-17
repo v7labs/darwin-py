@@ -114,6 +114,118 @@ def describe_parse_file():
 
         assert f"LabelBox objects must have a title" in str(error.value)
 
+    def test_it_raises_if_bbox_has_missing_top(file_path: Path):
+        json: str = """
+         [
+            {
+               "Label":{
+                  "objects":[
+                     {
+                        "title": "Fruit",
+                        "bbox":{
+                           "left":145,
+                           "height":623,
+                           "width":449
+                        }
+                     }
+                  ]
+               },
+               "External ID": "demo-image-7.jpg"
+            }
+         ]
+        """
+
+        file_path.write_text(json)
+
+        with pytest.raises(ValueError) as error:
+            parse_file(file_path)
+
+        assert f"bbox objects must have a 'top' value" in str(error.value)
+
+    def test_it_raises_if_bbox_has_missing_left(file_path: Path):
+        json: str = """
+         [
+            {
+               "Label":{
+                  "objects":[
+                     {
+                        "title": "Fruit",
+                        "bbox":{
+                           "top":3385,
+                           "height":623,
+                           "width":449
+                        }
+                     }
+                  ]
+               },
+               "External ID": "demo-image-7.jpg"
+            }
+         ]
+        """
+
+        file_path.write_text(json)
+
+        with pytest.raises(ValueError) as error:
+            parse_file(file_path)
+
+        assert f"bbox objects must have a 'left' value" in str(error.value)
+
+    def test_it_raises_if_bbox_has_missing_width(file_path: Path):
+        json: str = """
+         [
+            {
+               "Label":{
+                  "objects":[
+                     {
+                        "title": "Fruit",
+                        "bbox":{
+                           "left":145,
+                           "top":3385,
+                           "height":623
+                        }
+                     }
+                  ]
+               },
+               "External ID": "demo-image-7.jpg"
+            }
+         ]
+        """
+
+        file_path.write_text(json)
+
+        with pytest.raises(ValueError) as error:
+            parse_file(file_path)
+
+        assert f"bbox objects must have a 'width' value" in str(error.value)
+
+    def test_it_raises_if_bbox_has_missing_height(file_path: Path):
+        json: str = """
+         [
+            {
+               "Label":{
+                  "objects":[
+                     {
+                        "title": "Fruit",
+                        "bbox":{
+                           "left":145,
+                           "top":3385,
+                           "width":449
+                        }
+                     }
+                  ]
+               },
+               "External ID": "demo-image-7.jpg"
+            }
+         ]
+        """
+
+        file_path.write_text(json)
+
+        with pytest.raises(ValueError) as error:
+            parse_file(file_path)
+
+        assert f"bbox objects must have a 'height' value" in str(error.value)
+
     def test_it_imports_bboxes(file_path: Path):
         json: str = """
          [
@@ -148,7 +260,7 @@ def describe_parse_file():
 
         assert annotation_file.annotations
         bbox_annotation = annotation_file.annotations.pop()
-        assert_bbox(bbox_annotation, 3558, 145, 623, 449)
+        assert_bbox(bbox_annotation, 145, 3558, 623, 449)
 
         annotation_class = bbox_annotation.annotation_class
         assert_annotation_class(annotation_class, "Fruit", "bounding_box")
