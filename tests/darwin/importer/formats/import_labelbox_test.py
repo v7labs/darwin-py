@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import List, Optional
 
 import pytest
-from darwin.datatypes import Annotation, AnnotationClass, AnnotationFile
+from darwin.datatypes import Annotation, AnnotationClass, AnnotationFile, Point
 from darwin.importer.formats.labelbox import parse_file
 
 
@@ -266,6 +266,62 @@ def describe_parse_file():
         annotation_class = bbox_annotation.annotation_class
         assert_annotation_class(annotation_class, "Fruit", "bounding_box")
 
+    def test_it_raises_if_polygon_point_has_missing_x(file_path: Path):
+        json: str = """
+         [
+            {
+               "Label":{
+                  "objects":[
+                     {
+                        "title": "Banana",
+                        "polygon": [
+                              {"x": 3665.814, "y": 351.628},
+                              {"x": 3762.93, "y": 810.419},
+                              {"y": 914.233}
+                        ]
+                     }
+                  ]
+               },
+               "External ID": "demo-image-7.jpg"
+            }
+         ]
+        """
+
+        file_path.write_text(json)
+
+        with pytest.raises(ValueError) as error:
+            parse_file(file_path)
+
+        assert f"LabelBox Polygon Points must have an 'x' value" in str(error.value)
+
+    def test_it_raises_if_polygon_point_has_missing_y(file_path: Path):
+        json: str = """
+         [
+            {
+               "Label":{
+                  "objects":[
+                     {
+                        "title": "Banana",
+                        "polygon": [
+                              {"x": 3665.814, "y": 351.628},
+                              {"x": 3762.93},
+                              {"x": 3042.93, "y": 914.233}
+                        ]
+                     }
+                  ]
+               },
+               "External ID": "demo-image-7.jpg"
+            }
+         ]
+        """
+
+        file_path.write_text(json)
+
+        with pytest.raises(ValueError) as error:
+            parse_file(file_path)
+
+        assert f"LabelBox Polygon Points must have an 'y' value" in str(error.value)
+
     def test_it_imports_polygon_images(file_path: Path):
         json: str = """
             [
@@ -277,9 +333,7 @@ def describe_parse_file():
                            "polygon": [
                               {"x": 3665.814, "y": 351.628},
                               {"x": 3762.93, "y": 810.419},
-                              {"x": 3042.93, "y": 914.233},
-                              {"x": 2996.047, "y": 864},
-                              {"x": 3036.233, "y": 753.488}
+                              {"x": 3042.93, "y": 914.233}
                            ]
                         }
                      ]
@@ -302,11 +356,14 @@ def describe_parse_file():
 
         assert annotation_file.annotations
 
-    #   bbox_annotation = annotation_file.annotations.pop()
-    #   assert_bbox(bbox_annotation, 145, 3558, 623, 449)
+        polygon_annotation = annotation_file.annotations.pop()
+        assert_polygon(
+            polygon_annotation,
+            [{"x": 3665.814, "y": 351.628}, {"x": 3762.93, "y": 810.419}, {"x": 3042.93, "y": 914.233}],
+        )
 
-    #   annotation_class = bbox_annotation.annotation_class
-    #   assert_annotation_class(annotation_class, "Fruit", "bounding_box")
+        annotation_class = polygon_annotation.annotation_class
+        assert_annotation_class(annotation_class, "Fish", "polygon")
 
 
 def assert_bbox(annotation: Annotation, x: float, y: float, h: float, w: float) -> None:
@@ -319,6 +376,12 @@ def assert_bbox(annotation: Annotation, x: float, y: float, h: float, w: float) 
     assert data.get("h") == h
 
 
+def assert_polygon(annotation: Annotation, points: List[Point]) -> None:
+    actual_points = annotation.data.get("path")
+    assert actual_points
+    assert actual_points == points
+
+
 def assert_annotation_class(
     annotation_class: AnnotationClass, name: str, type: str, internal_type: Optional[str] = None
 ) -> None:
@@ -326,4 +389,3 @@ def assert_annotation_class(
     assert annotation_class.name == name
     assert annotation_class.annotation_type == type
     assert annotation_class.annotation_internal_type == internal_type
-
