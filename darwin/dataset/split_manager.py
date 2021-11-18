@@ -207,7 +207,7 @@ def _stratify_samples(
     val_percentage: int,
     test_size: int,
     val_size: int,
-) -> Tuple[List[np.ndarray], List[np.ndarray], Optional[List[np.ndarray]]]:
+) -> Tuple[List[np.ndarray], List[np.ndarray], List[np.ndarray]]:
     """Splits the list of indices into train, val and test according to their labels (stratified)
 
     Parameters
@@ -267,7 +267,7 @@ def _stratify_samples(
     X_train = np.concatenate((X_train, np.array(single_files)), axis=0)
 
     if test_percentage == 0.0:
-        return list(set(X_train.astype(np.int))), list(set(X_tmp.astype(np.int))), None
+        return list(set(X_train.astype(np.int))), list(set(X_tmp.astype(np.int))), []
 
     X_val, X_test, y_val, y_test = remove_cross_contamination(
         *train_test_split(
