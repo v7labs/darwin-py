@@ -9,8 +9,8 @@ from darwin.datatypes import PathLike
 def split_dataset(
     dataset_path: PathLike,
     release_name: Optional[str] = None,
-    val_percentage: float = 10,
-    test_percentage: float = 20,
+    val_percentage: int = 10,
+    test_percentage: int = 20,
     split_seed: int = 0,
     make_default_split: bool = True,
     stratified_types: List[str] = ["bounding_box", "polygon", "tag"],
@@ -28,9 +28,9 @@ def split_dataset(
         Local path to the dataset
     release_name : str
         Version of the dataset
-    val_percentage : float
+    val_percentage : int
         Percentage of images used in the validation set
-    test_percentage : float
+    test_percentage : int
         Percentage of images used in the test set
     split_seed : int
         Fix seed for random split creation
@@ -96,7 +96,7 @@ def split_dataset(
     return split_path
 
 
-def validate_split(val_percentage: float, test_percentage: float) -> None:
+def validate_split(val_percentage: int, test_percentage: int) -> None:
     if val_percentage is None or not 0 <= val_percentage < 100:
         raise ValueError(f"Invalid validation percentage ({val_percentage}). " f"Must be >= 0 and < 100")
     if test_percentage is None or not 0 <= test_percentage < 100:
@@ -135,8 +135,8 @@ def random_split(
     annotation_path: Path,
     annotation_files: List[Path],
     splits: Dict[str, Dict[str, Path]],
-    val_percentage: float,
-    test_percentage: float,
+    val_percentage: int,
+    test_percentage: int,
     split_seed: int,
 ) -> None:
     # Compute split sizes
@@ -161,8 +161,8 @@ def stratified_split(
     annotation_path: Path,
     splits: Dict[str, Dict[str, Path]],
     annotation_files: List[Path],
-    val_percentage: float,
-    test_percentage: float,
+    val_percentage: int,
+    test_percentage: int,
     stratified_types: List[str],
     split_seed: int,
 ) -> None:
@@ -203,11 +203,11 @@ def stratified_split(
 def _stratify_samples(
     idx_to_classes: Dict[int, Set[str]],
     split_seed: int,
-    test_percentage: float,
-    val_percentage: float,
+    test_percentage: int,
+    val_percentage: int,
     test_size: int,
     val_size: int,
-) -> Tuple[List[np.ndarray], List[np.ndarray], Optional[List[np.ndarray]]]:
+) -> Tuple[List[np.ndarray], List[np.ndarray], List[np.ndarray]]:
     """Splits the list of indices into train, val and test according to their labels (stratified)
 
     Parameters
@@ -267,7 +267,7 @@ def _stratify_samples(
     X_train = np.concatenate((X_train, np.array(single_files)), axis=0)
 
     if test_percentage == 0.0:
-        return list(set(X_train.astype(np.int))), list(set(X_tmp.astype(np.int))), None
+        return list(set(X_train.astype(np.int))), list(set(X_tmp.astype(np.int))), []
 
     X_val, X_test, y_val, y_test = remove_cross_contamination(
         *train_test_split(
