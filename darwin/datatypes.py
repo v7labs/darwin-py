@@ -131,7 +131,10 @@ def make_tag(class_name: str, subs: Optional[List[SubAnnotation]] = None) -> Ann
 
 
 def make_polygon(
-    class_name: str, point_path: List[Point], bounding_box: Optional[Dict], subs: Optional[List[SubAnnotation]] = None
+    class_name: str,
+    point_path: List[Point],
+    bounding_box: Optional[Dict] = None,
+    subs: Optional[List[SubAnnotation]] = None,
 ) -> Annotation:
     return Annotation(
         AnnotationClass(class_name, "polygon"),
@@ -143,7 +146,7 @@ def make_polygon(
 def make_complex_polygon(
     class_name: str,
     point_paths: List[List[Point]],
-    bounding_box: Optional[Dict],
+    bounding_box: Optional[Dict] = None,
     subs: Optional[List[SubAnnotation]] = None,
 ) -> Annotation:
     return Annotation(
