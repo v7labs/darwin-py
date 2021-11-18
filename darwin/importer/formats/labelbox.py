@@ -7,14 +7,16 @@ from darwin.datatypes import (
     Annotation,
     AnnotationClass,
     AnnotationFile,
+    Point,
     make_bounding_box,
+    make_polygon,
 )
 
 
 def parse_file(path: Path) -> Optional[List[AnnotationFile]]:
     """
     Parses the given LabelBox file and maybe returns the corresponding annotations.
-    The file must have the following structure:
+    The file must have a structure simillar to the following:
     
     ```json
     [
@@ -22,6 +24,7 @@ def parse_file(path: Path) -> Optional[List[AnnotationFile]]:
             "Label":{
                 "objects":[
                     {
+                        "title": "SomeTitle",
                         "bbox":{"top":3558, "left":145, "height":623, "width":449}
                     },
                     {...}
@@ -35,6 +38,7 @@ def parse_file(path: Path) -> Optional[List[AnnotationFile]]:
 
     Currently we support the following annotations:
     - bounding-box `Image`: https://docs.labelbox.com/docs/bounding-box-json
+    - polygon `Image`: https://docs.labelbox.com/docs/polygon-json
 
     Parameters
     --------
@@ -94,27 +98,56 @@ def _convert_label_objects(obj: Dict[str, Any]) -> Annotation:
     if bbox:
         return _to_bbox_annotation(bbox, title)
 
+    polygon: Optional[List[Point]] = obj.get("polygon")
+    if polygon:
+        return _to_polygon_annotation(polygon, title)
+
     raise ValueError(f"Unsupported object type {obj}")
 
 
 def _to_bbox_annotation(bbox: Dict[str, Any], title: str) -> Annotation:
     x: Optional[float] = bbox.get("left")
     if x is None:
-        raise ValueError(f"bbox objects must have a 'left' value: {bbox}")
+        raise ValueError(
+            f"bbox objects must have a 'left' value: {bbox}\nPlease refer to: https://docs.labelbox.com/docs/bounding-box-json#export"
+        )
 
     y: Optional[float] = bbox.get("top")
     if y is None:
-        raise ValueError(f"bbox objects must have a 'top' value: {bbox}")
+        raise ValueError(
+            f"bbox objects must have a 'top' value: {bbox}\nPlease refer to: https://docs.labelbox.com/docs/bounding-box-json#export"
+        )
 
     width: Optional[float] = bbox.get("width")
     if width is None:
-        raise ValueError(f"bbox objects must have a 'width' value: {bbox}")
+        raise ValueError(
+            f"bbox objects must have a 'width' value: {bbox}\nPlease refer to: https://docs.labelbox.com/docs/bounding-box-json#export"
+        )
 
     height: Optional[float] = bbox.get("height")
     if height is None:
-        raise ValueError(f"bbox objects must have a 'height' value: {bbox}")
+        raise ValueError(
+            f"bbox objects must have a 'height' value: {bbox}\nPlease refer to: https://docs.labelbox.com/docs/bounding-box-json#export"
+        )
 
     return make_bounding_box(title, x, y, width, height)
+
+
+def _to_polygon_annotation(polygon: List[Point], title: str) -> Annotation:
+    for point in polygon:
+        x: Optional[float] = point.get("x")
+        if x is None:
+            raise ValueError(
+                f"LabelBox Polygon Points must have an 'x' value: {point}\nPlease refer to: https://docs.labelbox.com/docs/polygon-json#export"
+            )
+
+        y: Optional[float] = point.get("y")
+        if y is None:
+            raise ValueError(
+                f"LabelBox Polygon Points must have an 'y' value: {point}\nPlease refer to: https://docs.labelbox.com/docs/polygon-json#export"
+            )
+
+    return make_polygon(title, polygon, None)
 
 
 def _get_class(annotation: Annotation) -> AnnotationClass:
