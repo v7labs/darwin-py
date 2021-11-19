@@ -285,7 +285,7 @@ class InstanceSegmentationDataset(LocalDataset):
 
 
 class SemanticSegmentationDataset(LocalDataset):
-    def __init__(self, transform: Optional[List | Callable] = None, **kwargs):
+    def __init__(self, transform: Optional[Union[Callable, List]] = None, **kwargs):
         """
         See `LocalDataset` class for documentation
         """
