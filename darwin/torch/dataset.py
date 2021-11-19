@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import PIL
@@ -77,7 +77,7 @@ def get_dataset(
 
 
 class ClassificationDataset(LocalDataset):
-    def __init__(self, transform: Optional[Callable | List] = None, **kwargs):
+    def __init__(self, transform: Optional[Union[Callable, List]] = None, **kwargs):
         """
         See class `LocalDataset` for documentation
         """
@@ -180,7 +180,7 @@ class ClassificationDataset(LocalDataset):
 
 
 class InstanceSegmentationDataset(LocalDataset):
-    def __init__(self, transform: Optional[Callable | List] = None, **kwargs):
+    def __init__(self, transform: Optional[Union[Callable, List]] = None, **kwargs):
         """
         See `LocalDataset` class for documentation
         """
