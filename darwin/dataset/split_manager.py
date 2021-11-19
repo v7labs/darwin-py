@@ -9,8 +9,8 @@ from darwin.datatypes import PathLike
 def split_dataset(
     dataset_path: PathLike,
     release_name: Optional[str] = None,
-    val_percentage: int = 10,
-    test_percentage: int = 20,
+    val_percentage: float = 0.1,
+    test_percentage: float = 0.2,
     split_seed: int = 0,
     make_default_split: bool = True,
     stratified_types: List[str] = ["bounding_box", "polygon", "tag"],
@@ -28,9 +28,9 @@ def split_dataset(
         Local path to the dataset
     release_name : str
         Version of the dataset
-    val_percentage : int
+    val_percentage : float
         Percentage of images used in the validation set
-    test_percentage : int
+    test_percentage : float
         Percentage of images used in the test set
     split_seed : int
         Fix seed for random split creation
@@ -97,11 +97,11 @@ def split_dataset(
 
 
 def validate_split(val_percentage: int, test_percentage: int) -> None:
-    if val_percentage is None or not 0 <= val_percentage < 100:
+    if val_percentage is None or not 0 <= val_percentage < 1:
         raise ValueError(f"Invalid validation percentage ({val_percentage}). " f"Must be >= 0 and < 100")
-    if test_percentage is None or not 0 <= test_percentage < 100:
+    if test_percentage is None or not 0 <= test_percentage < 1:
         raise ValueError(f"Invalid test percentage ({test_percentage}). " f"Must be >= 0 and < 100")
-    if not 1 <= val_percentage + test_percentage < 100:
+    if not 0.1 <= val_percentage + test_percentage < 1:
         raise ValueError(
             f"Invalid combination of validation ({val_percentage}) "
             f"and test ({test_percentage}) percentages. Their sum must be > 1 and < 100"
@@ -135,16 +135,15 @@ def random_split(
     annotation_path: Path,
     annotation_files: List[Path],
     splits: Dict[str, Dict[str, Path]],
-    val_percentage: int,
-    test_percentage: int,
+    val_percentage: float,
+    test_percentage: float,
     split_seed: int,
 ) -> None:
     # Compute split sizes
-    dataset_size: int = sum(1 for _ in annotation_files)
-    val_size: int = int(dataset_size * (val_percentage / 100.0))
-    test_size: int = int(dataset_size * (test_percentage / 100.0))
+    dataset_size: int = len(annotation_files)
+    val_size: int = int(dataset_size * (val_percentage))
+    test_size: int = int(dataset_size * (test_percentage))
     train_size: int = dataset_size - val_size - test_size
-
     # Slice a permuted array as big as the dataset
     np.random.seed(split_seed)
     indices = np.random.permutation(dataset_size)
@@ -161,8 +160,8 @@ def stratified_split(
     annotation_path: Path,
     splits: Dict[str, Dict[str, Path]],
     annotation_files: List[Path],
-    val_percentage: int,
-    test_percentage: int,
+    val_percentage: float,
+    test_percentage: float,
     stratified_types: List[str],
     split_seed: int,
 ) -> None:
@@ -175,8 +174,8 @@ def stratified_split(
             continue
 
         dataset_size = sum(1 for _ in annotation_files)
-        val_size = int(dataset_size * (val_percentage / 100.0))
-        test_size = int(dataset_size * (test_percentage / 100.0))
+        val_size = int(dataset_size * (val_percentage))
+        test_size = int(dataset_size * (test_percentage))
         train_size = dataset_size - val_size - test_size
 
         train_indices, val_indices, test_indices = _stratify_samples(
@@ -256,7 +255,7 @@ def _stratify_samples(
         *train_test_split(
             np.array(file_indices),
             np.array(labels),
-            test_size=(val_percentage + test_percentage) / 100.0,
+            test_size=(val_percentage + test_percentage),
             random_state=split_seed,
             stratify=labels,
         ),
@@ -269,6 +268,7 @@ def _stratify_samples(
     if test_percentage == 0.0:
         return list(set(X_train.astype(np.int))), list(set(X_tmp.astype(np.int))), []
 
+    print((test_percentage / (val_percentage + test_percentage)))
     X_val, X_test, y_val, y_test = remove_cross_contamination(
         *train_test_split(
             X_tmp,

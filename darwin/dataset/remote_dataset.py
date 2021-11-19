@@ -646,8 +646,8 @@ class RemoteDataset:
 
     def split(
         self,
-        val_percentage: int = 10,
-        test_percentage: int = 0,
+        val_percentage: float = 0.1,
+        test_percentage: float = 0,
         split_seed: int = 0,
         make_default_split: bool = True,
         release_name: Optional[str] = None,
@@ -658,9 +658,9 @@ class RemoteDataset:
 
         Parameters
         ----------
-        val_percentage : int
+        val_percentage : float
             Percentage of images used in the validation set
-        test_percentage : int
+        test_percentage : float
             Percentage of images used in the test set
         force_resplit : bool
             Discard previous split and create a new one
