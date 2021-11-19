@@ -266,7 +266,7 @@ def _stratify_samples(
     X_train = np.concatenate((X_train, np.array(single_files)), axis=0)
 
     if test_percentage == 0.0:
-        return list(set(X_train.astype(np.int))), list(set(X_tmp.astype(np.int))), []
+        return list(set(X_train.astype(int))), list(set(X_tmp.astype(int))), []
 
     X_val, X_test, y_val, y_test = remove_cross_contamination(
         *train_test_split(
@@ -282,7 +282,7 @@ def _stratify_samples(
     # Remove duplicates within the same set
     # NOTE: doing that earlier (e.g. in remove_cross_contamination()) would produce mathematical
     # mistakes in the class balancing between validation and test sets.
-    return (list(set(X_train.astype(np.int))), list(set(X_val.astype(np.int))), list(set(X_test.astype(np.int))))
+    return (list(set(X_train.astype(int))), list(set(X_val.astype(int))), list(set(X_test.astype(int))))
 
 
 def remove_cross_contamination(
