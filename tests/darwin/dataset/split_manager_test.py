@@ -25,7 +25,6 @@ def describe_classification_dataset():
         splits: Path = split_dataset(
             root, release_name="latest", val_percentage=val_percentage, test_percentage=test_percentage
         )
-        print(splits)
 
         sizes = (train_percentage, val_percentage, test_percentage)
         names = ("train", "val", "test")

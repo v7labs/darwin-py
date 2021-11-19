@@ -268,7 +268,6 @@ def _stratify_samples(
     if test_percentage == 0.0:
         return list(set(X_train.astype(np.int))), list(set(X_tmp.astype(np.int))), []
 
-    print((test_percentage / (val_percentage + test_percentage)))
     X_val, X_test, y_val, y_test = remove_cross_contamination(
         *train_test_split(
             X_tmp,
