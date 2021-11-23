@@ -1,9 +1,9 @@
 import json
 from functools import partial
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, cast
 
-from jsonschema import validate
+from jsonschema_rs import JSONSchema
 
 from darwin.datatypes import (
     Annotation,
@@ -15,7 +15,7 @@ from darwin.datatypes import (
 )
 
 
-def parse_file(path: Path, schema: Dict[str, Any]) -> Optional[List[AnnotationFile]]:
+def parse_file(path: Path, validator: JSONSchema) -> Optional[List[AnnotationFile]]:
     """
     Parses the given LabelBox file and maybe returns the corresponding annotations.
     The file must have a structure simillar to the following:
@@ -66,7 +66,7 @@ def parse_file(path: Path, schema: Dict[str, Any]) -> Optional[List[AnnotationFi
 
     with path.open() as f:
         data = json.load(f)
-        validate(instance=data, schema=schema)
+        validator.validate(data)
         convert_with_path = partial(_convert, path=path)
 
         return list(map(convert_with_path, data))
@@ -86,11 +86,8 @@ def _convert(file_data: Dict[str, Any], path) -> AnnotationFile:
     )
 
 
-# We ignore the Any | None warning here because the schema has been validated and we know
-# we have the values with the correct types
 def _convert_label_objects(obj: Dict[str, Any]) -> Annotation:
-    title: str = obj.get("title")  # type: ignore
-
+    title: str = str(obj.get("title"))
     bbox: Optional[Dict[str, Any]] = obj.get("bbox")
     if bbox:
         return _to_bbox_annotation(bbox, title)
@@ -102,13 +99,11 @@ def _convert_label_objects(obj: Dict[str, Any]) -> Annotation:
     raise ValueError(f"Unsupported object type {obj}")
 
 
-# We ignore the Any | None warning here because the schema has been validated and we know
-# we have the values with the correct types
 def _to_bbox_annotation(bbox: Dict[str, Any], title: str) -> Annotation:
-    x: float = bbox.get("left")  # type: ignore
-    y: float = bbox.get("top")  # type: ignore
-    width: float = bbox.get("width")  # type: ignore
-    height: float = bbox.get("height")  # type: ignore
+    x: float = cast(float, bbox.get("left"))
+    y: float = cast(float, bbox.get("top"))
+    width: float = cast(float, bbox.get("width"))
+    height: float = cast(float, bbox.get("height"))
 
     return make_bounding_box(title, x, y, width, height)
 

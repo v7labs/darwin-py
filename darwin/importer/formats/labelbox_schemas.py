@@ -9,8 +9,8 @@ bounding_box = {
     "properties": {
         "top": {"type": "number"},
         "left": {"type": "number"},
-        "height": {"type": "number"},
-        "width": {"type": "number"},
+        "height": {"type": "number", "minimum": 0},
+        "width": {"type": "number", "minimum": 0},
     },
     "required": ["top", "left", "height", "width"],
 }
@@ -45,9 +45,9 @@ label_object = {
     "required": ["title"],
     "properties": {"title": {"type": "string"}},
     "oneOf": [
-        {"type": "object", "required": ["point"], "properties": {"point": point}},
-        {"type": "object", "required": ["bbox"], "properties": {"bbox": bounding_box}},
-        {"type": "object", "required": ["polygon"], "properties": {"polygon": polygon}},
+        {"required": ["point"], "properties": {"point": point}},
+        {"required": ["bbox"], "properties": {"bbox": bounding_box}},
+        {"required": ["polygon"], "properties": {"polygon": polygon}},
     ],
 }
 
