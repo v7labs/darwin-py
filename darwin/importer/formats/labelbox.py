@@ -3,8 +3,6 @@ from functools import partial
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Set, cast
 
-from jsonschema import ValidationError
-
 from darwin.datatypes import (
     Annotation,
     AnnotationClass,
