@@ -3,12 +3,15 @@ from functools import partial
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Set, cast
 
+from jsonschema import ValidationError
+
 from darwin.datatypes import (
     Annotation,
     AnnotationClass,
     AnnotationFile,
     Point,
     make_bounding_box,
+    make_keypoint,
     make_polygon,
 )
 
@@ -97,7 +100,9 @@ def _convert_label_objects(obj: Dict[str, Any]) -> Annotation:
     if polygon:
         return _to_polygon_annotation(polygon, title)
 
-    raise ValueError(f"Unsupported object type {obj}")
+    point: Optional[Point] = obj.get("point")
+    if point:
+        return _to_keypoint_annotation(point, title)
 
 
 def _to_bbox_annotation(bbox: Dict[str, Any], title: str) -> Annotation:
@@ -111,6 +116,13 @@ def _to_bbox_annotation(bbox: Dict[str, Any], title: str) -> Annotation:
 
 def _to_polygon_annotation(polygon: List[Point], title: str) -> Annotation:
     return make_polygon(title, polygon, None)
+
+
+def _to_keypoint_annotation(point: Point, title: str) -> Annotation:
+    x: float = cast(float, point.get("x"))
+    y: float = cast(float, point.get("y"))
+
+    return make_keypoint(title, x, y)
 
 
 def _get_class(annotation: Annotation) -> AnnotationClass:
