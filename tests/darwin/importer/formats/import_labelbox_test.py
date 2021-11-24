@@ -1,9 +1,12 @@
+from functools import partial
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, Callable, List, Optional
 
 import pytest
 from darwin.datatypes import Annotation, AnnotationClass, AnnotationFile, Point
 from darwin.importer.formats.labelbox import parse_file
+from darwin.importer.formats.labelbox_schemas import labelbox_export
+from jsonschema import ValidationError, validate
 
 
 def describe_parse_file():
@@ -13,11 +16,16 @@ def describe_parse_file():
         yield path
         path.unlink()
 
-    def test_it_returns_none_if_there_are_no_annotations():
-        path = Path("path/to/file.xml")
-        assert parse_file(path) is None
+    @pytest.fixture
+    def validator():
+        validate_with_schema = partial(validate, schema=labelbox_export)
+        yield validate_with_schema
 
-    def test_it_raises_if_external_id_is_missing(file_path: Path):
+    def test_it_returns_none_if_there_are_no_annotations(validator: Callable[[Any], None]):
+        path = Path("path/to/file.xml")
+        assert parse_file(path, validator) is None
+
+    def test_it_raises_if_external_id_is_missing(file_path: Path, validator: Callable[[Any], None]):
         json: str = """
          [
             {
@@ -40,36 +48,36 @@ def describe_parse_file():
 
         file_path.write_text(json)
 
-        with pytest.raises(ValueError) as error:
-            parse_file(file_path)
+        with pytest.raises(ValidationError) as error:
+            parse_file(file_path, validator)
 
-        assert f"LabelBox Object must have an 'External ID' key" in str(error.value)
+        assert "'External ID' is a required property" in str(error.value)
 
-    def test_it_raises_if_label_is_missing(file_path: Path):
+    def test_it_raises_if_label_is_missing(file_path: Path, validator: Callable[[Any], None]):
         json: str = """
          [{"External ID": "flowers.jpg"}]
         """
 
         file_path.write_text(json)
 
-        with pytest.raises(ValueError) as error:
-            parse_file(file_path)
+        with pytest.raises(ValidationError) as error:
+            parse_file(file_path, validator)
 
-        assert f"LabelBox Object must have a 'Label' key" in str(error.value)
+        assert "'Label' is a required propert" in str(error.value)
 
-    def test_it_raises_if_label_objects_is_missing(file_path: Path):
+    def test_it_raises_if_label_objects_is_missing(file_path: Path, validator: Callable[[Any], None]):
         json: str = """
          [{"External ID": "flowers.jpg", "Label": {}}]
         """
 
         file_path.write_text(json)
 
-        with pytest.raises(ValueError) as error:
-            parse_file(file_path)
+        with pytest.raises(ValidationError) as error:
+            parse_file(file_path, validator)
 
-        assert f"LabelBox Label must have an 'objects' key" in str(error.value)
+        assert "'objects' is a required propert" in str(error.value)
 
-    def test_it_raises_if_label_object_has_unknown_format(file_path: Path):
+    def test_it_raises_if_label_object_has_unknown_format(file_path: Path, validator: Callable[[Any], None]):
         json: str = """
          [{
                "Label":{
@@ -81,12 +89,12 @@ def describe_parse_file():
 
         file_path.write_text(json)
 
-        with pytest.raises(ValueError) as error:
-            parse_file(file_path)
+        with pytest.raises(ValidationError) as error:
+            parse_file(file_path, validator)
 
-        assert f"Unsupported object type" in str(error.value)
+        assert "'point' is a required property" in str(error.value)
 
-    def test_it_raises_if_annotation_has_no_title(file_path: Path):
+    def test_it_raises_if_annotation_has_no_title(file_path: Path, validator: Callable[[Any], None]):
         json: str = """
          [
             {
@@ -109,12 +117,12 @@ def describe_parse_file():
 
         file_path.write_text(json)
 
-        with pytest.raises(ValueError) as error:
-            parse_file(file_path)
+        with pytest.raises(ValidationError) as error:
+            parse_file(file_path, validator)
 
-        assert f"LabelBox objects must have a title" in str(error.value)
+        assert "'title' is a required property" in str(error.value)
 
-    def test_it_raises_if_bbox_has_missing_top(file_path: Path):
+    def test_it_raises_if_bbox_has_missing_top(file_path: Path, validator: Callable[[Any], None]):
         json: str = """
          [
             {
@@ -137,12 +145,12 @@ def describe_parse_file():
 
         file_path.write_text(json)
 
-        with pytest.raises(ValueError) as error:
-            parse_file(file_path)
+        with pytest.raises(ValidationError) as error:
+            parse_file(file_path, validator)
 
-        assert f"bbox objects must have a 'top' value" in str(error.value)
+        assert "'top' is a required property" in str(error.value)
 
-    def test_it_raises_if_bbox_has_missing_left(file_path: Path):
+    def test_it_raises_if_bbox_has_missing_left(file_path: Path, validator: Callable[[Any], None]):
         json: str = """
          [
             {
@@ -165,12 +173,12 @@ def describe_parse_file():
 
         file_path.write_text(json)
 
-        with pytest.raises(ValueError) as error:
-            parse_file(file_path)
+        with pytest.raises(ValidationError) as error:
+            parse_file(file_path, validator)
 
-        assert f"bbox objects must have a 'left' value" in str(error.value)
+        assert "'left' is a required property" in str(error.value)
 
-    def test_it_raises_if_bbox_has_missing_width(file_path: Path):
+    def test_it_raises_if_bbox_has_missing_width(file_path: Path, validator: Callable[[Any], None]):
         json: str = """
          [
             {
@@ -193,12 +201,12 @@ def describe_parse_file():
 
         file_path.write_text(json)
 
-        with pytest.raises(ValueError) as error:
-            parse_file(file_path)
+        with pytest.raises(ValidationError) as error:
+            parse_file(file_path, validator)
 
-        assert f"bbox objects must have a 'width' value" in str(error.value)
+        assert "'width' is a required property" in str(error.value)
 
-    def test_it_raises_if_bbox_has_missing_height(file_path: Path):
+    def test_it_raises_if_bbox_has_missing_height(file_path: Path, validator: Callable[[Any], None]):
         json: str = """
          [
             {
@@ -221,12 +229,12 @@ def describe_parse_file():
 
         file_path.write_text(json)
 
-        with pytest.raises(ValueError) as error:
-            parse_file(file_path)
+        with pytest.raises(ValidationError) as error:
+            parse_file(file_path, validator)
 
-        assert f"bbox objects must have a 'height' value" in str(error.value)
+        assert "'height' is a required property" in str(error.value)
 
-    def test_it_imports_bbox_images(file_path: Path):
+    def test_it_imports_bbox_images(file_path: Path, validator: Callable[[Any], None]):
         json: str = """
          [
             {
@@ -250,7 +258,7 @@ def describe_parse_file():
 
         file_path.write_text(json)
 
-        annotation_files: Optional[List[AnnotationFile]] = parse_file(file_path)
+        annotation_files: Optional[List[AnnotationFile]] = parse_file(file_path, validator)
         assert annotation_files is not None
 
         annotation_file: AnnotationFile = annotation_files.pop()
@@ -266,7 +274,7 @@ def describe_parse_file():
         annotation_class = bbox_annotation.annotation_class
         assert_annotation_class(annotation_class, "Fruit", "bounding_box")
 
-    def test_it_raises_if_polygon_point_has_missing_x(file_path: Path):
+    def test_it_raises_if_polygon_point_has_missing_x(file_path: Path, validator: Callable[[Any], None]):
         json: str = """
          [
             {
@@ -289,12 +297,12 @@ def describe_parse_file():
 
         file_path.write_text(json)
 
-        with pytest.raises(ValueError) as error:
-            parse_file(file_path)
+        with pytest.raises(ValidationError) as error:
+            parse_file(file_path, validator)
 
-        assert f"LabelBox Polygon Points must have an 'x' value" in str(error.value)
+        assert "'x' is a required property" in str(error.value)
 
-    def test_it_raises_if_polygon_point_has_missing_y(file_path: Path):
+    def test_it_raises_if_polygon_point_has_missing_y(file_path: Path, validator: Callable[[Any], None]):
         json: str = """
          [
             {
@@ -317,12 +325,12 @@ def describe_parse_file():
 
         file_path.write_text(json)
 
-        with pytest.raises(ValueError) as error:
-            parse_file(file_path)
+        with pytest.raises(ValidationError) as error:
+            parse_file(file_path, validator)
 
-        assert f"LabelBox Polygon Points must have an 'y' value" in str(error.value)
+        assert "'y' is a required property" in str(error.value)
 
-    def test_it_imports_polygon_images(file_path: Path):
+    def test_it_imports_polygon_images(file_path: Path, validator: Callable[[Any], None]):
         json: str = """
             [
                {
@@ -345,7 +353,7 @@ def describe_parse_file():
 
         file_path.write_text(json)
 
-        annotation_files: Optional[List[AnnotationFile]] = parse_file(file_path)
+        annotation_files: Optional[List[AnnotationFile]] = parse_file(file_path, validator)
         assert annotation_files is not None
 
         annotation_file: AnnotationFile = annotation_files.pop()
