@@ -35,6 +35,15 @@ polygon = {
     "items": point,
 }
 
+polyline = {
+    "$id": "https://darwin.v7labs.com/schemas/polyline",
+    "description": "Schema of a Polyline",
+    "title": "Polyline",
+    "default": [{"x": 1.2, "y": 2.5}, {"x": 2.5, "y": 3.6}, {"x": 1.2, "y": 2.5}],
+    "examples": [[{"x": 1.2, "y": 2.5}, {"x": 2.5, "y": 3.6}, {"x": 1.2, "y": 2.5}], []],
+    "type": "array",
+    "items": point,
+}
 
 label_object = {
     "$id": "https://darwin.v7labs.com/schemas/label_object",
@@ -53,6 +62,7 @@ label_object = {
         {"required": ["point"], "properties": {"point": point}},
         {"required": ["bbox"], "properties": {"bbox": bounding_box}},
         {"required": ["polygon"], "properties": {"polygon": polygon}},
+        {"required": ["line"], "properties": {"line": polyline}},
     ],
 }
 
