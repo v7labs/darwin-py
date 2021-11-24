@@ -1,5 +1,4 @@
 bounding_box = {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "https://darwin.v7labs.com/schemas/bounding_box",
     "description": "Schema of a Bounding Box",
     "title": "Bounding Box",
@@ -16,7 +15,6 @@ bounding_box = {
 }
 
 point = {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "https://darwin.v7labs.com/schemas/point",
     "description": "Schema of a Point",
     "title": "Point",
@@ -28,7 +26,6 @@ point = {
 }
 
 polygon = {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "https://darwin.v7labs.com/schemas/polygon",
     "description": "Schema of a Polygon",
     "title": "Polygon",
@@ -40,7 +37,15 @@ polygon = {
 
 
 label_object = {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://darwin.v7labs.com/schemas/label_object",
+    "description": "An object belonging to the objects array from a Label",
+    "title": "Label Object",
+    "default": {"title": "Banana", "point": {"x": 3665.814, "y": 351.628}},
+    "examples": [
+        {"title": "Banana", "point": {"x": 3665.814, "y": 351.628}},
+        {"title": "Orange", "bbox": {"top": 1.2, "left": 2.5, "height": 10, "width": 20}},
+        {"title": "Apple", "polygon": [{"x": 1.2, "y": 2.5}, {"x": 2.5, "y": 3.6}, {"x": 1.2, "y": 2.5}]},
+    ],
     "type": "object",
     "required": ["title"],
     "properties": {"title": {"type": "string"}},
@@ -51,8 +56,20 @@ label_object = {
     ],
 }
 
-label = {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
+labelbox_file = {
+    "$id": "https://darwin.v7labs.com/schemas/label_file",
+    "description": "A Labelbox file, equivalent to a Darwin AnnotationFile",
+    "title": "Labelbox File",
+    "default": {
+        "Label": {"objects": [{"title": "Banana", "point": {"x": 3665.814, "y": 351.628},}]},
+        "External ID": "demo-image-7.jpg",
+    },
+    "examples": [
+        {
+            "Label": {"objects": [{"title": "Banana", "point": {"x": 3665.814, "y": 351.628},}]},
+            "External ID": "demo-image-7.jpg",
+        }
+    ],
     "type": "object",
     "properties": {
         "Label": {
@@ -66,13 +83,28 @@ label = {
 }
 
 labelbox_export = {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "https://darwin.v7labs.com/schemas/export",
     "description": "A Labelbox export",
     "title": "Export",
-    "default": {"x": 1.2, "y": 2.5},
-    "examples": [{"x": 1.2, "y": 2.5}, {"x": 0, "y": 1}],
+    "default": [
+        {
+            "Label": {"objects": [{"title": "Banana", "point": {"x": 3665.814, "y": 351.628},}]},
+            "External ID": "demo-image-7.jpg",
+        }
+    ],
+    "examples": [
+        [
+            {
+                "Label": {"objects": [{"title": "Banana", "point": {"x": 3665.814, "y": 351.628},}]},
+                "External ID": "demo-image-7.jpg",
+            },
+            {
+                "Label": {"objects": [{"title": "Orange", "point": {"x": 0.814, "y": 0.628},}]},
+                "External ID": "demo-image-8.jpg",
+            },
+        ]
+    ],
     "type": "array",
-    "items": label,
+    "items": labelbox_file,
 }
 

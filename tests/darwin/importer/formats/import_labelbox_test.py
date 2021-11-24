@@ -1,12 +1,12 @@
+from functools import partial
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, Callable, List, Optional
 
 import pytest
-from attr import validate
 from darwin.datatypes import Annotation, AnnotationClass, AnnotationFile, Point
 from darwin.importer.formats.labelbox import parse_file
 from darwin.importer.formats.labelbox_schemas import labelbox_export
-from jsonschema_rs import JSONSchema, ValidationError
+from jsonschema import ValidationError, validate
 
 
 def describe_parse_file():
@@ -18,14 +18,14 @@ def describe_parse_file():
 
     @pytest.fixture
     def validator():
-        validator = JSONSchema(labelbox_export)
-        yield validator
+        validate_with_schema = partial(validate, schema=labelbox_export)
+        yield validate_with_schema
 
-    def test_it_returns_none_if_there_are_no_annotations():
+    def test_it_returns_none_if_there_are_no_annotations(validator: Callable[[Any], None]):
         path = Path("path/to/file.xml")
-        assert parse_file(path, labelbox_export) is None
+        assert parse_file(path, validator) is None
 
-    def test_it_raises_if_external_id_is_missing(file_path: Path, validator: JSONSchema):
+    def test_it_raises_if_external_id_is_missing(file_path: Path, validator: Callable[[Any], None]):
         json: str = """
          [
             {
@@ -51,9 +51,9 @@ def describe_parse_file():
         with pytest.raises(ValidationError) as error:
             parse_file(file_path, validator)
 
-        assert 'External ID" is a required property' in str(error.value)
+        assert "'External ID' is a required property" in str(error.value)
 
-    def test_it_raises_if_label_is_missing(file_path: Path, validator: JSONSchema):
+    def test_it_raises_if_label_is_missing(file_path: Path, validator: Callable[[Any], None]):
         json: str = """
          [{"External ID": "flowers.jpg"}]
         """
@@ -63,9 +63,9 @@ def describe_parse_file():
         with pytest.raises(ValidationError) as error:
             parse_file(file_path, validator)
 
-        assert '"Label" is a required propert' in str(error.value)
+        assert "'Label' is a required propert" in str(error.value)
 
-    def test_it_raises_if_label_objects_is_missing(file_path: Path, validator: JSONSchema):
+    def test_it_raises_if_label_objects_is_missing(file_path: Path, validator: Callable[[Any], None]):
         json: str = """
          [{"External ID": "flowers.jpg", "Label": {}}]
         """
@@ -75,9 +75,9 @@ def describe_parse_file():
         with pytest.raises(ValidationError) as error:
             parse_file(file_path, validator)
 
-        assert '"objects" is a required propert' in str(error.value)
+        assert "'objects' is a required propert" in str(error.value)
 
-    def test_it_raises_if_label_object_has_unknown_format(file_path: Path, validator: JSONSchema):
+    def test_it_raises_if_label_object_has_unknown_format(file_path: Path, validator: Callable[[Any], None]):
         json: str = """
          [{
                "Label":{
@@ -92,9 +92,9 @@ def describe_parse_file():
         with pytest.raises(ValidationError) as error:
             parse_file(file_path, validator)
 
-        assert '{"title":"Fruit","unkown_annotation":0} is not valid under any of the given schemas' in str(error.value)
+        assert "'point' is a required property" in str(error.value)
 
-    def test_it_raises_if_annotation_has_no_title(file_path: Path, validator: JSONSchema):
+    def test_it_raises_if_annotation_has_no_title(file_path: Path, validator: Callable[[Any], None]):
         json: str = """
          [
             {
@@ -120,9 +120,9 @@ def describe_parse_file():
         with pytest.raises(ValidationError) as error:
             parse_file(file_path, validator)
 
-        assert '"title" is a required propert' in str(error.value)
+        assert "'title' is a required property" in str(error.value)
 
-    def test_it_raises_if_bbox_has_missing_top(file_path: Path, validator: JSONSchema):
+    def test_it_raises_if_bbox_has_missing_top(file_path: Path, validator: Callable[[Any], None]):
         json: str = """
          [
             {
@@ -148,12 +148,9 @@ def describe_parse_file():
         with pytest.raises(ValidationError) as error:
             parse_file(file_path, validator)
 
-        assert (
-            '{"bbox":{"height":623,"left":145,"width":449},"title":"Fruit"} is not valid under any of the given schemas'
-            in str(error.value)
-        )
+        assert "'top' is a required property" in str(error.value)
 
-    def test_it_raises_if_bbox_has_missing_left(file_path: Path, validator: JSONSchema):
+    def test_it_raises_if_bbox_has_missing_left(file_path: Path, validator: Callable[[Any], None]):
         json: str = """
          [
             {
@@ -179,12 +176,9 @@ def describe_parse_file():
         with pytest.raises(ValidationError) as error:
             parse_file(file_path, validator)
 
-        assert (
-            '{"bbox":{"height":623,"top":3385,"width":449},"title":"Fruit"} is not valid under any of the given schemas'
-            in str(error.value)
-        )
+        assert "'left' is a required property" in str(error.value)
 
-    def test_it_raises_if_bbox_has_missing_width(file_path: Path, validator: JSONSchema):
+    def test_it_raises_if_bbox_has_missing_width(file_path: Path, validator: Callable[[Any], None]):
         json: str = """
          [
             {
@@ -210,12 +204,9 @@ def describe_parse_file():
         with pytest.raises(ValidationError) as error:
             parse_file(file_path, validator)
 
-        assert (
-            '{"bbox":{"height":623,"left":145,"top":3385},"title":"Fruit"} is not valid under any of the given schemas'
-            in str(error.value)
-        )
+        assert "'width' is a required property" in str(error.value)
 
-    def test_it_raises_if_bbox_has_missing_height(file_path: Path, validator: JSONSchema):
+    def test_it_raises_if_bbox_has_missing_height(file_path: Path, validator: Callable[[Any], None]):
         json: str = """
          [
             {
@@ -241,12 +232,9 @@ def describe_parse_file():
         with pytest.raises(ValidationError) as error:
             parse_file(file_path, validator)
 
-        assert (
-            '{"bbox":{"left":145,"top":3385,"width":449},"title":"Fruit"} is not valid under any of the given schemas'
-            in str(error.value)
-        )
+        assert "'height' is a required property" in str(error.value)
 
-    def test_it_imports_bbox_images(file_path: Path, validator: JSONSchema):
+    def test_it_imports_bbox_images(file_path: Path, validator: Callable[[Any], None]):
         json: str = """
          [
             {
@@ -286,7 +274,7 @@ def describe_parse_file():
         annotation_class = bbox_annotation.annotation_class
         assert_annotation_class(annotation_class, "Fruit", "bounding_box")
 
-    def test_it_raises_if_polygon_point_has_missing_x(file_path: Path, validator: JSONSchema):
+    def test_it_raises_if_polygon_point_has_missing_x(file_path: Path, validator: Callable[[Any], None]):
         json: str = """
          [
             {
@@ -312,12 +300,9 @@ def describe_parse_file():
         with pytest.raises(ValidationError) as error:
             parse_file(file_path, validator)
 
-        assert (
-            '{"polygon":[{"x":3665.814,"y":351.628},{"x":3762.93,"y":810.419},{"y":914.233}],"title":"Banana"} is not valid under any of the given schemas'
-            in str(error.value)
-        )
+        assert "'x' is a required property" in str(error.value)
 
-    def test_it_raises_if_polygon_point_has_missing_y(file_path: Path, validator: JSONSchema):
+    def test_it_raises_if_polygon_point_has_missing_y(file_path: Path, validator: Callable[[Any], None]):
         json: str = """
          [
             {
@@ -343,12 +328,9 @@ def describe_parse_file():
         with pytest.raises(ValidationError) as error:
             parse_file(file_path, validator)
 
-        assert (
-            '{"polygon":[{"x":3665.814,"y":351.628},{"x":3762.93},{"x":3042.93,"y":914.233}],"title":"Banana"} is not valid under any of the given schemas'
-            in str(error.value)
-        )
+        assert "'y' is a required property" in str(error.value)
 
-    def test_it_imports_polygon_images(file_path: Path, validator: JSONSchema):
+    def test_it_imports_polygon_images(file_path: Path, validator: Callable[[Any], None]):
         json: str = """
             [
                {

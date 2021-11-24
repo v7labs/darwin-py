@@ -1,9 +1,7 @@
 import json
 from functools import partial
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, cast
-
-from jsonschema_rs import JSONSchema
+from typing import Any, Callable, Dict, List, Optional, Set, cast
 
 from darwin.datatypes import (
     Annotation,
@@ -15,7 +13,7 @@ from darwin.datatypes import (
 )
 
 
-def parse_file(path: Path, validator: JSONSchema) -> Optional[List[AnnotationFile]]:
+def parse_file(path: Path, validate: Callable[[Any], None]) -> Optional[List[AnnotationFile]]:
     """
     Parses the given LabelBox file and maybe returns the corresponding annotations.
     The file must have a structure simillar to the following:
@@ -38,6 +36,8 @@ def parse_file(path: Path, validator: JSONSchema) -> Optional[List[AnnotationFil
     ]
     ```
 
+    You can check the Labelbox Schemas in `labelbox_schemas.py`.
+
     Currently we support the following annotations:
     - bounding-box `Image`: https://docs.labelbox.com/docs/bounding-box-json
     - polygon `Image`: https://docs.labelbox.com/docs/polygon-json
@@ -47,6 +47,9 @@ def parse_file(path: Path, validator: JSONSchema) -> Optional[List[AnnotationFil
     path: Path
         The path of the file to parse.
 
+    validate: Callable[[Any], None]
+        The validator function that validates the schema.
+
     Returns
     -------
     Optional[List[darwin.datatypes.AnnotationFile]]
@@ -55,7 +58,7 @@ def parse_file(path: Path, validator: JSONSchema) -> Optional[List[AnnotationFil
 
     Raises
     ------
-    ValueError
+    ValidationError
         If the given JSON file is malformed or if it has an unknown annotation. 
         To see a list of possible annotation formats go to:
         https://docs.labelbox.com/docs/annotation-types-1
@@ -66,18 +69,16 @@ def parse_file(path: Path, validator: JSONSchema) -> Optional[List[AnnotationFil
 
     with path.open() as f:
         data = json.load(f)
-        validator.validate(data)
+        validate(data)
         convert_with_path = partial(_convert, path=path)
 
         return list(map(convert_with_path, data))
 
 
-# We ignore the Any | None warning here because the schema has been validated and we know
-# we have the values with the correct types
 def _convert(file_data: Dict[str, Any], path) -> AnnotationFile:
-    filename: str = file_data.get("External ID")  # type: ignore
-    label: Dict[str, Any] = file_data.get("Label")  # type: ignore
-    label_objects: List[Dict[str, Any]] = label.get("objects")  # type: ignore
+    filename: str = str(file_data.get("External ID"))
+    label: Dict[str, Any] = cast(Dict[str, Any], file_data.get("Label"))
+    label_objects: List[Dict[str, Any]] = cast(List[Dict[str, Any]], label.get("objects"))
 
     annotations: List[Annotation] = list(map(_convert_label_objects, label_objects))
     classes: Set[AnnotationClass] = set(map(_get_class, annotations))
