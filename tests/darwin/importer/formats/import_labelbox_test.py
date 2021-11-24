@@ -373,6 +373,42 @@ def describe_parse_file():
         annotation_class = polygon_annotation.annotation_class
         assert_annotation_class(annotation_class, "Fish", "polygon")
 
+    def test_it_imports_point_images(file_path: Path, validator: Callable[[Any], None]):
+        json: str = """
+            [
+               {
+                  "Label":{
+                     "objects":[
+                        {
+                           "title":"Dog",
+                           "point": {"x": 342.93, "y": 914.233}
+                        }
+                     ]
+                  },
+                  "External ID": "demo-image-7.jpg"
+               }
+            ]
+        """
+
+        file_path.write_text(json)
+
+        annotation_files: Optional[List[AnnotationFile]] = parse_file(file_path, validator)
+        assert annotation_files is not None
+
+        annotation_file: AnnotationFile = annotation_files.pop()
+        assert annotation_file.path == file_path
+        assert annotation_file.filename == "demo-image-7.jpg"
+        assert annotation_file.annotation_classes
+        assert annotation_file.remote_path == "/"
+
+        assert annotation_file.annotations
+
+        point_annotation = annotation_file.annotations.pop()
+        assert_point(point_annotation, {"x": 342.93, "y": 914.233})
+
+        annotation_class = point_annotation.annotation_class
+        assert_annotation_class(annotation_class, "Dog", "keypoint")
+
 
 def assert_bbox(annotation: Annotation, x: float, y: float, h: float, w: float) -> None:
     data = annotation.data
@@ -390,6 +426,13 @@ def assert_polygon(annotation: Annotation, points: List[Point]) -> None:
     assert actual_points == points
 
 
+def assert_point(annotation: Annotation, point: Point) -> None:
+    data = annotation.data
+    assert data
+    assert data.get("x") == point.get("x")
+    assert data.get("y") == point.get("y")
+
+
 def assert_annotation_class(
     annotation_class: AnnotationClass, name: str, type: str, internal_type: Optional[str] = None
 ) -> None:
@@ -397,3 +440,4 @@ def assert_annotation_class(
     assert annotation_class.name == name
     assert annotation_class.annotation_type == type
     assert annotation_class.annotation_internal_type == internal_type
+
