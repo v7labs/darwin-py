@@ -10,6 +10,7 @@ from darwin.datatypes import (
     Point,
     make_bounding_box,
     make_keypoint,
+    make_line,
     make_polygon,
 )
 
@@ -102,6 +103,10 @@ def _convert_label_objects(obj: Dict[str, Any]) -> Annotation:
     if point:
         return _to_keypoint_annotation(point, title)
 
+    line: Optional[List[Point]] = obj.get("line")
+    if line:
+        return _to_line_annotation(line, title)
+
 
 def _to_bbox_annotation(bbox: Dict[str, Any], title: str) -> Annotation:
     x: float = cast(float, bbox.get("left"))
@@ -121,6 +126,10 @@ def _to_keypoint_annotation(point: Point, title: str) -> Annotation:
     y: float = cast(float, point.get("y"))
 
     return make_keypoint(title, x, y)
+
+
+def _to_line_annotation(line: List[Point], title: str) -> Annotation:
+    return make_line(title, line, None)
 
 
 def _get_class(annotation: Annotation) -> AnnotationClass:
