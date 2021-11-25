@@ -37,7 +37,7 @@ from darwin.dataset.utils import (
     make_class_lists,
     sanitize_filename,
 )
-from darwin.datatypes import Annotation, AnnotationClass, AnnotationFile, PathLike, Team
+from darwin.datatypes import AnnotationClass, AnnotationFile, PathLike, Team
 from darwin.exceptions import NotFound, UnsupportedExportFormat
 from darwin.exporter.formats.darwin import build_image_annotation
 from darwin.item import DatasetItem, parse_dataset_item
