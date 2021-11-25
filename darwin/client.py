@@ -1,14 +1,17 @@
+import logging
 import os
 import time
+from logging import Logger
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Optional, Union
+from typing import Any, Dict, Iterator, List, Optional, Union, cast
 
 import requests
+from requests import Response
 
 from darwin.config import Config
 from darwin.dataset import RemoteDataset
 from darwin.dataset.identifier import DatasetIdentifier
-from darwin.datatypes import DarwinVersionNumber, ErrorHandler, Feature, Team
+from darwin.datatypes import DarwinVersionNumber, Feature, Team
 from darwin.exceptions import (
     InsufficientStorage,
     InvalidLogin,
@@ -17,21 +20,43 @@ from darwin.exceptions import (
     Unauthorized,
 )
 from darwin.utils import is_project_dir, urljoin
-from darwin.validators import name_taken, validation_error
 
 
 class Client:
-    def __init__(self, config: Config, default_team: Optional[str] = None):
+    def __init__(self, config: Config, log: Logger, default_team: Optional[str] = None):
         self.config: Config = config
         self.url: str = config.get("global/api_endpoint")
         self.base_url: str = config.get("global/base_url")
         self.default_team: str = default_team or config.get("global/default_team")
         self.features: Dict[str, List[Feature]] = {}
         self._newer_version: Optional[DarwinVersionNumber] = None
+        self.log = log
 
-    def get(
-        self, endpoint: str, team: Optional[str] = None, retry: bool = False, raw: bool = False, debug: bool = False
-    ) -> Union[Any, requests.Response]:
+    def _get_raw(self, endpoint: str, team: Optional[str] = None, retry: bool = False) -> Response:
+        response: Response = requests.get(urljoin(self.url, endpoint), headers=self._get_headers(team))
+
+        self.log.debug(
+            f"Client get request response ({response.json()}) with unexpected status "
+            f"({response.status_code}). "
+            f"Client: ({self})"
+            f"Request: (endpoint={endpoint})"
+        )
+
+        if response.status_code == 401:
+            raise Unauthorized()
+
+        if response.status_code == 404:
+            raise NotFound(urljoin(self.url, endpoint))
+
+        if response.status_code != 200 and retry:
+            time.sleep(10)
+            return self._get_raw(endpoint=endpoint, retry=False)
+
+        return response
+
+    def _get(
+        self, endpoint: str, team: Optional[str] = None, retry: bool = False
+    ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
         """
         Get something from the server through HTTP
 
@@ -41,14 +66,11 @@ class Client:
             Recipient of the HTTP operation
         retry : bool
             Retry to perform the operation. Set to False on recursive calls.
-        raw : bool
-            Flag for returning raw response
-        debug : bool
-            Debugging flag. In this case failed requests get printed
+
 
         Returns
         -------
-        dict
+        Union[Dict[str, Any], List[Dict[str, Any]]]
             Dictionary which contains the server response
 
         Raises
@@ -59,72 +81,22 @@ class Client:
             Action is not authorized
         """
 
-        response: requests.Response = requests.get(urljoin(self.url, endpoint), headers=self._get_headers(team))
+        response = self._get_raw(endpoint, team, retry)
+        return self._decode_response(response)
 
-        if debug:
-            print(
-                f"Client get request response ({response.json()}) with unexpected status "
-                f"({response.status_code}). "
-                f"Client: ({self})"
-                f"Request: (endpoint={endpoint})"
-            )
-
-        if response.status_code == 401:
-            raise Unauthorized()
-
-        if response.status_code == 404:
-            raise NotFound(urljoin(self.url, endpoint))
-
-        if response.status_code != 200 and retry:
-            time.sleep(10)
-            return self.get(endpoint=endpoint, retry=False)
-
-        if raw:
-            return response
-        else:
-            return self._decode_response(response, debug)
-
-    def put(
-        self,
-        endpoint: str,
-        payload: Dict[str, Any],
-        team: Optional[str] = None,
-        retry: bool = False,
-        debug: bool = False,
-        raw: bool = False,
-    ) -> Union[Dict[str, Any], requests.Response]:
-        """
-        Put something on the server trough HTTP
-
-        Parameters
-        ----------
-        endpoint : str
-            Recipient of the HTTP operation
-        payload : dict
-            What you want to put on the server (typically json encoded)
-        retry : bool
-            Retry to perform the operation. Set to False on recursive calls.
-        debug : bool
-            Debugging flag. In this case failed requests get printed
-        raw : bool
-            Flag for returning raw response
-
-        Returns
-        -------
-        dict
-            Dictionary which contains the server response
-        """
+    def _put_raw(
+        self, endpoint: str, payload: Dict[str, Any], team: Optional[str] = None, retry: bool = False
+    ) -> Response:
         response: requests.Response = requests.put(
             urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team)
         )
 
-        if debug:
-            print(
-                f"Client GET request got response ({response.json()}) with unexpected status "
-                f"({response.status_code}). "
-                f"Client: ({self})"
-                f"Request: (endpoint={endpoint}, payload={payload})"
-            )
+        self.log.debug(
+            f"Client PUT request got response ({response.json()}) with unexpected status "
+            f"({response.status_code}). "
+            f"Client: ({self})"
+            f"Request: (endpoint={endpoint}, payload={payload})"
+        )
 
         if response.status_code == 401:
             raise Unauthorized()
@@ -136,22 +108,36 @@ class Client:
 
         if response.status_code != 200 and retry:
             time.sleep(10)
-            return self.put(endpoint, payload=payload, retry=False)
+            return self._put_raw(endpoint, payload=payload, retry=False)
 
-        if raw:
-            return response
-        else:
-            return self._decode_response(response, debug)
+        return response
 
-    def post(
-        self,
-        endpoint: str,
-        payload: Optional[Dict[Any, Any]] = None,
-        team: Optional[str] = None,
-        retry: bool = False,
-        error_handlers: Optional[list] = None,
-        debug: bool = False,
-    ) -> Dict[str, Any]:
+    def _put(
+        self, endpoint: str, payload: Dict[str, Any], team: Optional[str] = None, retry: bool = False
+    ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+        """
+        Put something on the server trough HTTP
+
+        Parameters
+        ----------
+        endpoint : str
+            Recipient of the HTTP operation
+        payload : dict
+            What you want to put on the server (typically json encoded)
+        retry : bool
+            Retry to perform the operation. Set to False on recursive calls.
+
+        Returns
+        -------
+        dict
+            Dictionary which contains the server response
+        """
+        response = self._put_raw(endpoint, payload, team, retry)
+        return self._decode_response(response)
+
+    def _post(
+        self, endpoint: str, payload: Optional[Dict[Any, Any]] = None, team: Optional[str] = None, retry: bool = False,
+    ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
         """Post something new on the server trough HTTP
 
         Parameters
@@ -164,8 +150,6 @@ class Client:
             Retry to perform the operation. Set to False on recursive calls.
         refresh : bool
             Flag for use the refresh token instead
-        debug : bool
-            Debugging flag. In this case failed requests get printed
 
         Returns
         -------
@@ -174,46 +158,31 @@ class Client:
         """
         if payload is None:
             payload = {}
-        if error_handlers is None:
-            error_handlers = []
 
-        response: requests.Response = requests.post(
-            urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team)
+        response: Response = requests.post(urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team))
+
+        self.log.debug(
+            f"Client get request response ({response.json()}) with unexpected status "
+            f"({response.status_code}). "
+            f"Client: ({self})"
+            f"Request: (endpoint={endpoint}, payload={payload})"
         )
-
-        if debug:
-            print(
-                f"Client get request response ({response.json()}) with unexpected status "
-                f"({response.status_code}). "
-                f"Client: ({self})"
-                f"Request: (endpoint={endpoint}, payload={payload})"
-            )
 
         if response.status_code == 401:
             raise Unauthorized()
 
-        if not error_handlers and not retry:
+        if not retry:
             response.raise_for_status()
 
-        if response.status_code != 200:
-            for error_handler in error_handlers:
-                error_handler(response.status_code, response.json())
+        if response.status_code != 200 and retry:
+            time.sleep(10)
+            return self._post(endpoint, payload=payload, retry=False)
 
-            if retry:
-                time.sleep(10)
-                return self.post(endpoint, payload=payload, retry=False)
+        return self._decode_response(response)
 
-        return self._decode_response(response, debug)
-
-    def delete(
-        self,
-        endpoint: str,
-        payload: Optional[Dict[Any, Any]] = None,
-        team: Optional[str] = None,
-        retry: bool = False,
-        error_handlers: Optional[List[ErrorHandler]] = None,
-        debug: bool = False,
-    ) -> Dict[str, Any]:
+    def _delete(
+        self, endpoint: str, payload: Optional[Dict[Any, Any]] = None, team: Optional[str] = None, retry: bool = False,
+    ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
         """Delete something new on the server trough HTTP
 
         Parameters
@@ -226,10 +195,6 @@ class Client:
             Optional team slug, used to build the request headers.
         retry : bool
             Retry to perform the operation. Set to False on recursive calls.
-        error_handlers : Optional[List[ErrorHandler]]
-            List of functions to be called should the requests be unsuccessful.
-        debug : bool
-            Debugging flag. In this case failed requests get printed
 
         Returns
         -------
@@ -238,36 +203,29 @@ class Client:
         """
         if payload is None:
             payload = {}
-        if error_handlers is None:
-            error_handlers = []
 
         response: requests.Response = requests.delete(
             urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team)
         )
 
-        if debug:
-            print(
-                f"Client get request response ({response.json()}) with unexpected status "
-                f"({response.status_code}). "
-                f"Client: ({self})"
-                f"Request: (endpoint={endpoint})"
-            )
+        self.log.debug(
+            f"Client get request response ({response.json()}) with unexpected status "
+            f"({response.status_code}). "
+            f"Client: ({self})"
+            f"Request: (endpoint={endpoint})"
+        )
 
         if response.status_code == 401:
             raise Unauthorized()
 
-        if not error_handlers and not retry:
+        if not retry:
             response.raise_for_status()
 
-        if response.status_code != 200:
-            for error_handler in error_handlers:
-                error_handler(response.status_code, response.json())
+        if response.status_code != 200 and retry:
+            time.sleep(10)
+            return self._delete(endpoint, payload=payload, retry=False)
 
-            if retry:
-                time.sleep(10)
-                return self.delete(endpoint, payload=payload, retry=False)
-
-        return self._decode_response(response, debug)
+        return self._decode_response(response)
 
     def list_local_datasets(self, team: Optional[str] = None) -> Iterator[Path]:
         """
@@ -302,7 +260,9 @@ class Client:
         list[RemoteDataset]
         List of all remote datasets
         """
-        for dataset in self.get("/datasets/", team=team):
+        response: List[Dict[str, Any]] = cast(List[Dict[str, Any]], self._get("/datasets/", team=team))
+
+        for dataset in response:
             yield RemoteDataset(
                 name=dataset["name"],
                 slug=dataset["slug"],
@@ -340,7 +300,10 @@ class Client:
             ]
         except Unauthorized:
             # There is a chance that we tried to access an open dataset
-            dataset = self.get(f"{parsed_dataset_identifier.team_slug}/{parsed_dataset_identifier.dataset_slug}")
+            dataset: Dict[str, Any] = cast(
+                Dict[str, Any],
+                self._get(f"{parsed_dataset_identifier.team_slug}/{parsed_dataset_identifier.dataset_slug}"),
+            )
 
             # If there isn't a record of this team, create one.
             if not self.config.get_team(parsed_dataset_identifier.team_slug, raise_on_invalid_team=False):
@@ -375,7 +338,7 @@ class Client:
         RemoteDataset
         The created dataset
         """
-        dataset = self.post("/datasets", {"name": name}, team=team, error_handlers=[name_taken, validation_error])
+        dataset: Dict[str, Any] = cast(Dict[str, Any], self._post("/datasets", {"name": name}, team=team))
         return RemoteDataset(
             name=dataset["name"],
             team=team or self.default_team,
@@ -394,8 +357,11 @@ class Client:
             return None
 
         team_slug: str = the_team.slug
+        response: Dict[str, Any] = cast(
+            Dict[str, Any], self._get(f"/teams/{team_slug}/annotation_classes?include_tags=true")
+        )
 
-        return self.get(f"/teams/{team_slug}/annotation_classes?include_tags=true")["annotation_classes"]
+        return response["annotation_classes"]
 
     def load_feature_flags(self, team: Optional[str] = None) -> None:
         """Gets current features enabled for a team"""
@@ -421,7 +387,7 @@ class Client:
         List[FeaturePayload]
             List of feature for the given team.
         """
-        response: List[Dict[str, Any]] = self.get(f"/teams/{team_slug}/features")
+        response: List[Dict[str, Any]] = cast(List[Dict[str, Any]], self._get(f"/teams/{team_slug}/features"))
 
         features: List[Feature] = []
         for feature in response:
@@ -536,8 +502,9 @@ class Client:
         if not config_path.exists():
             raise MissingConfig()
         config = Config(config_path)
+        log = logging.getLogger()
 
-        return cls(config=config, default_team=team_slug)
+        return cls(config=config, log=log, default_team=team_slug)
 
     @classmethod
     def from_guest(cls, datasets_dir: Optional[Path] = None) -> "Client":
@@ -559,8 +526,9 @@ class Client:
 
         config: Config = Config(path=None)
         config.set_global(api_endpoint=Client.default_api_url(), base_url=Client.default_base_url())
+        log = logging.getLogger()
 
-        return cls(config=config)
+        return cls(config=config, log=log)
 
     @classmethod
     def from_api_key(cls, api_key: str, datasets_dir: Optional[Path] = None) -> "Client":
@@ -595,8 +563,9 @@ class Client:
         config: Config = Config(path=None)
         config.set_team(team=team, api_key=api_key, datasets_dir=str(datasets_dir))
         config.set_global(api_endpoint=api_url, base_url=Client.default_base_url())
+        log = logging.getLogger()
 
-        return cls(config=config, default_team=team)
+        return cls(config=config, log=log, default_team=team)
 
     @staticmethod
     def default_api_url() -> str:
@@ -608,7 +577,7 @@ class Client:
         """Returns the default base url"""
         return os.getenv("DARWIN_BASE_URL", "https://darwin.v7labs.com")
 
-    def _decode_response(self, response: requests.Response, debug: bool = False) -> Dict[str, Any]:
+    def _decode_response(self, response: requests.Response) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
         """Decode the response as JSON entry or return a dictionary with the error
 
         Parameters
@@ -630,8 +599,7 @@ class Client:
         try:
             return response.json()
         except ValueError:
-            if debug:
-                print(f"[ERROR {response.status_code}] {response.text}")
+            self.log.error(f"[ERROR {response.status_code}] {response.text}")
             response.close()
             return {"error": "Response is not JSON encoded", "status_code": response.status_code, "text": response.text}
 
