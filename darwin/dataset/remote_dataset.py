@@ -44,6 +44,7 @@ from darwin.item import DatasetItem, parse_dataset_item
 from darwin.item_sorter import ItemSorter
 from darwin.utils import find_files, parse_darwin_json, split_video_annotation, urljoin
 from darwin.validators import name_taken, validation_error
+from requests.models import Response
 from rich.console import Console
 
 if TYPE_CHECKING:
@@ -396,9 +397,8 @@ class RemoteDataset:
         self.client.put(endpoint, payload)
 
     def delete_items(self, items: Iterator[DatasetItem]) -> None:
-        endpoint: str = f"teams/{self.team}/datasets/{self.slug}/items"
         payload: Dict[str, Any] = {"filter": {"dataset_item_ids": [item.id for item in items]}}
-        self.client.delete(endpoint, payload)
+        self.client.delete_item(self.slug, self.team, payload)
 
     def fetch_annotation_type_id_for_name(self, name: str) -> Optional[int]:
         """
@@ -421,7 +421,7 @@ class RemoteDataset:
             If it fails to establish a connection.
         """
         if not self.annotation_types:
-            self.annotation_types = self.client.get("/annotation_types")
+            self.annotation_types = self.client.annotation_types()
 
         for annotation_type in self.annotation_types:
             if annotation_type["name"] == name:
@@ -539,7 +539,7 @@ class RemoteDataset:
             List of Annotation Classes (can be empty) or None, if the team was not able to be
             determined.
         """
-        all_classes = self.client.fetch_remote_classes()
+        all_classes: Optional[Dict[str, Any]] = self.client.fetch_remote_classes()
 
         if not all_classes:
             return None
@@ -552,9 +552,9 @@ class RemoteDataset:
                 classes_to_return.append(cls)
         return classes_to_return
 
-    def fetch_remote_attributes(self) -> Any:
+    def fetch_remote_attributes(self) -> List[Dict[str, Any]]:
         """Fetches all remote attributes on the remote dataset"""
-        return self.client.get(f"/datasets/{self.dataset_id}/attributes")
+        return self.client.fetch_remote_attributes(self.dataset_id)
 
     def export(
         self, name: str, annotation_class_ids: Optional[List[str]] = None, include_url_token: bool = False
@@ -586,11 +586,12 @@ class RemoteDataset:
         )
 
     def get_report(self, granularity: str = "day") -> str:
-        return self.client.get(
-            f"/reports/{self.team}/annotation?group_by=dataset,user&dataset_ids={self.dataset_id}&granularity={granularity}&format=csv&include=dataset.name,user.first_name,user.last_name,user.email",
-            team=self.team,
-            raw=True,
-        ).text
+        response: Optional[Response] = self.client.get_report(self.dataset_id, granularity, self.team)
+
+        if response is None:
+            raise ValueError(f"Team is not specified, cannot get report: {self.team}")
+
+        return response.text
 
     def get_releases(self) -> List["Release"]:
         """
@@ -607,9 +608,13 @@ class RemoteDataset:
             If it is unable to connect.
         """
         try:
-            releases_json = self.client.get(f"/datasets/{self.dataset_id}/exports", team=self.team)
+            releases_json: Optional[List[Dict[str, Any]]] = self.client.get_exports(self.dataset_id, self.team)
         except NotFound:
             return []
+
+        if releases_json is None:
+            releases_json = []
+
         releases = [Release.parse_json(self.slug, self.team, payload) for payload in releases_json]
         return sorted(filter(lambda x: x.available, releases), key=lambda x: x.version, reverse=True)
 

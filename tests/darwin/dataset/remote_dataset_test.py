@@ -1,4 +1,5 @@
 import json
+import logging
 import types
 from datetime import datetime
 from pathlib import Path
@@ -53,7 +54,7 @@ def darwin_client(darwin_config_path: Path, darwin_datasets_path: Path, team_slu
     config.put(["global", "base_url"], "http://localhost")
     config.put(["teams", team_slug, "api_key"], "mock_api_key")
     config.put(["teams", team_slug, "datasets_dir"], str(darwin_datasets_path))
-    return Client(config)
+    return Client(config, logging.getLogger())
 
 
 @pytest.fixture
@@ -600,11 +601,9 @@ def describe_delete_items():
     def calls_client_delete(
         remote_dataset: RemoteDataset, dataset_item: DatasetItem, team_slug: str, dataset_slug: str
     ):
-        with patch.object(Client, "delete", return_value={}) as stub:
+        with patch.object(Client, "delete_item", return_value={}) as stub:
             remote_dataset.delete_items([dataset_item])
-            stub.assert_called_once_with(
-                f"teams/{team_slug}/datasets/{dataset_slug}/items", {"filter": {"dataset_item_ids": [1]}}
-            )
+            stub.assert_called_once_with("test-dataset", "v7", {"filter": {"dataset_item_ids": [1]}})
 
 
 def assert_upload_mocks_are_correctly_called(remote_dataset: RemoteDataset, *args):

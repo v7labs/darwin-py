@@ -372,6 +372,10 @@ class Client:
 
         return response["annotation_classes"]
 
+    def fetch_remote_attributes(self, dataset_id: int) -> List[Dict[str, Any]]:
+        response: List[Dict[str, Any]] = cast(List[Dict[str, Any]], self._get(f"/datasets/{dataset_id}/attributes"))
+        return response
+
     def load_feature_flags(self, team: Optional[str] = None) -> None:
         """Gets current features enabled for a team"""
         the_team: Optional[Team] = self.config.get_team(team or self.default_team)
@@ -490,6 +494,39 @@ class Client:
             self._put(endpoint=f"/teams/{team_slug}/datasets/{dataset_slug}/data", payload=payload, team=team_slug),
         )
         return response
+
+    def annotation_types(self) -> List[Dict[str, Any]]:
+        response: List[Dict[str, Any]] = cast(List[Dict[str, Any]], self._get("/annotation_types"))
+        return response
+
+    def get_exports(self, dataset_id: int, team: Optional[str] = None) -> Optional[List[Dict[str, Any]]]:
+        the_team: Optional[Team] = self.config.get_team(team or self.default_team)
+
+        if not the_team:
+            return None
+
+        team_slug: str = the_team.slug
+
+        response: List[Dict[str, Any]] = cast(
+            List[Dict[str, Any]], self._get(f"/datasets/{dataset_id}/exports", team=team_slug)
+        )
+        return response
+
+    def get_report(self, dataset_id: int, granularity: str, team: Optional[str] = None) -> Optional[Response]:
+        the_team: Optional[Team] = self.config.get_team(team or self.default_team)
+
+        if not the_team:
+            return None
+
+        team_slug: str = the_team.slug
+
+        return self._get_raw(
+            f"/reports/{team_slug}/annotation?group_by=dataset,user&dataset_ids={dataset_id}&granularity={granularity}&format=csv&include=dataset.name,user.first_name,user.last_name,user.email",
+            team_slug,
+        )
+
+    def delete_item(self, dataset_slug: str, team_slug: str, payload: Any) -> None:
+        self._delete(f"teams/{team_slug}/datasets/{dataset_slug}/items", payload, team_slug)
 
     def _get_headers(self, team: Optional[str] = None) -> Dict[str, str]:
         """Get the headers of the API calls to the backend.
