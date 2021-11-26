@@ -36,7 +36,7 @@ class Client:
         response: Response = requests.get(urljoin(self.url, endpoint), headers=self._get_headers(team))
 
         self.log.debug(
-            f"Client get request response ({response.json()}) with unexpected status "
+            f"Client get request response ({response.text}) with status "
             f"({response.status_code}). "
             f"Client: ({self})"
             f"Request: (endpoint={endpoint})"
@@ -48,9 +48,11 @@ class Client:
         if response.status_code == 404:
             raise NotFound(urljoin(self.url, endpoint))
 
-        if response.status_code != 200 and retry:
+        if not response.ok and retry:
             time.sleep(10)
             return self._get_raw(endpoint=endpoint, retry=False)
+        elif not response.ok:
+            response.raise_for_status()
 
         return response
 
@@ -92,7 +94,7 @@ class Client:
         )
 
         self.log.debug(
-            f"Client PUT request got response ({response.json()}) with unexpected status "
+            f"Client PUT request got response ({response.text}) with status "
             f"({response.status_code}). "
             f"Client: ({self})"
             f"Request: (endpoint={endpoint}, payload={payload})"
@@ -102,13 +104,20 @@ class Client:
             raise Unauthorized()
 
         if response.status_code == 429:
-            error_code = response.json()["errors"]["code"]
+            error_code: Optional[str] = None
+            try:
+                error_code = response.json()["errors"]["code"]
+            except:
+                pass
+
             if error_code == "INSUFFICIENT_REMAINING_STORAGE":
                 raise InsufficientStorage()
 
-        if response.status_code != 200 and retry:
+        if not response.ok and retry:
             time.sleep(10)
             return self._put_raw(endpoint, payload=payload, retry=False)
+        elif not response.ok:
+            response.raise_for_status()
 
         return response
 
@@ -444,6 +453,43 @@ class Client:
             Team to change the directory to
         """
         self.config.put(f"teams/{team or self.default_team}/datasets_dir", datasets_dir)
+
+    def confirm_upload(self, dataset_item_id: int, team: Optional[str] = None) -> None:
+        the_team: Optional[Team] = self.config.get_team(team or self.default_team)
+
+        if not the_team:
+            return None
+
+        team_slug: str = the_team.slug
+
+        self._put_raw(endpoint=f"/dataset_items/{dataset_item_id}/confirm_upload", payload={}, team=team_slug)
+
+    def sign_upload(self, dataset_item_id: int, team: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        the_team: Optional[Team] = self.config.get_team(team or self.default_team)
+
+        if not the_team:
+            return None
+
+        team_slug: str = the_team.slug
+
+        response: Dict[str, Any] = cast(
+            Dict[str, Any], self._get(f"/dataset_items/{dataset_item_id}/sign_upload", team=team_slug)
+        )
+        return response
+
+    def upload_data(self, dataset_slug: str, payload: Any, team: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        the_team: Optional[Team] = self.config.get_team(team or self.default_team)
+
+        if not the_team:
+            return None
+
+        team_slug: str = the_team.slug
+
+        response: Dict[str, Any] = cast(
+            Dict[str, Any],
+            self._put(endpoint=f"/teams/{team_slug}/datasets/{dataset_slug}/data", payload=payload, team=team_slug),
+        )
+        return response
 
     def _get_headers(self, team: Optional[str] = None) -> Dict[str, str]:
         """Get the headers of the API calls to the backend.

@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -23,7 +24,7 @@ def darwin_client(darwin_config_path: Path, darwin_datasets_path: Path, team_slu
     config.put(["global", "base_url"], "http://localhost")
     config.put(["teams", team_slug, "api_key"], "mock_api_key")
     config.put(["teams", team_slug, "datasets_dir"], str(darwin_datasets_path))
-    return Client(config)
+    return Client(config=config, log=logging.getLogger())
 
 
 @pytest.fixture
