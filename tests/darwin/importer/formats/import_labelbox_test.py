@@ -409,6 +409,49 @@ def describe_parse_file():
         annotation_class = point_annotation.annotation_class
         assert_annotation_class(annotation_class, "Dog", "keypoint")
 
+    def test_it_imports_polyline_images(file_path: Path, validator: Callable[[Any], None]):
+        json: str = """
+            [
+               {
+                  "Label":{
+                     "objects":[
+                        {
+                           "title":"Lion",
+                           "line": [
+                              {"x": 198.027, "y": 1979.196},
+                              {"x": 321.472, "y": 1801.743},
+                              {"x": 465.491, "y": 1655.152}
+                           ]
+                        }
+                     ]
+                  },
+                  "External ID": "demo-image-7.jpg"
+               }
+            ]
+        """
+
+        file_path.write_text(json)
+
+        annotation_files: Optional[List[AnnotationFile]] = parse_file(file_path, validator)
+        assert annotation_files is not None
+
+        annotation_file: AnnotationFile = annotation_files.pop()
+        assert annotation_file.path == file_path
+        assert annotation_file.filename == "demo-image-7.jpg"
+        assert annotation_file.annotation_classes
+        assert annotation_file.remote_path == "/"
+
+        assert annotation_file.annotations
+
+        line_annotation = annotation_file.annotations.pop()
+        assert_line(
+            line_annotation,
+            [{"x": 198.027, "y": 1979.196}, {"x": 321.472, "y": 1801.743}, {"x": 465.491, "y": 1655.152}],
+        )
+
+        annotation_class = line_annotation.annotation_class
+        assert_annotation_class(annotation_class, "Lion", "line")
+
 
 def assert_bbox(annotation: Annotation, x: float, y: float, h: float, w: float) -> None:
     data = annotation.data
@@ -431,6 +474,12 @@ def assert_point(annotation: Annotation, point: Point) -> None:
     assert data
     assert data.get("x") == point.get("x")
     assert data.get("y") == point.get("y")
+
+
+def assert_line(annotation: Annotation, line: List[Point]) -> None:
+    actual_line = annotation.data.get("path")
+    assert actual_line
+    assert actual_line == line
 
 
 def assert_annotation_class(
