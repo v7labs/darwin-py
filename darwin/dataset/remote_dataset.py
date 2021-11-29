@@ -16,7 +16,6 @@ from typing import (
     Tuple,
     Union,
 )
-from urllib import parse
 
 from darwin.dataset.download_manager import download_all_images_from_annotations
 from darwin.dataset.identifier import DatasetIdentifier
@@ -43,7 +42,6 @@ from darwin.exporter.formats.darwin import build_image_annotation
 from darwin.item import DatasetItem, parse_dataset_item
 from darwin.item_sorter import ItemSorter
 from darwin.utils import find_files, parse_darwin_json, split_video_annotation, urljoin
-from darwin.validators import name_taken, validation_error
 from requests.models import Response
 from rich.console import Console
 

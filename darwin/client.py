@@ -26,14 +26,17 @@ from darwin.utils import is_project_dir, urljoin
 
 
 class Client:
-    def __init__(self, config: Config, log: Logger, default_team: Optional[str] = None):
+    def __init__(self, config: Config, default_team: Optional[str] = None, log: Optional[Logger] = None):
         self.config: Config = config
         self.url: str = config.get("global/api_endpoint")
         self.base_url: str = config.get("global/base_url")
         self.default_team: str = default_team or config.get("global/default_team")
         self.features: Dict[str, List[Feature]] = {}
         self._newer_version: Optional[DarwinVersionNumber] = None
+
         self.log = log
+        if self.log is None:
+            self.log = logging.getLogger()
 
     def _get_raw(self, endpoint: str, team: Optional[str] = None, retry: bool = False) -> Response:
         response: Response = requests.get(urljoin(self.url, endpoint), headers=self._get_headers(team))
@@ -643,9 +646,8 @@ class Client:
         if not config_path.exists():
             raise MissingConfig()
         config = Config(config_path)
-        log = logging.getLogger()
 
-        return cls(config=config, log=log, default_team=team_slug)
+        return cls(config=config, default_team=team_slug)
 
     @classmethod
     def from_guest(cls, datasets_dir: Optional[Path] = None) -> "Client":
@@ -667,9 +669,8 @@ class Client:
 
         config: Config = Config(path=None)
         config.set_global(api_endpoint=Client.default_api_url(), base_url=Client.default_base_url())
-        log = logging.getLogger()
 
-        return cls(config=config, log=log)
+        return cls(config=config)
 
     @classmethod
     def from_api_key(cls, api_key: str, datasets_dir: Optional[Path] = None) -> "Client":
@@ -704,9 +705,8 @@ class Client:
         config: Config = Config(path=None)
         config.set_team(team=team, api_key=api_key, datasets_dir=str(datasets_dir))
         config.set_global(api_endpoint=api_url, base_url=Client.default_base_url())
-        log = logging.getLogger()
 
-        return cls(config=config, log=log, default_team=team)
+        return cls(config=config, default_team=team)
 
     @staticmethod
     def default_api_url() -> str:

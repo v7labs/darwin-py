@@ -19,7 +19,7 @@ def describe_get_team_features():
         config.put(["global", "base_url"], "http://localhost")
         config.put(["teams", team_slug, "api_key"], "mock_api_key")
         config.put(["teams", team_slug, "datasets_dir"], str(darwin_datasets_path))
-        client = Client(config, logging.getLogger())
+        client = Client(config)
 
         api: str = config.get(["global", "api_endpoint"])
         endpoint: str = f"/teams/{team_slug}/features"
