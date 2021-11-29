@@ -1,4 +1,5 @@
 import builtins
+import logging
 import sys
 from unittest.mock import call, patch
 
@@ -15,7 +16,7 @@ from darwin.dataset import RemoteDataset
 
 @pytest.fixture
 def remote_dataset(dataset_slug: str, local_config_file: Config):
-    client = Client(local_config_file)
+    client = Client(local_config_file, logging.getLogger())
     return RemoteDataset(client=client, team="v7", name="TEST_DATASET", slug=dataset_slug, dataset_id=1)
 
 
