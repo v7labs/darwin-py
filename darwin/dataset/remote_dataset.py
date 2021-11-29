@@ -524,7 +524,7 @@ class RemoteDataset:
             List of Annotation Classes (can be empty) or None, if the team was not able to be
             determined.
         """
-        all_classes: Optional[Dict[str, Any]] = self.client.fetch_remote_classes()
+        all_classes: Optional[List[Dict[str, Any]]] = self.client.fetch_remote_classes()
 
         if not all_classes:
             return None

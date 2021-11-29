@@ -62,30 +62,6 @@ class Client:
     def _get(
         self, endpoint: str, team: Optional[str] = None, retry: bool = False
     ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
-        """
-        Get something from the server through HTTP
-
-        Parameters
-        ----------
-        endpoint : str
-            Recipient of the HTTP operation
-        retry : bool
-            Retry to perform the operation. Set to False on recursive calls.
-
-
-        Returns
-        -------
-        Union[Dict[str, Any], List[Dict[str, Any]]]
-            Dictionary which contains the server response
-
-        Raises
-        ------
-        NotFound
-            Resource not found
-        Unauthorized
-            Action is not authorized
-        """
-
         response = self._get_raw(endpoint, team, retry)
         return self._decode_response(response)
 
@@ -116,45 +92,12 @@ class Client:
     def _put(
         self, endpoint: str, payload: Dict[str, Any], team: Optional[str] = None, retry: bool = False
     ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
-        """
-        Put something on the server trough HTTP
-
-        Parameters
-        ----------
-        endpoint : str
-            Recipient of the HTTP operation
-        payload : dict
-            What you want to put on the server (typically json encoded)
-        retry : bool
-            Retry to perform the operation. Set to False on recursive calls.
-
-        Returns
-        -------
-        dict
-            Dictionary which contains the server response
-        """
         response = self._put_raw(endpoint, payload, team, retry)
         return self._decode_response(response)
 
     def _post(
         self, endpoint: str, payload: Optional[Dict[Any, Any]] = None, team: Optional[str] = None, retry: bool = False,
     ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
-        """Post something new on the server trough HTTP
-
-        Parameters
-        ----------
-        endpoint : str
-            Recipient of the HTTP operation
-        payload : dict
-            What you want to put on the server (typically json encoded)
-        retry : bool
-            Retry to perform the operation. Set to False on recursive calls.
-        refresh : boolself._raise_if_known_error(response, endpoint)
-        Returns
-        -------
-        dict
-        Dictionary which contains the server response
-        """
         if payload is None:
             payload = {}
 
@@ -180,24 +123,6 @@ class Client:
     def _delete(
         self, endpoint: str, payload: Optional[Dict[Any, Any]] = None, team: Optional[str] = None, retry: bool = False,
     ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
-        """Delete something new on the server trough HTTP
-
-        Parameters
-        ----------
-        endpoint : str
-            Recipient of the HTTP operation.
-        payload : Optional[Dict[Any, Any]]
-            JSON-encoded extra information that might be necessary to perform the deletion.
-        team : Optional[str]
-            Optional team slug, used to build the request headers.
-        retry : bool
-            Retry to perform the operation. Set to False on recursive calls.
-
-        Returns
-        -------
-        dict
-        Dictionary which contains the server response
-        """
         if payload is None:
             payload = {}
 
@@ -256,10 +181,16 @@ class Client:
         """
         Returns a list of all local folders which are detected as dataset.
 
+        Parameters
+        ----------
+        team: Optional[str]
+            The team slug of the dataset. Defaults to None.
+
+
         Returns
         -------
-        list[Path]
-        List of all local datasets
+        Iterator[Path]
+            Iterator of all local datasets
         """
 
         team_configs: List[Team] = []
@@ -280,10 +211,15 @@ class Client:
         """
         Returns a list of all available datasets with the team currently authenticated against.
 
+        Parameters
+        ----------
+        team: Optional[str]
+            The team slug of the dataset. Defaults to None.
+
         Returns
         -------
-        list[RemoteDataset]
-        List of all remote datasets
+        Iterator[RemoteDataset]
+            List of all remote datasets
         """
         response: List[Dict[str, Any]] = cast(List[Dict[str, Any]], self._get("/datasets/", team=team))
 
@@ -300,7 +236,7 @@ class Client:
 
     def get_remote_dataset(self, dataset_identifier: Union[str, DatasetIdentifier]) -> RemoteDataset:
         """
-        Get a remote dataset based on the parameter passed.
+        Get a remote dataset based on its identifier.
 
         Parameters
         ----------
@@ -310,7 +246,14 @@ class Client:
         Returns
         -------
         RemoteDataset
-            Initialized dataset
+            Initialized dataset.
+
+        Raises
+        -------
+        Unauthorized
+            If the user does not have access to the given dataset.
+        NotFound
+            If no dataset with the given identifier was found.
         """
         parsed_dataset_identifier: DatasetIdentifier = DatasetIdentifier.parse(dataset_identifier)
 
@@ -351,17 +294,20 @@ class Client:
         return matching_datasets[0]
 
     def create_dataset(self, name: str, team: Optional[str] = None) -> RemoteDataset:
-        """Create a remote dataset
+        """
+        Create a remote dataset.
 
         Parameters
         ----------
         name : str
-            Name of the dataset to create
+            Name of the dataset to create.
+        team: Optional[str]
+            Team slug of the team the dataset will belong to. Defaults to None.
 
         Returns
         -------
         RemoteDataset
-        The created dataset
+            The created dataset.
         """
         dataset: Dict[str, Any] = cast(Dict[str, Any], self._post("/datasets", {"name": name}, team=team))
         return RemoteDataset(
@@ -375,18 +321,59 @@ class Client:
         )
 
     def archive_remote_dataset(self, dataset_id: int, team_slug: str) -> None:
+        """
+        Archive (soft delete) a remote dataset.
+
+        Parameters
+        ----------
+        dataset_id: int
+            Id of the dataset to archive.
+        team_slug: str
+            Team slug of the dataset.
+        """
         self._put(f"datasets/{dataset_id}/archive", payload={}, team=team_slug)
 
     def fetch_remote_files(
         self, dataset_id: int, cursor: Dict[str, Any], payload: Any, team_slug: str
     ) -> Dict[str, Any]:
+        """
+        Download the remote files from the given dataset.
+
+        Parameters
+        ----------
+        dataset_id: int
+            Id of the dataset the file belong to.
+        cursor: Dict[str, Any]
+            Number of items per page and page number. Defaults to {"page[size]": 500, "page[from]": 0}.
+        payload: Any
+            Filter and sort parameters. 
+        team_slug: str
+            The team slug of the dataset.
+
+        Returns
+        -------
+         Dict[str, Any]
+            A response object with the file information.
+        """
         response: Dict[str, Any] = cast(
             Dict[str, Any], self._post(f"/datasets/{dataset_id}/items?{parse.urlencode(cursor)}", payload, team_slug)
         )
         return response
 
-    def fetch_remote_classes(self, team: Optional[str] = None) -> Optional[Dict[str, Any]]:
-        """Fetches all remote classes on the remote dataset"""
+    def fetch_remote_classes(self, team: Optional[str] = None) -> Optional[List[Dict[str, Any]]]:
+        """
+        Fetches all remote classes on the remote dataset.
+        
+        Parameters
+        ----------
+        team: Optional[str]
+            The team slug of the dataset. Defaults to None.
+        
+        Returns
+        -------
+        Optional[Dict[str, Any]]
+            None if no information about the team is found, a List of Annotation classes otherwise.
+        """
         the_team: Optional[Team] = self.config.get_team(team or self.default_team)
 
         if not the_team:
