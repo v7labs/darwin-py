@@ -34,9 +34,10 @@ class Client:
         self.features: Dict[str, List[Feature]] = {}
         self._newer_version: Optional[DarwinVersionNumber] = None
 
-        self.log = log
-        if self.log is None:
-            self.log = logging.getLogger()
+        if log is None:
+            self.log: Logger = logging.getLogger()
+        else:
+            self.log = log
 
     def _get_raw(self, endpoint: str, team: Optional[str] = None, retry: bool = False) -> Response:
         response: Response = requests.get(urljoin(self.url, endpoint), headers=self._get_headers(team))
