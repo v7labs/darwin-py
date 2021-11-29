@@ -39,23 +39,19 @@ class Client:
         response: Response = requests.get(urljoin(self.url, endpoint), headers=self._get_headers(team))
 
         self.log.debug(
-            f"Client get request response ({response.text}) with status "
+            f"Client GET request response ({response.text}) with status "
             f"({response.status_code}). "
             f"Client: ({self})"
             f"Request: (endpoint={endpoint})"
         )
 
-        if response.status_code == 401:
-            raise Unauthorized()
-
-        if response.status_code == 404:
-            raise NotFound(urljoin(self.url, endpoint))
+        self._raise_if_known_error(response, endpoint)
 
         if not response.ok and retry:
             time.sleep(10)
             return self._get_raw(endpoint=endpoint, retry=False)
-        elif not response.ok:
-            response.raise_for_status()
+
+        response.raise_for_status()
 
         return response
 
@@ -103,24 +99,13 @@ class Client:
             f"Request: (endpoint={endpoint}, payload={payload})"
         )
 
-        if response.status_code == 401:
-            raise Unauthorized()
-
-        if response.status_code == 429:
-            error_code: Optional[str] = None
-            try:
-                error_code = response.json()["errors"]["code"]
-            except:
-                pass
-
-            if error_code == "INSUFFICIENT_REMAINING_STORAGE":
-                raise InsufficientStorage()
+        self._raise_if_known_error(response, endpoint)
 
         if not response.ok and retry:
             time.sleep(10)
             return self._put_raw(endpoint, payload=payload, retry=False)
-        elif not response.ok:
-            response.raise_for_status()
+
+        response.raise_for_status()
 
         return response
 
@@ -160,9 +145,7 @@ class Client:
             What you want to put on the server (typically json encoded)
         retry : bool
             Retry to perform the operation. Set to False on recursive calls.
-        refresh : bool
-            Flag for use the refresh token instead
-
+        refresh : boolself._raise_if_known_error(response, endpoint)
         Returns
         -------
         dict
@@ -174,28 +157,19 @@ class Client:
         response: Response = requests.post(urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team))
 
         self.log.debug(
-            f"Client get request response ({response.json()}) with unexpected status "
+            f"Client POST request response ({response.json()}) with unexpected status "
             f"({response.status_code}). "
             f"Client: ({self})"
             f"Request: (endpoint={endpoint}, payload={payload})"
         )
 
-        if response.status_code == 401:
-            raise Unauthorized()
-
-        body = response.json()
-        is_name_taken = body.get("errors", {}).get("name") == ["has already been taken"]
-        if response.status_code == 422:
-            if is_name_taken:
-                raise NameTaken
-            raise ValidationError(body)
+        self._raise_if_known_error(response, endpoint)
 
         if not response.ok and retry:
             time.sleep(10)
             return self._post(endpoint, payload=payload, retry=False)
 
-        if not retry:
-            response.raise_for_status()
+        response.raise_for_status()
 
         return self._decode_response(response)
 
@@ -228,23 +202,51 @@ class Client:
         )
 
         self.log.debug(
-            f"Client get request response ({response.json()}) with unexpected status "
+            f"Client DELETE request response ({response.json()}) with unexpected status "
             f"({response.status_code}). "
             f"Client: ({self})"
             f"Request: (endpoint={endpoint})"
         )
 
-        if response.status_code == 401:
-            raise Unauthorized()
-
-        if not retry:
-            response.raise_for_status()
+        self._raise_if_known_error(response, endpoint)
 
         if not response.ok and retry:
             time.sleep(10)
             return self._delete(endpoint, payload=payload, retry=False)
 
+        response.raise_for_status()
+
         return self._decode_response(response)
+
+    def _raise_if_known_error(self, response: Response, endpoint: str) -> None:
+
+        if response.status_code == 401:
+            raise Unauthorized()
+
+        if response.status_code == 404:
+            raise NotFound(urljoin(self.url, endpoint))
+
+        is_json = response.headers.get("content-type") == "application/json"
+        if is_json:
+            body = response.json()
+            is_name_taken: Optional[bool] = None
+            if isinstance(body, Dict):
+                is_name_taken = body.get("errors", {}).get("name") == ["has already been taken"]
+
+            if response.status_code == 422:
+                if is_name_taken:
+                    raise NameTaken
+                raise ValidationError(body)
+
+        if response.status_code == 429:
+            error_code: Optional[str] = None
+            try:
+                error_code = response.json()["errors"]["code"]
+            except:
+                pass
+
+            if error_code == "INSUFFICIENT_REMAINING_STORAGE":
+                raise InsufficientStorage()
 
     def list_local_datasets(self, team: Optional[str] = None) -> Iterator[Path]:
         """
@@ -693,7 +695,7 @@ class Client:
         api_url: str = Client.default_api_url()
         response: requests.Response = requests.get(urljoin(api_url, "/users/token_info"), headers=headers)
 
-        if response.status_code != 200:
+        if not response.ok:
             raise InvalidLogin()
 
         data: Dict[str, Any] = response.json()
