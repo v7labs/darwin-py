@@ -4,6 +4,7 @@ import time
 from logging import Logger
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional, Union, cast
+from urllib import parse
 
 import requests
 from requests import Response
@@ -16,8 +17,10 @@ from darwin.exceptions import (
     InsufficientStorage,
     InvalidLogin,
     MissingConfig,
+    NameTaken,
     NotFound,
     Unauthorized,
+    ValidationError,
 )
 from darwin.utils import is_project_dir, urljoin
 
@@ -180,12 +183,19 @@ class Client:
         if response.status_code == 401:
             raise Unauthorized()
 
-        if not retry:
-            response.raise_for_status()
+        body = response.json()
+        is_name_taken = body.get("errors", {}).get("name") == ["has already been taken"]
+        if response.status_code == 422:
+            if is_name_taken:
+                raise NameTaken
+            raise ValidationError(body)
 
-        if response.status_code != 200 and retry:
+        if not response.ok and retry:
             time.sleep(10)
             return self._post(endpoint, payload=payload, retry=False)
+
+        if not retry:
+            response.raise_for_status()
 
         return self._decode_response(response)
 
@@ -230,7 +240,7 @@ class Client:
         if not retry:
             response.raise_for_status()
 
-        if response.status_code != 200 and retry:
+        if not response.ok and retry:
             time.sleep(10)
             return self._delete(endpoint, payload=payload, retry=False)
 
@@ -358,6 +368,17 @@ class Client:
             client=self,
         )
 
+    def archive_remote_dataset(self, dataset_id: int, team_slug: str) -> None:
+        self._put(f"datasets/{dataset_id}/archive", payload={}, team=team_slug)
+
+    def fetch_remote_files(
+        self, dataset_id: int, cursor: Dict[str, Any], payload: Any, team_slug: str
+    ) -> Dict[str, Any]:
+        response: Dict[str, Any] = cast(
+            Dict[str, Any], self._post(f"/datasets/{dataset_id}/items?{parse.urlencode(cursor)}", payload, team_slug)
+        )
+        return response
+
     def fetch_remote_classes(self, team: Optional[str] = None) -> Optional[Dict[str, Any]]:
         """Fetches all remote classes on the remote dataset"""
         the_team: Optional[Team] = self.config.get_team(team or self.default_team)
@@ -371,6 +392,26 @@ class Client:
         )
 
         return response["annotation_classes"]
+
+    def update_annotation_class(self, class_id: int, payload: Any) -> Dict[str, Any]:
+        response: Dict[str, Any] = cast(Dict[str, Any], self._put(f"/annotation_classes/{class_id}", payload))
+        return response
+
+    def create_annotation_class(self, dataset_id: int, type_ids: List[int], name: str) -> Dict[str, Any]:
+        response: Dict[str, Any] = cast(
+            Dict[str, Any],
+            self._post(
+                "/annotation_classes",
+                payload={
+                    "dataset_id": dataset_id,
+                    "name": name,
+                    "metadata": {"_color": "auto"},
+                    "annotation_type_ids": type_ids,
+                    "datasets": [{"id": dataset_id}],
+                },
+            ),
+        )
+        return response
 
     def fetch_remote_attributes(self, dataset_id: int) -> List[Dict[str, Any]]:
         response: List[Dict[str, Any]] = cast(List[Dict[str, Any]], self._get(f"/datasets/{dataset_id}/attributes"))
@@ -512,6 +553,9 @@ class Client:
         )
         return response
 
+    def create_export(self, dataset_id: int, payload: Any, team_slug: str) -> None:
+        self._post(f"/datasets/{dataset_id}/exports", payload=payload, team=team_slug)
+
     def get_report(self, dataset_id: int, granularity: str, team: Optional[str] = None) -> Optional[Response]:
         the_team: Optional[Team] = self.config.get_team(team or self.default_team)
 
@@ -527,6 +571,18 @@ class Client:
 
     def delete_item(self, dataset_slug: str, team_slug: str, payload: Any) -> None:
         self._delete(f"teams/{team_slug}/datasets/{dataset_slug}/items", payload, team_slug)
+
+    def archive_item(self, dataset_slug: str, team_slug: str, payload: Any) -> None:
+        self._put(f"teams/{team_slug}/datasets/{dataset_slug}/items/archive", payload, team_slug)
+
+    def restore_archived_item(self, dataset_slug: str, team_slug: str, payload: Any) -> None:
+        self._put(f"teams/{team_slug}/datasets/{dataset_slug}/items/restore", payload, team_slug)
+
+    def move_item_to_new(self, dataset_slug: str, team_slug: str, payload: Any) -> None:
+        self._put(f"teams/{team_slug}/datasets/{dataset_slug}/items/move_to_new", payload, team_slug)
+
+    def reset_item(self, dataset_slug: str, team_slug: str, payload: Any) -> None:
+        self._put(f"teams/{team_slug}/datasets/{dataset_slug}/items/reset", payload, team_slug)
 
     def _get_headers(self, team: Optional[str] = None) -> Dict[str, str]:
         """Get the headers of the API calls to the backend.

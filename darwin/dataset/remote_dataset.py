@@ -339,13 +339,12 @@ class RemoteDataset:
 
     def remove_remote(self) -> None:
         """Archives (soft-deletion) the remote dataset"""
-        self.client.put(f"datasets/{self.dataset_id}/archive", payload={}, team=self.team)
+        self.client.archive_remote_dataset(self.dataset_id, self.team)
 
     def fetch_remote_files(
         self, filters: Optional[Dict[str, Union[str, List[str]]]] = None, sort: Optional[Union[str, ItemSorter]] = None
     ) -> Iterator[DatasetItem]:
         """Fetch and lists all files on the remote dataset"""
-        base_url: str = f"/datasets/{self.dataset_id}/items"
         post_filters: Dict[str, str] = {}
         post_sort: Dict[str, str] = {}
 
@@ -366,9 +365,9 @@ class RemoteDataset:
                 post_sort[item_sorter.field] = item_sorter.direction.value
         cursor = {"page[size]": 500}
         while True:
-            response = self.client.post(
-                f"{base_url}?{parse.urlencode(cursor)}", {"filter": post_filters, "sort": post_sort}, team=self.team
-            )
+            payload = {"filter": post_filters, "sort": post_sort}
+            response = self.client.fetch_remote_files(self.dataset_id, cursor, payload, self.team)
+
             yield from [parse_dataset_item(item) for item in response["items"]]
 
             if response["metadata"]["next"]:
@@ -377,24 +376,20 @@ class RemoteDataset:
                 return
 
     def archive(self, items: Iterator[DatasetItem]) -> None:
-        endpoint: str = f"teams/{self.team}/datasets/{self.slug}/items/archive"
         payload: Dict[str, Any] = {"filter": {"dataset_item_ids": [item.id for item in items]}}
-        self.client.put(endpoint, payload)
+        self.client.archive_item(self.slug, self.team, payload)
 
     def restore_archived(self, items: Iterator[DatasetItem]) -> None:
-        endpoint: str = f"teams/{self.team}/datasets/{self.slug}/items/restore"
         payload: Dict[str, Any] = {"filter": {"dataset_item_ids": [item.id for item in items]}}
-        self.client.put(endpoint, payload)
+        self.client.restore_archived_item(self.slug, self.team, payload)
 
     def move_to_new(self, items: Iterator[DatasetItem]) -> None:
-        endpoint: str = f"teams/{self.team}/datasets/{self.slug}/items/move_to_new"
         payload: Dict[str, Any] = {"filter": {"dataset_item_ids": [item.id for item in items]}}
-        self.client.put(endpoint, payload)
+        self.client.move_item_to_new(self.slug, self.team, payload)
 
     def reset(self, items: Iterator[DatasetItem]) -> None:
-        endpoint: str = f"teams/{self.team}/datasets/{self.slug}/items/reset"
         payload: Dict[str, Any] = {"filter": {"dataset_item_ids": [item.id for item in items]}}
-        self.client.put(endpoint, payload)
+        self.client.reset_item(self.slug, self.team, payload)
 
     def delete_items(self, items: Iterator[DatasetItem]) -> None:
         payload: Dict[str, Any] = {"filter": {"dataset_item_ids": [item.id for item in items]}}
@@ -459,24 +454,14 @@ class RemoteDataset:
         type_ids: List[int] = []
         for annotation_type in [type] + subtypes:
             type_id: Optional[int] = self.fetch_annotation_type_id_for_name(annotation_type)
-            if not type_id:
+            if not type_id and self.annotation_types is not None:
                 list_of_annotation_types = ", ".join([type["name"] for type in self.annotation_types])
                 raise ValueError(
                     f"Unknown annotation type: '{annotation_type}', valid values: {list_of_annotation_types}"
                 )
             type_ids.append(type_id)
 
-        return self.client.post(
-            f"/annotation_classes",
-            payload={
-                "dataset_id": self.dataset_id,
-                "name": name,
-                "metadata": {"_color": "auto"},
-                "annotation_type_ids": type_ids,
-                "datasets": [{"id": self.dataset_id}],
-            },
-            error_handlers=[name_taken, validation_error],
-        )
+        return self.client.create_annotation_class(self.dataset_id, type_ids, name)
 
     def add_annotation_class(self, annotation_class: Union[AnnotationClass, int]) -> Optional[Dict[str, Any]]:
         """
@@ -521,7 +506,9 @@ class RemoteDataset:
                 return None
         datasets.append({"id": self.dataset_id})
         # we typecast to dictionary because we are not passing the raw=True parameter.
-        return self.client.put(f"/annotation_classes/{match[0]['id']}", {"datasets": datasets, "id": match[0]["id"]})
+        class_id = match[0]["id"]
+        payload = {"datasets": datasets, "id": class_id}
+        return self.client.update_annotation_class(class_id, payload)
 
     def fetch_remote_classes(self, team_wide=False) -> Optional[List[Dict[str, Any]]]:
         """
@@ -578,12 +565,7 @@ class RemoteDataset:
             "name": name,
             "include_export_token": include_url_token,
         }
-        self.client.post(
-            f"/datasets/{self.dataset_id}/exports",
-            payload=payload,
-            team=self.team,
-            error_handlers=[name_taken, validation_error],
-        )
+        self.client.create_export(self.dataset_id, payload, self.team)
 
     def get_report(self, granularity: str = "day") -> str:
         response: Optional[Response] = self.client.get_report(self.dataset_id, granularity, self.team)
