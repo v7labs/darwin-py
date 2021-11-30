@@ -39,144 +39,6 @@ class Client:
         else:
             self.log = log
 
-    def _get_raw(self, endpoint: str, team: Optional[str] = None, retry: bool = False) -> Response:
-        response: Response = requests.get(urljoin(self.url, endpoint), headers=self._get_headers(team))
-
-        self.log.debug(
-            f"Client GET request response ({response.text}) with status "
-            f"({response.status_code}). "
-            f"Client: ({self})"
-            f"Request: (endpoint={endpoint})"
-        )
-
-        self._raise_if_known_error(response, endpoint)
-
-        if not response.ok and retry:
-            time.sleep(10)
-            return self._get_raw(endpoint=endpoint, retry=False)
-
-        response.raise_for_status()
-
-        return response
-
-    def _get(
-        self, endpoint: str, team: Optional[str] = None, retry: bool = False
-    ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
-        response = self._get_raw(endpoint, team, retry)
-        return self._decode_response(response)
-
-    def _put_raw(
-        self, endpoint: str, payload: Dict[str, Any], team: Optional[str] = None, retry: bool = False
-    ) -> Response:
-        response: requests.Response = requests.put(
-            urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team)
-        )
-
-        self.log.debug(
-            f"Client PUT request got response ({response.text}) with status "
-            f"({response.status_code}). "
-            f"Client: ({self})"
-            f"Request: (endpoint={endpoint}, payload={payload})"
-        )
-
-        self._raise_if_known_error(response, endpoint)
-
-        if not response.ok and retry:
-            time.sleep(10)
-            return self._put_raw(endpoint, payload=payload, retry=False)
-
-        response.raise_for_status()
-
-        return response
-
-    def _put(
-        self, endpoint: str, payload: Dict[str, Any], team: Optional[str] = None, retry: bool = False
-    ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
-        response = self._put_raw(endpoint, payload, team, retry)
-        return self._decode_response(response)
-
-    def _post(
-        self, endpoint: str, payload: Optional[Dict[Any, Any]] = None, team: Optional[str] = None, retry: bool = False,
-    ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
-        if payload is None:
-            payload = {}
-
-        response: Response = requests.post(urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team))
-
-        self.log.debug(
-            f"Client POST request response ({response.json()}) with unexpected status "
-            f"({response.status_code}). "
-            f"Client: ({self})"
-            f"Request: (endpoint={endpoint}, payload={payload})"
-        )
-
-        self._raise_if_known_error(response, endpoint)
-
-        if not response.ok and retry:
-            time.sleep(10)
-            return self._post(endpoint, payload=payload, retry=False)
-
-        response.raise_for_status()
-
-        return self._decode_response(response)
-
-    def _delete(
-        self, endpoint: str, payload: Optional[Dict[Any, Any]] = None, team: Optional[str] = None, retry: bool = False,
-    ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
-        if payload is None:
-            payload = {}
-
-        response: requests.Response = requests.delete(
-            urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team)
-        )
-
-        self.log.debug(
-            f"Client DELETE request response ({response.json()}) with unexpected status "
-            f"({response.status_code}). "
-            f"Client: ({self})"
-            f"Request: (endpoint={endpoint})"
-        )
-
-        self._raise_if_known_error(response, endpoint)
-
-        if not response.ok and retry:
-            time.sleep(10)
-            return self._delete(endpoint, payload=payload, retry=False)
-
-        response.raise_for_status()
-
-        return self._decode_response(response)
-
-    def _raise_if_known_error(self, response: Response, endpoint: str) -> None:
-
-        if response.status_code == 401:
-            raise Unauthorized()
-
-        if response.status_code == 404:
-            raise NotFound(urljoin(self.url, endpoint))
-
-        is_json = response.headers.get("content-type") == "application/json"
-        if is_json:
-            body = response.json()
-            is_name_taken: Optional[bool] = None
-            if isinstance(body, Dict):
-                is_name_taken = body.get("errors", {}).get("name") == ["has already been taken"]
-
-            if response.status_code == 422:
-                if is_name_taken:
-                    raise NameTaken
-                raise ValidationError(body)
-
-        if response.status_code == 429:
-            error_code: Optional[str] = None
-            try:
-                error_code = response.json()["errors"]["code"]
-            except:
-                pass
-
-            if error_code == "INSUFFICIENT_REMAINING_STORAGE":
-                raise InsufficientStorage()
-
     def list_local_datasets(self, team: Optional[str] = None) -> Iterator[Path]:
         """
         Returns a list of all local folders which are detected as dataset.
@@ -386,11 +248,43 @@ class Client:
 
         return response["annotation_classes"]
 
-    def update_annotation_class(self, class_id: int, payload: Any) -> Dict[str, Any]:
+    def update_annotation_class(self, class_id: int, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Updates the AnnotationClass with the given id.
+        
+        Parameters
+        ----------
+        class_id: int
+            The id of the AnnotationClass to update.
+        payload: Dict[str, Any]
+            A dictionary with the changes to perform. 
+
+        Returns
+        -------
+        Dict[str, Any]
+            A dictionary with the result of the operation.
+        """
         response: Dict[str, Any] = cast(Dict[str, Any], self._put(f"/annotation_classes/{class_id}", payload))
         return response
 
     def create_annotation_class(self, dataset_id: int, type_ids: List[int], name: str) -> Dict[str, Any]:
+        """
+        Creates an AnnotationClass.
+        
+        Parameters
+        ----------
+        dataset_id: int
+            The id of the dataset this AnnotationClass will belong to originaly. 
+        type_ids: List[int]
+            A list of type ids for the annotations this class will hold. 
+        name: str
+            The name of the annotation class.
+
+        Returns
+        -------
+        Dict[str, Any]
+            A dictionary with the result of the operation.
+        """
         response: Dict[str, Any] = cast(
             Dict[str, Any],
             self._post(
@@ -407,11 +301,33 @@ class Client:
         return response
 
     def fetch_remote_attributes(self, dataset_id: int) -> List[Dict[str, Any]]:
+        """
+        Fetches all attributes remotly.
+        
+        Parameters
+        ----------
+        dataset_id: int
+            The id of the dataset with the attributes we want to fetch.
+       
+
+        Returns
+        -------
+        List[Dict[str, Any]]
+            A List with the attributes. where each attribute is a dictionary. 
+        """
         response: List[Dict[str, Any]] = cast(List[Dict[str, Any]], self._get(f"/datasets/{dataset_id}/attributes"))
         return response
 
     def load_feature_flags(self, team: Optional[str] = None) -> None:
-        """Gets current features enabled for a team"""
+        """
+        Loads in memory the set of current features enabled for a team.
+        
+        Parameters
+        ----------
+        team: Optional[str]
+            Team slug of the team the dataset will belong to. Defaults to None.
+        """
+
         the_team: Optional[Team] = self.config.get_team(team or self.default_team)
 
         if not the_team:
@@ -426,13 +342,13 @@ class Client:
 
         Parameters
         ----------
-        team_slug : str
-            Slug of the team.
+        team: Optional[str]
+            Team slug of the team the dataset will belong to. Defaults to None.
 
         Returns
         -------
-        List[FeaturePayload]
-            List of feature for the given team.
+        List[Feature]
+            List of Features for the given team.
         """
         response: List[Dict[str, Any]] = cast(List[Dict[str, Any]], self._get(f"/teams/{team_slug}/features"))
 
@@ -443,6 +359,21 @@ class Client:
         return features
 
     def feature_enabled(self, feature_name: str, team: Optional[str] = None) -> bool:
+        """
+        Returns whether or not a given feature is enabled for a team.
+
+        Parameters
+        ----------
+        feature_name: str
+            The name of the feature.
+        team: Optional[str]
+            Team slug of the team the dataset will belong to. Defaults to None.
+
+        Returns
+        -------
+        bool
+            False if the given feature is not enabled OR the team was not found. True otherwise.
+        """
         the_team: Optional[Team] = self.config.get_team(team or self.default_team)
 
         if not the_team:
@@ -461,17 +392,19 @@ class Client:
         return False
 
     def get_datasets_dir(self, team: Optional[str] = None) -> Optional[str]:
-        """Gets the dataset directory of the specified team or the default one
+        """
+        Gets the dataset directory of the specified team or the default one
 
         Parameters
         ----------
-        team: str
-            Team to get the directory from
+        team: Optional[str]
+            Team slug of the team the dataset will belong to. Defaults to None.
 
         Returns
         -------
-        str
-            Path of the datasets for the selected team or the default one
+        Optional[str]
+            Path of the datasets for the selected team or the default one, or None if the Team was 
+            not found.
         """
         the_team: Optional[Team] = self.config.get_team(team or self.default_team)
 
@@ -481,18 +414,29 @@ class Client:
         return the_team.datasets_dir
 
     def set_datasets_dir(self, datasets_dir: Path, team: Optional[str] = None) -> None:
-        """Sets the dataset directory of the specified team or the default one
+        """
+        Sets the dataset directory of the specified team or the default one.
 
         Parameters
         ----------
         datasets_dir: Path
-            Path to set as dataset directory of the team
-        team: str
-            Team to change the directory to
+            Path to set as dataset directory of the team.
+        team: Optional[str]
+            Team slug of the team the dataset will belong to. Defaults to None.
         """
         self.config.put(f"teams/{team or self.default_team}/datasets_dir", datasets_dir)
 
     def confirm_upload(self, dataset_item_id: int, team: Optional[str] = None) -> None:
+        """
+        Confirms that the item was uploaded.
+
+        Parameters
+        ----------
+        dataset_item_id: int
+            The id of the DatasetItem that was uploaded.
+        team: Optional[str]
+            Team slug of the team the dataset will belong to. Defaults to None.
+        """
         the_team: Optional[Team] = self.config.get_team(team or self.default_team)
 
         if not the_team:
@@ -503,6 +447,21 @@ class Client:
         self._put_raw(endpoint=f"/dataset_items/{dataset_item_id}/confirm_upload", payload={}, team=team_slug)
 
     def sign_upload(self, dataset_item_id: int, team: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        """
+        Signs the upload of the given DatasetItem.
+
+        Parameters
+        ----------
+        dataset_item_id: int
+            The id of the DatasetItem that was uploaded.
+        team: Optional[str]
+            Team slug of the team the dataset will belong to. Defaults to None.
+
+        Returns
+        ------
+        Optional[Dict[str, Any]]
+            A dictionary with the signed response, or None if the Team was not found.
+        """
         the_team: Optional[Team] = self.config.get_team(team or self.default_team)
 
         if not the_team:
@@ -515,7 +474,27 @@ class Client:
         )
         return response
 
-    def upload_data(self, dataset_slug: str, payload: Any, team: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    def upload_data(
+        self, dataset_slug: str, payload: Dict[str, Any], team: Optional[str] = None
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Uploads the given data to the given dataset.
+
+        Parameters
+        ----------
+        dataset_slug: str
+            The slug of the dataset.
+        payload: Dict[str, Any]
+            The data we want to upload. Usually a Dictionary with an `items` key containing a list 
+            of items to upload.
+        team: Optional[str]
+            Team slug of the team the dataset will belong to. Defaults to None.
+
+        Returns
+        ------
+        Optional[Dict[str, Any]]
+            A dictionary with the result of the operation, or None if the Team was not found.
+        """
         the_team: Optional[Team] = self.config.get_team(team or self.default_team)
 
         if not the_team:
@@ -530,10 +509,33 @@ class Client:
         return response
 
     def annotation_types(self) -> List[Dict[str, Any]]:
+        """
+        Returns a list of annotation types.
+
+        Returns
+        ------
+        List[Dict[str, Any]]
+            A list with the annotation types as dictionaries.
+        """
         response: List[Dict[str, Any]] = cast(List[Dict[str, Any]], self._get("/annotation_types"))
         return response
 
     def get_exports(self, dataset_id: int, team: Optional[str] = None) -> Optional[List[Dict[str, Any]]]:
+        """
+        Get all the exports from the given dataset.
+
+        Parameters
+        ----------
+        dataset_id: int
+            The id of the dataset. 
+        team: Optional[str]
+            Team slug of the team the dataset will belong to. Defaults to None.
+
+        Returns
+        ------
+        Optional[List[Dict[str, Any]]]
+            A list with all the exports (as dictionaries) or None if the Team was not found.
+        """
         the_team: Optional[Team] = self.config.get_team(team or self.default_team)
 
         if not the_team:
@@ -546,10 +548,39 @@ class Client:
         )
         return response
 
-    def create_export(self, dataset_id: int, payload: Any, team_slug: str) -> None:
+    def create_export(self, dataset_id: int, payload: Dict[str, Any], team_slug: str) -> None:
+        """
+        Create an export for the given dataset.
+
+        Parameters
+        ----------
+        dataset_id: int
+            The id of the dataset. 
+        payload: Dict[str, Any]
+            The export infomation as a Dictionary.
+        team: Optional[str]
+            Team slug of the team the dataset will belong to. Defaults to None.
+        """
         self._post(f"/datasets/{dataset_id}/exports", payload=payload, team=team_slug)
 
     def get_report(self, dataset_id: int, granularity: str, team: Optional[str] = None) -> Optional[Response]:
+        """
+        Gets the report for the given dataset.
+
+        Parameters
+        ----------
+        dataset_id: int
+            The id of the dataset.
+        granularity: str
+            Granualirity of the report, can be 'day', 'week' or 'month'.
+        team: Optional[str]
+            Team slug of the team the dataset will belong to. Defaults to None.
+
+        Returns
+        ------
+        Optional[Response]
+            The raw response of the report (CSV format) or None if the Team was not found.
+        """
         the_team: Optional[Team] = self.config.get_team(team or self.default_team)
 
         if not the_team:
@@ -562,56 +593,95 @@ class Client:
             team_slug,
         )
 
-    def delete_item(self, dataset_slug: str, team_slug: str, payload: Any) -> None:
-        self._delete(f"teams/{team_slug}/datasets/{dataset_slug}/items", payload, team_slug)
-
-    def archive_item(self, dataset_slug: str, team_slug: str, payload: Any) -> None:
-        self._put(f"teams/{team_slug}/datasets/{dataset_slug}/items/archive", payload, team_slug)
-
-    def restore_archived_item(self, dataset_slug: str, team_slug: str, payload: Any) -> None:
-        self._put(f"teams/{team_slug}/datasets/{dataset_slug}/items/restore", payload, team_slug)
-
-    def move_item_to_new(self, dataset_slug: str, team_slug: str, payload: Any) -> None:
-        self._put(f"teams/{team_slug}/datasets/{dataset_slug}/items/move_to_new", payload, team_slug)
-
-    def reset_item(self, dataset_slug: str, team_slug: str, payload: Any) -> None:
-        self._put(f"teams/{team_slug}/datasets/{dataset_slug}/items/reset", payload, team_slug)
-
-    def _get_headers(self, team: Optional[str] = None) -> Dict[str, str]:
-        """Get the headers of the API calls to the backend.
+    def delete_item(self, dataset_slug: str, team_slug: str, payload: Dict[str, Any]) -> None:
+        """
+        Gets the report for the given dataset.
 
         Parameters
         ----------
-
-        Returns
-        -------
-        dict
-        Contains the Content-Type and Authorization token
+        dataset_slug: str
+            The slug of the dataset.
+        team_slug: str
+            The slug of the team.
+        payload: Dict[str, Any]
+            A filter Dictionary that defines the items to be deleted.
         """
-        headers: Dict[str, str] = {"Content-Type": "application/json"}
-        api_key: Optional[str] = None
-        team_config: Optional[Team] = self.config.get_team(team or self.default_team, raise_on_invalid_team=False)
+        self._delete(f"teams/{team_slug}/datasets/{dataset_slug}/items", payload, team_slug)
 
-        if team_config:
-            api_key = team_config.api_key
+    def archive_item(self, dataset_slug: str, team_slug: str, payload: Dict[str, Any]) -> None:
+        """
+        Archives the item from the given dataset.
 
-        if api_key and len(api_key) > 0:
-            headers["Authorization"] = f"ApiKey {api_key}"
+        Parameters
+        ----------
+        dataset_slug: str
+            The slug of the dataset.
+        team_slug: str
+            The slug of the team.
+        payload: Dict[str, Any]
+            A filter Dictionary that defines the items to be archived.
+        """
+        self._put(f"teams/{team_slug}/datasets/{dataset_slug}/items/archive", payload, team_slug)
 
-        from darwin import __version__
+    def restore_archived_item(self, dataset_slug: str, team_slug: str, payload: Dict[str, Any]) -> None:
+        """
+        Restores the archived item from the given dataset.
 
-        headers["User-Agent"] = f"darwin-py/{__version__}"
-        return headers
+        Parameters
+        ----------
+        dataset_slug: str
+            The slug of the dataset.
+        team_slug: str
+            The slug of the team.
+        payload: Dict[str, Any]
+            A filter Dictionary that defines the items to be restored.
+        """
+        self._put(f"teams/{team_slug}/datasets/{dataset_slug}/items/restore", payload, team_slug)
+
+    def move_item_to_new(self, dataset_slug: str, team_slug: str, payload: Dict[str, Any]) -> None:
+        """
+        Moves the given item's status to new.
+
+        Parameters
+        ----------
+        dataset_slug: str
+            The slug of the dataset.
+        team_slug: str
+            The slug of the team.
+        payload: Dict[str, Any]
+            A filter Dictionary that defines the items to have the 'new' status.
+        """
+        self._put(f"teams/{team_slug}/datasets/{dataset_slug}/items/move_to_new", payload, team_slug)
+
+    def reset_item(self, dataset_slug: str, team_slug: str, payload: Dict[str, Any]) -> None:
+        """
+        Resets the given item.
+
+        Parameters
+        ----------
+        dataset_slug: str
+            The slug of the dataset.
+        team_slug: str
+            The slug of the team.
+        payload: Dict[str, Any]
+            A filter Dictionary that defines the items to be reseted.
+        """
+        self._put(f"teams/{team_slug}/datasets/{dataset_slug}/items/reset", payload, team_slug)
 
     @classmethod
     def local(cls, team_slug: Optional[str] = None) -> "Client":
         """
         Factory method to use the default configuration file to init the client
 
+        Parameters
+        ----------
+        team: Optional[str]
+            Team slug of the team the dataset will belong to. Defaults to None.
+
         Returns
         -------
         Client
-        The initialized client
+            The initialized client.
         """
         config_path: Path = Path.home() / ".darwin" / "config.yaml"
         return Client.from_config(config_path, team_slug=team_slug)
@@ -625,11 +695,14 @@ class Client:
         ----------
         config_path : str
             Path to a configuration file to use to create the client
+        team: Optional[str]
+            Team slug of the team the dataset will belong to. Defaults to None.
+
 
         Returns
         -------
         Client
-        The initialized client
+            The initialized client.
         """
         if not config_path.exists():
             raise MissingConfig()
@@ -640,17 +713,17 @@ class Client:
     @classmethod
     def from_guest(cls, datasets_dir: Optional[Path] = None) -> "Client":
         """
-        Factory method to create a client and access datasets as a guest
+        Factory method to create a client and access datasets as a guest.
 
         Parameters
         ----------
-        datasets_dir : str
-            String where the client should be initialized from (aka the root path)
+        datasets_dir : Optional[Path]
+            String where the client should be initialized from (aka the root path). Defaults to None.
 
         Returns
         -------
         Client
-            The initialized client
+            The initialized client.
         """
         if datasets_dir is None:
             datasets_dir = Path.home() / ".darwin" / "datasets"
@@ -663,19 +736,19 @@ class Client:
     @classmethod
     def from_api_key(cls, api_key: str, datasets_dir: Optional[Path] = None) -> "Client":
         """
-        Factory method to create a client given an API key
+        Factory method to create a client given an API key.
 
         Parameters
         ----------
         api_key: str
             API key to use to authenticate the client
-        datasets_dir : str
-            String where the client should be initialized from (aka the root path)
+        datasets_dir : Optional[Path]
+            String where the client should be initialized from (aka the root path). Defaults to None.
 
         Returns
         -------
         Client
-            The initialized client
+            The initialized client.
         """
         if not datasets_dir:
             datasets_dir = Path.home() / ".darwin" / "datasets"
@@ -698,13 +771,181 @@ class Client:
 
     @staticmethod
     def default_api_url() -> str:
-        """Returns the default api url"""
+        """
+        Returns the default api url.
+        
+        Returns
+        -------
+        str
+            The default api url.
+        """
         return f"{Client.default_base_url()}/api/"
 
     @staticmethod
     def default_base_url() -> str:
-        """Returns the default base url"""
+        """
+        Returns the default base url.
+        
+        Returns
+        -------
+        str
+            The default base url.
+        """
         return os.getenv("DARWIN_BASE_URL", "https://darwin.v7labs.com")
+
+    def _get_headers(self, team: Optional[str] = None) -> Dict[str, str]:
+        headers: Dict[str, str] = {"Content-Type": "application/json"}
+        api_key: Optional[str] = None
+        team_config: Optional[Team] = self.config.get_team(team or self.default_team, raise_on_invalid_team=False)
+
+        if team_config:
+            api_key = team_config.api_key
+
+        if api_key and len(api_key) > 0:
+            headers["Authorization"] = f"ApiKey {api_key}"
+
+        from darwin import __version__
+
+        headers["User-Agent"] = f"darwin-py/{__version__}"
+        return headers
+
+    def _get_raw(self, endpoint: str, team: Optional[str] = None, retry: bool = False) -> Response:
+        response: Response = requests.get(urljoin(self.url, endpoint), headers=self._get_headers(team))
+
+        self.log.debug(
+            f"Client GET request response ({response.text}) with status "
+            f"({response.status_code}). "
+            f"Client: ({self})"
+            f"Request: (endpoint={endpoint})"
+        )
+
+        self._raise_if_known_error(response, endpoint)
+
+        if not response.ok and retry:
+            time.sleep(10)
+            return self._get_raw(endpoint=endpoint, retry=False)
+
+        response.raise_for_status()
+
+        return response
+
+    def _get(
+        self, endpoint: str, team: Optional[str] = None, retry: bool = False
+    ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+        response = self._get_raw(endpoint, team, retry)
+        return self._decode_response(response)
+
+    def _put_raw(
+        self, endpoint: str, payload: Dict[str, Any], team: Optional[str] = None, retry: bool = False
+    ) -> Response:
+        response: requests.Response = requests.put(
+            urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team)
+        )
+
+        self.log.debug(
+            f"Client PUT request got response ({response.text}) with status "
+            f"({response.status_code}). "
+            f"Client: ({self})"
+            f"Request: (endpoint={endpoint}, payload={payload})"
+        )
+
+        self._raise_if_known_error(response, endpoint)
+
+        if not response.ok and retry:
+            time.sleep(10)
+            return self._put_raw(endpoint, payload=payload, retry=False)
+
+        response.raise_for_status()
+
+        return response
+
+    def _put(
+        self, endpoint: str, payload: Dict[str, Any], team: Optional[str] = None, retry: bool = False
+    ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+        response = self._put_raw(endpoint, payload, team, retry)
+        return self._decode_response(response)
+
+    def _post(
+        self, endpoint: str, payload: Optional[Dict[Any, Any]] = None, team: Optional[str] = None, retry: bool = False,
+    ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+        if payload is None:
+            payload = {}
+
+        response: Response = requests.post(urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team))
+
+        self.log.debug(
+            f"Client POST request response ({response.json()}) with unexpected status "
+            f"({response.status_code}). "
+            f"Client: ({self})"
+            f"Request: (endpoint={endpoint}, payload={payload})"
+        )
+
+        self._raise_if_known_error(response, endpoint)
+
+        if not response.ok and retry:
+            time.sleep(10)
+            return self._post(endpoint, payload=payload, retry=False)
+
+        response.raise_for_status()
+
+        return self._decode_response(response)
+
+    def _delete(
+        self, endpoint: str, payload: Optional[Dict[Any, Any]] = None, team: Optional[str] = None, retry: bool = False,
+    ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+        if payload is None:
+            payload = {}
+
+        response: requests.Response = requests.delete(
+            urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team)
+        )
+
+        self.log.debug(
+            f"Client DELETE request response ({response.json()}) with unexpected status "
+            f"({response.status_code}). "
+            f"Client: ({self})"
+            f"Request: (endpoint={endpoint})"
+        )
+
+        self._raise_if_known_error(response, endpoint)
+
+        if not response.ok and retry:
+            time.sleep(10)
+            return self._delete(endpoint, payload=payload, retry=False)
+
+        response.raise_for_status()
+
+        return self._decode_response(response)
+
+    def _raise_if_known_error(self, response: Response, endpoint: str) -> None:
+
+        if response.status_code == 401:
+            raise Unauthorized()
+
+        if response.status_code == 404:
+            raise NotFound(urljoin(self.url, endpoint))
+
+        is_json = response.headers.get("content-type") == "application/json"
+        if is_json:
+            body = response.json()
+            is_name_taken: Optional[bool] = None
+            if isinstance(body, Dict):
+                is_name_taken = body.get("errors", {}).get("name") == ["has already been taken"]
+
+            if response.status_code == 422:
+                if is_name_taken:
+                    raise NameTaken
+                raise ValidationError(body)
+
+        if response.status_code == 429:
+            error_code: Optional[str] = None
+            try:
+                error_code = response.json()["errors"]["code"]
+            except:
+                pass
+
+            if error_code == "INSUFFICIENT_REMAINING_STORAGE":
+                raise InsufficientStorage()
 
     def _decode_response(self, response: requests.Response) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
         """Decode the response as JSON entry or return a dictionary with the error
