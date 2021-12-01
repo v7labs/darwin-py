@@ -62,6 +62,14 @@ from darwin.utils import (
 
 
 def validate_api_key(api_key: str) -> None:
+    """
+    Validates the given API key. Exits the application if it fails validation. 
+
+    Parameters
+    ----------
+    api_key: str
+        The API key to be validated.
+    """
     example_key = "DHMhAWr.BHucps-tKMAi6rWF1xieOpUvNe5WzrHP"
 
     if len(api_key) != 40:
@@ -75,21 +83,22 @@ def validate_api_key(api_key: str) -> None:
 
 
 def authenticate(api_key: str, default_team: Optional[bool] = None, datasets_dir: Optional[Path] = None) -> Config:
-    """Authenticate the API key against the server and creates a configuration file for it
+    """
+    Authenticate the API key against the server and creates a configuration file for it.
 
     Parameters
     ----------
     api_key : str
-        API key to use for the client login
+        API key to use for the client login.
     default_team: Optional[bool]
-        Flag to make the team the default one
+        Flag to make the team the default one. Defaults to None.
     datasets_dir: Optional[Path]
         Dataset directory on the file system. Defaults to None.
 
     Returns
     -------
     Config
-    A configuration object to handle YAML files
+    A configuration object to handle YAML files.
     """
     # Resolve the home folder if the dataset_dir starts with ~ or ~user
 
@@ -118,13 +127,13 @@ def authenticate(api_key: str, default_team: Optional[bool] = None, datasets_dir
 
 
 def current_team() -> None:
-    """Print the team currently authenticated against"""
+    """Print the team currently authenticated against."""
     client: Client = _load_client()
     print(client.default_team)
 
 
 def list_teams() -> None:
-    """Print a table of teams to which the client belong to"""
+    """Print a table of teams to which the client belong to."""
     for team in _config().get_all_teams():
         if team.default:
             print(f"{team.slug} (default)")
@@ -133,20 +142,28 @@ def list_teams() -> None:
 
 
 def set_team(team_slug: str) -> None:
-    """Switches the client to the selected team and persist the change on the configuration file
+    """
+    Switches the client to the selected team and persist the change on the configuration file.
 
     Parameters
     ----------
     team_slug : str
-        Slug of the team to switch to
+        Slug of the team to switch to.
     """
-
     config = _config()
     config.set_default_team(team_slug)
 
 
 def create_dataset(dataset_slug: str) -> None:
-    """Creates a dataset remotely"""
+    """
+    Creates a dataset remotely. Exits the application if the dataset's name is already taken or is 
+    not valid.
+    
+    Parameters
+    ----------
+    dataset_slug : str
+        Slug of the new dataset.
+    """
     identifier: DatasetIdentifier = DatasetIdentifier.parse(dataset_slug)
     client: Client = _load_client(team_slug=identifier.team_slug)
     try:
@@ -162,8 +179,14 @@ def create_dataset(dataset_slug: str) -> None:
 
 
 def local(team: Optional[str] = None) -> None:
-    """Lists synced datasets, stored in the specified path."""
-
+    """
+    Lists synced datasets, stored in the specified path.
+    
+    Parameters
+    ----------
+    team: Optional[str]
+        The name of the team to list, or the defautl one if no team is given. Defaults to None.
+    """
     table: Table = Table(show_header=True, header_style="bold cyan")
     table.add_column("Name")
     table.add_column("Image Count", justify="right")
@@ -184,7 +207,20 @@ def local(team: Optional[str] = None) -> None:
 
 
 def path(dataset_slug: str) -> Path:
-    """Returns the absolute path of the specified dataset, if synced"""
+    """
+    Returns the absolute path of the specified dataset.
+    Exits the application if the dataset does not exist locally.
+
+    Parameters
+    ----------
+    dataset_slug: str
+        The dataset's slug.
+
+    Returns
+    -------
+    Path
+        The absolute path of the dataset.
+    """
     identifier: DatasetIdentifier = DatasetIdentifier.parse(dataset_slug)
     client: Client = _load_client(offline=True)
 
@@ -200,7 +236,15 @@ def path(dataset_slug: str) -> Path:
 
 
 def url(dataset_slug: str) -> None:
-    """Prints the url of the specified dataset"""
+    """
+    Prints the url of the specified dataset.
+    Exits the application if no dataset was found.
+
+    Parameters
+    ----------
+    dataset_slug: str
+        The dataset's slug.
+    """
     client: Client = _load_client(offline=True)
     try:
         remote_dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
@@ -210,7 +254,17 @@ def url(dataset_slug: str) -> None:
 
 
 def dataset_report(dataset_slug: str, granularity: str) -> None:
-    """Prints the url of the specified dataset"""
+    """
+    Prints a dataset's report.
+    Exits the application if no dataset is found.
+
+    Parameters
+    ----------
+    dataset_slug: str
+        The dataset's slug.
+    granularity: str
+        Granualarity of the report, can be 'day', 'week' or 'month'.
+    """
     client: Client = _load_client(offline=True)
     try:
         remote_dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
@@ -223,16 +277,19 @@ def dataset_report(dataset_slug: str, granularity: str) -> None:
 def export_dataset(
     dataset_slug: str, include_url_token: bool, name: str, annotation_class_ids: Optional[List[str]] = None
 ) -> None:
-    """Create a new release for the dataset
+    """
+    Create a new release for the dataset.
 
     Parameters
     ----------
     dataset_slug: str
-        Slug of the dataset to which we perform the operation on
-    annotation_class_ids: List
-        List of the classes to filter
+        Slug of the dataset to which we perform the operation on.
+    include_url_token: bool
+        If True includes the url token, if False does not.
     name: str
-        Name of the release
+        Name of the release.
+    annotation_class_ids: Optional[List[str]]
+        List of the classes to filter. Defautls to None. 
     """
     client: Client = _load_client(offline=False)
     identifier: DatasetIdentifier = DatasetIdentifier.parse(dataset_slug)
@@ -246,18 +303,21 @@ def export_dataset(
 def pull_dataset(
     dataset_slug: str, only_annotations: bool = False, folders: bool = False, video_frames: bool = False
 ) -> None:
-    """Downloads a remote dataset (images and annotations) in the datasets directory.
+    """
+    Downloads a remote dataset (images and annotations) in the datasets directory.
+    Exits the application if dataset is not found, the user is not authenticated, there are no 
+    releases or the export format for the latest release is not supported.
 
     Parameters
     ----------
     dataset_slug: str
-        Slug of the dataset to which we perform the operation on
+        Slug of the dataset to which we perform the operation on.
     only_annotations: bool
-        Download only the annotations and no corresponding images
+        Download only the annotations and no corresponding images. Defaults to False.
     folders: bool
-        Recreates the folders in the dataset
+        Recreates the folders in the dataset. Defaults to False.
     video_frames: bool
-        Pulls video frames images instead of video files
+        Pulls video frames images instead of video files. Defaults to False.
     """
     version: str = DatasetIdentifier.parse(dataset_slug).version or "latest"
     client: Client = _load_client(offline=False, maybe_guest=True)
@@ -290,18 +350,19 @@ def pull_dataset(
 
 
 def split(dataset_slug: str, val_percentage: float, test_percentage: float, seed: int = 0) -> None:
-    """Splits a local version of a dataset into train, validation, and test partitions
+    """
+    Splits a local version of a dataset into train, validation, and test partitions.
 
     Parameters
     ----------
     dataset_slug: str
-        Slug of the dataset to which we perform the operation on
+        Slug of the dataset to which we perform the operation on.
     val_percentage: float
-        Percentage in the validation set
+        Percentage in the validation set.
     test_percentage: float
-        Percentage in the test set
+        Percentage in the test set.
     seed: int
-        Random seed
+        Random seed. Defaults to 0.
     """
     identifier: DatasetIdentifier = DatasetIdentifier.parse(dataset_slug)
     client: Client = _load_client(offline=True)
