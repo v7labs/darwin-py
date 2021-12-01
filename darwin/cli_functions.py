@@ -394,7 +394,18 @@ def split(dataset_slug: str, val_percentage: float, test_percentage: float, seed
 
 
 def list_remote_datasets(all_teams: bool, team: Optional[str] = None) -> None:
-    """Lists remote datasets with its annotation progress"""
+    """
+    Lists remote datasets with its annotation progress.
+    
+    Parameters
+    ----------
+    all_teams: bool
+        If True, lists remote datasets from all teams, if False, lists only datasets from the given 
+        Team.
+    team: Optional[str] 
+        Name of the team with the datasets we want to see. Uses the default Team is non is given.
+        Defaults to None.
+    """
     # TODO: add listing open datasets
 
     table: Table = Table(show_header=True, header_style="bold cyan")
@@ -424,7 +435,15 @@ def list_remote_datasets(all_teams: bool, team: Optional[str] = None) -> None:
 
 
 def remove_remote_dataset(dataset_slug: str) -> None:
-    """Remove a remote dataset from the workview. The dataset gets archived."""
+    """
+    Remove a remote dataset from the workview. The dataset gets archived.
+    Exits the application if no dataset with the given slug were found.
+    
+    Parameters
+    ----------
+    dataset_slug: str
+        The dataset's slug.
+    """
     client: Client = _load_client(offline=False)
     try:
         dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
@@ -440,6 +459,15 @@ def remove_remote_dataset(dataset_slug: str) -> None:
 
 
 def dataset_list_releases(dataset_slug: str) -> None:
+    """
+    Lists all the releases from the given dataset.
+    Exits the application if no dataset with the given slug were found.
+    
+    Parameters
+    ----------
+    dataset_slug: str
+        The dataset's slug.
+    """
     client: Client = _load_client(offline=False)
     try:
         dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
@@ -479,6 +507,8 @@ def upload_data(
 ) -> None:
     """
     Uploads the provided files to the remote dataset.
+    Exits the application if no dataset with the given name is found, the files in the given path 
+    have unsupported formats, or if there are no files found in the given Path.
 
     Parameters
     ----------
@@ -500,13 +530,6 @@ def upload_data(
         Specify whether or not to preserve folder paths when uploading.
     verbose : bool
         Specify whther to have full traces print when uploading files or not.
-
-    Returns
-    -------
-    generator : function
-        Generator for doing the actual uploads. This is None if blocking is True
-    count : int
-        The file's count
     """
     client: Client = _load_client()
     try:
@@ -642,7 +665,23 @@ def upload_data(
         _error(f"No files found")
 
 
-def dataset_import(dataset_slug, format, files, append) -> None:
+def dataset_import(dataset_slug: str, format: str, files: List[PathLike], append: bool) -> None:
+    """
+    Imports annotation files to the given dataset. 
+    Exits the application if no dataset with the given slug is found.
+
+    Parameters
+    ----------
+    dataset_slug: str
+        The dataset's slug.
+    format: str
+        Format of the export files.
+    files: List[PathLike]
+        List of where the files are. 
+    append: bool
+        If True it appends the annotation from the files to the dataset, if False it will override 
+        the dataset's current annotations with the ones from the given files.
+    """
     client: Client = _load_client(dataset_identifier=dataset_slug)
     parser: ImportParser = find_import_supported_format(format, ImportSupportedFormats)
 
