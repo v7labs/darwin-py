@@ -749,11 +749,20 @@ def list_files(
         _error(str(e))
 
 
-def _has_valid_status(status: str) -> bool:
-    return status in ["new", "annotate", "review", "complete", "archived"]
-
-
 def set_file_status(dataset_slug: str, status: str, files: List[str]) -> None:
+    """
+    Sets the status of the given files from the given dataset. 
+    Exits the application if the given status is unknown or if no dataset was found. 
+
+    Parameters
+    ----------
+    dataset_slug: str
+        The dataset's slug.
+    status: str
+        The new status for the files.
+    files: List[str]
+        Names of the files we want to update.
+    """
     if status not in ["archived", "clear", "new", "restore-archived"]:
         _error(f"Invalid status '{status}', available statuses: archived, clear, new, restore-archived")
 
@@ -774,6 +783,19 @@ def set_file_status(dataset_slug: str, status: str, files: List[str]) -> None:
 
 
 def delete_files(dataset_slug: str, files: List[str], skip_user_confirmation: bool = False) -> None:
+    """
+    Deletes the files from the given dataset.
+    Exits the application if no dataset with the given slug is found or a general error occurs.
+
+    Parameters
+    ----------
+    dataset_slug: str
+        The dataset's slug.
+    files: List[str]
+        The list of filenames to delete.
+    skip_user_confirmation: bool
+        If True, skips user confirmation, if False it will prompt the user. Defaults to False.
+    """
     client: Client = _load_client(dataset_identifier=dataset_slug)
     try:
         console = Console()
@@ -793,7 +815,22 @@ def delete_files(dataset_slug: str, files: List[str], skip_user_confirmation: bo
         _error(f"An error has occurred, please try again later.")
 
 
-def find_import_supported_format(query: str, supported_formats: List[ImporterFormat],) -> ImportParser:
+def find_import_supported_format(query: str, supported_formats: List[ImporterFormat]) -> ImportParser:
+    """
+    Returns the import parser for the given file format, or exits the application if none is found. 
+
+    Parameters
+    ----------
+    query: str
+        The format we want to import.
+    supported_formats: List[ImporterFormat]
+        List of supported formats.
+
+    Returns
+    -------
+    ImporterFormat
+        The module capable of parsing files from the given format.
+    """
     for (fmt, fmt_parser) in supported_formats:
         if fmt == query:
             return fmt_parser
@@ -801,7 +838,22 @@ def find_import_supported_format(query: str, supported_formats: List[ImporterFor
     _error(f"Unsupported import format, currently supported: {list_of_formats}")
 
 
-def find_export_supported_format(query: str, supported_formats: List[ExporterFormat],) -> ExportParser:
+def find_export_supported_format(query: str, supported_formats: List[ExporterFormat]) -> ExportParser:
+    """
+    Returns the export parser for the given file format, or exits the application if none is found. 
+
+    Parameters
+    ----------
+    query: str
+        The format we want to import.
+    supported_formats: List[ExporterFormat]
+        List of supported formats.
+
+    Returns
+    -------
+    ExporterFormat
+        The module capable of parsing files from the given format.
+    """
     for (fmt, fmt_parser) in supported_formats:
         if fmt == query:
             return fmt_parser
@@ -810,6 +862,21 @@ def find_export_supported_format(query: str, supported_formats: List[ExporterFor
 
 
 def dataset_convert(dataset_slug: str, format: str, output_dir: Optional[PathLike] = None) -> None:
+    """
+    Converts the annotations from the given dataset to the given format.
+    Exits the application if no dataset with the given slug exists or no releases for the dataset 
+    were previously pulled.
+
+    Parameters
+    ----------
+    dataset_slug: str
+        The dataset's slug.
+    format: str
+        The format we want to convert to.
+    output_dir: Optional[PathLike]
+        The folder where the exported annotation files will be. If None it will be the inside the 
+        annotations folder of the dataset under 'other_formats/{format}'. The Defaults to None.
+    """
     client: Client = _load_client()
     parser: ExportParser = find_export_supported_format(format, ExportSupportedFormats)
 
@@ -834,11 +901,33 @@ def dataset_convert(dataset_slug: str, format: str, output_dir: Optional[PathLik
 
 
 def convert(format: str, files: List[PathLike], output_dir: Path) -> None:
+    """
+    Converts the given files to the specified format. 
+
+    Parameters
+    ----------
+    format: str
+        The target format to export to.
+    files: List[PathLike]
+        List of files to be converted.
+    output_dir: Path
+        Folder where the exported annotations will be placed.
+    """
     parser: ExportParser = find_export_supported_format(format, ExportSupportedFormats)
     exporter.export_annotations(parser, files, output_dir)
 
 
 def help(parser: argparse.ArgumentParser, subparser: Optional[str] = None) -> None:
+    """
+    Prints the help text for the given command. 
+
+    Parameters
+    ----------
+    parser: argparse.ArgumentParser
+        The parser used to read input from the user.
+    subparser: Optional[str]
+        Actions from the parser to be processed. Defaults to None.
+    """
     if subparser:
         parser = next(
             action.choices[subparser]
@@ -854,6 +943,33 @@ def help(parser: argparse.ArgumentParser, subparser: Optional[str] = None) -> No
         # get all subparsers and print help
         for choice in sorted(action._choices_actions, key=lambda x: x.dest):
             print("    {:<19} {}".format(choice.dest, choice.help))
+
+
+def print_new_version_info(client: Optional[Client] = None) -> None:
+    """
+    Prints a message informing the user of a new darwin-py version. 
+    Does nothing if no new version is available or if no client is provided.
+
+    Parameters
+    ----------
+    client: Optional[Client]
+        The client containing information aboue the new verison. Defaults to None.
+    """
+    if not client or not client.newer_darwin_version:
+        return
+
+    (a, b, c) = tuple(client.newer_darwin_version)
+
+    console = Console(theme=_console_theme(), stderr=True)
+    console.print(
+        f"A newer version of darwin-py ({a}.{b}.{c}) is available!",
+        "Run the following command to install it:",
+        "",
+        f"    pip install darwin-py=={a}.{b}.{c}",
+        "",
+        sep="\n",
+        style="warning",
+    )
 
 
 def _error(message: str) -> NoReturn:
@@ -911,19 +1027,5 @@ def _console_theme() -> Theme:
     return Theme({"success": "bold green", "warning": "bold yellow", "error": "bold red"})
 
 
-def print_new_version_info(client: Optional[Client]) -> None:
-    if not client or not client.newer_darwin_version:
-        return
-
-    (a, b, c) = tuple(client.newer_darwin_version)
-
-    console = Console(theme=_console_theme(), stderr=True)
-    console.print(
-        f"A newer version of darwin-py ({a}.{b}.{c}) is available!",
-        "Run the following command to install it:",
-        "",
-        f"    pip install darwin-py=={a}.{b}.{c}",
-        "",
-        sep="\n",
-        style="warning",
-    )
+def _has_valid_status(status: str) -> bool:
+    return status in ["new", "annotate", "review", "complete", "archived"]
