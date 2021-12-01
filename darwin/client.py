@@ -35,7 +35,7 @@ class Client:
         self._newer_version: Optional[DarwinVersionNumber] = None
 
         if log is None:
-            self.log: Logger = logging.getLogger()
+            self.log: Logger = logging.getLogger("darwin")
         else:
             self.log = log
 
