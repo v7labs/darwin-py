@@ -699,6 +699,25 @@ def list_files(
     only_filenames: bool,
     sort_by: Optional[str] = "updated_at:desc",
 ) -> None:
+    """
+    List all file from the given dataset. 
+    Exits the application if it finds unknown file statuses, if no dataset with the given slug is 
+    found or if another general error occurred.
+
+    Parameters
+    ----------
+    dataset_slug: str
+        The dataset's slug.
+    statuses: Optional[str]
+        Only list files with the given statuses. Valid statuses are: 'annotate', 'archived', 
+        'complete', 'new', 'review'.
+    path: Optional[str]
+        Only list files whose Path matches. 
+    only_filenames: bool
+        If True, only prints the filenames, if False it prints the full file url.
+    sort_by: Optional[str]
+        Sort order for listing files. Defaults to 'updated_at:desc'.
+    """
     client: Client = _load_client(dataset_identifier=dataset_slug)
     try:
         dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
