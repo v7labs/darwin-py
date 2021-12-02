@@ -1,7 +1,7 @@
 import json
 from functools import partial, reduce
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Set, cast
+from typing import Any, Callable, Dict, Iterable, List, Optional, Set, cast
 
 from darwin.datatypes import (
     Annotation,
@@ -88,7 +88,7 @@ def parse_file(path: Path, validate: Callable[[Any], None]) -> Optional[List[Ann
         validate(data)
         convert_with_path = partial(_convert, path=path)
 
-        return list(map(convert_with_path, data))
+        return _map_list(convert_with_path, data)
 
 
 def _convert(file_data: Dict[str, Any], path) -> AnnotationFile:
@@ -99,10 +99,9 @@ def _convert(file_data: Dict[str, Any], path) -> AnnotationFile:
 
     classification_annotations: List[Annotation] = []
     if label_classifications != []:
-        # We do a flat_map here: https://stackoverflow.com/a/2082107/1337392
-        classification_annotations = reduce(list.__add__, map(_convert_label_classifications, label_classifications))
+        classification_annotations = _flat_map_list(_map_list(_convert_label_classifications, label_classifications))
 
-    object_annotations: List[Annotation] = list(map(_convert_label_objects, label_objects))
+    object_annotations: List[Annotation] = _map_list(_convert_label_objects, label_objects)
     annotations: List[Annotation] = object_annotations + classification_annotations
 
     classes: Set[AnnotationClass] = set(map(_get_class, annotations))
@@ -183,3 +182,11 @@ def _to_tag_annotations_from_multiple_choice(question: str, multiple_choice) -> 
 def _get_class(annotation: Annotation) -> AnnotationClass:
     return annotation.annotation_class
 
+
+def _flat_map_list(the_list: List[List[Any]]) -> List[Any]:
+    # We do a flat_map here: https://stackoverflow.com/a/2082107/1337392
+    return reduce(list.__add__, the_list)
+
+
+def _map_list(fun: Callable[[Any], Any], the_list: List[Any]) -> List[Any]:
+    return list(map(fun, the_list))
