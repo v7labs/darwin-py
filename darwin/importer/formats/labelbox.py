@@ -1,13 +1,15 @@
 import json
+from dataclasses import dataclass
 from functools import partial, reduce
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Optional, Set, cast
+from typing import Any, Callable, Dict, List, Optional, Set, cast
 
 from darwin.datatypes import (
     Annotation,
     AnnotationClass,
     AnnotationFile,
     Point,
+    SubAnnotation,
     make_bounding_box,
     make_keypoint,
     make_line,
@@ -56,7 +58,7 @@ def parse_file(path: Path, validate: Callable[[Any], None]) -> Optional[List[Ann
 
     We also support conversion from question/answer to Annotation Tags for the following:
     - Radio Buttons
-    - Multiple Choice
+    - Checklists
 
     Parameters
     --------
@@ -128,17 +130,24 @@ def _convert_label_objects(obj: Dict[str, Any]) -> Annotation:
     if line:
         return _to_line_annotation(line, title)
 
+    raise ValueError(f"Unknown label object {obj}")
+
 
 def _convert_label_classifications(obj: Dict[str, Any]) -> List[Annotation]:
     question: str = str(obj.get("value"))
 
-    radio_button: Optional[Dict[str, Any]] = obj.get("answer")
-    if radio_button is not None:
-        return [_to_tag_annotations_from_radio_box(question, radio_button)]
+    answer: Optional[Dict[str, Any]] = obj.get("answer")
+    if answer is not None:
+        if isinstance(answer, str):
+            return [_to_tag_annotations_from_free_text(question, answer)]
+        else:
+            return [_to_tag_annotations_from_radio_box(question, answer)]
 
-    multiple_choice: Optional[List[Dict[str, Any]]] = obj.get("answers")
-    if multiple_choice is not None:
-        return _to_tag_annotations_from_multiple_choice(question, multiple_choice)
+    answers: Optional[List[Dict[str, Any]]] = obj.get("answers")
+    if answers is not None:
+        return _to_tag_annotations_from_checklist(question, answers)
+
+    raise ValueError(f"Unknown classification obj {obj}")
 
 
 def _to_bbox_annotation(bbox: Dict[str, Any], title: str) -> Annotation:
@@ -170,13 +179,17 @@ def _to_tag_annotations_from_radio_box(question: str, radio_button: Dict[str, An
     return make_tag(f"{question}:{answer}")
 
 
-def _to_tag_annotations_from_multiple_choice(question: str, multiple_choice) -> List[Annotation]:
+def _to_tag_annotations_from_checklist(question: str, checklist) -> List[Annotation]:
     annotations: List[Annotation] = []
-    for answer in multiple_choice:
+    for answer in checklist:
         val: str = answer.get("value")
         annotations.append(make_tag(f"{question}:{val}"))
 
     return annotations
+
+
+def _to_tag_annotations_from_free_text(question: str, free_text: str) -> Annotation:
+    return make_tag(question, [SubAnnotation(annotation_type="text", data=free_text)])
 
 
 def _get_class(annotation: Annotation) -> AnnotationClass:

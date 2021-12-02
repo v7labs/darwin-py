@@ -3,7 +3,13 @@ from pathlib import Path
 from typing import Any, Callable, List, Optional, cast
 
 import pytest
-from darwin.datatypes import Annotation, AnnotationClass, AnnotationFile, Point
+from darwin.datatypes import (
+    Annotation,
+    AnnotationClass,
+    AnnotationFile,
+    Point,
+    SubAnnotation,
+)
 from darwin.importer.formats.labelbox import parse_file
 from darwin.importer.formats.labelbox_schemas import labelbox_export
 from jsonschema import ValidationError, validate
@@ -545,7 +551,9 @@ def describe_parse_file():
         with pytest.raises(ValidationError) as error:
             parse_file(file_path, validator)
 
-        assert "'value' is a required property" in str(error.value)
+        # The library asserts agains both types and if all fail, it prints the error of the
+        # first type only.
+        assert "{} is not of type 'string'" in str(error.value)
 
     def test_it_imports_classification_from_radio_buttons(file_path: Path, validator: Callable[[Any], None]):
         json: str = """
@@ -591,7 +599,7 @@ def describe_parse_file():
         tag_annotation_class = tag_annotation.annotation_class
         assert_annotation_class(tag_annotation_class, "r_c_or_l_side_radiograph:right", "tag")
 
-    def test_it_imports_classification_from_multiple_choice(file_path: Path, validator: Callable[[Any], None]):
+    def test_it_imports_classification_from_checklist(file_path: Path, validator: Callable[[Any], None]):
         json: str = """
             [
                {
@@ -639,6 +647,50 @@ def describe_parse_file():
         tag_annotation_class_2 = tag_annotation_2.annotation_class
         assert_annotation_class(tag_annotation_class_2, "r_c_or_l_side_radiograph:left", "tag")
 
+    def test_it_imports_classification_from_free_text(file_path: Path, validator: Callable[[Any], None]):
+        json: str = """
+            [
+               {
+                  "Label":{
+                     "objects":[
+                        {
+                           "title":"Shark",
+                           "point": {"x": 342.93, "y": 914.233}
+                        }
+                     ],
+                     "classifications": [
+                        {
+                           "value": "r_c_or_l_side_radiograph",
+                           "answer": "righ side"
+                        }
+                     ]
+                  },
+                  "External ID": "demo-image-10.jpg"
+               }
+            ]
+        """
+
+        file_path.write_text(json)
+        annotation_files: Optional[List[AnnotationFile]] = parse_file(file_path, validator)
+        assert annotation_files is not None
+
+        annotation_file: AnnotationFile = annotation_files.pop()
+        assert annotation_file.path == file_path
+        assert annotation_file.filename == "demo-image-10.jpg"
+        assert annotation_file.annotation_classes
+        assert annotation_file.remote_path == "/"
+
+        assert annotation_file.annotations
+
+        point_annotation: Annotation = cast(Annotation, annotation_file.annotations[0])
+        assert_point(point_annotation, {"x": 342.93, "y": 914.233})
+        point_annotation_class = point_annotation.annotation_class
+        assert_annotation_class(point_annotation_class, "Shark", "keypoint")
+
+        tag_annotation: Annotation = cast(Annotation, annotation_file.annotations[1])
+        assert_annotation_class(tag_annotation.annotation_class, "r_c_or_l_side_radiograph", "tag")
+        assert_subannotations(tag_annotation.subs, [SubAnnotation(annotation_type="text", data="righ side")])
+
 
 def assert_bbox(annotation: Annotation, x: float, y: float, h: float, w: float) -> None:
     data = annotation.data
@@ -676,4 +728,12 @@ def assert_annotation_class(
     assert annotation_class.name == name
     assert annotation_class.annotation_type == type
     assert annotation_class.annotation_internal_type == internal_type
+
+
+def assert_subannotations(actual_subs: List[SubAnnotation], expected_subs: List[SubAnnotation]) -> None:
+    assert actual_subs
+    for actual_sub in actual_subs:
+        for expected_sub in expected_subs:
+            assert actual_sub.annotation_type == expected_sub.annotation_type
+            assert actual_sub.data == expected_sub.data
 

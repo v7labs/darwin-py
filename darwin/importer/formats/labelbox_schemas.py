@@ -66,15 +66,24 @@ label_object = {
     ],
 }
 
-classification_answer = {
-    "$id": "https://darwin.v7labs.com/schemas/classification_answer",
-    "description": "Schema of a Classification Answer",
+classification_answer_obj = {
+    "$id": "https://darwin.v7labs.com/schemas/classification_answer_obj",
+    "description": "Schema of a Classification Answer Object",
     "title": "Answer",
     "default": {"value": "an_answer"},
     "examples": [{"value": "an_answer"}],
     "type": "object",
     "properties": {"value": {"type": "string"}},
     "required": ["value"],
+}
+
+classification_answer_free_text = {
+    "$id": "https://darwin.v7labs.com/schemas/classification_answer_free_text",
+    "description": "Schema of a Classification Free Text Answer",
+    "title": "Free Text Answer",
+    "default": "A free text answer",
+    "examples": ["A free text answer"],
+    "type": "string",
 }
 
 label_classification = {
@@ -90,8 +99,11 @@ label_classification = {
     "required": ["value"],
     "properties": {"value": {"type": "string"}},
     "oneOf": [
-        {"required": ["answer"], "properties": {"answer": classification_answer}},
-        {"required": ["answers"], "properties": {"answers": {"type": "array", "items": classification_answer}}},
+        {
+            "required": ["answer"],
+            "properties": {"answer": {"oneOf": [classification_answer_free_text, classification_answer_obj]}},
+        },
+        {"required": ["answers"], "properties": {"answers": {"type": "array", "items": classification_answer_obj}}},
     ],
 }
 
