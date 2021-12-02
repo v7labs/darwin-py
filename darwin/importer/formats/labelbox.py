@@ -1,5 +1,5 @@
 import json
-from functools import partial
+from functools import partial, reduce
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Set, cast
 
@@ -12,6 +12,7 @@ from darwin.datatypes import (
     make_keypoint,
     make_line,
     make_polygon,
+    make_tag,
 )
 
 
@@ -81,8 +82,16 @@ def _convert(file_data: Dict[str, Any], path) -> AnnotationFile:
     filename: str = str(file_data.get("External ID"))
     label: Dict[str, Any] = cast(Dict[str, Any], file_data.get("Label"))
     label_objects: List[Dict[str, Any]] = cast(List[Dict[str, Any]], label.get("objects"))
+    label_classifications: List[Dict[str, Any]] = cast(List[Dict[str, Any]], label.get("classifications"))
 
-    annotations: List[Annotation] = list(map(_convert_label_objects, label_objects))
+    classification_annotations: List[Annotation] = []
+    if label_classifications != []:
+        # We do a flat_map here: https://stackoverflow.com/a/2082107/1337392
+        classification_annotations = reduce(list.__add__, map(_convert_label_classifications, label_classifications))
+
+    object_annotations: List[Annotation] = list(map(_convert_label_objects, label_objects))
+    annotations: List[Annotation] = object_annotations + classification_annotations
+
     classes: Set[AnnotationClass] = set(map(_get_class, annotations))
     return AnnotationFile(
         annotations=annotations, path=path, filename=filename, annotation_classes=classes, remote_path="/"
@@ -108,6 +117,18 @@ def _convert_label_objects(obj: Dict[str, Any]) -> Annotation:
         return _to_line_annotation(line, title)
 
 
+def _convert_label_classifications(obj: Dict[str, Any]) -> List[Annotation]:
+    question: str = str(obj.get("value"))
+
+    radio_button: Optional[Dict[str, Any]] = obj.get("answer")
+    if radio_button is not None:
+        return [_to_tag_annotations_from_radio_box(question, radio_button)]
+
+    multiple_choice: Optional[List[Dict[str, Any]]] = obj.get("answers")
+    if multiple_choice is not None:
+        return _to_tag_annotations_from_multiple_choice(question, multiple_choice)
+
+
 def _to_bbox_annotation(bbox: Dict[str, Any], title: str) -> Annotation:
     x: float = cast(float, bbox.get("left"))
     y: float = cast(float, bbox.get("top"))
@@ -130,6 +151,15 @@ def _to_keypoint_annotation(point: Point, title: str) -> Annotation:
 
 def _to_line_annotation(line: List[Point], title: str) -> Annotation:
     return make_line(title, line, None)
+
+
+def _to_tag_annotations_from_radio_box(question: str, radio_button: Dict[str, Any]) -> Annotation:
+    answer: str = str(radio_button.get("value"))
+    return make_tag(f"{question}:{answer}")
+
+
+def _to_tag_annotations_from_multiple_choice(question: str, multiple_choice) -> List[Annotation]:
+    return []
 
 
 def _get_class(annotation: Annotation) -> AnnotationClass:

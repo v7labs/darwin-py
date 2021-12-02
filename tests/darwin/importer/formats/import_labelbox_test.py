@@ -1,6 +1,6 @@
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, List, Optional
+from typing import Any, Callable, List, Optional, cast
 
 import pytest
 from darwin.datatypes import Annotation, AnnotationClass, AnnotationFile, Point
@@ -81,7 +81,8 @@ def describe_parse_file():
         json: str = """
          [{
                "Label":{
-                  "objects":[{"title":"Fruit", "unkown_annotation": 0}]
+                  "objects":[{"title":"Fruit", "unkown_annotation": 0}],
+                  "classifications": []
                },
                "External ID": "demo-image-7.jpg"
             }]
@@ -108,7 +109,8 @@ def describe_parse_file():
                            "width":449
                         }
                      }
-                  ]
+                  ],
+                  "classifications": []
                },
                "External ID": "demo-image-7.jpg"
             }
@@ -136,7 +138,8 @@ def describe_parse_file():
                            "width":449
                         }
                      }
-                  ]
+                  ],
+                  "classifications": []
                },
                "External ID": "demo-image-7.jpg"
             }
@@ -164,7 +167,8 @@ def describe_parse_file():
                            "width":449
                         }
                      }
-                  ]
+                  ],
+                  "classifications": []
                },
                "External ID": "demo-image-7.jpg"
             }
@@ -192,7 +196,8 @@ def describe_parse_file():
                            "height":623
                         }
                      }
-                  ]
+                  ],
+                  "classifications": []
                },
                "External ID": "demo-image-7.jpg"
             }
@@ -220,7 +225,8 @@ def describe_parse_file():
                            "width":449
                         }
                      }
-                  ]
+                  ],
+                  "classifications": []
                },
                "External ID": "demo-image-7.jpg"
             }
@@ -249,7 +255,8 @@ def describe_parse_file():
                            "width":449
                         }
                      }
-                  ]
+                  ],
+                  "classifications": []
                },
                "External ID": "demo-image-7.jpg"
             }
@@ -268,7 +275,7 @@ def describe_parse_file():
         assert annotation_file.remote_path == "/"
 
         assert annotation_file.annotations
-        bbox_annotation = annotation_file.annotations.pop()
+        bbox_annotation: Annotation = cast(Annotation, annotation_file.annotations.pop())
         assert_bbox(bbox_annotation, 145, 3558, 623, 449)
 
         annotation_class = bbox_annotation.annotation_class
@@ -288,7 +295,8 @@ def describe_parse_file():
                               {"y": 914.233}
                         ]
                      }
-                  ]
+                  ],
+                  "classifications": []
                },
                "External ID": "demo-image-7.jpg"
             }
@@ -316,7 +324,8 @@ def describe_parse_file():
                               {"x": 3042.93, "y": 914.233}
                         ]
                      }
-                  ]
+                  ],
+                  "classifications": []
                },
                "External ID": "demo-image-7.jpg"
             }
@@ -344,7 +353,8 @@ def describe_parse_file():
                               {"x": 3042.93, "y": 914.233}
                            ]
                         }
-                     ]
+                     ],
+                     "classifications": []
                   },
                   "External ID": "demo-image-7.jpg"
                }
@@ -364,7 +374,7 @@ def describe_parse_file():
 
         assert annotation_file.annotations
 
-        polygon_annotation = annotation_file.annotations.pop()
+        polygon_annotation: Annotation = cast(Annotation, annotation_file.annotations.pop())
         assert_polygon(
             polygon_annotation,
             [{"x": 3665.814, "y": 351.628}, {"x": 3762.93, "y": 810.419}, {"x": 3042.93, "y": 914.233}],
@@ -383,7 +393,8 @@ def describe_parse_file():
                            "title":"Dog",
                            "point": {"x": 342.93, "y": 914.233}
                         }
-                     ]
+                     ],
+                     "classifications": []
                   },
                   "External ID": "demo-image-7.jpg"
                }
@@ -403,7 +414,7 @@ def describe_parse_file():
 
         assert annotation_file.annotations
 
-        point_annotation = annotation_file.annotations.pop()
+        point_annotation: Annotation = cast(Annotation, annotation_file.annotations.pop())
         assert_point(point_annotation, {"x": 342.93, "y": 914.233})
 
         annotation_class = point_annotation.annotation_class
@@ -423,7 +434,8 @@ def describe_parse_file():
                               {"x": 465.491, "y": 1655.152}
                            ]
                         }
-                     ]
+                     ],
+                     "classifications": []
                   },
                   "External ID": "demo-image-7.jpg"
                }
@@ -443,7 +455,7 @@ def describe_parse_file():
 
         assert annotation_file.annotations
 
-        line_annotation = annotation_file.annotations.pop()
+        line_annotation: Annotation = cast(Annotation, annotation_file.annotations.pop())
         assert_line(
             line_annotation,
             [{"x": 198.027, "y": 1979.196}, {"x": 321.472, "y": 1801.743}, {"x": 465.491, "y": 1655.152}],
@@ -451,6 +463,50 @@ def describe_parse_file():
 
         annotation_class = line_annotation.annotation_class
         assert_annotation_class(annotation_class, "Lion", "line")
+
+    def test_it_imports_classification_from_radio_buttons(file_path: Path, validator: Callable[[Any], None]):
+        json: str = """
+            [
+               {
+                  "Label":{
+                     "objects":[
+                        {
+                           "title":"Worm",
+                           "point": {"x": 342.93, "y": 914.233}
+                        }
+                     ],
+                     "classifications": [
+                        {
+                           "value": "r_c_or_l_side_radiograph",
+                           "answer": {"value": "right"}
+                        }
+                     ]
+                  },
+                  "External ID": "demo-image-9.jpg"
+               }
+            ]
+        """
+
+        file_path.write_text(json)
+        annotation_files: Optional[List[AnnotationFile]] = parse_file(file_path, validator)
+        assert annotation_files is not None
+
+        annotation_file: AnnotationFile = annotation_files.pop()
+        assert annotation_file.path == file_path
+        assert annotation_file.filename == "demo-image-9.jpg"
+        assert annotation_file.annotation_classes
+        assert annotation_file.remote_path == "/"
+
+        assert annotation_file.annotations
+
+        point_annotation: Annotation = cast(Annotation, annotation_file.annotations[0])
+        assert_point(point_annotation, {"x": 342.93, "y": 914.233})
+        point_annotation_class = point_annotation.annotation_class
+        assert_annotation_class(point_annotation_class, "Worm", "keypoint")
+
+        tag_annotation: Annotation = cast(Annotation, annotation_file.annotations[1])
+        tag_annotation_class = tag_annotation.annotation_class
+        assert_annotation_class(tag_annotation_class, "r_c_or_l_side_radiograph:right", "tag")
 
 
 def assert_bbox(annotation: Annotation, x: float, y: float, h: float, w: float) -> None:
