@@ -464,6 +464,89 @@ def describe_parse_file():
         annotation_class = line_annotation.annotation_class
         assert_annotation_class(annotation_class, "Lion", "line")
 
+    def test_it_raises_if_classification_is_missing(file_path: Path, validator: Callable[[Any], None]):
+        json: str = """
+            [
+               {
+                  "Label":{
+                     "objects":[
+                        {
+                           "title":"Kangaroo",
+                           "point": {"x": 198.027, "y": 1979.196}
+                        }
+                     ]
+                  },
+                  "External ID": "demo-image-7.jpg"
+               }
+            ]
+        """
+
+        file_path.write_text(json)
+
+        with pytest.raises(ValidationError) as error:
+            parse_file(file_path, validator)
+
+        assert "'classifications' is a required property" in str(error.value)
+
+    def test_it_raises_if_classification_object_has_no_answer(file_path: Path, validator: Callable[[Any], None]):
+        json: str = """
+            [
+               {
+                  "Label":{
+                     "objects":[
+                        {
+                           "title":"Pig",
+                           "point": {"x": 198.027, "y": 1979.196}
+                        }
+                     ],
+                     "classifications": [
+                        {
+                           "value": "r_c_or_l_side_radiograph"
+                        }
+                     ]
+                  },
+                  "External ID": "demo-image-7.jpg"
+               }
+            ]
+        """
+
+        file_path.write_text(json)
+
+        with pytest.raises(ValidationError) as error:
+            parse_file(file_path, validator)
+
+        assert "'answer' is a required property" in str(error.value)
+
+    def test_it_raises_if_classification_answer_has_no_value(file_path: Path, validator: Callable[[Any], None]):
+        json: str = """
+            [
+               {
+                  "Label":{
+                     "objects":[
+                        {
+                           "title":"Pig",
+                           "point": {"x": 198.027, "y": 1979.196}
+                        }
+                     ],
+                     "classifications": [
+                        {
+                           "value": "r_c_or_l_side_radiograph",
+                           "answer": {}
+                        }
+                     ]
+                  },
+                  "External ID": "demo-image-7.jpg"
+               }
+            ]
+        """
+
+        file_path.write_text(json)
+
+        with pytest.raises(ValidationError) as error:
+            parse_file(file_path, validator)
+
+        assert "'value' is a required property" in str(error.value)
+
     def test_it_imports_classification_from_radio_buttons(file_path: Path, validator: Callable[[Any], None]):
         json: str = """
             [
@@ -507,6 +590,54 @@ def describe_parse_file():
         tag_annotation: Annotation = cast(Annotation, annotation_file.annotations[1])
         tag_annotation_class = tag_annotation.annotation_class
         assert_annotation_class(tag_annotation_class, "r_c_or_l_side_radiograph:right", "tag")
+
+    def test_it_imports_classification_from_multiple_choice(file_path: Path, validator: Callable[[Any], None]):
+        json: str = """
+            [
+               {
+                  "Label":{
+                     "objects":[
+                        {
+                           "title":"Worm",
+                           "point": {"x": 342.93, "y": 914.233}
+                        }
+                     ],
+                     "classifications": [
+                        {
+                           "value": "r_c_or_l_side_radiograph",
+                           "answers": [{"value": "right"}, {"value": "left"}]
+                        }
+                     ]
+                  },
+                  "External ID": "demo-image-10.jpg"
+               }
+            ]
+        """
+
+        file_path.write_text(json)
+        annotation_files: Optional[List[AnnotationFile]] = parse_file(file_path, validator)
+        assert annotation_files is not None
+
+        annotation_file: AnnotationFile = annotation_files.pop()
+        assert annotation_file.path == file_path
+        assert annotation_file.filename == "demo-image-10.jpg"
+        assert annotation_file.annotation_classes
+        assert annotation_file.remote_path == "/"
+
+        assert annotation_file.annotations
+
+        point_annotation: Annotation = cast(Annotation, annotation_file.annotations[0])
+        assert_point(point_annotation, {"x": 342.93, "y": 914.233})
+        point_annotation_class = point_annotation.annotation_class
+        assert_annotation_class(point_annotation_class, "Worm", "keypoint")
+
+        tag_annotation_1: Annotation = cast(Annotation, annotation_file.annotations[1])
+        tag_annotation_class_1 = tag_annotation_1.annotation_class
+        assert_annotation_class(tag_annotation_class_1, "r_c_or_l_side_radiograph:right", "tag")
+
+        tag_annotation_2: Annotation = cast(Annotation, annotation_file.annotations[2])
+        tag_annotation_class_2 = tag_annotation_2.annotation_class
+        assert_annotation_class(tag_annotation_class_2, "r_c_or_l_side_radiograph:left", "tag")
 
 
 def assert_bbox(annotation: Annotation, x: float, y: float, h: float, w: float) -> None:

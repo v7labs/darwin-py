@@ -31,6 +31,13 @@ def parse_file(path: Path, validate: Callable[[Any], None]) -> Optional[List[Ann
                         "bbox":{"top":3558, "left":145, "height":623, "width":449}
                     },
                     {...}
+                ],
+                "classifications": [
+                    {
+                        "value": "a_question",
+                        "answer": {"value": "an_answer"}
+                    },
+                    ....
                 ]
             },
             "External ID": "demo-image-7.jpg"
@@ -44,6 +51,12 @@ def parse_file(path: Path, validate: Callable[[Any], None]) -> Optional[List[Ann
     Currently we support the following annotations:
     - bounding-box `Image`: https://docs.labelbox.com/docs/bounding-box-json
     - polygon `Image`: https://docs.labelbox.com/docs/polygon-json
+    - point `Image`: https://docs.labelbox.com/docs/point-json
+    - polyline `Image`: https://docs.labelbox.com/docs/polyline-json
+
+    We also support conversion from question/answer to Annotation Tags for the following:
+    - Radio Buttons
+    - Multiple Choice
 
     Parameters
     --------
@@ -159,7 +172,12 @@ def _to_tag_annotations_from_radio_box(question: str, radio_button: Dict[str, An
 
 
 def _to_tag_annotations_from_multiple_choice(question: str, multiple_choice) -> List[Annotation]:
-    return []
+    annotations: List[Annotation] = []
+    for answer in multiple_choice:
+        val: str = answer.get("value")
+        annotations.append(make_tag(f"{question}:{val}"))
+
+    return annotations
 
 
 def _get_class(annotation: Annotation) -> AnnotationClass:
