@@ -196,9 +196,7 @@ class UploadHandler:
             dataset_slug: str = self.dataset_identifier.dataset_slug
             team_slug: Optional[str] = self.dataset_identifier.team_slug
 
-            data = self.client.upload_data(dataset_slug, upload_payload, team_slug)
-            if data is None:
-                raise ValueError(f"Unable to find team {team_slug} for dataset {dataset_slug}")
+            data: Dict[str, Any] = self.client.upload_data(dataset_slug, upload_payload, team_slug)
 
             blocked_items.extend([ItemPayload(**item) for item in data["blocked_items"]])
             items.extend([ItemPayload(**item) for item in data["items"]])
@@ -231,9 +229,7 @@ class UploadHandler:
         team_slug: Optional[str] = self.dataset_identifier.team_slug
 
         try:
-            sign_response: Optional[Dict[str, Any]] = self.client.sign_upload(dataset_item_id, team_slug)
-            if sign_response is None:
-                raise ValueError(f"Team not found: {team_slug}")
+            sign_response: Dict[str, Any] = self.client.sign_upload(dataset_item_id, team_slug)
         except Exception as e:
             raise UploadRequestError(file_path=file_path, stage=UploadStage.REQUEST_SIGNATURE, error=e)
 

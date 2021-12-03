@@ -222,7 +222,7 @@ class Client:
         )
         return response
 
-    def fetch_remote_classes(self, team_slug: Optional[str] = None) -> Optional[List[Dict[str, Any]]]:
+    def fetch_remote_classes(self, team_slug: Optional[str] = None) -> List[Dict[str, Any]]:
         """
         Fetches all remote classes on the remote dataset.
         
@@ -233,13 +233,18 @@ class Client:
         
         Returns
         -------
-        Optional[Dict[str, Any]]
+        Dict[str, Any]
             None if no information about the team is found, a List of Annotation classes otherwise.
+        
+        Raises
+        ------
+        ValueError
+            If no team was found.
         """
         the_team: Optional[Team] = self.config.get_team(team_slug or self.default_team)
 
         if not the_team:
-            return None
+            raise ValueError("No team was found.")
 
         the_team_slug: str = the_team.slug
         response: Dict[str, Any] = cast(
@@ -391,7 +396,7 @@ class Client:
 
         return False
 
-    def get_datasets_dir(self, team_slug: Optional[str] = None) -> Optional[str]:
+    def get_datasets_dir(self, team_slug: Optional[str] = None) -> str:
         """
         Gets the dataset directory of the specified team or the default one
 
@@ -402,14 +407,19 @@ class Client:
 
         Returns
         -------
-        Optional[str]
+        str
             Path of the datasets for the selected team or the default one, or None if the Team was 
             not found.
+
+        Raises
+        ------
+        ValueError
+            If no team was found.
         """
         the_team: Optional[Team] = self.config.get_team(team_slug or self.default_team)
 
         if not the_team:
-            return None
+            raise ValueError("No team was found.")
 
         return the_team.datasets_dir
 
@@ -446,7 +456,7 @@ class Client:
 
         self._put_raw(endpoint=f"/dataset_items/{dataset_item_id}/confirm_upload", payload={}, team_slug=the_team_slug)
 
-    def sign_upload(self, dataset_item_id: int, team_slug: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    def sign_upload(self, dataset_item_id: int, team_slug: Optional[str] = None) -> Dict[str, Any]:
         """
         Signs the upload of the given DatasetItem.
 
@@ -459,13 +469,18 @@ class Client:
 
         Returns
         ------
-        Optional[Dict[str, Any]]
+        Dict[str, Any]
             A dictionary with the signed response, or None if the Team was not found.
+        
+        Raises
+        ------
+        ValueError
+            If no team was found.
         """
         the_team: Optional[Team] = self.config.get_team(team_slug or self.default_team)
 
         if not the_team:
-            return None
+            raise ValueError("No team was found.")
 
         the_team_slug: str = the_team.slug
 
@@ -476,7 +491,7 @@ class Client:
 
     def upload_data(
         self, dataset_slug: str, payload: Dict[str, Any], team_slug: Optional[str] = None
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Dict[str, Any]:
         """
         Uploads the given data to the given dataset.
 
@@ -492,13 +507,18 @@ class Client:
 
         Returns
         ------
-        Optional[Dict[str, Any]]
+        Dict[str, Any]
             A dictionary with the result of the operation, or None if the Team was not found.
+
+        Raises
+        ------
+        ValueError
+            If no team was found.
         """
         the_team: Optional[Team] = self.config.get_team(team_slug or self.default_team)
 
         if not the_team:
-            return None
+            raise ValueError("No team was found.")
 
         the_team_slug: str = the_team.slug
 
@@ -524,7 +544,7 @@ class Client:
         response: List[Dict[str, Any]] = cast(List[Dict[str, Any]], self._get("/annotation_types"))
         return response
 
-    def get_exports(self, dataset_id: int, team_slug: Optional[str] = None) -> Optional[List[Dict[str, Any]]]:
+    def get_exports(self, dataset_id: int, team_slug: Optional[str] = None) -> List[Dict[str, Any]]:
         """
         Get all the exports from the given dataset.
 
@@ -537,13 +557,18 @@ class Client:
 
         Returns
         ------
-        Optional[List[Dict[str, Any]]]
+        List[Dict[str, Any]]
             A list with all the exports (as dictionaries) or None if the Team was not found.
+
+        Raises
+        ------
+        ValueError
+            If no team was found.
         """
         the_team: Optional[Team] = self.config.get_team(team_slug or self.default_team)
 
         if not the_team:
-            return None
+            raise ValueError("No team was found.")
 
         the_team_slug: str = the_team.slug
 
@@ -567,7 +592,7 @@ class Client:
         """
         self._post(f"/datasets/{dataset_id}/exports", payload=payload, team_slug=team_slug)
 
-    def get_report(self, dataset_id: int, granularity: str, team_slug: Optional[str] = None) -> Optional[Response]:
+    def get_report(self, dataset_id: int, granularity: str, team_slug: Optional[str] = None) -> Response:
         """
         Gets the report for the given dataset.
 
@@ -582,13 +607,18 @@ class Client:
 
         Returns
         ------
-        Optional[Response]
+        Response
             The raw response of the report (CSV format) or None if the Team was not found.
+
+        Raises
+        ------
+        ValueError
+            If no team was found.
         """
         the_team: Optional[Team] = self.config.get_team(team_slug or self.default_team)
 
         if not the_team:
-            return None
+            raise ValueError("No team was found.")
 
         the_team_slug: str = the_team.slug
 

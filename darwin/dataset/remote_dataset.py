@@ -477,7 +477,7 @@ class RemoteDataset:
         """
         # Waiting for a better api for setting classes
         # in the meantime this will do
-        all_classes = self.fetch_remote_classes(True)
+        all_classes: List[Dict[str, Any]] = self.fetch_remote_classes(True)
 
         if isinstance(annotation_class, int):
             match = [cls for cls in all_classes if cls["id"] == annotation_class]
@@ -508,7 +508,7 @@ class RemoteDataset:
         payload = {"datasets": datasets, "id": class_id}
         return self.client.update_annotation_class(class_id, payload)
 
-    def fetch_remote_classes(self, team_wide=False) -> Optional[List[Dict[str, Any]]]:
+    def fetch_remote_classes(self, team_wide=False) -> List[Dict[str, Any]]:
         """
         Fetches all the Annotation Classes from the given remote dataset.
 
@@ -520,14 +520,11 @@ class RemoteDataset:
 
         Returns
         -------
-        Optional[List]:
+        List:
             List of Annotation Classes (can be empty) or None, if the team was not able to be
             determined.
         """
-        all_classes: Optional[List[Dict[str, Any]]] = self.client.fetch_remote_classes()
-
-        if not all_classes:
-            return None
+        all_classes: List[Dict[str, Any]] = self.client.fetch_remote_classes()
 
         classes_to_return = []
         for cls in all_classes:
@@ -566,11 +563,7 @@ class RemoteDataset:
         self.client.create_export(self.dataset_id, payload, self.team)
 
     def get_report(self, granularity: str = "day") -> str:
-        response: Optional[Response] = self.client.get_report(self.dataset_id, granularity, self.team)
-
-        if response is None:
-            raise ValueError(f"Team is not specified, cannot get report: {self.team}")
-
+        response: Response = self.client.get_report(self.dataset_id, granularity, self.team)
         return response.text
 
     def get_releases(self) -> List["Release"]:
@@ -588,12 +581,9 @@ class RemoteDataset:
             If it is unable to connect.
         """
         try:
-            releases_json: Optional[List[Dict[str, Any]]] = self.client.get_exports(self.dataset_id, self.team)
+            releases_json: List[Dict[str, Any]] = self.client.get_exports(self.dataset_id, self.team)
         except NotFound:
             return []
-
-        if releases_json is None:
-            releases_json = []
 
         releases = [Release.parse_json(self.slug, self.team, payload) for payload in releases_json]
         return sorted(filter(lambda x: x.available, releases), key=lambda x: x.version, reverse=True)
@@ -757,9 +747,7 @@ class RemoteDataset:
     @property
     def local_path(self) -> Path:
         """Returns a Path to the local dataset"""
-        datasets_dir: Optional[str] = self.client.get_datasets_dir(self.team)
-        if not datasets_dir:
-            raise ValueError(f"Unable to find datasets directory for {self.team}")
+        datasets_dir: str = self.client.get_datasets_dir(self.team)
 
         if self.slug:
             return Path(datasets_dir) / self.team / self.slug
