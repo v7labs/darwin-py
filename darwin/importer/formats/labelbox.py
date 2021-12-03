@@ -59,6 +59,7 @@ def parse_file(path: Path, validate: Callable[[Any], None]) -> Optional[List[Ann
     We also support conversion from question/answer to Annotation Tags for the following:
     - Radio Buttons
     - Checklists
+    - Free Text
 
     Parameters
     --------
@@ -100,7 +101,7 @@ def _convert(file_data: Dict[str, Any], path) -> AnnotationFile:
     label_classifications: List[Dict[str, Any]] = cast(List[Dict[str, Any]], label.get("classifications"))
 
     classification_annotations: List[Annotation] = []
-    if label_classifications != []:
+    if len(label_classifications) > 0:
         classification_annotations = _flat_map_list(_map_list(_convert_label_classifications, label_classifications))
 
     object_annotations: List[Annotation] = _map_list(_convert_label_objects, label_objects)
