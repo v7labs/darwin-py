@@ -39,13 +39,13 @@ class Client:
         else:
             self.log = log
 
-    def list_local_datasets(self, team: Optional[str] = None) -> Iterator[Path]:
+    def list_local_datasets(self, team_slug: Optional[str] = None) -> Iterator[Path]:
         """
         Returns a list of all local folders which are detected as dataset.
 
         Parameters
         ----------
-        team: Optional[str]
+        team_slug: Optional[str]
             The team slug of the dataset. Defaults to None.
 
 
@@ -56,8 +56,8 @@ class Client:
         """
 
         team_configs: List[Team] = []
-        if team:
-            team_data: Optional[Team] = self.config.get_team(team)
+        if team_slug:
+            team_data: Optional[Team] = self.config.get_team(team_slug)
             if team_data:
                 team_configs.append(team_data)
         else:
@@ -69,13 +69,13 @@ class Client:
                 if project_path.is_dir() and is_project_dir(project_path):
                     yield Path(project_path)
 
-    def list_remote_datasets(self, team: Optional[str] = None) -> Iterator[RemoteDataset]:
+    def list_remote_datasets(self, team_slug: Optional[str] = None) -> Iterator[RemoteDataset]:
         """
         Returns a list of all available datasets with the team currently authenticated against.
 
         Parameters
         ----------
-        team: Optional[str]
+        team_slug: Optional[str]
             The team slug of the dataset. Defaults to None.
 
         Returns
@@ -83,13 +83,13 @@ class Client:
         Iterator[RemoteDataset]
             List of all remote datasets
         """
-        response: List[Dict[str, Any]] = cast(List[Dict[str, Any]], self._get("/datasets/", team=team))
+        response: List[Dict[str, Any]] = cast(List[Dict[str, Any]], self._get("/datasets/", team_slug=team_slug))
 
         for dataset in response:
             yield RemoteDataset(
                 name=dataset["name"],
                 slug=dataset["slug"],
-                team=team or self.default_team,
+                team=team_slug or self.default_team,
                 dataset_id=dataset["id"],
                 item_count=dataset["num_images"] + dataset["num_videos"],
                 progress=dataset["progress"],
@@ -125,7 +125,7 @@ class Client:
         try:
             matching_datasets: List[RemoteDataset] = [
                 dataset
-                for dataset in self.list_remote_datasets(team=parsed_dataset_identifier.team_slug)
+                for dataset in self.list_remote_datasets(team_slug=parsed_dataset_identifier.team_slug)
                 if dataset.slug == parsed_dataset_identifier.dataset_slug
             ]
         except Unauthorized:
@@ -155,7 +155,7 @@ class Client:
             raise NotFound(parsed_dataset_identifier)
         return matching_datasets[0]
 
-    def create_dataset(self, name: str, team: Optional[str] = None) -> RemoteDataset:
+    def create_dataset(self, name: str, team_slug: Optional[str] = None) -> RemoteDataset:
         """
         Create a remote dataset.
 
@@ -163,7 +163,7 @@ class Client:
         ----------
         name : str
             Name of the dataset to create.
-        team: Optional[str]
+        team_slug: Optional[str]
             Team slug of the team the dataset will belong to. Defaults to None.
 
         Returns
@@ -171,10 +171,10 @@ class Client:
         RemoteDataset
             The created dataset.
         """
-        dataset: Dict[str, Any] = cast(Dict[str, Any], self._post("/datasets", {"name": name}, team=team))
+        dataset: Dict[str, Any] = cast(Dict[str, Any], self._post("/datasets", {"name": name}, team_slug=team_slug))
         return RemoteDataset(
             name=dataset["name"],
-            team=team or self.default_team,
+            team=team_slug or self.default_team,
             slug=dataset["slug"],
             dataset_id=dataset["id"],
             item_count=dataset["num_images"],
@@ -193,7 +193,7 @@ class Client:
         team_slug: str
             Team slug of the dataset.
         """
-        self._put(f"datasets/{dataset_id}/archive", payload={}, team=team_slug)
+        self._put(f"datasets/{dataset_id}/archive", payload={}, team_slug=team_slug)
 
     def fetch_remote_files(
         self, dataset_id: int, cursor: Dict[str, Any], payload: Any, team_slug: str
@@ -222,13 +222,13 @@ class Client:
         )
         return response
 
-    def fetch_remote_classes(self, team: Optional[str] = None) -> Optional[List[Dict[str, Any]]]:
+    def fetch_remote_classes(self, team_slug: Optional[str] = None) -> Optional[List[Dict[str, Any]]]:
         """
         Fetches all remote classes on the remote dataset.
         
         Parameters
         ----------
-        team: Optional[str]
+        team_slug: Optional[str]
             The team slug of the dataset. Defaults to None.
         
         Returns
@@ -236,14 +236,14 @@ class Client:
         Optional[Dict[str, Any]]
             None if no information about the team is found, a List of Annotation classes otherwise.
         """
-        the_team: Optional[Team] = self.config.get_team(team or self.default_team)
+        the_team: Optional[Team] = self.config.get_team(team_slug or self.default_team)
 
         if not the_team:
             return None
 
-        team_slug: str = the_team.slug
+        the_team_slug: str = the_team.slug
         response: Dict[str, Any] = cast(
-            Dict[str, Any], self._get(f"/teams/{team_slug}/annotation_classes?include_tags=true")
+            Dict[str, Any], self._get(f"/teams/{the_team_slug}/annotation_classes?include_tags=true")
         )
 
         return response["annotation_classes"]
@@ -318,23 +318,23 @@ class Client:
         response: List[Dict[str, Any]] = cast(List[Dict[str, Any]], self._get(f"/datasets/{dataset_id}/attributes"))
         return response
 
-    def load_feature_flags(self, team: Optional[str] = None) -> None:
+    def load_feature_flags(self, team_slug: Optional[str] = None) -> None:
         """
         Loads in memory the set of current features enabled for a team.
         
         Parameters
         ----------
-        team: Optional[str]
+        team_slug: Optional[str]
             Team slug of the team the dataset will belong to. Defaults to None.
         """
 
-        the_team: Optional[Team] = self.config.get_team(team or self.default_team)
+        the_team: Optional[Team] = self.config.get_team(team_slug or self.default_team)
 
         if not the_team:
             return None
 
-        team_slug: str = the_team.slug
-        self.features[team_slug] = self.get_team_features(team_slug)
+        the_team_slug: str = the_team.slug
+        self.features[the_team_slug] = self.get_team_features(the_team_slug)
 
     def get_team_features(self, team_slug: str) -> List[Feature]:
         """
@@ -342,7 +342,7 @@ class Client:
 
         Parameters
         ----------
-        team: Optional[str]
+        team_slug: Optional[str]
             Team slug of the team the dataset will belong to. Defaults to None.
 
         Returns
@@ -358,7 +358,7 @@ class Client:
 
         return features
 
-    def feature_enabled(self, feature_name: str, team: Optional[str] = None) -> bool:
+    def feature_enabled(self, feature_name: str, team_slug: Optional[str] = None) -> bool:
         """
         Returns whether or not a given feature is enabled for a team.
 
@@ -366,7 +366,7 @@ class Client:
         ----------
         feature_name: str
             The name of the feature.
-        team: Optional[str]
+        team_slug: Optional[str]
             Team slug of the team the dataset will belong to. Defaults to None.
 
         Returns
@@ -374,30 +374,30 @@ class Client:
         bool
             False if the given feature is not enabled OR the team was not found. True otherwise.
         """
-        the_team: Optional[Team] = self.config.get_team(team or self.default_team)
+        the_team: Optional[Team] = self.config.get_team(team_slug or self.default_team)
 
         if not the_team:
             return False
 
-        team_slug: str = the_team.slug
+        the_team_slug: str = the_team.slug
 
-        if team_slug not in self.features:
-            self.load_feature_flags(team)
+        if the_team_slug not in self.features:
+            self.load_feature_flags(the_team_slug)
 
-        team_features: List[Feature] = self.features[team_slug]
+        team_features: List[Feature] = self.features[the_team_slug]
         for feature in team_features:
             if feature.name == feature_name:
                 return feature.enabled
 
         return False
 
-    def get_datasets_dir(self, team: Optional[str] = None) -> Optional[str]:
+    def get_datasets_dir(self, team_slug: Optional[str] = None) -> Optional[str]:
         """
         Gets the dataset directory of the specified team or the default one
 
         Parameters
         ----------
-        team: Optional[str]
+        team_slug: Optional[str]
             Team slug of the team the dataset will belong to. Defaults to None.
 
         Returns
@@ -406,14 +406,14 @@ class Client:
             Path of the datasets for the selected team or the default one, or None if the Team was 
             not found.
         """
-        the_team: Optional[Team] = self.config.get_team(team or self.default_team)
+        the_team: Optional[Team] = self.config.get_team(team_slug or self.default_team)
 
         if not the_team:
             return None
 
         return the_team.datasets_dir
 
-    def set_datasets_dir(self, datasets_dir: Path, team: Optional[str] = None) -> None:
+    def set_datasets_dir(self, datasets_dir: Path, team_slug: Optional[str] = None) -> None:
         """
         Sets the dataset directory of the specified team or the default one.
 
@@ -421,12 +421,12 @@ class Client:
         ----------
         datasets_dir: Path
             Path to set as dataset directory of the team.
-        team: Optional[str]
+        team_slug: Optional[str]
             Team slug of the team the dataset will belong to. Defaults to None.
         """
-        self.config.put(f"teams/{team or self.default_team}/datasets_dir", datasets_dir)
+        self.config.put(f"teams/{team_slug or self.default_team}/datasets_dir", datasets_dir)
 
-    def confirm_upload(self, dataset_item_id: int, team: Optional[str] = None) -> None:
+    def confirm_upload(self, dataset_item_id: int, team_slug: Optional[str] = None) -> None:
         """
         Confirms that the item was uploaded.
 
@@ -434,19 +434,19 @@ class Client:
         ----------
         dataset_item_id: int
             The id of the DatasetItem that was uploaded.
-        team: Optional[str]
+        team_slug: Optional[str]
             Team slug of the team the dataset will belong to. Defaults to None.
         """
-        the_team: Optional[Team] = self.config.get_team(team or self.default_team)
+        the_team: Optional[Team] = self.config.get_team(team_slug or self.default_team)
 
         if not the_team:
             return None
 
-        team_slug: str = the_team.slug
+        the_team_slug: str = the_team.slug
 
-        self._put_raw(endpoint=f"/dataset_items/{dataset_item_id}/confirm_upload", payload={}, team=team_slug)
+        self._put_raw(endpoint=f"/dataset_items/{dataset_item_id}/confirm_upload", payload={}, team_slug=the_team_slug)
 
-    def sign_upload(self, dataset_item_id: int, team: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    def sign_upload(self, dataset_item_id: int, team_slug: Optional[str] = None) -> Optional[Dict[str, Any]]:
         """
         Signs the upload of the given DatasetItem.
 
@@ -454,7 +454,7 @@ class Client:
         ----------
         dataset_item_id: int
             The id of the DatasetItem that was uploaded.
-        team: Optional[str]
+        team_slug: Optional[str]
             Team slug of the team the dataset will belong to. Defaults to None.
 
         Returns
@@ -462,20 +462,20 @@ class Client:
         Optional[Dict[str, Any]]
             A dictionary with the signed response, or None if the Team was not found.
         """
-        the_team: Optional[Team] = self.config.get_team(team or self.default_team)
+        the_team: Optional[Team] = self.config.get_team(team_slug or self.default_team)
 
         if not the_team:
             return None
 
-        team_slug: str = the_team.slug
+        the_team_slug: str = the_team.slug
 
         response: Dict[str, Any] = cast(
-            Dict[str, Any], self._get(f"/dataset_items/{dataset_item_id}/sign_upload", team=team_slug)
+            Dict[str, Any], self._get(f"/dataset_items/{dataset_item_id}/sign_upload", team_slug=the_team_slug)
         )
         return response
 
     def upload_data(
-        self, dataset_slug: str, payload: Dict[str, Any], team: Optional[str] = None
+        self, dataset_slug: str, payload: Dict[str, Any], team_slug: Optional[str] = None
     ) -> Optional[Dict[str, Any]]:
         """
         Uploads the given data to the given dataset.
@@ -487,7 +487,7 @@ class Client:
         payload: Dict[str, Any]
             The data we want to upload. Usually a Dictionary with an `items` key containing a list 
             of items to upload.
-        team: Optional[str]
+        team_slug: Optional[str]
             Team slug of the team the dataset will belong to. Defaults to None.
 
         Returns
@@ -495,16 +495,20 @@ class Client:
         Optional[Dict[str, Any]]
             A dictionary with the result of the operation, or None if the Team was not found.
         """
-        the_team: Optional[Team] = self.config.get_team(team or self.default_team)
+        the_team: Optional[Team] = self.config.get_team(team_slug or self.default_team)
 
         if not the_team:
             return None
 
-        team_slug: str = the_team.slug
+        the_team_slug: str = the_team.slug
 
         response: Dict[str, Any] = cast(
             Dict[str, Any],
-            self._put(endpoint=f"/teams/{team_slug}/datasets/{dataset_slug}/data", payload=payload, team=team_slug),
+            self._put(
+                endpoint=f"/teams/{the_team_slug}/datasets/{dataset_slug}/data",
+                payload=payload,
+                team_slug=the_team_slug,
+            ),
         )
         return response
 
@@ -520,7 +524,7 @@ class Client:
         response: List[Dict[str, Any]] = cast(List[Dict[str, Any]], self._get("/annotation_types"))
         return response
 
-    def get_exports(self, dataset_id: int, team: Optional[str] = None) -> Optional[List[Dict[str, Any]]]:
+    def get_exports(self, dataset_id: int, team_slug: Optional[str] = None) -> Optional[List[Dict[str, Any]]]:
         """
         Get all the exports from the given dataset.
 
@@ -528,7 +532,7 @@ class Client:
         ----------
         dataset_id: int
             The id of the dataset. 
-        team: Optional[str]
+        team_slug: Optional[str]
             Team slug of the team the dataset will belong to. Defaults to None.
 
         Returns
@@ -536,15 +540,15 @@ class Client:
         Optional[List[Dict[str, Any]]]
             A list with all the exports (as dictionaries) or None if the Team was not found.
         """
-        the_team: Optional[Team] = self.config.get_team(team or self.default_team)
+        the_team: Optional[Team] = self.config.get_team(team_slug or self.default_team)
 
         if not the_team:
             return None
 
-        team_slug: str = the_team.slug
+        the_team_slug: str = the_team.slug
 
         response: List[Dict[str, Any]] = cast(
-            List[Dict[str, Any]], self._get(f"/datasets/{dataset_id}/exports", team=team_slug)
+            List[Dict[str, Any]], self._get(f"/datasets/{dataset_id}/exports", team_slug=the_team_slug)
         )
         return response
 
@@ -558,12 +562,12 @@ class Client:
             The id of the dataset. 
         payload: Dict[str, Any]
             The export infomation as a Dictionary.
-        team: Optional[str]
+        team_slug: Optional[str]
             Team slug of the team the dataset will belong to. Defaults to None.
         """
-        self._post(f"/datasets/{dataset_id}/exports", payload=payload, team=team_slug)
+        self._post(f"/datasets/{dataset_id}/exports", payload=payload, team_slug=team_slug)
 
-    def get_report(self, dataset_id: int, granularity: str, team: Optional[str] = None) -> Optional[Response]:
+    def get_report(self, dataset_id: int, granularity: str, team_slug: Optional[str] = None) -> Optional[Response]:
         """
         Gets the report for the given dataset.
 
@@ -573,7 +577,7 @@ class Client:
             The id of the dataset.
         granularity: str
             Granualirity of the report, can be 'day', 'week' or 'month'.
-        team: Optional[str]
+        team_slug: Optional[str]
             Team slug of the team the dataset will belong to. Defaults to None.
 
         Returns
@@ -581,16 +585,16 @@ class Client:
         Optional[Response]
             The raw response of the report (CSV format) or None if the Team was not found.
         """
-        the_team: Optional[Team] = self.config.get_team(team or self.default_team)
+        the_team: Optional[Team] = self.config.get_team(team_slug or self.default_team)
 
         if not the_team:
             return None
 
-        team_slug: str = the_team.slug
+        the_team_slug: str = the_team.slug
 
         return self._get_raw(
-            f"/reports/{team_slug}/annotation?group_by=dataset,user&dataset_ids={dataset_id}&granularity={granularity}&format=csv&include=dataset.name,user.first_name,user.last_name,user.email",
-            team_slug,
+            f"/reports/{the_team_slug}/annotation?group_by=dataset,user&dataset_ids={dataset_id}&granularity={granularity}&format=csv&include=dataset.name,user.first_name,user.last_name,user.email",
+            the_team_slug,
         )
 
     def delete_item(self, dataset_slug: str, team_slug: str, payload: Dict[str, Any]) -> None:
@@ -675,7 +679,7 @@ class Client:
 
         Parameters
         ----------
-        team: Optional[str]
+        team_slug: Optional[str]
             Team slug of the team the dataset will belong to. Defaults to None.
 
         Returns
@@ -695,7 +699,7 @@ class Client:
         ----------
         config_path : str
             Path to a configuration file to use to create the client
-        team: Optional[str]
+        team_slug: Optional[str]
             Team slug of the team the dataset will belong to. Defaults to None.
 
 
@@ -793,10 +797,10 @@ class Client:
         """
         return os.getenv("DARWIN_BASE_URL", "https://darwin.v7labs.com")
 
-    def _get_headers(self, team: Optional[str] = None) -> Dict[str, str]:
+    def _get_headers(self, team_slug: Optional[str] = None) -> Dict[str, str]:
         headers: Dict[str, str] = {"Content-Type": "application/json"}
         api_key: Optional[str] = None
-        team_config: Optional[Team] = self.config.get_team(team or self.default_team, raise_on_invalid_team=False)
+        team_config: Optional[Team] = self.config.get_team(team_slug or self.default_team, raise_on_invalid_team=False)
 
         if team_config:
             api_key = team_config.api_key
@@ -809,8 +813,8 @@ class Client:
         headers["User-Agent"] = f"darwin-py/{__version__}"
         return headers
 
-    def _get_raw(self, endpoint: str, team: Optional[str] = None, retry: bool = False) -> Response:
-        response: Response = requests.get(urljoin(self.url, endpoint), headers=self._get_headers(team))
+    def _get_raw(self, endpoint: str, team_slug: Optional[str] = None, retry: bool = False) -> Response:
+        response: Response = requests.get(urljoin(self.url, endpoint), headers=self._get_headers(team_slug))
 
         self.log.debug(
             f"Client GET request response ({response.text}) with status "
@@ -830,16 +834,16 @@ class Client:
         return response
 
     def _get(
-        self, endpoint: str, team: Optional[str] = None, retry: bool = False
+        self, endpoint: str, team_slug: Optional[str] = None, retry: bool = False
     ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
-        response = self._get_raw(endpoint, team, retry)
+        response = self._get_raw(endpoint, team_slug, retry)
         return self._decode_response(response)
 
     def _put_raw(
-        self, endpoint: str, payload: Dict[str, Any], team: Optional[str] = None, retry: bool = False
+        self, endpoint: str, payload: Dict[str, Any], team_slug: Optional[str] = None, retry: bool = False
     ) -> Response:
         response: requests.Response = requests.put(
-            urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team)
+            urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team_slug)
         )
 
         self.log.debug(
@@ -860,18 +864,24 @@ class Client:
         return response
 
     def _put(
-        self, endpoint: str, payload: Dict[str, Any], team: Optional[str] = None, retry: bool = False
+        self, endpoint: str, payload: Dict[str, Any], team_slug: Optional[str] = None, retry: bool = False
     ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
-        response = self._put_raw(endpoint, payload, team, retry)
+        response = self._put_raw(endpoint, payload, team_slug, retry)
         return self._decode_response(response)
 
     def _post(
-        self, endpoint: str, payload: Optional[Dict[Any, Any]] = None, team: Optional[str] = None, retry: bool = False,
+        self,
+        endpoint: str,
+        payload: Optional[Dict[Any, Any]] = None,
+        team_slug: Optional[str] = None,
+        retry: bool = False,
     ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
         if payload is None:
             payload = {}
 
-        response: Response = requests.post(urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team))
+        response: Response = requests.post(
+            urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team_slug)
+        )
 
         self.log.debug(
             f"Client POST request response ({response.json()}) with unexpected status "
@@ -891,13 +901,17 @@ class Client:
         return self._decode_response(response)
 
     def _delete(
-        self, endpoint: str, payload: Optional[Dict[Any, Any]] = None, team: Optional[str] = None, retry: bool = False,
+        self,
+        endpoint: str,
+        payload: Optional[Dict[Any, Any]] = None,
+        team_slug: Optional[str] = None,
+        retry: bool = False,
     ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
         if payload is None:
             payload = {}
 
         response: requests.Response = requests.delete(
-            urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team)
+            urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team_slug)
         )
 
         self.log.debug(
