@@ -1,9 +1,3 @@
-from dataclasses import dataclass
-from enum import Enum
-from pathlib import Path
-from typing import Optional
-
-
 class Unauthenticated(Exception):
     pass
 
@@ -60,16 +54,3 @@ class Unauthorized(Exception):
 class OutdatedDarwinJSONFormat(Exception):
     pass
 
-
-class UploadStage(Enum):
-    REQUEST_SIGNATURE = 0
-    UPLOAD_TO_S3 = 1
-    CONFIRM_UPLOAD_COMPLETE = 2
-    OTHER = 3
-
-
-@dataclass
-class UploadRequestError(Exception):
-    file_path: Path
-    stage: UploadStage
-    error: Optional[Exception] = None
