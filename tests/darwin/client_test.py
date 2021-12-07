@@ -8,7 +8,7 @@ from tests.fixtures import *
 from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset.remote_dataset import RemoteDataset
-from darwin.datatypes import Feature, Team
+from darwin.datatypes import Feature
 from darwin.exceptions import NotFound
 
 
