@@ -35,6 +35,15 @@ polygon = {
     "items": point,
 }
 
+polyline = {
+    "$id": "https://darwin.v7labs.com/schemas/polyline",
+    "description": "Schema of a Polyline",
+    "title": "Polyline",
+    "default": [{"x": 1.2, "y": 2.5}, {"x": 2.5, "y": 3.6}, {"x": 1.2, "y": 2.5}],
+    "examples": [[{"x": 1.2, "y": 2.5}, {"x": 2.5, "y": 3.6}, {"x": 1.2, "y": 2.5}], []],
+    "type": "array",
+    "items": point,
+}
 
 label_object = {
     "$id": "https://darwin.v7labs.com/schemas/label_object",
@@ -53,6 +62,48 @@ label_object = {
         {"required": ["point"], "properties": {"point": point}},
         {"required": ["bbox"], "properties": {"bbox": bounding_box}},
         {"required": ["polygon"], "properties": {"polygon": polygon}},
+        {"required": ["line"], "properties": {"line": polyline}},
+    ],
+}
+
+classification_answer_obj = {
+    "$id": "https://darwin.v7labs.com/schemas/classification_answer_obj",
+    "description": "Schema of a Classification Answer Object",
+    "title": "Answer",
+    "default": {"value": "an_answer"},
+    "examples": [{"value": "an_answer"}],
+    "type": "object",
+    "properties": {"value": {"type": "string"}},
+    "required": ["value"],
+}
+
+classification_answer_free_text = {
+    "$id": "https://darwin.v7labs.com/schemas/classification_answer_free_text",
+    "description": "Schema of a Classification Free Text Answer",
+    "title": "Free Text Answer",
+    "default": "A free text answer",
+    "examples": ["A free text answer"],
+    "type": "string",
+}
+
+label_classification = {
+    "$id": "https://darwin.v7labs.com/schemas/label_classification",
+    "description": "A classification belonging to the classifications array from a Label",
+    "title": "Label Classification",
+    "default": {"value": "a_question", "answer": {"value": "an_answer"}},
+    "examples": [
+        {"value": "a_question", "answer": {"value": "an_answer"}},
+        {"value": "a_question", "answers": [{"value": "an_answer_1"}, {"value": "an_answer_2"}]},
+    ],
+    "type": "object",
+    "required": ["value"],
+    "properties": {"value": {"type": "string"}},
+    "oneOf": [
+        {
+            "required": ["answer"],
+            "properties": {"answer": {"oneOf": [classification_answer_free_text, classification_answer_obj]}},
+        },
+        {"required": ["answers"], "properties": {"answers": {"type": "array", "items": classification_answer_obj}}},
     ],
 }
 
@@ -74,8 +125,11 @@ labelbox_file = {
     "properties": {
         "Label": {
             "type": "object",
-            "properties": {"objects": {"type": "array", "items": label_object}},
-            "required": ["objects"],
+            "properties": {
+                "objects": {"type": "array", "items": label_object},
+                "classifications": {"type": "array", "items": label_classification},
+            },
+            "required": ["objects", "classifications"],
         },
         "External ID": {"type": "string"},
     },

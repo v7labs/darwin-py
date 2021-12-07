@@ -62,6 +62,14 @@ from darwin.utils import (
 
 
 def validate_api_key(api_key: str) -> None:
+    """
+    Validates the given API key. Exits the application if it fails validation. 
+
+    Parameters
+    ----------
+    api_key: str
+        The API key to be validated.
+    """
     example_key = "DHMhAWr.BHucps-tKMAi6rWF1xieOpUvNe5WzrHP"
 
     if len(api_key) != 40:
@@ -75,21 +83,22 @@ def validate_api_key(api_key: str) -> None:
 
 
 def authenticate(api_key: str, default_team: Optional[bool] = None, datasets_dir: Optional[Path] = None) -> Config:
-    """Authenticate the API key against the server and creates a configuration file for it
+    """
+    Authenticate the API key against the server and creates a configuration file for it.
 
     Parameters
     ----------
     api_key : str
-        API key to use for the client login
+        API key to use for the client login.
     default_team: Optional[bool]
-        Flag to make the team the default one
+        Flag to make the team the default one. Defaults to None.
     datasets_dir: Optional[Path]
         Dataset directory on the file system. Defaults to None.
 
     Returns
     -------
     Config
-    A configuration object to handle YAML files
+    A configuration object to handle YAML files.
     """
     # Resolve the home folder if the dataset_dir starts with ~ or ~user
 
@@ -118,13 +127,13 @@ def authenticate(api_key: str, default_team: Optional[bool] = None, datasets_dir
 
 
 def current_team() -> None:
-    """Print the team currently authenticated against"""
+    """Print the team currently authenticated against."""
     client: Client = _load_client()
     print(client.default_team)
 
 
 def list_teams() -> None:
-    """Print a table of teams to which the client belong to"""
+    """Print a table of teams to which the client belong to."""
     for team in _config().get_all_teams():
         if team.default:
             print(f"{team.slug} (default)")
@@ -133,20 +142,28 @@ def list_teams() -> None:
 
 
 def set_team(team_slug: str) -> None:
-    """Switches the client to the selected team and persist the change on the configuration file
+    """
+    Switches the client to the selected team and persist the change on the configuration file.
 
     Parameters
     ----------
     team_slug : str
-        Slug of the team to switch to
+        Slug of the team to switch to.
     """
-
     config = _config()
     config.set_default_team(team_slug)
 
 
 def create_dataset(dataset_slug: str) -> None:
-    """Creates a dataset remotely"""
+    """
+    Creates a dataset remotely. Exits the application if the dataset's name is already taken or is 
+    not valid.
+    
+    Parameters
+    ----------
+    dataset_slug : str
+        Slug of the new dataset.
+    """
     identifier: DatasetIdentifier = DatasetIdentifier.parse(dataset_slug)
     client: Client = _load_client(team_slug=identifier.team_slug)
     try:
@@ -162,8 +179,14 @@ def create_dataset(dataset_slug: str) -> None:
 
 
 def local(team: Optional[str] = None) -> None:
-    """Lists synced datasets, stored in the specified path."""
-
+    """
+    Lists synced datasets, stored in the specified path.
+    
+    Parameters
+    ----------
+    team: Optional[str]
+        The name of the team to list, or the defautl one if no team is given. Defaults to None.
+    """
     table: Table = Table(show_header=True, header_style="bold cyan")
     table.add_column("Name")
     table.add_column("Image Count", justify="right")
@@ -184,7 +207,20 @@ def local(team: Optional[str] = None) -> None:
 
 
 def path(dataset_slug: str) -> Path:
-    """Returns the absolute path of the specified dataset, if synced"""
+    """
+    Returns the absolute path of the specified dataset.
+    Exits the application if the dataset does not exist locally.
+
+    Parameters
+    ----------
+    dataset_slug: str
+        The dataset's slug.
+
+    Returns
+    -------
+    Path
+        The absolute path of the dataset.
+    """
     identifier: DatasetIdentifier = DatasetIdentifier.parse(dataset_slug)
     client: Client = _load_client(offline=True)
 
@@ -200,7 +236,15 @@ def path(dataset_slug: str) -> Path:
 
 
 def url(dataset_slug: str) -> None:
-    """Prints the url of the specified dataset"""
+    """
+    Prints the url of the specified dataset.
+    Exits the application if no dataset was found.
+
+    Parameters
+    ----------
+    dataset_slug: str
+        The dataset's slug.
+    """
     client: Client = _load_client(offline=True)
     try:
         remote_dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
@@ -210,7 +254,17 @@ def url(dataset_slug: str) -> None:
 
 
 def dataset_report(dataset_slug: str, granularity: str) -> None:
-    """Prints the url of the specified dataset"""
+    """
+    Prints a dataset's report.
+    Exits the application if no dataset is found.
+
+    Parameters
+    ----------
+    dataset_slug: str
+        The dataset's slug.
+    granularity: str
+        Granualarity of the report, can be 'day', 'week' or 'month'.
+    """
     client: Client = _load_client(offline=True)
     try:
         remote_dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
@@ -223,16 +277,19 @@ def dataset_report(dataset_slug: str, granularity: str) -> None:
 def export_dataset(
     dataset_slug: str, include_url_token: bool, name: str, annotation_class_ids: Optional[List[str]] = None
 ) -> None:
-    """Create a new release for the dataset
+    """
+    Create a new release for the dataset.
 
     Parameters
     ----------
     dataset_slug: str
-        Slug of the dataset to which we perform the operation on
-    annotation_class_ids: List
-        List of the classes to filter
+        Slug of the dataset to which we perform the operation on.
+    include_url_token: bool
+        If True includes the url token, if False does not.
     name: str
-        Name of the release
+        Name of the release.
+    annotation_class_ids: Optional[List[str]]
+        List of the classes to filter. Defautls to None. 
     """
     client: Client = _load_client(offline=False)
     identifier: DatasetIdentifier = DatasetIdentifier.parse(dataset_slug)
@@ -246,18 +303,21 @@ def export_dataset(
 def pull_dataset(
     dataset_slug: str, only_annotations: bool = False, folders: bool = False, video_frames: bool = False
 ) -> None:
-    """Downloads a remote dataset (images and annotations) in the datasets directory.
+    """
+    Downloads a remote dataset (images and annotations) in the datasets directory.
+    Exits the application if dataset is not found, the user is not authenticated, there are no 
+    releases or the export format for the latest release is not supported.
 
     Parameters
     ----------
     dataset_slug: str
-        Slug of the dataset to which we perform the operation on
+        Slug of the dataset to which we perform the operation on.
     only_annotations: bool
-        Download only the annotations and no corresponding images
+        Download only the annotations and no corresponding images. Defaults to False.
     folders: bool
-        Recreates the folders in the dataset
+        Recreates the folders in the dataset. Defaults to False.
     video_frames: bool
-        Pulls video frames images instead of video files
+        Pulls video frames images instead of video files. Defaults to False.
     """
     version: str = DatasetIdentifier.parse(dataset_slug).version or "latest"
     client: Client = _load_client(offline=False, maybe_guest=True)
@@ -290,18 +350,19 @@ def pull_dataset(
 
 
 def split(dataset_slug: str, val_percentage: float, test_percentage: float, seed: int = 0) -> None:
-    """Splits a local version of a dataset into train, validation, and test partitions
+    """
+    Splits a local version of a dataset into train, validation, and test partitions.
 
     Parameters
     ----------
     dataset_slug: str
-        Slug of the dataset to which we perform the operation on
+        Slug of the dataset to which we perform the operation on.
     val_percentage: float
-        Percentage in the validation set
+        Percentage in the validation set.
     test_percentage: float
-        Percentage in the test set
+        Percentage in the test set.
     seed: int
-        Random seed
+        Random seed. Defaults to 0.
     """
     identifier: DatasetIdentifier = DatasetIdentifier.parse(dataset_slug)
     client: Client = _load_client(offline=True)
@@ -333,7 +394,18 @@ def split(dataset_slug: str, val_percentage: float, test_percentage: float, seed
 
 
 def list_remote_datasets(all_teams: bool, team: Optional[str] = None) -> None:
-    """Lists remote datasets with its annotation progress"""
+    """
+    Lists remote datasets with its annotation progress.
+    
+    Parameters
+    ----------
+    all_teams: bool
+        If True, lists remote datasets from all teams, if False, lists only datasets from the given 
+        Team.
+    team: Optional[str] 
+        Name of the team with the datasets we want to see. Uses the default Team is non is given.
+        Defaults to None.
+    """
     # TODO: add listing open datasets
 
     table: Table = Table(show_header=True, header_style="bold cyan")
@@ -363,7 +435,15 @@ def list_remote_datasets(all_teams: bool, team: Optional[str] = None) -> None:
 
 
 def remove_remote_dataset(dataset_slug: str) -> None:
-    """Remove a remote dataset from the workview. The dataset gets archived."""
+    """
+    Remove a remote dataset from the workview. The dataset gets archived.
+    Exits the application if no dataset with the given slug were found.
+    
+    Parameters
+    ----------
+    dataset_slug: str
+        The dataset's slug.
+    """
     client: Client = _load_client(offline=False)
     try:
         dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
@@ -379,6 +459,15 @@ def remove_remote_dataset(dataset_slug: str) -> None:
 
 
 def dataset_list_releases(dataset_slug: str) -> None:
+    """
+    Lists all the releases from the given dataset.
+    Exits the application if no dataset with the given slug were found.
+    
+    Parameters
+    ----------
+    dataset_slug: str
+        The dataset's slug.
+    """
     client: Client = _load_client(offline=False)
     try:
         dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
@@ -418,6 +507,8 @@ def upload_data(
 ) -> None:
     """
     Uploads the provided files to the remote dataset.
+    Exits the application if no dataset with the given name is found, the files in the given path 
+    have unsupported formats, or if there are no files found in the given Path.
 
     Parameters
     ----------
@@ -439,13 +530,6 @@ def upload_data(
         Specify whether or not to preserve folder paths when uploading.
     verbose : bool
         Specify whther to have full traces print when uploading files or not.
-
-    Returns
-    -------
-    generator : function
-        Generator for doing the actual uploads. This is None if blocking is True
-    count : int
-        The file's count
     """
     client: Client = _load_client()
     try:
@@ -581,7 +665,23 @@ def upload_data(
         _error(f"No files found")
 
 
-def dataset_import(dataset_slug, format, files, append) -> None:
+def dataset_import(dataset_slug: str, format: str, files: List[PathLike], append: bool) -> None:
+    """
+    Imports annotation files to the given dataset. 
+    Exits the application if no dataset with the given slug is found.
+
+    Parameters
+    ----------
+    dataset_slug: str
+        The dataset's slug.
+    format: str
+        Format of the export files.
+    files: List[PathLike]
+        List of where the files are. 
+    append: bool
+        If True it appends the annotation from the files to the dataset, if False it will override 
+        the dataset's current annotations with the ones from the given files.
+    """
     client: Client = _load_client(dataset_identifier=dataset_slug)
     parser: ImportParser = find_import_supported_format(format, ImportSupportedFormats)
 
@@ -599,6 +699,25 @@ def list_files(
     only_filenames: bool,
     sort_by: Optional[str] = "updated_at:desc",
 ) -> None:
+    """
+    List all file from the given dataset. 
+    Exits the application if it finds unknown file statuses, if no dataset with the given slug is 
+    found or if another general error occurred.
+
+    Parameters
+    ----------
+    dataset_slug: str
+        The dataset's slug.
+    statuses: Optional[str]
+        Only list files with the given statuses. Valid statuses are: 'annotate', 'archived', 
+        'complete', 'new', 'review'.
+    path: Optional[str]
+        Only list files whose Path matches. 
+    only_filenames: bool
+        If True, only prints the filenames, if False it prints the full file url.
+    sort_by: Optional[str]
+        Sort order for listing files. Defaults to 'updated_at:desc'.
+    """
     client: Client = _load_client(dataset_identifier=dataset_slug)
     try:
         dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
@@ -630,11 +749,20 @@ def list_files(
         _error(str(e))
 
 
-def _has_valid_status(status: str) -> bool:
-    return status in ["new", "annotate", "review", "complete", "archived"]
-
-
 def set_file_status(dataset_slug: str, status: str, files: List[str]) -> None:
+    """
+    Sets the status of the given files from the given dataset. 
+    Exits the application if the given status is unknown or if no dataset was found. 
+
+    Parameters
+    ----------
+    dataset_slug: str
+        The dataset's slug.
+    status: str
+        The new status for the files.
+    files: List[str]
+        Names of the files we want to update.
+    """
     if status not in ["archived", "clear", "new", "restore-archived"]:
         _error(f"Invalid status '{status}', available statuses: archived, clear, new, restore-archived")
 
@@ -655,6 +783,19 @@ def set_file_status(dataset_slug: str, status: str, files: List[str]) -> None:
 
 
 def delete_files(dataset_slug: str, files: List[str], skip_user_confirmation: bool = False) -> None:
+    """
+    Deletes the files from the given dataset.
+    Exits the application if no dataset with the given slug is found or a general error occurs.
+
+    Parameters
+    ----------
+    dataset_slug: str
+        The dataset's slug.
+    files: List[str]
+        The list of filenames to delete.
+    skip_user_confirmation: bool
+        If True, skips user confirmation, if False it will prompt the user. Defaults to False.
+    """
     client: Client = _load_client(dataset_identifier=dataset_slug)
     try:
         console = Console()
@@ -674,7 +815,22 @@ def delete_files(dataset_slug: str, files: List[str], skip_user_confirmation: bo
         _error(f"An error has occurred, please try again later.")
 
 
-def find_import_supported_format(query: str, supported_formats: List[ImporterFormat],) -> ImportParser:
+def find_import_supported_format(query: str, supported_formats: List[ImporterFormat]) -> ImportParser:
+    """
+    Returns the import parser for the given file format, or exits the application if none is found. 
+
+    Parameters
+    ----------
+    query: str
+        The format we want to import.
+    supported_formats: List[ImporterFormat]
+        List of supported formats.
+
+    Returns
+    -------
+    ImporterFormat
+        The module capable of parsing files from the given format.
+    """
     for (fmt, fmt_parser) in supported_formats:
         if fmt == query:
             return fmt_parser
@@ -682,7 +838,22 @@ def find_import_supported_format(query: str, supported_formats: List[ImporterFor
     _error(f"Unsupported import format, currently supported: {list_of_formats}")
 
 
-def find_export_supported_format(query: str, supported_formats: List[ExporterFormat],) -> ExportParser:
+def find_export_supported_format(query: str, supported_formats: List[ExporterFormat]) -> ExportParser:
+    """
+    Returns the export parser for the given file format, or exits the application if none is found. 
+
+    Parameters
+    ----------
+    query: str
+        The format we want to import.
+    supported_formats: List[ExporterFormat]
+        List of supported formats.
+
+    Returns
+    -------
+    ExporterFormat
+        The module capable of parsing files from the given format.
+    """
     for (fmt, fmt_parser) in supported_formats:
         if fmt == query:
             return fmt_parser
@@ -691,6 +862,21 @@ def find_export_supported_format(query: str, supported_formats: List[ExporterFor
 
 
 def dataset_convert(dataset_slug: str, format: str, output_dir: Optional[PathLike] = None) -> None:
+    """
+    Converts the annotations from the given dataset to the given format.
+    Exits the application if no dataset with the given slug exists or no releases for the dataset 
+    were previously pulled.
+
+    Parameters
+    ----------
+    dataset_slug: str
+        The dataset's slug.
+    format: str
+        The format we want to convert to.
+    output_dir: Optional[PathLike]
+        The folder where the exported annotation files will be. If None it will be the inside the 
+        annotations folder of the dataset under 'other_formats/{format}'. The Defaults to None.
+    """
     client: Client = _load_client()
     parser: ExportParser = find_export_supported_format(format, ExportSupportedFormats)
 
@@ -715,11 +901,33 @@ def dataset_convert(dataset_slug: str, format: str, output_dir: Optional[PathLik
 
 
 def convert(format: str, files: List[PathLike], output_dir: Path) -> None:
+    """
+    Converts the given files to the specified format. 
+
+    Parameters
+    ----------
+    format: str
+        The target format to export to.
+    files: List[PathLike]
+        List of files to be converted.
+    output_dir: Path
+        Folder where the exported annotations will be placed.
+    """
     parser: ExportParser = find_export_supported_format(format, ExportSupportedFormats)
     exporter.export_annotations(parser, files, output_dir)
 
 
 def help(parser: argparse.ArgumentParser, subparser: Optional[str] = None) -> None:
+    """
+    Prints the help text for the given command. 
+
+    Parameters
+    ----------
+    parser: argparse.ArgumentParser
+        The parser used to read input from the user.
+    subparser: Optional[str]
+        Actions from the parser to be processed. Defaults to None.
+    """
     if subparser:
         parser = next(
             action.choices[subparser]
@@ -735,6 +943,33 @@ def help(parser: argparse.ArgumentParser, subparser: Optional[str] = None) -> No
         # get all subparsers and print help
         for choice in sorted(action._choices_actions, key=lambda x: x.dest):
             print("    {:<19} {}".format(choice.dest, choice.help))
+
+
+def print_new_version_info(client: Optional[Client] = None) -> None:
+    """
+    Prints a message informing the user of a new darwin-py version. 
+    Does nothing if no new version is available or if no client is provided.
+
+    Parameters
+    ----------
+    client: Optional[Client]
+        The client containing information aboue the new verison. Defaults to None.
+    """
+    if not client or not client.newer_darwin_version:
+        return
+
+    (a, b, c) = tuple(client.newer_darwin_version)
+
+    console = Console(theme=_console_theme(), stderr=True)
+    console.print(
+        f"A newer version of darwin-py ({a}.{b}.{c}) is available!",
+        "Run the following command to install it:",
+        "",
+        f"    pip install darwin-py=={a}.{b}.{c}",
+        "",
+        sep="\n",
+        style="warning",
+    )
 
 
 def _error(message: str) -> NoReturn:
@@ -792,19 +1027,5 @@ def _console_theme() -> Theme:
     return Theme({"success": "bold green", "warning": "bold yellow", "error": "bold red"})
 
 
-def print_new_version_info(client: Optional[Client]) -> None:
-    if not client or not client.newer_darwin_version:
-        return
-
-    (a, b, c) = tuple(client.newer_darwin_version)
-
-    console = Console(theme=_console_theme(), stderr=True)
-    console.print(
-        f"A newer version of darwin-py ({a}.{b}.{c}) is available!",
-        "Run the following command to install it:",
-        "",
-        f"    pip install darwin-py=={a}.{b}.{c}",
-        "",
-        sep="\n",
-        style="warning",
-    )
+def _has_valid_status(status: str) -> bool:
+    return status in ["new", "annotate", "review", "complete", "archived"]
