@@ -112,8 +112,6 @@ class Client:
 
         Raises
         -------
-        Unauthorized
-            If the user does not have access to the given dataset.
         NotFound
             If no dataset with the given identifier was found.
         """
