@@ -1,6 +1,8 @@
 import concurrent.futures
 import os
 import time
+from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
 from typing import (
     TYPE_CHECKING,
@@ -16,7 +18,6 @@ from typing import (
 
 import requests
 from darwin.datatypes import PathLike
-from darwin.exceptions import UploadRequestError, UploadStage
 from darwin.path_utils import construct_full_path
 from darwin.utils import chunk
 
@@ -38,6 +39,20 @@ class ItemPayload:
     @property
     def full_path(self) -> str:
         return construct_full_path(self.path, self.filename)
+
+
+class UploadStage(Enum):
+    REQUEST_SIGNATURE = 0
+    UPLOAD_TO_S3 = 1
+    CONFIRM_UPLOAD_COMPLETE = 2
+    OTHER = 3
+
+
+@dataclass
+class UploadRequestError(Exception):
+    file_path: Path
+    stage: UploadStage
+    error: Optional[Exception] = None
 
 
 class LocalFile:
