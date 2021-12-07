@@ -50,6 +50,7 @@ def get_dataset(
         "classification": ClassificationDataset,
         "instance-segmentation": InstanceSegmentationDataset,
         "semantic-segmentation": SemanticSegmentationDataset,
+        "object-detection": ObjectDetectionDataset,
     }
     dataset_function = dataset_functions.get(dataset_type)
     if not dataset_function:
