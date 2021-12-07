@@ -146,6 +146,17 @@ def describe_create_dataset():
 
 
 @pytest.mark.usefixtures("file_read_write_test")
+def describe_fetch_remote_files():
+    @responses.activate
+    def it_returns_remote_files(darwin_client: Client):
+        dataset_id = 1
+        endpoint: str = f"/datasets/{dataset_id}/items?page%5Bsize%5D=500&page%5Bfrom%5D=0"
+        responses.add(responses.POST, darwin_client.url + endpoint, json={}, status=200)
+
+        darwin_client.fetch_remote_files(dataset_id, {"page[size]": 500, "page[from]": 0}, {}, "team-slug")
+
+
+@pytest.mark.usefixtures("file_read_write_test")
 def describe_get_team_features():
     @responses.activate
     def it_returns_list_of_features(darwin_client: Client):
