@@ -194,7 +194,7 @@ class Client:
         self._put(f"datasets/{dataset_id}/archive", payload={}, team_slug=team_slug)
 
     def fetch_remote_files(
-        self, dataset_id: int, cursor: Dict[str, Any], payload: Any, team_slug: str
+        self, dataset_id: int, cursor: Dict[str, Any], payload: Dict[str, Any], team_slug: str
     ) -> Dict[str, Any]:
         """
         Download the remote files from the given dataset.
@@ -205,7 +205,7 @@ class Client:
             Id of the dataset the file belong to.
         cursor: Dict[str, Any]
             Number of items per page and page number. Defaults to {"page[size]": 500, "page[from]": 0}.
-        payload: Any
+        payload: Dict[str, Any]
             Filter and sort parameters. 
         team_slug: str
             The team slug of the dataset.
@@ -213,7 +213,7 @@ class Client:
         Returns
         -------
          Dict[str, Any]
-            A response object with the file information.
+            A response dictionary with the file information.
         """
         response: Dict[str, Any] = cast(
             Dict[str, Any], self._post(f"/datasets/{dataset_id}/items?{parse.urlencode(cursor)}", payload, team_slug)
