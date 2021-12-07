@@ -8,7 +8,7 @@ from tests.fixtures import *
 from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset.remote_dataset import RemoteDataset
-from darwin.datatypes import Feature
+from darwin.datatypes import Feature, Team
 from darwin.exceptions import NotFound
 
 
@@ -26,7 +26,7 @@ def darwin_client(darwin_config_path: Path, darwin_datasets_path: Path, team_slu
 def describe_list_remote_datasets():
     @responses.activate
     def it_returns_list_of_datasets(darwin_client: Client):
-        team_slug: str = "team-slug"
+        team_slug: str = "v7"
         endpoint: str = "/datasets"
         json_response: List[Dict[str, Any]] = [
             {
@@ -90,7 +90,7 @@ def describe_get_remote_dataset():
         responses.add(responses.GET, darwin_client.url + endpoint, json=json_response, status=200)
 
         with pytest.raises(NotFound):
-            darwin_client.get_remote_dataset("team-slug/dataset-slug-2")
+            darwin_client.get_remote_dataset("v7/dataset-slug-2")
 
     @responses.activate
     def it_returns_the_dataset(darwin_client: Client):
@@ -108,14 +108,9 @@ def describe_get_remote_dataset():
 
         responses.add(responses.GET, darwin_client.url + endpoint, json=json_response, status=200)
 
-        actual_dataset = darwin_client.get_remote_dataset("team-slug/dataset-slug-1")
+        actual_dataset = darwin_client.get_remote_dataset("v7/dataset-slug-1")
         expected_dataset = RemoteDataset(
-            team="team-slug",
-            name="dataset-name-1",
-            slug="dataset-slug-1",
-            dataset_id=1,
-            item_count=1,
-            client=darwin_client,
+            team="v7", name="dataset-name-1", slug="dataset-slug-1", dataset_id=1, item_count=1, client=darwin_client,
         )
 
         assert_dataset(actual_dataset, expected_dataset)
@@ -137,9 +132,9 @@ def describe_create_dataset():
 
         responses.add(responses.POST, darwin_client.url + endpoint, json=json_response, status=200)
 
-        actual_dataset = darwin_client.create_dataset("my-dataset", "team-slug")
+        actual_dataset = darwin_client.create_dataset("my-dataset", "v7")
         expected_dataset = RemoteDataset(
-            team="team-slug", name="my-dataset", slug="my-dataset", dataset_id=1, item_count=1, client=darwin_client,
+            team="v7", name="my-dataset", slug="my-dataset", dataset_id=1, item_count=1, client=darwin_client,
         )
 
         assert_dataset(actual_dataset, expected_dataset)
@@ -153,14 +148,51 @@ def describe_fetch_remote_files():
         endpoint: str = f"/datasets/{dataset_id}/items?page%5Bsize%5D=500&page%5Bfrom%5D=0"
         responses.add(responses.POST, darwin_client.url + endpoint, json={}, status=200)
 
-        darwin_client.fetch_remote_files(dataset_id, {"page[size]": 500, "page[from]": 0}, {}, "team-slug")
+        darwin_client.fetch_remote_files(dataset_id, {"page[size]": 500, "page[from]": 0}, {}, "v7")
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+def describe_fetch_remote_classes():
+    @responses.activate
+    def it_returns_remote_classes(darwin_client: Client):
+        team_slug: str = "v7"
+        endpoint: str = f"/teams/{team_slug}/annotation_classes?include_tags=true"
+        response: Dict[str, Any] = {
+            "annotation_classes": [
+                {
+                    "annotation_class_image_url": None,
+                    "annotation_types": ["tag"],
+                    "dataset_id": 215,
+                    "datasets": [{"id": 215}, {"id": 265}],
+                    "description": " Tag 2",
+                    "id": 345,
+                    "images": [],
+                    "inserted_at": "2021-01-25T02:27:10",
+                    "metadata": {"_color": "rgba(0,255,0,1.0)", "tag": {}},
+                    "name": " Tag 2",
+                    "team_id": 2,
+                    "updated_at": "2021-01-25T02:27:10",
+                }
+            ]
+        }
+
+        responses.add(responses.GET, darwin_client.url + endpoint, json=response, status=200)
+
+        result: List[Dict[str, Any]] = darwin_client.fetch_remote_classes(team_slug)
+        annotation_class: Dict[str, Any] = result[0]
+
+        assert annotation_class["annotation_class_image_url"] is None
+        assert annotation_class["annotation_types"] == ["tag"]
+        assert annotation_class["dataset_id"] == 215
+        assert annotation_class["datasets"] == [{"id": 215}, {"id": 265}]
+        assert annotation_class["id"] == 345
 
 
 @pytest.mark.usefixtures("file_read_write_test")
 def describe_get_team_features():
     @responses.activate
     def it_returns_list_of_features(darwin_client: Client):
-        team_slug: str = "team-slug"
+        team_slug: str = "v7"
         endpoint: str = f"/teams/{team_slug}/features"
         json_response = [
             {"enabled": False, "name": "WORKFLOW_V2"},
