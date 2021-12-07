@@ -17,6 +17,7 @@ from PIL import Image as PILImage
 from torchvision.transforms.functional import to_tensor
 
 import torch
+from torch.functional import Tensor
 
 
 def get_dataset(
@@ -360,4 +361,92 @@ class SemanticSegmentationDataset(LocalDataset):
         for i, _ in enumerate(self.images_path):
             target = self.get_target(i)
             labels.extend([a["category_id"] for a in target["annotations"]])
+        return self._compute_weights(labels)
+
+
+class ObjectDetectionDataset(LocalDataset):
+    def __init__(self, transform: Optional[List] = None, **kwargs):
+        """See `LocalDataset` class for documentation"""
+        super().__init__(annotation_type="bounding_box", **kwargs)
+
+        if transform is not None and isinstance(transform, list):
+            transform = Compose(transform)
+
+        self.transform: Optional[Callable] = transform
+
+    def __getitem__(self, index: int):
+        """
+        Notes
+        -----
+        The return value is a dict with the following fields:
+            image_id : int
+                Index of the image inside the dataset
+            image_path: str
+                The path to the image on the file system
+            labels : tensor(n)
+                The class label of each one of the instances
+            boxes : tensor(n, 4)
+                Coordinates of the bounding box enclosing the instances as [x, y, x, y]
+            area : float
+                Area in pixels of each one of the instances
+        """
+        img: PILImage.Image = self.get_image(index)
+        target: Dict[str, Any] = self.get_target(index)
+
+        if self.transform is not None:
+            img_tensor, target = self.transform(img, target)
+        else:
+            img_tensor = to_tensor(img)
+
+        return img_tensor, target
+
+    def get_target(self, index: int) -> Dict[str, Tensor]:
+        """Returns the object detection target"""
+        target = self.parse_json(index)
+        annotations = target.pop("annotations")
+
+        targets = []
+        for annotation in annotations:
+            bbox = annotation["bounding_box"]
+
+            h = bbox["h"]
+            w = bbox["w"]
+            x = bbox["x"]
+            y = bbox["y"]
+
+            bbox = torch.tensor([h, w, x, y])
+            area = bbox[0] * bbox[1]
+            label = torch.tensor(self.classes.index(annotation["name"]))
+
+            ann = {"bbox": bbox, "area": area, "label": label}
+
+            targets.append(ann)
+        # following https://pytorch.org/tutorials/intermediate/torchvision_tutorial.html
+        stacked_targets = {
+            "boxes": torch.stack([v["bbox"] for v in targets]),
+            "area": torch.stack([v["area"] for v in targets]),
+            "labels": torch.stack([v["label"] for v in targets]),
+            "image_id": torch.tensor([index]),
+        }
+
+        stacked_targets["iscrowd"] = torch.zeros_like(stacked_targets["labels"])
+
+        return stacked_targets
+
+    def measure_weights(self, **kwargs) -> np.ndarray:
+        """
+        Computes the class balancing weights (not the frequencies!!) given the train loader
+        Get the weights proportional to the inverse of their class frequencies.
+        The vector sums up to 1
+
+        Returns
+        -------
+        class_weights : ndarray[double]
+            Weight for each class in the train set (one for each class) as a 1D array normalized
+        """
+        # Collect all the labels by iterating over the whole dataset
+        labels = []
+        for i, _ in enumerate(self.images_path):
+            target = self.get_target(i)
+            labels.extend(target["labels"].tolist())
         return self._compute_weights(labels)
