@@ -303,6 +303,20 @@ class Client:
         )
         return response
 
+    def import_annotation_class(self, item_id: int, payload: Dict[str, Any]) -> None:
+        """
+        Imports the annotation class for the item with the given id.
+        
+        Parameters
+        ----------
+        item_id: int
+            Identifier of the Image or Video that we are import the annotation to.
+        payload: Dict[str, Any]
+            A dictionary with the annotations to import. The default format is: 
+            `{"annotations": serialized_annotations, "overwrite": "false"}`
+        """
+        self._post(f"/dataset_items/{item_id}/import", payload=payload)
+
     def fetch_remote_attributes(self, dataset_id: int) -> List[Dict[str, Any]]:
         """
         Fetches all attributes remotly.
