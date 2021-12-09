@@ -41,7 +41,7 @@ class Config(object):
             The key where the value to be fetched is stored.
             It can be formatted as a simple string, or as a path/like/string to fetch nested values.
         default: Optional[Any]
-            A default value in case the given key returns 'None'. Defaults to 'None'.
+            A default value in case the given key returns `None`. Defaults to `None`.
 
         Returns
         -------
@@ -75,7 +75,7 @@ class Config(object):
         value: Any
             The value to be stored.
         save: bool
-            If True, persists the value in the FileSystem. Defaults to 'True'.
+            If `True`, persists the value in the FileSystem. Defaults to `True`.
         """
         if isinstance(key, str):
             key = key.split("/")
@@ -143,7 +143,7 @@ class Config(object):
         base_url: str
             The base URL for V7 together with protocol.
         default_team: Optional[str]
-            The default team's slug. Defaults to 'None'.
+            The default team's slug. Defaults to `None`.
         """
         self.put("global/api_endpoint", api_endpoint)
         self.put("global/base_url", base_url)
@@ -159,15 +159,15 @@ class Config(object):
         ----------
         team: Optional[str]
             The Team's slug. If none is given, searches for the default team instead. Defaults to 
-            'None'.
+            `None`.
         raise_on_invalid_team: bool
-            If True, raises if no team is found, if False returns 'None' instead. Defaults to True.
+            If `True`, raises if no team is found, if False returns `None` instead. Defaults to `True`.
        
         Returns
         -------
         Optional[Team]:
-            The team or 'None' if no API key for the team was found and `raise_on_invalid_team` is 
-            False.
+            The team or `None` if no API key for the team was found and `raise_on_invalid_team` is 
+            `False`.
 
         Raises
         ------
@@ -195,13 +195,13 @@ class Config(object):
         Parameters
         ----------
         raise_on_invalid_team: bool
-            If True, raises if no default team is found, if False returns 'None' instead. Defaults 
-            to True.
+            If `True`, raises if no default team is found, if False returns `None` instead. Defaults 
+            to `True`.
         
         Returns
         -------
         Optional[Team]:
-            The team or 'None' if no default team is set and `raise_on_invalid_team` is False.
+            The team or `None` if no default team is set and `raise_on_invalid_team` is `False`.
 
         Raises
         ------
