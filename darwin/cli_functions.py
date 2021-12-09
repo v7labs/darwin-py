@@ -194,7 +194,7 @@ def local(team: Optional[str] = None) -> None:
     table.add_column("Size", justify="right")
 
     client: Client = _load_client(offline=True)
-    for dataset_path in client.list_local_datasets(team=team):
+    for dataset_path in client.list_local_datasets(team_slug=team):
         files_in_dataset_path = find_files([dataset_path])
         table.add_row(
             f"{dataset_path.parent.name}/{dataset_path.name}",
@@ -224,7 +224,7 @@ def path(dataset_slug: str) -> Path:
     identifier: DatasetIdentifier = DatasetIdentifier.parse(dataset_slug)
     client: Client = _load_client(offline=True)
 
-    for path in client.list_local_datasets(team=identifier.team_slug):
+    for path in client.list_local_datasets(team_slug=identifier.team_slug):
         if identifier.dataset_slug == path.name:
             return path
 
@@ -367,7 +367,7 @@ def split(dataset_slug: str, val_percentage: float, test_percentage: float, seed
     identifier: DatasetIdentifier = DatasetIdentifier.parse(dataset_slug)
     client: Client = _load_client(offline=True)
 
-    for p in client.list_local_datasets(team=identifier.team_slug):
+    for p in client.list_local_datasets(team_slug=identifier.team_slug):
         if identifier.dataset_slug == p.name:
             try:
                 split_path = split_dataset(

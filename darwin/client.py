@@ -667,7 +667,7 @@ class Client:
         payload: Dict[str, Any]
             A filter Dictionary that defines the items to be archived.
         """
-        self._put(f"teams/{team_slug}/datasets/{dataset_slug}/items/archive", payload, team_slug)
+        self._put_raw(f"teams/{team_slug}/datasets/{dataset_slug}/items/archive", payload, team_slug)
 
     def restore_archived_item(self, dataset_slug: str, team_slug: str, payload: Dict[str, Any]) -> None:
         """
@@ -682,7 +682,7 @@ class Client:
         payload: Dict[str, Any]
             A filter Dictionary that defines the items to be restored.
         """
-        self._put(f"teams/{team_slug}/datasets/{dataset_slug}/items/restore", payload, team_slug)
+        self._put_raw(f"teams/{team_slug}/datasets/{dataset_slug}/items/restore", payload, team_slug)
 
     def move_item_to_new(self, dataset_slug: str, team_slug: str, payload: Dict[str, Any]) -> None:
         """
@@ -697,7 +697,7 @@ class Client:
         payload: Dict[str, Any]
             A filter Dictionary that defines the items to have the 'new' status.
         """
-        self._put(f"teams/{team_slug}/datasets/{dataset_slug}/items/move_to_new", payload, team_slug)
+        self._put_raw(f"teams/{team_slug}/datasets/{dataset_slug}/items/move_to_new", payload, team_slug)
 
     def reset_item(self, dataset_slug: str, team_slug: str, payload: Dict[str, Any]) -> None:
         """
@@ -712,7 +712,7 @@ class Client:
         payload: Dict[str, Any]
             A filter Dictionary that defines the items to be reseted.
         """
-        self._put(f"teams/{team_slug}/datasets/{dataset_slug}/items/reset", payload, team_slug)
+        self._put_raw(f"teams/{team_slug}/datasets/{dataset_slug}/items/reset", payload, team_slug)
 
     @classmethod
     def local(cls, team_slug: Optional[str] = None) -> "Client":
@@ -859,7 +859,7 @@ class Client:
         response: Response = requests.get(urljoin(self.url, endpoint), headers=self._get_headers(team_slug))
 
         self.log.debug(
-            f"Client GET request response ({response.text}) with status "
+            f"Client GET request response ({self._get_response_debug_text(response)}) with status "
             f"({response.status_code}). "
             f"Client: ({self})"
             f"Request: (endpoint={endpoint})"
@@ -889,7 +889,7 @@ class Client:
         )
 
         self.log.debug(
-            f"Client PUT request got response ({response.text}) with status "
+            f"Client PUT request got response ({self._get_response_debug_text(response)}) with status "
             f"({response.status_code}). "
             f"Client: ({self})"
             f"Request: (endpoint={endpoint}, payload={payload})"
@@ -926,7 +926,7 @@ class Client:
         )
 
         self.log.debug(
-            f"Client POST request response ({response.json()}) with unexpected status "
+            f"Client POST request response ({self._get_response_debug_text(response)}) with unexpected status "
             f"({response.status_code}). "
             f"Client: ({self})"
             f"Request: (endpoint={endpoint}, payload={payload})"
@@ -957,7 +957,7 @@ class Client:
         )
 
         self.log.debug(
-            f"Client DELETE request response ({response.json()}) with unexpected status "
+            f"Client DELETE request response ({self._get_response_debug_text(response)}) with unexpected status "
             f"({response.status_code}). "
             f"Client: ({self})"
             f"Request: (endpoint={endpoint})"
@@ -981,8 +981,7 @@ class Client:
         if response.status_code == 404:
             raise NotFound(urljoin(self.url, endpoint))
 
-        is_json = response.headers.get("content-type") == "application/json"
-        if is_json:
+        if self._has_json_response(response):
             body = response.json()
             is_name_taken: Optional[bool] = None
             if isinstance(body, Dict):
@@ -1002,6 +1001,15 @@ class Client:
 
             if error_code == "INSUFFICIENT_REMAINING_STORAGE":
                 raise InsufficientStorage()
+
+    def _has_json_response(self, response: Response) -> bool:
+        return response.headers.get("content-type") == "application/json"
+
+    def _get_response_debug_text(self, response: Response) -> str:
+        if self._has_json_response(response):
+            return response.json()
+        else:
+            return response.text
 
     def _decode_response(self, response: requests.Response) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
         """Decode the response as JSON entry or return a dictionary with the error
