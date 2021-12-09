@@ -41,6 +41,8 @@ class Feature:
 
 @dataclass(frozen=True, eq=True)
 class AnnotationClass:
+    """Represents an AnnocationClass from an Annotation."""
+
     name: str
     annotation_type: str
     annotation_internal_type: Optional[str] = None
@@ -48,17 +50,34 @@ class AnnotationClass:
 
 @dataclass(frozen=True, eq=True)
 class SubAnnotation:
+    """Represents a subannotation that belongs to an AnnotationClass."""
+
     annotation_type: str
     data: Any
 
 
 @dataclass(frozen=True, eq=True)
 class Annotation:
+    """Represents an Annotation from an Image/Video."""
+
     annotation_class: AnnotationClass
     data: Any
     subs: List[SubAnnotation] = field(default_factory=list)
 
     def get_sub(self, annotation_type: str) -> Optional[SubAnnotation]:
+        """
+        Returns the first SubAnnotation that matches the given type.
+        
+        Parameters
+        ----------
+        annotation_type: str
+            The type of the subannotation.
+
+        Returns
+        -------
+        Optional[SubAnnotation]
+            A SubAnnotation found, or `None` if none was found.
+        """
         for sub in self.subs:
             if sub.annotation_type == annotation_type:
                 return sub
