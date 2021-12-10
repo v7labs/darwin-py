@@ -13,6 +13,22 @@ from darwin.options import Options
 
 
 def main() -> None:
+    """
+    Executes the main function of program. 
+
+    Raises
+    ------
+    Unauthorized
+        If the API key with which the use is authenticated does not grant access for the given 
+        action.
+    Unauthenticated
+        If a given action needs authentication and you are not authenticated.
+    InvalidTeam
+        If you are trying to use a team that is not specified in the configuration file. To fix this
+        please authenticate with the given team first.
+    requests.exceptions.ConnectionError
+        If there is a connection issue.
+    """
     args, parser = Options().parse_args()
     try:
         _run(args, parser)

@@ -152,7 +152,7 @@ def import_annotations(
         raise ValueError(f"file_paths must be a list of 'Path' or 'str'. Current value: {file_paths}")
 
     print("Fetching remote class list...")
-    team_classes: Optional[List[Dict[str, Any]]] = dataset.fetch_remote_classes(True)
+    team_classes: List[Dict[str, Any]] = dataset.fetch_remote_classes(True)
     if not team_classes:
         raise ValueError("Unable to fetch remote class list.")
 
@@ -229,7 +229,7 @@ def import_annotations(
 
     # Refetch classes to update mappings
     if local_classes_not_in_team or local_classes_not_in_dataset:
-        maybe_remote_classes: Optional[List[Dict[str, Any]]] = dataset.fetch_remote_classes()
+        maybe_remote_classes: List[Dict[str, Any]] = dataset.fetch_remote_classes()
         if not maybe_remote_classes:
             raise ValueError("Unable to fetch remote classes.")
 
@@ -327,6 +327,7 @@ def _import_annotations(
     if append:
         payload["overwrite"] = "false"
 
-    res = client.post(f"/dataset_items/{id}/import", payload=payload)
-    if res.get("status_code") != 200:
-        print(f"warning, failed to upload annotation to {id}", res)
+    try:
+        client.import_annotation_class(id, payload=payload)
+    except:
+        print(f"warning, failed to upload annotation to item {id}. Annotations: {payload}")

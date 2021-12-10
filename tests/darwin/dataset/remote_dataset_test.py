@@ -558,41 +558,33 @@ def dataset_item(dataset_slug: str) -> DatasetItem:
 @pytest.mark.usefixtures("file_read_write_test")
 def describe_archive():
     def calls_client_put(remote_dataset: RemoteDataset, dataset_item: DatasetItem, team_slug: str, dataset_slug: str):
-        with patch.object(Client, "put", return_value={}) as stub:
+        with patch.object(Client, "archive_item", return_value={}) as stub:
             remote_dataset.archive([dataset_item])
-            stub.assert_called_once_with(
-                f"teams/{team_slug}/datasets/{dataset_slug}/items/archive", {"filter": {"dataset_item_ids": [1]}}
-            )
+            stub.assert_called_once_with(dataset_slug, team_slug, {"filter": {"dataset_item_ids": [1]}})
 
 
 @pytest.mark.usefixtures("file_read_write_test")
 def describe_move_to_new():
     def calls_client_put(remote_dataset: RemoteDataset, dataset_item: DatasetItem, team_slug: str, dataset_slug: str):
-        with patch.object(Client, "put", return_value={}) as stub:
+        with patch.object(Client, "move_item_to_new", return_value={}) as stub:
             remote_dataset.move_to_new([dataset_item])
-            stub.assert_called_once_with(
-                f"teams/{team_slug}/datasets/{dataset_slug}/items/move_to_new", {"filter": {"dataset_item_ids": [1]}}
-            )
+            stub.assert_called_once_with(dataset_slug, team_slug, {"filter": {"dataset_item_ids": [1]}})
 
 
 @pytest.mark.usefixtures("file_read_write_test")
 def describe_reset():
     def calls_client_put(remote_dataset: RemoteDataset, dataset_item: DatasetItem, team_slug: str, dataset_slug: str):
-        with patch.object(Client, "put", return_value={}) as stub:
+        with patch.object(Client, "reset_item", return_value={}) as stub:
             remote_dataset.reset([dataset_item])
-            stub.assert_called_once_with(
-                f"teams/{team_slug}/datasets/{dataset_slug}/items/reset", {"filter": {"dataset_item_ids": [1]}}
-            )
+            stub.assert_called_once_with(dataset_slug, team_slug, {"filter": {"dataset_item_ids": [1]}})
 
 
 @pytest.mark.usefixtures("file_read_write_test")
 def describe_restore_archived():
     def calls_client_put(remote_dataset: RemoteDataset, dataset_item: DatasetItem, team_slug: str, dataset_slug: str):
-        with patch.object(Client, "put", return_value={}) as stub:
+        with patch.object(Client, "restore_archived_item", return_value={}) as stub:
             remote_dataset.restore_archived([dataset_item])
-            stub.assert_called_once_with(
-                f"teams/{team_slug}/datasets/{dataset_slug}/items/restore", {"filter": {"dataset_item_ids": [1]}}
-            )
+            stub.assert_called_once_with(dataset_slug, team_slug, {"filter": {"dataset_item_ids": [1]}})
 
 
 @pytest.mark.usefixtures("file_read_write_test")
@@ -600,11 +592,9 @@ def describe_delete_items():
     def calls_client_delete(
         remote_dataset: RemoteDataset, dataset_item: DatasetItem, team_slug: str, dataset_slug: str
     ):
-        with patch.object(Client, "delete", return_value={}) as stub:
+        with patch.object(Client, "delete_item", return_value={}) as stub:
             remote_dataset.delete_items([dataset_item])
-            stub.assert_called_once_with(
-                f"teams/{team_slug}/datasets/{dataset_slug}/items", {"filter": {"dataset_item_ids": [1]}}
-            )
+            stub.assert_called_once_with("test-dataset", "v7", {"filter": {"dataset_item_ids": [1]}})
 
 
 def assert_upload_mocks_are_correctly_called(remote_dataset: RemoteDataset, *args):
