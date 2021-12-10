@@ -23,6 +23,8 @@ jobs:
           pip install --editable ".[test]"
           pip install torch torchvision
           pip install -U sphinx
+          # Locking mistune version so m2r works. More info on issue:
+          # https://github.com/miyakogi/m2r/issues/66
           pip install mistune==0.8.4
           pip install m2r
           pip install sphinx_rtd_theme
