@@ -224,10 +224,45 @@ class VideoAnnotation:
 
 @dataclass
 class AnnotationFile:
+    """
+    Represents a file containing annotations. Mostly useful when trying to import or export 
+    annotations to/from darwin V7.
+
+    Attributes
+    ----------
+    path: Path
+        Path to the file.
+    filename: str
+        Name of the file containing the annotations.
+    annotation_classes: Set[AnnotationClass]
+        ``Set`` of all ``AnnotationClass``es this file contains. Used as a way to know in advance 
+        which ``AnnotationClass``es this file has without having to go through the list of 
+        annotations.
+    annotations: Union[List[VideoAnnotation], List[Annotation]]
+        List of ``VideoAnnotation``s or ``Annotation``s. 
+    is_video: bool, default: False
+        Whether the annotations in the ``annotations`` attribute are ``VideoAnnotation`` or not. 
+        Defaults to ``False``. 
+    image_width: Optional[int], default:  None
+        Width of the image in this annotation. Defaults to ``None``.
+    image_height: Optional[int], default:  None
+        Height of the image in this annotation. Defaults to ``None``.
+    image_url: Optional[str], default:  None
+        URL of the image in this annotation. Defaults to ``None``.
+    workview_url: Optional[str], default:  None
+        URL of the workview for this annotation. Defaults to ``None``.
+    seq: Optional[int], default:  None
+        Sequence for this annotation. Defaults to ``None``.
+    frame_urls: Optional[List[str]], default:  None
+        URLs for the frames this ``AnnotationFile`` has. Defautls to ``None``.
+    remote_path: Optional[str], default:  None
+        Remote path for this Annoataion file in V7's darwin. Defaults to ``None``.
+    """
+
     path: Path
     filename: str
     annotation_classes: Set[AnnotationClass]
-    annotations: List[Union[VideoAnnotation, Annotation]]
+    annotations: Union[List[VideoAnnotation], List[Annotation]]
     is_video: bool = False
     image_width: Optional[int] = None
     image_height: Optional[int] = None
@@ -239,6 +274,14 @@ class AnnotationFile:
 
     @property
     def full_path(self) -> str:
+        """
+        Returns the absolute path of this file.
+
+        Returns
+        -------
+        str
+            The absolute path of the file.
+        """
         return construct_full_path(self.remote_path, self.filename)
 
 
