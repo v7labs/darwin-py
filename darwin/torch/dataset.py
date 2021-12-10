@@ -387,7 +387,7 @@ class ObjectDetectionDataset(LocalDataset):
             labels : tensor(n)
                 The class label of each one of the instances
             boxes : tensor(n, 4)
-                Coordinates of the bounding box enclosing the instances as [x, y, w, h]
+                Coordinates of the bounding box enclosing the instances as [x, y, w, h] (coco format)
             area : float
                 Area in pixels of each one of the instances
         """
