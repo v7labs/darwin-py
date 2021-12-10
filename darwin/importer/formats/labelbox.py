@@ -22,8 +22,6 @@ def parse_file(path: Path, validate: Callable[[Any], None]) -> Optional[List[Ann
     Parses the given LabelBox file and maybe returns the corresponding annotations.
     The file must have a structure simillar to the following:
     
-    '''
-    .. highlight:: javascript
     .. code-block:: javascript
         [
             {
@@ -46,7 +44,6 @@ def parse_file(path: Path, validate: Callable[[Any], None]) -> Optional[List[Ann
             },
             { }
         ]
-    '''
 
     You can check the Labelbox Schemas in `labelbox_schemas.py`.
 

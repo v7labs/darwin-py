@@ -1,11 +1,9 @@
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
-import PIL
 from darwin.cli_functions import _error, _load_client
 from darwin.dataset import LocalDataset
 from darwin.dataset.identifier import DatasetIdentifier
-from darwin.datatypes import Annotation
 from darwin.torch.transforms import (
     Compose,
     ConvertPolygonsToInstanceMasks,
@@ -237,9 +235,7 @@ class InstanceSegmentationDataset(LocalDataset):
             # Extract the sequences of coordinates from the polygon annotation
             annotation_type: str = "polygon" if "polygon" in annotation else "complex_polygon"
             sequences = convert_polygons_to_sequences(
-                annotation[annotation_type]["path"],
-                height=target["height"],
-                width=target["width"],
+                annotation[annotation_type]["path"], height=target["height"], width=target["width"],
             )
             # Compute the bbox of the polygon
             x_coords = [s[0::2] for s in sequences]
@@ -333,9 +329,7 @@ class SemanticSegmentationDataset(LocalDataset):
         annotations = []
         for obj in target["annotations"]:
             sequences = convert_polygons_to_sequences(
-                obj["polygon"]["path"],
-                height=target["height"],
-                width=target["width"],
+                obj["polygon"]["path"], height=target["height"], width=target["width"],
             )
             # Discard polygons with less than three points
             sequences[:] = [s for s in sequences if len(s) >= 6]
