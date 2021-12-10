@@ -26,6 +26,8 @@ if TYPE_CHECKING:
     from darwin.dataset import RemoteDataset
     from darwin.dataset.identifier import DatasetIdentifier
 
+from typing import Dict
+
 
 class ItemPayload:
     def __init__(self, *, dataset_item_id: int, filename: str, path: str, reason: Optional[str] = None):
@@ -37,6 +39,20 @@ class ItemPayload:
     @property
     def full_path(self) -> str:
         return construct_full_path(self.path, self.filename)
+
+
+class UploadStage(Enum):
+    REQUEST_SIGNATURE = 0
+    UPLOAD_TO_S3 = 1
+    CONFIRM_UPLOAD_COMPLETE = 2
+    OTHER = 3
+
+
+@dataclass
+class UploadRequestError(Exception):
+    file_path: Path
+    stage: UploadStage
+    error: Optional[Exception] = None
 
 
 class LocalFile:
@@ -101,20 +117,6 @@ class FileMonitor(object):
         self.callback(self)
 
         return data
-
-
-class UploadStage(Enum):
-    REQUEST_SIGNATURE = 0
-    UPLOAD_TO_S3 = 1
-    CONFIRM_UPLOAD_COMPLETE = 2
-    OTHER = 3
-
-
-@dataclass
-class UploadRequestError(Exception):
-    file_path: Path
-    stage: UploadStage
-    error: Optional[Exception] = None
 
 
 ByteReadCallback = Callable[[Optional[str], float, float], None]
@@ -206,11 +208,11 @@ class UploadHandler:
         chunk_size: int = _upload_chunk_size()
         for file_chunk in chunk(self.local_files, chunk_size):
             upload_payload = {"items": [file.data for file in file_chunk]}
-            data = self.client.put(
-                endpoint=f"/teams/{self.dataset_identifier.team_slug}/datasets/{self.dataset_identifier.dataset_slug}/data",
-                payload=upload_payload,
-                team=self.dataset_identifier.team_slug,
-            )
+            dataset_slug: str = self.dataset_identifier.dataset_slug
+            team_slug: Optional[str] = self.dataset_identifier.team_slug
+
+            data: Dict[str, Any] = self.client.upload_data(dataset_slug, upload_payload, team_slug)
+
             blocked_items.extend([ItemPayload(**item) for item in data["blocked_items"]])
             items.extend([ItemPayload(**item) for item in data["items"]])
         return blocked_items, items
@@ -239,12 +241,10 @@ class UploadHandler:
     def _do_upload_file(
         self, dataset_item_id: int, file_path: Path, byte_read_callback: Optional[ByteReadCallback] = None,
     ) -> None:
-        team_slug = self.dataset_identifier.team_slug
+        team_slug: Optional[str] = self.dataset_identifier.team_slug
 
         try:
-            sign_response = self.client.get(f"/dataset_items/{dataset_item_id}/sign_upload", team=team_slug, raw=True)
-            sign_response.raise_for_status()
-            sign_response = sign_response.json()
+            sign_response: Dict[str, Any] = self.client.sign_upload(dataset_item_id, team_slug)
         except Exception as e:
             raise UploadRequestError(file_path=file_path, stage=UploadStage.REQUEST_SIGNATURE, error=e)
 
@@ -277,10 +277,7 @@ class UploadHandler:
             raise UploadRequestError(file_path=file_path, stage=UploadStage.UPLOAD_TO_S3, error=e)
 
         try:
-            confirm_response = self.client.put(
-                endpoint=f"/dataset_items/{dataset_item_id}/confirm_upload", payload={}, team=team_slug, raw=True
-            )
-            confirm_response.raise_for_status()
+            self.client.confirm_upload(dataset_item_id, team_slug)
         except Exception as e:
             raise UploadRequestError(file_path=file_path, stage=UploadStage.CONFIRM_UPLOAD_COMPLETE, error=e)
 

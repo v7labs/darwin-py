@@ -197,7 +197,7 @@ def download_image(url: str, path: Path, api_key: str) -> None:
         else:
             response = requests.get(url, headers={"Authorization": f"ApiKey {api_key}"}, stream=True)
         # Correct status: download image
-        if response.status_code == 200:
+        if response.ok:
             with open(str(path), "wb") as file:
                 for chunk in response:
                     file.write(chunk)

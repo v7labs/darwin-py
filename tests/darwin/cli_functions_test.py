@@ -1,4 +1,5 @@
 import builtins
+import logging
 import sys
 from unittest.mock import call, patch
 
