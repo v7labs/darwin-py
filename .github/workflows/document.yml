@@ -23,6 +23,7 @@ jobs:
           pip install --editable ".[test]"
           pip install torch torchvision
           pip install -U sphinx
+          pip install mistune==0.8.4
           pip install m2r
           pip install sphinx_rtd_theme
       - name: Parse README
