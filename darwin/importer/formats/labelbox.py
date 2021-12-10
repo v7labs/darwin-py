@@ -1,5 +1,4 @@
 import json
-from dataclasses import dataclass
 from functools import partial, reduce
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Set, cast
@@ -23,30 +22,31 @@ def parse_file(path: Path, validate: Callable[[Any], None]) -> Optional[List[Ann
     Parses the given LabelBox file and maybe returns the corresponding annotations.
     The file must have a structure simillar to the following:
     
-    ```json
-    [
-        {
-            "Label":{
-                "objects":[
-                    {
-                        "title": "SomeTitle",
-                        "bbox":{"top":3558, "left":145, "height":623, "width":449}
-                    },
-                    {...}
-                ],
-                "classifications": [
-                    {
-                        "value": "a_question",
-                        "answer": {"value": "an_answer"}
-                    },
-                    ....
-                ]
+    '''
+    .. highlight:: javascript
+    .. code-block:: javascript
+        [
+            {
+                "Label":{
+                    "objects":[
+                        {
+                            "title": "SomeTitle",
+                            "bbox":{"top":3558, "left":145, "height":623, "width":449}
+                        },
+                        { }
+                    ],
+                    "classifications": [
+                        {
+                            "value": "a_question",
+                            "answer": {"value": "an_answer"}
+                        }
+                    ]
+                },
+                "External ID": "demo-image-7.jpg"
             },
-            "External ID": "demo-image-7.jpg"
-        },
-        {...}
-    ]
-    ```
+            { }
+        ]
+    '''
 
     You can check the Labelbox Schemas in `labelbox_schemas.py`.
 
