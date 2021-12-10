@@ -387,7 +387,7 @@ class ObjectDetectionDataset(LocalDataset):
             labels : tensor(n)
                 The class label of each one of the instances
             boxes : tensor(n, 4)
-                Coordinates of the bounding box enclosing the instances as [x, y, x, y]
+                Coordinates of the bounding box enclosing the instances as [x, y, w, h]
             area : float
                 Area in pixels of each one of the instances
         """
@@ -410,12 +410,12 @@ class ObjectDetectionDataset(LocalDataset):
         for annotation in annotations:
             bbox = annotation["bounding_box"]
 
-            h = bbox["h"]
-            w = bbox["w"]
             x = bbox["x"]
             y = bbox["y"]
+            w = bbox["w"]
+            h = bbox["h"]
 
-            bbox = torch.tensor([h, w, x, y])
+            bbox = torch.tensor([x, y, w, h])
             area = bbox[0] * bbox[1]
             label = torch.tensor(self.classes.index(annotation["name"]))
 
