@@ -416,7 +416,7 @@ class ObjectDetectionDataset(LocalDataset):
             h = bbox["h"]
 
             bbox = torch.tensor([x, y, w, h])
-            area = bbox[0] * bbox[1]
+            area = bbox[2] * bbox[3]
             label = torch.tensor(self.classes.index(annotation["name"]))
 
             ann = {"bbox": bbox, "area": area, "label": label}
