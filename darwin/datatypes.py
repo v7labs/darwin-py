@@ -288,6 +288,30 @@ class AnnotationFile:
 def make_bounding_box(
     class_name: str, x: float, y: float, w: float, h: float, subs: Optional[List[SubAnnotation]] = None
 ) -> Annotation:
+    """
+    Creates and returns a bounding box annotation. ``x``, ``y``, ``w`` and ``h`` are rounded to 3 
+    decimal places when creating the annotation.
+
+    Parameters
+    ----------
+    class_name: str
+        The name of the class for this ``Annotation``.
+    x: float
+        The top left ``x`` value where the bounding box will start.
+    y: float
+        The top left ``y`` value where the bounding box will start.
+    w: float
+        The width of the bounding box.
+    h: float
+        The height of the bounding box.
+    subs: Optional[List[SubAnnotation]], default: None
+        List of ``SubAnnotation``s for this ``Annotation``. Defaults to ``None``.
+
+    Returns
+    -------
+    Annotation
+        A bounding box ``Annotation``. 
+    """
     return Annotation(
         AnnotationClass(class_name, "bounding_box"),
         {"x": round(x, 3), "y": round(y, 3), "w": round(w, 3), "h": round(h, 3)},
