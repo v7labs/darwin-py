@@ -22,7 +22,22 @@ ErrorHandler = Callable[[int, str], None]
 
 @dataclass
 class Team:
-    """Definition of a V7 team"""
+    """
+    Definition of a V7 team.
+    
+    Attributes
+    ----------
+    default: bool
+        If this is the default Team or not.
+    slug: str
+        This team's slug.
+    datasets_dir: str
+        The path to the directory of all datasets this teams contains.
+    api_key: str
+        The API key used to authenticate for this Team.
+    selected: bool, default: False
+        If this is the currently active Team. Defaults to ``False``.
+    """
 
     default: bool
     slug: str
@@ -33,7 +48,17 @@ class Team:
 
 @dataclass(frozen=True)
 class Feature:
-    """Structured payload of a Feature record on V7 Darwin"""
+    """
+    Structured payload of a Feature record on V7 Darwin.
+    
+    Attributes
+    ----------
+    name: str
+        The name of this ``Feature``.
+    enabled: bool
+        Whether or not this ``Feature`` is enabled. Disabled ``Feature``s do nothing, as if they
+        didn't exist.
+    """
 
     name: str
     enabled: bool
@@ -41,7 +66,20 @@ class Feature:
 
 @dataclass(frozen=True, eq=True)
 class AnnotationClass:
-    """Represents an AnnocationClass from an Annotation."""
+    """
+    Represents an AnnocationClass from an Annotation.
+    
+    Attributes
+    ----------
+    name: str
+        The name of this ``AnnotationClass``.
+    annotation_type: str
+        The type of this ``AnnotationClass``.
+    annotation_internal_type: Optional[str], default: None
+        The V7 internal type of this ``AnnotationClass``. This is mostly used to convert from types
+        that are known in the outside world by a given name, but then are known inside V7's lingo 
+        by another.
+    """
 
     name: str
     annotation_type: str
@@ -50,7 +88,17 @@ class AnnotationClass:
 
 @dataclass(frozen=True, eq=True)
 class SubAnnotation:
-    """Represents a subannotation that belongs to an AnnotationClass."""
+    """
+    Represents a subannotation that belongs to an AnnotationClass.
+    
+    Attributes
+    ----------
+    annotation_type: str
+        The type of this ``SubAnnotation``.
+    data: Any
+        Any external data, in any format, relevant to this ``SubAnnotation``. Used for compatibility
+        purposes with external formats.
+    """
 
     annotation_type: str
     data: Any
@@ -58,7 +106,19 @@ class SubAnnotation:
 
 @dataclass(frozen=True, eq=True)
 class Annotation:
-    """Represents an Annotation from an Image/Video."""
+    """
+    Represents an Annotation from an Image/Video.
+    
+    Attributes
+    ----------
+    annotation_class: AnnotationClass
+        The ``AnnotationClass`` from this ``Annotation``.
+    data: Any
+        Any external data, in any format, relevant to this ``Annotation``. Used for compatibility
+        purposes with external formats.
+    subs: List[SubAnnotation]
+        List of ``SubAnnotations`` belonging to this ``Annotation``.
+    """
 
     annotation_class: AnnotationClass
     data: Any
@@ -86,6 +146,24 @@ class Annotation:
 
 @dataclass(frozen=True, eq=True)
 class VideoAnnotation:
+    """
+    Represents an Annotation that belongs to a Video.
+    
+    Attributes
+    ----------
+    annotation_class: AnnotationClass
+        The ``AnnotationClass`` from this ``VideoAnnotation``.
+    frames: Dict[int, Any]
+        A dictionary of frames for this ``VideoAnnotation``.
+    keyframes: Dict[int, bool]
+        The keyframes for this ``VideoAnnotation``. Keyframes are a selection of frames from the 
+        ``frames`` attribute.
+    segments: List[Segment]
+        A list of ``Segment``'s.
+    interpolated: bool 
+        Whehter this ``VideoAnnotation`` is interpolated or not.
+    """
+
     annotation_class: AnnotationClass
     frames: Dict[int, Any]
     keyframes: Dict[int, bool]
@@ -93,8 +171,37 @@ class VideoAnnotation:
     interpolated: bool
 
     def get_data(
-        self, only_keyframes: bool = True, post_processing: Callable[[Annotation, Any], Any] = None
+        self, only_keyframes: bool = True, post_processing: Optional[Callable[[Annotation, Any], Any]] = None
     ) -> Dict[str, Any]:
+        """
+        Return the post-processed frames and the additional information from this 
+        ``VideoAnnotation`` in a dictionary with the format:
+
+        .. code-block:: python
+            {
+                "frames": {
+                    # Post-Processed Frames here
+                },
+                "segments": [
+                    # Segments here
+                ]
+                "interpolated": True
+            }
+
+        Parameters
+        ----------
+        only_keyframes: bool, default: True
+            Whether or not to return only the keyframes. Defaults to ``True``.
+        post_processing: Optional[Callable[[Annotation, Any], Any]], default: None
+            If given, it processes each frame through the given ``Callabale`` before adding it to the 
+            returned dictionary. Defaults to ``None``.
+
+        Returns
+        -------
+        Dict[str, Any]
+            A dictionary containing the processed frames, the segments of this ``VideoAnnotation`` 
+            and whether or not it is interpolated.
+        """
         if not post_processing:
             post_processing = lambda annotation, data: data
 
