@@ -1,19 +1,20 @@
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Union
+from typing import Dict, Iterable, List, Optional, Set, Tuple
 
 import numpy as np
 from darwin.dataset.utils import extract_classes, get_release_path
+from darwin.datatypes import PathLike
 
 
 def split_dataset(
-    dataset_path: Union[Path, str],
+    dataset_path: PathLike,
     release_name: Optional[str] = None,
-    val_percentage: float = 10,
-    test_percentage: float = 20,
+    val_percentage: float = 0.1,
+    test_percentage: float = 0.2,
     split_seed: int = 0,
     make_default_split: bool = True,
     stratified_types: List[str] = ["bounding_box", "polygon", "tag"],
-):
+) -> Path:
     """
     Given a local a dataset (pulled from Darwin), split it by creating lists of filenames.
     The partitions to split the dataset into are called train, val and test.
@@ -40,7 +41,7 @@ def split_dataset(
 
     Returns
     -------
-    splits : dict
+    splits : Path
         Keys are the different splits (random, tags, ...) and values are the relative file names
     """
     # Requirements: scikit-learn
@@ -95,12 +96,12 @@ def split_dataset(
     return split_path
 
 
-def validate_split(val_percentage: float, test_percentage: float):
-    if val_percentage is None or not 0 <= val_percentage < 100:
+def validate_split(val_percentage: int, test_percentage: int) -> None:
+    if val_percentage is None or not 0 <= val_percentage < 1:
         raise ValueError(f"Invalid validation percentage ({val_percentage}). " f"Must be >= 0 and < 100")
-    if test_percentage is None or not 0 <= test_percentage < 100:
+    if test_percentage is None or not 0 <= test_percentage < 1:
         raise ValueError(f"Invalid test percentage ({test_percentage}). " f"Must be >= 0 and < 100")
-    if not 1 <= val_percentage + test_percentage < 100:
+    if not 0.1 <= val_percentage + test_percentage < 1:
         raise ValueError(
             f"Invalid combination of validation ({val_percentage}) "
             f"and test ({test_percentage}) percentages. Their sum must be > 1 and < 100"
@@ -137,13 +138,12 @@ def random_split(
     val_percentage: float,
     test_percentage: float,
     split_seed: int,
-):
+) -> None:
     # Compute split sizes
-    dataset_size = sum(1 for _ in annotation_files)
-    val_size = int(dataset_size * (val_percentage / 100.0))
-    test_size = int(dataset_size * (test_percentage / 100.0))
-    train_size = dataset_size - val_size - test_size
-
+    dataset_size: int = len(annotation_files)
+    val_size: int = int(dataset_size * (val_percentage))
+    test_size: int = int(dataset_size * (test_percentage))
+    train_size: int = dataset_size - val_size - test_size
     # Slice a permuted array as big as the dataset
     np.random.seed(split_seed)
     indices = np.random.permutation(dataset_size)
@@ -164,7 +164,7 @@ def stratified_split(
     test_percentage: float,
     stratified_types: List[str],
     split_seed: int,
-):
+) -> None:
     if len(stratified_types) == 0:
         return
 
@@ -174,8 +174,8 @@ def stratified_split(
             continue
 
         dataset_size = sum(1 for _ in annotation_files)
-        val_size = int(dataset_size * (val_percentage / 100.0))
-        test_size = int(dataset_size * (test_percentage / 100.0))
+        val_size = int(dataset_size * (val_percentage))
+        test_size = int(dataset_size * (test_percentage))
         train_size = dataset_size - val_size - test_size
 
         train_indices, val_indices, test_indices = _stratify_samples(
@@ -199,7 +199,14 @@ def stratified_split(
         write_to_file(annotation_path, annotation_files, splits["stratified"][stratified_type]["test"], test_indices)
 
 
-def _stratify_samples(idx_to_classes, split_seed, test_percentage, val_percentage, test_size, val_size):
+def _stratify_samples(
+    idx_to_classes: Dict[int, Set[str]],
+    split_seed: int,
+    test_percentage: int,
+    val_percentage: int,
+    test_size: int,
+    val_size: int,
+) -> Tuple[List[np.ndarray], List[np.ndarray], List[np.ndarray]]:
     """Splits the list of indices into train, val and test according to their labels (stratified)
 
     Parameters
@@ -248,7 +255,7 @@ def _stratify_samples(idx_to_classes, split_seed, test_percentage, val_percentag
         *train_test_split(
             np.array(file_indices),
             np.array(labels),
-            test_size=(val_percentage + test_percentage) / 100.0,
+            test_size=(val_percentage + test_percentage),
             random_state=split_seed,
             stratify=labels,
         ),
@@ -259,7 +266,7 @@ def _stratify_samples(idx_to_classes, split_seed, test_percentage, val_percentag
     X_train = np.concatenate((X_train, np.array(single_files)), axis=0)
 
     if test_percentage == 0.0:
-        return list(set(X_train.astype(np.int))), list(set(X_tmp.astype(np.int))), None
+        return list(set(X_train.astype(int))), list(set(X_tmp.astype(int))), []
 
     X_val, X_test, y_val, y_test = remove_cross_contamination(
         *train_test_split(
@@ -275,10 +282,12 @@ def _stratify_samples(idx_to_classes, split_seed, test_percentage, val_percentag
     # Remove duplicates within the same set
     # NOTE: doing that earlier (e.g. in remove_cross_contamination()) would produce mathematical
     # mistakes in the class balancing between validation and test sets.
-    return (list(set(X_train.astype(np.int))), list(set(X_val.astype(np.int))), list(set(X_test.astype(np.int))))
+    return (list(set(X_train.astype(int))), list(set(X_val.astype(int))), list(set(X_test.astype(int))))
 
 
-def remove_cross_contamination(X_a: np.ndarray, X_b: np.ndarray, y_a: np.ndarray, y_b: np.ndarray, b_min_size: int):
+def remove_cross_contamination(
+    X_a: np.ndarray, X_b: np.ndarray, y_a: np.ndarray, y_b: np.ndarray, b_min_size: int
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
     Remove cross contamination present in X_a and X_b by selecting one or the other on a flip coin decision.
 
@@ -323,13 +332,13 @@ def remove_cross_contamination(X_a: np.ndarray, X_b: np.ndarray, y_a: np.ndarray
     return X_a, X_b, y_a, y_b
 
 
-def unique(array):
+def unique(array: np.ndarray) -> np.ndarray:
     """Returns unique elements of numpy array, maintaining the occurrency order"""
     indexes = np.unique(array, return_index=True)[1]
     return array[sorted(indexes)]
 
 
-def write_to_file(annotation_path: Path, annotation_files: List[Path], file_path: Path, split_idx: Iterable):
+def write_to_file(annotation_path: Path, annotation_files: List[Path], file_path: Path, split_idx: Iterable) -> None:
     with open(str(file_path), "w") as f:
         for i in split_idx:
             # To deal with recursive search, we want to write the difference between the annotation path

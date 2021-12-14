@@ -8,6 +8,23 @@ import darwin.datatypes as dt
 def parse_file(path: Path) -> Optional[dt.AnnotationFile]:
     """
     Parses the given pascalvoc file and maybe returns the corresponding annotation.
+    The file must have the following structure:
+    
+    ```xml
+    <filename>SOME_FILE_NAME</filename>
+    <object>
+        <name>CLASS_NAME</name>
+        <bndbox>
+            <xmax>NUMBER</xmax>
+            <xmin>NUMBER</xmin>
+            <ymax>NUMBER</ymax>
+            <ymin>NUMBER</ymin>
+        </bndbox>
+    </object>
+    <object>
+        ...
+    </object>
+    ```
 
     Parameters
     --------
@@ -23,7 +40,7 @@ def parse_file(path: Path) -> Optional[dt.AnnotationFile]:
     Raises
     ------
     ValueError
-        If a mandatory chield element is missing or is empty. Mandatory child elements are: 
+        If a mandatory child element is missing or is empty. Mandatory child elements are: 
         filename, name, bndbox, xmin, xmax, ymin and ymax.
 
     """

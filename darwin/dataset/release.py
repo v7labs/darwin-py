@@ -1,7 +1,7 @@
 import datetime
 import shutil
 from pathlib import Path
-from typing import Optional
+from typing import Any, Dict, Optional
 
 import requests
 from darwin.dataset.identifier import DatasetIdentifier
@@ -35,7 +35,7 @@ class Release:
         self.format = format
 
     @classmethod
-    def parse_json(cls, dataset_slug, team_slug, payload) -> "Release":
+    def parse_json(cls, dataset_slug: str, team_slug: str, payload: Dict[str, Any]) -> "Release":
         try:
             export_date: datetime.datetime = datetime.datetime.strptime(payload["inserted_at"], "%Y-%m-%dT%H:%M:%S%z")
         except ValueError:

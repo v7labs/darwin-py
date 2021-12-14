@@ -3,9 +3,8 @@ import concurrent.futures
 import datetime
 import os
 import sys
-from itertools import tee
 from pathlib import Path
-from typing import Dict, List, NoReturn, Optional, Union
+from typing import Any, Dict, Iterator, List, NoReturn, Optional, Union
 
 import humanize
 from rich.console import Console
@@ -24,15 +23,23 @@ from rich.table import Table
 from rich.theme import Theme
 
 import darwin.exporter as exporter
-import darwin.exporter.formats
 import darwin.importer as importer
-import darwin.importer.formats
 from darwin.client import Client
 from darwin.config import Config
+from darwin.dataset import RemoteDataset
 from darwin.dataset.identifier import DatasetIdentifier
+from darwin.dataset.release import Release
 from darwin.dataset.split_manager import split_dataset
 from darwin.dataset.upload_manager import LocalFile
 from darwin.dataset.utils import get_release_path
+from darwin.datatypes import (
+    ExporterFormat,
+    ExportParser,
+    ImporterFormat,
+    ImportParser,
+    PathLike,
+    Team,
+)
 from darwin.exceptions import (
     InvalidLogin,
     MissingConfig,
@@ -43,6 +50,9 @@ from darwin.exceptions import (
     UnsupportedFileType,
     ValidationError,
 )
+from darwin.exporter.formats import supported_formats as ExportSupportedFormats
+from darwin.importer.formats import supported_formats as ImportSupportedFormats
+from darwin.item import DatasetItem
 from darwin.utils import (
     find_files,
     persist_client_configuration,
@@ -51,7 +61,15 @@ from darwin.utils import (
 )
 
 
-def validate_api_key(api_key: str):
+def validate_api_key(api_key: str) -> None:
+    """
+    Validates the given API key. Exits the application if it fails validation. 
+
+    Parameters
+    ----------
+    api_key: str
+        The API key to be validated.
+    """
     example_key = "DHMhAWr.BHucps-tKMAi6rWF1xieOpUvNe5WzrHP"
 
     if len(api_key) != 40:
@@ -65,21 +83,22 @@ def validate_api_key(api_key: str):
 
 
 def authenticate(api_key: str, default_team: Optional[bool] = None, datasets_dir: Optional[Path] = None) -> Config:
-    """Authenticate the API key against the server and creates a configuration file for it
+    """
+    Authenticate the API key against the server and creates a configuration file for it.
 
     Parameters
     ----------
     api_key : str
-        API key to use for the client login
-    default_team: bool
-        Flag to make the team the default one
-    datasets_dir: Path
-        Dataset directory on the file system
+        API key to use for the client login.
+    default_team: Optional[bool]
+        Flag to make the team the default one. Defaults to None.
+    datasets_dir: Optional[Path]
+        Dataset directory on the file system. Defaults to None.
 
     Returns
     -------
     Config
-    A configuration object to handle YAML files
+    A configuration object to handle YAML files.
     """
     # Resolve the home folder if the dataset_dir starts with ~ or ~user
 
@@ -93,54 +112,62 @@ def authenticate(api_key: str, default_team: Optional[bool] = None, datasets_dir
         if default_team is None:
             default_team = input(f"Make {client.default_team} the default team? [y/N] ") in ["Y", "y"]
         if datasets_dir is None:
-            datasets_dir = prompt("Datasets directory", "~/.darwin/datasets")
+            datasets_dir = Path(prompt("Datasets directory", "~/.darwin/datasets"))
 
         datasets_dir = Path(datasets_dir).expanduser()
         Path(datasets_dir).mkdir(parents=True, exist_ok=True)
 
         client.set_datasets_dir(datasets_dir)
 
-        default_team = client.default_team if default_team else None
-        return persist_client_configuration(client, default_team=default_team)
+        default_team_name: Optional[str] = client.default_team if default_team else None
+        return persist_client_configuration(client, default_team=default_team_name)
 
     except InvalidLogin:
         _error("Invalid API key")
 
 
-def current_team():
-    """Print the team currently authenticated against"""
-    client = _load_client()
+def current_team() -> None:
+    """Print the team currently authenticated against."""
+    client: Client = _load_client()
     print(client.default_team)
 
 
-def list_teams():
-    """Print a table of teams to which the client belong to"""
+def list_teams() -> None:
+    """Print a table of teams to which the client belong to."""
     for team in _config().get_all_teams():
-        if team["default"]:
-            print(f"{team['slug']} (default)")
+        if team.default:
+            print(f"{team.slug} (default)")
         else:
-            print(team["slug"])
+            print(team.slug)
 
 
-def set_team(team_slug: str):
-    """Switches the client to the selected team and persist the change on the configuration file
+def set_team(team_slug: str) -> None:
+    """
+    Switches the client to the selected team and persist the change on the configuration file.
 
     Parameters
     ----------
     team_slug : str
-        Slug of the team to switch to
+        Slug of the team to switch to.
     """
-
     config = _config()
     config.set_default_team(team_slug)
 
 
-def create_dataset(dataset_slug: str):
-    """Creates a dataset remotely"""
-    identifier = DatasetIdentifier.parse(dataset_slug)
-    client = _load_client(team_slug=identifier.team_slug)
+def create_dataset(dataset_slug: str) -> None:
+    """
+    Creates a dataset remotely. Exits the application if the dataset's name is already taken or is 
+    not valid.
+    
+    Parameters
+    ----------
+    dataset_slug : str
+        Slug of the new dataset.
+    """
+    identifier: DatasetIdentifier = DatasetIdentifier.parse(dataset_slug)
+    client: Client = _load_client(team_slug=identifier.team_slug)
     try:
-        dataset = client.create_dataset(name=identifier.dataset_slug)
+        dataset: RemoteDataset = client.create_dataset(name=identifier.dataset_slug)
         print(
             f"Dataset '{dataset.name}' ({dataset.team}/{dataset.slug}) has been created.\nAccess at {dataset.remote_path}"
         )
@@ -151,17 +178,23 @@ def create_dataset(dataset_slug: str):
         _error(f"Dataset name '{identifier.dataset_slug}' is not valid.")
 
 
-def local(team: Optional[str] = None):
-    """Lists synced datasets, stored in the specified path."""
-
-    table = Table(show_header=True, header_style="bold cyan")
+def local(team: Optional[str] = None) -> None:
+    """
+    Lists synced datasets, stored in the specified path.
+    
+    Parameters
+    ----------
+    team: Optional[str]
+        The name of the team to list, or the defautl one if no team is given. Defaults to None.
+    """
+    table: Table = Table(show_header=True, header_style="bold cyan")
     table.add_column("Name")
     table.add_column("Image Count", justify="right")
     table.add_column("Sync Date", justify="right")
     table.add_column("Size", justify="right")
 
-    client = _load_client(offline=True)
-    for dataset_path in client.list_local_datasets(team=team):
+    client: Client = _load_client(offline=True)
+    for dataset_path in client.list_local_datasets(team_slug=team):
         files_in_dataset_path = find_files([dataset_path])
         table.add_row(
             f"{dataset_path.parent.name}/{dataset_path.name}",
@@ -174,13 +207,26 @@ def local(team: Optional[str] = None):
 
 
 def path(dataset_slug: str) -> Path:
-    """Returns the absolute path of the specified dataset, if synced"""
-    identifier = DatasetIdentifier.parse(dataset_slug)
-    client = _load_client(offline=True)
+    """
+    Returns the absolute path of the specified dataset.
+    Exits the application if the dataset does not exist locally.
 
-    for p in client.list_local_datasets(team=identifier.team_slug):
-        if identifier.dataset_slug == p.name:
-            return p
+    Parameters
+    ----------
+    dataset_slug: str
+        The dataset's slug.
+
+    Returns
+    -------
+    Path
+        The absolute path of the dataset.
+    """
+    identifier: DatasetIdentifier = DatasetIdentifier.parse(dataset_slug)
+    client: Client = _load_client(offline=True)
+
+    for path in client.list_local_datasets(team_slug=identifier.team_slug):
+        if identifier.dataset_slug == path.name:
+            return path
 
     _error(
         f"Dataset '{identifier.dataset_slug}' does not exist locally. "
@@ -189,68 +235,94 @@ def path(dataset_slug: str) -> Path:
     )
 
 
-def url(dataset_slug: str) -> Path:
-    """Returns the url of the specified dataset"""
-    client = _load_client(offline=True)
+def url(dataset_slug: str) -> None:
+    """
+    Prints the url of the specified dataset.
+    Exits the application if no dataset was found.
+
+    Parameters
+    ----------
+    dataset_slug: str
+        The dataset's slug.
+    """
+    client: Client = _load_client(offline=True)
     try:
-        remote_dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
+        remote_dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
         print(remote_dataset.remote_path)
     except NotFound as e:
         _error(f"Dataset '{e.name}' does not exist.")
 
 
-def dataset_report(dataset_slug: str, granularity) -> Path:
-    """Returns the url of the specified dataset"""
-    client = _load_client(offline=True)
+def dataset_report(dataset_slug: str, granularity: str) -> None:
+    """
+    Prints a dataset's report.
+    Exits the application if no dataset is found.
+
+    Parameters
+    ----------
+    dataset_slug: str
+        The dataset's slug.
+    granularity: str
+        Granualarity of the report, can be 'day', 'week' or 'month'.
+    """
+    client: Client = _load_client(offline=True)
     try:
-        remote_dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
-        report = remote_dataset.get_report(granularity)
+        remote_dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
+        report: str = remote_dataset.get_report(granularity)
         print(report)
     except NotFound:
         _error(f"Dataset '{dataset_slug}' does not exist.")
 
 
 def export_dataset(
-    dataset_slug: str, include_url_token: bool, annotation_class_ids: Optional[List] = None, name: Optional[str] = None
-):
-    """Create a new release for the dataset
+    dataset_slug: str, include_url_token: bool, name: str, annotation_class_ids: Optional[List[str]] = None
+) -> None:
+    """
+    Create a new release for the dataset.
 
     Parameters
     ----------
     dataset_slug: str
-        Slug of the dataset to which we perform the operation on
-    annotation_class_ids: List
-        List of the classes to filter
+        Slug of the dataset to which we perform the operation on.
+    include_url_token: bool
+        If True includes the url token, if False does not.
     name: str
-        Name of the release
+        Name of the release.
+    annotation_class_ids: Optional[List[str]]
+        List of the classes to filter. Defautls to None. 
     """
-    client = _load_client(offline=False)
-    identifier = DatasetIdentifier.parse(dataset_slug)
-    ds = client.get_remote_dataset(identifier)
+    client: Client = _load_client(offline=False)
+    identifier: DatasetIdentifier = DatasetIdentifier.parse(dataset_slug)
+    ds: RemoteDataset = client.get_remote_dataset(identifier)
     ds.export(annotation_class_ids=annotation_class_ids, name=name, include_url_token=include_url_token)
     identifier.version = name
     print(f"Dataset {dataset_slug} successfully exported to {identifier}")
     print_new_version_info(client)
 
 
-def pull_dataset(dataset_slug: str, only_annotations: bool = False, folders: bool = False, video_frames: bool = False):
-    """Downloads a remote dataset (images and annotations) in the datasets directory.
+def pull_dataset(
+    dataset_slug: str, only_annotations: bool = False, folders: bool = False, video_frames: bool = False
+) -> None:
+    """
+    Downloads a remote dataset (images and annotations) in the datasets directory.
+    Exits the application if dataset is not found, the user is not authenticated, there are no 
+    releases or the export format for the latest release is not supported.
 
     Parameters
     ----------
     dataset_slug: str
-        Slug of the dataset to which we perform the operation on
+        Slug of the dataset to which we perform the operation on.
     only_annotations: bool
-        Download only the annotations and no corresponding images
+        Download only the annotations and no corresponding images. Defaults to False.
     folders: bool
-        Recreates the folders in the dataset
+        Recreates the folders in the dataset. Defaults to False.
     video_frames: bool
-        Pulls video frames images instead of video files
+        Pulls video frames images instead of video files. Defaults to False.
     """
-    version = DatasetIdentifier.parse(dataset_slug).version or "latest"
-    client = _load_client(offline=False, maybe_guest=True)
+    version: str = DatasetIdentifier.parse(dataset_slug).version or "latest"
+    client: Client = _load_client(offline=False, maybe_guest=True)
     try:
-        dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
+        dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
     except NotFound:
         _error(
             f"Dataset '{dataset_slug}' does not exist, please check the spelling. "
@@ -258,8 +330,9 @@ def pull_dataset(dataset_slug: str, only_annotations: bool = False, folders: boo
         )
     except Unauthenticated:
         _error(f"please re-authenticate")
+
     try:
-        release = dataset.get_release(version)
+        release: Release = dataset.get_release(version)
         dataset.pull(release=release, only_annotations=only_annotations, use_folders=folders, video_frames=video_frames)
         print_new_version_info(client)
     except NotFound:
@@ -272,27 +345,29 @@ def pull_dataset(dataset_slug: str, only_annotations: bool = False, folders: boo
             f"Version '{dataset.identifier}:{version}' is of format '{uef.format}', "
             f"only the darwin format ('json') is supported for `darwin dataset pull`"
         )
+
     print(f"Dataset {release.identifier} downloaded at {dataset.local_path}. ")
 
 
-def split(dataset_slug: str, val_percentage: float, test_percentage: float, seed: Optional[int] = 0):
-    """Splits a local version of a dataset into train, validation, and test partitions
+def split(dataset_slug: str, val_percentage: float, test_percentage: float, seed: int = 0) -> None:
+    """
+    Splits a local version of a dataset into train, validation, and test partitions.
 
     Parameters
     ----------
     dataset_slug: str
-        Slug of the dataset to which we perform the operation on
+        Slug of the dataset to which we perform the operation on.
     val_percentage: float
-        Percentage in the validation set
+        Percentage in the validation set.
     test_percentage: float
-        Percentage in the test set
+        Percentage in the test set.
     seed: int
-        Random seed
+        Random seed. Defaults to 0.
     """
-    identifier = DatasetIdentifier.parse(dataset_slug)
-    client = _load_client(offline=True)
+    identifier: DatasetIdentifier = DatasetIdentifier.parse(dataset_slug)
+    client: Client = _load_client(offline=True)
 
-    for p in client.list_local_datasets(team=identifier.team_slug):
+    for p in client.list_local_datasets(team_slug=identifier.team_slug):
         if identifier.dataset_slug == p.name:
             try:
                 split_path = split_dataset(
@@ -318,27 +393,39 @@ def split(dataset_slug: str, val_percentage: float, test_percentage: float, seed
     )
 
 
-def list_remote_datasets(all_teams: bool, team: Optional[str] = None):
-    """Lists remote datasets with its annotation progress"""
+def list_remote_datasets(all_teams: bool, team: Optional[str] = None) -> None:
+    """
+    Lists remote datasets with its annotation progress.
+    
+    Parameters
+    ----------
+    all_teams: bool
+        If True, lists remote datasets from all teams, if False, lists only datasets from the given 
+        Team.
+    team: Optional[str] 
+        Name of the team with the datasets we want to see. Uses the default Team is non is given.
+        Defaults to None.
+    """
     # TODO: add listing open datasets
 
-    table = Table(show_header=True, header_style="bold cyan")
+    table: Table = Table(show_header=True, header_style="bold cyan")
     table.add_column("Name")
     table.add_column("Item Count", justify="right")
     table.add_column("Complete Items", justify="right")
 
-    datasets = []
-    client = None
+    datasets: List[RemoteDataset] = []
+    client: Optional[Client] = None
     if all_teams:
-        for team in _config().get_all_teams():
-            client = _load_client(team["slug"])
-            datasets += client.list_remote_datasets()
+        teams: List[Team] = _config().get_all_teams()
+        for a_team in teams:
+            client = _load_client(a_team.slug)
+            datasets += list(client.list_remote_datasets())
     else:
         client = _load_client(team)
-        datasets = client.list_remote_datasets()
+        datasets = list(client.list_remote_datasets())
 
     for dataset in datasets:
-        table.add_row(f"{dataset.team}/{dataset.slug}", str(dataset.image_count), f"{dataset.progress * 100:.1f}%")
+        table.add_row(f"{dataset.team}/{dataset.slug}", str(dataset.item_count), f"{dataset.progress * 100:.1f}%")
     if table.row_count == 0:
         print("No dataset available.")
     else:
@@ -347,11 +434,19 @@ def list_remote_datasets(all_teams: bool, team: Optional[str] = None):
     print_new_version_info(client)
 
 
-def remove_remote_dataset(dataset_slug: str):
-    """Remove a remote dataset from the workview. The dataset gets archived."""
-    client = _load_client(offline=False)
+def remove_remote_dataset(dataset_slug: str) -> None:
+    """
+    Remove a remote dataset from the workview. The dataset gets archived.
+    Exits the application if no dataset with the given slug were found.
+    
+    Parameters
+    ----------
+    dataset_slug: str
+        The dataset's slug.
+    """
+    client: Client = _load_client(offline=False)
     try:
-        dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
+        dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
         print(f"About to delete {dataset.identifier} on darwin.")
         if not secure_continue_request():
             print("Cancelled.")
@@ -363,16 +458,25 @@ def remove_remote_dataset(dataset_slug: str):
         _error(f"No dataset with name '{dataset_slug}'")
 
 
-def dataset_list_releases(dataset_slug: str):
-    client = _load_client(offline=False)
+def dataset_list_releases(dataset_slug: str) -> None:
+    """
+    Lists all the releases from the given dataset.
+    Exits the application if no dataset with the given slug were found.
+    
+    Parameters
+    ----------
+    dataset_slug: str
+        The dataset's slug.
+    """
+    client: Client = _load_client(offline=False)
     try:
-        dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
-        releases = dataset.get_releases()
+        dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
+        releases: List[Release] = dataset.get_releases()
         if len(releases) == 0:
             print("No available releases, export one first.")
             return
 
-        table = Table(show_header=True, header_style="bold cyan")
+        table: Table = Table(show_header=True, header_style="bold cyan")
         table.add_column("Name")
         table.add_column("Item Count", justify="right")
         table.add_column("Class Count", justify="right")
@@ -393,24 +497,26 @@ def dataset_list_releases(dataset_slug: str):
 
 def upload_data(
     dataset_identifier: str,
-    files: Optional[List[Union[str, Path, LocalFile]]],
-    files_to_exclude: Optional[List[Union[str, Path]]],
+    files: Optional[List[Union[PathLike, LocalFile]]],
+    files_to_exclude: Optional[List[PathLike]],
     fps: int,
     path: Optional[str],
     frames: bool,
     preserve_folders: bool = False,
     verbose: bool = False,
-):
+) -> None:
     """
     Uploads the provided files to the remote dataset.
+    Exits the application if no dataset with the given name is found, the files in the given path 
+    have unsupported formats, or if there are no files found in the given Path.
 
     Parameters
     ----------
     dataset_identifier : str
         Slug of the dataset to retrieve.
-    files : List[Union[str, Path, LocalFile]]
+    files : List[Union[PathLike, LocalFile]]
         List of files to upload. Can be None.
-    files_to_exclude : List[Union[str, Path]]
+    files_to_exclude : List[PathLike]
         List of files to exclude from the file scan (which is done only if files is None).
     fps : int
         Frame rate to split videos in.
@@ -424,21 +530,14 @@ def upload_data(
         Specify whether or not to preserve folder paths when uploading.
     verbose : bool
         Specify whther to have full traces print when uploading files or not.
-
-    Returns
-    -------
-    generator : function
-        Generator for doing the actual uploads. This is None if blocking is True
-    count : int
-        The file's count
     """
-    client = _load_client()
+    client: Client = _load_client()
     try:
-        max_workers = concurrent.futures.ThreadPoolExecutor()._max_workers
+        max_workers: int = concurrent.futures.ThreadPoolExecutor()._max_workers  # type: ignore
 
-        dataset = client.get_remote_dataset(dataset_identifier=dataset_identifier)
+        dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_identifier)
 
-        sync_metadata = Progress(SpinnerColumn(), TextColumn("[bold blue]Syncing metadata"))
+        sync_metadata: Progress = Progress(SpinnerColumn(), TextColumn("[bold blue]Syncing metadata"))
 
         overall_progress = Progress(
             TextColumn("[bold blue]{task.fields[filename]}"), BarColumn(), "{task.completed} of {task.total}"
@@ -455,7 +554,7 @@ def upload_data(
             TimeRemainingColumn(),
         )
 
-        progress_table = Table.grid()
+        progress_table: Table = Table.grid()
         progress_table.add_row(sync_metadata)
         progress_table.add_row(file_progress)
         progress_table.add_row(overall_progress)
@@ -506,32 +605,30 @@ def upload_data(
             console.print(f"All {upload_manager.total_count} files have been successfully uploaded.\n", style="success")
             return
 
-        already_existing_items, other_skipped_items = tee(
-            (item.reason == "ALREADY_EXISTS", item) for item in upload_manager.blocked_items
-        )
-        already_existing_items, other_skipped_items = (
-            list(item for condition, item in already_existing_items if condition),
-            list(item for condition, item in other_skipped_items if not condition),
-        )
+        already_existing_items = []
+        other_skipped_items = []
+        for item in upload_manager.blocked_items:
+            if item.reason == "ALREADY_EXISTS":
+                already_existing_items.append(item)
+            else:
+                other_skipped_items.append(item)
 
         if already_existing_items:
             console.print(
-                f"Skipped {len(already_existing_items)} files already in the dataset.\n",
-                style="warning",
+                f"Skipped {len(already_existing_items)} files already in the dataset.\n", style="warning",
             )
 
         if upload_manager.error_count or other_skipped_items:
             error_count = upload_manager.error_count + len(other_skipped_items)
             console.print(
-                f"{error_count} files couldn't be uploaded because an error occurred.\n",
-                style="error",
+                f"{error_count} files couldn't be uploaded because an error occurred.\n", style="error",
             )
 
         if not verbose and upload_manager.error_count:
             console.print('Re-run with "--verbose" for further details')
             return
 
-        error_table = Table(
+        error_table: Table = Table(
             "Dataset Item ID", "Filename", "Remote Path", "Stage", "Reason", show_header=True, header_style="bold cyan"
         )
 
@@ -568,12 +665,28 @@ def upload_data(
         _error(f"No files found")
 
 
-def dataset_import(dataset_slug, format, files, append):
-    client = _load_client(dataset_identifier=dataset_slug)
-    parser = find_supported_format(format, darwin.importer.formats.supported_formats)
+def dataset_import(dataset_slug: str, format: str, files: List[PathLike], append: bool) -> None:
+    """
+    Imports annotation files to the given dataset. 
+    Exits the application if no dataset with the given slug is found.
+
+    Parameters
+    ----------
+    dataset_slug: str
+        The dataset's slug.
+    format: str
+        Format of the export files.
+    files: List[PathLike]
+        List of where the files are. 
+    append: bool
+        If True it appends the annotation from the files to the dataset, if False it will override 
+        the dataset's current annotations with the ones from the given files.
+    """
+    client: Client = _load_client(dataset_identifier=dataset_slug)
+    parser: ImportParser = find_import_supported_format(format, ImportSupportedFormats)
 
     try:
-        dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
+        dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
         importer.import_annotations(dataset, parser, files, append)
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
@@ -585,11 +698,30 @@ def list_files(
     path: Optional[str],
     only_filenames: bool,
     sort_by: Optional[str] = "updated_at:desc",
-):
-    client = _load_client(dataset_identifier=dataset_slug)
+) -> None:
+    """
+    List all file from the given dataset. 
+    Exits the application if it finds unknown file statuses, if no dataset with the given slug is 
+    found or if another general error occurred.
+
+    Parameters
+    ----------
+    dataset_slug: str
+        The dataset's slug.
+    statuses: Optional[str]
+        Only list files with the given statuses. Valid statuses are: 'annotate', 'archived', 
+        'complete', 'new', 'review'.
+    path: Optional[str]
+        Only list files whose Path matches. 
+    only_filenames: bool
+        If True, only prints the filenames, if False it prints the full file url.
+    sort_by: Optional[str]
+        Sort order for listing files. Defaults to 'updated_at:desc'.
+    """
+    client: Client = _load_client(dataset_identifier=dataset_slug)
     try:
-        dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
-        filters: Dict[str, str] = {}
+        dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
+        filters: Dict[str, Any] = {}
 
         if statuses:
             for status in statuses.split(","):
@@ -617,47 +749,146 @@ def list_files(
         _error(str(e))
 
 
-def _has_valid_status(status: str) -> bool:
-    return status in ["new", "annotate", "review", "complete", "archived"]
+def set_file_status(dataset_slug: str, status: str, files: List[str]) -> None:
+    """
+    Sets the status of the given files from the given dataset. 
+    Exits the application if the given status is unknown or if no dataset was found. 
 
+    Parameters
+    ----------
+    dataset_slug: str
+        The dataset's slug.
+    status: str
+        The new status for the files.
+    files: List[str]
+        Names of the files we want to update.
+    """
+    if status not in ["archived", "clear", "new", "restore-archived"]:
+        _error(f"Invalid status '{status}', available statuses: archived, clear, new, restore-archived")
 
-def set_file_status(dataset_slug: str, status: str, files: List[str]):
-    if status not in ["archived", "restore-archived"]:
-        _error(f"Invalid status '{status}', available statuses: archived, restore-archived")
-
-    client = _load_client(dataset_identifier=dataset_slug)
+    client: Client = _load_client(dataset_identifier=dataset_slug)
     try:
-        dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
-        items = dataset.fetch_remote_files({"filenames": ",".join(files)})
+        dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
+        items: Iterator[DatasetItem] = dataset.fetch_remote_files({"filenames": ",".join(files)})
         if status == "archived":
             dataset.archive(items)
+        elif status == "clear":
+            dataset.reset(items)
+        elif status == "new":
+            dataset.move_to_new(items)
         elif status == "restore-archived":
             dataset.restore_archived(items)
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
 
 
-def find_supported_format(query, supported_formats):
+def delete_files(dataset_slug: str, files: List[str], skip_user_confirmation: bool = False) -> None:
+    """
+    Deletes the files from the given dataset.
+    Exits the application if no dataset with the given slug is found or a general error occurs.
+
+    Parameters
+    ----------
+    dataset_slug: str
+        The dataset's slug.
+    files: List[str]
+        The list of filenames to delete.
+    skip_user_confirmation: bool
+        If True, skips user confirmation, if False it will prompt the user. Defaults to False.
+    """
+    client: Client = _load_client(dataset_identifier=dataset_slug)
+    try:
+        console = Console()
+        dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
+        items: Iterator[DatasetItem] = dataset.fetch_remote_files({"filenames": ",".join(files)})
+        if not skip_user_confirmation and not secure_continue_request():
+            console.print("Cancelled.")
+            return
+
+        with console.status("[bold red]Deleting files..."):
+            dataset.delete_items(items)
+            console.print("[bold green]Files successfully deleted!")
+
+    except NotFound as e:
+        _error(f"No dataset with name '{e.name}'")
+    except:
+        _error(f"An error has occurred, please try again later.")
+
+
+def find_import_supported_format(query: str, supported_formats: List[ImporterFormat]) -> ImportParser:
+    """
+    Returns the import parser for the given file format, or exits the application if none is found. 
+
+    Parameters
+    ----------
+    query: str
+        The format we want to import.
+    supported_formats: List[ImporterFormat]
+        List of supported formats.
+
+    Returns
+    -------
+    ImporterFormat
+        The module capable of parsing files from the given format.
+    """
     for (fmt, fmt_parser) in supported_formats:
         if fmt == query:
             return fmt_parser
     list_of_formats = ", ".join([fmt for fmt, _ in supported_formats])
-    _error(f"Unsupported format, currently supported: {list_of_formats}")
+    _error(f"Unsupported import format, currently supported: {list_of_formats}")
 
 
-def dataset_convert(dataset_slug: str, format: str, output_dir: Union[str, Path, None] = None):
-    client = _load_client()
-    parser = find_supported_format(format, darwin.exporter.formats.supported_formats)
+def find_export_supported_format(query: str, supported_formats: List[ExporterFormat]) -> ExportParser:
+    """
+    Returns the export parser for the given file format, or exits the application if none is found. 
+
+    Parameters
+    ----------
+    query: str
+        The format we want to import.
+    supported_formats: List[ExporterFormat]
+        List of supported formats.
+
+    Returns
+    -------
+    ExporterFormat
+        The module capable of parsing files from the given format.
+    """
+    for (fmt, fmt_parser) in supported_formats:
+        if fmt == query:
+            return fmt_parser
+    list_of_formats = ", ".join([fmt for fmt, _ in supported_formats])
+    _error(f"Unsupported export format, currently supported: {list_of_formats}")
+
+
+def dataset_convert(dataset_slug: str, format: str, output_dir: Optional[PathLike] = None) -> None:
+    """
+    Converts the annotations from the given dataset to the given format.
+    Exits the application if no dataset with the given slug exists or no releases for the dataset 
+    were previously pulled.
+
+    Parameters
+    ----------
+    dataset_slug: str
+        The dataset's slug.
+    format: str
+        The format we want to convert to.
+    output_dir: Optional[PathLike]
+        The folder where the exported annotation files will be. If None it will be the inside the 
+        annotations folder of the dataset under 'other_formats/{format}'. The Defaults to None.
+    """
+    client: Client = _load_client()
+    parser: ExportParser = find_export_supported_format(format, ExportSupportedFormats)
 
     try:
-        dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
+        dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
         if not dataset.local_path.exists():
             _error(
                 f"No annotations downloaded for dataset f{dataset}, first pull a release using "
                 f"'darwin dataset pull {dataset_slug}'"
             )
 
-        release_path = get_release_path(dataset.local_path)
+        release_path: Path = get_release_path(dataset.local_path)
         annotations_path: Path = release_path / "annotations"
         if output_dir is None:
             output_dir = release_path / "other_formats" / f"{format}"
@@ -669,12 +900,34 @@ def dataset_convert(dataset_slug: str, format: str, output_dir: Union[str, Path,
         _error(f"No dataset with name '{e.name}'")
 
 
-def convert(format: str, files: List[Union[str, Path]], output_dir: Path):
-    parser = find_supported_format(format, darwin.exporter.formats.supported_formats)
+def convert(format: str, files: List[PathLike], output_dir: Path) -> None:
+    """
+    Converts the given files to the specified format. 
+
+    Parameters
+    ----------
+    format: str
+        The target format to export to.
+    files: List[PathLike]
+        List of files to be converted.
+    output_dir: Path
+        Folder where the exported annotations will be placed.
+    """
+    parser: ExportParser = find_export_supported_format(format, ExportSupportedFormats)
     exporter.export_annotations(parser, files, output_dir)
 
 
-def help(parser, subparser: Optional[str] = None):
+def help(parser: argparse.ArgumentParser, subparser: Optional[str] = None) -> None:
+    """
+    Prints the help text for the given command. 
+
+    Parameters
+    ----------
+    parser: argparse.ArgumentParser
+        The parser used to read input from the user.
+    subparser: Optional[str]
+        Actions from the parser to be processed. Defaults to None.
+    """
     if subparser:
         parser = next(
             action.choices[subparser]
@@ -692,13 +945,40 @@ def help(parser, subparser: Optional[str] = None):
             print("    {:<19} {}".format(choice.dest, choice.help))
 
 
+def print_new_version_info(client: Optional[Client] = None) -> None:
+    """
+    Prints a message informing the user of a new darwin-py version. 
+    Does nothing if no new version is available or if no client is provided.
+
+    Parameters
+    ----------
+    client: Optional[Client]
+        The client containing information aboue the new verison. Defaults to None.
+    """
+    if not client or not client.newer_darwin_version:
+        return
+
+    (a, b, c) = tuple(client.newer_darwin_version)
+
+    console = Console(theme=_console_theme(), stderr=True)
+    console.print(
+        f"A newer version of darwin-py ({a}.{b}.{c}) is available!",
+        "Run the following command to install it:",
+        "",
+        f"    pip install darwin-py=={a}.{b}.{c}",
+        "",
+        sep="\n",
+        style="warning",
+    )
+
+
 def _error(message: str) -> NoReturn:
     console = Console(theme=_console_theme())
     console.print(f"Error: {message}", style="error")
     sys.exit(1)
 
 
-def _config():
+def _config() -> Config:
     return Config(Path.home() / ".darwin" / "config.yaml")
 
 
@@ -707,7 +987,7 @@ def _load_client(
     offline: bool = False,
     maybe_guest: bool = False,
     dataset_identifier: Optional[str] = None,
-):
+) -> Client:
     """Fetches a client, potentially offline
 
     Parameters
@@ -743,23 +1023,9 @@ def _load_client(
         _error("Please re-authenticate")
 
 
-def _console_theme():
+def _console_theme() -> Theme:
     return Theme({"success": "bold green", "warning": "bold yellow", "error": "bold red"})
 
 
-def print_new_version_info(client):
-    if client and not client.newer_darwin_version:
-        return
-
-    (a, b, c) = client.newer_darwin_version
-
-    console = Console(theme=_console_theme(), stderr=True)
-    console.print(
-        f"A newer version of darwin-py ({a}.{b}.{c}) is available!",
-        "Run the following command to install it:",
-        "",
-        f"    pip install darwin-py=={a}.{b}.{c}",
-        "",
-        sep="\n",
-        style="warning",
-    )
+def _has_valid_status(status: str) -> bool:
+    return status in ["new", "annotate", "review", "complete", "archived"]

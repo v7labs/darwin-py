@@ -9,22 +9,24 @@ from typing import (
     Any,
     BinaryIO,
     Callable,
+    Iterator,
     List,
     Optional,
     Set,
     Tuple,
-    Union,
 )
 
 import requests
+from darwin.datatypes import PathLike
 from darwin.path_utils import construct_full_path
 from darwin.utils import chunk
-from rich.console import Console
 
 if TYPE_CHECKING:
     from darwin.client import Client
     from darwin.dataset import RemoteDataset
     from darwin.dataset.identifier import DatasetIdentifier
+
+from typing import Dict
 
 
 class ItemPayload:
@@ -35,22 +37,36 @@ class ItemPayload:
         self.reason = reason
 
     @property
-    def full_path(self):
+    def full_path(self) -> str:
         return construct_full_path(self.path, self.filename)
 
 
+class UploadStage(Enum):
+    REQUEST_SIGNATURE = 0
+    UPLOAD_TO_S3 = 1
+    CONFIRM_UPLOAD_COMPLETE = 2
+    OTHER = 3
+
+
+@dataclass
+class UploadRequestError(Exception):
+    file_path: Path
+    stage: UploadStage
+    error: Optional[Exception] = None
+
+
 class LocalFile:
-    def __init__(self, local_path: Union[str, Path], **kwargs):
+    def __init__(self, local_path: PathLike, **kwargs):
         self.local_path = Path(local_path)
         self.data = kwargs
         self._type_check(kwargs)
 
-    def _type_check(self, args):
+    def _type_check(self, args) -> None:
         self.data["filename"] = args.get("filename") or self.local_path.name
         self.data["path"] = args.get("path") or "/"
 
     @property
-    def full_path(self):
+    def full_path(self) -> str:
         return construct_full_path(self.data["path"], self.data["filename"])
 
 
@@ -65,7 +81,7 @@ class FileMonitor(object):
     ----------
     bytes_read: int
       Amount of bytes read from the IO.
-    len: int         
+    len: int
         Total size of the IO.
     io: BinaryIO
         IO object used by this class. Depency injection.
@@ -103,20 +119,6 @@ class FileMonitor(object):
         return data
 
 
-class UploadStage(Enum):
-    REQUEST_SIGNATURE = 0
-    UPLOAD_TO_S3 = 1
-    CONFIRM_UPLOAD_COMPLETE = 2
-    OTHER = 3
-
-
-@dataclass
-class UploadRequestError(Exception):
-    file_path: Path
-    stage: UploadStage
-    error: Optional[Exception] = None
-
-
 ByteReadCallback = Callable[[Optional[str], float, float], None]
 ProgressCallback = Callable[[int, float], None]
 FileUploadCallback = Callable[[str, int, int], None]
@@ -124,10 +126,10 @@ FileUploadCallback = Callable[[str, int, int], None]
 
 class UploadHandler:
     def __init__(self, dataset: "RemoteDataset", local_files: List[LocalFile]):
-        self.dataset = dataset
+        self.dataset: RemoteDataset = dataset
         self.errors: List[UploadRequestError] = []
-        self.local_files = local_files
-        self._progress = None
+        self.local_files: List[LocalFile] = local_files
+        self._progress: Optional[Iterator[Callable[[Optional[ByteReadCallback]], None]]] = None
 
         self.blocked_items, self.pending_items = self._request_upload()
 
@@ -159,7 +161,7 @@ class UploadHandler:
     def progress(self):
         return self._progress
 
-    def prepare_upload(self):
+    def prepare_upload(self) -> Optional[Iterator[Callable[[Optional[ByteReadCallback]], None]]]:
         self._progress = self._upload_files()
         return self._progress
 
@@ -169,7 +171,7 @@ class UploadHandler:
         progress_callback: Optional[ProgressCallback] = None,
         file_upload_callback: Optional[FileUploadCallback] = None,
         max_workers: Optional[int] = None,
-    ):
+    ) -> None:
         if not self._progress:
             self.prepare_upload()
 
@@ -188,7 +190,7 @@ class UploadHandler:
                     file_complete.add(file_name)
                     progress_callback(self.pending_count, 1)
 
-        if multi_threaded:
+        if multi_threaded and self.progress:
             with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
                 future_to_progress = {executor.submit(f, callback) for f in self.progress}
                 for future in concurrent.futures.as_completed(future_to_progress):
@@ -196,7 +198,7 @@ class UploadHandler:
                         future.result()
                     except Exception as exc:
                         print("exception", exc)
-        else:
+        elif self.progress:
             for file_to_upload in self.progress:
                 file_to_upload(callback)
 
@@ -206,17 +208,17 @@ class UploadHandler:
         chunk_size: int = _upload_chunk_size()
         for file_chunk in chunk(self.local_files, chunk_size):
             upload_payload = {"items": [file.data for file in file_chunk]}
-            data = self.client.put(
-                endpoint=f"/teams/{self.dataset_identifier.team_slug}/datasets/{self.dataset_identifier.dataset_slug}/data",
-                payload=upload_payload,
-                team=self.dataset_identifier.team_slug,
-            )
+            dataset_slug: str = self.dataset_identifier.dataset_slug
+            team_slug: Optional[str] = self.dataset_identifier.team_slug
+
+            data: Dict[str, Any] = self.client.upload_data(dataset_slug, upload_payload, team_slug)
+
             blocked_items.extend([ItemPayload(**item) for item in data["blocked_items"]])
             items.extend([ItemPayload(**item) for item in data["items"]])
         return blocked_items, items
 
-    def _upload_files(self):
-        def upload_function(dataset_item_id, local_path):
+    def _upload_files(self) -> Iterator[Callable[[Optional[ByteReadCallback]], None]]:
+        def upload_function(dataset_item_id, local_path) -> Callable[[Optional[ByteReadCallback]], None]:
             return lambda byte_read_callback=None: self._upload_file(dataset_item_id, local_path, byte_read_callback)
 
         file_lookup = {file.full_path: file for file in self.local_files}
@@ -226,7 +228,9 @@ class UploadHandler:
                 raise ValueError(f"Cannot match {item.full_path} from payload with files to upload")
             yield upload_function(item.dataset_item_id, file.local_path)
 
-    def _upload_file(self, dataset_item_id: int, file_path: Path, byte_read_callback):
+    def _upload_file(
+        self, dataset_item_id: int, file_path: Path, byte_read_callback: Optional[ByteReadCallback]
+    ) -> None:
         try:
             self._do_upload_file(dataset_item_id, file_path, byte_read_callback)
         except UploadRequestError as e:
@@ -236,13 +240,11 @@ class UploadHandler:
 
     def _do_upload_file(
         self, dataset_item_id: int, file_path: Path, byte_read_callback: Optional[ByteReadCallback] = None,
-    ):
-        team_slug = self.dataset_identifier.team_slug
+    ) -> None:
+        team_slug: Optional[str] = self.dataset_identifier.team_slug
 
         try:
-            sign_response = self.client.get(f"/dataset_items/{dataset_item_id}/sign_upload", team=team_slug, raw=True)
-            sign_response.raise_for_status()
-            sign_response = sign_response.json()
+            sign_response: Dict[str, Any] = self.client.sign_upload(dataset_item_id, team_slug)
         except Exception as e:
             raise UploadRequestError(file_path=file_path, stage=UploadStage.REQUEST_SIGNATURE, error=e)
 
@@ -275,10 +277,7 @@ class UploadHandler:
             raise UploadRequestError(file_path=file_path, stage=UploadStage.UPLOAD_TO_S3, error=e)
 
         try:
-            confirm_response = self.client.put(
-                endpoint=f"/dataset_items/{dataset_item_id}/confirm_upload", payload={}, team=team_slug, raw=True
-            )
-            confirm_response.raise_for_status()
+            self.client.confirm_upload(dataset_item_id, team_slug)
         except Exception as e:
             raise UploadRequestError(file_path=file_path, stage=UploadStage.CONFIRM_UPLOAD_COMPLETE, error=e)
 

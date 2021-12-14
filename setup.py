@@ -32,8 +32,9 @@ setuptools.setup(
         "requests_toolbelt",
         "rich",
         "upolygon==0.1.6",
+        "jsonschema",
     ],
-    extras_require={"test": ["responses", "pytest", "pytest-describe"]},
+    extras_require={"test": ["responses", "pytest", "pytest-describe"], "ml": ["sklearn", "torch", "torchvision"]},
     packages=[
         "darwin",
         "darwin.importer",

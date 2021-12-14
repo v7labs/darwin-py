@@ -1,4 +1,4 @@
-name: Python package
+name: Testing
 
 on: [push]
 
@@ -22,6 +22,8 @@ jobs:
           pip install pytest-describe
           pip install --upgrade setuptools
           pip install --editable ".[test]"
+          pip install --editable ".[ml]"
+
       - name: Run tests
         run: pytest
   windows:
@@ -43,5 +45,7 @@ jobs:
           pip install pytest-describe
           pip install --upgrade setuptools
           pip install --editable ".[test]"
+          pip install --editable ".[ml]"
+
       - name: Run tests
         run: pytest
