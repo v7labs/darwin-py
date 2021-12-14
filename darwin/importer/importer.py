@@ -126,7 +126,7 @@ def import_annotations(
     importer: Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]],
     file_paths: List[PathLike],
     append: bool,
-    max_workers: int = 4,
+    max_workers: Optional[int] = None,
     require_user_confirm: bool = False,
 ) -> None:
     """
@@ -144,7 +144,7 @@ def import_annotations(
     append : bool
         If `True` appends the given annotations to the datasets. If `False` will override them.
     max_workers: Optional[int]
-        The number of workers to be used when uploading the annnotations. Defaults to 4
+        The number of workers to be used when uploading the annnotations. Defaults to None
 
     Returns
     -------
@@ -268,7 +268,7 @@ def import_annotations(
                 dataset.client, item_id, remote_classes, attributes, parsed_file.annotations, dataset, append,
             )
 
-        print(f"Uploading annotations with {max_workers} workers")
+        print(f"Uploading annotations with {executor._max_workers} workers")
         # let's get the file paths we need
         paths: Set[Path] = set(local_file.path for local_file in local_files)
         # create our multi threading stage to get the files we need to import
