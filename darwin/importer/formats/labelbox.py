@@ -48,15 +48,17 @@ def parse_file(path: Path, validate: Callable[[Any], None]) -> Optional[List[Ann
     You can check the Labelbox Schemas in `labelbox_schemas.py`.
 
     Currently we support the following annotations:
-    - bounding-box `Image`: https://docs.labelbox.com/docs/bounding-box-json
-    - polygon `Image`: https://docs.labelbox.com/docs/polygon-json
-    - point `Image`: https://docs.labelbox.com/docs/point-json
-    - polyline `Image`: https://docs.labelbox.com/docs/polyline-json
+
+        - bounding-box ``Image``: https://docs.labelbox.com/docs/bounding-box-json
+        - polygon ``Image``: https://docs.labelbox.com/docs/polygon-json
+        - point ``Image``: https://docs.labelbox.com/docs/point-json
+        - polyline ``Image``: https://docs.labelbox.com/docs/polyline-json
 
     We also support conversion from question/answer to Annotation Tags for the following:
-    - Radio Buttons
-    - Checklists
-    - Free Text
+    
+        - Radio Buttons
+        - Checklists
+        - Free Text
 
     Parameters
     --------
