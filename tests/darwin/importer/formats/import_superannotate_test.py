@@ -15,12 +15,6 @@ from jsonschema import ValidationError
 
 def describe_parse_path():
     @pytest.fixture
-    def folder_path(tmp_path: Path):
-        path = tmp_path
-        yield path
-        path.rmdir()
-
-    @pytest.fixture
     def classes_file_path(tmp_path: Path):
         path = tmp_path / "classes.json"
         yield path
@@ -32,23 +26,31 @@ def describe_parse_path():
         yield path
         path.unlink()
 
-    def it_raises_if_given_path_is_not_folder():
-        bad_path = Path("path/to/file.xml")
+    def it_returns_none_if_file_is_not_json():
+        bad_path = Path("/tmp/annotation.xml")
+        assert parse_path(bad_path) is None
+
+    def it_returns_none_if_file_is_classes():
+        bad_path = Path("/tmp/classes.json")
+        assert parse_path(bad_path) is None
+
+    def it_raises_if_folder_has_no_classes_file(annotations_file_path: Path):
+        annotations_json: str = """
+         {
+            "instances": [],
+            "metadata": {
+               "name": "demo-image-0.jpg"
+            }
+         }
+         """
+        annotations_file_path.write_text(annotations_json)
 
         with pytest.raises(ValueError) as error:
-            parse_path(bad_path)
-
-        assert "Path given must be a folder" in str(error.value)
-
-    def it_raises_if_folder_has_no_classes_file(folder_path: Path):
-        with pytest.raises(ValueError) as error:
-            parse_path(folder_path)
+            parse_path(annotations_file_path)
 
         assert "Folder must contain a 'classes.json'" in str(error.value)
 
-    def it_returns_empty_file_if_there_are_no_annotations(
-        folder_path: Path, annotations_file_path: Path, classes_file_path: Path
-    ):
+    def it_returns_empty_file_if_there_are_no_annotations(annotations_file_path: Path, classes_file_path: Path):
         annotations_json: str = """
          {
             "instances": [],
@@ -62,9 +64,7 @@ def describe_parse_path():
         annotations_file_path.write_text(annotations_json)
         classes_file_path.write_text(classes_json)
 
-        annotation_files: List[AnnotationFile] = parse_path(folder_path)
-
-        assert annotation_files[0] == AnnotationFile(
+        assert parse_path(annotations_file_path) == AnnotationFile(
             annotations=[],
             path=annotations_file_path,
             filename="demo-image-0.jpg",
@@ -72,7 +72,7 @@ def describe_parse_path():
             remote_path="/",
         )
 
-    def it_raises_if_annotation_has_no_type(folder_path: Path, annotations_file_path: Path, classes_file_path: Path):
+    def it_raises_if_annotation_has_no_type(annotations_file_path: Path, classes_file_path: Path):
         annotations_json: str = """
           {
              "instances": [
@@ -92,13 +92,11 @@ def describe_parse_path():
         classes_file_path.write_text(classes_json)
 
         with pytest.raises(ValidationError) as error:
-            parse_path(folder_path)
+            parse_path(annotations_file_path)
 
             assert "'type' is a required property" in str(error.value)
 
-    def it_raises_if_annotation_has_no_class_id(
-        folder_path: Path, annotations_file_path: Path, classes_file_path: Path
-    ):
+    def it_raises_if_annotation_has_no_class_id(annotations_file_path: Path, classes_file_path: Path):
         annotations_json: str = """
           {
              "instances": [
@@ -119,11 +117,11 @@ def describe_parse_path():
         classes_file_path.write_text(classes_json)
 
         with pytest.raises(ValidationError) as error:
-            parse_path(folder_path)
+            parse_path(annotations_file_path)
 
             assert "'classId' is a required property" in str(error.value)
 
-    def it_raises_if_metadata_is_missing(folder_path: Path, annotations_file_path: Path, classes_file_path: Path):
+    def it_raises_if_metadata_is_missing(annotations_file_path: Path, classes_file_path: Path):
         annotations_json: str = """
           {
              "instances": [
@@ -141,11 +139,11 @@ def describe_parse_path():
         classes_file_path.write_text(classes_json)
 
         with pytest.raises(ValidationError) as error:
-            parse_path(folder_path)
+            parse_path(annotations_file_path)
 
             assert "'metadata' is a required property" in str(error.value)
 
-    def it_raises_if_metadata_is_missing_name(folder_path: Path, annotations_file_path: Path, classes_file_path: Path):
+    def it_raises_if_metadata_is_missing_name(annotations_file_path: Path, classes_file_path: Path):
         annotations_json: str = """
           {
              "instances": [
@@ -163,13 +161,11 @@ def describe_parse_path():
         classes_file_path.write_text(classes_json)
 
         with pytest.raises(ValidationError) as error:
-            parse_path(folder_path)
+            parse_path(annotations_file_path)
 
             assert "'name' is a required property" in str(error.value)
 
-    def it_raises_if_point_has_missing_coordinate(
-        folder_path: Path, annotations_file_path: Path, classes_file_path: Path
-    ):
+    def it_raises_if_point_has_missing_coordinate(annotations_file_path: Path, classes_file_path: Path):
         annotations_json: str = """
           {
              "instances": [
@@ -188,11 +184,11 @@ def describe_parse_path():
         classes_file_path.write_text(classes_json)
 
         with pytest.raises(ValidationError) as error:
-            parse_path(folder_path)
+            parse_path(annotations_file_path)
 
         assert "'x' is a required property" in str(error.value)
 
-    def it_imports_point_vectors(folder_path: Path, annotations_file_path: Path, classes_file_path: Path):
+    def it_imports_point_vectors(annotations_file_path: Path, classes_file_path: Path):
 
         annotations_json: str = """
        {
@@ -218,8 +214,7 @@ def describe_parse_path():
         annotations_file_path.write_text(annotations_json)
         classes_file_path.write_text(classes_json)
 
-        annotations: List[AnnotationFile] = parse_path(folder_path)
-        annotation_file: AnnotationFile = annotations[0]
+        annotation_file: Optional[AnnotationFile] = parse_path(annotations_file_path)
         assert annotation_file is not None
         assert annotation_file.path == annotations_file_path
         assert annotation_file.filename == "demo-image-0.jpg"
