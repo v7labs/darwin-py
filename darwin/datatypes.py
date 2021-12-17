@@ -24,7 +24,7 @@ ErrorHandler = Callable[[int, str], None]
 class Team:
     """
     Definition of a V7 team.
-    
+
     Attributes
     ----------
     default: bool
@@ -50,7 +50,7 @@ class Team:
 class Feature:
     """
     Structured payload of a Feature record on V7 Darwin.
-    
+
     Attributes
     ----------
     name: str
@@ -68,7 +68,7 @@ class Feature:
 class AnnotationClass:
     """
     Represents an AnnocationClass from an Annotation.
-    
+
     Attributes
     ----------
     name: str
@@ -77,7 +77,7 @@ class AnnotationClass:
         The type of this ``AnnotationClass``.
     annotation_internal_type: Optional[str], default: None
         The V7 internal type of this ``AnnotationClass``. This is mostly used to convert from types
-        that are known in the outside world by a given name, but then are known inside V7's lingo 
+        that are known in the outside world by a given name, but then are known inside V7's lingo
         by another.
     """
 
@@ -90,7 +90,7 @@ class AnnotationClass:
 class SubAnnotation:
     """
     Represents a subannotation that belongs to an AnnotationClass.
-    
+
     Attributes
     ----------
     annotation_type: str
@@ -108,7 +108,7 @@ class SubAnnotation:
 class Annotation:
     """
     Represents an Annotation from an Image/Video.
-    
+
     Attributes
     ----------
     annotation_class: AnnotationClass
@@ -127,7 +127,7 @@ class Annotation:
     def get_sub(self, annotation_type: str) -> Optional[SubAnnotation]:
         """
         Returns the first SubAnnotation that matches the given type.
-        
+
         Parameters
         ----------
         annotation_type: str
@@ -148,7 +148,7 @@ class Annotation:
 class VideoAnnotation:
     """
     Represents an Annotation that belongs to a Video.
-    
+
     Attributes
     ----------
     annotation_class: AnnotationClass
@@ -156,11 +156,11 @@ class VideoAnnotation:
     frames: Dict[int, Any]
         A dictionary of frames for this ``VideoAnnotation``.
     keyframes: Dict[int, bool]
-        The keyframes for this ``VideoAnnotation``. Keyframes are a selection of frames from the 
+        The keyframes for this ``VideoAnnotation``. Keyframes are a selection of frames from the
         ``frames`` attribute.
     segments: List[Segment]
         A list of ``Segment``'s.
-    interpolated: bool 
+    interpolated: bool
         Whehter this ``VideoAnnotation`` is interpolated or not.
     """
 
@@ -174,7 +174,7 @@ class VideoAnnotation:
         self, only_keyframes: bool = True, post_processing: Optional[Callable[[Annotation, Any], Any]] = None
     ) -> Dict[str, Any]:
         """
-        Return the post-processed frames and the additional information from this 
+        Return the post-processed frames and the additional information from this
         ``VideoAnnotation`` in a dictionary with the format:
 
         .. code-block:: python
@@ -193,13 +193,13 @@ class VideoAnnotation:
         only_keyframes: bool, default: True
             Whether or not to return only the keyframes. Defaults to ``True``.
         post_processing: Optional[Callable[[Annotation, Any], Any]], default: None
-            If given, it processes each frame through the given ``Callabale`` before adding it to the 
+            If given, it processes each frame through the given ``Callabale`` before adding it to the
             returned dictionary. Defaults to ``None``.
 
         Returns
         -------
         Dict[str, Any]
-            A dictionary containing the processed frames, the segments of this ``VideoAnnotation`` 
+            A dictionary containing the processed frames, the segments of this ``VideoAnnotation``
             and whether or not it is interpolated.
         """
         if not post_processing:
@@ -225,7 +225,7 @@ class VideoAnnotation:
 @dataclass
 class AnnotationFile:
     """
-    Represents a file containing annotations. Mostly useful when trying to import or export 
+    Represents a file containing annotations. Mostly useful when trying to import or export
     annotations to/from darwin V7.
 
     Attributes
@@ -235,14 +235,14 @@ class AnnotationFile:
     filename: str
         Name of the file containing the annotations.
     annotation_classes: Set[AnnotationClass]
-        ``Set`` of all ``AnnotationClass``es this file contains. Used as a way to know in advance 
-        which ``AnnotationClass``es this file has without having to go through the list of 
+        ``Set`` of all ``AnnotationClass``es this file contains. Used as a way to know in advance
+        which ``AnnotationClass``es this file has without having to go through the list of
         annotations.
     annotations: Union[List[VideoAnnotation], List[Annotation]]
-        List of ``VideoAnnotation``s or ``Annotation``s. 
+        List of ``VideoAnnotation``s or ``Annotation``s.
     is_video: bool, default: False
-        Whether the annotations in the ``annotations`` attribute are ``VideoAnnotation`` or not. 
-        Defaults to ``False``. 
+        Whether the annotations in the ``annotations`` attribute are ``VideoAnnotation`` or not.
+        Defaults to ``False``.
     image_width: Optional[int], default:  None
         Width of the image in this annotation. Defaults to ``None``.
     image_height: Optional[int], default:  None
@@ -289,7 +289,7 @@ def make_bounding_box(
     class_name: str, x: float, y: float, w: float, h: float, subs: Optional[List[SubAnnotation]] = None
 ) -> Annotation:
     """
-    Creates and returns a bounding box annotation. ``x``, ``y``, ``w`` and ``h`` are rounded to 3 
+    Creates and returns a bounding box annotation. ``x``, ``y``, ``w`` and ``h`` are rounded to 3
     decimal places when creating the annotation.
 
     Parameters
@@ -310,7 +310,7 @@ def make_bounding_box(
     Returns
     -------
     Annotation
-        A bounding box ``Annotation``. 
+        A bounding box ``Annotation``.
     """
     return Annotation(
         AnnotationClass(class_name, "bounding_box"),
@@ -425,7 +425,5 @@ def _maybe_add_bounding_box_data(data: Dict[str, Any], bounding_box: Optional[Di
 
 
 ExportParser = Callable[[Iterator[AnnotationFile], Path], None]
-ExporterFormat = Tuple[str, ExportParser]
 
 ImportParser = Callable[[Path], Union[List[AnnotationFile], AnnotationFile, None]]
-ImporterFormat = Tuple[str, ImportParser]
