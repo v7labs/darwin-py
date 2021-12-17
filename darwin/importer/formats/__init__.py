@@ -4,7 +4,6 @@ from typing import List
 from jsonschema import validate
 
 from darwin.datatypes import ImporterFormat
-from darwin.importer.formats.labelbox_schemas import labelbox_export
 
 from . import (
     coco,
@@ -17,11 +16,9 @@ from . import (
     superannotate,
 )
 
-labelbox_validator = partial(validate, schema=labelbox_export)
-
 supported_formats: List[ImporterFormat] = [
     ("superannotate", superannotate.parse_path),
-    ("labelbox", partial(labelbox.parse_path, validate=labelbox_validator)),
+    ("labelbox", labelbox.parse_path),
     ("pascal_voc", pascalvoc.parse_path),
     ("dataloop", dataloop.parse_path),
     ("csv_tags", csvtags.parse_path),
