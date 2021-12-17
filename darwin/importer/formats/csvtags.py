@@ -6,7 +6,7 @@ import darwin.datatypes as dt
 from darwin.path_utils import deconstruct_full_path
 
 
-def parse_file(path: Path) -> Optional[List[dt.AnnotationFile]]:
+def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
     if path.suffix != ".csv":
         return None
 

@@ -5,7 +5,7 @@ from typing import List, Optional
 import darwin.datatypes as dt
 
 
-def parse_file(path: Path) -> Optional[dt.AnnotationFile]:
+def parse_path(path: Path) -> Optional[dt.AnnotationFile]:
     """
     Parses the given pascalvoc file and maybe returns the corresponding annotation.
     The file must have the following structure:

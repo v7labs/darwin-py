@@ -10,12 +10,12 @@ from darwin.datatypes import (
     Point,
     SubAnnotation,
 )
-from darwin.importer.formats.labelbox import parse_file
+from darwin.importer.formats.labelbox import parse_path
 from darwin.importer.formats.labelbox_schemas import labelbox_export
 from jsonschema import ValidationError, validate
 
 
-def describe_parse_file():
+def describe_parse_path():
     @pytest.fixture
     def file_path(tmp_path: Path):
         path = tmp_path / "annotation.json"
@@ -29,7 +29,7 @@ def describe_parse_file():
 
     def test_it_returns_none_if_there_are_no_annotations(validator: Callable[[Any], None]):
         path = Path("path/to/file.xml")
-        assert parse_file(path, validator) is None
+        assert parse_path(path, validator) is None
 
     def test_it_raises_if_external_id_is_missing(file_path: Path, validator: Callable[[Any], None]):
         json: str = """
@@ -55,7 +55,7 @@ def describe_parse_file():
         file_path.write_text(json)
 
         with pytest.raises(ValidationError) as error:
-            parse_file(file_path, validator)
+            parse_path(file_path, validator)
 
         assert "'External ID' is a required property" in str(error.value)
 
@@ -67,7 +67,7 @@ def describe_parse_file():
         file_path.write_text(json)
 
         with pytest.raises(ValidationError) as error:
-            parse_file(file_path, validator)
+            parse_path(file_path, validator)
 
         assert "'Label' is a required propert" in str(error.value)
 
@@ -79,7 +79,7 @@ def describe_parse_file():
         file_path.write_text(json)
 
         with pytest.raises(ValidationError) as error:
-            parse_file(file_path, validator)
+            parse_path(file_path, validator)
 
         assert "'objects' is a required propert" in str(error.value)
 
@@ -97,7 +97,7 @@ def describe_parse_file():
         file_path.write_text(json)
 
         with pytest.raises(ValidationError) as error:
-            parse_file(file_path, validator)
+            parse_path(file_path, validator)
 
         assert "'point' is a required property" in str(error.value)
 
@@ -126,7 +126,7 @@ def describe_parse_file():
         file_path.write_text(json)
 
         with pytest.raises(ValidationError) as error:
-            parse_file(file_path, validator)
+            parse_path(file_path, validator)
 
         assert "'title' is a required property" in str(error.value)
 
@@ -155,7 +155,7 @@ def describe_parse_file():
         file_path.write_text(json)
 
         with pytest.raises(ValidationError) as error:
-            parse_file(file_path, validator)
+            parse_path(file_path, validator)
 
         assert "'top' is a required property" in str(error.value)
 
@@ -184,7 +184,7 @@ def describe_parse_file():
         file_path.write_text(json)
 
         with pytest.raises(ValidationError) as error:
-            parse_file(file_path, validator)
+            parse_path(file_path, validator)
 
         assert "'left' is a required property" in str(error.value)
 
@@ -213,7 +213,7 @@ def describe_parse_file():
         file_path.write_text(json)
 
         with pytest.raises(ValidationError) as error:
-            parse_file(file_path, validator)
+            parse_path(file_path, validator)
 
         assert "'width' is a required property" in str(error.value)
 
@@ -242,7 +242,7 @@ def describe_parse_file():
         file_path.write_text(json)
 
         with pytest.raises(ValidationError) as error:
-            parse_file(file_path, validator)
+            parse_path(file_path, validator)
 
         assert "'height' is a required property" in str(error.value)
 
@@ -271,7 +271,7 @@ def describe_parse_file():
 
         file_path.write_text(json)
 
-        annotation_files: Optional[List[AnnotationFile]] = parse_file(file_path, validator)
+        annotation_files: Optional[List[AnnotationFile]] = parse_path(file_path, validator)
         assert annotation_files is not None
 
         annotation_file: AnnotationFile = annotation_files.pop()
@@ -312,7 +312,7 @@ def describe_parse_file():
         file_path.write_text(json)
 
         with pytest.raises(ValidationError) as error:
-            parse_file(file_path, validator)
+            parse_path(file_path, validator)
 
         assert "'x' is a required property" in str(error.value)
 
@@ -341,7 +341,7 @@ def describe_parse_file():
         file_path.write_text(json)
 
         with pytest.raises(ValidationError) as error:
-            parse_file(file_path, validator)
+            parse_path(file_path, validator)
 
         assert "'y' is a required property" in str(error.value)
 
@@ -369,7 +369,7 @@ def describe_parse_file():
 
         file_path.write_text(json)
 
-        annotation_files: Optional[List[AnnotationFile]] = parse_file(file_path, validator)
+        annotation_files: Optional[List[AnnotationFile]] = parse_path(file_path, validator)
         assert annotation_files is not None
 
         annotation_file: AnnotationFile = annotation_files.pop()
@@ -409,7 +409,7 @@ def describe_parse_file():
 
         file_path.write_text(json)
 
-        annotation_files: Optional[List[AnnotationFile]] = parse_file(file_path, validator)
+        annotation_files: Optional[List[AnnotationFile]] = parse_path(file_path, validator)
         assert annotation_files is not None
 
         annotation_file: AnnotationFile = annotation_files.pop()
@@ -450,7 +450,7 @@ def describe_parse_file():
 
         file_path.write_text(json)
 
-        annotation_files: Optional[List[AnnotationFile]] = parse_file(file_path, validator)
+        annotation_files: Optional[List[AnnotationFile]] = parse_path(file_path, validator)
         assert annotation_files is not None
 
         annotation_file: AnnotationFile = annotation_files.pop()
@@ -490,7 +490,7 @@ def describe_parse_file():
         file_path.write_text(json)
 
         with pytest.raises(ValidationError) as error:
-            parse_file(file_path, validator)
+            parse_path(file_path, validator)
 
         assert "'classifications' is a required property" in str(error.value)
 
@@ -519,7 +519,7 @@ def describe_parse_file():
         file_path.write_text(json)
 
         with pytest.raises(ValidationError) as error:
-            parse_file(file_path, validator)
+            parse_path(file_path, validator)
 
         assert "'answer' is a required property" in str(error.value)
 
@@ -549,7 +549,7 @@ def describe_parse_file():
         file_path.write_text(json)
 
         with pytest.raises(ValidationError) as error:
-            parse_file(file_path, validator)
+            parse_path(file_path, validator)
 
         # The library asserts agains both types and if all fail, it prints the error of the
         # first type only.
@@ -579,7 +579,7 @@ def describe_parse_file():
         """
 
         file_path.write_text(json)
-        annotation_files: Optional[List[AnnotationFile]] = parse_file(file_path, validator)
+        annotation_files: Optional[List[AnnotationFile]] = parse_path(file_path, validator)
         assert annotation_files is not None
 
         annotation_file: AnnotationFile = annotation_files.pop()
@@ -623,7 +623,7 @@ def describe_parse_file():
         """
 
         file_path.write_text(json)
-        annotation_files: Optional[List[AnnotationFile]] = parse_file(file_path, validator)
+        annotation_files: Optional[List[AnnotationFile]] = parse_path(file_path, validator)
         assert annotation_files is not None
 
         annotation_file: AnnotationFile = annotation_files.pop()
@@ -671,7 +671,7 @@ def describe_parse_file():
         """
 
         file_path.write_text(json)
-        annotation_files: Optional[List[AnnotationFile]] = parse_file(file_path, validator)
+        annotation_files: Optional[List[AnnotationFile]] = parse_path(file_path, validator)
         assert annotation_files is not None
 
         annotation_file: AnnotationFile = annotation_files.pop()

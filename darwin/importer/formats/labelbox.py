@@ -17,7 +17,7 @@ from darwin.datatypes import (
 )
 
 
-def parse_file(path: Path, validate: Callable[[Any], None]) -> Optional[List[AnnotationFile]]:
+def parse_path(path: Path, validate: Callable[[Any], None]) -> Optional[List[AnnotationFile]]:
     """
     Parses the given LabelBox file and maybe returns the corresponding annotations.
     The file must have a structure simillar to the following:

@@ -5,7 +5,7 @@ from typing import Any, Dict, Optional
 import darwin.datatypes as dt
 
 
-def parse_file(path: Path) -> Optional[dt.AnnotationFile]:
+def parse_path(path: Path) -> Optional[dt.AnnotationFile]:
     if path.suffix != ".json":
         return None
     with path.open() as f:
