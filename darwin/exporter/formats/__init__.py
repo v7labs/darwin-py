@@ -4,9 +4,9 @@ supported_formats: List[str] = [
     "coco",
     "cvat",
     "dataloop",
-    "instance-mask",
+    "instance_mask",
     "pascal_voc",
-    "semantic-mask",
-    "semantic-mask-grey",
-    "semantic-mask-index",
+    "semantic_mask",
+    "semantic_mask_grey",
+    "semantic_mask_index",
 ]

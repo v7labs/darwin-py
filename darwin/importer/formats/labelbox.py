@@ -3,6 +3,8 @@ from functools import partial, reduce
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Set, cast
 
+from jsonschema import validate
+
 from darwin.datatypes import (
     Annotation,
     AnnotationClass,
@@ -15,13 +17,14 @@ from darwin.datatypes import (
     make_polygon,
     make_tag,
 )
+from darwin.importer.formats.labelbox_schemas import labelbox_export
 
 
-def parse_file(path: Path, validate: Callable[[Any], None]) -> Optional[List[AnnotationFile]]:
+def parse_file(path: Path) -> Optional[List[AnnotationFile]]:
     """
     Parses the given LabelBox file and maybe returns the corresponding annotations.
     The file must have a structure simillar to the following:
-    
+
     .. code-block:: javascript
         [
             {
@@ -69,13 +72,13 @@ def parse_file(path: Path, validate: Callable[[Any], None]) -> Optional[List[Ann
     Returns
     -------
     Optional[List[darwin.datatypes.AnnotationFile]]
-        The AnnotationFiles with the parsed information from the file or None, if the file is not a 
+        The AnnotationFiles with the parsed information from the file or None, if the file is not a
         `json` file.
 
     Raises
     ------
     ValidationError
-        If the given JSON file is malformed or if it has an unknown annotation. 
+        If the given JSON file is malformed or if it has an unknown annotation.
         To see a list of possible annotation formats go to:
         https://docs.labelbox.com/docs/annotation-types-1
 
@@ -83,9 +86,11 @@ def parse_file(path: Path, validate: Callable[[Any], None]) -> Optional[List[Ann
     if path.suffix != ".json":
         return None
 
+    validate_with_schema: Callable[[Any], None] = partial(validate, schema=labelbox_export)
+
     with path.open() as f:
         data = json.load(f)
-        validate(data)
+        validate_with_schema(data)
         convert_with_path = partial(_convert, path=path)
 
         return _map_list(convert_with_path, data)
