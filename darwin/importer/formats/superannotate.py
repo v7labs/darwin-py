@@ -1,6 +1,5 @@
 import json
 from functools import partial
-from os.path import join
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional, Set, cast
 
@@ -74,7 +73,7 @@ def parse_path(path: Path) -> Optional[AnnotationFile]:
     if not _is_annotation(path):
         return None
 
-    classes_path = Path(join(path.parent, "classes.json"))
+    classes_path = path.parent / "classes.json"
     if not classes_path.is_file():
         raise ValueError("Folder must contain a 'classes.json' file with classes information.")
 
