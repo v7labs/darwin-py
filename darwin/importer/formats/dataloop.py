@@ -30,7 +30,7 @@ def _parse_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotation]:
     if annotation_type not in ["box", "class"]:
         raise ValueError(f"Unknown supported annotation type: {annotation_type}")
 
-    if len(annotation["metadata"]["system"]["snapshots_"]) > 1:
+    if len(annotation["metadata"]["system"].get("snapshots_", [])) > 1:
         raise ValueError("multiple snapshots per annotations are not supported")
 
     # Class is metadata that we can ignore
