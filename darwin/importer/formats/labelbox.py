@@ -20,7 +20,7 @@ from darwin.datatypes import (
 from darwin.importer.formats.labelbox_schemas import labelbox_export
 
 
-def parse_file(path: Path) -> Optional[List[AnnotationFile]]:
+def parse_path(path: Path) -> Optional[List[AnnotationFile]]:
     """
     Parses the given LabelBox file and maybe returns the corresponding annotations.
     The file must have a structure simillar to the following:
@@ -51,23 +51,22 @@ def parse_file(path: Path) -> Optional[List[AnnotationFile]]:
     You can check the Labelbox Schemas in `labelbox_schemas.py`.
 
     Currently we support the following annotations:
-    - bounding-box `Image`: https://docs.labelbox.com/docs/bounding-box-json
-    - polygon `Image`: https://docs.labelbox.com/docs/polygon-json
-    - point `Image`: https://docs.labelbox.com/docs/point-json
-    - polyline `Image`: https://docs.labelbox.com/docs/polyline-json
+
+        - bounding-box ``Image``: https://docs.labelbox.com/docs/bounding-box-json
+        - polygon ``Image``: https://docs.labelbox.com/docs/polygon-json
+        - point ``Image``: https://docs.labelbox.com/docs/point-json
+        - polyline ``Image``: https://docs.labelbox.com/docs/polyline-json
 
     We also support conversion from question/answer to Annotation Tags for the following:
-    - Radio Buttons
-    - Checklists
-    - Free Text
+    
+        - Radio Buttons
+        - Checklists
+        - Free Text
 
     Parameters
     --------
     path: Path
         The path of the file to parse.
-
-    validate: Callable[[Any], None]
-        The validator function that validates the schema.
 
     Returns
     -------
@@ -86,11 +85,9 @@ def parse_file(path: Path) -> Optional[List[AnnotationFile]]:
     if path.suffix != ".json":
         return None
 
-    validate_with_schema: Callable[[Any], None] = partial(validate, schema=labelbox_export)
-
     with path.open() as f:
         data = json.load(f)
-        validate_with_schema(data)
+        validate(data, schema=labelbox_export)
         convert_with_path = partial(_convert, path=path)
 
         return _map_list(convert_with_path, data)

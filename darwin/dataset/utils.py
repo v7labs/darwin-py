@@ -9,7 +9,7 @@ import darwin.datatypes as dt
 import numpy as np
 from darwin.datatypes import PathLike
 from darwin.exceptions import NotFound
-from darwin.importer.formats.darwin import parse_file
+from darwin.importer.formats.darwin import parse_path
 from darwin.utils import (
     SUPPORTED_EXTENSIONS,
     SUPPORTED_VIDEO_EXTENSIONS,
@@ -81,7 +81,7 @@ def extract_classes(annotations_path: Path, annotation_type: str) -> Tuple[Dict[
     indices_to_classes: Dict[int, Set[str]] = defaultdict(set)
 
     for i, file_name in enumerate(sorted(annotations_path.glob("**/*.json"))):
-        annotation_file = parse_file(file_name)
+        annotation_file = parse_path(file_name)
         if not annotation_file:
             continue
 
@@ -500,7 +500,7 @@ def compute_distributions(
 
             for stem in stems:
                 annotation_path: Path = annotations_dir / f"{stem}.json"
-                annotation_file: Optional[dt.AnnotationFile] = parse_file(annotation_path)
+                annotation_file: Optional[dt.AnnotationFile] = parse_path(annotation_path)
 
                 if annotation_file is None:
                     continue
