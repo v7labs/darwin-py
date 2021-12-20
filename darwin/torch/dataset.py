@@ -34,7 +34,7 @@ def get_dataset(
     dataset_slug: str
         Slug of the dataset to retrieve
     dataset_type: str
-        The type of dataset [classification, instance-segmentation, semantic-segmentation]
+        The type of dataset [classification, object-detection, instance-segmentation, semantic-segmentation]
     partition: str
         Selects one of the partitions [train, val, test, None]. (Default: None)
     split: str
@@ -58,7 +58,7 @@ def get_dataset(
     identifier = DatasetIdentifier.parse(dataset_slug)
     client = _load_client(offline=True)
 
-    for p in client.list_local_datasets(team=identifier.team_slug):
+    for p in client.list_local_datasets(team_slug=identifier.team_slug):
         if identifier.dataset_slug == p.name:
             return dataset_function(
                 dataset_path=p,
