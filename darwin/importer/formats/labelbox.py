@@ -3,6 +3,8 @@ from functools import partial, reduce
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Set, cast
 
+from jsonschema import validate
+
 from darwin.datatypes import (
     Annotation,
     AnnotationClass,
@@ -15,9 +17,10 @@ from darwin.datatypes import (
     make_polygon,
     make_tag,
 )
+from darwin.importer.formats.labelbox_schemas import labelbox_export
 
 
-def parse_file(path: Path, validate: Callable[[Any], None]) -> Optional[List[AnnotationFile]]:
+def parse_path(path: Path) -> Optional[List[AnnotationFile]]:
     """
     Parses the given LabelBox file and maybe returns the corresponding annotations.
     The file must have a structure simillar to the following:
@@ -48,23 +51,22 @@ def parse_file(path: Path, validate: Callable[[Any], None]) -> Optional[List[Ann
     You can check the Labelbox Schemas in `labelbox_schemas.py`.
 
     Currently we support the following annotations:
-    - bounding-box `Image`: https://docs.labelbox.com/docs/bounding-box-json
-    - polygon `Image`: https://docs.labelbox.com/docs/polygon-json
-    - point `Image`: https://docs.labelbox.com/docs/point-json
-    - polyline `Image`: https://docs.labelbox.com/docs/polyline-json
+
+        - bounding-box ``Image``: https://docs.labelbox.com/docs/bounding-box-json
+        - polygon ``Image``: https://docs.labelbox.com/docs/polygon-json
+        - point ``Image``: https://docs.labelbox.com/docs/point-json
+        - polyline ``Image``: https://docs.labelbox.com/docs/polyline-json
 
     We also support conversion from question/answer to Annotation Tags for the following:
-    - Radio Buttons
-    - Checklists
-    - Free Text
+    
+        - Radio Buttons
+        - Checklists
+        - Free Text
 
     Parameters
     --------
     path: Path
         The path of the file to parse.
-
-    validate: Callable[[Any], None]
-        The validator function that validates the schema.
 
     Returns
     -------
@@ -85,7 +87,7 @@ def parse_file(path: Path, validate: Callable[[Any], None]) -> Optional[List[Ann
 
     with path.open() as f:
         data = json.load(f)
-        validate(data)
+        validate(data, schema=labelbox_export)
         convert_with_path = partial(_convert, path=path)
 
         return _map_list(convert_with_path, data)
