@@ -1,11 +1,12 @@
 from pathlib import Path
-from typing import List, Optional, cast
+from typing import Dict, List, Optional, cast
 
 import pytest
 from darwin.datatypes import (
     Annotation,
     AnnotationClass,
     AnnotationFile,
+    EllipseData,
     Point,
     SubAnnotation,
 )
@@ -229,6 +230,78 @@ def describe_parse_path():
         annotation_class = point_annotation.annotation_class
         assert_annotation_class(annotation_class, "Person", "keypoint")
 
+    def it_raises_if_ellipse_has_missing_coordinate(annotations_file_path: Path, classes_file_path: Path):
+        annotations_json: str = """
+          {
+             "instances": [
+                {
+                   "type": "ellipse",
+                   "cy": 0,
+                   "cx": 0,
+                   "rx": 0,
+                   "angle": 0
+                }
+             ],
+             "metadata": {
+                "name": "demo-image-0.jpg"
+             }
+          }
+         """
+        classes_json: str = """[]"""
+        annotations_file_path.write_text(annotations_json)
+        classes_file_path.write_text(classes_json)
+
+        with pytest.raises(ValidationError) as error:
+            parse_path(annotations_file_path)
+
+        assert "'x' is a required property" in str(error.value)
+
+    def it_imports_ellipse_vectors(annotations_file_path: Path, classes_file_path: Path):
+
+        annotations_json: str = """
+         {
+            "instances": [
+               {
+                  "type": "ellipse",
+                  "classId": 1,
+                  "cx": 922.1,
+                  "cy": 475.8,
+                  "rx": 205.4,
+                  "ry": 275.7,
+                  "angle": 0
+               }
+            ],
+            "metadata": {
+               "name": "demo-image-0.jpg"
+            }
+         }
+      """
+        classes_json: str = """
+       [
+          {"name": "Person", "id": 1}
+       ]
+       """
+
+        annotations_file_path.write_text(annotations_json)
+        classes_file_path.write_text(classes_json)
+
+        annotation_file: Optional[AnnotationFile] = parse_path(annotations_file_path)
+        assert annotation_file is not None
+        assert annotation_file.path == annotations_file_path
+        assert annotation_file.filename == "demo-image-0.jpg"
+        assert annotation_file.annotation_classes
+        assert annotation_file.remote_path == "/"
+
+        assert annotation_file.annotations
+
+        ellipse_annotation: Annotation = cast(Annotation, annotation_file.annotations.pop())
+        assert_ellipse(
+            ellipse_annotation, {"angle": 0, "center": {"x": 922.1, "y": 475.8}, "radius": {"x": 205.4, "y": 275.7}}
+        )
+
+        annotation_class = ellipse_annotation.annotation_class
+        assert_annotation_class(annotation_class, "Person", "ellipse")
+
 
 def assert_bbox(annotation: Annotation, x: float, y: float, h: float, w: float) -> None:
     data = annotation.data
@@ -251,6 +324,25 @@ def assert_point(annotation: Annotation, point: Point) -> None:
     assert data
     assert data.get("x") == point.get("x")
     assert data.get("y") == point.get("y")
+
+
+def assert_ellipse(annotation: Annotation, ellipse: EllipseData) -> None:
+    ellipse_center: Dict[str, float] = cast(Dict[str, float], ellipse.get("center"))
+    ellipse_radius: Dict[str, float] = cast(Dict[str, float], ellipse.get("radius"))
+
+    data = annotation.data
+    assert data
+    assert data.get("angle") == ellipse.get("angle")
+
+    center = data.get("center")
+    assert center
+    assert center.get("x") == ellipse_center.get("x")
+    assert center.get("y") == ellipse_center.get("y")
+
+    radius = data.get("radius")
+    assert radius
+    assert radius.get("x") == ellipse_radius.get("x")
+    assert radius.get("y") == ellipse_radius.get("y")
 
 
 def assert_line(annotation: Annotation, line: List[Point]) -> None:
