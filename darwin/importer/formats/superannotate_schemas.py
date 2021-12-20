@@ -1,5 +1,5 @@
 ellipse = {
-    "$id": "https://darwin.v7labs.com/schemas/supperannotate_ellipse",
+    "$id": "https://darwin.v7labs.com/schemas/supperannotate/ellipse",
     "description": "Schema of an Ellipse",
     "title": "Ellipse",
     "default": {"type": "ellipse", "cx": 377.46, "cy": 806.18, "rx": 316.36, "ry": 134.18, "angle": 0, "classId": 1},
@@ -20,7 +20,7 @@ ellipse = {
 }
 
 point = {
-    "$id": "https://darwin.v7labs.com/schemas/supperannotate_point",
+    "$id": "https://darwin.v7labs.com/schemas/supperannotate/point",
     "description": "Schema of a Point",
     "title": "Point",
     "default": {"type": "point", "x": 1.2, "y": 2.5, "classId": 1},
