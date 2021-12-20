@@ -87,7 +87,7 @@ def parse_path(path: Path) -> Optional[List[AnnotationFile]]:
 
     with path.open() as f:
         data = json.load(f)
-        validate(data, labelbox_export)
+        validate(data, schema=labelbox_export)
         convert_with_path = partial(_convert, path=path)
 
         return _map_list(convert_with_path, data)
