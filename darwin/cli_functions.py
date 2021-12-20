@@ -831,7 +831,7 @@ def dataset_convert(dataset_slug: str, format: str, output_dir: Optional[PathLik
         annotations folder of the dataset under 'other_formats/{format}'. The Defaults to None.
     """
     client: Client = _load_client()
-    exporter_module = import_module(name=format, package="darwin.exporter.formats")
+    exporter_module = import_module(f"darwin.exporter.formats.{format}")
     try:
         parser: ExportParser = getattr(exporter_module, "export")
     except AttributeError:
