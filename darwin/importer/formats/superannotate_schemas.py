@@ -1,3 +1,24 @@
+ellipse = {
+    "$id": "https://darwin.v7labs.com/schemas/supperannotate_ellipse",
+    "description": "Schema of an Ellipse",
+    "title": "Ellipse",
+    "default": {"type": "ellipse", "cx": 377.46, "cy": 806.18, "rx": 316.36, "ry": 134.18, "angle": 0, "classId": 1},
+    "examples": [
+        {"type": "ellipse", "cx": 377.46, "cy": 806.18, "rx": 316.36, "ry": 134.18, "angle": 14.66, "classId": 1}
+    ],
+    "type": "object",
+    "properties": {
+        "classId": {"type": "integer"},
+        "cx": {"type": "number"},
+        "cy": {"type": "number"},
+        "rx": {"type": "number"},
+        "ry": {"type": "number"},
+        "angle": {"type": "number"},
+        "ẗype": {"enum": ["ellipse"]},
+    },
+    "required": ["cx", "cy", "rx", "ry", "angle", "type", "classId"],
+}
+
 point = {
     "$id": "https://darwin.v7labs.com/schemas/supperannotate_point",
     "description": "Schema of a Point",
@@ -18,7 +39,7 @@ point = {
 superannotate_export = {
     "type": "object",
     "properties": {
-        "instances": {"type": "array", "items": {"oneOf": [point]},},
+        "instances": {"type": "array", "items": {"oneOf": [point, ellipse]},},
         "metadata": {"type": "object", "required": ["name"], "properties": {"name": {"type": "string"}}},
     },
     "required": ["instances", "metadata"],
