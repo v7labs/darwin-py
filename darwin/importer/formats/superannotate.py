@@ -15,7 +15,7 @@ from darwin.importer.formats.superannotate_schemas import (
 
 def parse_path(path: Path) -> Optional[AnnotationFile]:
     """
-    Parses SuperAnnotate annotations inside the given file and returns the corresponding darwin 
+    Parses SuperAnnotate annotations inside the given file and returns the corresponding Darwin JSON
     annotations. If the given file is not a ``.json`` or is a ``classes.json`` then ``None`` is 
     returned instead. 
 
