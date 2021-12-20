@@ -609,15 +609,13 @@ def upload_data(
 
         if already_existing_items:
             console.print(
-                f"Skipped {len(already_existing_items)} files already in the dataset.\n",
-                style="warning",
+                f"Skipped {len(already_existing_items)} files already in the dataset.\n", style="warning",
             )
 
         if upload_manager.error_count or other_skipped_items:
             error_count = upload_manager.error_count + len(other_skipped_items)
             console.print(
-                f"{error_count} files couldn't be uploaded because an error occurred.\n",
-                style="error",
+                f"{error_count} files couldn't be uploaded because an error occurred.\n", style="error",
             )
 
         if not verbose and upload_manager.error_count:
@@ -680,11 +678,11 @@ def dataset_import(dataset_slug: str, format: str, files: List[PathLike], append
     """
 
     client: Client = _load_client(dataset_identifier=dataset_slug)
-    importer_module = import_module(name=format, package="darwin.importer.formats")
+    importer_module = import_module(f"darwin.importer.formats.{format}")
     try:
-        parser: ImportParser = getattr(importer_module, "parse_file")
+        parser: ImportParser = getattr(importer_module, "parse_path")
     except AttributeError:
-        _error(f"Unsupported import format, currently supported: {import_formats}")
+        _error(f"Unsupported import format: {format}, currently supported: {import_formats}")
 
     try:
         dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
