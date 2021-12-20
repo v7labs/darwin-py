@@ -45,6 +45,7 @@ def parse_path(path: Path) -> Optional[AnnotationFile]:
     Currently we support the following annotations:
 
         - point ``Vector``: https://doc.superannotate.com/docs/vector-json#point
+        - ellipse ``Vector``: https://doc.superannotate.com/docs/vector-json#ellipse
     
 
     Each file must also have in the same folder a ``classes.json`` file with information about 
