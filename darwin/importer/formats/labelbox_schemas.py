@@ -1,5 +1,5 @@
 bounding_box = {
-    "$id": "https://darwin.v7labs.com/schemas/bounding_box",
+    "$id": "https://darwin.v7labs.com/schemas/labelbox/bounding_box",
     "description": "Schema of a Bounding Box",
     "title": "Bounding Box",
     "default": {"top": 1.2, "left": 2.5, "height": 10, "width": 20},
@@ -15,7 +15,7 @@ bounding_box = {
 }
 
 point = {
-    "$id": "https://darwin.v7labs.com/schemas/point",
+    "$id": "https://darwin.v7labs.com/schemas/labelbox/point",
     "description": "Schema of a Point",
     "title": "Point",
     "default": {"x": 1.2, "y": 2.5},
@@ -26,7 +26,7 @@ point = {
 }
 
 polygon = {
-    "$id": "https://darwin.v7labs.com/schemas/polygon",
+    "$id": "https://darwin.v7labs.com/schemas/labelbox/polygon",
     "description": "Schema of a Polygon",
     "title": "Polygon",
     "default": [{"x": 1.2, "y": 2.5}, {"x": 2.5, "y": 3.6}, {"x": 1.2, "y": 2.5}],
@@ -36,7 +36,7 @@ polygon = {
 }
 
 polyline = {
-    "$id": "https://darwin.v7labs.com/schemas/polyline",
+    "$id": "https://darwin.v7labs.com/schemas/labelbox/polyline",
     "description": "Schema of a Polyline",
     "title": "Polyline",
     "default": [{"x": 1.2, "y": 2.5}, {"x": 2.5, "y": 3.6}, {"x": 1.2, "y": 2.5}],
@@ -46,7 +46,7 @@ polyline = {
 }
 
 label_object = {
-    "$id": "https://darwin.v7labs.com/schemas/label_object",
+    "$id": "https://darwin.v7labs.com/schemas/labelbox/label_object",
     "description": "An object belonging to the objects array from a Label",
     "title": "Label Object",
     "default": {"title": "Banana", "point": {"x": 3665.814, "y": 351.628}},
@@ -67,7 +67,7 @@ label_object = {
 }
 
 classification_answer_obj = {
-    "$id": "https://darwin.v7labs.com/schemas/classification_answer_obj",
+    "$id": "https://darwin.v7labs.com/schemas/labelbox/classification_answer_obj",
     "description": "Schema of a Classification Answer Object",
     "title": "Answer",
     "default": {"value": "an_answer"},
@@ -78,7 +78,7 @@ classification_answer_obj = {
 }
 
 classification_answer_free_text = {
-    "$id": "https://darwin.v7labs.com/schemas/classification_answer_free_text",
+    "$id": "https://darwin.v7labs.com/schemas/labelbox/classification_answer_free_text",
     "description": "Schema of a Classification Free Text Answer",
     "title": "Free Text Answer",
     "default": "A free text answer",
@@ -87,7 +87,7 @@ classification_answer_free_text = {
 }
 
 label_classification = {
-    "$id": "https://darwin.v7labs.com/schemas/label_classification",
+    "$id": "https://darwin.v7labs.com/schemas/labelbox/label_classification",
     "description": "A classification belonging to the classifications array from a Label",
     "title": "Label Classification",
     "default": {"value": "a_question", "answer": {"value": "an_answer"}},
@@ -108,7 +108,7 @@ label_classification = {
 }
 
 labelbox_file = {
-    "$id": "https://darwin.v7labs.com/schemas/label_file",
+    "$id": "https://darwin.v7labs.com/schemas/labelbox/label_file",
     "description": "A Labelbox file, equivalent to a Darwin AnnotationFile",
     "title": "Labelbox File",
     "default": {
@@ -137,7 +137,7 @@ labelbox_file = {
 }
 
 labelbox_export = {
-    "$id": "https://darwin.v7labs.com/schemas/export",
+    "$id": "https://darwin.v7labs.com/schemas/labelbox/export",
     "description": "A Labelbox export",
     "title": "Export",
     "default": [
