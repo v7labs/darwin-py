@@ -81,14 +81,14 @@ def parse_path(path: Path) -> Optional[AnnotationFile]:
         classes = json.load(classes_file)
         validate(classes, schema=classes_export)
 
-        with path.open() as annotation_file:
-            data = json.load(annotation_file)
-            validate(data, schema=superannotate_export)
+    with path.open() as annotation_file:
+        data = json.load(annotation_file)
+        validate(data, schema=superannotate_export)
 
-            instances: List[Dict[str, Any]] = data.get("instances")
-            metadata: Dict[str, Any] = data.get("metadata")
+        instances: List[Dict[str, Any]] = data.get("instances")
+        metadata: Dict[str, Any] = data.get("metadata")
 
-            return _convert(instances, path, classes, metadata)
+        return _convert(instances, path, classes, metadata)
 
 
 def _convert(
