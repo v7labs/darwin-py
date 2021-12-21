@@ -6,6 +6,7 @@ from darwin.datatypes import (
     Annotation,
     AnnotationClass,
     AnnotationFile,
+    CuboidData,
     EllipseData,
     Point,
     SubAnnotation,
@@ -187,7 +188,7 @@ def describe_parse_path():
         with pytest.raises(ValidationError) as error:
             parse_path(annotations_file_path)
 
-        assert "'x' is a required property" in str(error.value)
+        assert "'point' is not one of ['ellipse']" in str(error.value)
 
     def it_imports_point_vectors(annotations_file_path: Path, classes_file_path: Path):
 
@@ -254,7 +255,7 @@ def describe_parse_path():
         with pytest.raises(ValidationError) as error:
             parse_path(annotations_file_path)
 
-        assert "'x' is a required property" in str(error.value)
+        assert "'ellipse' is not one of ['cuboid']" in str(error.value)
 
     def it_imports_ellipse_vectors(annotations_file_path: Path, classes_file_path: Path):
 
@@ -301,6 +302,128 @@ def describe_parse_path():
 
         annotation_class = ellipse_annotation.annotation_class
         assert_annotation_class(annotation_class, "Person", "ellipse")
+
+    def it_raises_if_cuboid_has_missing_point(annotations_file_path: Path, classes_file_path: Path):
+        annotations_json: str = """
+          {
+             "instances": [
+                {
+                  "type": "cuboid",
+                  "classId": 1,
+                  "points": {
+                     "f2": {
+                        "x": 3023.31,
+                        "y": 2302.75
+                     },
+                     "r1": {
+                        "x": 1826.19,
+                        "y": 1841.44
+                     },
+                     "r2": {
+                        "x": 2928,
+                        "y": 2222.69
+                     }
+                  }
+               }
+             ],
+             "metadata": {
+                "name": "demo-image-0.jpg"
+             }
+          }
+         """
+        classes_json: str = """[]"""
+        annotations_file_path.write_text(annotations_json)
+        classes_file_path.write_text(classes_json)
+
+        with pytest.raises(ValidationError) as error:
+            parse_path(annotations_file_path)
+
+        assert "'cuboid' is not one of ['ellipse']" in str(error.value)
+
+    def it_imports_cuboid_vectors(annotations_file_path: Path, classes_file_path: Path):
+
+        annotations_json: str = """
+         {
+            "instances": [
+               {
+                  "type": "cuboid",
+                  "classId": 1,
+                  "points": {
+                     "f1": {
+                        "x": 1742.31,
+                        "y": 1727.06
+                     },
+                     "f2": {
+                        "x": 3023.31,
+                        "y": 2302.75
+                     },
+                     "r1": {
+                        "x": 1826.19,
+                        "y": 1841.44
+                     },
+                     "r2": {
+                        "x": 2928,
+                        "y": 2222.69
+                     }
+                  }
+               }
+            ],
+            "metadata": {
+               "name": "demo-image-0.jpg"
+            }
+         }
+      """
+        classes_json: str = """
+       [
+          {"name": "Person", "id": 1}
+       ]
+       """
+
+        annotations_file_path.write_text(annotations_json)
+        classes_file_path.write_text(classes_json)
+
+        annotation_file: Optional[AnnotationFile] = parse_path(annotations_file_path)
+        assert annotation_file is not None
+        assert annotation_file.path == annotations_file_path
+        assert annotation_file.filename == "demo-image-0.jpg"
+        assert annotation_file.annotation_classes
+        assert annotation_file.remote_path == "/"
+
+        assert annotation_file.annotations
+
+        cuboid_annotation: Annotation = cast(Annotation, annotation_file.annotations.pop())
+        assert_cuboid(
+            cuboid_annotation,
+            {
+                "back": {"h": 381.25, "w": 1101.81, "x": 1826.19, "y": 1841.44},
+                "front": {"h": 575.69, "w": 1281.0, "x": 1742.31, "y": 1727.06},
+            },
+        )
+
+        annotation_class = cuboid_annotation.annotation_class
+        assert_annotation_class(annotation_class, "Person", "cuboid")
+
+
+def assert_cuboid(annotation: Annotation, cuboid: CuboidData) -> None:
+    cuboid_back: Dict[str, float] = cast(Dict[str, float], cuboid.get("back"))
+    cuboid_front: Dict[str, float] = cast(Dict[str, float], cuboid.get("front"))
+
+    data = annotation.data
+    assert data
+
+    back = data.get("back")
+    assert back
+    assert back.get("x") == cuboid_back.get("x")
+    assert back.get("y") == cuboid_back.get("y")
+    assert back.get("h") == cuboid_back.get("h")
+    assert back.get("w") == cuboid_back.get("w")
+
+    front = data.get("front")
+    assert front
+    assert front.get("x") == cuboid_front.get("x")
+    assert front.get("y") == cuboid_front.get("y")
+    assert front.get("h") == cuboid_front.get("h")
+    assert front.get("w") == cuboid_front.get("w")
 
 
 def assert_bbox(annotation: Annotation, x: float, y: float, h: float, w: float) -> None:
