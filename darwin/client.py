@@ -303,19 +303,19 @@ class Client:
         )
         return response
 
-    def import_annotation_class(self, item_id: int, payload: Dict[str, Any]) -> None:
+    def import_annotation(self, item_id: int, payload: Dict[str, Any]) -> None:
         """
-        Imports the annotation class for the item with the given id.
+        Imports the annotation for the item with the given id.
         
         Parameters
         ----------
         item_id: int
             Identifier of the Image or Video that we are import the annotation to.
         payload: Dict[str, Any]
-            A dictionary with the annotations to import. The default format is: 
+            A dictionary with the annotation to import. The default format is: 
             `{"annotations": serialized_annotations, "overwrite": "false"}`
         """
-        self._post(f"/dataset_items/{item_id}/import", payload=payload)
+        self._post_raw(f"/dataset_items/{item_id}/import", payload=payload)
 
     def fetch_remote_attributes(self, dataset_id: int) -> List[Dict[str, Any]]:
         """
@@ -908,16 +908,16 @@ class Client:
     def _put(
         self, endpoint: str, payload: Dict[str, Any], team_slug: Optional[str] = None, retry: bool = False
     ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
-        response = self._put_raw(endpoint, payload, team_slug, retry)
+        response: Response = self._put_raw(endpoint, payload, team_slug, retry)
         return self._decode_response(response)
 
-    def _post(
+    def _post_raw(
         self,
         endpoint: str,
         payload: Optional[Dict[Any, Any]] = None,
         team_slug: Optional[str] = None,
         retry: bool = False,
-    ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+    ) -> Response:
         if payload is None:
             payload = {}
 
@@ -936,10 +936,20 @@ class Client:
 
         if not response.ok and retry:
             time.sleep(10)
-            return self._post(endpoint, payload=payload, retry=False)
+            return self._post_raw(endpoint, payload=payload, retry=False)
 
         response.raise_for_status()
 
+        return response
+
+    def _post(
+        self,
+        endpoint: str,
+        payload: Optional[Dict[Any, Any]] = None,
+        team_slug: Optional[str] = None,
+        retry: bool = False,
+    ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+        response: Response = self._post_raw(endpoint, payload, team_slug, retry)
         return self._decode_response(response)
 
     def _delete(

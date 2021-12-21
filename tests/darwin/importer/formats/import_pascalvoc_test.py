@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import pytest
-from darwin.importer.formats.pascalvoc import parse_path
+from darwin.importer.formats.pascal_voc import parse_path
 
 
 def describe_parse_path():

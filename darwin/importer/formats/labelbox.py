@@ -24,7 +24,7 @@ def parse_path(path: Path) -> Optional[List[AnnotationFile]]:
     """
     Parses the given LabelBox file and maybe returns the corresponding annotations.
     The file must have a structure simillar to the following:
-    
+
     .. code-block:: javascript
         [
             {
@@ -71,13 +71,13 @@ def parse_path(path: Path) -> Optional[List[AnnotationFile]]:
     Returns
     -------
     Optional[List[darwin.datatypes.AnnotationFile]]
-        The AnnotationFiles with the parsed information from the file or None, if the file is not a 
+        The AnnotationFiles with the parsed information from the file or None, if the file is not a
         `json` file.
 
     Raises
     ------
     ValidationError
-        If the given JSON file is malformed or if it has an unknown annotation. 
+        If the given JSON file is malformed or if it has an unknown annotation.
         To see a list of possible annotation formats go to:
         https://docs.labelbox.com/docs/annotation-types-1
 
