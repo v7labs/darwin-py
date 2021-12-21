@@ -255,7 +255,7 @@ def describe_parse_path():
         with pytest.raises(ValidationError) as error:
             parse_path(annotations_file_path)
 
-        assert "'ellipse' is not one of ['cuboid']" in str(error.value)
+        assert "'ellipse' is not one of ['point']" in str(error.value)
 
     def it_imports_ellipse_vectors(annotations_file_path: Path, classes_file_path: Path):
 
@@ -338,7 +338,7 @@ def describe_parse_path():
         with pytest.raises(ValidationError) as error:
             parse_path(annotations_file_path)
 
-        assert "'cuboid' is not one of ['ellipse']" in str(error.value)
+        assert "'cuboid' is not one of ['point']" in str(error.value)
 
     def it_imports_cuboid_vectors(annotations_file_path: Path, classes_file_path: Path):
 
@@ -402,6 +402,51 @@ def describe_parse_path():
 
         annotation_class = cuboid_annotation.annotation_class
         assert_annotation_class(annotation_class, "Person", "cuboid")
+
+    def it_imports_bbox_vectors(annotations_file_path: Path, classes_file_path: Path):
+
+        annotations_json: str = """
+         {
+            "instances": [
+               {
+                  "type": "bbox",
+                  "classId": 1,
+                  "points": {
+                     "x1": 1642.9,
+                     "x2": 1920,
+                     "y1": 516.5,
+                     "y2": 734
+                  }
+               }
+            ],
+            "metadata": {
+               "name": "demo-image-0.jpg"
+            }
+         }
+      """
+        classes_json: str = """
+       [
+          {"name": "Person", "id": 1}
+       ]
+       """
+
+        annotations_file_path.write_text(annotations_json)
+        classes_file_path.write_text(classes_json)
+
+        annotation_file: Optional[AnnotationFile] = parse_path(annotations_file_path)
+        assert annotation_file is not None
+        assert annotation_file.path == annotations_file_path
+        assert annotation_file.filename == "demo-image-0.jpg"
+        assert annotation_file.annotation_classes
+        assert annotation_file.remote_path == "/"
+
+        assert annotation_file.annotations
+
+        bbox_annotation: Annotation = cast(Annotation, annotation_file.annotations.pop())
+        assert_bbox(bbox_annotation, 1642.9, 516.5, 217.5, 277.1)
+
+        annotation_class = bbox_annotation.annotation_class
+        assert_annotation_class(annotation_class, "Person", "bounding_box")
 
 
 def assert_cuboid(annotation: Annotation, cuboid: CuboidData) -> None:

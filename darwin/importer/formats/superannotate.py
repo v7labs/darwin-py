@@ -11,6 +11,7 @@ from darwin.datatypes import (
     AnnotationFile,
     CuboidData,
     Point,
+    make_bounding_box,
     make_cuboid,
     make_ellipse,
     make_keypoint,
@@ -135,6 +136,9 @@ def _convert_objects(obj: Dict[str, Any], superannotate_classes: List[Dict[str, 
     if type == "cuboid":
         return _to_cuboid_annotation(obj, superannotate_classes)
 
+    if type == "bbox":
+        return _to_bbox_annotation(obj, superannotate_classes)
+
     raise ValueError(f"Unknown label object {obj}")
 
 
@@ -145,6 +149,18 @@ def _to_keypoint_annotation(point: Dict[str, Any], classes: List[Dict[str, Any]]
 
     name = _find_class_name(class_id, classes)
     return make_keypoint(name, x, y)
+
+
+def _to_bbox_annotation(bbox: Dict[str, Any], classes: List[Dict[str, Any]]) -> Annotation:
+    points: Dict[str, float] = cast(Dict[str, float], bbox.get("points"))
+    x: float = cast(float, points.get("x1"))
+    y: float = cast(float, points.get("y1"))
+    w: float = abs(cast(float, points.get("x2")) - cast(float, points.get("x1")))
+    h: float = abs(cast(float, points.get("y1")) - cast(float, points.get("y2")))
+    class_id: int = cast(int, bbox.get("classId"))
+
+    name = _find_class_name(class_id, classes)
+    return make_bounding_box(name, x, y, w, h)
 
 
 def _to_ellipse_annotation(ellipse: Dict[str, Any], classes: List[Dict[str, Any]]) -> Annotation:

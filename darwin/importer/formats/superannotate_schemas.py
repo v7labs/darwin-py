@@ -1,3 +1,27 @@
+bbox = {
+    "$id": "https://darwin.v7labs.com/schemas/supperannotate/bounding_box",
+    "description": "Schema of a Bounding Box",
+    "title": "Bounding Box",
+    "default": {"type": "bbox", "points": {"x1": 1223.1, "x2": 1420.2, "y1": 607.3, "y2": 1440,}, "classId": 1,},
+    "examples": [{"type": "bbox", "points": {"x1": 587.5, "x2": 1420.2, "y1": 607.3, "y2": 1440,}, "classId": 1,}],
+    "type": "object",
+    "properties": {
+        "classId": {"type": "integer"},
+        "type": {"enum": ["bbox"]},
+        "points": {
+            "type": "object",
+            "properties": {
+                "x1": {"type": "number",},
+                "x2": {"type": "number",},
+                "y1": {"type": "number",},
+                "y2": {"type": "number",},
+            },
+            "required": ["x1", "x2", "y1", "y2"],
+        },
+    },
+    "required": ["points", "type", "classId"],
+}
+
 cuboid = {
     "$id": "https://darwin.v7labs.com/schemas/supperannotate/cuboid",
     "description": "Schema of a Cuboid",
@@ -90,7 +114,7 @@ point = {
         "classId": {"type": "integer"},
         "x": {"type": "number"},
         "y": {"type": "number"},
-        "ẗype": {"enum": ["point"]},
+        "type": {"enum": ["point"]},
     },
     "required": ["x", "y", "type", "classId"],
 }
@@ -99,7 +123,7 @@ point = {
 superannotate_export = {
     "type": "object",
     "properties": {
-        "instances": {"type": "array", "items": {"oneOf": [point, ellipse, cuboid]},},
+        "instances": {"type": "array", "items": {"oneOf": [point, ellipse, cuboid, bbox]},},
         "metadata": {"type": "object", "required": ["name"], "properties": {"name": {"type": "string"}}},
     },
     "required": ["instances", "metadata"],
