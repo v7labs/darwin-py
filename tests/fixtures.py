@@ -19,7 +19,6 @@ def darwin_config_path(darwin_path: Path) -> Path:
 
 @pytest.fixture
 def darwin_datasets_path(darwin_path: Path) -> Path:
-
     return darwin_path / "datasets"
 
 
@@ -44,16 +43,15 @@ def release_name() -> str:
 
 
 @pytest.fixture
-def test_datasets_dir(darwin_path: Path):
-    test_datasets_dir = darwin_path / "test" / "datasets"
-    with ZipFile("./tests/data.zip", "r") as zipObj:
-        zipObj.extractall(path=test_datasets_dir)
-
-    return test_datasets_dir
-
-@pytest.fixture
 def team_dataset_path(darwin_datasets_path: Path, team_slug: str, dataset_name: str) -> Path:
     return darwin_datasets_path / team_slug / dataset_name
+
+
+@pytest.fixture
+def team_extracted_dataset_path(darwin_datasets_path: Path):
+    with ZipFile("./tests/data.zip", "r") as zipObj:
+        zipObj.extractall(path=darwin_datasets_path)
+    return darwin_datasets_path
 
 
 @pytest.fixture
@@ -90,7 +88,7 @@ def file_read_write_test(darwin_path: Path, annotations_path: Path, split_path: 
 
 
 @pytest.fixture
-def local_config_file(team_slug: str):
+def local_config_file(team_slug: str, darwin_datasets_path: Path):
     darwin_path = Path.home() / ".darwin"
     backup_darwin_path = Path.home() / ".darwin_backup"
     config_path = darwin_path / "config.yaml"
@@ -104,6 +102,7 @@ def local_config_file(team_slug: str):
     config.put(["global", "api_endpoint"], "http://localhost/api")
     config.put(["global", "base_url"], "http://localhost")
     config.put(["teams", team_slug, "api_key"], "mock_api_key")
+    config.put(["teams", team_slug, "datasets_dir"], str(darwin_datasets_path))
 
     # Useful if the test needs to reuse attrs
     yield config

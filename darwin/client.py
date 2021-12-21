@@ -150,7 +150,7 @@ class Client:
                 client=self,
             )
         if not matching_datasets:
-            raise NotFound(parsed_dataset_identifier)
+            raise NotFound(str(parsed_dataset_identifier))
         return matching_datasets[0]
 
     def create_dataset(self, name: str, team_slug: Optional[str] = None) -> RemoteDataset:
@@ -206,7 +206,7 @@ class Client:
         cursor: Dict[str, Any]
             Number of items per page and page number. Defaults to {"page[size]": 500, "page[from]": 0}.
         payload: Dict[str, Any]
-            Filter and sort parameters. 
+            Filter and sort parameters.
         team_slug: str
             The team slug of the dataset.
 
@@ -223,17 +223,17 @@ class Client:
     def fetch_remote_classes(self, team_slug: Optional[str] = None) -> List[Dict[str, Any]]:
         """
         Fetches all remote classes on the remote dataset.
-        
+
         Parameters
         ----------
         team_slug: Optional[str]
             The team slug of the dataset. Defaults to None.
-        
+
         Returns
         -------
         Dict[str, Any]
             None if no information about the team is found, a List of Annotation classes otherwise.
-        
+
         Raises
         ------
         ValueError
@@ -254,13 +254,13 @@ class Client:
     def update_annotation_class(self, class_id: int, payload: Dict[str, Any]) -> Dict[str, Any]:
         """
         Updates the AnnotationClass with the given id.
-        
+
         Parameters
         ----------
         class_id: int
             The id of the AnnotationClass to update.
         payload: Dict[str, Any]
-            A dictionary with the changes to perform. 
+            A dictionary with the changes to perform.
 
         Returns
         -------
@@ -273,13 +273,13 @@ class Client:
     def create_annotation_class(self, dataset_id: int, type_ids: List[int], name: str) -> Dict[str, Any]:
         """
         Creates an AnnotationClass.
-        
+
         Parameters
         ----------
         dataset_id: int
-            The id of the dataset this AnnotationClass will belong to originaly. 
+            The id of the dataset this AnnotationClass will belong to originaly.
         type_ids: List[int]
-            A list of type ids for the annotations this class will hold. 
+            A list of type ids for the annotations this class will hold.
         name: str
             The name of the annotation class.
 
@@ -320,17 +320,17 @@ class Client:
     def fetch_remote_attributes(self, dataset_id: int) -> List[Dict[str, Any]]:
         """
         Fetches all attributes remotly.
-        
+
         Parameters
         ----------
         dataset_id: int
             The id of the dataset with the attributes we want to fetch.
-       
+
 
         Returns
         -------
         List[Dict[str, Any]]
-            A List with the attributes. where each attribute is a dictionary. 
+            A List with the attributes. where each attribute is a dictionary.
         """
         response: List[Dict[str, Any]] = cast(List[Dict[str, Any]], self._get(f"/datasets/{dataset_id}/attributes"))
         return response
@@ -338,7 +338,7 @@ class Client:
     def load_feature_flags(self, team_slug: Optional[str] = None) -> None:
         """
         Loads in memory the set of current features enabled for a team.
-        
+
         Parameters
         ----------
         team_slug: Optional[str]
@@ -420,7 +420,7 @@ class Client:
         Returns
         -------
         str
-            Path of the datasets for the selected team or the default one, or None if the Team was 
+            Path of the datasets for the selected team or the default one, or None if the Team was
             not found.
 
         Raises
@@ -483,7 +483,7 @@ class Client:
         ------
         Dict[str, Any]
             A dictionary with the signed response, or None if the Team was not found.
-        
+
         Raises
         ------
         ValueError
@@ -512,7 +512,7 @@ class Client:
         dataset_slug: str
             The slug of the dataset.
         payload: Dict[str, Any]
-            The data we want to upload. Usually a Dictionary with an `items` key containing a list 
+            The data we want to upload. Usually a Dictionary with an `items` key containing a list
             of items to upload.
         team_slug: Optional[str]
             Team slug of the team the dataset will belong to. Defaults to None.
@@ -563,7 +563,7 @@ class Client:
         Parameters
         ----------
         dataset_id: int
-            The id of the dataset. 
+            The id of the dataset.
         team_slug: Optional[str]
             Team slug of the team the dataset will belong to. Defaults to None.
 
@@ -596,7 +596,7 @@ class Client:
         Parameters
         ----------
         dataset_id: int
-            The id of the dataset. 
+            The id of the dataset.
         payload: Dict[str, Any]
             The export infomation as a Dictionary.
         team_slug: Optional[str]
@@ -819,7 +819,7 @@ class Client:
     def default_api_url() -> str:
         """
         Returns the default api url.
-        
+
         Returns
         -------
         str
@@ -831,7 +831,7 @@ class Client:
     def default_base_url() -> str:
         """
         Returns the default base url.
-        
+
         Returns
         -------
         str

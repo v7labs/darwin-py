@@ -88,7 +88,7 @@ def detectron2_register_dataset(
 
         client = _load_client(offline=True)
         dataset_path = None
-        for path in client.list_local_datasets(team=identifier.team_slug):
+        for path in client.list_local_datasets(team_slug=identifier.team_slug):
             if identifier.dataset_slug == path.name:
                 dataset_path = path
 

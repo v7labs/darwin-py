@@ -282,7 +282,7 @@ def build_stems(
     #     - annotations/2
     #     - annotations/test/2/3
     if partition is None:
-        return (str(e.relative_to(annotations_dir).parent / e.stem) for e in annotations_dir.glob("**/*.json"))
+        return (str(e.relative_to(annotations_dir).parent / e.stem) for e in sorted(annotations_dir.glob("**/*.json")))
 
     if split_type == "random":
         split_filename = f"{split_type}_{partition}.txt"
