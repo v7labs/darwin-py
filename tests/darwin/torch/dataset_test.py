@@ -132,7 +132,7 @@ def describe_get_dataset():
         assert label["image_id"] == [0]
         assert label["iscrowd"] == [0]
         assert label["height"] == 50
-        assert label["image_path"] == f"{dataset.dataset_path}/images/0.png"
+        assert label["image_path"] == str(dataset.dataset_path / "images" / "0.png")
         assert label["width"] == 50
 
 
