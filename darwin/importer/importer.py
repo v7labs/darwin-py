@@ -328,6 +328,6 @@ def _import_annotations(
         payload["overwrite"] = "false"
 
     try:
-        client.import_annotation_class(id, payload=payload)
+        client.import_annotation(id, payload=payload)
     except:
         print(f"warning, failed to upload annotation to item {id}. Annotations: {payload}")

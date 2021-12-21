@@ -729,4 +729,3 @@ def assert_subannotations(actual_subs: List[SubAnnotation], expected_subs: List[
         for expected_sub in expected_subs:
             assert actual_sub.annotation_type == expected_sub.annotation_type
             assert actual_sub.data == expected_sub.data
-
