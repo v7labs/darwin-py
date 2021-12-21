@@ -9,7 +9,7 @@ BoundingBox = Dict[str, float]
 Polygon = List[Point]
 ComplexPolygon = List[Polygon]
 Node = Dict[str, Any]
-EllipseData = Dict[str, Any]
+EllipseData = Dict[str, Union[float, Point]]
 CuboidData = Dict[str, Any]
 KeyFrame = Dict[str, Any]
 Segment = List[int]
@@ -362,6 +362,45 @@ def make_skeleton(class_name: str, nodes: List[Node], subs: Optional[List[SubAnn
 
 
 def make_ellipse(class_name: str, parameters: EllipseData, subs: Optional[List[SubAnnotation]] = None) -> Annotation:
+    """
+    Creates and returns an Ellipse annotation.
+    Data needed to build an Ellipse annotation via ``make_ellipse``.
+
+    Parameters
+    ----------
+    class_name: str
+        The name of the class for this ``Annotation``.
+    parameters: EllipseData
+        The data needed to build an Ellipse. This data must be a dictionary with a format simillar 
+        to:
+
+        .. code-block:: javascript
+            {
+                "angle": 0.57,
+                "center": {
+                    "x": 2745.69,
+                    "y": 2307.46
+                },
+                "radius": {
+                    "x": 467.02,
+                    "y": 410.82
+                }
+            }
+
+        Where:
+        
+        - ``angle: float`` is the orientation angle of the ellipse.
+        - ``center: Point`` is the center point of the ellipse.
+        - ``radius: Point`` is the width and height of the elipse, where ``x`` represents the width 
+        and ``y`` represents height.
+    subs: Optional[List[SubAnnotation]], default: None
+        List of ``SubAnnotation``s for this ``Annotation``. Defaults to ``None``.
+
+    Returns
+    -------
+    Annotation
+        An ellipse ``Annotation``. 
+    """
     return Annotation(AnnotationClass(class_name, "ellipse"), parameters, subs or [])
 
 

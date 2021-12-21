@@ -1,11 +1,18 @@
 import json
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Optional, Set, cast
+from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Union, cast
 
 from jsonschema import validate
 
-from darwin.datatypes import Annotation, AnnotationClass, AnnotationFile, make_keypoint
+from darwin.datatypes import (
+    Annotation,
+    AnnotationClass,
+    AnnotationFile,
+    Point,
+    make_ellipse,
+    make_keypoint,
+)
 from darwin.importer.formats.superannotate_schemas import (
     classes_export,
     superannotate_export,
@@ -38,6 +45,7 @@ def parse_path(path: Path) -> Optional[AnnotationFile]:
     Currently we support the following annotations:
 
         - point ``Vector``: https://doc.superannotate.com/docs/vector-json#point
+        - ellipse ``Vector``: https://doc.superannotate.com/docs/vector-json#ellipse
     
 
     Each file must also have in the same folder a ``classes.json`` file with information about 
@@ -118,6 +126,9 @@ def _convert_objects(obj: Dict[str, Any], superannotate_classes: List[Dict[str, 
     if type == "point":
         return _to_keypoint_annotation(obj, superannotate_classes)
 
+    if type == "ellipse":
+        return _to_ellipse_annotation(obj, superannotate_classes)
+
     raise ValueError(f"Unknown label object {obj}")
 
 
@@ -128,6 +139,17 @@ def _to_keypoint_annotation(point: Dict[str, Any], classes: List[Dict[str, Any]]
 
     name = _find_class_name(class_id, classes)
     return make_keypoint(name, x, y)
+
+
+def _to_ellipse_annotation(ellipse: Dict[str, Any], classes: List[Dict[str, Any]]) -> Annotation:
+    angle: float = cast(float, ellipse.get("angle"))
+    center: Point = {"x": cast(float, ellipse.get("cx")), "y": cast(float, ellipse.get("cy"))}
+    radius: Point = {"x": cast(float, ellipse.get("rx")), "y": cast(float, ellipse.get("ry"))}
+    ellipse_data: Dict[str, Union[float, Point]] = {"angle": angle, "center": center, "radius": radius}
+    class_id: int = cast(int, ellipse.get("classId"))
+
+    name = _find_class_name(class_id, classes)
+    return make_ellipse(name, ellipse_data)
 
 
 def _find_class_name(class_id: int, classes: List[Dict[str, Any]]) -> str:
