@@ -53,7 +53,7 @@ def get_dataset(
     dataset_function = dataset_functions.get(dataset_type)
     if not dataset_function:
         list_of_types = ", ".join(dataset_functions.keys())
-        _error(f"dataset_type needs to be one of '{list_of_types}'")
+        return _error(f"dataset_type needs to be one of '{list_of_types}'")
 
     identifier = DatasetIdentifier.parse(dataset_slug)
     client = _load_client(offline=True)

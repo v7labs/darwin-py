@@ -160,3 +160,4 @@ cython_debug/
 # conda environment
 environment.yml
 
+.DS_Store

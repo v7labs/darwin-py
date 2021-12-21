@@ -16,8 +16,10 @@ def test_requires_scikit_learn():
 
 def describe_classification_dataset():
     @pytest.mark.parametrize("val_percentage,test_percentage", [(0.2, 0.3), (0.3, 0.2), (0.2, 0)])
-    def it_should_split_a_dataset(test_datasets_dir: Path, val_percentage: float, test_percentage: float):
-        root = test_datasets_dir / "data" / "sl"
+    def it_should_split_a_dataset(
+        team_slug: str, team_extracted_dataset_path: Path, val_percentage: float, test_percentage: float
+    ):
+        root = team_extracted_dataset_path / team_slug / "sl"
 
         train_percentage: float = 1 - val_percentage - test_percentage
 
