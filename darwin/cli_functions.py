@@ -3,6 +3,7 @@ import concurrent.futures
 import datetime
 import os
 import sys
+from importlib import import_module
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, NoReturn, Optional, Union
 
@@ -32,14 +33,7 @@ from darwin.dataset.release import Release
 from darwin.dataset.split_manager import split_dataset
 from darwin.dataset.upload_manager import LocalFile
 from darwin.dataset.utils import get_release_path
-from darwin.datatypes import (
-    ExporterFormat,
-    ExportParser,
-    ImporterFormat,
-    ImportParser,
-    PathLike,
-    Team,
-)
+from darwin.datatypes import ExportParser, ImportParser, PathLike, Team
 from darwin.exceptions import (
     InvalidLogin,
     MissingConfig,
@@ -50,8 +44,8 @@ from darwin.exceptions import (
     UnsupportedFileType,
     ValidationError,
 )
-from darwin.exporter.formats import supported_formats as ExportSupportedFormats
-from darwin.importer.formats import supported_formats as ImportSupportedFormats
+from darwin.exporter.formats import supported_formats as export_formats
+from darwin.importer.formats import supported_formats as import_formats
 from darwin.item import DatasetItem
 from darwin.utils import (
     find_files,
@@ -63,7 +57,7 @@ from darwin.utils import (
 
 def validate_api_key(api_key: str) -> None:
     """
-    Validates the given API key. Exits the application if it fails validation. 
+    Validates the given API key. Exits the application if it fails validation.
 
     Parameters
     ----------
@@ -156,9 +150,9 @@ def set_team(team_slug: str) -> None:
 
 def create_dataset(dataset_slug: str) -> None:
     """
-    Creates a dataset remotely. Exits the application if the dataset's name is already taken or is 
+    Creates a dataset remotely. Exits the application if the dataset's name is already taken or is
     not valid.
-    
+
     Parameters
     ----------
     dataset_slug : str
@@ -181,7 +175,7 @@ def create_dataset(dataset_slug: str) -> None:
 def local(team: Optional[str] = None) -> None:
     """
     Lists synced datasets, stored in the specified path.
-    
+
     Parameters
     ----------
     team: Optional[str]
@@ -289,7 +283,7 @@ def export_dataset(
     name: str
         Name of the release.
     annotation_class_ids: Optional[List[str]]
-        List of the classes to filter. Defautls to None. 
+        List of the classes to filter. Defautls to None.
     """
     client: Client = _load_client(offline=False)
     identifier: DatasetIdentifier = DatasetIdentifier.parse(dataset_slug)
@@ -305,7 +299,7 @@ def pull_dataset(
 ) -> None:
     """
     Downloads a remote dataset (images and annotations) in the datasets directory.
-    Exits the application if dataset is not found, the user is not authenticated, there are no 
+    Exits the application if dataset is not found, the user is not authenticated, there are no
     releases or the export format for the latest release is not supported.
 
     Parameters
@@ -396,13 +390,13 @@ def split(dataset_slug: str, val_percentage: float, test_percentage: float, seed
 def list_remote_datasets(all_teams: bool, team: Optional[str] = None) -> None:
     """
     Lists remote datasets with its annotation progress.
-    
+
     Parameters
     ----------
     all_teams: bool
-        If True, lists remote datasets from all teams, if False, lists only datasets from the given 
+        If True, lists remote datasets from all teams, if False, lists only datasets from the given
         Team.
-    team: Optional[str] 
+    team: Optional[str]
         Name of the team with the datasets we want to see. Uses the default Team is non is given.
         Defaults to None.
     """
@@ -438,7 +432,7 @@ def remove_remote_dataset(dataset_slug: str) -> None:
     """
     Remove a remote dataset from the workview. The dataset gets archived.
     Exits the application if no dataset with the given slug were found.
-    
+
     Parameters
     ----------
     dataset_slug: str
@@ -462,7 +456,7 @@ def dataset_list_releases(dataset_slug: str) -> None:
     """
     Lists all the releases from the given dataset.
     Exits the application if no dataset with the given slug were found.
-    
+
     Parameters
     ----------
     dataset_slug: str
@@ -507,7 +501,7 @@ def upload_data(
 ) -> None:
     """
     Uploads the provided files to the remote dataset.
-    Exits the application if no dataset with the given name is found, the files in the given path 
+    Exits the application if no dataset with the given name is found, the files in the given path
     have unsupported formats, or if there are no files found in the given Path.
 
     Parameters
@@ -667,7 +661,7 @@ def upload_data(
 
 def dataset_import(dataset_slug: str, format: str, files: List[PathLike], append: bool) -> None:
     """
-    Imports annotation files to the given dataset. 
+    Imports annotation files to the given dataset.
     Exits the application if no dataset with the given slug is found.
 
     Parameters
@@ -677,13 +671,18 @@ def dataset_import(dataset_slug: str, format: str, files: List[PathLike], append
     format: str
         Format of the export files.
     files: List[PathLike]
-        List of where the files are. 
+        List of where the files are.
     append: bool
-        If True it appends the annotation from the files to the dataset, if False it will override 
+        If True it appends the annotation from the files to the dataset, if False it will override
         the dataset's current annotations with the ones from the given files.
     """
+
     client: Client = _load_client(dataset_identifier=dataset_slug)
-    parser: ImportParser = find_import_supported_format(format, ImportSupportedFormats)
+    importer_module = import_module(f"darwin.importer.formats.{format}")
+    try:
+        parser: ImportParser = getattr(importer_module, "parse_path")
+    except AttributeError:
+        _error(f"Unsupported import format: {format}, currently supported: {import_formats}")
 
     try:
         dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
@@ -700,8 +699,8 @@ def list_files(
     sort_by: Optional[str] = "updated_at:desc",
 ) -> None:
     """
-    List all file from the given dataset. 
-    Exits the application if it finds unknown file statuses, if no dataset with the given slug is 
+    List all file from the given dataset.
+    Exits the application if it finds unknown file statuses, if no dataset with the given slug is
     found or if another general error occurred.
 
     Parameters
@@ -709,10 +708,10 @@ def list_files(
     dataset_slug: str
         The dataset's slug.
     statuses: Optional[str]
-        Only list files with the given statuses. Valid statuses are: 'annotate', 'archived', 
+        Only list files with the given statuses. Valid statuses are: 'annotate', 'archived',
         'complete', 'new', 'review'.
     path: Optional[str]
-        Only list files whose Path matches. 
+        Only list files whose Path matches.
     only_filenames: bool
         If True, only prints the filenames, if False it prints the full file url.
     sort_by: Optional[str]
@@ -751,8 +750,8 @@ def list_files(
 
 def set_file_status(dataset_slug: str, status: str, files: List[str]) -> None:
     """
-    Sets the status of the given files from the given dataset. 
-    Exits the application if the given status is unknown or if no dataset was found. 
+    Sets the status of the given files from the given dataset.
+    Exits the application if the given status is unknown or if no dataset was found.
 
     Parameters
     ----------
@@ -815,56 +814,10 @@ def delete_files(dataset_slug: str, files: List[str], skip_user_confirmation: bo
         _error(f"An error has occurred, please try again later.")
 
 
-def find_import_supported_format(query: str, supported_formats: List[ImporterFormat]) -> ImportParser:
-    """
-    Returns the import parser for the given file format, or exits the application if none is found. 
-
-    Parameters
-    ----------
-    query: str
-        The format we want to import.
-    supported_formats: List[ImporterFormat]
-        List of supported formats.
-
-    Returns
-    -------
-    ImporterFormat
-        The module capable of parsing files from the given format.
-    """
-    for (fmt, fmt_parser) in supported_formats:
-        if fmt == query:
-            return fmt_parser
-    list_of_formats = ", ".join([fmt for fmt, _ in supported_formats])
-    _error(f"Unsupported import format, currently supported: {list_of_formats}")
-
-
-def find_export_supported_format(query: str, supported_formats: List[ExporterFormat]) -> ExportParser:
-    """
-    Returns the export parser for the given file format, or exits the application if none is found. 
-
-    Parameters
-    ----------
-    query: str
-        The format we want to import.
-    supported_formats: List[ExporterFormat]
-        List of supported formats.
-
-    Returns
-    -------
-    ExporterFormat
-        The module capable of parsing files from the given format.
-    """
-    for (fmt, fmt_parser) in supported_formats:
-        if fmt == query:
-            return fmt_parser
-    list_of_formats = ", ".join([fmt for fmt, _ in supported_formats])
-    _error(f"Unsupported export format, currently supported: {list_of_formats}")
-
-
 def dataset_convert(dataset_slug: str, format: str, output_dir: Optional[PathLike] = None) -> None:
     """
     Converts the annotations from the given dataset to the given format.
-    Exits the application if no dataset with the given slug exists or no releases for the dataset 
+    Exits the application if no dataset with the given slug exists or no releases for the dataset
     were previously pulled.
 
     Parameters
@@ -874,11 +827,15 @@ def dataset_convert(dataset_slug: str, format: str, output_dir: Optional[PathLik
     format: str
         The format we want to convert to.
     output_dir: Optional[PathLike]
-        The folder where the exported annotation files will be. If None it will be the inside the 
+        The folder where the exported annotation files will be. If None it will be the inside the
         annotations folder of the dataset under 'other_formats/{format}'. The Defaults to None.
     """
     client: Client = _load_client()
-    parser: ExportParser = find_export_supported_format(format, ExportSupportedFormats)
+    exporter_module = import_module(f"darwin.exporter.formats.{format}")
+    try:
+        parser: ExportParser = getattr(exporter_module, "export")
+    except AttributeError:
+        _error(f"Unsupported import format, currently supported: {export_formats}")
 
     try:
         dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
@@ -902,7 +859,7 @@ def dataset_convert(dataset_slug: str, format: str, output_dir: Optional[PathLik
 
 def convert(format: str, files: List[PathLike], output_dir: Path) -> None:
     """
-    Converts the given files to the specified format. 
+    Converts the given files to the specified format.
 
     Parameters
     ----------
@@ -913,13 +870,18 @@ def convert(format: str, files: List[PathLike], output_dir: Path) -> None:
     output_dir: Path
         Folder where the exported annotations will be placed.
     """
-    parser: ExportParser = find_export_supported_format(format, ExportSupportedFormats)
+    exporter_module = import_module(name=format, package="darwin.exporter.formats")
+    try:
+        parser: ExportParser = getattr(exporter_module, "export")
+    except AttributeError:
+        _error(f"Unsupported import format, currently supported: {export_formats}")
+
     exporter.export_annotations(parser, files, output_dir)
 
 
 def help(parser: argparse.ArgumentParser, subparser: Optional[str] = None) -> None:
     """
-    Prints the help text for the given command. 
+    Prints the help text for the given command.
 
     Parameters
     ----------
@@ -947,7 +909,7 @@ def help(parser: argparse.ArgumentParser, subparser: Optional[str] = None) -> No
 
 def print_new_version_info(client: Optional[Client] = None) -> None:
     """
-    Prints a message informing the user of a new darwin-py version. 
+    Prints a message informing the user of a new darwin-py version.
     Does nothing if no new version is available or if no client is provided.
 
     Parameters
