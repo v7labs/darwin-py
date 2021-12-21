@@ -15,20 +15,23 @@ def get_palette(mode: str, categories: List[str]) -> Dict[str, int]:
     num_categories: int = len(categories)
     if mode == "index":
         if num_categories > 254:
-            raise ValueError("maximum number of classes supported: 254")
+            raise ValueError("maximum number of classes supported: 254.")
         return {c: i for i, c in enumerate(categories)}
 
     if mode == "grey":
         if num_categories > 254:
-            raise ValueError("maximum number of classes supported: 254")
+            raise ValueError("maximum number of classes supported: 254.")
+        elif num_categories == 1:
+            raise ValueError("only having the '__background__' class is not allowed. Please add more classes.")
+
         return {c: int(i * 255 / (num_categories - 1)) for i, c in enumerate(categories)}
 
     if mode == "rgb":
         if num_categories > 360:
-            raise ValueError("maximum number of classes supported: 360")
+            raise ValueError("maximum number of classes supported: 360.")
         return {c: i for i, c in enumerate(categories)}
 
-    raise ValueError(f"Unknown mode {mode}")
+    raise ValueError(f"Unknown mode {mode}.")
 
 
 def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path, mode: str) -> None:
