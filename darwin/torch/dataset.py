@@ -34,7 +34,7 @@ def get_dataset(
     dataset_slug: str
         Slug of the dataset to retrieve
     dataset_type: str
-        The type of dataset [classification, instance-segmentation, semantic-segmentation]
+        The type of dataset [classification, instance-segmentation, object-detection, semantic-segmentation]
     partition: str
         Selects one of the partitions [train, val, test, None]. (Default: None)
     split: str
@@ -58,7 +58,7 @@ def get_dataset(
     identifier = DatasetIdentifier.parse(dataset_slug)
     client = _load_client(offline=True)
 
-    for p in client.list_local_datasets(team=identifier.team_slug):
+    for p in client.list_local_datasets(team_slug=identifier.team_slug):
         if identifier.dataset_slug == p.name:
             return dataset_function(
                 dataset_path=p,
@@ -235,7 +235,9 @@ class InstanceSegmentationDataset(LocalDataset):
             # Extract the sequences of coordinates from the polygon annotation
             annotation_type: str = "polygon" if "polygon" in annotation else "complex_polygon"
             sequences = convert_polygons_to_sequences(
-                annotation[annotation_type]["path"], height=target["height"], width=target["width"],
+                annotation[annotation_type]["path"],
+                height=target["height"],
+                width=target["width"],
             )
             # Compute the bbox of the polygon
             x_coords = [s[0::2] for s in sequences]
@@ -329,7 +331,9 @@ class SemanticSegmentationDataset(LocalDataset):
         annotations = []
         for obj in target["annotations"]:
             sequences = convert_polygons_to_sequences(
-                obj["polygon"]["path"], height=target["height"], width=target["width"],
+                obj["polygon"]["path"],
+                height=target["height"],
+                width=target["width"],
             )
             # Discard polygons with less than three points
             sequences[:] = [s for s in sequences if len(s) >= 6]
