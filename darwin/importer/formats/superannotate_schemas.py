@@ -1,3 +1,63 @@
+cuboid = {
+    "$id": "https://darwin.v7labs.com/schemas/supperannotate/cuboid",
+    "description": "Schema of a Cuboid",
+    "title": "Cuboid",
+    "default": {
+        "type": "cuboid",
+        "points": {
+            "f1": {"x": 1223.1, "y": 587.5},
+            "f2": {"x": 1540.3, "y": 1420.2},
+            "r1": {"x": 1286.2, "y": 607.3},
+            "r2": {"x": 1603.4, "y": 1440},
+        },
+        "classId": 1,
+    },
+    "examples": [
+        {
+            "type": "cuboid",
+            "points": {
+                "f1": {"x": 1223.1, "y": 587.5},
+                "f2": {"x": 1540.3, "y": 1420.2},
+                "r1": {"x": 1286.2, "y": 607.3},
+                "r2": {"x": 1603.4, "y": 1440},
+            },
+            "classId": 1,
+        }
+    ],
+    "type": "object",
+    "properties": {
+        "classId": {"type": "integer"},
+        "type": {"enum": ["cuboid"]},
+        "points": {
+            "type": "object",
+            "properties": {
+                "f1": {
+                    "type": "object",
+                    "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
+                    "required": ["x", "y"],
+                },
+                "f2": {
+                    "type": "object",
+                    "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
+                    "required": ["x", "y"],
+                },
+                "r1": {
+                    "type": "object",
+                    "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
+                    "required": ["x", "y"],
+                },
+                "r2": {
+                    "type": "object",
+                    "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
+                    "required": ["x", "y"],
+                },
+            },
+            "required": ["f1", "f2", "r1", "r2"],
+        },
+    },
+    "required": ["points", "type", "classId"],
+}
+
 ellipse = {
     "$id": "https://darwin.v7labs.com/schemas/supperannotate/ellipse",
     "description": "Schema of an Ellipse",
@@ -14,7 +74,7 @@ ellipse = {
         "rx": {"type": "number"},
         "ry": {"type": "number"},
         "angle": {"type": "number"},
-        "ẗype": {"enum": ["ellipse"]},
+        "type": {"enum": ["ellipse"]},
     },
     "required": ["cx", "cy", "rx", "ry", "angle", "type", "classId"],
 }
@@ -39,7 +99,7 @@ point = {
 superannotate_export = {
     "type": "object",
     "properties": {
-        "instances": {"type": "array", "items": {"oneOf": [point, ellipse]},},
+        "instances": {"type": "array", "items": {"oneOf": [point, ellipse, cuboid]},},
         "metadata": {"type": "object", "required": ["name"], "properties": {"name": {"type": "string"}}},
     },
     "required": ["instances", "metadata"],

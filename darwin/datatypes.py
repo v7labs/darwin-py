@@ -10,7 +10,7 @@ Polygon = List[Point]
 ComplexPolygon = List[Polygon]
 Node = Dict[str, Any]
 EllipseData = Dict[str, Union[float, Point]]
-CuboidData = Dict[str, Any]
+CuboidData = Dict[str, Dict[str, float]]
 KeyFrame = Dict[str, Any]
 Segment = List[int]
 
@@ -364,7 +364,6 @@ def make_skeleton(class_name: str, nodes: List[Node], subs: Optional[List[SubAnn
 def make_ellipse(class_name: str, parameters: EllipseData, subs: Optional[List[SubAnnotation]] = None) -> Annotation:
     """
     Creates and returns an Ellipse annotation.
-    Data needed to build an Ellipse annotation via ``make_ellipse``.
 
     Parameters
     ----------
@@ -405,6 +404,37 @@ def make_ellipse(class_name: str, parameters: EllipseData, subs: Optional[List[S
 
 
 def make_cuboid(class_name: str, cuboid: CuboidData, subs: Optional[List[SubAnnotation]] = None) -> Annotation:
+    """
+    Creates and returns a Cuboid annotation.
+
+    Parameters
+    ----------
+    class_name: str
+        The name of the class for this ``Annotation``.
+    parameters: CuboidData
+        The data needed to build a .Cuboid This data must be a dictionary with a format simillar 
+        to:
+
+        .. code-block:: javascript
+            {
+                "back": {"h": 381.25, "w": 1101.81, "x": 1826.19, "y": 1841.44},
+                "front": {"h": 575.69, "w": 1281.0, "x": 1742.31, "y": 1727.06}
+            }
+
+        Where:
+        
+        - ``back: Dict[str, float]`` is a dictionary containing the ``x`` and ``y`` of the top
+        left corner Point, together with the width ``w`` and height ``h`` to form the back box.
+        - ``front: Dict[str, float]`` is a dictionary containing the ``x`` and ``y`` of the top
+        left corner Point, together with the width ``w`` and height ``h`` to form the front box.
+    subs: Optional[List[SubAnnotation]], default: None
+        List of ``SubAnnotation``s for this ``Annotation``. Defaults to ``None``.
+
+    Returns
+    -------
+    Annotation
+        A cuboid ``Annotation``. 
+    """
     return Annotation(AnnotationClass(class_name, "cuboid"), cuboid, subs or [])
 
 

@@ -9,7 +9,9 @@ from darwin.datatypes import (
     Annotation,
     AnnotationClass,
     AnnotationFile,
+    CuboidData,
     Point,
+    make_cuboid,
     make_ellipse,
     make_keypoint,
 )
@@ -46,6 +48,7 @@ def parse_path(path: Path) -> Optional[AnnotationFile]:
 
         - point ``Vector``: https://doc.superannotate.com/docs/vector-json#point
         - ellipse ``Vector``: https://doc.superannotate.com/docs/vector-json#ellipse
+        - cuboid ``Vector``: https://doc.superannotate.com/docs/vector-json#cuboid
     
 
     Each file must also have in the same folder a ``classes.json`` file with information about 
@@ -129,6 +132,9 @@ def _convert_objects(obj: Dict[str, Any], superannotate_classes: List[Dict[str, 
     if type == "ellipse":
         return _to_ellipse_annotation(obj, superannotate_classes)
 
+    if type == "cuboid":
+        return _to_cuboid_annotation(obj, superannotate_classes)
+
     raise ValueError(f"Unknown label object {obj}")
 
 
@@ -150,6 +156,33 @@ def _to_ellipse_annotation(ellipse: Dict[str, Any], classes: List[Dict[str, Any]
 
     name = _find_class_name(class_id, classes)
     return make_ellipse(name, ellipse_data)
+
+
+def _to_cuboid_annotation(cuboid: Dict[str, Any], classes: List[Dict[str, Any]]) -> Annotation:
+    points: Dict[str, Dict[str, float]] = cast(Dict[str, Dict[str, float]], cuboid.get("points"))
+    back_top_left_point: Dict[str, float] = cast(Dict[str, float], points.get("r1"))
+    back_bottom_right_point: Dict[str, float] = cast(Dict[str, float], points.get("r2"))
+    front_top_left_point: Dict[str, float] = cast(Dict[str, float], points.get("f1"))
+    front_bottom_right_point: Dict[str, float] = cast(Dict[str, float], points.get("f2"))
+
+    cuboid_data: CuboidData = {
+        "back": {
+            "h": abs(cast(float, back_top_left_point.get("y")) - cast(float, back_bottom_right_point.get("y"))),
+            "w": abs(cast(float, back_bottom_right_point.get("x")) - cast(float, back_top_left_point.get("x"))),
+            "x": cast(float, back_top_left_point.get("x")),
+            "y": cast(float, back_top_left_point.get("y")),
+        },
+        "front": {
+            "h": abs(cast(float, front_top_left_point.get("y")) - cast(float, front_bottom_right_point.get("y"))),
+            "w": abs(cast(float, front_bottom_right_point.get("x")) - cast(float, front_top_left_point.get("x"))),
+            "x": cast(float, front_top_left_point.get("x")),
+            "y": cast(float, front_top_left_point.get("y")),
+        },
+    }
+    class_id: int = cast(int, cuboid.get("classId"))
+
+    name = _find_class_name(class_id, classes)
+    return make_cuboid(name, cuboid_data)
 
 
 def _find_class_name(class_id: int, classes: List[Dict[str, Any]]) -> str:
