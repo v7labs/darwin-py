@@ -78,18 +78,18 @@ def describe_object_detection_dataset():
 
 
 def describe_get_dataset():
-    def it_exits_when_dataset_not_supported():
+    def it_exits_when_dataset_not_supported(team_slug: str, local_config_file: Config):
         with patch.object(sys, "exit") as exception:
-            get_dataset("test", "unknown")
+            get_dataset(f"{team_slug}/test", "unknown")
             exception.assert_called_once_with(1)
 
-    def it_exits_when_dataset_does_not_exist_locally():
+    def it_exits_when_dataset_does_not_exist_locally(team_slug: str, local_config_file: Config):
         with patch.object(sys, "exit") as exception:
-            get_dataset("test", "classification")
+            get_dataset(f"{team_slug}/test", "classification")
             exception.assert_called_once_with(1)
 
-    def it_loads_classification_dataset(local_config_file: Config, team_extracted_dataset_path: Path):
-        dataset = get_dataset("sl", "classification")
+    def it_loads_classification_dataset(team_slug: str, local_config_file: Config, team_extracted_dataset_path: Path):
+        dataset = get_dataset(f"{team_slug}/sl", "classification")
         assert isinstance(dataset, ClassificationDataset)
         assert len(dataset) == 20
 
@@ -97,8 +97,8 @@ def describe_get_dataset():
         assert image.size() == (3, 50, 50)
         assert label.item() == 0
 
-    def it_loads_object_detection_dataset(local_config_file: Config, team_extracted_dataset_path: Path):
-        dataset = get_dataset("coco", "object-detection")
+    def it_loads_object_detection_dataset(team_slug: str, local_config_file: Config, team_extracted_dataset_path: Path):
+        dataset = get_dataset(f"{team_slug}/coco", "object-detection")
         assert isinstance(dataset, ObjectDetectionDataset)
         assert len(dataset) == 20
 
@@ -107,15 +107,17 @@ def describe_get_dataset():
 
         label = {k: v.numpy().tolist() for k, v in label.items()}
         assert label == {
-            "boxes": [[37, 8, 30, 13], [43, 14, 10, 7]],
-            "area": [390, 70],
-            "labels": [0, 0],
+            "boxes": [[4, 33, 17, 36]],
+            "area": [612],
+            "labels": [1],
             "image_id": [0],
-            "iscrowd": [0, 0],
+            "iscrowd": [0],
         }
 
-    def it_loads_instance_segmentation_dataset(local_config_file: Config, team_extracted_dataset_path: Path):
-        dataset = get_dataset("coco", "instance-segmentation")
+    def it_loads_instance_segmentation_dataset(
+        team_slug: str, local_config_file: Config, team_extracted_dataset_path: Path
+    ):
+        dataset = get_dataset(f"{team_slug}/coco", "instance-segmentation")
         assert isinstance(dataset, InstanceSegmentationDataset)
         assert len(dataset) == 20
 
@@ -124,13 +126,13 @@ def describe_get_dataset():
 
         label = {k: _maybe_tensor_to_list(v) for k, v in label.items()}
 
-        assert label["boxes"] == [[8.0, 14.0, 50.0, 50.0], [37.0, 24.0, 50.0, 50.0]]
-        assert label["area"] == [0.0, 0.0]
-        assert label["labels"] == [0, 0]
+        assert label["boxes"] == [[4.0, 33.0, 41.0, 50.0]]
+        assert label["area"] == [576.0]
+        assert label["labels"] == [1]
         assert label["image_id"] == [0]
-        assert label["iscrowd"] == [0, 0]
+        assert label["iscrowd"] == [0]
         assert label["height"] == 50
-        assert label["image_path"] == f"{dataset.dataset_path}/images/16.png"
+        assert label["image_path"] == f"{dataset.dataset_path}/images/0.png"
         assert label["width"] == 50
 
 
