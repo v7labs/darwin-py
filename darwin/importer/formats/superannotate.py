@@ -1,5 +1,6 @@
 import json
 from functools import partial
+from itertools import zip_longest
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Union, cast
 
@@ -14,6 +15,7 @@ from darwin.datatypes import (
     make_cuboid,
     make_ellipse,
     make_keypoint,
+    make_polygon,
 )
 from darwin.importer.formats.superannotate_schemas import (
     classes_export,
@@ -135,6 +137,9 @@ def _convert_objects(obj: Dict[str, Any], superannotate_classes: List[Dict[str, 
     if type == "cuboid":
         return _to_cuboid_annotation(obj, superannotate_classes)
 
+    if type == "polygon":
+        return _to_polygon_annotation(obj, superannotate_classes)
+
     raise ValueError(f"Unknown label object {obj}")
 
 
@@ -185,6 +190,15 @@ def _to_cuboid_annotation(cuboid: Dict[str, Any], classes: List[Dict[str, Any]])
     return make_cuboid(name, cuboid_data)
 
 
+def _to_polygon_annotation(polygon: Dict[str, Any], classes: List[Dict[str, Any]]) -> Annotation:
+    data: List[float] = cast(List[float], polygon.get("points"))
+    class_id: int = cast(int, polygon.get("classId"))
+    name: str = _find_class_name(class_id, classes)
+    points: List[Point] = _map_to_list(_tuple_to_point, _group_to_list(data, 2, 0))
+
+    return make_polygon(name, points)
+
+
 def _find_class_name(class_id: int, classes: List[Dict[str, Any]]) -> str:
     obj: Optional[Dict[str, Any]] = next((class_obj for class_obj in classes if class_obj.get("id") == class_id), None)
 
@@ -211,3 +225,11 @@ def _map_to_set(fun: Callable[[Any], Any], iter: Iterable[Any]) -> Set[Any]:
 def _is_annotation(file: Path) -> bool:
     return file.suffix == ".json" and file.name != "classes.json"
 
+
+def _tuple_to_point(tuple) -> Dict[str, float]:
+    return {"x": tuple[0], "y": tuple[1]}
+
+
+def _group_to_list(iterable, n, fillvalue=None):
+    args = [iter(iterable)] * n
+    return list(zip_longest(*args, fillvalue=fillvalue))
