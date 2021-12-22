@@ -8,8 +8,10 @@ import pytest
 from darwin.dataset.utils import (
     compute_distributions,
     extract_classes,
+    get_release_path,
     sanitize_filename,
 )
+from tests.fixtures import *
 
 
 def open_resource_file():
@@ -127,3 +129,15 @@ def describe_sanitize_filename():
 def _create_annotation_file(annotation_path: Path, filename: str, payload: Dict):
     with open(annotation_path / filename, "w") as f:
         json.dump(payload, f)
+
+
+def describe_get_release_path():
+    def it_defaults_to_latest_version_if_no_version_provided(team_dataset_path: Path):
+        latest_release_path = team_dataset_path / "releases" / "latest"
+        latest_release_path.mkdir(parents=True)
+        assert get_release_path(team_dataset_path) == latest_release_path
+
+    def it_uses_provided_version_name_otherwise(team_dataset_path: Path):
+        test_release_path = team_dataset_path / "releases" / "test"
+        test_release_path.mkdir(parents=True)
+        assert get_release_path(team_dataset_path, "test") == test_release_path
