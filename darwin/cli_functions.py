@@ -609,13 +609,15 @@ def upload_data(
 
         if already_existing_items:
             console.print(
-                f"Skipped {len(already_existing_items)} files already in the dataset.\n", style="warning",
+                f"Skipped {len(already_existing_items)} files already in the dataset.\n",
+                style="warning",
             )
 
         if upload_manager.error_count or other_skipped_items:
             error_count = upload_manager.error_count + len(other_skipped_items)
             console.print(
-                f"{error_count} files couldn't be uploaded because an error occurred.\n", style="error",
+                f"{error_count} files couldn't be uploaded because an error occurred.\n",
+                style="error",
             )
 
         if not verbose and upload_manager.error_count:
@@ -830,7 +832,8 @@ def dataset_convert(dataset_slug: str, format: str, output_dir: Optional[PathLik
         The folder where the exported annotation files will be. If None it will be the inside the
         annotations folder of the dataset under 'other_formats/{format}'. The Defaults to None.
     """
-    client: Client = _load_client()
+    identifier: DatasetIdentifier = DatasetIdentifier.parse(dataset_slug)
+    client: Client = _load_client(team_slug=identifier.team_slug)
     exporter_module = import_module(f"darwin.exporter.formats.{format}")
     try:
         parser: ExportParser = getattr(exporter_module, "export")
@@ -838,14 +841,14 @@ def dataset_convert(dataset_slug: str, format: str, output_dir: Optional[PathLik
         _error(f"Unsupported import format, currently supported: {export_formats}")
 
     try:
-        dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
+        dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=identifier.dataset_slug)
         if not dataset.local_path.exists():
             _error(
                 f"No annotations downloaded for dataset f{dataset}, first pull a release using "
-                f"'darwin dataset pull {dataset_slug}'"
+                f"'darwin dataset pull {identifier}'"
             )
 
-        release_path: Path = get_release_path(dataset.local_path)
+        release_path: Path = get_release_path(dataset.local_path, identifier.version)
         annotations_path: Path = release_path / "annotations"
         if output_dir is None:
             output_dir = release_path / "other_formats" / f"{format}"
