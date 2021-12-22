@@ -841,7 +841,7 @@ def dataset_convert(dataset_slug: str, format: str, output_dir: Optional[PathLik
         _error(f"Unsupported import format, currently supported: {export_formats}")
 
     try:
-        dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=identifier.dataset_slug)
+        dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=identifier)
         if not dataset.local_path.exists():
             _error(
                 f"No annotations downloaded for dataset f{dataset}, first pull a release using "
