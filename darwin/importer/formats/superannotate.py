@@ -51,6 +51,7 @@ def parse_path(path: Path) -> Optional[AnnotationFile]:
         - point ``Vector``: https://doc.superannotate.com/docs/vector-json#point
         - ellipse ``Vector``: https://doc.superannotate.com/docs/vector-json#ellipse
         - cuboid ``Vector``: https://doc.superannotate.com/docs/vector-json#cuboid
+        - polygon ``Vector``: https://doc.superannotate.com/docs/vector-json#polyline-and-polygon
     
 
     Each file must also have in the same folder a ``classes.json`` file with information about 
