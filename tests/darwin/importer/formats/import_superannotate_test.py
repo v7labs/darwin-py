@@ -475,6 +475,78 @@ def describe_parse_path():
         annotation_class = polygon_annotation.annotation_class
         assert_annotation_class(annotation_class, "Person", "polygon")
 
+    def it_raises_if_polyline_has_missing_points(annotations_file_path: Path, classes_file_path: Path):
+        annotations_json: str = """
+          {
+            "instances": [
+               {
+                  "type": "polyline",
+                  "classId": 1
+               }
+            ],
+            "metadata": {
+               "name": "demo-image-0.jpg"
+            }
+         }
+         """
+        classes_json: str = """[]"""
+        annotations_file_path.write_text(annotations_json)
+        classes_file_path.write_text(classes_json)
+
+        with pytest.raises(ValidationError) as error:
+            parse_path(annotations_file_path)
+
+        assert "'polyline' is not one of ['point']" in str(error.value)
+
+    def it_imports_polyline_vectors(annotations_file_path: Path, classes_file_path: Path):
+
+        annotations_json: str = """
+         {
+            "instances": [
+               {
+                  "type": "polyline",
+                  "classId": 1,
+                  "points": [
+                     1053,
+                     587.2,
+                     1053.1,
+                     586,
+                     1053.8,
+                     585.4
+                  ]
+               }
+            ],
+            "metadata": {
+               "name": "demo-image-0.jpg"
+            }
+         }
+      """
+        classes_json: str = """
+       [
+          {"name": "Person", "id": 1}
+       ]
+       """
+
+        annotations_file_path.write_text(annotations_json)
+        classes_file_path.write_text(classes_json)
+
+        annotation_file: Optional[AnnotationFile] = parse_path(annotations_file_path)
+        assert annotation_file is not None
+        assert annotation_file.path == annotations_file_path
+        assert annotation_file.filename == "demo-image-0.jpg"
+        assert annotation_file.annotation_classes
+        assert annotation_file.remote_path == "/"
+
+        assert annotation_file.annotations
+
+        line_annotation: Annotation = cast(Annotation, annotation_file.annotations.pop())
+        assert_line(
+            line_annotation, [{"x": 1053, "y": 587.2}, {"x": 1053.1, "y": 586}, {"x": 1053.8, "y": 585.4}],
+        )
+
+        annotation_class = line_annotation.annotation_class
+        assert_annotation_class(annotation_class, "Person", "line")
+
     def it_raises_if_bbox_has_missing_points(annotations_file_path: Path, classes_file_path: Path):
         annotations_json: str = """
           {

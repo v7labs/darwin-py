@@ -368,6 +368,42 @@ def make_complex_polygon(
     bounding_box: Optional[Dict] = None,
     subs: Optional[List[SubAnnotation]] = None,
 ) -> Annotation:
+    """
+    Creates and returns a conplex polygon annotation. Complex polygons are those who have holes 
+    and/or disform shapes.
+
+    Parameters
+    ----------
+    class_name: str
+        The name of the class for this ``Annotation``.
+    point_paths: List[List[Point]]
+        A list of lists points that comprises the complex polygon. This is needed as a complex 
+        polygon can be effectively seen as a sum of multiple simple polygons. The list should have 
+        a format simillar to:
+
+        .. code-block:: python
+            [
+                [
+                    {"x": 1, "y": 0},
+                    {"x": 2, "y": 1}
+                ],
+                [
+                    {"x": 3, "y": 4},
+                    {"x": 5, "y": 6}
+                ]
+                # ... and so on ...
+            ]
+
+    bounding_box: Optional[Dict], default: None
+        The bounding box that encompasses the polyong. Defaults to ``None``.
+    subs: Optional[List[SubAnnotation]], default: None
+        List of ``SubAnnotation``s for this ``Annotation``. Defaults to ``None``.
+
+    Returns
+    -------
+    Annotation
+        A complex polygon ``Annotation``.
+    """
     return Annotation(
         AnnotationClass(class_name, "complex_polygon", "polygon"),
         _maybe_add_bounding_box_data({"paths": point_paths}, bounding_box),
@@ -376,10 +412,53 @@ def make_complex_polygon(
 
 
 def make_keypoint(class_name: str, x: float, y: float, subs: Optional[List[SubAnnotation]] = None) -> Annotation:
+    """
+    Creates and returns a keypoint, aka point, annotation.
+
+    Parameters
+    ----------
+    class_name: str
+        The name of the class for this ``Annotation``.
+    x: float
+        The ``x`` value of the point.
+    y: float
+        The ``y`` value of the point.
+    subs: Optional[List[SubAnnotation]], default: None
+        List of ``SubAnnotation``s for this ``Annotation``. Defaults to ``None``.
+
+    Returns
+    -------
+    Annotation
+        A point ``Annotation``.
+    """
     return Annotation(AnnotationClass(class_name, "keypoint"), {"x": x, "y": y}, subs or [])
 
 
 def make_line(class_name: str, path: List[Point], subs: Optional[List[SubAnnotation]] = None) -> Annotation:
+    """
+    Creates and returns a line annotation.
+
+    Parameters
+    ----------
+    class_name: str
+        The name of the class for this ``Annotation``.
+    point_path: List[Point]
+        A list of points that comprises the polygon. The list should have a format simillar to:
+
+        .. code-block:: python
+            [
+                {"x": 1, "y": 0},
+                {"x": 2, "y": 1}
+            ]
+
+    subs: Optional[List[SubAnnotation]], default: None
+        List of ``SubAnnotation``s for this ``Annotation``. Defaults to ``None``.
+
+    Returns
+    -------
+    Annotation
+        A line ``Annotation``.
+    """
     return Annotation(AnnotationClass(class_name, "line"), {"path": path}, subs or [])
 
 

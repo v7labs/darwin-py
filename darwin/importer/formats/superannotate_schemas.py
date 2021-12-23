@@ -40,6 +40,24 @@ polygon = {
     "required": ["points", "type", "classId"],
 }
 
+polyline = {
+    "$id": "https://darwin.v7labs.com/schemas/supperannotate/polyline",
+    "description": "Schema of a Polyline",
+    "title": "Polyline",
+    "default": {"type": "polyline", "points": [1, 2, 3, 4], "classId": 1},
+    "examples": [
+        {"type": "polyline", "points": [1, 2, 3, 4], "classId": 1},
+        {"type": "polyline", "points": [], "classId": 1},
+    ],
+    "type": "object",
+    "properties": {
+        "classId": {"type": "integer"},
+        "points": {"type": "array", "items": {"type": "number"}},
+        "type": {"enum": ["polyline"]},
+    },
+    "required": ["points", "type", "classId"],
+}
+
 cuboid = {
     "$id": "https://darwin.v7labs.com/schemas/supperannotate/cuboid",
     "description": "Schema of a Cuboid",
@@ -141,7 +159,7 @@ point = {
 superannotate_export = {
     "type": "object",
     "properties": {
-        "instances": {"type": "array", "items": {"oneOf": [point, ellipse, cuboid, polygon, bbox]},},
+        "instances": {"type": "array", "items": {"oneOf": [point, ellipse, cuboid, polygon, bbox, polyline]},},
         "metadata": {"type": "object", "required": ["name"], "properties": {"name": {"type": "string"}}},
     },
     "required": ["instances", "metadata"],
