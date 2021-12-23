@@ -337,7 +337,7 @@ def make_polygon(
     class_name: str
         The name of the class for this ``Annotation``.
     point_path: List[Point]
-        A list of points to that comprise the polygon. The list should have a format simillar to:
+        A list of points that comprises the polygon. The list should have a format simillar to:
 
         .. code-block:: python
             [
