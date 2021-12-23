@@ -1,5 +1,6 @@
 import json
 from functools import partial
+from itertools import zip_longest
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Union, cast
 
@@ -15,6 +16,7 @@ from darwin.datatypes import (
     make_cuboid,
     make_ellipse,
     make_keypoint,
+    make_polygon,
 )
 from darwin.importer.formats.superannotate_schemas import (
     classes_export,
@@ -50,7 +52,9 @@ def parse_path(path: Path) -> Optional[AnnotationFile]:
         - point ``Vector``: https://doc.superannotate.com/docs/vector-json#point
         - ellipse ``Vector``: https://doc.superannotate.com/docs/vector-json#ellipse
         - cuboid ``Vector``: https://doc.superannotate.com/docs/vector-json#cuboid
-    
+        - bbox ``Vector`` (not rotated): https://doc.superannotate.com/docs/vector-json#bounding-box-and-rotated-bounding-box  
+        - polygon ``Vector``: https://doc.superannotate.com/docs/vector-json#polyline-and-polygon
+
 
     Each file must also have in the same folder a ``classes.json`` file with information about 
     the classes. This file must have a structure simillar to:
@@ -139,6 +143,9 @@ def _convert_objects(obj: Dict[str, Any], superannotate_classes: List[Dict[str, 
     if type == "bbox":
         return _to_bbox_annotation(obj, superannotate_classes)
 
+    if type == "polygon":
+        return _to_polygon_annotation(obj, superannotate_classes)
+
     raise ValueError(f"Unknown label object {obj}")
 
 
@@ -201,6 +208,15 @@ def _to_cuboid_annotation(cuboid: Dict[str, Any], classes: List[Dict[str, Any]])
     return make_cuboid(name, cuboid_data)
 
 
+def _to_polygon_annotation(polygon: Dict[str, Any], classes: List[Dict[str, Any]]) -> Annotation:
+    data: List[float] = cast(List[float], polygon.get("points"))
+    class_id: int = cast(int, polygon.get("classId"))
+    name: str = _find_class_name(class_id, classes)
+    points: List[Point] = _map_to_list(_tuple_to_point, _group_to_list(data, 2, 0))
+
+    return make_polygon(name, points)
+
+
 def _find_class_name(class_id: int, classes: List[Dict[str, Any]]) -> str:
     obj: Optional[Dict[str, Any]] = next((class_obj for class_obj in classes if class_obj.get("id") == class_id), None)
 
@@ -227,3 +243,12 @@ def _map_to_set(fun: Callable[[Any], Any], iter: Iterable[Any]) -> Set[Any]:
 def _is_annotation(file: Path) -> bool:
     return file.suffix == ".json" and file.name != "classes.json"
 
+
+def _tuple_to_point(tuple) -> Dict[str, float]:
+    return {"x": tuple[0], "y": tuple[1]}
+
+
+# Inspired by: https://stackoverflow.com/a/434411/1337392
+def _group_to_list(iterable, n, fillvalue=None):
+    args = [iter(iterable)] * n
+    return list(zip_longest(*args, fillvalue=fillvalue))
