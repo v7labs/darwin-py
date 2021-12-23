@@ -29,7 +29,6 @@ setuptools.setup(
         "pillow",
         "pyyaml>=5.1",
         "requests",
-        "requests_toolbelt",
         "rich",
         "upolygon==0.1.6",
         "jsonschema",
