@@ -12,6 +12,7 @@ from darwin.datatypes import (
     AnnotationFile,
     CuboidData,
     Point,
+    make_bounding_box,
     make_cuboid,
     make_ellipse,
     make_keypoint,
@@ -51,8 +52,9 @@ def parse_path(path: Path) -> Optional[AnnotationFile]:
         - point ``Vector``: https://doc.superannotate.com/docs/vector-json#point
         - ellipse ``Vector``: https://doc.superannotate.com/docs/vector-json#ellipse
         - cuboid ``Vector``: https://doc.superannotate.com/docs/vector-json#cuboid
+        - bbox ``Vector`` (not rotated): https://doc.superannotate.com/docs/vector-json#bounding-box-and-rotated-bounding-box  
         - polygon ``Vector``: https://doc.superannotate.com/docs/vector-json#polyline-and-polygon
-    
+
 
     Each file must also have in the same folder a ``classes.json`` file with information about 
     the classes. This file must have a structure simillar to:
@@ -138,6 +140,9 @@ def _convert_objects(obj: Dict[str, Any], superannotate_classes: List[Dict[str, 
     if type == "cuboid":
         return _to_cuboid_annotation(obj, superannotate_classes)
 
+    if type == "bbox":
+        return _to_bbox_annotation(obj, superannotate_classes)
+
     if type == "polygon":
         return _to_polygon_annotation(obj, superannotate_classes)
 
@@ -151,6 +156,18 @@ def _to_keypoint_annotation(point: Dict[str, Any], classes: List[Dict[str, Any]]
 
     name = _find_class_name(class_id, classes)
     return make_keypoint(name, x, y)
+
+
+def _to_bbox_annotation(bbox: Dict[str, Any], classes: List[Dict[str, Any]]) -> Annotation:
+    points: Dict[str, float] = cast(Dict[str, float], bbox.get("points"))
+    x: float = cast(float, points.get("x1"))
+    y: float = cast(float, points.get("y1"))
+    w: float = abs(cast(float, points.get("x2")) - cast(float, points.get("x1")))
+    h: float = abs(cast(float, points.get("y1")) - cast(float, points.get("y2")))
+    class_id: int = cast(int, bbox.get("classId"))
+
+    name = _find_class_name(class_id, classes)
+    return make_bounding_box(name, x, y, w, h)
 
 
 def _to_ellipse_annotation(ellipse: Dict[str, Any], classes: List[Dict[str, Any]]) -> Annotation:
@@ -231,6 +248,7 @@ def _tuple_to_point(tuple) -> Dict[str, float]:
     return {"x": tuple[0], "y": tuple[1]}
 
 
+# Inspired by: https://stackoverflow.com/a/434411/1337392
 def _group_to_list(iterable, n, fillvalue=None):
     args = [iter(iterable)] * n
     return list(zip_longest(*args, fillvalue=fillvalue))
