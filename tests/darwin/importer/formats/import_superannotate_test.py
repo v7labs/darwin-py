@@ -475,6 +475,34 @@ def describe_parse_path():
         annotation_class = polygon_annotation.annotation_class
         assert_annotation_class(annotation_class, "Person", "polygon")
 
+    def it_raises_if_bbox_has_missing_points(annotations_file_path: Path, classes_file_path: Path):
+        annotations_json: str = """
+          {
+            "instances": [
+               {
+                  "type": "bbox",
+                  "classId": 1,
+                  "points": {
+                     "x2": 1920,
+                     "y1": 516.5,
+                     "y2": 734
+                  }
+               }
+            ],
+            "metadata": {
+               "name": "demo-image-0.jpg"
+            }
+         }
+         """
+        classes_json: str = """[]"""
+        annotations_file_path.write_text(annotations_json)
+        classes_file_path.write_text(classes_json)
+
+        with pytest.raises(ValidationError) as error:
+            parse_path(annotations_file_path)
+
+        assert "'bbox' is not one of ['point']" in str(error.value)
+
     def it_imports_bbox_vectors(annotations_file_path: Path, classes_file_path: Path):
 
         annotations_json: str = """
