@@ -255,7 +255,7 @@ def describe_parse_path():
         with pytest.raises(ValidationError) as error:
             parse_path(annotations_file_path)
 
-        assert "'ellipse' is not one of ['cuboid']" in str(error.value)
+        assert "'ellipse' is not one of ['point']" in str(error.value)
 
     def it_imports_ellipse_vectors(annotations_file_path: Path, classes_file_path: Path):
 
@@ -338,7 +338,7 @@ def describe_parse_path():
         with pytest.raises(ValidationError) as error:
             parse_path(annotations_file_path)
 
-        assert "'cuboid' is not one of ['ellipse']" in str(error.value)
+        assert "'cuboid' is not one of ['point']" in str(error.value)
 
     def it_imports_cuboid_vectors(annotations_file_path: Path, classes_file_path: Path):
 
@@ -402,6 +402,78 @@ def describe_parse_path():
 
         annotation_class = cuboid_annotation.annotation_class
         assert_annotation_class(annotation_class, "Person", "cuboid")
+
+    def it_raises_if_polygon_has_missing_points(annotations_file_path: Path, classes_file_path: Path):
+        annotations_json: str = """
+          {
+            "instances": [
+               {
+                  "type": "polygon",
+                  "classId": 1
+               }
+            ],
+            "metadata": {
+               "name": "demo-image-0.jpg"
+            }
+         }
+         """
+        classes_json: str = """[]"""
+        annotations_file_path.write_text(annotations_json)
+        classes_file_path.write_text(classes_json)
+
+        with pytest.raises(ValidationError) as error:
+            parse_path(annotations_file_path)
+
+        assert "'polygon' is not one of ['point']" in str(error.value)
+
+    def it_imports_polygon_vectors(annotations_file_path: Path, classes_file_path: Path):
+
+        annotations_json: str = """
+         {
+            "instances": [
+               {
+                  "type": "polygon",
+                  "classId": 1,
+                  "points": [
+                     1053,
+                     587.2,
+                     1053.1,
+                     586,
+                     1053.8,
+                     585.4
+                  ]
+               }
+            ],
+            "metadata": {
+               "name": "demo-image-0.jpg"
+            }
+         }
+      """
+        classes_json: str = """
+       [
+          {"name": "Person", "id": 1}
+       ]
+       """
+
+        annotations_file_path.write_text(annotations_json)
+        classes_file_path.write_text(classes_json)
+
+        annotation_file: Optional[AnnotationFile] = parse_path(annotations_file_path)
+        assert annotation_file is not None
+        assert annotation_file.path == annotations_file_path
+        assert annotation_file.filename == "demo-image-0.jpg"
+        assert annotation_file.annotation_classes
+        assert annotation_file.remote_path == "/"
+
+        assert annotation_file.annotations
+
+        polygon_annotation: Annotation = cast(Annotation, annotation_file.annotations.pop())
+        assert_polygon(
+            polygon_annotation, [{"x": 1053, "y": 587.2}, {"x": 1053.1, "y": 586}, {"x": 1053.8, "y": 585.4}],
+        )
+
+        annotation_class = polygon_annotation.annotation_class
+        assert_annotation_class(annotation_class, "Person", "polygon")
 
 
 def assert_cuboid(annotation: Annotation, cuboid: CuboidData) -> None:

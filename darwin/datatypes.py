@@ -329,6 +329,32 @@ def make_polygon(
     bounding_box: Optional[Dict] = None,
     subs: Optional[List[SubAnnotation]] = None,
 ) -> Annotation:
+    """
+    Creates and returns a polygon annotation.
+
+    Parameters
+    ----------
+    class_name: str
+        The name of the class for this ``Annotation``.
+    point_path: List[Point]
+        A list of points that comprises the polygon. The list should have a format simillar to:
+
+        .. code-block:: python
+            [
+                {"x": 1, "y": 0},
+                {"x": 2, "y": 1}
+            ]
+
+    bounding_box: Optional[Dict], default: None
+        The bounding box that encompasses the polyong. Defaults to ``None``.
+    subs: Optional[List[SubAnnotation]], default: None
+        List of ``SubAnnotation``s for this ``Annotation``. Defaults to ``None``.
+
+    Returns
+    -------
+    Annotation
+        A polygon ``Annotation``.
+    """
     return Annotation(
         AnnotationClass(class_name, "polygon"),
         _maybe_add_bounding_box_data({"path": point_path}, bounding_box),

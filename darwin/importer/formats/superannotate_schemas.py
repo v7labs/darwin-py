@@ -1,3 +1,21 @@
+polygon = {
+    "$id": "https://darwin.v7labs.com/schemas/supperannotate/polygon",
+    "description": "Schema of a Polygon",
+    "title": "Polygon",
+    "default": {"type": "polygon", "points": [1, 2, 3, 4], "classId": 1},
+    "examples": [
+        {"type": "polygon", "points": [1, 2, 3, 4], "classId": 1},
+        {"type": "polygon", "points": [], "classId": 1},
+    ],
+    "type": "object",
+    "properties": {
+        "classId": {"type": "integer"},
+        "points": {"type": "array", "items": {"type": "number"}},
+        "type": {"enum": ["polygon"]},
+    },
+    "required": ["points", "type", "classId"],
+}
+
 cuboid = {
     "$id": "https://darwin.v7labs.com/schemas/supperannotate/cuboid",
     "description": "Schema of a Cuboid",
@@ -90,7 +108,7 @@ point = {
         "classId": {"type": "integer"},
         "x": {"type": "number"},
         "y": {"type": "number"},
-        "ẗype": {"enum": ["point"]},
+        "type": {"enum": ["point"]},
     },
     "required": ["x", "y", "type", "classId"],
 }
@@ -99,7 +117,7 @@ point = {
 superannotate_export = {
     "type": "object",
     "properties": {
-        "instances": {"type": "array", "items": {"oneOf": [point, ellipse, cuboid]},},
+        "instances": {"type": "array", "items": {"oneOf": [point, ellipse, cuboid, polygon]},},
         "metadata": {"type": "object", "required": ["name"], "properties": {"name": {"type": "string"}}},
     },
     "required": ["instances", "metadata"],
