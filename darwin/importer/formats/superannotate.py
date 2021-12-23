@@ -16,6 +16,7 @@ from darwin.datatypes import (
     make_cuboid,
     make_ellipse,
     make_keypoint,
+    make_line,
     make_polygon,
 )
 from darwin.importer.formats.superannotate_schemas import (
@@ -53,7 +54,7 @@ def parse_path(path: Path) -> Optional[AnnotationFile]:
         - ellipse ``Vector``: https://doc.superannotate.com/docs/vector-json#ellipse
         - cuboid ``Vector``: https://doc.superannotate.com/docs/vector-json#cuboid
         - bbox ``Vector`` (not rotated): https://doc.superannotate.com/docs/vector-json#bounding-box-and-rotated-bounding-box  
-        - polygon ``Vector``: https://doc.superannotate.com/docs/vector-json#polyline-and-polygon
+        - polygon and polyline ``Vector``s: https://doc.superannotate.com/docs/vector-json#polyline-and-polygon
 
 
     Each file must also have in the same folder a ``classes.json`` file with information about 
@@ -146,6 +147,9 @@ def _convert_objects(obj: Dict[str, Any], superannotate_classes: List[Dict[str, 
     if type == "polygon":
         return _to_polygon_annotation(obj, superannotate_classes)
 
+    if type == "polyline":
+        return _to_line_annotation(obj, superannotate_classes)
+
     raise ValueError(f"Unknown label object {obj}")
 
 
@@ -215,6 +219,15 @@ def _to_polygon_annotation(polygon: Dict[str, Any], classes: List[Dict[str, Any]
     points: List[Point] = _map_to_list(_tuple_to_point, _group_to_list(data, 2, 0))
 
     return make_polygon(name, points)
+
+
+def _to_line_annotation(line: Dict[str, Any], classes: List[Dict[str, Any]]) -> Annotation:
+    data: List[float] = cast(List[float], line.get("points"))
+    class_id: int = cast(int, line.get("classId"))
+    name: str = _find_class_name(class_id, classes)
+    points: List[Point] = _map_to_list(_tuple_to_point, _group_to_list(data, 2, 0))
+
+    return make_line(name, points)
 
 
 def _find_class_name(class_id: int, classes: List[Dict[str, Any]]) -> str:
