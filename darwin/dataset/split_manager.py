@@ -1,9 +1,8 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Set, Tuple, Union
+from typing import Dict, Iterable, List, Optional, Set, Tuple
 
 import numpy as np
-import numpy.typing as npt
 from darwin.dataset.utils import extract_classes, get_release_path
 from darwin.datatypes import PathLike
 
@@ -272,12 +271,12 @@ def _stratify_samples(
 
 
 def remove_cross_contamination(
-    X_a: npt.NDArray[np.int32],
-    X_b: npt.NDArray[np.int32],
-    y_a: npt.NDArray[np.int32],
-    y_b: npt.NDArray[np.int32],
+    X_a: np.ndarray,
+    X_b: np.ndarray,
+    y_a: np.ndarray,
+    y_b: np.ndarray,
     b_min_size: int,
-) -> Tuple[npt.NDArray[np.int32], npt.NDArray[np.int32], npt.NDArray[np.int32], npt.NDArray[np.int32]]:
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
     Remove cross contamination present in X_a and X_b by selecting one or the other on a flip coin decision.
 
