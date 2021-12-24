@@ -9,8 +9,47 @@ from darwin.datatypes import PathLike
 
 @dataclass
 class Split:
+    """
+    A Split object holds the state of a split as a set of attributes.
+    For each split type (namely, random and stratified), the Split object will keep a record
+    of paths were the splits are going to be stored as files.
+
+    If a dataset can be split randomly, then the ``random`` attribute will be set as a
+    dictionary between a particular partition (e.g.: ``train``, ``val``, ``test``) and
+    the ``Path`` of the file where that partition split file is going to be stored.
+
+    .. code-block:: python
+        {
+            "train": Path("/path/to/split/random_train.txt"),
+            "val": Path("/path/to/split/random_val.txt"),
+            "test": Path("/path/to/split/random_test.txt")
+        }
+
+    If a dataset can be split with a stratified strategy based on a given annotation type,
+    then the ``stratified`` attribute will be set as a dictionary between a particular annotation type
+    and a dictionary between a particular partition (e.g.: ``train``, ``val``, ``test``) and
+    the ``Path`` of the file where that partition split file is going to be stored.
+
+    .. code-block:: python
+        {
+            "polygon": {
+                "train": Path("/path/to/split/stratified_polygon_train.txt"),
+                "val": Path("/path/to/split/stratified_polygon_val.txt"),
+                "test": Path("/path/to/split/stratified_polygon_test.txt")
+            },
+            "tag": {
+                "train": Path("/path/to/split/stratified_tag_train.txt"),
+                "val": Path("/path/to/split/stratified_tag_val.txt"),
+                "test": Path("/path/to/split/stratified_tag_test.txt")
+            }
+        }
+    """
+
     random: Optional[Dict[str, Path]] = None
     stratified: Optional[Dict[str, Dict[str, Path]]] = None
+
+    def is_valid(self):
+        return self.random is not None or self.stratified is not None
 
 
 def split_dataset(
@@ -91,12 +130,13 @@ def split_dataset(
     # Build a split paths dictionary. The split paths are indexed by strategy (e.g. random
     # or stratified), and by partition (train/val/test)
     split = _build_split(split_path, stratified_types)
+    assert split.is_valid()
 
     # Do the actual splitting
     split_path.mkdir(exist_ok=True)
 
     if split.random:
-        random_split(
+        _random_split(
             annotation_path=annotation_path,
             annotation_files=annotation_files,
             split=split.random,
@@ -107,7 +147,7 @@ def split_dataset(
         )
 
     if split.stratified:
-        stratified_split(
+        _stratified_split(
             annotation_path=annotation_path,
             split=split.stratified,
             annotation_files=annotation_files,
@@ -128,7 +168,7 @@ def split_dataset(
     return split_path
 
 
-def random_split(
+def _random_split(
     annotation_path: Path,
     annotation_files: List[Path],
     split: Dict[str, Path],
@@ -144,12 +184,12 @@ def random_split(
     val_indices = list(indices[train_size : train_size + val_size])
     test_indices = list(indices[train_size + val_size :])
 
-    write_to_file(annotation_path, annotation_files, split["train"], train_indices)
-    write_to_file(annotation_path, annotation_files, split["val"], val_indices)
-    write_to_file(annotation_path, annotation_files, split["test"], test_indices)
+    _write_to_file(annotation_path, annotation_files, split["train"], train_indices)
+    _write_to_file(annotation_path, annotation_files, split["val"], val_indices)
+    _write_to_file(annotation_path, annotation_files, split["test"], test_indices)
 
 
-def stratified_split(
+def _stratified_split(
     annotation_path: Path,
     split: Dict[str, Dict[str, Path]],
     annotation_files: List[Path],
@@ -187,9 +227,9 @@ def stratified_split(
             else:
                 test_indices.append(idx)
 
-        write_to_file(annotation_path, annotation_files, split[stratified_type]["train"], train_indices)
-        write_to_file(annotation_path, annotation_files, split[stratified_type]["val"], val_indices)
-        write_to_file(annotation_path, annotation_files, split[stratified_type]["test"], test_indices)
+        _write_to_file(annotation_path, annotation_files, split[stratified_type]["train"], train_indices)
+        _write_to_file(annotation_path, annotation_files, split[stratified_type]["val"], val_indices)
+        _write_to_file(annotation_path, annotation_files, split[stratified_type]["test"], test_indices)
 
 
 def _stratify_samples(
@@ -236,7 +276,7 @@ def _stratify_samples(
 
     dataset_size = train_size + val_size + test_size
 
-    X_train, X_tmp, y_train, y_tmp = remove_cross_contamination(
+    X_train, X_tmp, y_train, y_tmp = _remove_cross_contamination(
         *train_test_split(
             np.array(file_indices),
             np.array(labels),
@@ -249,11 +289,7 @@ def _stratify_samples(
 
     # Append files whose support set is 1 to train
     X_train = np.concatenate((X_train, np.array(single_files)), axis=0)
-
-    if val_size == 0:
-        return list(set(X_train.astype(int))), list(set(X_tmp.astype(int))), []
-
-    X_val, X_test, y_val, y_test = remove_cross_contamination(
+    X_val, X_test, y_val, y_test = _remove_cross_contamination(
         *train_test_split(
             X_tmp,
             y_tmp,
@@ -265,12 +301,12 @@ def _stratify_samples(
     )
 
     # Remove duplicates within the same set
-    # NOTE: doing that earlier (e.g. in remove_cross_contamination()) would produce mathematical
+    # NOTE: doing that earlier (e.g. in _remove_cross_contamination()) would produce mathematical
     # mistakes in the class balancing between validation and test sets.
     return (list(set(X_train.astype(int))), list(set(X_val.astype(int))), list(set(X_test.astype(int))))
 
 
-def remove_cross_contamination(
+def _remove_cross_contamination(
     X_a: np.ndarray,
     X_b: np.ndarray,
     y_a: np.ndarray,
@@ -301,14 +337,14 @@ def remove_cross_contamination(
     X_a, X_b, y_a, y_b : ndarray
         All input parameters filtered by removing cross contamination across A and B
     """
-    for a in unique(X_a):
+    for a in _unique(X_a):
         # If a not in X_b, don't remove a from anywhere
         if a not in X_b:
             continue
 
         # Remove a from X_b if it's large enough
         keep_locations = X_b != a
-        if len(unique(X_b[keep_locations])) >= b_min_size:
+        if len(_unique(X_b[keep_locations])) >= b_min_size:
             X_b = X_b[keep_locations]
             y_b = y_b[keep_locations]
             continue
@@ -321,13 +357,13 @@ def remove_cross_contamination(
     return X_a, X_b, y_a, y_b
 
 
-def unique(array: np.ndarray) -> np.ndarray:
+def _unique(array: np.ndarray) -> np.ndarray:
     """Returns unique elements of numpy array, maintaining the occurrency order"""
     indexes = np.unique(array, return_index=True)[1]
     return array[sorted(indexes)]
 
 
-def write_to_file(annotation_path: Path, annotation_files: List[Path], file_path: Path, split_idx: Iterable) -> None:
+def _write_to_file(annotation_path: Path, annotation_files: List[Path], file_path: Path, split_idx: Iterable) -> None:
     with open(str(file_path), "w") as f:
         for i in split_idx:
             # To deal with recursive search, we want to write the difference between the annotation path
