@@ -244,10 +244,12 @@ def _stratify_samples(
     contained in that image
     split_seed : int
         Seed for the randomness
-    test_size : int
-        Number of test images
+    train_size : int
+        Number of training images
     val_size : int
         Number of validation images
+    test_size : int
+        Number of test images
 
     Returns
     -------
