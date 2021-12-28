@@ -320,6 +320,21 @@ def make_bounding_box(
 
 
 def make_tag(class_name: str, subs: Optional[List[SubAnnotation]] = None) -> Annotation:
+    """
+    Creates and returns a tag annotation.
+
+    Parameters
+    ----------
+    class_name: str
+        The name of the class for this ``Annotation``.
+    subs: Optional[List[SubAnnotation]], default: None
+        List of ``SubAnnotation``s for this ``Annotation``. Defaults to ``None``.
+
+    Returns
+    -------
+    Annotation
+        A tag ``Annotation``.
+    """
     return Annotation(AnnotationClass(class_name, "tag"), {}, subs or [])
 
 
@@ -463,6 +478,32 @@ def make_line(class_name: str, path: List[Point], subs: Optional[List[SubAnnotat
 
 
 def make_skeleton(class_name: str, nodes: List[Node], subs: Optional[List[SubAnnotation]] = None) -> Annotation:
+    """
+    Creates and returns a skeleton annotation.
+
+    Parameters
+    ----------
+    class_name: str
+        The name of the class for this ``Annotation``.
+    nodes: List[Node]
+        List of ``Node``s that comprise the skeleton. Each Node will have a format simillar to:
+
+        .. code-block:: python
+            {
+                "name": "1",
+                "occluded": false,
+                "x": 172.78,
+                "y": 939.81
+            }
+
+    subs: Optional[List[SubAnnotation]], default: None
+        List of ``SubAnnotation``s for this ``Annotation``. Defaults to ``None``.
+
+    Returns
+    -------
+    Annotation
+        A skeleton ``Annotation``.
+    """
     return Annotation(AnnotationClass(class_name, "skeleton"), {"nodes": nodes}, subs or [])
 
 
@@ -544,6 +585,20 @@ def make_cuboid(class_name: str, cuboid: CuboidData, subs: Optional[List[SubAnno
 
 
 def make_instance_id(value: int) -> SubAnnotation:
+    """
+    Creates and returns an instance id sub-annotation.
+
+    Parameters
+    ----------
+    value: int
+        The value of this instance's id.
+    
+
+    Returns
+    -------
+    SubAnnotation
+        An instance id ``SubAnnotation``. 
+    """
     return SubAnnotation("instance_id", value)
 
 
