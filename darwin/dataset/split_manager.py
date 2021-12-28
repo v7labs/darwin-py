@@ -1,9 +1,72 @@
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Set, Tuple
 
 import numpy as np
 from darwin.dataset.utils import extract_classes, get_release_path
 from darwin.datatypes import PathLike
+
+
+@dataclass
+class Split:
+    """
+    A Split object holds the state of a split as a set of attributes.
+    For each split type (namely, random and stratified), the Split object will keep a record
+    of paths were the splits are going to be stored as files.
+
+    If a dataset can be split randomly, then the ``random`` attribute will be set as a
+    dictionary between a particular partition (e.g.: ``train``, ``val``, ``test``) and
+    the ``Path`` of the file where that partition split file is going to be stored.
+
+    .. code-block:: python
+        {
+            "train": Path("/path/to/split/random_train.txt"),
+            "val": Path("/path/to/split/random_val.txt"),
+            "test": Path("/path/to/split/random_test.txt")
+        }
+
+    If a dataset can be split with a stratified strategy based on a given annotation type,
+    then the ``stratified`` attribute will be set as a dictionary between a particular annotation type
+    and a dictionary between a particular partition (e.g.: ``train``, ``val``, ``test``) and
+    the ``Path`` of the file where that partition split file is going to be stored.
+
+    .. code-block:: python
+        {
+            "polygon": {
+                "train": Path("/path/to/split/stratified_polygon_train.txt"),
+                "val": Path("/path/to/split/stratified_polygon_val.txt"),
+                "test": Path("/path/to/split/stratified_polygon_test.txt")
+            },
+            "tag": {
+                "train": Path("/path/to/split/stratified_tag_train.txt"),
+                "val": Path("/path/to/split/stratified_tag_val.txt"),
+                "test": Path("/path/to/split/stratified_tag_test.txt")
+            }
+        }
+
+    Attributes
+    ----------
+    random: Optional[Dict[str, Path]], default: None
+        Stores the type of split (e.g.: ``train``, ``val``, ``test``) and the file path where the 
+        split is stored if the split is of type ``random``. Defaults to ``None``.
+    stratified: Optional[Dict[str, Dict[str, Path]]], default: None
+        Stores the relation between an annotation type and the partition-filepath key value of the
+        split if its type is ``startified``. Defauls to ``None``.
+    """
+
+    random: Optional[Dict[str, Path]] = None
+    stratified: Optional[Dict[str, Dict[str, Path]]] = None
+
+    def is_valid(self) -> bool:
+        """
+        Returns whether or not this split instance is valid.
+
+        Returns 
+        -------
+        bool
+            ``True`` if this isntance is valid, ``False`` otherwise.
+        """
+        return self.random is not None or self.stratified is not None
 
 
 def split_dataset(
@@ -52,7 +115,7 @@ def split_dataset(
             "Darwin requires scikit-learn to split a dataset. Install it using: pip install scikit-learn"
         ) from None
 
-    validate_split(val_percentage, test_percentage)
+    _validate_split(val_percentage, test_percentage)
 
     # Infer release path
     if isinstance(dataset_path, str):
@@ -68,100 +131,88 @@ def split_dataset(
     lists_path = release_path / "lists"
     lists_path.mkdir(parents=True, exist_ok=True)
 
+    # Compute sizes of each dataset partition
+    dataset_size: int = len(annotation_files)
+    val_size: int = int(val_percentage * dataset_size)
+    test_size: int = int(test_percentage * dataset_size)
+    train_size: int = dataset_size - val_size - test_size
+    split_id = f"{train_size}_{val_size}_{test_size}"
+
     # Compute split id, a combination of val precentage, test percentage and split seed
     # The split id is used to create a folder with the same name in the "lists" folder
-    split_id = f"split_v{int(val_percentage)}_t{int(test_percentage)}"
     if split_seed != 0:
         split_id += f"_s{split_seed}"
     split_path = lists_path / split_id
 
     # Build a split paths dictionary. The split paths are indexed by strategy (e.g. random
     # or stratified), and by partition (train/val/test)
-    splits = build_split_paths_dict(split_path, stratified_types)
+    split = _build_split(split_path, stratified_types)
+    assert split.is_valid()
 
     # Do the actual splitting
     split_path.mkdir(exist_ok=True)
-    random_split(annotation_path, annotation_files, splits, val_percentage, test_percentage, split_seed)
-    stratified_split(
-        annotation_path, splits, annotation_files, val_percentage, test_percentage, stratified_types, split_seed
-    )
+
+    if split.random:
+        _random_split(
+            annotation_path=annotation_path,
+            annotation_files=annotation_files,
+            split=split.random,
+            train_size=train_size,
+            val_size=val_size,
+            test_size=test_size,
+            split_seed=split_seed,
+        )
+
+    if split.stratified:
+        _stratified_split(
+            annotation_path=annotation_path,
+            split=split.stratified,
+            annotation_files=annotation_files,
+            train_size=train_size,
+            val_size=val_size,
+            test_size=test_size,
+            stratified_types=stratified_types,
+            split_seed=split_seed,
+        )
 
     # Create symlink for default split
-    split = lists_path / "default"
-    if make_default_split or not split.exists():
-        if split.exists():
-            split.unlink()
-        split.symlink_to(f"./{split_id}")
+    default_split_path = lists_path / "default"
+    if make_default_split or not default_split_path.exists():
+        if default_split_path.exists():
+            default_split_path.unlink()
+        default_split_path.symlink_to(f"./{split_id}")
 
     return split_path
 
 
-def validate_split(val_percentage: int, test_percentage: int) -> None:
-    if val_percentage is None or not 0 <= val_percentage < 1:
-        raise ValueError(f"Invalid validation percentage ({val_percentage}). " f"Must be >= 0 and < 100")
-    if test_percentage is None or not 0 <= test_percentage < 1:
-        raise ValueError(f"Invalid test percentage ({test_percentage}). " f"Must be >= 0 and < 100")
-    if not 0.1 <= val_percentage + test_percentage < 1:
-        raise ValueError(
-            f"Invalid combination of validation ({val_percentage}) "
-            f"and test ({test_percentage}) percentages. Their sum must be > 1 and < 100"
-        )
-
-
-def build_split_paths_dict(split_path: Path, stratified_types: List[str]) -> Dict[str, Dict[str, Path]]:
-    splits = {
-        "random": {
-            "train": split_path / "random_train.txt",
-            "val": split_path / "random_val.txt",
-            "test": split_path / "random_test.txt",
-        },
-    }
-
-    if len(stratified_types) == 0:
-        return splits
-
-    splits["stratified"] = {}
-    for stratified_type in stratified_types:
-        splits["stratified"][stratified_type] = {
-            "train": split_path / f"stratified_{stratified_type}_train.txt",
-            "val": split_path / f"stratified_{stratified_type}_val.txt",
-            "test": split_path / f"stratified_{stratified_type}_test.txt",
-        }
-
-    return splits
-
-
-def random_split(
+def _random_split(
     annotation_path: Path,
     annotation_files: List[Path],
-    splits: Dict[str, Dict[str, Path]],
-    val_percentage: float,
-    test_percentage: float,
+    split: Dict[str, Path],
+    train_size: int,
+    val_size: int,
+    test_size: int,
     split_seed: int,
 ) -> None:
-    # Compute split sizes
-    dataset_size: int = len(annotation_files)
-    val_size: int = int(dataset_size * (val_percentage))
-    test_size: int = int(dataset_size * (test_percentage))
-    train_size: int = dataset_size - val_size - test_size
-    # Slice a permuted array as big as the dataset
     np.random.seed(split_seed)
-    indices = np.random.permutation(dataset_size)
+
+    indices = np.random.permutation(train_size + val_size + test_size)
     train_indices = list(indices[:train_size])
     val_indices = list(indices[train_size : train_size + val_size])
     test_indices = list(indices[train_size + val_size :])
 
-    write_to_file(annotation_path, annotation_files, splits["random"]["train"], train_indices)
-    write_to_file(annotation_path, annotation_files, splits["random"]["val"], val_indices)
-    write_to_file(annotation_path, annotation_files, splits["random"]["test"], test_indices)
+    _write_to_file(annotation_path, annotation_files, split["train"], train_indices)
+    _write_to_file(annotation_path, annotation_files, split["val"], val_indices)
+    _write_to_file(annotation_path, annotation_files, split["test"], test_indices)
 
 
-def stratified_split(
+def _stratified_split(
     annotation_path: Path,
-    splits: Dict[str, Dict[str, Path]],
+    split: Dict[str, Dict[str, Path]],
     annotation_files: List[Path],
-    val_percentage: float,
-    test_percentage: float,
+    train_size: int,
+    val_size: int,
+    test_size: int,
     stratified_types: List[str],
     split_seed: int,
 ) -> None:
@@ -173,17 +224,16 @@ def stratified_split(
         if len(idx_to_classes) == 0:
             continue
 
-        dataset_size = sum(1 for _ in annotation_files)
-        val_size = int(dataset_size * (val_percentage))
-        test_size = int(dataset_size * (test_percentage))
-        train_size = dataset_size - val_size - test_size
-
         train_indices, val_indices, test_indices = _stratify_samples(
-            idx_to_classes, split_seed, test_percentage, val_percentage, test_size, val_size
+            idx_to_classes=idx_to_classes,
+            split_seed=split_seed,
+            train_size=train_size,
+            val_size=val_size,
+            test_size=test_size,
         )
 
         stratified_indices = train_indices + val_indices + test_indices
-        for idx in range(dataset_size):
+        for idx in range(train_size + val_size + test_size):
             if idx in stratified_indices:
                 continue
 
@@ -194,19 +244,14 @@ def stratified_split(
             else:
                 test_indices.append(idx)
 
-        write_to_file(annotation_path, annotation_files, splits["stratified"][stratified_type]["train"], train_indices)
-        write_to_file(annotation_path, annotation_files, splits["stratified"][stratified_type]["val"], val_indices)
-        write_to_file(annotation_path, annotation_files, splits["stratified"][stratified_type]["test"], test_indices)
+        _write_to_file(annotation_path, annotation_files, split[stratified_type]["train"], train_indices)
+        _write_to_file(annotation_path, annotation_files, split[stratified_type]["val"], val_indices)
+        _write_to_file(annotation_path, annotation_files, split[stratified_type]["test"], test_indices)
 
 
 def _stratify_samples(
-    idx_to_classes: Dict[int, Set[str]],
-    split_seed: int,
-    test_percentage: int,
-    val_percentage: int,
-    test_size: int,
-    val_size: int,
-) -> Tuple[List[np.ndarray], List[np.ndarray], List[np.ndarray]]:
+    idx_to_classes: Dict[int, Set[str]], split_seed: int, train_size: int, val_size: int, test_size: int
+) -> Tuple[List[int], List[int], List[int]]:
     """Splits the list of indices into train, val and test according to their labels (stratified)
 
     Parameters
@@ -216,15 +261,12 @@ def _stratify_samples(
     contained in that image
     split_seed : int
         Seed for the randomness
-    val_percentage : float
-        Percentage of images used in the validation set
-    test_percentage : float
-        Percentage of images used in the test set
-    test_size : int
-        Number of test images
+    train_size : int
+        Number of training images
     val_size : int
         Number of validation images
-
+    test_size : int
+        Number of test images
 
     Returns
     -------
@@ -251,11 +293,13 @@ def _stratify_samples(
     if len(file_indices) == 0 or len(labels) == 0:
         return [], [], []
 
-    X_train, X_tmp, y_train, y_tmp = remove_cross_contamination(
+    dataset_size = train_size + val_size + test_size
+
+    X_train, X_tmp, y_train, y_tmp = _remove_cross_contamination(
         *train_test_split(
             np.array(file_indices),
             np.array(labels),
-            test_size=(val_percentage + test_percentage),
+            test_size=(val_size + test_size) / dataset_size,
             random_state=split_seed,
             stratify=labels,
         ),
@@ -264,29 +308,21 @@ def _stratify_samples(
 
     # Append files whose support set is 1 to train
     X_train = np.concatenate((X_train, np.array(single_files)), axis=0)
-
-    if test_percentage == 0.0:
-        return list(set(X_train.astype(int))), list(set(X_tmp.astype(int))), []
-
-    X_val, X_test, y_val, y_test = remove_cross_contamination(
+    X_val, X_test, y_val, y_test = _remove_cross_contamination(
         *train_test_split(
-            X_tmp,
-            y_tmp,
-            test_size=(test_percentage / (val_percentage + test_percentage)),
-            random_state=split_seed,
-            stratify=y_tmp,
+            X_tmp, y_tmp, test_size=(test_size / (val_size + test_size)), random_state=split_seed, stratify=y_tmp,
         ),
         test_size,
     )
 
     # Remove duplicates within the same set
-    # NOTE: doing that earlier (e.g. in remove_cross_contamination()) would produce mathematical
+    # NOTE: doing that earlier (e.g. in _remove_cross_contamination()) would produce mathematical
     # mistakes in the class balancing between validation and test sets.
     return (list(set(X_train.astype(int))), list(set(X_val.astype(int))), list(set(X_test.astype(int))))
 
 
-def remove_cross_contamination(
-    X_a: np.ndarray, X_b: np.ndarray, y_a: np.ndarray, y_b: np.ndarray, b_min_size: int
+def _remove_cross_contamination(
+    X_a: np.ndarray, X_b: np.ndarray, y_a: np.ndarray, y_b: np.ndarray, b_min_size: int,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
     Remove cross contamination present in X_a and X_b by selecting one or the other on a flip coin decision.
@@ -312,14 +348,14 @@ def remove_cross_contamination(
     X_a, X_b, y_a, y_b : ndarray
         All input parameters filtered by removing cross contamination across A and B
     """
-    for a in unique(X_a):
+    for a in _unique(X_a):
         # If a not in X_b, don't remove a from anywhere
         if a not in X_b:
             continue
 
         # Remove a from X_b if it's large enough
         keep_locations = X_b != a
-        if len(unique(X_b[keep_locations])) >= b_min_size:
+        if len(_unique(X_b[keep_locations])) >= b_min_size:
             X_b = X_b[keep_locations]
             y_b = y_b[keep_locations]
             continue
@@ -332,16 +368,46 @@ def remove_cross_contamination(
     return X_a, X_b, y_a, y_b
 
 
-def unique(array: np.ndarray) -> np.ndarray:
+def _unique(array: np.ndarray) -> np.ndarray:
     """Returns unique elements of numpy array, maintaining the occurrency order"""
     indexes = np.unique(array, return_index=True)[1]
     return array[sorted(indexes)]
 
 
-def write_to_file(annotation_path: Path, annotation_files: List[Path], file_path: Path, split_idx: Iterable) -> None:
+def _write_to_file(annotation_path: Path, annotation_files: List[Path], file_path: Path, split_idx: Iterable) -> None:
     with open(str(file_path), "w") as f:
         for i in split_idx:
             # To deal with recursive search, we want to write the difference between the annotation path
             # and its parent, without the file extension
             stem = str(annotation_files[i]).replace(f"{annotation_path}/", "").split(".json")[0]
             f.write(f"{stem}\n")
+
+
+def _validate_split(val_percentage: float, test_percentage: float) -> None:
+    if val_percentage is None or not 0 < val_percentage < 1:
+        raise ValueError(f"Invalid validation percentage ({val_percentage}). Must be a float x, where 0 < x < 1.")
+    if test_percentage is None or not 0 < test_percentage < 1:
+        raise ValueError(f"Invalid test percentage ({test_percentage}). Must be a float x, where 0 < x < 1.")
+    if val_percentage + test_percentage >= 1:
+        raise ValueError(
+            f"Invalid combination of validation ({val_percentage}) and test ({test_percentage}) percentages. "
+            f"Their sum must be a value x, where x < 1."
+        )
+
+
+def _build_split(
+    split_path: Path, stratified_types: List[str], partitions: List[str] = ["train", "val", "test"]
+) -> Split:
+    split = Split()
+
+    split.random = {partition: split_path / f"random_{partition}.txt" for partition in partitions}
+    if len(stratified_types) == 0:
+        return split
+
+    stratified_dict: Dict[str, Dict[str, Path]] = {}
+    for stratified_type in stratified_types:
+        stratified_dict[stratified_type] = {
+            partition: split_path / f"stratified_{stratified_type}_{partition}.txt" for partition in partitions
+        }
+    split.stratified = stratified_dict
+    return split
