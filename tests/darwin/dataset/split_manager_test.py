@@ -2,9 +2,7 @@ import sys
 
 import numpy as np
 import pytest
-from darwin.cli_functions import split
 from darwin.dataset.split_manager import split_dataset
-from darwin.torch.dataset import ClassificationDataset, InstanceSegmentationDataset
 from tests.fixtures import *
 
 
