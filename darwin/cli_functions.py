@@ -609,13 +609,15 @@ def upload_data(
 
         if already_existing_items:
             console.print(
-                f"Skipped {len(already_existing_items)} files already in the dataset.\n", style="warning",
+                f"Skipped {len(already_existing_items)} files already in the dataset.\n",
+                style="warning",
             )
 
         if upload_manager.error_count or other_skipped_items:
             error_count = upload_manager.error_count + len(other_skipped_items)
             console.print(
-                f"{error_count} files couldn't be uploaded because an error occurred.\n", style="error",
+                f"{error_count} files couldn't be uploaded because an error occurred.\n",
+                style="error",
             )
 
         if not verbose and upload_manager.error_count:
@@ -814,7 +816,7 @@ def delete_files(dataset_slug: str, files: List[str], skip_user_confirmation: bo
         _error(f"An error has occurred, please try again later.")
 
 
-def dataset_convert(dataset_slug: str, format: str, output_dir: Optional[PathLike] = None) -> None:
+def dataset_convert(dataset_identifier: str, format: str, output_dir: Optional[PathLike] = None) -> None:
     """
     Converts the annotations from the given dataset to the given format.
     Exits the application if no dataset with the given slug exists or no releases for the dataset
@@ -822,15 +824,17 @@ def dataset_convert(dataset_slug: str, format: str, output_dir: Optional[PathLik
 
     Parameters
     ----------
-    dataset_slug: str
-        The dataset's slug.
+    dataset_identifier: str
+        The dataset identifier, normally in the "<team-slug>/<dataset-slug>:<version>" form.
     format: str
         The format we want to convert to.
     output_dir: Optional[PathLike]
         The folder where the exported annotation files will be. If None it will be the inside the
         annotations folder of the dataset under 'other_formats/{format}'. The Defaults to None.
     """
-    client: Client = _load_client()
+    identifier: DatasetIdentifier = DatasetIdentifier.parse(dataset_identifier)
+    client: Client = _load_client(team_slug=identifier.team_slug)
+
     exporter_module = import_module(f"darwin.exporter.formats.{format}")
     try:
         parser: ExportParser = getattr(exporter_module, "export")
@@ -838,20 +842,21 @@ def dataset_convert(dataset_slug: str, format: str, output_dir: Optional[PathLik
         _error(f"Unsupported import format, currently supported: {export_formats}")
 
     try:
-        dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
+        dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=identifier)
         if not dataset.local_path.exists():
             _error(
                 f"No annotations downloaded for dataset f{dataset}, first pull a release using "
-                f"'darwin dataset pull {dataset_slug}'"
+                f"'darwin dataset pull {identifier}'"
             )
 
-        release_path: Path = get_release_path(dataset.local_path)
+        release_path: Path = get_release_path(dataset.local_path, identifier.version)
         annotations_path: Path = release_path / "annotations"
         if output_dir is None:
-            output_dir = release_path / "other_formats" / f"{format}"
+            output_dir = release_path / "other_formats" / format
         else:
             output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
+
         exporter.export_annotations(parser, [annotations_path], output_dir)
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")

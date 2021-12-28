@@ -194,4 +194,3 @@ def describe_delete_files():
                         fetch_remote_files_mock.assert_called_once_with({"filenames": "one.jpg,two.jpg"})
                         mock.assert_called_once_with(fetch_remote_files_mock.return_value)
                         exception.assert_called_once_with(1)
-
