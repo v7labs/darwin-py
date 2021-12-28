@@ -229,7 +229,7 @@ def describe_parse_path():
         assert_point(point_annotation, {"x": 1.93, "y": 0.233})
 
         annotation_class = point_annotation.annotation_class
-        assert_annotation_class(annotation_class, "Person", "keypoint")
+        assert_annotation_class(annotation_class, "Person-point", "keypoint")
 
     def it_raises_if_ellipse_has_missing_coordinate(annotations_file_path: Path, classes_file_path: Path):
         annotations_json: str = """
@@ -301,7 +301,7 @@ def describe_parse_path():
         )
 
         annotation_class = ellipse_annotation.annotation_class
-        assert_annotation_class(annotation_class, "Person", "ellipse")
+        assert_annotation_class(annotation_class, "Person-ellipse", "ellipse")
 
     def it_raises_if_cuboid_has_missing_point(annotations_file_path: Path, classes_file_path: Path):
         annotations_json: str = """
@@ -401,7 +401,7 @@ def describe_parse_path():
         )
 
         annotation_class = cuboid_annotation.annotation_class
-        assert_annotation_class(annotation_class, "Person", "cuboid")
+        assert_annotation_class(annotation_class, "Person-cuboid", "cuboid")
 
     def it_raises_if_polygon_has_missing_points(annotations_file_path: Path, classes_file_path: Path):
         annotations_json: str = """
@@ -473,7 +473,7 @@ def describe_parse_path():
         )
 
         annotation_class = polygon_annotation.annotation_class
-        assert_annotation_class(annotation_class, "Person", "polygon")
+        assert_annotation_class(annotation_class, "Person-polygon", "polygon")
 
     def it_raises_if_polyline_has_missing_points(annotations_file_path: Path, classes_file_path: Path):
         annotations_json: str = """
@@ -545,7 +545,7 @@ def describe_parse_path():
         )
 
         annotation_class = line_annotation.annotation_class
-        assert_annotation_class(annotation_class, "Person", "line")
+        assert_annotation_class(annotation_class, "Person-polyline", "line")
 
     def it_raises_if_bbox_has_missing_points(annotations_file_path: Path, classes_file_path: Path):
         annotations_json: str = """
@@ -618,7 +618,7 @@ def describe_parse_path():
         assert_bbox(bbox_annotation, 1642.9, 516.5, 217.5, 277.1)
 
         annotation_class = bbox_annotation.annotation_class
-        assert_annotation_class(annotation_class, "Person", "bounding_box")
+        assert_annotation_class(annotation_class, "Person-bbox", "bounding_box")
 
 
 def assert_cuboid(annotation: Annotation, cuboid: CuboidData) -> None:
