@@ -277,7 +277,7 @@ def _get_attributes(instance: Dict[str, Any], instance_class: Dict[str, Any]) ->
                 if attribute is None:
                     raise ValueError(f"No attribute data found for {info}.")
 
-                final_attribute = f"{str(group.get('name'))}-{str(attribute.get('name'))}"
+                final_attribute = f"{str(group.get('name'))}:{str(attribute.get('name'))}"
                 all_attributes.append(final_attribute)
 
     if all_attributes == []:

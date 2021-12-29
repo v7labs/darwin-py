@@ -195,16 +195,9 @@ def describe_parse_path():
         annotations_json: str = """
        {
           "instances": [
-             {
-                "type": "point",
-                "x": 1.93,
-                "y": 0.233,
-                "classId": 1
-             }
+             {"type": "point", "x": 1.93, "y": 0.233, "classId": 1, "attributes": []}
           ],
-         "metadata": {
-            "name": "demo-image-0.jpg"
-         }
+         "metadata": {"name": "demo-image-0.jpg"}
        }
       """
         classes_json: str = """
@@ -269,7 +262,8 @@ def describe_parse_path():
                   "cy": 475.8,
                   "rx": 205.4,
                   "ry": 275.7,
-                  "angle": 0
+                  "angle": 0,
+                  "attributes": []
                }
             ],
             "metadata": {
@@ -346,6 +340,7 @@ def describe_parse_path():
          {
             "instances": [
                {
+                  "attributes": [],
                   "type": "cuboid",
                   "classId": 1,
                   "points": {
@@ -432,6 +427,7 @@ def describe_parse_path():
          {
             "instances": [
                {
+                  "attributes": [],
                   "type": "polygon",
                   "classId": 1,
                   "points": [
@@ -504,6 +500,7 @@ def describe_parse_path():
          {
             "instances": [
                {
+                  "attributes": [],
                   "type": "polyline",
                   "classId": 1,
                   "points": [
@@ -583,12 +580,8 @@ def describe_parse_path():
                {
                   "type": "bbox",
                   "classId": 1,
-                  "points": {
-                     "x1": 1642.9,
-                     "x2": 1920,
-                     "y1": 516.5,
-                     "y2": 734
-                  }
+                  "points": {"x1": 1642.9, "x2": 1920, "y1": 516.5, "y2": 734},
+                  "attributes": []
                }
             ],
             "metadata": {
@@ -619,6 +612,87 @@ def describe_parse_path():
 
         annotation_class = bbox_annotation.annotation_class
         assert_annotation_class(annotation_class, "Person-bbox", "bounding_box")
+
+    def it_raises_if_an_attributes_is_missing(annotations_file_path: Path, classes_file_path: Path):
+
+        annotations_json: str = """
+         {
+            "instances": [
+               {
+                  "type": "bbox",
+                  "classId": 1,
+                  "points": {"x1": 1642.9, "x2": 1920, "y1": 516.5, "y2": 734}
+               }
+            ],
+            "metadata": {"name": "demo-image-0.jpg"}
+         }
+      """
+        classes_json: str = """
+       [
+         {
+            "attribute_groups": [
+                  {
+                     "id": 1,
+                     "name": "Sex",
+                     "attributes": [
+                        {"id": 1, "name": "Male"}
+                     ]
+                  }
+            ],
+            "id": 1,
+            "name": "Person"
+         }
+      ]
+       """
+
+        annotations_file_path.write_text(annotations_json)
+        classes_file_path.write_text(classes_json)
+
+        with pytest.raises(ValidationError) as error:
+            parse_path(annotations_file_path)
+
+        assert "'bbox' is not one of ['point']" in str(error.value)
+
+    def it_raises_if_an_attribute_from_a_group_is_missing(annotations_file_path: Path, classes_file_path: Path):
+
+        annotations_json: str = """
+         {
+            "instances": [
+               {
+                  "type": "bbox",
+                  "classId": 1,
+                  "points": {"x1": 1642.9, "x2": 1920, "y1": 516.5, "y2": 734},
+                  "attributes": [{"id": 2, "groupId": 1}]
+               }
+            ],
+            "metadata": {"name": "demo-image-0.jpg"}
+         }
+      """
+        classes_json: str = """
+       [
+         {
+            "attribute_groups": [
+                  {
+                     "id": 1,
+                     "name": "Sex",
+                     "attributes": [
+                        {"id": 1, "name": "Male"}
+                     ]
+                  }
+            ],
+            "id": 1,
+            "name": "Person"
+         }
+      ]
+       """
+
+        annotations_file_path.write_text(annotations_json)
+        classes_file_path.write_text(classes_json)
+
+        with pytest.raises(ValueError) as error:
+            parse_path(annotations_file_path)
+
+        assert "No attribute data found for {'id': 2, 'groupId': 1}." in str(error.value)
 
     def it_imports_attributes(annotations_file_path: Path, classes_file_path: Path):
 
@@ -679,9 +753,9 @@ def describe_parse_path():
         assert_bbox(bbox_annotation, 1642.9, 516.5, 217.5, 277.1)
 
         annotation_class = bbox_annotation.annotation_class
-        assert_annotation_class(annotation_class, "Person", "bounding_box")
+        assert_annotation_class(annotation_class, "Person-bbox", "bounding_box")
 
-        assert_subannotations(bbox_annotation.subs, [SubAnnotation("attributes", ["Sex-Female", "Emotion-Smiling"])])
+        assert_subannotations(bbox_annotation.subs, [SubAnnotation("attributes", ["Sex:Female", "Emotion:Smiling"])])
 
 
 def assert_cuboid(annotation: Annotation, cuboid: CuboidData) -> None:
