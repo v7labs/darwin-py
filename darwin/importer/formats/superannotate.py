@@ -12,6 +12,8 @@ from darwin.datatypes import (
     AnnotationFile,
     CuboidData,
     Point,
+    SubAnnotation,
+    make_attributes,
     make_bounding_box,
     make_cuboid,
     make_ellipse,
@@ -170,8 +172,14 @@ def _to_bbox_annotation(bbox: Dict[str, Any], classes: List[Dict[str, Any]]) -> 
     h: float = abs(cast(float, points.get("y1")) - cast(float, points.get("y2")))
     class_id: int = cast(int, bbox.get("classId"))
 
-    name = _find_class_name(class_id, classes)
-    return make_bounding_box(name, x, y, w, h)
+    instance_class: Dict[str, Any] = _find_class(class_id, classes)
+    name: str = str(instance_class.get("name"))
+    attributes: Optional[SubAnnotation] = _get_attributes(bbox, instance_class)
+    subannotations: Optional[List[SubAnnotation]] = None
+    if attributes:
+        subannotations = [attributes]
+
+    return make_bounding_box(name, x, y, w, h, subannotations)
 
 
 def _to_ellipse_annotation(ellipse: Dict[str, Any], classes: List[Dict[str, Any]]) -> Annotation:
@@ -230,7 +238,7 @@ def _to_line_annotation(line: Dict[str, Any], classes: List[Dict[str, Any]]) -> 
     return make_line(name, points)
 
 
-def _find_class_name(class_id: int, classes: List[Dict[str, Any]]) -> str:
+def _find_class(class_id: int, classes: List[Dict[str, Any]]) -> Dict[str, Any]:
     obj: Optional[Dict[str, Any]] = next((class_obj for class_obj in classes if class_obj.get("id") == class_id), None)
 
     if obj is None:
@@ -238,7 +246,39 @@ def _find_class_name(class_id: int, classes: List[Dict[str, Any]]) -> str:
             f"No class with id '{class_id}' was found in {classes}.\nCannot continue import, pleaase check your 'classes.json' file."
         )
 
-    return str(obj.get("name"))
+    return obj
+
+
+def _get_attributes(instance: Dict[str, Any], instance_class: Dict[str, Any]) -> Optional[SubAnnotation]:
+    attribute_info: List[Dict[str, int]] = cast(List[Dict[str, int]], instance.get("attributes"))
+    groups: List[Dict[str, Any]] = cast(List[Dict[str, Any]], instance_class.get("attribute_groups"))
+    all_attributes: List[str] = []
+
+    for info in attribute_info:
+        info_group_id: int = cast(int, info.get("groupId"))
+        attribute_id: int = cast(int, info.get("id"))
+
+        for group in groups:
+            group_id: int = cast(int, group.get("id"))
+
+            if info_group_id == group_id:
+                group_attributes: List[Dict[str, Union[str, int]]] = cast(
+                    List[Dict[str, Union[str, int]]], group.get("attributes")
+                )
+                attribute: Optional[Dict[str, Union[str, int]]] = next(
+                    (attribute for attribute in group_attributes if attribute.get("id") == attribute_id), None
+                )
+
+                if attribute is None:
+                    raise ValueError(f"No attribute data found for {info}.")
+
+                final_attribute = f"{str(group.get('name'))}-{str(attribute.get('name'))}"
+                all_attributes.append(final_attribute)
+
+    if all_attributes == []:
+        return None
+
+    return make_attributes(all_attributes)
 
 
 def _get_class(annotation: Annotation) -> AnnotationClass:

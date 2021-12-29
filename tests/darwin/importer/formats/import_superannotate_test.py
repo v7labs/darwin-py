@@ -620,6 +620,69 @@ def describe_parse_path():
         annotation_class = bbox_annotation.annotation_class
         assert_annotation_class(annotation_class, "Person", "bounding_box")
 
+    def it_imports_attributes(annotations_file_path: Path, classes_file_path: Path):
+
+        annotations_json: str = """
+         {
+            "instances": [
+               {
+                  "type": "bbox",
+                  "classId": 1,
+                  "points": {"x1": 1642.9, "x2": 1920, "y1": 516.5, "y2": 734},
+                  "attributes": [{"id": 2, "groupId": 1}, {"id": 3, "groupId": 2}]
+               }
+            ],
+            "metadata": {"name": "demo-image-0.jpg"}
+         }
+      """
+        classes_json: str = """
+       [
+         {
+            "attribute_groups": [
+                  {
+                     "id": 1,
+                     "name": "Sex",
+                     "attributes": [
+                        {"id": 1, "name": "Male"},
+                        {"id": 2, "name": "Female"}
+                     ]
+                  },
+                  {
+                     "id": 2,
+                     "name": "Emotion",
+                     "attributes": [
+                        {"id": 3, "name": "Smiling"},
+                        {"id": 4, "name": "Sadness"},
+                        {"id": 5, "name": "Crying"}
+                     ]
+                  }
+            ],
+            "id": 1,
+            "name": "Person"
+         }
+      ]
+       """
+
+        annotations_file_path.write_text(annotations_json)
+        classes_file_path.write_text(classes_json)
+
+        annotation_file: Optional[AnnotationFile] = parse_path(annotations_file_path)
+        assert annotation_file is not None
+        assert annotation_file.path == annotations_file_path
+        assert annotation_file.filename == "demo-image-0.jpg"
+        assert annotation_file.annotation_classes
+        assert annotation_file.remote_path == "/"
+
+        assert annotation_file.annotations
+
+        bbox_annotation: Annotation = cast(Annotation, annotation_file.annotations.pop())
+        assert_bbox(bbox_annotation, 1642.9, 516.5, 217.5, 277.1)
+
+        annotation_class = bbox_annotation.annotation_class
+        assert_annotation_class(annotation_class, "Person", "bounding_box")
+
+        assert_subannotations(bbox_annotation.subs, [SubAnnotation("attributes", ["Sex-Female", "Emotion-Smiling"])])
+
 
 def assert_cuboid(annotation: Annotation, cuboid: CuboidData) -> None:
     cuboid_back: Dict[str, float] = cast(Dict[str, float], cuboid.get("back"))
