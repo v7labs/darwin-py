@@ -26,6 +26,8 @@ from darwin.importer.formats.superannotate_schemas import (
     superannotate_export,
 )
 
+AttributeGroup = Dict[str, Union[str, int]]
+
 
 def parse_path(path: Path) -> Optional[AnnotationFile]:
     """
@@ -289,17 +291,15 @@ def _get_attributes(instance: Dict[str, Any], instance_class: Dict[str, Any]) ->
             group_id: int = cast(int, group.get("id"))
 
             if info_group_id == group_id:
-                group_attributes: List[Dict[str, Union[str, int]]] = cast(
-                    List[Dict[str, Union[str, int]]], group.get("attributes")
-                )
-                attribute: Optional[Dict[str, Union[str, int]]] = next(
+                group_attributes: List[AttributeGroup] = cast(List[AttributeGroup], group.get("attributes"))
+                attribute: Optional[AttributeGroup] = next(
                     (attribute for attribute in group_attributes if attribute.get("id") == attribute_id), None
                 )
 
                 if attribute is None:
                     raise ValueError(f"No attribute data found for {info}.")
 
-                final_attribute = f"{str(group.get('name'))}:{str(attribute.get('name'))}"
+                final_attribute: str = f"{str(group.get('name'))}:{str(attribute.get('name'))}"
                 all_attributes.append(final_attribute)
 
     if all_attributes == []:
