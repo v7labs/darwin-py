@@ -162,7 +162,11 @@ def _to_keypoint_annotation(point: Dict[str, Any], classes: List[Dict[str, Any]]
 
     instance_class: Dict[str, Any] = _find_class(class_id, classes)
     name: str = str(instance_class.get("name"))
-    return make_keypoint(f"{name}-point", x, y)
+    attributes: Optional[SubAnnotation] = _get_attributes(point, instance_class)
+    subannotations: Optional[List[SubAnnotation]] = None
+    if attributes:
+        subannotations = [attributes]
+    return make_keypoint(f"{name}-point", x, y, subannotations)
 
 
 def _to_bbox_annotation(bbox: Dict[str, Any], classes: List[Dict[str, Any]]) -> Annotation:
@@ -192,7 +196,12 @@ def _to_ellipse_annotation(ellipse: Dict[str, Any], classes: List[Dict[str, Any]
 
     instance_class: Dict[str, Any] = _find_class(class_id, classes)
     name: str = str(instance_class.get("name"))
-    return make_ellipse(f"{name}-ellipse", ellipse_data)
+    attributes: Optional[SubAnnotation] = _get_attributes(ellipse, instance_class)
+    subannotations: Optional[List[SubAnnotation]] = None
+    if attributes:
+        subannotations = [attributes]
+
+    return make_ellipse(f"{name}-ellipse", ellipse_data, subannotations)
 
 
 def _to_cuboid_annotation(cuboid: Dict[str, Any], classes: List[Dict[str, Any]]) -> Annotation:
@@ -220,7 +229,12 @@ def _to_cuboid_annotation(cuboid: Dict[str, Any], classes: List[Dict[str, Any]])
 
     instance_class: Dict[str, Any] = _find_class(class_id, classes)
     name: str = str(instance_class.get("name"))
-    return make_cuboid(f"{name}-cuboid", cuboid_data)
+    attributes: Optional[SubAnnotation] = _get_attributes(cuboid, instance_class)
+    subannotations: Optional[List[SubAnnotation]] = None
+    if attributes:
+        subannotations = [attributes]
+
+    return make_cuboid(f"{name}-cuboid", cuboid_data, subannotations)
 
 
 def _to_polygon_annotation(polygon: Dict[str, Any], classes: List[Dict[str, Any]]) -> Annotation:
@@ -230,7 +244,11 @@ def _to_polygon_annotation(polygon: Dict[str, Any], classes: List[Dict[str, Any]
     name: str = str(instance_class.get("name"))
     points: List[Point] = _map_to_list(_tuple_to_point, _group_to_list(data, 2, 0))
 
-    return make_polygon(f"{name}-polygon", points)
+    attributes: Optional[SubAnnotation] = _get_attributes(polygon, instance_class)
+    subannotations: Optional[List[SubAnnotation]] = None
+    if attributes:
+        subannotations = [attributes]
+    return make_polygon(f"{name}-polygon", points, None, subannotations)
 
 
 def _to_line_annotation(line: Dict[str, Any], classes: List[Dict[str, Any]]) -> Annotation:
@@ -239,8 +257,12 @@ def _to_line_annotation(line: Dict[str, Any], classes: List[Dict[str, Any]]) -> 
     instance_class: Dict[str, Any] = _find_class(class_id, classes)
     name: str = str(instance_class.get("name"))
     points: List[Point] = _map_to_list(_tuple_to_point, _group_to_list(data, 2, 0))
+    attributes: Optional[SubAnnotation] = _get_attributes(line, instance_class)
+    subannotations: Optional[List[SubAnnotation]] = None
+    if attributes:
+        subannotations = [attributes]
 
-    return make_line(f"{name}-polyline", points)
+    return make_line(f"{name}-polyline", points, subannotations)
 
 
 def _find_class(class_id: int, classes: List[Dict[str, Any]]) -> Dict[str, Any]:

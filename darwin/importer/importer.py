@@ -284,6 +284,10 @@ def _handle_subs(
             data["instance_id"] = {"value": sub.data}
         else:
             data[sub.annotation_type] = sub.data
+
+        difference = list(set(sub.data) - set(data["attributes"]))
+        print(f"The following attributes were not imported: {difference}")
+
     return data
 
 
