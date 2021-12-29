@@ -159,7 +159,7 @@ def _to_keypoint_annotation(point: Dict[str, Any], classes: List[Dict[str, Any]]
     class_id: int = cast(int, point.get("classId"))
 
     name = _find_class_name(class_id, classes)
-    return make_keypoint(name + "-point", x, y)
+    return make_keypoint(f"{name}-point", x, y)
 
 
 def _to_bbox_annotation(bbox: Dict[str, Any], classes: List[Dict[str, Any]]) -> Annotation:
@@ -171,7 +171,7 @@ def _to_bbox_annotation(bbox: Dict[str, Any], classes: List[Dict[str, Any]]) -> 
     class_id: int = cast(int, bbox.get("classId"))
 
     name = _find_class_name(class_id, classes)
-    return make_bounding_box(name + "-bbox", x, y, w, h)
+    return make_bounding_box(f"{name}-bbox", x, y, w, h)
 
 
 def _to_ellipse_annotation(ellipse: Dict[str, Any], classes: List[Dict[str, Any]]) -> Annotation:
@@ -182,7 +182,7 @@ def _to_ellipse_annotation(ellipse: Dict[str, Any], classes: List[Dict[str, Any]
     class_id: int = cast(int, ellipse.get("classId"))
 
     name = _find_class_name(class_id, classes)
-    return make_ellipse(name + "-ellipse", ellipse_data)
+    return make_ellipse(f"{name}-ellipse", ellipse_data)
 
 
 def _to_cuboid_annotation(cuboid: Dict[str, Any], classes: List[Dict[str, Any]]) -> Annotation:
@@ -209,7 +209,7 @@ def _to_cuboid_annotation(cuboid: Dict[str, Any], classes: List[Dict[str, Any]])
     class_id: int = cast(int, cuboid.get("classId"))
 
     name = _find_class_name(class_id, classes)
-    return make_cuboid(name + "-cuboid", cuboid_data)
+    return make_cuboid(f"{name}-cuboid", cuboid_data)
 
 
 def _to_polygon_annotation(polygon: Dict[str, Any], classes: List[Dict[str, Any]]) -> Annotation:
@@ -218,7 +218,7 @@ def _to_polygon_annotation(polygon: Dict[str, Any], classes: List[Dict[str, Any]
     name: str = _find_class_name(class_id, classes)
     points: List[Point] = _map_to_list(_tuple_to_point, _group_to_list(data, 2, 0))
 
-    return make_polygon(name + "-polygon", points)
+    return make_polygon(f"{name}-polygon", points)
 
 
 def _to_line_annotation(line: Dict[str, Any], classes: List[Dict[str, Any]]) -> Annotation:
@@ -227,7 +227,7 @@ def _to_line_annotation(line: Dict[str, Any], classes: List[Dict[str, Any]]) -> 
     name: str = _find_class_name(class_id, classes)
     points: List[Point] = _map_to_list(_tuple_to_point, _group_to_list(data, 2, 0))
 
-    return make_line(name + "-polyline", points)
+    return make_line(f"{name}-polyline", points)
 
 
 def _find_class_name(class_id: int, classes: List[Dict[str, Any]]) -> str:
