@@ -4,4 +4,4 @@ import darwin.exceptions  # noqa
 from .client import Client  # noqa
 from .datatypes import Team  # noqa
 
-__version__ = "0.7.2"
+__version__ = "0.7.3"

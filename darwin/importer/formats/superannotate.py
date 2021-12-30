@@ -128,7 +128,7 @@ def _convert(
     conver_to_darwin_object = partial(_convert_instance, superannotate_classes=superannotate_classes)
 
     filename: str = str(metadata.get("name"))
-    darwin_tags: List[Annotation] = _map_to_list(_convert_tag, tags)
+    darwin_tags: List[Annotation] = _map_to_list(make_tag, tags)
     darwin_objects: List[Annotation] = _map_to_list(conver_to_darwin_object, instances)
     annotations: List[Annotation] = darwin_objects + darwin_tags
     classes: Set[AnnotationClass] = _map_to_set(_get_class, annotations)
@@ -164,10 +164,6 @@ def _convert_instance(obj: Dict[str, Any], superannotate_classes: List[Dict[str,
         return _to_line_annotation(obj, superannotate_classes)
 
     raise ValueError(f"Unknown label object {obj}")
-
-
-def _convert_tag(tag: str) -> Annotation:
-    return make_tag(tag)
 
 
 def _to_keypoint_annotation(point: Dict[str, Any], classes: List[Dict[str, Any]]) -> Annotation:
