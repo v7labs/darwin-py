@@ -290,17 +290,19 @@ def _get_attributes(instance: Dict[str, Any], instance_class: Dict[str, Any]) ->
         for group in groups:
             group_id: int = cast(int, group.get("id"))
 
-            if info_group_id == group_id:
-                group_attributes: List[AttributeGroup] = cast(List[AttributeGroup], group.get("attributes"))
-                attribute: Optional[AttributeGroup] = next(
-                    (attribute for attribute in group_attributes if attribute.get("id") == attribute_id), None
-                )
+            if info_group_id != group_id:
+                continue
 
-                if attribute is None:
-                    raise ValueError(f"No attribute data found for {info}.")
+            group_attributes: List[AttributeGroup] = cast(List[AttributeGroup], group.get("attributes"))
+            attribute: Optional[AttributeGroup] = next(
+                (attribute for attribute in group_attributes if attribute.get("id") == attribute_id), None
+            )
 
-                final_attribute: str = f"{str(group.get('name'))}:{str(attribute.get('name'))}"
-                all_attributes.append(final_attribute)
+            if attribute is None:
+                raise ValueError(f"No attribute data found for {info}.")
+
+            final_attribute: str = f"{str(group.get('name'))}:{str(attribute.get('name'))}"
+            all_attributes.append(final_attribute)
 
     if all_attributes == []:
         return None
