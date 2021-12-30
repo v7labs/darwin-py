@@ -56,6 +56,7 @@ def describe_parse_path():
         annotations_json: str = """
          {
             "instances": [],
+            "tags": [],
             "metadata": {
                "name": "demo-image-0.jpg"
             }
@@ -176,6 +177,7 @@ def describe_parse_path():
                    "y": 0
                 }
              ],
+             "tags": [],
              "metadata": {
                 "name": "demo-image-0.jpg"
              }
@@ -197,12 +199,13 @@ def describe_parse_path():
           "instances": [
              {"type": "point", "x": 1.93, "y": 0.233, "classId": 1, "attributes": []}
           ],
+          "tags": [],
          "metadata": {"name": "demo-image-0.jpg"}
        }
       """
         classes_json: str = """
        [
-          {"name": "Person", "id": 1}
+          {"name": "Person", "id": 1, "attribute_groups": []}
        ]
        """
 
@@ -228,17 +231,10 @@ def describe_parse_path():
         annotations_json: str = """
           {
              "instances": [
-                {
-                   "type": "ellipse",
-                   "cy": 0,
-                   "cx": 0,
-                   "rx": 0,
-                   "angle": 0
-                }
+                {"type": "ellipse", "cy": 0, "cx": 0, "rx": 0, "angle": 0}
              ],
-             "metadata": {
-                "name": "demo-image-0.jpg"
-             }
+             "tags": [],
+             "metadata": {"name": "demo-image-0.jpg"}
           }
          """
         classes_json: str = """[]"""
@@ -266,14 +262,13 @@ def describe_parse_path():
                   "attributes": []
                }
             ],
-            "metadata": {
-               "name": "demo-image-0.jpg"
-            }
+            "tags": [],
+            "metadata": {"name": "demo-image-0.jpg"}
          }
       """
         classes_json: str = """
        [
-          {"name": "Person", "id": 1}
+          {"name": "Person", "id": 1, "attribute_groups": []}
        ]
        """
 
@@ -305,24 +300,14 @@ def describe_parse_path():
                   "type": "cuboid",
                   "classId": 1,
                   "points": {
-                     "f2": {
-                        "x": 3023.31,
-                        "y": 2302.75
-                     },
-                     "r1": {
-                        "x": 1826.19,
-                        "y": 1841.44
-                     },
-                     "r2": {
-                        "x": 2928,
-                        "y": 2222.69
-                     }
+                     "f2": {"x": 3023.31, "y": 2302.75},
+                     "r1": {"x": 1826.19, "y": 1841.44},
+                     "r2": {"x": 2928, "y": 2222.69}
                   }
                }
              ],
-             "metadata": {
-                "name": "demo-image-0.jpg"
-             }
+             "tags": [],
+             "metadata": {"name": "demo-image-0.jpg"}
           }
          """
         classes_json: str = """[]"""
@@ -344,33 +329,20 @@ def describe_parse_path():
                   "type": "cuboid",
                   "classId": 1,
                   "points": {
-                     "f1": {
-                        "x": 1742.31,
-                        "y": 1727.06
-                     },
-                     "f2": {
-                        "x": 3023.31,
-                        "y": 2302.75
-                     },
-                     "r1": {
-                        "x": 1826.19,
-                        "y": 1841.44
-                     },
-                     "r2": {
-                        "x": 2928,
-                        "y": 2222.69
-                     }
+                     "f1": {"x": 1742.31, "y": 1727.06},
+                     "f2": {"x": 3023.31, "y": 2302.75},
+                     "r1": {"x": 1826.19, "y": 1841.44},
+                     "r2": {"x": 2928, "y": 2222.69}
                   }
                }
             ],
-            "metadata": {
-               "name": "demo-image-0.jpg"
-            }
+            "tags": [],
+            "metadata": {"name": "demo-image-0.jpg"}
          }
       """
         classes_json: str = """
        [
-          {"name": "Person", "id": 1}
+          {"name": "Person", "id": 1, "attribute_groups": []}
        ]
        """
 
@@ -407,6 +379,7 @@ def describe_parse_path():
                   "classId": 1
                }
             ],
+            "tags": [],
             "metadata": {
                "name": "demo-image-0.jpg"
             }
@@ -430,24 +403,16 @@ def describe_parse_path():
                   "attributes": [],
                   "type": "polygon",
                   "classId": 1,
-                  "points": [
-                     1053,
-                     587.2,
-                     1053.1,
-                     586,
-                     1053.8,
-                     585.4
-                  ]
+                  "points": [1053, 587.2, 1053.1, 586, 1053.8, 585.4]
                }
             ],
-            "metadata": {
-               "name": "demo-image-0.jpg"
-            }
+            "tags": [],
+            "metadata": {"name": "demo-image-0.jpg"}
          }
       """
         classes_json: str = """
        [
-          {"name": "Person", "id": 1}
+          {"name": "Person", "id": 1, "attribute_groups": []}
        ]
        """
 
@@ -480,6 +445,7 @@ def describe_parse_path():
                   "classId": 1
                }
             ],
+            "tags": [],
             "metadata": {
                "name": "demo-image-0.jpg"
             }
@@ -503,24 +469,16 @@ def describe_parse_path():
                   "attributes": [],
                   "type": "polyline",
                   "classId": 1,
-                  "points": [
-                     1053,
-                     587.2,
-                     1053.1,
-                     586,
-                     1053.8,
-                     585.4
-                  ]
+                  "points": [1053, 587.2, 1053.1, 586, 1053.8, 585.4]
                }
             ],
-            "metadata": {
-               "name": "demo-image-0.jpg"
-            }
+            "tags": [],
+            "metadata": {"name": "demo-image-0.jpg"}
          }
       """
         classes_json: str = """
        [
-          {"name": "Person", "id": 1}
+          {"name": "Person", "id": 1, "attribute_groups": []}
        ]
        """
 
@@ -551,16 +509,11 @@ def describe_parse_path():
                {
                   "type": "bbox",
                   "classId": 1,
-                  "points": {
-                     "x2": 1920,
-                     "y1": 516.5,
-                     "y2": 734
-                  }
+                  "points": {"x2": 1920, "y1": 516.5, "y2": 734}
                }
             ],
-            "metadata": {
-               "name": "demo-image-0.jpg"
-            }
+            "tags": [],
+            "metadata": {"name": "demo-image-0.jpg"}
          }
          """
         classes_json: str = """[]"""
@@ -584,14 +537,13 @@ def describe_parse_path():
                   "attributes": []
                }
             ],
-            "metadata": {
-               "name": "demo-image-0.jpg"
-            }
+            "tags": [],
+            "metadata": {"name": "demo-image-0.jpg"}
          }
       """
         classes_json: str = """
        [
-          {"name": "Person", "id": 1}
+          {"name": "Person", "id": 1, "attribute_groups": []}
        ]
        """
 
@@ -624,6 +576,7 @@ def describe_parse_path():
                   "points": {"x1": 1642.9, "x2": 1920, "y1": 516.5, "y2": 734}
                }
             ],
+            "tags": [],
             "metadata": {"name": "demo-image-0.jpg"}
          }
       """
@@ -665,6 +618,7 @@ def describe_parse_path():
                   "attributes": [{"id": 2, "groupId": 1}]
                }
             ],
+            "tags": [],
             "metadata": {"name": "demo-image-0.jpg"}
          }
       """
@@ -706,6 +660,7 @@ def describe_parse_path():
                   "attributes": [{"id": 2, "groupId": 1}, {"id": 3, "groupId": 2}]
                }
             ],
+            "tags": [],
             "metadata": {"name": "demo-image-0.jpg"}
          }
       """
@@ -756,6 +711,79 @@ def describe_parse_path():
         assert_annotation_class(annotation_class, "Person-bbox", "bounding_box")
 
         assert_subannotations(bbox_annotation.subs, [SubAnnotation("attributes", ["Sex:Female", "Emotion:Smiling"])])
+
+    def it_raises_if_tags_is_missing(annotations_file_path: Path, classes_file_path: Path):
+
+        annotations_json: str = """
+         {
+            "instances": [
+               {
+                  "type": "bbox",
+                  "classId": 1,
+                  "points": {"x1": 1642.9, "x2": 1920, "y1": 516.5, "y2": 734},
+                  "attributes": []
+               }
+            ],
+            "metadata": {"name": "demo-image-0.jpg"}
+         }
+      """
+        classes_json: str = """
+       [
+         {"attribute_groups": [], "id": 1, "name": "Person"}
+      ]
+       """
+
+        annotations_file_path.write_text(annotations_json)
+        classes_file_path.write_text(classes_json)
+
+        with pytest.raises(ValidationError) as error:
+            parse_path(annotations_file_path)
+
+        assert "'tags' is a required property" in str(error.value)
+
+    def it_imports_tags(annotations_file_path: Path, classes_file_path: Path):
+
+        annotations_json: str = """
+         {
+            "instances": [
+               {
+                  "type": "bbox",
+                  "classId": 1,
+                  "points": {"x1": 1642.9, "x2": 1920, "y1": 516.5, "y2": 734},
+                  "attributes": []
+               }
+            ],
+            "tags": ["street", "night"],
+            "metadata": {"name": "demo-image-0.jpg"}
+         }
+      """
+        classes_json: str = """
+       [
+         {
+            "attribute_groups": [],
+            "id": 1,
+            "name": "Person"
+         }
+      ]
+       """
+
+        annotations_file_path.write_text(annotations_json)
+        classes_file_path.write_text(classes_json)
+
+        annotation_file: Optional[AnnotationFile] = parse_path(annotations_file_path)
+        assert annotation_file is not None
+        assert annotation_file.path == annotations_file_path
+        assert annotation_file.filename == "demo-image-0.jpg"
+        assert annotation_file.annotation_classes
+        assert annotation_file.remote_path == "/"
+
+        assert annotation_file.annotations
+
+        street_tag: Annotation = cast(Annotation, annotation_file.annotations[1])
+        assert_annotation_class(street_tag.annotation_class, "street", "tag")
+
+        night_tag: Annotation = cast(Annotation, annotation_file.annotations[2])
+        assert_annotation_class(night_tag.annotation_class, "night", "tag")
 
 
 def assert_cuboid(annotation: Annotation, cuboid: CuboidData) -> None:

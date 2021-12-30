@@ -1,3 +1,7 @@
+##################################
+#       import_file.json         #
+##################################
+
 attributes = {
     "type": "array",
     "items": {
@@ -208,18 +212,44 @@ point = {
 
 superannotate_export = {
     "type": "object",
+    "required": ["instances", "metadata", "tags"],
     "properties": {
         "instances": {"type": "array", "items": {"oneOf": [point, ellipse, cuboid, polygon, bbox, polyline]},},
         "metadata": {"type": "object", "required": ["name"], "properties": {"name": {"type": "string"}}},
+        "tags": {"type": "array", "items": {"type": "string"}},
     },
-    "required": ["instances", "metadata"],
+}
+
+##################################
+#       classes.json             #
+##################################
+
+attribute_groups = {
+    "type": "array",
+    "items": {
+        "type": "object",
+        "required": ["id", "name", "attributes"],
+        "properties": {
+            "id": {"type": "integer"},
+            "name": {"type": "string"},
+            "attributes": {
+                "type": "array",
+                "itmes": {
+                    "type": "object",
+                    "required": ["id", "name"],
+                    "properties": {"id": {"type": "integer"}, "name": {"type": "string"}},
+                },
+            },
+        },
+    },
 }
 
 classes_export = {
     "type": "array",
     "items": {
         "type": "object",
-        "required": ["name", "id"],
-        "properties": {"name": {"type": "string"}, "id": {"type": "integer"}},
+        "required": ["name", "id", "attribute_groups"],
+        "properties": {"name": {"type": "string"}, "id": {"type": "integer"}, "attribute_groups": attribute_groups},
     },
 }
+

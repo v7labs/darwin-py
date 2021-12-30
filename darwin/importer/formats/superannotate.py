@@ -20,6 +20,7 @@ from darwin.datatypes import (
     make_keypoint,
     make_line,
     make_polygon,
+    make_tag,
 )
 from darwin.importer.formats.superannotate_schemas import (
     classes_export,
@@ -41,12 +42,15 @@ def parse_path(path: Path) -> Optional[AnnotationFile]:
         {
             "instances": [
                 {
+                    "classId": 1,
+                    "attributes": [],
                     "type": "point",
                     "x": 1,
                     "y": 0
                 },
                 // { ... }
             ],
+            "tags": ["a_tag_here"],
             "metadata": {
                 "name": "a_file_name.json"
             }
@@ -60,13 +64,14 @@ def parse_path(path: Path) -> Optional[AnnotationFile]:
         - bbox ``Vector`` (not rotated): https://doc.superannotate.com/docs/vector-json#bounding-box-and-rotated-bounding-box  
         - polygon and polyline ``Vector``s: https://doc.superannotate.com/docs/vector-json#polyline-and-polygon
 
+    We also support attributes and tags.
 
     Each file must also have in the same folder a ``classes.json`` file with information about 
     the classes. This file must have a structure simillar to:
 
     .. code-block:: javascript
         [
-            {"name": "a_name_here", "id": 1},
+            {"name": "a_name_here", "id": 1, "attribute_groups": []},
             // { ... }
         ]
 
@@ -108,8 +113,9 @@ def parse_path(path: Path) -> Optional[AnnotationFile]:
 
         instances: List[Dict[str, Any]] = data.get("instances")
         metadata: Dict[str, Any] = data.get("metadata")
+        tags: List[str] = data.get("tags")
 
-        return _convert(instances, path, classes, metadata)
+        return _convert(instances, path, classes, metadata, tags)
 
 
 def _convert(
@@ -117,11 +123,14 @@ def _convert(
     annotation_file_path: Path,
     superannotate_classes: List[Dict[str, Any]],
     metadata: Dict[str, Any],
+    tags: List[str],
 ) -> AnnotationFile:
-    filename: str = str(metadata.get("name"))
+    conver_to_darwin_object = partial(_convert_instance, superannotate_classes=superannotate_classes)
 
-    convert_with_classes = partial(_convert_objects, superannotate_classes=superannotate_classes)
-    annotations: List[Annotation] = _map_to_list(convert_with_classes, instances)
+    filename: str = str(metadata.get("name"))
+    darwin_tags: List[Annotation] = _map_to_list(_convert_tag, tags)
+    darwin_objects: List[Annotation] = _map_to_list(conver_to_darwin_object, instances)
+    annotations: List[Annotation] = darwin_objects + darwin_tags
     classes: Set[AnnotationClass] = _map_to_set(_get_class, annotations)
 
     return AnnotationFile(
@@ -133,7 +142,7 @@ def _convert(
     )
 
 
-def _convert_objects(obj: Dict[str, Any], superannotate_classes: List[Dict[str, Any]]) -> Annotation:
+def _convert_instance(obj: Dict[str, Any], superannotate_classes: List[Dict[str, Any]]) -> Annotation:
     type: str = str(obj.get("type"))
 
     if type == "point":
@@ -155,6 +164,10 @@ def _convert_objects(obj: Dict[str, Any], superannotate_classes: List[Dict[str, 
         return _to_line_annotation(obj, superannotate_classes)
 
     raise ValueError(f"Unknown label object {obj}")
+
+
+def _convert_tag(tag: str) -> Annotation:
+    return make_tag(tag)
 
 
 def _to_keypoint_annotation(point: Dict[str, Any], classes: List[Dict[str, Any]]) -> Annotation:
