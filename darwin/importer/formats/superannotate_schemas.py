@@ -1,3 +1,7 @@
+##################################
+#       import_file.json         #
+##################################
+
 attributes = {
     "type": "array",
     "items": {
@@ -215,6 +219,10 @@ superannotate_export = {
         "tags": {"type": "array", "items": {"type": "string"}},
     },
 }
+
+##################################
+#       classes.json             #
+##################################
 
 attribute_groups = {
     "type": "array",

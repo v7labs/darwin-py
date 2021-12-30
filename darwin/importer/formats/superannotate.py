@@ -42,13 +42,15 @@ def parse_path(path: Path) -> Optional[AnnotationFile]:
         {
             "instances": [
                 {
+                    "classId": 1,
+                    "attributes": [],
                     "type": "point",
                     "x": 1,
                     "y": 0
                 },
                 // { ... }
             ],
-            "tags": ["orange"],
+            "tags": ["a_tag_here"],
             "metadata": {
                 "name": "a_file_name.json"
             }
@@ -62,6 +64,7 @@ def parse_path(path: Path) -> Optional[AnnotationFile]:
         - bbox ``Vector`` (not rotated): https://doc.superannotate.com/docs/vector-json#bounding-box-and-rotated-bounding-box  
         - polygon and polyline ``Vector``s: https://doc.superannotate.com/docs/vector-json#polyline-and-polygon
 
+    We also support attributes and tags.
 
     Each file must also have in the same folder a ``classes.json`` file with information about 
     the classes. This file must have a structure simillar to:
