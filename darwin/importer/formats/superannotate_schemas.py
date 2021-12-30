@@ -1,11 +1,33 @@
+attributes = {
+    "type": "array",
+    "items": {
+        "type": "object",
+        "properties": {"id": {"type": "integer"}, "groupId": {"type": "integer"}},
+        "required": ["id", "groupId"],
+    },
+}
+
 bbox = {
     "$id": "https://darwin.v7labs.com/schemas/supperannotate/bounding_box",
     "description": "Schema of a Bounding Box",
     "title": "Bounding Box",
-    "default": {"type": "bbox", "points": {"x1": 1223.1, "x2": 1420.2, "y1": 607.3, "y2": 1440,}, "classId": 1,},
-    "examples": [{"type": "bbox", "points": {"x1": 587.5, "x2": 1420.2, "y1": 607.3, "y2": 1440,}, "classId": 1,}],
+    "default": {
+        "type": "bbox",
+        "points": {"x1": 1223.1, "x2": 1420.2, "y1": 607.3, "y2": 1440,},
+        "classId": 1,
+        "attributes": [],
+    },
+    "examples": [
+        {
+            "type": "bbox",
+            "points": {"x1": 587.5, "x2": 1420.2, "y1": 607.3, "y2": 1440,},
+            "classId": 1,
+            "attributes": [{"id": 1, "groupId": 2}],
+        }
+    ],
     "type": "object",
     "properties": {
+        "attributes": attributes,
         "classId": {"type": "integer"},
         "type": {"enum": ["bbox"]},
         "points": {
@@ -19,7 +41,7 @@ bbox = {
             "required": ["x1", "x2", "y1", "y2"],
         },
     },
-    "required": ["points", "type", "classId"],
+    "required": ["points", "type", "classId", "attributes"],
 }
 
 polygon = {
@@ -28,16 +50,17 @@ polygon = {
     "title": "Polygon",
     "default": {"type": "polygon", "points": [1, 2, 3, 4], "classId": 1},
     "examples": [
-        {"type": "polygon", "points": [1, 2, 3, 4], "classId": 1},
-        {"type": "polygon", "points": [], "classId": 1},
+        {"type": "polygon", "points": [1, 2, 3, 4], "classId": 1, "attributes": [{"id": 1, "groupId": 2}]},
+        {"type": "polygon", "points": [], "classId": 1, "attributes": []},
     ],
     "type": "object",
     "properties": {
+        "attributes": attributes,
         "classId": {"type": "integer"},
         "points": {"type": "array", "items": {"type": "number"}},
         "type": {"enum": ["polygon"]},
     },
-    "required": ["points", "type", "classId"],
+    "required": ["points", "type", "classId", "attributes"],
 }
 
 polyline = {
@@ -46,16 +69,17 @@ polyline = {
     "title": "Polyline",
     "default": {"type": "polyline", "points": [1, 2, 3, 4], "classId": 1},
     "examples": [
-        {"type": "polyline", "points": [1, 2, 3, 4], "classId": 1},
-        {"type": "polyline", "points": [], "classId": 1},
+        {"type": "polyline", "points": [1, 2, 3, 4], "classId": 1, "attributes": [{"id": 1, "groupId": 2}]},
+        {"type": "polyline", "points": [], "classId": 1, "attributes": []},
     ],
     "type": "object",
     "properties": {
+        "attributes": attributes,
         "classId": {"type": "integer"},
         "points": {"type": "array", "items": {"type": "number"}},
         "type": {"enum": ["polyline"]},
     },
-    "required": ["points", "type", "classId"],
+    "required": ["points", "type", "classId", "attributes"],
 }
 
 cuboid = {
@@ -71,6 +95,7 @@ cuboid = {
             "r2": {"x": 1603.4, "y": 1440},
         },
         "classId": 1,
+        "attributes": [{"id": 1, "groupId": 2}],
     },
     "examples": [
         {
@@ -82,10 +107,12 @@ cuboid = {
                 "r2": {"x": 1603.4, "y": 1440},
             },
             "classId": 1,
+            "attributes": [],
         }
     ],
     "type": "object",
     "properties": {
+        "attributes": attributes,
         "classId": {"type": "integer"},
         "type": {"enum": ["cuboid"]},
         "points": {
@@ -115,19 +142,38 @@ cuboid = {
             "required": ["f1", "f2", "r1", "r2"],
         },
     },
-    "required": ["points", "type", "classId"],
+    "required": ["points", "type", "classId", "attributes"],
 }
 
 ellipse = {
     "$id": "https://darwin.v7labs.com/schemas/supperannotate/ellipse",
     "description": "Schema of an Ellipse",
     "title": "Ellipse",
-    "default": {"type": "ellipse", "cx": 377.46, "cy": 806.18, "rx": 316.36, "ry": 134.18, "angle": 0, "classId": 1},
+    "default": {
+        "type": "ellipse",
+        "cx": 377.46,
+        "cy": 806.18,
+        "rx": 316.36,
+        "ry": 134.18,
+        "angle": 0,
+        "classId": 1,
+        "attributes": [],
+    },
     "examples": [
-        {"type": "ellipse", "cx": 377.46, "cy": 806.18, "rx": 316.36, "ry": 134.18, "angle": 14.66, "classId": 1}
+        {
+            "type": "ellipse",
+            "cx": 377.46,
+            "cy": 806.18,
+            "rx": 316.36,
+            "ry": 134.18,
+            "angle": 14.66,
+            "classId": 1,
+            "attributes": [{"id": 1, "groupId": 2}],
+        }
     ],
     "type": "object",
     "properties": {
+        "attributes": attributes,
         "classId": {"type": "integer"},
         "cx": {"type": "number"},
         "cy": {"type": "number"},
@@ -136,23 +182,27 @@ ellipse = {
         "angle": {"type": "number"},
         "type": {"enum": ["ellipse"]},
     },
-    "required": ["cx", "cy", "rx", "ry", "angle", "type", "classId"],
+    "required": ["cx", "cy", "rx", "ry", "angle", "type", "classId", "attributes"],
 }
 
 point = {
     "$id": "https://darwin.v7labs.com/schemas/supperannotate/point",
     "description": "Schema of a Point",
     "title": "Point",
-    "default": {"type": "point", "x": 1.2, "y": 2.5, "classId": 1},
-    "examples": [{"type": "point", "x": 1.2, "y": 2.5, "classId": 1}, {"type": "point", "x": 0, "y": 1, "classId": 2}],
+    "default": {"type": "point", "x": 1.2, "y": 2.5, "classId": 1, "attributes": []},
+    "examples": [
+        {"type": "point", "x": 1.2, "y": 2.5, "classId": 1, "attributes": []},
+        {"type": "point", "x": 0, "y": 1, "classId": 2, "attributes": [{"id": 1, "groupId": 2}]},
+    ],
     "type": "object",
     "properties": {
+        "attributes": attributes,
         "classId": {"type": "integer"},
         "x": {"type": "number"},
         "y": {"type": "number"},
         "type": {"enum": ["point"]},
     },
-    "required": ["x", "y", "type", "classId"],
+    "required": ["x", "y", "type", "classId", "attributes"],
 }
 
 

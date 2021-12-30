@@ -273,17 +273,19 @@ def _handle_subs(
         if sub.annotation_type == "text":
             data["text"] = {"text": sub.data}
         elif sub.annotation_type == "attributes":
-            data["attributes"] = {
-                "attributes": [
-                    attributes[annotation_class_id][attr]
-                    for attr in sub.data
-                    if annotation_class_id in attributes and attr in attributes[annotation_class_id]
-                ]
-            }
+            attributes_with_key = []
+            for attr in sub.data:
+                if annotation_class_id in attributes and attr in attributes[annotation_class_id]:
+                    attributes_with_key.append(attributes[annotation_class_id][attr])
+                else:
+                    print(f"The attribute '{attr}' for class '{annotation.annotation_class.name}' was not imported.")
+
+            data["attributes"] = {"attributes": attributes_with_key}
         elif sub.annotation_type == "instance_id":
             data["instance_id"] = {"value": sub.data}
         else:
             data[sub.annotation_type] = sub.data
+
     return data
 
 

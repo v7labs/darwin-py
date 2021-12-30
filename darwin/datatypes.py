@@ -602,7 +602,20 @@ def make_instance_id(value: int) -> SubAnnotation:
     return SubAnnotation("instance_id", value)
 
 
-def make_attributes(attributes: Any) -> SubAnnotation:
+def make_attributes(attributes: List[str]) -> SubAnnotation:
+    """
+    Creates and returns an attributes sub-annotation.
+
+    Parameters
+    ----------
+    value: List[str]
+        A list of attributes. Example: ``["orange", "big"]``.
+    
+    Returns
+    -------
+    SubAnnotation
+        An attributes ``SubAnnotation``. 
+    """
     return SubAnnotation("attributes", attributes)
 
 

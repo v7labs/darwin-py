@@ -1,6 +1,8 @@
 from pathlib import Path
+from typing import cast
 
 import pytest
+from darwin.datatypes import Annotation
 from darwin.importer.formats.pascal_voc import parse_path
 
 
@@ -128,7 +130,7 @@ def describe_parse_path():
         assert class_.name == "Class"
         assert class_.annotation_type == "bounding_box"
 
-        annotation = annotation_file.annotations.pop()
+        annotation: Annotation = cast(Annotation, annotation_file.annotations.pop())
         assert annotation.annotation_class == class_
         assert annotation.data == {"x": 10, "y": 10, "w": 0, "h": 0}
         assert annotation.subs == []
@@ -150,7 +152,7 @@ def describe_parse_path():
         assert class_.name == "Class"
         assert class_.annotation_type == "bounding_box"
 
-        annotation = annotation_file.annotations.pop()
+        annotation: Annotation = cast(Annotation, annotation_file.annotations.pop())
         assert annotation.annotation_class == class_
         assert annotation.data == {"x": 10, "y": 10, "w": 0, "h": 0}
         assert annotation.subs == []
