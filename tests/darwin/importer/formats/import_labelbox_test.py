@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Callable, List, Optional, cast
+from typing import List, Optional, cast
 
 import pytest
 from darwin.datatypes import (
