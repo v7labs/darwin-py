@@ -1,5 +1,6 @@
 from importlib import import_module
-from types import ModuleType
+
+from darwin.datatypes import ImportParser
 
 from .importer import import_annotations  # noqa
 
@@ -8,8 +9,9 @@ class ImporterNotFoundError(ModuleNotFoundError):
     pass
 
 
-def get_importer(format: str) -> ModuleType:
+def get_importer(format: str) -> ImportParser:
     try:
-        return import_module(f"darwin.exporter.formats.{format}")
+        module = import_module(f"darwin.exporter.formats.{format}")
+        return getattr(module, "parse_path")
     except ModuleNotFoundError:
         raise ImporterNotFoundError

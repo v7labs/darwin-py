@@ -681,8 +681,7 @@ def dataset_import(dataset_slug: str, format: str, files: List[PathLike], append
     client: Client = _load_client(dataset_identifier=dataset_slug)
 
     try:
-        importer_module = get_importer(format)
-        parser: ImportParser = getattr(importer_module, "parse_path")
+        parser: ImportParser = get_importer(format)
         dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
         import_annotations(dataset, parser, files, append)
     except ImporterNotFoundError:
@@ -836,8 +835,7 @@ def dataset_convert(dataset_identifier: str, format: str, output_dir: Optional[P
     client: Client = _load_client(team_slug=identifier.team_slug)
 
     try:
-        exporter_module = get_exporter(format)
-        parser: ExportParser = getattr(exporter_module, "export")
+        parser: ExportParser = get_exporter(format)
         dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=identifier)
         if not dataset.local_path.exists():
             _error(
@@ -876,8 +874,7 @@ def convert(format: str, files: List[PathLike], output_dir: Path) -> None:
         Folder where the exported annotations will be placed.
     """
     try:
-        exporter_module = get_exporter(format)
-        parser: ExportParser = getattr(exporter_module, "export")
+        parser: ExportParser = get_exporter(format)
     except ExporterNotFoundError:
         _error(f"Unsupported export format, currently supported: {export_formats}")
     except AttributeError:
