@@ -680,15 +680,16 @@ def dataset_import(dataset_slug: str, format: str, files: List[PathLike], append
     """
 
     client: Client = _load_client(dataset_identifier=dataset_slug)
-    importer_module = import_module(f"darwin.importer.formats.{format}")
-    try:
-        parser: ImportParser = getattr(importer_module, "parse_path")
-    except AttributeError:
-        _error(f"Unsupported import format: {format}, currently supported: {import_formats}")
 
     try:
+        importer_module = import_module(f"darwin.importer.formats.{format}")
+        parser: ImportParser = getattr(importer_module, "parse_path")
         dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
         importer.import_annotations(dataset, parser, files, append)
+    except ModuleNotFoundError:
+        _error(f"Unsupported import format: {format}, currently supported: {import_formats}")
+    except AttributeError:
+        _error(f"Unsupported import format: {format}, currently supported: {import_formats}")
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
 
@@ -835,13 +836,9 @@ def dataset_convert(dataset_identifier: str, format: str, output_dir: Optional[P
     identifier: DatasetIdentifier = DatasetIdentifier.parse(dataset_identifier)
     client: Client = _load_client(team_slug=identifier.team_slug)
 
-    exporter_module = import_module(f"darwin.exporter.formats.{format}")
     try:
+        exporter_module = import_module(f"darwin.exporter.formats.{format}")
         parser: ExportParser = getattr(exporter_module, "export")
-    except AttributeError:
-        _error(f"Unsupported import format, currently supported: {export_formats}")
-
-    try:
         dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=identifier)
         if not dataset.local_path.exists():
             _error(
@@ -858,6 +855,10 @@ def dataset_convert(dataset_identifier: str, format: str, output_dir: Optional[P
         output_dir.mkdir(parents=True, exist_ok=True)
 
         exporter.export_annotations(parser, [annotations_path], output_dir)
+    except ModuleNotFoundError:
+        _error(f"Unsupported export format: {format}, currently supported: {export_formats}")
+    except AttributeError:
+        _error(f"Unsupported export format: {format}, currently supported: {export_formats}")
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
 
@@ -875,11 +876,13 @@ def convert(format: str, files: List[PathLike], output_dir: Path) -> None:
     output_dir: Path
         Folder where the exported annotations will be placed.
     """
-    exporter_module = import_module(name=format, package="darwin.exporter.formats")
     try:
+        exporter_module = import_module(f"darwin.exporter.formats.{format}")
         parser: ExportParser = getattr(exporter_module, "export")
+    except ModuleNotFoundError:
+        _error(f"Unsupported export format, currently supported: {export_formats}")
     except AttributeError:
-        _error(f"Unsupported import format, currently supported: {export_formats}")
+        _error(f"Unsupported export format, currently supported: {export_formats}")
 
     exporter.export_annotations(parser, files, output_dir)
 
