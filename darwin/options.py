@@ -209,6 +209,20 @@ class Options(object):
             help="Confirmation flag to delete the file without prompting for manual input.",
         )
 
+        # Add comments
+        parser_comment = dataset_action.add_parser("comment", help="Comment image.")
+        parser_comment.add_argument(
+            "dataset",
+            type=str,
+            help="[Remote] Dataset name: to list all the existing dataset, run 'darwin dataset remote'. ",
+        )
+        parser_comment.add_argument("file", type=str, help="File to comment")
+        parser_comment.add_argument("--comment-text", type=str, help="Comment: list of words")
+        parser_comment.add_argument("--comment-x-position", type=int, default=1, help="X coordinate for comment")
+        parser_comment.add_argument("--comment-y-position", type=int, default=1, help="Y coordinate for comment")
+        parser_comment.add_argument("--comment-width-px", type=int, default=1, help="Comment width in pixels")
+        parser_comment.add_argument("--comment-height-px", type=int, default=1, help="Comment height in pixels")
+
         # Help
         dataset_action.add_parser("help", help="Show this help message and exit.")
 

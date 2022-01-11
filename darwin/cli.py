@@ -14,12 +14,12 @@ from darwin.options import Options
 
 def main() -> None:
     """
-    Executes the main function of program. 
+    Executes the main function of program.
 
     Raises
     ------
     Unauthorized
-        If the API key with which the use is authenticated does not grant access for the given 
+        If the API key with which the use is authenticated does not grant access for the given
         action.
     Unauthenticated
         If a given action needs authentication and you are not authenticated.
@@ -123,6 +123,16 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
             f.split(args.dataset, args.val_percentage, args.test_percentage, args.seed)
         elif args.action == "help" or args.action is None:
             f.help(parser, "dataset")
+        elif args.action == "comment":
+            f.post_comment(
+                args.dataset,
+                args.file,
+                args.comment_text,
+                args.comment_x_position,
+                args.comment_y_position,
+                args.comment_width_px,
+                args.comment_height_px,
+            )
 
 
 if __name__ == "__main__":

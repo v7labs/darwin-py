@@ -883,6 +883,38 @@ def convert(format: str, files: List[PathLike], output_dir: Path) -> None:
     export_annotations(parser, files, output_dir)
 
 
+# TODO: Move this elsewhere
+def post_workflow_comment(client, workflow_id, text, x=1, y=1, w=1, h=1):
+    client._post(
+        f"workflows/{workflow_id}/workflow_comment_threads",
+        {"bounding_box": {"x": x, "y": y, "w": w, "h": h}, "workflow_comments": [{"body": text}]},
+    )
+
+
+# TODO: move this elsewhere
+def instantitate_item(client, item_id):
+    result = client._post(f"dataset_items/{item_id}/workflow")
+    return result["current_workflow_id"]
+
+
+def post_comment(dataset_name, filename, text, x=1, y=1, w=1, h=1):
+    client = Client.local()
+    try:
+        dataset = client.get_remote_dataset(dataset_identifier=dataset_name)
+    except NotFound:
+        _error(f"unable to find dataset: {dataset_name}")
+
+    items = dataset.fetch_remote_files(filters={"filenames": [filename]})
+    items = list(items)
+    if len(items) == 0:
+        print(f"No files matching '{filename}' found")
+    for item in items:
+        workflow_id = item.current_workflow_id
+        if not workflow_id:
+            workflow_id = instantitate_item(dataset.client, item.id)
+        post_workflow_comment(dataset.client, workflow_id, text, x, y, w, h)
+
+
 def help(parser: argparse.ArgumentParser, subparser: Optional[str] = None) -> None:
     """
     Prints the help text for the given command.
