@@ -714,6 +714,59 @@ class Client:
         """
         self._put_raw(f"teams/{team_slug}/datasets/{dataset_slug}/items/reset", payload, team_slug)
 
+    def post_workflow_comment(
+        self, workflow_id: int, text: str, x: float = 1, y: float = 1, w: float = 1, h: float = 1
+    ) -> None:
+        """
+        Creates a comment box with the given text for the given workflow.
+
+        Parameters
+        ----------
+        workflow_id: int
+            The id of the workflow that will receive the comment.
+        text: str
+            The comment itself. 
+        x: float, default: 1
+            The top left X coordinate value of the comment box.
+        y: float, default: 1
+            The top left Y coordinate value of the comment box.
+        w: float, default: 1
+            The width of the comment box.
+        h: float, default: 1
+            The height of the comment box.
+        """
+        self._post(
+            f"workflows/{workflow_id}/workflow_comment_threads",
+            {"bounding_box": {"x": x, "y": y, "w": w, "h": h}, "workflow_comments": [{"body": text}]},
+        )
+
+    def instantitate_item(self, item_id: int) -> int:
+        """
+        Instantiates the given item with a workflow.
+
+        Parameters
+        ----------
+        item_id: int
+            The id of the item to be instantiated.
+        
+        Returns
+        -------
+        int
+            The id of the workflow for the given item.
+        
+        Raises
+        ------
+        ValueError
+            If due to an error, no workflow was instantiated for this item an therefore no workflow id can be returned.
+        """
+        response: Dict[str, Any] = cast(Dict[str, Any], self._post(f"dataset_items/{item_id}/workflow"))
+        id: Optional[int] = response["current_workflow_id"]
+
+        if id is None:
+            raise ValueError(f"No Workflow Id found for item_id: {item_id}")
+
+        return id
+
     @classmethod
     def local(cls, team_slug: Optional[str] = None) -> "Client":
         """

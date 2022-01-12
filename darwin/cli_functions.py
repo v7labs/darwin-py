@@ -4,7 +4,7 @@ import datetime
 import os
 import sys
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, NoReturn, Optional, Union
+from typing import Any, Dict, Iterator, List, NoReturn, Optional, Union, cast
 
 import humanize
 from rich.console import Console
@@ -608,15 +608,13 @@ def upload_data(
 
         if already_existing_items:
             console.print(
-                f"Skipped {len(already_existing_items)} files already in the dataset.\n",
-                style="warning",
+                f"Skipped {len(already_existing_items)} files already in the dataset.\n", style="warning",
             )
 
         if upload_manager.error_count or other_skipped_items:
             error_count = upload_manager.error_count + len(other_skipped_items)
             console.print(
-                f"{error_count} files couldn't be uploaded because an error occurred.\n",
-                style="error",
+                f"{error_count} files couldn't be uploaded because an error occurred.\n", style="error",
             )
 
         if not verbose and upload_manager.error_count:
@@ -883,36 +881,35 @@ def convert(format: str, files: List[PathLike], output_dir: Path) -> None:
     export_annotations(parser, files, output_dir)
 
 
-# TODO: Move this elsewhere
-def post_workflow_comment(client, workflow_id, text, x=1, y=1, w=1, h=1):
-    client._post(
-        f"workflows/{workflow_id}/workflow_comment_threads",
-        {"bounding_box": {"x": x, "y": y, "w": w, "h": h}, "workflow_comments": [{"body": text}]},
-    )
+def post_comment(
+    dataset_slug: str, filename: str, text: str, x: float = 1, y: float = 1, w: float = 1, h: float = 1
+) -> None:
+    """
+    
+    """
+    client: Client = _load_client(dataset_identifier=dataset_slug)
+    console = Console()
 
-
-# TODO: move this elsewhere
-def instantitate_item(client, item_id):
-    result = client._post(f"dataset_items/{item_id}/workflow")
-    return result["current_workflow_id"]
-
-
-def post_comment(dataset_name, filename, text, x=1, y=1, w=1, h=1):
-    client = Client.local()
     try:
-        dataset = client.get_remote_dataset(dataset_identifier=dataset_name)
+        dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
     except NotFound:
-        _error(f"unable to find dataset: {dataset_name}")
+        _error(f"unable to find dataset: {dataset_slug}")
 
-    items = dataset.fetch_remote_files(filters={"filenames": [filename]})
-    items = list(items)
+    items: List[DatasetItem] = list(dataset.fetch_remote_files(filters={"filenames": [filename]}))
+
     if len(items) == 0:
-        print(f"No files matching '{filename}' found")
-    for item in items:
-        workflow_id = item.current_workflow_id
-        if not workflow_id:
-            workflow_id = instantitate_item(dataset.client, item.id)
-        post_workflow_comment(dataset.client, workflow_id, text, x, y, w, h)
+        console.print(f"[bold yellow]No files matching '{filename}' found...")
+    else:
+        for item in items:
+            maybe_workflow_id: Optional[int] = item.current_workflow_id
+
+            if maybe_workflow_id is None:
+                workflow_id: int = client.instantitate_item(item.id)
+            else:
+                workflow_id: int = maybe_workflow_id
+
+            client.post_workflow_comment(workflow_id, text, x, y, w, h)
+            console.print("[bold green]Comment added successfully!")
 
 
 def help(parser: argparse.ArgumentParser, subparser: Optional[str] = None) -> None:
