@@ -207,6 +207,58 @@ def describe_get_team_features():
         ]
 
 
+@pytest.mark.usefixtures("file_read_write_test")
+def describe_instantitate_item():
+    @responses.activate
+    def it_raises_if_workflow_id_is_not_found(darwin_client: Client):
+        item_id: int = 1234
+        endpoint: str = f"/dataset_items/{item_id}/workflow"
+        json_response: Dict[str, Any] = {}
+
+        responses.add(responses.POST, darwin_client.url + endpoint, json=json_response, status=200)
+
+        with pytest.raises(ValueError) as exception:
+            darwin_client.instantitate_item(item_id)
+
+        assert str(exception.value) == f"No Workflow Id found for item_id: {item_id}"
+
+    @responses.activate
+    def it_returns_workflow_id(darwin_client: Client):
+        item_id: int = 1234
+        workflow_id: int = 1
+        endpoint: str = f"/dataset_items/{item_id}/workflow"
+        json_response: Dict[str, Any] = {"current_workflow_id": workflow_id}
+
+        responses.add(responses.POST, darwin_client.url + endpoint, json=json_response, status=200)
+        assert darwin_client.instantitate_item(item_id) == workflow_id
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+def describe_post_workflow_comment():
+    @responses.activate
+    def it_raises_if_comment_id_is_not_found(darwin_client: Client):
+        workflow_id = 1234
+        endpoint: str = f"/workflows/{workflow_id}/workflow_comment_threads"
+        json_response: Dict[str, Any] = {}
+
+        responses.add(responses.POST, darwin_client.url + endpoint, json=json_response, status=200)
+
+        with pytest.raises(ValueError) as exception:
+            darwin_client.post_workflow_comment(workflow_id, "My comment.")
+
+        assert str(exception.value) == f"Unable to retrieve comment id for workflow: {workflow_id}."
+
+    @responses.activate
+    def it_returns_comment_id(darwin_client: Client):
+        comment_id: int = 1234
+        workflow_id: int = 1
+        endpoint: str = f"/workflows/{workflow_id}/workflow_comment_threads"
+        json_response: Dict[str, Any] = {"id": comment_id}
+
+        responses.add(responses.POST, darwin_client.url + endpoint, json=json_response, status=200)
+        assert darwin_client.post_workflow_comment(workflow_id, "My comment.") == comment_id
+
+
 def assert_dataset(dataset_1, dataset_2):
     assert dataset_1.name == dataset_2.name
     assert dataset_1.team == dataset_2.team

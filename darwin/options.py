@@ -1,4 +1,3 @@
-import argparse
 import sys
 from argparse import ArgumentParser, Namespace
 from typing import Tuple
@@ -207,6 +206,24 @@ class Options(object):
             action="store_true",
             required=False,
             help="Confirmation flag to delete the file without prompting for manual input.",
+        )
+
+        # Add comments
+        parser_comment = dataset_action.add_parser("comment", help="Comment image.")
+        parser_comment.add_argument(
+            "dataset",
+            type=str,
+            help="[Remote] Dataset name: to list all the existing dataset, run 'darwin dataset remote'. ",
+        )
+        parser_comment.add_argument("file", type=str, help="File to comment")
+        parser_comment.add_argument("--text", type=str, help="Comment: list of words")
+        parser_comment.add_argument("--x", required=False, type=float, default=1, help="X coordinate for comment box")
+        parser_comment.add_argument("--y", required=False, type=float, default=1, help="Y coordinate for comment box")
+        parser_comment.add_argument(
+            "--w", "--width", required=False, type=float, default=1, help="Comment box width in pixels"
+        )
+        parser_comment.add_argument(
+            "--h", "--height", required=False, type=float, default=1, help="Comment box height in pixels"
         )
 
         # Help

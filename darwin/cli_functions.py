@@ -3,8 +3,9 @@ import concurrent.futures
 import datetime
 import os
 import sys
+import traceback
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, NoReturn, Optional, Union
+from typing import Any, Dict, Iterator, List, NoReturn, Optional, Union, cast
 
 import humanize
 from rich.console import Console
@@ -608,15 +609,13 @@ def upload_data(
 
         if already_existing_items:
             console.print(
-                f"Skipped {len(already_existing_items)} files already in the dataset.\n",
-                style="warning",
+                f"Skipped {len(already_existing_items)} files already in the dataset.\n", style="warning",
             )
 
         if upload_manager.error_count or other_skipped_items:
             error_count = upload_manager.error_count + len(other_skipped_items)
             console.print(
-                f"{error_count} files couldn't be uploaded because an error occurred.\n",
-                style="error",
+                f"{error_count} files couldn't be uploaded because an error occurred.\n", style="error",
             )
 
         if not verbose and upload_manager.error_count:
@@ -881,6 +880,64 @@ def convert(format: str, files: List[PathLike], output_dir: Path) -> None:
         _error(f"Unsupported export format, currently supported: {export_formats}")
 
     export_annotations(parser, files, output_dir)
+
+
+def post_comment(
+    dataset_slug: str, filename: str, text: str, x: float = 1, y: float = 1, w: float = 1, h: float = 1
+) -> None:
+    """
+    Creates a comment box with a comment for the given file in the given dataset.
+
+    Parameters
+    ----------
+    dataset_slug: str
+        The slug of the dataset the item belongs to.
+    filename: str
+        The filename to receive the commment.
+    text: str
+        The comment.
+    x: float, default: 1
+        X value of the top left coordinate for the comment box.
+    y: float, default: 1
+        Y value of the top left coordinate for the comment box.
+    w: float, default: 1
+        Width of the comment box.
+    h: float, default: 1
+        Height of the comment box.
+
+    Raises
+    ------
+    NotFound
+        If the Dataset was not found.
+    """
+    client: Client = _load_client(dataset_identifier=dataset_slug)
+    console = Console()
+
+    try:
+        dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
+    except NotFound:
+        _error(f"unable to find dataset: {dataset_slug}")
+
+    items: List[DatasetItem] = list(dataset.fetch_remote_files(filters={"filenames": [filename]}))
+
+    if len(items) == 0:
+        console.print(f"[bold yellow]No files matching '{filename}' found...")
+        return
+
+    item: DatasetItem = items.pop()
+    maybe_workflow_id: Optional[int] = item.current_workflow_id
+
+    if maybe_workflow_id is None:
+        workflow_id: int = client.instantitate_item(item.id)
+    else:
+        workflow_id = maybe_workflow_id
+
+    try:
+        client.post_workflow_comment(workflow_id, text, x, y, w, h)
+        console.print("[bold green]Comment added successfully!")
+    except Exception:
+        console.print("[bold red]There was an error posting your comment!\n")
+        console.print(f"[red]{traceback.format_exc()}")
 
 
 def help(parser: argparse.ArgumentParser, subparser: Optional[str] = None) -> None:
