@@ -3,6 +3,7 @@ import concurrent.futures
 import datetime
 import os
 import sys
+import traceback
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, NoReturn, Optional, Union, cast
 
@@ -921,17 +922,22 @@ def post_comment(
 
     if len(items) == 0:
         console.print(f"[bold yellow]No files matching '{filename}' found...")
+        return
+
+    item: DatasetItem = items.pop()
+    maybe_workflow_id: Optional[int] = item.current_workflow_id
+
+    if maybe_workflow_id is None:
+        workflow_id: int = client.instantitate_item(item.id)
     else:
-        for item in items:
-            maybe_workflow_id: Optional[int] = item.current_workflow_id
+        workflow_id = maybe_workflow_id
 
-            if maybe_workflow_id is None:
-                workflow_id: int = client.instantitate_item(item.id)
-            else:
-                workflow_id = maybe_workflow_id
-
-            client.post_workflow_comment(workflow_id, text, x, y, w, h)
-            console.print("[bold green]Comment added successfully!")
+    try:
+        client.post_workflow_comment(workflow_id, text, x, y, w, h)
+        console.print("[bold green]Comment added successfully!")
+    except Exception:
+        console.print("[bold red]There was an error posting your comment!\n")
+        console.print(f"[red]{traceback.format_exc()}")
 
 
 def help(parser: argparse.ArgumentParser, subparser: Optional[str] = None) -> None:
