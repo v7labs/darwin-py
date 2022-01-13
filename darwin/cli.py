@@ -125,13 +125,7 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
             f.help(parser, "dataset")
         elif args.action == "comment":
             f.post_comment(
-                args.dataset,
-                args.file,
-                args.comment_text,
-                args.comment_x_position,
-                args.comment_y_position,
-                args.comment_width_px,
-                args.comment_height_px,
+                args.dataset, args.file, args.text, args.x, args.y, args.w, args.h,
             )
 
 
