@@ -885,7 +885,29 @@ def post_comment(
     dataset_slug: str, filename: str, text: str, x: float = 1, y: float = 1, w: float = 1, h: float = 1
 ) -> None:
     """
-    
+    Creates a comment box with a comment for the given file in the given dataset.
+
+    Parameters
+    ----------
+    dataset_slug: str
+        The slug of the dataset the item belongs to.
+    filename: str
+        The filename to receive the commment.
+    text: str
+        The comment.
+    x: float, default: 1
+        X value of the top left coordinate for the comment box.
+    y: float, default: 1
+        Y value of the top left coordinate for the comment box.
+    w: float, default: 1
+        Width of the comment box.
+    h: float, default: 1
+        Height of the comment box.
+
+    Raises
+    ------
+    NotFound
+        If the Dataset was not found.
     """
     client: Client = _load_client(dataset_identifier=dataset_slug)
     console = Console()
@@ -906,7 +928,7 @@ def post_comment(
             if maybe_workflow_id is None:
                 workflow_id: int = client.instantitate_item(item.id)
             else:
-                workflow_id: int = maybe_workflow_id
+                workflow_id = maybe_workflow_id
 
             client.post_workflow_comment(workflow_id, text, x, y, w, h)
             console.print("[bold green]Comment added successfully!")
