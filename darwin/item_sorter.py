@@ -1,13 +1,36 @@
-from enum import Enum
 from typing import Union
 
+from darwin.doc_enum import DocEnum
 
-class SortDirection(Enum):
-    ASCENDING = "asc"
-    DESCENDING = "desc"
+
+class SortDirection(DocEnum):
+    """
+    The sorting direction of items.
+    """
+
+    ASCENDING = "asc", "Ascending sort order."
+    DESCENDING = "desc", "Descending sort order."
 
     @classmethod
     def parse(cls, direction: str) -> "SortDirection":
+        """
+        Parses the given direction and returns the corresponding sort Enum.
+
+        Parameters
+        ----------
+        direction: str
+            The direction of the sorting order. Can be 'asc' or 'ascending', 'desc' or 'descending'.
+
+        Returns
+        -------
+        SortDirection
+            The Enum representing a sorting direction.
+
+        Raises
+        ------
+        ValueError
+            If the ``direction`` given is invalid.
+        """
         normalized_direction = direction.lower()
 
         if cls._is_ascending(normalized_direction):
@@ -27,12 +50,42 @@ class SortDirection(Enum):
 
 
 class ItemSorter:
+    """
+    Represents sorting for list of items. 
+
+    Parameters
+    ----------
+    field : str
+        The name of the field to be sorted.
+    direction : SortDirection
+        The direction of the sort.
+    """
+
     def __init__(self, field: str, direction: SortDirection):
         self.field = field
         self.direction = direction
 
     @classmethod
     def parse(cls, sort: Union[str, "ItemSorter"]) -> "ItemSorter":
+        """
+        Parses the sorting given into an ItemSorter, capable of being used by Darwin.
+
+        Parameters
+        ----------
+        sort : Union[str, ItemSorter]
+            The sort order. If it is a ``str``, it will be parsed, otherwise it returns the 
+            ``ItemSorter``.
+
+        Returns
+        -------
+        ItemSorter
+            A parsed ``ItemSorter`` representing a sorting direction.
+
+        Raises
+        ------
+        ValueError
+            If the given sort parameter is invalid.
+        """
         if isinstance(sort, ItemSorter):
             return sort
 
