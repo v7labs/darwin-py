@@ -11,7 +11,6 @@ ComplexPolygon = List[Polygon]
 Node = Dict[str, Any]
 EllipseData = Dict[str, Union[float, Point]]
 CuboidData = Dict[str, Dict[str, float]]
-KeyFrame = Dict[str, Any]
 Segment = List[int]
 
 DarwinVersionNumber = Tuple[int, int, int]
@@ -620,34 +619,71 @@ def make_attributes(attributes: List[str]) -> SubAnnotation:
 
 
 def make_text(text: str) -> SubAnnotation:
+    """
+    Creates and returns a text sub-annotation.
+
+    Parameters
+    ----------
+    text: str
+        The text for the sub-annotation.
+    
+    Returns
+    -------
+    SubAnnotation
+        A text ``SubAnnotation``. 
+    """
     return SubAnnotation("text", text)
 
 
+KeyFrame = Dict[str, Union[int, Annotation]]
+
+
 def make_keyframe(annotation: Annotation, idx: int) -> KeyFrame:
+    """
+    Creates and returns a ``KeyFrame``.
+
+    Parameters
+    ----------
+    annotation: Annotation
+        The annotation for the keyframe.
+    idx: int
+        The id of the keyframe.
+    
+    Returns
+    -------
+    KeyFrame
+        The created ``Keyframe``. 
+    """
     return {"idx": idx, "annotation": annotation}
-
-
-def make_video(keyframes: List[KeyFrame], start, end) -> Annotation:
-    first_annotation: Annotation = keyframes[0]["annotation"]
-    return Annotation(
-        first_annotation.annotation_class,
-        {
-            "frames": {
-                keyframe["idx"]: {
-                    **{first_annotation.annotation_class.annotation_type: keyframe["annotation"].data},
-                    **{"keyframe": True},
-                }
-                for keyframe in keyframes
-            },
-            "interpolated": False,
-            "segments": [[start, end]],
-        },
-    )
 
 
 def make_video_annotation(
     frames: Dict[int, Any], keyframes: Dict[int, bool], segments: List[Segment], interpolated: bool
 ) -> VideoAnnotation:
+    """
+    Creates and returns a ``VideoAnnotation``.
+
+    Parameters
+    ----------
+    frames: Dict[int, Any]
+        The frames for the video. All frames must have the same ``annotation_class.name`` value.
+    keyframes: Dict[int, bool]
+        Indicates which frames are keyframes.
+    segments: List[Segment]
+        The list of segments for the video.
+    interpolated: bool
+        If this video annotation is interpolated or not.
+    
+    Returns
+    -------
+    VideoAnnotation
+        The created ``VideoAnnotation``. 
+
+    Raises
+    ------
+    ValueError
+        If some of the frames have different annotaion class names.
+    """
     first_annotation: Annotation = list(frames.values())[0]
     if not all(frame.annotation_class.name == first_annotation.annotation_class.name for frame in frames.values()):
         raise ValueError("invalid argument to make_video_annotation")
