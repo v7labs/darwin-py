@@ -1,17 +1,6 @@
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Iterator,
-    List,
-    Optional,
-    Set,
-    Tuple,
-    Union,
-    cast,
-)
+from typing import Any, Callable, Dict, Iterator, List, Optional, Set, Tuple, Union
 
 from darwin.path_utils import construct_full_path
 
