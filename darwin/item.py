@@ -7,8 +7,7 @@ from darwin.path_utils import construct_full_path
 @dataclass(frozen=True, eq=True)
 class DatasetItem:
     """
-    DatasetItems represent files that can be images or videos which belong to a dataset.
-    Said dataset can be initiated or not.
+    DatasetItem represents files that can be images or videos which belong to a dataset.
 
     Attributes
     ----------
@@ -17,7 +16,7 @@ class DatasetItem:
     filename : str
         The filename of this ``DatasetItem``.
     status : str
-        The filename of this ``DatasetItem``. It can be: 
+        The status of this ``DatasetItem``. It can be: 
         - "archived",
         - "error",
         - "uploading",
