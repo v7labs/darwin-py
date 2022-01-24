@@ -6,6 +6,10 @@ import argcomplete
 
 
 class Options(object):
+    """
+    Has functions to parse CLI options given by the user.
+    """
+
     def __init__(self):
 
         self.parser: ArgumentParser = ArgumentParser(
@@ -235,6 +239,14 @@ class Options(object):
         argcomplete.autocomplete(self.parser)
 
     def parse_args(self) -> Tuple[Namespace, ArgumentParser]:
+        """
+        Parses and validates the CLI options.
+
+        Returns
+        -------
+        Tuple[Namespace, ArgumentParser]
+            The tuple with the namespace and parser to use.
+        """
         args = self.parser.parse_args()
 
         if not args.command:
