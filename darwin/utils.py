@@ -1,6 +1,5 @@
 import json
 import platform
-import re
 from pathlib import Path
 from typing import (
     TYPE_CHECKING,
@@ -9,7 +8,6 @@ from typing import (
     Iterable,
     Iterator,
     List,
-    Match,
     Optional,
     Set,
     Union,
