@@ -136,7 +136,7 @@ class DatasetItem:
 
 @deprecation.deprecated(
     deprecated_in="0.7.5",
-    removed_in="0.7.7",
+    removed_in="0.8.0",
     current_version=current_version(),
     details="Use the ``DatasetItem.parse`` instead.",
 )
