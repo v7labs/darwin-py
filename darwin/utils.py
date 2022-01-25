@@ -579,27 +579,3 @@ def is_unix_like_os() -> bool:
         True for Unix-based systems, False otherwise.
     """
     return platform.system() != "Windows"
-
-
-def current_version() -> str:
-    """
-    Returns darwin-py's current version.
-
-    Returns
-    -------
-    str
-        A string in the format of Major.Minor.Bugfix indicating the SDK's current version.
-
-    Raises
-    ------
-    ValueError
-        If the version cannot be retrieved.
-    """
-    with open(Path(__file__).parent.parent / "darwin" / "__init__.py", "r") as f:
-        # from https://www.py4u.net/discuss/139845
-        content: str = f.read()
-        search_result: Optional[Match[str]] = re.search(r'__version__\s*=\s*[\'"]([^\'"]*)[\'"]', content)
-        if search_result:
-            return search_result.group(1)
-
-    raise ValueError("Unable to retrieve darwin-py's version from __init__.py.")

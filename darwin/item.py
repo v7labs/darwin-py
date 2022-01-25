@@ -4,7 +4,7 @@ from typing import Any, Dict, Optional
 import deprecation
 
 from darwin.path_utils import construct_full_path
-from darwin.utils import current_version
+from darwin.version import __version__
 
 
 @dataclass(frozen=True, eq=True)
@@ -137,7 +137,7 @@ class DatasetItem:
 @deprecation.deprecated(
     deprecated_in="0.7.5",
     removed_in="0.7.7",
-    current_version=current_version(),
+    current_version=__version__,
     details="Use the ``DatasetItem.parse`` instead.",
 )
 def parse_dataset_item(raw: Dict[str, Any]) -> DatasetItem:
