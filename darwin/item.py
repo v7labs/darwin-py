@@ -2,13 +2,14 @@ from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
 import deprecation
+from pydantic import BaseModel
 
 from darwin.path_utils import construct_full_path
 from darwin.version import __version__
 
 
 @dataclass(frozen=True, eq=True)
-class DatasetItem:
+class DatasetItem(BaseModel):
     """
     DatasetItem represents files that can be images or videos which belong to a dataset.
 
@@ -67,7 +68,7 @@ class DatasetItem:
     @classmethod
     def parse(cls, raw: Dict[str, Any]) -> "DatasetItem":
         """
-        Parses the given dictionary into a ``DatasetItem``. Raises if such is not possible.
+        Parses the given dictionary into a ``DatasetItem``.
 
         Parameters
         ----------
@@ -81,57 +82,23 @@ class DatasetItem:
 
         Raises
         ------
-        ValueError
-            If any of the keys from the given dictionary do not have the correct format.
+        ValidationError
+            If any of the keys from the given dictionary do not have the correct format or are
+            missing.
         """
-        id: int = raw["id"]
-        if not isinstance(id, int):
-            raise ValueError("Key 'id' must have an integer for a value.")
-
-        filename: str = raw["filename"]
-        if not isinstance(filename, str):
-            raise ValueError("Key 'filename' must have a string for a value.")
-
-        status: str = raw["status"]
-        if not isinstance(status, str):
-            raise ValueError("Key 'status' must have a string for a value.")
-
-        archived: bool = raw["archived"]
-        if not isinstance(archived, bool):
-            raise ValueError("Key 'archived' must have a boolean for a value.")
-
-        file_size: int = raw["file_size"]
-        if not isinstance(file_size, int):
-            raise ValueError("Key 'file_size' must have an integer for a value.")
-
-        dataset_id: int = raw["dataset_id"]
-        if not isinstance(dataset_id, int):
-            raise ValueError("Key 'dataset_id' must have an integer for a value.")
-
-        sequence: int = raw["seq"]
-        if not isinstance(sequence, int):
-            raise ValueError("Key 'seq' must have an integer for a value.")
-
-        workflow_id: Optional[int] = raw.get("current_workflow_id")
-        if not isinstance(workflow_id, int) and workflow_id is not None:
-            raise ValueError("Key 'workflow_id' must have an integer for a value or be nil.")
-
-        path: str = raw["path"]
-        if not isinstance(path, str):
-            raise ValueError("Key 'path' must have a string for a value.")
-
-        return DatasetItem(
-            id,
-            filename,
-            status,
-            archived,
-            file_size,
-            dataset_id,
-            "n/a",
-            sequence,
-            workflow_id,
-            path,
-        )
+        data = {
+            "id": raw["id"],
+            "filename": raw["filename"],
+            "status": raw["status"],
+            "archived": raw["archived"],
+            "filesize": raw["file_size"],
+            "dataset_id": raw["dataset_id"],
+            "dataset_slug": "n/a",
+            "seq": raw["seq"],
+            "current_workflow_id": raw.get("current_workflow_id"),
+            "path": raw["path"],
+        }
+        return DatasetItem(**data)
 
 
 @deprecation.deprecated(
