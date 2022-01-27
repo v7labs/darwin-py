@@ -8,7 +8,6 @@ with open(Path(__file__).parent / "darwin" / "version" / "__init__.py", "r") as 
     # from https://www.py4u.net/discuss/139845
     version = re.search(r'__version__\s*=\s*[\'"]([^\'"]*)[\'"]', content).group(1)
 
-# print(f"VERSION IS: {darwin.version.__version__}")
 with open("README.md", "rb") as f:
     long_description = f.read().decode("utf-8")
 
@@ -51,5 +50,5 @@ setuptools.setup(
     ],
     entry_points={"console_scripts": ["darwin=darwin.cli:main"]},
     classifiers=["Programming Language :: Python :: 3", "License :: OSI Approved :: MIT License"],
-    python_requires=">=3.",
+    python_requires=">=3.7",
 )
