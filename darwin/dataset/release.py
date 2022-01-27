@@ -175,4 +175,5 @@ class Release:
 
     @property
     def identifier(self) -> DatasetIdentifier:
+        """DatasetIdentifier : The ``DatasetIdentifier`` for this ``Release``."""
         return DatasetIdentifier(team_slug=self.team_slug, dataset_slug=self.dataset_slug, version=self.name)
