@@ -67,7 +67,7 @@ def is_project_dir(project_path: Path) -> bool:
     return (project_path / "releases").exists() and (project_path / "images").exists()
 
 
-def get_progress_bar(array: List, description: Optional[str] = None) -> Iterable["ProgressType"]:
+def get_progress_bar(array: List[Any], description: Optional[str] = None) -> Iterable[ProgressType]:
     if description:
         return track(array, description=description)
     return track(array)
@@ -395,7 +395,10 @@ def ispolygon(annotation: dt.AnnotationClass) -> bool:
 
 
 def convert_polygons_to_sequences(
-    polygons: Any, height: Optional[int] = None, width: Optional[int] = None, rounding: bool = True,
+    polygons: Any,
+    height: Optional[int] = None,
+    width: Optional[int] = None,
+    rounding: bool = True,
 ) -> List[List[Union[int, float]]]:
     """
     Converts a list of polygons, encoded as a list of dictionaries of into a list of nd.arrays

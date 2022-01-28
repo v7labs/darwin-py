@@ -306,13 +306,13 @@ class Client:
     def import_annotation(self, item_id: int, payload: Dict[str, Any]) -> None:
         """
         Imports the annotation for the item with the given id.
-        
+
         Parameters
         ----------
         item_id: int
             Identifier of the Image or Video that we are import the annotation to.
         payload: Dict[str, Any]
-            A dictionary with the annotation to import. The default format is: 
+            A dictionary with the annotation to import. The default format is:
             `{"annotations": serialized_annotations, "overwrite": "false"}`
         """
         self._post_raw(f"/dataset_items/{item_id}/import", payload=payload)
@@ -725,7 +725,7 @@ class Client:
         workflow_id: int
             The id of the workflow that will receive the comment.
         text: str
-            The comment itself. 
+            The comment itself.
         x: float, default: 1
             The top left X coordinate value of the comment box.
         y: float, default: 1
@@ -762,12 +762,12 @@ class Client:
         ----------
         item_id: int
             The id of the item to be instantiated.
-        
+
         Returns
         -------
         int
             The id of the workflow for the given item.
-        
+
         Raises
         ------
         ValueError
