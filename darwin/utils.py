@@ -1,3 +1,7 @@
+"""
+Contains several unrelated utility functions used accross the SDK.
+"""
+
 import json
 import platform
 from pathlib import Path
@@ -31,22 +35,70 @@ SUPPORTED_EXTENSIONS = SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
 
 
 def is_extension_allowed(extension: str) -> bool:
-    """Returns whether or not the given video or image extension is allowed."""
+    """
+    Returns whether or not the given video or image extension is allowed.
+
+    Parameters
+    ----------
+    extension : str
+        The extension.
+
+    Returns
+    -------
+    bool
+        Whether or not the given extension is allowed.
+    """
     return extension.lower() in SUPPORTED_EXTENSIONS
 
 
 def is_image_extension_allowed(extension: str) -> bool:
-    """Returns whether or not the given image extension is allowed."""
+    """
+    Returns whether or not the given image extension is allowed.
+
+    Parameters
+    ----------
+    extension : str
+        The image extension.
+
+    Returns
+    -------
+    bool
+        Whether or not the given extension is allowed.
+    """
     return extension.lower() in SUPPORTED_IMAGE_EXTENSIONS
 
 
 def is_video_extension_allowed(extension: str) -> bool:
-    """Returns whether or not the given video extension is allowed."""
+    """
+    Returns whether or not the given video extension is allowed.
+
+    Parameters
+    ----------
+    extension : str
+        The video extension.
+
+    Returns
+    -------
+    bool
+        Whether or not the given extension is allowed.
+    """
     return extension.lower() in SUPPORTED_VIDEO_EXTENSIONS
 
 
 def urljoin(*parts: str) -> str:
-    """Take as input an unpacked list of strings and joins them to form an URL"""
+    """
+    Take as input an unpacked list of strings and joins them to form an URL.
+
+    Parameters
+    ----------
+    parts : str
+        The list of strings to form the url.
+
+    Returns
+    -------
+    str
+        The url.
+    """
     return "/".join(part.strip("/") for part in parts)
 
 
@@ -68,13 +120,29 @@ def is_project_dir(project_path: Path) -> bool:
 
 
 def get_progress_bar(array: List, description: Optional[str] = None) -> Iterable["ProgressType"]:
+    """
+    Prompt the user on a CLI to input a message
+
+    Parameters
+    ----------
+    array : List
+        Message to print
+    description : Optional[str], default: None
+        Default values which is put between [] when the user is prompted
+
+    Returns
+    -------
+    Iterable[ProgressType]
+        The input from the user or the default value provided as parameter if user does not provide one
+    """
     if description:
         return track(array, description=description)
     return track(array)
 
 
 def prompt(msg: str, default: Optional[str] = None) -> str:
-    """Prompt the user on a CLI to input a message
+    """
+    Prompt the user on a CLI to input a message
 
     Parameters
     ----------
@@ -86,7 +154,7 @@ def prompt(msg: str, default: Optional[str] = None) -> str:
     Returns
     -------
     str
-    The input from the user or the default value provided as parameter if user does not provide one
+        The input from the user or the default value provided as parameter if user does not provide one
     """
     if default:
         msg = f"{msg} [{default}]: "
@@ -395,7 +463,10 @@ def ispolygon(annotation: dt.AnnotationClass) -> bool:
 
 
 def convert_polygons_to_sequences(
-    polygons: Any, height: Optional[int] = None, width: Optional[int] = None, rounding: bool = True,
+    polygons: Any,
+    height: Optional[int] = None,
+    width: Optional[int] = None,
+    rounding: bool = True,
 ) -> List[List[Union[int, float]]]:
     """
     Converts a list of polygons, encoded as a list of dictionaries of into a list of nd.arrays
