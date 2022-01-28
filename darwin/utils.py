@@ -119,7 +119,7 @@ def is_project_dir(project_path: Path) -> bool:
     return (project_path / "releases").exists() and (project_path / "images").exists()
 
 
-def get_progress_bar(array: List, description: Optional[str] = None) -> Iterable["ProgressType"]:
+def get_progress_bar(array: List, description: Optional[str] = None) -> Iterable[ProgressType]:
     """
     Prompt the user on a CLI to input a message
 
