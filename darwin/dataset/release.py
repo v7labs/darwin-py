@@ -3,7 +3,7 @@ import shutil
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-import requests
+from darwin.client import Client
 from darwin.dataset.identifier import DatasetIdentifier
 
 
@@ -165,11 +165,14 @@ class Release:
             If this Release object does not have a specified url.
         """
         if not self.url:
-            raise ValueError("Relase must have a valid url to download the zip.")
+            raise ValueError("Release must have a valid url to download the zip.")
 
-        with requests.get(self.url, stream=True) as response:
+        config_path: Path = Path.home() / ".darwin" / "config.yaml"
+        client: Client = Client.from_config(config_path=config_path, team_slug=self.team_slug)
+
+        with client.fetch_binary(self.url) as data:
             with open(path, "wb") as download_file:
-                shutil.copyfileobj(response.raw, download_file)
+                shutil.copyfileobj(data, download_file)
 
         return path
 
