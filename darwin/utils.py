@@ -715,6 +715,12 @@ def convert_polygons_to_sequences(
     return sequences
 
 
+@deprecation.deprecated(
+    deprecated_in="0.7.5",
+    removed_in="0.8.0",
+    current_version=__version__,
+    details="Do not use.",
+)
 def convert_sequences_to_polygons(
     sequences: List[Union[List[int], List[float]]], height: Optional[int] = None, width: Optional[int] = None
 ) -> Dict[str, List[dt.Polygon]]:
@@ -768,6 +774,12 @@ def convert_sequences_to_polygons(
     return {"path": polygons}
 
 
+@deprecation.deprecated(
+    deprecated_in="0.7.5",
+    removed_in="0.8.0",
+    current_version=__version__,
+    details="Do not use.",
+)
 def convert_xyxy_to_bounding_box(box: List[Union[int, float]]) -> dt.BoundingBox:
     """
     Converts a list of xy coordinates representing a bounding box into a dictionary.
@@ -796,6 +808,12 @@ def convert_xyxy_to_bounding_box(box: List[Union[int, float]]) -> dt.BoundingBox
     return {"x": x1, "y": y1, "w": width, "h": height}
 
 
+@deprecation.deprecated(
+    deprecated_in="0.7.5",
+    removed_in="0.8.0",
+    current_version=__version__,
+    details="Do not use.",
+)
 def convert_bounding_box_to_xyxy(box: dt.BoundingBox) -> List[float]:
     """
     Converts dictionary representing a bounding box into a list of xy coordinates.
