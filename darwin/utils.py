@@ -1,5 +1,5 @@
 """
-Contains several unrelated utility functions used accross the SDK.
+Contains several unrelated utility functions used across the SDK.
 """
 
 import json
