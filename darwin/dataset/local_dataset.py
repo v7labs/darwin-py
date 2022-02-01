@@ -10,6 +10,25 @@ from PIL import Image as PILImage
 
 
 class LocalDataset(object):
+    """
+    Creates a dataset.
+
+    Parameters
+    ----------
+    dataset_path: Path, str
+        Path to the location of the dataset on the file system
+    annotation_type: str
+        The type of annotation classes [tag, bounding_box, polygon]
+    partition: str
+        Selects one of the partitions [train, val, test]
+    split: str
+        Selects the split that defines the percentages used (use 'default' to select the default split)
+    split_type: str
+        Heuristic used to do the split [random, stratified]
+    release_name: str
+        Version of the dataset
+    """
+
     def __init__(
         self,
         dataset_path: Path,
@@ -19,23 +38,6 @@ class LocalDataset(object):
         split_type: str = "random",
         release_name: Optional[str] = None,
     ):
-        """Creates a dataset
-
-        Parameters
-        ----------
-        dataset_path: Path, str
-            Path to the location of the dataset on the file system
-        annotation_type: str
-            The type of annotation classes [tag, bounding_box, polygon]
-        partition: str
-            Selects one of the partitions [train, val, test]
-        split: str
-            Selects the split that defines the percentages used (use 'default' to select the default split)
-        split_type: str
-            Heuristic used to do the split [random, stratified]
-        release_name: str
-            Version of the dataset
-        """
         assert dataset_path is not None
         release_path = get_release_path(dataset_path, release_name)
         annotations_dir = release_path / "annotations"
