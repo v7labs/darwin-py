@@ -331,5 +331,5 @@ def _import_annotations(
 
     try:
         client.import_annotation(id, payload=payload)
-    except:
+    except Exception as ex:
         print(f"warning, failed to upload annotation to item {id}. Annotations: {payload}")
