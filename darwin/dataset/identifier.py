@@ -6,6 +6,13 @@ class DatasetIdentifier:
     """
     Formal representation of a dataset identifier for the SDK.
 
+    A dataset identifier is a string that uniquely identifies a dataset on Darwin.
+    A dataset identifier is made of the following substrings:
+    ``<team-slug>/<dataset-slug>:<version>``.
+
+    If ``version`` is missing, it defaults to ``latest``.
+
+
     Parameters
     ----------
     dataset_slug : str
