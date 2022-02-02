@@ -12,7 +12,6 @@ class DatasetIdentifier:
 
     If ``version`` is missing, it defaults to ``latest``.
 
-
     Parameters
     ----------
     dataset_slug : str
