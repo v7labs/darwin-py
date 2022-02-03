@@ -110,6 +110,7 @@ class Release:
         Release
             A ``Release`` created from the given payload.
         """
+
         try:
             export_date: datetime.datetime = datetime.datetime.strptime(payload["inserted_at"], "%Y-%m-%dT%H:%M:%S%z")
         except ValueError:
@@ -164,15 +165,13 @@ class Release:
         ValueError
             If this Release object does not have a specified url.
         """
+
         if not self.url:
-            raise ValueError("Release must have a valid url to download the zip.")
+            raise ValueError("Relase must have a valid url to download the zip.")
 
-        config_path: Path = Path.home() / ".darwin" / "config.yaml"
-        client: Client = Client.from_config(config_path=config_path, team_slug=self.team_slug)
-
-        with client.fetch_binary(self.url) as data:
+        with requests.get(self.url, stream=True) as response:
             with open(path, "wb") as download_file:
-                shutil.copyfileobj(data, download_file)
+                shutil.copyfileobj(response.raw, download_file)
 
         return path
 
