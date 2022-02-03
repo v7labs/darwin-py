@@ -11,22 +11,46 @@ from PIL import Image as PILImage
 
 class LocalDataset(object):
     """
-    Creates a dataset.
+    Creates a dataset locally.
 
     Parameters
     ----------
-    dataset_path: Path, str
-        Path to the location of the dataset on the file system
-    annotation_type: str
-        The type of annotation classes [tag, bounding_box, polygon]
-    partition: str
-        Selects one of the partitions [train, val, test]
-    split: str
-        Selects the split that defines the percentages used (use 'default' to select the default split)
-    split_type: str
-        Heuristic used to do the split [random, stratified]
-    release_name: str
-        Version of the dataset
+    dataset_path : Path
+        Path to the location of the dataset on the file system.
+    annotation_type : str
+        The type of annotation classes ```[tag, bounding_box, polygon]```.
+    partition : Optional[str], default: None
+        Selects one of the partitions ```[train, val, test]```.
+    split : str, default: "default"
+        Selects the split that defines the percentages used (use 'default' to select the default split).
+    split_type : str, default: "random"
+        Heuristic used to do the split ```[random, stratified]```.
+    release_name : Optional[str], default: None
+        Version of the dataset.
+
+    Attributes
+    ----------
+    dataset_path : Path
+        Path to the location of the dataset on the file system.
+    annotation_type : str
+        The type of annotation classes ```[tag, bounding_box, polygon]```.
+    partition : Optional[str], default: None
+        Selects one of the partitions ```[train, val, test]```.
+    split : str, default: "default"
+        Selects the split that defines the percentages used (use 'default' to select the default split).
+    split_type : str, default: "random"
+        Heuristic used to do the split ```[random, stratified]```.
+    release_name : Optional[str], default: None
+        Version of the dataset.
+
+    Raises
+    ------
+    ValueError
+
+        - If ```partition```, ```split_type``` or ```annotation_type``` have an invalid value.
+        - If an annotation has no corresponding image
+        - If an image has multiple extensions (meaning it is present in multiple formats)
+        - If no images are found
     """
 
     def __init__(
@@ -90,28 +114,75 @@ class LocalDataset(object):
         assert len(self.images_path) == len(self.annotations_path)
 
     def get_img_info(self, index: int) -> Dict[str, Any]:
+        """
+        Returns the annotation information for a given image.
+
+        Parameters
+        ----------
+        index : int
+            The index of the image.
+
+        Returns
+        -------
+        Dict[str, Any]
+            A dictionary with the image's class and annotaiton information.
+
+        Raises
+        ------
+        ValueError
+            If there are no annotations downloaded in this machine. You can pull them by using the
+            command ```darwin dataset pull $DATASET_NAME --only-annotations``` in the CLI.
+        """
+        if not len(self.annotations_path):
+            raise ValueError("There are no annotations downloaded.")
+
         with self.annotations_path[index].open() as f:
             data = json.load(f)["image"]
             return data
 
     def get_height_and_width(self, index: int) -> Tuple[float, float]:
+        """
+        Returns the width and height of the image with the given index.
+
+        Parameters
+        ----------
+        index : int
+            The index of the image.
+
+        Returns
+        -------
+        Tuple[float, float]
+            A tuple where the first element is the ```height``` of the image and the second is the
+            ```width```.
+        """
         data: Dict[str, Any] = self.get_img_info(index)
         return data["height"], data["width"]
 
     def extend(self, dataset: "LocalDataset", extend_classes: bool = False) -> "LocalDataset":
-        """Extends the current dataset with another one
+        """
+        Extends the current dataset with another one.
 
         Parameters
         ----------
         dataset : Dataset
             Dataset to merge
-        extend_classes : bool
-            Extend the current set of classes by merging with the passed dataset ones
+        extend_classes : bool, default: False
+            Extend the current set of classes by merging it with the set of classes belonging to the
+            given dataset.
 
         Returns
         -------
-        Dataset
-            self
+        LocalDataset
+            This ```LocalDataset``` extended with the classes of the give one.
+
+        Raises
+        ------
+        ValueError
+
+            - If the ```annotation_type``` of this ```LocalDataset``` differs from the
+            ```annotation_type``` of the given one.
+            - If the set of classes from this ```LocalDataset``` differs from the set of classes
+            from the given one AND ```extend_classes``` is ```False```.
         """
         if self.annotation_type != dataset.annotation_type:
             raise ValueError("Annotation type of both datasets should match")
