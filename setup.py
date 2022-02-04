@@ -37,7 +37,7 @@ setuptools.setup(
     ],
     extras_require={
         "test": ["responses", "pytest", "pytest-describe"],
-        "ml": ["wheel", "sklearn", "torch", "torchvision"],
+        "ml": ["sklearn", "torch", "torchvision"],
     },
     packages=[
         "darwin",
