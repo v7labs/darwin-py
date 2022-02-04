@@ -1,10 +1,12 @@
 import datetime
 import shutil
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
-from darwin.client import Client
 from darwin.dataset.identifier import DatasetIdentifier
+
+if TYPE_CHECKING:
+    from darwin.client import Client
 
 
 class Release:
@@ -13,6 +15,31 @@ class Release:
     status.
 
     Parameters
+    ----------
+    dataset_slug : str
+        The slug of the dataset.
+    team_slug : str
+        the slug of the team.
+    version : str
+        The version of the ``Release``.
+    name : str
+        The name of the ``Release``.
+    url : Optional[str]
+        The full url used to download the ``Release``.
+    export_date : datetime.datetime
+        The ``datetime`` of when this release was created.
+    image_count : Optional[int]
+        Number of images in this ``Release``.
+    class_count : Optional[int]
+        Number of distinct classes in this ``Release``.
+    available : bool
+        If this ``Release`` is downloadable or not.
+    latest : bool
+        If this ``Release`` is the latest one or not.
+    format : str
+        Format for the file of this ``Release`` should it be downloaded.
+
+    Attributes
     ----------
     dataset_slug : str
         The slug of the dataset.
@@ -67,7 +94,7 @@ class Release:
     @classmethod
     def parse_json(cls, dataset_slug: str, team_slug: str, payload: Dict[str, Any]) -> "Release":
         """
-        Given a json, parses it into a ``Release`` object the SDK can understand.
+        Given a json, parses it into a ``Release`` object instance.
 
         Parameters
         ----------
@@ -110,7 +137,6 @@ class Release:
         Release
             A ``Release`` created from the given payload.
         """
-
         try:
             export_date: datetime.datetime = datetime.datetime.strptime(payload["inserted_at"], "%Y-%m-%dT%H:%M:%S%z")
         except ValueError:
@@ -158,20 +184,22 @@ class Release:
         Returns
         --------
         Path
-            Same Path as provided in the parameters.
+            Same ```Path``` as provided in the parameters.
 
         Raises
         ------
         ValueError
-            If this Release object does not have a specified url.
+            If this ```Release``` object does not have a specified url.
         """
-
         if not self.url:
-            raise ValueError("Relase must have a valid url to download the zip.")
+            raise ValueError("Release must have a valid url to download the zip.")
 
-        with requests.get(self.url, stream=True) as response:
+        config_path: Path = Path.home() / ".darwin" / "config.yaml"
+        client: Client = Client.from_config(config_path=config_path, team_slug=self.team_slug)
+
+        with client.fetch_binary(self.url) as data:
             with open(path, "wb") as download_file:
-                shutil.copyfileobj(response.raw, download_file)
+                shutil.copyfileobj(data, download_file)
 
         return path
 
