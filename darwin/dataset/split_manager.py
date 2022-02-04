@@ -64,7 +64,7 @@ class Split:
         Returns
         -------
         bool
-            ``True`` if this isntance is valid, ``False`` otherwise.
+            ``True`` if this instance is valid, ``False`` otherwise.
         """
         return self.random is not None or self.stratified is not None
 
@@ -111,8 +111,7 @@ def split_dataset(
     try:
         import sklearn  # noqa
     except ImportError as error:
-        print(error.__class__.__name__ + ": " + error.message)
-
+        print(error)
         raise ImportError(
             "Darwin requires scikit-learn to split a dataset. Install it using: pip install scikit-learn"
         ) from None
