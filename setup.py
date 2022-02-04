@@ -34,7 +34,6 @@ setuptools.setup(
         "jsonschema",
         "deprecation",
         "pydantic",
-        "scikit-learn",
     ],
     extras_require={
         "test": ["responses", "pytest", "pytest-describe"],
