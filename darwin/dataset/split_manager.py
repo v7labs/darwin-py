@@ -47,7 +47,7 @@ class Split:
     Attributes
     ----------
     random: Optional[Dict[str, Path]], default: None
-        Stores the type of split (e.g.: ``train``, ``val``, ``test``) and the file path where the 
+        Stores the type of split (e.g.: ``train``, ``val``, ``test``) and the file path where the
         split is stored if the split is of type ``random``. Defaults to ``None``.
     stratified: Optional[Dict[str, Dict[str, Path]]], default: None
         Stores the relation between an annotation type and the partition-filepath key value of the
@@ -61,7 +61,7 @@ class Split:
         """
         Returns whether or not this split instance is valid.
 
-        Returns 
+        Returns
         -------
         bool
             ``True`` if this isntance is valid, ``False`` otherwise.
@@ -110,7 +110,9 @@ def split_dataset(
     # Requirements: scikit-learn
     try:
         import sklearn  # noqa
-    except ImportError:
+    except ImportError as error:
+        print(error.__class__.__name__ + ": " + error.message)
+
         raise ImportError(
             "Darwin requires scikit-learn to split a dataset. Install it using: pip install scikit-learn"
         ) from None
@@ -310,7 +312,11 @@ def _stratify_samples(
     X_train = np.concatenate((X_train, np.array(single_files)), axis=0)
     X_val, X_test, y_val, y_test = _remove_cross_contamination(
         *train_test_split(
-            X_tmp, y_tmp, test_size=(test_size / (val_size + test_size)), random_state=split_seed, stratify=y_tmp,
+            X_tmp,
+            y_tmp,
+            test_size=(test_size / (val_size + test_size)),
+            random_state=split_seed,
+            stratify=y_tmp,
         ),
         test_size,
     )
@@ -322,7 +328,11 @@ def _stratify_samples(
 
 
 def _remove_cross_contamination(
-    X_a: np.ndarray, X_b: np.ndarray, y_a: np.ndarray, y_b: np.ndarray, b_min_size: int,
+    X_a: np.ndarray,
+    X_b: np.ndarray,
+    y_a: np.ndarray,
+    y_b: np.ndarray,
+    b_min_size: int,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
     Remove cross contamination present in X_a and X_b by selecting one or the other on a flip coin decision.
