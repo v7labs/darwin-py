@@ -37,7 +37,7 @@ setuptools.setup(
     ],
     extras_require={
         "test": ["responses", "pytest", "pytest-describe"],
-        "ml": ["sklearn", "torch", "torchvision"],
+        "ml": ["scikit-learn", "sklearn", "torch", "torchvision"],
     },
     packages=[
         "darwin",
