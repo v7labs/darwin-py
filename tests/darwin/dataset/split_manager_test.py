@@ -7,14 +7,15 @@ from tests.fixtures import *
 
 
 def test_requires_scikit_learn():
-    sklearn_module = sys.modules["sklearn"]
+    sklearn_module = sys.modules.get("sklearn")
     sys.modules["sklearn"] = None
 
     try:
         with pytest.raises(ImportError):
             split_dataset("")
     finally:
-        sys.modules["sklearn"] = sklearn_module
+        if sklearn_module:
+            sys.modules["sklearn"] = sklearn_module
 
 
 def describe_classification_dataset():
