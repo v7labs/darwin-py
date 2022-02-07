@@ -1,3 +1,7 @@
+"""
+Contains several unrelated utility functions used across the SDK.
+"""
+
 import json
 import platform
 from pathlib import Path
@@ -11,8 +15,10 @@ from typing import (
     Optional,
     Set,
     Union,
+    cast,
 )
 
+import deprecation
 import numpy as np
 from rich.progress import ProgressType, track
 from upolygon import draw_polygon
@@ -20,33 +26,82 @@ from upolygon import draw_polygon
 import darwin.datatypes as dt
 from darwin.config import Config
 from darwin.exceptions import OutdatedDarwinJSONFormat, UnsupportedFileType
+from darwin.version import __version__
 
 if TYPE_CHECKING:
     from darwin.client import Client
 
 
 SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpeg", ".jpg", ".jfif", ".tif", ".tiff", ".bmp", ".svs"]
-SUPPORTED_VIDEO_EXTENSIONS = [".avi", ".bpm", ".dcm", ".mov", ".mp4", ".pdf"]
+SUPPORTED_VIDEO_EXTENSIONS = [".avi", ".bpm", ".dcm", ".mov", ".mp4", ".pdf", ".ndpi"]
 SUPPORTED_EXTENSIONS = SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
 
 
 def is_extension_allowed(extension: str) -> bool:
-    """Returns whether or not the given video or image extension is allowed."""
+    """
+    Returns whether or not the given video or image extension is allowed.
+
+    Parameters
+    ----------
+    extension : str
+        The extension.
+
+    Returns
+    -------
+    bool
+        Whether or not the given extension is allowed.
+    """
     return extension.lower() in SUPPORTED_EXTENSIONS
 
 
 def is_image_extension_allowed(extension: str) -> bool:
-    """Returns whether or not the given image extension is allowed."""
+    """
+    Returns whether or not the given image extension is allowed.
+
+    Parameters
+    ----------
+    extension : str
+        The image extension.
+
+    Returns
+    -------
+    bool
+        Whether or not the given extension is allowed.
+    """
     return extension.lower() in SUPPORTED_IMAGE_EXTENSIONS
 
 
 def is_video_extension_allowed(extension: str) -> bool:
-    """Returns whether or not the given video extension is allowed."""
+    """
+    Returns whether or not the given video extension is allowed.
+
+    Parameters
+    ----------
+    extension : str
+        The video extension.
+
+    Returns
+    -------
+    bool
+        Whether or not the given extension is allowed.
+    """
     return extension.lower() in SUPPORTED_VIDEO_EXTENSIONS
 
 
 def urljoin(*parts: str) -> str:
-    """Take as input an unpacked list of strings and joins them to form an URL"""
+    """
+    Take as input an unpacked list of strings and joins them to form an URL.
+
+    Parameters
+    ----------
+    parts : str
+        The list of strings to form the url.
+
+    Returns
+    -------
+    str
+        The url.
+    """
     return "/".join(part.strip("/") for part in parts)
 
 
@@ -67,26 +122,43 @@ def is_project_dir(project_path: Path) -> bool:
     return (project_path / "releases").exists() and (project_path / "images").exists()
 
 
-def get_progress_bar(array: List, description: Optional[str] = None) -> Iterable["ProgressType"]:
+def get_progress_bar(array: List[dt.AnnotationFile], description: Optional[str] = None) -> Iterable[ProgressType]:
+    """
+    Get a rich a progress bar for the given list of annotation files.
+
+    Parameters
+    ----------
+    array : List[dt.AnnotationFile]
+        The list of annotation files.
+    description : Optional[str], default: None
+        A description to show above the progress bar.
+
+    Returns
+    -------
+    Iterable[ProgressType]
+        An iterable of ``ProgressType`` to show a progress bar.
+    """
     if description:
         return track(array, description=description)
     return track(array)
 
 
 def prompt(msg: str, default: Optional[str] = None) -> str:
-    """Prompt the user on a CLI to input a message
+    """
+    Prompt the user on a CLI to input a message.
 
     Parameters
     ----------
     msg : str
-        Message to print
-    default : str
-        Default values which is put between [] when the user is prompted
+        Message to print.
+    default : Optional[str], default: None
+        Default values which is put between [] when the user is prompted.
 
     Returns
     -------
     str
-    The input from the user or the default value provided as parameter if user does not provide one
+        The input from the user or the default value provided as parameter if user does not provide
+        one.
     """
     if default:
         msg = f"{msg} [{default}]: "
@@ -101,7 +173,8 @@ def prompt(msg: str, default: Optional[str] = None) -> str:
 def find_files(
     files: List[dt.PathLike], *, files_to_exclude: List[dt.PathLike] = [], recursive: bool = True
 ) -> List[Path]:
-    """Retrieve a list of all files belonging to supported extensions. The exploration can be made
+    """
+    Retrieve a list of all files belonging to supported extensions. The exploration can be made
     recursive and a list of files can be excluded if desired.
 
     Parameters
@@ -115,8 +188,8 @@ def find_files(
 
     Returns
     -------
-    list[Path]
-    List of all files belonging to supported extensions. Can't return None.
+    List[Path]
+        List of all files belonging to supported extensions. Can't return None.
     """
 
     found_files: List[Path] = []
@@ -136,7 +209,7 @@ def find_files(
 
 def secure_continue_request() -> bool:
     """
-    Asks for explicit approval from the user. Empty string not accepted
+    Asks for explicit approval from the user. Empty string not accepted.
 
     Returns
     -------
@@ -149,19 +222,22 @@ def secure_continue_request() -> bool:
 def persist_client_configuration(
     client: "Client", default_team: Optional[str] = None, config_path: Optional[Path] = None
 ) -> Config:
-    """Authenticate user against the server and creates a configuration file for it
+    """
+    Authenticate user against the server and creates a configuration file for him/her.
 
     Parameters
     ----------
     client : Client
-        Client to take the configurations from
-    config_path : Path
-        Optional path to specify where to save the configuration file
+        Client to take the configurations from.
+    default_team : Optional[str], default: None
+        The default team for the user.
+    config_path : Optional[Path], default: None
+        Specifies where to save the configuration file.
 
     Returns
     -------
     Config
-    A configuration object to handle YAML files
+        A configuration object to handle YAML files.
     """
     if not config_path:
         config_path = Path.home() / ".darwin" / "config.yaml"
@@ -178,7 +254,30 @@ def persist_client_configuration(
     return config
 
 
+@deprecation.deprecated(
+    deprecated_in="0.7.5",
+    removed_in="0.8.0",
+    current_version=__version__,
+    details="Access the dictionary's key directly",
+)
 def get_local_filename(metadata: Dict[str, Any]) -> str:
+    """
+    Returns the value of the ``filename`` key from the given dictionary.
+
+    Parameters
+    ----------
+    metadata : Dict[str, Any]
+        A Dictionary with a ``filename`` key.
+
+    Returns
+    -------
+    str
+        The value  of the ``filename`` key.
+    """
+    return metadata["filename"]
+
+
+def _get_local_filename(metadata: Dict[str, Any]) -> str:
     return metadata["filename"]
 
 
@@ -213,11 +312,17 @@ def parse_darwin_json(path: Path, count: Optional[int]) -> Optional[dt.Annotatio
         if "annotations" not in data:
             return None
         if "fps" in data["image"] or "frame_count" in data["image"]:
-            return parse_darwin_video(path, data, count)
+            return _parse_darwin_video(path, data, count)
         else:
-            return parse_darwin_image(path, data, count)
+            return _parse_darwin_image(path, data, count)
 
 
+@deprecation.deprecated(
+    deprecated_in="0.7.5",
+    removed_in="0.8.0",
+    current_version=__version__,
+    details="Use 'parse_darwin_json' instead",
+)
 def parse_darwin_image(path: Path, data: Dict[str, Any], count: Optional[int]) -> dt.AnnotationFile:
     """
     Parses the given JSON file in v7's darwin proprietary format. Works only for images.
@@ -241,7 +346,7 @@ def parse_darwin_image(path: Path, data: Dict[str, Any], count: Optional[int]) -
     annotation_classes: Set[dt.AnnotationClass] = set([annotation.annotation_class for annotation in annotations])
     return dt.AnnotationFile(
         path,
-        get_local_filename(data["image"]),
+        _get_local_filename(data["image"]),
         annotation_classes,
         annotations,
         False,
@@ -255,6 +360,31 @@ def parse_darwin_image(path: Path, data: Dict[str, Any], count: Optional[int]) -
     )
 
 
+def _parse_darwin_image(path: Path, data: Dict[str, Any], count: Optional[int]) -> dt.AnnotationFile:
+    annotations: List[dt.Annotation] = list(filter(None, map(_parse_darwin_annotation, data["annotations"])))
+    annotation_classes: Set[dt.AnnotationClass] = set([annotation.annotation_class for annotation in annotations])
+    return dt.AnnotationFile(
+        path,
+        _get_local_filename(data["image"]),
+        annotation_classes,
+        annotations,
+        False,
+        data["image"].get("width"),
+        data["image"].get("height"),
+        data["image"].get("url"),
+        data["image"].get("workview_url"),
+        data["image"].get("seq", count),
+        None,
+        data["image"].get("path", "/"),
+    )
+
+
+@deprecation.deprecated(
+    deprecated_in="0.7.5",
+    removed_in="0.8.0",
+    current_version=__version__,
+    details="Use 'parse_darwin_json' instead",
+)
 def parse_darwin_video(path: Path, data: Dict[str, Any], count: Optional[int]) -> dt.AnnotationFile:
     """
     Parses the given JSON file in v7's darwin proprietary format. Works for playback videos.
@@ -282,7 +412,7 @@ def parse_darwin_video(path: Path, data: Dict[str, Any], count: Optional[int]) -
 
     return dt.AnnotationFile(
         path,
-        get_local_filename(data["image"]),
+        _get_local_filename(data["image"]),
         annotation_classes,
         annotations,
         True,
@@ -296,6 +426,35 @@ def parse_darwin_video(path: Path, data: Dict[str, Any], count: Optional[int]) -
     )
 
 
+def _parse_darwin_video(path: Path, data: Dict[str, Any], count: Optional[int]) -> dt.AnnotationFile:
+    annotations: List[dt.VideoAnnotation] = list(filter(None, map(_parse_darwin_video_annotation, data["annotations"])))
+    annotation_classes: Set[dt.AnnotationClass] = set([annotation.annotation_class for annotation in annotations])
+
+    if "width" not in data["image"] or "height" not in data["image"]:
+        raise OutdatedDarwinJSONFormat("Missing width/height in video, please re-export")
+
+    return dt.AnnotationFile(
+        path,
+        _get_local_filename(data["image"]),
+        annotation_classes,
+        annotations,
+        True,
+        data["image"].get("width"),
+        data["image"].get("height"),
+        data["image"].get("url"),
+        data["image"].get("workview_url"),
+        data["image"].get("seq", count),
+        data["image"].get("frame_urls"),
+        data["image"].get("path", "/"),
+    )
+
+
+@deprecation.deprecated(
+    deprecated_in="0.7.5",
+    removed_in="0.8.0",
+    current_version=__version__,
+    details="Use 'parse_darwin_json' instead",
+)
 def parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotation]:
     name: str = annotation["name"]
     main_annotation: Optional[dt.Annotation] = None
@@ -345,6 +504,61 @@ def parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotatio
     return main_annotation
 
 
+def _parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotation]:
+    name: str = annotation["name"]
+    main_annotation: Optional[dt.Annotation] = None
+    if "polygon" in annotation:
+        bounding_box = annotation.get("bounding_box")
+        if "additional_paths" in annotation["polygon"]:
+            paths = [annotation["polygon"]["path"]] + annotation["polygon"]["additional_paths"]
+            main_annotation = dt.make_complex_polygon(name, paths, bounding_box)
+        else:
+            main_annotation = dt.make_polygon(name, annotation["polygon"]["path"], bounding_box)
+    elif "complex_polygon" in annotation:
+        bounding_box = annotation.get("bounding_box")
+        if "additional_paths" in annotation["complex_polygon"]:
+            paths = annotation["complex_polygon"]["path"] + annotation["complex_polygon"]["additional_paths"]
+            main_annotation = dt.make_complex_polygon(name, paths, bounding_box)
+        else:
+            main_annotation = dt.make_complex_polygon(name, annotation["complex_polygon"]["path"], bounding_box)
+    elif "bounding_box" in annotation:
+        bounding_box = annotation["bounding_box"]
+        main_annotation = dt.make_bounding_box(
+            name, bounding_box["x"], bounding_box["y"], bounding_box["w"], bounding_box["h"]
+        )
+    elif "tag" in annotation:
+        main_annotation = dt.make_tag(name)
+    elif "line" in annotation:
+        main_annotation = dt.make_line(name, annotation["line"]["path"])
+    elif "keypoint" in annotation:
+        main_annotation = dt.make_keypoint(name, annotation["keypoint"]["x"], annotation["keypoint"]["y"])
+    elif "ellipse" in annotation:
+        main_annotation = dt.make_ellipse(name, annotation["ellipse"])
+    elif "cuboid" in annotation:
+        main_annotation = dt.make_cuboid(name, annotation["cuboid"])
+    elif "skeleton" in annotation:
+        main_annotation = dt.make_skeleton(name, annotation["skeleton"]["nodes"])
+
+    if not main_annotation:
+        print(f"[WARNING] Unsupported annotation type: '{annotation.keys()}'")
+        return None
+
+    if "instance_id" in annotation:
+        main_annotation.subs.append(dt.make_instance_id(annotation["instance_id"]["value"]))
+    if "attributes" in annotation:
+        main_annotation.subs.append(dt.make_attributes(annotation["attributes"]))
+    if "text" in annotation:
+        main_annotation.subs.append(dt.make_text(annotation["text"]["text"]))
+
+    return main_annotation
+
+
+@deprecation.deprecated(
+    deprecated_in="0.7.5",
+    removed_in="0.8.0",
+    current_version=__version__,
+    details="Use 'parse_darwin_json' instead",
+)
 def parse_darwin_video_annotation(annotation: dict) -> dt.VideoAnnotation:
     name = annotation["name"]
     frame_annotations = {}
@@ -358,7 +572,40 @@ def parse_darwin_video_annotation(annotation: dict) -> dt.VideoAnnotation:
     )
 
 
+def _parse_darwin_video_annotation(annotation: dict) -> dt.VideoAnnotation:
+    name = annotation["name"]
+    frame_annotations = {}
+    keyframes: Dict[int, bool] = {}
+    for f, frame in annotation["frames"].items():
+        frame_annotations[int(f)] = _parse_darwin_annotation({**frame, **{"name": name}})
+        keyframes[int(f)] = frame.get("keyframe", False)
+
+    return dt.make_video_annotation(
+        frame_annotations, keyframes, annotation["segments"], annotation.get("interpolated", False)
+    )
+
+
 def split_video_annotation(annotation: dt.AnnotationFile) -> List[dt.AnnotationFile]:
+    """
+    Splits the given video ``AnnotationFile`` into several video ``AnnotationFile``s, one for each
+    ``frame_url``.
+
+    Parameters
+    ----------
+    annotation : dt.AnnotationFile
+        The video ``AnnotationFile`` we want to split.
+
+    Returns
+    -------
+    List[dt.AnnotationFile]
+        A list with the split video ``AnnotationFile``s.
+
+    Raises
+    ------
+    AttributeError
+        If the given ``AnnotationFile`` is not a video annotation, or if the given annotation has
+        no ``frame_url`` attribute.
+    """
     if not annotation.is_video:
         raise AttributeError("this is not a video annotation")
 
@@ -391,11 +638,26 @@ def split_video_annotation(annotation: dt.AnnotationFile) -> List[dt.AnnotationF
 
 
 def ispolygon(annotation: dt.AnnotationClass) -> bool:
+    """
+    Returns whether or not the given ``AnnotationClass`` is a polygon.
+
+    Parameters
+    ----------
+    annotation : AnnotationClass
+        The ``AnnotationClass`` to evaluate.
+
+    Returns
+    -------
+    ``True`` is the given ``AnnotationClass`` is a polygon, ``False`` otherwise.
+    """
     return annotation.annotation_type in ["polygon", "complex_polygon"]
 
 
 def convert_polygons_to_sequences(
-    polygons: Any, height: Optional[int] = None, width: Optional[int] = None, rounding: bool = True,
+    polygons: List[Union[dt.Polygon, List[dt.Polygon]]],
+    height: Optional[int] = None,
+    width: Optional[int] = None,
+    rounding: bool = True,
 ) -> List[List[Union[int, float]]]:
     """
     Converts a list of polygons, encoded as a list of dictionaries of into a list of nd.arrays
@@ -403,19 +665,25 @@ def convert_polygons_to_sequences(
 
     Parameters
     ----------
-    polygons: list
-        List of coordinates in the format [{x: x1, y:y1}, ..., {x: xn, y:yn}] or a list of them
-        as  [[{x: x1, y:y1}, ..., {x: xn, y:yn}], ..., [{x: x1, y:y1}, ..., {x: xn, y:yn}]].
-    height: int
-        Maximum height for a polygon coordinate
-    width: int
-        Maximum width for a polygon coordinate
-
+    polygons : Iterable[dt.Polygon]
+        Non empty list of coordinates in the format ``[{x: x1, y:y1}, ..., {x: xn, y:yn}]`` or a
+        list of them as ``[[{x: x1, y:y1}, ..., {x: xn, y:yn}], ..., [{x: x1, y:y1}, ..., {x: xn, y:yn}]]``.
+    height : Optional[int], default: None
+        Maximum height for a polygon coordinate.
+    width : Optional[int], default: None
+        Maximum width for a polygon coordinate.
+    rounding : bool, default: True
+        Whether or not to round values when creating sequences.
     Returns
     -------
-    sequences: list[ndarray[float]]
+    sequences: List[ndarray[float]]
         List of arrays of coordinates in the format [[x1, y1, x2, y2, ..., xn, yn], ...,
         [x1, y1, x2, y2, ..., xn, yn]]
+
+    Raises
+    ------
+    ValueError
+        If the given list is a falsy value (such as ``[]``) or if it's structure is incorrect.
     """
     if not polygons:
         raise ValueError("No polygons provided")
@@ -423,9 +691,9 @@ def convert_polygons_to_sequences(
     # transformed to polygons = [[{x: x1, y:y1}, ..., {x: xn, y:yn}]]
     list_polygons: List[dt.Polygon] = []
     if isinstance(polygons[0], list):
-        list_polygons = polygons
+        list_polygons = cast(List[dt.Polygon], polygons)
     else:
-        list_polygons = [polygons]
+        list_polygons = cast(List[dt.Polygon], [polygons])
 
     if not isinstance(list_polygons[0], list) or not isinstance(list_polygons[0][0], dict):
         raise ValueError("Unknown input format")
@@ -447,6 +715,12 @@ def convert_polygons_to_sequences(
     return sequences
 
 
+@deprecation.deprecated(
+    deprecated_in="0.7.5",
+    removed_in="0.8.0",
+    current_version=__version__,
+    details="Do not use.",
+)
 def convert_sequences_to_polygons(
     sequences: List[Union[List[int], List[float]]], height: Optional[int] = None, width: Optional[int] = None
 ) -> Dict[str, List[dt.Polygon]]:
@@ -456,18 +730,24 @@ def convert_sequences_to_polygons(
 
     Parameters
     ----------
-    sequences: list
-        List of arrays of coordinates in the format [x1, y1, x2, y2, ..., xn, yn] or as a list of them
-        as [[x1, y1, x2, y2, ..., xn, yn], ..., [x1, y1, x2, y2, ..., xn, yn]]
-    height: int
-        Maximum height for a polygon coordinate
-    width: int
-        Maximum width for a polygon coordinate
+    sequences : List[Union[List[int], List[float]]]
+        List of arrays of coordinates in the format ``[x1, y1, x2, y2, ..., xn, yn]`` or as a list
+        of them as ``[[x1, y1, x2, y2, ..., xn, yn], ..., [x1, y1, x2, y2, ..., xn, yn]]``.
+    height : Optional[int], default: None
+        Maximum height for a polygon coordinate.
+    width : Optional[int], default: None
+        Maximum width for a polygon coordinate.
 
     Returns
     -------
-    polygons: list[ndarray[float]]
-        List of coordinates in the format [[{x: x1, y:y1}, ..., {x: xn, y:yn}], ..., [{x: x1, y:y1}, ..., {x: xn, y:yn}]].
+    Dict[str, List[dt.Polygon]]
+        Dictionary with the key ``path`` containing a list of coordinates in the format of
+        ``[[{x: x1, y:y1}, ..., {x: xn, y:yn}], ..., [{x: x1, y:y1}, ..., {x: xn, y:yn}]]``.
+
+    Raises
+    ------
+    ValueError
+        If sequences is a falsy value (such as ``[]``) or if it is in an incorrect format.
     """
     if not sequences:
         raise ValueError("No sequences provided")
@@ -494,19 +774,30 @@ def convert_sequences_to_polygons(
     return {"path": polygons}
 
 
+@deprecation.deprecated(
+    deprecated_in="0.7.5",
+    removed_in="0.8.0",
+    current_version=__version__,
+    details="Do not use.",
+)
 def convert_xyxy_to_bounding_box(box: List[Union[int, float]]) -> dt.BoundingBox:
     """
-    Converts a list of xy coordinates representing a bounding box into a dictionary
+    Converts a list of xy coordinates representing a bounding box into a dictionary.
 
     Parameters
     ----------
-    box: list
+    box : ist[Union[int, float]]
         List of arrays of coordinates in the format [x1, y1, x2, y2]
 
     Returns
     -------
-    bounding_box: dict
-        Bounding box in the format {x: x1, y: y1, h: height, w: width}
+    BoundingBox
+        Bounding box in the format ``{x: x1, y: y1, h: height, w: width}``.
+
+    Raises
+    ------
+    ValueError
+        If ``box`` has an incorrect format.
     """
     if not isinstance(box[0], float) and not isinstance(box[0], int):
         raise ValueError("Unknown input format")
@@ -517,19 +808,25 @@ def convert_xyxy_to_bounding_box(box: List[Union[int, float]]) -> dt.BoundingBox
     return {"x": x1, "y": y1, "w": width, "h": height}
 
 
+@deprecation.deprecated(
+    deprecated_in="0.7.5",
+    removed_in="0.8.0",
+    current_version=__version__,
+    details="Do not use.",
+)
 def convert_bounding_box_to_xyxy(box: dt.BoundingBox) -> List[float]:
     """
-    Converts dictionary representing a bounding box into a list of xy coordinates
+    Converts dictionary representing a bounding box into a list of xy coordinates.
 
     Parameters
     ----------
-    box: dict
-        Bounding box in the format {x: x1, y: y1, h: height, w: width}
+    box : BoundingBox
+        Bounding box in the format ``{x: x1, y: y1, h: height, w: width}``.
 
     Returns
     -------
-    bounding_box: dict
-        List of arrays of coordinates in the format [x1, y1, x2, y2]
+    List[float]
+        List of arrays of coordinates in the format ``[x1, y1, x2, y2]``.
     """
 
     x2 = box["x"] + box["width"]
@@ -539,18 +836,24 @@ def convert_bounding_box_to_xyxy(box: dt.BoundingBox) -> List[float]:
 
 def convert_polygons_to_mask(polygons: List, height: int, width: int, value: Optional[int] = 1) -> np.ndarray:
     """
-    Converts a list of polygons, encoded as a list of dictionaries into an nd.array mask
+    Converts a list of polygons, encoded as a list of dictionaries into an ``nd.array`` mask.
 
     Parameters
     ----------
     polygons: list
-        List of coordinates in the format [{x: x1, y:y1}, ..., {x: xn, y:yn}] or a list of them
-        as  [[{x: x1, y:y1}, ..., {x: xn, y:yn}], ..., [{x: x1, y:y1}, ..., {x: xn, y:yn}]].
+        List of coordinates in the format ``[{x: x1, y:y1}, ..., {x: xn, y:yn}]`` or a list of them
+        as  ``[[{x: x1, y:y1}, ..., {x: xn, y:yn}], ..., [{x: x1, y:y1}, ..., {x: xn, y:yn}]]``.
+    height : int
+        The maximum height for the created mask.
+    width : int
+        The maximum width for the created mask.
+    value : Optional[int], default: 1
+        The drawing value for ``upolygon``.
 
     Returns
     -------
-    mask: ndarray[float]
-        ndarray mask of the polygon(s)
+    ndarray
+        ``ndarray`` mask of the polygon(s).
     """
     sequence = convert_polygons_to_sequences(polygons, height=height, width=width)
     mask = np.zeros((height, width)).astype(np.uint8)
@@ -559,18 +862,33 @@ def convert_polygons_to_mask(polygons: List, height: int, width: int, value: Opt
 
 
 def chunk(items: List[Any], size: int) -> Iterator[Any]:
+    """
+    Splits the given list into chunks of the given size and yields them.
+
+    Parameters
+    ----------
+    items : List[Any]
+        The list of items to be split.
+    size : int
+        The size of each split.
+
+    Yields
+    ------
+    Iterator[Any]
+        A chunk of the of the given size.
+    """
     for i in range(0, len(items), size):
         yield items[i : i + size]
 
 
 def is_unix_like_os() -> bool:
     """
-    Returns True if the executing OS is Unix-based (Ubuntu or MacOS, for example) or False
+    Returns ``True`` if the executing OS is Unix-based (Ubuntu or MacOS, for example) or ``False``
     otherwise.
 
     Returns
     --------
-    bool:
+    bool
         True for Unix-based systems, False otherwise.
     """
     return platform.system() != "Windows"

@@ -39,7 +39,7 @@ from darwin.dataset.utils import (
 from darwin.datatypes import AnnotationClass, AnnotationFile, PathLike, Team
 from darwin.exceptions import NotFound, UnsupportedExportFormat
 from darwin.exporter.formats.darwin import build_image_annotation
-from darwin.item import DatasetItem, parse_dataset_item
+from darwin.item import DatasetItem
 from darwin.item_sorter import ItemSorter
 from darwin.utils import find_files, parse_darwin_json, split_video_annotation, urljoin
 from requests.models import Response
@@ -366,7 +366,7 @@ class RemoteDataset:
             payload = {"filter": post_filters, "sort": post_sort}
             response = self.client.fetch_remote_files(self.dataset_id, cursor, payload, self.team)
 
-            yield from [parse_dataset_item(item) for item in response["items"]]
+            yield from [DatasetItem.parse(item) for item in response["items"]]
 
             if response["metadata"]["next"]:
                 cursor["page[from]"] = response["metadata"]["next"]
