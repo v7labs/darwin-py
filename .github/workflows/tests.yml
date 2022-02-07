@@ -44,7 +44,7 @@ jobs:
           pip install --upgrade setuptools
           pip install --editable ".[test,ml]"
 
-      - name: debug
+      - name: debug packages
         run: pip freeze
 
       - name: Run tests
