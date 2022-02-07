@@ -42,8 +42,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install wheel
           pip install --upgrade setuptools
-          pip install --editable ".[test]"
-          pip install --editable ".[ml]"
+          pip install --editable ".[test,ml]"
 
       - name: Run tests
         run: pytest
