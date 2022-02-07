@@ -14,6 +14,7 @@ def test_requires_scikit_learn():
         with pytest.raises(ImportError):
             split_dataset("")
     finally:
+        del sys.modules["sklearn"]
         if sklearn_module:
             sys.modules["sklearn"] = sklearn_module
 
