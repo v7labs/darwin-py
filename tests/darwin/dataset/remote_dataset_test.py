@@ -361,7 +361,10 @@ def describe_fetch_remote_files():
         )
         url = "http://localhost/api/datasets/1/items?page%5Bsize%5D=500"
         responses.add(
-            responses.POST, url, json=files_content, status=200,
+            responses.POST,
+            url,
+            json=files_content,
+            status=200,
         )
 
         actual = remote_dataset.fetch_remote_files()
@@ -424,6 +427,7 @@ def describe_push():
             ".mov",
             ".mp4",
             ".pdf",
+            ".ndpi",
         ]
         filenames = [f"test{extension}" for extension in supported_extensions]
         assert_upload_mocks_are_correctly_called(remote_dataset, filenames)
