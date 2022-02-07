@@ -201,25 +201,51 @@ class LocalDataset(object):
         return self
 
     def get_image(self, index: int) -> PILImage.Image:
-        return load_pil_image(self.images_path[index])
-
-    def get_image_path(self, index: int) -> Path:
-        return self.images_path[index]
-
-    def parse_json(self, index: int) -> Dict[str, Any]:
         """
-        Load an annotation and filter out the extra classes according to what
-        specified in `self.classes` and the annotation_type
+        Returns the correspoding ```PILImage.Image```.
 
         Parameters
         ----------
         index : int
-            Index of the annotation to read
+            The index of the image in this ```LocalDataset```.
 
         Returns
         -------
-        dict
-        A new dictionary containing the index and the filtered annotation
+        PILImage.Image
+            The image.
+        """
+        return load_pil_image(self.images_path[index])
+
+    def get_image_path(self, index: int) -> Path:
+        """
+        Returns the path of the image with the given index.
+
+        Parameters
+        ----------
+        index : int
+            The index of the image in this ```LocalDataset```.
+
+        Returns
+        -------
+        Path
+            The ```Path``` of the image.
+        """
+        return self.images_path[index]
+
+    def parse_json(self, index: int) -> Dict[str, Any]:
+        """
+        Load an annotation and filter out the extra classes according to what is
+        specified in ```self.classes``` and the ```annotation_type```.
+
+        Parameters
+        ----------
+        index : int
+            Index of the annotation to read.
+
+        Returns
+        -------
+        Dict[str, Any]
+            A dictionary containing the index and the filtered annotation.
         """
         with self.annotations_path[index].open() as f:
             data = json.load(f)
@@ -236,19 +262,20 @@ class LocalDataset(object):
         }
 
     def measure_mean_std(self, multi_threaded: bool = True) -> Tuple[np.ndarray, np.ndarray]:
-        """Computes mean and std of train images, given the train loader
+        """
+        Computes mean and std of trained images, given the train loader.
 
         Parameters
         ----------
-        multi_threaded : bool
+        multi_threaded : bool, default: True
             Uses multiprocessing to download the dataset in parallel.
 
         Returns
         -------
         mean : ndarray[double]
-            Mean value (for each channel) of all pixels of the images in the input folder
+            Mean value (for each channel) of all pixels of the images in the input folder.
         std : ndarray[double]
-            Standard deviation (for each channel) of all pixels of the images in the input folder
+            Standard deviation (for each channel) of all pixels of the images in the input folder.
         """
         if multi_threaded:
             # Set up a pool of workers
@@ -276,29 +303,20 @@ class LocalDataset(object):
             std = np.sqrt(std_sum / total_pixel_count)
             return mean, std
 
-    def measure_weights(self, **kwargs):
-        """Computes the class balancing weights (not the frequencies!!) given the train loader
-
-        Returns
-        -------
-        class_weights : ndarray[double]
-            Weight for each class in the train set (one for each class)
-        """
-        raise NotImplementedError("Base class Dataset does not have an implementation for this")
-
     @staticmethod
     def _compute_weights(labels: List[int]) -> np.ndarray:
-        """Given an array of labels computes the weights normalized
+        """
+        Given an array of labels computes the weights normalized.
 
         Parameters
         ----------
-        labels : ndarray[int]
-            Array of labels
+        labels : List[int]
+            Array of labels.
 
         Returns
         -------
         ndarray[float]
-            Array of weights (one for each unique class) which are the inverse of their frequency
+            Array of weights (one for each unique class) which are the inverse of their frequency.
         """
         class_support: np.ndarray = np.unique(labels, return_counts=True)[1]
         class_frequencies = class_support / len(labels)
@@ -347,13 +365,47 @@ def build_stems(
     partition: Optional[str] = None,
     split_type: str = "random",
 ) -> Iterator[str]:
-    # If no partition is specified, then take all json files in the annotations directory.
-    # The resulting generator prepends parent directories relative to the main annotation directory.
-    #
-    # E.g.: ["annotations/test/1.json", "annotations/2.json", "annotations/test/2/3.json"]:
-    #     - annotations/test/1
-    #     - annotations/2
-    #     - annotations/test/2/3
+    """
+    Builds the stems for the given release with the given annotations as base.
+
+    Parameters
+    ----------
+    release_path : Path
+        The path of the ```Release``` saved locally.
+    annotations_dir : Path
+        The path for a directory where annotations.
+    annotation_type : str
+        The type of the annotations.
+    split : str
+        The split name.
+    partition : Optional[str], default: None
+        How to partition files. If no partition is specified, then it takes all the json files in
+        the annotations directory.
+        The resulting generator prepends parent directories relative to the main annotation
+        directory.
+
+        E.g.: ```["annotations/test/1.json", "annotations/2.json", "annotations/test/2/3.json"]```:
+
+            - annotations/test/1
+            - annotations/2
+            - annotations/test/2/3
+    split_type str, default: "random"
+        The type of split. Can be ```"random"``` or ```"stratified"```.
+
+    Returns
+    -------
+    Iterator[str]
+        An iterator with the path for the stem files.
+
+    Raises
+    ------
+    ValueError
+        If the provided ```split_type``` is invalid.
+
+    FileNotFoundError
+        If no dataset partitions are found.
+    """
+
     if partition is None:
         return (str(e.relative_to(annotations_dir).parent / e.stem) for e in sorted(annotations_dir.glob("**/*.json")))
 
