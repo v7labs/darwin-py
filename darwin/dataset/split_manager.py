@@ -110,8 +110,7 @@ def split_dataset(
     # Requirements: scikit-learn
     try:
         import sklearn  # noqa
-    except ImportError as error:
-        print(error)
+    except ImportError:
         raise ImportError(
             "Darwin requires scikit-learn to split a dataset. Install it using: pip install scikit-learn"
         ) from None
