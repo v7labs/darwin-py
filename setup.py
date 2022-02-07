@@ -36,7 +36,7 @@ setuptools.setup(
         "pydantic",
     ],
     extras_require={
-        "test": ["responses", "pytest", "pytest-describe"],
+        "test": ["responses", "pytest", "pytest-describe", "sklearn"],
         "ml": ["sklearn", "torch", "torchvision"],
     },
     packages=[
