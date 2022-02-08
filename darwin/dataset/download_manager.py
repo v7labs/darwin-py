@@ -16,6 +16,12 @@ from darwin.version import __version__
 from rich.console import Console
 
 
+@deprecation.deprecated(
+    deprecated_in="0.7.5",
+    removed_in="0.8.0",
+    current_version=__version__,
+    details="The api_url parameter will be removed.",
+)
 def download_all_images_from_annotations(
     api_key: str,
     api_url: str,
@@ -110,6 +116,12 @@ def download_all_images_from_annotations(
     return generator, count
 
 
+@deprecation.deprecated(
+    deprecated_in="0.7.5",
+    removed_in="0.8.0",
+    current_version=__version__,
+    details="The api_url parameter will be removed.",
+)
 def download_image_from_annotation(
     api_key: str,
     api_url: str,
