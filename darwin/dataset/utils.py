@@ -496,6 +496,8 @@ def compute_distributions(
     for partition in partitions:
         for annotation_type in annotation_types:
             split_file: Path = split_path / f"stratified_{annotation_type}_{partition}.txt"
+            if not split_file.exists():
+                split_file = split_path / f"random_{partition}.txt"
             stems: List[str] = [e.rstrip("\n\r") for e in split_file.open()]
 
             for stem in stems:
