@@ -457,20 +457,44 @@ class RemoteDataset:
         self.client.restore_archived_item(self.slug, self.team, payload)
 
     def move_to_new(self, items: Iterator[DatasetItem]) -> None:
+        """
+        Changes the given ```DatasetItem```s status to ```new```.
+
+        Parameters
+        ----------
+        items : Iterator[DatasetItem]
+            The ```DatasetItem```s whose status will change.
+        """
         payload: Dict[str, Any] = {"filter": {"dataset_item_ids": [item.id for item in items]}}
         self.client.move_item_to_new(self.slug, self.team, payload)
 
     def reset(self, items: Iterator[DatasetItem]) -> None:
+        """
+        Resets the given ```DatasetItem```s.
+
+        Parameters
+        ----------
+        items : Iterator[DatasetItem]
+            The ```DatasetItem```s to be resetted.
+        """
         payload: Dict[str, Any] = {"filter": {"dataset_item_ids": [item.id for item in items]}}
         self.client.reset_item(self.slug, self.team, payload)
 
     def delete_items(self, items: Iterator[DatasetItem]) -> None:
+        """
+        Deletes the given ```DatasetItem```s.
+
+        Parameters
+        ----------
+        items : Iterator[DatasetItem]
+            The ```DatasetItem```s to be deleted.
+        """
         payload: Dict[str, Any] = {"filter": {"dataset_item_ids": [item.id for item in items]}}
         self.client.delete_item(self.slug, self.team, payload)
 
     def fetch_annotation_type_id_for_name(self, name: str) -> Optional[int]:
         """
-        Fetches annotation type id for a annotation type name, such as bounding_box
+        Fetches annotation type id for a annotation type name, such as ```bounding_box```.
 
         Parameters
         ----------
@@ -481,12 +505,7 @@ class RemoteDataset:
         Returns
         -------
         generator : Optional[int]
-            The id of the annotation type or None if it doesn't exist.
-
-        Raises
-        ------
-        ConnectionError
-            If it fails to establish a connection.
+            The id of the annotation type or ```None``` if it doesn't exist.
         """
         if not self.annotation_types:
             self.annotation_types = self.client.annotation_types()
