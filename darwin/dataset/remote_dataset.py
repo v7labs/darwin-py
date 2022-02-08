@@ -380,13 +380,28 @@ class RemoteDataset:
             return progress, count
 
     def remove_remote(self) -> None:
-        """Archives (soft-deletion) the remote dataset"""
+        """Archives (soft-deletion) this ```RemoteDataset```."""
         self.client.archive_remote_dataset(self.dataset_id, self.team)
 
     def fetch_remote_files(
         self, filters: Optional[Dict[str, Union[str, List[str]]]] = None, sort: Optional[Union[str, ItemSorter]] = None
     ) -> Iterator[DatasetItem]:
-        """Fetch and lists all files on the remote dataset"""
+        """
+        Fetch and lists all files on the remote dataset.
+
+        Parameters
+        ----------
+        filters : Optional[Dict[str, Union[str, List[str]]]], default: None
+            The filters to use. Files excluded by the filter won't be fetched.
+        sort : Optional[Union[str, ItemSorter]], default: None
+            A sorting direction. It can be a string with the values 'asc', 'ascending', 'desc',
+            'descending' or an ```ItemSorter``` instance.
+
+        Yields
+        -------
+        Iterator[DatasetItem]
+            An iterator of ```DatasetItem```.
+        """
         post_filters: Dict[str, str] = {}
         post_sort: Dict[str, str] = {}
 
@@ -418,10 +433,26 @@ class RemoteDataset:
                 return
 
     def archive(self, items: Iterator[DatasetItem]) -> None:
+        """
+        Archives (soft-deletion) the given ```DatasetItem```s belonging to this ```RemoteDataset```.
+
+        Parameters
+        ----------
+        items : Iterator[DatasetItem]
+            The ```DatasetItem```s to be archived.
+        """
         payload: Dict[str, Any] = {"filter": {"dataset_item_ids": [item.id for item in items]}}
         self.client.archive_item(self.slug, self.team, payload)
 
     def restore_archived(self, items: Iterator[DatasetItem]) -> None:
+        """
+        Restores the archived ```DatasetItem```s that belong to this ```RemoteDataset```.
+
+        Parameters
+        ----------
+        items : Iterator[DatasetItem]
+            The ```DatasetItem```s to be restored.
+        """
         payload: Dict[str, Any] = {"filter": {"dataset_item_ids": [item.id for item in items]}}
         self.client.restore_archived_item(self.slug, self.team, payload)
 
