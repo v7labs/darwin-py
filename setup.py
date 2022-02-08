@@ -36,7 +36,7 @@ setuptools.setup(
         "pydantic",
     ],
     extras_require={
-        "test": ["responses", "pytest", "pytest-describe"],
+        "test": ["responses", "pytest", "pytest-describe", "sklearn"],
         "ml": ["sklearn", "torch", "torchvision"],
     },
     packages=[
@@ -47,6 +47,7 @@ setuptools.setup(
         "darwin.exporter",
         "darwin.importer.formats",
         "darwin.exporter.formats",
+        "darwin.version",
     ],
     entry_points={"console_scripts": ["darwin=darwin.cli:main"]},
     classifiers=["Programming Language :: Python :: 3", "License :: OSI Approved :: MIT License"],
