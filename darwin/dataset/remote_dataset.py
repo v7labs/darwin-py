@@ -50,6 +50,50 @@ if TYPE_CHECKING:
 
 
 class RemoteDataset:
+    """
+    Manages the remote and local versions of a dataset hosted on Darwin.
+    It allows several dataset management operations such as syncing between
+    remote and local, pulling a remote dataset, removing the local files, ...
+
+    Parameters
+    ----------
+    client : Client
+        Client to use for interaction with the server.
+    team : str
+        Team the dataset belongs to.
+    name : str
+        Name of the datasets as originally displayed on Darwin.
+        It may contain white spaces, capital letters and special characters, e.g. `Bird Species!`.
+    slug : str
+        This is the dataset name with everything lower-case, removed specials characters and
+        spaces are replaced by dashes, e.g., `bird-species`. This string is unique within a team.
+    dataset_id : int
+        Unique internal reference from the Darwin backend.
+    item_count : int, default: 0
+        Dataset size (number of items).
+    progress : float, default: 0
+        How much of the dataset has been annotated 0.0 to 1.0 (1.0 == 100%).
+
+    Attributes
+    ----------
+    client : Client
+        Client to use for interaction with the server.
+    team : str
+        Team the dataset belongs to.
+    name : str
+        Name of the datasets as originally displayed on Darwin.
+        It may contain white spaces, capital letters and special characters, e.g. `Bird Species!`.
+    slug : str
+        This is the dataset name with everything lower-case, removed specials characters and
+        spaces are replaced by dashes, e.g., `bird-species`. This string is unique within a team.
+    dataset_id : int
+        Unique internal reference from the Darwin backend.
+    item_count : int, default: 0
+        Dataset size (number of items).
+    progress : float, default: 0
+        How much of the dataset has been annotated 0.0 to 1.0 (1.0 == 100%).
+    """
+
     def __init__(
         self,
         *,
@@ -61,29 +105,6 @@ class RemoteDataset:
         item_count: int = 0,
         progress: float = 0,
     ):
-        """
-        Initializes a DarwinDataset.
-        This class manages the remote and local versions of a dataset hosted on Darwin.
-        It allows several dataset management operations such as syncing between
-        remote and local, pulling a remote dataset, removing the local files, ...
-
-        Parameters
-        ----------
-        name : str
-            Name of the datasets as originally displayed on Darwin.
-            It may contain white spaces, capital letters and special characters, e.g. `Bird Species!`
-        slug : str
-            This is the dataset name with everything lower-case, removed specials characters and
-            spaces are replaced by dashes, e.g., `bird-species`. This string is unique within a team
-        dataset_id : int
-            Unique internal reference from the Darwin backend
-        item_count : int
-            Dataset size (number of items)
-        progress : float
-            How much of the dataset has been annotated 0.0 to 1.0 (1.0 == 100%)
-        client : Client
-            Client to use for interaction with the server
-        """
         self.team = team
         self.name = name
         self.slug = slug or name
@@ -108,36 +129,44 @@ class RemoteDataset:
         progress_callback: Optional[ProgressCallback] = None,
         file_upload_callback: Optional[FileUploadCallback] = None,
     ) -> UploadHandler:
-        """Uploads a local dataset (images ONLY) in the datasets directory.
+        """
+        Uploads a local dataset (images ONLY) in the datasets directory.
 
         Parameters
         ----------
         files_to_upload : Optional[List[Union[PathLike, LocalFile]]]
             List of files to upload. Those can be folders.
-        blocking : bool
+        blocking : bool, default: True
             If False, the dataset is not uploaded and a generator function is returned instead.
-        multi_threaded : bool
+        multi_threaded : bool, default: True
             Uses multiprocessing to upload the dataset in parallel.
             If blocking is False this has no effect.
-        files_to_exclude : Optional[PathLike]]
-            Optional list of files to exclude from the file scan. Those can be folders.
-        fps : int
+        fps : int, default: 0
             When the uploading file is a video, specify its framerate.
-        as_frames: bool
+        as_frames: bool, default: False
             When the uploading file is a video, specify whether it's going to be uploaded as a list of frames.
-        path: Optional[str]
+        files_to_exclude : Optional[PathLike]], default: None
+            Optional list of files to exclude from the file scan. Those can be folders.
+        path: Optional[str], default: None
             Optional path to store the files in.
-        preserve_folders : bool
+        preserve_folders : bool, default: False
             Specify whether or not to preserve folder paths when uploading
-        progress_callback: Optional[ProgressCallback]
+        progress_callback: Optional[ProgressCallback], default: None
             Optional callback, called every time the progress of an uploading files is reported.
-        file_upload_callback: Optional[FileUploadCallback]
+        file_upload_callback: Optional[FileUploadCallback], default: None
             Optional callback, called every time a file chunk is uploaded.
 
         Returns
         -------
         handler : UploadHandler
-           Class for handling uploads, progress and error messages
+           Class for handling uploads, progress and error messages.
+
+        Raises
+        ------
+        ValueError
+            - If ```files_to_upload``` is ```None```.
+            - If a path is specified when uploading a LocalFile object.
+            - If there are no files to upload (because path is wrong or the exclude filter excludes everything).
         """
 
         if files_to_exclude is None:
@@ -177,6 +206,14 @@ class RemoteDataset:
         return handler
 
     def split_video_annotations(self, release_name: str = "latest") -> None:
+        """
+        Splits the video annotations from this ```RemoteDataset``` using the given release.
+
+        Parameters
+        ----------
+        release_name : str, default: "latest"
+            The name of the release to use.
+        """
         release_dir: Path = self.local_path / "releases" / release_name
         annotations_path: Path = release_dir / "annotations"
 
@@ -222,35 +259,42 @@ class RemoteDataset:
 
         Parameters
         ----------
-        release: Release
-            The release to pull
-        blocking : bool
-            If False, the dataset is not downloaded and a generator function is returned instead
-        multi_threaded : bool
+        release: Optional[Release], default: None
+            The release to pull.
+        blocking : bool, default: True
+            If False, the dataset is not downloaded and a generator function is returned instead.
+        multi_threaded : bool, default: True
             Uses multiprocessing to download the dataset in parallel. If blocking is False this has no effect.
-        only_annotations: bool
-            Download only the annotations and no corresponding images
-        force_replace: bool
-            Forces the re-download of an existing image
-        remove_extra: bool
-            Removes existing images for which there is not corresponding annotation
-        subset_filter_annotations_function: Callable
+        only_annotations : bool, default: False
+            Download only the annotations and no corresponding images.
+        force_replace : bool, default: False
+            Forces the re-download of an existing image.
+        remove_extra : bool, default: False
+            Removes existing images for which there is not corresponding annotation.
+        subset_filter_annotations_function: Optional[Callable], default: None
             This function receives the directory where the annotations are downloaded and can
             perform any operation on them i.e. filtering them with custom rules or else.
             If it needs to receive other parameters is advised to use functools.partial() for it.
-        subset_folder_name: str
+        subset_folder_name: Optional[str], default: None
             Name of the folder with the subset of the dataset. If not provided a timestamp is used.
-        use_folders: bool
-            Recreates folders from the dataset
-        video_frames: bool
-            Pulls video frames images instead of video files
+        use_folders : bool, default: False
+            Recreates folders from the dataset.
+        video_frames : bool, default: False
+            Pulls video frames images instead of video files.
 
         Returns
         -------
         generator : function
-            Generator for doing the actual downloads. This is None if blocking is True
+            Generator for doing the actual downloads. This is None if blocking is ```True```.
         count : int
-            The files count
+            The number of files.
+
+        Raises
+        ------
+        UnsupportedExportFormat
+            If the given ```release``` has an invalid format.
+        ValueError
+            If darwin in unable to get ```Team``` configuration.
         """
         if release is None:
             release = self.get_release()
