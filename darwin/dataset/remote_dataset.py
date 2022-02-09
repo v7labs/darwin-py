@@ -504,7 +504,7 @@ class RemoteDataset:
 
         Returns
         -------
-        generator : Optional[int]
+        Optional[int]
             The id of the annotation type or ```None``` if it doesn't exist.
         """
         if not self.annotation_types:
@@ -518,7 +518,7 @@ class RemoteDataset:
 
     def create_annotation_class(self, name: str, type: str, subtypes: List[str] = []) -> Dict[str, Any]:
         """
-        Creates an annotation class for this dataset.
+        Creates an annotation class for this ```RemoteDataset```.
 
         Parameters
         ----------
@@ -526,19 +526,16 @@ class RemoteDataset:
             The name of the annotation class.
         type : str
             The type of the annotation class.
-        subtypes : List[str]
+        subtypes : List[str], default: []
             Annotation class subtypes.
 
         Returns
         -------
-        dict
+        Dict[str, Any]
             Dictionary with the server response.
 
         Raises
         ------
-        ConnectionError
-            If it is unable to connect.
-
         ValueError
             If a given annotation type or subtype is unknown.
         """
@@ -551,13 +548,15 @@ class RemoteDataset:
                 raise ValueError(
                     f"Unknown annotation type: '{annotation_type}', valid values: {list_of_annotation_types}"
                 )
-            type_ids.append(type_id)
+
+            if type_id is not None:
+                type_ids.append(type_id)
 
         return self.client.create_annotation_class(self.dataset_id, type_ids, name)
 
     def add_annotation_class(self, annotation_class: Union[AnnotationClass, int]) -> Optional[Dict[str, Any]]:
         """
-        Adds an annotation class to this dataset.
+        Adds an annotation class to this ```RemoteDataset```.
 
         Parameters
         ----------
@@ -566,8 +565,14 @@ class RemoteDataset:
 
         Returns
         -------
-        dict or None
-            Dictionary with the server response or None if the annotations class already exists.
+        Optional[Dict[str, Any]]
+            Dictionary with the server response or ```None``` if the annotations class already
+            exists.
+
+        Raises
+        ------
+        ValueError
+            If the given ```annotation_class``` does not exist in this ```RemoteDataset```'s team.
         """
         # Waiting for a better api for setting classes
         # in the meantime this will do
@@ -604,19 +609,18 @@ class RemoteDataset:
 
     def fetch_remote_classes(self, team_wide=False) -> List[Dict[str, Any]]:
         """
-        Fetches all the Annotation Classes from the given remote dataset.
+        Fetches all the Annotation Classes from this ```RemoteDataset```.
 
         Parameters
         ----------
-        team_wide : bool
-            If `True` will return all Annotation Classes that belong to the team. If `False` will
-            only return Annotation Classes which have been added to the dataset.
+        team_wide : bool, default: False
+            If ```True``` will return all Annotation Classes that belong to the team. If ```False```
+            will only return Annotation Classes which have been added to the dataset.
 
         Returns
         -------
-        List:
-            List of Annotation Classes (can be empty) or None, if the team was not able to be
-            determined.
+        List[Dict[str, Any]]:
+            List of Annotation Classes (can be empty).
         """
         all_classes: List[Dict[str, Any]] = self.client.fetch_remote_classes()
 
@@ -629,23 +633,31 @@ class RemoteDataset:
         return classes_to_return
 
     def fetch_remote_attributes(self) -> List[Dict[str, Any]]:
-        """Fetches all remote attributes on the remote dataset"""
+        """
+        Fetches all remote attributes on the remote dataset.
+
+        Returns
+        -------
+        List[Dict[str, Any]]
+            A List with the attributes, where each attribute is a dictionary.
+        """
         return self.client.fetch_remote_attributes(self.dataset_id)
 
     def export(
         self, name: str, annotation_class_ids: Optional[List[str]] = None, include_url_token: bool = False
     ) -> None:
         """
-        Create a new release for the dataset
+        Create a new release for this ```RemoteDataset```.
 
         Parameters
         ----------
-        name: str
-            Name of the release
-        annotation_class_ids: List
-            List of the classes to filter
-        include_url_token: bool
-            Should the image url in the export include a token enabling access without team membership
+        name : str
+            Name of the release.
+        annotation_class_ids : Optional[List[str]], default: None
+            List of the classes to filter.
+        include_url_token : bool, default: False
+            Should the image url in the export include a token enabling access without team
+            membership or not?
         """
         if annotation_class_ids is None:
             annotation_class_ids = []
@@ -657,6 +669,19 @@ class RemoteDataset:
         self.client.create_export(self.dataset_id, payload, self.team)
 
     def get_report(self, granularity: str = "day") -> str:
+        """
+        Returns a String representation of a CSV report for this ```RemoteDataset```.
+
+        Parameters
+        ----------
+        granularity : str, default: "day"
+            The granularity of the report, can be 'day', 'week' or 'month'.
+
+        Returns
+        -------
+        str
+            A CSV report.
+        """
         response: Response = self.client.get_report(self.dataset_id, granularity, self.team)
         return response.text
 
@@ -667,12 +692,7 @@ class RemoteDataset:
         Returns
         -------
         List["Release"]
-            Return a sorted list of available releases with the most recent first
-
-        Raises
-        ------
-        ConnectionError
-            If it is unable to connect.
+            Returns a sorted list of available ```Release```s with the most recent first.
         """
         try:
             releases_json: List[Dict[str, Any]] = self.client.get_exports(self.dataset_id, self.team)
@@ -684,26 +704,26 @@ class RemoteDataset:
 
     def get_release(self, name: str = "latest") -> "Release":
         """
-        Get a specific release for this dataset.
+        Get a specific ```Release``` for this ```RemoteDataset```.
 
         Parameters
         ----------
-        name: str
-            Name of the export
+        name : str, default: "latest"
+            Name of the export.
 
         Returns
         -------
         Release
-            The selected release
+            The selected release.
 
         Raises
         ------
         NotFound
-            The selected release does not exists
+            The selected ```Release``` does not exist.
         """
         releases = self.get_releases()
         if not releases:
-            raise NotFound(self.identifier)
+            raise NotFound(str(self.identifier))
 
         if name == "latest":
             return next((release for release in releases if release.latest))
@@ -711,7 +731,7 @@ class RemoteDataset:
         for release in releases:
             if str(release.name) == name:
                 return release
-        raise NotFound(self.identifier)
+        raise NotFound(str(self.identifier))
 
     def split(
         self,
@@ -723,22 +743,25 @@ class RemoteDataset:
     ) -> None:
         """
         Creates lists of file names for each split for train, validation, and test.
-        Note: This functions needs a local copy of the dataset
+        Note: This functions needs a local copy of the dataset.
 
         Parameters
         ----------
-        val_percentage : float
-            Percentage of images used in the validation set
-        test_percentage : float
-            Percentage of images used in the test set
-        force_resplit : bool
-            Discard previous split and create a new one
-        split_seed : int
-            Fix seed for random split creation
-        make_default_split: bool
-            Makes this split the default split
-        release_name: str
-            Version of the dataset
+        val_percentage : float, default: 0.1
+            Percentage of images used in the validation set.
+        test_percentage : float, default: 0
+            Percentage of images used in the test set.
+        split_seed : int, default: 0
+            Fix seed for random split creation.
+        make_default_split: bool, default: True
+            Makes this split the default split.
+        release_name: Optional[str], default: None
+            Version of the dataset.
+
+        Raises
+        ------
+        NotFound
+            If this ```RemoteDataset``` is not found locally.
         """
         if not self.local_path.exists():
             raise NotFound(
@@ -760,20 +783,20 @@ class RemoteDataset:
 
     def classes(self, annotation_type: str, release_name: Optional[str] = None) -> List[str]:
         """
-        Returns the list of `class_type` classes
+        Returns the list of ```class_type``` classes.
 
         Parameters
         ----------
-        annotation_type
-            The type of annotation classes, e.g. 'tag' or 'polygon'
-        release_name: str
-            Version of the dataset
+        annotation_type : str
+            The type of annotation classes, e.g. 'tag' or 'polygon'.
+        release_name: Optional[str], default: None
+            Version of the dataset.
 
 
         Returns
         -------
-        classes: list
-            List of classes in the dataset of type `class_type`
+        classes: List[str]
+            List of classes in the dataset of type ```class_type```.
         """
         assert self.local_path.exists()
         if release_name in ["latest", None]:
@@ -792,7 +815,7 @@ class RemoteDataset:
         annotation_format: Optional[str] = "darwin",
     ) -> Iterable[Dict[str, Any]]:
         """
-        Returns all the annotations of a given split and partition in a single dictionary
+        Returns all the annotations of a given split and partition in a single dictionary.
 
         Parameters
         ----------
