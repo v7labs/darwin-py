@@ -819,23 +819,23 @@ class RemoteDataset:
 
         Parameters
         ----------
-        partition
-            Selects one of the partitions [train, val, test]
-        split
-            Selects the split that defines the percetages used (use 'split' to select the default split
-        split_type
-            Heuristic used to do the split [random, stratified]
-        annotation_type
-            The type of annotation classes [tag, polygon]
-        release_name: str
-            Version of the dataset
-        annotation_format: str
-            Re-formatting of the annotation when loaded [coco, darwin]
+        partition : str
+            Selects one of the partitions [train, val, test].
+        split : str, default: "split"
+            Selects the split that defines the percentages used (use 'split' to select the default split.
+        split_type : str, default: "stratified"
+            Heuristic used to do the split [random, stratified].
+        annotation_type : str, default: "polygon"
+            The type of annotation classes [tag, polygon].
+        release_name : Optional[str], default: None
+            Version of the dataset.
+        annotation_format : Optional[str], default: "darwin"
+            Re-formatting of the annotation when loaded [coco, darwin].
 
-        Returns
+        Yields
         -------
-        dict
-            Dictionary containing all the annotations of the dataset
+        Dict[str, Any]
+            Dictionary representing an annotation from this ```RemoteDataset```.
         """
         assert self.local_path.exists()
         if release_name in ["latest", None]:
@@ -854,16 +854,29 @@ class RemoteDataset:
             yield annotation
 
     def workview_url_for_item(self, item: DatasetItem) -> str:
+        """
+        Returns the darwin URL for the given ```DatasetItem```.
+
+        Parameters
+        ----------
+        item : DatasetItem
+            The ```DatasetItem``` for which we want the url.
+
+        Returns
+        -------
+        str
+            The url.
+        """
         return urljoin(self.client.base_url, f"/workview?dataset={self.dataset_id}&image={item.seq}")
 
     @property
     def remote_path(self) -> Path:
-        """Returns an URL specifying the location of the remote dataset"""
+        """Returns an URL specifying the location of the remote dataset."""
         return Path(urljoin(self.client.base_url, f"/datasets/{self.dataset_id}"))
 
     @property
     def local_path(self) -> Path:
-        """Returns a Path to the local dataset"""
+        """Returns a Path to the local dataset."""
         datasets_dir: str = self.client.get_datasets_dir(self.team)
 
         if self.slug:
@@ -873,14 +886,15 @@ class RemoteDataset:
 
     @property
     def local_releases_path(self) -> Path:
-        """Returns a Path to the local dataset releases"""
+        """Returns a Path to the local dataset releases."""
         return self.local_path / "releases"
 
     @property
     def local_images_path(self) -> Path:
-        """Returns a local Path to the images folder"""
+        """Returns a local Path to the images folder."""
         return self.local_path / "images"
 
     @property
     def identifier(self) -> DatasetIdentifier:
+        """The ```DatasetIdentifier``` of this ```RemoteDataset```."""
         return DatasetIdentifier(team_slug=self.team, dataset_slug=self.slug)
