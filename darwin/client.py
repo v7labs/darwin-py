@@ -330,7 +330,7 @@ class Client:
         Returns
         -------
         List[Dict[str, Any]]
-            A List with the attributes. where each attribute is a dictionary.
+            A List with the attributes, where each attribute is a dictionary.
         """
         response: List[Dict[str, Any]] = cast(List[Dict[str, Any]], self._get(f"/datasets/{dataset_id}/attributes"))
         return response
