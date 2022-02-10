@@ -85,27 +85,34 @@ def split_dataset(
     The dataset is always split randomly, and can be additionally split according to the
     stratified strategy by providing a list of stratified types.
 
+    Requires ``scikit-learn`` to split a dataset.
+
     Parameters
     ----------
-    dataset_path : Path
-        Local path to the dataset
-    release_name : str
-        Version of the dataset
-    val_percentage : float
-        Percentage of images used in the validation set
-    test_percentage : float
-        Percentage of images used in the test set
-    split_seed : int
-        Fix seed for random split creation
-    make_default_split : bool
-        Makes this split the default split
-    stratified_types : List[str]
-        List of annotation types to split with the stratified strategy
+    dataset_path : PathLike
+        Local path to the dataset.
+    release_name : Optional[str], default: None
+        Version of the dataset.
+    val_percentage : float, default: 0.1
+        Percentage of images used in the validation set.
+    test_percentage : float, default: 0.2
+        Percentage of images used in the test set.
+    split_seed : int, default: 0
+        Fix seed for random split creation.
+    make_default_split : bool, default: True
+        Makes this split the default split.
+    stratified_types : List[str], default: ["bounding_box", "polygon", "tag"]
+        List of annotation types to split with the stratified strategy.
 
     Returns
     -------
-    splits : Path
-        Keys are the different splits (random, tags, ...) and values are the relative file names
+    Path
+        Keys are the different splits (random, tags, ...) and values are the relative file names.
+
+    Raises
+    ------
+    ImportError
+        If ``sklearn`` is not installed.
     """
     # Requirements: scikit-learn
     try:
