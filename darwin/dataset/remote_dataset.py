@@ -164,7 +164,7 @@ class RemoteDataset:
         Raises
         ------
         ValueError
-            - If ```files_to_upload``` is ```None```.
+            - If ``files_to_upload`` is ``None``.
             - If a path is specified when uploading a LocalFile object.
             - If there are no files to upload (because path is wrong or the exclude filter excludes everything).
         """
@@ -207,7 +207,7 @@ class RemoteDataset:
 
     def split_video_annotations(self, release_name: str = "latest") -> None:
         """
-        Splits the video annotations from this ```RemoteDataset``` using the given release.
+        Splits the video annotations from this ``RemoteDataset`` using the given release.
 
         Parameters
         ----------
@@ -285,16 +285,16 @@ class RemoteDataset:
         Returns
         -------
         generator : function
-            Generator for doing the actual downloads. This is None if blocking is ```True```.
+            Generator for doing the actual downloads. This is None if blocking is ``True``.
         count : int
             The number of files.
 
         Raises
         ------
         UnsupportedExportFormat
-            If the given ```release``` has an invalid format.
+            If the given ``release`` has an invalid format.
         ValueError
-            If darwin in unable to get ```Team``` configuration.
+            If darwin in unable to get ``Team`` configuration.
         """
         if release is None:
             release = self.get_release()
@@ -380,7 +380,7 @@ class RemoteDataset:
             return progress, count
 
     def remove_remote(self) -> None:
-        """Archives (soft-deletion) this ```RemoteDataset```."""
+        """Archives (soft-deletion) this ``RemoteDataset``."""
         self.client.archive_remote_dataset(self.dataset_id, self.team)
 
     def fetch_remote_files(
@@ -395,12 +395,12 @@ class RemoteDataset:
             The filters to use. Files excluded by the filter won't be fetched.
         sort : Optional[Union[str, ItemSorter]], default: None
             A sorting direction. It can be a string with the values 'asc', 'ascending', 'desc',
-            'descending' or an ```ItemSorter``` instance.
+            'descending' or an ``ItemSorter`` instance.
 
         Yields
         -------
         Iterator[DatasetItem]
-            An iterator of ```DatasetItem```.
+            An iterator of ``DatasetItem``.
         """
         post_filters: Dict[str, str] = {}
         post_sort: Dict[str, str] = {}
@@ -434,67 +434,67 @@ class RemoteDataset:
 
     def archive(self, items: Iterator[DatasetItem]) -> None:
         """
-        Archives (soft-deletion) the given ```DatasetItem```s belonging to this ```RemoteDataset```.
+        Archives (soft-deletion) the given ``DatasetItem``s belonging to this ``RemoteDataset``.
 
         Parameters
         ----------
         items : Iterator[DatasetItem]
-            The ```DatasetItem```s to be archived.
+            The ``DatasetItem``s to be archived.
         """
         payload: Dict[str, Any] = {"filter": {"dataset_item_ids": [item.id for item in items]}}
         self.client.archive_item(self.slug, self.team, payload)
 
     def restore_archived(self, items: Iterator[DatasetItem]) -> None:
         """
-        Restores the archived ```DatasetItem```s that belong to this ```RemoteDataset```.
+        Restores the archived ``DatasetItem``s that belong to this ``RemoteDataset``.
 
         Parameters
         ----------
         items : Iterator[DatasetItem]
-            The ```DatasetItem```s to be restored.
+            The ``DatasetItem``s to be restored.
         """
         payload: Dict[str, Any] = {"filter": {"dataset_item_ids": [item.id for item in items]}}
         self.client.restore_archived_item(self.slug, self.team, payload)
 
     def move_to_new(self, items: Iterator[DatasetItem]) -> None:
         """
-        Changes the given ```DatasetItem```s status to ```new```.
+        Changes the given ``DatasetItem``s status to ``new``.
 
         Parameters
         ----------
         items : Iterator[DatasetItem]
-            The ```DatasetItem```s whose status will change.
+            The ``DatasetItem``s whose status will change.
         """
         payload: Dict[str, Any] = {"filter": {"dataset_item_ids": [item.id for item in items]}}
         self.client.move_item_to_new(self.slug, self.team, payload)
 
     def reset(self, items: Iterator[DatasetItem]) -> None:
         """
-        Resets the given ```DatasetItem```s.
+        Resets the given ``DatasetItem``s.
 
         Parameters
         ----------
         items : Iterator[DatasetItem]
-            The ```DatasetItem```s to be resetted.
+            The ``DatasetItem``s to be resetted.
         """
         payload: Dict[str, Any] = {"filter": {"dataset_item_ids": [item.id for item in items]}}
         self.client.reset_item(self.slug, self.team, payload)
 
     def delete_items(self, items: Iterator[DatasetItem]) -> None:
         """
-        Deletes the given ```DatasetItem```s.
+        Deletes the given ``DatasetItem``s.
 
         Parameters
         ----------
         items : Iterator[DatasetItem]
-            The ```DatasetItem```s to be deleted.
+            The ``DatasetItem``s to be deleted.
         """
         payload: Dict[str, Any] = {"filter": {"dataset_item_ids": [item.id for item in items]}}
         self.client.delete_item(self.slug, self.team, payload)
 
     def fetch_annotation_type_id_for_name(self, name: str) -> Optional[int]:
         """
-        Fetches annotation type id for a annotation type name, such as ```bounding_box```.
+        Fetches annotation type id for a annotation type name, such as ``bounding_box``.
 
         Parameters
         ----------
@@ -505,7 +505,7 @@ class RemoteDataset:
         Returns
         -------
         Optional[int]
-            The id of the annotation type or ```None``` if it doesn't exist.
+            The id of the annotation type or ``None`` if it doesn't exist.
         """
         if not self.annotation_types:
             self.annotation_types = self.client.annotation_types()
@@ -518,7 +518,7 @@ class RemoteDataset:
 
     def create_annotation_class(self, name: str, type: str, subtypes: List[str] = []) -> Dict[str, Any]:
         """
-        Creates an annotation class for this ```RemoteDataset```.
+        Creates an annotation class for this ``RemoteDataset``.
 
         Parameters
         ----------
@@ -556,7 +556,7 @@ class RemoteDataset:
 
     def add_annotation_class(self, annotation_class: Union[AnnotationClass, int]) -> Optional[Dict[str, Any]]:
         """
-        Adds an annotation class to this ```RemoteDataset```.
+        Adds an annotation class to this ``RemoteDataset``.
 
         Parameters
         ----------
@@ -566,13 +566,13 @@ class RemoteDataset:
         Returns
         -------
         Optional[Dict[str, Any]]
-            Dictionary with the server response or ```None``` if the annotations class already
+            Dictionary with the server response or ``None`` if the annotations class already
             exists.
 
         Raises
         ------
         ValueError
-            If the given ```annotation_class``` does not exist in this ```RemoteDataset```'s team.
+            If the given ``annotation_class`` does not exist in this ``RemoteDataset``'s team.
         """
         # Waiting for a better api for setting classes
         # in the meantime this will do
@@ -609,12 +609,12 @@ class RemoteDataset:
 
     def fetch_remote_classes(self, team_wide=False) -> List[Dict[str, Any]]:
         """
-        Fetches all the Annotation Classes from this ```RemoteDataset```.
+        Fetches all the Annotation Classes from this ``RemoteDataset``.
 
         Parameters
         ----------
         team_wide : bool, default: False
-            If ```True``` will return all Annotation Classes that belong to the team. If ```False```
+            If ``True`` will return all Annotation Classes that belong to the team. If ``False``
             will only return Annotation Classes which have been added to the dataset.
 
         Returns
@@ -647,7 +647,7 @@ class RemoteDataset:
         self, name: str, annotation_class_ids: Optional[List[str]] = None, include_url_token: bool = False
     ) -> None:
         """
-        Create a new release for this ```RemoteDataset```.
+        Create a new release for this ``RemoteDataset``.
 
         Parameters
         ----------
@@ -670,7 +670,7 @@ class RemoteDataset:
 
     def get_report(self, granularity: str = "day") -> str:
         """
-        Returns a String representation of a CSV report for this ```RemoteDataset```.
+        Returns a String representation of a CSV report for this ``RemoteDataset``.
 
         Parameters
         ----------
@@ -692,7 +692,7 @@ class RemoteDataset:
         Returns
         -------
         List["Release"]
-            Returns a sorted list of available ```Release```s with the most recent first.
+            Returns a sorted list of available ``Release``s with the most recent first.
         """
         try:
             releases_json: List[Dict[str, Any]] = self.client.get_exports(self.dataset_id, self.team)
@@ -704,7 +704,7 @@ class RemoteDataset:
 
     def get_release(self, name: str = "latest") -> "Release":
         """
-        Get a specific ```Release``` for this ```RemoteDataset```.
+        Get a specific ``Release`` for this ``RemoteDataset``.
 
         Parameters
         ----------
@@ -719,7 +719,7 @@ class RemoteDataset:
         Raises
         ------
         NotFound
-            The selected ```Release``` does not exist.
+            The selected ``Release`` does not exist.
         """
         releases = self.get_releases()
         if not releases:
@@ -761,7 +761,7 @@ class RemoteDataset:
         Raises
         ------
         NotFound
-            If this ```RemoteDataset``` is not found locally.
+            If this ``RemoteDataset`` is not found locally.
         """
         if not self.local_path.exists():
             raise NotFound(
@@ -783,7 +783,7 @@ class RemoteDataset:
 
     def classes(self, annotation_type: str, release_name: Optional[str] = None) -> List[str]:
         """
-        Returns the list of ```class_type``` classes.
+        Returns the list of ``class_type`` classes.
 
         Parameters
         ----------
@@ -796,7 +796,7 @@ class RemoteDataset:
         Returns
         -------
         classes: List[str]
-            List of classes in the dataset of type ```class_type```.
+            List of classes in the dataset of type ``class_type``.
         """
         assert self.local_path.exists()
         if release_name in ["latest", None]:
@@ -835,7 +835,7 @@ class RemoteDataset:
         Yields
         -------
         Dict[str, Any]
-            Dictionary representing an annotation from this ```RemoteDataset```.
+            Dictionary representing an annotation from this ``RemoteDataset``.
         """
         assert self.local_path.exists()
         if release_name in ["latest", None]:
@@ -855,12 +855,12 @@ class RemoteDataset:
 
     def workview_url_for_item(self, item: DatasetItem) -> str:
         """
-        Returns the darwin URL for the given ```DatasetItem```.
+        Returns the darwin URL for the given ``DatasetItem``.
 
         Parameters
         ----------
         item : DatasetItem
-            The ```DatasetItem``` for which we want the url.
+            The ``DatasetItem`` for which we want the url.
 
         Returns
         -------
@@ -896,5 +896,5 @@ class RemoteDataset:
 
     @property
     def identifier(self) -> DatasetIdentifier:
-        """The ```DatasetIdentifier``` of this ```RemoteDataset```."""
+        """The ``DatasetIdentifier`` of this ``RemoteDataset``."""
         return DatasetIdentifier(team_slug=self.team, dataset_slug=self.slug)
