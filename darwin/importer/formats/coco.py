@@ -27,7 +27,6 @@ def parse_json(path: Path, data: Dict[str, Any]) -> Iterator[dt.AnnotationFile]:
         image_id = annotation["image_id"]
         annotation["category_id"]
         annotation["segmentation"]
-
         if image_id not in image_annotations:
             image_annotations[image_id] = []
         image_annotations[image_id].append(parse_annotation(annotation, category_lookup_table))
