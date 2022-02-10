@@ -1080,7 +1080,7 @@ class Client:
                 raise InsufficientStorage()
 
     def _has_json_response(self, response: Response) -> bool:
-        return response.headers.get("content-type") == "application/json"
+        return "application/json" in str(response.headers.get("content-type"))
 
     def _get_response_debug_text(self, response: Response) -> str:
         if self._has_json_response(response):
