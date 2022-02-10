@@ -27,6 +27,7 @@ def parse_json(path: Path, data: Dict[str, Any]) -> Iterator[dt.AnnotationFile]:
         image_id = annotation["image_id"]
         annotation["category_id"]
         annotation["segmentation"]
+
         if image_id not in image_annotations:
             image_annotations[image_id] = []
         image_annotations[image_id].append(parse_annotation(annotation, category_lookup_table))
@@ -48,12 +49,18 @@ def parse_annotation(annotation: Dict[str, Any], category_lookup_table: Dict[str
         print("Warning, unsupported RLE, skipping")
         return None
 
+    try:
+        extra_text = annotation["extra"]["text"]
+        subs = [dt.make_text(extra_text)]
+    except KeyError:
+        subs = []
+
     if len(segmentation) == 0 and len(annotation["bbox"]) == 4:
         x, y, w, h = map(int, annotation["bbox"])
-        return dt.make_bounding_box(category["name"], x, y, w, h)
+        return dt.make_bounding_box(category["name"], x, y, w, h, subs=subs)
     elif len(segmentation) == 0 and len(annotation["bbox"]) == 1 and len(annotation["bbox"][0]) == 4:
         x, y, w, h = map(int, annotation["bbox"][0])
-        return dt.make_bounding_box(category["name"], x, y, w, h)
+        return dt.make_bounding_box(category["name"], x, y, w, h, subs=subs)
     elif isinstance(segmentation, dict):
         print("warning, converting complex coco rle mask to polygon, could take some time")
         if isinstance(segmentation["counts"], list):
@@ -77,7 +84,7 @@ def parse_annotation(annotation: Dict[str, Any], category_lookup_table: Dict[str
                 except StopIteration:
                     break
             paths.append(path)
-        return dt.make_complex_polygon(category["name"], paths)
+        return dt.make_complex_polygon(category["name"], paths, subs=subs)
     elif isinstance(segmentation, list):
         path = []
         points = iter(segmentation[0] if isinstance(segmentation[0], list) else segmentation)
@@ -87,7 +94,7 @@ def parse_annotation(annotation: Dict[str, Any], category_lookup_table: Dict[str
                 path.append({"x": x, "y": y})
             except StopIteration:
                 break
-        return dt.make_polygon(category["name"], path)
+        return dt.make_polygon(category["name"], path, subs=subs)
     else:
         return None
 
