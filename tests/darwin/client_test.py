@@ -9,7 +9,7 @@ from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset.remote_dataset import RemoteDataset
 from darwin.datatypes import Feature
-from darwin.exceptions import NotFound
+from darwin.exceptions import NameTaken, NotFound
 
 
 @pytest.fixture
@@ -110,7 +110,12 @@ def describe_get_remote_dataset():
 
         actual_dataset = darwin_client.get_remote_dataset("v7/dataset-slug-1")
         expected_dataset = RemoteDataset(
-            team="v7", name="dataset-name-1", slug="dataset-slug-1", dataset_id=1, item_count=1, client=darwin_client,
+            team="v7",
+            name="dataset-name-1",
+            slug="dataset-slug-1",
+            dataset_id=1,
+            item_count=1,
+            client=darwin_client,
         )
 
         assert_dataset(actual_dataset, expected_dataset)
@@ -134,10 +139,31 @@ def describe_create_dataset():
 
         actual_dataset = darwin_client.create_dataset("my-dataset", "v7")
         expected_dataset = RemoteDataset(
-            team="v7", name="my-dataset", slug="my-dataset", dataset_id=1, item_count=1, client=darwin_client,
+            team="v7",
+            name="my-dataset",
+            slug="my-dataset",
+            dataset_id=1,
+            item_count=1,
+            client=darwin_client,
         )
 
         assert_dataset(actual_dataset, expected_dataset)
+
+    @responses.activate
+    def it_raises_if_name_is_taken(darwin_client: Client):
+        endpoint: str = "/datasets"
+        json_response: Dict[str, Any] = {"errors": {"name": ["has already been taken"]}}
+
+        responses.add(
+            responses.POST,
+            darwin_client.url + endpoint,
+            json=json_response,
+            status=422,
+            adding_headers={"content-type": "utf-8"},
+        )
+
+        with pytest.raises(NameTaken):
+            darwin_client.create_dataset("my-dataset", "v7")
 
 
 @pytest.mark.usefixtures("file_read_write_test")
