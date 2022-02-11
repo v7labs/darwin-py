@@ -319,7 +319,7 @@ class Client:
 
     def fetch_remote_attributes(self, dataset_id: int) -> List[Dict[str, Any]]:
         """
-        Fetches all attributes remotly.
+        Fetches all attributes remotely.
 
         Parameters
         ----------
