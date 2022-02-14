@@ -207,6 +207,30 @@ FileUploadCallback = Callable[[str, int, int], None]
 
 
 class UploadHandler:
+    """
+    Holds responsabilities for file upload management and failure into ``RemoteDataset``s.
+
+    Parameters
+    ----------
+    dataset: RemoteDataset
+        Target ``RemoteDataset`` where we want to upload our files to.
+    local_files: List[LocalFile]
+        List of ``LocalFile``s to be uploaded.
+
+    Attributes
+    ----------
+    dataset : RemoteDataset
+        Target ``RemoteDataset`` where we want to upload our files to..
+    errors : List[UploadRequestError]
+        List of errors that happened during the upload process.
+    local_files: List[LocalFile]
+        List of ``LocalFile``s to be uploaded.
+    blocked_items : List[ItemPayload]
+        List of items that were not able to be uploaded.
+    pending_items : List[ItemPayload]
+        List of items waiting to be uploaded.
+    """
+
     def __init__(self, dataset: "RemoteDataset", local_files: List[LocalFile]):
         self.dataset: RemoteDataset = dataset
         self.errors: List[UploadRequestError] = []
@@ -217,30 +241,37 @@ class UploadHandler:
 
     @property
     def client(self) -> "Client":
+        """The ``Client`` used by this ``UploadHander``'s ``RemoteDataset``."""
         return self.dataset.client
 
     @property
     def dataset_identifier(self) -> "DatasetIdentifier":
+        """The ``DatasetIdentifier`` of this ``UploadHander``'s ``RemoteDataset``."""
         return self.dataset.identifier
 
     @property
     def blocked_count(self) -> int:
+        """Number of items that could not be uploaded successfully."""
         return len(self.blocked_items)
 
     @property
     def error_count(self) -> int:
+        """Number of errors that prevented items from being uploaded."""
         return len(self.errors)
 
     @property
     def pending_count(self) -> int:
+        """Number of items waiting to be uploaded."""
         return len(self.pending_items)
 
     @property
     def total_count(self) -> int:
+        """Total number of blocked and pending items."""
         return self.pending_count + self.blocked_count
 
     @property
     def progress(self):
+        """Current level of upload progress."""
         return self._progress
 
     def prepare_upload(self) -> Optional[Iterator[Callable[[Optional[ByteReadCallback]], None]]]:
