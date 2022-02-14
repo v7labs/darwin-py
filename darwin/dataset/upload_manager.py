@@ -214,7 +214,7 @@ class UploadHandler:
     ----------
     dataset: RemoteDataset
         Target ``RemoteDataset`` where we want to upload our files to.
-    local_files: List[LocalFile]
+    local_files : List[LocalFile]
         List of ``LocalFile``s to be uploaded.
 
     Attributes
@@ -223,7 +223,7 @@ class UploadHandler:
         Target ``RemoteDataset`` where we want to upload our files to..
     errors : List[UploadRequestError]
         List of errors that happened during the upload process.
-    local_files: List[LocalFile]
+    local_files : List[LocalFile]
         List of ``LocalFile``s to be uploaded.
     blocked_items : List[ItemPayload]
         List of items that were not able to be uploaded.
