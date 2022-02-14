@@ -2,7 +2,6 @@ import concurrent.futures
 import os
 import time
 from dataclasses import dataclass
-from enum import Enum
 from pathlib import Path
 from typing import (
     TYPE_CHECKING,
@@ -18,6 +17,7 @@ from typing import (
 
 import requests
 from darwin.datatypes import PathLike
+from darwin.doc_enum import DocEnum
 from darwin.path_utils import construct_full_path
 from darwin.utils import chunk
 
@@ -31,12 +31,29 @@ from typing import Dict
 
 class ItemPayload:
     """
+    Represents an item's payload.
+
     Parameters
     ----------
+    dataset_item_id : int
+        The id of the dataset this item belongs to.
+    filename : str
+        The filename of where this ``ItemPayload``'s data is.
+    path : str
+        The path to ``filename``.
+    reason : Optional[str], default: None
+        A reason to upload this ``ItemPayload``.
 
     Attributes
     ----------
-
+    dataset_item_id : int
+        The id of the dataset this item belongs to.
+    filename : str
+        The filename of where this ``ItemPayload``'s data is.
+    path : str
+        The path to ``filename``.
+    reason : Optional[str], default: None
+        A reason to upload this ``ItemPayload``.
     """
 
     def __init__(self, *, dataset_item_id: int, filename: str, path: str, reason: Optional[str] = None):
@@ -47,25 +64,70 @@ class ItemPayload:
 
     @property
     def full_path(self) -> str:
-        """"""
+        """The full ``Path`` (with filename inclduded) to the file."""
         return construct_full_path(self.path, self.filename)
 
 
-class UploadStage(Enum):
-    REQUEST_SIGNATURE = 0
-    UPLOAD_TO_S3 = 1
-    CONFIRM_UPLOAD_COMPLETE = 2
-    OTHER = 3
+class UploadStage(DocEnum):
+    """
+    The different stages of uploading a file.
+    """
+
+    REQUEST_SIGNATURE = 0, "First stage, when authentication is being performed."
+    UPLOAD_TO_S3 = 1, "Second stage, when the file is being uploaded to S3."
+    CONFIRM_UPLOAD_COMPLETE = 2, "Final stage, when we confirm the file was correctly uploaded."
+    OTHER = 3, "If the stage of the upload process is unknown."
 
 
 @dataclass
 class UploadRequestError(Exception):
+    """
+    Error throw when uploading a file fails with an unrecoverable error.
+
+    Attributes
+    ----------
+    file_path : Path
+        The ``Path`` of the file being uploaded.
+    stage : UploadStage
+        The ``UploadStage`` when the  failure happened.
+    error : Optional[Exception], default: None
+        The ``Exception`` that triggered this unrecoverable error.
+    """
+
     file_path: Path
     stage: UploadStage
     error: Optional[Exception] = None
 
 
 class LocalFile:
+    """
+    Represents a file locally stored.
+
+    Parameters
+    ----------
+    local_path : PathLike
+        The ``Path`` of the file.
+    kwargs : Any
+        Data relative to this file. Can be anything.
+
+    Attributes
+    ----------
+    local_path : PathLike
+        The ``Path`` of the file.
+    data : Dict[str, str]
+        Dictionary with metadata relative to this file. It has the following format:
+
+        .. code-block:: python
+            {
+                "filename": "a_filename",
+                "path": "a path"
+            }
+
+        - ``data["filename"]`` will hold the value passed as ``filename`` from ``kwargs`` or default to ``self.local_path.name``
+        - ``data["path"]`` will hold the value passed as ``path`` from ``kwargs`` or default to ``"/"``
+
+    """
+
     def __init__(self, local_path: PathLike, **kwargs):
         self.local_path = Path(local_path)
         self.data = kwargs
@@ -77,26 +139,36 @@ class LocalFile:
 
     @property
     def full_path(self) -> str:
+        """The full ``Path`` (with filename inclduded) to the file."""
         return construct_full_path(self.data["path"], self.data["filename"])
 
 
 class FileMonitor(object):
     """
-    An object used to monitor the progress of a :class:`BufferedReader`.
+    Monitors the progress of a :class:``BufferedReader``.
 
-    To use this monitor, you construct your :class:`BufferedReader` as you
+    To use this monitor, you construct your :class:``BufferedReader`` as you
     normally would, then construct this object with it as argument.
+
+    Parameters
+    ----------
+    io : BinaryIO
+        IO object used by this class. Depency injection.
+    file_size : int
+        The fie of the file in bytes.
+    callback : Callable[["FileMonitor"], None]
+        Callable function used by this class. Depency injection via constructor.
 
     Attributes
     ----------
-    bytes_read: int
-      Amount of bytes read from the IO.
-    len: int
-        Total size of the IO.
-    io: BinaryIO
+    io : BinaryIO
         IO object used by this class. Depency injection.
-    callback: Callable[["FileMonitor"], None]
+    callback : Callable[["FileMonitor"], None]
         Callable function used by this class. Depency injection.
+    bytes_read : int
+      Amount of bytes read from the IO.
+    len : int
+        Total size of the IO.
     """
 
     def __init__(self, io: BinaryIO, file_size: int, callback: Callable[["FileMonitor"], None]):
@@ -114,7 +186,7 @@ class FileMonitor(object):
 
         Parameters
         ----------
-        size: int
+        size : int, default: -1
             The number of bytes to read. Defaults to -1, so all bytes until EOF are read.
 
         Returns
