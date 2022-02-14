@@ -30,6 +30,15 @@ from typing import Dict
 
 
 class ItemPayload:
+    """
+    Parameters
+    ----------
+
+    Attributes
+    ----------
+
+    """
+
     def __init__(self, *, dataset_item_id: int, filename: str, path: str, reason: Optional[str] = None):
         self.dataset_item_id = dataset_item_id
         self.filename = filename
@@ -38,6 +47,7 @@ class ItemPayload:
 
     @property
     def full_path(self) -> str:
+        """"""
         return construct_full_path(self.path, self.filename)
 
 
@@ -239,7 +249,10 @@ class UploadHandler:
             self.errors.append(UploadRequestError(file_path=file_path, stage=UploadStage.OTHER, error=e))
 
     def _do_upload_file(
-        self, dataset_item_id: int, file_path: Path, byte_read_callback: Optional[ByteReadCallback] = None,
+        self,
+        dataset_item_id: int,
+        file_path: Path,
+        byte_read_callback: Optional[ByteReadCallback] = None,
     ) -> None:
         team_slug: Optional[str] = self.dataset_identifier.team_slug
 
