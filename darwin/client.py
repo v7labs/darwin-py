@@ -319,7 +319,7 @@ class Client:
 
     def fetch_remote_attributes(self, dataset_id: int) -> List[Dict[str, Any]]:
         """
-        Fetches all attributes remotly.
+        Fetches all attributes remotely.
 
         Parameters
         ----------
@@ -1080,7 +1080,7 @@ class Client:
                 raise InsufficientStorage()
 
     def _has_json_response(self, response: Response) -> bool:
-        return response.headers.get("content-type") == "application/json"
+        return "application/json" in response.headers.get("content-type", "")
 
     def _get_response_debug_text(self, response: Response) -> str:
         if self._has_json_response(response):
