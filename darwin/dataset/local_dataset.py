@@ -10,6 +10,50 @@ from PIL import Image as PILImage
 
 
 class LocalDataset(object):
+    """
+    Base class representing a V7 Darwin dataset that has been pulled locally already.
+    It can be used with PyTorch dataloaders. See ``darwin.torch`` module for more specialized dataset classes, extending this one.
+
+    Parameters
+    ----------
+    dataset_path : Path
+        Path to the location of the dataset on the file system.
+    annotation_type : str
+        The type of annotation classes ``["tag", "bounding_box", "polygon"]``.
+    partition : Optional[str], default: None
+        Selects one of the partitions ``["train", "val", "test"]``.
+    split : str, default: "default"
+        Selects the split that defines the percentages used (use 'default' to select the default split).
+    split_type : str, default: "random"
+        Heuristic used to do the split ``["random", "stratified"]``.
+    release_name : Optional[str], default: None
+        Version of the dataset.
+
+    Attributes
+    ----------
+    dataset_path : Path
+        Path to the location of the dataset on the file system.
+    annotation_type : str
+        The type of annotation classes ``["tag", "bounding_box", "polygon"]``.
+    partition : Optional[str], default: None
+        Selects one of the partitions ``["train", "val", "test"]``.
+    split : str, default: "default"
+        Selects the split that defines the percentages used (use 'default' to select the default split).
+    split_type : str, default: "random"
+        Heuristic used to do the split ``["random", "stratified"]``.
+    release_name : Optional[str], default: None
+        Version of the dataset.
+
+    Raises
+    ------
+    ValueError
+
+        - If ``partition``, ``split_type`` or ``annotation_type`` have an invalid value.
+        - If an annotation has no corresponding image
+        - If an image has multiple extensions (meaning it is present in multiple formats)
+        - If no images are found
+    """
+
     def __init__(
         self,
         dataset_path: Path,
@@ -19,23 +63,6 @@ class LocalDataset(object):
         split_type: str = "random",
         release_name: Optional[str] = None,
     ):
-        """Creates a dataset
-
-        Parameters
-        ----------
-        dataset_path: Path, str
-            Path to the location of the dataset on the file system
-        annotation_type: str
-            The type of annotation classes [tag, bounding_box, polygon]
-        partition: str
-            Selects one of the partitions [train, val, test]
-        split: str
-            Selects the split that defines the percentages used (use 'default' to select the default split)
-        split_type: str
-            Heuristic used to do the split [random, stratified]
-        release_name: str
-            Version of the dataset
-        """
         assert dataset_path is not None
         release_path = get_release_path(dataset_path, release_name)
         annotations_dir = release_path / "annotations"
@@ -88,28 +115,75 @@ class LocalDataset(object):
         assert len(self.images_path) == len(self.annotations_path)
 
     def get_img_info(self, index: int) -> Dict[str, Any]:
+        """
+        Returns the annotation information for a given image.
+
+        Parameters
+        ----------
+        index : int
+            The index of the image.
+
+        Returns
+        -------
+        Dict[str, Any]
+            A dictionary with the image's class and annotaiton information.
+
+        Raises
+        ------
+        ValueError
+            If there are no annotations downloaded in this machine. You can pull them by using the
+            command ``darwin dataset pull $DATASET_NAME --only-annotations`` in the CLI.
+        """
+        if not len(self.annotations_path):
+            raise ValueError("There are no annotations downloaded.")
+
         with self.annotations_path[index].open() as f:
             data = json.load(f)["image"]
             return data
 
     def get_height_and_width(self, index: int) -> Tuple[float, float]:
+        """
+        Returns the width and height of the image with the given index.
+
+        Parameters
+        ----------
+        index : int
+            The index of the image.
+
+        Returns
+        -------
+        Tuple[float, float]
+            A tuple where the first element is the ``height`` of the image and the second is the
+            ``width``.
+        """
         data: Dict[str, Any] = self.get_img_info(index)
         return data["height"], data["width"]
 
     def extend(self, dataset: "LocalDataset", extend_classes: bool = False) -> "LocalDataset":
-        """Extends the current dataset with another one
+        """
+        Extends the current dataset with another one.
 
         Parameters
         ----------
         dataset : Dataset
             Dataset to merge
-        extend_classes : bool
-            Extend the current set of classes by merging with the passed dataset ones
+        extend_classes : bool, default: False
+            Extend the current set of classes by merging it with the set of classes belonging to the
+            given dataset.
 
         Returns
         -------
-        Dataset
-            self
+        LocalDataset
+            This ``LocalDataset`` extended with the classes of the give one.
+
+        Raises
+        ------
+        ValueError
+
+            - If the ``annotation_type`` of this ``LocalDataset`` differs from the
+            ``annotation_type`` of the given one.
+            - If the set of classes from this ``LocalDataset`` differs from the set of classes
+            from the given one AND ``extend_classes`` is ``False``.
         """
         if self.annotation_type != dataset.annotation_type:
             raise ValueError("Annotation type of both datasets should match")
@@ -128,25 +202,51 @@ class LocalDataset(object):
         return self
 
     def get_image(self, index: int) -> PILImage.Image:
-        return load_pil_image(self.images_path[index])
-
-    def get_image_path(self, index: int) -> Path:
-        return self.images_path[index]
-
-    def parse_json(self, index: int) -> Dict[str, Any]:
         """
-        Load an annotation and filter out the extra classes according to what
-        specified in `self.classes` and the annotation_type
+        Returns the correspoding ``PILImage.Image``.
 
         Parameters
         ----------
         index : int
-            Index of the annotation to read
+            The index of the image in this ``LocalDataset``.
 
         Returns
         -------
-        dict
-        A new dictionary containing the index and the filtered annotation
+        PILImage.Image
+            The image.
+        """
+        return load_pil_image(self.images_path[index])
+
+    def get_image_path(self, index: int) -> Path:
+        """
+        Returns the path of the image with the given index.
+
+        Parameters
+        ----------
+        index : int
+            The index of the image in this ``LocalDataset``.
+
+        Returns
+        -------
+        Path
+            The ``Path`` of the image.
+        """
+        return self.images_path[index]
+
+    def parse_json(self, index: int) -> Dict[str, Any]:
+        """
+        Load an annotation and filter out the extra classes according to what is
+        specified in ``self.classes`` and the ``annotation_type``.
+
+        Parameters
+        ----------
+        index : int
+            Index of the annotation to read.
+
+        Returns
+        -------
+        Dict[str, Any]
+            A dictionary containing the index and the filtered annotation.
         """
         with self.annotations_path[index].open() as f:
             data = json.load(f)
@@ -163,19 +263,20 @@ class LocalDataset(object):
         }
 
     def measure_mean_std(self, multi_threaded: bool = True) -> Tuple[np.ndarray, np.ndarray]:
-        """Computes mean and std of train images, given the train loader
+        """
+        Computes mean and std of trained images, given the train loader.
 
         Parameters
         ----------
-        multi_threaded : bool
+        multi_threaded : bool, default: True
             Uses multiprocessing to download the dataset in parallel.
 
         Returns
         -------
         mean : ndarray[double]
-            Mean value (for each channel) of all pixels of the images in the input folder
+            Mean value (for each channel) of all pixels of the images in the input folder.
         std : ndarray[double]
-            Standard deviation (for each channel) of all pixels of the images in the input folder
+            Standard deviation (for each channel) of all pixels of the images in the input folder.
         """
         if multi_threaded:
             # Set up a pool of workers
@@ -203,29 +304,20 @@ class LocalDataset(object):
             std = np.sqrt(std_sum / total_pixel_count)
             return mean, std
 
-    def measure_weights(self, **kwargs):
-        """Computes the class balancing weights (not the frequencies!!) given the train loader
-
-        Returns
-        -------
-        class_weights : ndarray[double]
-            Weight for each class in the train set (one for each class)
-        """
-        raise NotImplementedError("Base class Dataset does not have an implementation for this")
-
     @staticmethod
     def _compute_weights(labels: List[int]) -> np.ndarray:
-        """Given an array of labels computes the weights normalized
+        """
+        Given an array of labels computes the weights normalized.
 
         Parameters
         ----------
-        labels : ndarray[int]
-            Array of labels
+        labels : List[int]
+            Array of labels.
 
         Returns
         -------
         ndarray[float]
-            Array of weights (one for each unique class) which are the inverse of their frequency
+            Array of weights (one for each unique class) which are the inverse of their frequency.
         """
         class_support: np.ndarray = np.unique(labels, return_counts=True)[1]
         class_frequencies = class_support / len(labels)
@@ -274,13 +366,47 @@ def build_stems(
     partition: Optional[str] = None,
     split_type: str = "random",
 ) -> Iterator[str]:
-    # If no partition is specified, then take all json files in the annotations directory.
-    # The resulting generator prepends parent directories relative to the main annotation directory.
-    #
-    # E.g.: ["annotations/test/1.json", "annotations/2.json", "annotations/test/2/3.json"]:
-    #     - annotations/test/1
-    #     - annotations/2
-    #     - annotations/test/2/3
+    """
+    Builds the stems for the given release with the given annotations as base.
+
+    Parameters
+    ----------
+    release_path : Path
+        The path of the ``Release`` saved locally.
+    annotations_dir : Path
+        The path for a directory where annotations.
+    annotation_type : str
+        The type of the annotations.
+    split : str
+        The split name.
+    partition : Optional[str], default: None
+        How to partition files. If no partition is specified, then it takes all the json files in
+        the annotations directory.
+        The resulting generator prepends parent directories relative to the main annotation
+        directory.
+
+        E.g.: ``["annotations/test/1.json", "annotations/2.json", "annotations/test/2/3.json"]``:
+
+            - annotations/test/1
+            - annotations/2
+            - annotations/test/2/3
+    split_type str, default: "random"
+        The type of split. Can be ``"random"`` or ``"stratified"``.
+
+    Returns
+    -------
+    Iterator[str]
+        An iterator with the path for the stem files.
+
+    Raises
+    ------
+    ValueError
+        If the provided ``split_type`` is invalid.
+
+    FileNotFoundError
+        If no dataset partitions are found.
+    """
+
     if partition is None:
         return (str(e.relative_to(annotations_dir).parent / e.stem) for e in sorted(annotations_dir.glob("**/*.json")))
 
