@@ -9,22 +9,21 @@ def parse_path(path: Path) -> Optional[dt.AnnotationFile]:
     """
     Parses the given pascalvoc file and maybe returns the corresponding annotation.
     The file must have the following structure:
-    
-    ```xml
-    <filename>SOME_FILE_NAME</filename>
-    <object>
-        <name>CLASS_NAME</name>
-        <bndbox>
-            <xmax>NUMBER</xmax>
-            <xmin>NUMBER</xmin>
-            <ymax>NUMBER</ymax>
-            <ymin>NUMBER</ymin>
-        </bndbox>
-    </object>
-    <object>
-        ...
-    </object>
-    ```
+
+    .. code-block:: xml
+        <filename>SOME_FILE_NAME</filename>
+        <object>
+            <name>CLASS_NAME</name>
+            <bndbox>
+                <xmax>NUMBER</xmax>
+                <xmin>NUMBER</xmin>
+                <ymax>NUMBER</ymax>
+                <ymin>NUMBER</ymin>
+            </bndbox>
+        </object>
+        <object>
+            ...
+        </object>
 
     Parameters
     --------
@@ -34,13 +33,13 @@ def parse_path(path: Path) -> Optional[dt.AnnotationFile]:
     Returns
     -------
     Optional[darwin.datatypes.AnnotationFile]
-        An AnnotationFile with the parsed information from the file or None, if the file is not a 
+        An AnnotationFile with the parsed information from the file or None, if the file is not a
         `XML` file.
 
     Raises
     ------
     ValueError
-        If a mandatory child element is missing or is empty. Mandatory child elements are: 
+        If a mandatory child element is missing or is empty. Mandatory child elements are:
         filename, name, bndbox, xmin, xmax, ymin and ymax.
 
     """
@@ -75,7 +74,7 @@ def _parse_annotation(annotation_object: ET.Element) -> dt.Annotation:
     Raises
     ------
     ValueError
-        If a mandatory chield element is missing or is empty. Mandatory child elements are: 
+        If a mandatory chield element is missing or is empty. Mandatory child elements are:
         name, bndbox, xmin, xmax, ymin and ymax.
     """
     class_name = _find_text_value(annotation_object, "name")

@@ -1,14 +1,27 @@
+"""
+Holds helper functions that deal with downloading videos and images.
+"""
+
 import functools
 import json
 import time
 from pathlib import Path
 from typing import Any, Callable, Iterator, Tuple
 
+import deprecation
 import requests
 from darwin.dataset.utils import sanitize_filename
 from darwin.utils import is_image_extension_allowed
+from darwin.version import __version__
+from rich.console import Console
 
 
+@deprecation.deprecated(
+    deprecated_in="0.7.5",
+    removed_in="0.8.0",
+    current_version=__version__,
+    details="The api_url parameter will be removed.",
+)
 def download_all_images_from_annotations(
     api_key: str,
     api_url: str,
@@ -20,7 +33,8 @@ def download_all_images_from_annotations(
     use_folders: bool = False,
     video_frames: bool = False,
 ) -> Tuple[Callable[[], Iterator[Any]], int]:
-    """Helper function: downloads the all images corresponding to a project.
+    """
+    Downloads the all images corresponding to a project.
 
     Parameters
     ----------
@@ -32,23 +46,28 @@ def download_all_images_from_annotations(
         Path where the annotations are located
     images_path : Path
         Path where to download the images
-    force_replace: bool
+    force_replace : bool, default: False
         Forces the re-download of an existing image
-    remove_extra: bool
+    remove_extra : bool, default: False
         Removes existing images for which there is not corresponding annotation
-    annotation_format : str
+    annotation_format : str, default: "json"
         Format of the annotations. Currently only JSON and xml are expected
-    use_folders: bool
+    use_folders : bool, default: False
         Recreate folders
-    video_frames: bool
+    video_frames : bool, default: False
         Pulls video frames images instead of video files
 
     Returns
     -------
     generator : function
-        Generator for doing the actual downloads,
+        Generator for doing the actual downloads
     count : int
         The files count
+
+    Raises
+    ------
+    ValueError
+        If the given annotation file is not in darwin (json) or pascalvoc (xml) format.
     """
     Path(images_path).mkdir(exist_ok=True)
     if annotation_format not in ["json", "xml"]:
@@ -97,6 +116,12 @@ def download_all_images_from_annotations(
     return generator, count
 
 
+@deprecation.deprecated(
+    deprecated_in="0.7.5",
+    removed_in="0.8.0",
+    current_version=__version__,
+    details="The api_url parameter will be removed.",
+)
 def download_image_from_annotation(
     api_key: str,
     api_url: str,
@@ -106,7 +131,8 @@ def download_image_from_annotation(
     use_folders: bool,
     video_frames: bool,
 ) -> None:
-    """Helper function: dispatcher of functions to download an image given an annotation
+    """
+    Dispatches functions to download an image given an annotation.
 
     Parameters
     ----------
@@ -120,25 +146,61 @@ def download_image_from_annotation(
         Path where to download the image
     annotation_format : str
         Format of the annotations. Currently only JSON is supported
-    use_folders: bool
+    use_folders : bool
         Recreate folder structure
-    video_frames: bool
+    video_frames : bool
         Pulls video frames images instead of video files
+
+    Raises
+    ------
+    NotImplementedError
+        If the format of the annotation is not supported.
     """
+
+    console = Console()
+
     if annotation_format == "json":
-        download_image_from_json_annotation(api_key, api_url, annotation_path, images_path, use_folders, video_frames)
-    elif annotation_format == "xml":
-        print("sorry can't let you do that dave")
+        _download_image_from_json_annotation(api_key, annotation_path, images_path, use_folders, video_frames)
+    else:
+        console.print("[bold red]Unsupported file format. Please use 'json'.")
         raise NotImplementedError
-        # download_image_from_xml_annotation(annotation_path, images_path)
 
 
+def _download_image_from_json_annotation(
+    api_key: str, annotation_path: Path, image_path: Path, use_folders: bool, video_frames: bool
+) -> None:
+    with annotation_path.open() as file:
+        annotation = json.load(file)
+
+    # If we are using folders, extract the path for the image and create the folder if needed
+    sub_path = annotation["image"].get("path", "/") if use_folders else "/"
+    parent_path = Path(image_path) / Path(sub_path).relative_to(Path(sub_path).anchor)
+    parent_path.mkdir(exist_ok=True, parents=True)
+
+    if video_frames and "frame_urls" in annotation["image"]:
+        video_path: Path = parent_path / annotation_path.stem
+        video_path.mkdir(exist_ok=True, parents=True)
+        for i, frame_url in enumerate(annotation["image"]["frame_urls"]):
+            path = video_path / f"{i:07d}.png"
+            _download_image(frame_url, path, api_key)
+    else:
+        image_url = annotation["image"]["url"]
+        image_path = parent_path / sanitize_filename(annotation["image"]["filename"])
+        _download_image(image_url, image_path, api_key)
+
+
+@deprecation.deprecated(
+    deprecated_in="0.7.5",
+    removed_in="0.8.0",
+    current_version=__version__,
+    details="Use the ``download_image_from_annotation`` instead.",
+)
 def download_image_from_json_annotation(
     api_key: str, api_url: str, annotation_path: Path, image_path: Path, use_folders: bool, video_frames: bool
 ) -> None:
     """
-    Helper function: downloads an image given a .json annotation path
-    and renames the json after the image filename
+    Downloads an image given a ``.json`` annotation path and renames the json after the image's
+    filename.
 
     Parameters
     ----------
@@ -150,9 +212,9 @@ def download_image_from_json_annotation(
         Path where the annotation is located
     image_path : Path
         Path where to download the image
-    use_folders: bool
+    use_folders : bool
         Recreate folders
-    video_frames: bool
+    video_frames : bool
         Pulls video frames images instead of video files
     """
     with annotation_path.open() as file:
@@ -168,15 +230,22 @@ def download_image_from_json_annotation(
         video_path.mkdir(exist_ok=True, parents=True)
         for i, frame_url in enumerate(annotation["image"]["frame_urls"]):
             path = video_path / f"{i:07d}.png"
-            download_image(frame_url, path, api_key)
+            _download_image(frame_url, path, api_key)
     else:
         image_url = annotation["image"]["url"]
         image_path = parent_path / sanitize_filename(annotation["image"]["filename"])
-        download_image(image_url, image_path, api_key)
+        _download_image(image_url, image_path, api_key)
 
 
+@deprecation.deprecated(
+    deprecated_in="0.7.5",
+    removed_in="0.8.0",
+    current_version=__version__,
+    details="Use the ``download_image_from_annotation`` instead.",
+)
 def download_image(url: str, path: Path, api_key: str) -> None:
-    """Helper function: downloads one image from url.
+    """
+    Helper function: downloads one image from url.
 
     Parameters
     ----------
@@ -187,6 +256,31 @@ def download_image(url: str, path: Path, api_key: str) -> None:
     api_key : str
         API Key of the current team
     """
+    if path.exists():
+        return
+    TIMEOUT: int = 60
+    start: float = time.time()
+    while True:
+        if "token" in url:
+            response: requests.Response = requests.get(url, stream=True)
+        else:
+            response = requests.get(url, headers={"Authorization": f"ApiKey {api_key}"}, stream=True)
+        # Correct status: download image
+        if response.ok:
+            with open(str(path), "wb") as file:
+                for chunk in response:
+                    file.write(chunk)
+            return
+        # Fatal-error status: fail
+        if 400 <= response.status_code <= 499:
+            raise Exception(response.status_code, response.json())
+        # Timeout
+        if time.time() - start > TIMEOUT:
+            raise Exception(f"Timeout url request ({url}) after {TIMEOUT} seconds.")
+        time.sleep(1)
+
+
+def _download_image(url: str, path: Path, api_key: str) -> None:
     if path.exists():
         return
     TIMEOUT: int = 60
