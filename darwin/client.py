@@ -8,6 +8,7 @@ from urllib import parse
 
 import requests
 from requests import Response
+from requests.packages.urllib3.response import HTTPResponse
 
 from darwin.config import Config
 from darwin.dataset import RemoteDataset
@@ -781,6 +782,23 @@ class Client:
 
         return id
 
+    def fetch_binary(self, url: str) -> HTTPResponse:
+        """
+        Fetches binary data from the given url via a stream.
+
+        Parameters
+        ----------
+        url: str
+            The full url to download the binary data.
+
+        Returns
+        -------
+        HTTPResponse
+            The data to be saved.
+        """
+        response: Response = cast(Response, self._get_raw_from_full_url(url, stream=True))
+        return response.raw
+
     @classmethod
     def local(cls, team_slug: Optional[str] = None) -> "Client":
         """
@@ -922,25 +940,32 @@ class Client:
         headers["User-Agent"] = f"darwin-py/{__version__}"
         return headers
 
-    def _get_raw(self, endpoint: str, team_slug: Optional[str] = None, retry: bool = False) -> Response:
-        response: Response = requests.get(urljoin(self.url, endpoint), headers=self._get_headers(team_slug))
+    def _get_raw_from_full_url(
+        self, url: str, team_slug: Optional[str] = None, retry: bool = False, stream: bool = False
+    ) -> Response:
+        response: Response = requests.get(url, headers=self._get_headers(team_slug), stream=stream)
 
         self.log.debug(
             f"Client GET request response ({self._get_response_debug_text(response)}) with status "
             f"({response.status_code}). "
             f"Client: ({self})"
-            f"Request: (endpoint={endpoint})"
+            f"Request: (url={url})"
         )
 
-        self._raise_if_known_error(response, endpoint)
+        self._raise_if_known_error(response, url)
 
         if not response.ok and retry:
             time.sleep(10)
-            return self._get_raw(endpoint=endpoint, retry=False)
+            return self._get_raw_from_full_url(url=url, team_slug=team_slug, retry=False, stream=stream)
 
         response.raise_for_status()
 
         return response
+
+    def _get_raw(
+        self, endpoint: str, team_slug: Optional[str] = None, retry: bool = False, stream: bool = False
+    ) -> Response:
+        return self._get_raw_from_full_url(urljoin(self.url, endpoint), team_slug, retry=retry, stream=stream)
 
     def _get(
         self, endpoint: str, team_slug: Optional[str] = None, retry: bool = False
@@ -962,7 +987,7 @@ class Client:
             f"Request: (endpoint={endpoint}, payload={payload})"
         )
 
-        self._raise_if_known_error(response, endpoint)
+        self._raise_if_known_error(response, urljoin(self.url, endpoint))
 
         if not response.ok and retry:
             time.sleep(10)
@@ -999,7 +1024,7 @@ class Client:
             f"Request: (endpoint={endpoint}, payload={payload})"
         )
 
-        self._raise_if_known_error(response, endpoint)
+        self._raise_if_known_error(response, urljoin(self.url, endpoint))
 
         if not response.ok and retry:
             time.sleep(10)
@@ -1040,7 +1065,7 @@ class Client:
             f"Request: (endpoint={endpoint})"
         )
 
-        self._raise_if_known_error(response, endpoint)
+        self._raise_if_known_error(response, urljoin(self.url, endpoint))
 
         if not response.ok and retry:
             time.sleep(10)
@@ -1050,13 +1075,13 @@ class Client:
 
         return self._decode_response(response)
 
-    def _raise_if_known_error(self, response: Response, endpoint: str) -> None:
+    def _raise_if_known_error(self, response: Response, url: str) -> None:
 
         if response.status_code == 401:
             raise Unauthorized()
 
         if response.status_code == 404:
-            raise NotFound(urljoin(self.url, endpoint))
+            raise NotFound(url)
 
         if self._has_json_response(response):
             body = response.json()
