@@ -25,7 +25,7 @@ class LocalDataset(object):
     split : str, default: "default"
         Selects the split that defines the percentages used (use 'default' to select the default split).
     split_type : str, default: "random"
-        Heuristic used to do the split ```[random, stratified]```.
+        Heuristic used to do the split ```["random", "stratified"]```.
     release_name : Optional[str], default: None
         Version of the dataset.
 
