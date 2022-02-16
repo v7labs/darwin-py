@@ -11,7 +11,8 @@ from PIL import Image as PILImage
 
 class LocalDataset(object):
     """
-    Creates a dataset locally.
+    Base class representing a V7 Darwin dataset that has been pulled locally already.
+    It can be used with PyTorch dataloaders. See ``darwin.torch`` module for more specialized dataset classes, extending this one.
 
     Parameters
     ----------
