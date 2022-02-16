@@ -19,7 +19,7 @@ class LocalDataset(object):
     dataset_path : Path
         Path to the location of the dataset on the file system.
     annotation_type : str
-        The type of annotation classes ```[tag, bounding_box, polygon]```.
+        The type of annotation classes ```["tag", "bounding_box", "polygon"]```.
     partition : Optional[str], default: None
         Selects one of the partitions ```[train, val, test]```.
     split : str, default: "default"
