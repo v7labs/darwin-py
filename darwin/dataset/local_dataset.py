@@ -21,7 +21,7 @@ class LocalDataset(object):
     annotation_type : str
         The type of annotation classes ```["tag", "bounding_box", "polygon"]```.
     partition : Optional[str], default: None
-        Selects one of the partitions ```[train, val, test]```.
+        Selects one of the partitions ```["train", "val", "test"]```.
     split : str, default: "default"
         Selects the split that defines the percentages used (use 'default' to select the default split).
     split_type : str, default: "random"
