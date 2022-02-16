@@ -19,13 +19,13 @@ class LocalDataset(object):
     dataset_path : Path
         Path to the location of the dataset on the file system.
     annotation_type : str
-        The type of annotation classes ```["tag", "bounding_box", "polygon"]```.
+        The type of annotation classes ``["tag", "bounding_box", "polygon"]``.
     partition : Optional[str], default: None
-        Selects one of the partitions ```["train", "val", "test"]```.
+        Selects one of the partitions ``["train", "val", "test"]``.
     split : str, default: "default"
         Selects the split that defines the percentages used (use 'default' to select the default split).
     split_type : str, default: "random"
-        Heuristic used to do the split ```["random", "stratified"]```.
+        Heuristic used to do the split ``["random", "stratified"]``.
     release_name : Optional[str], default: None
         Version of the dataset.
 
@@ -34,13 +34,13 @@ class LocalDataset(object):
     dataset_path : Path
         Path to the location of the dataset on the file system.
     annotation_type : str
-        The type of annotation classes ```[tag, bounding_box, polygon]```.
+        The type of annotation classes ``["tag", "bounding_box", "polygon"]``.
     partition : Optional[str], default: None
-        Selects one of the partitions ```[train, val, test]```.
+        Selects one of the partitions ``["train", "val", "test"]``.
     split : str, default: "default"
         Selects the split that defines the percentages used (use 'default' to select the default split).
     split_type : str, default: "random"
-        Heuristic used to do the split ```[random, stratified]```.
+        Heuristic used to do the split ``["random", "stratified"]``.
     release_name : Optional[str], default: None
         Version of the dataset.
 
@@ -48,7 +48,7 @@ class LocalDataset(object):
     ------
     ValueError
 
-        - If ```partition```, ```split_type``` or ```annotation_type``` have an invalid value.
+        - If ``partition``, ``split_type`` or ``annotation_type`` have an invalid value.
         - If an annotation has no corresponding image
         - If an image has multiple extensions (meaning it is present in multiple formats)
         - If no images are found
@@ -132,7 +132,7 @@ class LocalDataset(object):
         ------
         ValueError
             If there are no annotations downloaded in this machine. You can pull them by using the
-            command ```darwin dataset pull $DATASET_NAME --only-annotations``` in the CLI.
+            command ``darwin dataset pull $DATASET_NAME --only-annotations`` in the CLI.
         """
         if not len(self.annotations_path):
             raise ValueError("There are no annotations downloaded.")
@@ -153,8 +153,8 @@ class LocalDataset(object):
         Returns
         -------
         Tuple[float, float]
-            A tuple where the first element is the ```height``` of the image and the second is the
-            ```width```.
+            A tuple where the first element is the ``height`` of the image and the second is the
+            ``width``.
         """
         data: Dict[str, Any] = self.get_img_info(index)
         return data["height"], data["width"]
@@ -174,16 +174,16 @@ class LocalDataset(object):
         Returns
         -------
         LocalDataset
-            This ```LocalDataset``` extended with the classes of the give one.
+            This ``LocalDataset`` extended with the classes of the give one.
 
         Raises
         ------
         ValueError
 
-            - If the ```annotation_type``` of this ```LocalDataset``` differs from the
-            ```annotation_type``` of the given one.
-            - If the set of classes from this ```LocalDataset``` differs from the set of classes
-            from the given one AND ```extend_classes``` is ```False```.
+            - If the ``annotation_type`` of this ``LocalDataset`` differs from the
+            ``annotation_type`` of the given one.
+            - If the set of classes from this ``LocalDataset`` differs from the set of classes
+            from the given one AND ``extend_classes`` is ``False``.
         """
         if self.annotation_type != dataset.annotation_type:
             raise ValueError("Annotation type of both datasets should match")
@@ -203,12 +203,12 @@ class LocalDataset(object):
 
     def get_image(self, index: int) -> PILImage.Image:
         """
-        Returns the correspoding ```PILImage.Image```.
+        Returns the correspoding ``PILImage.Image``.
 
         Parameters
         ----------
         index : int
-            The index of the image in this ```LocalDataset```.
+            The index of the image in this ``LocalDataset``.
 
         Returns
         -------
@@ -224,19 +224,19 @@ class LocalDataset(object):
         Parameters
         ----------
         index : int
-            The index of the image in this ```LocalDataset```.
+            The index of the image in this ``LocalDataset``.
 
         Returns
         -------
         Path
-            The ```Path``` of the image.
+            The ``Path`` of the image.
         """
         return self.images_path[index]
 
     def parse_json(self, index: int) -> Dict[str, Any]:
         """
         Load an annotation and filter out the extra classes according to what is
-        specified in ```self.classes``` and the ```annotation_type```.
+        specified in ``self.classes`` and the ``annotation_type``.
 
         Parameters
         ----------
@@ -372,7 +372,7 @@ def build_stems(
     Parameters
     ----------
     release_path : Path
-        The path of the ```Release``` saved locally.
+        The path of the ``Release`` saved locally.
     annotations_dir : Path
         The path for a directory where annotations.
     annotation_type : str
@@ -385,13 +385,13 @@ def build_stems(
         The resulting generator prepends parent directories relative to the main annotation
         directory.
 
-        E.g.: ```["annotations/test/1.json", "annotations/2.json", "annotations/test/2/3.json"]```:
+        E.g.: ``["annotations/test/1.json", "annotations/2.json", "annotations/test/2/3.json"]``:
 
             - annotations/test/1
             - annotations/2
             - annotations/test/2/3
     split_type str, default: "random"
-        The type of split. Can be ```"random"``` or ```"stratified"```.
+        The type of split. Can be ``"random"`` or ``"stratified"``.
 
     Returns
     -------
@@ -401,7 +401,7 @@ def build_stems(
     Raises
     ------
     ValueError
-        If the provided ```split_type``` is invalid.
+        If the provided ``split_type`` is invalid.
 
     FileNotFoundError
         If no dataset partitions are found.
