@@ -11,20 +11,21 @@ from PIL import Image as PILImage
 
 class LocalDataset(object):
     """
-    Creates a dataset locally.
+    Base class representing a V7 Darwin dataset that has been pulled locally already.
+    It can be used with PyTorch dataloaders. See ``darwin.torch`` module for more specialized dataset classes, extending this one.
 
     Parameters
     ----------
     dataset_path : Path
         Path to the location of the dataset on the file system.
     annotation_type : str
-        The type of annotation classes ```[tag, bounding_box, polygon]```.
+        The type of annotation classes ```["tag", "bounding_box", "polygon"]```.
     partition : Optional[str], default: None
-        Selects one of the partitions ```[train, val, test]```.
+        Selects one of the partitions ```["train", "val", "test"]```.
     split : str, default: "default"
         Selects the split that defines the percentages used (use 'default' to select the default split).
     split_type : str, default: "random"
-        Heuristic used to do the split ```[random, stratified]```.
+        Heuristic used to do the split ```["random", "stratified"]```.
     release_name : Optional[str], default: None
         Version of the dataset.
 
