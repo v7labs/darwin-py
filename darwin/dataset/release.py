@@ -184,12 +184,12 @@ class Release:
         Returns
         --------
         Path
-            Same ```Path``` as provided in the parameters.
+            Same ``Path`` as provided in the parameters.
 
         Raises
         ------
         ValueError
-            If this ```Release``` object does not have a specified url.
+            If this ``Release`` object does not have a specified url.
         """
         if not self.url:
             raise ValueError("Release must have a valid url to download the zip.")
