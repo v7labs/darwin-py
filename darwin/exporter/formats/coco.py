@@ -34,7 +34,9 @@ def export(annotation_files: Iterator[dt.AnnotationFile], output_dir: Path) -> N
     deprecated_in="0.7.7",
     removed_in="0.8.0",
     current_version=__version__,
-    details="Use the ``export`` instead.",
+    details="""This function is going to be turned into private. This means that breaking changes 
+    in its interface and implementation are to be expected. We encourage using ``export`` instead 
+    of calling this low-level function directly.""",
 )
 def build_json(annotation_files: List[dt.AnnotationFile]) -> Dict[str, Any]:
     categories: Dict[str, int] = calculate_categories(annotation_files)
@@ -53,7 +55,9 @@ def build_json(annotation_files: List[dt.AnnotationFile]) -> Dict[str, Any]:
     deprecated_in="0.7.7",
     removed_in="0.8.0",
     current_version=__version__,
-    details="Use the ``export`` instead.",
+    details="""This function is going to be turned into private. This means that breaking changes 
+    in its interface and implementation are to be expected. We encourage using ``export`` instead 
+    of calling this low-level function directly.""",
 )
 def calculate_categories(annotation_files: List[dt.AnnotationFile]) -> Dict[str, int]:
     categories: Dict[str, int] = {}
@@ -72,7 +76,9 @@ def calculate_categories(annotation_files: List[dt.AnnotationFile]) -> Dict[str,
     deprecated_in="0.7.7",
     removed_in="0.8.0",
     current_version=__version__,
-    details="Use the ``export`` instead.",
+    details="""This function is going to be turned into private. This means that breaking changes 
+    in its interface and implementation are to be expected. We encourage using ``export`` instead 
+    of calling this low-level function directly.""",
 )
 def calculate_tag_categories(annotation_files: List[dt.AnnotationFile]) -> Dict[str, int]:
     categories: Dict[str, int] = {}
@@ -87,7 +93,9 @@ def calculate_tag_categories(annotation_files: List[dt.AnnotationFile]) -> Dict[
     deprecated_in="0.7.7",
     removed_in="0.8.0",
     current_version=__version__,
-    details="Use the ``export`` instead.",
+    details="""This function is going to be turned into private. This means that breaking changes 
+    in its interface and implementation are to be expected. We encourage using ``export`` instead 
+    of calling this low-level function directly.""",
 )
 def build_info() -> Dict[str, Any]:
     # TODO fill out these fields in a meaningful way
@@ -106,7 +114,9 @@ def build_info() -> Dict[str, Any]:
     deprecated_in="0.7.7",
     removed_in="0.8.0",
     current_version=__version__,
-    details="Use the ``export`` instead.",
+    details="""This function is going to be turned into private. This means that breaking changes 
+    in its interface and implementation are to be expected. We encourage using ``export`` instead 
+    of calling this low-level function directly.""",
 )
 def build_licenses() -> List[Dict[str, Any]]:
     return [{"url": "n/a", "id": 0, "name": "placeholder license"}]
@@ -116,7 +126,9 @@ def build_licenses() -> List[Dict[str, Any]]:
     deprecated_in="0.7.7",
     removed_in="0.8.0",
     current_version=__version__,
-    details="Use the ``export`` instead.",
+    details="""This function is going to be turned into private. This means that breaking changes 
+    in its interface and implementation are to be expected. We encourage using ``export`` instead 
+    of calling this low-level function directly.""",
 )
 def build_images(annotation_files: List[dt.AnnotationFile], tag_categories: Dict[str, int]) -> List[Dict[str, Any]]:
     return [
@@ -129,7 +141,9 @@ def build_images(annotation_files: List[dt.AnnotationFile], tag_categories: Dict
     deprecated_in="0.7.7",
     removed_in="0.8.0",
     current_version=__version__,
-    details="Use the ``export`` instead.",
+    details="""This function is going to be turned into private. This means that breaking changes 
+    in its interface and implementation are to be expected. We encourage using ``export`` instead 
+    of calling this low-level function directly.""",
 )
 def build_image(annotation_file: dt.AnnotationFile, tag_categories: Dict[str, int]) -> Dict[str, Any]:
     tags = [
@@ -154,7 +168,9 @@ def build_image(annotation_file: dt.AnnotationFile, tag_categories: Dict[str, in
     deprecated_in="0.7.7",
     removed_in="0.8.0",
     current_version=__version__,
-    details="Use the ``export`` instead.",
+    details="""This function is going to be turned into private. This means that breaking changes 
+    in its interface and implementation are to be expected. We encourage using ``export`` instead 
+    of calling this low-level function directly.""",
 )
 def build_annotations(
     annotation_files: List[dt.AnnotationFile], categories: Dict[str, int]
@@ -172,7 +188,9 @@ def build_annotations(
     deprecated_in="0.7.7",
     removed_in="0.8.0",
     current_version=__version__,
-    details="Use the ``export`` instead.",
+    details="""This function is going to be turned into private. This means that breaking changes 
+    in its interface and implementation are to be expected. We encourage using ``export`` instead 
+    of calling this low-level function directly.""",
 )
 def build_annotation(
     annotation_file: dt.AnnotationFile, annotation_id: int, annotation: dt.Annotation, categories: Dict[str, int]
@@ -248,11 +266,14 @@ def build_annotation(
     else:
         print(f"skipping unsupported annotation_type '{annotation_type}'")
 
+
 @deprecation.deprecated(
     deprecated_in="0.7.7",
     removed_in="0.8.0",
     current_version=__version__,
-    details="Use the ``export`` instead.",
+    details="""This function is going to be turned into private. This means that breaking changes 
+    in its interface and implementation are to be expected. We encourage using ``export`` instead 
+    of calling this low-level function directly.""",
 )
 def build_extra(annotation: dt.Annotation) -> Dict[str, Any]:
     data = {}
@@ -268,31 +289,40 @@ def build_extra(annotation: dt.Annotation) -> Dict[str, Any]:
         data["text"] = text_sub.data
     return data
 
+
 @deprecation.deprecated(
     deprecated_in="0.7.7",
     removed_in="0.8.0",
     current_version=__version__,
-    details="Use the ``export`` instead.",
+    details="""This function is going to be turned into private. This means that breaking changes 
+    in its interface and implementation are to be expected. We encourage using ``export`` instead 
+    of calling this low-level function directly.""",
 )
 def build_categories(categories: Dict[str, int]) -> Iterator[Dict[str, Any]]:
     for name, id in categories.items():
         yield {"id": id, "name": name, "supercategory": "root"}
 
-@deprecation.deprecated(
-    deprecated_in="0.7.7",
-    removed_in="0.8.0",
-    current_version=__version__,
-    details="Use the ``export`` instead.",
-)
-def build_tag_categories(categories: Dict[str, int]) -> Iterator[Dict[str, Any]]:
-    for name, id in categories.items():
-        yield {"id": id, "name": name}
 
 @deprecation.deprecated(
     deprecated_in="0.7.7",
     removed_in="0.8.0",
     current_version=__version__,
-    details="Use the ``export`` instead.",
+    details="""This function is going to be turned into private. This means that breaking changes 
+    in its interface and implementation are to be expected. We encourage using ``export`` instead 
+    of calling this low-level function directly.""",
+)
+def build_tag_categories(categories: Dict[str, int]) -> Iterator[Dict[str, Any]]:
+    for name, id in categories.items():
+        yield {"id": id, "name": name}
+
+
+@deprecation.deprecated(
+    deprecated_in="0.7.7",
+    removed_in="0.8.0",
+    current_version=__version__,
+    details="""This function is going to be turned into private. This means that breaking changes 
+    in its interface and implementation are to be expected. We encourage using ``export`` instead 
+    of calling this low-level function directly.""",
 )
 def polygon_area(x: np.ndarray, y: np.ndarray) -> float:
     """
