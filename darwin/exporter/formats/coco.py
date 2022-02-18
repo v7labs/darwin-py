@@ -12,6 +12,10 @@ from darwin.exporter.formats.numpy_encoder import NumpyEncoder
 from darwin.utils import convert_polygons_to_sequences
 from darwin.version import __version__
 
+DEPRECATION_MESSAGE = """This function is going to be turned into private. This means that breaking 
+changes in its interface and implementation are to be expected. We encourage using ``export`` 
+instead of calling this low-level function directly."""
+
 
 def export(annotation_files: Iterator[dt.AnnotationFile], output_dir: Path) -> None:
     """
@@ -34,9 +38,7 @@ def export(annotation_files: Iterator[dt.AnnotationFile], output_dir: Path) -> N
     deprecated_in="0.7.7",
     removed_in="0.8.0",
     current_version=__version__,
-    details="""This function is going to be turned into private. This means that breaking changes 
-    in its interface and implementation are to be expected. We encourage using ``export`` instead 
-    of calling this low-level function directly.""",
+    details=DEPRECATION_MESSAGE,
 )
 def build_json(annotation_files: List[dt.AnnotationFile]) -> Dict[str, Any]:
     categories: Dict[str, int] = calculate_categories(annotation_files)
@@ -55,9 +57,7 @@ def build_json(annotation_files: List[dt.AnnotationFile]) -> Dict[str, Any]:
     deprecated_in="0.7.7",
     removed_in="0.8.0",
     current_version=__version__,
-    details="""This function is going to be turned into private. This means that breaking changes 
-    in its interface and implementation are to be expected. We encourage using ``export`` instead 
-    of calling this low-level function directly.""",
+    details=DEPRECATION_MESSAGE,
 )
 def calculate_categories(annotation_files: List[dt.AnnotationFile]) -> Dict[str, int]:
     categories: Dict[str, int] = {}
@@ -76,9 +76,7 @@ def calculate_categories(annotation_files: List[dt.AnnotationFile]) -> Dict[str,
     deprecated_in="0.7.7",
     removed_in="0.8.0",
     current_version=__version__,
-    details="""This function is going to be turned into private. This means that breaking changes 
-    in its interface and implementation are to be expected. We encourage using ``export`` instead 
-    of calling this low-level function directly.""",
+    details=DEPRECATION_MESSAGE,
 )
 def calculate_tag_categories(annotation_files: List[dt.AnnotationFile]) -> Dict[str, int]:
     categories: Dict[str, int] = {}
@@ -93,9 +91,7 @@ def calculate_tag_categories(annotation_files: List[dt.AnnotationFile]) -> Dict[
     deprecated_in="0.7.7",
     removed_in="0.8.0",
     current_version=__version__,
-    details="""This function is going to be turned into private. This means that breaking changes 
-    in its interface and implementation are to be expected. We encourage using ``export`` instead 
-    of calling this low-level function directly.""",
+    details=DEPRECATION_MESSAGE,
 )
 def build_info() -> Dict[str, Any]:
     # TODO fill out these fields in a meaningful way
@@ -114,9 +110,7 @@ def build_info() -> Dict[str, Any]:
     deprecated_in="0.7.7",
     removed_in="0.8.0",
     current_version=__version__,
-    details="""This function is going to be turned into private. This means that breaking changes 
-    in its interface and implementation are to be expected. We encourage using ``export`` instead 
-    of calling this low-level function directly.""",
+    details=DEPRECATION_MESSAGE,
 )
 def build_licenses() -> List[Dict[str, Any]]:
     return [{"url": "n/a", "id": 0, "name": "placeholder license"}]
@@ -126,9 +120,7 @@ def build_licenses() -> List[Dict[str, Any]]:
     deprecated_in="0.7.7",
     removed_in="0.8.0",
     current_version=__version__,
-    details="""This function is going to be turned into private. This means that breaking changes 
-    in its interface and implementation are to be expected. We encourage using ``export`` instead 
-    of calling this low-level function directly.""",
+    details=DEPRECATION_MESSAGE,
 )
 def build_images(annotation_files: List[dt.AnnotationFile], tag_categories: Dict[str, int]) -> List[Dict[str, Any]]:
     return [
@@ -141,9 +133,7 @@ def build_images(annotation_files: List[dt.AnnotationFile], tag_categories: Dict
     deprecated_in="0.7.7",
     removed_in="0.8.0",
     current_version=__version__,
-    details="""This function is going to be turned into private. This means that breaking changes 
-    in its interface and implementation are to be expected. We encourage using ``export`` instead 
-    of calling this low-level function directly.""",
+    details=DEPRECATION_MESSAGE,
 )
 def build_image(annotation_file: dt.AnnotationFile, tag_categories: Dict[str, int]) -> Dict[str, Any]:
     tags = [
@@ -168,9 +158,7 @@ def build_image(annotation_file: dt.AnnotationFile, tag_categories: Dict[str, in
     deprecated_in="0.7.7",
     removed_in="0.8.0",
     current_version=__version__,
-    details="""This function is going to be turned into private. This means that breaking changes 
-    in its interface and implementation are to be expected. We encourage using ``export`` instead 
-    of calling this low-level function directly.""",
+    details=DEPRECATION_MESSAGE,
 )
 def build_annotations(
     annotation_files: List[dt.AnnotationFile], categories: Dict[str, int]
@@ -188,9 +176,7 @@ def build_annotations(
     deprecated_in="0.7.7",
     removed_in="0.8.0",
     current_version=__version__,
-    details="""This function is going to be turned into private. This means that breaking changes 
-    in its interface and implementation are to be expected. We encourage using ``export`` instead 
-    of calling this low-level function directly.""",
+    details=DEPRECATION_MESSAGE,
 )
 def build_annotation(
     annotation_file: dt.AnnotationFile, annotation_id: int, annotation: dt.Annotation, categories: Dict[str, int]
@@ -271,9 +257,7 @@ def build_annotation(
     deprecated_in="0.7.7",
     removed_in="0.8.0",
     current_version=__version__,
-    details="""This function is going to be turned into private. This means that breaking changes 
-    in its interface and implementation are to be expected. We encourage using ``export`` instead 
-    of calling this low-level function directly.""",
+    details=DEPRECATION_MESSAGE,
 )
 def build_extra(annotation: dt.Annotation) -> Dict[str, Any]:
     data = {}
@@ -294,9 +278,7 @@ def build_extra(annotation: dt.Annotation) -> Dict[str, Any]:
     deprecated_in="0.7.7",
     removed_in="0.8.0",
     current_version=__version__,
-    details="""This function is going to be turned into private. This means that breaking changes 
-    in its interface and implementation are to be expected. We encourage using ``export`` instead 
-    of calling this low-level function directly.""",
+    details=DEPRECATION_MESSAGE,
 )
 def build_categories(categories: Dict[str, int]) -> Iterator[Dict[str, Any]]:
     for name, id in categories.items():
@@ -307,9 +289,7 @@ def build_categories(categories: Dict[str, int]) -> Iterator[Dict[str, Any]]:
     deprecated_in="0.7.7",
     removed_in="0.8.0",
     current_version=__version__,
-    details="""This function is going to be turned into private. This means that breaking changes 
-    in its interface and implementation are to be expected. We encourage using ``export`` instead 
-    of calling this low-level function directly.""",
+    details=DEPRECATION_MESSAGE,
 )
 def build_tag_categories(categories: Dict[str, int]) -> Iterator[Dict[str, Any]]:
     for name, id in categories.items():
@@ -320,9 +300,7 @@ def build_tag_categories(categories: Dict[str, int]) -> Iterator[Dict[str, Any]]
     deprecated_in="0.7.7",
     removed_in="0.8.0",
     current_version=__version__,
-    details="""This function is going to be turned into private. This means that breaking changes 
-    in its interface and implementation are to be expected. We encourage using ``export`` instead 
-    of calling this low-level function directly.""",
+    details=DEPRECATION_MESSAGE,
 )
 def polygon_area(x: np.ndarray, y: np.ndarray) -> float:
     """
