@@ -2,21 +2,8 @@ import json
 from pathlib import Path
 from typing import Any, Dict, Iterable, Iterator
 
-import numpy as np
-
 import darwin.datatypes as dt
-
-
-class NumpyEncoder(json.JSONEncoder):
-    def default(self, obj: Any) -> Any:
-        if isinstance(obj, np.integer):
-            return int(obj)
-        elif isinstance(obj, np.floating):
-            return float(obj)
-        elif isinstance(obj, np.ndarray):
-            return obj.tolist()
-        else:
-            return super(NumpyEncoder, self).default(obj)
+from darwin.exporter.formats.numpy_encoder import NumpyEncoder
 
 
 def export(annotation_files: Iterator[dt.AnnotationFile], output_dir: Path) -> None:

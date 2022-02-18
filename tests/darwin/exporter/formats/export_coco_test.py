@@ -19,7 +19,7 @@ def describe_build_annotation():
 
         categories = {"polygon_class": 1}
 
-        assert coco.build_annotation(annotation_file, "test-id", polygon, categories)["extra"] == {"instance_id": 1}
+        assert coco._build_annotation(annotation_file, "test-id", polygon, categories)["extra"] == {"instance_id": 1}
 
     def bounding_boxes_include_extras(annotation_file: dt.AnnotationFile):
         bbox = dt.Annotation(
@@ -30,4 +30,4 @@ def describe_build_annotation():
 
         categories = {"bbox_class": 1}
 
-        assert coco.build_annotation(annotation_file, "test-id", bbox, categories)["extra"] == {"instance_id": 1}
+        assert coco._build_annotation(annotation_file, "test-id", bbox, categories)["extra"] == {"instance_id": 1}
