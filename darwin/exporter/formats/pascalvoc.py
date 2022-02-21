@@ -14,6 +14,7 @@ def export(annotation_files: Iterator[dt.AnnotationFile], output_dir: Path) -> N
 def export_file(annotation_file: dt.AnnotationFile, output_dir: Path) -> None:
     xml = build_xml(annotation_file)
     output_file_path = (output_dir / annotation_file.filename).with_suffix(".xml")
+    output_file_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_file_path, "wb") as f:
         f.write(tostring(xml))
 
