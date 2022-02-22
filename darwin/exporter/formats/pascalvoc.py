@@ -1,12 +1,12 @@
 import json
 from pathlib import Path
-from typing import Any, Dict, Iterable, Iterator
+from typing import Any, Dict, Iterable
 from xml.etree.ElementTree import Element, SubElement, tostring
 
 import darwin.datatypes as dt
 
 
-def export(annotation_files: Iterator[dt.AnnotationFile], output_dir: Path) -> None:
+def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path) -> None:
     for annotation_file in annotation_files:
         export_file(annotation_file, output_dir)
 
@@ -14,6 +14,7 @@ def export(annotation_files: Iterator[dt.AnnotationFile], output_dir: Path) -> N
 def export_file(annotation_file: dt.AnnotationFile, output_dir: Path) -> None:
     xml = build_xml(annotation_file)
     output_file_path = (output_dir / annotation_file.filename).with_suffix(".xml")
+    output_file_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_file_path, "wb") as f:
         f.write(tostring(xml))
 

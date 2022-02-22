@@ -1,8 +1,45 @@
+import shutil
 from pathlib import Path
+from typing import Iterator
 from xml.etree.ElementTree import Element
 
+import pytest
 from darwin.datatypes import Annotation, AnnotationClass, AnnotationFile
-from darwin.exporter.formats.pascalvoc import build_xml
+from darwin.exporter.formats.pascalvoc import build_xml, export
+
+
+def describe_export():
+    @pytest.fixture
+    def folder_path(tmp_path: Path):
+        path: Path = tmp_path / "pascal_voc_export_output_files"
+        yield path
+        shutil.rmtree(path)
+
+    def test_it_creates_missing_folders(folder_path: Path):
+        annotation_class: AnnotationClass = AnnotationClass(
+            name="car", annotation_type="polygon", annotation_internal_type=None
+        )
+        annotation = Annotation(
+            annotation_class=annotation_class,
+            data={
+                "path": [{...}],
+                "bounding_box": {"x": 94.0, "y": 438.0, "w": 1709.0, "h": 545.0},
+            },
+            subs=[],
+        )
+        annotation_file = AnnotationFile(
+            path=Path("/annotation_test.json"),
+            filename="annotation_test.jpg",
+            annotation_classes={annotation_class},
+            annotations=[annotation],
+            frame_urls=None,
+            image_height=1080,
+            image_width=1920,
+            is_video=False,
+        )
+
+        export([annotation_file], folder_path)
+        assert folder_path.exists()
 
 
 def describe_build_xml():
@@ -10,7 +47,10 @@ def describe_build_xml():
         annotation_class = AnnotationClass(name="car", annotation_type="polygon", annotation_internal_type=None)
         annotation = Annotation(
             annotation_class=annotation_class,
-            data={"path": [{...}], "bounding_box": {"x": 94.0, "y": 438.0, "w": 1709.0, "h": 545.0},},
+            data={
+                "path": [{...}],
+                "bounding_box": {"x": 94.0, "y": 438.0, "w": 1709.0, "h": 545.0},
+            },
             subs=[],
         )
         annotation_file = AnnotationFile(
@@ -76,7 +116,9 @@ def describe_build_xml():
     def test_xml_has_bounding_boxes():
         annotation_class = AnnotationClass(name="tire", annotation_type="bounding_box", annotation_internal_type=None)
         annotation = Annotation(
-            annotation_class=annotation_class, data={"x": 574.88, "y": 427.0, "w": 137.04, "h": 190.66}, subs=[],
+            annotation_class=annotation_class,
+            data={"x": 574.88, "y": 427.0, "w": 137.04, "h": 190.66},
+            subs=[],
         )
         annotation_file = AnnotationFile(
             path=Path("/annotation_test.json"),
@@ -116,7 +158,7 @@ def get_xml_element(parent: Element, key: str) -> Element:
 
 def assert_xml_element_text(parent: Element, key: str, val: str) -> None:
     """
-    Asserts if the first child with a name matching the key of the given parent element has the 
+    Asserts if the first child with a name matching the key of the given parent element has the
     given text value.
     Raises if no children are found or if the text value is not equal.
     """
