@@ -1,12 +1,9 @@
 import datetime
-import shutil
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import Any, Dict, Optional
 
 from darwin.dataset.identifier import DatasetIdentifier
-
-if TYPE_CHECKING:
-    from darwin.client import Client
+from requests import Response
 
 
 class Release:
@@ -194,12 +191,15 @@ class Release:
         if not self.url:
             raise ValueError("Release must have a valid url to download the zip.")
 
+        from darwin.client import Client
+
         config_path: Path = Path.home() / ".darwin" / "config.yaml"
         client: Client = Client.from_config(config_path=config_path, team_slug=self.team_slug)
 
-        with client.fetch_binary(self.url) as data:
-            with open(path, "wb") as download_file:
-                shutil.copyfileobj(data, download_file)
+        data: Response = client.fetch_binary(self.url)
+        with open(path, "wb") as download_file:
+            for chunk in data.iter_content(chunk_size=8192):
+                download_file.write(chunk)
 
         return path
 
