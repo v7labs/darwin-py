@@ -8,7 +8,6 @@ from urllib import parse
 
 import requests
 from requests import Response
-from requests.packages.urllib3.response import HTTPResponse
 
 from darwin.config import Config
 from darwin.dataset import RemoteDataset
@@ -782,7 +781,7 @@ class Client:
 
         return id
 
-    def fetch_binary(self, url: str) -> HTTPResponse:
+    def fetch_binary(self, url: str) -> Response:
         """
         Fetches binary data from the given url via a stream.
 
@@ -793,11 +792,11 @@ class Client:
 
         Returns
         -------
-        HTTPResponse
-            The data to be saved.
+        Response
+            ``request``'s Response object.
         """
         response: Response = cast(Response, self._get_raw_from_full_url(url, stream=True))
-        return response.raw
+        return response
 
     @classmethod
     def local(cls, team_slug: Optional[str] = None) -> "Client":
