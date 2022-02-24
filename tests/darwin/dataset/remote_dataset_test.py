@@ -393,8 +393,7 @@ def describe_fetch_remote_files():
             status=200,
         )
 
-        actual = remote_dataset.fetch_remote_files({"filenames": ["example,with, comma.mp4"]})
-        list(actual)
+        list(remote_dataset.fetch_remote_files({"filenames": ["example,with, comma.mp4"]}))
 
         request_body = json.loads(responses.calls[0].request.body)
 
