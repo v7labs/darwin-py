@@ -378,6 +378,28 @@ def describe_fetch_remote_files():
         assert item_1.id == 386074
         assert item_2.id == 386073
 
+    @responses.activate
+    def it_fetches_files_with_commas(
+        darwin_client: Client, dataset_name: str, dataset_slug: str, team_slug: str, files_content: dict
+    ):
+        remote_dataset = RemoteDataset(
+            client=darwin_client, team=team_slug, name=dataset_name, slug=dataset_slug, dataset_id=1
+        )
+        url = "http://localhost/api/datasets/1/items?page%5Bsize%5D=500"
+        responses.add(
+            responses.POST,
+            url,
+            json=files_content,
+            status=200,
+        )
+
+        actual = remote_dataset.fetch_remote_files({"filenames": ["Video Sep 09, 10 02 59 AM.mov"]})
+        list(actual)
+
+        request_body = json.loads(responses.calls[0].request.body)
+
+        assert request_body["filter"]["filenames"] == ["Video Sep 09, 10 02 59 AM.mov"]
+
 
 @pytest.fixture
 def remote_dataset(darwin_client: Client, dataset_name: str, dataset_slug: str, team_slug: str):

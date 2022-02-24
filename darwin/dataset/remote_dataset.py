@@ -402,14 +402,14 @@ class RemoteDataset:
         Iterator[DatasetItem]
             An iterator of ``DatasetItem``.
         """
-        post_filters: Dict[str, str] = {}
+        post_filters: Dict[str, Union[str, List[str]]] = {}
         post_sort: Dict[str, str] = {}
 
         if filters:
             for list_type in ["filenames", "statuses"]:
                 if list_type in filters:
                     if type(filters[list_type]) is list:
-                        post_filters[list_type] = ",".join(filters[list_type])
+                        post_filters[list_type] = filters[list_type]
                     else:
                         post_filters[list_type] = str(filters[list_type])
             if "path" in filters:
