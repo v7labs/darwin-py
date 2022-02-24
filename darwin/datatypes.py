@@ -284,6 +284,53 @@ class AnnotationFile:
         return construct_full_path(self.remote_path, self.filename)
 
 
+@dataclass(frozen=True, eq=True)
+class ConversionError:
+    """
+    Represents a failed conversion to YOLO format.
+
+    Attributes
+    ----------
+    reason : str
+        The reason on why the conversion failed.
+    annotation : Union[Annotation, VideoAnnotation]
+        The annotation that failed to be converted.
+    filename : Path
+        The path of the ``AnnotationFile`` holding the failed ``Annotation``.
+    """
+
+    reason: str
+    annotation: Union[Annotation, VideoAnnotation]
+    filename: Path
+
+
+@dataclass(frozen=True, eq=True)
+class YoloAnnotation:
+    """
+    Represents a YOLO annotation ready to be persisted as a bounding box.
+    The XY coordinates represent the top left corner of said bounding box.
+
+    Attributes
+    ----------
+    annotation_class : str
+        The name of the ``AnnotationClass``.
+    x : float
+        Left X coordinate of the bounding box.
+    y : float
+        Top Y coordinate of the bounding box.
+    width : float
+        Width of the bounding box.
+    height : float
+        Height of the bounding box.
+    """
+
+    annotation_class: str
+    x: float
+    y: float
+    width: float
+    height: float
+
+
 def make_bounding_box(
     class_name: str, x: float, y: float, w: float, h: float, subs: Optional[List[SubAnnotation]] = None
 ) -> Annotation:
@@ -383,7 +430,7 @@ def make_complex_polygon(
     subs: Optional[List[SubAnnotation]] = None,
 ) -> Annotation:
     """
-    Creates and returns a conplex polygon annotation. Complex polygons are those who have holes 
+    Creates and returns a conplex polygon annotation. Complex polygons are those who have holes
     and/or disform shapes.
 
     Parameters
@@ -391,8 +438,8 @@ def make_complex_polygon(
     class_name: str
         The name of the class for this ``Annotation``.
     point_paths: List[List[Point]]
-        A list of lists points that comprises the complex polygon. This is needed as a complex 
-        polygon can be effectively seen as a sum of multiple simple polygons. The list should have 
+        A list of lists points that comprises the complex polygon. This is needed as a complex
+        polygon can be effectively seen as a sum of multiple simple polygons. The list should have
         a format simillar to:
 
         .. code-block:: python
@@ -515,7 +562,7 @@ def make_ellipse(class_name: str, parameters: EllipseData, subs: Optional[List[S
     class_name: str
         The name of the class for this ``Annotation``.
     parameters: EllipseData
-        The data needed to build an Ellipse. This data must be a dictionary with a format simillar 
+        The data needed to build an Ellipse. This data must be a dictionary with a format simillar
         to:
 
         .. code-block:: javascript
@@ -532,10 +579,10 @@ def make_ellipse(class_name: str, parameters: EllipseData, subs: Optional[List[S
             }
 
         Where:
-        
+
         - ``angle: float`` is the orientation angle of the ellipse.
         - ``center: Point`` is the center point of the ellipse.
-        - ``radius: Point`` is the width and height of the elipse, where ``x`` represents the width 
+        - ``radius: Point`` is the width and height of the elipse, where ``x`` represents the width
         and ``y`` represents height.
     subs: Optional[List[SubAnnotation]], default: None
         List of ``SubAnnotation``s for this ``Annotation``. Defaults to ``None``.
@@ -543,7 +590,7 @@ def make_ellipse(class_name: str, parameters: EllipseData, subs: Optional[List[S
     Returns
     -------
     Annotation
-        An ellipse ``Annotation``. 
+        An ellipse ``Annotation``.
     """
     return Annotation(AnnotationClass(class_name, "ellipse"), parameters, subs or [])
 
@@ -557,7 +604,7 @@ def make_cuboid(class_name: str, cuboid: CuboidData, subs: Optional[List[SubAnno
     class_name: str
         The name of the class for this ``Annotation``.
     parameters: CuboidData
-        The data needed to build a .Cuboid This data must be a dictionary with a format simillar 
+        The data needed to build a .Cuboid This data must be a dictionary with a format simillar
         to:
 
         .. code-block:: javascript
@@ -567,7 +614,7 @@ def make_cuboid(class_name: str, cuboid: CuboidData, subs: Optional[List[SubAnno
             }
 
         Where:
-        
+
         - ``back: Dict[str, float]`` is a dictionary containing the ``x`` and ``y`` of the top
         left corner Point, together with the width ``w`` and height ``h`` to form the back box.
         - ``front: Dict[str, float]`` is a dictionary containing the ``x`` and ``y`` of the top
@@ -578,7 +625,7 @@ def make_cuboid(class_name: str, cuboid: CuboidData, subs: Optional[List[SubAnno
     Returns
     -------
     Annotation
-        A cuboid ``Annotation``. 
+        A cuboid ``Annotation``.
     """
     return Annotation(AnnotationClass(class_name, "cuboid"), cuboid, subs or [])
 
@@ -591,12 +638,12 @@ def make_instance_id(value: int) -> SubAnnotation:
     ----------
     value: int
         The value of this instance's id.
-    
+
 
     Returns
     -------
     SubAnnotation
-        An instance id ``SubAnnotation``. 
+        An instance id ``SubAnnotation``.
     """
     return SubAnnotation("instance_id", value)
 
@@ -609,11 +656,11 @@ def make_attributes(attributes: List[str]) -> SubAnnotation:
     ----------
     value: List[str]
         A list of attributes. Example: ``["orange", "big"]``.
-    
+
     Returns
     -------
     SubAnnotation
-        An attributes ``SubAnnotation``. 
+        An attributes ``SubAnnotation``.
     """
     return SubAnnotation("attributes", attributes)
 
@@ -626,11 +673,11 @@ def make_text(text: str) -> SubAnnotation:
     ----------
     text: str
         The text for the sub-annotation.
-    
+
     Returns
     -------
     SubAnnotation
-        A text ``SubAnnotation``. 
+        A text ``SubAnnotation``.
     """
     return SubAnnotation("text", text)
 
@@ -648,11 +695,11 @@ def make_keyframe(annotation: Annotation, idx: int) -> KeyFrame:
         The annotation for the keyframe.
     idx: int
         The id of the keyframe.
-    
+
     Returns
     -------
     KeyFrame
-        The created ``Keyframe``. 
+        The created ``Keyframe``.
     """
     return {"idx": idx, "annotation": annotation}
 
@@ -673,11 +720,11 @@ def make_video_annotation(
         The list of segments for the video.
     interpolated: bool
         If this video annotation is interpolated or not.
-    
+
     Returns
     -------
     VideoAnnotation
-        The created ``VideoAnnotation``. 
+        The created ``VideoAnnotation``.
 
     Raises
     ------
