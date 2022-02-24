@@ -393,12 +393,12 @@ def describe_fetch_remote_files():
             status=200,
         )
 
-        actual = remote_dataset.fetch_remote_files({"filenames": ["Video Sep 09, 10 02 59 AM.mov"]})
+        actual = remote_dataset.fetch_remote_files({"filenames": ["example,with, comma.mp4"]})
         list(actual)
 
         request_body = json.loads(responses.calls[0].request.body)
 
-        assert request_body["filter"]["filenames"] == ["Video Sep 09, 10 02 59 AM.mov"]
+        assert request_body["filter"]["filenames"] == ["example,with, comma.mp4"]
 
 
 @pytest.fixture
