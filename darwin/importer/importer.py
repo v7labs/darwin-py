@@ -122,6 +122,7 @@ def import_annotations(
     importer: Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]],
     file_paths: List[PathLike],
     append: bool,
+    class_prompt: bool = True,
 ) -> None:
     """
     Imports the given given Annotations into the given Dataset.
@@ -132,15 +133,17 @@ def import_annotations(
         Dataset where the Annotations will be imported to.
     importer : Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]]
         Parsing module containing the logic to parse the given Annotation files given in
-        `files_path`. See `importer/format` for a list of out of supported parsers.
+        ``files_path``. See ``importer/format`` for a list of out of supported parsers.
     file_paths : List[PathLike]
-        A list of `Path`'s or strings containing the Annotations we wish to import.
+        A list of ``Path``'s or strings containing the Annotations we wish to import.
     append : bool
-        If `True` appends the given annotations to the datasets. If `False` will override them.
+        If ``True`` appends the given annotations to the datasets. If ``False`` will override them.
+    class_prompt : bool
+        If ``False`` classes will be created and added to the datasets without requiring a user's prompt.
 
     Returns
     -------
-        None
+    None
 
     Raises
     -------
@@ -190,7 +193,7 @@ def import_annotations(
         for local_file in local_files_missing_remotely:
             print(f"\t{local_file.path}: '{local_file.full_path}'")
 
-        if not secure_continue_request():
+        if class_prompt and not secure_continue_request():
             return
 
     local_classes_not_in_dataset, local_classes_not_in_team = _resolve_annotation_classes(
@@ -216,7 +219,7 @@ def import_annotations(
             print(
                 f"\t{missing_class.name}, type: {missing_class.annotation_internal_type or missing_class.annotation_type}"
             )
-        if not secure_continue_request():
+        if class_prompt and not secure_continue_request():
             return
         for missing_class in local_classes_not_in_team:
             dataset.create_annotation_class(

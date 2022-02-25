@@ -609,13 +609,15 @@ def upload_data(
 
         if already_existing_items:
             console.print(
-                f"Skipped {len(already_existing_items)} files already in the dataset.\n", style="warning",
+                f"Skipped {len(already_existing_items)} files already in the dataset.\n",
+                style="warning",
             )
 
         if upload_manager.error_count or other_skipped_items:
             error_count = upload_manager.error_count + len(other_skipped_items)
             console.print(
-                f"{error_count} files couldn't be uploaded because an error occurred.\n", style="error",
+                f"{error_count} files couldn't be uploaded because an error occurred.\n",
+                style="error",
             )
 
         if not verbose and upload_manager.error_count:
@@ -659,7 +661,9 @@ def upload_data(
         _error(f"No files found")
 
 
-def dataset_import(dataset_slug: str, format: str, files: List[PathLike], append: bool) -> None:
+def dataset_import(
+    dataset_slug: str, format: str, files: List[PathLike], append: bool, class_prompt: bool = True
+) -> None:
     """
     Imports annotation files to the given dataset.
     Exits the application if no dataset with the given slug is found.
@@ -682,7 +686,7 @@ def dataset_import(dataset_slug: str, format: str, files: List[PathLike], append
     try:
         parser: ImportParser = get_importer(format)
         dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
-        import_annotations(dataset, parser, files, append)
+        import_annotations(dataset, parser, files, append, class_prompt)
     except ImporterNotFoundError:
         _error(f"Unsupported import format: {format}, currently supported: {import_formats}")
     except AttributeError:
