@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Tuple, Union
@@ -10,13 +11,51 @@ from darwin.datatypes import (
     AnnotationFile,
     ConversionError,
     VideoAnnotation,
-    YoloAnnotation,
 )
+
+
+@dataclass(frozen=True, eq=True)
+class YoloAnnotation:
+    """
+    Represents a YOLO annotation ready to be persisted as a bounding box.
+    The XY coordinates represent the top left corner of said bounding box.
+
+    The ``__str__`` representation of ``YoloAnnotation`` instances obeys the YOLO txt formatting,
+    wherein each line will have the following content:
+
+    .. code-block:: python
+            annotation_name x y width height
+
+    Attributes
+    ----------
+    annotation_class : str
+        The name of the ``AnnotationClass``.
+    x : float
+        Left X coordinate of the bounding box.
+    y : float
+        Top Y coordinate of the bounding box.
+    width : float
+        Width of the bounding box.
+    height : float
+        Height of the bounding box.
+    """
+
+    annotation_class: str
+    x: float
+    y: float
+    width: float
+    height: float
+
+    def __str__(self) -> str:
+        return f"{self.annotation_class} {self.x} {self.y} {self.width} {self.height}"
 
 
 def export(annotation_files: Iterable[AnnotationFile], output_dir: Path) -> None:
     """
     Exports the given ``AnnotationFile``s into the yolo format inside of the given ``output_dir``.
+
+    Each output file created will have a ``__str__`` representation of a ``YoloAnnotation`` for each
+    annotation that was successfully converted into a YOLO bounding box.
 
     Parameters
     ----------
@@ -34,7 +73,7 @@ def export(annotation_files: Iterable[AnnotationFile], output_dir: Path) -> None
 
         with open(output_file_path, "w") as f:
             for yolo in yolo_annotations:
-                f.write(f"{yolo.annotation_class} {yolo.x} {yolo.y} {yolo.width} {yolo.height}")
+                f.write(str(yolo))
 
         for err in errors:
             console.print(
@@ -47,7 +86,7 @@ def _convert_file(file: AnnotationFile) -> Tuple[List[ConversionError], List[Yol
     conversions: List[Union[ConversionError, YoloAnnotation]] = _to_yolo(file)
     yolo_annotations: List[YoloAnnotation] = [x for x in conversions if isinstance(x, YoloAnnotation)]
     errors: List[ConversionError] = [x for x in conversions if isinstance(x, ConversionError)]
-    return (errors, yolo_annotations)
+    return errors, yolo_annotations
 
 
 def _to_yolo(annotation_file: AnnotationFile) -> List[Union[ConversionError, YoloAnnotation]]:
