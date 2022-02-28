@@ -1,7 +1,7 @@
 import os
 import shutil
 from pathlib import Path
-from typing import Iterator
+from typing import Iterable
 
 import numpy as np
 from PIL import Image
@@ -10,11 +10,22 @@ import darwin.datatypes as dt
 from darwin.utils import convert_polygons_to_mask, get_progress_bar, ispolygon
 
 
-def export(annotation_files: Iterator[dt.AnnotationFile], output_dir: Path) -> None:
+def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path) -> None:
+    """
+    Exports the given ``AnnotationFile``s into instance masks format inside of the given
+    ``output_dir``. Deletes everything within ``output_dir/masks`` before writting to it.
+
+    Parameters
+    ----------
+    annotation_files : Iterable[dt.AnnotationFile]
+        The ``AnnotationFile``s to be exported.
+    output_dir : Path
+        The folder where the new instance mask files will be.
+    """
     masks_dir = output_dir / "masks"
     if masks_dir.exists():
         shutil.rmtree(masks_dir)
-    masks_dir.mkdir(parents=True)
+    masks_dir.mkdir(parents=True, exist_ok=True)
     with open(output_dir / "instance_mask_annotations.csv", "w") as f:
         f.write("image_id,mask_id,class_name\n")
         for annotation_file in get_progress_bar(list(annotation_files), "Processing annotations"):
