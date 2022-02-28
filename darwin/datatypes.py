@@ -304,33 +304,6 @@ class ConversionError:
     filename: Path
 
 
-@dataclass(frozen=True, eq=True)
-class YoloAnnotation:
-    """
-    Represents a YOLO annotation ready to be persisted as a bounding box.
-    The XY coordinates represent the top left corner of said bounding box.
-
-    Attributes
-    ----------
-    annotation_class : str
-        The name of the ``AnnotationClass``.
-    x : float
-        Left X coordinate of the bounding box.
-    y : float
-        Top Y coordinate of the bounding box.
-    width : float
-        Width of the bounding box.
-    height : float
-        Height of the bounding box.
-    """
-
-    annotation_class: str
-    x: float
-    y: float
-    width: float
-    height: float
-
-
 def make_bounding_box(
     class_name: str, x: float, y: float, w: float, h: float, subs: Optional[List[SubAnnotation]] = None
 ) -> Annotation:
