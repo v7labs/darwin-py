@@ -1,11 +1,11 @@
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 from rich.console import Console
-from rich.theme import Theme
 
+from darwin.console_settings import console_theme
 from darwin.datatypes import (
     Annotation,
     AnnotationFile,
@@ -50,7 +50,7 @@ class YoloAnnotation:
         return f"{self.annotation_class} {self.x} {self.y} {self.width} {self.height}"
 
 
-def export(annotation_files: Iterable[AnnotationFile], output_dir: Path) -> None:
+def export(annotation_files: Iterable[AnnotationFile], output_dir: Path, console: Optional[Console] = None) -> None:
     """
     Exports the given ``AnnotationFile``s into the yolo format inside of the given ``output_dir``.
 
@@ -64,7 +64,9 @@ def export(annotation_files: Iterable[AnnotationFile], output_dir: Path) -> None
     output_dir : Path
         The folder where the new coco file will be.
     """
-    console = Console(theme=_console_theme())
+    printer: Optional[Console] = console
+    if printer is None:
+        printer = Console(theme=console_theme())
 
     output_dir.mkdir(parents=True, exist_ok=True)
     for annotation_file in annotation_files:
@@ -76,7 +78,7 @@ def export(annotation_files: Iterable[AnnotationFile], output_dir: Path) -> None
                 f.write(str(yolo))
 
         for err in errors:
-            console.print(
+            printer.print(
                 f"Failed to convert: '{err.filename}'. Reason: {err.reason}. Annotation: {err.annotation}\n",
                 style="error",
             )
@@ -123,7 +125,3 @@ def _from_bounding_box(annotation: Annotation) -> YoloAnnotation:
 
 def _map_list(fun: Callable[[Any], Any], the_list: List[Any]) -> List[Any]:
     return list(map(fun, the_list))
-
-
-def _console_theme() -> Theme:
-    return Theme({"success": "bold green", "warning": "bold yellow", "error": "bold red"})
