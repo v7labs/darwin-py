@@ -51,5 +51,5 @@ setuptools.setup(
     ],
     entry_points={"console_scripts": ["darwin=darwin.cli:main"]},
     classifiers=["Programming Language :: Python :: 3", "License :: OSI Approved :: MIT License"],
-    python_requires=">=3.7",
+    python_requires=">=3.6",
 )
