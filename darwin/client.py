@@ -313,7 +313,7 @@ class Client:
             Identifier of the Image or Video that we are import the annotation to.
         payload: Dict[str, Any]
             A dictionary with the annotation to import. The default format is:
-            `{"annotations": serialized_annotations, "overwrite": "false"}`
+            ``{"annotations": serialized_annotations, "overwrite": "false"}``
         """
         self._post_raw(f"/dataset_items/{item_id}/import", payload=payload)
 
@@ -512,7 +512,7 @@ class Client:
         dataset_slug: str
             The slug of the dataset.
         payload: Dict[str, Any]
-            The data we want to upload. Usually a Dictionary with an `items` key containing a list
+            The data we want to upload. Usually a Dictionary with an ``items`` key containing a list
             of items to upload.
         team_slug: Optional[str]
             Team slug of the team the dataset will belong to. Defaults to None.
