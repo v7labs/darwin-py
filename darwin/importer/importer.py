@@ -96,6 +96,7 @@ def _resolve_annotation_classes(
 ) -> Tuple[Set[dt.AnnotationClass], Set[dt.AnnotationClass]]:
     local_classes_not_in_dataset: Set[dt.AnnotationClass] = set()
     local_classes_not_in_team: Set[dt.AnnotationClass] = set()
+    clashing_name_warnings: Set[str] = set()
 
     for local_cls in local_annotation_classes:
         local_annotation_type = local_cls.annotation_internal_type or local_cls.annotation_type
@@ -109,13 +110,27 @@ def _resolve_annotation_classes(
         if local_cls.name in [missing_class.name for missing_class in local_classes_not_in_team]:
             continue
 
+        for existing_type, existing_names in classes_in_dataset.items():
+            if local_cls.name in existing_names and local_annotation_type != existing_type:
+                clashing_name_warnings.add(_class_name_clash_error( local_cls.name, local_annotation_type, existing_type))
+
+        for existing_type, existing_names in classes_in_team.items():
+            if local_cls.name in existing_names and local_annotation_type != existing_type:
+                clashing_name_warnings.add(_class_name_clash_error( local_cls.name, local_annotation_type, existing_type))
+
         if local_annotation_type in classes_in_team and local_cls.name in classes_in_team[local_annotation_type]:
             local_classes_not_in_dataset.add(local_cls)
         else:
             local_classes_not_in_team.add(local_cls)
 
-    return local_classes_not_in_dataset, local_classes_not_in_team
+    return local_classes_not_in_dataset, local_classes_not_in_team, clashing_name_warnings
 
+def _class_name_clash_error(
+    local_cls_name: str,
+    local_annotation_type: str,
+    existing_type: str,
+) -> str:
+    return f'`{local_cls_name}` class of type `{local_annotation_type}` from imported annotations clashes with an existing class of the same name; but of type `{existing_type}`'
 
 def import_annotations(
     dataset: "RemoteDataset",
@@ -196,11 +211,19 @@ def import_annotations(
         if class_prompt and not secure_continue_request():
             return
 
-    local_classes_not_in_dataset, local_classes_not_in_team = _resolve_annotation_classes(
+    local_classes_not_in_dataset, local_classes_not_in_team, clashing_name_warnings = _resolve_annotation_classes(
         [annotation_class for file in local_files for annotation_class in file.annotation_classes],
         classes_in_dataset,
         classes_in_team,
     )
+
+    if len(clashing_name_warnings) > 0:
+        for clashing_name in clashing_name_warnings:
+            print(
+                clashing_name
+            )
+        print(f"Class names must be unique; even across types (see above error); can not proceed with import.")
+        # return
 
     print(f"{len(local_classes_not_in_team)} classes needs to be created.")
     print(f"{len(local_classes_not_in_dataset)} classes needs to be added to {dataset.identifier}")
