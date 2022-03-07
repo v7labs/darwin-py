@@ -1,15 +1,15 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Tuple, Union
 
-from rich.console import Console
-
-from darwin.console_settings import console_theme
 from darwin.datatypes import (
     Annotation,
     AnnotationFile,
     ConversionError,
+    ConversionResult,
     VideoAnnotation,
 )
 
@@ -38,6 +38,8 @@ class YoloAnnotation:
         Width of the bounding box.
     height : float
         Height of the bounding box.
+    file : Path
+        The path of the file that will contain this annotation.
     """
 
     annotation_class: str
@@ -45,49 +47,52 @@ class YoloAnnotation:
     y: float
     width: float
     height: float
+    file: Path
 
     def __str__(self) -> str:
         return f"{self.annotation_class} {self.x} {self.y} {self.width} {self.height}"
 
 
-def export(annotation_files: Iterable[AnnotationFile], output_dir: Path, console: Optional[Console] = None) -> None:
+def export(annotation_files: Iterable[AnnotationFile]) -> ConversionResult[YoloAnnotation]:
     """
-    Exports the given ``AnnotationFile``s into the yolo format inside of the given ``output_dir``.
+    Attempty to convert the given ``AnnotationFile``s into the ``YoloAnnotation`` format.
 
-    Each output file created will have a ``__str__`` representation of a ``YoloAnnotation`` for each
-    annotation that was successfully converted into a YOLO bounding box.
+    Successfull conversions will be under ``ConversionResult.conversions`` and will be represented
+    by an instance of ``YoloAnnotation``, which has a ``__str__`` representation of an annotation
+    that was successfully converted into a YOLO bounding box.
+
+    Failed conversions will be under ``ConversionResult.errors`` and will be represented by an
+    instance of ``ConversionError``, which has data regarding the failed conversion.
 
     Parameters
     ----------
-    annotation_files : Iterator[dt.AnnotationFile]
-        The ``AnnotationFile``s to be exported.
-    output_dir : Path
-        The folder where the new coco file will be.
+    annotation_files : Iterable[AnnotationFile]
+        The ``AnnotationFile``s to be converted.
+
+    Returns
+    -------
+    ConversionResult[YoloAnnotation]
+        An instance of ``ConversionResult``, containing all of the successful and failed conversions.
     """
-    printer: Optional[Console] = console
-    if printer is None:
-        printer = Console(theme=console_theme())
 
-    output_dir.mkdir(parents=True, exist_ok=True)
-    for annotation_file in annotation_files:
-        output_file_path = (output_dir / annotation_file.filename).with_suffix(".txt")
-        errors, yolo_annotations = _convert_file(annotation_file)
+    all_errors: List[ConversionError] = []
+    all_conversions: List[YoloAnnotation] = []
 
-        with open(output_file_path, "w") as f:
-            for yolo in yolo_annotations:
-                f.write(str(yolo))
+    for file in annotation_files:
+        errors, yolo_annotations = _convert_file(file)
 
-        for err in errors:
-            printer.print(
-                f"Failed to convert: '{err.filename}'. Reason: {err.reason}. Annotation: {err.annotation}\n",
-                style="error",
-            )
+        all_errors = all_errors + errors
+        all_conversions = all_conversions + yolo_annotations
+
+    return ConversionResult(errors=all_errors, conversions=all_conversions)
 
 
 def _convert_file(file: AnnotationFile) -> Tuple[List[ConversionError], List[YoloAnnotation]]:
     conversions: List[Union[ConversionError, YoloAnnotation]] = _to_yolo(file)
+
     yolo_annotations: List[YoloAnnotation] = [x for x in conversions if isinstance(x, YoloAnnotation)]
     errors: List[ConversionError] = [x for x in conversions if isinstance(x, ConversionError)]
+
     return errors, yolo_annotations
 
 
@@ -106,9 +111,11 @@ def _create_yolo_annotation(
             filename=annotation_file.path,
         )
 
+    export_file_path = Path(annotation_file.filename).with_suffix(".txt")
+
     annotation_type: str = annotation.annotation_class.annotation_type
     if annotation_type == "bounding_box":
-        return _from_bounding_box(annotation)
+        return _from_bounding_box(annotation, export_file_path)
 
     return ConversionError(
         reason=f"Unsupported annotation type: {annotation_type}",
@@ -117,10 +124,10 @@ def _create_yolo_annotation(
     )
 
 
-def _from_bounding_box(annotation: Annotation) -> YoloAnnotation:
+def _from_bounding_box(annotation: Annotation, file: Path) -> YoloAnnotation:
     name: str = annotation.annotation_class.name
-    bbox: Dict[str, float] = annotation.data.get("bounding_box", {})
-    return YoloAnnotation(annotation_class=name, x=bbox["x"], y=bbox["y"], width=bbox["w"], height=bbox["h"])
+    bbox: Dict[str, float] = annotation.data
+    return YoloAnnotation(annotation_class=name, x=bbox["x"], y=bbox["y"], width=bbox["w"], height=bbox["h"], file=file)
 
 
 def _map_list(fun: Callable[[Any], Any], the_list: List[Any]) -> List[Any]:

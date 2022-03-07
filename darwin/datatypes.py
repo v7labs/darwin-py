@@ -1,6 +1,18 @@
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterator, List, Optional, Set, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generic,
+    Iterator,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
 from darwin.path_utils import construct_full_path
 
@@ -294,7 +306,8 @@ class ConversionError:
     reason : str
         The reason on why the conversion failed.
     annotation : Union[Annotation, VideoAnnotation]
-        The annotation that failed to be converted.
+        The annotation that failed to be converted. Not applicable if the failure did not involve
+        an annotation.
     filename : Path
         The path of the ``AnnotationFile`` holding the failed ``Annotation``.
     """
@@ -722,6 +735,28 @@ def _maybe_add_bounding_box_data(data: Dict[str, Any], bounding_box: Optional[Di
     return data
 
 
-ExportParser = Callable[[Iterator[AnnotationFile], Path], None]
+T = TypeVar("T")
+
+
+@dataclass(frozen=True, eq=True)
+class ConversionResult(Generic[T]):
+    """
+    Represents the result of a conversion operation.
+    Includes the errors and the converstions and can be used for any conversion operation of any
+    type ``T``.
+
+    Attributes
+    ----------
+    errors : ConversionError
+        The conversion errors that happening while performing the operation.
+    conversions : List[T]
+        A list containing all the successfull conversions.
+    """
+
+    errors: List[ConversionError]
+    conversions: List[T]
+
+
+ExportParser = Callable[[Iterator[AnnotationFile]], ConversionResult[T]]
 
 ImportParser = Callable[[Path], Union[List[AnnotationFile], AnnotationFile, None]]

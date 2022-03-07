@@ -609,13 +609,15 @@ def upload_data(
 
         if already_existing_items:
             console.print(
-                f"Skipped {len(already_existing_items)} files already in the dataset.\n", style="warning",
+                f"Skipped {len(already_existing_items)} files already in the dataset.\n",
+                style="warning",
             )
 
         if upload_manager.error_count or other_skipped_items:
             error_count = upload_manager.error_count + len(other_skipped_items)
             console.print(
-                f"{error_count} files couldn't be uploaded because an error occurred.\n", style="error",
+                f"{error_count} files couldn't be uploaded because an error occurred.\n",
+                style="error",
             )
 
         if not verbose and upload_manager.error_count:
@@ -857,6 +859,8 @@ def dataset_convert(dataset_identifier: str, format: str, output_dir: Optional[P
         _error(f"Unsupported export format: {format}, currently supported: {export_formats}")
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
+    except Exception as e:
+        _error(f"Could not create .... '{e.name}'")
 
 
 def convert(format: str, files: List[PathLike], output_dir: Path) -> None:
@@ -893,7 +897,7 @@ def post_comment(
     dataset_slug: str
         The slug of the dataset the item belongs to.
     filename: str
-        The filename to receive the commment.
+        The filename to receive the comment.
     text: str
         The comment.
     x: float, default: 1
