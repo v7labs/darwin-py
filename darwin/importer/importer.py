@@ -166,7 +166,6 @@ def import_annotations(
     ValueError
         If file_paths is not a list.
     """
-    print(format)
     if not isinstance(file_paths, list):
         raise ValueError(f"file_paths must be a list of 'Path' or 'str'. Current value: {file_paths}")
 
