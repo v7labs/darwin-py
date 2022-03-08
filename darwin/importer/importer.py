@@ -81,7 +81,7 @@ def build_attribute_lookup(dataset: "RemoteDataset") -> Dict[str, Any]:
 def get_remote_files(dataset: "RemoteDataset", filenames: List[str]) -> Dict[str, int]:
     """Fetches remote files from the datasets, in chunks of 100 filesnames at a time"""
     remote_files = {}
-    for i in track(range(0, len(filenames), 250)):
+    for i in track(range(0, len(filenames), 250), description="Fetching remote file list..."):
         chunk = filenames[i : i + 250]
         for remote_file in dataset.fetch_remote_files(
             {"types": "image,playback_video,video_frame", "filenames": chunk}
@@ -113,11 +113,15 @@ def _resolve_annotation_classes(
 
         for existing_type, existing_names in classes_in_dataset.items():
             if local_cls.name in existing_names and local_annotation_type != existing_type:
-                clashing_name_warnings.add(_class_name_clash_error( local_cls.name, local_annotation_type, existing_type))
+                clashing_name_warnings.add(
+                    _class_name_clash_error(local_cls.name, local_annotation_type, existing_type)
+                )
 
         for existing_type, existing_names in classes_in_team.items():
             if local_cls.name in existing_names and local_annotation_type != existing_type:
-                clashing_name_warnings.add(_class_name_clash_error( local_cls.name, local_annotation_type, existing_type))
+                clashing_name_warnings.add(
+                    _class_name_clash_error(local_cls.name, local_annotation_type, existing_type)
+                )
 
         if local_annotation_type in classes_in_team and local_cls.name in classes_in_team[local_annotation_type]:
             local_classes_not_in_dataset.add(local_cls)
@@ -126,12 +130,14 @@ def _resolve_annotation_classes(
 
     return local_classes_not_in_dataset, local_classes_not_in_team, clashing_name_warnings
 
+
 def _class_name_clash_error(
     local_cls_name: str,
     local_annotation_type: str,
     existing_type: str,
 ) -> str:
-    return f'`{local_cls_name}` class of type `{local_annotation_type}` from imported annotations clashes with an existing class of the same name; but of type `{existing_type}`'
+    return f"`{local_cls_name}` class of type `{local_annotation_type}` from imported annotations clashes with an existing class of the same name; but of type `{existing_type}`"
+
 
 def import_annotations(
     dataset: "RemoteDataset",
@@ -182,7 +188,7 @@ def import_annotations(
     )
     attributes = build_attribute_lookup(dataset)
 
-    print("Retrieving local annotations ...")
+    print("Retrieving local annotations...")
     local_files = []
     local_files_missing_remotely = []
     maybe_parsed_files: Optional[Iterable[dt.AnnotationFile]] = find_and_parse(importer, file_paths)
@@ -192,7 +198,6 @@ def import_annotations(
     parsed_files = list(maybe_parsed_files)
     filenames: List[str] = [parsed_file.filename for parsed_file in parsed_files]
 
-    print("Fetching remote file list...")
     # This call will only filter by filename; so can return a superset of matched files across different paths
     # There is logic in this function to then include paths to narrow down to the single correct matching file
     remote_files = get_remote_files(dataset, filenames)
@@ -219,11 +224,8 @@ def import_annotations(
 
     if len(clashing_name_warnings) > 0:
         for clashing_name in clashing_name_warnings:
-            print(
-                clashing_name
-            )
+            print(clashing_name)
         print(f"Class names must be unique; even across types (see above error); can not proceed with import.")
-        # return
 
     print(f"{len(local_classes_not_in_team)} classes needs to be created.")
     print(f"{len(local_classes_not_in_dataset)} classes needs to be added to {dataset.identifier}")
@@ -263,7 +265,6 @@ def import_annotations(
     else:
         remote_classes = build_main_annotations_lookup_table(team_classes)
 
-    # Need to re parse the files since we didn't save the annotations in memory
     from darwin.dataset.utils import exhaust_generator
 
     result = exhaust_generator(
@@ -277,8 +278,9 @@ def import_annotations(
             attributes,
             append,
         ),
-        len(filenames),
-        True,
+        count=len(filenames),
+        multi_threaded=True,
+        description="Import annotations...",
     )
     if len(result) != len(filenames):
         print(f"error, only {len(result)} files succeeded (expected {len(filenames)})")

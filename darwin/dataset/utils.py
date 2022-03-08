@@ -16,8 +16,14 @@ from darwin.utils import (
     is_unix_like_os,
 )
 from PIL import Image as PILImage
-from rich.live import Live
-from rich.progress import ProgressBar, track
+from rich.progress import (
+    BarColumn,
+    Progress,
+    ProgressColumn,
+    TextColumn,
+    TimeRemainingColumn,
+    track,
+)
 
 # E.g.: {"partition" => {"class_name" => 123}}
 AnnotationDistribution = Dict[str, Counter]
@@ -170,7 +176,9 @@ def _f(x: Any) -> Any:
         return x()
 
 
-def exhaust_generator(progress: Generator, count: int, multi_threaded: bool) -> List[Dict[str, Any]]:
+def exhaust_generator(
+    progress: Generator, count: int, multi_threaded: bool, description: str = "Progress"
+) -> List[Dict[str, Any]]:
     """
     Exhausts the generator passed as parameter. Can be done multi threaded if desired.
 
@@ -190,12 +198,24 @@ def exhaust_generator(progress: Generator, count: int, multi_threaded: bool) -> 
     """
     responses = []
     if multi_threaded:
-        progress_bar: ProgressBar = ProgressBar(total=count)
+        columns: List["ProgressColumn"] = (
+            [TextColumn("[progress.description]{task.description}")] if description else []
+        )
+        columns.extend(
+            (
+                BarColumn(),
+                TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+                TimeRemainingColumn(),
+            )
+        )
+        progress_bar = Progress(*columns)
+        progress_bar.live.auto_refresh = True
+        task_id = progress_bar.add_task(description, total=count)
 
         def update(*a):
-            progress_bar.completed += 1
+            progress_bar.advance(task_id=task_id, advance=1)
 
-        with Live(progress_bar):
+        with progress_bar:
             with mp.Pool(mp.cpu_count()) as pool:
                 for f in progress:
                     responses.append(pool.apply_async(_f, args=(f,), callback=update))
@@ -203,7 +223,7 @@ def exhaust_generator(progress: Generator, count: int, multi_threaded: bool) -> 
                 pool.join()
             responses = [response.get() for response in responses if response.successful()]
     else:
-        for f in track(progress, total=count, description="Progress"):
+        for f in track(progress, total=count, description=description):
             responses.append(_f(f))
     return responses
 
