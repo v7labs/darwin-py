@@ -1,3 +1,4 @@
+import functools
 from pathlib import Path
 from typing import (
     TYPE_CHECKING,
@@ -80,10 +81,10 @@ def build_attribute_lookup(dataset: "RemoteDataset") -> Dict[str, Any]:
 def get_remote_files(dataset: "RemoteDataset", filenames: List[str]) -> Dict[str, int]:
     """Fetches remote files from the datasets, in chunks of 100 filesnames at a time"""
     remote_files = {}
-    for i in range(0, len(filenames), 100):
-        chunk = filenames[i : i + 100]
+    for i in track(range(0, len(filenames), 1000)):
+        chunk = filenames[i : i + 1000]
         for remote_file in dataset.fetch_remote_files(
-            {"types": "image,playback_video,video_frame", "filenames": ",".join(chunk)}
+            {"types": "image,playback_video,video_frame", "filenames": chunk}
         ):
             remote_files[remote_file.full_path] = remote_file.id
     return remote_files
@@ -165,7 +166,7 @@ def import_annotations(
     ValueError
         If file_paths is not a list.
     """
-
+    print(format)
     if not isinstance(file_paths, list):
         raise ValueError(f"file_paths must be a list of 'Path' or 'str'. Current value: {file_paths}")
 
@@ -264,8 +265,30 @@ def import_annotations(
         remote_classes = build_main_annotations_lookup_table(team_classes)
 
     # Need to re parse the files since we didn't save the annotations in memory
-    for local_path in set(local_file.path for local_file in local_files):
+    from darwin.dataset.utils import exhaust_generator
 
+    result = exhaust_generator(
+        upload_generator(
+            local_files,
+            importer,
+            local_files_missing_remotely,
+            remote_files,
+            remote_classes,
+            dataset.client,
+            attributes,
+            append,
+        ),
+        len(filenames),
+        True,
+    )
+    if len(result) != len(filenames):
+        print(f"error, only {len(result)} files succeeded (expected {len(filenames)})")
+
+
+def upload_generator(
+    local_files, importer, local_files_missing_remotely, remote_files, remote_classes, client, attributes, append
+):
+    for local_path in set(local_file.path for local_file in local_files):
         imported_files: Union[List[dt.AnnotationFile], dt.AnnotationFile, None] = importer(local_path)
         if imported_files is None:
             parsed_files = []
@@ -277,10 +300,16 @@ def import_annotations(
         # remove files missing on the server
         missing_files = [missing_file.full_path for missing_file in local_files_missing_remotely]
         parsed_files = [parsed_file for parsed_file in parsed_files if parsed_file.full_path not in missing_files]
-        for parsed_file in track(parsed_files):
+        for parsed_file in parsed_files:
             image_id = remote_files[parsed_file.full_path]
-            _import_annotations(
-                dataset.client, image_id, remote_classes, attributes, parsed_file.annotations, dataset, append
+            yield functools.partial(
+                _import_annotations,
+                client,
+                image_id,
+                remote_classes,
+                attributes,
+                parsed_file.annotations,
+                append,
             )
 
 
@@ -328,7 +357,6 @@ def _import_annotations(
     remote_classes: Dict[str, Any],
     attributes: Dict[str, Any],
     annotations: List[dt.Annotation],
-    dataset: "RemoteDataset",
     append: bool,
 ):
     serialized_annotations = []
