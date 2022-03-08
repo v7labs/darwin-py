@@ -81,8 +81,8 @@ def build_attribute_lookup(dataset: "RemoteDataset") -> Dict[str, Any]:
 def get_remote_files(dataset: "RemoteDataset", filenames: List[str]) -> Dict[str, int]:
     """Fetches remote files from the datasets, in chunks of 100 filesnames at a time"""
     remote_files = {}
-    for i in track(range(0, len(filenames), 1000)):
-        chunk = filenames[i : i + 1000]
+    for i in track(range(0, len(filenames), 250)):
+        chunk = filenames[i : i + 250]
         for remote_file in dataset.fetch_remote_files(
             {"types": "image,playback_video,video_frame", "filenames": chunk}
         ):
