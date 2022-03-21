@@ -786,7 +786,7 @@ def convert_xyxy_to_bounding_box(box: List[Union[int, float]]) -> dt.BoundingBox
 
     Parameters
     ----------
-    box : ist[Union[int, float]]
+    box : List[Union[int, float]]
         List of arrays of coordinates in the format [x1, y1, x2, y2]
 
     Returns
