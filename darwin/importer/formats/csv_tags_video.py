@@ -1,17 +1,31 @@
 import csv
 from pathlib import Path
-from typing import List, Optional
+from typing import Dict, List, Optional, Union
 
 import darwin.datatypes as dt
 
 
 def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
+    """
+    Parses the given ``csv video`` file and returns a ``List[dt.AnnotationFile]``, or ``None`` if
+    the extension of the given file is not ``.csv``.
+
+    Parameters
+    ----------
+    path : Path
+        The ``Path`` to the file to be parsed.
+
+    Returns
+    -------
+    Optional[List[dt.AnnotationFile]]
+        A ``List[dt.AnnotationFile]`` or ``None`` if the file was parseable.
+    """
     if path.suffix != ".csv":
         return None
 
     files = []
 
-    file_annotation_map = {}
+    file_annotation_map: Dict[str, List[Union[dt.Annotation, dt.VideoAnnotation]]] = {}
     with path.open() as f:
         reader = csv.reader(f)
         for row in reader:
