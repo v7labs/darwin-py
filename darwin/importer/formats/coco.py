@@ -2,13 +2,34 @@ import json
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional
 
+import deprecation
 from upolygon import find_contours, rle_decode
 
 import darwin.datatypes as dt
 from darwin.path_utils import deconstruct_full_path
+from darwin.version import __version__
+
+DEPRECATION_MESSAGE = """This function is going to be turned into private. This means that breaking 
+changes in its interface and implementation are to be expected. We encourage using ``parse_annotation`` 
+instead of calling this low-level function directly."""
 
 
 def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
+    """
+    Parses the given ``coco`` file and returns a ``List[dt.AnnotationFile]`` with the parsed
+    information.
+
+    Parameters
+    ----------
+    path : Path
+        The ``Path`` to the ``coco`` file.
+
+    Returns
+    -------
+    Optional[List[dt.AnnotationFile]]
+        Returns ``None`` if the given file is not in ``json`` format, or ``List[dt.AnnotationFile]``
+        otherwise.
+    """
     if path.suffix != ".json":
         return None
 
@@ -18,6 +39,21 @@ def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
 
 
 def parse_json(path: Path, data: Dict[str, Any]) -> Iterator[dt.AnnotationFile]:
+    """
+    Parses the given ``json`` structure into an ``Iterator[dt.AnnotationFile]``.
+
+    Parameters
+    ----------
+    path : Path
+        The ``Path`` where file containing the ``data`` is.
+    data : Dict[str, Any]
+        The ``json`` data to process.
+
+    Returns
+    -------
+    Iterator[dt.AnnotationFile]
+        An iterator of all parsed annotation files.
+    """
     annotations = data["annotations"]
     image_lookup_table = {image["id"]: image for image in data["images"]}
     category_lookup_table = {category["id"]: category for category in data["categories"]}
@@ -40,6 +76,21 @@ def parse_json(path: Path, data: Dict[str, Any]) -> Iterator[dt.AnnotationFile]:
 
 
 def parse_annotation(annotation: Dict[str, Any], category_lookup_table: Dict[str, Any]) -> Optional[dt.Annotation]:
+    """
+    Parses the given ``json`` dictionary into a darwin ``Annotation`` if possible.
+
+    Parameters
+    ----------
+    annotation : Dict[str, Any]
+        The ``json`` dictionary to parse.
+    category_lookup_table : Dict[str, Any]
+        Dictionary with all the categories from the ``coco`` file.
+
+    Returns
+    -------
+    Optional[dt.Annotation]
+        A darwin ``Annotation`` if the parse was successful, or ``None`` otherwise.
+    """
     category = category_lookup_table[annotation["category_id"]]
     segmentation = annotation["segmentation"]
     iscrowd = annotation.get("iscrowd") == 1
@@ -92,6 +143,12 @@ def parse_annotation(annotation: Dict[str, Any], category_lookup_table: Dict[str
         return None
 
 
+@deprecation.deprecated(
+    deprecated_in="0.7.12",
+    removed_in="0.8.0",
+    current_version=__version__,
+    details=DEPRECATION_MESSAGE,
+)
 def decode_binary_rle(data: str) -> List[int]:
     """
     decodes binary rle to integer list rle
