@@ -27,22 +27,22 @@ def get_dataset(
     transform: Optional[List] = None,
 ) -> LocalDataset:
     """
-    Creates and returns a dataset
+    Creates and returns a ``LocalDataset``.
 
     Parameters
     ----------
-    dataset_slug: str
-        Slug of the dataset to retrieve
-    dataset_type: str
-        The type of dataset [classification, instance-segmentation, object-detection, semantic-segmentation]
-    partition: str
-        Selects one of the partitions [train, val, test, None]. (Default: None)
-    split: str
-        Selects the split that defines the percentages used. (Default: 'default')
-    split_type: str
-        Heuristic used to do the split [random, stratified]. (Default: 'random')
-    transform : list[torchvision.transforms]
-        List of PyTorch transforms
+    dataset_slug : str
+        Slug of the dataset to retrieve.
+    dataset_type : str
+        The type of dataset ``[classification, instance-segmentation, object-detection, semantic-segmentation]``.
+    partition : str, default: None
+        Selects one of the partitions ``[train, val, test, None]``.
+    split : str, default: "default"
+        Selects the split that defines the percentages used.
+    split_type : str, default: "random"
+        Heuristic used to do the split ``[random, stratified]``.
+    transform : Optional[List], default: None
+        List of PyTorch transforms.
     """
     dataset_functions = {
         "classification": ClassificationDataset,
@@ -77,10 +77,24 @@ def get_dataset(
 
 
 class ClassificationDataset(LocalDataset):
+    """
+    Represents a ClassificationDataset used for training.
+
+    Attributes
+    ----------
+    transform : Optional[Callable], default: None
+        torchvision transform function to run on the dataset.
+    is_multi_label : bool, default: False
+        Whether the dataset is multilabel or not.
+
+    Parameters
+    ----------
+    transform: Optional[Union[Callable, List]], default: None
+        torchvision function or list to set the ``transform`` attribute. If it is a list, it will
+        be composed via torchvision.
+    """
+
     def __init__(self, transform: Optional[Union[Callable, List]] = None, **kwargs):
-        """
-        See class `LocalDataset` for documentation
-        """
         super().__init__(annotation_type="tag", **kwargs)
 
         if transform is not None and isinstance(transform, list):
@@ -93,17 +107,18 @@ class ClassificationDataset(LocalDataset):
 
     def __getitem__(self, index: int) -> Tuple[torch.Tensor, torch.Tensor]:
         """
-        See superclass for documentation
+        See superclass for documentation.
 
-        Notes
-        -----
-        The return value is a dict with the following fields:
-            image_id: int
-                The index of the image in the split
-            image_path: str
-                The path to the image on the file system
-            category_id : int
-                The single label of the image selected
+        Parameters
+        ----------
+        index : int
+            The index of the image.
+
+        Returns
+        -------
+        Tuple[torch.Tensor, torch.Tensor]
+            A tuple of tensors, where the first value is the image tensor and the second is the
+            target's tensor.
         """
         img: PILImage.Image = self.get_image(index)
         if self.transform is not None:
@@ -117,7 +132,17 @@ class ClassificationDataset(LocalDataset):
 
     def get_target(self, index: int) -> torch.Tensor:
         """
-        Returns the classification target
+        Returns the classification target.
+
+        Parameters
+        ----------
+        index : int
+            Index of the image.
+
+        Returns
+        -------
+        torch.Tensor
+            The target's tensor.
         """
 
         data = self.parse_json(index)
@@ -139,7 +164,8 @@ class ClassificationDataset(LocalDataset):
 
     def check_if_multi_label(self) -> None:
         """
-        This function loops over all the .json files and check if we have more than one tags in at least one file, if yes we assume the dataset is for multi label classification.
+        Loops over all the ``.json`` files and checks if we have more than one tag in at least one
+        file, if yes we assume the dataset is for multi label classification.
         """
         for idx in range(len(self)):
             target = self.parse_json(idx)
@@ -151,19 +177,32 @@ class ClassificationDataset(LocalDataset):
                 break
 
     def get_class_idx(self, index: int) -> int:
+        """
+        Returns the ``category_id`` of the image with the given index.
+
+        Parameters
+        ----------
+        index : int
+            Index of the image.
+
+        Returns
+        -------
+        int
+            ``category_id`` of the image.
+        """
         target: torch.Tensor = self.get_target(index)
         return target["category_id"]
 
     def measure_weights(self, **kwargs) -> np.ndarray:
         """
-        Computes the class balancing weights (not the frequencies!!) given the train loader
-        Get the weights proportional to the inverse of their class frequencies.
-        The vector sums up to 1
+        Computes the class balancing weights (not the frequencies!!) given the train loader.
+        Gets the weights proportional to the inverse of their class frequencies.
+        The vector sums up to 1.
 
         Returns
         -------
-        class_weights : ndarray[double]
-            Weight for each class in the train set (one for each class) as a 1D array normalized
+        ndarray[double]
+            Weight for each class in the train set (one for each class) as a 1D array normalized.
         """
         # Collect all the labels by iterating over the whole dataset
         labels = []
@@ -180,10 +219,26 @@ class ClassificationDataset(LocalDataset):
 
 
 class InstanceSegmentationDataset(LocalDataset):
+    """
+    Represents an instance of a SegmentationDataset used for training.
+
+    Attributes
+    ----------
+    transform : Optional[Callable], default: None
+        torchvision transform function to run on the dataset.
+    is_multi_label : bool, default: False
+        Whether the dataset is multilabel or not.
+    convert_polygons : ConvertPolygonsToInstanceMasks
+        Object used to convert polygons to instance masks.
+
+    Parameters
+    ----------
+    transform: Optional[Union[Callable, List]], default: None
+        torchvision function or list to set the ``transform`` attribute. If it is a list, it will
+        be composed via torchvision.
+    """
+
     def __init__(self, transform: Optional[Union[Callable, List]] = None, **kwargs):
-        """
-        See `LocalDataset` class for documentation
-        """
         super().__init__(annotation_type="polygon", **kwargs)
 
         if transform is not None and isinstance(transform, list):
