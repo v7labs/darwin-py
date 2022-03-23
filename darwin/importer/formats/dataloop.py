@@ -1,17 +1,32 @@
 import json
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional, Set
 
 import darwin.datatypes as dt
 
 
 def parse_path(path: Path) -> Optional[dt.AnnotationFile]:
+    """
+    Parses the given ``dataloop`` file and returns the corresponding darwin ``AnnotationFile``, or
+    ``None`` if the file's extension is not ``.json``.
+
+    Parameters
+    ----------
+    path : Path
+        The ``Path`` of the file to parse.
+
+    Returns
+    -------
+    Optional[dt.AnnotationFile]
+        The corresponding ``AnnotationFile``, or ``None`` if the given file was not parseable.
+
+    """
     if path.suffix != ".json":
         return None
     with path.open() as f:
         data = json.load(f)
-        annotations = list(filter(None, map(_parse_annotation, data["annotations"])))
-        annotation_classes = set([annotation.annotation_class for annotation in annotations])
+        annotations: List[dt.Annotation] = list(filter(None, map(_parse_annotation, data["annotations"])))
+        annotation_classes: Set[dt.AnnotationClass] = set([annotation.annotation_class for annotation in annotations])
         return dt.AnnotationFile(
             path, _remove_leading_slash(data["filename"]), annotation_classes, annotations, remote_path="/"
         )
@@ -42,3 +57,5 @@ def _parse_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotation]:
         x1, y1 = coords[0]["x"], coords[0]["y"]
         x2, y2 = coords[1]["x"], coords[1]["y"]
         return dt.make_bounding_box(annotation_label, x1, y1, x2 - x1, y2 - y1)
+
+    return None
