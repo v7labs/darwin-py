@@ -165,7 +165,10 @@ def _class_name_clash_error(
     local_annotation_type: str,
     existing_type: str,
 ) -> str:
-    return f"`{local_cls_name}` class of type `{local_annotation_type}` from imported annotations clashes with an existing class of the same name; but of type `{existing_type}`"
+    return (
+        f"`{local_cls_name}` class of type `{local_annotation_type}` from imported annotations"
+        f" clashes with an existing class of the same name; but of type `{existing_type}`"
+    )
 
 
 def import_annotations(
