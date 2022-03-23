@@ -34,7 +34,7 @@ def get_dataset(
     dataset_slug : str
         Slug of the dataset to retrieve.
     dataset_type : str
-        The type of dataset ``[classification, instance-segmentation, object-detection, semantic-segmentation]``.
+        The type of dataset ``["classification", "instance-segmentation", "object-detection", "semantic-segmentation"]``.
     partition : str, default: None
         Selects one of the partitions ``[train, val, test, None]``.
     split : str, default: "default"
