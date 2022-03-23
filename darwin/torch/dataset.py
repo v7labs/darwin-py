@@ -36,7 +36,7 @@ def get_dataset(
     dataset_type : str
         The type of dataset ``["classification", "instance-segmentation", "object-detection", "semantic-segmentation"]``.
     partition : str, default: None
-        Selects one of the partitions ``[train, val, test, None]``.
+        Selects one of the partitions ``["train", "val", "test", None]``.
     split : str, default: "default"
         Selects the split that defines the percentages used.
     split_type : str, default: "random"
