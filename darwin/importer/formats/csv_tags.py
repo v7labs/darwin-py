@@ -7,6 +7,20 @@ from darwin.path_utils import deconstruct_full_path
 
 
 def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
+    """
+    Parses the given file and returns a ``List[dt.AnnotationFile]`` with the parsed files, or
+    ``None`` if the given file's extension is not ``.csv``.
+
+    Parameters
+    ----------
+    path : Path
+        The ``Path`` of the file to parse.
+
+    Returns
+    -------
+    Optional[List[dt.AnnotationFile]]
+        A ``List[dt.AnnotationFile]`` or ``None`` if the function was not able to parse the file.
+    """
     if path.suffix != ".csv":
         return None
 
