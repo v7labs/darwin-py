@@ -257,7 +257,7 @@ def dataset_report(dataset_slug: str, granularity: str) -> None:
     dataset_slug: str
         The dataset's slug.
     granularity: str
-        Granualarity of the report, can be 'day', 'week' or 'month'.
+        Granularity of the report, can be 'day', 'week' or 'month'.
     """
     client: Client = _load_client(offline=True)
     try:
@@ -269,7 +269,7 @@ def dataset_report(dataset_slug: str, granularity: str) -> None:
 
 
 def export_dataset(
-    dataset_slug: str, include_url_token: bool, name: str, annotation_class_ids: Optional[List[str]] = None
+    dataset_slug: str, include_url_token: bool, name: str, annotation_class_ids: Optional[str] = None
 ) -> None:
     """
     Create a new release for the dataset.
@@ -282,13 +282,18 @@ def export_dataset(
         If True includes the url token, if False does not.
     name: str
         Name of the release.
-    annotation_class_ids: Optional[List[str]]
-        List of the classes to filter. Defautls to None.
+    annotation_class_ids: Optional[str], default: None
+        Annotation class ids to filter by, separated by spaces.
     """
     client: Client = _load_client(offline=False)
     identifier: DatasetIdentifier = DatasetIdentifier.parse(dataset_slug)
     ds: RemoteDataset = client.get_remote_dataset(identifier)
-    ds.export(annotation_class_ids=annotation_class_ids, name=name, include_url_token=include_url_token)
+
+    class_ids: List[str] = []
+    if annotation_class_ids:
+        class_ids = annotation_class_ids.split()
+
+    ds.export(annotation_class_ids=class_ids, name=name, include_url_token=include_url_token)
     identifier.version = name
     print(f"Dataset {dataset_slug} successfully exported to {identifier}")
     print_new_version_info(client)
