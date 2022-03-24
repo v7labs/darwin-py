@@ -141,9 +141,14 @@ class Options(object):
             type=str,
             help="[Remote] Dataset name: to list all the existing dataset, run 'darwin dataset remote'.",
         )
-        parser_import.add_argument("format", type=str, help="Annotation import to import.")
+        parser_import.add_argument("format", type=str, help="The format of the annotations to import.")
 
-        parser_import.add_argument("files", type=str, nargs="+", help="Annotation files (or folders) to import.")
+        parser_import.add_argument(
+            "files",
+            type=str,
+            nargs="+",
+            help="The location of the annotation files, or the folder where the annotation files are.",
+        )
         parser_import.add_argument("--append", action="store_true", help="Append annotations instead of overwriting.")
         parser_import.add_argument(
             "--yes", action="store_true", help="Skips prompts for creating and adding classes to dataset"
