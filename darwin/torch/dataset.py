@@ -220,7 +220,7 @@ class ClassificationDataset(LocalDataset):
 
 class InstanceSegmentationDataset(LocalDataset):
     """
-    Represents an instance of a SegmentationDataset used for training.
+    Represents an instance of a LocalDataset used for training on instance segmentation tasks.
 
     Attributes
     ----------
