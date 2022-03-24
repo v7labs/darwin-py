@@ -276,14 +276,14 @@ def export_dataset(
 
     Parameters
     ----------
-    dataset_slug: str
+    dataset_slug : str
         Slug of the dataset to which we perform the operation on.
-    include_url_token: bool
+    include_url_token : bool
         If True includes the url token, if False does not.
-    name: str
+    name : str
         Name of the release.
-    annotation_class_ids: Optional[List[str]]
-        List of the classes to filter. Defautls to None.
+    annotation_class_ids : Optional[List[str]], default: None
+        List of the annotation class ids to filter.
     """
     client: Client = _load_client(offline=False)
     identifier: DatasetIdentifier = DatasetIdentifier.parse(dataset_slug)
