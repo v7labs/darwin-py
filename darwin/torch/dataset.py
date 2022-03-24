@@ -78,7 +78,7 @@ def get_dataset(
 
 class ClassificationDataset(LocalDataset):
     """
-    Represents a ClassificationDataset used for training.
+    Represents a LocalDataset used for training on classification tasks.
 
     Attributes
     ----------
