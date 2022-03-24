@@ -171,7 +171,7 @@ class Options(object):
         )
         parser_split.add_argument("-s", "--seed", type=int, required=False, default=0, help="Split seed.")
 
-        # File listing
+        # List Files
         parser_files = dataset_action.add_parser("files", help="Lists file in a remote dataset.")
         parser_files.add_argument(
             "dataset",
@@ -180,12 +180,17 @@ class Options(object):
         )
         parser_files.add_argument("--only-filenames", action="store_true", help="Only prints out filenames.")
         parser_files.add_argument("--status", type=str, required=False, help="Comma separated list of statuses.")
-        parser_files.add_argument("--path", type=str, required=False, help="")
+        parser_files.add_argument(
+            "--path",
+            type=str,
+            required=False,
+            help="List only files under PATH. This is useful if your dataset has a directory structure.",
+        )
         parser_files.add_argument(
             "--sort-by",
             type=str,
             required=False,
-            help="Sort remotely fetched files by the given attribute and direction. Defaults to 'updated_at:desc'.",
+            help="Sort remotely fetched files by the given direction. Defaults to 'updated_at:desc'.",
         )
 
         # Set file status
