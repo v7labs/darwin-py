@@ -260,6 +260,7 @@ def dataset_report(dataset_slug: str, granularity: str) -> None:
         Granularity of the report, can be 'day', 'week' or 'month'.
     """
     client: Client = _load_client(offline=True)
+    console = Console(theme=_console_theme())
     try:
         remote_dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
         report: str = remote_dataset.get_report(granularity)
@@ -267,7 +268,8 @@ def dataset_report(dataset_slug: str, granularity: str) -> None:
         lines.pop(0)  # remove csv headers
 
         if not lines:
-            Console.print(f"No one has worked on this dataset yet!.\n", style="success")
+            console.print("No one has worked on this dataset yet!\n", style="success")
+            return
 
         lines.pop()  # remove last line, which is empty
 
@@ -304,7 +306,7 @@ def dataset_report(dataset_slug: str, granularity: str) -> None:
                 str(data[12]),
             )
 
-        Console().print(table)
+        console.print(table)
     except NotFound:
         _error(f"Dataset '{dataset_slug}' does not exist.")
 
