@@ -257,13 +257,54 @@ def dataset_report(dataset_slug: str, granularity: str) -> None:
     dataset_slug: str
         The dataset's slug.
     granularity: str
-        Granualarity of the report, can be 'day', 'week' or 'month'.
+        Granularity of the report, can be 'day', 'week' or 'month'.
     """
     client: Client = _load_client(offline=True)
     try:
         remote_dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
         report: str = remote_dataset.get_report(granularity)
-        print(report)
+        lines: List[str] = report.split("\n")
+        lines.pop(0)  # remove csv headers
+
+        if not lines:
+            Console.print(f"No one has worked on this dataset yet!.\n", style="success")
+
+        lines.pop()  # remove last line, which is empty
+
+        table: Table = Table(show_header=True, header_style="bold cyan")
+        table.add_column("Date")
+        table.add_column("Dataset Id", justify="right")
+        table.add_column("Dataset Name", justify="right")
+        table.add_column("User Id", justify="right")
+        table.add_column("Email", justify="right")
+        table.add_column("First Name", justify="right")
+        table.add_column("Last Name", justify="right")
+        table.add_column("Annotation Time", justify="right")
+        table.add_column("Annotations Approved", justify="right")
+        table.add_column("Annotations Created", justify="right")
+        table.add_column("Images Annotated", justify="right")
+        table.add_column("Images Approved", justify="right")
+        table.add_column("Images Rejected", justify="right")
+
+        for row in lines:
+            data: List[str] = row.split(",")
+            table.add_row(
+                str(data[0]),
+                str(data[1]),
+                str(data[2]),
+                str(data[3]),
+                str(data[4]),
+                str(data[5]),
+                str(data[6]),
+                str(data[7]),
+                str(data[8]),
+                str(data[9]),
+                str(data[10]),
+                str(data[11]),
+                str(data[12]),
+            )
+
+        Console().print(table)
     except NotFound:
         _error(f"Dataset '{dataset_slug}' does not exist.")
 
