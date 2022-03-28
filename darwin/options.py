@@ -92,7 +92,7 @@ class Options(object):
         parser_push.add_argument("--verbose", action="store_true", help="Flag to show upload details.")
 
         parser_push.add_argument(
-            "-p", "--preserve-folders", action="store_true", help="Preserve the local folder structure in the dataset"
+            "-p", "--preserve-folders", action="store_true", help="Preserve the local folder structure in the dataset."
         )
 
         # Remove
@@ -115,7 +115,7 @@ class Options(object):
             "--include-authorship",
             default=False,
             action="store_true",
-            help="Each annotation contains annotator and reviewer authorship metadata",
+            help="Each annotation contains annotator and reviewer authorship metadata.",
         )
         parser_export.add_argument(
             "--include-url-token",
@@ -152,7 +152,7 @@ class Options(object):
         parser_import.add_argument("files", type=str, nargs="+", help="Annotation files (or folders) to import.")
         parser_import.add_argument("--append", action="store_true", help="Append annotations instead of overwriting.")
         parser_import.add_argument(
-            "--yes", action="store_true", help="Skips prompts for creating and adding classes to dataset"
+            "--yes", action="store_true", help="Skips prompts for creating and adding classes to dataset."
         )
 
         # Convert

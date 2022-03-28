@@ -663,7 +663,7 @@ class RemoteDataset:
             Should the image url in the export include a token enabling access without team
             membership or not?
         include_authorship : bool, default: False
-            If set, include annotator and reviewer metadata for each annotation
+            If set, include annotator and reviewer metadata for each annotation.
 
         """
         if annotation_class_ids is None:
