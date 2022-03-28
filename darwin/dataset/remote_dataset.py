@@ -644,7 +644,11 @@ class RemoteDataset:
         return self.client.fetch_remote_attributes(self.dataset_id)
 
     def export(
-        self, name: str, annotation_class_ids: Optional[List[str]] = None, include_url_token: bool = False
+        self,
+        name: str,
+        annotation_class_ids: Optional[List[str]] = None,
+        include_url_token: bool = False,
+        include_authorship: bool = False,
     ) -> None:
         """
         Create a new release for this ``RemoteDataset``.
@@ -658,6 +662,9 @@ class RemoteDataset:
         include_url_token : bool, default: False
             Should the image url in the export include a token enabling access without team
             membership or not?
+        include_authorship : bool, default: False
+            If set, include annotator and reviewer metadata for each annotation
+
         """
         if annotation_class_ids is None:
             annotation_class_ids = []
@@ -665,6 +672,7 @@ class RemoteDataset:
             "annotation_class_ids": annotation_class_ids,
             "name": name,
             "include_export_token": include_url_token,
+            "include_authorship": include_authorship,
         }
         self.client.create_export(self.dataset_id, payload, self.team)
 

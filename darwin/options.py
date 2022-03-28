@@ -112,6 +112,12 @@ class Options(object):
         parser_export.add_argument("name", type=str, help="Name with with the version gets tagged.")
         parser_export.add_argument("annotation_class", type=str, nargs="?", help="List of class filters.")
         parser_export.add_argument(
+            "--include-authorship",
+            default=False,
+            action="store_true",
+            help="Each annotation contains annotator and reviewer authorship metadata",
+        )
+        parser_export.add_argument(
             "--include-url-token",
             default=False,
             action="store_true",
