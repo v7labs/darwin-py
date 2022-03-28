@@ -92,7 +92,7 @@ class Options(object):
         parser_push.add_argument("--verbose", action="store_true", help="Flag to show upload details.")
 
         parser_push.add_argument(
-            "-p", "--preserve-folders", action="store_true", help="Preserve the local folder structure in the dataset"
+            "-p", "--preserve-folders", action="store_true", help="Preserve the local folder structure in the dataset."
         )
 
         # Remove
@@ -111,6 +111,12 @@ class Options(object):
         parser_export.add_argument("dataset", type=str, help="Remote dataset name to export.")
         parser_export.add_argument("name", type=str, help="Name with with the version gets tagged.")
         parser_export.add_argument("annotation_class", type=str, nargs="?", help="List of class filters.")
+        parser_export.add_argument(
+            "--include-authorship",
+            default=False,
+            action="store_true",
+            help="Each annotation contains annotator and reviewer authorship metadata.",
+        )
         parser_export.add_argument(
             "--include-url-token",
             default=False,
@@ -146,7 +152,7 @@ class Options(object):
         parser_import.add_argument("files", type=str, nargs="+", help="Annotation files (or folders) to import.")
         parser_import.add_argument("--append", action="store_true", help="Append annotations instead of overwriting.")
         parser_import.add_argument(
-            "--yes", action="store_true", help="Skips prompts for creating and adding classes to dataset"
+            "--yes", action="store_true", help="Skips prompts for creating and adding classes to dataset."
         )
 
         # Convert
