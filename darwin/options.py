@@ -162,7 +162,7 @@ class Options(object):
             type=str,
             help="[Remote] Dataset name: to list all the existing dataset, run 'darwin dataset remote'.",
         )
-        parser_convert.add_argument("format", type=str, help="Annotation import to convert to.")
+        parser_convert.add_argument("format", type=str, help="Annotation format to convert to.")
 
         parser_convert.add_argument("-o", "--output_dir", type=str, help="Where to store output files.")
 
