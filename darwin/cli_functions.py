@@ -752,7 +752,7 @@ def list_files(
                 table.add_row(file.filename)
             else:
                 image_url = dataset.workview_url_for_item(file)
-                table.add_row(f"{file.filename}", f"{file.status if not file.archived else 'archived'}", f"{image_url}")
+                table.add_row(file.filename, f"{file.status if not file.archived else 'archived'}", image_url)
 
         Console().print(table)
     except NotFound as e:
