@@ -749,7 +749,7 @@ def list_files(
 
         for file in dataset.fetch_remote_files(filters, sort_by):
             if only_filenames:
-                table.add_row(f"{file.filename}")
+                table.add_row(file.filename)
             else:
                 image_url = dataset.workview_url_for_item(file)
                 table.add_row(f"{file.filename}", f"{file.status if not file.archived else 'archived'}", f"{image_url}")
