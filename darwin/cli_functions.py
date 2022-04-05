@@ -247,23 +247,31 @@ def url(dataset_slug: str) -> None:
         _error(f"Dataset '{e.name}' does not exist.")
 
 
-def dataset_report(dataset_slug: str, granularity: str) -> None:
+def dataset_report(dataset_slug: str, granularity: str, pretty: bool) -> None:
     """
-    Prints a dataset's report.
+    Prints a dataset's report in CSV format.
     Exits the application if no dataset is found.
 
     Parameters
     ----------
-    dataset_slug: str
+    dataset_slug : str
         The dataset's slug.
-    granularity: str
+    granularity : str
         Granularity of the report, can be 'day', 'week' or 'month'.
+    pretty : bool
+        If ``True``, it will print the output in a Rich formatted table.
     """
     client: Client = _load_client(offline=True)
     console = Console(theme=_console_theme())
     try:
         remote_dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
         report: str = remote_dataset.get_report(granularity)
+
+        if not pretty:
+            # if no one worked in the report, we print nothing
+            print(report)
+            return
+
         lines: List[str] = report.split("\n")
         lines.pop(0)  # remove csv headers
 
@@ -289,22 +297,7 @@ def dataset_report(dataset_slug: str, granularity: str) -> None:
         table.add_column("Images Rejected", justify="right")
 
         for row in lines:
-            data: List[str] = row.split(",")
-            table.add_row(
-                str(data[0]),
-                str(data[1]),
-                str(data[2]),
-                str(data[3]),
-                str(data[4]),
-                str(data[5]),
-                str(data[6]),
-                str(data[7]),
-                str(data[8]),
-                str(data[9]),
-                str(data[10]),
-                str(data[11]),
-                str(data[12]),
-            )
+            table.add_row(*row.split(","))
 
         console.print(table)
     except NotFound:

@@ -105,7 +105,13 @@ class Options(object):
         parser_report.add_argument(
             "-g", "--granularity", choices=["day", "week", "month", "total"], help="Granularity of the report."
         )
-
+        parser_report.add_argument(
+            "-pt",
+            "--pretty",
+            action="store_true",
+            default=False,
+            help="Prints the results formatted in a rich table.",
+        )
         # Export
         parser_export = dataset_action.add_parser("export", help="Export a version of a dataset.")
         parser_export.add_argument("dataset", type=str, help="Remote dataset name to export.")
