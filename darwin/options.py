@@ -119,7 +119,7 @@ class Options(object):
         parser_export.add_argument(
             "annotation_class",
             type=str,
-            nargs="?",
+            nargs="+",
             help=(
                 "List of annotation class ids. If present, it will only include items that have"
                 " annotations with a class whose id matches."
