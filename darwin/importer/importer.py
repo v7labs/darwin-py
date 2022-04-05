@@ -17,11 +17,23 @@ if TYPE_CHECKING:
     from darwin.dataset import RemoteDataset
 
 import darwin.datatypes as dt
+import deprecation
 from darwin.datatypes import PathLike
 from darwin.utils import secure_continue_request
+from darwin.version import __version__
 from rich.progress import track
 
+DEPRECATION_MESSAGE = """This function is going to be turned into private. This means that breaking 
+changes in its interface and implementation are to be expected. We encourage using ``import_annotations`` 
+instead of calling this low-level function directly."""
 
+
+@deprecation.deprecated(
+    deprecated_in="0.7.12",
+    removed_in="0.8.0",
+    current_version=__version__,
+    details=DEPRECATION_MESSAGE,
+)
 def build_main_annotations_lookup_table(annotation_classes: List[Dict[str, Any]]) -> Dict[str, Any]:
     MAIN_ANNOTATION_TYPES = [
         "bounding_box",
@@ -45,6 +57,12 @@ def build_main_annotations_lookup_table(annotation_classes: List[Dict[str, Any]]
     return lookup
 
 
+@deprecation.deprecated(
+    deprecated_in="0.7.12",
+    removed_in="0.8.0",
+    current_version=__version__,
+    details=DEPRECATION_MESSAGE,
+)
 def find_and_parse(
     importer: Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]], file_paths: List[PathLike]
 ) -> Optional[Iterable[dt.AnnotationFile]]:
@@ -66,6 +84,12 @@ def find_and_parse(
                 yield parsed_file
 
 
+@deprecation.deprecated(
+    deprecated_in="0.7.12",
+    removed_in="0.8.0",
+    current_version=__version__,
+    details=DEPRECATION_MESSAGE,
+)
 def build_attribute_lookup(dataset: "RemoteDataset") -> Dict[str, Any]:
     attributes: Any = dataset.fetch_remote_attributes()
     lookup: Dict[str, Any] = {}
@@ -77,6 +101,12 @@ def build_attribute_lookup(dataset: "RemoteDataset") -> Dict[str, Any]:
     return lookup
 
 
+@deprecation.deprecated(
+    deprecated_in="0.7.12",
+    removed_in="0.8.0",
+    current_version=__version__,
+    details=DEPRECATION_MESSAGE,
+)
 def get_remote_files(dataset: "RemoteDataset", filenames: List[str]) -> Dict[str, int]:
     """Fetches remote files from the datasets, in chunks of 100 filesnames at a time"""
     remote_files = {}
@@ -112,11 +142,15 @@ def _resolve_annotation_classes(
 
         for existing_type, existing_names in classes_in_dataset.items():
             if local_cls.name in existing_names and local_annotation_type != existing_type:
-                clashing_name_warnings.add(_class_name_clash_error( local_cls.name, local_annotation_type, existing_type))
+                clashing_name_warnings.add(
+                    _class_name_clash_error(local_cls.name, local_annotation_type, existing_type)
+                )
 
         for existing_type, existing_names in classes_in_team.items():
             if local_cls.name in existing_names and local_annotation_type != existing_type:
-                clashing_name_warnings.add(_class_name_clash_error( local_cls.name, local_annotation_type, existing_type))
+                clashing_name_warnings.add(
+                    _class_name_clash_error(local_cls.name, local_annotation_type, existing_type)
+                )
 
         if local_annotation_type in classes_in_team and local_cls.name in classes_in_team[local_annotation_type]:
             local_classes_not_in_dataset.add(local_cls)
@@ -125,12 +159,17 @@ def _resolve_annotation_classes(
 
     return local_classes_not_in_dataset, local_classes_not_in_team, clashing_name_warnings
 
+
 def _class_name_clash_error(
     local_cls_name: str,
     local_annotation_type: str,
     existing_type: str,
 ) -> str:
-    return f'`{local_cls_name}` class of type `{local_annotation_type}` from imported annotations clashes with an existing class of the same name; but of type `{existing_type}`'
+    return (
+        f"`{local_cls_name}` class of type `{local_annotation_type}` from imported annotations"
+        f" clashes with an existing class of the same name; but of type `{existing_type}`"
+    )
+
 
 def import_annotations(
     dataset: "RemoteDataset",
@@ -156,14 +195,12 @@ def import_annotations(
     class_prompt : bool
         If ``False`` classes will be created and added to the datasets without requiring a user's prompt.
 
-    Returns
-    -------
-    None
-
     Raises
     -------
     ValueError
-        If file_paths is not a list.
+        - If ``file_paths`` is not a list.
+        - If the application is unable to fetch any remote classes.
+        - If the application was unable to find/parse any annotation files.
     """
 
     if not isinstance(file_paths, list):
@@ -219,9 +256,7 @@ def import_annotations(
 
     if len(clashing_name_warnings) > 0:
         for clashing_name in clashing_name_warnings:
-            print(
-                clashing_name
-            )
+            print(clashing_name)
         print(f"Class names must be unique; even across types (see above error); can not proceed with import.")
         # return
 
