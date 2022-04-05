@@ -106,7 +106,7 @@ class Options(object):
             "-g", "--granularity", choices=["day", "week", "month", "total"], help="Granularity of the report."
         )
         parser_report.add_argument(
-            "-pt",
+            "-r",
             "--pretty",
             action="store_true",
             default=False,
