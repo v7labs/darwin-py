@@ -257,7 +257,7 @@ def dataset_report(dataset_slug: str, granularity: str) -> None:
     dataset_slug: str
         The dataset's slug.
     granularity: str
-        Granualarity of the report, can be 'day', 'week' or 'month'.
+        Granularity of the report, can be 'day', 'week' or 'month'.
     """
     client: Client = _load_client(offline=True)
     try:
@@ -534,7 +534,7 @@ def upload_data(
     preserve_folders : bool
         Specify whether or not to preserve folder paths when uploading.
     verbose : bool
-        Specify whther to have full traces print when uploading files or not.
+        Specify whether to have full traces print when uploading files or not.
     """
     client: Client = _load_client()
     try:
@@ -917,7 +917,7 @@ def post_comment(
     dataset_slug: str
         The slug of the dataset the item belongs to.
     filename: str
-        The filename to receive the commment.
+        The filename to receive the comment.
     text: str
         The comment.
     x: float, default: 1
@@ -1000,7 +1000,7 @@ def print_new_version_info(client: Optional[Client] = None) -> None:
     Parameters
     ----------
     client: Optional[Client]
-        The client containing information aboue the new verison. Defaults to None.
+        The client containing information about the new version. Defaults to None.
     """
     if not client or not client.newer_darwin_version:
         return
