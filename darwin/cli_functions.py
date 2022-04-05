@@ -179,7 +179,7 @@ def local(team: Optional[str] = None) -> None:
     Parameters
     ----------
     team: Optional[str]
-        The name of the team to list, or the defautl one if no team is given. Defaults to None.
+        The name of the team to list, or the default one if no team is given. Defaults to None.
     """
     table: Table = Table(show_header=True, header_style="bold cyan")
     table.add_column("Name")
@@ -305,26 +305,37 @@ def dataset_report(dataset_slug: str, granularity: str, pretty: bool) -> None:
 
 
 def export_dataset(
-    dataset_slug: str, include_url_token: bool, name: str, annotation_class_ids: Optional[List[str]] = None
+    dataset_slug: str,
+    include_url_token: bool,
+    name: str,
+    annotation_class_ids: Optional[List[str]] = None,
+    include_authorship: bool = False,
 ) -> None:
     """
     Create a new release for the dataset.
 
     Parameters
     ----------
-    dataset_slug: str
+    dataset_slug : str
         Slug of the dataset to which we perform the operation on.
-    include_url_token: bool
-        If True includes the url token, if False does not.
-    name: str
+    include_url_token : bool, default: False
+        If ``True`` includes the url token, if ``False`` does not.
+    name : str
         Name of the release.
-    annotation_class_ids: Optional[List[str]]
-        List of the classes to filter. Defautls to None.
+    annotation_class_ids : Optional[List[str]], default: None
+        List of the classes to filter.
+    include_authorship : bool
+        If ``True`` include annotator and reviewer metadata for each annotation.
     """
     client: Client = _load_client(offline=False)
     identifier: DatasetIdentifier = DatasetIdentifier.parse(dataset_slug)
     ds: RemoteDataset = client.get_remote_dataset(identifier)
-    ds.export(annotation_class_ids=annotation_class_ids, name=name, include_url_token=include_url_token)
+    ds.export(
+        annotation_class_ids=annotation_class_ids,
+        name=name,
+        include_url_token=include_url_token,
+        include_authorship=include_authorship,
+    )
     identifier.version = name
     print(f"Dataset {dataset_slug} successfully exported to {identifier}")
     print_new_version_info(client)
@@ -559,7 +570,7 @@ def upload_data(
     preserve_folders : bool
         Specify whether or not to preserve folder paths when uploading.
     verbose : bool
-        Specify whther to have full traces print when uploading files or not.
+        Specify whether to have full traces print when uploading files or not.
     """
     client: Client = _load_client()
     try:
@@ -776,12 +787,21 @@ def list_files(
         if not sort_by:
             sort_by = "updated_at:desc"
 
+        table: Table = Table(show_header=True, header_style="bold cyan")
+        table.add_column("Name", justify="left")
+
+        if not only_filenames:
+            table.add_column("Status", justify="left")
+            table.add_column("URL", justify="left")
+
         for file in dataset.fetch_remote_files(filters, sort_by):
             if only_filenames:
-                print(file.filename)
+                table.add_row(file.filename)
             else:
                 image_url = dataset.workview_url_for_item(file)
-                print(f"{file.filename}\t{file.status if not file.archived else 'archived'}\t {image_url}")
+                table.add_row(file.filename, f"{file.status if not file.archived else 'archived'}", image_url)
+
+        Console().print(table)
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
     except ValueError as e:
@@ -933,7 +953,7 @@ def post_comment(
     dataset_slug: str
         The slug of the dataset the item belongs to.
     filename: str
-        The filename to receive the commment.
+        The filename to receive the comment.
     text: str
         The comment.
     x: float, default: 1
@@ -1016,7 +1036,7 @@ def print_new_version_info(client: Optional[Client] = None) -> None:
     Parameters
     ----------
     client: Optional[Client]
-        The client containing information aboue the new verison. Defaults to None.
+        The client containing information about the new version. Defaults to None.
     """
     if not client or not client.newer_darwin_version:
         return
