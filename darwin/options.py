@@ -92,7 +92,7 @@ class Options(object):
         parser_push.add_argument("--verbose", action="store_true", help="Flag to show upload details.")
 
         parser_push.add_argument(
-            "-p", "--preserve-folders", action="store_true", help="Preserve the local folder structure in the dataset"
+            "-p", "--preserve-folders", action="store_true", help="Preserve the local folder structure in the dataset."
         )
 
         # Remove
@@ -111,6 +111,12 @@ class Options(object):
         parser_export.add_argument("dataset", type=str, help="Remote dataset name to export.")
         parser_export.add_argument("name", type=str, help="Name with with the version gets tagged.")
         parser_export.add_argument("annotation_class", type=str, nargs="?", help="List of class filters.")
+        parser_export.add_argument(
+            "--include-authorship",
+            default=False,
+            action="store_true",
+            help="Each annotation contains annotator and reviewer authorship metadata.",
+        )
         parser_export.add_argument(
             "--include-url-token",
             default=False,
@@ -141,12 +147,17 @@ class Options(object):
             type=str,
             help="[Remote] Dataset name: to list all the existing dataset, run 'darwin dataset remote'.",
         )
-        parser_import.add_argument("format", type=str, help="Annotation import to import.")
+        parser_import.add_argument("format", type=str, help="The format of the annotations to import.")
 
-        parser_import.add_argument("files", type=str, nargs="+", help="Annotation files (or folders) to import.")
+        parser_import.add_argument(
+            "files",
+            type=str,
+            nargs="+",
+            help="The location of the annotation files, or the folder where the annotation files are.",
+        )
         parser_import.add_argument("--append", action="store_true", help="Append annotations instead of overwriting.")
         parser_import.add_argument(
-            "--yes", action="store_true", help="Skips prompts for creating and adding classes to dataset"
+            "--yes", action="store_true", help="Skips prompts for creating and adding classes to dataset."
         )
 
         # Convert
@@ -156,7 +167,7 @@ class Options(object):
             type=str,
             help="[Remote] Dataset name: to list all the existing dataset, run 'darwin dataset remote'.",
         )
-        parser_convert.add_argument("format", type=str, help="Annotation import to convert to.")
+        parser_convert.add_argument("format", type=str, help="Annotation format to convert to.")
 
         parser_convert.add_argument("-o", "--output_dir", type=str, help="Where to store output files.")
 
@@ -171,7 +182,7 @@ class Options(object):
         )
         parser_split.add_argument("-s", "--seed", type=int, required=False, default=0, help="Split seed.")
 
-        # File listing
+        # List Files
         parser_files = dataset_action.add_parser("files", help="Lists file in a remote dataset.")
         parser_files.add_argument(
             "dataset",
@@ -180,12 +191,17 @@ class Options(object):
         )
         parser_files.add_argument("--only-filenames", action="store_true", help="Only prints out filenames.")
         parser_files.add_argument("--status", type=str, required=False, help="Comma separated list of statuses.")
-        parser_files.add_argument("--path", type=str, required=False, help="")
+        parser_files.add_argument(
+            "--path",
+            type=str,
+            required=False,
+            help="List only files under PATH. This is useful if your dataset has a directory structure.",
+        )
         parser_files.add_argument(
             "--sort-by",
             type=str,
             required=False,
-            help="Sort remotely fetched files by the given attribute and direction. Defaults to 'updated_at:desc'.",
+            help="Sort remotely fetched files by the given direction. Defaults to 'updated_at:desc'.",
         )
 
         # Set file status

@@ -269,31 +269,39 @@ def dataset_report(dataset_slug: str, granularity: str) -> None:
 
 
 def export_dataset(
-    dataset_slug: str, include_url_token: bool, name: str, annotation_class_ids: Optional[str] = None
+    dataset_slug: str,
+    include_url_token: bool,
+    name: str,
+    annotation_class_ids: Optional[List[str]] = None,
+    include_authorship: bool = False,
 ) -> None:
     """
     Create a new release for the dataset.
 
     Parameters
     ----------
-    dataset_slug: str
+    dataset_slug : str
         Slug of the dataset to which we perform the operation on.
-    include_url_token: bool
-        If True includes the url token, if False does not.
-    name: str
+    include_url_token : bool, default: False
+        If ``True`` includes the url token, if ``False`` does not.
+    name : str
         Name of the release.
-    annotation_class_ids: Optional[str], default: None
-        Annotation class ids to filter by, separated by spaces.
+    annotation_class_ids : Optional[List[str]], default: None
+        List of the classes to filter.
+    include_authorship : bool
+        If ``True`` include annotator and reviewer metadata for each annotation.
     """
     client: Client = _load_client(offline=False)
     identifier: DatasetIdentifier = DatasetIdentifier.parse(dataset_slug)
     ds: RemoteDataset = client.get_remote_dataset(identifier)
 
-    class_ids: List[str] = []
-    if annotation_class_ids:
-        class_ids = annotation_class_ids.split()
+    ds.export(
+        annotation_class_ids=annotation_class_ids,
+        name=name,
+        include_url_token=include_url_token,
+        include_authorship=include_authorship,
+    )
 
-    ds.export(annotation_class_ids=class_ids, name=name, include_url_token=include_url_token)
     identifier.version = name
     print(f"Dataset {dataset_slug} successfully exported to {identifier}")
     print_new_version_info(client)

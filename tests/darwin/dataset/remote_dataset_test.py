@@ -629,3 +629,34 @@ def assert_upload_mocks_are_correctly_called(remote_dataset: RemoteDataset, *arg
 
             request_upload_mock.assert_called_once()
             upload_mock.assert_called_once_with(multi_threaded=True, progress_callback=None, file_upload_callback=None)
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+def describe_export_dataset():
+    def honours_include_authorship(remote_dataset: RemoteDataset):
+        with patch.object(Client, "create_export", return_value={}) as stub:
+            remote_dataset.export("example", None, False, True)
+            stub.assert_called_once_with(
+                remote_dataset.dataset_id,
+                {
+                    "annotation_class_ids": [],
+                    "name": "example",
+                    "include_export_token": False,
+                    "include_authorship": True,
+                },
+                remote_dataset.team,
+            )
+
+    def default_values_have_negative_includes(remote_dataset: RemoteDataset):
+        with patch.object(Client, "create_export", return_value={}) as stub:
+            remote_dataset.export("example")
+            stub.assert_called_once_with(
+                remote_dataset.dataset_id,
+                {
+                    "annotation_class_ids": [],
+                    "name": "example",
+                    "include_export_token": False,
+                    "include_authorship": False,
+                },
+                remote_dataset.team,
+            )
