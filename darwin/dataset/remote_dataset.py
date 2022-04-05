@@ -666,7 +666,9 @@ class RemoteDataset:
             If set, include annotator and reviewer metadata for each annotation.
 
         """
-
+        if annotation_class_ids is None:
+            annotation_class_ids = []
+            
         payload = {
             "annotation_class_ids": annotation_class_ids,
             "name": name,
