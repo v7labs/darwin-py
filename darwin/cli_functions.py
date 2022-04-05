@@ -294,12 +294,14 @@ def export_dataset(
     client: Client = _load_client(offline=False)
     identifier: DatasetIdentifier = DatasetIdentifier.parse(dataset_slug)
     ds: RemoteDataset = client.get_remote_dataset(identifier)
+
     ds.export(
         annotation_class_ids=annotation_class_ids,
         name=name,
         include_url_token=include_url_token,
         include_authorship=include_authorship,
     )
+
     identifier.version = name
     print(f"Dataset {dataset_slug} successfully exported to {identifier}")
     print_new_version_info(client)
