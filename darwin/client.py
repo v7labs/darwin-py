@@ -613,7 +613,7 @@ class Client:
         dataset_id: int
             The id of the dataset.
         granularity: str
-            Granualirity of the report, can be 'day', 'week' or 'month'.
+            Granularity of the report, can be 'day', 'week' or 'month'.
         team_slug: Optional[str]
             Team slug of the team the dataset will belong to. Defaults to None.
 
@@ -710,7 +710,7 @@ class Client:
         team_slug: str
             The slug of the team.
         payload: Dict[str, Any]
-            A filter Dictionary that defines the items to be reseted.
+            A filter Dictionary that defines the items to be reset.
         """
         self._put_raw(f"teams/{team_slug}/datasets/{dataset_slug}/items/reset", payload, team_slug)
 
