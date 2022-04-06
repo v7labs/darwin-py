@@ -165,8 +165,8 @@ class Options(object):
             "split", help="Splits a local dataset following random and stratified split types."
         )
         parser_split.add_argument("dataset", type=str, help="Local dataset name to split.")
-        parser_split.add_argument("val-percentage", type=float, help="Validation percentage.")
-        parser_split.add_argument("test-percentage", type=float, help="Test percentage.")
+        parser_split.add_argument("-v", "--val-percentage", required=True, type=float, help="Validation percentage.")
+        parser_split.add_argument("-t", "--test-percentage", required=True, type=float, help="Test percentage.")
         parser_split.add_argument("-s", "--seed", type=int, required=False, default=0, help="Split seed.")
 
         # File listing
