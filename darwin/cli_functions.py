@@ -324,7 +324,7 @@ def export_dataset(
         Name of the release.
     annotation_class_ids : Optional[List[str]], default: None
         List of the classes to filter.
-    include_authorship : bool
+    include_authorship : bool, default: False
         If ``True`` include annotator and reviewer metadata for each annotation.
     """
     client: Client = _load_client(offline=False)

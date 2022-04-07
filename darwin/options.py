@@ -117,7 +117,7 @@ class Options(object):
         parser_export.add_argument("dataset", type=str, help="Remote dataset name to export.")
         parser_export.add_argument("name", type=str, help="Name with with the version gets tagged.")
         parser_export.add_argument(
-            "annotation_class",
+            "--class-ids",
             type=str,
             nargs="+",
             help=(

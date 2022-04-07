@@ -657,7 +657,7 @@ class RemoteDataset:
         ----------
         name : str
             Name of the release.
-        annotation_class_ids : List[str]
+        annotation_class_ids : Optional[List[str]], default: None
             List of the classes to filter.
         include_url_token : bool, default: False
             Should the image url in the export include a token enabling access without team
