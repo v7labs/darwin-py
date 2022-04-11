@@ -489,6 +489,12 @@ def parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotatio
         main_annotation = dt.make_cuboid(name, annotation["cuboid"])
     elif "skeleton" in annotation:
         main_annotation = dt.make_skeleton(name, annotation["skeleton"]["nodes"])
+    elif "string" in annotation:
+        main_annotation = dt.make_string(name, annotation["string"])
+    elif "graph" in annotation:
+        main_annotation = dt.make_graph(name, annotation["graph"])
+    elif "table" in annotation:
+        main_annotation = dt.make_table(name, annotation["table"])
 
     if not main_annotation:
         print(f"[WARNING] Unsupported annotation type: '{annotation.keys()}'")
@@ -538,6 +544,12 @@ def _parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotati
         main_annotation = dt.make_cuboid(name, annotation["cuboid"])
     elif "skeleton" in annotation:
         main_annotation = dt.make_skeleton(name, annotation["skeleton"]["nodes"])
+    elif "string" in annotation:
+        main_annotation = dt.make_string(name, annotation["string"])
+    elif "graph" in annotation:
+        main_annotation = dt.make_graph(name, annotation["graph"])
+    elif "table" in annotation:
+        main_annotation = dt.make_table(name, annotation["table"])
 
     if not main_annotation:
         print(f"[WARNING] Unsupported annotation type: '{annotation.keys()}'")
