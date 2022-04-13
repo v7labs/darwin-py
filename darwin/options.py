@@ -30,7 +30,7 @@ class Options(object):
         )
 
         parser_convert = subparsers.add_parser("convert", help="Converts darwin json to other annotation formats.")
-        parser_convert.add_argument("format", type=str, help="Annotation import to convert to.")
+        parser_convert.add_argument("format", type=str, help="Annotation format to convert to.")
 
         parser_convert.add_argument("files", type=str, nargs="+", help="Annotation files (or folders) to convert.")
 
