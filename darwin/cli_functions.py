@@ -862,7 +862,7 @@ def delete_files(dataset_slug: str, files: List[str], skip_user_confirmation: bo
     try:
         console = Console(theme=_console_theme(), stderr=True)
         dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
-        items, items_2 = tee(dataset.fetch_remote_files({"filenames": ",".join(files)}))
+        items, items_2 = tee(dataset.fetch_remote_files({"filenames": files}))
         if not skip_user_confirmation and not secure_continue_request():
             console.print("Cancelled.")
             return
