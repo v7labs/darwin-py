@@ -68,7 +68,7 @@ def parse_json(path: Path, data: Dict[str, Any]) -> Iterator[dt.AnnotationFile]:
         image_annotations[image_id].append(parse_annotation(annotation, category_lookup_table))
 
     for image_id in image_annotations.keys():
-        image = image_lookup_table[image_id]
+        image = image_lookup_table[int(image_id)]
         annotations = list(filter(None, image_annotations[image_id]))
         annotation_classes = set([annotation.annotation_class for annotation in annotations])
         remote_path, filename = deconstruct_full_path(image["file_name"])
