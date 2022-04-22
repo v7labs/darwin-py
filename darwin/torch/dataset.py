@@ -1,7 +1,6 @@
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
-import numpy.typing as npt
 from darwin.cli_functions import _error, _load_client
 from darwin.dataset import LocalDataset
 from darwin.dataset.identifier import DatasetIdentifier
@@ -194,7 +193,7 @@ class ClassificationDataset(LocalDataset):
         target: Tensor = self.get_target(index)
         return target["category_id"]
 
-    def measure_weights(self) -> npt.NDArray[np.float64]:
+    def measure_weights(self) -> np.ndarray:
         """
         Computes the class balancing weights (not the frequencies!!) given the train loader.
         Gets the weights proportional to the inverse of their class frequencies.
@@ -202,7 +201,7 @@ class ClassificationDataset(LocalDataset):
 
         Returns
         -------
-        npt.NDArray[np.float64]
+        np.ndarray[float]
             Weight for each class in the train set (one for each class) as a 1D array normalized.
         """
         # Collect all the labels by iterating over the whole dataset
@@ -344,7 +343,7 @@ class InstanceSegmentationDataset(LocalDataset):
 
         return target
 
-    def measure_weights(self) -> npt.NDArray[np.float64]:
+    def measure_weights(self) -> np.ndarray:
         """
         Computes the class balancing weights (not the frequencies!!) given the train loader
         Get the weights proportional to the inverse of their class frequencies.
@@ -352,7 +351,7 @@ class InstanceSegmentationDataset(LocalDataset):
 
         Returns
         -------
-        class_weights : npt.NDArray[np.float64]
+        class_weights : np.ndarray[float]
             Weight for each class in the train set (one for each class) as a 1D array normalized.
         """
         # Collect all the labels by iterating over the whole dataset
@@ -459,7 +458,7 @@ class SemanticSegmentationDataset(LocalDataset):
 
         return target
 
-    def measure_weights(self) -> npt.NDArray[np.float64]:
+    def measure_weights(self) -> np.ndarray:
         """
         Computes the class balancing weights (not the frequencies!!) given the train loader
         Get the weights proportional to the inverse of their class frequencies.
@@ -467,7 +466,7 @@ class SemanticSegmentationDataset(LocalDataset):
 
         Returns
         -------
-        class_weights : npt.NDArray[np.float64]
+        class_weights : np.ndarray[float]
             Weight for each class in the train set (one for each class) as a 1D array normalized.
         """
         # Collect all the labels by iterating over the whole dataset
@@ -583,7 +582,7 @@ class ObjectDetectionDataset(LocalDataset):
 
         return stacked_targets
 
-    def measure_weights(self) -> npt.NDArray[np.float64]:
+    def measure_weights(self) -> np.ndarray:
         """
         Computes the class balancing weights (not the frequencies!!) given the train loader
         Get the weights proportional to the inverse of their class frequencies.
@@ -591,7 +590,7 @@ class ObjectDetectionDataset(LocalDataset):
 
         Returns
         -------
-        class_weights : npt.NDArray[np.float64]
+        class_weights : np.ndarray[float]
             Weight for each class in the train set (one for each class) as a 1D array normalized.
         """
         # Collect all the labels by iterating over the whole dataset
