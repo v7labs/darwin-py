@@ -1,6 +1,7 @@
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
+import numpy.typing as npt
 from darwin.cli_functions import _error, _load_client
 from darwin.dataset import LocalDataset
 from darwin.dataset.identifier import DatasetIdentifier
@@ -105,7 +106,7 @@ class ClassificationDataset(LocalDataset):
         self.is_multi_label = False
         self.check_if_multi_label()
 
-    def __getitem__(self, index: int) -> Tuple[torch.Tensor, torch.Tensor]:
+    def __getitem__(self, index: int) -> Tuple[Tensor, Tensor]:
         """
         See superclass for documentation.
 
@@ -116,7 +117,7 @@ class ClassificationDataset(LocalDataset):
 
         Returns
         -------
-        Tuple[torch.Tensor, torch.Tensor]
+        Tuple[Tensor, Tensor]
             A tuple of tensors, where the first value is the image tensor and the second is the
             target's tensor.
         """
@@ -130,7 +131,7 @@ class ClassificationDataset(LocalDataset):
 
         return img_tensor, target
 
-    def get_target(self, index: int) -> torch.Tensor:
+    def get_target(self, index: int) -> Tensor:
         """
         Returns the classification target.
 
@@ -141,7 +142,7 @@ class ClassificationDataset(LocalDataset):
 
         Returns
         -------
-        torch.Tensor
+        Tensor
             The target's tensor.
         """
 
@@ -151,7 +152,7 @@ class ClassificationDataset(LocalDataset):
 
         assert len(tags) >= 1, f"No tags were found for index={index}"
 
-        target: torch.Tensor = torch.tensor(self.classes.index(tags[0]))
+        target: Tensor = torch.tensor(self.classes.index(tags[0]))
 
         if self.is_multi_label:
             target = torch.zeros(len(self.classes))
@@ -190,10 +191,10 @@ class ClassificationDataset(LocalDataset):
         int
             ``category_id`` of the image.
         """
-        target: torch.Tensor = self.get_target(index)
+        target: Tensor = self.get_target(index)
         return target["category_id"]
 
-    def measure_weights(self) -> np.ndarray:
+    def measure_weights(self) -> npt.NDArray[np.float64]:
         """
         Computes the class balancing weights (not the frequencies!!) given the train loader.
         Gets the weights proportional to the inverse of their class frequencies.
@@ -201,13 +202,13 @@ class ClassificationDataset(LocalDataset):
 
         Returns
         -------
-        ndarray[double]
+        npt.NDArray[np.float64]
             Weight for each class in the train set (one for each class) as a 1D array normalized.
         """
         # Collect all the labels by iterating over the whole dataset
         labels = []
         for i, _filename in enumerate(self.images_path):
-            target = self.get_target(i)
+            target: Tensor = self.get_target(i)
             if self.is_multi_label:
                 # get the indices of the class present
                 target = torch.where(target == 1)[0]
@@ -248,7 +249,7 @@ class InstanceSegmentationDataset(LocalDataset):
 
         self.convert_polygons = ConvertPolygonsToInstanceMasks()
 
-    def __getitem__(self, index: int) -> Tuple[torch.Tensor, Dict[str, Any]]:
+    def __getitem__(self, index: int) -> Tuple[Tensor, Dict[str, Any]]:
         """
         Notes
         -----
@@ -343,7 +344,7 @@ class InstanceSegmentationDataset(LocalDataset):
 
         return target
 
-    def measure_weights(self) -> np.ndarray:
+    def measure_weights(self) -> npt.NDArray[np.float64]:
         """
         Computes the class balancing weights (not the frequencies!!) given the train loader
         Get the weights proportional to the inverse of their class frequencies.
@@ -351,7 +352,7 @@ class InstanceSegmentationDataset(LocalDataset):
 
         Returns
         -------
-        class_weights : ndarray[double]
+        class_weights : npt.NDArray[np.float64]
             Weight for each class in the train set (one for each class) as a 1D array normalized.
         """
         # Collect all the labels by iterating over the whole dataset
@@ -390,7 +391,7 @@ class SemanticSegmentationDataset(LocalDataset):
         self.transform: Optional[Callable] = transform
         self.convert_polygons = ConvertPolygonsToSemanticMask()
 
-    def __getitem__(self, index: int) -> Tuple[torch.Tensor, Dict[str, Any]]:
+    def __getitem__(self, index: int) -> Tuple[Tensor, Dict[str, Any]]:
         """
         See superclass for documentation
 
@@ -458,7 +459,7 @@ class SemanticSegmentationDataset(LocalDataset):
 
         return target
 
-    def measure_weights(self) -> np.ndarray:
+    def measure_weights(self) -> npt.NDArray[np.float64]:
         """
         Computes the class balancing weights (not the frequencies!!) given the train loader
         Get the weights proportional to the inverse of their class frequencies.
@@ -466,7 +467,7 @@ class SemanticSegmentationDataset(LocalDataset):
 
         Returns
         -------
-        class_weights : ndarray[double]
+        class_weights : npt.NDArray[np.float64]
             Weight for each class in the train set (one for each class) as a 1D array normalized.
         """
         # Collect all the labels by iterating over the whole dataset
@@ -582,7 +583,7 @@ class ObjectDetectionDataset(LocalDataset):
 
         return stacked_targets
 
-    def measure_weights(self) -> np.ndarray:
+    def measure_weights(self) -> npt.NDArray[np.float64]:
         """
         Computes the class balancing weights (not the frequencies!!) given the train loader
         Get the weights proportional to the inverse of their class frequencies.
@@ -590,7 +591,7 @@ class ObjectDetectionDataset(LocalDataset):
 
         Returns
         -------
-        class_weights : ndarray[double]
+        class_weights : npt.NDArray[np.float64]
             Weight for each class in the train set (one for each class) as a 1D array normalized.
         """
         # Collect all the labels by iterating over the whole dataset

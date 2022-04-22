@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import List, Optional, Tuple
 
 import numpy as np
+import numpy.typing as npt
 from darwin.cli_functions import _error, _load_client
 from darwin.dataset.identifier import DatasetIdentifier
 from darwin.datatypes import Segment
@@ -34,7 +35,7 @@ def convert_segmentation_to_mask(segmentations: List[Segment], height: int, widt
     return torch.stack(masks)
 
 
-def polygon_area(x: np.ndarray, y: np.ndarray) -> float:
+def polygon_area(x: npt.NDArray[np.float64], y: npt.NDArray[np.float64]) -> float:
     """
     Returns the area of the input polygon, represented with two numpy arrays
     for x and y coordinates.
