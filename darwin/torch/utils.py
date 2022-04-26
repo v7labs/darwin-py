@@ -1,7 +1,7 @@
 import os
 import sys
 from pathlib import Path
-from typing import Any, Iterable, List, Optional, Tuple
+from typing import Iterable, List, Optional, Tuple
 
 import numpy as np
 from darwin.cli_functions import _error, _load_client
@@ -19,7 +19,7 @@ def convert_segmentation_to_mask(segmentations: List[Segment], height: int, widt
     Parameters
     ----------
     segmentations : List[Segment]
-        List of float values -> ``[x1, y1, x2, y2, ..., xn, yn]``.
+        List of float values -> ``[[x11, y11, x12, y12], ..., [xn1, yn1, xn2, yn2]]``.
     height : int
         Image's height.
     width : int
@@ -59,19 +59,19 @@ def polygon_area(x: np.ndarray, y: np.ndarray) -> float:
     return 0.5 * np.abs(np.dot(x, np.roll(y, 1)) - np.dot(y, np.roll(x, 1)))
 
 
-def collate_fn(batch: Iterable[Any]) -> Tuple:
+def collate_fn(batch: Iterable[Tuple]) -> Tuple:
     """
-    Aggregates the given iterable of items and aggregates its items into a ``Tuple``.
+    Aggregates the given ``Iterable`` (usually a ``List``) of tuples into a ``Tuple`` of Lists.
 
     Parameters
     ----------
-    batch : Iterable[Any]
+    batch : Iterable[Tuple]
         Batch to collate.
 
     Returns
     -------
     Tuple
-        The batch items aggregated into a ``Tuple``.
+        The ``Iterable`` of Tupled aggregated into a ``Tuple``.
     """
     return tuple(zip(*batch))
 
