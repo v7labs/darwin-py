@@ -1,7 +1,7 @@
 import os
 import sys
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Iterable, List, Optional, Tuple
 
 import numpy as np
 from darwin.cli_functions import _error, _load_client
@@ -16,13 +16,19 @@ def convert_segmentation_to_mask(segmentations: List[Segment], height: int, widt
     """
     Converts a polygon represented as a sequence of coordinates into a mask.
 
-    Input:
-        segmentations: list of float values -> [x1, y1, x2, y2, ..., xn, yn]
-        height: image's height
-        width: image's width
+    Parameters
+    ----------
+    segmentations : List[Segment]
+        List of float values -> ``[[x11, y11, x12, y12], ..., [xn1, yn1, xn2, yn2]]``.
+    height : int
+        Image's height.
+    width : int
+        Image's width.
 
-    Output:
-        torch.tensor
+    Returns
+    -------
+    torch.tensor
+        A ``Tensor`` representing a segmentation mask.
     """
     if not segmentations:
         return torch.zeros((0, height, width), dtype=torch.uint8)
@@ -36,13 +42,37 @@ def convert_segmentation_to_mask(segmentations: List[Segment], height: int, widt
 
 def polygon_area(x: np.ndarray, y: np.ndarray) -> float:
     """
-    Returns the area of the input polygon, represented with two numpy arrays
-    for x and y coordinates.
+    Returns the area of the input polygon, represented by two numpy arrays for x and y coordinates.
+
+    Parameters
+    ----------
+    x : np.ndarray
+        Numpy array for x coordinates.
+    y : np.ndarray
+        Numpy array for y coordinates.
+
+    Returns
+    -------
+    float
+        The area of the polygon.
     """
     return 0.5 * np.abs(np.dot(x, np.roll(y, 1)) - np.dot(y, np.roll(x, 1)))
 
 
-def collate_fn(batch) -> Tuple:
+def collate_fn(batch: Iterable[Tuple]) -> Tuple:
+    """
+    Aggregates the given ``Iterable`` (usually a ``List``) of tuples into a ``Tuple`` of Lists.
+
+    Parameters
+    ----------
+    batch : Iterable[Tuple]
+        Batch to collate.
+
+    Returns
+    -------
+    Tuple
+        The ``Iterable`` of Tupled aggregated into a ``Tuple``.
+    """
     return tuple(zip(*batch))
 
 
@@ -54,22 +84,28 @@ def detectron2_register_dataset(
     split_type: Optional[str] = "stratified",
     evaluator_type: Optional[str] = None,
 ) -> str:
-    """Registers a local Darwin-formatted dataset in Detectron2
+    """
+    Registers a local Darwin-formatted dataset in Detectron2.
 
     Parameters
     ----------
-    dataset: str
-        Dataset slug
-    release_name: str
-        Version of the dataset
-    partition: str
-        Selects one of the partitions [train, val, test]
-    split
-        Selects the split that defines the percetages used (use 'default' to select the default split)
-    split_type: str
-        Heuristic used to do the split [random, stratified]
-    evaluator_type: str
-        Evaluator to be used in the val and test sets
+    dataset : str
+        Dataset slug.
+    release_name : Optional[str], default: "latest"
+        Version of the dataset.
+    partition : Optional[str], default: None
+        Selects one of the partitions ``["train", "val", "test"]``.
+    split : Optional[str], default: "default"
+        Selects the split that defines the percentages used.
+    split_type : Optional[str], default: "stratified"
+        Heuristic used to do the split ``["random", "stratified"]``.
+    evaluator_type : Optional[str], default: None
+        Evaluator to be used in the val and test sets.
+
+    Returns
+    -------
+    str
+        The name of the registered dataset in the format of ``{dataset-name}_{partition}``.
     """
     try:
         from detectron2.data import DatasetCatalog, MetadataCatalog
