@@ -23,9 +23,10 @@ from darwin.importer.formats.labelbox_schemas import labelbox_export
 def parse_path(path: Path) -> Optional[List[AnnotationFile]]:
     """
     Parses the given LabelBox file and maybe returns the corresponding annotations.
-    The file must have a structure simillar to the following:
+    The file must have a structure similar to the following:
 
     .. code-block:: javascript
+
         [
             {
                 "Label":{
@@ -58,7 +59,7 @@ def parse_path(path: Path) -> Optional[List[AnnotationFile]]:
         - polyline ``Image``: https://docs.labelbox.com/docs/polyline-json
 
     We also support conversion from question/answer to Annotation Tags for the following:
-    
+
         - Radio Buttons
         - Checklists
         - Free Text
