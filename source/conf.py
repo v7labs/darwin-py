@@ -43,6 +43,10 @@ templates_path: List[str] = ["_templates"]
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns: List[str] = []
 
+autodoc_default_options = {
+    "member-order": "bysource"  # See: https://github.com/sphinx-doc/sphinx/issues/9853#issuecomment-970490628
+}
+
 
 # -- Options for HTML output -------------------------------------------------
 
