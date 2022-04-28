@@ -39,7 +39,7 @@ jobs:
         run: |
           rm -rf docs/* 
           sphinx-apidoc -f -o source darwin   
-          sphinx-build -b html source/ docs/
+          sphinx-build -b html source/ docs/ -W
       - name: Setup access to AWS
         uses: aws-actions/configure-aws-credentials@v1
         with:
