@@ -23,25 +23,21 @@ ErrorHandler = Callable[[int, str], None]
 class Team:
     """
     Definition of a V7 team.
-
-    Attributes
-    ----------
-    default: bool
-        If this is the default Team or not.
-    slug: str
-        This team's slug.
-    datasets_dir: str
-        The path to the directory of all datasets this teams contains.
-    api_key: str
-        The API key used to authenticate for this Team.
-    selected: bool, default: False
-        If this is the currently active Team. Defaults to ``False``.
     """
 
+    #: If this is the default Team or not.
     default: bool
+
+    #: This team's slug.
     slug: str
+
+    #: The path to the directory of all datasets this teams contains.
     datasets_dir: str
+
+    #: The API key used to authenticate for this Team.
     api_key: str
+
+    #: If this is the currently active Team. Defaults to ``False``.
     selected: bool = False
 
 
@@ -49,17 +45,13 @@ class Team:
 class Feature:
     """
     Structured payload of a Feature record on V7 Darwin.
-
-    Attributes
-    ----------
-    name: str
-        The name of this ``Feature``.
-    enabled: bool
-        Whether or not this ``Feature`` is enabled. Disabled ``Feature``s do nothing, as if they
-        didn't exist.
     """
 
+    #: The name of this ``Feature``.
     name: str
+
+    #: Whether or not this ``Feature`` is enabled
+    #: Disabled ``Feature``\s do nothing, as if they didn't exist.
     enabled: bool
 
 
@@ -67,21 +59,17 @@ class Feature:
 class AnnotationClass:
     """
     Represents an AnnocationClass from an Annotation.
-
-    Attributes
-    ----------
-    name: str
-        The name of this ``AnnotationClass``.
-    annotation_type: str
-        The type of this ``AnnotationClass``.
-    annotation_internal_type: Optional[str], default: None
-        The V7 internal type of this ``AnnotationClass``. This is mostly used to convert from types
-        that are known in the outside world by a given name, but then are known inside V7's lingo
-        by another.
     """
 
+    #:  The name of this ``AnnotationClass``.
     name: str
+
+    #: The type of this ``AnnotationClass``.
     annotation_type: str
+
+    #: The V7 internal type of this ``AnnotationClass``.
+    #: This is mostly used to convert from types that are known in the outside world by a given
+    #: name, but then are known inside V7's lingo by another.
     annotation_internal_type: Optional[str] = None
 
 
@@ -89,17 +77,13 @@ class AnnotationClass:
 class SubAnnotation:
     """
     Represents a subannotation that belongs to an AnnotationClass.
-
-    Attributes
-    ----------
-    annotation_type: str
-        The type of this ``SubAnnotation``.
-    data: Any
-        Any external data, in any format, relevant to this ``SubAnnotation``. Used for compatibility
-        purposes with external formats.
     """
 
+    #: The type of this ``SubAnnotation``.
     annotation_type: str
+
+    #: Any external data, in any format, relevant to this ``SubAnnotation``.
+    #: Used for compatibility purposes with external formats.
     data: Any
 
 
@@ -107,20 +91,16 @@ class SubAnnotation:
 class Annotation:
     """
     Represents an Annotation from an Image/Video.
-
-    Attributes
-    ----------
-    annotation_class: AnnotationClass
-        The ``AnnotationClass`` from this ``Annotation``.
-    data: Any
-        Any external data, in any format, relevant to this ``Annotation``. Used for compatibility
-        purposes with external formats.
-    subs: List[SubAnnotation]
-        List of ``SubAnnotations`` belonging to this ``Annotation``.
     """
 
+    #: The ``AnnotationClass`` from this ``Annotation``.
     annotation_class: AnnotationClass
+
+    #: Any external data, in any format, relevant to this ``Annotation``.
+    #: Used for compatibility purposes with external formats.
     data: Any
+
+    #: List of ``SubAnnotations`` belonging to this ``Annotation``.
     subs: List[SubAnnotation] = field(default_factory=list)
 
     def get_sub(self, annotation_type: str) -> Optional[SubAnnotation]:
@@ -147,26 +127,22 @@ class Annotation:
 class VideoAnnotation:
     """
     Represents an Annotation that belongs to a Video.
-
-    Attributes
-    ----------
-    annotation_class: AnnotationClass
-        The ``AnnotationClass`` from this ``VideoAnnotation``.
-    frames: Dict[int, Any]
-        A dictionary of frames for this ``VideoAnnotation``.
-    keyframes: Dict[int, bool]
-        The keyframes for this ``VideoAnnotation``. Keyframes are a selection of frames from the
-        ``frames`` attribute.
-    segments: List[Segment]
-        A list of ``Segment``'s.
-    interpolated: bool
-        Whether this ``VideoAnnotation`` is interpolated or not.
     """
 
+    #: The ``AnnotationClass`` from this ``VideoAnnotation``.
     annotation_class: AnnotationClass
+
+    #: A dictionary of frames for this ``VideoAnnotation``.
     frames: Dict[int, Any]
+
+    #: The keyframes for this ``VideoAnnotation``.
+    #: Keyframes are a selection of frames from the ``frames`` attribute.
     keyframes: Dict[int, bool]
+
+    #: A list of ``Segment``\'s.
     segments: List[Segment]
+
+    #: Whether this ``VideoAnnotation`` is interpolated or not.
     interpolated: bool
 
     def get_data(
@@ -177,6 +153,7 @@ class VideoAnnotation:
         ``VideoAnnotation`` in a dictionary with the format:
 
         .. code-block:: python
+
             {
                 "frames": {
                     # Post-Processed Frames here
@@ -226,48 +203,44 @@ class AnnotationFile:
     """
     Represents a file containing annotations. Mostly useful when trying to import or export
     annotations to/from darwin V7.
-
-    Attributes
-    ----------
-    path : Path
-        Path to the file.
-    filename : str
-        Name of the file containing the annotations.
-    annotation_classes : Set[AnnotationClass]
-        ``Set`` of all ``AnnotationClass``es this file contains. Used as a way to know in advance
-        which ``AnnotationClass``es this file has without having to go through the list of
-        annotations.
-    annotations : Union[List[VideoAnnotation], List[Annotation]]
-        List of ``VideoAnnotation``s or ``Annotation``s.
-    is_video : bool, default: False
-        Whether the annotations in the ``annotations`` attribute are ``VideoAnnotation`` or not.
-    image_width : Optional[int], default: None
-        Width of the image in this annotation.
-    image_height : Optional[int], default: None
-        Height of the image in this annotation.
-    image_url : Optional[str], default: None
-        URL of the image in this annotation.
-    workview_url : Optional[str], default: None
-        URL of the workview for this annotation.
-    seq : Optional[int], default: None
-        Sequence for this annotation.
-    frame_urls : Optional[List[str]], default:  None
-        URLs for the frames this ``AnnotationFile`` has.
-    remote_path : Optional[str], default:  None
-        Remote path for this ``Annotation``'s file in V7's darwin.
     """
 
+    #: Path to the file.
     path: Path
+
+    #: Name of the file containing the annotations.
     filename: str
+
+    #: ``Set`` of all ``AnnotationClass``\es this file contains.
+    #: Used as a way to know in advance which ``AnnotationClass``\es this file has without having to
+    #: go through the list of annotations.
     annotation_classes: Set[AnnotationClass]
+
+    #: List of ``VideoAnnotation``\s or ``Annotation``\s.
     annotations: Union[List[VideoAnnotation], List[Annotation]]
+
+    #: Whether the annotations in the ``annotations`` attribute are ``VideoAnnotation`` or not.
     is_video: bool = False
+
+    #: Width of the image in this annotation.
     image_width: Optional[int] = None
+
+    #: Height of the image in this annotation.
     image_height: Optional[int] = None
+
+    #: URL of the image in this annotation.
     image_url: Optional[str] = None
+
+    #: URL of the workview for this annotation.
     workview_url: Optional[str] = None
+
+    #: Sequence for this annotation.
     seq: Optional[int] = None
+
+    #: URLs for the frames this ``AnnotationFile`` has.
     frame_urls: Optional[List[str]] = None
+
+    #: Remote path for this ``Annotation``\'s file in V7's darwin.
     remote_path: Optional[str] = None
 
     @property
@@ -353,6 +326,7 @@ def make_polygon(
         A list of points that comprises the polygon. The list should have a format similar to:
 
         .. code-block:: python
+
             [
                 {"x": 1, "y": 0},
                 {"x": 2, "y": 1}
@@ -395,6 +369,7 @@ def make_complex_polygon(
         a format similar to:
 
         .. code-block:: python
+
             [
                 [
                     {"x": 1, "y": 0},
@@ -459,6 +434,7 @@ def make_line(class_name: str, path: List[Point], subs: Optional[List[SubAnnotat
         A list of points that comprises the polygon. The list should have a format similar to:
 
         .. code-block:: python
+
             [
                 {"x": 1, "y": 0},
                 {"x": 2, "y": 1}
@@ -484,9 +460,10 @@ def make_skeleton(class_name: str, nodes: List[Node], subs: Optional[List[SubAnn
     class_name : str
         The name of the class for this ``Annotation``.
     nodes : List[Node]
-        List of ``Node``s that comprise the skeleton. Each Node will have a format similar to:
+        List of ``Node``\\s that comprise the skeleton. Each Node will have a format similar to:
 
         .. code-block:: python
+
             {
                 "name": "1",
                 "occluded": false,
@@ -495,7 +472,7 @@ def make_skeleton(class_name: str, nodes: List[Node], subs: Optional[List[SubAnn
             }
 
     subs : Optional[List[SubAnnotation]], default: None
-        List of ``SubAnnotation``s for this ``Annotation``.
+        List of ``SubAnnotation``\\s for this ``Annotation``.
 
     Returns
     -------
@@ -518,6 +495,7 @@ def make_ellipse(class_name: str, parameters: EllipseData, subs: Optional[List[S
         to:
 
         .. code-block:: javascript
+
             {
                 "angle": 0.57,
                 "center": {
@@ -534,8 +512,8 @@ def make_ellipse(class_name: str, parameters: EllipseData, subs: Optional[List[S
 
         - ``angle: float`` is the orientation angle of the ellipse.
         - ``center: Point`` is the center point of the ellipse.
-        - ``radius: Point`` is the width and height of the ellipse, where ``x`` represents the width
-        and ``y`` represents height.
+        - ``radius: Point`` is the width and height of the ellipse, where ``x`` represents the width and ``y`` represents height.
+
     subs : Optional[List[SubAnnotation]], default: None
         List of ``SubAnnotation``s for this ``Annotation``.
 
@@ -556,10 +534,11 @@ def make_cuboid(class_name: str, cuboid: CuboidData, subs: Optional[List[SubAnno
     class_name : str
         The name of the class for this ``Annotation``.
     parameters : CuboidData
-        The data needed to build a .Cuboid This data must be a dictionary with a format similar
+        The data needed to build a ``Cuboid``. This data must be a dictionary with a format similar
         to:
 
         .. code-block:: javascript
+
             {
                 "back": {"h": 381.25, "w": 1101.81, "x": 1826.19, "y": 1841.44},
                 "front": {"h": 575.69, "w": 1281.0, "x": 1742.31, "y": 1727.06}
@@ -567,12 +546,11 @@ def make_cuboid(class_name: str, cuboid: CuboidData, subs: Optional[List[SubAnno
 
         Where:
 
-        - ``back: Dict[str, float]`` is a dictionary containing the ``x`` and ``y`` of the top
-        left corner Point, together with the width ``w`` and height ``h`` to form the back box.
-        - ``front: Dict[str, float]`` is a dictionary containing the ``x`` and ``y`` of the top
-        left corner Point, together with the width ``w`` and height ``h`` to form the front box.
+        - ``back: Dict[str, float]`` is a dictionary containing the ``x`` and ``y`` of the top left corner Point, together with the width ``w`` and height ``h`` to form the back box.
+        - ``front: Dict[str, float]`` is a dictionary containing the ``x`` and ``y`` of the top left corner Point, together with the width ``w`` and height ``h`` to form the front box.
+
     subs : Optional[List[SubAnnotation]], default: None
-        List of ``SubAnnotation``s for this ``Annotation``. Defaults to ``None``.
+        List of ``SubAnnotation``\\s for this ``Annotation``.
 
     Returns
     -------

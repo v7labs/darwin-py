@@ -5,9 +5,13 @@ import deprecation
 import darwin.datatypes as dt
 from darwin.version import __version__
 
-DEPRECATION_MESSAGE = """This function is going to be turned into private. This means that breaking 
+DEPRECATION_MESSAGE = """
+
+This function is going to be turned into private. This means that breaking 
 changes in its interface and implementation are to be expected. We encourage using ``build_image_annotation`` 
-instead of calling this low-level function directly."""
+instead of calling this low-level function directly.
+
+"""
 
 
 def build_image_annotation(annotation_file: dt.AnnotationFile) -> Dict[str, Any]:
@@ -25,6 +29,7 @@ def build_image_annotation(annotation_file: dt.AnnotationFile) -> Dict[str, Any]
         A dictionary with the annotation from the given file. Has the following structure:
 
         .. code-block:: python
+
             {
                 "annotations": [
                     {

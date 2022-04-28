@@ -598,7 +598,7 @@ def split_video_annotation(annotation: dt.AnnotationFile) -> List[dt.AnnotationF
     Returns
     -------
     List[dt.AnnotationFile]
-        A list with the split video ``AnnotationFile``s.
+        A list with the split video ``AnnotationFile``\\s.
 
     Raises
     ------
@@ -674,6 +674,7 @@ def convert_polygons_to_sequences(
         Maximum width for a polygon coordinate.
     rounding : bool, default: True
         Whether or not to round values when creating sequences.
+
     Returns
     -------
     sequences: List[ndarray[float]]
