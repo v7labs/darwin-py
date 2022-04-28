@@ -163,7 +163,7 @@ class VideoAnnotation:
     segments: List[Segment]
         A list of ``Segment``'s.
     interpolated: bool
-        Whehter this ``VideoAnnotation`` is interpolated or not.
+        Whether this ``VideoAnnotation`` is interpolated or not.
     """
 
     annotation_class: AnnotationClass
@@ -232,33 +232,32 @@ class AnnotationFile:
 
     Attributes
     ----------
-    path: Path
+    path : Path
         Path to the file.
-    filename: str
+    filename : str
         Name of the file containing the annotations.
-    annotation_classes: Set[AnnotationClass]
+    annotation_classes : Set[AnnotationClass]
         ``Set`` of all ``AnnotationClass``es this file contains. Used as a way to know in advance
         which ``AnnotationClass``es this file has without having to go through the list of
         annotations.
-    annotations: Union[List[VideoAnnotation], List[Annotation]]
+    annotations : Union[List[VideoAnnotation], List[Annotation]]
         List of ``VideoAnnotation``s or ``Annotation``s.
-    is_video: bool, default: False
+    is_video : bool, default: False
         Whether the annotations in the ``annotations`` attribute are ``VideoAnnotation`` or not.
-        Defaults to ``False``.
-    image_width: Optional[int], default:  None
-        Width of the image in this annotation. Defaults to ``None``.
-    image_height: Optional[int], default:  None
-        Height of the image in this annotation. Defaults to ``None``.
-    image_url: Optional[str], default:  None
-        URL of the image in this annotation. Defaults to ``None``.
-    workview_url: Optional[str], default:  None
-        URL of the workview for this annotation. Defaults to ``None``.
-    seq: Optional[int], default:  None
-        Sequence for this annotation. Defaults to ``None``.
-    frame_urls: Optional[List[str]], default:  None
-        URLs for the frames this ``AnnotationFile`` has. Defautls to ``None``.
-    remote_path: Optional[str], default:  None
-        Remote path for this Annoataion file in V7's darwin. Defaults to ``None``.
+    image_width : Optional[int], default: None
+        Width of the image in this annotation.
+    image_height : Optional[int], default: None
+        Height of the image in this annotation.
+    image_url : Optional[str], default: None
+        URL of the image in this annotation.
+    workview_url : Optional[str], default: None
+        URL of the workview for this annotation.
+    seq : Optional[int], default: None
+        Sequence for this annotation.
+    frame_urls : Optional[List[str]], default:  None
+        URLs for the frames this ``AnnotationFile`` has.
+    remote_path : Optional[str], default:  None
+        Remote path for this ``Annotation``'s file in V7's darwin.
     """
 
     path: Path
@@ -296,18 +295,18 @@ def make_bounding_box(
 
     Parameters
     ----------
-    class_name: str
+    class_name : str
         The name of the class for this ``Annotation``.
-    x: float
+    x : float
         The top left ``x`` value where the bounding box will start.
-    y: float
+    y : float
         The top left ``y`` value where the bounding box will start.
-    w: float
+    w : float
         The width of the bounding box.
-    h: float
+    h : float
         The height of the bounding box.
-    subs: Optional[List[SubAnnotation]], default: None
-        List of ``SubAnnotation``s for this ``Annotation``. Defaults to ``None``.
+    subs : Optional[List[SubAnnotation]], default: None
+        List of ``SubAnnotation``s for this ``Annotation``.
 
     Returns
     -------
@@ -327,10 +326,10 @@ def make_tag(class_name: str, subs: Optional[List[SubAnnotation]] = None) -> Ann
 
     Parameters
     ----------
-    class_name: str
+    class_name : str
         The name of the class for this ``Annotation``.
-    subs: Optional[List[SubAnnotation]], default: None
-        List of ``SubAnnotation``s for this ``Annotation``. Defaults to ``None``.
+    subs : Optional[List[SubAnnotation]], default: None
+        List of ``SubAnnotation``s for this ``Annotation``.
 
     Returns
     -------
@@ -351,10 +350,10 @@ def make_polygon(
 
     Parameters
     ----------
-    class_name: str
+    class_name : str
         The name of the class for this ``Annotation``.
-    point_path: List[Point]
-        A list of points that comprises the polygon. The list should have a format simillar to:
+    point_path : List[Point]
+        A list of points that comprises the polygon. The list should have a format similar to:
 
         .. code-block:: python
             [
@@ -362,10 +361,10 @@ def make_polygon(
                 {"x": 2, "y": 1}
             ]
 
-    bounding_box: Optional[Dict], default: None
-        The bounding box that encompasses the polyong. Defaults to ``None``.
-    subs: Optional[List[SubAnnotation]], default: None
-        List of ``SubAnnotation``s for this ``Annotation``. Defaults to ``None``.
+    bounding_box : Optional[Dict], default: None
+        The bounding box that encompasses the polyong.
+    subs : Optional[List[SubAnnotation]], default: None
+        List of ``SubAnnotation``s for this ``Annotation``.
 
     Returns
     -------
@@ -386,7 +385,7 @@ def make_complex_polygon(
     subs: Optional[List[SubAnnotation]] = None,
 ) -> Annotation:
     """
-    Creates and returns a conplex polygon annotation. Complex polygons are those who have holes
+    Creates and returns a complex polygon annotation. Complex polygons are those who have holes
     and/or disform shapes.
 
     Parameters
@@ -396,9 +395,10 @@ def make_complex_polygon(
     point_paths: List[List[Point]]
         A list of lists points that comprises the complex polygon. This is needed as a complex
         polygon can be effectively seen as a sum of multiple simple polygons. The list should have
-        a format simillar to:
+        a format similar to:
 
         .. code-block:: python
+
             [
                 [
                     {"x": 1, "y": 0},
@@ -411,10 +411,10 @@ def make_complex_polygon(
                 # ... and so on ...
             ]
 
-    bounding_box: Optional[Dict], default: None
-        The bounding box that encompasses the polyong. Defaults to ``None``.
-    subs: Optional[List[SubAnnotation]], default: None
-        List of ``SubAnnotation``s for this ``Annotation``. Defaults to ``None``.
+    bounding_box : Optional[Dict], default: None
+        The bounding box that encompasses the polyong.
+    subs : Optional[List[SubAnnotation]], default: None
+        List of ``SubAnnotation``s for this ``Annotation``.
 
     Returns
     -------
@@ -434,14 +434,14 @@ def make_keypoint(class_name: str, x: float, y: float, subs: Optional[List[SubAn
 
     Parameters
     ----------
-    class_name: str
+    class_name : str
         The name of the class for this ``Annotation``.
-    x: float
+    x : float
         The ``x`` value of the point.
-    y: float
+    y : float
         The ``y`` value of the point.
-    subs: Optional[List[SubAnnotation]], default: None
-        List of ``SubAnnotation``s for this ``Annotation``. Defaults to ``None``.
+    subs : Optional[List[SubAnnotation]], default: None
+        List of ``SubAnnotation``\\s for this ``Annotation``.
 
     Returns
     -------
@@ -457,19 +457,20 @@ def make_line(class_name: str, path: List[Point], subs: Optional[List[SubAnnotat
 
     Parameters
     ----------
-    class_name: str
+    class_name : str
         The name of the class for this ``Annotation``.
-    point_path: List[Point]
-        A list of points that comprises the polygon. The list should have a format simillar to:
+    point_path : List[Point]
+        A list of points that comprises the polygon. The list should have a format similar to:
 
         .. code-block:: python
+
             [
                 {"x": 1, "y": 0},
                 {"x": 2, "y": 1}
             ]
 
-    subs: Optional[List[SubAnnotation]], default: None
-        List of ``SubAnnotation``s for this ``Annotation``. Defaults to ``None``.
+    subs : Optional[List[SubAnnotation]], default: None
+        List of ``SubAnnotation``\\s for this ``Annotation``.
 
     Returns
     -------
@@ -485,12 +486,13 @@ def make_skeleton(class_name: str, nodes: List[Node], subs: Optional[List[SubAnn
 
     Parameters
     ----------
-    class_name: str
+    class_name : str
         The name of the class for this ``Annotation``.
-    nodes: List[Node]
-        List of ``Node``s that comprise the skeleton. Each Node will have a format simillar to:
+    nodes : List[Node]
+        List of ``Node``\\s that comprise the skeleton. Each Node will have a format similar to:
 
         .. code-block:: python
+
             {
                 "name": "1",
                 "occluded": false,
@@ -498,8 +500,8 @@ def make_skeleton(class_name: str, nodes: List[Node], subs: Optional[List[SubAnn
                 "y": 939.81
             }
 
-    subs: Optional[List[SubAnnotation]], default: None
-        List of ``SubAnnotation``s for this ``Annotation``. Defaults to ``None``.
+    subs : Optional[List[SubAnnotation]], default: None
+        List of ``SubAnnotation``\\s for this ``Annotation``.
 
     Returns
     -------
@@ -515,13 +517,14 @@ def make_ellipse(class_name: str, parameters: EllipseData, subs: Optional[List[S
 
     Parameters
     ----------
-    class_name: str
+    class_name : str
         The name of the class for this ``Annotation``.
-    parameters: EllipseData
-        The data needed to build an Ellipse. This data must be a dictionary with a format simillar
+    parameters : EllipseData
+        The data needed to build an Ellipse. This data must be a dictionary with a format similar
         to:
 
         .. code-block:: javascript
+
             {
                 "angle": 0.57,
                 "center": {
@@ -538,10 +541,10 @@ def make_ellipse(class_name: str, parameters: EllipseData, subs: Optional[List[S
 
         - ``angle: float`` is the orientation angle of the ellipse.
         - ``center: Point`` is the center point of the ellipse.
-        - ``radius: Point`` is the width and height of the elipse, where ``x`` represents the width
-        and ``y`` represents height.
-    subs: Optional[List[SubAnnotation]], default: None
-        List of ``SubAnnotation``s for this ``Annotation``. Defaults to ``None``.
+        - ``radius: Point`` is the width and height of the ellipse, where ``x`` represents the width and ``y`` represents height.
+
+    subs : Optional[List[SubAnnotation]], default: None
+        List of ``SubAnnotation``\\s for this ``Annotation``.
 
     Returns
     -------
@@ -569,13 +572,14 @@ def make_cuboid(class_name: str, cuboid: CuboidData, subs: Optional[List[SubAnno
 
     Parameters
     ----------
-    class_name: str
+    class_name : str
         The name of the class for this ``Annotation``.
-    parameters: CuboidData
-        The data needed to build a .Cuboid This data must be a dictionary with a format simillar
+    parameters : CuboidData
+        The data needed to build a .Cuboid This data must be a dictionary with a format similar
         to:
 
         .. code-block:: javascript
+
             {
                 "back": {"h": 381.25, "w": 1101.81, "x": 1826.19, "y": 1841.44},
                 "front": {"h": 575.69, "w": 1281.0, "x": 1742.31, "y": 1727.06}
@@ -583,12 +587,11 @@ def make_cuboid(class_name: str, cuboid: CuboidData, subs: Optional[List[SubAnno
 
         Where:
 
-        - ``back: Dict[str, float]`` is a dictionary containing the ``x`` and ``y`` of the top
-        left corner Point, together with the width ``w`` and height ``h`` to form the back box.
-        - ``front: Dict[str, float]`` is a dictionary containing the ``x`` and ``y`` of the top
-        left corner Point, together with the width ``w`` and height ``h`` to form the front box.
-    subs: Optional[List[SubAnnotation]], default: None
-        List of ``SubAnnotation``s for this ``Annotation``. Defaults to ``None``.
+        - ``back: Dict[str, float]`` is a dictionary containing the ``x`` and ``y`` of the top left corner Point, together with the width ``w`` and height ``h`` to form the back box.
+        - ``front: Dict[str, float]`` is a dictionary containing the ``x`` and ``y`` of the top left corner Point, together with the width ``w`` and height ``h`` to form the front box.
+
+    subs : Optional[List[SubAnnotation]], default: None
+        List of ``SubAnnotation``\\s for this ``Annotation``. Defaults to ``None``.
 
     Returns
     -------
@@ -604,7 +607,7 @@ def make_instance_id(value: int) -> SubAnnotation:
 
     Parameters
     ----------
-    value: int
+    value : int
         The value of this instance's id.
 
 
@@ -622,7 +625,7 @@ def make_attributes(attributes: List[str]) -> SubAnnotation:
 
     Parameters
     ----------
-    value: List[str]
+    value : List[str]
         A list of attributes. Example: ``["orange", "big"]``.
 
     Returns
@@ -639,7 +642,7 @@ def make_text(text: str) -> SubAnnotation:
 
     Parameters
     ----------
-    text: str
+    text : str
         The text for the sub-annotation.
 
     Returns
@@ -659,9 +662,9 @@ def make_keyframe(annotation: Annotation, idx: int) -> KeyFrame:
 
     Parameters
     ----------
-    annotation: Annotation
+    annotation : Annotation
         The annotation for the keyframe.
-    idx: int
+    idx : int
         The id of the keyframe.
 
     Returns
@@ -680,13 +683,13 @@ def make_video_annotation(
 
     Parameters
     ----------
-    frames: Dict[int, Any]
+    frames : Dict[int, Any]
         The frames for the video. All frames must have the same ``annotation_class.name`` value.
-    keyframes: Dict[int, bool]
+    keyframes : Dict[int, bool]
         Indicates which frames are keyframes.
-    segments: List[Segment]
+    segments : List[Segment]
         The list of segments for the video.
-    interpolated: bool
+    interpolated : bool
         If this video annotation is interpolated or not.
 
     Returns
@@ -697,7 +700,7 @@ def make_video_annotation(
     Raises
     ------
     ValueError
-        If some of the frames have different annotaion class names.
+        If some of the frames have different annotation class names.
     """
     first_annotation: Annotation = list(frames.values())[0]
     if not all(frame.annotation_class.name == first_annotation.annotation_class.name for frame in frames.values()):

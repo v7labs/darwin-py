@@ -89,7 +89,7 @@ class ClassificationDataset(LocalDataset):
 
     Parameters
     ----------
-    transform: Optional[Union[Callable, List]], default: None
+    transform: Optional[Union[Callable, List[Callable]]], default: None
         torchvision function or list to set the ``transform`` attribute. If it is a list, it will
         be composed via torchvision.
     """
@@ -105,7 +105,7 @@ class ClassificationDataset(LocalDataset):
         self.is_multi_label = False
         self.check_if_multi_label()
 
-    def __getitem__(self, index: int) -> Tuple[torch.Tensor, torch.Tensor]:
+    def __getitem__(self, index: int) -> Tuple[Tensor, Tensor]:
         """
         See superclass for documentation.
 
@@ -116,7 +116,7 @@ class ClassificationDataset(LocalDataset):
 
         Returns
         -------
-        Tuple[torch.Tensor, torch.Tensor]
+        Tuple[Tensor, Tensor]
             A tuple of tensors, where the first value is the image tensor and the second is the
             target's tensor.
         """
@@ -130,7 +130,7 @@ class ClassificationDataset(LocalDataset):
 
         return img_tensor, target
 
-    def get_target(self, index: int) -> torch.Tensor:
+    def get_target(self, index: int) -> Tensor:
         """
         Returns the classification target.
 
@@ -141,7 +141,7 @@ class ClassificationDataset(LocalDataset):
 
         Returns
         -------
-        torch.Tensor
+        Tensor
             The target's tensor.
         """
 
@@ -151,7 +151,7 @@ class ClassificationDataset(LocalDataset):
 
         assert len(tags) >= 1, f"No tags were found for index={index}"
 
-        target: torch.Tensor = torch.tensor(self.classes.index(tags[0]))
+        target: Tensor = torch.tensor(self.classes.index(tags[0]))
 
         if self.is_multi_label:
             target = torch.zeros(len(self.classes))
@@ -190,10 +190,10 @@ class ClassificationDataset(LocalDataset):
         int
             ``category_id`` of the image.
         """
-        target: torch.Tensor = self.get_target(index)
+        target: Tensor = self.get_target(index)
         return target["category_id"]
 
-    def measure_weights(self, **kwargs) -> np.ndarray:
+    def measure_weights(self) -> np.ndarray:
         """
         Computes the class balancing weights (not the frequencies!!) given the train loader.
         Gets the weights proportional to the inverse of their class frequencies.
@@ -201,15 +201,15 @@ class ClassificationDataset(LocalDataset):
 
         Returns
         -------
-        ndarray[double]
+        np.ndarray[float]
             Weight for each class in the train set (one for each class) as a 1D array normalized.
         """
         # Collect all the labels by iterating over the whole dataset
         labels = []
         for i, _filename in enumerate(self.images_path):
-            target = self.get_target(i)
+            target: Tensor = self.get_target(i)
             if self.is_multi_label:
-                # get the indixes of the class present
+                # get the indices of the class present
                 target = torch.where(target == 1)[0]
                 labels.extend(target.tolist())
             else:
@@ -233,7 +233,7 @@ class InstanceSegmentationDataset(LocalDataset):
 
     Parameters
     ----------
-    transform: Optional[Union[Callable, List]], default: None
+    transform: Optional[Union[Callable, List[Callable]]], default: None
         torchvision function or list to set the ``transform`` attribute. If it is a list, it will
         be composed via torchvision.
     """
@@ -248,7 +248,7 @@ class InstanceSegmentationDataset(LocalDataset):
 
         self.convert_polygons = ConvertPolygonsToInstanceMasks()
 
-    def __getitem__(self, index: int) -> Tuple[torch.Tensor, Dict[str, Any]]:
+    def __getitem__(self, index: int) -> Tuple[Tensor, Dict[str, Any]]:
         """
         Notes
         -----
@@ -279,7 +279,30 @@ class InstanceSegmentationDataset(LocalDataset):
 
     def get_target(self, index: int) -> Dict[str, Any]:
         """
-        Returns the instance segmentation target
+        Builds and returns the target dictionary for the item at the given index.
+        The target dictionary will have the following format:
+
+        .. code-block:: python
+        {
+            "annotations": [
+                {
+                    "category_id": int,
+                    "segmentation": List[List[int | float]],
+                    "bbox": List[float],
+                    "area": float
+                }
+            ]
+        }
+
+        Parameters
+        ----------
+        index : int
+            The actual index of the item in the ``Dataset``.
+
+        Returns
+        -------
+        Dict[str, Any]
+            The target.
         """
         target = self.parse_json(index)
 
@@ -297,15 +320,15 @@ class InstanceSegmentationDataset(LocalDataset):
             # Compute the bbox of the polygon
             x_coords = [s[0::2] for s in sequences]
             y_coords = [s[1::2] for s in sequences]
-            min_x = np.min([np.min(x_coord) for x_coord in x_coords])
-            min_y = np.min([np.min(y_coord) for y_coord in y_coords])
-            max_x = np.max([np.max(x_coord) for x_coord in x_coords])
-            max_y = np.max([np.max(y_coord) for y_coord in y_coords])
-            w = max_x - min_x + 1
-            h = max_y - min_y + 1
+            min_x: float = np.min([np.min(x_coord) for x_coord in x_coords])
+            min_y: float = np.min([np.min(y_coord) for y_coord in y_coords])
+            max_x: float = np.max([np.max(x_coord) for x_coord in x_coords])
+            max_y: float = np.max([np.max(y_coord) for y_coord in y_coords])
+            w: float = max_x - min_x + 1
+            h: float = max_y - min_y + 1
             # Compute the area of the polygon
             # TODO fix with addictive/subtractive paths in complex polygons
-            poly_area = np.sum([polygon_area(x_coord, y_coord) for x_coord, y_coord in zip(x_coords, y_coords)])
+            poly_area: float = np.sum([polygon_area(x_coord, y_coord) for x_coord, y_coord in zip(x_coords, y_coords)])
 
             # Create and append the new entry for this annotation
             annotations.append(
@@ -320,16 +343,16 @@ class InstanceSegmentationDataset(LocalDataset):
 
         return target
 
-    def measure_weights(self, **kwargs) -> np.ndarray:
+    def measure_weights(self) -> np.ndarray:
         """
         Computes the class balancing weights (not the frequencies!!) given the train loader
         Get the weights proportional to the inverse of their class frequencies.
-        The vector sums up to 1
+        The vector sums up to 1.
 
         Returns
         -------
-        class_weights : ndarray[double]
-            Weight for each class in the train set (one for each class) as a 1D array normalized
+        class_weights : np.ndarray[float]
+            Weight for each class in the train set (one for each class) as a 1D array normalized.
         """
         # Collect all the labels by iterating over the whole dataset
         labels: List[int] = []
@@ -340,10 +363,25 @@ class InstanceSegmentationDataset(LocalDataset):
 
 
 class SemanticSegmentationDataset(LocalDataset):
-    def __init__(self, transform: Optional[Union[List, Callable]] = None, **kwargs):
-        """
-        See `LocalDataset` class for documentation
-        """
+    """
+    Represents an instance of a LocalDataset used for training on semantic segmentation tasks.
+
+    Attributes
+    ----------
+    transform : Optional[Callable], default: None
+        torchvision transform function(s) to run on the dataset.
+    convert_polygons : ConvertPolygonsToSemanticMask
+        Object used to convert polygons to semantic masks.
+
+    Parameters
+    ----------
+    transform : Optional[Union[List[Callable], Callable]], default: None
+        torchvision function or list to set the ``transform`` attribute. If it is a list, it will
+        be composed via torchvision.
+    """
+
+    def __init__(self, transform: Optional[Union[List[Callable], Callable]] = None, **kwargs):
+
         super().__init__(annotation_type="polygon", **kwargs)
 
         if transform is not None and isinstance(transform, list):
@@ -352,7 +390,7 @@ class SemanticSegmentationDataset(LocalDataset):
         self.transform: Optional[Callable] = transform
         self.convert_polygons = ConvertPolygonsToSemanticMask()
 
-    def __getitem__(self, index: int) -> Tuple[torch.Tensor, Dict[str, Any]]:
+    def __getitem__(self, index: int) -> Tuple[Tensor, Dict[str, Any]]:
         """
         See superclass for documentation
 
@@ -379,11 +417,32 @@ class SemanticSegmentationDataset(LocalDataset):
 
     def get_target(self, index: int) -> Dict[str, Any]:
         """
-        Returns the semantic segmentation target
+        Builds and returns the target dictionary for the item at the given index.
+        The returned dictionary has the following structure:
+
+        .. code-block:: python
+        {
+            "annotations": [
+                {
+                    "category_id": int,
+                    "segmentation": List[List[float | int]]
+                }
+            ]
+        }
+
+        Parameters
+        ----------
+        index : int
+            The actual index of the item in the ``Dataset``.
+
+        Returns
+        -------
+        Dict[str, Any]
+            The target.
         """
         target = self.parse_json(index)
 
-        annotations = []
+        annotations: List[Dict[str, Union[int, List[List[Union[int, float]]]]]] = []
         for obj in target["annotations"]:
             sequences = convert_polygons_to_sequences(
                 obj["polygon"]["path"],
@@ -399,16 +458,16 @@ class SemanticSegmentationDataset(LocalDataset):
 
         return target
 
-    def measure_weights(self, **kwargs) -> np.ndarray:
+    def measure_weights(self) -> np.ndarray:
         """
         Computes the class balancing weights (not the frequencies!!) given the train loader
         Get the weights proportional to the inverse of their class frequencies.
-        The vector sums up to 1
+        The vector sums up to 1.
 
         Returns
         -------
-        class_weights : ndarray[double]
-            Weight for each class in the train set (one for each class) as a 1D array normalized
+        class_weights : np.ndarray[float]
+            Weight for each class in the train set (one for each class) as a 1D array normalized.
         """
         # Collect all the labels by iterating over the whole dataset
         labels = []
@@ -419,8 +478,22 @@ class SemanticSegmentationDataset(LocalDataset):
 
 
 class ObjectDetectionDataset(LocalDataset):
+    """
+    Represents an instance of a LocalDataset used for training on object detection tasks.
+
+    Attributes
+    ----------
+    transform : Optional[Callable], default: None
+        torchvision transform function(s) to run on the dataset.
+
+    Parameters
+    ----------
+    transform : Optional[Union[List[Callable], Callable]], default: None
+        torchvision function or list to set the ``transform`` attribute. If it is a list, it will
+        be composed via torchvision.
+    """
+
     def __init__(self, transform: Optional[List] = None, **kwargs):
-        """See `LocalDataset` class for documentation"""
         super().__init__(annotation_type="bounding_box", **kwargs)
 
         if transform is not None and isinstance(transform, list):
@@ -455,7 +528,29 @@ class ObjectDetectionDataset(LocalDataset):
         return img_tensor, target
 
     def get_target(self, index: int) -> Dict[str, Tensor]:
-        """Returns the object detection target"""
+        """
+        Builds and returns the target dictionary for the item at the given index.
+        The returned dictionary has the following structure:
+
+        .. code-block:: python
+        {
+            "boxes": Tensor,
+            "area": Tensor,
+            "labels": Tensor,
+            "image_id": Tensor,
+            "iscrowd": Tensor
+        }
+
+        Parameters
+        ----------
+        index : int
+            The actual index of the item in the ``Dataset``.
+
+        Returns
+        -------
+        Dict[str, Any]
+            The target.
+        """
         target = self.parse_json(index)
         annotations = target.pop("annotations")
 
@@ -487,16 +582,16 @@ class ObjectDetectionDataset(LocalDataset):
 
         return stacked_targets
 
-    def measure_weights(self, **kwargs) -> np.ndarray:
+    def measure_weights(self) -> np.ndarray:
         """
         Computes the class balancing weights (not the frequencies!!) given the train loader
         Get the weights proportional to the inverse of their class frequencies.
-        The vector sums up to 1
+        The vector sums up to 1.
 
         Returns
         -------
-        class_weights : ndarray[double]
-            Weight for each class in the train set (one for each class) as a 1D array normalized
+        class_weights : np.ndarray[float]
+            Weight for each class in the train set (one for each class) as a 1D array normalized.
         """
         # Collect all the labels by iterating over the whole dataset
         labels = []

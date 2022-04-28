@@ -4,8 +4,9 @@ import datetime
 import os
 import sys
 import traceback
+from itertools import tee
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, NoReturn, Optional, Union, cast
+from typing import Any, Dict, Iterator, List, NoReturn, Optional, Set, Union
 
 import humanize
 from rich.console import Console
@@ -850,25 +851,30 @@ def delete_files(dataset_slug: str, files: List[str], skip_user_confirmation: bo
 
     Parameters
     ----------
-    dataset_slug: str
+    dataset_slug : str
         The dataset's slug.
-    files: List[str]
+    files : List[str]
         The list of filenames to delete.
-    skip_user_confirmation: bool
-        If True, skips user confirmation, if False it will prompt the user. Defaults to False.
+    skip_user_confirmation : bool, default: False
+        If ``True``, skips user confirmation, if False it will prompt the user.
     """
     client: Client = _load_client(dataset_identifier=dataset_slug)
     try:
-        console = Console()
+        console = Console(theme=_console_theme(), stderr=True)
         dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
-        items: Iterator[DatasetItem] = dataset.fetch_remote_files({"filenames": ",".join(files)})
+        items, items_2 = tee(dataset.fetch_remote_files({"filenames": files}))
         if not skip_user_confirmation and not secure_continue_request():
             console.print("Cancelled.")
             return
 
+        found_filenames: Set[str] = set([item.filename for item in items_2])
+        not_found_filenames: Set[str] = set(files) - found_filenames
+        for filename in not_found_filenames:
+            console.print(f"File not found: {filename}", style="warning")
+
         with console.status("[bold red]Deleting files..."):
             dataset.delete_items(items)
-            console.print("[bold green]Files successfully deleted!")
+            console.print("Operation successfully completed!", style="success")
 
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
@@ -884,13 +890,13 @@ def dataset_convert(dataset_identifier: str, format: str, output_dir: Optional[P
 
     Parameters
     ----------
-    dataset_identifier: str
+    dataset_identifier : str
         The dataset identifier, normally in the "<team-slug>/<dataset-slug>:<version>" form.
-    format: str
+    format : str
         The format we want to convert to.
-    output_dir: Optional[PathLike]
+    output_dir : Optional[PathLike], default: None
         The folder where the exported annotation files will be. If None it will be the inside the
-        annotations folder of the dataset under 'other_formats/{format}'. The Defaults to None.
+        annotations folder of the dataset under 'other_formats/{format}'.
     """
     identifier: DatasetIdentifier = DatasetIdentifier.parse(dataset_identifier)
     client: Client = _load_client(team_slug=identifier.team_slug)
