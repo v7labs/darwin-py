@@ -555,14 +555,110 @@ def make_ellipse(class_name: str, parameters: EllipseData, subs: Optional[List[S
 
 
 def make_string(class_name: str, parameters: StringData, subs: Optional[List[SubAnnotation]] = None) -> Annotation:
+    """
+    Creates and returns a String annotation.
+
+    Parameters
+    ----------
+    class_name : str
+        The name of the class for this ``Annotation``..
+    parameters : StringData
+        The data needed to build a String ``Annotation``. This data must be a dictionary with a format similar to:
+
+        .. code-block:: javascript
+
+            {
+                "angle": 0.57,
+                "center": {
+                    "x": 2745.69,
+                    "y": 2307.46
+                },
+                "radius": {
+                    "x": 467.02,
+                    "y": 410.82
+                }
+            }
+
+    subs : Optional[List[SubAnnotation]], default: None
+        List of ``SubAnnotation``\\s for this ``Annotation``.
+
+    Returns
+    -------
+    Annotation
+        A String ``Annotation``.
+    """
     return Annotation(AnnotationClass(class_name, "string"), parameters, subs or [])
 
 
 def make_graph(class_name: str, parameters: GraphData, subs: Optional[List[SubAnnotation]] = None) -> Annotation:
+    """
+    Creates and returns a Graph annotation.
+
+    Parameters
+    ----------
+    class_name : str
+        The name of the class for this ``Annotation``..
+    parameters : GraphData
+        The data needed to build a Graph ``Annotation``. This data must be a dictionary with a format similar to:
+
+        .. code-block:: javascript
+
+            {
+                "angle": 0.57,
+                "center": {
+                    "x": 2745.69,
+                    "y": 2307.46
+                },
+                "radius": {
+                    "x": 467.02,
+                    "y": 410.82
+                }
+            }
+
+    subs : Optional[List[SubAnnotation]], default: None
+        List of ``SubAnnotation``\\s for this ``Annotation``.
+
+    Returns
+    -------
+    Annotation
+        A Graph ``Annotation``.
+    """
     return Annotation(AnnotationClass(class_name, "graph"), parameters, subs or [])
 
 
 def make_table(class_name: str, parameters: TableData, subs: Optional[List[SubAnnotation]] = None) -> Annotation:
+    """
+    Creates and returns a Table annotation.
+
+    Parameters
+    ----------
+    class_name : str
+        The name of the class for this ``Annotation``..
+    parameters : TableData
+        The data needed to build a Table ``Annotation``. This data must be a dictionary with a format similar to:
+
+        .. code-block:: javascript
+
+            {
+                "angle": 0.57,
+                "center": {
+                    "x": 2745.69,
+                    "y": 2307.46
+                },
+                "radius": {
+                    "x": 467.02,
+                    "y": 410.82
+                }
+            }
+
+    subs : Optional[List[SubAnnotation]], default: None
+        List of ``SubAnnotation``\\s for this ``Annotation``.
+
+    Returns
+    -------
+    Annotation
+        A Table ``Annotation``.
+    """
     return Annotation(AnnotationClass(class_name, "graph"), parameters, subs or [])
 
 
