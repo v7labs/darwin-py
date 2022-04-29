@@ -8,19 +8,23 @@ import darwin.datatypes as dt
 from darwin.exporter.formats.numpy_encoder import NumpyEncoder
 from darwin.version import __version__
 
-DEPRECATION_MESSAGE = """This function is going to be turned into private. This means that breaking 
+DEPRECATION_MESSAGE = """
+
+This function is going to be turned into private. This means that breaking 
 changes in its interface and implementation are to be expected. We encourage using ``export`` 
-instead of calling this low-level function directly."""
+instead of calling this low-level function directly.
+
+"""
 
 
 def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path) -> None:
     """
-    Exports the given ``AnnotationFile``s into the dataloop format inside of the given ``output_dir``.
+    Exports the given ``AnnotationFile``\\s into the dataloop format inside of the given ``output_dir``.
 
     Parameters
     ----------
     annotation_files : Iterable[dt.AnnotationFile]
-        The ``AnnotationFile``s to be exported.
+        The ``AnnotationFile``\\s to be exported.
     output_dir : Path
         The folder where the new coco file will be.
     """

@@ -7,7 +7,7 @@ from darwin.utils import parse_darwin_json, split_video_annotation
 
 def darwin_to_dt_gen(file_paths: List[PathLike]) -> Iterator[AnnotationFile]:
     """
-    Parses the given paths recursively and into an ``Iterator`` of ``AnnotationFile``s.
+    Parses the given paths recursively and into an ``Iterator`` of ``AnnotationFile``\\s.
 
     Parameters
     ----------
@@ -17,7 +17,7 @@ def darwin_to_dt_gen(file_paths: List[PathLike]) -> Iterator[AnnotationFile]:
     Returns
     -------
     Iterator[AnnotationFile]
-        An ``Iterator`` of the parsed ``AnnotationFile``s.
+        An ``Iterator`` of the parsed ``AnnotationFile``\\s.
     """
     count = 0
     for file_path in map(Path, file_paths):

@@ -434,60 +434,60 @@ class RemoteDataset:
 
     def archive(self, items: Iterator[DatasetItem]) -> None:
         """
-        Archives (soft-deletion) the given ``DatasetItem``s belonging to this ``RemoteDataset``.
+        Archives (soft-deletion) the given ``DatasetItem``\\s belonging to this ``RemoteDataset``.
 
         Parameters
         ----------
         items : Iterator[DatasetItem]
-            The ``DatasetItem``s to be archived.
+            The ``DatasetItem``\\s to be archived.
         """
         payload: Dict[str, Any] = {"filter": {"dataset_item_ids": [item.id for item in items]}}
         self.client.archive_item(self.slug, self.team, payload)
 
     def restore_archived(self, items: Iterator[DatasetItem]) -> None:
         """
-        Restores the archived ``DatasetItem``s that belong to this ``RemoteDataset``.
+        Restores the archived ``DatasetItem``\\s that belong to this ``RemoteDataset``.
 
         Parameters
         ----------
         items : Iterator[DatasetItem]
-            The ``DatasetItem``s to be restored.
+            The ``DatasetItem``\\s to be restored.
         """
         payload: Dict[str, Any] = {"filter": {"dataset_item_ids": [item.id for item in items]}}
         self.client.restore_archived_item(self.slug, self.team, payload)
 
     def move_to_new(self, items: Iterator[DatasetItem]) -> None:
         """
-        Changes the given ``DatasetItem``s status to ``new``.
+        Changes the given ``DatasetItem``\\s status to ``new``.
 
         Parameters
         ----------
         items : Iterator[DatasetItem]
-            The ``DatasetItem``s whose status will change.
+            The ``DatasetItem``\\s whose status will change.
         """
         payload: Dict[str, Any] = {"filter": {"dataset_item_ids": [item.id for item in items]}}
         self.client.move_item_to_new(self.slug, self.team, payload)
 
     def reset(self, items: Iterator[DatasetItem]) -> None:
         """
-        Resets the given ``DatasetItem``s.
+        Resets the given ``DatasetItem``\\s.
 
         Parameters
         ----------
         items : Iterator[DatasetItem]
-            The ``DatasetItem``s to be resetted.
+            The ``DatasetItem``\\s to be resetted.
         """
         payload: Dict[str, Any] = {"filter": {"dataset_item_ids": [item.id for item in items]}}
         self.client.reset_item(self.slug, self.team, payload)
 
     def delete_items(self, items: Iterator[DatasetItem]) -> None:
         """
-        Deletes the given ``DatasetItem``s.
+        Deletes the given ``DatasetItem``\\s.
 
         Parameters
         ----------
         items : Iterator[DatasetItem]
-            The ``DatasetItem``s to be deleted.
+            The ``DatasetItem``\\s to be deleted.
         """
         payload: Dict[str, Any] = {"filter": {"dataset_item_ids": [item.id for item in items]}}
         self.client.delete_item(self.slug, self.team, payload)
@@ -701,7 +701,7 @@ class RemoteDataset:
         Returns
         -------
         List["Release"]
-            Returns a sorted list of available ``Release``s with the most recent first.
+            Returns a sorted list of available ``Release``\\s with the most recent first.
         """
         try:
             releases_json: List[Dict[str, Any]] = self.client.get_exports(self.dataset_id, self.team)

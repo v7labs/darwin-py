@@ -8,9 +8,13 @@ import deprecation
 import darwin.datatypes as dt
 from darwin.version import __version__
 
-DEPRECATION_MESSAGE = """This function is going to be turned into private. This means that breaking 
+DEPRECATION_MESSAGE = """
+
+This function is going to be turned into private. This means that breaking 
 changes in its interface and implementation are to be expected. We encourage using ``export`` 
-instead of calling this low-level function directly."""
+instead of calling this low-level function directly.
+
+"""
 
 
 def export(annotation_files: Iterator[dt.AnnotationFile], output_dir: Path) -> None:
@@ -20,7 +24,7 @@ def export(annotation_files: Iterator[dt.AnnotationFile], output_dir: Path) -> N
     Parameters
     ----------
     annotation_files : Iterator[dt.AnnotationFile]
-        The ``AnnotationFile``s to be exported.
+        The ``AnnotationFile``\\s to be exported.
     output_dir : Path
         The folder where the new cvat file will be.
     """

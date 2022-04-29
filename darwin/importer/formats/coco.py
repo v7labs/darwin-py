@@ -9,9 +9,12 @@ import darwin.datatypes as dt
 from darwin.path_utils import deconstruct_full_path
 from darwin.version import __version__
 
-DEPRECATION_MESSAGE = """This function is going to be turned into private. This means that breaking 
+DEPRECATION_MESSAGE = """
+
+This function is going to be turned into private. This means that breaking 
 changes in its interface and implementation are to be expected. We encourage using ``parse_annotation`` 
-instead of calling this low-level function directly."""
+instead of calling this low-level function directly.
+"""
 
 
 def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
@@ -151,10 +154,10 @@ def parse_annotation(annotation: Dict[str, Any], category_lookup_table: Dict[str
 )
 def decode_binary_rle(data: str) -> List[int]:
     """
-    decodes binary rle to integer list rle
+    Decodes binary rle to integer list rle.
     """
     m = len(data)
-    cnts = [0] * m
+    counts = [0] * m
     h = 0
     p = 0
     while p < m:
@@ -170,7 +173,7 @@ def decode_binary_rle(data: str) -> List[int]:
             if more == 0 and (c & 0x10) != 0:
                 x |= -1 << 5 * k
         if h > 2:
-            x += cnts[h - 2]
-        cnts[h] = x
+            x += counts[h - 2]
+        counts[h] = x
         h += 1
-    return cnts[0:h]
+    return counts[0:h]

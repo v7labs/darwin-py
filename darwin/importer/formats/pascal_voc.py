@@ -11,6 +11,7 @@ def parse_path(path: Path) -> Optional[dt.AnnotationFile]:
     The file must have the following structure:
 
     .. code-block:: xml
+
         <filename>SOME_FILE_NAME</filename>
         <object>
             <name>CLASS_NAME</name>

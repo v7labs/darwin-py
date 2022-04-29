@@ -33,12 +33,13 @@ AttributeGroup = Dict[str, Union[str, int]]
 def parse_path(path: Path) -> Optional[AnnotationFile]:
     """
     Parses SuperAnnotate annotations inside the given file and returns the corresponding Darwin JSON
-    annotations. If the given file is not a ``.json`` or is a ``classes.json`` then ``None`` is 
-    returned instead. 
+    annotations. If the given file is not a ``.json`` or is a ``classes.json`` then ``None`` is
+    returned instead.
 
-    Each annotation file must have a structure simillar to the following:
-    
+    Each annotation file must have a structure similar to the following:
+
     .. code-block:: javascript
+
         {
             "instances": [
                 {
@@ -55,21 +56,22 @@ def parse_path(path: Path) -> Optional[AnnotationFile]:
                 "name": "a_file_name.json"
             }
         }
-    
+
     Currently we support the following annotations:
 
         - point ``Vector``: https://doc.superannotate.com/docs/vector-json#point
         - ellipse ``Vector``: https://doc.superannotate.com/docs/vector-json#ellipse
         - cuboid ``Vector``: https://doc.superannotate.com/docs/vector-json#cuboid
-        - bbox ``Vector`` (not rotated): https://doc.superannotate.com/docs/vector-json#bounding-box-and-rotated-bounding-box  
-        - polygon and polyline ``Vector``s: https://doc.superannotate.com/docs/vector-json#polyline-and-polygon
+        - bbox ``Vector`` (not rotated): https://doc.superannotate.com/docs/vector-json#bounding-box-and-rotated-bounding-box
+        - polygon and polyline ``Vector``\\s: https://doc.superannotate.com/docs/vector-json#polyline-and-polygon
 
     We also support attributes and tags.
 
-    Each file must also have in the same folder a ``classes.json`` file with information about 
-    the classes. This file must have a structure simillar to:
+    Each file must also have in the same folder a ``classes.json`` file with information about
+    the classes. This file must have a structure similar to:
 
     .. code-block:: javascript
+
         [
             {"name": "a_name_here", "id": 1, "attribute_groups": []},
             // { ... }
@@ -81,17 +83,17 @@ def parse_path(path: Path) -> Optional[AnnotationFile]:
     --------
     path: Path
         The path of the file to parse.
-    
+
     Returns
     -------
     Optional[darwin.datatypes.AnnotationFile]
-        The AnnotationFile with the parsed information from each SuperAnnotate annotation inside 
+        The AnnotationFile with the parsed information from each SuperAnnotate annotation inside
         or ``None`` if the given file is not a ``.json`` or is ``classes.json``.
-    
+
     Raises
     ------
     ValidationError
-        If any given JSON file is malformed or if it has an unknown annotation. 
+        If any given JSON file is malformed or if it has an unknown annotation.
         To see a list of possible annotation formats go to:
         https://doc.superannotate.com/docs/vector-json
     """

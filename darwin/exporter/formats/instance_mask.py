@@ -12,13 +12,13 @@ from darwin.utils import convert_polygons_to_mask, get_progress_bar, ispolygon
 
 def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path) -> None:
     """
-    Exports the given ``AnnotationFile``s into instance masks format inside of the given
+    Exports the given ``AnnotationFile``\\s into instance masks format inside of the given
     ``output_dir``. Deletes everything within ``output_dir/masks`` before writting to it.
 
     Parameters
     ----------
     annotation_files : Iterable[dt.AnnotationFile]
-        The ``AnnotationFile``s to be exported.
+        The ``AnnotationFile``\\s to be exported.
     output_dir : Path
         The folder where the new instance mask files will be.
     """

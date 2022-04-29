@@ -12,50 +12,39 @@ from darwin.version import __version__
 class DatasetItem(BaseModel):
     """
     DatasetItem represents files that can be images or videos which belong to a dataset.
-
-    Attributes
-    ----------
-    id : int
-        The id of this ``DatasetItem``.
-    filename : str
-        The filename of this ``DatasetItem``.
-    status : str
-        The status of this ``DatasetItem``. It can be:
-        - "archived",
-        - "error",
-        - "uploading",
-        - "processing",
-        - "new",
-        - "annotate",
-        - "review",
-        - "complete"
-    archived : bool
-        Whether or not this item was soft deleted.
-    filesize : int
-        The size of this ``DatasetItem``'s file in bytes.
-    dataset_id : int
-        The id of the ``Dataset`` this ``DatasetItem`` belongs to.
-    dataset_slug : str
-        The slugified name of the ``Dataset`` this ``DatasetItem`` belongs to.
-    seq : int
-        The sequential value of this ``DatasetItem`` in relation to the ``Dataset`` it belongs to.
-        This allows us to know which items were added first and is used mostly for sorting purposes.
-    current_workflow_id : Optional[int], default : None
-        The id of this ``DatasetItem``'s workflow. A ``None`` value means this ``DatasetItem`` is
-        new and was never worked on, or was reseted to the new state.
-    path : str
-        The darwin path to this ``DatasetItem``.
     """
 
+    #: The id of this ``DatasetItem``.
     id: int
+
+    #: The filename of this ``DatasetItem``.
     filename: str
+
+    #: The status of this ``DatasetItem``. It can be ``"archived"``, ``"error"``, ``"uploading"``,
+    #: ``"processing"``, ``"new"``, ``"annotate"``, ``"review"`` or ``"complete"``.
     status: str
+
+    #: Whether or not this item was soft deleted.
     archived: bool
+
+    #: The size of this ``DatasetItem``\'s file in bytes.
     filesize: int
+
+    #: The id of the ``Dataset`` this ``DatasetItem`` belongs to.
     dataset_id: int
+
+    #: The slugified name of the ``Dataset`` this ``DatasetItem`` belongs to.
     dataset_slug: str
+
+    #: The sequential value of this ``DatasetItem`` in relation to the ``Dataset`` it belongs to.
+    #: This allows us to know which items were added first and is used mostly for sorting purposes.
     seq: int
+
+    #: The id of this ``DatasetItem``'s workflow. A ``None`` value means this ``DatasetItem`` is
+    #: new and was never worked on, or was reset to the new state.
     current_workflow_id: Optional[int]
+
+    #: The darwin path to this ``DatasetItem``.
     path: str
 
     @property
