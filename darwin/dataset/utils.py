@@ -239,6 +239,7 @@ def get_coco_format_record(
         A coco record with the following keys:
 
         .. code-block:: python
+
             {
                 "height": 100,
                 "width": 100,

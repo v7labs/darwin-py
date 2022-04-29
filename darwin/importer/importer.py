@@ -23,9 +23,13 @@ from darwin.utils import secure_continue_request
 from darwin.version import __version__
 from rich.progress import track
 
-DEPRECATION_MESSAGE = """This function is going to be turned into private. This means that breaking 
+DEPRECATION_MESSAGE = """
+
+This function is going to be turned into private. This means that breaking 
 changes in its interface and implementation are to be expected. We encourage using ``import_annotations`` 
-instead of calling this low-level function directly."""
+instead of calling this low-level function directly.
+
+"""
 
 
 @deprecation.deprecated(
@@ -145,6 +149,7 @@ def _resolve_annotation_classes(
             local_classes_not_in_team.add(local_cls)
 
     return local_classes_not_in_dataset, local_classes_not_in_team
+
 
 def import_annotations(
     dataset: "RemoteDataset",

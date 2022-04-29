@@ -19,6 +19,7 @@ class Split:
     the ``Path`` of the file where that partition split file is going to be stored.
 
     .. code-block:: python
+
         {
             "train": Path("/path/to/split/random_train.txt"),
             "val": Path("/path/to/split/random_val.txt"),
@@ -31,6 +32,7 @@ class Split:
     the ``Path`` of the file where that partition split file is going to be stored.
 
     .. code-block:: python
+
         {
             "polygon": {
                 "train": Path("/path/to/split/stratified_polygon_train.txt"),
@@ -44,17 +46,14 @@ class Split:
             }
         }
 
-    Attributes
-    ----------
-    random: Optional[Dict[str, Path]], default: None
-        Stores the type of split (e.g.: ``train``, ``val``, ``test``) and the file path where the
-        split is stored if the split is of type ``random``. Defaults to ``None``.
-    stratified: Optional[Dict[str, Dict[str, Path]]], default: None
-        Stores the relation between an annotation type and the partition-filepath key value of the
-        split if its type is ``startified``. Defauls to ``None``.
     """
 
+    #: Stores the type of split (e.g. ``train``, ``val``, ``test``) and the file path where the
+    #: split is stored if the split is of type ``random``.
     random: Optional[Dict[str, Path]] = None
+
+    #: Stores the relation between an annotation type and the partition-filepath key value of the
+    #: split if its type is ``stratified``.
     stratified: Optional[Dict[str, Dict[str, Path]]] = None
 
     def is_valid(self) -> bool:

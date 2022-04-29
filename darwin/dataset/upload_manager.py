@@ -83,19 +83,15 @@ class UploadStage(DocEnum):
 class UploadRequestError(Exception):
     """
     Error throw when uploading a file fails with an unrecoverable error.
-
-    Attributes
-    ----------
-    file_path : Path
-        The ``Path`` of the file being uploaded.
-    stage : UploadStage
-        The ``UploadStage`` when the  failure happened.
-    error : Optional[Exception], default: None
-        The ``Exception`` that triggered this unrecoverable error.
     """
 
+    #: The ``Path`` of the file being uploaded.
     file_path: Path
+
+    #: The ``UploadStage`` when the  failure happened.
     stage: UploadStage
+
+    #: The ``Exception`` that triggered this unrecoverable error.
     error: Optional[Exception] = None
 
 
@@ -118,6 +114,7 @@ class LocalFile:
         Dictionary with metadata relative to this file. It has the following format:
 
         .. code-block:: python
+
             {
                 "filename": "a_filename",
                 "path": "a path"
@@ -208,14 +205,14 @@ FileUploadCallback = Callable[[str, int, int], None]
 
 class UploadHandler:
     """
-    Holds responsabilities for file upload management and failure into ``RemoteDataset``s.
+    Holds responsabilities for file upload management and failure into ``RemoteDataset``\\s.
 
     Parameters
     ----------
     dataset: RemoteDataset
         Target ``RemoteDataset`` where we want to upload our files to.
     local_files : List[LocalFile]
-        List of ``LocalFile``s to be uploaded.
+        List of ``LocalFile``\\s to be uploaded.
 
     Attributes
     ----------
@@ -224,7 +221,7 @@ class UploadHandler:
     errors : List[UploadRequestError]
         List of errors that happened during the upload process.
     local_files : List[LocalFile]
-        List of ``LocalFile``s to be uploaded.
+        List of ``LocalFile``\\s to be uploaded.
     blocked_items : List[ItemPayload]
         List of items that were not able to be uploaded.
     pending_items : List[ItemPayload]
@@ -241,12 +238,12 @@ class UploadHandler:
 
     @property
     def client(self) -> "Client":
-        """The ``Client`` used by this ``UploadHander``'s ``RemoteDataset``."""
+        """The ``Client`` used by this ``UploadHander``\\'s ``RemoteDataset``."""
         return self.dataset.client
 
     @property
     def dataset_identifier(self) -> "DatasetIdentifier":
-        """The ``DatasetIdentifier`` of this ``UploadHander``'s ``RemoteDataset``."""
+        """The ``DatasetIdentifier`` of this ``UploadHander``\\'s ``RemoteDataset``."""
         return self.dataset.identifier
 
     @property

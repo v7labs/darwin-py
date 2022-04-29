@@ -104,6 +104,7 @@ class Release:
             A Dictionary with the ``Release`` information. It must have a minimal format similar to:
 
             .. code-block:: javascript
+
                 {
                     "version": "a_version",
                     "name": "a_name"
@@ -118,6 +119,7 @@ class Release:
             A more complete format for this parameter would be similar to:
 
             .. code-block:: javascript
+
                 {
                     "version": "a_version",
                     "name": "a_name",

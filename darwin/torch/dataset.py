@@ -222,6 +222,12 @@ class InstanceSegmentationDataset(LocalDataset):
     """
     Represents an instance of a LocalDataset used for training on instance segmentation tasks.
 
+    Parameters
+    ----------
+    transform: Optional[Union[Callable, List[Callable]]], default: None
+        torchvision function or list to set the ``transform`` attribute. If it is a list, it will
+        be composed via torchvision.
+
     Attributes
     ----------
     transform : Optional[Callable], default: None
@@ -231,11 +237,6 @@ class InstanceSegmentationDataset(LocalDataset):
     convert_polygons : ConvertPolygonsToInstanceMasks
         Object used to convert polygons to instance masks.
 
-    Parameters
-    ----------
-    transform: Optional[Union[Callable, List[Callable]]], default: None
-        torchvision function or list to set the ``transform`` attribute. If it is a list, it will
-        be composed via torchvision.
     """
 
     def __init__(self, transform: Optional[Union[Callable, List]] = None, **kwargs):
@@ -283,16 +284,17 @@ class InstanceSegmentationDataset(LocalDataset):
         The target dictionary will have the following format:
 
         .. code-block:: python
-        {
-            "annotations": [
-                {
-                    "category_id": int,
-                    "segmentation": List[List[int | float]],
-                    "bbox": List[float],
-                    "area": float
-                }
-            ]
-        }
+
+            {
+                "annotations": [
+                    {
+                        "category_id": int,
+                        "segmentation": List[List[int | float]],
+                        "bbox": List[float],
+                        "area": float
+                    }
+                ]
+            }
 
         Parameters
         ----------
@@ -366,18 +368,18 @@ class SemanticSegmentationDataset(LocalDataset):
     """
     Represents an instance of a LocalDataset used for training on semantic segmentation tasks.
 
+    Parameters
+    ----------
+    transform : Optional[Union[List[Callable], Callable]], default: None
+        torchvision function or list to set the ``transform`` attribute. If it is a list, it will
+        be composed via torchvision.
+
     Attributes
     ----------
     transform : Optional[Callable], default: None
         torchvision transform function(s) to run on the dataset.
     convert_polygons : ConvertPolygonsToSemanticMask
         Object used to convert polygons to semantic masks.
-
-    Parameters
-    ----------
-    transform : Optional[Union[List[Callable], Callable]], default: None
-        torchvision function or list to set the ``transform`` attribute. If it is a list, it will
-        be composed via torchvision.
     """
 
     def __init__(self, transform: Optional[Union[List[Callable], Callable]] = None, **kwargs):
@@ -421,14 +423,15 @@ class SemanticSegmentationDataset(LocalDataset):
         The returned dictionary has the following structure:
 
         .. code-block:: python
-        {
-            "annotations": [
-                {
-                    "category_id": int,
-                    "segmentation": List[List[float | int]]
-                }
-            ]
-        }
+
+            {
+                "annotations": [
+                    {
+                        "category_id": int,
+                        "segmentation": List[List[float | int]]
+                    }
+                ]
+            }
 
         Parameters
         ----------
@@ -481,16 +484,16 @@ class ObjectDetectionDataset(LocalDataset):
     """
     Represents an instance of a LocalDataset used for training on object detection tasks.
 
-    Attributes
-    ----------
-    transform : Optional[Callable], default: None
-        torchvision transform function(s) to run on the dataset.
-
     Parameters
     ----------
     transform : Optional[Union[List[Callable], Callable]], default: None
         torchvision function or list to set the ``transform`` attribute. If it is a list, it will
         be composed via torchvision.
+
+    Attributes
+    ----------
+    transform : Optional[Callable], default: None
+        torchvision transform function(s) to run on the dataset.
     """
 
     def __init__(self, transform: Optional[List] = None, **kwargs):
@@ -533,13 +536,14 @@ class ObjectDetectionDataset(LocalDataset):
         The returned dictionary has the following structure:
 
         .. code-block:: python
-        {
-            "boxes": Tensor,
-            "area": Tensor,
-            "labels": Tensor,
-            "image_id": Tensor,
-            "iscrowd": Tensor
-        }
+
+            {
+                "boxes": Tensor,
+                "area": Tensor,
+                "labels": Tensor,
+                "image_id": Tensor,
+                "iscrowd": Tensor
+            }
 
         Parameters
         ----------
