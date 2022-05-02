@@ -10,7 +10,6 @@ Polygon = List[Point]
 ComplexPolygon = List[Polygon]
 Node = Dict[str, Any]
 EllipseData = Dict[str, Union[float, Point]]
-StringData = Dict[str, Any]
 GraphData = Dict[str, Any]
 TableData = Dict[str, Any]
 CuboidData = Dict[str, Dict[str, float]]
@@ -20,6 +19,38 @@ DarwinVersionNumber = Tuple[int, int, int]
 
 PathLike = Union[str, Path]
 ErrorHandler = Callable[[int, str], None]
+
+
+@dataclass(frozen=True)
+class StringDataSource:
+    """
+    Represents a source from a ``StringData`` class.
+    """
+
+    #: The id of the source.
+    id: str
+
+    #: The range of the source.
+    ranges: Optional[List[Tuple[int, int]]]
+
+    @staticmethod
+    def parse(source: Dict[str, Union[str, Optional[List[Tuple[int, int]]]]]) -> "StringDataSource":
+        return StringDataSource(id=str(source["id"]), ranges=source["ranges"])  # type: ignore
+
+
+@dataclass(frozen=True)
+class StringData:
+    """
+    Represents raw text data from an ``Annotation``.
+    Unlike other ``Annotation``\\s, a ``StringData`` ``Annotation`` does not need to be linked to
+    an image/video.
+    """
+
+    #: The sources for this ``StringData``.
+    sources: List[StringDataSource]
+
+    #: The raw text this data represents.
+    text: str
 
 
 @dataclass
@@ -528,30 +559,36 @@ def make_ellipse(class_name: str, parameters: EllipseData, subs: Optional[List[S
     return Annotation(AnnotationClass(class_name, "ellipse"), parameters, subs or [])
 
 
-def make_string(class_name: str, parameters: StringData, subs: Optional[List[SubAnnotation]] = None) -> Annotation:
+def make_string(class_name: str, parameters: Dict[str, Any], subs: Optional[List[SubAnnotation]] = None) -> Annotation:
     """
-    Creates and returns a String annotation.
+    Creates and returns a String ``Annotation``.
 
     Parameters
     ----------
     class_name : str
-        The name of the class for this ``Annotation``..
+        The name of the class for this ``Annotation``.
     parameters : StringData
         The data needed to build a String ``Annotation``. This data must be a dictionary with a format similar to:
 
         .. code-block:: javascript
 
             {
-                "angle": 0.57,
-                "center": {
-                    "x": 2745.69,
-                    "y": 2307.46
-                },
-                "radius": {
-                    "x": 467.02,
-                    "y": 410.82
-                }
+                "sources": [
+                    {
+                        "id": "277befc3-1c48-4f65-b95c-e8b0485b6719",
+                        "ranges": null
+                    },
+                    {
+                        "id": "437a31d0-346d-4fe3-adab-ebbb3fb3864f",
+                        "ranges": [[5, 8]]
+                    }
+                ],
+                "text": "the lazy dog"
             }
+
+        Where ``sources`` is a ``List[Dict[str, Union[str, Optional[List[List[int, int]]]]]]`` and
+        ``text`` is a ``str``.
+
 
     subs : Optional[List[SubAnnotation]], default: None
         List of ``SubAnnotation``\\s for this ``Annotation``.
@@ -561,7 +598,10 @@ def make_string(class_name: str, parameters: StringData, subs: Optional[List[Sub
     Annotation
         A String ``Annotation``.
     """
-    return Annotation(AnnotationClass(class_name, "string"), parameters, subs or [])
+    sources: List[StringDataSource] = list(map(StringDataSource.parse, parameters["sources"]))
+    data: StringData = StringData(sources=sources, text=parameters["text"])
+
+    return Annotation(AnnotationClass(class_name, "string"), data, subs or [])
 
 
 def make_graph(class_name: str, parameters: GraphData, subs: Optional[List[SubAnnotation]] = None) -> Annotation:
@@ -571,7 +611,7 @@ def make_graph(class_name: str, parameters: GraphData, subs: Optional[List[SubAn
     Parameters
     ----------
     class_name : str
-        The name of the class for this ``Annotation``..
+        The name of the class for this ``Annotation``.
     parameters : GraphData
         The data needed to build a Graph ``Annotation``. This data must be a dictionary with a format similar to:
 
@@ -607,7 +647,7 @@ def make_table(class_name: str, parameters: TableData, subs: Optional[List[SubAn
     Parameters
     ----------
     class_name : str
-        The name of the class for this ``Annotation``..
+        The name of the class for this ``Annotation``.
     parameters : TableData
         The data needed to build a Table ``Annotation``. This data must be a dictionary with a format similar to:
 
