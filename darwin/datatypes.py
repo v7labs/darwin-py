@@ -10,6 +10,7 @@ Polygon = List[Point]
 ComplexPolygon = List[Polygon]
 Node = Dict[str, Any]
 EllipseData = Dict[str, Union[float, Point]]
+Range = Tuple[int, int]
 GraphData = Dict[str, Any]
 TableData = Dict[str, Any]
 CuboidData = Dict[str, Dict[str, float]]
@@ -25,17 +26,38 @@ ErrorHandler = Callable[[int, str], None]
 class StringDataSource:
     """
     Represents a source from a ``StringData`` class.
+
+    A source is an ``Annotation`` with ``text`` ``SubAnnotation`` data.
     """
 
-    #: The id of the source.
+    #: The ``id`` of the source, equivalent to the ``Annotation``\'s ``id`` on V7.
     id: str
 
-    #: The range of the source.
-    ranges: Optional[List[Tuple[int, int]]]
+    #: Encodes the substrings of the source ``Annotation``\'s text that are marked as string.
+    #: When ``null``, then the full text is considered as string.
+    ranges: Optional[List[Range]]
 
     @staticmethod
-    def parse(source: Dict[str, Union[str, Optional[List[Tuple[int, int]]]]]) -> "StringDataSource":
-        return StringDataSource(id=str(source["id"]), ranges=source["ranges"])  # type: ignore
+    def parse(source: Dict[str, Any]) -> "StringDataSource":
+        """
+        Parses the given dictionary into a ``StringDataSource``. Does not perform validation, it
+        expects the format of the data given to be correct.
+
+        Parameters
+        ----------
+        source : Dict[str, Union[str, Optional[List[Range]]]]
+            The dictionary containing the data to be parsed.
+
+        Returns
+        -------
+        StringDataSource
+            The parsed object.
+        """
+        ranges: Optional[List[Range]] = None
+        if source["ranges"] is not None:
+            ranges = [(range[0], range[1]) for range in source["ranges"]]
+
+        return StringDataSource(id=str(source["id"]), ranges=ranges)
 
 
 @dataclass(frozen=True)
@@ -561,7 +583,8 @@ def make_ellipse(class_name: str, parameters: EllipseData, subs: Optional[List[S
 
 def make_string(class_name: str, parameters: Dict[str, Any], subs: Optional[List[SubAnnotation]] = None) -> Annotation:
     """
-    Creates and returns a String ``Annotation``.
+    Creates and returns a String ``Annotation``. Does not perform validation, it expects the format
+    of the parameters to be correct.
 
     Parameters
     ----------
@@ -586,7 +609,7 @@ def make_string(class_name: str, parameters: Dict[str, Any], subs: Optional[List
                 "text": "the lazy dog"
             }
 
-        Where ``sources`` is a ``List[Dict[str, Union[str, Optional[List[List[int, int]]]]]]`` and
+        Where ``sources`` is a ``List[Dict[str, Union[str, Optional[List[Range]]]]]`` and
         ``text`` is a ``str``.
 
 

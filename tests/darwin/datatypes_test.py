@@ -1,8 +1,9 @@
-from typing import Dict, List
+from typing import Any, Dict, List
 
 from darwin.datatypes import (
     Point,
     StringData,
+    StringDataSource,
     make_complex_polygon,
     make_polygon,
     make_string,
@@ -68,15 +69,21 @@ def describe_make_complex_polygon():
 
 
 def describe_make_string():
-    def it_returns_annotation_with_default_params():
+    def it_returns_string_annotation():
         class_name: str = "class_name"
-        parameters: StringData = {"test": 1}
+        parameters: Dict[str, Any] = {
+            "sources": [{"id": "uuid-1", "ranges": [[0, 8]]}, {"id": "uuid-2", "ranges": None}],
+            "text": "the fox jumped",
+        }
         annotation = make_string(class_name, parameters)
 
-        assert_annoation_class(annotation, class_name, "string")
+        expected_data: StringData = StringData(
+            sources=[StringDataSource(id="uuid-1", ranges=[(0, 8)]), StringDataSource(id="uuid-2", ranges=None)],
+            text="the fox jumped",
+        )
 
-        paths = annotation.data.get("paths")
-        assert paths == parameters
+        assert_annoation_class(annotation, class_name, "string")
+        assert annotation.data == expected_data
 
 
 def assert_annoation_class(annotation, name, type, internal_type=None):
