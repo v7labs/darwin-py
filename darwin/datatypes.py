@@ -729,7 +729,7 @@ def make_string(class_name: str, parameters: Dict[str, Any], subs: Optional[List
     ----------
     class_name : str
         The name of the class for this ``Annotation``.
-    parameters : StringData
+    parameters : Dict[str, Any]
         The data needed to build a String ``Annotation``. This data must be a dictionary with a
         format similar to:
 
@@ -773,7 +773,7 @@ def make_graph(class_name: str, parameters: Dict[str, Any], subs: Optional[List[
     ----------
     class_name : str
         The name of the class for this ``Annotation``.
-    parameters : GraphData
+    parameters : Dict[str, Any]
         The data needed to build a Graph ``Annotation``. This data must be a dictionary with a
         format similar to:
 
@@ -820,7 +820,7 @@ def make_table(class_name: str, parameters: Dict[str, Any], subs: Optional[List[
     ----------
     class_name : str
         The name of the class for this ``Annotation``.
-    parameters : TableData
+    parameters : Dict[str, Any]
         The data needed to build a Table ``Annotation``. This data must be a dictionary with a
         format similar to:
 
