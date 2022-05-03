@@ -79,14 +79,12 @@ def describe_make_string():
     def it_returns_string_annotation():
         class_name: str = "class_name"
         parameters: Dict[str, Any] = {
-            "sources": [{"id": "uuid-1", "ranges": [[0, 8]]}, {"id": "uuid-2", "ranges": None}],
-            "text": "the fox jumped",
+            "sources": [{"id": "uuid-1", "ranges": [[0, 8]]}, {"id": "uuid-2", "ranges": None}]
         }
         annotation = make_string(class_name, parameters)
 
         expected_data: StringData = StringData(
-            sources=[StringDataSource(id="uuid-1", ranges=[(0, 8)]), StringDataSource(id="uuid-2", ranges=None)],
-            text="the fox jumped",
+            sources=[StringDataSource(id="uuid-1", ranges=[(0, 8)]), StringDataSource(id="uuid-2", ranges=None)]
         )
 
         assert_annoation_class(annotation, class_name, "string")

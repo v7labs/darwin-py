@@ -69,9 +69,6 @@ class StringData:
     #: The sources for this ``StringData``.
     sources: List[StringDataSource]
 
-    #: The raw text this data represents.
-    text: str
-
 
 @dataclass(frozen=True)
 class GraphDataNode:
@@ -748,12 +745,10 @@ def make_string(class_name: str, parameters: Dict[str, Any], subs: Optional[List
                         "id": "437a31d0-346d-4fe3-adab-ebbb3fb3864f",
                         "ranges": [[5, 8]]
                     }
-                ],
-                "text": "the lazy dog"
+                ]
             }
 
-        Where ``sources`` is a ``List[Dict[str, Union[str, Optional[List[Range]]]]]`` and
-        ``text`` is a ``str``.
+        Where ``sources`` is a ``List[Dict[str, Union[str, Optional[List[Range]]]]]``.
 
 
     subs : Optional[List[SubAnnotation]], default: None
@@ -764,10 +759,9 @@ def make_string(class_name: str, parameters: Dict[str, Any], subs: Optional[List
     Annotation
         A String ``Annotation``.
     """
-    sources: List[StringDataSource] = list(map(StringDataSource.parse, parameters["sources"]))
-    data: StringData = StringData(sources=sources, text=parameters["text"])
+    sources: List[StringDataSource] = [StringDataSource.parse(source) for source in parameters["sources"]]
 
-    return Annotation(AnnotationClass(class_name, "string"), data, subs or [])
+    return Annotation(AnnotationClass(class_name, "string"), StringData(sources=sources), subs or [])
 
 
 def make_graph(class_name: str, parameters: Dict[str, Any], subs: Optional[List[SubAnnotation]] = None) -> Annotation:
