@@ -11,8 +11,6 @@ ComplexPolygon = List[Polygon]
 Node = Dict[str, Any]
 EllipseData = Dict[str, Union[float, Point]]
 Range = Tuple[int, int]
-GraphData = Dict[str, Any]
-TableData = Dict[str, Any]
 CuboidData = Dict[str, Dict[str, float]]
 Segment = List[int]
 
@@ -73,6 +71,150 @@ class StringData:
 
     #: The raw text this data represents.
     text: str
+
+
+@dataclass(frozen=True)
+class GraphDataNode:
+    """
+    A node has an id (an ``Annotation`` ID) and name (a natural language name for the node).
+    """
+
+    #: The ``Annotation`` id.
+    id: str
+
+    #: Natural language name for this node.
+    name: str
+
+    @staticmethod
+    def parse(node: Dict[str, str]) -> "GraphDataNode":
+        """
+        Parses the given dictionary into a ``GraphDataNode``. Does not perform validation, it
+        expects the format of the data given to be correct.
+
+        Parameters
+        ----------
+        node : Dict[str, str]
+            The dictionary containing the data to be parsed.
+
+        Returns
+        -------
+        GraphDataNode
+            The parsed object.
+        """
+        return GraphDataNode(id=node["id"], name=node["name"])
+
+
+@dataclass(frozen=True)
+class GraphDataEdge:
+    """
+    An edge has a start and end fields, referencing node's names.
+    """
+
+    #: The start node of this edge.
+    start: str
+
+    #: The end node of this edge.
+    end: str
+
+    @staticmethod
+    def parse(edge: Dict[str, str]) -> "GraphDataEdge":
+        """
+        Parses the given dictionary into a ``GraphDataEdge``. Does not perform validation, it
+        expects the format of the data given to be correct.
+
+        Parameters
+        ----------
+        edge : Dict[str, str]
+            The dictionary containing the data to be parsed.
+
+        Returns
+        -------
+        GraphDataEdge
+            The parsed object.
+        """
+        return GraphDataEdge(start=edge["start"], end=edge["end"])
+
+
+@dataclass(frozen=True)
+class GraphData:
+    """
+    Represents a graph that encodes nodes and edges.
+    Graph ``Annotation``\\s link annotations together under predefined constraints.
+
+    """
+
+    #: List of edges in this graph.
+    edges: List[GraphDataEdge]
+
+    #: List of nodes in this graph.
+    nodes: List[GraphDataNode]
+
+
+@dataclass(frozen=True)
+class TableDataCell:
+    """
+    Represents a cell from a ``TableData``.
+    """
+
+    #: The id of the cell. Usually in uuid format.
+    id: str
+
+    #: Column position of the cell.
+    col: int
+
+    #: Row position of the cell.
+    row: int
+
+    #: The vertical size of this cell.
+    col_span: int
+
+    #: The horizontal size of this cell.
+    row_span: int
+
+    #: If this cell is part of a header or not.
+    is_header: bool
+
+    #: The bounding box that covers this cell.
+    bounding_box: BoundingBox
+
+    @staticmethod
+    def parse(cell: Dict[str, Any]) -> "TableDataCell":
+        """
+        Parses the given dictionary into a ``TableDataCell``. Does not perform validation, it
+        expects the format of the data given to be correct.
+
+        Parameters
+        ----------
+        cell : Dict[str, str]
+            The dictionary containing the data to be parsed.
+
+        Returns
+        -------
+        TableDataCell
+            The parsed object.
+        """
+        return TableDataCell(
+            id=cell["id"],
+            col=cell["col"],
+            row=cell["row"],
+            col_span=cell["col_span"],
+            row_span=cell["row_span"],
+            is_header=cell["is_header"],
+            bounding_box=cell["bounding_box"],
+        )
+
+
+@dataclass(frozen=True)
+class TableData:
+    """
+    Represents a Table from a document.
+    """
+
+    #: List of cells that compose this table.
+    cells: List[TableDataCell]
+
+    #: The bounding box that covers this table.
+    bounding_box: BoundingBox
 
 
 @dataclass
@@ -591,7 +733,8 @@ def make_string(class_name: str, parameters: Dict[str, Any], subs: Optional[List
     class_name : str
         The name of the class for this ``Annotation``.
     parameters : StringData
-        The data needed to build a String ``Annotation``. This data must be a dictionary with a format similar to:
+        The data needed to build a String ``Annotation``. This data must be a dictionary with a
+        format similar to:
 
         .. code-block:: javascript
 
@@ -627,29 +770,38 @@ def make_string(class_name: str, parameters: Dict[str, Any], subs: Optional[List
     return Annotation(AnnotationClass(class_name, "string"), data, subs or [])
 
 
-def make_graph(class_name: str, parameters: GraphData, subs: Optional[List[SubAnnotation]] = None) -> Annotation:
+def make_graph(class_name: str, parameters: Dict[str, Any], subs: Optional[List[SubAnnotation]] = None) -> Annotation:
     """
-    Creates and returns a Graph annotation.
+    Creates and returns a Graph ``Annotation``. Does not perform validation, it expects the format
+    of the parameters to be correct.
 
     Parameters
     ----------
     class_name : str
         The name of the class for this ``Annotation``.
     parameters : GraphData
-        The data needed to build a Graph ``Annotation``. This data must be a dictionary with a format similar to:
+        The data needed to build a Graph ``Annotation``. This data must be a dictionary with a
+        format similar to:
 
         .. code-block:: javascript
 
             {
-                "angle": 0.57,
-                "center": {
-                    "x": 2745.69,
-                    "y": 2307.46
-                },
-                "radius": {
-                    "x": 467.02,
-                    "y": 410.82
-                }
+                "edges": [
+                    {
+                        "end": "value",
+                        "start": "key"
+                    }
+                ],
+                "nodes": [
+                    {
+                        "id": "dae7b1d2-0292-4cd1-a13d-5040bc762523",
+                        "name": "key"
+                    },
+                    {
+                        "id": "3e1b4890-ec28-4853-91f4-f7efeaa7dcd0",
+                        "name": "value"
+                    }
+                ]
             }
 
     subs : Optional[List[SubAnnotation]], default: None
@@ -660,10 +812,13 @@ def make_graph(class_name: str, parameters: GraphData, subs: Optional[List[SubAn
     Annotation
         A Graph ``Annotation``.
     """
-    return Annotation(AnnotationClass(class_name, "graph"), parameters, subs or [])
+    edges: List[GraphDataEdge] = [GraphDataEdge.parse(edge) for edge in parameters["edges"]]
+    nodes: List[GraphDataNode] = [GraphDataNode.parse(node) for node in parameters["nodes"]]
+
+    return Annotation(AnnotationClass(class_name, "graph"), GraphData(nodes=nodes, edges=edges), subs or [])
 
 
-def make_table(class_name: str, parameters: TableData, subs: Optional[List[SubAnnotation]] = None) -> Annotation:
+def make_table(class_name: str, parameters: Dict[str, Any], subs: Optional[List[SubAnnotation]] = None) -> Annotation:
     """
     Creates and returns a Table annotation.
 
@@ -672,19 +827,47 @@ def make_table(class_name: str, parameters: TableData, subs: Optional[List[SubAn
     class_name : str
         The name of the class for this ``Annotation``.
     parameters : TableData
-        The data needed to build a Table ``Annotation``. This data must be a dictionary with a format similar to:
+        The data needed to build a Table ``Annotation``. This data must be a dictionary with a
+        format similar to:
 
         .. code-block:: javascript
 
             {
-                "angle": 0.57,
-                "center": {
-                    "x": 2745.69,
-                    "y": 2307.46
-                },
-                "radius": {
-                    "x": 467.02,
-                    "y": 410.82
+                "cells": [
+                    {
+                        "id": "25beefe5-74cd-4b85-b9d6-7c70a9a5314b",
+                        "col": 1,
+                        "row": 1,
+                        "col_span": 1,
+                        "row_span": 1,
+                        "is_header": false,
+                        "bounding_box": {
+                            "h": 64.58190971426666,
+                            "w": 217.52343571186066,
+                            "x": 1233.9765247106552,
+                            "y": 212.91808361560106
+                        }
+                    },
+                    {
+                        "id": "6bd4e128-8334-4b84-b9ce-f3a057359e0d",
+                        "col": 2,
+                        "row": 1,
+                        "col_span": 1,
+                        "row_span": 1,
+                        "is_header": false,
+                        "bounding_box": {
+                            "h": 64.58190971426666,
+                            "w": 193.9101600497961,
+                            "x": 1451.4999604225159,
+                            "y": 212.91808361560106
+                        }
+                    }
+                ],
+                "bounding_box": {
+                    "h": 124.25042347237468,
+                    "w": 411.43359576165676,
+                    "x": 1233.9765247106552,
+                    "y": 212.91808361560106
                 }
             }
 
@@ -696,7 +879,12 @@ def make_table(class_name: str, parameters: TableData, subs: Optional[List[SubAn
     Annotation
         A Table ``Annotation``.
     """
-    return Annotation(AnnotationClass(class_name, "graph"), parameters, subs or [])
+    cells: List[TableDataCell] = [TableDataCell.parse(cell) for cell in parameters["cells"]]
+    return Annotation(
+        AnnotationClass(class_name, "table"),
+        TableData(cells=cells, bounding_box=parameters["bounding_box"]),
+        subs or [],
+    )
 
 
 def make_cuboid(class_name: str, cuboid: CuboidData, subs: Optional[List[SubAnnotation]] = None) -> Annotation:
