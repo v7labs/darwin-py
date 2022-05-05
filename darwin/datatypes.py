@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Iterator, List, Optional, Set, Tuple, Union
 
 from darwin.path_utils import construct_full_path
+from darwin.utils import maybe_to_serializable_format
 
 Point = Dict[str, float]
 BoundingBox = Dict[str, float]
@@ -381,7 +382,11 @@ class VideoAnnotation:
                 frame: {
                     **post_processing(
                         self.frames[frame],
-                        {self.frames[frame].annotation_class.annotation_type: self.frames[frame].data},
+                        {
+                            self.frames[frame].annotation_class.annotation_type: maybe_to_serializable_format(
+                                self.frames[frame].data
+                            )
+                        },
                     ),
                     **{"keyframe": self.keyframes[frame]},
                 }

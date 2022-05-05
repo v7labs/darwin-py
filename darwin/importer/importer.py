@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 import darwin.datatypes as dt
 import deprecation
 from darwin.datatypes import PathLike
-from darwin.utils import secure_continue_request
+from darwin.utils import maybe_to_serializable_format, secure_continue_request
 from darwin.version import __version__
 from rich.progress import track
 
@@ -49,6 +49,9 @@ def build_main_annotations_lookup_table(annotation_classes: List[Dict[str, Any]]
         "polygon",
         "skeleton",
         "tag",
+        "string",
+        "table",
+        "graph",
     ]
     lookup: Dict[str, Any] = {}
     for cls in annotation_classes:
@@ -342,6 +345,7 @@ def _import_annotations(
 ):
     serialized_annotations = []
     for annotation in annotations:
+
         annotation_class = annotation.annotation_class
         annotation_type = annotation_class.annotation_internal_type or annotation_class.annotation_type
         annotation_class_id = remote_classes[annotation_type][annotation_class.name]
@@ -354,7 +358,7 @@ def _import_annotations(
                 ),
             )
         else:
-            data = {annotation_class.annotation_type: annotation.data}
+            data = {annotation_class.annotation_type: maybe_to_serializable_format(annotation.data)}
             data = _handle_complex_polygon(annotation, data)
             data = _handle_subs(annotation, data, annotation_class_id, attributes)
 
@@ -366,5 +370,5 @@ def _import_annotations(
 
     try:
         client.import_annotation(id, payload=payload)
-    except:
-        print(f"warning, failed to upload annotation to item {id}. Annotations: {payload}")
+    except Exception as error:
+        print(f"Warning, failed to upload annotation to item {id}\nError: {error}\nAnnotations: {payload}\n\n")
