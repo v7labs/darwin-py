@@ -1,9 +1,8 @@
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field, is_dataclass
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterator, List, Optional, Set, Tuple, Union
 
 from darwin.path_utils import construct_full_path
-from darwin.utils import maybe_to_serializable_format
 
 Point = Dict[str, float]
 BoundingBox = Dict[str, float]
@@ -1027,6 +1026,30 @@ def make_video_annotation(
         raise ValueError("invalid argument to make_video_annotation")
 
     return VideoAnnotation(first_annotation.annotation_class, frames, keyframes, segments, interpolated)
+
+
+def maybe_to_serializable_format(obj: Any) -> Any:
+    """
+    Returns a serializable version of the given object. Serializable data structures are usually
+    primitive types together with dictionaries and lists.
+
+    If this function does not know how to convert the given object, then the original one will be
+    returned instead.
+
+    Parameters
+    ----------
+    obj : Any
+        The object to be converted to a serializable format.
+
+    Returns
+    -------
+    Any
+        The given object in a serialized format, or the same object if this was not possible.
+    """
+    if is_dataclass(obj):
+        return asdict(obj)
+
+    return obj
 
 
 def _maybe_add_bounding_box_data(data: Dict[str, Any], bounding_box: Optional[Dict]) -> Dict[str, Any]:

@@ -18,8 +18,8 @@ if TYPE_CHECKING:
 
 import darwin.datatypes as dt
 import deprecation
-from darwin.datatypes import PathLike
-from darwin.utils import maybe_to_serializable_format, secure_continue_request
+from darwin.datatypes import PathLike, maybe_to_serializable_format
+from darwin.utils import secure_continue_request
 from darwin.version import __version__
 from rich.progress import track
 

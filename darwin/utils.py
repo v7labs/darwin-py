@@ -4,7 +4,6 @@ Contains several unrelated utility functions used across the SDK.
 
 import json
 import platform
-from dataclasses import asdict, is_dataclass
 from pathlib import Path
 from typing import (
     TYPE_CHECKING,
@@ -906,27 +905,3 @@ def is_unix_like_os() -> bool:
         True for Unix-based systems, False otherwise.
     """
     return platform.system() != "Windows"
-
-
-def maybe_to_serializable_format(obj: Any) -> Any:
-    """
-    Returns a serializable version of the given object. Serializable data structures are usually
-    primitive types together with dictionaries and lists.
-
-    If this function does not know how to convert the given object, then the original one will be
-    returned instead.
-
-    Parameters
-    ----------
-    obj : Any
-        The object to be converted to a serializable format.
-
-    Returns
-    -------
-    Any
-        The given object in a serialized format, or the same object if this was not possible.
-    """
-    if is_dataclass(obj):
-        return asdict(obj)
-
-    return obj
