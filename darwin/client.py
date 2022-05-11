@@ -12,6 +12,8 @@ from requests import Response
 from darwin.config import Config
 from darwin.dataset import RemoteDataset
 from darwin.dataset.identifier import DatasetIdentifier
+from darwin.dataset.remote_dataset_v1 import RemoteDatasetV1
+from darwin.dataset.remote_dataset_v2 import RemoteDatasetV2
 from darwin.datatypes import DarwinVersionNumber, Feature, Team
 from darwin.exceptions import (
     InsufficientStorage,
@@ -86,15 +88,26 @@ class Client:
         response: List[Dict[str, Any]] = cast(List[Dict[str, Any]], self._get("/datasets/", team_slug=team_slug))
 
         for dataset in response:
-            yield RemoteDataset(
-                name=dataset["name"],
-                slug=dataset["slug"],
-                team=team_slug or self.default_team,
-                dataset_id=dataset["id"],
-                item_count=dataset["num_images"] + dataset["num_videos"],
-                progress=dataset["progress"],
-                client=self,
-            )
+            if dataset["itemisation"]:
+                yield RemoteDatasetV2(
+                    name=dataset["name"],
+                    slug=dataset["slug"],
+                    team=team_slug or self.default_team,
+                    dataset_id=dataset["id"],
+                    item_count=dataset.get("item_count", dataset["num_images"] + dataset["num_videos"]),
+                    progress=dataset["progress"],
+                    client=self,
+                )
+            else:
+                yield RemoteDatasetV1(
+                    name=dataset["name"],
+                    slug=dataset["slug"],
+                    team=team_slug or self.default_team,
+                    dataset_id=dataset["id"],
+                    item_count=dataset["num_images"] + dataset["num_videos"],
+                    progress=dataset["progress"],
+                    client=self,
+                )
 
     def get_remote_dataset(self, dataset_identifier: Union[str, DatasetIdentifier]) -> RemoteDataset:
         """
@@ -217,6 +230,36 @@ class Client:
         """
         response: Dict[str, Any] = cast(
             Dict[str, Any], self._post(f"/datasets/{dataset_id}/items?{parse.urlencode(cursor)}", payload, team_slug)
+        )
+        return response
+
+    def fetch_remote_files_v2(
+        self, dataset_id: int, cursor: Dict[str, Any], payload: Dict[str, Any], team_slug: str
+    ) -> Dict[str, Any]:
+        """
+        Download the remote files from the given dataset.
+
+        Parameters
+        ----------
+        dataset_id: int
+            Id of the dataset the file belong to.
+        cursor: Dict[str, Any]
+            Number of items per page and page number. Defaults to {"page[size]": 500, "page[from]": 0}.
+        payload: Dict[str, Any]
+            Filter and sort parameters.
+        team_slug: str
+            The team slug of the dataset.
+
+        Returns
+        -------
+         Dict[str, Any]
+            A response dictionary with the file information.
+        """
+
+        cursor["dataset_ids"] = dataset_id
+
+        response: Dict[str, Any] = cast(
+            Dict[str, Any], self._get(f"/v2/teams/{team_slug}/items?{parse.urlencode(cursor)}", team_slug)
         )
         return response
 

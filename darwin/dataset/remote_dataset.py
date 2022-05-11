@@ -48,8 +48,10 @@ from rich.console import Console
 if TYPE_CHECKING:
     from darwin.client import Client
 
+from abc import ABC, abstractmethod
 
-class RemoteDataset:
+
+class RemoteDataset(ABC):
     """
     Manages the remote and local versions of a dataset hosted on Darwin.
     It allows several dataset management operations such as syncing between
@@ -115,6 +117,7 @@ class RemoteDataset:
         self.annotation_types: Optional[List[Dict[str, Any]]] = None
         self.console: Console = Console()
 
+    @abstractmethod
     def push(
         self,
         files_to_upload: Optional[List[Union[PathLike, LocalFile]]],
@@ -129,81 +132,7 @@ class RemoteDataset:
         progress_callback: Optional[ProgressCallback] = None,
         file_upload_callback: Optional[FileUploadCallback] = None,
     ) -> UploadHandler:
-        """
-        Uploads a local dataset (images ONLY) in the datasets directory.
-
-        Parameters
-        ----------
-        files_to_upload : Optional[List[Union[PathLike, LocalFile]]]
-            List of files to upload. Those can be folders.
-        blocking : bool, default: True
-            If False, the dataset is not uploaded and a generator function is returned instead.
-        multi_threaded : bool, default: True
-            Uses multiprocessing to upload the dataset in parallel.
-            If blocking is False this has no effect.
-        fps : int, default: 0
-            When the uploading file is a video, specify its framerate.
-        as_frames: bool, default: False
-            When the uploading file is a video, specify whether it's going to be uploaded as a list of frames.
-        files_to_exclude : Optional[PathLike]], default: None
-            Optional list of files to exclude from the file scan. Those can be folders.
-        path: Optional[str], default: None
-            Optional path to store the files in.
-        preserve_folders : bool, default: False
-            Specify whether or not to preserve folder paths when uploading
-        progress_callback: Optional[ProgressCallback], default: None
-            Optional callback, called every time the progress of an uploading files is reported.
-        file_upload_callback: Optional[FileUploadCallback], default: None
-            Optional callback, called every time a file chunk is uploaded.
-
-        Returns
-        -------
-        handler : UploadHandler
-           Class for handling uploads, progress and error messages.
-
-        Raises
-        ------
-        ValueError
-            - If ``files_to_upload`` is ``None``.
-            - If a path is specified when uploading a LocalFile object.
-            - If there are no files to upload (because path is wrong or the exclude filter excludes everything).
-        """
-
-        if files_to_exclude is None:
-            files_to_exclude = []
-
-        if files_to_upload is None:
-            raise ValueError("No files or directory specified.")
-
-        uploading_files = [item for item in files_to_upload if isinstance(item, LocalFile)]
-        search_files = [item for item in files_to_upload if not isinstance(item, LocalFile)]
-
-        generic_parameters_specified = path is not None or fps != 0 or as_frames is not False
-        if uploading_files and generic_parameters_specified:
-            raise ValueError("Cannot specify a path when uploading a LocalFile object.")
-
-        for found_file in find_files(search_files, files_to_exclude=files_to_exclude):
-            local_path = path
-            if preserve_folders:
-                source_files = [source_file for source_file in search_files if is_relative_to(found_file, source_file)]
-                if source_files:
-                    local_path = str(found_file.relative_to(source_files[0]).parent)
-            uploading_files.append(LocalFile(found_file, fps=fps, as_frames=as_frames, path=local_path))
-
-        if not uploading_files:
-            raise ValueError("No files to upload, check your path, exclusion filters and resume flag")
-
-        handler = UploadHandler(self, uploading_files)
-        if blocking:
-            handler.upload(
-                multi_threaded=multi_threaded,
-                progress_callback=progress_callback,
-                file_upload_callback=file_upload_callback,
-            )
-        else:
-            handler.prepare_upload()
-
-        return handler
+        pass
 
     def split_video_annotations(self, release_name: str = "latest") -> None:
         """
@@ -383,6 +312,7 @@ class RemoteDataset:
         """Archives (soft-deletion) this ``RemoteDataset``."""
         self.client.archive_remote_dataset(self.dataset_id, self.team)
 
+    @abstractmethod
     def fetch_remote_files(
         self, filters: Optional[Dict[str, Union[str, List[str]]]] = None, sort: Optional[Union[str, ItemSorter]] = None
     ) -> Iterator[DatasetItem]:
@@ -402,36 +332,9 @@ class RemoteDataset:
         Iterator[DatasetItem]
             An iterator of ``DatasetItem``.
         """
-        post_filters: Dict[str, Union[str, List[str]]] = {}
-        post_sort: Dict[str, str] = {}
+        pass
 
-        if filters:
-            for list_type in ["filenames", "statuses"]:
-                if list_type in filters:
-                    if type(filters[list_type]) is list:
-                        post_filters[list_type] = filters[list_type]
-                    else:
-                        post_filters[list_type] = str(filters[list_type])
-            if "path" in filters:
-                post_filters["path"] = str(filters["path"])
-            if "types" in filters:
-                post_filters["types"] = str(filters["types"])
-
-            if sort:
-                item_sorter = ItemSorter.parse(sort)
-                post_sort[item_sorter.field] = item_sorter.direction.value
-        cursor = {"page[size]": 500}
-        while True:
-            payload = {"filter": post_filters, "sort": post_sort}
-            response = self.client.fetch_remote_files(self.dataset_id, cursor, payload, self.team)
-
-            yield from [DatasetItem.parse(item) for item in response["items"]]
-
-            if response["metadata"]["next"]:
-                cursor["page[from]"] = response["metadata"]["next"]
-            else:
-                return
-
+    @abstractmethod
     def archive(self, items: Iterator[DatasetItem]) -> None:
         """
         Archives (soft-deletion) the given ``DatasetItem``\\s belonging to this ``RemoteDataset``.
@@ -441,9 +344,9 @@ class RemoteDataset:
         items : Iterator[DatasetItem]
             The ``DatasetItem``\\s to be archived.
         """
-        payload: Dict[str, Any] = {"filter": {"dataset_item_ids": [item.id for item in items]}}
-        self.client.archive_item(self.slug, self.team, payload)
+        pass
 
+    @abstractmethod
     def restore_archived(self, items: Iterator[DatasetItem]) -> None:
         """
         Restores the archived ``DatasetItem``\\s that belong to this ``RemoteDataset``.
@@ -453,9 +356,9 @@ class RemoteDataset:
         items : Iterator[DatasetItem]
             The ``DatasetItem``\\s to be restored.
         """
-        payload: Dict[str, Any] = {"filter": {"dataset_item_ids": [item.id for item in items]}}
-        self.client.restore_archived_item(self.slug, self.team, payload)
+        pass
 
+    @abstractmethod
     def move_to_new(self, items: Iterator[DatasetItem]) -> None:
         """
         Changes the given ``DatasetItem``\\s status to ``new``.
@@ -465,9 +368,9 @@ class RemoteDataset:
         items : Iterator[DatasetItem]
             The ``DatasetItem``\\s whose status will change.
         """
-        payload: Dict[str, Any] = {"filter": {"dataset_item_ids": [item.id for item in items]}}
-        self.client.move_item_to_new(self.slug, self.team, payload)
+        pass
 
+    @abstractmethod
     def reset(self, items: Iterator[DatasetItem]) -> None:
         """
         Resets the given ``DatasetItem``\\s.
@@ -477,9 +380,9 @@ class RemoteDataset:
         items : Iterator[DatasetItem]
             The ``DatasetItem``\\s to be resetted.
         """
-        payload: Dict[str, Any] = {"filter": {"dataset_item_ids": [item.id for item in items]}}
-        self.client.reset_item(self.slug, self.team, payload)
+        pass
 
+    @abstractmethod
     def delete_items(self, items: Iterator[DatasetItem]) -> None:
         """
         Deletes the given ``DatasetItem``\\s.
@@ -489,8 +392,7 @@ class RemoteDataset:
         items : Iterator[DatasetItem]
             The ``DatasetItem``\\s to be deleted.
         """
-        payload: Dict[str, Any] = {"filter": {"dataset_item_ids": [item.id for item in items]}}
-        self.client.delete_item(self.slug, self.team, payload)
+        pass
 
     def fetch_annotation_type_id_for_name(self, name: str) -> Optional[int]:
         """
@@ -643,6 +545,7 @@ class RemoteDataset:
         """
         return self.client.fetch_remote_attributes(self.dataset_id)
 
+    @abstractmethod
     def export(
         self,
         name: str,
@@ -666,17 +569,9 @@ class RemoteDataset:
             If set, include annotator and reviewer metadata for each annotation.
 
         """
-        if annotation_class_ids is None:
-            annotation_class_ids = []
+        pass
 
-        payload = {
-            "annotation_class_ids": annotation_class_ids,
-            "name": name,
-            "include_export_token": include_url_token,
-            "include_authorship": include_authorship,
-        }
-        self.client.create_export(self.dataset_id, payload, self.team)
-
+    @abstractmethod
     def get_report(self, granularity: str = "day") -> str:
         """
         Returns a String representation of a CSV report for this ``RemoteDataset``.
@@ -691,8 +586,7 @@ class RemoteDataset:
         str
             A CSV report.
         """
-        response: Response = self.client.get_report(self.dataset_id, granularity, self.team)
-        return response.text
+        pass
 
     def get_releases(self) -> List["Release"]:
         """
@@ -862,6 +756,7 @@ class RemoteDataset:
         ):
             yield annotation
 
+    @abstractmethod
     def workview_url_for_item(self, item: DatasetItem) -> str:
         """
         Returns the darwin URL for the given ``DatasetItem``.
@@ -876,7 +771,7 @@ class RemoteDataset:
         str
             The url.
         """
-        return urljoin(self.client.base_url, f"/workview?dataset={self.dataset_id}&image={item.seq}")
+        pass
 
     @property
     def remote_path(self) -> Path:
