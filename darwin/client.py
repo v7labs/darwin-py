@@ -233,9 +233,7 @@ class Client:
         )
         return response
 
-    def fetch_remote_files_v2(
-        self, dataset_id: int, cursor: Dict[str, Any], payload: Dict[str, Any], team_slug: str
-    ) -> Dict[str, Any]:
+    def fetch_remote_files_v2(self, dataset_id: int, cursor: Dict[str, Any], team_slug: str) -> Dict[str, Any]:
         """
         Download the remote files from the given dataset.
 
@@ -259,7 +257,7 @@ class Client:
         cursor["dataset_ids"] = dataset_id
 
         response: Dict[str, Any] = cast(
-            Dict[str, Any], self._get(f"/v2/teams/{team_slug}/items?{parse.urlencode(cursor)}", team_slug)
+            Dict[str, Any], self._get(f"/v2/teams/{team_slug}/items?{parse.urlencode(cursor, True)}", team_slug)
         )
         return response
 
@@ -712,6 +710,19 @@ class Client:
         """
         self._put_raw(f"teams/{team_slug}/datasets/{dataset_slug}/items/archive", payload, team_slug)
 
+    def archive_item_v2(self, team_slug: str, payload: Dict[str, Any]) -> None:
+        """
+        Archives the item from the given dataset.
+
+        Parameters
+        ----------
+        team_slug: str
+            The slug of the team.
+        payload: Dict[str, Any]
+            A filter Dictionary that defines the items to be archived.
+        """
+        self._put_raw(f"v2/teams/{team_slug}/items/archive", payload, team_slug)
+
     def restore_archived_item(self, dataset_slug: str, team_slug: str, payload: Dict[str, Any]) -> None:
         """
         Restores the archived item from the given dataset.
@@ -726,6 +737,19 @@ class Client:
             A filter Dictionary that defines the items to be restored.
         """
         self._put_raw(f"teams/{team_slug}/datasets/{dataset_slug}/items/restore", payload, team_slug)
+
+    def restore_archived_item_v2(self, team_slug: str, payload: Dict[str, Any]) -> None:
+        """
+        Restores the archived item from the given dataset.
+
+        Parameters
+        ----------
+        team_slug: str
+            The slug of the team.
+        payload: Dict[str, Any]
+            A filter Dictionary that defines the items to be restored.
+        """
+        self._put_raw(f"v2/teams/{team_slug}/items/restore", payload, team_slug)
 
     def move_item_to_new(self, dataset_slug: str, team_slug: str, payload: Dict[str, Any]) -> None:
         """
@@ -1129,7 +1153,13 @@ class Client:
             body = response.json()
             is_name_taken: Optional[bool] = None
             if isinstance(body, Dict):
-                is_name_taken = body.get("errors", {}).get("name") == ["has already been taken"]
+                errors = body.get("errors")
+                if errors and isinstance(errors, list):
+                    for error in errors:
+                        # we haven't really implemented this yet
+                        pass
+                if errors and isinstance(errors, Dict):
+                    is_name_taken = errors.get("name") == ["has already been taken"]
 
             if response.status_code == 422:
                 if is_name_taken:

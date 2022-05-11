@@ -210,7 +210,10 @@ class RemoteDatasetV2(RemoteDataset):
         post_sort: Dict[str, str] = {}
 
         if filters:
-            for list_type in ["filenames", "statuses"]:
+            if "filenames" in filters:
+                # compability layer with v1
+                filters["item_names"] = filters["filenames"]
+            for list_type in ["item_names", "statuses"]:
                 if list_type in filters:
                     if type(filters[list_type]) is list:
                         post_filters[list_type] = filters[list_type]
@@ -221,13 +224,13 @@ class RemoteDatasetV2(RemoteDataset):
             if "types" in filters:
                 post_filters["types"] = str(filters["types"])
 
-            if sort:
-                item_sorter = ItemSorter.parse(sort)
-                post_sort[item_sorter.field] = item_sorter.direction.value
+        if sort:
+            item_sorter = ItemSorter.parse(sort)
+            post_sort[f"sort[{item_sorter.field}]"] = item_sorter.direction.value
         cursor = {"page[size]": 500}
         while True:
-            payload = {"filter": post_filters, "sort": post_sort}
-            response = self.client.fetch_remote_files_v2(self.dataset_id, cursor, payload, self.team)
+            cursor = {**post_filters, **post_sort, **cursor}
+            response = self.client.fetch_remote_files_v2(self.dataset_id, cursor, self.team)
             yield from [DatasetItem.parse(item) for item in response["items"]]
 
             if response["page"]["next"]:
@@ -244,8 +247,10 @@ class RemoteDatasetV2(RemoteDataset):
         items : Iterator[DatasetItem]
             The ``DatasetItem``\\s to be archived.
         """
-        payload: Dict[str, Any] = {"filter": {"dataset_item_ids": [item.id for item in items]}}
-        self.client.archive_item(self.slug, self.team, payload)
+        payload: Dict[str, Any] = {
+            "filters": {"item_ids": [item.id for item in items], "dataset_ids": [self.dataset_id]}
+        }
+        self.client.archive_item_v2(self.team, payload)
 
     def restore_archived(self, items: Iterator[DatasetItem]) -> None:
         """
@@ -256,8 +261,10 @@ class RemoteDatasetV2(RemoteDataset):
         items : Iterator[DatasetItem]
             The ``DatasetItem``\\s to be restored.
         """
-        payload: Dict[str, Any] = {"filter": {"dataset_item_ids": [item.id for item in items]}}
-        self.client.restore_archived_item(self.slug, self.team, payload)
+        payload: Dict[str, Any] = {
+            "filters": {"item_ids": [item.id for item in items], "dataset_ids": [self.dataset_id]}
+        }
+        self.client.restore_archived_item_v2(self.team, payload)
 
     def move_to_new(self, items: Iterator[DatasetItem]) -> None:
         """
