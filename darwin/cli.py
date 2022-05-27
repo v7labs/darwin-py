@@ -75,7 +75,7 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
         f.convert(args.format, args.files, args.output_dir)
     elif args.command == "dataset":
         if args.action == "remote":
-            f.list_remote_datasets(args.all, args.team)
+            f.list_remote_datasets(args.all, args.team, args.short)
         elif args.action == "local":
             f.local(args.team)
         elif args.action == "create":

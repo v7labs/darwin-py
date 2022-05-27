@@ -437,7 +437,7 @@ def split(dataset_slug: str, val_percentage: float, test_percentage: float, seed
     )
 
 
-def list_remote_datasets(all_teams: bool, team: Optional[str] = None) -> None:
+def list_remote_datasets(all_teams: bool, team: Optional[str] = None, short: bool = False) -> None:
     """
     Lists remote datasets with its annotation progress.
 
@@ -449,6 +449,8 @@ def list_remote_datasets(all_teams: bool, team: Optional[str] = None) -> None:
     team: Optional[str]
         Name of the team with the datasets we want to see. Uses the default Team is non is given.
         Defaults to None.
+    short: bool
+        If True, print only datasets names instead of table.
     """
     # TODO: add listing open datasets
 
@@ -468,12 +470,18 @@ def list_remote_datasets(all_teams: bool, team: Optional[str] = None) -> None:
         client = _load_client(team)
         datasets = list(client.list_remote_datasets())
 
+    datasets_names = []
     for dataset in datasets:
         table.add_row(f"{dataset.team}/{dataset.slug}", str(dataset.item_count), f"{dataset.progress * 100:.1f}%")
+        datasets_names.append(dataset.slug)
+
     if table.row_count == 0:
         print("No dataset available.")
     else:
-        Console().print(table)
+        if short:
+            print(" ".join(datasets_names))
+        else:
+            Console().print(table)
 
     print_new_version_info(client)
 

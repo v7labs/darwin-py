@@ -46,6 +46,7 @@ class Options(object):
         parser_remote = dataset_action.add_parser("remote", help="List remote datasets.")
         parser_remote.add_argument("-t", "--team", help="Specify team.")
         parser_remote.add_argument("-a", "--all", action="store_true", help="List datasets for all teams.")
+        parser_remote.add_argument("-s", "--short", action="store_true", help="List only datasets names.")
 
         # Local
         parser_local = dataset_action.add_parser("local", help="List downloaded datasets.")
