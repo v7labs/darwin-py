@@ -692,7 +692,10 @@ class RemoteDataset:
             A CSV report.
         """
         response: Response = self.client.get_report(self.dataset_id, granularity, self.team)
-        return response.text
+        try:
+            return response.content.decode(response.apparent_encoding)
+        except (UnicodeDecodeError, LookupError, TypeError):
+            return response.text
 
     def get_releases(self) -> List["Release"]:
         """
