@@ -102,7 +102,7 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
         elif args.action == "remove":
             f.remove_remote_dataset(args.dataset)
         elif args.action == "report":
-            f.dataset_report(args.dataset, args.granularity or "day", args.pretty)
+            f.dataset_report(args.dataset, args.granularity or "day", args.pretty, args.verbose)
         elif args.action == "export":
             f.export_dataset(args.dataset, args.include_url_token, args.name, args.class_ids, args.include_authorship)
         elif args.action == "files":

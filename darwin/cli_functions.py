@@ -248,61 +248,76 @@ def url(dataset_slug: str) -> None:
         _error(f"Dataset '{e.name}' does not exist.")
 
 
-def dataset_report(dataset_slug: str, granularity: str, pretty: bool) -> None:
+def dataset_report(dataset_slugs: List[str], granularity: str, pretty: bool, verbose: bool) -> None:
     """
     Prints a dataset's report in CSV format.
     Exits the application if no dataset is found.
 
     Parameters
     ----------
-    dataset_slug : str
-        The dataset's slug.
+    dataset_slugs : List[str]
+        The dataset slugs.
     granularity : str
         Granularity of the report, can be 'day', 'week' or 'month'.
     pretty : bool
         If ``True``, it will print the output in a Rich formatted table.
+    verbose : bool
+        If ``True``, it will print info about generating report progress.
     """
     client: Client = _load_client(offline=True)
     console = Console(theme=_console_theme())
-    try:
-        remote_dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
-        report: str = remote_dataset.get_report(granularity)
+    missing_slugs: List[str] = []
+    all_lines: List[str] = []
+    for index, slug in enumerate(dataset_slugs):
+        report_ok = True
+        try:
+            remote_dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=slug)
+            report: str = remote_dataset.get_report(granularity)
+            report_lines: List[str] = report.split("\n")
+            all_lines.extend(report_lines[1:] if all_lines else report_lines)  # extend without/with csv header
+        except NotFound:
+            missing_slugs.append(slug)
+            report_ok = False
 
-        if not pretty:
-            # if no one worked in the report, we print nothing
-            print(report)
-            return
+        if verbose:
+            print(f'{index + 1}/{len(dataset_slugs)}: {slug}: {"Ok" if report_ok else "Error"}')
 
-        lines: List[str] = report.split("\n")
-        lines.pop(0)  # remove csv headers
+    if missing_slugs:
+        _error(f"Datasets {', '.join(missing_slugs)} does not exist.")
+        return
 
-        if not lines:
-            console.print("No one has worked on this dataset yet!\n", style="success")
-            return
+    all_lines = [line for line in all_lines if line]  # filter emply lines
 
-        lines.pop()  # remove last line, which is empty
+    if not pretty:
+        # if no one worked in the report, we print nothing
+        print("\n".join(all_lines))
+        return
 
-        table: Table = Table(show_header=True, header_style="bold cyan")
-        table.add_column("Date")
-        table.add_column("Dataset Id", justify="right")
-        table.add_column("Dataset Name", justify="right")
-        table.add_column("User Id", justify="right")
-        table.add_column("Email", justify="right")
-        table.add_column("First Name", justify="right")
-        table.add_column("Last Name", justify="right")
-        table.add_column("Annotation Time", justify="right")
-        table.add_column("Annotations Approved", justify="right")
-        table.add_column("Annotations Created", justify="right")
-        table.add_column("Images Annotated", justify="right")
-        table.add_column("Images Approved", justify="right")
-        table.add_column("Images Rejected", justify="right")
+    all_lines.pop(0)  # remove csv headers
 
-        for row in lines:
-            table.add_row(*row.split(","))
+    if not all_lines:
+        console.print("No one has worked on this dataset yet!\n", style="success")
+        return
 
-        console.print(table)
-    except NotFound:
-        _error(f"Dataset '{dataset_slug}' does not exist.")
+    table: Table = Table(show_header=True, header_style="bold cyan")
+    table.add_column("Date")
+    table.add_column("Dataset Id", justify="right")
+    table.add_column("Dataset Name", justify="right")
+    table.add_column("User Id", justify="right")
+    table.add_column("Email", justify="right")
+    table.add_column("First Name", justify="right")
+    table.add_column("Last Name", justify="right")
+    table.add_column("Annotation Time", justify="right")
+    table.add_column("Annotations Approved", justify="right")
+    table.add_column("Annotations Created", justify="right")
+    table.add_column("Images Annotated", justify="right")
+    table.add_column("Images Approved", justify="right")
+    table.add_column("Images Rejected", justify="right")
+
+    for row in all_lines:
+        table.add_row(*row.split(","))
+
+    console.print(table)
 
 
 def export_dataset(

@@ -101,7 +101,7 @@ class Options(object):
 
         # Report
         parser_report = dataset_action.add_parser("report", help="Report about the annotators.")
-        parser_report.add_argument("dataset", type=str, help="Remote dataset name to report on.")
+        parser_report.add_argument("dataset", type=str, nargs='+', help="Remote dataset names to report on.")
         parser_report.add_argument(
             "-g", "--granularity", choices=["day", "week", "month", "total"], help="Granularity of the report."
         )
@@ -111,6 +111,9 @@ class Options(object):
             action="store_true",
             default=False,
             help="Prints the results formatted in a rich table.",
+        )
+        parser_report.add_argument(
+            "-v", "--verbose", action="store_true", help="Flag to show generating report progress."
         )
         # Export
         parser_export = dataset_action.add_parser("export", help="Export a version of a dataset.")
