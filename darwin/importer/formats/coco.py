@@ -102,12 +102,13 @@ def parse_annotation(annotation: Dict[str, Any], category_lookup_table: Dict[str
         print("Warning, unsupported RLE, skipping")
         return None
 
+    subs = _build_sub_annotations(annotation)
     if len(segmentation) == 0 and len(annotation["bbox"]) == 4:
         x, y, w, h = map(int, annotation["bbox"])
-        return dt.make_bounding_box(category["name"], x, y, w, h)
+        return dt.make_bounding_box(category["name"], x, y, w, h, subs=subs)
     elif len(segmentation) == 0 and len(annotation["bbox"]) == 1 and len(annotation["bbox"][0]) == 4:
         x, y, w, h = map(int, annotation["bbox"][0])
-        return dt.make_bounding_box(category["name"], x, y, w, h)
+        return dt.make_bounding_box(category["name"], x, y, w, h, subs=subs)
     elif isinstance(segmentation, dict):
         print("warning, converting complex coco rle mask to polygon, could take some time")
         if isinstance(segmentation["counts"], list):
@@ -131,7 +132,7 @@ def parse_annotation(annotation: Dict[str, Any], category_lookup_table: Dict[str
                 except StopIteration:
                     break
             paths.append(path)
-        return dt.make_complex_polygon(category["name"], paths)
+        return dt.make_complex_polygon(category["name"], paths, subs=subs)
     elif isinstance(segmentation, list):
         path = []
         points = iter(segmentation[0] if isinstance(segmentation[0], list) else segmentation)
@@ -141,9 +142,27 @@ def parse_annotation(annotation: Dict[str, Any], category_lookup_table: Dict[str
                 path.append({"x": x, "y": y})
             except StopIteration:
                 break
-        return dt.make_polygon(category["name"], path)
+        return dt.make_polygon(category["name"], path, subs=subs)
     else:
         return None
+
+
+def _build_sub_annotations(annotation: dict):
+    """Builds the SubAnnotations from the annotation attributes.
+
+    Args:
+        annotation (Dict): The annotation dictionary.
+
+    Returns:
+        List[SubAnnotation]: SubAnnotation list or None if no extra info is
+        available.
+    """
+    extra_info = annotation.get("extra")
+    attributes = extra_info.get("attributes")
+    sub_ann = None
+    if extra_info and attributes:
+        sub_ann = [dt.make_attributes(attributes)]
+    return sub_ann
 
 
 @deprecation.deprecated(
