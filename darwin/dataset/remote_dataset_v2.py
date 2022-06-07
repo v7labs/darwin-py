@@ -8,6 +8,7 @@ from darwin.dataset.upload_manager import (
     LocalFile,
     ProgressCallback,
     UploadHandler,
+    UploadHandlerV2,
 )
 from darwin.dataset.utils import (
     exhaust_generator,
@@ -175,7 +176,7 @@ class RemoteDatasetV2(RemoteDataset):
         if not uploading_files:
             raise ValueError("No files to upload, check your path, exclusion filters and resume flag")
 
-        handler = UploadHandler(self, uploading_files)
+        handler = UploadHandlerV2(self, uploading_files)
         if blocking:
             handler.upload(
                 multi_threaded=multi_threaded,
@@ -230,7 +231,7 @@ class RemoteDatasetV2(RemoteDataset):
         cursor = {"page[size]": 500}
         while True:
             cursor = {**post_filters, **post_sort, **cursor}
-            response = self.client.fetch_remote_files_v2(self.dataset_id, cursor, self.team)
+            response = self.client.api_v2.fetch_items(self.dataset_id, cursor, team_slug=self.team)
             yield from [DatasetItem.parse(item) for item in response["items"]]
 
             if response["page"]["next"]:
@@ -250,7 +251,7 @@ class RemoteDatasetV2(RemoteDataset):
         payload: Dict[str, Any] = {
             "filters": {"item_ids": [item.id for item in items], "dataset_ids": [self.dataset_id]}
         }
-        self.client.archive_item_v2(self.team, payload)
+        self.client.api_v2.archive_items(payload, team_slug=self.team)
 
     def restore_archived(self, items: Iterator[DatasetItem]) -> None:
         """
@@ -264,7 +265,7 @@ class RemoteDatasetV2(RemoteDataset):
         payload: Dict[str, Any] = {
             "filters": {"item_ids": [item.id for item in items], "dataset_ids": [self.dataset_id]}
         }
-        self.client.restore_archived_item_v2(self.team, payload)
+        self.client.api_v2.restore_archived_items(payload, team_slug=self.team)
 
     def move_to_new(self, items: Iterator[DatasetItem]) -> None:
         """
@@ -367,4 +368,4 @@ class RemoteDatasetV2(RemoteDataset):
         str
             The url.
         """
-        return urljoin(self.client.base_url, f"/workview?dataset_id={self.dataset_id}&item_id={item.id}")
+        return urljoin(self.client.base_url, f"/workview?dataset={self.dataset_id}&item={item.id}")

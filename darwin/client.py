@@ -9,6 +9,7 @@ from urllib import parse
 import requests
 from requests import Response
 
+from darwin.backend_v2 import BackendV2
 from darwin.config import Config
 from darwin.dataset import RemoteDataset
 from darwin.dataset.identifier import DatasetIdentifier
@@ -88,7 +89,7 @@ class Client:
         response: List[Dict[str, Any]] = cast(List[Dict[str, Any]], self._get("/datasets/", team_slug=team_slug))
 
         for dataset in response:
-            if dataset["itemisation"]:
+            if dataset.get("version", 1) == 2:
                 yield RemoteDatasetV2(
                     name=dataset["name"],
                     slug=dataset["slug"],
@@ -230,34 +231,6 @@ class Client:
         """
         response: Dict[str, Any] = cast(
             Dict[str, Any], self._post(f"/datasets/{dataset_id}/items?{parse.urlencode(cursor)}", payload, team_slug)
-        )
-        return response
-
-    def fetch_remote_files_v2(self, dataset_id: int, cursor: Dict[str, Any], team_slug: str) -> Dict[str, Any]:
-        """
-        Download the remote files from the given dataset.
-
-        Parameters
-        ----------
-        dataset_id: int
-            Id of the dataset the file belong to.
-        cursor: Dict[str, Any]
-            Number of items per page and page number. Defaults to {"page[size]": 500, "page[from]": 0}.
-        payload: Dict[str, Any]
-            Filter and sort parameters.
-        team_slug: str
-            The team slug of the dataset.
-
-        Returns
-        -------
-         Dict[str, Any]
-            A response dictionary with the file information.
-        """
-
-        cursor["dataset_ids"] = dataset_id
-
-        response: Dict[str, Any] = cast(
-            Dict[str, Any], self._get(f"/v2/teams/{team_slug}/items?{parse.urlencode(cursor, True)}", team_slug)
         )
         return response
 
@@ -710,19 +683,6 @@ class Client:
         """
         self._put_raw(f"teams/{team_slug}/datasets/{dataset_slug}/items/archive", payload, team_slug)
 
-    def archive_item_v2(self, team_slug: str, payload: Dict[str, Any]) -> None:
-        """
-        Archives the item from the given dataset.
-
-        Parameters
-        ----------
-        team_slug: str
-            The slug of the team.
-        payload: Dict[str, Any]
-            A filter Dictionary that defines the items to be archived.
-        """
-        self._put_raw(f"v2/teams/{team_slug}/items/archive", payload, team_slug)
-
     def restore_archived_item(self, dataset_slug: str, team_slug: str, payload: Dict[str, Any]) -> None:
         """
         Restores the archived item from the given dataset.
@@ -737,19 +697,6 @@ class Client:
             A filter Dictionary that defines the items to be restored.
         """
         self._put_raw(f"teams/{team_slug}/datasets/{dataset_slug}/items/restore", payload, team_slug)
-
-    def restore_archived_item_v2(self, team_slug: str, payload: Dict[str, Any]) -> None:
-        """
-        Restores the archived item from the given dataset.
-
-        Parameters
-        ----------
-        team_slug: str
-            The slug of the team.
-        payload: Dict[str, Any]
-            A filter Dictionary that defines the items to be restored.
-        """
-        self._put_raw(f"v2/teams/{team_slug}/items/restore", payload, team_slug)
 
     def move_item_to_new(self, dataset_slug: str, team_slug: str, payload: Dict[str, Any]) -> None:
         """
@@ -1234,3 +1181,7 @@ class Client:
 
     def __str__(self) -> str:
         return f"Client(default_team={self.default_team})"
+
+    @property
+    def api_v2(self):
+        return BackendV2(self, self.config.get_default_team().slug)
