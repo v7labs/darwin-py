@@ -184,15 +184,27 @@ class Client:
             The created dataset.
         """
         dataset: Dict[str, Any] = cast(Dict[str, Any], self._post("/datasets", {"name": name}, team_slug=team_slug))
-        return RemoteDataset(
-            name=dataset["name"],
-            team=team_slug or self.default_team,
-            slug=dataset["slug"],
-            dataset_id=dataset["id"],
-            item_count=dataset["num_images"],
-            progress=0,
-            client=self,
-        )
+        if dataset.get("version", 1) == 2:
+            return RemoteDatasetV2(
+                name=dataset["name"],
+                team=team_slug or self.default_team,
+                slug=dataset["slug"],
+                dataset_id=dataset["id"],
+                item_count=dataset["num_images"],
+                progress=0,
+                client=self,
+            )
+        else:
+            return RemoteDatasetV1(
+                name=dataset["name"],
+                team=team_slug or self.default_team,
+                slug=dataset["slug"],
+                dataset_id=dataset["id"],
+                item_count=dataset["num_images"],
+                progress=0,
+                client=self,
+            )
+        end
 
     def archive_remote_dataset(self, dataset_id: int, team_slug: str) -> None:
         """
