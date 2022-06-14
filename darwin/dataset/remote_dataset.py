@@ -588,6 +588,7 @@ class RemoteDataset(ABC):
         """
         pass
 
+    @abstractmethod
     def get_releases(self) -> List["Release"]:
         """
         Get a sorted list of releases with the most recent first.
@@ -597,13 +598,7 @@ class RemoteDataset(ABC):
         List["Release"]
             Returns a sorted list of available ``Release``\\s with the most recent first.
         """
-        try:
-            releases_json: List[Dict[str, Any]] = self.client.get_exports(self.dataset_id, self.team)
-        except NotFound:
-            return []
-
-        releases = [Release.parse_json(self.slug, self.team, payload) for payload in releases_json]
-        return sorted(filter(lambda x: x.available, releases), key=lambda x: x.version, reverse=True)
+        pass
 
     def get_release(self, name: str = "latest") -> "Release":
         """

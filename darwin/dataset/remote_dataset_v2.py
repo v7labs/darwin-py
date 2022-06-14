@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, Union
 
 from darwin.dataset import RemoteDataset
 from darwin.dataset.download_manager import download_all_images_from_annotations
+from darwin.dataset.release import Release
 from darwin.dataset.split_manager import split_dataset
 from darwin.dataset.upload_manager import (
     FileUploadCallback,
@@ -97,6 +98,23 @@ class RemoteDatasetV2(RemoteDataset):
             item_count=item_count,
             progress=progress,
         )
+
+    def get_releases(self) -> List["Release"]:
+        """
+        Get a sorted list of releases with the most recent first.
+
+        Returns
+        -------
+        List["Release"]
+            Returns a sorted list of available ``Release``\\s with the most recent first.
+        """
+        try:
+            releases_json: List[Dict[str, Any]] = self.client.api_v2.get_exports(self.slug, team_slug=self.team)
+        except NotFound:
+            return []
+
+        releases = [Release.parse_json(self.slug, self.team, payload) for payload in releases_json]
+        return sorted(filter(lambda x: x.available, releases), key=lambda x: x.version, reverse=True)
 
     def push(
         self,
@@ -346,13 +364,16 @@ class RemoteDatasetV2(RemoteDataset):
         if annotation_class_ids is None:
             annotation_class_ids = []
 
-        payload = {
-            "annotation_class_ids": annotation_class_ids,
-            "name": name,
-            "include_export_token": include_url_token,
-            "include_authorship": include_authorship,
-        }
-        self.client.create_export(self.dataset_id, payload, self.team)
+        self.client.api_v2.export_dataset(
+            format="json",
+            name=name,
+            include_authorship=include_authorship,
+            include_token=include_url_token,
+            annotation_class_ids=annotation_class_ids,
+            filters={},
+            dataset_slug=self.slug,
+            team_slug=self.team,
+        )
 
     def get_report(self, granularity: str = "day") -> str:
         """

@@ -133,3 +133,29 @@ class BackendV2:
     @inject_default_team_slug
     def delete_items(self, filters, *, team_slug: Optional[str] = None):
         self._client._delete(f"v2/teams/{team_slug}/items", {"filters": filters}, team_slug)
+
+    @inject_default_team_slug
+    def export_dataset(
+        self,
+        name,
+        format,
+        include_authorship,
+        include_token,
+        dataset_slug,
+        filters,
+        annotation_class_ids,
+        *,
+        team_slug: Optional[str] = None,
+    ):
+        payload = {
+            "filters": filters,
+            "format": format,
+            "include_authorship": include_authorship,
+            "include_export_token": include_token,
+            "name": name,
+            "annotation_filters": {"annotation_class_ids": annotation_class_ids},
+        }
+        return self._client._post(f"v2/teams/{team_slug}/datasets/{dataset_slug}/exports", payload, team_slug)
+
+    def get_exports(self, dataset_slug, *, team_slug: Optional[str] = None):
+        return self._client._get(f"v2/teams/{team_slug}/datasets/{dataset_slug}/exports", team_slug)
