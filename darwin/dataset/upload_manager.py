@@ -64,25 +64,25 @@ class ItemPayload:
         filename: str,
         path: str,
         reason: Optional[str] = None,
-        files: Optional[any] = None,
+        slots: Optional[any] = None,
     ):
         self.dataset_item_id = dataset_item_id
         self.filename = filename
         self.path = path
         self.reason = reason
-        self.files = files
+        self.slots = slots
 
     @staticmethod
     def parse_v2(payload):
-        if len(payload["files"]) > 1:
+        if len(payload["slots"]) > 1:
             raise NotImplemented("multiple files support not yet implemented")
-        file = payload["files"][0]
+        slot = payload["slots"][0]
         return ItemPayload(
             dataset_item_id=payload.get("id", None),
             filename=payload["name"],
             path=payload["path"],
-            reason=file.get("reason", None),
-            files=payload["files"],
+            reason=slot.get("reason", None),
+            slots=payload["slots"],
         )
 
     @property
@@ -159,6 +159,9 @@ class LocalFile:
 
     def serialize(self):
         return {"files": [{"file_name": self.data["filename"], "slot_name": "0"}], "name": self.data["filename"]}
+
+    def serialize_v2(self):
+        return {"slots": [{"file_name": self.data["filename"], "slot_name": "0"}], "name": self.data["filename"]}
 
     @property
     def full_path(self) -> str:
@@ -449,7 +452,7 @@ class UploadHandlerV2(UploadHandler):
         items = []
         chunk_size: int = _upload_chunk_size()
         for file_chunk in chunk(self.local_files, chunk_size):
-            upload_payload = {"items": [file.serialize() for file in file_chunk]}
+            upload_payload = {"items": [file.serialize_v2() for file in file_chunk]}
             dataset_slug: str = self.dataset_identifier.dataset_slug
             team_slug: Optional[str] = self.dataset_identifier.team_slug
 
@@ -467,9 +470,9 @@ class UploadHandlerV2(UploadHandler):
 
         file_lookup = {file.full_path: file for file in self.local_files}
         for item in self.pending_items:
-            if len(item.files) != 1:
+            if len(item.slots) != 1:
                 raise NotImplemented("Multi file upload is not supported")
-            upload_id = item.files[0]["upload_id"]
+            upload_id = item.slots[0]["upload_id"]
             file = file_lookup.get(item.full_path)
             if not file:
                 raise ValueError(f"Cannot match {item.full_path} from payload with files to upload")

@@ -26,8 +26,9 @@ class BackendV2:
         self, dataset_slug: str, payload: Dict[str, Any], *, team_slug: Optional[str] = None
     ) -> Dict[str, Any]:
 
+        payload["dataset_slug"] = dataset_slug
         response = self._client._post(
-            endpoint=f"v2/teams/{team_slug}/datasets/{dataset_slug}/items/register_upload",
+            endpoint=f"v2/teams/{team_slug}/items/register_upload",
             payload=payload,
             team_slug=team_slug,
         )
@@ -35,14 +36,12 @@ class BackendV2:
 
     @inject_default_team_slug
     def sign_upload(self, dataset_slug: str, upload_id: str, *, team_slug: Optional[str] = None) -> Dict[str, Any]:
-        return self._client._get(
-            f"v2/teams/{team_slug}/datasets/{dataset_slug}/items/sign_upload/{upload_id}", team_slug=team_slug
-        )
+        return self._client._get(f"v2/teams/{team_slug}/items/uploads/{upload_id}/sign", team_slug=team_slug)
 
     @inject_default_team_slug
     def confirm_upload(self, dataset_slug: str, upload_id: str, *, team_slug: Optional[str] = None) -> Dict[str, Any]:
-        return self._client._put(
-            f"v2/teams/{team_slug}/datasets/{dataset_slug}/items/confirm_upload/{upload_id}",
+        return self._client._post(
+            f"v2/teams/{team_slug}/items/uploads/{upload_id}/confirm",
             payload={},
             team_slug=team_slug,
         )

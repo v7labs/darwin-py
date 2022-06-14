@@ -652,7 +652,7 @@ def upload_data(
         already_existing_items = []
         other_skipped_items = []
         for item in upload_manager.blocked_items:
-            if item.reason == "ALREADY_EXISTS":
+            if item.reason.upper() == "ALREADY_EXISTS":
                 already_existing_items.append(item)
             else:
                 other_skipped_items.append(item)
