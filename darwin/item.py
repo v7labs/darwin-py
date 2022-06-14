@@ -75,14 +75,14 @@ class DatasetItem(BaseModel):
             If any of the keys from the given dictionary do not have the correct format or are
             missing.
         """
-        if "files" in raw:
+        if "slots" in raw:
             data = {
                 "id": raw["id"],
                 "filename": raw["name"],
                 "path": raw["path"],
                 "status": raw["status"],
                 "archived": raw["archived"],
-                "filesize": sum(file["size_bytes"] for file in raw["files"]),
+                "filesize": sum(file["size_bytes"] for file in raw["slots"]),
                 "dataset_id": raw["dataset_id"],
                 "dataset_slug": "n/a",
                 "seq": None,

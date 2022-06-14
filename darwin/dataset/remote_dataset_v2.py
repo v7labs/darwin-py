@@ -276,20 +276,36 @@ class RemoteDatasetV2(RemoteDataset):
         items : Iterator[DatasetItem]
             The ``DatasetItem``\\s whose status will change.
         """
-        payload: Dict[str, Any] = {"filter": {"dataset_item_ids": [item.id for item in items]}}
-        self.client.move_item_to_new(self.slug, self.team, payload)
+
+        detailed_dataset = self.client.api_v2.get_dataset(self.dataset_id)
+        workflow_ids = detailed_dataset["workflow_ids"]
+        if len(workflow_ids) == 0:
+            raise ValueError("Dataset is not part of a workflow")
+        # currently we can only be part of one workflow
+        workflow_id = workflow_ids[0]
+        workflow = self.client.api_v2.get_workflow(workflow_id, team_slug=self.team)
+        dataset_stages = [stage for stage in workflow["stages"] if stage["type"] == "dataset"]
+        if not dataset_stages:
+            raise ValueError("Dataset's workflow is missing a dataset stage")
+
+        self.client.api_v2.move_to_stage(
+            {"item_ids": [item.id for item in items], "dataset_ids": [self.dataset_id]},
+            dataset_stages[0]["id"],
+            workflow_id,
+            team_slug=self.team,
+        )
 
     def reset(self, items: Iterator[DatasetItem]) -> None:
         """
-        Resets the given ``DatasetItem``\\s.
+        Deprecated
+        Resets the  given ``DatasetItem``\\s.
 
         Parameters
         ----------
         items : Iterator[DatasetItem]
             The ``DatasetItem``\\s to be resetted.
         """
-        payload: Dict[str, Any] = {"filter": {"dataset_item_ids": [item.id for item in items]}}
-        self.client.reset_item(self.slug, self.team, payload)
+        raise ValueError("Reset is deprecated for version 2 datasets")
 
     def delete_items(self, items: Iterator[DatasetItem]) -> None:
         """
@@ -300,8 +316,9 @@ class RemoteDatasetV2(RemoteDataset):
         items : Iterator[DatasetItem]
             The ``DatasetItem``\\s to be deleted.
         """
-        payload: Dict[str, Any] = {"filter": {"dataset_item_ids": [item.id for item in items]}}
-        self.client.delete_item(self.slug, self.team, payload)
+        self.client.api_v2.delete_items(
+            {"dataset_ids": [self.dataset_id], "item_ids": [item.id for item in items]}, team_slug=self.team
+        )
 
     def export(
         self,

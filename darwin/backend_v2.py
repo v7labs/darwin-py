@@ -102,3 +102,34 @@ class BackendV2:
             A filter Dictionary that defines the items to be restored.
         """
         self._client._put(f"v2/teams/{team_slug}/items/restore", payload, team_slug)
+
+    @inject_default_team_slug
+    def move_to_stage(
+        self, filters: Dict[str, Any], stage_id: str, workflow_id: str, *, team_slug: Optional[str] = None
+    ) -> None:
+        """
+        Moves the given items to the specified stage
+
+        Parameters
+        ----------
+        dataset_slug: str
+            The slug of the dataset.
+        team_slug: str
+            The slug of the team.
+        payload: Dict[str, Any]
+            A filter Dictionary that defines the items to have the 'new' status.
+        """
+        payload = {"filters": filters, "stage_id": stage_id, "workflow_id": workflow_id}
+        self._client._post_raw(f"v2/teams/{team_slug}/items/stage", payload, team_slug)
+
+    @inject_default_team_slug
+    def get_dataset(self, id: str, *, team_slug: Optional[str] = None) -> Dict[str, Any]:
+        return self._client._get(f"datasets/{id}", team_slug)
+
+    @inject_default_team_slug
+    def get_workflow(self, id: str, *, team_slug: Optional[str] = None) -> Dict[str, Any]:
+        return self._client._get(f"v2/teams/{team_slug}/workflows/{id}", team_slug)
+
+    @inject_default_team_slug
+    def delete_items(self, filters, *, team_slug: Optional[str] = None):
+        self._client._delete(f"v2/teams/{team_slug}/items", {"filters": filters}, team_slug)
