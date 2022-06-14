@@ -51,7 +51,7 @@ class SortDirection(DocEnum):
 
 class ItemSorter:
     """
-    Represents sorting for list of items. 
+    Represents sorting for list of items.
 
     Parameters
     ----------
@@ -73,7 +73,7 @@ class ItemSorter:
         Parameters
         ----------
         sort : Union[str, ItemSorter]
-            The sort order. If it is a ``str``, it will be parsed, otherwise it returns the 
+            The sort order. If it is a ``str``, it will be parsed, otherwise it returns the
             ``ItemSorter``.
 
         Returns

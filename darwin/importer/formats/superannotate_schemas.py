@@ -17,14 +17,24 @@ bbox = {
     "title": "Bounding Box",
     "default": {
         "type": "bbox",
-        "points": {"x1": 1223.1, "x2": 1420.2, "y1": 607.3, "y2": 1440,},
+        "points": {
+            "x1": 1223.1,
+            "x2": 1420.2,
+            "y1": 607.3,
+            "y2": 1440,
+        },
         "classId": 1,
         "attributes": [],
     },
     "examples": [
         {
             "type": "bbox",
-            "points": {"x1": 587.5, "x2": 1420.2, "y1": 607.3, "y2": 1440,},
+            "points": {
+                "x1": 587.5,
+                "x2": 1420.2,
+                "y1": 607.3,
+                "y2": 1440,
+            },
             "classId": 1,
             "attributes": [{"id": 1, "groupId": 2}],
         }
@@ -37,10 +47,18 @@ bbox = {
         "points": {
             "type": "object",
             "properties": {
-                "x1": {"type": "number",},
-                "x2": {"type": "number",},
-                "y1": {"type": "number",},
-                "y2": {"type": "number",},
+                "x1": {
+                    "type": "number",
+                },
+                "x2": {
+                    "type": "number",
+                },
+                "y1": {
+                    "type": "number",
+                },
+                "y2": {
+                    "type": "number",
+                },
             },
             "required": ["x1", "x2", "y1", "y2"],
         },
@@ -214,7 +232,10 @@ superannotate_export = {
     "type": "object",
     "required": ["instances", "metadata", "tags"],
     "properties": {
-        "instances": {"type": "array", "items": {"oneOf": [point, ellipse, cuboid, polygon, bbox, polyline]},},
+        "instances": {
+            "type": "array",
+            "items": {"oneOf": [point, ellipse, cuboid, polygon, bbox, polyline]},
+        },
         "metadata": {"type": "object", "required": ["name"], "properties": {"name": {"type": "string"}}},
         "tags": {"type": "array", "items": {"type": "string"}},
     },
@@ -252,4 +273,3 @@ classes_export = {
         "properties": {"name": {"type": "string"}, "id": {"type": "integer"}, "attribute_groups": attribute_groups},
     },
 }
-

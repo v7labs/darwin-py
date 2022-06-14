@@ -267,4 +267,3 @@ def describe_upload_chunk_size():
     def value_specified_by_env_var(mock: MagicMock):
         assert _upload_chunk_size() == 123
         mock.assert_called_once_with("DARWIN_UPLOAD_CHUNK_SIZE")
-

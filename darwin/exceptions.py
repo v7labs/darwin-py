@@ -3,7 +3,7 @@ from pathlib import Path
 
 class Unauthenticated(Exception):
     """
-    Used when a user tries to perform an action that requires authentication without being 
+    Used when a user tries to perform an action that requires authentication without being
     authenticated.
     """
 
@@ -69,7 +69,7 @@ class NotFound(Exception):
 
 class UnsupportedFileType(Exception):
     """
-    Used when a given does not have a supported video or image extension. 
+    Used when a given does not have a supported video or image extension.
     """
 
     def __init__(self, path: Path):
@@ -121,4 +121,3 @@ class OutdatedDarwinJSONFormat(Exception):
     """
 
     pass
-
