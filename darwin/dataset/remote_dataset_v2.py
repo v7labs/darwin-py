@@ -97,6 +97,7 @@ class RemoteDatasetV2(RemoteDataset):
             dataset_id=dataset_id,
             item_count=item_count,
             progress=progress,
+            version=2,
         )
 
     def get_releases(self) -> List["Release"]:

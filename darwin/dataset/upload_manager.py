@@ -265,6 +265,15 @@ class UploadHandler(ABC):
 
         self.blocked_items, self.pending_items = self._request_upload()
 
+    @staticmethod
+    def build(dataset: "RemoteDataset", local_files: List[LocalFile]):
+        if dataset.version == 1:
+            return UploadHandlerV1(dataset, local_files)
+        elif dataset.version == 2:
+            return UploadHandlerV2(dataset, local_files)
+        else:
+            raise ValueError(f"Unsupported dataset version: {dataset.version}")
+
     @property
     def client(self) -> "Client":
         """The ``Client`` used by this ``UploadHander``\\'s ``RemoteDataset``."""
@@ -430,7 +439,7 @@ class UploadHandlerV1(UploadHandler):
                     if upload_response.status_code != 503:
                         break
 
-                    time.sleep(2**retries)
+                    time.sleep(2 ** retries)
                     retries += 1
 
             upload_response.raise_for_status()
@@ -523,7 +532,7 @@ class UploadHandlerV2(UploadHandler):
                     if upload_response.status_code != 503:
                         break
 
-                    time.sleep(2**retries)
+                    time.sleep(2 ** retries)
                     retries += 1
 
             upload_response.raise_for_status()

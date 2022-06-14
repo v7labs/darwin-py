@@ -8,6 +8,7 @@ from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset import RemoteDataset
 from darwin.dataset.identifier import DatasetIdentifier
+from darwin.dataset.remote_dataset_v1 import RemoteDatasetV1
 from darwin.dataset.upload_manager import (
     LocalFile,
     UploadHandler,
@@ -39,13 +40,13 @@ def request_upload_endpoint(team_slug: str, dataset_slug: str):
 
 @pytest.fixture
 def dataset(darwin_client: Client, team_slug: str, dataset_slug: str) -> RemoteDataset:
-    return RemoteDataset(client=darwin_client, team=team_slug, name=dataset_slug, slug=dataset_slug, dataset_id=1)
+    return RemoteDatasetV1(client=darwin_client, team=team_slug, name=dataset_slug, slug=dataset_slug, dataset_id=1)
 
 
 @pytest.mark.usefixtures("file_read_write_test")
 @responses.activate
 def test_request_upload_is_not_called_on_init(dataset: RemoteDataset, request_upload_endpoint: str):
-    upload_handler = UploadHandler(dataset, [])
+    upload_handler = UploadHandler.build(dataset, [])
 
     assert upload_handler.pending_count == 0
     assert upload_handler.blocked_count == 0
@@ -62,7 +63,7 @@ def test_pending_count_is_correct(dataset: RemoteDataset, request_upload_endpoin
     responses.add(responses.PUT, request_upload_endpoint, json=response, status=200)
 
     local_file = LocalFile(local_path=Path("test.jpg"))
-    upload_handler = UploadHandler(dataset, [local_file])
+    upload_handler = UploadHandler.build(dataset, [local_file])
 
     assert upload_handler.pending_count == 1
     assert upload_handler.blocked_count == 0
@@ -87,7 +88,7 @@ def test_blocked_count_is_correct(dataset: RemoteDataset, request_upload_endpoin
     responses.add(responses.PUT, request_upload_endpoint, json=response, status=200)
 
     local_file = LocalFile(local_path=Path("test.jpg"))
-    upload_handler = UploadHandler(dataset, [local_file])
+    upload_handler = UploadHandler.build(dataset, [local_file])
 
     assert upload_handler.pending_count == 0
     assert upload_handler.blocked_count == 1
@@ -118,7 +119,7 @@ def test_error_count_is_correct(dataset: RemoteDataset, request_upload_endpoint:
     responses.add(responses.GET, sign_upload_endpoint, status=500)
 
     local_file = LocalFile(local_path=Path("test.jpg"))
-    upload_handler = UploadHandler(dataset, [local_file])
+    upload_handler = UploadHandler.build(dataset, [local_file])
 
     upload_handler.upload()
     for file_to_upload in upload_handler.progress:
@@ -158,7 +159,7 @@ def test_error_count_is_correct(dataset: RemoteDataset, request_upload_endpoint:
 
     Path("test.jpg").touch()
     local_file = LocalFile(local_path=Path("test.jpg"))
-    upload_handler = UploadHandler(dataset, [local_file])
+    upload_handler = UploadHandler.build(dataset, [local_file])
 
     upload_handler.upload()
     for file_to_upload in upload_handler.progress:
@@ -199,7 +200,7 @@ def test_error_count_is_correct(dataset: RemoteDataset, request_upload_endpoint:
 
     Path("test.jpg").touch()
     local_file = LocalFile(local_path=Path("test.jpg"))
-    upload_handler = UploadHandler(dataset, [local_file])
+    upload_handler = UploadHandler.build(dataset, [local_file])
 
     upload_handler.upload()
     for file_to_upload in upload_handler.progress:
@@ -240,7 +241,7 @@ def test_upload_files(dataset: RemoteDataset, request_upload_endpoint: str):
 
     Path("test.jpg").touch()
     local_file = LocalFile(local_path=Path("test.jpg"))
-    upload_handler = UploadHandler(dataset, [local_file])
+    upload_handler = UploadHandler.build(dataset, [local_file])
 
     upload_handler.upload()
     for file_to_upload in upload_handler.progress:

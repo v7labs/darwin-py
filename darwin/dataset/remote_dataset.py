@@ -106,6 +106,7 @@ class RemoteDataset(ABC):
         dataset_id: int,
         item_count: int = 0,
         progress: float = 0,
+        version: int = 1,
     ):
         self.team = team
         self.name = name
@@ -116,6 +117,7 @@ class RemoteDataset(ABC):
         self.client = client
         self.annotation_types: Optional[List[Dict[str, Any]]] = None
         self.console: Console = Console()
+        self.version = version
 
     @abstractmethod
     def push(

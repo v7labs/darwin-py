@@ -26,6 +26,7 @@ from darwin.dataset.upload_manager import (
     LocalFile,
     ProgressCallback,
     UploadHandler,
+    UploadHandlerV1,
 )
 from darwin.dataset.utils import (
     exhaust_generator,
@@ -212,7 +213,7 @@ class RemoteDatasetV1(RemoteDataset):
         if not uploading_files:
             raise ValueError("No files to upload, check your path, exclusion filters and resume flag")
 
-        handler = UploadHandler(self, uploading_files)
+        handler = UploadHandlerV1(self, uploading_files)
         if blocking:
             handler.upload(
                 multi_threaded=multi_threaded,

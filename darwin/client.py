@@ -154,15 +154,26 @@ class Client:
                     team=parsed_dataset_identifier.team_slug, api_key="", datasets_dir=str(datasets_dir)
                 )
 
-            return RemoteDataset(
-                name=dataset["name"],
-                slug=dataset["slug"],
-                team=parsed_dataset_identifier.team_slug,
-                dataset_id=dataset["id"],
-                item_count=dataset["num_images"] + dataset["num_videos"],
-                progress=0,
-                client=self,
-            )
+            if dataset.get("version", 1) == 2:
+                return RemoteDatasetV2(
+                    name=dataset["name"],
+                    slug=dataset["slug"],
+                    team=parsed_dataset_identifier.team_slug,
+                    dataset_id=dataset["id"],
+                    item_count=dataset["num_images"] + dataset["num_videos"],
+                    progress=0,
+                    client=self,
+                )
+            else:
+                return RemoteDatasetV1(
+                    name=dataset["name"],
+                    slug=dataset["slug"],
+                    team=parsed_dataset_identifier.team_slug,
+                    dataset_id=dataset["id"],
+                    item_count=dataset["num_images"] + dataset["num_videos"],
+                    progress=0,
+                    client=self,
+                )
         if not matching_datasets:
             raise NotFound(str(parsed_dataset_identifier))
         return matching_datasets[0]
