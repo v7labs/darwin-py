@@ -1,26 +1,14 @@
-import json
-import shutil
-import tempfile
-import zipfile
-from datetime import datetime
-from pathlib import Path
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Dict,
-    Iterable,
     Iterator,
     List,
     Optional,
-    Tuple,
     Union,
 )
 
-from darwin.dataset.download_manager import download_all_images_from_annotations
-from darwin.dataset.identifier import DatasetIdentifier
 from darwin.dataset.release import Release
-from darwin.dataset.split_manager import split_dataset
 from darwin.dataset.upload_manager import (
     FileUploadCallback,
     LocalFile,
@@ -29,22 +17,14 @@ from darwin.dataset.upload_manager import (
     UploadHandlerV1,
 )
 from darwin.dataset.utils import (
-    exhaust_generator,
-    get_annotations,
-    get_classes,
     is_relative_to,
-    is_unix_like_os,
-    make_class_lists,
-    sanitize_filename,
 )
-from darwin.datatypes import AnnotationClass, AnnotationFile, PathLike, Team
-from darwin.exceptions import NotFound, UnsupportedExportFormat
-from darwin.exporter.formats.darwin import build_image_annotation
+from darwin.datatypes import PathLike
+from darwin.exceptions import NotFound
 from darwin.item import DatasetItem
 from darwin.item_sorter import ItemSorter
-from darwin.utils import find_files, parse_darwin_json, split_video_annotation, urljoin
+from darwin.utils import find_files, urljoin
 from requests.models import Response
-from rich.console import Console
 
 if TYPE_CHECKING:
     from darwin.client import Client
