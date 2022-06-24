@@ -23,7 +23,7 @@ setuptools.setup(
     setup_requires=["wheel"],
     install_requires=[
         "argcomplete",
-        "dataclasses",
+        "dataclasses;python_version<'3.7'",
         "humanize",
         "numpy",
         "pillow",
