@@ -281,7 +281,7 @@ def _get_local_filename(metadata: Dict[str, Any]) -> str:
     return metadata["filename"]
 
 
-def parse_darwin_json(path: Path, count: Optional[int]) -> Optional[dt.AnnotationFile]:
+def parse_darwin_json(path: Path, count: Optional[int] = None) -> Optional[dt.AnnotationFile]:
     """
     Parses the given JSON file in v7's darwin proprietary format. Works for images, split frame
     videos (treated as images) and playback videos.
@@ -305,7 +305,6 @@ def parse_darwin_json(path: Path, count: Optional[int]) -> Optional[dt.Annotatio
         If the given darwin video JSON file is missing the 'width' and 'height' keys in the 'image'
         dictionary.
     """
-
     path = Path(path)
     with path.open() as f:
         data = json.load(f)
@@ -409,7 +408,6 @@ def parse_darwin_video(path: Path, data: Dict[str, Any], count: Optional[int]) -
 
     if "width" not in data["image"] or "height" not in data["image"]:
         raise OutdatedDarwinJSONFormat("Missing width/height in video, please re-export")
-
     return dt.AnnotationFile(
         path,
         _get_local_filename(data["image"]),
@@ -429,7 +427,6 @@ def parse_darwin_video(path: Path, data: Dict[str, Any], count: Optional[int]) -
 def _parse_darwin_video(path: Path, data: Dict[str, Any], count: Optional[int]) -> dt.AnnotationFile:
     annotations: List[dt.VideoAnnotation] = list(filter(None, map(_parse_darwin_video_annotation, data["annotations"])))
     annotation_classes: Set[dt.AnnotationClass] = set([annotation.annotation_class for annotation in annotations])
-
     if "width" not in data["image"] or "height" not in data["image"]:
         raise OutdatedDarwinJSONFormat("Missing width/height in video, please re-export")
 
@@ -446,6 +443,10 @@ def _parse_darwin_video(path: Path, data: Dict[str, Any], count: Optional[int]) 
         data["image"].get("seq", count),
         data["image"].get("frame_urls"),
         data["image"].get("path", "/"),
+        data["image"].get("pixdim"),
+        data["image"].get("affine"),
+        data["image"].get("groups"),
+        data["image"].get("shape"),
     )
 
 

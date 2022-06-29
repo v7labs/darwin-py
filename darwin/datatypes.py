@@ -1,6 +1,19 @@
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterator, List, Optional, Set, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    Union,
+)
+
+import numpy as np
 
 from darwin.path_utils import construct_full_path
 
@@ -242,6 +255,19 @@ class AnnotationFile:
 
     #: Remote path for this ``Annotation``\'s file in V7's darwin.
     remote_path: Optional[str] = None
+
+    #: If this is a volume, the pixdim parameters
+    pixdim: Optional[Tuple[int, int, int]] = None
+
+    #: If this is a volume, the affine matrix
+    affine: Optional[np.ndarray] = None
+
+    #: If this is a volume and extract_views was set at labeling time,
+    # groups is an array of frames associated with each view
+    groups: Optional[Iterable[List]] = None
+
+    #: If this is a volume then this is the volume shape
+    shape: Optional[Tuple[int, int, int]] = None
 
     @property
     def full_path(self) -> str:
