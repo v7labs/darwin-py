@@ -6,7 +6,6 @@ from typing import Iterable
 import nibabel as nib
 import numpy as np
 from PIL import Image
-from tests.darwin.exporter.formats.export_nifti_test import video_annotation
 
 import darwin.datatypes as dt
 from darwin.utils import (
