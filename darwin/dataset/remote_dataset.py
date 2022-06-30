@@ -31,7 +31,6 @@ from darwin.dataset.utils import (
     exhaust_generator,
     get_annotations,
     get_classes,
-    is_relative_to,
     is_unix_like_os,
     make_class_lists,
     sanitize_filename,
@@ -41,8 +40,7 @@ from darwin.exceptions import NotFound, UnsupportedExportFormat
 from darwin.exporter.formats.darwin import build_image_annotation
 from darwin.item import DatasetItem
 from darwin.item_sorter import ItemSorter
-from darwin.utils import find_files, parse_darwin_json, split_video_annotation, urljoin
-from requests.models import Response
+from darwin.utils import parse_darwin_json, split_video_annotation, urljoin
 from rich.console import Console
 
 if TYPE_CHECKING:
@@ -334,7 +332,6 @@ class RemoteDataset(ABC):
         Iterator[DatasetItem]
             An iterator of ``DatasetItem``.
         """
-        pass
 
     @abstractmethod
     def archive(self, items: Iterator[DatasetItem]) -> None:
@@ -346,7 +343,6 @@ class RemoteDataset(ABC):
         items : Iterator[DatasetItem]
             The ``DatasetItem``\\s to be archived.
         """
-        pass
 
     @abstractmethod
     def restore_archived(self, items: Iterator[DatasetItem]) -> None:
@@ -358,7 +354,6 @@ class RemoteDataset(ABC):
         items : Iterator[DatasetItem]
             The ``DatasetItem``\\s to be restored.
         """
-        pass
 
     @abstractmethod
     def move_to_new(self, items: Iterator[DatasetItem]) -> None:
@@ -370,7 +365,6 @@ class RemoteDataset(ABC):
         items : Iterator[DatasetItem]
             The ``DatasetItem``\\s whose status will change.
         """
-        pass
 
     @abstractmethod
     def reset(self, items: Iterator[DatasetItem]) -> None:
@@ -382,7 +376,6 @@ class RemoteDataset(ABC):
         items : Iterator[DatasetItem]
             The ``DatasetItem``\\s to be resetted.
         """
-        pass
 
     @abstractmethod
     def delete_items(self, items: Iterator[DatasetItem]) -> None:
@@ -394,7 +387,6 @@ class RemoteDataset(ABC):
         items : Iterator[DatasetItem]
             The ``DatasetItem``\\s to be deleted.
         """
-        pass
 
     def fetch_annotation_type_id_for_name(self, name: str) -> Optional[int]:
         """
@@ -571,7 +563,6 @@ class RemoteDataset(ABC):
             If set, include annotator and reviewer metadata for each annotation.
 
         """
-        pass
 
     @abstractmethod
     def get_report(self, granularity: str = "day") -> str:
@@ -588,7 +579,6 @@ class RemoteDataset(ABC):
         str
             A CSV report.
         """
-        pass
 
     @abstractmethod
     def get_releases(self) -> List["Release"]:
@@ -600,7 +590,6 @@ class RemoteDataset(ABC):
         List["Release"]
             Returns a sorted list of available ``Release``\\s with the most recent first.
         """
-        pass
 
     def get_release(self, name: str = "latest") -> "Release":
         """
@@ -768,7 +757,6 @@ class RemoteDataset(ABC):
         str
             The url.
         """
-        pass
 
     @property
     def remote_path(self) -> Path:

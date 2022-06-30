@@ -1,7 +1,5 @@
 from pathlib import Path
-from re import split
 from shutil import copyfile
-from unittest.mock import MagicMock, patch
 
 import pytest
 from darwin.dataset.local_dataset import build_stems

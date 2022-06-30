@@ -1,6 +1,5 @@
 import shutil
 from pathlib import Path
-from typing import Iterator
 from xml.etree.ElementTree import Element
 
 import pytest

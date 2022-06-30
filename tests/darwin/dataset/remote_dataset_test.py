@@ -12,7 +12,7 @@ from darwin.config import Config
 from darwin.dataset import RemoteDataset
 from darwin.dataset.release import Release
 from darwin.dataset.remote_dataset_v1 import RemoteDatasetV1
-from darwin.dataset.upload_manager import LocalFile, UploadHandler, UploadHandlerV1
+from darwin.dataset.upload_manager import LocalFile, UploadHandlerV1
 from darwin.exceptions import UnsupportedExportFormat, UnsupportedFileType
 from darwin.item import DatasetItem
 from tests.fixtures import *

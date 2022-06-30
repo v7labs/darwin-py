@@ -7,7 +7,6 @@ class Unauthenticated(Exception):
     authenticated.
     """
 
-    pass
 
 
 class InvalidLogin(Exception):
@@ -15,7 +14,6 @@ class InvalidLogin(Exception):
     Used when a user tries to log in with invalid credentials.
     """
 
-    pass
 
 
 class InvalidTeam(Exception):
@@ -23,7 +21,6 @@ class InvalidTeam(Exception):
     Used when a team is not found or has no valid API key.
     """
 
-    pass
 
 
 class MissingConfig(Exception):
@@ -31,7 +28,6 @@ class MissingConfig(Exception):
     Used when the configuration file was not found.
     """
 
-    pass
 
 
 class UnsupportedExportFormat(Exception):
@@ -87,7 +83,6 @@ class InsufficientStorage(Exception):
     Used when a request to a server fails due to insufficient storage.
     """
 
-    pass
 
 
 class NameTaken(Exception):
@@ -95,7 +90,6 @@ class NameTaken(Exception):
     Used when one tries to create an entity and the name of that entity is already taken.
     """
 
-    pass
 
 
 class ValidationError(Exception):
@@ -103,7 +97,6 @@ class ValidationError(Exception):
     Used when a validation fails.
     """
 
-    pass
 
 
 class Unauthorized(Exception):
@@ -120,4 +113,3 @@ class OutdatedDarwinJSONFormat(Exception):
     Used when one tries to parse a video with an old darwin format that is no longer compatible.
     """
 
-    pass
