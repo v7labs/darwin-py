@@ -484,7 +484,7 @@ def describe_pull():
 
         with patch.object(RemoteDataset, "get_release", return_value=stub_release_response) as get_release_stub:
             with patch.object(Release, "download_zip", new=fake_download_zip):
-                remote_dataset.pull()
+                remote_dataset.pull(only_annotations=True)
                 get_release_stub.assert_called_once()
 
     @patch("platform.system", return_value="Windows")
@@ -512,7 +512,7 @@ def describe_pull():
 
         with patch.object(RemoteDataset, "get_release", return_value=stub_release_response):
             with patch.object(Release, "download_zip", new=fake_download_zip):
-                remote_dataset.pull()
+                remote_dataset.pull(only_annotations=True)
                 assert not latest.is_symlink()
 
     @patch("platform.system", return_value="Linux")
@@ -542,7 +542,7 @@ def describe_pull():
             with patch.object(RemoteDataset, "get_release", return_value=stub_release_response):
                 with patch.object(Release, "download_zip", new=fake_download_zip):
                     mock_symlink_to.side_effect = OSError()
-                    remote_dataset.pull()
+                    remote_dataset.pull(only_annotations=True)
                     assert not latest.is_symlink()
 
     @patch("platform.system", return_value="Linux")
