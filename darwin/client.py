@@ -9,9 +9,12 @@ from urllib import parse
 import requests
 from requests import Response
 
+from darwin.backend_v2 import BackendV2
 from darwin.config import Config
 from darwin.dataset import RemoteDataset
 from darwin.dataset.identifier import DatasetIdentifier
+from darwin.dataset.remote_dataset_v1 import RemoteDatasetV1
+from darwin.dataset.remote_dataset_v2 import RemoteDatasetV2
 from darwin.datatypes import DarwinVersionNumber, Feature, Team
 from darwin.exceptions import (
     InsufficientStorage,
@@ -86,15 +89,26 @@ class Client:
         response: List[Dict[str, Any]] = cast(List[Dict[str, Any]], self._get("/datasets/", team_slug=team_slug))
 
         for dataset in response:
-            yield RemoteDataset(
-                name=dataset["name"],
-                slug=dataset["slug"],
-                team=team_slug or self.default_team,
-                dataset_id=dataset["id"],
-                item_count=dataset["num_images"] + dataset["num_videos"],
-                progress=dataset["progress"],
-                client=self,
-            )
+            if dataset.get("version", 1) == 2:
+                yield RemoteDatasetV2(
+                    name=dataset["name"],
+                    slug=dataset["slug"],
+                    team=team_slug or self.default_team,
+                    dataset_id=dataset["id"],
+                    item_count=dataset.get("item_count", dataset["num_images"] + dataset["num_videos"]),
+                    progress=dataset["progress"],
+                    client=self,
+                )
+            else:
+                yield RemoteDatasetV1(
+                    name=dataset["name"],
+                    slug=dataset["slug"],
+                    team=team_slug or self.default_team,
+                    dataset_id=dataset["id"],
+                    item_count=dataset["num_images"] + dataset["num_videos"],
+                    progress=dataset["progress"],
+                    client=self,
+                )
 
     def get_remote_dataset(self, dataset_identifier: Union[str, DatasetIdentifier]) -> RemoteDataset:
         """
@@ -140,15 +154,26 @@ class Client:
                     team=parsed_dataset_identifier.team_slug, api_key="", datasets_dir=str(datasets_dir)
                 )
 
-            return RemoteDataset(
-                name=dataset["name"],
-                slug=dataset["slug"],
-                team=parsed_dataset_identifier.team_slug,
-                dataset_id=dataset["id"],
-                item_count=dataset["num_images"] + dataset["num_videos"],
-                progress=0,
-                client=self,
-            )
+            if dataset.get("version", 1) == 2:
+                return RemoteDatasetV2(
+                    name=dataset["name"],
+                    slug=dataset["slug"],
+                    team=parsed_dataset_identifier.team_slug,
+                    dataset_id=dataset["id"],
+                    item_count=dataset.get("item_count", dataset["num_images"] + dataset["num_videos"]),
+                    progress=0,
+                    client=self,
+                )
+            else:
+                return RemoteDatasetV1(
+                    name=dataset["name"],
+                    slug=dataset["slug"],
+                    team=parsed_dataset_identifier.team_slug,
+                    dataset_id=dataset["id"],
+                    item_count=dataset.get("item_count", dataset["num_images"] + dataset["num_videos"]),
+                    progress=0,
+                    client=self,
+                )
         if not matching_datasets:
             raise NotFound(str(parsed_dataset_identifier))
         return matching_datasets[0]
@@ -170,15 +195,27 @@ class Client:
             The created dataset.
         """
         dataset: Dict[str, Any] = cast(Dict[str, Any], self._post("/datasets", {"name": name}, team_slug=team_slug))
-        return RemoteDataset(
-            name=dataset["name"],
-            team=team_slug or self.default_team,
-            slug=dataset["slug"],
-            dataset_id=dataset["id"],
-            item_count=dataset["num_images"],
-            progress=0,
-            client=self,
-        )
+        if dataset.get("version", 1) == 2:
+            return RemoteDatasetV2(
+                name=dataset["name"],
+                team=team_slug or self.default_team,
+                slug=dataset["slug"],
+                dataset_id=dataset["id"],
+                item_count=dataset.get("item_count", dataset["num_images"] + dataset["num_videos"]),
+                progress=0,
+                client=self,
+            )
+        else:
+            return RemoteDatasetV1(
+                name=dataset["name"],
+                team=team_slug or self.default_team,
+                slug=dataset["slug"],
+                dataset_id=dataset["id"],
+                item_count=dataset.get("item_count", dataset["num_images"] + dataset["num_videos"]),
+                progress=0,
+                client=self,
+            )
+        end
 
     def archive_remote_dataset(self, dataset_id: int, team_slug: str) -> None:
         """
@@ -1086,7 +1123,13 @@ class Client:
             body = response.json()
             is_name_taken: Optional[bool] = None
             if isinstance(body, Dict):
-                is_name_taken = body.get("errors", {}).get("name") == ["has already been taken"]
+                errors = body.get("errors")
+                if errors and isinstance(errors, list):
+                    for error in errors:
+                        # we haven't really implemented this yet
+                        pass
+                if errors and isinstance(errors, Dict):
+                    is_name_taken = errors.get("name") == ["has already been taken"]
 
             if response.status_code == 422:
                 if is_name_taken:
@@ -1161,3 +1204,7 @@ class Client:
 
     def __str__(self) -> str:
         return f"Client(default_team={self.default_team})"
+
+    @property
+    def api_v2(self):
+        return BackendV2(self, self.config.get_default_team().slug)

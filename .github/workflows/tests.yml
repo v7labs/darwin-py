@@ -5,6 +5,7 @@ on: [push]
 jobs:
   ubuntu:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     strategy:
       matrix:
         python-version: [3.6, 3.7, 3.8, 3.9]
@@ -26,6 +27,7 @@ jobs:
         run: pytest
   windows:
     runs-on: windows-latest
+    timeout-minutes: 30
     strategy:
       matrix:
         python-version: [3.6, 3.7, 3.8, 3.9]

@@ -9,7 +9,7 @@ def construct_full_path(remote_path: Optional[str], filename: str) -> str:
     Parameters
     ----------
     remote_path : Optional[str]
-        The remote path to this file, if it exists. 
+        The remote path to this file, if it exists.
     filename : str
         The name of the file.
 
@@ -32,11 +32,11 @@ def deconstruct_full_path(filename: str) -> Tuple[str, str]:
     ----------
     filename : str
         The path (with filename) that will be deconstructed.
-    
+
     Returns
     -------
     Tuple[str, str]
-        A tuple where the first element is the path of the parent folder, and the second is the 
+        A tuple where the first element is the path of the parent folder, and the second is the
         file's name.
     """
     posix_path = PurePosixPath("/") / filename

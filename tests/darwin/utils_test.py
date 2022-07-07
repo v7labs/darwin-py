@@ -450,4 +450,3 @@ def describe_parse_darwin_json():
         assert annotation_file.annotations[0].annotation_class.annotation_type == "polygon"
         assert annotation_file.annotations[1].annotation_class.annotation_type == "skeleton"
         assert annotation_file.annotations[2].annotation_class.annotation_type == "skeleton"
-

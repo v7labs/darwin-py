@@ -75,18 +75,32 @@ class DatasetItem(BaseModel):
             If any of the keys from the given dictionary do not have the correct format or are
             missing.
         """
-        data = {
-            "id": raw["id"],
-            "filename": raw["filename"],
-            "status": raw["status"],
-            "archived": raw["archived"],
-            "filesize": raw["file_size"],
-            "dataset_id": raw["dataset_id"],
-            "dataset_slug": "n/a",
-            "seq": raw["seq"],
-            "current_workflow_id": raw.get("current_workflow_id"),
-            "path": raw["path"],
-        }
+        if "slots" in raw:
+            data = {
+                "id": raw["id"],
+                "filename": raw["name"],
+                "path": raw["path"],
+                "status": raw["status"],
+                "archived": raw["archived"],
+                "filesize": sum(file["size_bytes"] for file in raw["slots"]),
+                "dataset_id": raw["dataset_id"],
+                "dataset_slug": "n/a",
+                "seq": None,
+                "current_workflow_id": None,
+            }
+        else:
+            data = {
+                "id": raw["id"],
+                "filename": raw["filename"],
+                "status": raw["status"],
+                "archived": raw["archived"],
+                "filesize": raw["file_size"],
+                "dataset_id": raw["dataset_id"],
+                "dataset_slug": "n/a",
+                "seq": raw["seq"],
+                "current_workflow_id": raw.get("current_workflow_id"),
+                "path": raw["path"],
+            }
         return DatasetItem(**data)
 
 

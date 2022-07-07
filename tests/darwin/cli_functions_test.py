@@ -11,12 +11,13 @@ from darwin.cli_functions import delete_files, set_file_status, upload_data
 from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset import RemoteDataset
+from darwin.dataset.remote_dataset_v1 import RemoteDatasetV1
 
 
 @pytest.fixture
 def remote_dataset(dataset_slug: str, local_config_file: Config):
     client = Client(local_config_file)
-    return RemoteDataset(client=client, team="v7", name="TEST_DATASET", slug=dataset_slug, dataset_id=1)
+    return RemoteDatasetV1(client=client, team="v7", name="TEST_DATASET", slug=dataset_slug, dataset_id=1)
 
 
 def describe_upload_data():
@@ -109,8 +110,8 @@ def describe_set_file_status():
 
     def calls_dataset_archive(dataset_identifier: str, remote_dataset: RemoteDataset):
         with patch.object(Client, "get_remote_dataset", return_value=remote_dataset) as get_remote_dataset_mock:
-            with patch.object(RemoteDataset, "fetch_remote_files") as fetch_remote_files_mock:
-                with patch.object(RemoteDataset, "archive") as mock:
+            with patch.object(RemoteDatasetV1, "fetch_remote_files") as fetch_remote_files_mock:
+                with patch.object(RemoteDatasetV1, "archive") as mock:
                     set_file_status(dataset_identifier, "archived", ["one.jpg", "two.jpg"])
                     get_remote_dataset_mock.assert_called_once_with(dataset_identifier=dataset_identifier)
                     fetch_remote_files_mock.assert_called_once_with({"filenames": "one.jpg,two.jpg"})
@@ -118,8 +119,8 @@ def describe_set_file_status():
 
     def calls_dataset_clear(dataset_identifier: str, remote_dataset: RemoteDataset):
         with patch.object(Client, "get_remote_dataset", return_value=remote_dataset) as get_remote_dataset_mock:
-            with patch.object(RemoteDataset, "fetch_remote_files") as fetch_remote_files_mock:
-                with patch.object(RemoteDataset, "reset") as mock:
+            with patch.object(RemoteDatasetV1, "fetch_remote_files") as fetch_remote_files_mock:
+                with patch.object(RemoteDatasetV1, "reset") as mock:
                     set_file_status(dataset_identifier, "clear", ["one.jpg", "two.jpg"])
                     get_remote_dataset_mock.assert_called_once_with(dataset_identifier=dataset_identifier)
                     fetch_remote_files_mock.assert_called_once_with({"filenames": "one.jpg,two.jpg"})
@@ -127,8 +128,8 @@ def describe_set_file_status():
 
     def calls_dataset_new(dataset_identifier: str, remote_dataset: RemoteDataset):
         with patch.object(Client, "get_remote_dataset", return_value=remote_dataset) as get_remote_dataset_mock:
-            with patch.object(RemoteDataset, "fetch_remote_files") as fetch_remote_files_mock:
-                with patch.object(RemoteDataset, "move_to_new") as mock:
+            with patch.object(RemoteDatasetV1, "fetch_remote_files") as fetch_remote_files_mock:
+                with patch.object(RemoteDatasetV1, "move_to_new") as mock:
                     set_file_status(dataset_identifier, "new", ["one.jpg", "two.jpg"])
                     get_remote_dataset_mock.assert_called_once_with(dataset_identifier=dataset_identifier)
                     fetch_remote_files_mock.assert_called_once_with({"filenames": "one.jpg,two.jpg"})
@@ -136,8 +137,8 @@ def describe_set_file_status():
 
     def calls_dataset_restore_archived(dataset_identifier: str, remote_dataset: RemoteDataset):
         with patch.object(Client, "get_remote_dataset", return_value=remote_dataset) as get_remote_dataset_mock:
-            with patch.object(RemoteDataset, "fetch_remote_files") as fetch_remote_files_mock:
-                with patch.object(RemoteDataset, "restore_archived") as mock:
+            with patch.object(RemoteDatasetV1, "fetch_remote_files") as fetch_remote_files_mock:
+                with patch.object(RemoteDatasetV1, "restore_archived") as mock:
                     set_file_status(dataset_identifier, "restore-archived", ["one.jpg", "two.jpg"])
                     get_remote_dataset_mock.assert_called_once_with(dataset_identifier=dataset_identifier)
                     fetch_remote_files_mock.assert_called_once_with({"filenames": "one.jpg,two.jpg"})
@@ -151,8 +152,8 @@ def describe_delete_files():
 
     def test_bypasses_user_prompt_if_yes_flag_is_true(dataset_identifier: str, remote_dataset: RemoteDataset):
         with patch.object(Client, "get_remote_dataset", return_value=remote_dataset) as get_remote_dataset_mock:
-            with patch.object(RemoteDataset, "fetch_remote_files") as fetch_remote_files_mock:
-                with patch.object(RemoteDataset, "delete_items") as mock:
+            with patch.object(RemoteDatasetV1, "fetch_remote_files") as fetch_remote_files_mock:
+                with patch.object(RemoteDatasetV1, "delete_items") as mock:
                     delete_files(dataset_identifier, ["one.jpg", "two.jpg"], True)
                     get_remote_dataset_mock.assert_called_once_with(dataset_identifier=dataset_identifier)
                     fetch_remote_files_mock.assert_called_once_with({"filenames": ["one.jpg", "two.jpg"]})
@@ -160,9 +161,9 @@ def describe_delete_files():
 
     def test_deletes_items_if_user_accepts_prompt(dataset_identifier: str, remote_dataset: RemoteDataset):
         with patch.object(Client, "get_remote_dataset", return_value=remote_dataset) as get_remote_dataset_mock:
-            with patch.object(RemoteDataset, "fetch_remote_files") as fetch_remote_files_mock:
+            with patch.object(RemoteDatasetV1, "fetch_remote_files") as fetch_remote_files_mock:
                 with patch.object(builtins, "input", lambda _: "y"):
-                    with patch.object(RemoteDataset, "delete_items") as mock:
+                    with patch.object(RemoteDatasetV1, "delete_items") as mock:
                         delete_files(dataset_identifier, ["one.jpg", "two.jpg"])
                         get_remote_dataset_mock.assert_called_once_with(dataset_identifier=dataset_identifier)
                         fetch_remote_files_mock.assert_called_once_with({"filenames": ["one.jpg", "two.jpg"]})
@@ -170,9 +171,9 @@ def describe_delete_files():
 
     def test_does_not_delete_items_if_user_refuses_prompt(dataset_identifier: str, remote_dataset: RemoteDataset):
         with patch.object(Client, "get_remote_dataset", return_value=remote_dataset) as get_remote_dataset_mock:
-            with patch.object(RemoteDataset, "fetch_remote_files") as fetch_remote_files_mock:
+            with patch.object(RemoteDatasetV1, "fetch_remote_files") as fetch_remote_files_mock:
                 with patch.object(builtins, "input", lambda _: "n"):
-                    with patch.object(RemoteDataset, "delete_items") as mock:
+                    with patch.object(RemoteDatasetV1, "delete_items") as mock:
                         delete_files(dataset_identifier, ["one.jpg", "two.jpg"])
                         get_remote_dataset_mock.assert_called_once_with(dataset_identifier=dataset_identifier)
                         fetch_remote_files_mock.assert_called_once_with({"filenames": ["one.jpg", "two.jpg"]})
@@ -184,8 +185,8 @@ def describe_delete_files():
 
         with patch.object(sys, "exit") as exception:
             with patch.object(Client, "get_remote_dataset", return_value=remote_dataset) as get_remote_dataset_mock:
-                with patch.object(RemoteDataset, "fetch_remote_files") as fetch_remote_files_mock:
-                    with patch.object(RemoteDataset, "delete_items", side_effect=error_mock) as mock:
+                with patch.object(RemoteDatasetV1, "fetch_remote_files") as fetch_remote_files_mock:
+                    with patch.object(RemoteDatasetV1, "delete_items", side_effect=error_mock) as mock:
 
                         delete_files(dataset_identifier, ["one.jpg", "two.jpg"], True)
 
