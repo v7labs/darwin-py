@@ -9,9 +9,7 @@ from darwin.dataset.upload_manager import (
     UploadHandler,
     UploadHandlerV2,
 )
-from darwin.dataset.utils import (
-    is_relative_to,
-)
+from darwin.dataset.utils import is_relative_to
 from darwin.datatypes import PathLike
 from darwin.exceptions import NotFound
 from darwin.item import DatasetItem
