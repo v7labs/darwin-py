@@ -160,7 +160,7 @@ class Client:
                     slug=dataset["slug"],
                     team=parsed_dataset_identifier.team_slug,
                     dataset_id=dataset["id"],
-                    item_count=dataset["num_images"] + dataset["num_videos"],
+                    item_count=dataset.get("item_count", dataset["num_images"] + dataset["num_videos"]),
                     progress=0,
                     client=self,
                 )
@@ -170,7 +170,7 @@ class Client:
                     slug=dataset["slug"],
                     team=parsed_dataset_identifier.team_slug,
                     dataset_id=dataset["id"],
-                    item_count=dataset["num_images"] + dataset["num_videos"],
+                    item_count=dataset.get("item_count", dataset["num_images"] + dataset["num_videos"]),
                     progress=0,
                     client=self,
                 )
@@ -201,7 +201,7 @@ class Client:
                 team=team_slug or self.default_team,
                 slug=dataset["slug"],
                 dataset_id=dataset["id"],
-                item_count=dataset["num_images"],
+                item_count=dataset.get("item_count", dataset["num_images"] + dataset["num_videos"]),
                 progress=0,
                 client=self,
             )
@@ -211,7 +211,7 @@ class Client:
                 team=team_slug or self.default_team,
                 slug=dataset["slug"],
                 dataset_id=dataset["id"],
-                item_count=dataset["num_images"],
+                item_count=dataset.get("item_count", dataset["num_images"] + dataset["num_videos"]),
                 progress=0,
                 client=self,
             )
