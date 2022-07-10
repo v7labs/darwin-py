@@ -1,12 +1,4 @@
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Dict,
-    Iterator,
-    List,
-    Optional,
-    Union,
-)
+from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, Union
 
 from darwin.dataset.release import Release
 from darwin.dataset.upload_manager import (
@@ -16,9 +8,7 @@ from darwin.dataset.upload_manager import (
     UploadHandler,
     UploadHandlerV1,
 )
-from darwin.dataset.utils import (
-    is_relative_to,
-)
+from darwin.dataset.utils import is_relative_to
 from darwin.datatypes import PathLike
 from darwin.exceptions import NotFound
 from darwin.item import DatasetItem
@@ -380,3 +370,22 @@ class RemoteDatasetV1(RemoteDataset):
             The url.
         """
         return urljoin(self.client.base_url, f"/workview?dataset={self.dataset_id}&image={item.seq}")
+
+    def post_comment(self, item_id: str, text: str, x: int, y: int, w: int, h: int):
+        """
+        Adds a comment to an item in this dataset
+        Instantiates a workflow if needed
+        """
+        items: List[DatasetItem] = list(self.fetch_remote_files(filters={"item_ids": [item_id]}))
+        if len(items) == 0:
+            raise NotFound(f"Item with id = '{item_id}")
+
+        item: DatasetItem = items.pop()
+        maybe_workflow_id: Optional[int] = item.current_workflow_id
+
+        if maybe_workflow_id is None:
+            workflow_id: int = self.client.instantitate_item(item.id)
+        else:
+            workflow_id = maybe_workflow_id
+
+        self.client.post_workflow_comment(workflow_id, text, x, y, w, h)

@@ -157,3 +157,12 @@ class BackendV2:
 
     def get_exports(self, dataset_slug, *, team_slug: Optional[str] = None):
         return self._client._get(f"v2/teams/{team_slug}/datasets/{dataset_slug}/exports", team_slug)
+
+    @inject_default_team_slug
+    def post_comment(self, item_id, text, x, y, w, h, slot_name, team_slug: Optional[str] = None):
+        payload = {
+            "bounding_box": {"h": h, "w": w, "x": x, "y": y},
+            "comments": [{"body": text}],
+            "slot_name": slot_name,
+        }
+        return self._client._post(f"v2/teams/{team_slug}/items/{item_id}/comment_threads", payload, team_slug)
