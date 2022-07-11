@@ -41,7 +41,6 @@ from darwin.exporter.formats.darwin import build_image_annotation
 from darwin.item import DatasetItem
 from darwin.item_sorter import ItemSorter
 from darwin.utils import parse_darwin_json, split_video_annotation, urljoin
-from numpy import void
 from rich.console import Console
 
 if TYPE_CHECKING:
@@ -760,7 +759,7 @@ class RemoteDataset(ABC):
         """
 
     @abstractmethod
-    def post_comment(self, item_id: str, text: str, x: int, y: int, w: int, h: int) -> void:
+    def post_comment(self, item_id: str, text: str, x: int, y: int, w: int, h: int) -> None:
         """
         Adds a comment to an items in this dataset
         """
