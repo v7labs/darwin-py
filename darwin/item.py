@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import deprecation
 from pydantic import BaseModel
@@ -47,6 +47,10 @@ class DatasetItem(BaseModel):
     #: The darwin path to this ``DatasetItem``.
     path: str
 
+    #: The names of each slot in the item, most items have a single slot corresponding to the file itself.
+    #: only used for v2 dataset items
+    slots: List[Any]
+
     @property
     def full_path(self) -> str:
         """
@@ -87,6 +91,7 @@ class DatasetItem(BaseModel):
                 "dataset_slug": "n/a",
                 "seq": None,
                 "current_workflow_id": None,
+                "slots": raw["slots"],
             }
         else:
             data = {
@@ -100,6 +105,7 @@ class DatasetItem(BaseModel):
                 "seq": raw["seq"],
                 "current_workflow_id": raw.get("current_workflow_id"),
                 "path": raw["path"],
+                "slots": [],
             }
         return DatasetItem(**data)
 

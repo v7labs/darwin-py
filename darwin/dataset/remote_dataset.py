@@ -758,6 +758,12 @@ class RemoteDataset(ABC):
             The url.
         """
 
+    @abstractmethod
+    def post_comment(self, item_id: str, text: str, x: int, y: int, w: int, h: int) -> None:
+        """
+        Adds a comment to an items in this dataset
+        """
+
     @property
     def remote_path(self) -> Path:
         """Returns an URL specifying the location of the remote dataset."""

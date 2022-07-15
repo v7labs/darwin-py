@@ -578,6 +578,7 @@ def dataset_item(dataset_slug: str) -> DatasetItem:
         seq=1,
         current_workflow_id=None,
         path="/",
+        slots=[],
     )
 
 
