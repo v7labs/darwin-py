@@ -31,7 +31,7 @@ setuptools.setup(
         "requests",
         "rich",
         "upolygon==0.1.6",
-        "jsonschema",
+        "jsonschema==3.2.0",
         "deprecation",
         "pydantic",
     ],
