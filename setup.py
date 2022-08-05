@@ -30,7 +30,7 @@ setuptools.setup(
         "pyyaml>=5.1",
         "requests",
         "rich",
-        "upolygon==0.1.6",
+        "upolygon==0.1.8",
         "jsonschema==3.2.0",
         "deprecation",
         "pydantic",
