@@ -11,7 +11,7 @@ from typing import Any, Callable, Iterator, Tuple
 import deprecation
 import requests
 from darwin.dataset.utils import sanitize_filename
-from darwin.utils import is_image_extension_allowed
+from darwin.utils import get_response_content, is_image_extension_allowed
 from darwin.version import __version__
 from rich.console import Console
 
@@ -298,7 +298,7 @@ def _download_image(url: str, path: Path, api_key: str) -> None:
             return
         # Fatal-error status: fail
         if 400 <= response.status_code <= 499:
-            raise Exception(response.status_code, response.json())
+            raise Exception(f"Request to ({url}) failed. Status code: {response.status_code}, content:\n{get_response_content(response)}.")
         # Timeout
         if time.time() - start > TIMEOUT:
             raise Exception(f"Timeout url request ({url}) after {TIMEOUT} seconds.")

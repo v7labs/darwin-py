@@ -25,7 +25,7 @@ from darwin.exceptions import (
     Unauthorized,
     ValidationError,
 )
-from darwin.utils import is_project_dir, urljoin
+from darwin.utils import get_response_content, has_json_content_type, is_project_dir, urljoin
 
 
 class Client:
@@ -982,7 +982,7 @@ class Client:
         response: Response = requests.get(url, headers=self._get_headers(team_slug), stream=stream)
 
         self.log.debug(
-            f"Client GET request response ({self._get_response_debug_text(response)}) with status "
+            f"Client GET request response ({get_response_content(response)}) with status "
             f"({response.status_code}). "
             f"Client: ({self})"
             f"Request: (url={url})"
@@ -1017,7 +1017,7 @@ class Client:
         )
 
         self.log.debug(
-            f"Client PUT request got response ({self._get_response_debug_text(response)}) with status "
+            f"Client PUT request got response ({get_response_content(response)}) with status "
             f"({response.status_code}). "
             f"Client: ({self})"
             f"Request: (endpoint={endpoint}, payload={payload})"
@@ -1054,7 +1054,7 @@ class Client:
         )
 
         self.log.debug(
-            f"Client POST request response ({self._get_response_debug_text(response)}) with unexpected status "
+            f"Client POST request response ({get_response_content(response)}) with unexpected status "
             f"({response.status_code}). "
             f"Client: ({self})"
             f"Request: (endpoint={endpoint}, payload={payload})"
@@ -1095,7 +1095,7 @@ class Client:
         )
 
         self.log.debug(
-            f"Client DELETE request response ({self._get_response_debug_text(response)}) with unexpected status "
+            f"Client DELETE request response ({get_response_content(response)}) with unexpected status "
             f"({response.status_code}). "
             f"Client: ({self})"
             f"Request: (endpoint={endpoint})"
@@ -1119,7 +1119,7 @@ class Client:
         if response.status_code == 404:
             raise NotFound(url)
 
-        if self._has_json_response(response):
+        if has_json_content_type(response):
             body = response.json()
             is_name_taken: Optional[bool] = None
             if isinstance(body, Dict):
@@ -1145,15 +1145,6 @@ class Client:
 
             if error_code == "INSUFFICIENT_REMAINING_STORAGE":
                 raise InsufficientStorage()
-
-    def _has_json_response(self, response: Response) -> bool:
-        return "application/json" in response.headers.get("content-type", "")
-
-    def _get_response_debug_text(self, response: Response) -> str:
-        if self._has_json_response(response):
-            return response.json()
-        else:
-            return response.text
 
     def _decode_response(self, response: requests.Response) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
         """Decode the response as JSON entry or return a dictionary with the error

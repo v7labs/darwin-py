@@ -1,7 +1,10 @@
 from unittest.mock import MagicMock, patch
+from requests import Response
 
 import darwin.datatypes as dt
 from darwin.utils import (
+    get_response_content,
+    has_json_content_type,
     is_extension_allowed,
     is_image_extension_allowed,
     is_project_dir,
@@ -450,3 +453,28 @@ def describe_parse_darwin_json():
         assert annotation_file.annotations[0].annotation_class.annotation_type == "polygon"
         assert annotation_file.annotations[1].annotation_class.annotation_type == "skeleton"
         assert annotation_file.annotations[2].annotation_class.annotation_type == "skeleton"
+
+    def describe_has_json_content_type():
+        def it_returns_true():
+            response: Response = Response()
+            response.headers["content-type"] = "application/json"
+            assert has_json_content_type(response)
+
+        def it_returns_false():
+            response: Response = Response()
+            response.headers["content-type"] = "text/plain"
+            assert not has_json_content_type(response)
+
+    def describe_get_response_content():
+        def it_returns_json():
+            response: Response = Response()
+            response.headers["content-type"] = "application/json"
+            response._content = b'{"key":"a"}'
+            assert {'key':'a'} == get_response_content(response)
+
+        def it_returns_text():
+            response: Response = Response()
+            response.headers["content-type"] = "text/plain"
+            response._content = b'hello'
+            assert "hello" == get_response_content(response)
+
