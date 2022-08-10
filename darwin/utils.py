@@ -22,6 +22,7 @@ import deprecation
 import numpy as np
 from rich.progress import ProgressType, track
 from upolygon import draw_polygon
+from requests import Response
 
 import darwin.datatypes as dt
 from darwin.config import Config
@@ -893,3 +894,29 @@ def is_unix_like_os() -> bool:
         True for Unix-based systems, False otherwise.
     """
     return platform.system() != "Windows"
+
+def has_json_content_type(response: Response) -> bool:
+    """
+    Returns ``True`` if response has application/json content type or ``False``
+    otherwise.
+
+    Returns
+    --------
+    bool
+        True for application/json content type, False otherwise.
+    """
+    return "application/json" in response.headers.get("content-type", "")
+
+def get_response_content(response: Response) -> Any:
+    """
+    Returns json content if response has application/json content-type, otherwise returns text.
+
+    Returns
+    --------
+    Any
+        Json or text content.
+    """
+    if has_json_content_type(response):
+        return response.json()
+    else:
+        return response.text
