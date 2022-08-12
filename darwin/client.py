@@ -25,7 +25,12 @@ from darwin.exceptions import (
     Unauthorized,
     ValidationError,
 )
-from darwin.utils import get_response_content, has_json_content_type, is_project_dir, urljoin
+from darwin.utils import (
+    get_response_content,
+    has_json_content_type,
+    is_project_dir,
+    urljoin,
+)
 
 
 class Client:
@@ -95,7 +100,7 @@ class Client:
                     slug=dataset["slug"],
                     team=team_slug or self.default_team,
                     dataset_id=dataset["id"],
-                    item_count=dataset.get("item_count", dataset["num_images"] + dataset["num_videos"]),
+                    item_count=dataset.get("item_count", dataset.get("num_images", 0) + dataset.get("num_videos", 0)),
                     progress=dataset["progress"],
                     client=self,
                 )
@@ -160,7 +165,7 @@ class Client:
                     slug=dataset["slug"],
                     team=parsed_dataset_identifier.team_slug,
                     dataset_id=dataset["id"],
-                    item_count=dataset.get("item_count", dataset["num_images"] + dataset["num_videos"]),
+                    item_count=dataset.get("item_count", dataset.get("num_images", 0) + dataset.get("num_videos", 0)),
                     progress=0,
                     client=self,
                 )
@@ -201,7 +206,7 @@ class Client:
                 team=team_slug or self.default_team,
                 slug=dataset["slug"],
                 dataset_id=dataset["id"],
-                item_count=dataset.get("item_count", dataset["num_images"] + dataset["num_videos"]),
+                item_count=dataset.get("item_count", dataset.get("num_images", 0) + dataset.get("num_videos", 0)),
                 progress=0,
                 client=self,
             )
