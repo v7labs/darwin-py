@@ -59,11 +59,14 @@ def _build_txt(annotation_file: dt.AnnotationFile, class_index: ClassIndex) -> s
         else:
             continue
 
+        if annotation.data is None:
+            continue
+
         i = class_index[annotation.annotation_class.name]
-        x = round(data.get("x"))
-        y = round(data.get("y"))
-        w = round(data.get("w"))
-        h = round(data.get("h"))
+        x = round(data["x"])
+        y = round(data["y"])
+        w = round(data["w"])
+        h = round(data["h"])
 
         yolo_lines.append(f"{i} {x} {y} {w} {h}")
     return "\n".join(yolo_lines)
