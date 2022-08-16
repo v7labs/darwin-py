@@ -338,6 +338,14 @@ class UploadHandler(ABC):
                     file_complete.add(file_name)
                     progress_callback(self.pending_count, 1)
 
+        if max_workers:
+            if max_workers < 1:
+                raise ValueError("max_workers must be greater than 0")
+            elif max_workers > concurrent.futures.ThreadPoolExecutor()._max_workers:
+                raise ValueError(
+                    f"max_workers must be less than or equal to {concurrent.futures.ThreadPoolExecutor()._max_workers}"
+                )
+
         if multi_threaded and self.progress:
             with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
                 future_to_progress = {executor.submit(f, callback) for f in self.progress}
