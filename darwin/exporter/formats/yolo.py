@@ -38,13 +38,12 @@ def _export_file(annotation_file: dt.AnnotationFile, class_index: ClassIndex, ou
 
 
 def _build_class_index(annotation_files: Iterable[dt.AnnotationFile]) -> ClassIndex:
-    index: ClassIndex = {}
+    classes = set()
     for annotation_file in annotation_files:
         for annotation in annotation_file.annotations:
-            class_name = annotation.annotation_class.name
-            if class_name not in index:
-                index[class_name] = len(index)
-    return index
+            if annotation.annotation_class.annotation_type in ["bounding_box", "polygon", "complex_polygon"]:
+                classes.add(annotation.annotation_class.name)
+    return {k: v for (v, k) in enumerate(sorted(classes))}
 
 
 def _build_txt(annotation_file: dt.AnnotationFile, class_index: ClassIndex) -> str:
@@ -73,6 +72,8 @@ def _build_txt(annotation_file: dt.AnnotationFile, class_index: ClassIndex) -> s
 
 
 def _save_class_index(class_index: ClassIndex, output_dir: Path) -> None:
+    sorted_items = sorted(class_index.items(), key=lambda item: item[1])
+
     with open(output_dir / "darknet.labels", "w") as f:
-        for class_name in class_index:
+        for class_name, _ in sorted_items:
             f.write(f"{class_name}\n")
