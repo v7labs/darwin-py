@@ -22,7 +22,6 @@ def test_nifti(team_slug: str, team_extracted_dataset_path: Path):
     with tempfile.TemporaryDirectory() as tmpdir:
         with ZipFile("tests/data.zip") as zfile:
             zfile.extractall(tmpdir)
-        print(os.listdir(tmpdir))
         video_annotation = parse_darwin_json(Path(tmpdir) / "v7/nifti/releases/latest/annotations/0.json")
         nifti.export([video_annotation], output_dir=tmpdir)
         image_id = os.path.splitext(video_annotation.filename)[0]
