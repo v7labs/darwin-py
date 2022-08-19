@@ -44,7 +44,7 @@ def validation_error(code: int, body: Dict[str, Any]) -> None:
     Raises
     ------
     ValidationError
-        If both ``code`` and ``body`` indicate that the server request errored because it failed 
+        If both ``code`` and ``body`` indicate that the server request errored because it failed
         validation.
     """
     if code == 422:

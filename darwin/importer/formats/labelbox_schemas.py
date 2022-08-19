@@ -112,12 +112,26 @@ labelbox_file = {
     "description": "A Labelbox file, equivalent to a Darwin AnnotationFile",
     "title": "Labelbox File",
     "default": {
-        "Label": {"objects": [{"title": "Banana", "point": {"x": 3665.814, "y": 351.628},}]},
+        "Label": {
+            "objects": [
+                {
+                    "title": "Banana",
+                    "point": {"x": 3665.814, "y": 351.628},
+                }
+            ]
+        },
         "External ID": "demo-image-7.jpg",
     },
     "examples": [
         {
-            "Label": {"objects": [{"title": "Banana", "point": {"x": 3665.814, "y": 351.628},}]},
+            "Label": {
+                "objects": [
+                    {
+                        "title": "Banana",
+                        "point": {"x": 3665.814, "y": 351.628},
+                    }
+                ]
+            },
             "External ID": "demo-image-7.jpg",
         }
     ],
@@ -142,18 +156,39 @@ labelbox_export = {
     "title": "Export",
     "default": [
         {
-            "Label": {"objects": [{"title": "Banana", "point": {"x": 3665.814, "y": 351.628},}]},
+            "Label": {
+                "objects": [
+                    {
+                        "title": "Banana",
+                        "point": {"x": 3665.814, "y": 351.628},
+                    }
+                ]
+            },
             "External ID": "demo-image-7.jpg",
         }
     ],
     "examples": [
         [
             {
-                "Label": {"objects": [{"title": "Banana", "point": {"x": 3665.814, "y": 351.628},}]},
+                "Label": {
+                    "objects": [
+                        {
+                            "title": "Banana",
+                            "point": {"x": 3665.814, "y": 351.628},
+                        }
+                    ]
+                },
                 "External ID": "demo-image-7.jpg",
             },
             {
-                "Label": {"objects": [{"title": "Orange", "point": {"x": 0.814, "y": 0.628},}]},
+                "Label": {
+                    "objects": [
+                        {
+                            "title": "Orange",
+                            "point": {"x": 0.814, "y": 0.628},
+                        }
+                    ]
+                },
                 "External ID": "demo-image-8.jpg",
             },
         ]
@@ -161,4 +196,3 @@ labelbox_export = {
     "type": "array",
     "items": labelbox_file,
 }
-

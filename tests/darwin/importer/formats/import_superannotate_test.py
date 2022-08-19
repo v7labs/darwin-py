@@ -430,7 +430,8 @@ def describe_parse_path():
 
         polygon_annotation: Annotation = cast(Annotation, annotation_file.annotations.pop())
         assert_polygon(
-            polygon_annotation, [{"x": 1053, "y": 587.2}, {"x": 1053.1, "y": 586}, {"x": 1053.8, "y": 585.4}],
+            polygon_annotation,
+            [{"x": 1053, "y": 587.2}, {"x": 1053.1, "y": 586}, {"x": 1053.8, "y": 585.4}],
         )
 
         annotation_class = polygon_annotation.annotation_class
@@ -496,7 +497,8 @@ def describe_parse_path():
 
         line_annotation: Annotation = cast(Annotation, annotation_file.annotations.pop())
         assert_line(
-            line_annotation, [{"x": 1053, "y": 587.2}, {"x": 1053.1, "y": 586}, {"x": 1053.8, "y": 585.4}],
+            line_annotation,
+            [{"x": 1053, "y": 587.2}, {"x": 1053.1, "y": 586}, {"x": 1053.8, "y": 585.4}],
         )
 
         annotation_class = line_annotation.annotation_class
@@ -871,4 +873,3 @@ def assert_subannotations(actual_subs: List[SubAnnotation], expected_subs: List[
         for expected_sub in expected_subs:
             assert actual_sub.annotation_type == expected_sub.annotation_type
             assert actual_sub.data == expected_sub.data
-

@@ -652,7 +652,7 @@ def upload_data(
         already_existing_items = []
         other_skipped_items = []
         for item in upload_manager.blocked_items:
-            if item.reason == "ALREADY_EXISTS":
+            if item.reason.upper() == "ALREADY_EXISTS":
                 already_existing_items.append(item)
             else:
                 other_skipped_items.append(item)
@@ -993,15 +993,9 @@ def post_comment(
         return
 
     item: DatasetItem = items.pop()
-    maybe_workflow_id: Optional[int] = item.current_workflow_id
-
-    if maybe_workflow_id is None:
-        workflow_id: int = client.instantitate_item(item.id)
-    else:
-        workflow_id = maybe_workflow_id
 
     try:
-        client.post_workflow_comment(workflow_id, text, x, y, w, h)
+        dataset.post_comment(str(item.id), text, x, y, w, h)
         console.print("[bold green]Comment added successfully!")
     except Exception:
         console.print("[bold red]There was an error posting your comment!\n")

@@ -11,7 +11,8 @@ from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset import RemoteDataset
 from darwin.dataset.release import Release
-from darwin.dataset.upload_manager import LocalFile, UploadHandler
+from darwin.dataset.remote_dataset_v1 import RemoteDatasetV1
+from darwin.dataset.upload_manager import LocalFile, UploadHandlerV1
 from darwin.exceptions import UnsupportedExportFormat, UnsupportedFileType
 from darwin.item import DatasetItem
 from tests.fixtures import *
@@ -313,7 +314,7 @@ def describe_split_video_annotations():
         release_name: str,
         team_slug: str,
     ):
-        remote_dataset = RemoteDataset(
+        remote_dataset = RemoteDatasetV1(
             client=darwin_client, team=team_slug, name=dataset_name, slug=dataset_slug, dataset_id=1
         )
 
@@ -356,7 +357,7 @@ def describe_split_video_annotations():
 def describe_fetch_remote_files():
     @responses.activate
     def it_works(darwin_client: Client, dataset_name: str, dataset_slug: str, team_slug: str, files_content: dict):
-        remote_dataset = RemoteDataset(
+        remote_dataset = RemoteDatasetV1(
             client=darwin_client, team=team_slug, name=dataset_name, slug=dataset_slug, dataset_id=1
         )
         url = "http://localhost/api/datasets/1/items?page%5Bsize%5D=500"
@@ -382,7 +383,7 @@ def describe_fetch_remote_files():
     def it_fetches_files_with_commas(
         darwin_client: Client, dataset_name: str, dataset_slug: str, team_slug: str, files_content: dict
     ):
-        remote_dataset = RemoteDataset(
+        remote_dataset = RemoteDatasetV1(
             client=darwin_client, team=team_slug, name=dataset_name, slug=dataset_slug, dataset_id=1
         )
         url = "http://localhost/api/datasets/1/items?page%5Bsize%5D=500"
@@ -402,7 +403,7 @@ def describe_fetch_remote_files():
 
 @pytest.fixture
 def remote_dataset(darwin_client: Client, dataset_name: str, dataset_slug: str, team_slug: str):
-    return RemoteDataset(client=darwin_client, team=team_slug, name=dataset_name, slug=dataset_slug, dataset_id=1)
+    return RemoteDatasetV1(client=darwin_client, team=team_slug, name=dataset_name, slug=dataset_slug, dataset_id=1)
 
 
 @pytest.mark.usefixtures("file_read_write_test")
@@ -483,7 +484,7 @@ def describe_pull():
 
         with patch.object(RemoteDataset, "get_release", return_value=stub_release_response) as get_release_stub:
             with patch.object(Release, "download_zip", new=fake_download_zip):
-                remote_dataset.pull()
+                remote_dataset.pull(only_annotations=True)
                 get_release_stub.assert_called_once()
 
     @patch("platform.system", return_value="Windows")
@@ -511,7 +512,7 @@ def describe_pull():
 
         with patch.object(RemoteDataset, "get_release", return_value=stub_release_response):
             with patch.object(Release, "download_zip", new=fake_download_zip):
-                remote_dataset.pull()
+                remote_dataset.pull(only_annotations=True)
                 assert not latest.is_symlink()
 
     @patch("platform.system", return_value="Linux")
@@ -541,7 +542,7 @@ def describe_pull():
             with patch.object(RemoteDataset, "get_release", return_value=stub_release_response):
                 with patch.object(Release, "download_zip", new=fake_download_zip):
                     mock_symlink_to.side_effect = OSError()
-                    remote_dataset.pull()
+                    remote_dataset.pull(only_annotations=True)
                     assert not latest.is_symlink()
 
     @patch("platform.system", return_value="Linux")
@@ -577,6 +578,7 @@ def dataset_item(dataset_slug: str) -> DatasetItem:
         seq=1,
         current_workflow_id=None,
         path="/",
+        slots=[],
     )
 
 
@@ -623,8 +625,8 @@ def describe_delete_items():
 
 
 def assert_upload_mocks_are_correctly_called(remote_dataset: RemoteDataset, *args):
-    with patch.object(UploadHandler, "_request_upload", return_value=([], [])) as request_upload_mock:
-        with patch.object(UploadHandler, "upload") as upload_mock:
+    with patch.object(UploadHandlerV1, "_request_upload", return_value=([], [])) as request_upload_mock:
+        with patch.object(UploadHandlerV1, "upload") as upload_mock:
             remote_dataset.push(*args)
 
             request_upload_mock.assert_called_once()

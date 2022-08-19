@@ -7,7 +7,8 @@ from tests.fixtures import *
 
 from darwin.client import Client
 from darwin.config import Config
-from darwin.dataset.remote_dataset import RemoteDataset
+from darwin.dataset.remote_dataset_v1 import RemoteDatasetV1
+from darwin.dataset.remote_dataset_v2 import RemoteDatasetV2
 from darwin.datatypes import Feature
 from darwin.exceptions import NameTaken, NotFound
 
@@ -50,25 +51,27 @@ def describe_list_remote_datasets():
         responses.add(responses.GET, darwin_client.url + endpoint, json=json_response, status=200)
 
         remote_datasets = list(darwin_client.list_remote_datasets(team_slug))
-        expected_dataset_1 = RemoteDataset(
-            team=team_slug,
-            name="dataset-name-1",
-            slug="dataset-slug-1",
-            dataset_id=1,
-            item_count=1,
-            client=darwin_client,
-        )
-        expected_dataset_2 = RemoteDataset(
-            team=team_slug,
-            name="dataset-name-2",
-            slug="dataset-slug-2",
-            dataset_id=2,
-            item_count=2,
-            client=darwin_client,
-        )
 
-        assert_dataset(remote_datasets[0], expected_dataset_1)
-        assert_dataset(remote_datasets[1], expected_dataset_2)
+        for version in [RemoteDatasetV1, RemoteDatasetV2]:
+            expected_dataset_1 = version(
+                team=team_slug,
+                name="dataset-name-1",
+                slug="dataset-slug-1",
+                dataset_id=1,
+                item_count=1,
+                client=darwin_client,
+            )
+            expected_dataset_2 = version(
+                team=team_slug,
+                name="dataset-name-2",
+                slug="dataset-slug-2",
+                dataset_id=2,
+                item_count=2,
+                client=darwin_client,
+            )
+
+            assert_dataset(remote_datasets[0], expected_dataset_1)
+            assert_dataset(remote_datasets[1], expected_dataset_2)
 
 
 @pytest.mark.usefixtures("file_read_write_test")
@@ -109,16 +112,17 @@ def describe_get_remote_dataset():
         responses.add(responses.GET, darwin_client.url + endpoint, json=json_response, status=200)
 
         actual_dataset = darwin_client.get_remote_dataset("v7/dataset-slug-1")
-        expected_dataset = RemoteDataset(
-            team="v7",
-            name="dataset-name-1",
-            slug="dataset-slug-1",
-            dataset_id=1,
-            item_count=1,
-            client=darwin_client,
-        )
+        for version in [RemoteDatasetV1, RemoteDatasetV2]:
+            expected_dataset = version(
+                team="v7",
+                name="dataset-name-1",
+                slug="dataset-slug-1",
+                dataset_id=1,
+                item_count=1,
+                client=darwin_client,
+            )
 
-        assert_dataset(actual_dataset, expected_dataset)
+            assert_dataset(actual_dataset, expected_dataset)
 
 
 @pytest.mark.usefixtures("file_read_write_test")
@@ -138,7 +142,7 @@ def describe_create_dataset():
         responses.add(responses.POST, darwin_client.url + endpoint, json=json_response, status=200)
 
         actual_dataset = darwin_client.create_dataset("my-dataset", "v7")
-        expected_dataset = RemoteDataset(
+        expected_dataset = RemoteDatasetV1(
             team="v7",
             name="my-dataset",
             slug="my-dataset",

@@ -499,10 +499,10 @@ def convert_to_rgb(pic: PILImage.Image) -> PILImage.Image:
     elif pic.mode in ("CMYK", "RGBA", "P"):
         pic = pic.convert("RGB")
     elif pic.mode == "I":
-        img = (np.divide(np.array(pic, np.int32), 2 ** 16 - 1) * 255).astype(np.uint8)
+        img = (np.divide(np.array(pic, np.int32), 2**16 - 1) * 255).astype(np.uint8)
         pic = PILImage.fromarray(np.stack((img, img, img), axis=2))
     elif pic.mode == "I;16":
-        img = (np.divide(np.array(pic, np.int16), 2 ** 8 - 1) * 255).astype(np.uint8)
+        img = (np.divide(np.array(pic, np.int16), 2**8 - 1) * 255).astype(np.uint8)
         pic = PILImage.fromarray(np.stack((img, img, img), axis=2))
     elif pic.mode == "L":
         img = np.array(pic).astype(np.uint8)
