@@ -4,7 +4,7 @@ from xml.etree.ElementTree import Element
 
 import pytest
 from darwin.datatypes import Annotation, AnnotationClass, AnnotationFile
-from darwin.exporter.formats.pascalvoc import build_xml, export
+from darwin.exporter.formats.pascalvoc import _build_xml, export
 
 
 def describe_export():
@@ -63,7 +63,7 @@ def describe_build_xml():
             is_video=False,
         )
 
-        xml = build_xml(annotation_file)
+        xml = _build_xml(annotation_file)
 
         object = get_xml_element(xml, "object")
         assert_xml_element_text(object, "name", "car")
@@ -98,7 +98,7 @@ def describe_build_xml():
             is_video=False,
         )
 
-        xml = build_xml(annotation_file)
+        xml = _build_xml(annotation_file)
 
         object = get_xml_element(xml, "object")
         assert_xml_element_text(object, "name", "rubber")
@@ -130,7 +130,7 @@ def describe_build_xml():
             is_video=False,
         )
 
-        xml = build_xml(annotation_file)
+        xml = _build_xml(annotation_file)
 
         object = get_xml_element(xml, "object")
         assert_xml_element_text(object, "name", "tire")
