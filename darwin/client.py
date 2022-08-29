@@ -357,7 +357,24 @@ class Client:
             A dictionary with the annotation to import. The default format is:
             `{"annotations": serialized_annotations, "overwrite": "false"}`
         """
+
         self._post_raw(f"/dataset_items/{item_id}/import", payload=payload)
+
+    def import_annotation_v2(self, item_id: str, payload: Dict[str, Any]) -> None:
+        """
+        Imports the annotation for the item with the given id.
+
+        Parameters
+        ----------
+        item_id: int
+            Identifier of the Item that we are import the annotation to.
+        payload: Dict[str, Any]
+            A dictionary with the annotation to import. The default format is:
+            `{"annotations": serialized_annotations, "overwrite": "false"}`
+        """
+
+        print(payload)
+        self._post_raw(f"/v2/teams/{self.default_team}/items/{item_id}/import", payload=payload)
 
     def fetch_remote_attributes(self, dataset_id: int) -> List[Dict[str, Any]]:
         """

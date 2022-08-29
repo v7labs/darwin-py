@@ -103,6 +103,9 @@ class Annotation:
     #: List of ``SubAnnotations`` belonging to this ``Annotation``.
     subs: List[SubAnnotation] = field(default_factory=list)
 
+    #: V2 slot names of the annotation
+    slot_names: Any = None
+
     def get_sub(self, annotation_type: str) -> Optional[SubAnnotation]:
         """
         Returns the first SubAnnotation that matches the given type.
@@ -144,6 +147,9 @@ class VideoAnnotation:
 
     #: Whether this ``VideoAnnotation`` is interpolated or not.
     interpolated: bool
+
+    #: V2 slot names of the annotation
+    slot_names: Any = None
 
     def get_data(
         self, only_keyframes: bool = True, post_processing: Optional[Callable[[Annotation, Any], Any]] = None
@@ -635,7 +641,11 @@ def make_keyframe(annotation: Annotation, idx: int) -> KeyFrame:
 
 
 def make_video_annotation(
-    frames: Dict[int, Any], keyframes: Dict[int, bool], segments: List[Segment], interpolated: bool
+    frames: Dict[int, Any],
+    keyframes: Dict[int, bool],
+    segments: List[Segment],
+    interpolated: bool,
+    slot_names: Optional[List[str]],
 ) -> VideoAnnotation:
     """
     Creates and returns a ``VideoAnnotation``.
@@ -665,7 +675,7 @@ def make_video_annotation(
     if not all(frame.annotation_class.name == first_annotation.annotation_class.name for frame in frames.values()):
         raise ValueError("invalid argument to make_video_annotation")
 
-    return VideoAnnotation(first_annotation.annotation_class, frames, keyframes, segments, interpolated)
+    return VideoAnnotation(first_annotation.annotation_class, frames, keyframes, segments, interpolated, slot_names)
 
 
 def _maybe_add_bounding_box_data(data: Dict[str, Any], bounding_box: Optional[Dict]) -> Dict[str, Any]:

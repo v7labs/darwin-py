@@ -4,6 +4,7 @@ Contains several unrelated utility functions used across the SDK.
 
 import json
 import platform
+from ast import main
 from pathlib import Path
 from typing import (
     TYPE_CHECKING,
@@ -20,9 +21,9 @@ from typing import (
 
 import deprecation
 import numpy as np
+from requests import Response
 from rich.progress import ProgressType, track
 from upolygon import draw_polygon
-from requests import Response
 
 import darwin.datatypes as dt
 from darwin.config import Config
@@ -551,6 +552,8 @@ def _parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotati
     if "text" in annotation:
         main_annotation.subs.append(dt.make_text(annotation["text"]["text"]))
 
+    main_annotation.slot_names = annotation.get("slot_names", None)
+
     return main_annotation
 
 
@@ -582,7 +585,11 @@ def _parse_darwin_video_annotation(annotation: dict) -> dt.VideoAnnotation:
         keyframes[int(f)] = frame.get("keyframe", False)
 
     return dt.make_video_annotation(
-        frame_annotations, keyframes, annotation["segments"], annotation.get("interpolated", False)
+        frame_annotations,
+        keyframes,
+        annotation["segments"],
+        annotation.get("interpolated", False),
+        annotation.get("slot_names", None),
     )
 
 
@@ -895,6 +902,7 @@ def is_unix_like_os() -> bool:
     """
     return platform.system() != "Windows"
 
+
 def has_json_content_type(response: Response) -> bool:
     """
     Returns ``True`` if response has application/json content type or ``False``
@@ -906,6 +914,7 @@ def has_json_content_type(response: Response) -> bool:
         True for application/json content type, False otherwise.
     """
     return "application/json" in response.headers.get("content-type", "")
+
 
 def get_response_content(response: Response) -> Any:
     """

@@ -358,13 +358,15 @@ def _import_annotations(
             data = _handle_complex_polygon(annotation, data)
             data = _handle_subs(annotation, data, annotation_class_id, attributes)
 
-        serialized_annotations.append({"annotation_class_id": annotation_class_id, "data": data})
+        serialized_annotations.append(
+            {"annotation_class_id": annotation_class_id, "data": data, "slot_names": annotation.slot_names}
+        )
 
     payload: Dict[str, Any] = {"annotations": serialized_annotations}
     if append:
         payload["overwrite"] = "false"
 
-    try:
+    if dataset.version == 2:
+        client.import_annotation_v2(id, payload=payload)
+    else:
         client.import_annotation(id, payload=payload)
-    except:
-        print(f"warning, failed to upload annotation to item {id}. Annotations: {payload}")
