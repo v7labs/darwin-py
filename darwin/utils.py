@@ -4,7 +4,6 @@ Contains several unrelated utility functions used across the SDK.
 
 import json
 import platform
-from ast import main
 from pathlib import Path
 from typing import (
     TYPE_CHECKING,
