@@ -4,6 +4,7 @@ Contains several unrelated utility functions used across the SDK.
 
 import json
 import platform
+from ast import main
 from pathlib import Path
 from typing import (
     TYPE_CHECKING,
@@ -20,9 +21,9 @@ from typing import (
 
 import deprecation
 import numpy as np
+from requests import Response
 from rich.progress import ProgressType, track
 from upolygon import draw_polygon
-from requests import Response
 
 import darwin.datatypes as dt
 from darwin.config import Config
@@ -506,39 +507,46 @@ def parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotatio
 
 
 def _parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotation]:
+    context_keys = parse_context_keys(annotation)
     name: str = annotation["name"]
     main_annotation: Optional[dt.Annotation] = None
     if "polygon" in annotation:
         bounding_box = annotation.get("bounding_box")
         if "additional_paths" in annotation["polygon"]:
             paths = [annotation["polygon"]["path"]] + annotation["polygon"]["additional_paths"]
-            main_annotation = dt.make_complex_polygon(name, paths, bounding_box)
+            main_annotation = dt.make_complex_polygon(name, paths, bounding_box, context_keys=context_keys)
         else:
-            main_annotation = dt.make_polygon(name, annotation["polygon"]["path"], bounding_box)
+            main_annotation = dt.make_polygon(
+                name, annotation["polygon"]["path"], bounding_box, context_keys=context_keys
+            )
     elif "complex_polygon" in annotation:
         bounding_box = annotation.get("bounding_box")
         if "additional_paths" in annotation["complex_polygon"]:
             paths = annotation["complex_polygon"]["path"] + annotation["complex_polygon"]["additional_paths"]
-            main_annotation = dt.make_complex_polygon(name, paths, bounding_box)
+            main_annotation = dt.make_complex_polygon(name, paths, bounding_box, context_keys=context_keys)
         else:
-            main_annotation = dt.make_complex_polygon(name, annotation["complex_polygon"]["path"], bounding_box)
+            main_annotation = dt.make_complex_polygon(
+                name, annotation["complex_polygon"]["path"], bounding_box, context_keys=context_keys
+            )
     elif "bounding_box" in annotation:
         bounding_box = annotation["bounding_box"]
         main_annotation = dt.make_bounding_box(
-            name, bounding_box["x"], bounding_box["y"], bounding_box["w"], bounding_box["h"]
+            name, bounding_box["x"], bounding_box["y"], bounding_box["w"], bounding_box["h"], context_keys=context_keys
         )
     elif "tag" in annotation:
-        main_annotation = dt.make_tag(name)
+        main_annotation = dt.make_tag(name, context_keys=context_keys)
     elif "line" in annotation:
-        main_annotation = dt.make_line(name, annotation["line"]["path"])
+        main_annotation = dt.make_line(name, annotation["line"]["path"], context_keys=context_keys)
     elif "keypoint" in annotation:
-        main_annotation = dt.make_keypoint(name, annotation["keypoint"]["x"], annotation["keypoint"]["y"])
+        main_annotation = dt.make_keypoint(
+            name, annotation["keypoint"]["x"], annotation["keypoint"]["y"], context_keys=context_keys
+        )
     elif "ellipse" in annotation:
-        main_annotation = dt.make_ellipse(name, annotation["ellipse"])
+        main_annotation = dt.make_ellipse(name, annotation["ellipse"], context_keys=context_keys)
     elif "cuboid" in annotation:
-        main_annotation = dt.make_cuboid(name, annotation["cuboid"])
+        main_annotation = dt.make_cuboid(name, annotation["cuboid"], context_keys=context_keys)
     elif "skeleton" in annotation:
-        main_annotation = dt.make_skeleton(name, annotation["skeleton"]["nodes"])
+        main_annotation = dt.make_skeleton(name, annotation["skeleton"]["nodes"], context_keys=context_keys)
 
     if not main_annotation:
         print(f"[WARNING] Unsupported annotation type: '{annotation.keys()}'")
@@ -582,7 +590,11 @@ def _parse_darwin_video_annotation(annotation: dict) -> dt.VideoAnnotation:
         keyframes[int(f)] = frame.get("keyframe", False)
 
     return dt.make_video_annotation(
-        frame_annotations, keyframes, annotation["segments"], annotation.get("interpolated", False)
+        frame_annotations,
+        keyframes,
+        annotation["segments"],
+        annotation.get("interpolated", False),
+        context_keys=parse_context_keys(annotation),
     )
 
 
@@ -636,6 +648,15 @@ def split_video_annotation(annotation: dt.AnnotationFile) -> List[dt.AnnotationF
             )
         )
     return frame_annotations
+
+
+def parse_context_keys(annotation: dict) -> Optional[Dict[str, Any]]:
+    slot_names = annotation.get("slot_names", None)
+    context_keys = None
+    if slot_names:
+        context_keys = {"slot_names": slot_names}
+
+    return context_keys
 
 
 def ispolygon(annotation: dt.AnnotationClass) -> bool:
@@ -895,6 +916,7 @@ def is_unix_like_os() -> bool:
     """
     return platform.system() != "Windows"
 
+
 def has_json_content_type(response: Response) -> bool:
     """
     Returns ``True`` if response has application/json content type or ``False``
@@ -906,6 +928,7 @@ def has_json_content_type(response: Response) -> bool:
         True for application/json content type, False otherwise.
     """
     return "application/json" in response.headers.get("content-type", "")
+
 
 def get_response_content(response: Response) -> Any:
     """

@@ -1,3 +1,4 @@
+from ast import Or
 from pathlib import Path
 from typing import (
     TYPE_CHECKING,
@@ -305,6 +306,7 @@ def _handle_subs(
     annotation: dt.Annotation, data: Dict[str, Any], annotation_class_id: str, attributes: Dict[str, Any]
 ) -> Dict[str, Any]:
     for sub in annotation.subs:
+        print(sub)
         if sub.annotation_type == "text":
             data["text"] = {"text": sub.data}
         elif sub.annotation_type == "attributes":
@@ -333,7 +335,7 @@ def _handle_complex_polygon(annotation: dt.Annotation, data: Dict[str, Any]) -> 
 
 def _import_annotations(
     client: "Client",
-    id: int,
+    id: Union[str, int],
     remote_classes: Dict[str, Any],
     attributes: Dict[str, Any],
     annotations: List[dt.Annotation],
@@ -358,13 +360,19 @@ def _import_annotations(
             data = _handle_complex_polygon(annotation, data)
             data = _handle_subs(annotation, data, annotation_class_id, attributes)
 
-        serialized_annotations.append({"annotation_class_id": annotation_class_id, "data": data})
+        serialized_annotations.append(
+            {
+                "annotation_class_id": annotation_class_id,
+                "data": data,
+                "context_keys": annotation.context_keys,
+            }
+        )
 
     payload: Dict[str, Any] = {"annotations": serialized_annotations}
     if append:
         payload["overwrite"] = "false"
 
-    try:
+    if dataset.version == 2:
+        client.import_annotation_v2(id, payload=payload)
+    else:
         client.import_annotation(id, payload=payload)
-    except:
-        print(f"warning, failed to upload annotation to item {id}. Annotations: {payload}")

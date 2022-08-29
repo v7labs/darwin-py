@@ -739,7 +739,8 @@ def dataset_import(
         import_annotations(dataset, parser, files, append, class_prompt)
     except ImporterNotFoundError:
         _error(f"Unsupported import format: {format}, currently supported: {import_formats}")
-    except AttributeError:
+    except AttributeError as e:
+        traceback.print_exc()
         _error(f"Unsupported import format: {format}, currently supported: {import_formats}")
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
