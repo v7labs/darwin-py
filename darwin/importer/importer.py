@@ -372,8 +372,3 @@ def _import_annotations(
         payload["overwrite"] = "false"
 
     dataset.import_annotation(id, payload=payload)
-
-    if dataset.version == 2:
-        client.api_v2.import_annotation(id, payload=payload)
-    else:
-        client.import_annotation(id, payload=payload)
