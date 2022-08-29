@@ -301,7 +301,6 @@ def parse_darwin_json(path: Path, count: Optional[int]) -> Optional[dt.Annotatio
 
 
 def _parse_darwin_v2(path: Path, data: Dict[str, Any]) -> dt.AnnotationFile:
-    item = data["item"]
     slots: List[dt.Slot] = list(filter(None, map(_parse_darwin_slot, data["slots"])))
     image_annotations: List[dt.Annotation] = list(filter(None, map(_parse_darwin_annotation, data["annotations"])))
     video_annotations: List[dt.VideoAnnotation] = list(
@@ -310,6 +309,7 @@ def _parse_darwin_v2(path: Path, data: Dict[str, Any]) -> dt.AnnotationFile:
     annotations: List[Union[dt.Annotation, dt.VideoAnnotation]] = [*image_annotations, *video_annotations]
     annotation_classes: Set[dt.AnnotationClass] = set([annotation.annotation_class for annotation in annotations])
 
+    item = data["item"]
     if len(slots) == 1:
         slot = slots[0]
         # Initially we are going to populate the v1 fields when there is just 1 slot to easy the integration.
@@ -348,7 +348,6 @@ def _parse_darwin_v2(path: Path, data: Dict[str, Any]) -> dt.AnnotationFile:
 
 
 def _parse_darwin_slot(data: Dict[str, Any]) -> dt.Slot:
-    # slot_name with an underscore but filename without??
     return dt.Slot(
         name=data["slot_name"],
         type=data["type"],
@@ -359,13 +358,24 @@ def _parse_darwin_slot(data: Dict[str, Any]) -> dt.Slot:
         thubmnail_url=data.get("thumbnail_url"),
         section_count=data.get("section_count"),
         section_urls=data.get("section_urls"),
+        fps=data.get("fps"),
     )
 
 
 def _parse_darwin_image(path: Path, data: Dict[str, Any], count: Optional[int]) -> dt.AnnotationFile:
     annotations: List[dt.Annotation] = list(filter(None, map(_parse_darwin_annotation, data["annotations"])))
     annotation_classes: Set[dt.AnnotationClass] = set([annotation.annotation_class for annotation in annotations])
-    return dt.AnnotationFile(
+
+    slot = dt.Slot(
+        name="default",
+        type="image",
+        filename=_get_local_filename(data["image"]),
+        url=data["image"].get("url"),
+        width=data["image"].get("width"),
+        height=data["image"].get("height"),
+    )
+
+    annotation_file = dt.AnnotationFile(
         path,
         _get_local_filename(data["image"]),
         annotation_classes,
@@ -379,6 +389,8 @@ def _parse_darwin_image(path: Path, data: Dict[str, Any], count: Optional[int]) 
         None,
         data["image"].get("path", "/"),
     )
+    annotation_file.slots.append(slot)
+    return annotation_file
 
 
 def _parse_darwin_video(path: Path, data: Dict[str, Any], count: Optional[int]) -> dt.AnnotationFile:
@@ -388,7 +400,19 @@ def _parse_darwin_video(path: Path, data: Dict[str, Any], count: Optional[int]) 
     if "width" not in data["image"] or "height" not in data["image"]:
         raise OutdatedDarwinJSONFormat("Missing width/height in video, please re-export")
 
-    return dt.AnnotationFile(
+    slot = dt.Slot(
+        name="default",
+        type="image",
+        filename=_get_local_filename(data["image"]),
+        url=data["image"].get("url"),
+        width=data["image"].get("width"),
+        height=data["image"].get("height"),
+        section_count=data["image"].get("frame_count"),
+        section_urls=data["image"].get("frame_urls"),
+        fps=data["image"].get("fps"),
+    )
+
+    annotation_file = dt.AnnotationFile(
         path,
         _get_local_filename(data["image"]),
         annotation_classes,
@@ -402,6 +426,9 @@ def _parse_darwin_video(path: Path, data: Dict[str, Any], count: Optional[int]) 
         data["image"].get("frame_urls"),
         data["image"].get("path", "/"),
     )
+    annotation_file.slots.append(slot)
+
+    return annotation_file
 
 
 def _parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotation]:

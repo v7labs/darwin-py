@@ -247,6 +247,9 @@ class Slot:
     #: A url for each of the existing sections.
     section_urls: Optional[List[str]] = None
 
+    #: Frames per second
+    fps: Optional[float] = None
+
 
 @dataclass
 class AnnotationFile:
@@ -269,15 +272,19 @@ class AnnotationFile:
     #: List of ``VideoAnnotation``\s or ``Annotation``\s.
     annotations: Sequence[Union[Annotation, VideoAnnotation]]
 
+    # Deprecated
     #: Whether the annotations in the ``annotations`` attribute are ``VideoAnnotation`` or not.
     is_video: bool = False
 
+    # Deprecated
     #: Width of the image in this annotation.
     image_width: Optional[int] = None
 
+    # Deprecated
     #: Height of the image in this annotation.
     image_height: Optional[int] = None
 
+    # Deprecated
     #: URL of the image in this annotation.
     image_url: Optional[str] = None
 
@@ -287,6 +294,7 @@ class AnnotationFile:
     #: Sequence for this annotation.
     seq: Optional[int] = None
 
+    # Deprecated
     #: URLs for the frames this ``AnnotationFile`` has.
     frame_urls: Optional[List[str]] = None
 
