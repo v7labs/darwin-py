@@ -765,7 +765,7 @@ class RemoteDataset(ABC):
         """
 
     @abstractmethod
-    def import_annotation(self, item_id: Any, payload: Dict[str, Any]) -> None:
+    def import_annotation(self, item_id: Union[str, int], payload: Dict[str, Any]) -> None:
         """
         Imports the annotation for the item with the given id.
 

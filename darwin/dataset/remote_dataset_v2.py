@@ -414,7 +414,7 @@ class RemoteDatasetV2(RemoteDataset):
 
         self.client.api_v2.post_comment(item_id, text, x, y, w, h, slot_name, team_slug=self.team)
 
-    def import_annotation(self, item_id: Any, payload: Dict[str, Any]) -> None:
+    def import_annotation(self, item_id: Union[str, int], payload: Dict[str, Any]) -> None:
         """
         Imports the annotation for the item with the given id.
 
