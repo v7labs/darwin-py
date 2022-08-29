@@ -389,3 +389,18 @@ class RemoteDatasetV1(RemoteDataset):
             workflow_id = maybe_workflow_id
 
         self.client.post_workflow_comment(workflow_id, text, x, y, w, h)
+
+    def import_annotation(self, item_id: Any, payload: Dict[str, Any]) -> None:
+        """
+        Imports the annotation for the item with the given id.
+
+        Parameters
+        ----------
+        item_id: int
+            Identifier of the Image or Video that we are import the annotation to.
+        payload: Dict[str, Any]
+            A dictionary with the annotation to import. The default format is:
+            `{"annotations": serialized_annotations, "overwrite": "false"}`
+        """
+
+        self.client.import_annotation(item_id, payload=payload)

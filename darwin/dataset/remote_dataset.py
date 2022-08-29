@@ -764,6 +764,20 @@ class RemoteDataset(ABC):
         Adds a comment to an items in this dataset
         """
 
+    @abstractmethod
+    def import_annotation(self, item_id: Any, payload: Dict[str, Any]) -> None:
+        """
+        Imports the annotation for the item with the given id.
+
+        Parameters
+        ----------
+        item_id: str
+            Identifier of the Item that we are import the annotation to.
+        payload: Dict[str, Any]
+            A dictionary with the annotation to import. The default format is:
+            `{"annotations": serialized_annotations, "overwrite": "false"}`
+        """
+
     @property
     def remote_path(self) -> Path:
         """Returns an URL specifying the location of the remote dataset."""

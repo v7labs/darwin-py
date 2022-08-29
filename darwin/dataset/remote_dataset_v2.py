@@ -413,3 +413,18 @@ class RemoteDatasetV2(RemoteDataset):
             slot_name = item.slots[0]["slot_name"]
 
         self.client.api_v2.post_comment(item_id, text, x, y, w, h, slot_name, team_slug=self.team)
+
+    def import_annotation(self, item_id: Any, payload: Dict[str, Any]) -> None:
+        """
+        Imports the annotation for the item with the given id.
+
+        Parameters
+        ----------
+        item_id: str
+            Identifier of the Item that we are import the annotation to.
+        payload: Dict[str, Any]
+            A dictionary with the annotation to import. The default format is:
+            `{"annotations": serialized_annotations, "overwrite": "false"}`
+        """
+
+        self.client.api_v2.import_annotation(item_id, payload=payload)
