@@ -1,6 +1,8 @@
 from typing import Any, Dict, Optional
 from urllib import parse
 
+from darwin.datatypes import ItemId
+
 
 def inject_default_team_slug(method):
     """
@@ -168,13 +170,13 @@ class BackendV2:
         return self._client._post(f"v2/teams/{team_slug}/items/{item_id}/comment_threads", payload, team_slug)
 
     @inject_default_team_slug
-    def import_annotation(self, item_id: str, payload: Dict[str, Any], team_slug: Optional[str] = None) -> None:
+    def import_annotation(self, item_id: ItemId, payload: Dict[str, Any], team_slug: Optional[str] = None) -> None:
         """
         Imports the annotation for the item with the given id.
 
         Parameters
         ----------
-        item_id: str
+        item_id: ItemId
             Identifier of the Item that we are import the annotation to.
         payload: Dict[str, Any]
             A dictionary with the annotation to import. The default format is:

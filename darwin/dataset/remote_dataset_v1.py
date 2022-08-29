@@ -9,7 +9,7 @@ from darwin.dataset.upload_manager import (
     UploadHandlerV1,
 )
 from darwin.dataset.utils import is_relative_to
-from darwin.datatypes import PathLike
+from darwin.datatypes import ItemId, PathLike
 from darwin.exceptions import NotFound
 from darwin.item import DatasetItem
 from darwin.item_sorter import ItemSorter
@@ -371,7 +371,7 @@ class RemoteDatasetV1(RemoteDataset):
         """
         return urljoin(self.client.base_url, f"/workview?dataset={self.dataset_id}&image={item.seq}")
 
-    def post_comment(self, item_id: str, text: str, x: int, y: int, w: int, h: int):
+    def post_comment(self, item_id: ItemId, text: str, x: int, y: int, w: int, h: int):
         """
         Adds a comment to an item in this dataset
         Instantiates a workflow if needed
@@ -390,13 +390,13 @@ class RemoteDatasetV1(RemoteDataset):
 
         self.client.post_workflow_comment(workflow_id, text, x, y, w, h)
 
-    def import_annotation(self, item_id: Union[str, int], payload: Dict[str, Any]) -> None:
+    def import_annotation(self, item_id: ItemId, payload: Dict[str, Any]) -> None:
         """
         Imports the annotation for the item with the given id.
 
         Parameters
         ----------
-        item_id: int
+        item_id: ItemId
             Identifier of the Image or Video that we are import the annotation to.
         payload: Dict[str, Any]
             A dictionary with the annotation to import. The default format is:

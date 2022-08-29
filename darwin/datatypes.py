@@ -18,6 +18,8 @@ DarwinVersionNumber = Tuple[int, int, int]
 PathLike = Union[str, Path]
 ErrorHandler = Callable[[int, str], None]
 
+ItemId = Union[str, int]
+
 
 @dataclass
 class Team:
