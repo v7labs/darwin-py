@@ -6,6 +6,7 @@ supported_formats: List[str] = [
     "coco",
     "cvat",
     "dataloop",
+    "darwin",
     "instance_mask",
     "pascalvoc",
     "semantic_mask",
