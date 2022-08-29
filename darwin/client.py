@@ -366,7 +366,7 @@ class Client:
 
         Parameters
         ----------
-        item_id: int
+        item_id: str
             Identifier of the Item that we are import the annotation to.
         payload: Dict[str, Any]
             A dictionary with the annotation to import. The default format is:

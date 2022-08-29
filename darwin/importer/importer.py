@@ -306,7 +306,6 @@ def _handle_subs(
     annotation: dt.Annotation, data: Dict[str, Any], annotation_class_id: str, attributes: Dict[str, Any]
 ) -> Dict[str, Any]:
     for sub in annotation.subs:
-        print(sub)
         if sub.annotation_type == "text":
             data["text"] = {"text": sub.data}
         elif sub.annotation_type == "attributes":
