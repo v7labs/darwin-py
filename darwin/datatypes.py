@@ -100,6 +100,17 @@ class SubAnnotation:
     #: Used for compatibility purposes with external formats.
     data: Any
 
+    def to_json(self):
+        """
+        Returns Darwin JSON (V1) formatted sub-annotation object.
+        """
+        if self.annotation_type == "instance_id":
+            return {self.annotation_type: {"value": self.data}}
+        elif self.annotation_type == "attributes":
+            return {self.annotation_type: self.data}
+        elif self.annotation_type == "text":
+            return {self.annotation_type: {"text": self.data}}
+
 
 @dataclass(frozen=True, eq=True)
 class Annotation:
@@ -138,6 +149,31 @@ class Annotation:
             if sub.annotation_type == annotation_type:
                 return sub
         return None
+
+    def to_json(self, skip_slots: bool = False):
+        """
+        Returns Darwin JSON (V1) formatted annotation object.
+
+        Parameters
+        ----------
+        skip_slots: bool
+            Whether or not to include `slot_names` field. This should be skipped for V1 and
+            for in-frame annotations (as it's already included on higher level).
+        """
+        json_subs = {}
+        for sub in self.subs:
+            json_subs.update(sub.to_json())
+
+        base_json = {
+            **json_subs,
+            self.annotation_class.annotation_type: self.data,
+            "name": self.annotation_class.name,
+        }
+
+        if skip_slots:
+            return base_json
+        else:
+            return {**base_json, "slot_names": self.slot_names}
 
 
 @dataclass(frozen=True, eq=True)
@@ -215,6 +251,16 @@ class VideoAnnotation:
             },
             "segments": self.segments,
             "interpolated": self.interpolated,
+        }
+
+    def to_json(self):
+        """
+        Returns Darwin JSON (V1) formatted annotation object.
+        """
+        return {
+            **self.get_data(only_keyframes=False, post_processing=lambda annotation, _: annotation.to_json()),
+            "name": self.annotation_class.name,
+            "slot_names": self.slot_names,
         }
 
 
