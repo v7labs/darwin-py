@@ -226,6 +226,8 @@ class RemoteDatasetV1(RemoteDataset):
                         post_filters[list_type] = str(filters[list_type])
             if "path" in filters:
                 post_filters["path"] = str(filters["path"])
+            if "item_ids" in filters:
+                post_filters["dataset_item_ids"] = filters["item_ids"]
             if "types" in filters:
                 post_filters["types"] = str(filters["types"])
 

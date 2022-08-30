@@ -221,16 +221,14 @@ class RemoteDatasetV2(RemoteDataset):
             if "filenames" in filters:
                 # compability layer with v1
                 filters["item_names"] = filters["filenames"]
-            for list_type in ["item_names", "statuses"]:
+            for list_type in ["item_names", "statuses", "item_ids"]:
                 if list_type in filters:
                     if type(filters[list_type]) is list:
                         post_filters[list_type] = filters[list_type]
                     else:
                         post_filters[list_type] = str(filters[list_type])
-            if "path" in filters:
-                post_filters["path"] = str(filters["path"])
-            if "types" in filters:
-                post_filters["types"] = str(filters["types"])
+            if "slot_types" in filters:
+                post_filters["types"] = filters["slot_types"]
 
         if sort:
             item_sorter = ItemSorter.parse(sort)
