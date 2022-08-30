@@ -352,7 +352,7 @@ def _parse_darwin_slot(data: Dict[str, Any]) -> dt.Slot:
         type=data["type"],
         width=data.get("width"),
         height=data.get("height"),
-        filename=data.get("filename"),
+        filename=data.get("file_name"),
         url=data.get("url"),
         thubmnail_url=data.get("thumbnail_url"),
         section_count=data.get("section_count"),
