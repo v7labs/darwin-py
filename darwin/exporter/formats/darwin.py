@@ -61,7 +61,18 @@ def _build_video_json(annotation_file: dt.AnnotationFile):
 
 
 def _build_annotation(annotation):
-    return {annotation.annotation_class.annotation_type: {**annotation.data}, "name": annotation.annotation_class.name}
+    if isinstance(annotation, dt.VideoAnnotation):
+        return {
+            **annotation.get_data(),
+            "name": annotation.annotation_class.name,
+            "slot_names": annotation.slot_names,
+        }
+    else:
+        return {
+            annotation.annotation_class.annotation_type: {**annotation.data},
+            "name": annotation.annotation_class.name,
+            "slot_names": annotation.slot_names,
+        }
 
 
 DEPRECATION_MESSAGE = """

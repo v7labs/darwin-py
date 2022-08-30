@@ -288,12 +288,11 @@ def parse_darwin_json(path: Path, count: Optional[int]) -> Optional[dt.Annotatio
     path = Path(path)
     with path.open() as f:
         data = json.load(f)
-        try:
+        if "annotations" not in data:
+            return None
+        if "version" in data:
             return _parse_darwin_v2(path, data)
-        except:
-            # probably legacy darwin v1
-            if "annotations" not in data:
-                return None
+        else:
             if "fps" in data["image"] or "frame_count" in data["image"]:
                 return _parse_darwin_video(path, data, count)
             else:
@@ -301,6 +300,8 @@ def parse_darwin_json(path: Path, count: Optional[int]) -> Optional[dt.Annotatio
 
 
 def _parse_darwin_v2(path: Path, data: Dict[str, Any]) -> dt.AnnotationFile:
+    if "slots" not in data:
+        print(data)
     slots: List[dt.Slot] = list(filter(None, map(_parse_darwin_slot, data["slots"])))
     image_annotations: List[dt.Annotation] = list(filter(None, map(_parse_darwin_annotation, data["annotations"])))
     video_annotations: List[dt.VideoAnnotation] = list(
@@ -482,8 +483,6 @@ def _parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotati
     if "text" in annotation:
         main_annotation.subs.append(dt.make_text(annotation["text"]["text"]))
 
-    if "slot_names" in annotation:
-        main_annotation.slots.extend(annotation["slot_names"])
     return main_annotation
 
 
@@ -491,7 +490,8 @@ def _parse_darwin_video_annotation(annotation: dict) -> Optional[dt.VideoAnnotat
     name = annotation["name"]
     frame_annotations = {}
     keyframes: Dict[int, bool] = {}
-    for f, frame in annotation.get("frames", {}).items():
+    frames = {**annotation.get("frames", {}), **annotation.get("sections", {})}
+    for f, frame in frames.items():
         frame_annotations[int(f)] = _parse_darwin_annotation({**frame, **{"name": name}})
         keyframes[int(f)] = frame.get("keyframe", False)
 

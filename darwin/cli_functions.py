@@ -947,7 +947,7 @@ def convert(format: str, files: List[PathLike], output_dir: Path) -> None:
     except AttributeError:
         _error(f"Unsupported export format, currently supported: {export_formats}")
 
-    export_annotations(parser, files, output_dir)
+    export_annotations(parser, files, output_dir, format)
 
 
 def post_comment(
