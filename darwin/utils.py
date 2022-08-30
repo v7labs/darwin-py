@@ -648,7 +648,7 @@ def split_video_annotation(annotation: dt.AnnotationFile) -> List[dt.AnnotationF
 
 
 def parse_slot_names(annotation: dict) -> Optional[Dict[str, Any]]:
-    return annotation.get("slot_names", None)
+    return annotation.get("slot_names", [])
 
 
 def ispolygon(annotation: dt.AnnotationClass) -> bool:

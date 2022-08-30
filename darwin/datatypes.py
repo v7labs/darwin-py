@@ -106,7 +106,7 @@ class Annotation:
     subs: List[SubAnnotation] = field(default_factory=list)
 
     #: V2 slots this annotation belogs to
-    slot_names: Optional[List[str]] = None
+    slot_names: List[str] = field(default_factory=list)
 
     def get_sub(self, annotation_type: str) -> Optional[SubAnnotation]:
         """
@@ -151,7 +151,7 @@ class VideoAnnotation:
     interpolated: bool
 
     #: V2 slots this annotation belogs to
-    slot_names: Optional[List[str]] = None
+    slot_names: List[str] = field(default_factory=list)
 
     def get_data(
         self, only_keyframes: bool = True, post_processing: Optional[Callable[[Annotation, Any], Any]] = None
@@ -301,7 +301,7 @@ def make_bounding_box(
         AnnotationClass(class_name, "bounding_box"),
         {"x": round(x, 3), "y": round(y, 3), "w": round(w, 3), "h": round(h, 3)},
         subs or [],
-        slot_names=slot_names,
+        slot_names=slot_names or [],
     )
 
 
@@ -364,7 +364,7 @@ def make_polygon(
         AnnotationClass(class_name, "polygon"),
         _maybe_add_bounding_box_data({"path": point_path}, bounding_box),
         subs or [],
-        slot_names=slot_names,
+        slot_names=slot_names or [],
     )
 
 
@@ -416,7 +416,7 @@ def make_complex_polygon(
         AnnotationClass(class_name, "complex_polygon", "polygon"),
         _maybe_add_bounding_box_data({"paths": point_paths}, bounding_box),
         subs or [],
-        slot_names=slot_names,
+        slot_names=slot_names or [],
     )
 
 
