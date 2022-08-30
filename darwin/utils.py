@@ -300,8 +300,6 @@ def parse_darwin_json(path: Path, count: Optional[int]) -> Optional[dt.Annotatio
 
 
 def _parse_darwin_v2(path: Path, data: Dict[str, Any]) -> dt.AnnotationFile:
-    if "slots" not in data:
-        print(data)
     slots: List[dt.Slot] = list(filter(None, map(_parse_darwin_slot, data["slots"])))
     image_annotations: List[dt.Annotation] = list(filter(None, map(_parse_darwin_annotation, data["annotations"])))
     video_annotations: List[dt.VideoAnnotation] = list(
