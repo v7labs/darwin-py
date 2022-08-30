@@ -20,9 +20,9 @@ from typing import (
 
 import deprecation
 import numpy as np
+from requests import Response
 from rich.progress import ProgressType, track
 from upolygon import draw_polygon
-from requests import Response
 
 import darwin.datatypes as dt
 from darwin.config import Config
@@ -430,7 +430,6 @@ def _parse_darwin_video(path: Path, data: Dict[str, Any], count: Optional[int]) 
     annotation_classes: Set[dt.AnnotationClass] = set([annotation.annotation_class for annotation in annotations])
     if "width" not in data["image"] or "height" not in data["image"]:
         raise OutdatedDarwinJSONFormat("Missing width/height in video, please re-export")
-
     return dt.AnnotationFile(
         path,
         _get_local_filename(data["image"]),
@@ -444,10 +443,7 @@ def _parse_darwin_video(path: Path, data: Dict[str, Any], count: Optional[int]) 
         data["image"].get("seq", count),
         data["image"].get("frame_urls"),
         data["image"].get("path", "/"),
-        data["image"].get("pixdim"),
-        data["image"].get("affine"),
-        data["image"].get("groups"),
-        data["image"].get("shape"),
+        data["image"].get("metadata"),
     )
 
 
@@ -570,7 +566,11 @@ def parse_darwin_video_annotation(annotation: dict) -> dt.VideoAnnotation:
         keyframes[int(f)] = frame.get("keyframe", False)
 
     return dt.make_video_annotation(
-        frame_annotations, keyframes, annotation["segments"], annotation.get("interpolated", False)
+        frame_annotations,
+        keyframes,
+        annotation["segments"],
+        annotation["slot_names"],
+        annotation.get("interpolated", False),
     )
 
 
@@ -583,7 +583,11 @@ def _parse_darwin_video_annotation(annotation: dict) -> dt.VideoAnnotation:
         keyframes[int(f)] = frame.get("keyframe", False)
 
     return dt.make_video_annotation(
-        frame_annotations, keyframes, annotation["segments"], annotation.get("interpolated", False)
+        frame_annotations,
+        keyframes,
+        annotation["segments"],
+        annotation["slot_names"],
+        annotation.get("interpolated", False),
     )
 
 
@@ -634,6 +638,7 @@ def split_video_annotation(annotation: dt.AnnotationFile) -> List[dt.AnnotationF
                 frame_url,
                 annotation.workview_url,
                 annotation.seq,
+                metadata=annotation.metadata,
             )
         )
     return frame_annotations
@@ -896,6 +901,7 @@ def is_unix_like_os() -> bool:
     """
     return platform.system() != "Windows"
 
+
 def has_json_content_type(response: Response) -> bool:
     """
     Returns ``True`` if response has application/json content type or ``False``
@@ -907,6 +913,7 @@ def has_json_content_type(response: Response) -> bool:
         True for application/json content type, False otherwise.
     """
     return "application/json" in response.headers.get("content-type", "")
+
 
 def get_response_content(response: Response) -> Any:
     """

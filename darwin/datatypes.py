@@ -155,6 +155,9 @@ class VideoAnnotation:
     #: A list of ``Segment``\'s.
     segments: List[Segment]
 
+    #: Slot name
+    slot_names: str
+
     #: Whether this ``VideoAnnotation`` is interpolated or not.
     interpolated: bool
 
@@ -206,6 +209,7 @@ class VideoAnnotation:
                 for frame in self.frames
                 if not only_keyframes or self.keyframes[frame]
             },
+            "slot_names": self.slot_names,
             "segments": self.segments,
             "interpolated": self.interpolated,
         }
@@ -256,18 +260,7 @@ class AnnotationFile:
     #: Remote path for this ``Annotation``\'s file in V7's darwin.
     remote_path: Optional[str] = None
 
-    #: If this is a volume, the pixdim parameters
-    pixdim: Optional[Tuple[int, int, int]] = None
-
-    #: If this is a volume, the affine matrix
-    affine: Optional[np.ndarray] = None
-
-    #: If this is a volume and extract_views was set at labeling time,
-    # groups is an array of frames associated with each view
-    groups: Optional[Iterable[List]] = None
-
-    #: If this is a volume then this is the volume shape
-    shape: Optional[Tuple[int, int, int]] = None
+    metadata: Optional[Dict] = None
 
     @property
     def full_path(self) -> str:
@@ -661,7 +654,7 @@ def make_keyframe(annotation: Annotation, idx: int) -> KeyFrame:
 
 
 def make_video_annotation(
-    frames: Dict[int, Any], keyframes: Dict[int, bool], segments: List[Segment], interpolated: bool
+    frames: Dict[int, Any], keyframes: Dict[int, bool], segments: List[Segment], slot_name: str, interpolated: bool
 ) -> VideoAnnotation:
     """
     Creates and returns a ``VideoAnnotation``.
@@ -674,6 +667,8 @@ def make_video_annotation(
         Indicates which frames are keyframes.
     segments : List[Segment]
         The list of segments for the video.
+    slot_name: str
+        The slot name this video annotation was acquired on.
     interpolated : bool
         If this video annotation is interpolated or not.
 
@@ -691,7 +686,7 @@ def make_video_annotation(
     if not all(frame.annotation_class.name == first_annotation.annotation_class.name for frame in frames.values()):
         raise ValueError("invalid argument to make_video_annotation")
 
-    return VideoAnnotation(first_annotation.annotation_class, frames, keyframes, segments, interpolated)
+    return VideoAnnotation(first_annotation.annotation_class, frames, keyframes, segments, slot_name, interpolated)
 
 
 def _maybe_add_bounding_box_data(data: Dict[str, Any], bounding_box: Optional[Dict]) -> Dict[str, Any]:

@@ -11,4 +11,5 @@ supported_formats: List[str] = [
     "semantic_mask",
     "semantic_mask_grey",
     "semantic_mask_index",
+    "nifti",
 ]

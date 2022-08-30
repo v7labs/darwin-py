@@ -27,7 +27,7 @@ def darwin_to_dt_gen(file_paths: List[PathLike]) -> Iterator[AnnotationFile]:
                 continue
             data = parse_darwin_json(f, count)
             if data:
-                if data.is_video:
+                if data.is_video and data.metadata is None:
                     for d in split_video_annotation(data):
                         d.seq = count
                         count += 1
