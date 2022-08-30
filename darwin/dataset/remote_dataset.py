@@ -374,7 +374,7 @@ class RemoteDataset(ABC):
         Parameters
         ----------
         items : Iterator[DatasetItem]
-            The ``DatasetItem``\\s to be resetted.
+            The ``DatasetItem``\\s to be reset.
         """
 
     @abstractmethod
@@ -778,6 +778,20 @@ class RemoteDataset(ABC):
             The width of the bounding box containing the comment.
         h : float
             The height of the bounding box containing the comment.
+        """
+
+    @abstractmethod
+    def import_annotation(self, item_id: ItemId, payload: Dict[str, Any]) -> None:
+        """
+        Imports the annotation for the item with the given id.
+
+        Parameters
+        ----------
+        item_id: ItemId
+            Identifier of the Item that we are import the annotation to.
+        payload: Dict[str, Any]
+            A dictionary with the annotation to import. The default format is:
+            `{"annotations": serialized_annotations, "overwrite": "false"}`
         """
 
     @property
