@@ -5,7 +5,7 @@ from darwin.datatypes import AnnotationFile, ExportParser, PathLike
 from darwin.utils import parse_darwin_json, split_video_annotation
 
 
-def darwin_to_dt_gen(file_paths: List[PathLike], split_sequences: bool = True) -> Iterator[AnnotationFile]:
+def darwin_to_dt_gen(file_paths: List[PathLike], split_sequences: bool) -> Iterator[AnnotationFile]:
     """
     Parses the given paths recursively and into an ``Iterator`` of ``AnnotationFile``\\s.
 
@@ -38,7 +38,10 @@ def darwin_to_dt_gen(file_paths: List[PathLike], split_sequences: bool = True) -
 
 
 def export_annotations(
-    exporter: ExportParser, file_paths: List[PathLike], output_directory: PathLike, format: str
+    exporter: ExportParser,
+    file_paths: List[PathLike],
+    output_directory: PathLike,
+    split_sequences: bool = True,
 ) -> None:
     """
     Converts a set of files to a different annotation format.
@@ -54,7 +57,7 @@ def export_annotations(
     """
 
     exporter(
-        darwin_to_dt_gen(file_paths, split_sequences=format != "darwin"),
+        darwin_to_dt_gen(file_paths, split_sequences=split_sequences),
         Path(output_directory),
     )
     print(f"Converted annotations saved at {output_directory}")
