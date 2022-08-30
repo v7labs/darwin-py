@@ -427,4 +427,4 @@ class RemoteDatasetV2(RemoteDataset):
             `{"annotations": serialized_annotations, "overwrite": "false"}`
         """
 
-        self.client.api_v2.import_annotation(item_id, payload=payload)
+        self.client.api_v2.import_annotation(item_id, payload=payload, team_slug=self.team)
