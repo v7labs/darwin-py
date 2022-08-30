@@ -301,9 +301,11 @@ def parse_darwin_json(path: Path, count: Optional[int]) -> Optional[dt.Annotatio
 
 def _parse_darwin_v2(path: Path, data: Dict[str, Any]) -> dt.AnnotationFile:
     slots: List[dt.Slot] = list(filter(None, map(_parse_darwin_slot, data["slots"])))
-    image_annotations: List[dt.Annotation] = list(filter(None, map(_parse_darwin_annotation, data["annotations"])))
+    raw_image_annotations = filter(lambda annotation: "sections" not in annotation, data["annotations"])
+    raw_video_annotations = filter(lambda annotation: "sections" in annotation, data["annotations"])
+    image_annotations: List[dt.Annotation] = list(filter(None, map(_parse_darwin_annotation, raw_image_annotations)))
     video_annotations: List[dt.VideoAnnotation] = list(
-        filter(None, map(_parse_darwin_video_annotation, data["annotations"]))
+        filter(None, map(_parse_darwin_video_annotation, raw_video_annotations))
     )
     annotations: List[Union[dt.Annotation, dt.VideoAnnotation]] = [*image_annotations, *video_annotations]
     annotation_classes: Set[dt.AnnotationClass] = set([annotation.annotation_class for annotation in annotations])
@@ -556,7 +558,7 @@ def split_video_annotation(annotation: dt.AnnotationFile) -> List[dt.AnnotationF
     return frame_annotations
 
 
-def parse_slot_names(annotation: dict) -> Optional[Dict[str, Any]]:
+def parse_slot_names(annotation: dict) -> List[str]:
     return annotation.get("slot_names", [])
 
 
