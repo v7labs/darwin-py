@@ -15,7 +15,7 @@ from darwin.dataset import RemoteDataset
 from darwin.dataset.identifier import DatasetIdentifier
 from darwin.dataset.remote_dataset_v1 import RemoteDatasetV1
 from darwin.dataset.remote_dataset_v2 import RemoteDatasetV2
-from darwin.datatypes import DarwinVersionNumber, Feature, Team
+from darwin.datatypes import DarwinVersionNumber, Feature, ItemId, Team
 from darwin.exceptions import (
     InsufficientStorage,
     InvalidLogin,
@@ -345,18 +345,19 @@ class Client:
         )
         return response
 
-    def import_annotation(self, item_id: int, payload: Dict[str, Any]) -> None:
+    def import_annotation(self, item_id: ItemId, payload: Dict[str, Any]) -> None:
         """
         Imports the annotation for the item with the given id.
 
         Parameters
         ----------
-        item_id: int
+        item_id: ItemId
             Identifier of the Image or Video that we are import the annotation to.
         payload: Dict[str, Any]
             A dictionary with the annotation to import. The default format is:
             `{"annotations": serialized_annotations, "overwrite": "false"}`
         """
+
         self._post_raw(f"/dataset_items/{item_id}/import", payload=payload)
 
     def fetch_remote_attributes(self, dataset_id: int) -> List[Dict[str, Any]]:

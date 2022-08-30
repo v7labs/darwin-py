@@ -10,7 +10,7 @@ from darwin.dataset.upload_manager import (
     UploadHandlerV2,
 )
 from darwin.dataset.utils import is_relative_to
-from darwin.datatypes import PathLike
+from darwin.datatypes import ItemId, PathLike
 from darwin.exceptions import NotFound
 from darwin.item import DatasetItem
 from darwin.item_sorter import ItemSorter
@@ -397,7 +397,7 @@ class RemoteDatasetV2(RemoteDataset):
         """
         return urljoin(self.client.base_url, f"/workview?dataset={self.dataset_id}&item={item.id}")
 
-    def post_comment(self, item_id: str, text: str, x: int, y: int, w: int, h: int, slot_name: Optional[str] = None):
+    def post_comment(self, item_id: ItemId, text: str, x: int, y: int, w: int, h: int, slot_name: Optional[str] = None):
         """
         Adds a comment to an item in this dataset,
         Tries to infer slot_name if left out.
@@ -413,3 +413,18 @@ class RemoteDatasetV2(RemoteDataset):
             slot_name = item.slots[0]["slot_name"]
 
         self.client.api_v2.post_comment(item_id, text, x, y, w, h, slot_name, team_slug=self.team)
+
+    def import_annotation(self, item_id: ItemId, payload: Dict[str, Any]) -> None:
+        """
+        Imports the annotation for the item with the given id.
+
+        Parameters
+        ----------
+        item_id: ItemId
+            Identifier of the Item that we are import the annotation to.
+        payload: Dict[str, Any]
+            A dictionary with the annotation to import. The default format is:
+            `{"annotations": serialized_annotations, "overwrite": "false"}`
+        """
+
+        self.client.api_v2.import_annotation(item_id, payload=payload)
