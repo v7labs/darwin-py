@@ -363,7 +363,7 @@ def _import_annotations(
             {
                 "annotation_class_id": annotation_class_id,
                 "data": data,
-                "context_keys": annotation.context_keys,
+                "context_keys": {"slot_names": annotation.slot_names},
             }
         )
 

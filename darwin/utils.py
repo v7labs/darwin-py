@@ -506,46 +506,44 @@ def parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotatio
 
 
 def _parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotation]:
-    context_keys = parse_context_keys(annotation)
+    slot_names = parse_slot_names(annotation)
     name: str = annotation["name"]
     main_annotation: Optional[dt.Annotation] = None
     if "polygon" in annotation:
         bounding_box = annotation.get("bounding_box")
         if "additional_paths" in annotation["polygon"]:
             paths = [annotation["polygon"]["path"]] + annotation["polygon"]["additional_paths"]
-            main_annotation = dt.make_complex_polygon(name, paths, bounding_box, context_keys=context_keys)
+            main_annotation = dt.make_complex_polygon(name, paths, bounding_box, slot_names=slot_names)
         else:
-            main_annotation = dt.make_polygon(
-                name, annotation["polygon"]["path"], bounding_box, context_keys=context_keys
-            )
+            main_annotation = dt.make_polygon(name, annotation["polygon"]["path"], bounding_box, slot_names=slot_names)
     elif "complex_polygon" in annotation:
         bounding_box = annotation.get("bounding_box")
         if "additional_paths" in annotation["complex_polygon"]:
             paths = annotation["complex_polygon"]["path"] + annotation["complex_polygon"]["additional_paths"]
-            main_annotation = dt.make_complex_polygon(name, paths, bounding_box, context_keys=context_keys)
+            main_annotation = dt.make_complex_polygon(name, paths, bounding_box, slot_names=slot_names)
         else:
             main_annotation = dt.make_complex_polygon(
-                name, annotation["complex_polygon"]["path"], bounding_box, context_keys=context_keys
+                name, annotation["complex_polygon"]["path"], bounding_box, slot_names=slot_names
             )
     elif "bounding_box" in annotation:
         bounding_box = annotation["bounding_box"]
         main_annotation = dt.make_bounding_box(
-            name, bounding_box["x"], bounding_box["y"], bounding_box["w"], bounding_box["h"], context_keys=context_keys
+            name, bounding_box["x"], bounding_box["y"], bounding_box["w"], bounding_box["h"], slot_names=slot_names
         )
     elif "tag" in annotation:
-        main_annotation = dt.make_tag(name, context_keys=context_keys)
+        main_annotation = dt.make_tag(name, slot_names=slot_names)
     elif "line" in annotation:
-        main_annotation = dt.make_line(name, annotation["line"]["path"], context_keys=context_keys)
+        main_annotation = dt.make_line(name, annotation["line"]["path"], slot_names=slot_names)
     elif "keypoint" in annotation:
         main_annotation = dt.make_keypoint(
-            name, annotation["keypoint"]["x"], annotation["keypoint"]["y"], context_keys=context_keys
+            name, annotation["keypoint"]["x"], annotation["keypoint"]["y"], slot_names=slot_names
         )
     elif "ellipse" in annotation:
-        main_annotation = dt.make_ellipse(name, annotation["ellipse"], context_keys=context_keys)
+        main_annotation = dt.make_ellipse(name, annotation["ellipse"], slot_names=slot_names)
     elif "cuboid" in annotation:
-        main_annotation = dt.make_cuboid(name, annotation["cuboid"], context_keys=context_keys)
+        main_annotation = dt.make_cuboid(name, annotation["cuboid"], slot_names=slot_names)
     elif "skeleton" in annotation:
-        main_annotation = dt.make_skeleton(name, annotation["skeleton"]["nodes"], context_keys=context_keys)
+        main_annotation = dt.make_skeleton(name, annotation["skeleton"]["nodes"], slot_names=slot_names)
 
     if not main_annotation:
         print(f"[WARNING] Unsupported annotation type: '{annotation.keys()}'")
@@ -593,7 +591,7 @@ def _parse_darwin_video_annotation(annotation: dict) -> dt.VideoAnnotation:
         keyframes,
         annotation["segments"],
         annotation.get("interpolated", False),
-        context_keys=parse_context_keys(annotation),
+        slot_names=parse_slot_names(annotation),
     )
 
 
@@ -649,13 +647,8 @@ def split_video_annotation(annotation: dt.AnnotationFile) -> List[dt.AnnotationF
     return frame_annotations
 
 
-def parse_context_keys(annotation: dict) -> Optional[Dict[str, Any]]:
-    slot_names = annotation.get("slot_names", None)
-    context_keys = None
-    if slot_names:
-        context_keys = {"slot_names": slot_names}
-
-    return context_keys
+def parse_slot_names(annotation: dict) -> Optional[Dict[str, Any]]:
+    return annotation.get("slot_names", None)
 
 
 def ispolygon(annotation: dt.AnnotationClass) -> bool:
