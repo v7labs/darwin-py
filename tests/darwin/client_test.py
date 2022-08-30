@@ -238,7 +238,7 @@ def describe_get_team_features():
 
 
 @pytest.mark.usefixtures("file_read_write_test")
-def describe_instantitate_item():
+def describe_instantiate_item():
     @responses.activate
     def it_raises_if_workflow_id_is_not_found(darwin_client: Client):
         item_id: int = 1234
@@ -248,7 +248,7 @@ def describe_instantitate_item():
         responses.add(responses.POST, darwin_client.url + endpoint, json=json_response, status=200)
 
         with pytest.raises(ValueError) as exception:
-            darwin_client.instantitate_item(item_id)
+            darwin_client.instantiate_item(item_id)
 
         assert str(exception.value) == f"No Workflow Id found for item_id: {item_id}"
 
@@ -260,7 +260,7 @@ def describe_instantitate_item():
         json_response: Dict[str, Any] = {"current_workflow_id": workflow_id}
 
         responses.add(responses.POST, darwin_client.url + endpoint, json=json_response, status=200)
-        assert darwin_client.instantitate_item(item_id) == workflow_id
+        assert darwin_client.instantiate_item(item_id) == workflow_id
 
 
 @pytest.mark.usefixtures("file_read_write_test")

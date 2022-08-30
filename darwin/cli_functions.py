@@ -995,7 +995,7 @@ def post_comment(
     item: DatasetItem = items.pop()
 
     try:
-        dataset.post_comment(str(item.id), text, x, y, w, h)
+        dataset.post_comment(item, text, x, y, w, h)
         console.print("[bold green]Comment added successfully!")
     except Exception:
         console.print("[bold red]There was an error posting your comment!\n")

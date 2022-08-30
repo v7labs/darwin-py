@@ -397,19 +397,16 @@ class RemoteDatasetV2(RemoteDataset):
         """
         return urljoin(self.client.base_url, f"/workview?dataset={self.dataset_id}&item={item.id}")
 
-    def post_comment(self, item_id: str, text: str, x: int, y: int, w: int, h: int, slot_name: Optional[str] = None):
+    def post_comment(
+        self, item: DatasetItem, text: str, x: float, y: float, w: float, h: float, slot_name: Optional[str] = None
+    ):
         """
         Adds a comment to an item in this dataset,
         Tries to infer slot_name if left out.
         """
         if not slot_name:
-            items: List[DatasetItem] = list(self.fetch_remote_files(filters={"item_ids": [item_id]}))
-            if len(items) == 0:
-                raise NotFound(f"Item with id = '{item_id}")
-
-            item: DatasetItem = items.pop()
             if len(item.slots) != 1:
-                raise ValueError(f"Unable to infer slot for '{item_id}', has multiple slots: {','.join(item.slots)}")
+                raise ValueError(f"Unable to infer slot for '{item.id}', has multiple slots: {','.join(item.slots)}")
             slot_name = item.slots[0]["slot_name"]
 
-        self.client.api_v2.post_comment(item_id, text, x, y, w, h, slot_name, team_slug=self.team)
+        self.client.api_v2.post_comment(item.id, text, x, y, w, h, slot_name, team_slug=self.team)

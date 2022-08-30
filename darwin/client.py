@@ -796,7 +796,7 @@ class Client:
 
         return comment_id
 
-    def instantitate_item(self, item_id: int) -> int:
+    def instantiate_item(self, item_id: int) -> int:
         """
         Instantiates the given item with a workflow.
 
