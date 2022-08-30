@@ -227,8 +227,8 @@ class RemoteDatasetV2(RemoteDataset):
                         post_filters[list_type] = filters[list_type]
                     else:
                         post_filters[list_type] = str(filters[list_type])
-            if "path" in filters:
-                post_filters["path"] = str(filters["path"])
+            if "slot_types" in filters:
+                post_filters["types"] = filters["slot_types"]
 
         if sort:
             item_sorter = ItemSorter.parse(sort)
