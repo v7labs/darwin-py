@@ -189,7 +189,7 @@ def describe_parse_path():
         assert annotation_file.annotations
 
         for annotation in annotation_file.annotations:
-            assert annotation.slot_names == None
+            assert annotation.slot_names == []
 
     def test_it_skips_slot_names_when_no_slot_names_for_images(file_path: Path):
         json: str = """
@@ -233,4 +233,4 @@ def describe_parse_path():
         assert annotation_file.annotations
 
         for annotation in annotation_file.annotations:
-            assert annotation.slot_names == None
+            assert annotation.slot_names == []
