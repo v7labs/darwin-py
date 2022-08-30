@@ -31,6 +31,8 @@ DarwinVersionNumber = Tuple[int, int, int]
 PathLike = Union[str, Path]
 ErrorHandler = Callable[[int, str], None]
 
+ItemId = Union[str, int]
+
 
 @dataclass
 class Team:
@@ -116,6 +118,9 @@ class Annotation:
     #: List of ``SubAnnotations`` belonging to this ``Annotation``.
     subs: List[SubAnnotation] = field(default_factory=list)
 
+    #: V2 slots this annotation belogs to
+    slot_names: List[str] = field(default_factory=list)
+
     def get_sub(self, annotation_type: str) -> Optional[SubAnnotation]:
         """
         Returns the first SubAnnotation that matches the given type.
@@ -160,6 +165,9 @@ class VideoAnnotation:
 
     #: Whether this ``VideoAnnotation`` is interpolated or not.
     interpolated: bool
+
+    #: V2 slots this annotation belogs to
+    slot_names: List[str] = field(default_factory=list)
 
     def get_data(
         self, only_keyframes: bool = True, post_processing: Optional[Callable[[Annotation, Any], Any]] = None
@@ -276,7 +284,13 @@ class AnnotationFile:
 
 
 def make_bounding_box(
-    class_name: str, x: float, y: float, w: float, h: float, subs: Optional[List[SubAnnotation]] = None
+    class_name: str,
+    x: float,
+    y: float,
+    w: float,
+    h: float,
+    subs: Optional[List[SubAnnotation]] = None,
+    slot_names: Optional[List[str]] = None,
 ) -> Annotation:
     """
     Creates and returns a bounding box annotation. ``x``, ``y``, ``w`` and ``h`` are rounded to 3
@@ -306,10 +320,13 @@ def make_bounding_box(
         AnnotationClass(class_name, "bounding_box"),
         {"x": round(x, 3), "y": round(y, 3), "w": round(w, 3), "h": round(h, 3)},
         subs or [],
+        slot_names=slot_names or [],
     )
 
 
-def make_tag(class_name: str, subs: Optional[List[SubAnnotation]] = None) -> Annotation:
+def make_tag(
+    class_name: str, subs: Optional[List[SubAnnotation]] = None, slot_names: Optional[List[str]] = None
+) -> Annotation:
     """
     Creates and returns a tag annotation.
 
@@ -325,7 +342,7 @@ def make_tag(class_name: str, subs: Optional[List[SubAnnotation]] = None) -> Ann
     Annotation
         A tag ``Annotation``.
     """
-    return Annotation(AnnotationClass(class_name, "tag"), {}, subs or [])
+    return Annotation(AnnotationClass(class_name, "tag"), {}, subs or [], slot_names=slot_names)
 
 
 def make_polygon(
@@ -333,6 +350,7 @@ def make_polygon(
     point_path: List[Point],
     bounding_box: Optional[Dict] = None,
     subs: Optional[List[SubAnnotation]] = None,
+    slot_names: Optional[List[str]] = None,
 ) -> Annotation:
     """
     Creates and returns a polygon annotation.
@@ -365,6 +383,7 @@ def make_polygon(
         AnnotationClass(class_name, "polygon"),
         _maybe_add_bounding_box_data({"path": point_path}, bounding_box),
         subs or [],
+        slot_names=slot_names or [],
     )
 
 
@@ -373,6 +392,7 @@ def make_complex_polygon(
     point_paths: List[List[Point]],
     bounding_box: Optional[Dict] = None,
     subs: Optional[List[SubAnnotation]] = None,
+    slot_names: Optional[List[str]] = None,
 ) -> Annotation:
     """
     Creates and returns a complex polygon annotation. Complex polygons are those who have holes
@@ -415,10 +435,17 @@ def make_complex_polygon(
         AnnotationClass(class_name, "complex_polygon", "polygon"),
         _maybe_add_bounding_box_data({"paths": point_paths}, bounding_box),
         subs or [],
+        slot_names=slot_names or [],
     )
 
 
-def make_keypoint(class_name: str, x: float, y: float, subs: Optional[List[SubAnnotation]] = None) -> Annotation:
+def make_keypoint(
+    class_name: str,
+    x: float,
+    y: float,
+    subs: Optional[List[SubAnnotation]] = None,
+    slot_names: Optional[List[str]] = None,
+) -> Annotation:
     """
     Creates and returns a keypoint, aka point, annotation.
 
@@ -438,10 +465,15 @@ def make_keypoint(class_name: str, x: float, y: float, subs: Optional[List[SubAn
     Annotation
         A point ``Annotation``.
     """
-    return Annotation(AnnotationClass(class_name, "keypoint"), {"x": x, "y": y}, subs or [])
+    return Annotation(AnnotationClass(class_name, "keypoint"), {"x": x, "y": y}, subs or [], slot_names=slot_names)
 
 
-def make_line(class_name: str, path: List[Point], subs: Optional[List[SubAnnotation]] = None) -> Annotation:
+def make_line(
+    class_name: str,
+    path: List[Point],
+    subs: Optional[List[SubAnnotation]] = None,
+    slot_names: Optional[List[str]] = None,
+) -> Annotation:
     """
     Creates and returns a line annotation.
 
@@ -467,10 +499,15 @@ def make_line(class_name: str, path: List[Point], subs: Optional[List[SubAnnotat
     Annotation
         A line ``Annotation``.
     """
-    return Annotation(AnnotationClass(class_name, "line"), {"path": path}, subs or [])
+    return Annotation(AnnotationClass(class_name, "line"), {"path": path}, subs or [], slot_names=slot_names)
 
 
-def make_skeleton(class_name: str, nodes: List[Node], subs: Optional[List[SubAnnotation]] = None) -> Annotation:
+def make_skeleton(
+    class_name: str,
+    nodes: List[Node],
+    subs: Optional[List[SubAnnotation]] = None,
+    slot_names: Optional[List[str]] = None,
+) -> Annotation:
     """
     Creates and returns a skeleton annotation.
 
@@ -498,10 +535,15 @@ def make_skeleton(class_name: str, nodes: List[Node], subs: Optional[List[SubAnn
     Annotation
         A skeleton ``Annotation``.
     """
-    return Annotation(AnnotationClass(class_name, "skeleton"), {"nodes": nodes}, subs or [])
+    return Annotation(AnnotationClass(class_name, "skeleton"), {"nodes": nodes}, subs or [], slot_names=slot_names)
 
 
-def make_ellipse(class_name: str, parameters: EllipseData, subs: Optional[List[SubAnnotation]] = None) -> Annotation:
+def make_ellipse(
+    class_name: str,
+    parameters: EllipseData,
+    subs: Optional[List[SubAnnotation]] = None,
+    slot_names: Optional[List[str]] = None,
+) -> Annotation:
     """
     Creates and returns an Ellipse annotation.
 
@@ -541,10 +583,15 @@ def make_ellipse(class_name: str, parameters: EllipseData, subs: Optional[List[S
     Annotation
         An ellipse ``Annotation``.
     """
-    return Annotation(AnnotationClass(class_name, "ellipse"), parameters, subs or [])
+    return Annotation(AnnotationClass(class_name, "ellipse"), parameters, subs or [], slot_names=slot_names)
 
 
-def make_cuboid(class_name: str, cuboid: CuboidData, subs: Optional[List[SubAnnotation]] = None) -> Annotation:
+def make_cuboid(
+    class_name: str,
+    cuboid: CuboidData,
+    subs: Optional[List[SubAnnotation]] = None,
+    slot_names: Optional[List[str]] = None,
+) -> Annotation:
     """
     Creates and returns a Cuboid annotation.
 
@@ -576,7 +623,7 @@ def make_cuboid(class_name: str, cuboid: CuboidData, subs: Optional[List[SubAnno
     Annotation
         A cuboid ``Annotation``.
     """
-    return Annotation(AnnotationClass(class_name, "cuboid"), cuboid, subs or [])
+    return Annotation(AnnotationClass(class_name, "cuboid"), cuboid, subs or [], slot_names=slot_names)
 
 
 def make_instance_id(value: int) -> SubAnnotation:
@@ -654,7 +701,11 @@ def make_keyframe(annotation: Annotation, idx: int) -> KeyFrame:
 
 
 def make_video_annotation(
-    frames: Dict[int, Any], keyframes: Dict[int, bool], segments: List[Segment], slot_name: str, interpolated: bool
+    frames: Dict[int, Any],
+    keyframes: Dict[int, bool],
+    segments: List[Segment],
+    interpolated: bool,
+    slot_names: Optional[List[str]] = None,
 ) -> VideoAnnotation:
     """
     Creates and returns a ``VideoAnnotation``.
@@ -686,7 +737,9 @@ def make_video_annotation(
     if not all(frame.annotation_class.name == first_annotation.annotation_class.name for frame in frames.values()):
         raise ValueError("invalid argument to make_video_annotation")
 
-    return VideoAnnotation(first_annotation.annotation_class, frames, keyframes, segments, slot_name, interpolated)
+    return VideoAnnotation(
+        first_annotation.annotation_class, frames, keyframes, segments, interpolated, slot_names=slot_names
+    )
 
 
 def _maybe_add_bounding_box_data(data: Dict[str, Any], bounding_box: Optional[Dict]) -> Dict[str, Any]:

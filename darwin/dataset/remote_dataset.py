@@ -35,7 +35,7 @@ from darwin.dataset.utils import (
     make_class_lists,
     sanitize_filename,
 )
-from darwin.datatypes import AnnotationClass, AnnotationFile, PathLike, Team
+from darwin.datatypes import AnnotationClass, AnnotationFile, ItemId, PathLike, Team
 from darwin.exceptions import NotFound, UnsupportedExportFormat
 from darwin.exporter.formats.darwin import build_image_annotation
 from darwin.item import DatasetItem
@@ -759,9 +759,23 @@ class RemoteDataset(ABC):
         """
 
     @abstractmethod
-    def post_comment(self, item_id: str, text: str, x: int, y: int, w: int, h: int) -> None:
+    def post_comment(self, item_id: ItemId, text: str, x: int, y: int, w: int, h: int) -> None:
         """
         Adds a comment to an items in this dataset
+        """
+
+    @abstractmethod
+    def import_annotation(self, item_id: ItemId, payload: Dict[str, Any]) -> None:
+        """
+        Imports the annotation for the item with the given id.
+
+        Parameters
+        ----------
+        item_id: ItemId
+            Identifier of the Item that we are import the annotation to.
+        payload: Dict[str, Any]
+            A dictionary with the annotation to import. The default format is:
+            `{"annotations": serialized_annotations, "overwrite": "false"}`
         """
 
     @property

@@ -503,39 +503,44 @@ def parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotatio
 
 
 def _parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotation]:
+    slot_names = parse_slot_names(annotation)
     name: str = annotation["name"]
     main_annotation: Optional[dt.Annotation] = None
     if "polygon" in annotation:
         bounding_box = annotation.get("bounding_box")
         if "additional_paths" in annotation["polygon"]:
             paths = [annotation["polygon"]["path"]] + annotation["polygon"]["additional_paths"]
-            main_annotation = dt.make_complex_polygon(name, paths, bounding_box)
+            main_annotation = dt.make_complex_polygon(name, paths, bounding_box, slot_names=slot_names)
         else:
-            main_annotation = dt.make_polygon(name, annotation["polygon"]["path"], bounding_box)
+            main_annotation = dt.make_polygon(name, annotation["polygon"]["path"], bounding_box, slot_names=slot_names)
     elif "complex_polygon" in annotation:
         bounding_box = annotation.get("bounding_box")
         if "additional_paths" in annotation["complex_polygon"]:
             paths = annotation["complex_polygon"]["path"] + annotation["complex_polygon"]["additional_paths"]
-            main_annotation = dt.make_complex_polygon(name, paths, bounding_box)
+            main_annotation = dt.make_complex_polygon(name, paths, bounding_box, slot_names=slot_names)
         else:
-            main_annotation = dt.make_complex_polygon(name, annotation["complex_polygon"]["path"], bounding_box)
+            main_annotation = dt.make_complex_polygon(
+                name, annotation["complex_polygon"]["path"], bounding_box, slot_names=slot_names
+            )
     elif "bounding_box" in annotation:
         bounding_box = annotation["bounding_box"]
         main_annotation = dt.make_bounding_box(
-            name, bounding_box["x"], bounding_box["y"], bounding_box["w"], bounding_box["h"]
+            name, bounding_box["x"], bounding_box["y"], bounding_box["w"], bounding_box["h"], slot_names=slot_names
         )
     elif "tag" in annotation:
-        main_annotation = dt.make_tag(name)
+        main_annotation = dt.make_tag(name, slot_names=slot_names)
     elif "line" in annotation:
-        main_annotation = dt.make_line(name, annotation["line"]["path"])
+        main_annotation = dt.make_line(name, annotation["line"]["path"], slot_names=slot_names)
     elif "keypoint" in annotation:
-        main_annotation = dt.make_keypoint(name, annotation["keypoint"]["x"], annotation["keypoint"]["y"])
+        main_annotation = dt.make_keypoint(
+            name, annotation["keypoint"]["x"], annotation["keypoint"]["y"], slot_names=slot_names
+        )
     elif "ellipse" in annotation:
-        main_annotation = dt.make_ellipse(name, annotation["ellipse"])
+        main_annotation = dt.make_ellipse(name, annotation["ellipse"], slot_names=slot_names)
     elif "cuboid" in annotation:
-        main_annotation = dt.make_cuboid(name, annotation["cuboid"])
+        main_annotation = dt.make_cuboid(name, annotation["cuboid"], slot_names=slot_names)
     elif "skeleton" in annotation:
-        main_annotation = dt.make_skeleton(name, annotation["skeleton"]["nodes"])
+        main_annotation = dt.make_skeleton(name, annotation["skeleton"]["nodes"], slot_names=slot_names)
 
     if not main_annotation:
         print(f"[WARNING] Unsupported annotation type: '{annotation.keys()}'")
@@ -586,8 +591,8 @@ def _parse_darwin_video_annotation(annotation: dict) -> dt.VideoAnnotation:
         frame_annotations,
         keyframes,
         annotation["segments"],
-        annotation["slot_names"],
         annotation.get("interpolated", False),
+        slot_names=parse_slot_names(annotation),
     )
 
 
@@ -642,6 +647,10 @@ def split_video_annotation(annotation: dt.AnnotationFile) -> List[dt.AnnotationF
             )
         )
     return frame_annotations
+
+
+def parse_slot_names(annotation: dict) -> Optional[Dict[str, Any]]:
+    return annotation.get("slot_names", [])
 
 
 def ispolygon(annotation: dt.AnnotationClass) -> bool:
