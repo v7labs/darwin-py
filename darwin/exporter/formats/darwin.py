@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import Any, Dict, Iterable, List
+from typing import Any, Dict, Iterable, List, Union
 
 import deprecation
 
@@ -64,7 +64,66 @@ def _build_video_json(annotation_file: dt.AnnotationFile):
 
 
 def _build_annotation(annotation):
-    return annotation.to_json()
+    if isinstance(annotation, dt.VideoAnnotation):
+
+        return _build_video_annotation(annotation)
+    else:
+        return _build_image_annotation(annotation)
+
+
+def _build_author(author: dt.AnnotationAuthor) -> Dict[str, Any]:
+    return {"full_name": author.name, "email": author.email}
+
+
+def _build_sub_annotation(sub: dt.SubAnnotation) -> Dict[str, Any]:
+    if sub.annotation_type == "instance_id":
+        return {sub.annotation_type: {"value": sub.data}}
+    elif sub.annotation_type == "attributes":
+        return {sub.annotation_type: sub.data}
+    elif sub.annotation_type == "text":
+        return {sub.annotation_type: {"text": sub.data}}
+
+
+def _build_authorship(annotation: Union[dt.VideoAnnotation, dt.Annotation]) -> Dict[str, Any]:
+    annotators = {}
+    if annotation.annotators:
+        annotators = {"annotators": [_build_author(annotator) for annotator in annotation.annotators]}
+
+    reviewers = {}
+    if annotation.reviewers:
+        reviewers = {"annotators": [_build_author(reviewer) for reviewer in annotation.reviewers]}
+
+    return {**annotators, **reviewers}
+
+
+def _build_video_annotation(annotation: dt.VideoAnnotation) -> Dict[str, Any]:
+    return {
+        **annotation.get_data(
+            only_keyframes=False,
+            post_processing=lambda annotation, _: _build_image_annotation(annotation, skip_slots=True),
+        ),
+        "name": annotation.annotation_class.name,
+        "slot_names": annotation.slot_names,
+        **_build_authorship(annotation),
+    }
+
+
+def _build_image_annotation(annotation: dt.Annotation, skip_slots: bool = False) -> Dict[str, Any]:
+    json_subs = {}
+    for sub in annotation.subs:
+        json_subs.update(_build_sub_annotation(sub))
+
+    base_json = {
+        **json_subs,
+        **_build_authorship(annotation),
+        annotation.annotation_class.annotation_type: annotation.data,
+        "name": annotation.annotation_class.name,
+    }
+
+    if skip_slots:
+        return base_json
+    else:
+        return {**base_json, "slot_names": annotation.slot_names}
 
 
 DEPRECATION_MESSAGE = """
