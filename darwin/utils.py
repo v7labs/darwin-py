@@ -368,7 +368,7 @@ def _parse_darwin_image(path: Path, data: Dict[str, Any], count: Optional[int]) 
     annotation_classes: Set[dt.AnnotationClass] = set([annotation.annotation_class for annotation in annotations])
 
     slot = dt.Slot(
-        name="default",
+        name=None,
         type="image",
         filename=_get_local_filename(data["image"]),
         url=data["image"].get("url"),
@@ -402,7 +402,7 @@ def _parse_darwin_video(path: Path, data: Dict[str, Any], count: Optional[int]) 
         raise OutdatedDarwinJSONFormat("Missing width/height in video, please re-export")
 
     slot = dt.Slot(
-        name="default",
+        name=None,
         type="image",
         filename=_get_local_filename(data["image"]),
         url=data["image"].get("url"),
@@ -483,6 +483,12 @@ def _parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotati
     if "text" in annotation:
         main_annotation.subs.append(dt.make_text(annotation["text"]["text"]))
 
+    if "annotators" in annotation:
+        main_annotation.annotators = _parse_annotators(annotation["annotators"])
+
+    if "reviewers" in annotation:
+        main_annotation.reviewers = _parse_annotators(annotation["reviewers"])
+
     return main_annotation
 
 
@@ -497,13 +503,26 @@ def _parse_darwin_video_annotation(annotation: dict) -> Optional[dt.VideoAnnotat
 
     if not frame_annotations:
         return None
-    return dt.make_video_annotation(
+
+    main_annotation = dt.make_video_annotation(
         frame_annotations,
         keyframes,
         annotation["segments"],
         annotation.get("interpolated", False),
         slot_names=parse_slot_names(annotation),
     )
+
+    if "annotators" in annotation:
+        main_annotation.annotators = _parse_annotators(annotation["annotators"])
+
+    if "reviewers" in annotation:
+        main_annotation.reviewers = _parse_annotators(annotation["reviewers"])
+
+    return main_annotation
+
+
+def _parse_annotators(annotators: List[Dict[str, Any]]) -> List[dt.AnnotationAuthor]:
+    return [dt.AnnotationAuthor(annotator["full_name"], annotator["email"]) for annotator in annotators]
 
 
 def split_video_annotation(annotation: dt.AnnotationFile) -> List[dt.AnnotationFile]:

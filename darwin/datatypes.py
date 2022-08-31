@@ -113,6 +113,22 @@ class SubAnnotation:
 
 
 @dataclass(frozen=True, eq=True)
+class AnnotationAuthor:
+    """
+    Represents an annotation's author
+    """
+
+    #: Name of the author
+    name: str
+
+    #: Email of the author
+    email: str
+
+    def to_json(self):
+        return {"full_name": self.name, "email": self.email}
+
+
+@dataclass(frozen=False, eq=True)
 class Annotation:
     """
     Represents an Annotation from an Image/Video.
@@ -130,6 +146,12 @@ class Annotation:
 
     #: V2 slots this annotation belogs to
     slot_names: List[str] = field(default_factory=list)
+
+    #: Authorship of the annotation (annotators)
+    annotators: Optional[List[AnnotationAuthor]] = None
+
+    #: Authorship of the annotation (reviewers)
+    reviewers: Optional[List[AnnotationAuthor]] = None
 
     def get_sub(self, annotation_type: str) -> Optional[SubAnnotation]:
         """
@@ -164,8 +186,18 @@ class Annotation:
         for sub in self.subs:
             json_subs.update(sub.to_json())
 
+        annotators = {}
+        if self.annotators:
+            annotators = {"annotators": [annotator.to_json() for annotator in self.annotators]}
+
+        reviewers = {}
+        if self.reviewers:
+            reviewers = {"annotators": [reviewer.to_json() for reviewer in self.reviewers]}
+
         base_json = {
             **json_subs,
+            **annotators,
+            **reviewers,
             self.annotation_class.annotation_type: self.data,
             "name": self.annotation_class.name,
         }
@@ -176,7 +208,7 @@ class Annotation:
             return {**base_json, "slot_names": self.slot_names}
 
 
-@dataclass(frozen=True, eq=True)
+@dataclass(frozen=False, eq=True)
 class VideoAnnotation:
     """
     Represents an Annotation that belongs to a Video.
@@ -200,6 +232,12 @@ class VideoAnnotation:
 
     #: V2 slots this annotation belogs to
     slot_names: List[str] = field(default_factory=list)
+
+    #: Authorship of the annotation (annotators)
+    annotators: Optional[List[AnnotationAuthor]] = None
+
+    #: Authorship of the annotation (reviewers)
+    reviewers: Optional[List[AnnotationAuthor]] = None
 
     def get_data(
         self, only_keyframes: bool = True, post_processing: Optional[Callable[[Annotation, Any], Any]] = None
@@ -257,17 +295,28 @@ class VideoAnnotation:
         """
         Returns Darwin JSON (V1) formatted annotation object.
         """
+
+        annotators = {}
+        if self.annotators:
+            annotators = {"annotators": [annotator.to_json() for annotator in self.annotators]}
+
+        reviewers = {}
+        if self.reviewers:
+            reviewers = {"annotators": [reviewer.to_json() for reviewer in self.reviewers]}
+
         return {
             **self.get_data(only_keyframes=False, post_processing=lambda annotation, _: annotation.to_json()),
             "name": self.annotation_class.name,
             "slot_names": self.slot_names,
+            **annotators,
+            **reviewers,
         }
 
 
 @dataclass
 class Slot:
-    #: Unique slot name in the item
-    name: str
+    #: Unique slot name in the item. Will be `None` when loading V1 exports.
+    name: Optional[str]
 
     #: Type of slot, e.g. image or dicom
     type: str

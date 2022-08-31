@@ -52,6 +52,8 @@ def _build_video_json(annotation_file: dt.AnnotationFile):
             "width": annotation_file.image_width,
             "height": annotation_file.image_height,
             "filename": annotation_file.filename,
+            "original_filename": annotation_file.filename,
+            "thumbnail_url": annotation_file.slots[0].thubmnail_url,
             "url": annotation_file.image_url,
             "path": annotation_file.remote_path,
             "workview_url": annotation_file.workview_url,
@@ -61,16 +63,7 @@ def _build_video_json(annotation_file: dt.AnnotationFile):
 
 
 def _build_annotation(annotation):
-    if isinstance(annotation, dt.VideoAnnotation):
-        return {
-            **annotation.get_data(
-                only_keyframes=False, post_processing=lambda annotation, _: annotation.to_json(skip_slots=True)
-            ),
-            "name": annotation.annotation_class.name,
-            "slot_names": annotation.slot_names,
-        }
-    else:
-        return annotation.to_json()
+    return annotation.to_json()
 
 
 DEPRECATION_MESSAGE = """
