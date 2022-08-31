@@ -383,10 +383,6 @@ class AnnotationFile:
     #: URL of the image in this annotation.
     image_url: Optional[str] = None
 
-    # Deprecated
-    #: URL of the image's thumbnail in this annotation.
-    image_thumbnail_url: Optional[str] = None
-
     #: URL of the workview for this annotation.
     workview_url: Optional[str] = None
 
@@ -401,6 +397,10 @@ class AnnotationFile:
     remote_path: Optional[str] = None
 
     slots: List[Slot] = field(default_factory=list)
+
+    # Deprecated
+    #: URL of the image's thumbnail in this annotation.
+    image_thumbnail_url: Optional[str] = None
 
     @property
     def full_path(self) -> str:

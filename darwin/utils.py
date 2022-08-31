@@ -391,6 +391,8 @@ def _parse_darwin_image(path: Path, data: Dict[str, Any], count: Optional[int]) 
         data["image"].get("seq", count),
         None,
         data["image"].get("path", "/"),
+        [],
+        None,
     )
     annotation_file.slots.append(slot)
     return annotation_file
