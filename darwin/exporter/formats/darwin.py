@@ -35,6 +35,7 @@ def _build_image_json(annotation_file: dt.AnnotationFile):
             "width": annotation_file.image_width,
             "height": annotation_file.image_height,
             "filename": annotation_file.filename,
+            "original_filename": annotation_file.filename,
             "url": annotation_file.image_url,
             "thumbnail_url": annotation_file.image_thumbnail_url,
             "path": annotation_file.remote_path,
@@ -65,7 +66,6 @@ def _build_video_json(annotation_file: dt.AnnotationFile):
 
 def _build_annotation(annotation):
     if isinstance(annotation, dt.VideoAnnotation):
-
         return _build_video_annotation(annotation)
     else:
         return _build_image_annotation(annotation)
