@@ -53,7 +53,7 @@ def _build_video_json(annotation_file: dt.AnnotationFile):
             "height": annotation_file.image_height,
             "filename": annotation_file.filename,
             "original_filename": annotation_file.filename,
-            "thumbnail_url": annotation_file.slots[0].thubmnail_url,
+            "thumbnail_url": annotation_file.image_thumbnail_url,
             "url": annotation_file.image_url,
             "path": annotation_file.remote_path,
             "workview_url": annotation_file.workview_url,
