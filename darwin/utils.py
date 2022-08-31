@@ -374,6 +374,7 @@ def _parse_darwin_image(path: Path, data: Dict[str, Any], count: Optional[int]) 
         type="image",
         filename=_get_local_filename(data["image"]),
         url=data["image"].get("url"),
+        thubmnail_url=data["image"].get("thubmnail_url"),
         width=data["image"].get("width"),
         height=data["image"].get("height"),
     )
@@ -392,7 +393,7 @@ def _parse_darwin_image(path: Path, data: Dict[str, Any], count: Optional[int]) 
         None,
         data["image"].get("path", "/"),
         [],
-        None,
+        data["image"].get("thubmnail_url"),
     )
     annotation_file.slots.append(slot)
     return annotation_file
@@ -410,6 +411,7 @@ def _parse_darwin_video(path: Path, data: Dict[str, Any], count: Optional[int]) 
         type="image",
         filename=_get_local_filename(data["image"]),
         url=data["image"].get("url"),
+        thubmnail_url=data["image"].get("thubmnail_url"),
         width=data["image"].get("width"),
         height=data["image"].get("height"),
         section_count=data["image"].get("frame_count"),
@@ -430,6 +432,8 @@ def _parse_darwin_video(path: Path, data: Dict[str, Any], count: Optional[int]) 
         data["image"].get("seq", count),
         data["image"].get("frame_urls"),
         data["image"].get("path", "/"),
+        [],
+        data["image"].get("thubmnail_url"),
     )
     annotation_file.slots.append(slot)
 

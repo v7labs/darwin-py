@@ -36,6 +36,7 @@ def _build_image_json(annotation_file: dt.AnnotationFile):
             "height": annotation_file.image_height,
             "filename": annotation_file.filename,
             "url": annotation_file.image_url,
+            "thumbnail_url": annotation_file.image_thumbnail_url,
             "path": annotation_file.remote_path,
             "workview_url": annotation_file.workview_url,
         },
