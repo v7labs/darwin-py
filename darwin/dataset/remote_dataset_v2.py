@@ -352,7 +352,7 @@ class RemoteDatasetV2(RemoteDataset):
             annotation_class_ids = []
 
         self.client.api_v2.export_dataset(
-            format="json",
+            format="darwin_json_2",
             name=name,
             include_authorship=include_authorship,
             include_token=include_url_token,
