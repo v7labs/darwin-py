@@ -373,20 +373,15 @@ class RemoteDatasetV1(RemoteDataset):
         """
         return urljoin(self.client.base_url, f"/workview?dataset={self.dataset_id}&image={item.seq}")
 
-    def post_comment(self, item_id: ItemId, text: str, x: int, y: int, w: int, h: int):
+    def post_comment(self, item: DatasetItem, text: str, x: float, y: float, w: float, h: float):
         """
         Adds a comment to an item in this dataset
         Instantiates a workflow if needed
         """
-        items: List[DatasetItem] = list(self.fetch_remote_files(filters={"item_ids": [item_id]}))
-        if len(items) == 0:
-            raise NotFound(f"Item with id = '{item_id}")
-
-        item: DatasetItem = items.pop()
         maybe_workflow_id: Optional[int] = item.current_workflow_id
 
         if maybe_workflow_id is None:
-            workflow_id: int = self.client.instantitate_item(item.id)
+            workflow_id: int = self.client.instantiate_item(item.id)
         else:
             workflow_id = maybe_workflow_id
 
