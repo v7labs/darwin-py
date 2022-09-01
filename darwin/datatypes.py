@@ -382,7 +382,7 @@ def make_bounding_box(
         AnnotationClass(class_name, "bounding_box"),
         {"x": round(x, 3), "y": round(y, 3), "w": round(w, 3), "h": round(h, 3)},
         subs or [],
-        slot_names=slot_names or [],
+        slot_names=slot_names or [] or [],
     )
 
 
@@ -404,7 +404,7 @@ def make_tag(
     Annotation
         A tag ``Annotation``.
     """
-    return Annotation(AnnotationClass(class_name, "tag"), {}, subs or [], slot_names=slot_names)
+    return Annotation(AnnotationClass(class_name, "tag"), {}, subs or [], slot_names=slot_names or [])
 
 
 def make_polygon(
@@ -445,7 +445,7 @@ def make_polygon(
         AnnotationClass(class_name, "polygon"),
         _maybe_add_bounding_box_data({"path": point_path}, bounding_box),
         subs or [],
-        slot_names=slot_names or [],
+        slot_names=slot_names or [] or [],
     )
 
 
@@ -497,7 +497,7 @@ def make_complex_polygon(
         AnnotationClass(class_name, "complex_polygon", "polygon"),
         _maybe_add_bounding_box_data({"paths": point_paths}, bounding_box),
         subs or [],
-        slot_names=slot_names or [],
+        slot_names=slot_names or [] or [],
     )
 
 
@@ -527,7 +527,9 @@ def make_keypoint(
     Annotation
         A point ``Annotation``.
     """
-    return Annotation(AnnotationClass(class_name, "keypoint"), {"x": x, "y": y}, subs or [], slot_names=slot_names)
+    return Annotation(
+        AnnotationClass(class_name, "keypoint"), {"x": x, "y": y}, subs or [], slot_names=slot_names or []
+    )
 
 
 def make_line(
@@ -561,7 +563,7 @@ def make_line(
     Annotation
         A line ``Annotation``.
     """
-    return Annotation(AnnotationClass(class_name, "line"), {"path": path}, subs or [], slot_names=slot_names)
+    return Annotation(AnnotationClass(class_name, "line"), {"path": path}, subs or [], slot_names=slot_names or [])
 
 
 def make_skeleton(
@@ -597,7 +599,9 @@ def make_skeleton(
     Annotation
         A skeleton ``Annotation``.
     """
-    return Annotation(AnnotationClass(class_name, "skeleton"), {"nodes": nodes}, subs or [], slot_names=slot_names)
+    return Annotation(
+        AnnotationClass(class_name, "skeleton"), {"nodes": nodes}, subs or [], slot_names=slot_names or []
+    )
 
 
 def make_ellipse(
@@ -645,7 +649,7 @@ def make_ellipse(
     Annotation
         An ellipse ``Annotation``.
     """
-    return Annotation(AnnotationClass(class_name, "ellipse"), parameters, subs or [], slot_names=slot_names)
+    return Annotation(AnnotationClass(class_name, "ellipse"), parameters, subs or [], slot_names=slot_names or [])
 
 
 def make_cuboid(
@@ -685,7 +689,155 @@ def make_cuboid(
     Annotation
         A cuboid ``Annotation``.
     """
-    return Annotation(AnnotationClass(class_name, "cuboid"), cuboid, subs or [], slot_names=slot_names)
+    return Annotation(AnnotationClass(class_name, "cuboid"), cuboid, subs or [], slot_names=slot_names or [])
+
+
+def make_table(
+    class_name: str,
+    bounding_box: BoundingBox,
+    cells: List[Dict[str, Any]],
+    subs: Optional[List[SubAnnotation]] = None,
+    slot_names: Optional[List[str]] = None,
+) -> Annotation:
+    """
+    Creates and returns a table annotation.
+
+    Parameters
+    ----------
+    class_name : str
+        The name of the class for this ``Annotation``.
+
+    bounding_box : BoundingBox
+        Bounding box that wraps around the table.
+
+    cells : List[Dict[str, Any]]
+        Actual cells of the table. Their format should be similar to:
+            .. code-block:: javascript
+                [
+                    {
+                        "bounding_box": {
+                            "h": 189.56,
+                            "w": 416.37,
+                            "x": 807.58,
+                            "y": 1058.04
+                        },
+                        "col": 1,
+                        "col_span": 1,
+                        "id": "778691a6-0df6-4140-add9-f39806d950e9",
+                        "is_header": false,
+                        "row": 1,
+                        "row_span": 1
+                    }
+                ]
+
+    subs : Optional[List[SubAnnotation]], default: None
+        List of ``SubAnnotation``\\s for this ``Annotation``.
+
+    Returns
+    -------
+    Annotation
+        A table ``Annotation``.
+    """
+    return Annotation(
+        AnnotationClass(class_name, "table"),
+        {"bounding_box": bounding_box, "cells": cells},
+        subs or [],
+        slot_names=slot_names or [],
+    )
+
+
+def make_string(
+    class_name: str,
+    sources: List[Dict[str, Any]],
+    subs: Optional[List[SubAnnotation]] = None,
+    slot_names: Optional[List[str]] = None,
+) -> Annotation:
+    """
+    Creates and returns a string annotation.
+
+    Parameters
+    ----------
+    class_name : str
+        The name of the class for this ``Annotation``.
+    data : Any
+        The data needed to build a ``String``. This data must be a list with a format similar
+        to:
+
+        .. code-block:: javascript
+            [
+                {
+                    "id": "8cd598b5-0363-4984-9ae9-b15ccb77784a",
+                    "ranges": [1, 2, 5]
+                },
+                {
+                    "id": "6d6378d8-fd02-4518-8a21-6d94f0f32bbc",
+                    "ranges": null
+                }
+            ]
+
+    subs : Optional[List[SubAnnotation]], default: None
+        List of ``SubAnnotation``\\s for this ``Annotation``.
+
+    Returns
+    -------
+    Annotation
+        A string ``Annotation``.
+    """
+    return Annotation(
+        AnnotationClass(class_name, "string"), {"sources": sources}, subs or [], slot_names=slot_names or []
+    )
+
+
+def make_graph(
+    class_name: str,
+    nodes: List[Dict[str, str]],
+    edges: List[Dict[str, str]],
+    subs: Optional[List[SubAnnotation]] = None,
+    slot_names: Optional[List[str]] = None,
+) -> Annotation:
+    """
+    Creates and returns a graph annotation.
+
+    Parameters
+    ----------
+    class_name : str
+        The name of the class for this ``Annotation``.
+
+    nodes : List[Dict[str, str]]
+        Nodes of the graph. Should be in following format:
+            .. code-block:: javascript
+                [
+                    {
+                        "id": "91bb3c24-883a-433b-ae95-a6ee7845bea5",
+                        "name": "key"
+                    },
+                    {
+                        "id": "5a0ceba1-2e26-425e-8579-e6013ca415c5",
+                        "name": "value"
+                    }
+                ]
+
+    edges: List[Dict[str, str]]
+        Edges of the graph. Should be in following format:
+            .. code-block:: javascript
+                [
+                    {
+                        "end": "value",
+                        "start": "key"
+                    }
+                ]
+
+    subs : Optional[List[SubAnnotation]], default: None
+        List of ``SubAnnotation``\\s for this ``Annotation``.
+
+    Returns
+    -------
+    Annotation
+        A graph ``Annotation``.
+    """
+    return Annotation(
+        AnnotationClass(class_name, "graph"), {"nodes": nodes, "edges": edges}, subs or [], slot_names=slot_names or []
+    )
 
 
 def make_instance_id(value: int) -> SubAnnotation:
@@ -767,7 +919,7 @@ def make_video_annotation(
     keyframes: Dict[int, bool],
     segments: List[Segment],
     interpolated: bool,
-    slot_names: Optional[List[str]] = None,
+    slot_names: List[str],
 ) -> VideoAnnotation:
     """
     Creates and returns a ``VideoAnnotation``.
@@ -798,7 +950,7 @@ def make_video_annotation(
         raise ValueError("invalid argument to make_video_annotation")
 
     return VideoAnnotation(
-        first_annotation.annotation_class, frames, keyframes, segments, interpolated, slot_names=slot_names
+        first_annotation.annotation_class, frames, keyframes, segments, interpolated, slot_names=slot_names or []
     )
 
 
