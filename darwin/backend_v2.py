@@ -155,6 +155,9 @@ class BackendV2:
             "name": name,
             "annotation_filters": {"annotation_class_ids": annotation_class_ids},
         }
+        if annotation_class_ids:
+            payload.update({"annotation_filters": {"annotation_class_ids": annotation_class_ids}})
+
         return self._client._post(f"v2/teams/{team_slug}/datasets/{dataset_slug}/exports", payload, team_slug)
 
     def get_exports(self, dataset_slug, *, team_slug: Optional[str] = None):

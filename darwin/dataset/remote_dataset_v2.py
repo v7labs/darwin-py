@@ -348,9 +348,6 @@ class RemoteDatasetV2(RemoteDataset):
             If set, include annotator and reviewer metadata for each annotation.
 
         """
-        if annotation_class_ids is None:
-            annotation_class_ids = []
-
         self.client.api_v2.export_dataset(
             format="darwin_json_2",
             name=name,
