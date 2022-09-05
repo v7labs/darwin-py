@@ -445,7 +445,11 @@ def _parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotati
     slot_names = parse_slot_names(annotation)
     name: str = annotation["name"]
     main_annotation: Optional[dt.Annotation] = None
-    if "polygon" in annotation:
+    if "polygon" in annotation and "paths" in annotation["polygon"]:
+        bounding_box = annotation.get("bounding_box")
+        paths = annotation["polygon"]["paths"]
+        main_annotation = dt.make_complex_polygon(name, paths, bounding_box, slot_names=slot_names)
+    elif "polygon" in annotation:
         bounding_box = annotation.get("bounding_box")
         if "additional_paths" in annotation["polygon"]:
             paths = [annotation["polygon"]["path"]] + annotation["polygon"]["additional_paths"]

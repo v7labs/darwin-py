@@ -116,7 +116,7 @@ def _build_image_annotation(annotation: dt.Annotation, skip_slots: bool = False)
     base_json = {
         **json_subs,
         **_build_authorship(annotation),
-        annotation.annotation_class.annotation_type: annotation.data,
+        **_build_legacy_annotation_data(annotation.annotation_class, annotation.data),
         "name": annotation.annotation_class.name,
     }
 
@@ -124,6 +124,16 @@ def _build_image_annotation(annotation: dt.Annotation, skip_slots: bool = False)
         return base_json
     else:
         return {**base_json, "slot_names": annotation.slot_names}
+
+
+def _build_legacy_annotation_data(annotation_class: dt.AnnotationClass, data: Dict[str, Any]) -> Dict[str, Any]:
+    if annotation_class.annotation_type == "complex_polygon":
+        data["path"] = data["paths"][0]
+        data["additional_paths"] = data["paths"][1:]
+        del data["paths"]
+        return {annotation_class.annotation_internal_type or "polygon": data}
+
+    return data
 
 
 DEPRECATION_MESSAGE = """
