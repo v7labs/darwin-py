@@ -387,7 +387,7 @@ def pull_dataset(
     except UnsupportedExportFormat as uef:
         _error(
             f"Version '{dataset.identifier}:{version}' is of format '{uef.format}', "
-            f"only the darwin format ('json') is supported for `darwin dataset pull`"
+            f"only the darwin formats ('json', 'darwin_json_2') are supported for `darwin dataset pull`"
         )
 
     print(f"Dataset {release.identifier} downloaded at {dataset.local_path}. ")

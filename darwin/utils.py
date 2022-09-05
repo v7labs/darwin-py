@@ -290,7 +290,8 @@ def parse_darwin_json(path: Path, count: Optional[int]) -> Optional[dt.Annotatio
         data = json.load(f)
         if "annotations" not in data:
             return None
-        if "version" in data:
+
+        if data.get("version", 1) > 1:
             return _parse_darwin_v2(path, data)
         else:
             if "fps" in data["image"] or "frame_count" in data["image"]:
@@ -408,7 +409,7 @@ def _parse_darwin_video(path: Path, data: Dict[str, Any], count: Optional[int]) 
 
     slot = dt.Slot(
         name=None,
-        type="image",
+        type="video",
         filename=_get_local_filename(data["image"]),
         url=data["image"].get("url"),
         thubmnail_url=data["image"].get("thubmnail_url"),

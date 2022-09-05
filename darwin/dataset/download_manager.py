@@ -11,7 +11,11 @@ from typing import Any, Callable, Iterator, Tuple
 import deprecation
 import requests
 from darwin.dataset.utils import sanitize_filename
-from darwin.utils import get_response_content, is_image_extension_allowed
+from darwin.utils import (
+    get_response_content,
+    is_image_extension_allowed,
+    parse_darwin_json,
+)
 from darwin.version import __version__
 from rich.console import Console
 
@@ -79,13 +83,13 @@ def download_all_images_from_annotations(
 
     annotations_to_download_path = []
     for annotation_path in annotations_path.glob(f"*.{annotation_format}"):
-        with annotation_path.open() as file:
-            annotation = json.load(file)
+        annotation = parse_darwin_json(annotation_path, count=0)
+        if annotation is None:
+            continue
+
         if not force_replace:
-            # Check collisions on image filename, original_filename and json filename on the system
-            if sanitize_filename(Path(annotation["image"]["filename"]).stem) in existing_images:
-                continue
-            if sanitize_filename(Path(annotation["image"]["original_filename"]).stem) in existing_images:
+            # Check collisions on image filename and json filename on the system
+            if annotation.filename in existing_images:
                 continue
             if sanitize_filename(annotation_path.stem) in existing_images:
                 continue
@@ -169,23 +173,32 @@ def download_image_from_annotation(
 def _download_image_from_json_annotation(
     api_key: str, annotation_path: Path, image_path: Path, use_folders: bool, video_frames: bool
 ) -> None:
-    with annotation_path.open() as file:
-        annotation = json.load(file)
+    annotation = parse_darwin_json(annotation_path, count=0)
+    if annotation is None:
+        return None
 
     # If we are using folders, extract the path for the image and create the folder if needed
-    sub_path = annotation["image"].get("path", "/") if use_folders else "/"
+    sub_path = annotation.path if use_folders else Path("/")
     parent_path = Path(image_path) / Path(sub_path).relative_to(Path(sub_path).anchor)
     parent_path.mkdir(exist_ok=True, parents=True)
 
-    if video_frames and "frame_urls" in annotation["image"]:
+    annotation.slots.sort(key=lambda slot: slot.name or "0")
+
+    # For now we only support downloading single slot
+    slot = annotation.slots[0]
+
+    if slot.url is None:
+        return
+
+    if video_frames and slot.type != "image":
         video_path: Path = parent_path / annotation_path.stem
         video_path.mkdir(exist_ok=True, parents=True)
-        for i, frame_url in enumerate(annotation["image"]["frame_urls"]):
+        for i, frame_url in enumerate(slot.section_urls or []):
             path = video_path / f"{i:07d}.png"
             _download_image(frame_url, path, api_key)
     else:
-        image_url = annotation["image"]["url"]
-        image_path = parent_path / sanitize_filename(annotation["image"]["filename"])
+        image_url = slot.url
+        image_path = parent_path / sanitize_filename(slot.filename or annotation.filename)
         _download_image(image_url, image_path, api_key)
 
 
@@ -298,7 +311,9 @@ def _download_image(url: str, path: Path, api_key: str) -> None:
             return
         # Fatal-error status: fail
         if 400 <= response.status_code <= 499:
-            raise Exception(f"Request to ({url}) failed. Status code: {response.status_code}, content:\n{get_response_content(response)}.")
+            raise Exception(
+                f"Request to ({url}) failed. Status code: {response.status_code}, content:\n{get_response_content(response)}."
+            )
         # Timeout
         if time.time() - start > TIMEOUT:
             raise Exception(f"Timeout url request ({url}) after {TIMEOUT} seconds.")
