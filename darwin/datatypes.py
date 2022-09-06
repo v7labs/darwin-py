@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from email.policy import default
 from pathlib import Path
+from turtle import st
 from typing import (
     Any,
     Callable,
@@ -254,8 +255,8 @@ class Slot:
     #: Name of the file upload for this slot
     filename: Optional[str] = None
 
-    #: Url to the file
-    urls: Optional[List[str]] = None
+    #: Original upload information for the slot
+    uploads: Optional[List[Dict[str, str]]] = field(default_factory=list)
 
     #: Thumbnail url to the file
     thubmnail_url: Optional[str] = None

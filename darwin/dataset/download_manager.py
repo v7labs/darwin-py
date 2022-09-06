@@ -199,9 +199,6 @@ def _download_image_from_json_annotation(
 
 def _download_all_slots_from_json_annotation(annotation, api_key, parent_path, video_frames):
     for slot in annotation.slots:
-        if slot.urls is None:
-            continue
-
         slot_path = parent_path / sanitize_filename(annotation.filename) / sanitize_filename(slot.name)
         slot_path.mkdir(exist_ok=True, parents=True)
 
@@ -212,16 +209,13 @@ def _download_all_slots_from_json_annotation(annotation, api_key, parent_path, v
                 path = video_path / f"{i:07d}.png"
                 _download_image(frame_url, path, api_key)
         else:
-            for file_url in slot.urls:
-                file_path = slot_path / sanitize_filename(slot.filename)
-                _download_image(file_url, file_path, api_key)
+            for upload in slot.uploads:
+                file_path = slot_path / sanitize_filename(upload["file_name"])
+                _download_image(upload["url"], file_path, api_key)
 
 
 def _download_single_slot_from_json_annotation(annotation, api_key, parent_path, annotation_path, video_frames):
     slot = annotation.slots[0]
-
-    if slot.urls is None:
-        return
 
     if video_frames and slot.type != "image":
         video_path: Path = parent_path / annotation_path.stem
@@ -230,7 +224,7 @@ def _download_single_slot_from_json_annotation(annotation, api_key, parent_path,
             path = video_path / f"{i:07d}.png"
             _download_image(frame_url, path, api_key)
     else:
-        image_url = slot.urls[0]
+        image_url = slot.uploads[0]["url"]
         image_path = parent_path / sanitize_filename(slot.filename or annotation.filename)
         _download_image(image_url, image_path, api_key)
 
