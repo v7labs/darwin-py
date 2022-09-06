@@ -50,7 +50,7 @@ def _build_video_json(annotation_file: dt.AnnotationFile):
         "image": {
             "seq": annotation_file.seq,
             "frame_urls": annotation_file.frame_urls,
-            "frame_counts": len(annotation_file.frame_urls or []),
+            "frame_count": len(annotation_file.frame_urls or []),
             "width": annotation_file.image_width,
             "height": annotation_file.image_height,
             "filename": annotation_file.filename,

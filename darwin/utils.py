@@ -312,40 +312,24 @@ def _parse_darwin_v2(path: Path, data: Dict[str, Any]) -> dt.AnnotationFile:
     annotation_classes: Set[dt.AnnotationClass] = set([annotation.annotation_class for annotation in annotations])
 
     item = data["item"]
-    if len(slots) == 1:
-        slot = slots[0]
-        # Initially we are going to populate the v1 fields when there is just 1 slot to easy the integration.
-        annotation_file = dt.AnnotationFile(
-            path=path,
-            filename=item["name"],
-            annotation_classes=annotation_classes,
-            annotations=annotations,
-            is_video=slot.section_urls is not None,
-            image_width=slot.width,
-            image_height=slot.height,
-            image_url=None if slot.uploads is None else slot.uploads[0]["url"],
-            image_thumbnail_url=slot.thubmnail_url,
-            workview_url=item["workview_url"],
-            seq=0,
-            frame_urls=slot.section_urls,
-            remote_path=item["path"],
-        )
-    else:
-        annotation_file = dt.AnnotationFile(
-            path=path,
-            filename=item["name"],
-            annotation_classes=annotation_classes,
-            annotations=annotations,
-            is_video=False,
-            image_width=None,
-            image_height=None,
-            image_url=None,
-            image_thumbnail_url=None,
-            workview_url=item["workview_url"],
-            seq=0,
-            frame_urls=None,
-            remote_path=item["path"],
-        )
+    slot = slots[0]
+    # Initially we are going to populate the v1 fields when there is just 1 slot to easy the integration.
+    annotation_file = dt.AnnotationFile(
+        path=path,
+        filename=item["name"],
+        annotation_classes=annotation_classes,
+        annotations=annotations,
+        is_video=slot.section_urls is not None,
+        image_width=slot.width,
+        image_height=slot.height,
+        image_url=None if slot.uploads is None else slot.uploads[0]["url"],
+        image_thumbnail_url=slot.thubmnail_url,
+        workview_url=item["workview_url"],
+        seq=0,
+        frame_urls=slot.section_urls,
+        remote_path=item["path"],
+    )
+
     annotation_file.slots.extend(slots)
 
     return annotation_file
