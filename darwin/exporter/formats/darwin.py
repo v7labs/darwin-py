@@ -132,8 +132,8 @@ def _build_legacy_annotation_data(annotation_class: dt.AnnotationClass, data: Di
         data["additional_paths"] = data["paths"][1:]
         del data["paths"]
         return {annotation_class.annotation_internal_type or "polygon": data}
-
-    return data
+    else:
+        return {annotation_class.annotation_type: data}
 
 
 DEPRECATION_MESSAGE = """
