@@ -187,7 +187,7 @@ def _download_image_from_json_annotation(
     # For now we only support downloading single slot
     slot = annotation.slots[0]
 
-    if slot.url is None:
+    if slot.urls is None:
         return
 
     if video_frames and slot.type != "image":
@@ -197,7 +197,7 @@ def _download_image_from_json_annotation(
             path = video_path / f"{i:07d}.png"
             _download_image(frame_url, path, api_key)
     else:
-        image_url = slot.url
+        image_url = slot.urls[0]
         image_path = parent_path / sanitize_filename(slot.filename or annotation.filename)
         _download_image(image_url, image_path, api_key)
 
