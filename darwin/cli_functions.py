@@ -345,7 +345,11 @@ def export_dataset(
 
 
 def pull_dataset(
-    dataset_slug: str, only_annotations: bool = False, folders: bool = False, video_frames: bool = False
+    dataset_slug: str,
+    only_annotations: bool = False,
+    folders: bool = False,
+    video_frames: bool = False,
+    slots: bool = False,
 ) -> None:
     """
     Downloads a remote dataset (images and annotations) in the datasets directory.
@@ -362,6 +366,8 @@ def pull_dataset(
         Recreates the folders in the dataset. Defaults to False.
     video_frames: bool
         Pulls video frames images instead of video files. Defaults to False.
+    slots: bool
+        Pulls all slots of items into deeper file structure ({prefix}/{item_name}/{slot_name{/{file_name})
     """
     version: str = DatasetIdentifier.parse(dataset_slug).version or "latest"
     client: Client = _load_client(offline=False, maybe_guest=True)
@@ -377,7 +383,13 @@ def pull_dataset(
 
     try:
         release: Release = dataset.get_release(version)
-        dataset.pull(release=release, only_annotations=only_annotations, use_folders=folders, video_frames=video_frames)
+        dataset.pull(
+            release=release,
+            only_annotations=only_annotations,
+            use_folders=folders,
+            video_frames=video_frames,
+            slots=slots,
+        )
         print_new_version_info(client)
     except NotFound:
         _error(

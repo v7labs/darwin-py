@@ -110,7 +110,7 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
         elif args.action == "releases":
             f.dataset_list_releases(args.dataset)
         elif args.action == "pull":
-            f.pull_dataset(args.dataset, args.only_annotations, args.folders, args.video_frames)
+            f.pull_dataset(args.dataset, args.only_annotations, args.folders, args.video_frames, args.slots)
         elif args.action == "import":
             f.dataset_import(args.dataset, args.format, args.files, args.append, not args.yes)
         elif args.action == "convert":
