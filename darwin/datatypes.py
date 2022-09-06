@@ -255,7 +255,7 @@ class Slot:
     filename: Optional[str] = None
 
     #: Url to the file
-    url: Optional[str] = None
+    urls: Optional[List[str]] = None
 
     #: Thumbnail url to the file
     thubmnail_url: Optional[str] = None
