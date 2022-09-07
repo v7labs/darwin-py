@@ -190,11 +190,11 @@ def _download_image_from_json_annotation(
     parent_path.mkdir(exist_ok=True, parents=True)
 
     annotation.slots.sort(key=lambda slot: slot.name or "0")
-
-    if slots:
-        _download_all_slots_from_json_annotation(annotation, api_key, parent_path, video_frames)
-    else:
-        _download_single_slot_from_json_annotation(annotation, api_key, parent_path, annotation_path, video_frames)
+    if len(annotation.slots) > 0:
+        if slots:
+            _download_all_slots_from_json_annotation(annotation, api_key, parent_path, video_frames)
+        else:
+            _download_single_slot_from_json_annotation(annotation, api_key, parent_path, annotation_path, video_frames)
 
 
 def _download_all_slots_from_json_annotation(annotation, api_key, parent_path, video_frames):
@@ -205,11 +205,11 @@ def _download_all_slots_from_json_annotation(annotation, api_key, parent_path, v
         if video_frames and slot.type != "image":
             video_path: Path = slot_path / "sections"
             video_path.mkdir(exist_ok=True, parents=True)
-            for i, frame_url in enumerate(slot.section_urls or []):
+            for i, frame_url in enumerate(slot.frame_urls or []):
                 path = video_path / f"{i:07d}.png"
                 _download_image(frame_url, path, api_key)
         else:
-            for upload in slot.uploads:
+            for upload in slot.source_files:
                 file_path = slot_path / sanitize_filename(upload["file_name"])
                 _download_image(upload["url"], file_path, api_key)
 
@@ -220,13 +220,14 @@ def _download_single_slot_from_json_annotation(annotation, api_key, parent_path,
     if video_frames and slot.type != "image":
         video_path: Path = parent_path / annotation_path.stem
         video_path.mkdir(exist_ok=True, parents=True)
-        for i, frame_url in enumerate(slot.section_urls or []):
+        for i, frame_url in enumerate(slot.frame_urls or []):
             path = video_path / f"{i:07d}.png"
             _download_image(frame_url, path, api_key)
     else:
-        image_url = slot.uploads[0]["url"]
-        image_path = parent_path / sanitize_filename(slot.filename or annotation.filename)
-        _download_image(image_url, image_path, api_key)
+        if len(slot.source_files) > 0:
+            image_url = slot.source_files[0]["url"]
+            image_path = parent_path / sanitize_filename(slot.filename or annotation.filename)
+            _download_image(image_url, image_path, api_key)
 
 
 @deprecation.deprecated(

@@ -4,6 +4,7 @@ Contains several unrelated utility functions used across the SDK.
 
 import json
 import platform
+import re
 from pathlib import Path
 from typing import (
     TYPE_CHECKING,
@@ -13,7 +14,6 @@ from typing import (
     Iterator,
     List,
     Optional,
-    Sequence,
     Set,
     Union,
     cast,
@@ -290,8 +290,8 @@ def parse_darwin_json(path: Path, count: Optional[int]) -> Optional[dt.Annotatio
         data = json.load(f)
         if "annotations" not in data:
             return None
-
-        if data.get("version", 1) > 1:
+        (version_major, version_minor) = _parse_version(data)
+        if version_major == 2:
             return _parse_darwin_v2(path, data)
         else:
             if "fps" in data["image"] or "frame_count" in data["image"]:
@@ -301,9 +301,12 @@ def parse_darwin_json(path: Path, count: Optional[int]) -> Optional[dt.Annotatio
 
 
 def _parse_darwin_v2(path: Path, data: Dict[str, Any]) -> dt.AnnotationFile:
-    slots: List[dt.Slot] = list(filter(None, map(_parse_darwin_slot, data["slots"])))
-    raw_image_annotations = filter(lambda annotation: "sections" not in annotation, data["annotations"])
-    raw_video_annotations = filter(lambda annotation: "sections" in annotation, data["annotations"])
+    item = data["item"]
+    item_source = item.get("source_info", {})
+    slots: List[dt.Slot] = list(filter(None, map(_parse_darwin_slot, item.get("slots", []))))
+
+    raw_image_annotations = filter(lambda annotation: "frames" not in annotation, data["annotations"])
+    raw_video_annotations = filter(lambda annotation: "frames" in annotation, data["annotations"])
     image_annotations: List[dt.Annotation] = list(filter(None, map(_parse_darwin_annotation, raw_image_annotations)))
     video_annotations: List[dt.VideoAnnotation] = list(
         filter(None, map(_parse_darwin_video_annotation, raw_video_annotations))
@@ -311,24 +314,39 @@ def _parse_darwin_v2(path: Path, data: Dict[str, Any]) -> dt.AnnotationFile:
     annotations: List[Union[dt.Annotation, dt.VideoAnnotation]] = [*image_annotations, *video_annotations]
     annotation_classes: Set[dt.AnnotationClass] = set([annotation.annotation_class for annotation in annotations])
 
-    item = data["item"]
-    slot = slots[0]
-    # Initially we are going to populate the v1 fields when there is just 1 slot to easy the integration.
-    annotation_file = dt.AnnotationFile(
-        path=path,
-        filename=item["name"],
-        annotation_classes=annotation_classes,
-        annotations=annotations,
-        is_video=slot.section_urls is not None,
-        image_width=slot.width,
-        image_height=slot.height,
-        image_url=None if slot.uploads is None else slot.uploads[0]["url"],
-        image_thumbnail_url=slot.thubmnail_url,
-        workview_url=item["workview_url"],
-        seq=0,
-        frame_urls=slot.section_urls,
-        remote_path=item["path"],
-    )
+    if len(slots) == 0:
+        annotation_file = dt.AnnotationFile(
+            path=path,
+            filename=item["name"],
+            annotation_classes=annotation_classes,
+            annotations=annotations,
+            is_video=False,
+            image_width=None,
+            image_height=None,
+            image_url=None,
+            image_thumbnail_url=None,
+            workview_url=item_source.get("workview_url", None),
+            seq=0,
+            frame_urls=None,
+            remote_path=item["path"],
+        )
+    else:
+        slot = slots[0]
+        annotation_file = dt.AnnotationFile(
+            path=path,
+            filename=item["name"],
+            annotation_classes=annotation_classes,
+            annotations=annotations,
+            is_video=slot.frame_urls is not None,
+            image_width=slot.width,
+            image_height=slot.height,
+            image_url=None if len(slot.source_files or []) == 0 else slot.source_files[0]["url"],
+            image_thumbnail_url=slot.thubmnail_url,
+            workview_url=item_source["workview_url"],
+            seq=0,
+            frame_urls=slot.frame_urls,
+            remote_path=item["path"],
+        )
 
     annotation_file.slots.extend(slots)
 
@@ -341,11 +359,10 @@ def _parse_darwin_slot(data: Dict[str, Any]) -> dt.Slot:
         type=data["type"],
         width=data.get("width"),
         height=data.get("height"),
-        filename=data.get("file_name"),
-        uploads=data.get("uploads", []),
+        source_files=data.get("source_files", []),
         thubmnail_url=data.get("thumbnail_url"),
-        section_count=data.get("section_count"),
-        section_urls=data.get("section_urls"),
+        frame_count=data.get("frame_count"),
+        frame_urls=data.get("frame_urls"),
         fps=data.get("fps"),
     )
 
@@ -357,8 +374,7 @@ def _parse_darwin_image(path: Path, data: Dict[str, Any], count: Optional[int]) 
     slot = dt.Slot(
         name=None,
         type="image",
-        filename=_get_local_filename(data["image"]),
-        uploads=[{"url": data["image"].get("url"), "file_name": _get_local_filename(data["image"])}],
+        source_files=[{"url": data["image"].get("url"), "file_name": _get_local_filename(data["image"])}],
         thubmnail_url=data["image"].get("thubmnail_url"),
         width=data["image"].get("width"),
         height=data["image"].get("height"),
@@ -394,13 +410,12 @@ def _parse_darwin_video(path: Path, data: Dict[str, Any], count: Optional[int]) 
     slot = dt.Slot(
         name=None,
         type="video",
-        filename=_get_local_filename(data["image"]),
-        uploads=[{"url": data["image"].get("url"), "file_name": _get_local_filename(data["image"])}],
+        source_files=[{"url": data["image"].get("url"), "file_name": _get_local_filename(data["image"])}],
         thubmnail_url=data["image"].get("thubmnail_url"),
         width=data["image"].get("width"),
         height=data["image"].get("height"),
-        section_count=data["image"].get("frame_count"),
-        section_urls=data["image"].get("frame_urls"),
+        frame_count=data["image"].get("frame_count"),
+        frame_urls=data["image"].get("frame_urls"),
         fps=data["image"].get("fps"),
     )
 
@@ -514,7 +529,7 @@ def _parse_darwin_video_annotation(annotation: dict) -> Optional[dt.VideoAnnotat
     main_annotation = dt.make_video_annotation(
         frame_annotations,
         keyframes,
-        annotation["segments"],
+        annotation.get("ranges", annotation.get("segments", [])),
         annotation.get("interpolated", False),
         slot_names=parse_slot_names(annotation),
     )
@@ -872,3 +887,9 @@ def get_response_content(response: Response) -> Any:
         return response.json()
     else:
         return response.text
+
+
+def _parse_version(data):
+    version_string = data.get("version", "1.0")
+    major, minor, suffix = re.findall("^(\d+)\.(\d+)(.*)$", version_string)[0]
+    return (int(major), int(minor))

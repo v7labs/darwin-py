@@ -251,11 +251,8 @@ class Slot:
     #: Type of slot, e.g. image or dicom
     type: str
 
-    #: Name of the file upload for this slot
-    filename: Optional[str] = None
-
     #: Original upload information for the slot
-    uploads: Optional[List[Dict[str, str]]] = field(default_factory=list)
+    source_files: List[Dict[str, str]]
 
     #: Thumbnail url to the file
     thubmnail_url: Optional[str] = None
@@ -267,10 +264,10 @@ class Slot:
     height: Optional[int] = None
 
     #: How many sections (eg. frames) does this slot have
-    section_count: Optional[int] = None
+    frame_count: Optional[int] = None
 
     #: A url for each of the existing sections.
-    section_urls: Optional[List[str]] = None
+    frame_urls: Optional[List[str]] = None
 
     #: Frames per second
     fps: Optional[float] = None
