@@ -312,6 +312,7 @@ class RemoteDatasetV1(RemoteDataset):
         annotation_class_ids: Optional[List[str]] = None,
         include_url_token: bool = False,
         include_authorship: bool = False,
+        legacy: bool = False,
     ) -> None:
         """
         Create a new release for this ``RemoteDataset``.
@@ -327,7 +328,9 @@ class RemoteDatasetV1(RemoteDataset):
             membership or not?
         include_authorship : bool, default: False
             If set, include annotator and reviewer metadata for each annotation.
-
+        legacy : bool, default: False
+            When used for V2 dataset, forces legacy format of Darwin JSON to be generated.
+            This behaviour is deprecated and will be removed in future.
         """
         if annotation_class_ids is None:
             annotation_class_ids = []

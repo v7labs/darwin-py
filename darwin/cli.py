@@ -104,7 +104,9 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
         elif args.action == "report":
             f.dataset_report(args.dataset, args.granularity or "day", args.pretty)
         elif args.action == "export":
-            f.export_dataset(args.dataset, args.include_url_token, args.name, args.class_ids, args.include_authorship)
+            f.export_dataset(
+                args.dataset, args.include_url_token, args.name, args.class_ids, args.include_authorship, args.legacy
+            )
         elif args.action == "files":
             f.list_files(args.dataset, args.status, args.path, args.only_filenames, args.sort_by)
         elif args.action == "releases":

@@ -138,6 +138,13 @@ class Options(object):
             help="Each annotation file includes a url with an access token."
             "Warning, anyone with the url can access the images, even without being a team member.",
         )
+        parser_export.add_argument(
+            "--legacy",
+            default=False,
+            action="store_true",
+            help="When used for V2 dataset, forces legacy format of Darwin JSON to be generated."
+            "This behaviour is deprecated and will be removed in future.",
+        )
 
         # Releases
         parser_dataset_version = dataset_action.add_parser("releases", help="Available version of a dataset.")

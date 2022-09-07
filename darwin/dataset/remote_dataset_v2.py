@@ -1,3 +1,4 @@
+from operator import le
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -342,6 +343,7 @@ class RemoteDatasetV2(RemoteDataset):
         annotation_class_ids: Optional[List[str]] = None,
         include_url_token: bool = False,
         include_authorship: bool = False,
+        legacy: bool = False,
     ) -> None:
         """
         Create a new release for this ``RemoteDataset``.
@@ -357,10 +359,16 @@ class RemoteDatasetV2(RemoteDataset):
             membership or not?
         include_authorship : bool, default: False
             If set, include annotator and reviewer metadata for each annotation.
-
+        legacy : bool, default: False
+            When used for V2 dataset, forces legacy format of Darwin JSON to be generated.
+            This behaviour is deprecated and will be removed in future.
         """
+        format = "darwin_json_2"
+        if legacy:
+            format = "json"
+
         self.client.api_v2.export_dataset(
-            format="darwin_json_2",
+            format=format,
             name=name,
             include_authorship=include_authorship,
             include_token=include_url_token,
