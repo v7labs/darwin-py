@@ -3,6 +3,7 @@ Contains several unrelated utility functions used across the SDK.
 """
 
 import json
+import logging
 import platform
 from pathlib import Path
 from typing import (
@@ -37,6 +38,7 @@ SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpeg", ".jpg", ".jfif", ".tif", ".tiff",
 SUPPORTED_VIDEO_EXTENSIONS = [".avi", ".bpm", ".dcm", ".mov", ".mp4", ".pdf", ".ndpi"]
 SUPPORTED_EXTENSIONS = SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
 
+logger = logging.getLogger(__name__)
 
 def is_extension_allowed(extension: str) -> bool:
     """
@@ -492,7 +494,7 @@ def parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotatio
         main_annotation = dt.make_skeleton(name, annotation["skeleton"]["nodes"])
 
     if not main_annotation:
-        print(f"[WARNING] Unsupported annotation type: '{annotation.keys()}'")
+        logger.warning(f"Unsupported annotation type: '{annotation.keys()}'")
         return None
 
     if "instance_id" in annotation:
