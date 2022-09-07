@@ -50,6 +50,9 @@ def build_main_annotations_lookup_table(annotation_classes: List[Dict[str, Any]]
         "polygon",
         "skeleton",
         "tag",
+        "string",
+        "table",
+        "graph",
     ]
     lookup: Dict[str, Any] = {}
     for cls in annotation_classes:
@@ -118,7 +121,7 @@ def get_remote_files(dataset: "RemoteDataset", filenames: List[str]) -> Dict[str
     for i in range(0, len(filenames), 100):
         chunk = filenames[i : i + 100]
         for remote_file in dataset.fetch_remote_files(
-            {"types": "image,playback_video,video_frame", "filenames": ",".join(chunk)}
+            {"types": "image,playback_video,video_frame", "filenames": chunk}
         ):
             remote_files[remote_file.full_path] = remote_file.id
     return remote_files
@@ -378,4 +381,5 @@ def _import_annotations(
     if append:
         payload["overwrite"] = "false"
 
-    dataset.import_annotation(id, payload=payload)
+    if len(serialized_annotations) > 0:
+        dataset.import_annotation(id, payload=payload)

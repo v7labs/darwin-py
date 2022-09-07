@@ -1,4 +1,14 @@
-from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Iterator,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 
 from darwin.dataset import RemoteDataset
 from darwin.dataset.release import Release
@@ -214,29 +224,30 @@ class RemoteDatasetV2(RemoteDataset):
         Iterator[DatasetItem]
             An iterator of ``DatasetItem``.
         """
-        post_filters: Dict[str, Union[str, List[str]]] = {}
+        post_filters: List[Tuple[str, Any]] = []
         post_sort: Dict[str, str] = {}
 
         if filters:
             if "filenames" in filters:
                 # compability layer with v1
                 filters["item_names"] = filters["filenames"]
-            for list_type in ["item_names", "statuses", "item_ids"]:
+                del filters["filenames"]
+
+            for list_type in ["item_names", "statuses", "item_ids", "slot_types"]:
                 if list_type in filters:
                     if type(filters[list_type]) is list:
-                        post_filters[list_type] = filters[list_type]
+                        for value in filters[list_type]:
+                            post_filters.append(("{}[]".format(list_type), value))
                     else:
-                        post_filters[list_type] = str(filters[list_type])
-            if "slot_types" in filters:
-                post_filters["types"] = filters["slot_types"]
+                        post_filters.append((list_type, str(filters[list_type])))
 
         if sort:
             item_sorter = ItemSorter.parse(sort)
             post_sort[f"sort[{item_sorter.field}]"] = item_sorter.direction.value
         cursor = {"page[size]": 500}
         while True:
-            cursor = {**post_filters, **post_sort, **cursor}
-            response = self.client.api_v2.fetch_items(self.dataset_id, cursor, team_slug=self.team)
+            query = post_filters + list(post_sort.items()) + list(cursor.items())
+            response = self.client.api_v2.fetch_items(self.dataset_id, query, team_slug=self.team)
             yield from [DatasetItem.parse(item) for item in response["items"]]
 
             if response["page"]["next"]:

@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional, Tuple, Union
 from urllib import parse
 
 from darwin.datatypes import ItemId
@@ -49,7 +49,7 @@ class BackendV2:
 
     @inject_default_team_slug
     def fetch_items(
-        self, dataset_id: int, cursor: Dict[str, Any], *, team_slug: Optional[str] = None
+        self, dataset_id: int, cursor: Union[Dict[str, Any], List[Tuple[str, Any]]], *, team_slug: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Fetch the remote items from the given dataset.
@@ -70,8 +70,10 @@ class BackendV2:
          Dict[str, Any]
             A response dictionary with the file information.
         """
+        if isinstance(cursor, dict):
+            cursor = list(cursor.items())
 
-        cursor["dataset_ids"] = dataset_id
+        cursor.append(("dataset_ids[]", dataset_id))
 
         return self._client._get(f"/v2/teams/{team_slug}/items?{parse.urlencode(cursor, True)}", team_slug)
 
