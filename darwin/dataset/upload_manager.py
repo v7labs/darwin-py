@@ -161,7 +161,11 @@ class LocalFile:
         return {"files": [{"file_name": self.data["filename"], "slot_name": "0"}], "name": self.data["filename"]}
 
     def serialize_v2(self):
-        return {"slots": [{"file_name": self.data["filename"], "slot_name": "0"}], "name": self.data["filename"]}
+        return {
+            "slots": [{"file_name": self.data["filename"], "slot_name": "0"}],
+            "name": self.data["filename"],
+            "path": self.data["path"],
+        }
 
     @property
     def full_path(self) -> str:
