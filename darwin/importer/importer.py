@@ -1,4 +1,3 @@
-from ast import Or
 from pathlib import Path
 from typing import (
     TYPE_CHECKING,
@@ -22,7 +21,9 @@ import deprecation
 from darwin.datatypes import PathLike
 from darwin.utils import secure_continue_request
 from darwin.version import __version__
+from rich.console import Console
 from rich.progress import track
+from rich.theme import Theme
 
 DEPRECATION_MESSAGE = """
 
@@ -183,11 +184,12 @@ def import_annotations(
         - If the application is unable to fetch any remote classes.
         - If the application was unable to find/parse any annotation files.
     """
+    console = Console(theme=_console_theme())
 
     if not isinstance(file_paths, list):
         raise ValueError(f"file_paths must be a list of 'Path' or 'str'. Current value: {file_paths}")
 
-    print("Fetching remote class list...")
+    console.print("Fetching remote class list...", style="info")
     team_classes: List[Dict[str, Any]] = dataset.fetch_remote_classes(True)
     if not team_classes:
         raise ValueError("Unable to fetch remote class list.")
@@ -200,7 +202,7 @@ def import_annotations(
     )
     attributes = build_attribute_lookup(dataset)
 
-    print("Retrieving local annotations ...")
+    console.print("Retrieving local annotations ...", style="info")
     local_files = []
     local_files_missing_remotely = []
     maybe_parsed_files: Optional[Iterable[dt.AnnotationFile]] = find_and_parse(importer, file_paths)
@@ -210,7 +212,7 @@ def import_annotations(
     parsed_files = list(maybe_parsed_files)
     filenames: List[str] = [parsed_file.filename for parsed_file in parsed_files]
 
-    print("Fetching remote file list...")
+    console.print("Fetching remote file list...", style="info")
     # This call will only filter by filename; so can return a superset of matched files across different paths
     # There is logic in this function to then include paths to narrow down to the single correct matching file
     remote_files = get_remote_files(dataset, filenames)
@@ -220,11 +222,11 @@ def import_annotations(
         else:
             local_files.append(parsed_file)
 
-    print(f"{len(local_files) + len(local_files_missing_remotely)} annotation file(s) found.")
+    console.print(f"{len(local_files) + len(local_files_missing_remotely)} annotation file(s) found.", style="info")
     if local_files_missing_remotely:
-        print(f"{len(local_files_missing_remotely)} file(s) are missing from the dataset")
+        console.print(f"{len(local_files_missing_remotely)} file(s) are missing from the dataset", style="warning")
         for local_file in local_files_missing_remotely:
-            print(f"\t{local_file.path}: '{local_file.full_path}'")
+            console.print(f"\t{local_file.path}: '{local_file.full_path}'", style="warning")
 
         if class_prompt and not secure_continue_request():
             return
@@ -235,22 +237,26 @@ def import_annotations(
         classes_in_team,
     )
 
-    print(f"{len(local_classes_not_in_team)} classes needs to be created.")
-    print(f"{len(local_classes_not_in_dataset)} classes needs to be added to {dataset.identifier}")
+    console.print(f"{len(local_classes_not_in_team)} classes needs to be created.", style="info")
+    console.print(
+        f"{len(local_classes_not_in_dataset)} classes needs to be added to {dataset.identifier}", style="info"
+    )
 
     missing_skeletons: List[dt.AnnotationClass] = list(filter(_is_skeleton_class, local_classes_not_in_team))
     missing_skeleton_names: str = ", ".join(map(_get_skeleton_name, missing_skeletons))
     if missing_skeletons:
-        print(
-            f"Found missing skeleton classes: {missing_skeleton_names}. Missing Skeleton classes cannot be created. Exiting now."
+        console.print(
+            f"Found missing skeleton classes: {missing_skeleton_names}. Missing Skeleton classes cannot be created. Exiting now.",
+            style="error",
         )
         return
 
     if local_classes_not_in_team:
-        print("About to create the following classes")
+        console.print("About to create the following classes", style="info")
         for missing_class in local_classes_not_in_team:
-            print(
-                f"\t{missing_class.name}, type: {missing_class.annotation_internal_type or missing_class.annotation_type}"
+            console.print(
+                f"\t{missing_class.name}, type: {missing_class.annotation_internal_type or missing_class.annotation_type}",
+                style="info",
             )
         if class_prompt and not secure_continue_request():
             return
@@ -259,7 +265,7 @@ def import_annotations(
                 missing_class.name, missing_class.annotation_internal_type or missing_class.annotation_type
             )
     if local_classes_not_in_dataset:
-        print(f"About to add the following classes to {dataset.identifier}")
+        console.print(f"About to add the following classes to {dataset.identifier}", style="info")
         for cls in local_classes_not_in_dataset:
             dataset.add_annotation_class(cls)
 
@@ -288,10 +294,16 @@ def import_annotations(
         missing_files = [missing_file.full_path for missing_file in local_files_missing_remotely]
         parsed_files = [parsed_file for parsed_file in parsed_files if parsed_file.full_path not in missing_files]
         for parsed_file in track(parsed_files):
-            image_id = remote_files[parsed_file.full_path]
-            _import_annotations(
-                dataset.client, image_id, remote_classes, attributes, parsed_file.annotations, dataset, append
-            )
+            if not parsed_file.annotations:
+                # We want to let the user know if the file has no annotations
+                console.print(
+                    f"\nNo annotations found for file {parsed_file.filename}. Skipping upload.", style="warning"
+                )
+            else:
+                image_id = remote_files[parsed_file.full_path]
+                _import_annotations(
+                    dataset.client, image_id, remote_classes, attributes, parsed_file.annotations, dataset, append
+                )
 
 
 def _is_skeleton_class(the_class: dt.AnnotationClass) -> bool:
@@ -379,3 +391,9 @@ def _import_annotations(
         payload["overwrite"] = "false"
 
     dataset.import_annotation(id, payload=payload)
+
+
+def _console_theme() -> Theme:
+    return Theme(
+        {"success": "bold green", "warning": "bold yellow", "error": "bold red", "info": "bold deep_sky_blue1"}
+    )
