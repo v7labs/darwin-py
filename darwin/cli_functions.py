@@ -354,7 +354,7 @@ def pull_dataset(
     only_annotations: bool = False,
     folders: bool = False,
     video_frames: bool = False,
-    slots: bool = False,
+    force_slots: bool = False,
 ) -> None:
     """
     Downloads a remote dataset (images and annotations) in the datasets directory.
@@ -371,8 +371,8 @@ def pull_dataset(
         Recreates the folders in the dataset. Defaults to False.
     video_frames: bool
         Pulls video frames images instead of video files. Defaults to False.
-    slots: bool
-        Pulls all slots of items into deeper file structure ({prefix}/{item_name}/{slot_name{/{file_name})
+    force_slots: bool
+        Pulls all slots of items into deeper file structure ({prefix}/{item_name}/{slot_name}/{file_name})
     """
     version: str = DatasetIdentifier.parse(dataset_slug).version or "latest"
     client: Client = _load_client(offline=False, maybe_guest=True)
@@ -393,9 +393,14 @@ def pull_dataset(
             only_annotations=only_annotations,
             use_folders=folders,
             video_frames=video_frames,
-            slots=slots,
+            force_slots=force_slots,
         )
         print_new_version_info(client)
+        if release.format == "darwin_json_2":
+            print(f"NOTE: Your dataset has been exported using new Darwin JSON 2.0 format.")
+            print(f"      If you wish to use the legacy Darwin format, please use the following to convert: ")
+            print(f"      $ darwin convert darwin_1.0 {dataset.local_path} OUTPUT_DIR")
+            print(f"")
     except NotFound:
         _error(
             f"Version '{dataset.identifier}:{version}' does not exist "
@@ -964,7 +969,7 @@ def convert(format: str, files: List[PathLike], output_dir: Path) -> None:
     except AttributeError:
         _error(f"Unsupported export format, currently supported: {export_formats}")
 
-    export_annotations(parser, files, output_dir, split_sequences=(format != "darwin"))
+    export_annotations(parser, files, output_dir, split_sequences=(format != "darwin_1.0"))
 
 
 def post_comment(

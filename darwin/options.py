@@ -161,9 +161,9 @@ class Options(object):
             "--video-frames", action="store_true", help="Pulls video frame images instead of video files."
         )
         parser_pull.add_argument(
-            "--slots",
+            "--force-slots",
             action="store_true",
-            help="Pulls all slots of items into deeper file structure ({prefix}/{item_name}/{slot_name{/{file_name})",
+            help="Forces pull of all slots of items into deeper file structure ({prefix}/{item_name}/{slot_name}/{file_name})",
         )
 
         # Import

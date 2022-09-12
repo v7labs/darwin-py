@@ -181,7 +181,7 @@ class RemoteDataset(ABC):
         subset_folder_name: Optional[str] = None,
         use_folders: bool = False,
         video_frames: bool = False,
-        slots: bool = False,
+        force_slots: bool = False,
     ) -> Tuple[Optional[Callable[[], Iterator[Any]]], int]:
         """
         Downloads a remote dataset (images and annotations) to the datasets directory.
@@ -210,8 +210,8 @@ class RemoteDataset(ABC):
             Recreates folders from the dataset.
         video_frames : bool, default: False
             Pulls video frames images instead of video files.
-        slots: bool
-            Pulls all slots of items into deeper file structure ({prefix}/{item_name}/{slot_name{/{file_name})
+        force_slots: bool
+            Pulls all slots of items into deeper file structure ({prefix}/{item_name}/{slot_name}/{file_name})
 
         Returns
         -------
@@ -301,7 +301,7 @@ class RemoteDataset(ABC):
             remove_extra=remove_extra,
             use_folders=use_folders,
             video_frames=video_frames,
-            slots=slots,
+            force_slots=force_slots,
         )
         if count == 0:
             return None, count

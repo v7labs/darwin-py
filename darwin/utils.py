@@ -304,14 +304,7 @@ def _parse_darwin_v2(path: Path, data: Dict[str, Any]) -> dt.AnnotationFile:
     item = data["item"]
     item_source = item.get("source_info", {})
     slots: List[dt.Slot] = list(filter(None, map(_parse_darwin_slot, item.get("slots", []))))
-
-    raw_image_annotations = filter(lambda annotation: "frames" not in annotation, data["annotations"])
-    raw_video_annotations = filter(lambda annotation: "frames" in annotation, data["annotations"])
-    image_annotations: List[dt.Annotation] = list(filter(None, map(_parse_darwin_annotation, raw_image_annotations)))
-    video_annotations: List[dt.VideoAnnotation] = list(
-        filter(None, map(_parse_darwin_video_annotation, raw_video_annotations))
-    )
-    annotations: List[Union[dt.Annotation, dt.VideoAnnotation]] = [*image_annotations, *video_annotations]
+    annotations: List[Union[dt.Annotation, dt.VideoAnnotation]] = _data_to_annotations(data)
     annotation_classes: Set[dt.AnnotationClass] = set([annotation.annotation_class for annotation in annotations])
 
     if len(slots) == 0:
@@ -368,7 +361,7 @@ def _parse_darwin_slot(data: Dict[str, Any]) -> dt.Slot:
 
 
 def _parse_darwin_image(path: Path, data: Dict[str, Any], count: Optional[int]) -> dt.AnnotationFile:
-    annotations: List[dt.Annotation] = list(filter(None, map(_parse_darwin_annotation, data["annotations"])))
+    annotations: List[Union[dt.Annotation, dt.VideoAnnotation]] = _data_to_annotations(data)
     annotation_classes: Set[dt.AnnotationClass] = set([annotation.annotation_class for annotation in annotations])
 
     slot = dt.Slot(
@@ -401,7 +394,7 @@ def _parse_darwin_image(path: Path, data: Dict[str, Any], count: Optional[int]) 
 
 
 def _parse_darwin_video(path: Path, data: Dict[str, Any], count: Optional[int]) -> dt.AnnotationFile:
-    annotations: List[dt.VideoAnnotation] = list(filter(None, map(_parse_darwin_video_annotation, data["annotations"])))
+    annotations: List[Union[dt.Annotation, dt.VideoAnnotation]] = _data_to_annotations(data)
     annotation_classes: Set[dt.AnnotationClass] = set([annotation.annotation_class for annotation in annotations])
 
     if "width" not in data["image"] or "height" not in data["image"]:
@@ -893,3 +886,14 @@ def _parse_version(data):
     version_string = data.get("version", "1.0")
     major, minor, suffix = re.findall("^(\d+)\.(\d+)(.*)$", version_string)[0]
     return (int(major), int(minor))
+
+
+def _data_to_annotations(data: Dict[str, Any]) -> List[Union[dt.Annotation, dt.VideoAnnotation]]:
+    raw_image_annotations = filter(lambda annotation: "frames" not in annotation, data["annotations"])
+    raw_video_annotations = filter(lambda annotation: "frames" in annotation, data["annotations"])
+
+    image_annotations: List[dt.Annotation] = list(filter(None, map(_parse_darwin_annotation, raw_image_annotations)))
+    video_annotations: List[dt.VideoAnnotation] = list(
+        filter(None, map(_parse_darwin_video_annotation, raw_video_annotations))
+    )
+    return [*image_annotations, *video_annotations]

@@ -36,7 +36,7 @@ def download_all_images_from_annotations(
     annotation_format: str = "json",
     use_folders: bool = False,
     video_frames: bool = False,
-    slots: bool = False,
+    force_slots: bool = False,
 ) -> Tuple[Callable[[], Iterator[Any]], int]:
     """
     Downloads the all images corresponding to a project.
@@ -61,8 +61,8 @@ def download_all_images_from_annotations(
         Recreate folders
     video_frames : bool, default: False
         Pulls video frames images instead of video files
-    slots: bool
-        Pulls all slots of items into deeper file structure ({prefix}/{item_name}/{slot_name{/{file_name})
+    force_slots: bool
+        Pulls all slots of items into deeper file structure ({prefix}/{item_name}/{slot_name}/{file_name})
 
     Returns
     -------
@@ -97,6 +97,8 @@ def download_all_images_from_annotations(
             if sanitize_filename(annotation_path.stem) in existing_images:
                 continue
         annotations_to_download_path.append(annotation_path)
+        if len(annotation.slots) > 1:
+            force_slots = True
 
     if remove_extra:
         # Removes existing images for which there is not corresponding annotation
@@ -117,7 +119,7 @@ def download_all_images_from_annotations(
             annotation_format,
             use_folders,
             video_frames,
-            slots,
+            force_slots,
         )
         for annotation_path in annotations_to_download_path
     )
@@ -138,7 +140,7 @@ def download_image_from_annotation(
     annotation_format: str,
     use_folders: bool,
     video_frames: bool,
-    slots: bool,
+    force_slots: bool,
 ) -> None:
     """
     Dispatches functions to download an image given an annotation.
@@ -159,8 +161,8 @@ def download_image_from_annotation(
         Recreate folder structure
     video_frames : bool
         Pulls video frames images instead of video files
-    slots: bool
-        Pulls all slots of items into deeper file structure ({prefix}/{item_name}/{slot_name{/{file_name})
+    force_slots: bool
+        Pulls all slots of items into deeper file structure ({prefix}/{item_name}/{slot_name}/{file_name})
 
     Raises
     ------
@@ -171,14 +173,16 @@ def download_image_from_annotation(
     console = Console()
 
     if annotation_format == "json":
-        _download_image_from_json_annotation(api_key, annotation_path, images_path, use_folders, video_frames, slots)
+        _download_image_from_json_annotation(
+            api_key, annotation_path, images_path, use_folders, video_frames, force_slots
+        )
     else:
         console.print("[bold red]Unsupported file format. Please use 'json'.")
         raise NotImplementedError
 
 
 def _download_image_from_json_annotation(
-    api_key: str, annotation_path: Path, image_path: Path, use_folders: bool, video_frames: bool, slots: bool
+    api_key: str, annotation_path: Path, image_path: Path, use_folders: bool, video_frames: bool, force_slots: bool
 ) -> None:
     annotation = parse_darwin_json(annotation_path, count=0)
     if annotation is None:
@@ -191,7 +195,7 @@ def _download_image_from_json_annotation(
 
     annotation.slots.sort(key=lambda slot: slot.name or "0")
     if len(annotation.slots) > 0:
-        if slots:
+        if force_slots:
             _download_all_slots_from_json_annotation(annotation, api_key, parent_path, video_frames)
         else:
             _download_single_slot_from_json_annotation(annotation, api_key, parent_path, annotation_path, video_frames)
