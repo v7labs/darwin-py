@@ -159,6 +159,7 @@ def import_annotations(
     file_paths: List[PathLike],
     append: bool,
     class_prompt: bool = True,
+    delete_for_empty: bool = False,
 ) -> None:
     """
     Imports the given given Annotations into the given Dataset.
@@ -176,10 +177,14 @@ def import_annotations(
         If ``True`` appends the given annotations to the datasets. If ``False`` will override them.
     class_prompt : bool
         If ``False`` classes will be created and added to the datasets without requiring a user's prompt.
+    delete_for_empty : bool, default: False
+        If ``True`` will use empty annotation files to delete all annotations from the remote file.
+        If ``False``, empty annotation files will simply be skipped.
 
     Raises
     -------
     ValueError
+
         - If ``file_paths`` is not a list.
         - If the application is unable to fetch any remote classes.
         - If the application was unable to find/parse any annotation files.
@@ -279,6 +284,10 @@ def import_annotations(
     else:
         remote_classes = build_main_annotations_lookup_table(team_classes)
 
+    console.print(
+        "Importing annotations...\nEmpty annotations will be skipped, if you want to delete annotations rerun with '--delete-for-empty' ",
+        style="info",
+    )
     # Need to re parse the files since we didn't save the annotations in memory
     for local_path in set(local_file.path for local_file in local_files):
 
@@ -293,16 +302,16 @@ def import_annotations(
         # remove files missing on the server
         missing_files = [missing_file.full_path for missing_file in local_files_missing_remotely]
         parsed_files = [parsed_file for parsed_file in parsed_files if parsed_file.full_path not in missing_files]
+
         for parsed_file in track(parsed_files):
-            if not parsed_file.annotations:
-                # We want to let the user know if the file has no annotations
-                console.print(
-                    f"\nNo annotations found for file {parsed_file.filename}. Skipping upload.", style="warning"
-                )
-            else:
+            if parsed_file.annotations or delete_for_empty:
                 image_id = remote_files[parsed_file.full_path]
                 _import_annotations(
                     dataset.client, image_id, remote_classes, attributes, parsed_file.annotations, dataset, append
+                )
+            else:
+                console.print(
+                    f"\nNo annotations found for file {parsed_file.filename}. Skipping upload.", style="warning"
                 )
 
 

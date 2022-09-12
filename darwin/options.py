@@ -13,7 +13,7 @@ class Options(object):
     def __init__(self):
 
         self.parser: ArgumentParser = ArgumentParser(
-            description="Commandline tool to create/upload/download datasets on darwin."
+            description="Command line tool to create/upload/download datasets on darwin."
         )
 
         subparsers = self.parser.add_subparsers(dest="command")
@@ -173,6 +173,7 @@ class Options(object):
         parser_import.add_argument(
             "--yes", action="store_true", help="Skips prompts for creating and adding classes to dataset."
         )
+        parser_import.add_argument("--delete-for-empty", action="store_true", help="Empty annotations will delete annotations from remote files.")
 
         # Convert
         parser_convert = dataset_action.add_parser("convert", help="Converts darwin json to other annotation formats.")
