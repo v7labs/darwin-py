@@ -361,7 +361,7 @@ def _import_annotations(
 
         # Fetch the default slot name if no available in the import source
         if not annotation.slot_names and dataset.version > 1:
-            items = dataset.fetch_remote_files(filters={"dataset_item_ids": [str(id)]})
+            items = dataset.fetch_remote_files(filters={"item_ids": [str(id)]})
             if items:
                 first_item = next(items)
                 annotation.slot_names.extend([first_item.slots[0]["slot_name"]])

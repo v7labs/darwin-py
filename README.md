@@ -1,4 +1,4 @@
-# Darwin
+# V7 Darwin Python SDK
 
 Official library to manage datasets along with
 [V7 Darwin annotation platform](https://darwin.v7labs.com).

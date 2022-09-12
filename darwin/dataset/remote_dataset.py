@@ -374,7 +374,7 @@ class RemoteDataset(ABC):
         Parameters
         ----------
         items : Iterator[DatasetItem]
-            The ``DatasetItem``\\s to be resetted.
+            The ``DatasetItem``\\s to be reset.
         """
 
     @abstractmethod
@@ -759,9 +759,25 @@ class RemoteDataset(ABC):
         """
 
     @abstractmethod
-    def post_comment(self, item_id: ItemId, text: str, x: int, y: int, w: int, h: int) -> None:
+    def post_comment(self, item: DatasetItem, text: str, x: float, y: float, w: float, h: float) -> None:
         """
-        Adds a comment to an items in this dataset
+        Adds a comment to an item in this dataset. The comment will be added with a bounding box.
+        Creates the workflow for said item if necessary.
+
+        Parameters
+        ----------
+        item : DatasetItem
+            The ``DatasetItem`` which will receive the comment.
+        text : str
+            The text of the comment.
+        x : float
+            The x coordinate of the bounding box containing the comment.
+        y : float
+            The y coordinate of the bounding box containing the comment.
+        w : float
+            The width of the bounding box containing the comment.
+        h : float
+            The height of the bounding box containing the comment.
         """
 
     @abstractmethod
