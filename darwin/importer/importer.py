@@ -114,7 +114,7 @@ def build_attribute_lookup(dataset: "RemoteDataset") -> Dict[str, Any]:
     details=DEPRECATION_MESSAGE,
 )
 def get_remote_files(dataset: "RemoteDataset", filenames: List[str]) -> Dict[str, int]:
-    """Fetches remote files from the datasets, in chunks of 100 filesnames at a time"""
+    """Fetches remote files from the datasets, in chunks of 100 filenames at a time"""
     remote_files = {}
     for i in range(0, len(filenames), 100):
         chunk = filenames[i : i + 100]
