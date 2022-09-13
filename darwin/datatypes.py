@@ -274,6 +274,17 @@ class Slot:
 
 
 @dataclass
+class AnnotationFileVersion:
+    """
+    Version of the AnnotationFile
+    """
+
+    major: int = 1
+    minor: int = 0
+    suffix: str = ""
+
+
+@dataclass
 class AnnotationFile:
     """
     Represents a file containing annotations. Mostly useful when trying to import or export
@@ -328,6 +339,10 @@ class AnnotationFile:
     # Deprecated
     #: URL of the image's thumbnail in this annotation.
     image_thumbnail_url: Optional[str] = None
+
+    # Version of the file in format (MAJOR, MINOR, SUFFIX)
+    # e.g. (1, 0, 'a')
+    version: AnnotationFileVersion = field(default_factory=AnnotationFileVersion)
 
     @property
     def full_path(self) -> str:

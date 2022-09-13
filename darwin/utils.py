@@ -290,8 +290,8 @@ def parse_darwin_json(path: Path, count: Optional[int]) -> Optional[dt.Annotatio
         data = json.load(f)
         if "annotations" not in data:
             return None
-        (version_major, version_minor) = _parse_version(data)
-        if version_major == 2:
+
+        if _parse_version(data).major == 2:
             return _parse_darwin_v2(path, data)
         else:
             if "fps" in data["image"] or "frame_count" in data["image"]:
@@ -309,6 +309,7 @@ def _parse_darwin_v2(path: Path, data: Dict[str, Any]) -> dt.AnnotationFile:
 
     if len(slots) == 0:
         annotation_file = dt.AnnotationFile(
+            version=_parse_version(data),
             path=path,
             filename=item["name"],
             annotation_classes=annotation_classes,
@@ -326,6 +327,7 @@ def _parse_darwin_v2(path: Path, data: Dict[str, Any]) -> dt.AnnotationFile:
     else:
         slot = slots[0]
         annotation_file = dt.AnnotationFile(
+            version=_parse_version(data),
             path=path,
             filename=item["name"],
             annotation_classes=annotation_classes,
@@ -882,10 +884,10 @@ def get_response_content(response: Response) -> Any:
         return response.text
 
 
-def _parse_version(data):
+def _parse_version(data) -> dt.AnnotationFileVersion:
     version_string = data.get("version", "1.0")
     major, minor, suffix = re.findall("^(\d+)\.(\d+)(.*)$", version_string)[0]
-    return (int(major), int(minor))
+    return dt.AnnotationFileVersion(int(major), int(minor), suffix)
 
 
 def _data_to_annotations(data: Dict[str, Any]) -> List[Union[dt.Annotation, dt.VideoAnnotation]]:

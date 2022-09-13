@@ -11,6 +11,7 @@ from typing import Any, Callable, Iterator, Tuple
 import deprecation
 import requests
 from darwin.dataset.utils import sanitize_filename
+from darwin.datatypes import AnnotationFile
 from darwin.utils import (
     get_response_content,
     is_image_extension_allowed,
@@ -189,7 +190,7 @@ def _download_image_from_json_annotation(
         return None
 
     # If we are using folders, extract the path for the image and create the folder if needed
-    sub_path = annotation.path if use_folders else Path("/")
+    sub_path = annotation.remote_path if use_folders else Path("/")
     parent_path = Path(image_path) / Path(sub_path).relative_to(Path(sub_path).anchor)
     parent_path.mkdir(exist_ok=True, parents=True)
 
@@ -214,8 +215,10 @@ def _download_all_slots_from_json_annotation(annotation, api_key, parent_path, v
                 _download_image(frame_url, path, api_key)
         else:
             for upload in slot.source_files:
+
                 file_path = slot_path / sanitize_filename(upload["file_name"])
                 _download_image(upload["url"], file_path, api_key)
+                _update_local_path(annotation, upload["url"], file_path)
 
 
 def _download_single_slot_from_json_annotation(annotation, api_key, parent_path, annotation_path, video_frames):
@@ -232,6 +235,24 @@ def _download_single_slot_from_json_annotation(annotation, api_key, parent_path,
             image_url = slot.source_files[0]["url"]
             image_path = parent_path / sanitize_filename(slot.filename or annotation.filename)
             _download_image(image_url, image_path, api_key)
+
+
+def _update_local_path(annotation: AnnotationFile, url, local_path):
+
+    if annotation.version.major == 1:
+        return
+
+    # we modify raw json, as internal representation does't store all the data
+    with annotation.path.open() as file:
+        raw_annotation = json.load(file)
+
+        for slot in raw_annotation["item"]["slots"]:
+            for source_file in slot["source_files"]:
+                if source_file["url"] == url:
+                    source_file["local_path"] = str(local_path)
+
+    with annotation.path.open(mode="w") as file:
+        json.dump(raw_annotation, file, indent=4)
 
 
 @deprecation.deprecated(
