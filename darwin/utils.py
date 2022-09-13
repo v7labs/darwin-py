@@ -200,7 +200,7 @@ def find_files(
     for f in files:
         path = Path(f)
         if path.is_dir():
-            found_files.extend([f for f in path.glob(pattern) if is_extension_allowed(f.suffix)])
+            found_files.extend([f for f in path.glob(pattern) if is_extension_allowed(f.suffix) and not f.is_dir()])
         elif is_extension_allowed(path.suffix):
             found_files.append(path)
         else:
