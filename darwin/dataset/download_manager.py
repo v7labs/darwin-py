@@ -215,7 +215,6 @@ def _download_all_slots_from_json_annotation(annotation, api_key, parent_path, v
                 _download_image(frame_url, path, api_key)
         else:
             for upload in slot.source_files:
-
                 file_path = slot_path / sanitize_filename(upload["file_name"])
                 _download_image(upload["url"], file_path, api_key)
                 _update_local_path(annotation, upload["url"], file_path)
