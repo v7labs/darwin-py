@@ -180,6 +180,7 @@ def import_annotations(
     delete_for_empty : bool, default: False
         If ``True`` will use empty annotation files to delete all annotations from the remote file.
         If ``False``, empty annotation files will simply be skipped.
+        Only works for V2 datasets.
 
     Raises
     -------
@@ -284,10 +285,14 @@ def import_annotations(
     else:
         remote_classes = build_main_annotations_lookup_table(team_classes)
 
-    console.print(
-        "Importing annotations...\nEmpty annotations will be skipped, if you want to delete annotations rerun with '--delete-for-empty' ",
-        style="info",
-    )
+    if dataset.version == 1:
+        console.print("Importing annotations...\nEmpty annotations will be skipped.", style="info")
+    else:
+        console.print(
+            "Importing annotations...\nEmpty annotations will be skipped, if you want to delete annotations rerun with '--delete-for-empty' ",
+            style="info",
+        )
+
     # Need to re parse the files since we didn't save the annotations in memory
     for local_path in set(local_file.path for local_file in local_files):
 
@@ -304,7 +309,7 @@ def import_annotations(
         parsed_files = [parsed_file for parsed_file in parsed_files if parsed_file.full_path not in missing_files]
 
         for parsed_file in track(parsed_files):
-            if parsed_file.annotations or delete_for_empty:
+            if parsed_file.annotations or (delete_for_empty and dataset.version == 2):
                 image_id = remote_files[parsed_file.full_path]
                 _import_annotations(
                     dataset.client, image_id, remote_classes, attributes, parsed_file.annotations, dataset, append
