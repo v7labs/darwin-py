@@ -22,7 +22,12 @@ import deprecation
 from darwin.datatypes import PathLike
 from darwin.utils import secure_continue_request
 from darwin.version import __version__
+from rich.console import Console
 from rich.progress import track
+from rich.theme import Theme
+
+# Classes missing import support on backend side
+UNSUPPORTED_CLASSES = ["string", "graph"]
 
 DEPRECATION_MESSAGE = """
 
@@ -186,7 +191,6 @@ def import_annotations(
         - If the application is unable to fetch any remote classes.
         - If the application was unable to find/parse any annotation files.
     """
-
     if not isinstance(file_paths, list):
         raise ValueError(f"file_paths must be a list of 'Path' or 'str'. Current value: {file_paths}")
 
@@ -290,10 +294,26 @@ def import_annotations(
         # remove files missing on the server
         missing_files = [missing_file.full_path for missing_file in local_files_missing_remotely]
         parsed_files = [parsed_file for parsed_file in parsed_files if parsed_file.full_path not in missing_files]
+        _warn_unsupported_annotations(parsed_files)
         for parsed_file in track(parsed_files):
             image_id = remote_files[parsed_file.full_path]
             _import_annotations(
                 dataset.client, image_id, remote_classes, attributes, parsed_file.annotations, dataset, append
+            )
+
+
+def _warn_unsupported_annotations(parsed_files):
+    console = Console(theme=_console_theme())
+    for parsed_file in parsed_files:
+        skipped_annotations = []
+        for annotation in parsed_file.annotations:
+            if annotation.annotation_class.annotation_type in UNSUPPORTED_CLASSES:
+                skipped_annotations.append(annotation)
+        if len(skipped_annotations) > 0:
+            types = set(map(lambda c: c.annotation_class.annotation_type, skipped_annotations))
+            console.print(
+                f"Import of annotation class types '{', '.join(types)}' is not yet supported. Skipping {len(skipped_annotations)} annotations from '{parsed_file.full_path}'.\n",
+                style="warning",
             )
 
 
@@ -385,3 +405,7 @@ def _import_annotations(
 
     if len(serialized_annotations) > 0:
         dataset.import_annotation(id, payload=payload)
+
+
+def _console_theme() -> Theme:
+    return Theme({"success": "bold green", "warning": "bold yellow", "error": "bold red"})
