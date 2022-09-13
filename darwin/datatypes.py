@@ -160,9 +160,6 @@ class VideoAnnotation:
     #: A list of ``Segment``\'s.
     segments: List[Segment]
 
-    #: Slot name
-    slot_names: str
-
     #: Whether this ``VideoAnnotation`` is interpolated or not.
     interpolated: bool
 

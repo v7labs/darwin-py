@@ -64,7 +64,12 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path) -> N
             elif view_idx == 2:
                 height, width = volume_dims[1], volume_dims[2]
                 pixdims = [pixdim[1], pixdim[2]]
-            polygon = shift_polygon_coords(frames[frame_idx].data["path"], height=height, width=width, pixdim=pixdims)
+            polygon = shift_polygon_coords(
+                frames[frame_idx].data["path"],
+                height=height,
+                width=width,
+                pixdim=pixdims,
+            )
             class_name = frames[frame_idx].annotation_class.name
             im_mask = convert_polygons_to_mask(polygon, height=height, width=width)
             output_volume = output_volumes[class_name]
@@ -75,7 +80,10 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path) -> N
             elif view_idx == 2:
                 output_volume[frame_idx, :, :] = np.logical_or(im_mask, output_volume[frame_idx, :, :])
     for class_name in class_map.keys():
-        img = nib.Nifti1Image(dataobj=np.flip(output_volumes[class_name], (0, 1, 2)).astype(np.int16), affine=affine)
+        img = nib.Nifti1Image(
+            dataobj=np.flip(output_volumes[class_name], (0, 1, 2)).astype(np.int16),
+            affine=affine,
+        )
         output_path = Path(output_dir) / f"{image_id}_{class_name}.nii.gz"
         # nib.save(img=img, filename=f"{image_id}_{class_name}.nii.gz")
         nib.save(img=img, filename=output_path)
@@ -96,8 +104,8 @@ def get_view_idx(frame_idx, groups):
 
 def get_view_idx_from_slot_name(slot_name):
     slot_names = {"0.1": 0, "0.2": 1, "0.3": 2}
-    slot_names.get(slot_name, -1)
-    return slot_names.get(slot_name, -1)
+    slot_names.get(slot_name, 0)
+    return slot_names.get(slot_name, 0)
 
 
 def process_metadata(metadata):
