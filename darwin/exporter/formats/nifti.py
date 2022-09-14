@@ -85,7 +85,6 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path) -> N
             affine=affine,
         )
         output_path = Path(output_dir) / f"{image_id}_{class_name}.nii.gz"
-        # nib.save(img=img, filename=f"{image_id}_{class_name}.nii.gz")
         nib.save(img=img, filename=output_path)
 
 
