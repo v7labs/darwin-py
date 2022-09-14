@@ -181,6 +181,7 @@ def import_annotations(
         If ``True`` will use empty annotation files to delete all annotations from the remote file.
         If ``False``, empty annotation files will simply be skipped.
         Only works for V2 datasets.
+        Takes precedence over the ``append`` flag.
 
     Raises
     -------
@@ -287,9 +288,14 @@ def import_annotations(
 
     if dataset.version == 1:
         console.print("Importing annotations...\nEmpty annotations will be skipped.", style="info")
+    elif dataset.version == 2 and delete_for_empty:
+        console.print(
+            "Importing annotations...\nEmpty annotations will clear all existing annotations in remote files.",
+            style="info",
+        )
     else:
         console.print(
-            "Importing annotations...\nEmpty annotations will be skipped, if you want to delete annotations rerun with '--delete-for-empty' ",
+            "Importing annotations...\nEmpty annotations will be skipped, if you want to delete annotations rerun with '--delete-for-empty'.",
             style="info",
         )
 

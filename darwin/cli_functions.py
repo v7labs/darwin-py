@@ -738,6 +738,7 @@ def dataset_import(
         If ``True`` will use empty annotation files to delete all annotations from the remote file.
         If ``False``, empty annotation files will simply be skipped.
         Only works for V2 datasets.
+        Takes precedence over the ``append`` flag.
     """
 
     client: Client = _load_client(dataset_identifier=dataset_slug)
