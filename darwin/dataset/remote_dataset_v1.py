@@ -1,4 +1,6 @@
+import itertools
 from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, Union
+from xml.dom import ValidationErr
 
 from darwin.dataset.release import Release
 from darwin.dataset.upload_manager import (
@@ -10,7 +12,7 @@ from darwin.dataset.upload_manager import (
 )
 from darwin.dataset.utils import is_relative_to
 from darwin.datatypes import ItemId, PathLike
-from darwin.exceptions import NotFound
+from darwin.exceptions import NotFound, ValidationError
 from darwin.item import DatasetItem
 from darwin.item_sorter import ItemSorter
 from darwin.utils import find_files, urljoin
@@ -293,6 +295,51 @@ class RemoteDatasetV1(RemoteDataset):
         """
         payload: Dict[str, Any] = {"filter": {"dataset_item_ids": [item.id for item in items]}}
         self.client.reset_item(self.slug, self.team, payload)
+
+    def complete(self, items: Iterator[DatasetItem]) -> None:
+        """
+        Completes the given ``DatasetItem``\\s.
+
+        Parameters
+        ----------
+        items : Iterator[DatasetItem]
+            The ``DatasetItem``\\s to be completed.
+        """
+        wf_template_id_mapper = lambda item: item.current_workflow["workflow_template_id"]
+        input_items: List[DatasetItem] = list(items)
+
+        # We split into items with and without workflow
+        items_wf = filter(lambda item: item.current_workflow, input_items)
+        items_no_wf = filter(lambda item: item.current_workflow is None, input_items)
+
+        # All items without workflow get instantiated
+        items_instantiated: List[DatasetItem] = []
+        for old_item in items_no_wf:
+            (_, item) = self.client.instantiate_item(old_item.id, include_metadata=True)
+            items_instantiated.append(item)
+
+        #  We create new list of items from instantiated items and other items with workflow
+        # We also group them by workflow_template_id, because we can't do batch across diff templates
+        items = sorted([*items_wf, *items_instantiated], key=wf_template_id_mapper)
+        items_by_wf_template = itertools.groupby(
+            items,
+            key=wf_template_id_mapper,
+        )
+
+        # For each WF template, we find complete stage template id
+        # and try to set stage for all items in this workflow
+        for wf_template_id, current_items in items_by_wf_template:
+            current_items = list(current_items)
+            sample_item = current_items[0]
+            deep_sample_stages = sample_item.current_workflow["stages"].values()
+            sample_stages = [item for sublist in deep_sample_stages for item in sublist]
+            complete_stage = list(filter(lambda stage: stage["type"] == "complete", sample_stages))[0]
+
+            filters = {"dataset_item_ids": [item.id for item in current_items]}
+            try:
+                self.client.move_to_stage(self.slug, self.team, filters, complete_stage["workflow_stage_template_id"])
+            except ValidationError:
+                raise ValueError("Unable to complete some of provided items. Make sure to assign them to a user first.")
 
     def delete_items(self, items: Iterator[DatasetItem]) -> None:
         """
