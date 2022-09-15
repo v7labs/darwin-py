@@ -318,7 +318,14 @@ def import_annotations(
             if parsed_file.annotations or (delete_for_empty and dataset.version == 2):
                 image_id = remote_files[parsed_file.full_path]
                 _import_annotations(
-                    dataset.client, image_id, remote_classes, attributes, parsed_file.annotations, dataset, append
+                    dataset.client,
+                    image_id,
+                    remote_classes,
+                    attributes,
+                    parsed_file.annotations,
+                    dataset,
+                    append,
+                    delete_for_empty,
                 )
             else:
                 console.print(
@@ -372,6 +379,7 @@ def _import_annotations(
     annotations: List[dt.Annotation],
     dataset: "RemoteDataset",
     append: bool,
+    delete_for_empty: bool,
 ):
     serialized_annotations = []
     for annotation in annotations:
@@ -409,6 +417,9 @@ def _import_annotations(
     payload: Dict[str, Any] = {"annotations": serialized_annotations}
     if append:
         payload["overwrite"] = "false"
+
+    if delete_for_empty and not annotations:
+        payload["overwrite"] = "true"
 
     dataset.import_annotation(id, payload=payload)
 
