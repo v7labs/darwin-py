@@ -33,8 +33,26 @@ if TYPE_CHECKING:
     from darwin.client import Client
 
 
-SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpeg", ".jpg", ".jfif", ".tif", ".tiff", ".bmp", ".svs"]
-SUPPORTED_VIDEO_EXTENSIONS = [".avi", ".bpm", ".dcm", ".mov", ".mp4", ".pdf", ".ndpi"]
+SUPPORTED_IMAGE_EXTENSIONS = [
+    ".png",
+    ".jpeg",
+    ".jpg",
+    ".jfif",
+    ".tif",
+    ".tiff",
+    ".bmp",
+    ".svs",
+]
+SUPPORTED_VIDEO_EXTENSIONS = [
+    ".avi",
+    ".bpm",
+    ".dcm",
+    ".mov",
+    ".mp4",
+    ".pdf",
+    ".nii",
+    ".ndpi",
+]
 SUPPORTED_EXTENSIONS = SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
 
 
