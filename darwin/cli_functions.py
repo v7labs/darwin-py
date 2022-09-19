@@ -34,6 +34,7 @@ from darwin.dataset.upload_manager import LocalFile
 from darwin.dataset.utils import get_release_path
 from darwin.datatypes import ExportParser, ImportParser, PathLike, Team
 from darwin.exceptions import (
+    IncompatibleOptions,
     InvalidLogin,
     MissingConfig,
     NameTaken,
@@ -734,11 +735,12 @@ def dataset_import(
     append : bool, default: True
         If ``True`` it appends the annotation from the files to the dataset, if ``False`` it will
         override the dataset's current annotations with the ones from the given files.
+        Incompatible with ``delete_for_empty``.
     delete_for_empty : bool, default: False
         If ``True`` will use empty annotation files to delete all annotations from the remote file.
         If ``False``, empty annotation files will simply be skipped.
         Only works for V2 datasets.
-        Takes precedence over the ``append`` flag.
+        Incompatible with ``append``.
     """
 
     client: Client = _load_client(dataset_identifier=dataset_slug)
@@ -753,6 +755,8 @@ def dataset_import(
         _error(f"Unsupported import format: {format}, currently supported: {import_formats}")
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
+    except IncompatibleOptions as e:
+        _error(str(e))
 
 
 def list_files(

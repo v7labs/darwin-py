@@ -19,6 +19,7 @@ if TYPE_CHECKING:
 import darwin.datatypes as dt
 import deprecation
 from darwin.datatypes import PathLike
+from darwin.exceptions import IncompatibleOptions
 from darwin.utils import secure_continue_request
 from darwin.version import __version__
 from rich.console import Console
@@ -175,13 +176,14 @@ def import_annotations(
         A list of ``Path``'s or strings containing the Annotations we wish to import.
     append : bool
         If ``True`` appends the given annotations to the datasets. If ``False`` will override them.
+        Incompatible with ``delete_for_empty``.
     class_prompt : bool
         If ``False`` classes will be created and added to the datasets without requiring a user's prompt.
     delete_for_empty : bool, default: False
         If ``True`` will use empty annotation files to delete all annotations from the remote file.
         If ``False``, empty annotation files will simply be skipped.
         Only works for V2 datasets.
-        Takes precedence over the ``append`` flag.
+        Incompatible with ``append``.
 
     Raises
     -------
@@ -190,8 +192,17 @@ def import_annotations(
         - If ``file_paths`` is not a list.
         - If the application is unable to fetch any remote classes.
         - If the application was unable to find/parse any annotation files.
+
+    IncompatibleOptions
+
+        - If both ``append`` and ``delete_for_empty`` are specified as ``True``.
     """
     console = Console(theme=_console_theme())
+
+    if append and delete_for_empty:
+        raise IncompatibleOptions(
+            "The options 'append' and 'delete_for_empty' cannot be used together. Use only one of them."
+        )
 
     if not isinstance(file_paths, list):
         raise ValueError(f"file_paths must be a list of 'Path' or 'str'. Current value: {file_paths}")
