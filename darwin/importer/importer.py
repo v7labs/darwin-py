@@ -428,8 +428,9 @@ def _import_annotations(
     payload: Dict[str, Any] = {"annotations": serialized_annotations}
     if append:
         payload["overwrite"] = "false"
-
-    if delete_for_empty and not annotations:
+    elif delete_for_empty and not annotations:
+        payload["overwrite"] = "true"
+    else:
         payload["overwrite"] = "true"
 
     dataset.import_annotation(id, payload=payload)
