@@ -176,7 +176,7 @@ def import_annotations(
         A list of ``Path``'s or strings containing the Annotations we wish to import.
     append : bool
         If ``True`` appends the given annotations to the datasets. If ``False`` will override them.
-        Incompatible with ``delete_for_empty``.
+        Incompatible with ``delete-for-empty``.
     class_prompt : bool
         If ``False`` classes will be created and added to the datasets without requiring a user's prompt.
     delete_for_empty : bool, default: False
@@ -211,6 +211,12 @@ def import_annotations(
     team_classes: List[Dict[str, Any]] = dataset.fetch_remote_classes(True)
     if not team_classes:
         raise ValueError("Unable to fetch remote class list.")
+
+    if delete_for_empty and dataset.version == 1:
+        console.print(
+            f"The '--delete-for-empty' flag only works for V2 datasets. '{dataset.name}' is a V1 dataset. Ignoring flag.",
+            style="warning",
+        )
 
     classes_in_dataset: Dict[str, Any] = build_main_annotations_lookup_table(
         [cls for cls in team_classes if cls["available"]]
@@ -325,8 +331,18 @@ def import_annotations(
         missing_files = [missing_file.full_path for missing_file in local_files_missing_remotely]
         parsed_files = [parsed_file for parsed_file in parsed_files if parsed_file.full_path not in missing_files]
 
-        for parsed_file in track(parsed_files):
-            if parsed_file.annotations or (delete_for_empty and dataset.version == 2):
+        files_to_not_track = [
+            file_to_track
+            for file_to_track in parsed_files
+            if not file_to_track.annotations and (not delete_for_empty or dataset.version == 1)
+        ]
+
+        for file in files_to_not_track:
+            console.print(f"{file.filename} has no annotations. Skipping upload...", style="warning")
+
+        files_to_track = [file for file in parsed_files if file not in files_to_not_track]
+        if files_to_track:
+            for parsed_file in track(files_to_track):
                 image_id = remote_files[parsed_file.full_path]
                 _import_annotations(
                     dataset.client,
@@ -337,10 +353,6 @@ def import_annotations(
                     dataset,
                     append,
                     delete_for_empty,
-                )
-            else:
-                console.print(
-                    f"\nNo annotations found for file {parsed_file.filename}. Skipping upload.", style="warning"
                 )
 
 

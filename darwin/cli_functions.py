@@ -735,7 +735,7 @@ def dataset_import(
     append : bool, default: True
         If ``True`` it appends the annotation from the files to the dataset, if ``False`` it will
         override the dataset's current annotations with the ones from the given files.
-        Incompatible with ``delete_for_empty``.
+        Incompatible with ``delete-for-empty``.
     delete_for_empty : bool, default: False
         If ``True`` will use empty annotation files to delete all annotations from the remote file.
         If ``False``, empty annotation files will simply be skipped.
