@@ -307,7 +307,7 @@ def import_annotations(
         console.print("Importing annotations...\nEmpty annotations will be skipped.", style="info")
     elif dataset.version == 2 and delete_for_empty:
         console.print(
-            "Importing annotations...\nEmpty annotations will clear all existing annotations in remote files.",
+            "Importing annotations...\nEmpty annotation file(s) will clear all existing annotations in matching remote files.",
             style="info",
         )
     else:
