@@ -34,6 +34,7 @@ from darwin.dataset.upload_manager import LocalFile
 from darwin.dataset.utils import get_release_path
 from darwin.datatypes import ExportParser, ImportParser, PathLike, Team
 from darwin.exceptions import (
+    IncompatibleOptions,
     InvalidLogin,
     MissingConfig,
     NameTaken,
@@ -712,7 +713,12 @@ def upload_data(
 
 
 def dataset_import(
-    dataset_slug: str, format: str, files: List[PathLike], append: bool, class_prompt: bool = True
+    dataset_slug: str,
+    format: str,
+    files: List[PathLike],
+    append: bool,
+    class_prompt: bool = True,
+    delete_for_empty: bool = False,
 ) -> None:
     """
     Imports annotation files to the given dataset.
@@ -720,15 +726,21 @@ def dataset_import(
 
     Parameters
     ----------
-    dataset_slug: str
+    dataset_slug : str
         The dataset's slug.
-    format: str
+    format : str
         Format of the export files.
-    files: List[PathLike]
+    files : List[PathLike]
         List of where the files are.
-    append: bool
-        If True it appends the annotation from the files to the dataset, if False it will override
-        the dataset's current annotations with the ones from the given files.
+    append : bool, default: True
+        If ``True`` it appends the annotation from the files to the dataset, if ``False`` it will
+        override the dataset's current annotations with the ones from the given files.
+        Incompatible with ``delete-for-empty``.
+    delete_for_empty : bool, default: False
+        If ``True`` will use empty annotation files to delete all annotations from the remote file.
+        If ``False``, empty annotation files will simply be skipped.
+        Only works for V2 datasets.
+        Incompatible with ``append``.
     """
 
     client: Client = _load_client(dataset_identifier=dataset_slug)
@@ -736,13 +748,15 @@ def dataset_import(
     try:
         parser: ImportParser = get_importer(format)
         dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
-        import_annotations(dataset, parser, files, append, class_prompt)
+        import_annotations(dataset, parser, files, append, class_prompt, delete_for_empty)
     except ImporterNotFoundError:
         _error(f"Unsupported import format: {format}, currently supported: {import_formats}")
     except AttributeError:
         _error(f"Unsupported import format: {format}, currently supported: {import_formats}")
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
+    except IncompatibleOptions as e:
+        _error(str(e))
 
 
 def list_files(

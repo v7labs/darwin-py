@@ -86,7 +86,7 @@ class DatasetItem(BaseModel):
                 "path": raw["path"],
                 "status": raw["status"],
                 "archived": raw["archived"],
-                "filesize": sum(file["size_bytes"] for file in raw["slots"]),
+                "filesize": sum(file.get("size_bytes", 0) for file in raw["slots"]),
                 "dataset_id": raw["dataset_id"],
                 "dataset_slug": "n/a",
                 "seq": None,
