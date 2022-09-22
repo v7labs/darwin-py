@@ -378,6 +378,17 @@ class RemoteDataset(ABC):
         """
 
     @abstractmethod
+    def complete(self, items: Iterator[DatasetItem]) -> None:
+        """
+        Completes the given ``DatasetItem``\\s.
+
+        Parameters
+        ----------
+        items : Iterator[DatasetItem]
+            The ``DatasetItem``\\s to be completed.
+        """
+
+    @abstractmethod
     def delete_items(self, items: Iterator[DatasetItem]) -> None:
         """
         Deletes the given ``DatasetItem``\\s.
