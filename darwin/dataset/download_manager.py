@@ -5,6 +5,7 @@ Holds helper functions that deal with downloading videos and images.
 import functools
 import json
 import time
+import urllib
 from pathlib import Path
 from typing import Any, Callable, Iterator, Tuple
 
@@ -14,6 +15,7 @@ from darwin.dataset.utils import sanitize_filename
 from darwin.datatypes import AnnotationFile
 from darwin.utils import (
     get_response_content,
+    has_json_content_type,
     is_image_extension_allowed,
     parse_darwin_json,
 )
@@ -357,10 +359,13 @@ def _download_image(url: str, path: Path, api_key: str) -> None:
         else:
             response = requests.get(url, headers={"Authorization": f"ApiKey {api_key}"}, stream=True)
         # Correct status: download image
-        if response.ok:
-            with open(str(path), "wb") as file:
-                for chunk in response:
-                    file.write(chunk)
+        if response.ok and has_json_content_type(response):
+            # this branch is a workaround for edge case in V1 when video file from external storage could be registered
+            # with multiple keys (so that one file consist of several other)
+            _fetch_multiple_files(path, response)
+            return
+        elif response.ok:
+            _write_file(path, response)
             return
         # Fatal-error status: fail
         if 400 <= response.status_code <= 499:
@@ -371,3 +376,31 @@ def _download_image(url: str, path: Path, api_key: str) -> None:
         if time.time() - start > TIMEOUT:
             raise Exception(f"Timeout url request ({url}) after {TIMEOUT} seconds.")
         time.sleep(1)
+
+
+def _fetch_multiple_files(path: Path, response: requests.Response) -> None:
+    obj = response.json()
+    if "urls" not in obj:
+        raise Exception(f"Malformed response: {obj}")
+    urls = obj["urls"]
+    # remove extension from os file path, e.g /some/path/example.dcm -> /some/path/example
+    # and create such directory
+    dir_path = Path(path).with_suffix("")
+    dir_path.mkdir(exist_ok=True, parents=True)
+    for url in urls:
+        # get filename which is last http path segment
+        filename = urllib.parse.urlparse(url).path.rsplit("/", 1)[-1]
+        path = dir_path / filename
+        response = requests.get(url, stream=True)
+        if response.ok:
+            _write_file(path, response)
+        else:
+            raise Exception(
+                f"Request to ({url}) failed. Status code: {response.status_code}, content:\n{get_response_content(response)}."
+            )
+
+
+def _write_file(path: Path, response: requests.Response) -> None:
+    with open(str(path), "wb") as file:
+        for chunk in response:
+            file.write(chunk)
