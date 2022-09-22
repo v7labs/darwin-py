@@ -95,6 +95,7 @@ class DatasetItem(BaseModel):
                 "dataset_slug": "n/a",
                 "seq": None,
                 "current_workflow_id": None,
+                "current_workflow": None,
                 "slots": raw["slots"],
             }
         else:
@@ -146,4 +147,6 @@ def parse_dataset_item(raw: Dict[str, Any]) -> DatasetItem:
         raw["seq"],
         raw.get("current_workflow_id"),
         raw["path"],
+        [],
+        raw.get("current_workflow"),
     )
