@@ -282,20 +282,13 @@ class RemoteDatasetV2(RemoteDataset):
             The ``DatasetItem``\\s whose status will change.
         """
 
-        detailed_dataset = self.client.api_v2.get_dataset(self.dataset_id)
-        workflow_ids = detailed_dataset["workflow_ids"]
-        if len(workflow_ids) == 0:
-            raise ValueError("Dataset is not part of a workflow")
-        # currently we can only be part of one workflow
-        workflow_id = workflow_ids[0]
-        workflow = self.client.api_v2.get_workflow(workflow_id, team_slug=self.team)
-        dataset_stages = [stage for stage in workflow["stages"] if stage["type"] == "dataset"]
-        if not dataset_stages:
+        (workflow_id, stages) = self._fetch_stages("dataset")
+        if not stages:
             raise ValueError("Dataset's workflow is missing a dataset stage")
 
         self.client.api_v2.move_to_stage(
             {"item_ids": [item.id for item in items], "dataset_ids": [self.dataset_id]},
-            dataset_stages[0]["id"],
+            stages[0]["id"],
             workflow_id,
             team_slug=self.team,
         )
@@ -311,6 +304,26 @@ class RemoteDatasetV2(RemoteDataset):
             The ``DatasetItem``\\s to be resetted.
         """
         raise ValueError("Reset is deprecated for version 2 datasets")
+
+    def complete(self, items: Iterator[DatasetItem]) -> None:
+        """
+        Completes the given ``DatasetItem``\\s.
+
+        Parameters
+        ----------
+        items : Iterator[DatasetItem]
+            The ``DatasetItem``\\s to be completed.
+        """
+        (workflow_id, stages) = self._fetch_stages("complete")
+        if not stages:
+            raise ValueError("Dataset's workflow is missing a complete stage")
+
+        self.client.api_v2.move_to_stage(
+            {"item_ids": [item.id for item in items], "dataset_ids": [self.dataset_id]},
+            stages[0]["id"],
+            workflow_id,
+            team_slug=self.team,
+        )
 
     def delete_items(self, items: Iterator[DatasetItem]) -> None:
         """
@@ -423,3 +436,13 @@ class RemoteDatasetV2(RemoteDataset):
         """
 
         self.client.api_v2.import_annotation(item_id, payload=payload, team_slug=self.team)
+
+    def _fetch_stages(self, stage_type):
+        detailed_dataset = self.client.api_v2.get_dataset(self.dataset_id)
+        workflow_ids = detailed_dataset["workflow_ids"]
+        if len(workflow_ids) == 0:
+            raise ValueError("Dataset is not part of a workflow")
+        # currently we can only be part of one workflow
+        workflow_id = workflow_ids[0]
+        workflow = self.client.api_v2.get_workflow(workflow_id, team_slug=self.team)
+        return (workflow_id, [stage for stage in workflow["stages"] if stage["type"] == stage_type])

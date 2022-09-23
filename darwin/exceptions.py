@@ -1,6 +1,14 @@
 from pathlib import Path
 
 
+class IncompatibleOptions(Exception):
+    """
+    Used when a combination of options has one or more options that are not compatible between them.
+    An option is not compatible with another if any combination from their set of possibilities
+    returns an unspecified result.
+    """
+
+
 class UnrecognizableFileEncoding(Exception):
     """
     Used when a we try to decode a file and all decoding algorithms fail.
@@ -13,12 +21,10 @@ class Unauthenticated(Exception):
     """
 
 
-
 class InvalidLogin(Exception):
     """
     Used when a user tries to log in with invalid credentials.
     """
-
 
 
 class InvalidTeam(Exception):
@@ -27,12 +33,10 @@ class InvalidTeam(Exception):
     """
 
 
-
 class MissingConfig(Exception):
     """
     Used when the configuration file was not found.
     """
-
 
 
 class UnsupportedExportFormat(Exception):
@@ -89,19 +93,16 @@ class InsufficientStorage(Exception):
     """
 
 
-
 class NameTaken(Exception):
     """
     Used when one tries to create an entity and the name of that entity is already taken.
     """
 
 
-
 class ValidationError(Exception):
     """
     Used when a validation fails.
     """
-
 
 
 class Unauthorized(Exception):
@@ -117,4 +118,3 @@ class OutdatedDarwinJSONFormat(Exception):
     """
     Used when one tries to parse a video with an old darwin format that is no longer compatible.
     """
-
