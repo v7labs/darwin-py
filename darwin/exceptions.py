@@ -1,6 +1,11 @@
 from pathlib import Path
 
 
+class UnrecognizableFileEncoding(Exception):
+    """
+    Used when a we try to decode a file and all decoding algorithms fail.
+    """
+
 class Unauthenticated(Exception):
     """
     Used when a user tries to perform an action that requires authentication without being

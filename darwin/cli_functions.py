@@ -39,6 +39,7 @@ from darwin.exceptions import (
     NameTaken,
     NotFound,
     Unauthenticated,
+    UnrecognizableFileEncoding,
     UnsupportedExportFormat,
     UnsupportedFileType,
     ValidationError,
@@ -743,7 +744,8 @@ def dataset_import(
         _error(f"Unsupported import format: {format}, currently supported: {import_formats}")
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
-
+    except UnrecognizableFileEncoding as e:
+        _error(str(e))
 
 def list_files(
     dataset_slug: str,
