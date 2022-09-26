@@ -311,9 +311,13 @@ class InstanceSegmentationDataset(LocalDataset):
         annotations = []
         for annotation in target["annotations"]:
             if "polygon" not in annotation and "complex_polygon" not in annotation:
-                print(f"Warning: missing polygon in annotation {self.annotations_path[index]}")
+                print(
+                    f"Warning: missing polygon in annotation {self.annotations_path[index]}"
+                )
             # Extract the sequences of coordinates from the polygon annotation
-            annotation_type: str = "polygon" if "polygon" in annotation else "complex_polygon"
+            annotation_type: str = (
+                "polygon" if "polygon" in annotation else "complex_polygon"
+            )
             sequences = convert_polygons_to_sequences(
                 annotation[annotation_type]["path"],
                 height=target["height"],
@@ -330,7 +334,12 @@ class InstanceSegmentationDataset(LocalDataset):
             h: float = max_y - min_y + 1
             # Compute the area of the polygon
             # TODO fix with addictive/subtractive paths in complex polygons
-            poly_area: float = np.sum([polygon_area(x_coord, y_coord) for x_coord, y_coord in zip(x_coords, y_coords)])
+            poly_area: float = np.sum(
+                [
+                    polygon_area(x_coord, y_coord)
+                    for x_coord, y_coord in zip(x_coords, y_coords)
+                ]
+            )
 
             # Create and append the new entry for this annotation
             annotations.append(
@@ -382,7 +391,9 @@ class SemanticSegmentationDataset(LocalDataset):
         Object used to convert polygons to semantic masks.
     """
 
-    def __init__(self, transform: Optional[Union[List[Callable], Callable]] = None, **kwargs):
+    def __init__(
+        self, transform: Optional[Union[List[Callable], Callable]] = None, **kwargs
+    ):
 
         super().__init__(annotation_type="polygon", **kwargs)
 
@@ -456,7 +467,12 @@ class SemanticSegmentationDataset(LocalDataset):
             sequences[:] = [s for s in sequences if len(s) >= 6]
             if not sequences:
                 continue
-            annotations.append({"category_id": self.classes.index(obj["name"]), "segmentation": sequences})
+            annotations.append(
+                {
+                    "category_id": self.classes.index(obj["name"]),
+                    "segmentation": sequences,
+                }
+            )
         target["annotations"] = annotations
 
         return target
@@ -602,4 +618,145 @@ class ObjectDetectionDataset(LocalDataset):
         for i, _ in enumerate(self.images_path):
             target = self.get_target(i)
             labels.extend(target["labels"].tolist())
+        return self._compute_weights(labels)
+
+
+class HuggingfaceClassificationDataset(LocalDataset):
+    """
+    Represents a LocalDataset used for training on classification tasks.
+
+    Attributes
+    ----------
+    transform : Optional[Callable], default: None
+        torchvision transform function to run on the dataset.
+    is_multi_label : bool, default: False
+        Whether the dataset is multilabel or not.
+
+    Parameters
+    ----------
+    transform: Optional[Union[Callable, List[Callable]]], default: None
+        torchvision function or list to set the ``transform`` attribute. If it is a list, it will
+        be composed via torchvision.
+    """
+
+    def __init__(self, transform: Optional[Union[Callable, List]] = None, **kwargs):
+        super().__init__(annotation_type="tag", **kwargs)
+
+        if transform is not None and isinstance(transform, list):
+            transform = Compose(transform)
+
+        self.transform: Optional[Callable] = transform
+
+        self.is_multi_label = False
+        self.check_if_multi_label()
+
+    def __getitem__(self, index: int) -> Dict:
+        """
+        See superclass for documentation.
+
+        Parameters
+        ----------
+        index : int
+            The index of the image.
+
+        Returns
+        -------
+        Dict
+            TODO update
+        """
+        img: PILImage.Image = self.get_image(index)
+        if self.transform is not None:
+            img_tensor = self.transform(img)
+        else:
+            img_tensor = to_tensor(img)
+
+        target = self.get_target(index)
+
+        return {"pixel_values": img_tensor, "label": target.item()}
+
+    def get_target(self, index: int) -> Tensor:
+        """
+        Returns the classification target.
+
+        Parameters
+        ----------
+        index : int
+            Index of the image.
+
+        Returns
+        -------
+        Tensor
+            The target's tensor.
+        """
+
+        data = self.parse_json(index)
+        annotations = data.pop("annotations")
+        tags = [a["name"] for a in annotations if "tag" in a]
+
+        assert len(tags) >= 1, f"No tags were found for index={index}"
+
+        target: Tensor = torch.tensor(self.classes.index(tags[0]))
+
+        if self.is_multi_label:
+            target = torch.zeros(len(self.classes))
+            # one hot encode all the targets
+            for tag in tags:
+                idx = self.classes.index(tag)
+                target[idx] = 1
+
+        return target
+
+    def check_if_multi_label(self) -> None:
+        """
+        Loops over all the ``.json`` files and checks if we have more than one tag in at least one
+        file, if yes we assume the dataset is for multi label classification.
+        """
+        for idx in range(len(self)):
+            target = self.parse_json(idx)
+            annotations = target.pop("annotations")
+            tags = [a["name"] for a in annotations if "tag" in a]
+
+            if len(tags) > 1:
+                self.is_multi_label = True
+                break
+
+    def get_class_idx(self, index: int) -> int:
+        """
+        Returns the ``category_id`` of the image with the given index.
+
+        Parameters
+        ----------
+        index : int
+            Index of the image.
+
+        Returns
+        -------
+        int
+            ``category_id`` of the image.
+        """
+        target: Tensor = self.get_target(index)
+        return target["category_id"]
+
+    def measure_weights(self) -> np.ndarray:
+        """
+        Computes the class balancing weights (not the frequencies!!) given the train loader.
+        Gets the weights proportional to the inverse of their class frequencies.
+        The vector sums up to 1.
+
+        Returns
+        -------
+        np.ndarray[float]
+            Weight for each class in the train set (one for each class) as a 1D array normalized.
+        """
+        # Collect all the labels by iterating over the whole dataset
+        labels = []
+        for i, _filename in enumerate(self.images_path):
+            target: Tensor = self.get_target(i)
+            if self.is_multi_label:
+                # get the indices of the class present
+                target = torch.where(target == 1)[0]
+                labels.extend(target.tolist())
+            else:
+                labels.append(target.item())
+
         return self._compute_weights(labels)
