@@ -447,7 +447,7 @@ class UploadHandlerV1(UploadHandler):
                     if upload_response.status_code != 503:
                         break
 
-                    time.sleep(2 ** retries)
+                    time.sleep(2**retries)
                     retries += 1
 
             upload_response.raise_for_status()
@@ -540,7 +540,7 @@ class UploadHandlerV2(UploadHandler):
                     if upload_response.status_code != 503:
                         break
 
-                    time.sleep(2 ** retries)
+                    time.sleep(2**retries)
                     retries += 1
 
             upload_response.raise_for_status()

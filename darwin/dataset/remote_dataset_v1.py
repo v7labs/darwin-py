@@ -111,6 +111,7 @@ class RemoteDatasetV1(RemoteDataset):
         *,
         blocking: bool = True,
         multi_threaded: bool = True,
+        max_workers: Optional[int] = None,
         fps: int = 0,
         as_frames: bool = False,
         files_to_exclude: Optional[List[PathLike]] = None,
@@ -131,6 +132,8 @@ class RemoteDatasetV1(RemoteDataset):
         multi_threaded : bool, default: True
             Uses multiprocessing to upload the dataset in parallel.
             If blocking is False this has no effect.
+        max_workers : int, default: None
+            Maximum number of workers to use for parallel upload.
         fps : int, default: 0
             When the uploading file is a video, specify its framerate.
         as_frames: bool, default: False
@@ -186,6 +189,7 @@ class RemoteDatasetV1(RemoteDataset):
         handler = UploadHandlerV1(self, uploading_files)
         if blocking:
             handler.upload(
+                max_workers=max_workers,
                 multi_threaded=multi_threaded,
                 progress_callback=progress_callback,
                 file_upload_callback=file_upload_callback,
