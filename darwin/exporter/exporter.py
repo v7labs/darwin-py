@@ -14,6 +14,9 @@ def darwin_to_dt_gen(file_paths: List[PathLike], split_sequences: bool) -> Itera
     file_paths : List[PathLike]
         The paths of the files or directories we want to parse.
 
+    split_sequences: bool
+        When `True`, all videos will be split into individual frame images.
+
     Returns
     -------
     Iterator[AnnotationFile]

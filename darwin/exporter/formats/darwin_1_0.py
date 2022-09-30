@@ -4,7 +4,6 @@ from typing import Any, Dict, Iterable, List, Union
 
 import darwin.datatypes as dt
 from darwin.exporter.formats.numpy_encoder import NumpyEncoder
-from darwin.version import __version__
 
 
 def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path) -> None:
@@ -80,6 +79,8 @@ def _build_sub_annotation(sub: dt.SubAnnotation) -> Dict[str, Any]:
         return {sub.annotation_type: sub.data}
     elif sub.annotation_type == "text":
         return {sub.annotation_type: {"text": sub.data}}
+    else:
+        return {sub.annotation_type: sub.data}
 
 
 def _build_authorship(annotation: Union[dt.VideoAnnotation, dt.Annotation]) -> Dict[str, Any]:
@@ -129,6 +130,6 @@ def _build_legacy_annotation_data(annotation_class: dt.AnnotationClass, data: Di
         data["path"] = data["paths"][0]
         data["additional_paths"] = data["paths"][1:]
         del data["paths"]
-        return {annotation_class.annotation_internal_type or "polygon": data}
+        return {"complex_polygon": data}
     else:
         return {annotation_class.annotation_type: data}

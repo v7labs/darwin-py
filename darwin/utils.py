@@ -323,6 +323,7 @@ def _parse_darwin_v2(path: Path, data: Dict[str, Any]) -> dt.AnnotationFile:
             seq=0,
             frame_urls=None,
             remote_path=item["path"],
+            slots=slots,
         )
     else:
         slot = slots[0]
@@ -341,9 +342,8 @@ def _parse_darwin_v2(path: Path, data: Dict[str, Any]) -> dt.AnnotationFile:
             seq=0,
             frame_urls=slot.frame_urls,
             remote_path=item["path"],
+            slots=slots,
         )
-
-    annotation_file.slots.extend(slots)
 
     return annotation_file
 
