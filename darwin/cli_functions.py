@@ -398,10 +398,7 @@ def pull_dataset(
         )
         print_new_version_info(client)
         if release.format == "darwin_json_2":
-            print(f"NOTE: Your dataset has been exported using new Darwin JSON 2.0 format.")
-            print(f"      If you wish to use the legacy Darwin format, please use the following to convert: ")
-            print(f"      $ darwin convert darwin_1.0 {dataset.local_path} OUTPUT_DIR")
-            print(f"")
+            _print_new_json_format_warning(dataset)
     except NotFound:
         _error(
             f"Version '{dataset.identifier}:{version}' does not exist "
@@ -1155,3 +1152,16 @@ def _console_theme() -> Theme:
 
 def _has_valid_status(status: str) -> bool:
     return status in ["new", "annotate", "review", "complete", "archived"]
+
+
+def _print_new_json_format_warning(dataset):
+    console = Console(theme=_console_theme(), stderr=True)
+    console.print(
+        f"NOTE: Your dataset has been exported using new Darwin JSON 2.0 format.",
+        f"      If you wish to use the legacy Darwin format, please use the following to convert: ",
+        f"",
+        f"      darwin convert darwin_1.0 {dataset.local_path} OUTPUT_DIR",
+        f"",
+        sep="\n",
+        style="warning",
+    )
