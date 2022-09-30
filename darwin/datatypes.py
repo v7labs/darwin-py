@@ -904,6 +904,26 @@ def make_text(text: str) -> SubAnnotation:
     return SubAnnotation("text", text)
 
 
+def make_opaque_sub(type: str, data: Any) -> SubAnnotation:
+    """
+    Creates and returns a opaque sub-annotation.
+
+    Parameters
+    ----------
+    type : str
+        Type of this sub-annotation
+
+    data : Any
+        Data for this sub-annotation.
+
+    Returns
+    -------
+    SubAnnotation
+        A text ``SubAnnotation``.
+    """
+    return SubAnnotation(type, data)
+
+
 KeyFrame = Dict[str, Union[int, Annotation]]
 
 

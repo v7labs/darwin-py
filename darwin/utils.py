@@ -499,6 +499,14 @@ def _parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotati
         main_annotation.subs.append(dt.make_attributes(annotation["attributes"]))
     if "text" in annotation:
         main_annotation.subs.append(dt.make_text(annotation["text"]["text"]))
+    if "inference" in annotation:
+        main_annotation.subs.append(dt.make_opaque_sub("inference", annotation["inference"]))
+    if "directional_vector" in annotation:
+        main_annotation.subs.append(dt.make_opaque_sub("directional_vector", annotation["directional_vector"]))
+    if "measures" in annotation:
+        main_annotation.subs.append(dt.make_opaque_sub("measures", annotation["measures"]))
+    if "auto_annotate" in annotation:
+        main_annotation.subs.append(dt.make_opaque_sub("auto_annotate", annotation["auto_annotate"]))
 
     if "annotators" in annotation:
         main_annotation.annotators = _parse_annotators(annotation["annotators"])
