@@ -252,7 +252,7 @@ class Options(object):
             help="[Remote] Dataset name: to list all the existing dataset, run 'darwin dataset remote'. ",
         )
         parser_comment.add_argument("file", type=str, help="File to comment")
-        parser_comment.add_argument("--text", type=str, help="Comment: list of words")
+        parser_comment.add_argument("--text", required=True, type=str, help="Comment: list of words")
         parser_comment.add_argument("--x", required=False, type=float, default=1, help="X coordinate for comment box")
         parser_comment.add_argument("--y", required=False, type=float, default=1, help="Y coordinate for comment box")
         parser_comment.add_argument(
