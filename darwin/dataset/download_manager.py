@@ -103,6 +103,10 @@ def download_all_images_from_annotations(
         if len(annotation.slots) > 1:
             force_slots = True
 
+        for slot in annotation.slots:
+            if len(slot.source_files) > 1:
+                force_slots = True
+
     if remove_extra:
         # Removes existing images for which there is not corresponding annotation
         annotations_downloaded_stem = [a.stem for a in annotations_path.glob(f"*.{annotation_format}")]

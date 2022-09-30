@@ -1158,9 +1158,9 @@ def _print_new_json_format_warning(dataset):
     console = Console(theme=_console_theme(), stderr=True)
     console.print(
         f"NOTE: Your dataset has been exported using new Darwin JSON 2.0 format.",
-        f"      If you wish to use the legacy Darwin format, please use the following to convert: ",
+        f"    If you wish to use the legacy Darwin format, please use the following to convert: ",
         f"",
-        f"      darwin convert darwin_1.0 {dataset.local_path} OUTPUT_DIR",
+        f"    darwin convert darwin_1.0 {dataset.local_path} OUTPUT_DIR",
         f"",
         sep="\n",
         style="warning",

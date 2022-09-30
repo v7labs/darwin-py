@@ -163,7 +163,7 @@ class Options(object):
         parser_pull.add_argument(
             "--force-slots",
             action="store_true",
-            help="Forces pull of all slots of items into deeper file structure ({prefix}/{item_name}/{slot_name}/{file_name})",
+            help="Forces pull of all slots of items into deeper file structure ({prefix}/{item_name}/{slot_name}/{file_name}). If your dataset includes items with multiple slots, or multiple source files per slot, this option becomes implicitly enabled.",
         )
 
         # Import
@@ -185,7 +185,11 @@ class Options(object):
         parser_import.add_argument(
             "--yes", action="store_true", help="Skips prompts for creating and adding classes to dataset."
         )
-        parser_import.add_argument("--delete-for-empty", action="store_true", help="Empty annotations will delete annotations from remote files.")
+        parser_import.add_argument(
+            "--delete-for-empty",
+            action="store_true",
+            help="Empty annotations will delete annotations from remote files.",
+        )
 
         # Convert
         parser_convert = dataset_action.add_parser("convert", help="Converts darwin json to other annotation formats.")
