@@ -10,9 +10,11 @@ from darwin.torch.transforms import (
     ConvertPolygonsToSemanticMask,
 )
 from darwin.torch.utils import polygon_area
+from darwin.dataset.utils import convert_to_rgb
 from darwin.utils import convert_polygons_to_sequences
 from PIL import Image as PILImage
-from torchvision.transforms.functional import to_tensor
+import torchvision.transforms as T
+import torchvision.transforms.functional as TF
 
 import torch
 from torch.functional import Tensor
@@ -124,7 +126,7 @@ class ClassificationDataset(LocalDataset):
         if self.transform is not None:
             img_tensor = self.transform(img)
         else:
-            img_tensor = to_tensor(img)
+            img_tensor = TF.to_tensor(img)
 
         target = self.get_target(index)
 
@@ -274,7 +276,7 @@ class InstanceSegmentationDataset(LocalDataset):
         if self.transform is not None:
             img_tensor, target = self.transform(img, target)
         else:
-            img_tensor = to_tensor(img)
+            img_tensor = TF.to_tensor(img)
 
         return img_tensor, target
 
@@ -424,7 +426,7 @@ class SemanticSegmentationDataset(LocalDataset):
         if self.transform is not None:
             img_tensor, target = self.transform(img, target)
         else:
-            img_tensor = to_tensor(img)
+            img_tensor = TF.to_tensor(img)
 
         return img_tensor, target
 
@@ -542,7 +544,7 @@ class ObjectDetectionDataset(LocalDataset):
         if self.transform is not None:
             img_tensor, target = self.transform(img, target)
         else:
-            img_tensor = to_tensor(img)
+            img_tensor = TF.to_tensor(img)
 
         return img_tensor, target
 
@@ -621,9 +623,9 @@ class ObjectDetectionDataset(LocalDataset):
         return self._compute_weights(labels)
 
 
-class HuggingfaceClassificationDataset(LocalDataset):
+class HFClassificationDataset(ClassificationDataset):
     """
-    Represents a LocalDataset used for training on classification tasks.
+    Represents a LocalDataset used for training on classification tasks with HuggingFace.
 
     Attributes
     ----------
@@ -638,17 +640,6 @@ class HuggingfaceClassificationDataset(LocalDataset):
         torchvision function or list to set the ``transform`` attribute. If it is a list, it will
         be composed via torchvision.
     """
-
-    def __init__(self, transform: Optional[Union[Callable, List]] = None, **kwargs):
-        super().__init__(annotation_type="tag", **kwargs)
-
-        if transform is not None and isinstance(transform, list):
-            transform = Compose(transform)
-
-        self.transform: Optional[Callable] = transform
-
-        self.is_multi_label = False
-        self.check_if_multi_label()
 
     def __getitem__(self, index: int) -> Dict:
         """
@@ -668,95 +659,69 @@ class HuggingfaceClassificationDataset(LocalDataset):
         if self.transform is not None:
             img_tensor = self.transform(img)
         else:
-            img_tensor = to_tensor(img)
+            img_tensor = TF.to_tensor(img)
 
         target = self.get_target(index)
 
         return {"pixel_values": img_tensor, "label": target.item()}
 
-    def get_target(self, index: int) -> Tensor:
+
+class HFSemanticSegmentationDataset(SemanticSegmentationDataset):
+    """
+    Represents a LocalDataset used for training on semantic segmentation tasks with HuggingFace.
+
+    Attributes
+    ----------
+    transform : Optional[Callable], default: None
+        torchvision transform function to run on the dataset.
+    is_multi_label : bool, default: False
+        Whether the dataset is multilabel or not.
+
+    Parameters
+    ----------
+    transform: Optional[Union[Callable, List[Callable]]], default: None
+        torchvision function or list to set the ``transform`` attribute. If it is a list, it will
+        be composed via torchvision.
+    """
+
+    def __getitem__(self, index: int) -> Tuple[Tensor, Dict[str, Any]]:
         """
-        Returns the classification target.
+        See superclass for documentation
 
-        Parameters
-        ----------
-        index : int
-            Index of the image.
-
-        Returns
-        -------
-        Tensor
-            The target's tensor.
+        Notes
+        -----
+        The return value is a dict with the following fields:
+            image_id : int
+                Index of the image inside the dataset
+            image_path: str
+                The path to the image on the file system
+            mask : tensor(H, W)
+                Segmentation mask where each pixel encodes a class label
         """
+        img: PILImage.Image = self.get_image(index)
+        target: Dict[str, Any] = self.get_target(index)
 
-        data = self.parse_json(index)
-        annotations = data.pop("annotations")
-        tags = [a["name"] for a in annotations if "tag" in a]
-
-        assert len(tags) >= 1, f"No tags were found for index={index}"
-
-        target: Tensor = torch.tensor(self.classes.index(tags[0]))
-
-        if self.is_multi_label:
-            target = torch.zeros(len(self.classes))
-            # one hot encode all the targets
-            for tag in tags:
-                idx = self.classes.index(tag)
-                target[idx] = 1
-
-        return target
-
-    def check_if_multi_label(self) -> None:
-        """
-        Loops over all the ``.json`` files and checks if we have more than one tag in at least one
-        file, if yes we assume the dataset is for multi label classification.
-        """
-        for idx in range(len(self)):
-            target = self.parse_json(idx)
-            annotations = target.pop("annotations")
-            tags = [a["name"] for a in annotations if "tag" in a]
-
-            if len(tags) > 1:
-                self.is_multi_label = True
-                break
-
-    def get_class_idx(self, index: int) -> int:
-        """
-        Returns the ``category_id`` of the image with the given index.
-
-        Parameters
-        ----------
-        index : int
-            Index of the image.
-
-        Returns
-        -------
-        int
-            ``category_id`` of the image.
-        """
-        target: Tensor = self.get_target(index)
-        return target["category_id"]
-
-    def measure_weights(self) -> np.ndarray:
-        """
-        Computes the class balancing weights (not the frequencies!!) given the train loader.
-        Gets the weights proportional to the inverse of their class frequencies.
-        The vector sums up to 1.
-
-        Returns
-        -------
-        np.ndarray[float]
-            Weight for each class in the train set (one for each class) as a 1D array normalized.
-        """
-        # Collect all the labels by iterating over the whole dataset
-        labels = []
-        for i, _filename in enumerate(self.images_path):
-            target: Tensor = self.get_target(i)
-            if self.is_multi_label:
-                # get the indices of the class present
-                target = torch.where(target == 1)[0]
-                labels.extend(target.tolist())
-            else:
-                labels.append(target.item())
-
-        return self._compute_weights(labels)
+        img, target = self.convert_polygons(img, target)
+        img = convert_to_rgb(img)
+        print(img)
+        print(target)
+        # Random crop
+        width, height = img.size
+        new_width, new_height = (
+            (512, int(height * 512 / width))
+            if height > width
+            else (int(width * 512 / height), 512)
+        )
+        print(f"{width} -> {new_width} and {height} -> {new_height}")
+        transform = T.Compose(
+            [
+                T.Resize(size=(new_height, new_width)),
+                T.CenterCrop(size=(512, 512)),
+                T.ToTensor(),
+            ]
+        )
+        img_tensor = transform(img)
+        target = transform(target["mask"])
+        print(img_tensor.shape)
+        print(target.shape)
+        return {"pixel_values": img_tensor, "labels": target}
