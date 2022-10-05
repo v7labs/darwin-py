@@ -380,6 +380,8 @@ def pull_dataset(
     try:
         release: Release = dataset.get_release(version)
         dataset.pull(release=release, only_annotations=only_annotations, use_folders=folders, video_frames=video_frames)
+        if video_frames:
+            dataset.split_video_annotations(release_name=release.name)
         print_new_version_info(client)
     except NotFound:
         _error(
