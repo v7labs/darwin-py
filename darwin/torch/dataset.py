@@ -703,8 +703,6 @@ class HFSemanticSegmentationDataset(SemanticSegmentationDataset):
 
         img, target = self.convert_polygons(img, target)
         img = convert_to_rgb(img)
-        print(img)
-        print(target)
         # Random crop
         width, height = img.size
         new_width, new_height = (
@@ -712,7 +710,6 @@ class HFSemanticSegmentationDataset(SemanticSegmentationDataset):
             if height > width
             else (int(width * 512 / height), 512)
         )
-        print(f"{width} -> {new_width} and {height} -> {new_height}")
         transform = T.Compose(
             [
                 T.Resize(size=(new_height, new_width)),
@@ -721,7 +718,8 @@ class HFSemanticSegmentationDataset(SemanticSegmentationDataset):
             ]
         )
         img_tensor = transform(img)
-        target = transform(target["mask"])
-        print(img_tensor.shape)
-        print(target.shape)
+        mask = torch.tensor(np.expand_dims(target["mask"], 0))
+        resized_mask = TF.resize(mask, size=(new_height, new_width))
+        target = TF.center_crop(resized_mask, output_size=(512, 512))
+        target = torch.squeeze(target, 0).long()
         return {"pixel_values": img_tensor, "labels": target}
