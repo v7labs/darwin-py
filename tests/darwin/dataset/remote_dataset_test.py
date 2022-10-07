@@ -577,6 +577,7 @@ def dataset_item(dataset_slug: str) -> DatasetItem:
         dataset_slug=dataset_slug,
         seq=1,
         current_workflow_id=None,
+        current_workflow=None,
         path="/",
         slots=[],
     )
@@ -630,7 +631,9 @@ def assert_upload_mocks_are_correctly_called(remote_dataset: RemoteDataset, *arg
             remote_dataset.push(*args)
 
             request_upload_mock.assert_called_once()
-            upload_mock.assert_called_once_with(multi_threaded=True, progress_callback=None, file_upload_callback=None)
+            upload_mock.assert_called_once_with(
+                multi_threaded=True, progress_callback=None, file_upload_callback=None, max_workers=None
+            )
 
 
 @pytest.mark.usefixtures("file_read_write_test")
