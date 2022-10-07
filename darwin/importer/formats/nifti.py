@@ -3,7 +3,7 @@ import warnings
 import zipfile
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence, Union
+from typing import Dict, List, Optional, OrderedDict, Sequence, Union
 
 try:
     import cc3d
@@ -51,87 +51,62 @@ def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
         return None
     annotation_files = []
     for nifti_annotation in nifti_annotations:
-        annotation_file = parse_nifti(
+        annotation_file = _parse_nifti(
             Path(nifti_annotation["label"]),
             nifti_annotation["image"],
             path,
             class_map=nifti_annotation.get("class_map"),
-            instances=nifti_annotation.get("instances", False),
+            mode=nifti_annotation.get("mode", "image"),
         )
         annotation_files.append(annotation_file)
-        break
     return annotation_files
 
 
-def parse_nifti(
-    nifti_path: Path, filename: Path, json_path: Path, class_map: Dict, instances: bool
-) -> dt.AnnotationFile:
+def _parse_nifti(nifti_path: Path, filename: Path, json_path: Path, class_map: Dict, mode: str) -> dt.AnnotationFile:
+
     img: np.ndarray = process_nifti(nib.load(nifti_path))
 
     shape = img.shape
     processed_class_map = process_class_map(class_map)
-    if instances:
-        cc_per_class = {}
+    video_annotations = []
+    if mode == "instances":  # For each instance produce a video annotation
         for class_name, class_idxs in processed_class_map.items():
             if class_name == "background":
                 continue
             class_img = np.isin(img, class_idxs).astype(np.uint8)
-            cc_per_class[class_name] = cc3d.connected_components(class_img)
-            # print(cc3d.statistics(cc_per_class[class_name]))
-            print(np.max(cc_per_class[class_name]))
-        exit()
-    video_annotations = []
-    for i in range(shape[-1]):
-        slice_mask = img[:, :, i].astype(np.uint8)
+            cc_img, num_labels = cc3d.connected_components(class_img, return_N=True)
+            for instance_id in range(1, num_labels):
+                video_annotation = get_video_annotation(cc_img, class_idxs=[instance_id], class_name=class_name)
+                if video_annotation:
+                    video_annotations.append(video_annotation)
+    elif mode == "image":  # For each frame and each class produce a single frame video annotation
+        for i in range(shape[-1]):
+            slice_mask = img[:, :, i].astype(np.uint8)
+            for class_name, class_idxs in processed_class_map.items():
+                frame_annotations = {}
+                if class_name == "background":
+                    continue
+                class_mask = np.isin(slice_mask, class_idxs).astype(np.uint8).copy()
+                polygon = mask_to_polygon(mask=class_mask, class_name=class_name)
+                if polygon is None:
+                    continue
+                frame_annotations[i] = polygon
+                video_annotation = dt.make_video_annotation(
+                    frame_annotations,
+                    keyframes={i: True, i + 1: True},
+                    segments=[[i, i + 1]],
+                    interpolated=False,
+                    slot_names=["0"],
+                )
+                video_annotations.append(video_annotation)
+    elif mode == "video":  # For each class produce a single video annotation
         for class_name, class_idxs in processed_class_map.items():
-            frame_annotations = {}
             if class_name == "background":
                 continue
-            class_mask = np.isin(slice_mask, class_idxs).astype(np.uint8).copy()
-            _labels, external_paths, _internal_paths = find_contours(class_mask)
-            # annotations = []
-            if len(external_paths) > 1:
-                paths = []
-                for external_path in external_paths:
-                    # skip paths with less than 2 points
-                    if len(external_path) // 2 <= 2:
-                        continue
-                    path = [{"x": y, "y": x} for x, y in zip(external_path[0::2], external_path[1::2])]
-                    paths.append(path)
-                if len(paths) > 1:
-                    polygon = dt.make_complex_polygon(class_name, paths)
-                elif len(paths) == 1:
-                    polygon = dt.make_polygon(
-                        class_name,
-                        point_path=paths[0],
-                    )
-                else:
-                    continue
-            elif len(external_paths) == 1:
-                external_path = external_paths[0]
-                if len(external_path) < 6:
-                    continue
-                polygon = dt.make_polygon(
-                    class_name,
-                    point_path=[{"x": y, "y": x} for x, y in zip(external_path[0::2], external_path[1::2])],
-                )
-            else:
+            video_annotation = get_video_annotation(img, class_idxs=class_idxs, class_name=class_name)
+            if video_annotation is None:
                 continue
-            # annotations.append(polygon)
-            frame_annotations[i] = polygon
-            video_annotation = dt.make_video_annotation(
-                frame_annotations,
-                keyframes={i: True, i + 1: True},
-                segments=[[i, i + 1]],
-                interpolated=False,
-                slot_names=["0"],
-            )
             video_annotations.append(video_annotation)
-    # We want a single video annotation to be one connected instance
-    # of a class. We can gather all of the polygons and complex polygons together by class and by
-    # frame using a single data structure.
-    # OR compute connected components -> Create mapping between instance IDs and classes
-    # -> run same logic but get class_name from the instance ID/class mapping.
     annotation_classes = set(
         [dt.AnnotationClass(class_name, "polygon", "polygon") for class_name in class_map.values()]
     )
@@ -141,6 +116,68 @@ def parse_nifti(
         annotation_classes=annotation_classes,
         annotations=video_annotations,
     )
+
+
+def get_video_annotation(volume: np.ndarray, class_name: str, class_idxs: List[int]) -> Optional[dt.VideoAnnotation]:
+    frame_annotations = OrderedDict()
+    for i in range(volume.shape[-1]):
+        slice_mask = volume[:, :, i].astype(np.uint8)
+        class_mask = np.isin(slice_mask, class_idxs).astype(np.uint8).copy()
+        if class_mask.sum() == 0:
+            continue
+
+        polygon = mask_to_polygon(mask=class_mask, class_name=class_name)
+        if polygon is None:
+            continue
+        frame_annotations[i] = polygon
+    all_frame_ids = list(frame_annotations.keys())
+    if not all_frame_ids:
+        return None
+    if len(all_frame_ids) == 1:
+        segments = [[all_frame_ids[0], all_frame_ids[0] + 1]]
+    elif len(all_frame_ids) > 1:
+        segments = [[min(all_frame_ids), max(all_frame_ids)]]
+    video_annotation = dt.make_video_annotation(
+        frame_annotations,
+        keyframes={f_id: True for f_id in all_frame_ids},
+        segments=segments,
+        interpolated=False,
+        slot_names=["0"],
+    )
+    return video_annotation
+
+
+def mask_to_polygon(mask: np.ndarray, class_name: str) -> Optional[dt.Annotation]:
+    _labels, external_paths, _internal_paths = find_contours(mask)
+    # annotations = []
+    if len(external_paths) > 1:
+        paths = []
+        for external_path in external_paths:
+            # skip paths with less than 2 points
+            if len(external_path) // 2 <= 2:
+                continue
+            path = [{"x": y, "y": x} for x, y in zip(external_path[0::2], external_path[1::2])]
+            paths.append(path)
+        if len(paths) > 1:
+            polygon = dt.make_complex_polygon(class_name, paths)
+        elif len(paths) == 1:
+            polygon = dt.make_polygon(
+                class_name,
+                point_path=paths[0],
+            )
+        else:
+            return None
+    elif len(external_paths) == 1:
+        external_path = external_paths[0]
+        if len(external_path) < 6:
+            return None
+        polygon = dt.make_polygon(
+            class_name,
+            point_path=[{"x": y, "y": x} for x, y in zip(external_path[0::2], external_path[1::2])],
+        )
+    else:
+        return None
+    return polygon
 
 
 def process_class_map(class_map):
