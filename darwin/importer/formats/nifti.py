@@ -1,14 +1,25 @@
 import json
+import warnings
+import zipfile
+from collections import defaultdict
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Optional
+from typing import Dict, List, Optional, Sequence, Union
 
-import deprecation
-import nibabel as nib
+try:
+    import cc3d
+    import nibabel as nib
+except ImportError:
+    import_fail_string = """
+    You must install `darwin-py` with `pip install darwin-py[medical]`
+    in order to import with using nifti format
+    """
+    print(import_fail_string)
 import numpy as np
-from upolygon import find_contours, rle_decode
+from jsonschema import validate
+from upolygon import find_contours
 
 import darwin.datatypes as dt
-from darwin.path_utils import deconstruct_full_path
+from darwin.importer.formats.nifti_schemas import nifti_import_schema
 from darwin.version import __version__
 
 
@@ -28,30 +39,215 @@ def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
         Returns ``None`` if the given file is not in ``json`` format, or ``List[dt.AnnotationFile]``
         otherwise.
     """
-    if ".".join(path.suffixes) not in [".nii", ".nii.gz"]:
+    if not isinstance(path, Path):
+        path = Path(path)
+    if path.suffix != ".json":
         return None
-    nifti_image = nib.load(path)
-    return list(parse_nifti(nifti_image, path))
-
-
-def parse_nifti(img: nib.Nifti1Image, path: Path) -> Iterator[dt.AnnotationFile]:
-    shape = img.shape
+    with open(path, "r") as f:
+        data = json.load(f)
+        validate(data, schema=nifti_import_schema)
+    nifti_annotations = data.get("data")
+    if nifti_annotations is None:
+        return None
     annotation_files = []
-    for i in range(shape[0]):
-        slice_mask = img[i, :, :].astype(np.uint8)
-        _labels, external_paths, _internal_paths = find_contours(slice_mask)
-        annotations = []
-        for external_path in external_paths:
-            polygon = dt.make_polygon(
-                "test_class",
-                point_path=[
-                    {"x": x, "y": y}
-                    for x, y in zip(external_path[0::2], external_path[1::2])
-                ],
-            )
-            annotations.append(polygon)
-        annotation_file = dt.AnnotationFile(
-            path, "test_filename", ["test_class"], annotations, remote_path="test_path"
+    for nifti_annotation in nifti_annotations:
+        annotation_file = parse_nifti(
+            Path(nifti_annotation["label"]),
+            nifti_annotation["image"],
+            path,
+            class_map=nifti_annotation.get("class_map"),
+            instances=nifti_annotation.get("instances", False),
         )
         annotation_files.append(annotation_file)
+        break
     return annotation_files
+
+
+def parse_nifti(
+    nifti_path: Path, filename: Path, json_path: Path, class_map: Dict, instances: bool
+) -> dt.AnnotationFile:
+    img: np.ndarray = process_nifti(nib.load(nifti_path))
+
+    shape = img.shape
+    processed_class_map = process_class_map(class_map)
+    if instances:
+        cc_per_class = {}
+        for class_name, class_idxs in processed_class_map.items():
+            if class_name == "background":
+                continue
+            class_img = np.isin(img, class_idxs).astype(np.uint8)
+            cc_per_class[class_name] = cc3d.connected_components(class_img)
+            # print(cc3d.statistics(cc_per_class[class_name]))
+            print(np.max(cc_per_class[class_name]))
+        exit()
+    video_annotations = []
+    for i in range(shape[-1]):
+        slice_mask = img[:, :, i].astype(np.uint8)
+        for class_name, class_idxs in processed_class_map.items():
+            frame_annotations = {}
+            if class_name == "background":
+                continue
+            class_mask = np.isin(slice_mask, class_idxs).astype(np.uint8).copy()
+            _labels, external_paths, _internal_paths = find_contours(class_mask)
+            # annotations = []
+            if len(external_paths) > 1:
+                paths = []
+                for external_path in external_paths:
+                    # skip paths with less than 2 points
+                    if len(external_path) // 2 <= 2:
+                        continue
+                    path = [{"x": y, "y": x} for x, y in zip(external_path[0::2], external_path[1::2])]
+                    paths.append(path)
+                if len(paths) > 1:
+                    polygon = dt.make_complex_polygon(class_name, paths)
+                elif len(paths) == 1:
+                    polygon = dt.make_polygon(
+                        class_name,
+                        point_path=paths[0],
+                    )
+                else:
+                    continue
+            elif len(external_paths) == 1:
+                external_path = external_paths[0]
+                if len(external_path) < 6:
+                    continue
+                polygon = dt.make_polygon(
+                    class_name,
+                    point_path=[{"x": y, "y": x} for x, y in zip(external_path[0::2], external_path[1::2])],
+                )
+            else:
+                continue
+            # annotations.append(polygon)
+            frame_annotations[i] = polygon
+            video_annotation = dt.make_video_annotation(
+                frame_annotations,
+                keyframes={i: True, i + 1: True},
+                segments=[[i, i + 1]],
+                interpolated=False,
+                slot_names=["0"],
+            )
+            video_annotations.append(video_annotation)
+    # We want a single video annotation to be one connected instance
+    # of a class. We can gather all of the polygons and complex polygons together by class and by
+    # frame using a single data structure.
+    # OR compute connected components -> Create mapping between instance IDs and classes
+    # -> run same logic but get class_name from the instance ID/class mapping.
+    annotation_classes = set(
+        [dt.AnnotationClass(class_name, "polygon", "polygon") for class_name in class_map.values()]
+    )
+    return dt.AnnotationFile(
+        path=json_path,
+        filename=str(filename),
+        annotation_classes=annotation_classes,
+        annotations=video_annotations,
+    )
+
+
+def process_class_map(class_map):
+    """
+    This function takes a class_map and returns a dictionary with the class names as keys and
+    all the corresponding class indexes as values.
+    """
+    processed_class_map = defaultdict(list)
+    for key, value in class_map.items():
+        processed_class_map[value].append(int(key))
+    return processed_class_map
+
+
+def rectify_header_sform_qform(img_nii):
+    """
+    Look at the sform and qform of the nifti object and correct it if any
+    incompatibilities with pixel dimensions
+
+    Adapted from https://github.com/NifTK/NiftyNet/blob/v0.6.0/niftynet/io/misc_io.py
+
+    Args:
+        img_nii: nifti image object
+    """
+    d = img_nii.header["dim"][0]
+    pixdim = np.asarray(img_nii.header.get_zooms())[:d]
+    sform, qform = img_nii.get_sform(), img_nii.get_qform()
+    norm_sform = affine_to_spacing(sform, r=d)
+    norm_qform = affine_to_spacing(qform, r=d)
+    sform_mismatch = not np.allclose(norm_sform, pixdim)
+    qform_mismatch = not np.allclose(norm_qform, pixdim)
+
+    if img_nii.header["sform_code"] != 0:
+        if not sform_mismatch:
+            return img_nii
+        if not qform_mismatch:
+            img_nii.set_sform(img_nii.get_qform())
+            return img_nii
+    if img_nii.header["qform_code"] != 0:
+        if not qform_mismatch:
+            return img_nii
+        if not sform_mismatch:
+            img_nii.set_qform(img_nii.get_sform())
+            return img_nii
+
+    norm = affine_to_spacing(img_nii.affine, r=d)
+    warnings.warn(f"Modifying image pixdim from {pixdim} to {norm}")
+
+    img_nii.header.set_zooms(norm)
+    return img_nii
+
+
+def affine_to_spacing(affine: np.ndarray, r: int = 3, dtype=float, suppress_zeros: bool = True) -> np.ndarray:
+    """
+    Copied over from monai.data.utils - https://docs.monai.io/en/stable/_modules/monai/data/utils.html
+
+    Computing the current spacing from the affine matrix.
+
+    Args:
+        affine: a d x d affine matrix.
+        r: indexing based on the spatial rank, spacing is computed from `affine[:r, :r]`.
+        dtype: data type of the output.
+        suppress_zeros: whether to surpress the zeros with ones.
+
+    Returns:
+        an `r` dimensional vector of spacing.
+    """
+    # _affine, *_ = convert_to_dst_type(affine[:r, :r], dst=affine, dtype=dtype)
+    spacing = np.sqrt(np.sum(affine[:r, :r] * affine[:r, :r], axis=0))
+    if suppress_zeros:
+        spacing[spacing == 0] = 1.0
+    # pacing_, *_ = convert_to_dst_type(spacing, dst=affine, dtype=dtype)
+    return spacing
+
+
+def correct_nifti_header_if_necessary(img_nii):
+    """
+    Check nifti object header's format, update the header if needed.
+    In the updated image pixdim matches the affine.
+
+    Args:
+        img_nii: nifti image object
+    """
+    if img_nii.header.get("dim") is None:
+        return img_nii  # not nifti?
+    dim = img_nii.header["dim"][0]
+    if dim >= 5:
+        return img_nii  # do nothing for high-dimensional array
+    # check that affine matches zooms
+    pixdim = np.asarray(img_nii.header.get_zooms())[:dim]
+    norm_affine = affine_to_spacing(img_nii.affine, r=dim)
+    if np.allclose(pixdim, norm_affine):
+        return img_nii
+    if hasattr(img_nii, "get_sform"):
+        return rectify_header_sform_qform(img_nii)
+    return img_nii
+
+
+def process_nifti(input_data: Union[Sequence[nib.nifti1.Nifti1Image], nib.nifti1.Nifti1Image]):
+    """
+    Function which takes in a single nifti path or a list of nifti paths
+    and returns the pixel_array, affine and pixdim
+    """
+    if isinstance(input_data, nib.nifti1.Nifti1Image):
+        img = correct_nifti_header_if_necessary(input_data)
+        img = nib.funcs.as_closest_canonical(img)
+        axcodes = nib.orientations.aff2axcodes(img.affine)
+        # TODO: Future feature to pass custom ornt could go here.
+        ornt = [[0.0, -1.0], [1.0, -1.0], [1.0, -1.0]]
+        data_array = nib.orientations.apply_orientation(img.get_fdata(), ornt)
+        return data_array

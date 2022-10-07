@@ -120,7 +120,7 @@ def get_remote_files(dataset: "RemoteDataset", filenames: List[str]) -> Dict[str
         for remote_file in dataset.fetch_remote_files(
             {"types": "image,playback_video,video_frame", "filenames": ",".join(chunk)}
         ):
-            remote_files[remote_file.full_path] = remote_file.id
+            remote_files[remote_file.full_path.strip("/")] = remote_file.id
     return remote_files
 
 
