@@ -6,7 +6,7 @@ nifti_image_label_pair = {
         "image": {"type": "string"},
         "label": {"type": "string"},
         "class_map": class_map,
-        "mode": {"type": "string", "oneOf": ["image", "video", "instances"]},
+        "mode": {"type": "string", "enum": ["image", "video", "instances"]},
     },
     "required": ["image", "label", "class_map"],
     "additionalProperties": False,

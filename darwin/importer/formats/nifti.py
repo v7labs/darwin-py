@@ -57,15 +57,12 @@ def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
             path,
             class_map=nifti_annotation.get("class_map"),
             mode=nifti_annotation.get("mode", "image"),
-            slot_names=slot_names,
         )
         annotation_files.append(annotation_file)
     return annotation_files
 
 
-def _parse_nifti(
-    nifti_path: Path, filename: Path, json_path: Path, class_map: Dict, mode: str, slot_names: List[str]
-) -> dt.AnnotationFile:
+def _parse_nifti(nifti_path: Path, filename: Path, json_path: Path, class_map: Dict, mode: str) -> dt.AnnotationFile:
 
     img: np.ndarray = process_nifti(nib.load(nifti_path))
 
@@ -79,9 +76,7 @@ def _parse_nifti(
             class_img = np.isin(img, class_idxs).astype(np.uint8)
             cc_img, num_labels = cc3d.connected_components(class_img, return_N=True)
             for instance_id in range(1, num_labels):
-                video_annotation = get_video_annotation(
-                    cc_img, class_idxs=[instance_id], class_name=class_name, slot_names=slot_names
-                )
+                video_annotation = get_video_annotation(cc_img, class_idxs=[instance_id], class_name=class_name)
                 if video_annotation:
                     video_annotations.append(video_annotation)
     elif mode == "image":  # For each frame and each class produce a single frame video annotation
@@ -101,16 +96,14 @@ def _parse_nifti(
                     keyframes={i: True, i + 1: True},
                     segments=[[i, i + 1]],
                     interpolated=False,
-                    slot_names=slot_names,
+                    slot_names=[],
                 )
                 video_annotations.append(video_annotation)
     elif mode == "video":  # For each class produce a single video annotation
         for class_name, class_idxs in processed_class_map.items():
             if class_name == "background":
                 continue
-            video_annotation = get_video_annotation(
-                img, class_idxs=class_idxs, class_name=class_name, slot_names=slot_names
-            )
+            video_annotation = get_video_annotation(img, class_idxs=class_idxs, class_name=class_name)
             if video_annotation is None:
                 continue
             video_annotations.append(video_annotation)
@@ -125,9 +118,7 @@ def _parse_nifti(
     )
 
 
-def get_video_annotation(
-    volume: np.ndarray, class_name: str, class_idxs: List[int], slot_names: List[str]
-) -> Optional[dt.VideoAnnotation]:
+def get_video_annotation(volume: np.ndarray, class_name: str, class_idxs: List[int]) -> Optional[dt.VideoAnnotation]:
     frame_annotations = OrderedDict()
     for i in range(volume.shape[-1]):
         slice_mask = volume[:, :, i].astype(np.uint8)
@@ -151,7 +142,7 @@ def get_video_annotation(
         keyframes={f_id: True for f_id in all_frame_ids},
         segments=segments,
         interpolated=False,
-        slot_names=slot_names,
+        slot_names=[],
     )
     return video_annotation
 
@@ -253,11 +244,9 @@ def affine_to_spacing(affine: np.ndarray, r: int = 3, dtype=float, suppress_zero
     Returns:
         an `r` dimensional vector of spacing.
     """
-    # _affine, *_ = convert_to_dst_type(affine[:r, :r], dst=affine, dtype=dtype)
     spacing = np.sqrt(np.sum(affine[:r, :r] * affine[:r, :r], axis=0))
     if suppress_zeros:
         spacing[spacing == 0] = 1.0
-    # pacing_, *_ = convert_to_dst_type(spacing, dst=affine, dtype=dtype)
     return spacing
 
 
