@@ -533,7 +533,7 @@ class ObjectDetectionDataset(LocalDataset):
         if self.transform is not None:
             img_tensor, target = self.transform(img, target)
         else:
-            img_tensor = to_tensor(img)
+            img_tensor = TF.to_tensor(img)
 
         return img_tensor, target
 
@@ -711,6 +711,7 @@ class HFSemanticSegmentationDataset(SemanticSegmentationDataset):
 
 
 class HFObjectDetectionDataset(ObjectDetectionDataset):
+
     """
     Represents a LocalDataset used for training on object detection tasks with Huggingface.
 
@@ -725,6 +726,33 @@ class HFObjectDetectionDataset(ObjectDetectionDataset):
     transform : Optional[Callable], default: None
         torchvision transform function(s) to run on the dataset.
     """
+
+
+    def __getitem__(self, index: int) -> Dict:
+        """
+        See superclass for documentation.
+
+        Parameters
+        ----------
+        index : int
+            The index of the image.
+
+        Returns
+        -------
+        Dict
+            TODO update
+        """
+        img: PILImage.Image = self.get_image(index)
+        if self.transform is not None:
+            img_tensor = self.transform(img)
+        else:
+            img_tensor = TF.to_tensor(img)
+
+        target = self.get_target(index)
+
+        return img_tensor, target
+
+
 
     def get_target(self, index: int) -> Dict[str, Any]:
         """
@@ -776,16 +804,132 @@ class HFObjectDetectionDataset(ObjectDetectionDataset):
             label = self.classes.index(annotation["name"])
 
             ann = {
-                "image_id": 0,
-                "id": 0,
                 "area": area,
-                "bbox": [x, y, w, h],
-                "iscrowd": False,
-                "category_id": label,
+                "bbox": [x,y,w,h],
+                "iscrowd": 0,
+                "category_id": label
             }
-
             annotation_list.append(ann)
 
-        targets = {"image_id": -1, "annotations": annotation_list}
+        targets = {"annotations": annotation_list, "image_id": index}
 
         return targets
+
+
+    def _get_target(self, index: int) -> Dict[str, Tensor]:
+        """
+        Builds and returns the target dictionary for the item at the given index.
+        The returned dictionary has the following structure:
+
+        .. code-block:: python
+
+        [{'boxes': tensor([[0.4289, 0.9250, 0.6047, 0.1500]]),
+        'class_labels': tensor([0]),
+        'image_id': tensor([1]),
+        'area': tensor([318001.1250]),
+        'iscrowd': tensor([0]),
+        'orig_size': tensor([480, 640]),
+        'size': tensor([ 800, 1066])}]
+
+        Parameters
+        ----------
+        index : int
+            The actual index of the item in the ``Dataset``.
+
+        Returns
+        -------
+        Dict[str, Any]
+            The target.
+        """
+        target = self.parse_json(index)
+        annotations = target.pop("annotations")
+
+        targets = []
+        for annotation in annotations:
+            bbox = annotation["bounding_box"]
+
+            x = bbox["x"]
+            y = bbox["y"]
+            w = bbox["w"]
+            h = bbox["h"]
+
+            bbox = torch.tensor([x, y, w, h])
+            area = bbox[2] * bbox[3]
+            label = torch.tensor(self.classes.index(annotation["name"]))
+
+            ann = {"boxes": bbox, "area": area, "class_labels": label}
+
+            targets.append(ann)
+        # following https://pytorch.org/tutorials/intermediate/torchvision_tutorial.html
+
+        stacked_targets = {
+            "boxes": torch.stack([v["boxes"] for v in targets]),
+            "area": torch.stack([v["area"] for v in targets]),
+            "class_labels": torch.stack([v["class_labels"] for v in targets]),
+            "image_id": torch.tensor([index]),
+        }
+
+
+        stacked_targets["iscrowd"] = torch.zeros(len(annotations),)
+
+        return stacked_targets
+
+
+
+    def __get_target(self, index: int) -> Dict[str, Tensor]:
+        """
+        Builds and returns the target dictionary for the item at the given index.
+        The returned dictionary has the following structure:
+
+        .. code-block:: python
+
+            {
+                "boxes": Tensor,
+                "area": Tensor,
+                "labels": Tensor,
+                "image_id": Tensor,
+                "iscrowd": Tensor
+            }
+
+        Parameters
+        ----------
+        index : int
+            The actual index of the item in the ``Dataset``.
+
+        Returns
+        -------
+        Dict[str, Any]
+            The target.
+        """
+        target = self.parse_json(index)
+        annotations = target.pop("annotations")
+
+        targets = []
+        for annotation in annotations:
+            bbox = annotation["bounding_box"]
+
+            x = bbox["x"]
+            y = bbox["y"]
+            w = bbox["w"]
+            h = bbox["h"]
+
+            bbox = torch.tensor([x, y, w, h])
+            area = bbox[2] * bbox[3]
+            label = torch.tensor(self.classes.index(annotation["name"]))
+
+            ann = {"bbox": bbox, "area": area, "label": label}
+
+            targets.append(ann)
+        # following https://pytorch.org/tutorials/intermediate/torchvision_tutorial.html
+        stacked_targets = {
+            "boxes": torch.stack([v["bbox"] for v in targets]),
+            "area": torch.stack([v["area"] for v in targets]),
+            "class_labels": torch.stack([v["label"] for v in targets]),
+            "image_id": torch.tensor([index]),
+        }
+
+        stacked_targets["iscrowd"] = torch.zeros(len(annotations),)
+
+        return stacked_targets
+
+
