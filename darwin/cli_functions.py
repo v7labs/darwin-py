@@ -40,6 +40,7 @@ from darwin.exceptions import (
     NameTaken,
     NotFound,
     Unauthenticated,
+    UnrecognizableFileEncoding,
     UnsupportedExportFormat,
     UnsupportedFileType,
     ValidationError,
@@ -757,7 +758,8 @@ def dataset_import(
         _error(f"No dataset with name '{e.name}'")
     except IncompatibleOptions as e:
         _error(str(e))
-
+    except UnrecognizableFileEncoding as e:
+        _error(str(e))
 
 def list_files(
     dataset_slug: str,
@@ -839,8 +841,9 @@ def set_file_status(dataset_slug: str, status: str, files: List[str]) -> None:
     files: List[str]
         Names of the files we want to update.
     """
-    if status not in ["archived", "clear", "new", "restore-archived"]:
-        _error(f"Invalid status '{status}', available statuses: archived, clear, new, restore-archived")
+    available_statuses = ["archived", "clear", "new", "restore-archived", "complete"]
+    if status not in available_statuses:
+        _error(f"Invalid status '{status}', available statuses: {', '.join(available_statuses)}")
 
     client: Client = _load_client(dataset_identifier=dataset_slug)
     try:
@@ -854,8 +857,12 @@ def set_file_status(dataset_slug: str, status: str, files: List[str]) -> None:
             dataset.move_to_new(items)
         elif status == "restore-archived":
             dataset.restore_archived(items)
+        elif status == "complete":
+            dataset.complete(items)
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
+    except ValueError as e:
+        _error(e)
 
 
 def delete_files(dataset_slug: str, files: List[str], skip_user_confirmation: bool = False) -> None:

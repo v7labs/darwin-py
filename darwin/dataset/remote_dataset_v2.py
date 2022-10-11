@@ -111,6 +111,7 @@ class RemoteDatasetV2(RemoteDataset):
         *,
         blocking: bool = True,
         multi_threaded: bool = True,
+        max_workers: Optional[int] = None,
         fps: int = 0,
         as_frames: bool = False,
         files_to_exclude: Optional[List[PathLike]] = None,
@@ -131,6 +132,8 @@ class RemoteDatasetV2(RemoteDataset):
         multi_threaded : bool, default: True
             Uses multiprocessing to upload the dataset in parallel.
             If blocking is False this has no effect.
+        max_workers : int, default: None
+            Maximum number of workers to use for parallel upload.
         fps : int, default: 0
             When the uploading file is a video, specify its framerate.
         as_frames: bool, default: False
@@ -158,7 +161,6 @@ class RemoteDatasetV2(RemoteDataset):
             - If a path is specified when uploading a LocalFile object.
             - If there are no files to upload (because path is wrong or the exclude filter excludes everything).
         """
-
         if files_to_exclude is None:
             files_to_exclude = []
 
@@ -186,6 +188,7 @@ class RemoteDatasetV2(RemoteDataset):
         handler = UploadHandlerV2(self, uploading_files)
         if blocking:
             handler.upload(
+                max_workers=max_workers,
                 multi_threaded=multi_threaded,
                 progress_callback=progress_callback,
                 file_upload_callback=file_upload_callback,
@@ -282,20 +285,13 @@ class RemoteDatasetV2(RemoteDataset):
             The ``DatasetItem``\\s whose status will change.
         """
 
-        detailed_dataset = self.client.api_v2.get_dataset(self.dataset_id)
-        workflow_ids = detailed_dataset["workflow_ids"]
-        if len(workflow_ids) == 0:
-            raise ValueError("Dataset is not part of a workflow")
-        # currently we can only be part of one workflow
-        workflow_id = workflow_ids[0]
-        workflow = self.client.api_v2.get_workflow(workflow_id, team_slug=self.team)
-        dataset_stages = [stage for stage in workflow["stages"] if stage["type"] == "dataset"]
-        if not dataset_stages:
+        (workflow_id, stages) = self._fetch_stages("dataset")
+        if not stages:
             raise ValueError("Dataset's workflow is missing a dataset stage")
 
         self.client.api_v2.move_to_stage(
             {"item_ids": [item.id for item in items], "dataset_ids": [self.dataset_id]},
-            dataset_stages[0]["id"],
+            stages[0]["id"],
             workflow_id,
             team_slug=self.team,
         )
@@ -311,6 +307,26 @@ class RemoteDatasetV2(RemoteDataset):
             The ``DatasetItem``\\s to be resetted.
         """
         raise ValueError("Reset is deprecated for version 2 datasets")
+
+    def complete(self, items: Iterator[DatasetItem]) -> None:
+        """
+        Completes the given ``DatasetItem``\\s.
+
+        Parameters
+        ----------
+        items : Iterator[DatasetItem]
+            The ``DatasetItem``\\s to be completed.
+        """
+        (workflow_id, stages) = self._fetch_stages("complete")
+        if not stages:
+            raise ValueError("Dataset's workflow is missing a complete stage")
+
+        self.client.api_v2.move_to_stage(
+            {"item_ids": [item.id for item in items], "dataset_ids": [self.dataset_id]},
+            stages[0]["id"],
+            workflow_id,
+            team_slug=self.team,
+        )
 
     def delete_items(self, items: Iterator[DatasetItem]) -> None:
         """
@@ -348,9 +364,6 @@ class RemoteDatasetV2(RemoteDataset):
             If set, include annotator and reviewer metadata for each annotation.
 
         """
-        if annotation_class_ids is None:
-            annotation_class_ids = []
-
         self.client.api_v2.export_dataset(
             format="json",
             name=name,
@@ -423,3 +436,13 @@ class RemoteDatasetV2(RemoteDataset):
         """
 
         self.client.api_v2.import_annotation(item_id, payload=payload, team_slug=self.team)
+
+    def _fetch_stages(self, stage_type):
+        detailed_dataset = self.client.api_v2.get_dataset(self.dataset_id)
+        workflow_ids = detailed_dataset["workflow_ids"]
+        if len(workflow_ids) == 0:
+            raise ValueError("Dataset is not part of a workflow")
+        # currently we can only be part of one workflow
+        workflow_id = workflow_ids[0]
+        workflow = self.client.api_v2.get_workflow(workflow_id, team_slug=self.team)
+        return (workflow_id, [stage for stage in workflow["stages"] if stage["type"] == stage_type])

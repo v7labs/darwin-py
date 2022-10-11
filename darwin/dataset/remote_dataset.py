@@ -124,6 +124,7 @@ class RemoteDataset(ABC):
         *,
         blocking: bool = True,
         multi_threaded: bool = True,
+        max_workers: Optional[int] = None,
         fps: int = 0,
         as_frames: bool = False,
         files_to_exclude: Optional[List[PathLike]] = None,
@@ -375,6 +376,17 @@ class RemoteDataset(ABC):
         ----------
         items : Iterator[DatasetItem]
             The ``DatasetItem``\\s to be reset.
+        """
+
+    @abstractmethod
+    def complete(self, items: Iterator[DatasetItem]) -> None:
+        """
+        Completes the given ``DatasetItem``\\s.
+
+        Parameters
+        ----------
+        items : Iterator[DatasetItem]
+            The ``DatasetItem``\\s to be completed.
         """
 
     @abstractmethod
