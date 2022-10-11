@@ -313,7 +313,7 @@ def export_dataset(
     name: str,
     annotation_class_ids: Optional[List[str]] = None,
     include_authorship: bool = False,
-    legacy: bool = False,
+    version: Optional[str] = None,
 ) -> None:
     """
     Create a new release for the dataset.
@@ -330,9 +330,9 @@ def export_dataset(
         List of the classes to filter.
     include_authorship : bool, default: False
         If ``True`` include annotator and reviewer metadata for each annotation.
-    legacy : bool, default: False
-        When used for V2 dataset, forces legacy format of Darwin JSON to be generated.
-        This behaviour is deprecated and will be removed in future.
+    version : Optional[str], default: None
+        When used for V2 dataset, allows to force generation of either Darwin JSON 1.0 (Legacy) or newer 2.0.
+        Ommit this option to get your team's default.
     """
     client: Client = _load_client(offline=False)
     identifier: DatasetIdentifier = DatasetIdentifier.parse(dataset_slug)
@@ -343,7 +343,7 @@ def export_dataset(
         name=name,
         include_url_token=include_url_token,
         include_authorship=include_authorship,
-        legacy=legacy,
+        version=version,
     )
 
     identifier.version = name
@@ -779,6 +779,7 @@ def dataset_import(
         _error(str(e))
     except UnrecognizableFileEncoding as e:
         _error(str(e))
+
 
 def list_files(
     dataset_slug: str,

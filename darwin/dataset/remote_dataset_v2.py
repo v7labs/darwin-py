@@ -359,7 +359,7 @@ class RemoteDatasetV2(RemoteDataset):
         annotation_class_ids: Optional[List[str]] = None,
         include_url_token: bool = False,
         include_authorship: bool = False,
-        legacy: bool = False,
+        version: Optional[str] = None,
     ) -> None:
         """
         Create a new release for this ``RemoteDataset``.
@@ -375,13 +375,17 @@ class RemoteDatasetV2(RemoteDataset):
             membership or not?
         include_authorship : bool, default: False
             If set, include annotator and reviewer metadata for each annotation.
-        legacy : bool, default: False
-            When used for V2 dataset, forces legacy format of Darwin JSON to be generated.
-            This behaviour is deprecated and will be removed in future.
+        version : Optional[str], default: None
+            When used for V2 dataset, allows to force generation of either Darwin JSON 1.0 (Legacy) or newer 2.0.
+            Omit this option to get your team's default.
         """
-        format = "darwin_json_2"
-        if legacy:
+
+        if version == "2.0":
+            format = "darwin_json_2"
+        elif version == "1.0":
             format = "json"
+        else:
+            format = None
 
         self.client.api_v2.export_dataset(
             format=format,

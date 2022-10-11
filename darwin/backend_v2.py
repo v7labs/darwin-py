@@ -151,12 +151,14 @@ class BackendV2:
     ):
         payload = {
             "filters": filters,
-            "format": format,
             "include_authorship": include_authorship,
             "include_export_token": include_token,
             "name": name,
             "annotation_filters": {},
         }
+        if format:
+            payload["format"] = format
+
         if annotation_class_ids:
             payload["annotation_filters"] = {"annotation_class_ids": annotation_class_ids}
 

@@ -135,15 +135,16 @@ class Options(object):
             "--include-url-token",
             default=False,
             action="store_true",
-            help="Each annotation file includes a url with an access token."
+            help="Each annotation file includes a url with an access token. "
             "Warning, anyone with the url can access the images, even without being a team member.",
         )
         parser_export.add_argument(
-            "--legacy",
-            default=False,
-            action="store_true",
-            help="When used for V2 dataset, forces legacy format of Darwin JSON to be generated."
-            "This behaviour is deprecated and will be removed in future.",
+            "--version",
+            default=None,
+            type=str,
+            choices=["1.0", "2.0"],
+            help="When used for V2 dataset, allows to force generation of either Darwin JSON 1.0 (Legacy) or newer 2.0. "
+            "Omit this option to get your team's default.",
         )
 
         # Releases
