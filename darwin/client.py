@@ -22,6 +22,7 @@ from darwin.exceptions import (
     MissingConfig,
     NameTaken,
     NotFound,
+    RequestEntitySizeExceeded,
     Unauthorized,
     ValidationError,
 )
@@ -1152,6 +1153,9 @@ class Client:
 
         if response.status_code == 404:
             raise NotFound(url)
+
+        if response.status_code == 413:
+            raise RequestEntitySizeExceeded(url)
 
         if has_json_content_type(response):
             body = response.json()

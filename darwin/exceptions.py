@@ -118,3 +118,8 @@ class OutdatedDarwinJSONFormat(Exception):
     """
     Used when one tries to parse a video with an old darwin format that is no longer compatible.
     """
+
+class RequestEntitySizeExceeded(Exception):
+    """
+    Used when a request fails due to the URL being too long.
+    """
