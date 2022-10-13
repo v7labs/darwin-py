@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterator, List, NoReturn, Optional, Set, Union
 
 import humanize
+import jsonschema
 from rich.console import Console
 from rich.live import Live
 from rich.progress import (
@@ -34,12 +35,14 @@ from darwin.dataset.upload_manager import LocalFile
 from darwin.dataset.utils import get_release_path
 from darwin.datatypes import ExportParser, ImportParser, PathLike, Team
 from darwin.exceptions import (
+    AnnotationFileValidationError,
     IncompatibleOptions,
     InvalidLogin,
     MissingConfig,
     NameTaken,
     NotFound,
     Unauthenticated,
+    UnknownAnnotationFileSchema,
     UnrecognizableFileEncoding,
     UnsupportedExportFormat,
     UnsupportedFileType,
@@ -778,6 +781,10 @@ def dataset_import(
     except IncompatibleOptions as e:
         _error(str(e))
     except UnrecognizableFileEncoding as e:
+        _error(str(e))
+    except UnknownAnnotationFileSchema as e:
+        _error(str(e))
+    except AnnotationFileValidationError as e:
         _error(str(e))
 
 

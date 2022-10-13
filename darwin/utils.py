@@ -20,14 +20,22 @@ from typing import (
 )
 
 import deprecation
+import jsonschema.exceptions
 import numpy as np
-from requests import Response
+import requests
+from jsonschema import exceptions, validate
+from requests import Response, request
 from rich.progress import ProgressType, track
 from upolygon import draw_polygon
 
 import darwin.datatypes as dt
 from darwin.config import Config
-from darwin.exceptions import OutdatedDarwinJSONFormat, UnsupportedFileType
+from darwin.exceptions import (
+    AnnotationFileValidationError,
+    OutdatedDarwinJSONFormat,
+    UnknownAnnotationFileSchema,
+    UnsupportedFileType,
+)
 from darwin.version import __version__
 
 if TYPE_CHECKING:
@@ -37,6 +45,8 @@ if TYPE_CHECKING:
 SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpeg", ".jpg", ".jfif", ".tif", ".tiff", ".bmp", ".svs", ".webp"]
 SUPPORTED_VIDEO_EXTENSIONS = [".avi", ".bpm", ".dcm", ".mov", ".mp4", ".pdf", ".ndpi"]
 SUPPORTED_EXTENSIONS = SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
+
+_darwin_schema_cache = {}
 
 
 def is_extension_allowed(extension: str) -> bool:
@@ -288,12 +298,39 @@ def parse_darwin_json(path: Path, count: Optional[int]) -> Optional[dt.Annotatio
     path = Path(path)
     with path.open() as f:
         data = json.load(f)
-        if "annotations" not in data:
-            return None
+        version = _parse_version(data)
+        schema_url = data.get("schema_ref") or _default_schema(version)
+        schema = None
+        if schema_url in _darwin_schema_cache:
+            schema = _darwin_schema_cache[schema_url]
+        elif schema_url:
+            response = requests.get(schema_url)
+            response.raise_for_status()
+            schema = response.json()
+            _darwin_schema_cache[schema_url] = schema
 
-        if _parse_version(data).major == 2:
+        if version.major == 2:
+            if schema is None:
+                supported_versions = list(
+                    map(
+                        lambda version_tuple: dt.AnnotationFileVersion(
+                            version_tuple[0], version_tuple[1], version_tuple[2]
+                        ),
+                        _supported_schema_versions().keys(),
+                    )
+                )
+                raise UnknownAnnotationFileSchema(path, supported_versions, version)
+
+            try:
+                validate(data, schema=schema)
+            except exceptions.ValidationError as e:
+                raise AnnotationFileValidationError(e, path)
+
             return _parse_darwin_v2(path, data)
         else:
+            if "annotations" not in data:
+                return None
+
             if "fps" in data["image"] or "frame_count" in data["image"]:
                 return _parse_darwin_video(path, data, count)
             else:
@@ -918,3 +955,11 @@ def _data_to_annotations(data: Dict[str, Any]) -> List[Union[dt.Annotation, dt.V
         filter(None, map(_parse_darwin_video_annotation, raw_video_annotations))
     )
     return [*image_annotations, *video_annotations]
+
+
+def _supported_schema_versions():
+    return {(2, 0, ""): "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json"}
+
+
+def _default_schema(version: dt.AnnotationFileVersion):
+    return _supported_schema_versions().get((version.major, version.minor, version.suffix))

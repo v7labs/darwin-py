@@ -1,4 +1,11 @@
+from cmath import exp
 from pathlib import Path
+from textwrap import dedent
+from typing import List
+
+from jsonschema.exceptions import ValidationError
+
+from darwin.datatypes import AnnotationFileVersion
 
 
 class IncompatibleOptions(Exception):
@@ -13,6 +20,7 @@ class UnrecognizableFileEncoding(Exception):
     """
     Used when a we try to decode a file and all decoding algorithms fail.
     """
+
 
 class Unauthenticated(Exception):
     """
@@ -119,7 +127,67 @@ class OutdatedDarwinJSONFormat(Exception):
     Used when one tries to parse a video with an old darwin format that is no longer compatible.
     """
 
+
 class RequestEntitySizeExceeded(Exception):
     """
     Used when a request fails due to the URL being too long.
     """
+
+
+class AnnotationFileValidationError(Exception):
+    """
+    Used to indicate error while validation JSON annotation files.
+    """
+
+    def __init__(self, parent_error: ValidationError, file_path: Path):
+        """
+        Parameters
+        ----------
+        parent_error: ValidationError
+            Error reported by `jsonschema`.
+        file_path: Path
+            Path to annotation file that failed to validate.
+        """
+        self.parent_error = parent_error
+        self.file_path = file_path
+
+    def __str__(self) -> str:
+        return f"Unable to verify annotation file: '{self.file_path}'\n\n{self.parent_error.__str__()}".rstrip()
+
+
+class UnknownAnnotationFileSchema(Exception):
+    """
+    Used to indicate error when inferring schema for JSON annotation file.
+    """
+
+    def __init__(
+        self, file_path: Path, supported_versions: List[AnnotationFileVersion], detected_version: AnnotationFileVersion
+    ):
+        """
+        Parameters
+        ----------
+        file_path: Path
+            Path to annotation file that failed to validate.
+
+        supported_versions: List[AnnotationFileVersion]
+            todo
+
+        detected_version: AnnotationFileVersion
+            todo
+        """
+        self.file_path = file_path
+        self.detected_version = detected_version
+        self.supported_versions = list(map(str, supported_versions))
+
+    def __str__(self) -> str:
+        return dedent(
+            f"""\
+            Unable to find JSON schema for annotation file: '{self.file_path}'
+
+            Given annotation file should have either:
+                * optional `schema_ref` field with URL to JSON schema
+                * `version` field set to one of supported natively versions: {self.supported_versions}
+
+            Detected annotation file version is: '{self.detected_version}'.
+            """
+        )

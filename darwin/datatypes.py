@@ -283,6 +283,9 @@ class AnnotationFileVersion:
     minor: int = 0
     suffix: str = ""
 
+    def __str__(self) -> str:
+        return f"{self.major}.{self.minor}{self.suffix}"
+
 
 @dataclass
 class AnnotationFile:
