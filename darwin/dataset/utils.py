@@ -159,9 +159,12 @@ def get_classes(
 
     classes_path = release_path / f"lists/classes_{annotation_type}.txt"
     classes = classes_path.read_text().splitlines()
+
     if remove_background and classes[0] == "__background__":
         classes = classes[1:]
+
     return classes
+
 
 
 def _f(x: Any) -> Any:

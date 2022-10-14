@@ -684,6 +684,13 @@ class HFSemanticSegmentationDataset(SemanticSegmentationDataset):
         be composed via torchvision.
     """
 
+    def __init__(
+        self, transform: Optional[Union[List[Callable], Callable]] = None, **kwargs
+    ):
+        super().__init__(transform=transform, **kwargs)
+        # to enable __background__ training when there is no background class
+        self.classes.insert(0, '__background__')
+
     def __getitem__(self, index: int) -> Tuple[Tensor, Dict[str, Any]]:
         """
         See superclass for documentation
@@ -718,8 +725,11 @@ class HFSemanticSegmentationDataset(SemanticSegmentationDataset):
             ]
         )
         img_tensor = transform(img)
+
         mask = torch.tensor(np.expand_dims(target["mask"], 0))
-        resized_mask = TF.resize(mask, size=(new_height, new_width))
+
+        resized_mask = TF.resize(mask, size=(new_height, new_width), interpolation=TF.InterpolationMode.NEAREST)
         target = TF.center_crop(resized_mask, output_size=(512, 512))
         target = torch.squeeze(target, 0).long()
+
         return {"pixel_values": img_tensor, "labels": target}
