@@ -461,13 +461,15 @@ def _parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotati
     # Darwin JSON 1.0 representation of complex polygons
     elif "complex_polygon" in annotation:
         bounding_box = annotation.get("bounding_box")
-        if "additional_paths" in annotation["complex_polygon"]:
-            paths = [annotation["complex_polygon"]["path"]] + annotation["complex_polygon"]["additional_paths"]
-            main_annotation = dt.make_complex_polygon(name, paths, bounding_box, slot_names=slot_names)
+        if isinstance(annotation["complex_polygon"]["path"][0], list):
+            paths = annotation["complex_polygon"]["path"]
         else:
-            main_annotation = dt.make_complex_polygon(
-                name, [annotation["complex_polygon"]["path"]], bounding_box, slot_names=slot_names
-            )
+            paths = [annotation["complex_polygon"]["path"]]
+
+        if "additional_paths" in annotation["complex_polygon"]:
+            paths.extend(annotation["complex_polygon"]["additional_paths"])
+
+        main_annotation = dt.make_complex_polygon(name, paths, bounding_box, slot_names=slot_names)
     elif "bounding_box" in annotation:
         bounding_box = annotation["bounding_box"]
         main_annotation = dt.make_bounding_box(
