@@ -445,12 +445,9 @@ def _parse_darwin_video(path: Path, data: Dict[str, Any], count: Optional[int]) 
         data["image"].get("seq", count),
         data["image"].get("frame_urls"),
         data["image"].get("path", "/"),
-<<<<<<< HEAD
         data["image"].get("metadata"),
-=======
         [],
         data["image"].get("thubmnail_url"),
->>>>>>> ann-363-add-to_json-to-darwin-py-datatypes
     )
     annotation_file.slots.append(slot)
 
@@ -547,17 +544,7 @@ def _parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotati
     if "reviewers" in annotation:
         main_annotation.reviewers = _parse_annotators(annotation["reviewers"])
 
-<<<<<<< HEAD
-    return dt.make_video_annotation(
-        frame_annotations,
-        keyframes,
-        annotation["segments"],
-        annotation["slot_names"],
-        annotation.get("interpolated", False),
-    )
-=======
     return main_annotation
->>>>>>> ann-363-add-to_json-to-darwin-py-datatypes
 
 
 def _parse_darwin_video_annotation(annotation: dict) -> Optional[dt.VideoAnnotation]:
