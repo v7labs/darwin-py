@@ -158,11 +158,9 @@ class LocalFile:
         self.data["path"] = args.get("path") or "/"
 
     def serialize(self):
-        print(self.data)
         return {"files": [{"file_name": self.data["filename"], "slot_name": "0"}], "name": self.data["filename"]}
 
     def serialize_v2(self):
-        print(self.data)
         return {
             "slots": [{"file_name": self.data["filename"], "slot_name": "0", "fps": self.data["fps"]}],
             "name": self.data["filename"],
