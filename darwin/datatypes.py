@@ -219,9 +219,7 @@ class VideoAnnotation:
     reviewers: Optional[List[AnnotationAuthor]] = None
 
     def get_data(
-        self,
-        only_keyframes: bool = True,
-        post_processing: Optional[Callable[[Annotation, Any], Any]] = None,
+        self, only_keyframes: bool = True, post_processing: Optional[Callable[[Annotation, Any], Any]] = None
     ) -> Dict[str, Any]:
         """
         Return the post-processed frames and the additional information from this
@@ -468,9 +466,7 @@ def make_bounding_box(
 
 
 def make_tag(
-    class_name: str,
-    subs: Optional[List[SubAnnotation]] = None,
-    slot_names: Optional[List[str]] = None,
+    class_name: str, subs: Optional[List[SubAnnotation]] = None, slot_names: Optional[List[str]] = None
 ) -> Annotation:
     """
     Creates and returns a tag annotation.
