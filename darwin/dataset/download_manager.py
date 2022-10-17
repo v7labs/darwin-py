@@ -201,7 +201,6 @@ def _download_image_from_json_annotation(
     parent_path.mkdir(exist_ok=True, parents=True)
 
     annotation.slots.sort(key=lambda slot: slot.name or "0")
-
     if len(annotation.slots) > 0:
         if force_slots:
             _download_all_slots_from_json_annotation(annotation, api_key, parent_path, video_frames)
