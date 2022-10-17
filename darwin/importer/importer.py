@@ -19,12 +19,15 @@ if TYPE_CHECKING:
 import darwin.datatypes as dt
 import deprecation
 from darwin.datatypes import PathLike
-from darwin.exceptions import IncompatibleOptions
+from darwin.exceptions import IncompatibleOptions, RequestEntitySizeExceeded
 from darwin.utils import secure_continue_request
 from darwin.version import __version__
 from rich.console import Console
 from rich.progress import track
 from rich.theme import Theme
+
+# Classes missing import support on backend side
+UNSUPPORTED_CLASSES = ["string", "graph"]
 
 DEPRECATION_MESSAGE = """
 
@@ -52,6 +55,9 @@ def build_main_annotations_lookup_table(annotation_classes: List[Dict[str, Any]]
         "polygon",
         "skeleton",
         "tag",
+        "string",
+        "table",
+        "graph",
     ]
     lookup: Dict[str, Any] = {}
     for cls in annotation_classes:
@@ -114,13 +120,13 @@ def build_attribute_lookup(dataset: "RemoteDataset") -> Dict[str, Any]:
     current_version=__version__,
     details=DEPRECATION_MESSAGE,
 )
-def get_remote_files(dataset: "RemoteDataset", filenames: List[str]) -> Dict[str, int]:
-    """Fetches remote files from the datasets, in chunks of 100 filenames at a time"""
+def get_remote_files(dataset: "RemoteDataset", filenames: List[str], chunk_size: int() = 100) -> Dict[str, int]:
+    """Fetches remote files from the datasets in chunks; by default 100 filenames at a time"""
     remote_files = {}
-    for i in range(0, len(filenames), 100):
-        chunk = filenames[i : i + 100]
+    for i in range(0, len(filenames), chunk_size):
+        chunk = filenames[i : i + chunk_size]
         for remote_file in dataset.fetch_remote_files(
-            {"types": "image,playback_video,video_frame", "filenames": ",".join(chunk)}
+            {"types": "image,playback_video,video_frame", "filenames": chunk}
         ):
             remote_files[remote_file.full_path.strip("/")] = remote_file.id
     return remote_files
@@ -192,6 +198,7 @@ def import_annotations(
         - If ``file_paths`` is not a list.
         - If the application is unable to fetch any remote classes.
         - If the application was unable to find/parse any annotation files.
+        - If the application was unable to fetch remote file list.
 
     IncompatibleOptions
 
@@ -239,7 +246,20 @@ def import_annotations(
     console.print("Fetching remote file list...", style="info")
     # This call will only filter by filename; so can return a superset of matched files across different paths
     # There is logic in this function to then include paths to narrow down to the single correct matching file
-    remote_files = get_remote_files(dataset, filenames)
+    remote_files = []
+
+    # Try to fetch files in large chunks; in case the filenames are too large and exceed the url size
+    # retry in smaller chunks
+    chunk_size = 100
+    while chunk_size > 0:
+        try:
+            remote_files = get_remote_files(dataset, filenames, chunk_size)
+            break
+        except RequestEntitySizeExceeded as e:
+            chunk_size -= 8
+            if chunk_size <= 0:
+                raise ValueError("Unable to fetch remote file list.")
+
     for parsed_file in parsed_files:
         if parsed_file.full_path not in remote_files:
             local_files_missing_remotely.append(parsed_file)
@@ -342,6 +362,7 @@ def import_annotations(
 
         files_to_track = [file for file in parsed_files if file not in files_to_not_track]
         if files_to_track:
+            _warn_unsupported_annotations(files_to_track)
             for parsed_file in track(files_to_track):
                 image_id = remote_files[parsed_file.full_path]
                 _import_annotations(
@@ -354,6 +375,21 @@ def import_annotations(
                     append,
                     delete_for_empty,
                 )
+
+
+def _warn_unsupported_annotations(parsed_files):
+    console = Console(theme=_console_theme())
+    for parsed_file in parsed_files:
+        skipped_annotations = []
+        for annotation in parsed_file.annotations:
+            if annotation.annotation_class.annotation_type in UNSUPPORTED_CLASSES:
+                skipped_annotations.append(annotation)
+        if len(skipped_annotations) > 0:
+            types = set(map(lambda c: c.annotation_class.annotation_type, skipped_annotations))
+            console.print(
+                f"Import of annotation class types '{', '.join(types)}' is not yet supported. Skipping {len(skipped_annotations)} annotations from '{parsed_file.full_path}'.\n",
+                style="warning",
+            )
 
 
 def _is_skeleton_class(the_class: dt.AnnotationClass) -> bool:

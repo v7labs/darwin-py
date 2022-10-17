@@ -1,13 +1,15 @@
+import json
 from dataclasses import dataclass, field
+from email.policy import default
 from pathlib import Path
 from typing import (
     Any,
     Callable,
     Dict,
-    Iterable,
     Iterator,
     List,
     Optional,
+    Sequence,
     Set,
     Tuple,
     Union,
@@ -87,6 +89,22 @@ class AnnotationClass:
     #: name, but then are known inside V7's lingo by another.
     annotation_internal_type: Optional[str] = None
 
+    def to_json(self) -> str:
+        """
+        Returns a JSON representation of this ``AnnotationClass``.
+
+        Returns
+        -------
+        Dict[str, Any]
+            A json object of this ``AnnotationClass``.
+        """
+        output_dict = {
+            "name": self.name,
+            "annotation_type": self.annotation_type,
+            "annotation_internal_type": self.annotation_internal_type,
+        }
+        return json.dumps(output_dict, indent=4, sort_keys=True, default=str)
+
 
 @dataclass(frozen=True, eq=True)
 class SubAnnotation:
@@ -101,8 +119,32 @@ class SubAnnotation:
     #: Used for compatibility purposes with external formats.
     data: Any
 
+    def to_json(self) -> str:
+        return json.dumps(
+            {
+                "type": self.annotation_type,
+                "data": self.data,
+            },
+            indent=4,
+            sort_keys=True,
+            default=str,
+        )
+
 
 @dataclass(frozen=True, eq=True)
+class AnnotationAuthor:
+    """
+    Represents an annotation's author
+    """
+
+    #: Name of the author
+    name: str
+
+    #: Email of the author
+    email: str
+
+
+@dataclass(frozen=False, eq=True)
 class Annotation:
     """
     Represents an Annotation from an Image/Video.
@@ -120,6 +162,12 @@ class Annotation:
 
     #: V2 slots this annotation belogs to
     slot_names: List[str] = field(default_factory=list)
+
+    #: Authorship of the annotation (annotators)
+    annotators: Optional[List[AnnotationAuthor]] = None
+
+    #: Authorship of the annotation (reviewers)
+    reviewers: Optional[List[AnnotationAuthor]] = None
 
     def get_sub(self, annotation_type: str) -> Optional[SubAnnotation]:
         """
@@ -140,8 +188,25 @@ class Annotation:
                 return sub
         return None
 
+    def to_json(self) -> str:
+        """
+        Returns a JSON string representation of this Annotation.
+        """
+        return json.dumps(
+            {
+                "annotation_class": self.annotation_class.name,
+                "annotation_type": self.annotation_class.annotation_type,
+                "data": self.data,
+                "subs": [sub.to_json() for sub in self.subs],
+                "slot_names": self.slot_names,
+            },
+            indent=4,
+            sort_keys=True,
+            default=str,
+        )
 
-@dataclass(frozen=True, eq=True)
+
+@dataclass(frozen=False, eq=True)
 class VideoAnnotation:
     """
     Represents an Annotation that belongs to a Video.
@@ -165,6 +230,12 @@ class VideoAnnotation:
 
     #: V2 slots this annotation belogs to
     slot_names: List[str] = field(default_factory=list)
+
+    #: Authorship of the annotation (annotators)
+    annotators: Optional[List[AnnotationAuthor]] = None
+
+    #: Authorship of the annotation (reviewers)
+    reviewers: Optional[List[AnnotationAuthor]] = None
 
     def get_data(
         self, only_keyframes: bool = True, post_processing: Optional[Callable[[Annotation, Any], Any]] = None
@@ -219,6 +290,67 @@ class VideoAnnotation:
             "interpolated": self.interpolated,
         }
 
+    def to_json(self, only_keyframes: bool = True, post_processing: Optional[Callable] = None) -> str:
+        """
+        Returns a JSON string of this VideoAnnotation.
+
+        Returns
+        -------
+        str
+        """
+        data = self.get_data(only_keyframes=only_keyframes, post_processing=post_processing)
+        output_dict = {
+            "annotation_class": self.annotation_class.name,
+            "annotation_type": self.annotation_class.annotation_type,
+            "frames": data["frames"],
+            "keyframes": self.keyframes,
+            "segments": self.segments,
+            "interpolated": self.interpolated,
+            "slot_names": self.slot_names,
+        }
+        return json.dumps(output_dict, indent=4, sort_keys=True, default=str)
+
+
+@dataclass
+class Slot:
+    #: Unique slot name in the item. Will be `None` when loading V1 exports.
+    name: Optional[str]
+
+    #: Type of slot, e.g. image or dicom
+    type: str
+
+    #: Original upload information for the slot
+    source_files: List[Dict[str, str]]
+
+    #: Thumbnail url to the file
+    thubmnail_url: Optional[str] = None
+
+    #: Width in pixel
+    width: Optional[int] = None
+
+    #: Height in pixels
+    height: Optional[int] = None
+
+    #: How many sections (eg. frames) does this slot have
+    frame_count: Optional[int] = None
+
+    #: A url for each of the existing sections.
+    frame_urls: Optional[List[str]] = None
+
+    #: Frames per second
+    fps: Optional[float] = None
+
+
+@dataclass
+class AnnotationFileVersion:
+    """
+    Version of the AnnotationFile
+    """
+
+    major: int = 1
+    minor: int = 0
+    suffix: str = ""
+
 
 @dataclass
 class AnnotationFile:
@@ -239,17 +371,21 @@ class AnnotationFile:
     annotation_classes: Set[AnnotationClass]
 
     #: List of ``VideoAnnotation``\s or ``Annotation``\s.
-    annotations: Union[List[VideoAnnotation], List[Annotation]]
+    annotations: Sequence[Union[Annotation, VideoAnnotation]]
 
+    # Deprecated
     #: Whether the annotations in the ``annotations`` attribute are ``VideoAnnotation`` or not.
     is_video: bool = False
 
+    # Deprecated
     #: Width of the image in this annotation.
     image_width: Optional[int] = None
 
+    # Deprecated
     #: Height of the image in this annotation.
     image_height: Optional[int] = None
 
+    # Deprecated
     #: URL of the image in this annotation.
     image_url: Optional[str] = None
 
@@ -259,6 +395,7 @@ class AnnotationFile:
     #: Sequence for this annotation.
     seq: Optional[int] = None
 
+    # Deprecated
     #: URLs for the frames this ``AnnotationFile`` has.
     frame_urls: Optional[List[str]] = None
 
@@ -266,6 +403,15 @@ class AnnotationFile:
     remote_path: Optional[str] = None
 
     metadata: Optional[Dict] = None
+    slots: List[Slot] = field(default_factory=list)
+
+    # Deprecated
+    #: URL of the image's thumbnail in this annotation.
+    image_thumbnail_url: Optional[str] = None
+
+    # Version of the file in format (MAJOR, MINOR, SUFFIX)
+    # e.g. (1, 0, 'a')
+    version: AnnotationFileVersion = field(default_factory=AnnotationFileVersion)
 
     @property
     def full_path(self) -> str:
@@ -278,6 +424,34 @@ class AnnotationFile:
             The absolute path of the file.
         """
         return construct_full_path(self.remote_path, self.filename)
+
+    def to_json(self) -> str:
+        """
+        Returns a json string of this ``AnnotationFile``.
+
+        Returns
+        -------
+        str  A json string of this ``AnnotationFile``.
+        """
+        return json.dumps(
+            {
+                "path": self.path,
+                "filename": self.filename,
+                "annotation_classes": [ac.to_json() for ac in self.annotation_classes],
+                "annotations": [a.to_json() for a in self.annotations],
+                "is_video": self.is_video,
+                "image_width": self.image_width,
+                "image_height": self.image_height,
+                "image_url": self.image_url,
+                "workview_url": self.workview_url,
+                "seq": self.seq,
+                "frame_urls": self.frame_urls,
+                "remote_path": self.remote_path,
+            },
+            indent=4,
+            sort_keys=True,
+            default=str,
+        )
 
 
 def make_bounding_box(
@@ -339,7 +513,7 @@ def make_tag(
     Annotation
         A tag ``Annotation``.
     """
-    return Annotation(AnnotationClass(class_name, "tag"), {}, subs or [], slot_names=slot_names)
+    return Annotation(AnnotationClass(class_name, "tag"), {}, subs or [], slot_names=slot_names or [])
 
 
 def make_polygon(
@@ -462,7 +636,9 @@ def make_keypoint(
     Annotation
         A point ``Annotation``.
     """
-    return Annotation(AnnotationClass(class_name, "keypoint"), {"x": x, "y": y}, subs or [], slot_names=slot_names)
+    return Annotation(
+        AnnotationClass(class_name, "keypoint"), {"x": x, "y": y}, subs or [], slot_names=slot_names or []
+    )
 
 
 def make_line(
@@ -496,7 +672,7 @@ def make_line(
     Annotation
         A line ``Annotation``.
     """
-    return Annotation(AnnotationClass(class_name, "line"), {"path": path}, subs or [], slot_names=slot_names)
+    return Annotation(AnnotationClass(class_name, "line"), {"path": path}, subs or [], slot_names=slot_names or [])
 
 
 def make_skeleton(
@@ -532,7 +708,9 @@ def make_skeleton(
     Annotation
         A skeleton ``Annotation``.
     """
-    return Annotation(AnnotationClass(class_name, "skeleton"), {"nodes": nodes}, subs or [], slot_names=slot_names)
+    return Annotation(
+        AnnotationClass(class_name, "skeleton"), {"nodes": nodes}, subs or [], slot_names=slot_names or []
+    )
 
 
 def make_ellipse(
@@ -580,7 +758,7 @@ def make_ellipse(
     Annotation
         An ellipse ``Annotation``.
     """
-    return Annotation(AnnotationClass(class_name, "ellipse"), parameters, subs or [], slot_names=slot_names)
+    return Annotation(AnnotationClass(class_name, "ellipse"), parameters, subs or [], slot_names=slot_names or [])
 
 
 def make_cuboid(
@@ -620,7 +798,160 @@ def make_cuboid(
     Annotation
         A cuboid ``Annotation``.
     """
-    return Annotation(AnnotationClass(class_name, "cuboid"), cuboid, subs or [], slot_names=slot_names)
+    return Annotation(AnnotationClass(class_name, "cuboid"), cuboid, subs or [], slot_names=slot_names or [])
+
+
+def make_table(
+    class_name: str,
+    bounding_box: BoundingBox,
+    cells: List[Dict[str, Any]],
+    subs: Optional[List[SubAnnotation]] = None,
+    slot_names: Optional[List[str]] = None,
+) -> Annotation:
+    """
+    Creates and returns a table annotation.
+
+    Parameters
+    ----------
+    class_name : str
+        The name of the class for this ``Annotation``.
+
+    bounding_box : BoundingBox
+        Bounding box that wraps around the table.
+
+    cells : List[Dict[str, Any]]
+        Actual cells of the table. Their format should be similar to:
+
+            .. code-block:: javascript
+
+                [
+                    {
+                        "bounding_box": {
+                            "h": 189.56,
+                            "w": 416.37,
+                            "x": 807.58,
+                            "y": 1058.04
+                        },
+                        "col": 1,
+                        "col_span": 1,
+                        "id": "778691a6-0df6-4140-add9-f39806d950e9",
+                        "is_header": false,
+                        "row": 1,
+                        "row_span": 1
+                    }
+                ]
+
+    subs : Optional[List[SubAnnotation]], default: None
+        List of ``SubAnnotation``\\s for this ``Annotation``.
+
+    Returns
+    -------
+    Annotation
+        A table ``Annotation``.
+    """
+    return Annotation(
+        AnnotationClass(class_name, "table"),
+        {"bounding_box": bounding_box, "cells": cells},
+        subs or [],
+        slot_names=slot_names or [],
+    )
+
+
+def make_string(
+    class_name: str,
+    sources: List[Dict[str, Any]],
+    subs: Optional[List[SubAnnotation]] = None,
+    slot_names: Optional[List[str]] = None,
+) -> Annotation:
+    """
+    Creates and returns a string annotation.
+
+    Parameters
+    ----------
+    class_name : str
+        The name of the class for this ``Annotation``.
+    data : Any
+        The data needed to build a ``String``. This data must be a list with a format similar
+        to:
+
+        .. code-block:: javascript
+
+            [
+                {
+                    "id": "8cd598b5-0363-4984-9ae9-b15ccb77784a",
+                    "ranges": [1, 2, 5]
+                },
+                {
+                    "id": "6d6378d8-fd02-4518-8a21-6d94f0f32bbc",
+                    "ranges": null
+                }
+            ]
+
+    subs : Optional[List[SubAnnotation]], default: None
+        List of ``SubAnnotation``\\s for this ``Annotation``.
+
+    Returns
+    -------
+    Annotation
+        A string ``Annotation``.
+    """
+    return Annotation(
+        AnnotationClass(class_name, "string"), {"sources": sources}, subs or [], slot_names=slot_names or []
+    )
+
+
+def make_graph(
+    class_name: str,
+    nodes: List[Dict[str, str]],
+    edges: List[Dict[str, str]],
+    subs: Optional[List[SubAnnotation]] = None,
+    slot_names: Optional[List[str]] = None,
+) -> Annotation:
+    """
+    Creates and returns a graph annotation.
+
+    Parameters
+    ----------
+    class_name : str
+        The name of the class for this ``Annotation``.
+
+    nodes : List[Dict[str, str]]
+        Nodes of the graph. Should be in following format:
+            .. code-block:: javascript
+
+                [
+                    {
+                        "id": "91bb3c24-883a-433b-ae95-a6ee7845bea5",
+                        "name": "key"
+                    },
+                    {
+                        "id": "5a0ceba1-2e26-425e-8579-e6013ca415c5",
+                        "name": "value"
+                    }
+                ]
+
+    edges: List[Dict[str, str]]
+        Edges of the graph. Should be in following format:
+            .. code-block:: javascript
+
+                [
+                    {
+                        "end": "value",
+                        "start": "key"
+                    }
+                ]
+
+    subs : Optional[List[SubAnnotation]], default: None
+        List of ``SubAnnotation``\\s for this ``Annotation``.
+
+    Returns
+    -------
+    Annotation
+        A graph ``Annotation``.
+    """
+    return Annotation(
+        AnnotationClass(class_name, "graph"), {"nodes": nodes, "edges": edges}, subs or [], slot_names=slot_names or []
+    )
 
 
 def make_instance_id(value: int) -> SubAnnotation:
@@ -675,6 +1006,26 @@ def make_text(text: str) -> SubAnnotation:
     return SubAnnotation("text", text)
 
 
+def make_opaque_sub(type: str, data: Any) -> SubAnnotation:
+    """
+    Creates and returns a opaque sub-annotation.
+
+    Parameters
+    ----------
+    type : str
+        Type of this sub-annotation
+
+    data : Any
+        Data for this sub-annotation.
+
+    Returns
+    -------
+    SubAnnotation
+        A text ``SubAnnotation``.
+    """
+    return SubAnnotation(type, data)
+
+
 KeyFrame = Dict[str, Union[int, Annotation]]
 
 
@@ -702,7 +1053,7 @@ def make_video_annotation(
     keyframes: Dict[int, bool],
     segments: List[Segment],
     interpolated: bool,
-    slot_names: Optional[List[str]] = None,
+    slot_names: List[str],
 ) -> VideoAnnotation:
     """
     Creates and returns a ``VideoAnnotation``.
@@ -735,7 +1086,7 @@ def make_video_annotation(
         raise ValueError("invalid argument to make_video_annotation")
 
     return VideoAnnotation(
-        first_annotation.annotation_class, frames, keyframes, segments, interpolated, slot_names=slot_names
+        first_annotation.annotation_class, frames, keyframes, segments, interpolated, slot_names=slot_names or []
     )
 
 

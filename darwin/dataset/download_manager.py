@@ -12,10 +12,12 @@ from typing import Any, Callable, Iterator, Tuple
 import deprecation
 import requests
 from darwin.dataset.utils import sanitize_filename
+from darwin.datatypes import AnnotationFile
 from darwin.utils import (
     get_response_content,
     has_json_content_type,
     is_image_extension_allowed,
+    parse_darwin_json,
 )
 from darwin.version import __version__
 from rich.console import Console
@@ -37,6 +39,7 @@ def download_all_images_from_annotations(
     annotation_format: str = "json",
     use_folders: bool = False,
     video_frames: bool = False,
+    force_slots: bool = False,
 ) -> Tuple[Callable[[], Iterator[Any]], int]:
     """
     Downloads the all images corresponding to a project.
@@ -61,6 +64,8 @@ def download_all_images_from_annotations(
         Recreate folders
     video_frames : bool, default: False
         Pulls video frames images instead of video files
+    force_slots: bool
+        Pulls all slots of items into deeper file structure ({prefix}/{item_name}/{slot_name}/{file_name})
 
     Returns
     -------
@@ -84,17 +89,23 @@ def download_all_images_from_annotations(
 
     annotations_to_download_path = []
     for annotation_path in annotations_path.glob(f"*.{annotation_format}"):
-        with annotation_path.open() as file:
-            annotation = json.load(file)
+        annotation = parse_darwin_json(annotation_path, count=0)
+        if annotation is None:
+            continue
+
         if not force_replace:
-            # Check collisions on image filename, original_filename and json filename on the system
-            if sanitize_filename(Path(annotation["image"]["filename"]).stem) in existing_images:
-                continue
-            if sanitize_filename(Path(annotation["image"]["original_filename"]).stem) in existing_images:
+            # Check collisions on image filename and json filename on the system
+            if annotation.filename in existing_images:
                 continue
             if sanitize_filename(annotation_path.stem) in existing_images:
                 continue
         annotations_to_download_path.append(annotation_path)
+        if len(annotation.slots) > 1:
+            force_slots = True
+
+        for slot in annotation.slots:
+            if len(slot.source_files) > 1:
+                force_slots = True
 
     if remove_extra:
         # Removes existing images for which there is not corresponding annotation
@@ -115,6 +126,7 @@ def download_all_images_from_annotations(
             annotation_format,
             use_folders,
             video_frames,
+            force_slots,
         )
         for annotation_path in annotations_to_download_path
     )
@@ -135,6 +147,7 @@ def download_image_from_annotation(
     annotation_format: str,
     use_folders: bool,
     video_frames: bool,
+    force_slots: bool,
 ) -> None:
     """
     Dispatches functions to download an image given an annotation.
@@ -155,6 +168,8 @@ def download_image_from_annotation(
         Recreate folder structure
     video_frames : bool
         Pulls video frames images instead of video files
+    force_slots: bool
+        Pulls all slots of items into deeper file structure ({prefix}/{item_name}/{slot_name}/{file_name})
 
     Raises
     ------
@@ -165,33 +180,85 @@ def download_image_from_annotation(
     console = Console()
 
     if annotation_format == "json":
-        _download_image_from_json_annotation(api_key, annotation_path, images_path, use_folders, video_frames)
+        _download_image_from_json_annotation(
+            api_key, annotation_path, images_path, use_folders, video_frames, force_slots
+        )
     else:
         console.print("[bold red]Unsupported file format. Please use 'json'.")
         raise NotImplementedError
 
 
 def _download_image_from_json_annotation(
-    api_key: str, annotation_path: Path, image_path: Path, use_folders: bool, video_frames: bool
+    api_key: str, annotation_path: Path, image_path: Path, use_folders: bool, video_frames: bool, force_slots: bool
 ) -> None:
-    with annotation_path.open() as file:
-        annotation = json.load(file)
+    annotation = parse_darwin_json(annotation_path, count=0)
+    if annotation is None:
+        return None
 
     # If we are using folders, extract the path for the image and create the folder if needed
-    sub_path = annotation["image"].get("path", "/") if use_folders else "/"
+    sub_path = annotation.remote_path if use_folders else Path("/")
     parent_path = Path(image_path) / Path(sub_path).relative_to(Path(sub_path).anchor)
     parent_path.mkdir(exist_ok=True, parents=True)
 
-    if video_frames and "frame_urls" in annotation["image"]:
+    annotation.slots.sort(key=lambda slot: slot.name or "0")
+    if len(annotation.slots) > 0:
+        if force_slots:
+            _download_all_slots_from_json_annotation(annotation, api_key, parent_path, video_frames)
+        else:
+            _download_single_slot_from_json_annotation(annotation, api_key, parent_path, annotation_path, video_frames)
+
+
+def _download_all_slots_from_json_annotation(annotation, api_key, parent_path, video_frames):
+    for slot in annotation.slots:
+        slot_path = parent_path / sanitize_filename(annotation.filename) / sanitize_filename(slot.name)
+        slot_path.mkdir(exist_ok=True, parents=True)
+
+        if video_frames and slot.type != "image":
+            video_path: Path = slot_path / "sections"
+            video_path.mkdir(exist_ok=True, parents=True)
+            for i, frame_url in enumerate(slot.frame_urls or []):
+                path = video_path / f"{i:07d}.png"
+                _download_image(frame_url, path, api_key)
+        else:
+            for upload in slot.source_files:
+                file_path = slot_path / sanitize_filename(upload["file_name"])
+                _download_image(upload["url"], file_path, api_key)
+                _update_local_path(annotation, upload["url"], file_path)
+
+
+def _download_single_slot_from_json_annotation(annotation, api_key, parent_path, annotation_path, video_frames):
+    slot = annotation.slots[0]
+
+    if video_frames and slot.type != "image":
         video_path: Path = parent_path / annotation_path.stem
         video_path.mkdir(exist_ok=True, parents=True)
-        for i, frame_url in enumerate(annotation["image"]["frame_urls"]):
+        for i, frame_url in enumerate(slot.frame_urls or []):
             path = video_path / f"{i:07d}.png"
             _download_image(frame_url, path, api_key)
     else:
-        image_url = annotation["image"]["url"]
-        image_path = parent_path / sanitize_filename(annotation["image"]["filename"])
-        _download_image(image_url, image_path, api_key)
+        if len(slot.source_files) > 0:
+            image_url = slot.source_files[0]["url"]
+            image_path = parent_path / sanitize_filename(slot.filename or annotation.filename)
+            _download_image(image_url, image_path, api_key)
+            _update_local_path(annotation, image_url, image_path)
+
+
+def _update_local_path(annotation: AnnotationFile, url, local_path):
+
+    if annotation.version.major == 1:
+        return
+
+    # we modify raw json, as internal representation does't store all the data
+    with annotation.path.open() as file:
+        raw_annotation = json.load(file)
+
+        for slot in raw_annotation["item"]["slots"]:
+            for source_file in slot["source_files"]:
+                if source_file["url"] == url:
+                    source_file["local_path"] = str(local_path)
+
+    with annotation.path.open(mode="w") as file:
+        json.dump(raw_annotation, file, indent=4)
 
 
 @deprecation.deprecated(

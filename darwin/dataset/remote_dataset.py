@@ -33,7 +33,6 @@ from darwin.dataset.utils import (
     get_classes,
     is_unix_like_os,
     make_class_lists,
-    sanitize_filename,
 )
 from darwin.datatypes import AnnotationClass, AnnotationFile, ItemId, PathLike, Team
 from darwin.exceptions import NotFound, UnsupportedExportFormat
@@ -183,6 +182,7 @@ class RemoteDataset(ABC):
         subset_folder_name: Optional[str] = None,
         use_folders: bool = False,
         video_frames: bool = False,
+        force_slots: bool = False,
     ) -> Tuple[Optional[Callable[[], Iterator[Any]]], int]:
         """
         Downloads a remote dataset (images and annotations) to the datasets directory.
@@ -211,6 +211,8 @@ class RemoteDataset(ABC):
             Recreates folders from the dataset.
         video_frames : bool, default: False
             Pulls video frames images instead of video files.
+        force_slots: bool
+            Pulls all slots of items into deeper file structure ({prefix}/{item_name}/{slot_name}/{file_name})
 
         Returns
         -------
@@ -229,7 +231,7 @@ class RemoteDataset(ABC):
         if release is None:
             release = self.get_release()
 
-        if release.format != "json":
+        if release.format != "json" and release.format != "darwin_json_2":
             raise UnsupportedExportFormat(release.format)
 
         release_dir = self.local_releases_path / release.name
@@ -258,9 +260,11 @@ class RemoteDataset(ABC):
                 # Move the annotations into the right folder and rename them to have the image
                 # original filename as contained in the json
                 for annotation_path in tmp_dir.glob("*.json"):
-                    with annotation_path.open() as file:
-                        annotation = json.load(file)
-                    filename = sanitize_filename(Path(annotation["image"]["filename"]).stem)
+                    annotation = parse_darwin_json(annotation_path, count=None)
+                    if annotation is None:
+                        continue
+
+                    filename = annotation.filename
                     destination_name = annotations_dir / f"{filename}{annotation_path.suffix}"
                     shutil.move(str(annotation_path), str(destination_name))
 
@@ -298,6 +302,7 @@ class RemoteDataset(ABC):
             remove_extra=remove_extra,
             use_folders=use_folders,
             video_frames=video_frames,
+            force_slots=force_slots,
         )
         if count == 0:
             return None, count
@@ -558,6 +563,7 @@ class RemoteDataset(ABC):
         annotation_class_ids: Optional[List[str]] = None,
         include_url_token: bool = False,
         include_authorship: bool = False,
+        legacy: bool = False,
     ) -> None:
         """
         Create a new release for this ``RemoteDataset``.
@@ -573,7 +579,9 @@ class RemoteDataset(ABC):
             membership or not?
         include_authorship : bool, default: False
             If set, include annotator and reviewer metadata for each annotation.
-
+        legacy : bool, default: False
+            When used for V2 dataset, forces legacy format of Darwin JSON to be generated.
+            This behaviour is deprecated and will be removed in future.
         """
 
     @abstractmethod
