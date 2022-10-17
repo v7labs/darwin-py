@@ -724,7 +724,9 @@ def make_table(
 
     cells : List[Dict[str, Any]]
         Actual cells of the table. Their format should be similar to:
+
             .. code-block:: javascript
+
                 [
                     {
                         "bounding_box": {
@@ -776,6 +778,7 @@ def make_string(
         to:
 
         .. code-block:: javascript
+
             [
                 {
                     "id": "8cd598b5-0363-4984-9ae9-b15ccb77784a",
@@ -818,6 +821,7 @@ def make_graph(
     nodes : List[Dict[str, str]]
         Nodes of the graph. Should be in following format:
             .. code-block:: javascript
+
                 [
                     {
                         "id": "91bb3c24-883a-433b-ae95-a6ee7845bea5",
@@ -832,6 +836,7 @@ def make_graph(
     edges: List[Dict[str, str]]
         Edges of the graph. Should be in following format:
             .. code-block:: javascript
+
                 [
                     {
                         "end": "value",
