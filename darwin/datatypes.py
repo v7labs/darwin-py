@@ -775,6 +775,162 @@ def make_cuboid(
     return Annotation(AnnotationClass(class_name, "cuboid"), cuboid, subs or [], slot_names=slot_names or [])
 
 
+<<<<<<< HEAD
+=======
+def make_table(
+    class_name: str,
+    bounding_box: BoundingBox,
+    cells: List[Dict[str, Any]],
+    subs: Optional[List[SubAnnotation]] = None,
+    slot_names: Optional[List[str]] = None,
+) -> Annotation:
+    """
+    Creates and returns a table annotation.
+
+    Parameters
+    ----------
+    class_name : str
+        The name of the class for this ``Annotation``.
+
+    bounding_box : BoundingBox
+        Bounding box that wraps around the table.
+
+    cells : List[Dict[str, Any]]
+        Actual cells of the table. Their format should be similar to:
+
+            .. code-block:: javascript
+
+                [
+                    {
+                        "bounding_box": {
+                            "h": 189.56,
+                            "w": 416.37,
+                            "x": 807.58,
+                            "y": 1058.04
+                        },
+                        "col": 1,
+                        "col_span": 1,
+                        "id": "778691a6-0df6-4140-add9-f39806d950e9",
+                        "is_header": false,
+                        "row": 1,
+                        "row_span": 1
+                    }
+                ]
+
+    subs : Optional[List[SubAnnotation]], default: None
+        List of ``SubAnnotation``\\s for this ``Annotation``.
+
+    Returns
+    -------
+    Annotation
+        A table ``Annotation``.
+    """
+    return Annotation(
+        AnnotationClass(class_name, "table"),
+        {"bounding_box": bounding_box, "cells": cells},
+        subs or [],
+        slot_names=slot_names or [],
+    )
+
+
+def make_string(
+    class_name: str,
+    sources: List[Dict[str, Any]],
+    subs: Optional[List[SubAnnotation]] = None,
+    slot_names: Optional[List[str]] = None,
+) -> Annotation:
+    """
+    Creates and returns a string annotation.
+
+    Parameters
+    ----------
+    class_name : str
+        The name of the class for this ``Annotation``.
+    data : Any
+        The data needed to build a ``String``. This data must be a list with a format similar
+        to:
+
+        .. code-block:: javascript
+
+            [
+                {
+                    "id": "8cd598b5-0363-4984-9ae9-b15ccb77784a",
+                    "ranges": [1, 2, 5]
+                },
+                {
+                    "id": "6d6378d8-fd02-4518-8a21-6d94f0f32bbc",
+                    "ranges": null
+                }
+            ]
+
+    subs : Optional[List[SubAnnotation]], default: None
+        List of ``SubAnnotation``\\s for this ``Annotation``.
+
+    Returns
+    -------
+    Annotation
+        A string ``Annotation``.
+    """
+    return Annotation(
+        AnnotationClass(class_name, "string"), {"sources": sources}, subs or [], slot_names=slot_names or []
+    )
+
+
+def make_graph(
+    class_name: str,
+    nodes: List[Dict[str, str]],
+    edges: List[Dict[str, str]],
+    subs: Optional[List[SubAnnotation]] = None,
+    slot_names: Optional[List[str]] = None,
+) -> Annotation:
+    """
+    Creates and returns a graph annotation.
+
+    Parameters
+    ----------
+    class_name : str
+        The name of the class for this ``Annotation``.
+
+    nodes : List[Dict[str, str]]
+        Nodes of the graph. Should be in following format:
+            .. code-block:: javascript
+
+                [
+                    {
+                        "id": "91bb3c24-883a-433b-ae95-a6ee7845bea5",
+                        "name": "key"
+                    },
+                    {
+                        "id": "5a0ceba1-2e26-425e-8579-e6013ca415c5",
+                        "name": "value"
+                    }
+                ]
+
+    edges: List[Dict[str, str]]
+        Edges of the graph. Should be in following format:
+            .. code-block:: javascript
+
+                [
+                    {
+                        "end": "value",
+                        "start": "key"
+                    }
+                ]
+
+    subs : Optional[List[SubAnnotation]], default: None
+        List of ``SubAnnotation``\\s for this ``Annotation``.
+
+    Returns
+    -------
+    Annotation
+        A graph ``Annotation``.
+    """
+    return Annotation(
+        AnnotationClass(class_name, "graph"), {"nodes": nodes, "edges": edges}, subs or [], slot_names=slot_names or []
+    )
+
+
+>>>>>>> 99badf34daecc52fd5f8fa40d25813bb136787d9
 def make_instance_id(value: int) -> SubAnnotation:
     """
     Creates and returns an instance id sub-annotation.
