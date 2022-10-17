@@ -1,3 +1,4 @@
+import json
 from dataclasses import dataclass, field
 from email.policy import default
 from pathlib import Path
@@ -86,7 +87,7 @@ class AnnotationClass:
     #: name, but then are known inside V7's lingo by another.
     annotation_internal_type: Optional[str] = None
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> str:
         """
         Returns a JSON representation of this ``AnnotationClass``.
 
@@ -95,11 +96,12 @@ class AnnotationClass:
         Dict[str, Any]
             A json object of this ``AnnotationClass``.
         """
-        return {
+        output_dict = {
             "name": self.name,
             "annotation_type": self.annotation_type,
             "annotation_internal_type": self.annotation_internal_type,
         }
+        return json.dumps(output_dict, indent=4, sort_keys=True, default=str)
 
 
 @dataclass(frozen=True, eq=True)
@@ -115,11 +117,16 @@ class SubAnnotation:
     #: Used for compatibility purposes with external formats.
     data: Any
 
-    def to_json(self) -> Dict[str, Any]:
-        return {
-            "type": self.annotation_type,
-            "data": self.data,
-        }
+    def to_json(self) -> str:
+        return json.dumps(
+            {
+                "type": self.annotation_type,
+                "data": self.data,
+            },
+            indent=4,
+            sort_keys=True,
+            default=str,
+        )
 
 
 @dataclass(frozen=True, eq=True)
@@ -179,17 +186,22 @@ class Annotation:
                 return sub
         return None
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> str:
         """
-        Returns a JSON representation of this Annotation.
+        Returns a JSON string representation of this Annotation.
         """
-        return {
-            "annotation_class": self.annotation_class.name,
-            "annotation_type": self.annotation_class.annotation_type,
-            "data": self.data,
-            "subs": [sub.to_json() for sub in self.subs],
-            "slot_names": self.slot_names,
-        }
+        return json.dumps(
+            {
+                "annotation_class": self.annotation_class.name,
+                "annotation_type": self.annotation_class.annotation_type,
+                "data": self.data,
+                "subs": [sub.to_json() for sub in self.subs],
+                "slot_names": self.slot_names,
+            },
+            indent=4,
+            sort_keys=True,
+            default=str,
+        )
 
 
 @dataclass(frozen=False, eq=True)
@@ -275,16 +287,16 @@ class VideoAnnotation:
             "interpolated": self.interpolated,
         }
 
-    def to_json(self, only_keyframes: bool = True, post_processing: Optional[Callable] = None) -> Dict[str, Any]:
+    def to_json(self, only_keyframes: bool = True, post_processing: Optional[Callable] = None) -> str:
         """
-        Returns a JSON representation of this VideoAnnotation.
+        Returns a JSON string of this VideoAnnotation.
 
         Returns
         -------
-        Dict[str, Any]
+        str
         """
         data = self.get_data(only_keyframes=only_keyframes, post_processing=post_processing)
-        return {
+        output_dict = {
             "annotation_class": self.annotation_class.name,
             "annotation_type": self.annotation_class.annotation_type,
             "frames": data["frames"],
@@ -293,6 +305,7 @@ class VideoAnnotation:
             "interpolated": self.interpolated,
             "slot_names": self.slot_names,
         }
+        return json.dumps(output_dict, indent=4, sort_keys=True, default=str)
 
 
 @dataclass
@@ -408,29 +421,33 @@ class AnnotationFile:
         """
         return construct_full_path(self.remote_path, self.filename)
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> str:
         """
-        Returns a json object of this ``AnnotationFile``.
+        Returns a json string of this ``AnnotationFile``.
 
         Returns
         -------
-        Dict[str, Any]
-            A json object of this ``AnnotationFile``.
+        str  A json string of this ``AnnotationFile``.
         """
-        return {
-            "path": self.path,
-            "filename": self.filename,
-            "annotation_classes": [ac.to_json() for ac in self.annotation_classes],
-            "annotations": [a.to_json() for a in self.annotations],
-            "is_video": self.is_video,
-            "image_width": self.image_width,
-            "image_height": self.image_height,
-            "image_url": self.image_url,
-            "workview_url": self.workview_url,
-            "seq": self.seq,
-            "frame_urls": self.frame_urls,
-            "remote_path": self.remote_path,
-        }
+        return json.dumps(
+            {
+                "path": self.path,
+                "filename": self.filename,
+                "annotation_classes": [ac.to_json() for ac in self.annotation_classes],
+                "annotations": [a.to_json() for a in self.annotations],
+                "is_video": self.is_video,
+                "image_width": self.image_width,
+                "image_height": self.image_height,
+                "image_url": self.image_url,
+                "workview_url": self.workview_url,
+                "seq": self.seq,
+                "frame_urls": self.frame_urls,
+                "remote_path": self.remote_path,
+            },
+            indent=4,
+            sort_keys=True,
+            default=str,
+        )
 
 
 def make_bounding_box(
