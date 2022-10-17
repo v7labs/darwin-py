@@ -264,7 +264,7 @@ class RemoteDataset(ABC):
                     if annotation is None:
                         continue
 
-                    filename = annotation.filename
+                    filename = Path(annotation.filename).stem
                     destination_name = annotations_dir / f"{filename}{annotation_path.suffix}"
                     shutil.move(str(annotation_path), str(destination_name))
 
