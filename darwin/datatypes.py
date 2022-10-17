@@ -775,8 +775,6 @@ def make_cuboid(
     return Annotation(AnnotationClass(class_name, "cuboid"), cuboid, subs or [], slot_names=slot_names or [])
 
 
-<<<<<<< HEAD
-=======
 def make_table(
     class_name: str,
     bounding_box: BoundingBox,
@@ -930,7 +928,6 @@ def make_graph(
     )
 
 
->>>>>>> 99badf34daecc52fd5f8fa40d25813bb136787d9
 def make_instance_id(value: int) -> SubAnnotation:
     """
     Creates and returns an instance id sub-annotation.
