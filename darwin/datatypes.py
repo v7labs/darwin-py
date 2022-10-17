@@ -86,9 +86,14 @@ class AnnotationClass:
     #: name, but then are known inside V7's lingo by another.
     annotation_internal_type: Optional[str] = None
 
-    def to_json(self):
+    def to_json(self) -> Dict[str, Any]:
         """
         Returns a JSON representation of this ``AnnotationClass``.
+
+        Returns
+        -------
+        Dict[str, Any]
+            A json object of this ``AnnotationClass``.
         """
         return {
             "name": self.name,
@@ -110,7 +115,7 @@ class SubAnnotation:
     #: Used for compatibility purposes with external formats.
     data: Any
 
-    def to_json(self):
+    def to_json(self) -> Dict[str, Any]:
         return {
             "type": self.annotation_type,
             "data": self.data,
@@ -174,7 +179,7 @@ class Annotation:
                 return sub
         return None
 
-    def to_json(self):
+    def to_json(self) -> Dict[str, Any]:
         """
         Returns a JSON representation of this Annotation.
         """
@@ -270,9 +275,13 @@ class VideoAnnotation:
             "interpolated": self.interpolated,
         }
 
-    def to_json(self, only_keyframes: bool = True, post_processing: Optional[Callable] = None):
+    def to_json(self, only_keyframes: bool = True, post_processing: Optional[Callable] = None) -> Dict[str, Any]:
         """
         Returns a JSON representation of this VideoAnnotation.
+
+        Returns
+        -------
+        Dict[str, Any]
         """
         data = self.get_data(only_keyframes=only_keyframes, post_processing=post_processing)
         return {
