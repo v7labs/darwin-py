@@ -11,7 +11,9 @@ class ExporterNotFoundError(ModuleNotFoundError):
 
 def get_exporter(format: str) -> ExportParser:
     try:
+        format = format.replace(".", "_")
         module = import_module(f"darwin.exporter.formats.{format}")
         return getattr(module, "export")
     except ModuleNotFoundError:
+        print(format)
         raise ExporterNotFoundError

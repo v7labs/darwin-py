@@ -97,6 +97,7 @@ class DatasetItem(BaseModel):
                 "current_workflow_id": None,
                 "current_workflow": None,
                 "slots": raw["slots"],
+                "current_workflow": None,
             }
         else:
             data = {
