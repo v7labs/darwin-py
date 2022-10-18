@@ -89,7 +89,7 @@ class AnnotationClass:
     #: name, but then are known inside V7's lingo by another.
     annotation_internal_type: Optional[str] = None
 
-    def to_json(self) -> str:
+    def to_json(self, as_dict=True) -> Union[str, dict]:
         """
         Returns a JSON representation of this ``AnnotationClass``.
 
@@ -103,7 +103,8 @@ class AnnotationClass:
             "annotation_type": self.annotation_type,
             "annotation_internal_type": self.annotation_internal_type,
         }
-        return json.dumps(output_dict, indent=4, sort_keys=True, default=str)
+        json_string = json.dumps(output_dict, indent=4, sort_keys=True, default=str)
+        return output_dict if as_dict else json_string
 
 
 @dataclass(frozen=True, eq=True)
@@ -119,16 +120,20 @@ class SubAnnotation:
     #: Used for compatibility purposes with external formats.
     data: Any
 
-    def to_json(self) -> str:
-        return json.dumps(
+    def to_json(self, as_dict) -> Union[str, dict]:
+        output_dict = (
             {
                 "type": self.annotation_type,
                 "data": self.data,
             },
+        )
+        json_string = json.dumps(
+            output_dict,
             indent=4,
             sort_keys=True,
             default=str,
         )
+        return output_dict if as_dict else json_string
 
 
 @dataclass(frozen=True, eq=True)
@@ -188,22 +193,21 @@ class Annotation:
                 return sub
         return None
 
-    def to_json(self) -> str:
+    def to_json(self, as_dict=True) -> Union[str, dict]:
         """
         Returns a JSON string representation of this Annotation.
         """
-        return json.dumps(
+        output_dict = (
             {
                 "annotation_class": self.annotation_class.name,
                 "annotation_type": self.annotation_class.annotation_type,
                 "data": self.data,
-                "subs": [sub.to_json() for sub in self.subs],
+                "subs": [sub.to_json(as_dict=True) for sub in self.subs],
                 "slot_names": self.slot_names,
             },
-            indent=4,
-            sort_keys=True,
-            default=str,
         )
+        json_string = json.dumps(output_dict, indent=4, sort_keys=True, default=str)
+        return output_dict if as_dict else json_string
 
 
 @dataclass(frozen=False, eq=True)
@@ -290,9 +294,11 @@ class VideoAnnotation:
             "interpolated": self.interpolated,
         }
 
-    def to_json(self, only_keyframes: bool = True, post_processing: Optional[Callable] = None) -> str:
+    def to_json(
+        self, only_keyframes: bool = True, post_processing: Optional[Callable] = None, as_dict: bool = True
+    ) -> Union[str, dict]:
         """
-        Returns a JSON string of this VideoAnnotation.
+        Returns a JSON string of this VideoAnnotation used for unit testing. NOT VALID DARWIN JSON
 
         Returns
         -------
@@ -308,7 +314,8 @@ class VideoAnnotation:
             "interpolated": self.interpolated,
             "slot_names": self.slot_names,
         }
-        return json.dumps(output_dict, indent=4, sort_keys=True, default=str)
+        json_string = json.dumps(output_dict, indent=4, sort_keys=True, default=str)
+        return output_dict if as_dict else json_string
 
 
 @dataclass
@@ -425,7 +432,7 @@ class AnnotationFile:
         """
         return construct_full_path(self.remote_path, self.filename)
 
-    def to_json(self) -> str:
+    def to_json(self, as_dict: bool = True) -> Union[str, dict]:
         """
         Returns a json string of this ``AnnotationFile``.
 
@@ -433,25 +440,28 @@ class AnnotationFile:
         -------
         str  A json string of this ``AnnotationFile``.
         """
-        return json.dumps(
-            {
-                "path": self.path,
-                "filename": self.filename,
-                "annotation_classes": [ac.to_json() for ac in self.annotation_classes],
-                "annotations": [a.to_json() for a in self.annotations],
-                "is_video": self.is_video,
-                "image_width": self.image_width,
-                "image_height": self.image_height,
-                "image_url": self.image_url,
-                "workview_url": self.workview_url,
-                "seq": self.seq,
-                "frame_urls": self.frame_urls,
-                "remote_path": self.remote_path,
-            },
+        output_dict = {
+            "path": self.path,
+            "filename": self.filename,
+            "annotation_classes": [ac.to_json(as_dict=True) for ac in self.annotation_classes],
+            "annotations": [a.to_json(as_dict=True) for a in self.annotations],
+            "is_video": self.is_video,
+            "image_width": self.image_width,
+            "image_height": self.image_height,
+            "image_url": self.image_url,
+            "workview_url": self.workview_url,
+            "seq": self.seq,
+            "frame_urls": self.frame_urls,
+            "remote_path": self.remote_path,
+        }
+
+        json_string = json.dumps(
+            output_dict,
             indent=4,
             sort_keys=True,
             default=str,
         )
+        return output_dict if as_dict else json_string
 
 
 def make_bounding_box(
