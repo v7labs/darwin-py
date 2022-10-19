@@ -1,4 +1,6 @@
+import itertools
 from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, Union
+from xml.dom import ValidationErr
 
 from darwin.dataset.release import Release
 from darwin.dataset.upload_manager import (
@@ -10,7 +12,7 @@ from darwin.dataset.upload_manager import (
 )
 from darwin.dataset.utils import is_relative_to
 from darwin.datatypes import ItemId, PathLike
-from darwin.exceptions import NotFound
+from darwin.exceptions import NotFound, ValidationError
 from darwin.item import DatasetItem
 from darwin.item_sorter import ItemSorter
 from darwin.utils import find_files, urljoin
@@ -111,6 +113,7 @@ class RemoteDatasetV1(RemoteDataset):
         *,
         blocking: bool = True,
         multi_threaded: bool = True,
+        max_workers: Optional[int] = None,
         fps: int = 0,
         as_frames: bool = False,
         files_to_exclude: Optional[List[PathLike]] = None,
@@ -131,6 +134,8 @@ class RemoteDatasetV1(RemoteDataset):
         multi_threaded : bool, default: True
             Uses multiprocessing to upload the dataset in parallel.
             If blocking is False this has no effect.
+        max_workers : int, default: None
+            Maximum number of workers to use for parallel upload.
         fps : int, default: 0
             When the uploading file is a video, specify its framerate.
         as_frames: bool, default: False
@@ -186,6 +191,7 @@ class RemoteDatasetV1(RemoteDataset):
         handler = UploadHandlerV1(self, uploading_files)
         if blocking:
             handler.upload(
+                max_workers=max_workers,
                 multi_threaded=multi_threaded,
                 progress_callback=progress_callback,
                 file_upload_callback=file_upload_callback,
@@ -294,6 +300,51 @@ class RemoteDatasetV1(RemoteDataset):
         payload: Dict[str, Any] = {"filter": {"dataset_item_ids": [item.id for item in items]}}
         self.client.reset_item(self.slug, self.team, payload)
 
+    def complete(self, items: Iterator[DatasetItem]) -> None:
+        """
+        Completes the given ``DatasetItem``\\s.
+
+        Parameters
+        ----------
+        items : Iterator[DatasetItem]
+            The ``DatasetItem``\\s to be completed.
+        """
+        wf_template_id_mapper = lambda item: item.current_workflow["workflow_template_id"]
+        input_items: List[DatasetItem] = list(items)
+
+        # We split into items with and without workflow
+        items_wf = filter(lambda item: item.current_workflow, input_items)
+        items_no_wf = filter(lambda item: item.current_workflow is None, input_items)
+
+        # All items without workflow get instantiated
+        items_instantiated: List[DatasetItem] = []
+        for old_item in items_no_wf:
+            (_, item) = self.client.instantiate_item(old_item.id, include_metadata=True)
+            items_instantiated.append(item)
+
+        #  We create new list of items from instantiated items and other items with workflow
+        # We also group them by workflow_template_id, because we can't do batch across diff templates
+        items = sorted([*items_wf, *items_instantiated], key=wf_template_id_mapper)
+        items_by_wf_template = itertools.groupby(
+            items,
+            key=wf_template_id_mapper,
+        )
+
+        # For each WF template, we find complete stage template id
+        # and try to set stage for all items in this workflow
+        for wf_template_id, current_items in items_by_wf_template:
+            current_items = list(current_items)
+            sample_item = current_items[0]
+            deep_sample_stages = sample_item.current_workflow["stages"].values()
+            sample_stages = [item for sublist in deep_sample_stages for item in sublist]
+            complete_stage = list(filter(lambda stage: stage["type"] == "complete", sample_stages))[0]
+
+            filters = {"dataset_item_ids": [item.id for item in current_items]}
+            try:
+                self.client.move_to_stage(self.slug, self.team, filters, complete_stage["workflow_stage_template_id"])
+            except ValidationError:
+                raise ValueError("Unable to complete some of provided items. Make sure to assign them to a user first.")
+
     def delete_items(self, items: Iterator[DatasetItem]) -> None:
         """
         Deletes the given ``DatasetItem``\\s.
@@ -312,6 +363,7 @@ class RemoteDatasetV1(RemoteDataset):
         annotation_class_ids: Optional[List[str]] = None,
         include_url_token: bool = False,
         include_authorship: bool = False,
+        version: Optional[str] = None,
     ) -> None:
         """
         Create a new release for this ``RemoteDataset``.
@@ -327,7 +379,9 @@ class RemoteDatasetV1(RemoteDataset):
             membership or not?
         include_authorship : bool, default: False
             If set, include annotator and reviewer metadata for each annotation.
-
+        version : Optional[str], default: None
+            When used for V2 dataset, allows to force generation of either Darwin JSON 1.0 (Legacy) or newer 2.0.
+            Omit this option to get your team's default.
         """
         if annotation_class_ids is None:
             annotation_class_ids = []

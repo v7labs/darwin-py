@@ -104,15 +104,17 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
         elif args.action == "report":
             f.dataset_report(args.dataset, args.granularity or "day", args.pretty)
         elif args.action == "export":
-            f.export_dataset(args.dataset, args.include_url_token, args.name, args.class_ids, args.include_authorship)
+            f.export_dataset(
+                args.dataset, args.include_url_token, args.name, args.class_ids, args.include_authorship, args.version
+            )
         elif args.action == "files":
             f.list_files(args.dataset, args.status, args.path, args.only_filenames, args.sort_by)
         elif args.action == "releases":
             f.dataset_list_releases(args.dataset)
         elif args.action == "pull":
-            f.pull_dataset(args.dataset, args.only_annotations, args.folders, args.video_frames)
+            f.pull_dataset(args.dataset, args.only_annotations, args.folders, args.video_frames, args.force_slots)
         elif args.action == "import":
-            f.dataset_import(args.dataset, args.format, args.files, args.append, not args.yes)
+            f.dataset_import(args.dataset, args.format, args.files, args.append, not args.yes, args.delete_for_empty)
         elif args.action == "convert":
             f.dataset_convert(args.dataset, args.format, args.output_dir)
         elif args.action == "set-file-status":

@@ -20,11 +20,11 @@ def test_video_annotation_nifti_export():
     with tempfile.TemporaryDirectory() as tmpdir:
         with ZipFile("tests/data.zip") as zfile:
             zfile.extractall(tmpdir)
-            annotations_dir = Path(tmpdir) / "v7/nifti/releases/latest/annotations"
+            annotations_dir = Path(tmpdir) / "v7" / "nifti" / "releases" / "latest" / "annotations"
             video_annotation_filepaths = [
                 f
                 for f in annotations_dir.iterdir()
-                if f.suffix == ".json" and f != annotations_dir / "image_annotation.json"
+                if f.suffix == ".json" and f.name not in ["image_annotation.json", "upload_vol0.json"]
             ]
             video_annotations = list(darwin_to_dt_gen(video_annotation_filepaths))
             nifti.export(video_annotations, output_dir=tmpdir)
@@ -37,7 +37,7 @@ def test_image_annotation_nifti_export():
     with tempfile.TemporaryDirectory() as tmpdir:
         with ZipFile("tests/data.zip") as zfile:
             zfile.extractall(tmpdir)
-            annotations_dir = Path(tmpdir) / "v7/nifti/releases/latest/annotations"
+            annotations_dir = Path(tmpdir) / "v7" / "nifti" / "releases" / "latest" / "annotations"
             image_annotation_filepath = annotations_dir / "image_annotation.json"
             image_annotations = list(darwin_to_dt_gen([image_annotation_filepath]))
             nifti.export(image_annotations, output_dir=tmpdir)

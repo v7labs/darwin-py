@@ -34,11 +34,13 @@ from darwin.dataset.upload_manager import LocalFile
 from darwin.dataset.utils import get_release_path
 from darwin.datatypes import ExportParser, ImportParser, PathLike, Team
 from darwin.exceptions import (
+    IncompatibleOptions,
     InvalidLogin,
     MissingConfig,
     NameTaken,
     NotFound,
     Unauthenticated,
+    UnrecognizableFileEncoding,
     UnsupportedExportFormat,
     UnsupportedFileType,
     ValidationError,
@@ -311,6 +313,7 @@ def export_dataset(
     name: str,
     annotation_class_ids: Optional[List[str]] = None,
     include_authorship: bool = False,
+    version: Optional[str] = None,
 ) -> None:
     """
     Create a new release for the dataset.
@@ -327,6 +330,9 @@ def export_dataset(
         List of the classes to filter.
     include_authorship : bool, default: False
         If ``True`` include annotator and reviewer metadata for each annotation.
+    version : Optional[str], default: None
+        When used for V2 dataset, allows to force generation of either Darwin JSON 1.0 (Legacy) or newer 2.0.
+        Ommit this option to get your team's default.
     """
     client: Client = _load_client(offline=False)
     identifier: DatasetIdentifier = DatasetIdentifier.parse(dataset_slug)
@@ -337,6 +343,7 @@ def export_dataset(
         name=name,
         include_url_token=include_url_token,
         include_authorship=include_authorship,
+        version=version,
     )
 
     identifier.version = name
@@ -345,7 +352,11 @@ def export_dataset(
 
 
 def pull_dataset(
-    dataset_slug: str, only_annotations: bool = False, folders: bool = False, video_frames: bool = False
+    dataset_slug: str,
+    only_annotations: bool = False,
+    folders: bool = False,
+    video_frames: bool = False,
+    force_slots: bool = False,
 ) -> None:
     """
     Downloads a remote dataset (images and annotations) in the datasets directory.
@@ -362,6 +373,8 @@ def pull_dataset(
         Recreates the folders in the dataset. Defaults to False.
     video_frames: bool
         Pulls video frames images instead of video files. Defaults to False.
+    force_slots: bool
+        Pulls all slots of items into deeper file structure ({prefix}/{item_name}/{slot_name}/{file_name})
     """
     version: str = DatasetIdentifier.parse(dataset_slug).version or "latest"
     client: Client = _load_client(offline=False, maybe_guest=True)
@@ -377,8 +390,16 @@ def pull_dataset(
 
     try:
         release: Release = dataset.get_release(version)
-        dataset.pull(release=release, only_annotations=only_annotations, use_folders=folders, video_frames=video_frames)
+        dataset.pull(
+            release=release,
+            only_annotations=only_annotations,
+            use_folders=folders,
+            video_frames=video_frames,
+            force_slots=force_slots,
+        )
         print_new_version_info(client)
+        if release.format == "darwin_json_2":
+            _print_new_json_format_warning(dataset)
     except NotFound:
         _error(
             f"Version '{dataset.identifier}:{version}' does not exist "
@@ -387,7 +408,7 @@ def pull_dataset(
     except UnsupportedExportFormat as uef:
         _error(
             f"Version '{dataset.identifier}:{version}' is of format '{uef.format}', "
-            f"only the darwin format ('json') is supported for `darwin dataset pull`"
+            f"only the darwin formats ('json', 'darwin_json_2') are supported for `darwin dataset pull`"
         )
 
     print(f"Dataset {release.identifier} downloaded at {dataset.local_path}. ")
@@ -712,7 +733,12 @@ def upload_data(
 
 
 def dataset_import(
-    dataset_slug: str, format: str, files: List[PathLike], append: bool, class_prompt: bool = True
+    dataset_slug: str,
+    format: str,
+    files: List[PathLike],
+    append: bool,
+    class_prompt: bool = True,
+    delete_for_empty: bool = False,
 ) -> None:
     """
     Imports annotation files to the given dataset.
@@ -720,15 +746,21 @@ def dataset_import(
 
     Parameters
     ----------
-    dataset_slug: str
+    dataset_slug : str
         The dataset's slug.
-    format: str
+    format : str
         Format of the export files.
-    files: List[PathLike]
+    files : List[PathLike]
         List of where the files are.
-    append: bool
-        If True it appends the annotation from the files to the dataset, if False it will override
-        the dataset's current annotations with the ones from the given files.
+    append : bool, default: True
+        If ``True`` it appends the annotation from the files to the dataset, if ``False`` it will
+        override the dataset's current annotations with the ones from the given files.
+        Incompatible with ``delete-for-empty``.
+    delete_for_empty : bool, default: False
+        If ``True`` will use empty annotation files to delete all annotations from the remote file.
+        If ``False``, empty annotation files will simply be skipped.
+        Only works for V2 datasets.
+        Incompatible with ``append``.
     """
 
     client: Client = _load_client(dataset_identifier=dataset_slug)
@@ -736,13 +768,17 @@ def dataset_import(
     try:
         parser: ImportParser = get_importer(format)
         dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
-        import_annotations(dataset, parser, files, append, class_prompt)
+        import_annotations(dataset, parser, files, append, class_prompt, delete_for_empty)
     except ImporterNotFoundError:
         _error(f"Unsupported import format: {format}, currently supported: {import_formats}")
     except AttributeError:
         _error(f"Unsupported import format: {format}, currently supported: {import_formats}")
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
+    except IncompatibleOptions as e:
+        _error(str(e))
+    except UnrecognizableFileEncoding as e:
+        _error(str(e))
 
 
 def list_files(
@@ -825,8 +861,9 @@ def set_file_status(dataset_slug: str, status: str, files: List[str]) -> None:
     files: List[str]
         Names of the files we want to update.
     """
-    if status not in ["archived", "clear", "new", "restore-archived"]:
-        _error(f"Invalid status '{status}', available statuses: archived, clear, new, restore-archived")
+    available_statuses = ["archived", "clear", "new", "restore-archived", "complete"]
+    if status not in available_statuses:
+        _error(f"Invalid status '{status}', available statuses: {', '.join(available_statuses)}")
 
     client: Client = _load_client(dataset_identifier=dataset_slug)
     try:
@@ -840,8 +877,12 @@ def set_file_status(dataset_slug: str, status: str, files: List[str]) -> None:
             dataset.move_to_new(items)
         elif status == "restore-archived":
             dataset.restore_archived(items)
+        elif status == "complete":
+            dataset.complete(items)
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
+    except ValueError as e:
+        _error(e)
 
 
 def delete_files(dataset_slug: str, files: List[str], skip_user_confirmation: bool = False) -> None:
@@ -947,7 +988,7 @@ def convert(format: str, files: List[PathLike], output_dir: Path) -> None:
     except AttributeError:
         _error(f"Unsupported export format, currently supported: {export_formats}")
 
-    export_annotations(parser, files, output_dir)
+    export_annotations(parser, files, output_dir, split_sequences=(format != "darwin_1.0"))
 
 
 def post_comment(
@@ -1114,3 +1155,16 @@ def _console_theme() -> Theme:
 
 def _has_valid_status(status: str) -> bool:
     return status in ["new", "annotate", "review", "complete", "archived"]
+
+
+def _print_new_json_format_warning(dataset):
+    console = Console(theme=_console_theme(), stderr=True)
+    console.print(
+        f"NOTE: Your dataset has been exported using new Darwin JSON 2.0 format.",
+        f"    If you wish to use the legacy Darwin format, please use the following to convert: ",
+        f"",
+        f"    darwin convert darwin_1.0 {dataset.local_path} OUTPUT_DIR",
+        f"",
+        sep="\n",
+        style="warning",
+    )
