@@ -380,10 +380,10 @@ class RemoteDatasetV2(RemoteDataset):
             When used for V2 dataset, allows to force generation of either Darwin JSON 1.0 (Legacy) or newer 2.0.
             Omit this option to get your team's default.
         """
-        version = str(version)
-        if version == "2.0":
+        str_version = str(version)
+        if str_version == "2.0":
             format = "darwin_json_2"
-        elif version == "1.0":
+        elif str_version == "1.0":
             format = "json"
         elif version == None:
             format = None
