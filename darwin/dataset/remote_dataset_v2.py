@@ -1,3 +1,4 @@
+from ctypes import ArgumentError
 from operator import le
 from typing import (
     TYPE_CHECKING,
@@ -379,13 +380,15 @@ class RemoteDatasetV2(RemoteDataset):
             When used for V2 dataset, allows to force generation of either Darwin JSON 1.0 (Legacy) or newer 2.0.
             Omit this option to get your team's default.
         """
-
+        version = str(version)
         if version == "2.0":
             format = "darwin_json_2"
         elif version == "1.0":
             format = "json"
-        else:
+        elif version == None:
             format = None
+        else:
+            raise ArgumentError(f"Unknown version '{version}'.")
 
         self.client.api_v2.export_dataset(
             format=format,
