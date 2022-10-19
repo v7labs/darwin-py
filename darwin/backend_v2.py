@@ -89,7 +89,7 @@ class BackendV2:
         payload: Dict[str, Any]
             A filter Dictionary that defines the items to be archived.
         """
-        self._client._put(f"v2/teams/{team_slug}/items/archive", payload, team_slug)
+        self._client._post(f"v2/teams/{team_slug}/items/archive", payload, team_slug)
 
     @inject_default_team_slug
     def restore_archived_items(self, payload: Dict[str, Any], *, team_slug: Optional[str] = None) -> None:
@@ -103,7 +103,7 @@ class BackendV2:
         payload: Dict[str, Any]
             A filter Dictionary that defines the items to be restored.
         """
-        self._client._put(f"v2/teams/{team_slug}/items/restore", payload, team_slug)
+        self._client._post(f"v2/teams/{team_slug}/items/restore", payload, team_slug)
 
     @inject_default_team_slug
     def move_to_stage(
