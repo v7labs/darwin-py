@@ -59,9 +59,6 @@ def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
             mode=nifti_annotation.get("mode", "image"),
         )
         annotation_files.append(annotation_file)
-        json_string = annotation_file.to_json(as_dict=False)
-        with open(path.parent / f"{annotation_file.filename}.json", "w") as f:
-            f.write(json_string)
     return annotation_files
 
 
