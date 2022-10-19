@@ -509,22 +509,36 @@ def _parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotati
     slot_names = parse_slot_names(annotation)
     name: str = annotation["name"]
     main_annotation: Optional[dt.Annotation] = None
-    if "polygon" in annotation:
+    # Darwin JSON 2.0 representation of complex polygons
+    if "polygon" in annotation and "paths" in annotation["polygon"] and len(annotation["polygon"]["paths"]) > 1:
+        bounding_box = annotation.get("bounding_box")
+        paths = annotation["polygon"]["paths"]
+        main_annotation = dt.make_complex_polygon(name, paths, bounding_box, slot_names=slot_names)
+    # Darwin JSON 2.0 representation of simple polygons
+    elif "polygon" in annotation and "paths" in annotation["polygon"] and len(annotation["polygon"]["paths"]) == 1:
+        bounding_box = annotation.get("bounding_box")
+        paths = annotation["polygon"]["paths"]
+        main_annotation = dt.make_polygon(name, paths[0], bounding_box, slot_names=slot_names)
+    # Darwin JSON 1.0 representation of complex and simple polygons
+    elif "polygon" in annotation:
         bounding_box = annotation.get("bounding_box")
         if "additional_paths" in annotation["polygon"]:
             paths = [annotation["polygon"]["path"]] + annotation["polygon"]["additional_paths"]
             main_annotation = dt.make_complex_polygon(name, paths, bounding_box, slot_names=slot_names)
         else:
             main_annotation = dt.make_polygon(name, annotation["polygon"]["path"], bounding_box, slot_names=slot_names)
+    # Darwin JSON 1.0 representation of complex polygons
     elif "complex_polygon" in annotation:
         bounding_box = annotation.get("bounding_box")
-        if "additional_paths" in annotation["complex_polygon"]:
-            paths = annotation["complex_polygon"]["path"] + annotation["complex_polygon"]["additional_paths"]
-            main_annotation = dt.make_complex_polygon(name, paths, bounding_box, slot_names=slot_names)
+        if isinstance(annotation["complex_polygon"]["path"][0], list):
+            paths = annotation["complex_polygon"]["path"]
         else:
-            main_annotation = dt.make_complex_polygon(
-                name, annotation["complex_polygon"]["path"], bounding_box, slot_names=slot_names
-            )
+            paths = [annotation["complex_polygon"]["path"]]
+
+        if "additional_paths" in annotation["complex_polygon"]:
+            paths.extend(annotation["complex_polygon"]["additional_paths"])
+
+        main_annotation = dt.make_complex_polygon(name, paths, bounding_box, slot_names=slot_names)
     elif "bounding_box" in annotation:
         bounding_box = annotation["bounding_box"]
         main_annotation = dt.make_bounding_box(
