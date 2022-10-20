@@ -34,27 +34,8 @@ if TYPE_CHECKING:
     from darwin.client import Client
 
 
-SUPPORTED_IMAGE_EXTENSIONS = [
-    ".png",
-    ".jpeg",
-    ".jpg",
-    ".jfif",
-    ".tif",
-    ".tiff",
-    ".bmp",
-    ".svs",
-]
-SUPPORTED_VIDEO_EXTENSIONS = [
-    ".avi",
-    ".bpm",
-    ".dcm",
-    ".mov",
-    ".mp4",
-    ".pdf",
-    ".nii",
-    ".nii.gz",
-    ".ndpi",
-]
+SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpeg", ".jpg", ".jfif", ".tif", ".tiff", ".bmp", ".svs", ".webp"]
+SUPPORTED_VIDEO_EXTENSIONS = [".avi", ".bpm", ".dcm", ".mov", ".mp4", ".pdf", ".ndpi"]
 SUPPORTED_EXTENSIONS = SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
 
 
@@ -219,8 +200,8 @@ def find_files(
     for f in files:
         path = Path(f)
         if path.is_dir():
-            found_files.extend([f for f in path.glob(pattern) if is_extension_allowed("".join(f.suffixes))])
-        elif is_extension_allowed("".join(path.suffixes)):
+            found_files.extend([f for f in path.glob(pattern) if is_extension_allowed(f.suffix) and not f.is_dir()])
+        elif is_extension_allowed(path.suffix):
             found_files.append(path)
         else:
             raise UnsupportedFileType(path)
@@ -279,7 +260,7 @@ def _get_local_filename(metadata: Dict[str, Any]) -> str:
     return metadata["filename"]
 
 
-def parse_darwin_json(path: Path, count: Optional[int] = None) -> Optional[dt.AnnotationFile]:
+def parse_darwin_json(path: Path, count: Optional[int]) -> Optional[dt.AnnotationFile]:
     """
     Parses the given JSON file in v7's darwin proprietary format. Works for images, split frame
     videos (treated as images) and playback videos.
@@ -303,6 +284,7 @@ def parse_darwin_json(path: Path, count: Optional[int] = None) -> Optional[dt.An
         If the given darwin video JSON file is missing the 'width' and 'height' keys in the 'image'
         dictionary.
     """
+
     path = Path(path)
     with path.open() as f:
         data = json.load(f)
@@ -445,7 +427,6 @@ def _parse_darwin_video(path: Path, data: Dict[str, Any], count: Optional[int]) 
         data["image"].get("seq", count),
         data["image"].get("frame_urls"),
         data["image"].get("path", "/"),
-        data["image"].get("metadata"),
         [],
         data["image"].get("thubmnail_url"),
     )
@@ -627,7 +608,6 @@ def split_video_annotation(annotation: dt.AnnotationFile) -> List[dt.AnnotationF
                 frame_url,
                 annotation.workview_url,
                 annotation.seq,
-                metadata=annotation.metadata,
             )
         )
     return frame_annotations
