@@ -45,12 +45,14 @@ def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
     if not isinstance(path, Path):
         path = Path(path)
     if path.suffix != ".json":
+        console.print("Skipping file: {} (not a json file)".format(path), style="bold yellow")
         return None
     with open(path, "r") as f:
         data = json.load(f)
         validate(data, schema=nifti_import_schema)
     nifti_annotations = data.get("data")
     if nifti_annotations is None:
+        console.print("Skipping file: {} (no data found)".format(path), style="bold yellow")
         return None
     annotation_files = []
     for nifti_annotation in nifti_annotations:
@@ -118,6 +120,7 @@ def _parse_nifti(nifti_path: Path, filename: Path, json_path: Path, class_map: D
         filename=str(filename),
         annotation_classes=annotation_classes,
         annotations=video_annotations,
+        slots=[dt.Slot(name=None, type="dicom", source_files=[{"url": None, "file_name": str(filename)}])],
     )
 
 
