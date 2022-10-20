@@ -1,9 +1,9 @@
 import json
 import warnings
 import zipfile
-from collections import defaultdict
+from collections import OrderedDict, defaultdict
 from pathlib import Path
-from typing import Dict, List, Optional, OrderedDict, Sequence, Union
+from typing import Dict, List, Optional, Sequence, Union
 
 try:
     import cc3d
