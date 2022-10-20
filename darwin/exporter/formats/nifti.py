@@ -74,11 +74,17 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path) -> N
             im_mask = convert_polygons_to_mask(polygon, height=height, width=width)
             output_volume = output_volumes[class_name]
             if view_idx == 0:
-                output_volume[:, :, frame_idx] = np.logical_or(im_mask, output_volume[:, :, frame_idx])
+                output_volume[:, :, frame_idx] = np.logical_or(
+                    im_mask, output_volume[:, :, frame_idx]
+                )
             elif view_idx == 1:
-                output_volume[:, frame_idx, :] = np.logical_or(im_mask, output_volume[:, frame_idx, :])
+                output_volume[:, frame_idx, :] = np.logical_or(
+                    im_mask, output_volume[:, frame_idx, :]
+                )
             elif view_idx == 2:
-                output_volume[frame_idx, :, :] = np.logical_or(im_mask, output_volume[frame_idx, :, :])
+                output_volume[frame_idx, :, :] = np.logical_or(
+                    im_mask, output_volume[frame_idx, :, :]
+                )
     for class_name in class_map.keys():
         img = nib.Nifti1Image(
             dataobj=np.flip(output_volumes[class_name], (0, 1, 2)).astype(np.int16),

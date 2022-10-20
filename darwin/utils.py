@@ -341,6 +341,7 @@ def _parse_darwin_v2(path: Path, data: Dict[str, Any]) -> dt.AnnotationFile:
             seq=0,
             frame_urls=None,
             remote_path=item["path"],
+            metadata=item.get("metadata"),
             slots=slots,
         )
     else:
@@ -354,12 +355,15 @@ def _parse_darwin_v2(path: Path, data: Dict[str, Any]) -> dt.AnnotationFile:
             is_video=slot.frame_urls is not None,
             image_width=slot.width,
             image_height=slot.height,
-            image_url=None if len(slot.source_files or []) == 0 else slot.source_files[0]["url"],
+            image_url=None
+            if len(slot.source_files or []) == 0
+            else slot.source_files[0]["url"],
             image_thumbnail_url=slot.thubmnail_url,
             workview_url=item_source["workview_url"],
             seq=0,
             frame_urls=slot.frame_urls,
             remote_path=item["path"],
+            metadata=item.get("metadata"),
             slots=slots,
         )
 
