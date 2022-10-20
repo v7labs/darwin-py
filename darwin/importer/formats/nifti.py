@@ -49,9 +49,15 @@ def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
         return None
     with open(path, "r") as f:
         data = json.load(f)
-        validate(data, schema=nifti_import_schema)
+        try:
+            validate(data, schema=nifti_import_schema)
+        except Exception as e:
+            console.print(
+                "Skipping file: {} (invalid json file, see schema for details)".format(path), style="bold yellow"
+            )
+            return None
     nifti_annotations = data.get("data")
-    if nifti_annotations is None:
+    if nifti_annotations is None or nifti_annotations == []:
         console.print("Skipping file: {} (no data found)".format(path), style="bold yellow")
         return None
     annotation_files = []
