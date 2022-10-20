@@ -5,6 +5,9 @@ from collections import OrderedDict, defaultdict
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Union
 
+from rich.console import Console
+
+console = Console()
 try:
     import cc3d
     import nibabel as nib
@@ -13,7 +16,7 @@ except ImportError:
     You must install `darwin-py` with `pip install darwin-py[medical]`
     in order to import with using nifti format
     """
-    print(import_fail_string)
+    console.print(import_fail_string)
 import numpy as np
 from jsonschema import validate
 from upolygon import find_contours
