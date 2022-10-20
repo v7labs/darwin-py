@@ -2,6 +2,7 @@ import json
 from datetime import date
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional
+from zlib import crc32
 
 import deprecation
 import numpy as np
@@ -72,7 +73,7 @@ def calculate_categories(annotation_files: List[dt.AnnotationFile]) -> Dict[str,
                 "complex_polygon",
                 "bounding_box",
             ]:
-                categories[annotation_class.name] = len(categories)
+                categories[annotation_class.name] = _calculate_category_id(annotation_class)
     return categories
 
 
@@ -87,7 +88,7 @@ def calculate_tag_categories(annotation_files: List[dt.AnnotationFile]) -> Dict[
     for annotation_file in annotation_files:
         for annotation_class in annotation_file.annotation_classes:
             if annotation_class.name not in categories and annotation_class.annotation_type == "tag":
-                categories[annotation_class.name] = len(categories)
+                categories[annotation_class.name] = _calculate_category_id(annotation_class)
     return categories
 
 
@@ -336,7 +337,7 @@ def _calculate_categories(annotation_files: List[dt.AnnotationFile]) -> Dict[str
                 "complex_polygon",
                 "bounding_box",
             ]:
-                categories[annotation_class.name] = len(categories)
+                categories[annotation_class.name] = _calculate_category_id(annotation_class)
     return categories
 
 
@@ -345,8 +346,12 @@ def _calculate_tag_categories(annotation_files: List[dt.AnnotationFile]) -> Dict
     for annotation_file in annotation_files:
         for annotation_class in annotation_file.annotation_classes:
             if annotation_class.name not in categories and annotation_class.annotation_type == "tag":
-                categories[annotation_class.name] = len(categories)
+                categories[annotation_class.name] = _calculate_category_id(annotation_class)
     return categories
+
+
+def _calculate_category_id(annotation_class: dt.AnnotationClass) -> int:
+    return crc32(str.encode(annotation_class.name))
 
 
 def _build_info() -> Dict[str, Any]:
