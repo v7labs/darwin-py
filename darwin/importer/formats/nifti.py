@@ -124,6 +124,7 @@ def _parse_nifti(nifti_path: Path, filename: Path, json_path: Path, class_map: D
     return dt.AnnotationFile(
         path=json_path,
         filename=str(filename),
+        remote_path="/",
         annotation_classes=annotation_classes,
         annotations=video_annotations,
         slots=[dt.Slot(name=None, type="dicom", source_files=[{"url": None, "file_name": str(filename)}])],
