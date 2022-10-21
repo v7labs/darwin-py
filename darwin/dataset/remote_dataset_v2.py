@@ -23,7 +23,7 @@ from darwin.dataset.upload_manager import (
 )
 from darwin.dataset.utils import is_relative_to
 from darwin.datatypes import ItemId, PathLike
-from darwin.exceptions import NotFound
+from darwin.exceptions import NotFound, UnknownExportVersion
 from darwin.item import DatasetItem
 from darwin.item_sorter import ItemSorter
 from darwin.utils import find_files, urljoin
@@ -388,7 +388,7 @@ class RemoteDatasetV2(RemoteDataset):
         elif version == None:
             format = None
         else:
-            raise ArgumentError(f"Unknown version '{version}'.")
+            raise UnknownExportVersion(version)
 
         self.client.api_v2.export_dataset(
             format=format,
