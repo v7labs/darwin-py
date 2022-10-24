@@ -6,9 +6,8 @@ import functools
 import json
 import time
 import urllib
-from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import Any, Callable, Iterable, Iterator, List, Tuple
+from typing import Any, Callable, Iterable, List, Tuple
 
 import deprecation
 import requests
@@ -42,7 +41,6 @@ def download_all_images_from_annotations(
     use_folders: bool = False,
     video_frames: bool = False,
     force_slots: bool = False,
-    multi_threaded: bool = True,
 ) -> Tuple[Callable[[], Iterable[Any]], int]:
     """
     Downloads the all images corresponding to a project.
@@ -120,16 +118,14 @@ def download_all_images_from_annotations(
     # Create the generator with the partial functions
     download_functions: List = []
     for annotation_path in annotations_to_download_path:
-        file_download_functions = download_image_from_annotation(
+        file_download_functions = lazy_download_image_from_annotation(
             api_key,
-            api_url,
             annotation_path,
             images_path,
             annotation_format,
             use_folders,
             video_frames,
             force_slots,
-            multi_threaded,
         )
         download_functions.extend(file_download_functions)
 
@@ -151,8 +147,7 @@ def download_image_from_annotation(
     use_folders: bool,
     video_frames: bool,
     force_slots: bool,
-    multi_threaded: bool,
-) -> Iterable[Callable[[], None]]:
+) -> None:
     """
     Dispatches functions to download an image given an annotation.
 
@@ -184,8 +179,57 @@ def download_image_from_annotation(
     console = Console()
 
     if annotation_format == "json":
+        downloadables = _download_image_from_json_annotation(
+            api_key, annotation_path, images_path, use_folders, video_frames, force_slots
+        )
+        for downloadable in downloadables:
+            downloadable()
+    else:
+        console.print("[bold red]Unsupported file format. Please use 'json'.")
+        raise NotImplementedError
+
+
+def lazy_download_image_from_annotation(
+    api_key: str,
+    annotation_path: Path,
+    images_path: Path,
+    annotation_format: str,
+    use_folders: bool,
+    video_frames: bool,
+    force_slots: bool,
+) -> Iterable[Callable[[], None]]:
+    """
+    Returns functions to download an image given an annotation. Same as `download_image_from_annotation`
+    but returns Callables that trigger the download instead fetching files interally.
+
+     Parameters
+     ----------
+     api_key : str
+         API Key of the current team
+     annotation_path : Path
+         Path where the annotation is located
+     images_path : Path
+         Path where to download the image
+     annotation_format : str
+         Format of the annotations. Currently only JSON is supported
+     use_folders : bool
+         Recreate folder structure
+     video_frames : bool
+         Pulls video frames images instead of video files
+     force_slots: bool
+         Pulls all slots of items into deeper file structure ({prefix}/{item_name}/{slot_name}/{file_name})
+
+     Raises
+     ------
+     NotImplementedError
+         If the format of the annotation is not supported.
+    """
+
+    console = Console()
+
+    if annotation_format == "json":
         return _download_image_from_json_annotation(
-            api_key, annotation_path, images_path, use_folders, video_frames, force_slots, multi_threaded
+            api_key, annotation_path, images_path, use_folders, video_frames, force_slots
         )
     else:
         console.print("[bold red]Unsupported file format. Please use 'json'.")
@@ -199,7 +243,6 @@ def _download_image_from_json_annotation(
     use_folders: bool,
     video_frames: bool,
     force_slots: bool,
-    multi_threaded: bool,
 ) -> Iterable[Callable[[], None]]:
     annotation = parse_darwin_json(annotation_path, count=0)
     if annotation is None:
@@ -213,16 +256,16 @@ def _download_image_from_json_annotation(
     annotation.slots.sort(key=lambda slot: slot.name or "0")
     if len(annotation.slots) > 0:
         if force_slots:
-            return _download_all_slots_from_json_annotation(
-                annotation, api_key, parent_path, video_frames, multi_threaded
-            )
+            return _download_all_slots_from_json_annotation(annotation, api_key, parent_path, video_frames)
         else:
             return _download_single_slot_from_json_annotation(
-                annotation, api_key, parent_path, annotation_path, video_frames, multi_threaded
+                annotation, api_key, parent_path, annotation_path, video_frames
             )
 
+    return []
 
-def _download_all_slots_from_json_annotation(annotation, api_key, parent_path, video_frames, multi_threaded):
+
+def _download_all_slots_from_json_annotation(annotation, api_key, parent_path, video_frames):
     generator = []
     for slot in annotation.slots:
         slot_path = parent_path / sanitize_filename(annotation.filename) / sanitize_filename(slot.name)
@@ -237,18 +280,13 @@ def _download_all_slots_from_json_annotation(annotation, api_key, parent_path, v
         else:
             for upload in slot.source_files:
                 file_path = slot_path / sanitize_filename(upload["file_name"])
-
-                def download_and_update():
-                    _download_image(upload["url"], file_path, api_key)
-                    _update_local_path(annotation, upload["url"], file_path)
-
-                generator.append(download_and_update)
+                generator.append(
+                    functools.partial(_download_image_with_trace, annotation, upload["url"], file_path, api_key)
+                )
     return generator
 
 
-def _download_single_slot_from_json_annotation(
-    annotation, api_key, parent_path, annotation_path, video_frames, multi_threaded
-):
+def _download_single_slot_from_json_annotation(annotation, api_key, parent_path, annotation_path, video_frames):
     slot = annotation.slots[0]
     generator = []
 
@@ -264,11 +302,7 @@ def _download_single_slot_from_json_annotation(
             filename = slot.source_files[0]["file_name"]
             image_path = parent_path / sanitize_filename(filename or annotation.filename)
 
-            def download_and_update():
-                _download_image(image_url, image_path, api_key)
-                _update_local_path(annotation, image_url, image_path)
-
-            generator.append(download_and_update)
+            generator.append(functools.partial(_download_image_with_trace, annotation, image_url, image_path, api_key))
     return generator
 
 
@@ -409,6 +443,11 @@ def _download_image(url: str, path: Path, api_key: str) -> None:
         if time.time() - start > TIMEOUT:
             raise Exception(f"Timeout url request ({url}) after {TIMEOUT} seconds.")
         time.sleep(1)
+
+
+def _download_image_with_trace(annotation, image_url, image_path, api_key):
+    _download_image(image_url, image_path, api_key)
+    _update_local_path(annotation, image_url, image_path)
 
 
 def _fetch_multiple_files(path: Path, response: requests.Response) -> None:

@@ -304,7 +304,6 @@ class RemoteDataset(ABC):
             use_folders=use_folders,
             video_frames=video_frames,
             force_slots=force_slots,
-            multi_threaded=multi_threaded,
         )
         if count == 0:
             return None, count
@@ -312,7 +311,7 @@ class RemoteDataset(ABC):
         # If blocking is selected, download the dataset on the file system
         if blocking:
             max_workers = None
-            env_max_workers = os.getenv("DARWIN_DOWNLOAD_FRAMES_CONCURRENCY")
+            env_max_workers = os.getenv("DARWIN_DOWNLOAD_FILES_CONCURRENCY")
             if env_max_workers and int(env_max_workers) > 0:
                 max_workers = int(env_max_workers)
 
