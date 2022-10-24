@@ -1,4 +1,5 @@
 import json
+import os
 import shutil
 import tempfile
 import zipfile
@@ -303,13 +304,19 @@ class RemoteDataset(ABC):
             use_folders=use_folders,
             video_frames=video_frames,
             force_slots=force_slots,
+            multi_threaded=multi_threaded,
         )
         if count == 0:
             return None, count
 
         # If blocking is selected, download the dataset on the file system
         if blocking:
-            exhaust_generator(progress=progress(), count=count, multi_threaded=multi_threaded)
+            max_workers = None
+            env_max_workers = os.getenv("DARWIN_DOWNLOAD_FRAMES_CONCURRENCY")
+            if env_max_workers and int(env_max_workers) > 0:
+                max_workers = int(env_max_workers)
+
+            exhaust_generator(progress=progress(), count=count, multi_threaded=multi_threaded, worker_count=max_workers)
             return None, count
         else:
             return progress, count
