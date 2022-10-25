@@ -1,15 +1,4 @@
-from operator import le
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Dict,
-    Iterator,
-    List,
-    Optional,
-    Sequence,
-    Tuple,
-    Union,
-)
+from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, Tuple, Union
 
 from darwin.dataset import RemoteDataset
 from darwin.dataset.release import Release
@@ -22,7 +11,7 @@ from darwin.dataset.upload_manager import (
 )
 from darwin.dataset.utils import is_relative_to
 from darwin.datatypes import ItemId, PathLike
-from darwin.exceptions import NotFound
+from darwin.exceptions import NotFound, UnknownExportVersion
 from darwin.item import DatasetItem
 from darwin.item_sorter import ItemSorter
 from darwin.utils import find_files, urljoin
@@ -379,13 +368,15 @@ class RemoteDatasetV2(RemoteDataset):
             When used for V2 dataset, allows to force generation of either Darwin JSON 1.0 (Legacy) or newer 2.0.
             Omit this option to get your team's default.
         """
-
-        if version == "2.0":
+        str_version = str(version)
+        if str_version == "2.0":
             format = "darwin_json_2"
-        elif version == "1.0":
+        elif str_version == "1.0":
             format = "json"
-        else:
+        elif version == None:
             format = None
+        else:
+            raise UnknownExportVersion(version)
 
         self.client.api_v2.export_dataset(
             format=format,
