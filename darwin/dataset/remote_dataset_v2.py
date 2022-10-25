@@ -370,7 +370,7 @@ class RemoteDatasetV2(RemoteDataset):
             include_authorship=include_authorship,
             include_token=include_url_token,
             annotation_class_ids=annotation_class_ids,
-            filters={},
+            filters=None,
             dataset_slug=self.slug,
             team_slug=self.team,
         )
