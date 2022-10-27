@@ -355,10 +355,15 @@ def _parse_darwin_v2(path: Path, data: Dict[str, Any]) -> dt.AnnotationFile:
             is_video=slot.frame_urls is not None,
             image_width=slot.width,
             image_height=slot.height,
+<<<<<<< HEAD
             image_url=None
             if len(slot.source_files or []) == 0
             else slot.source_files[0]["url"],
             image_thumbnail_url=slot.thubmnail_url,
+=======
+            image_url=None if len(slot.source_files or []) == 0 else slot.source_files[0]["url"],
+            image_thumbnail_url=slot.thumbnail_url,
+>>>>>>> master
             workview_url=item_source["workview_url"],
             seq=0,
             frame_urls=slot.frame_urls,
@@ -377,7 +382,7 @@ def _parse_darwin_slot(data: Dict[str, Any]) -> dt.Slot:
         width=data.get("width"),
         height=data.get("height"),
         source_files=data.get("source_files", []),
-        thubmnail_url=data.get("thumbnail_url"),
+        thumbnail_url=data.get("thumbnail_url"),
         frame_count=data.get("frame_count"),
         frame_urls=data.get("frame_urls"),
         fps=data.get("fps"),
@@ -392,7 +397,7 @@ def _parse_darwin_image(path: Path, data: Dict[str, Any], count: Optional[int]) 
         name=None,
         type="image",
         source_files=[{"url": data["image"].get("url"), "file_name": _get_local_filename(data["image"])}],
-        thubmnail_url=data["image"].get("thubmnail_url"),
+        thumbnail_url=data["image"].get("thumbnail_url"),
         width=data["image"].get("width"),
         height=data["image"].get("height"),
     )
@@ -411,7 +416,7 @@ def _parse_darwin_image(path: Path, data: Dict[str, Any], count: Optional[int]) 
         None,
         data["image"].get("path", "/"),
         [],
-        data["image"].get("thubmnail_url"),
+        data["image"].get("thumbnail_url"),
     )
     annotation_file.slots.append(slot)
     return annotation_file
@@ -428,7 +433,7 @@ def _parse_darwin_video(path: Path, data: Dict[str, Any], count: Optional[int]) 
         name=None,
         type="video",
         source_files=[{"url": data["image"].get("url"), "file_name": _get_local_filename(data["image"])}],
-        thubmnail_url=data["image"].get("thubmnail_url"),
+        thumbnail_url=data["image"].get("thumbnail_url"),
         width=data["image"].get("width"),
         height=data["image"].get("height"),
         frame_count=data["image"].get("frame_count"),
@@ -451,7 +456,7 @@ def _parse_darwin_video(path: Path, data: Dict[str, Any], count: Optional[int]) 
         data["image"].get("path", "/"),
         data["image"].get("metadata"),
         [],
-        data["image"].get("thubmnail_url"),
+        data["image"].get("thumbnail_url"),
     )
     annotation_file.slots.append(slot)
 

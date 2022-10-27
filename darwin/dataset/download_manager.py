@@ -238,7 +238,8 @@ def _download_single_slot_from_json_annotation(annotation, api_key, parent_path,
     else:
         if len(slot.source_files) > 0:
             image_url = slot.source_files[0]["url"]
-            image_path = parent_path / sanitize_filename(slot.filename or annotation.filename)
+            filename = slot.source_files[0]["file_name"]
+            image_path = parent_path / sanitize_filename(filename or annotation.filename)
             _download_image(image_url, image_path, api_key)
             _update_local_path(annotation, image_url, image_path)
 

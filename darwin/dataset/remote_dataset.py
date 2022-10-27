@@ -264,7 +264,7 @@ class RemoteDataset(ABC):
                     if annotation is None:
                         continue
 
-                    filename = annotation.filename
+                    filename = Path(annotation.filename).stem
                     destination_name = annotations_dir / f"{filename}{annotation_path.suffix}"
                     shutil.move(str(annotation_path), str(destination_name))
 
@@ -563,7 +563,7 @@ class RemoteDataset(ABC):
         annotation_class_ids: Optional[List[str]] = None,
         include_url_token: bool = False,
         include_authorship: bool = False,
-        legacy: bool = False,
+        version: Optional[str] = None,
     ) -> None:
         """
         Create a new release for this ``RemoteDataset``.
@@ -579,9 +579,9 @@ class RemoteDataset(ABC):
             membership or not?
         include_authorship : bool, default: False
             If set, include annotator and reviewer metadata for each annotation.
-        legacy : bool, default: False
-            When used for V2 dataset, forces legacy format of Darwin JSON to be generated.
-            This behaviour is deprecated and will be removed in future.
+        version : Optional[str], default: None, enum: ["1.0", "2.0"]
+            When used for V2 dataset, allows to force generation of either Darwin JSON 1.0 (Legacy) or newer 2.0.
+            Omit this option to get your team's default.
         """
 
     @abstractmethod

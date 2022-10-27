@@ -2,6 +2,7 @@ import json
 from datetime import date
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional
+from zlib import crc32
 
 import deprecation
 import numpy as np
@@ -72,7 +73,7 @@ def calculate_categories(annotation_files: List[dt.AnnotationFile]) -> Dict[str,
                 "complex_polygon",
                 "bounding_box",
             ]:
-                categories[annotation_class.name] = len(categories)
+                categories[annotation_class.name] = _calculate_category_id(annotation_class)
     return categories
 
 
@@ -87,7 +88,7 @@ def calculate_tag_categories(annotation_files: List[dt.AnnotationFile]) -> Dict[
     for annotation_file in annotation_files:
         for annotation_class in annotation_file.annotation_classes:
             if annotation_class.name not in categories and annotation_class.annotation_type == "tag":
-                categories[annotation_class.name] = len(categories)
+                categories[annotation_class.name] = _calculate_category_id(annotation_class)
     return categories
 
 
@@ -153,7 +154,7 @@ def build_image(annotation_file: dt.AnnotationFile, tag_categories: Dict[str, in
         "flickr_url": "n/a",
         "darwin_url": annotation_file.image_url,
         "darwin_workview_url": annotation_file.workview_url,
-        "id": annotation_file.seq,
+        "id": _build_image_id(annotation_file),
         "tag_ids": [tag_categories[tag.annotation_class.name] for tag in tags],
     }
 
@@ -201,7 +202,7 @@ def build_annotation(
 
         return {
             "id": annotation_id,
-            "image_id": annotation_file.seq,
+            "image_id": _build_image_id(annotation_file),
             "category_id": categories[annotation.annotation_class.name],
             "segmentation": sequences,
             "area": poly_area,
@@ -226,7 +227,7 @@ def build_annotation(
 
         return {
             "id": annotation_id,
-            "image_id": annotation_file.seq,
+            "image_id": _build_image_id(annotation_file),
             "category_id": categories[annotation.annotation_class.name],
             "segmentation": {"counts": counts, "size": [annotation_file.image_height, annotation_file.image_width]},
             "area": np.sum(mask),
@@ -336,7 +337,7 @@ def _calculate_categories(annotation_files: List[dt.AnnotationFile]) -> Dict[str
                 "complex_polygon",
                 "bounding_box",
             ]:
-                categories[annotation_class.name] = len(categories)
+                categories[annotation_class.name] = _calculate_category_id(annotation_class)
     return categories
 
 
@@ -345,8 +346,12 @@ def _calculate_tag_categories(annotation_files: List[dt.AnnotationFile]) -> Dict
     for annotation_file in annotation_files:
         for annotation_class in annotation_file.annotation_classes:
             if annotation_class.name not in categories and annotation_class.annotation_type == "tag":
-                categories[annotation_class.name] = len(categories)
+                categories[annotation_class.name] = _calculate_category_id(annotation_class)
     return categories
+
+
+def _calculate_category_id(annotation_class: dt.AnnotationClass) -> int:
+    return crc32(str.encode(annotation_class.name))
 
 
 def _build_info() -> Dict[str, Any]:
@@ -377,6 +382,7 @@ def _build_image(annotation_file: dt.AnnotationFile, tag_categories: Dict[str, i
     tags = [
         annotation for annotation in annotation_file.annotations if annotation.annotation_class.annotation_type == "tag"
     ]
+
     return {
         "license": 0,
         "file_name": annotation_file.filename,
@@ -387,9 +393,19 @@ def _build_image(annotation_file: dt.AnnotationFile, tag_categories: Dict[str, i
         "flickr_url": "n/a",
         "darwin_url": annotation_file.image_url,
         "darwin_workview_url": annotation_file.workview_url,
-        "id": annotation_file.seq,
+        "id": _build_image_id(annotation_file),
         "tag_ids": [tag_categories[tag.annotation_class.name] for tag in tags],
     }
+
+def _build_image_id(annotation_file: dt.AnnotationFile) -> int:
+    # CoCo file format requires unique image IDs
+    # darwin 1.0 produces unique 'seq' values that can be used
+    # darwin 2.0 does not provide `seq` so we hash the path + filename to produce a unique-enough 32bit int
+    if annotation_file.seq:
+        return annotation_file.seq
+    else:
+        full_path = str(Path(annotation_file.remote_path or "/") / Path(annotation_file.filename))
+        return crc32(str.encode(full_path))
 
 
 def _build_annotations(
@@ -423,7 +439,7 @@ def _build_annotation(
 
         return {
             "id": annotation_id,
-            "image_id": annotation_file.seq,
+            "image_id": _build_image_id(annotation_file),
             "category_id": categories[annotation.annotation_class.name],
             "segmentation": sequences,
             "area": poly_area,
@@ -448,7 +464,7 @@ def _build_annotation(
 
         return {
             "id": annotation_id,
-            "image_id": annotation_file.seq,
+            "image_id": _build_image_id(annotation_file),
             "category_id": categories[annotation.annotation_class.name],
             "segmentation": {"counts": counts, "size": [annotation_file.image_height, annotation_file.image_width]},
             "area": np.sum(mask),
