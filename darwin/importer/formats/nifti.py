@@ -1,10 +1,13 @@
 import json
 import warnings
 import zipfile
-from collections import defaultdict
+from collections import OrderedDict, defaultdict
 from pathlib import Path
-from typing import Dict, List, Optional, OrderedDict, Sequence, Union
+from typing import Dict, List, Optional, Sequence, Union
 
+from rich.console import Console
+
+console = Console()
 try:
     import cc3d
     import nibabel as nib
@@ -13,7 +16,7 @@ except ImportError:
     You must install `darwin-py` with `pip install darwin-py[medical]`
     in order to import with using nifti format
     """
-    print(import_fail_string)
+    console.print(import_fail_string)
 import numpy as np
 from jsonschema import validate
 from upolygon import find_contours
@@ -42,12 +45,20 @@ def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
     if not isinstance(path, Path):
         path = Path(path)
     if path.suffix != ".json":
+        console.print("Skipping file: {} (not a json file)".format(path), style="bold yellow")
         return None
     with open(path, "r") as f:
         data = json.load(f)
-        validate(data, schema=nifti_import_schema)
+        try:
+            validate(data, schema=nifti_import_schema)
+        except Exception as e:
+            console.print(
+                "Skipping file: {} (invalid json file, see schema for details)".format(path), style="bold yellow"
+            )
+            return None
     nifti_annotations = data.get("data")
-    if nifti_annotations is None:
+    if nifti_annotations is None or nifti_annotations == []:
+        console.print("Skipping file: {} (no data found)".format(path), style="bold yellow")
         return None
     annotation_files = []
     for nifti_annotation in nifti_annotations:
@@ -113,8 +124,10 @@ def _parse_nifti(nifti_path: Path, filename: Path, json_path: Path, class_map: D
     return dt.AnnotationFile(
         path=json_path,
         filename=str(filename),
+        remote_path="/",
         annotation_classes=annotation_classes,
         annotations=video_annotations,
+        slots=[dt.Slot(name=None, type="dicom", source_files=[{"url": None, "file_name": str(filename)}])],
     )
 
 

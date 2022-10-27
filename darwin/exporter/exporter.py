@@ -30,7 +30,7 @@ def darwin_to_dt_gen(file_paths: List[PathLike], split_sequences: bool) -> Itera
                 continue
             data = parse_darwin_json(f, count)
             if data:
-                if data.is_video and split_sequences and data.metadata is None:
+                if data.is_video and split_sequences:
                     for d in split_video_annotation(data):
                         d.seq = count
                         count += 1

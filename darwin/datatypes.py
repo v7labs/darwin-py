@@ -1,4 +1,3 @@
-import json
 from dataclasses import dataclass, field
 from email.policy import default
 from pathlib import Path
@@ -14,8 +13,6 @@ from typing import (
     Tuple,
     Union,
 )
-
-import numpy as np
 
 from darwin.path_utils import construct_full_path
 
@@ -241,7 +238,6 @@ class VideoAnnotation:
                 for frame in self.frames
                 if not only_keyframes or self.keyframes[frame]
             },
-            "slot_names": self.slot_names,
             "segments": self.segments,
             "interpolated": self.interpolated,
         }
@@ -338,7 +334,6 @@ class AnnotationFile:
     #: Remote path for this ``Annotation``\'s file in V7's darwin.
     remote_path: Optional[str] = None
 
-    metadata: Optional[Dict] = None
     slots: List[Slot] = field(default_factory=list)
 
     # Deprecated
@@ -974,8 +969,6 @@ def make_video_annotation(
         Indicates which frames are keyframes.
     segments : List[Segment]
         The list of segments for the video.
-    slot_name: str
-        The slot name this video annotation was acquired on.
     interpolated : bool
         If this video annotation is interpolated or not.
 
