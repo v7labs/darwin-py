@@ -21,7 +21,6 @@ from darwin.utils import (
 )
 from darwin.version import __version__
 from rich.console import Console
-from torch import le
 
 
 @deprecation.deprecated(
