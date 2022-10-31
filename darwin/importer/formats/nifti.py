@@ -13,7 +13,7 @@ try:
     import nibabel as nib
 except ImportError:
     import_fail_string = """
-    You must install `darwin-py` with `pip install darwin-py[medical]`
+    You must install darwin-py with pip install darwin-py\[medical]
     in order to import with using nifti format
     """
     console.print(import_fail_string)
