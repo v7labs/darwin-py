@@ -20,7 +20,7 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/v7labs/darwin-py",
-    setup_requires=["wheel"],
+    setup_requires=["wheel", "setuptools"],
     install_requires=[
         "argcomplete",
         "dataclasses;python_version<'3.7'",
