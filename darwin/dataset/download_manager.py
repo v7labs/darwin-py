@@ -201,27 +201,27 @@ def lazy_download_image_from_annotation(
     Returns functions to download an image given an annotation. Same as `download_image_from_annotation`
     but returns Callables that trigger the download instead fetching files interally.
 
-     Parameters
-     ----------
-     api_key : str
-         API Key of the current team
-     annotation_path : Path
-         Path where the annotation is located
-     images_path : Path
-         Path where to download the image
-     annotation_format : str
-         Format of the annotations. Currently only JSON is supported
-     use_folders : bool
-         Recreate folder structure
-     video_frames : bool
-         Pulls video frames images instead of video files
-     force_slots: bool
-         Pulls all slots of items into deeper file structure ({prefix}/{item_name}/{slot_name}/{file_name})
+    Parameters
+    ----------
+    api_key : str
+        API Key of the current team
+    annotation_path : Path
+        Path where the annotation is located
+    images_path : Path
+        Path where to download the image
+    annotation_format : str
+        Format of the annotations. Currently only JSON is supported
+    use_folders : bool
+        Recreate folder structure
+    video_frames : bool
+        Pulls video frames images instead of video files
+    force_slots: bool
+        Pulls all slots of items into deeper file structure ({prefix}/{item_name}/{slot_name}/{file_name})
 
-     Raises
-     ------
-     NotImplementedError
-         If the format of the annotation is not supported.
+    Raises
+    ------
+    NotImplementedError
+        If the format of the annotation is not supported.
     """
 
     console = Console()
