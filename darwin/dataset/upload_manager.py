@@ -162,9 +162,19 @@ class LocalFile:
 
     def serialize_v2(self):
         return {
-            "slots": [{"file_name": self.data["filename"], "slot_name": "0", "fps": self.data["fps"]}],
+            "slots": [
+                {
+                    "file_name": self.data["filename"],
+                    "slot_name": "0",
+                    "fps": self.data["fps"],
+                    "extract_views": self.data["extract_views"],
+                    "as_frames": self.data["as_frames"],
+                    "tags": [],
+                }
+            ],
             "name": self.data["filename"],
-            "path": self.data["path"],
+            "path": "",
+            "tags": [],
         }
 
     @property

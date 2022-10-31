@@ -567,6 +567,7 @@ def upload_data(
     fps: int,
     path: Optional[str],
     frames: bool,
+    extract_views: bool = False,
     preserve_folders: bool = False,
     verbose: bool = False,
 ) -> None:
@@ -591,6 +592,8 @@ def upload_data(
         files are in, otherwise an error will be raised.
     frames : bool
         Specify whether the files will be uploaded as a list of frames or not.
+    extract_views : bool
+        If providing a volume, pecify whether to extract the orthogonal views or not.
     preserve_folders : bool
         Specify whether or not to preserve folder paths when uploading.
     verbose : bool
@@ -657,6 +660,7 @@ def upload_data(
                 files_to_exclude=files_to_exclude,
                 fps=fps,
                 as_frames=frames,
+                extract_views=extract_views,
                 path=path,
                 preserve_folders=preserve_folders,
                 progress_callback=progress_callback,

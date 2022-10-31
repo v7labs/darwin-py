@@ -28,6 +28,7 @@ class BackendV2:
     ) -> Dict[str, Any]:
 
         payload["dataset_slug"] = dataset_slug
+        print(payload)
         response = self._client._post(
             endpoint=f"v2/teams/{team_slug}/items/register_upload",
             payload=payload,
