@@ -17,6 +17,7 @@ except ImportError:
     in order to import with using nifti format
     """
     console.print(import_fail_string)
+    exit()
 import numpy as np
 from jsonschema import validate
 from upolygon import find_contours
