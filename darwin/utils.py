@@ -34,8 +34,27 @@ if TYPE_CHECKING:
     from darwin.client import Client
 
 
-SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpeg", ".jpg", ".jfif", ".tif", ".tiff", ".bmp", ".svs", ".webp"]
-SUPPORTED_VIDEO_EXTENSIONS = [".avi", ".bpm", ".dcm", ".mov", ".mp4", ".pdf", ".ndpi"]
+SUPPORTED_IMAGE_EXTENSIONS = [
+    ".png",
+    ".jpeg",
+    ".jpg",
+    ".jfif",
+    ".tif",
+    ".tiff",
+    ".bmp",
+    ".svs",
+]
+SUPPORTED_VIDEO_EXTENSIONS = [
+    ".avi",
+    ".bpm",
+    ".dcm",
+    ".mov",
+    ".mp4",
+    ".pdf",
+    ".nii",
+    ".nii.gz",
+    ".ndpi",
+]
 SUPPORTED_EXTENSIONS = SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
 
 
@@ -200,8 +219,8 @@ def find_files(
     for f in files:
         path = Path(f)
         if path.is_dir():
-            found_files.extend([f for f in path.glob(pattern) if is_extension_allowed(f.suffix) and not f.is_dir()])
-        elif is_extension_allowed(path.suffix):
+            found_files.extend([f for f in path.glob(pattern) if is_extension_allowed("".join(f.suffixes))])
+        elif is_extension_allowed("".join(path.suffixes)):
             found_files.append(path)
         else:
             raise UnsupportedFileType(path)
