@@ -14,6 +14,7 @@ class UnrecognizableFileEncoding(Exception):
     Used when a we try to decode a file and all decoding algorithms fail.
     """
 
+
 class Unauthenticated(Exception):
     """
     Used when a user tries to perform an action that requires authentication without being
@@ -119,7 +120,25 @@ class OutdatedDarwinJSONFormat(Exception):
     Used when one tries to parse a video with an old darwin format that is no longer compatible.
     """
 
+
 class RequestEntitySizeExceeded(Exception):
     """
     Used when a request fails due to the URL being too long.
     """
+
+
+class UnknownExportVersion(Exception):
+    """Used when dataset version is not recognized."""
+
+    def __init__(self, version: str):
+        """
+        Parameters
+        ----------
+        version: str
+            The version that is not recognized.
+        """
+        super().__init__()
+        self.version = version
+
+    def __str__(self):
+        return f"Unknown version: '{self.version}'"

@@ -259,7 +259,7 @@ class Slot:
     source_files: List[Dict[str, str]]
 
     #: Thumbnail url to the file
-    thubmnail_url: Optional[str] = None
+    thumbnail_url: Optional[str] = None
 
     #: Width in pixel
     width: Optional[int] = None
