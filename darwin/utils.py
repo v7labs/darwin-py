@@ -397,20 +397,21 @@ def _parse_darwin_image(path: Path, data: Dict[str, Any], count: Optional[int]) 
     )
 
     annotation_file = dt.AnnotationFile(
-        path,
-        _get_local_filename(data["image"]),
-        annotation_classes,
-        annotations,
-        False,
-        data["image"].get("width"),
-        data["image"].get("height"),
-        data["image"].get("url"),
-        data["image"].get("workview_url"),
-        data["image"].get("seq", count),
-        None,
-        data["image"].get("path", "/"),
-        [],
-        data["image"].get("thumbnail_url"),
+        path=path,
+        filename=_get_local_filename(data["image"]),
+        annotation_classes=annotation_classes,
+        annotations=annotations,
+        is_video=False,
+        image_width=data["image"].get("width"),
+        image_height=data["image"].get("height"),
+        image_url=data["image"].get("url"),
+        workview_url=data["image"].get("workview_url"),
+        seq=data["image"].get("seq", count),
+        frame_urls=None,
+        remote_path=data["image"].get("path", "/"),
+        metadata=None,
+        slots=[],
+        image_thumbnail_url=data["image"].get("thumbnail_url"),
     )
     annotation_file.slots.append(slot)
     return annotation_file
@@ -436,20 +437,21 @@ def _parse_darwin_video(path: Path, data: Dict[str, Any], count: Optional[int]) 
     )
 
     annotation_file = dt.AnnotationFile(
-        path,
-        _get_local_filename(data["image"]),
-        annotation_classes,
-        annotations,
-        True,
-        data["image"].get("width"),
-        data["image"].get("height"),
-        data["image"].get("url"),
-        data["image"].get("workview_url"),
-        data["image"].get("seq", count),
-        data["image"].get("frame_urls"),
-        data["image"].get("path", "/"),
-        [],
-        data["image"].get("thumbnail_url"),
+        path=path,
+        filename=_get_local_filename(data["image"]),
+        annotation_classes=annotation_classes,
+        annotations=annotations,
+        is_video=True,
+        image_width=data["image"].get("width"),
+        image_height=data["image"].get("height"),
+        image_url=data["image"].get("url"),
+        workview_url=data["image"].get("workview_url"),
+        seq=data["image"].get("seq", count),
+        frame_urls=data["image"].get("frame_urls"),
+        remote_path=data["image"].get("path", "/"),
+        metadata=None,
+        slots=[],
+        image_thumbnail_url=data["image"].get("thumbnail_url"),
     )
     annotation_file.slots.append(slot)
 

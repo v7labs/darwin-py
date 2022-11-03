@@ -334,6 +334,7 @@ class AnnotationFile:
     #: Remote path for this ``Annotation``\'s file in V7's darwin.
     remote_path: Optional[str] = None
 
+    metadata: Optional[Dict[str, Any]] = None
     slots: List[Slot] = field(default_factory=list)
 
     # Deprecated
