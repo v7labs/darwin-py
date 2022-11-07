@@ -66,8 +66,8 @@ def _build_txt(annotation_file: dt.AnnotationFile, class_index: ClassIndex) -> s
         i = class_index[annotation.annotation_class.name]
         # x, y should be the center of the box
         # x, y, w, h are normalized to the image size
-        x = data["x"] + (data["w"] / 2)
-        y = data["y"] + (data["h"] / 2)
+        x = data["x"] + data["w"] / 2
+        y = data["y"] + data["h"] / 2
         w = data["w"]
         h = data["h"]
         imh = annotation_file.image_height
