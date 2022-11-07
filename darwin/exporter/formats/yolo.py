@@ -66,16 +66,16 @@ def _build_txt(annotation_file: dt.AnnotationFile, class_index: ClassIndex) -> s
         i = class_index[annotation.annotation_class.name]
         # x, y should be the center of the box
         # x, y, w, h are normalized to the image size
-        x = data["x"] + (data["width"] / 2)
-        y = data["y"] + (data["height"] / 2)
+        x = data["x"] + (data["w"] / 2)
+        y = data["y"] + (data["h"] / 2)
         w = data["w"]
         h = data["h"]
         imh = annotation_file.image_height
         imw = annotation_file.image_width
-        x = round(x / imw)
-        y = round(y / imh)
-        w = round(w / imw)
-        h = round(h / imh)
+        x = x / imw
+        y = y / imh
+        w = w / imw
+        h = h / imh
 
         yolo_lines.append(f"{i} {x} {y} {w} {h}")
     return "\n".join(yolo_lines)
