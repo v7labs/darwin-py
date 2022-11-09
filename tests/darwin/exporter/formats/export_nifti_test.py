@@ -18,7 +18,7 @@ def test_video_annotation_nifti_export():
                 for f in annotations_dir.iterdir()
                 if f.suffix == ".json" and f != annotations_dir / "image_annotation.json"
             ]
-            video_annotations = list(darwin_to_dt_gen(video_annotation_filepaths))
+            video_annotations = list(darwin_to_dt_gen(video_annotation_filepaths, split_sequences=True))
             nifti.export(video_annotations, output_dir=tmpdir)
             export_im = nib.load(Path(tmpdir) / "vol0002_brain.nii.gz").get_fdata()
             expected_im = nib.load(annotations_dir / "vol0002_brain.nii.gz").get_fdata()
@@ -31,7 +31,7 @@ def test_image_annotation_nifti_export():
             zfile.extractall(tmpdir)
             annotations_dir = Path(tmpdir) / "v7/nifti/releases/latest/annotations"
             image_annotation_filepath = annotations_dir / "image_annotation.json"
-            image_annotations = list(darwin_to_dt_gen([image_annotation_filepath]))
+            image_annotations = list(darwin_to_dt_gen([image_annotation_filepath], split_sequences=False))
             nifti.export(image_annotations, output_dir=tmpdir)
             export_im = nib.load(Path(tmpdir) / "vol0_brain.nii.gz").get_fdata()
             expected_im = nib.load(annotations_dir / "vol0_brain.nii.gz").get_fdata()
