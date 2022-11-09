@@ -25,9 +25,34 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path) -> N
     output_dir : Path
         The folder where the new instance mask files will be.
     """
+    video_annotations = list(annotation_files)
+    for video_annotation in video_annotations:
+        export_single_nifti_file(video_annotation, output_dir)
+
+
+def export_single_nifti_file(video_annotation: dt.AnnotationFile, output_dir: Path) -> None:
     output_volumes = None
-    video_annotation = list(annotation_files)[0]
-    image_id = Path(video_annotation.filename).stem
+    filename = Path(video_annotation.filename)
+    suffixes = filename.suffixes
+    if len(suffixes) > 2:
+        # Misconfigured filename, contains too many sufficxes
+        return
+    elif len(suffixes) == 2:
+        if suffixes[0] == ".nii" and suffixes[1] == ".gz":
+            image_id = str(filename).strip("".join(suffixes))
+        else:
+            # Misconfigured filename, not ending in .nii.gz
+            return
+    elif len(suffixes) == 1:
+        if suffixes[0] == ".nii":
+            image_id = filename.stem
+        else:
+            # Misconfigured filename, not ending in .nii
+            return
+    else:
+        # filename should contain extension
+        return
+    print("image_id", image_id)
     if video_annotation is None:
         return
     if video_annotation.metadata is None:
@@ -64,33 +89,44 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path) -> N
             elif view_idx == 2:
                 height, width = volume_dims[1], volume_dims[2]
                 pixdims = [pixdim[1], pixdim[2]]
-            polygon = shift_polygon_coords(
-                frames[frame_idx].data["path"],
-                height=height,
-                width=width,
-                pixdim=pixdims,
-            )
+            if "paths" in frames[frame_idx].data:
+                # Dealing with a complex polygon
+                polygons = [
+                    shift_polygon_coords(
+                        polygon_path,
+                        height=height,
+                        width=width,
+                        pixdim=pixdims,
+                    )
+                    for polygon_path in frames[frame_idx].data["paths"]
+                ]
+            elif "path" in frames[frame_idx].data:
+                # Dealing with a simple polygon
+                polygons = shift_polygon_coords(
+                    frames[frame_idx].data["path"],
+                    height=height,
+                    width=width,
+                    pixdim=pixdims,
+                )
+            else:
+                continue
             class_name = frames[frame_idx].annotation_class.name
-            im_mask = convert_polygons_to_mask(polygon, height=height, width=width)
+            im_mask = convert_polygons_to_mask(polygons, height=height, width=width)
             output_volume = output_volumes[class_name]
             if view_idx == 0:
-                output_volume[:, :, frame_idx] = np.logical_or(
-                    im_mask, output_volume[:, :, frame_idx]
-                )
+                output_volume[:, :, frame_idx] = np.logical_or(im_mask, output_volume[:, :, frame_idx])
             elif view_idx == 1:
-                output_volume[:, frame_idx, :] = np.logical_or(
-                    im_mask, output_volume[:, frame_idx, :]
-                )
+                output_volume[:, frame_idx, :] = np.logical_or(im_mask, output_volume[:, frame_idx, :])
             elif view_idx == 2:
-                output_volume[frame_idx, :, :] = np.logical_or(
-                    im_mask, output_volume[frame_idx, :, :]
-                )
+                output_volume[frame_idx, :, :] = np.logical_or(im_mask, output_volume[frame_idx, :, :])
     for class_name in class_map.keys():
         img = nib.Nifti1Image(
             dataobj=np.flip(output_volumes[class_name], (0, 1, 2)).astype(np.int16),
             affine=affine,
         )
         output_path = Path(output_dir) / f"{image_id}_{class_name}.nii.gz"
+        if not output_path.parent.exists():
+            output_path.parent.mkdir(parents=True)
         nib.save(img=img, filename=output_path)
 
 
