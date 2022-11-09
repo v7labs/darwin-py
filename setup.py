@@ -38,6 +38,7 @@ setuptools.setup(
     extras_require={
         "test": ["responses", "pytest", "pytest-describe", "scikit-learn"],
         "ml": ["scikit-learn", "torch", "torchvision"],
+        "medical": ["nibabel", "connected-components-3d"],
     },
     packages=[
         "darwin",
