@@ -20,7 +20,7 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/v7labs/darwin-py",
-    setup_requires=["wheel"],
+    setup_requires=["wheel", "setuptools"],
     install_requires=[
         "argcomplete",
         "dataclasses;python_version<'3.7'",
@@ -36,8 +36,8 @@ setuptools.setup(
         "pydantic",
     ],
     extras_require={
-        "test": ["responses", "pytest", "pytest-describe", "sklearn"],
-        "ml": ["sklearn", "torch", "torchvision"],
+        "test": ["responses", "pytest", "pytest-describe", "scikit-learn"],
+        "ml": ["scikit-learn", "torch", "torchvision"],
         "medical": ["nibabel", "connected-components-3d"],
     },
     packages=[
