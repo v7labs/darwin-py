@@ -400,7 +400,7 @@ def _parse_darwin_image(path: Path, data: Dict[str, Any], count: Optional[int]) 
         seq=data["image"].get("seq", count),
         frame_urls=None,
         remote_path=data["image"].get("path", "/"),
-        metadata=None,
+        metadata=data["image"].get("metadata"),
         slots=[],
         image_thumbnail_url=data["image"].get("thumbnail_url"),
     )
@@ -426,7 +426,6 @@ def _parse_darwin_video(path: Path, data: Dict[str, Any], count: Optional[int]) 
         frame_urls=data["image"].get("frame_urls"),
         fps=data["image"].get("fps"),
     )
-
     annotation_file = dt.AnnotationFile(
         path=path,
         filename=_get_local_filename(data["image"]),
@@ -440,7 +439,7 @@ def _parse_darwin_video(path: Path, data: Dict[str, Any], count: Optional[int]) 
         seq=data["image"].get("seq", count),
         frame_urls=data["image"].get("frame_urls"),
         remote_path=data["image"].get("path", "/"),
-        metadata=None,
+        metadata=data["image"].get("metadata"),
         slots=[],
         image_thumbnail_url=data["image"].get("thumbnail_url"),
     )
@@ -553,7 +552,6 @@ def _parse_darwin_video_annotation(annotation: dict) -> Optional[dt.VideoAnnotat
 
     if not frame_annotations:
         return None
-
     main_annotation = dt.make_video_annotation(
         frame_annotations,
         keyframes,
@@ -609,7 +607,6 @@ def split_video_annotation(annotation: dt.AnnotationFile) -> List[dt.AnnotationF
         ]
         annotation_classes: Set[dt.AnnotationClass] = set([annotation.annotation_class for annotation in annotations])
         filename: str = f"{Path(annotation.filename).stem}/{i:07d}.png"
-
         frame_annotations.append(
             dt.AnnotationFile(
                 annotation.path,
@@ -622,6 +619,7 @@ def split_video_annotation(annotation: dt.AnnotationFile) -> List[dt.AnnotationF
                 frame_url,
                 annotation.workview_url,
                 annotation.seq,
+                metadata=annotation.metadata,
             )
         )
     return frame_annotations
@@ -926,7 +924,6 @@ def _parse_version(data) -> dt.AnnotationFileVersion:
 def _data_to_annotations(data: Dict[str, Any]) -> List[Union[dt.Annotation, dt.VideoAnnotation]]:
     raw_image_annotations = filter(lambda annotation: "frames" not in annotation, data["annotations"])
     raw_video_annotations = filter(lambda annotation: "frames" in annotation, data["annotations"])
-
     image_annotations: List[dt.Annotation] = list(filter(None, map(_parse_darwin_annotation, raw_image_annotations)))
     video_annotations: List[dt.VideoAnnotation] = list(
         filter(None, map(_parse_darwin_video_annotation, raw_video_annotations))

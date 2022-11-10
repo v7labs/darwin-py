@@ -52,7 +52,6 @@ def export_single_nifti_file(video_annotation: dt.AnnotationFile, output_dir: Pa
     else:
         # filename should contain extension
         return
-    print("image_id", image_id)
     if video_annotation is None:
         return
     if video_annotation.metadata is None:

@@ -988,7 +988,7 @@ def convert(format: str, files: List[PathLike], output_dir: Path) -> None:
     except AttributeError:
         _error(f"Unsupported export format, currently supported: {export_formats}")
 
-    export_annotations(parser, files, output_dir, split_sequences=(format != "darwin_1.0"))
+    export_annotations(parser, files, output_dir, split_sequences=(format not in ["darwin_1.0", "nifti"]))
 
 
 def post_comment(
