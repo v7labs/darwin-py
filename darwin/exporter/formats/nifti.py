@@ -54,11 +54,13 @@ def export_single_nifti_file(video_annotation: dt.AnnotationFile, output_dir: Pa
         return
     if video_annotation is None:
         return
-    if video_annotation.metadata is None:
+    # Pick the first slot to take the metadata from. We assume that all slots have the same metadata.
+    metadata = video_annotation.slots[0].metadata
+    if metadata is None:
         return
     if not video_annotation.annotations:
         return
-    volume_dims, pixdim, affine = process_metadata(video_annotation.metadata)
+    volume_dims, pixdim, affine = process_metadata(metadata)
     if affine is None or pixdim is None or volume_dims is None:
         return
     # Builds a map of class to integer

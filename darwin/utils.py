@@ -333,7 +333,6 @@ def _parse_darwin_v2(path: Path, data: Dict[str, Any]) -> dt.AnnotationFile:
             seq=0,
             frame_urls=None,
             remote_path=item["path"],
-            metadata=item.get("metadata"),
             slots=slots,
         )
     else:
@@ -353,7 +352,6 @@ def _parse_darwin_v2(path: Path, data: Dict[str, Any]) -> dt.AnnotationFile:
             seq=0,
             frame_urls=slot.frame_urls,
             remote_path=item["path"],
-            metadata=item.get("metadata"),
             slots=slots,
         )
 
@@ -371,6 +369,7 @@ def _parse_darwin_slot(data: Dict[str, Any]) -> dt.Slot:
         frame_count=data.get("frame_count"),
         frame_urls=data.get("frame_urls"),
         fps=data.get("fps"),
+        metadata=data.get("metadata"),
     )
 
 
@@ -385,6 +384,7 @@ def _parse_darwin_image(path: Path, data: Dict[str, Any], count: Optional[int]) 
         thumbnail_url=data["image"].get("thumbnail_url"),
         width=data["image"].get("width"),
         height=data["image"].get("height"),
+        metadata=data["image"].get("metadata"),
     )
 
     annotation_file = dt.AnnotationFile(
@@ -400,7 +400,6 @@ def _parse_darwin_image(path: Path, data: Dict[str, Any], count: Optional[int]) 
         seq=data["image"].get("seq", count),
         frame_urls=None,
         remote_path=data["image"].get("path", "/"),
-        metadata=data["image"].get("metadata"),
         slots=[],
         image_thumbnail_url=data["image"].get("thumbnail_url"),
     )
@@ -425,6 +424,7 @@ def _parse_darwin_video(path: Path, data: Dict[str, Any], count: Optional[int]) 
         frame_count=data["image"].get("frame_count"),
         frame_urls=data["image"].get("frame_urls"),
         fps=data["image"].get("fps"),
+        metadata=data["image"].get("metadata"),
     )
     annotation_file = dt.AnnotationFile(
         path=path,
@@ -439,7 +439,6 @@ def _parse_darwin_video(path: Path, data: Dict[str, Any], count: Optional[int]) 
         seq=data["image"].get("seq", count),
         frame_urls=data["image"].get("frame_urls"),
         remote_path=data["image"].get("path", "/"),
-        metadata=data["image"].get("metadata"),
         slots=[],
         image_thumbnail_url=data["image"].get("thumbnail_url"),
     )
@@ -619,7 +618,7 @@ def split_video_annotation(annotation: dt.AnnotationFile) -> List[dt.AnnotationF
                 frame_url,
                 annotation.workview_url,
                 annotation.seq,
-                metadata=annotation.metadata,
+                slots=annotation.slots,
             )
         )
     return frame_annotations
