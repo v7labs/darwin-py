@@ -43,6 +43,9 @@ class Client:
         self.default_team: str = default_team or config.get("global/default_team")
         self.features: Dict[str, List[Feature]] = {}
         self._newer_version: Optional[DarwinVersionNumber] = None
+        self.session = requests.Session()
+        adapter = requests.adapters.HTTPAdapter(pool_maxsize=100)
+        self.session.mount("https://", adapter)
 
         if log is None:
             self.log: Logger = logging.getLogger("darwin")
@@ -1014,7 +1017,7 @@ class Client:
     def _get_raw_from_full_url(
         self, url: str, team_slug: Optional[str] = None, retry: bool = False, stream: bool = False
     ) -> Response:
-        response: Response = requests.get(url, headers=self._get_headers(team_slug), stream=stream)
+        response: Response = self.session.get(url, headers=self._get_headers(team_slug), stream=stream)
 
         self.log.debug(
             f"Client GET request response ({get_response_content(response)}) with status "
@@ -1047,7 +1050,7 @@ class Client:
     def _put_raw(
         self, endpoint: str, payload: Dict[str, Any], team_slug: Optional[str] = None, retry: bool = False
     ) -> Response:
-        response: requests.Response = requests.put(
+        response: requests.Response = self.session.put(
             urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team_slug)
         )
 
@@ -1084,7 +1087,7 @@ class Client:
         if payload is None:
             payload = {}
 
-        response: Response = requests.post(
+        response: Response = self.session.post(
             urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team_slug)
         )
 
