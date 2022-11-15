@@ -169,8 +169,8 @@ def process_metadata(metadata):
     return volume_dims, pixdim, affine
 
 
-def create_error_message_json(error_message, output_dir, image_id):
-    output_path = Path(output_dir) / f"{image_id}_error.json"
+def create_error_message_json(error_message, output_dir, image_id: Path):
+    output_path = Path(output_dir) / f"{image_id.stem}_error.json"
     if not output_path.parent.exists():
         output_path.parent.mkdir(parents=True)
     with open(output_path, "w") as f:
