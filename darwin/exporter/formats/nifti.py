@@ -52,8 +52,6 @@ def export_single_nifti_file(video_annotation: dt.AnnotationFile, output_dir: Pa
     metadata = video_annotation.slots[0].metadata
     if metadata is None:
         return create_error_message_json(f"No metadata found for {str(filename)}", output_dir, image_id)
-    if not video_annotation.annotations:
-        return create_error_message_json(f"No annotations found for {str(filename)}", output_dir, image_id)
     volume_dims, pixdim, affine = process_metadata(metadata)
     if affine is None or pixdim is None or volume_dims is None:
         return create_error_message_json(
@@ -61,6 +59,8 @@ def export_single_nifti_file(video_annotation: dt.AnnotationFile, output_dir: Pa
             output_dir,
             image_id,
         )
+    if not video_annotation.annotations:
+        create_empty_nifti_file(volume_dims, affine, output_dir, image_id)
     # Builds a map of class to integer
     class_map = {}
     class_count = 1
@@ -169,9 +169,17 @@ def process_metadata(metadata):
     return volume_dims, pixdim, affine
 
 
-def create_error_message_json(error_message, output_dir, image_id: Path):
-    output_path = Path(output_dir) / f"{image_id.stem}_error.json"
+def create_error_message_json(error_message, output_dir, image_id: str):
+    output_path = Path(output_dir) / f"{image_id}_error.json"
     if not output_path.parent.exists():
         output_path.parent.mkdir(parents=True)
     with open(output_path, "w") as f:
         json.dump({"error": error_message}, f)
+
+
+def create_empty_nifti_file(volume_dims, affine, output_dir, image_id: str):
+    output_path = Path(output_dir) / f"{image_id}_empty.nii.gz"
+    if not output_path.parent.exists():
+        output_path.parent.mkdir(parents=True)
+    img = nib.Nifti1Image(dataobj=np.flip(np.zeros(volume_dims), (0, 1, 2)).astype(np.int16), affine=affine)
+    nib.save(img=img, filename=output_path)
