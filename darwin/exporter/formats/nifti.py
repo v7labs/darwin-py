@@ -1,7 +1,5 @@
-import os
-import shutil
+import json
 from asyncore import loop
-from collections import defaultdict
 from pathlib import Path
 from typing import Iterable
 
@@ -35,34 +33,34 @@ def export_single_nifti_file(video_annotation: dt.AnnotationFile, output_dir: Pa
     filename = Path(video_annotation.filename)
     suffixes = filename.suffixes
     if len(suffixes) > 2:
-        # Misconfigured filename, contains too many sufficxes
-        return
+        return create_error_message_json("Misconfigured filename, contains too many suffixes", output_dir, filename)
     elif len(suffixes) == 2:
         if suffixes[0] == ".nii" and suffixes[1] == ".gz":
             image_id = str(filename).strip("".join(suffixes))
         else:
-            # Misconfigured filename, not ending in .nii.gz
-            return
+            return create_error_message_json("Misconfigured filename, not ending in .nii.gz", output_dir, filename)
     elif len(suffixes) == 1:
         if suffixes[0] == ".nii":
             image_id = filename.stem
         else:
-            # Misconfigured filename, not ending in .nii
-            return
+            return create_error_message_json("Misconfigured filename, not ending in .nii", output_dir, filename)
     else:
-        # filename should contain extension
-        return
+        return create_error_message_json("filename should contain extension", output_dir, filename)
     if video_annotation is None:
-        return
+        return create_error_message_json("video_annotation not found", output_dir, filename)
     # Pick the first slot to take the metadata from. We assume that all slots have the same metadata.
     metadata = video_annotation.slots[0].metadata
     if metadata is None:
-        return
+        return create_error_message_json(f"No metadata found for {str(filename)}", output_dir, filename)
     if not video_annotation.annotations:
-        return
+        return create_error_message_json(f"No annotations found for {str(filename)}", output_dir, filename)
     volume_dims, pixdim, affine = process_metadata(metadata)
     if affine is None or pixdim is None or volume_dims is None:
-        return
+        return create_error_message_json(
+            f"Missing one of affine, pixdim or shape in metadata for {str(filename)}, try reuploading file",
+            output_dir,
+            filename,
+        )
     # Builds a map of class to integer
     class_map = {}
     class_count = 1
@@ -169,3 +167,11 @@ def process_metadata(metadata):
         else:
             volume_dims = None
     return volume_dims, pixdim, affine
+
+
+def create_error_message_json(error_message, output_dir, image_id):
+    output_path = Path(output_dir) / f"{image_id}_error.json"
+    if not output_path.parent.exists():
+        output_path.parent.mkdir(parents=True)
+    with open(output_path, "w") as f:
+        json.dump({"error": error_message}, f)
