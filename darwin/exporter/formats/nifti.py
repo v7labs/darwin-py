@@ -33,25 +33,38 @@ def export_single_nifti_file(video_annotation: dt.AnnotationFile, output_dir: Pa
     filename = Path(video_annotation.filename)
     suffixes = filename.suffixes
     if len(suffixes) > 2:
-        return create_error_message_json("Misconfigured filename, contains too many suffixes", output_dir, filename)
+        return create_error_message_json(
+            "Misconfigured filename, contains too many suffixes", output_dir, str(filename)
+        )
     elif len(suffixes) == 2:
         if suffixes[0] == ".nii" and suffixes[1] == ".gz":
             image_id = str(filename).strip("".join(suffixes))
         else:
-            return create_error_message_json("Misconfigured filename, not ending in .nii.gz", output_dir, filename)
+            return create_error_message_json("Two suffixes found but not ending in .nii.gz", output_dir, str(filename))
     elif len(suffixes) == 1:
-        if suffixes[0] == ".nii":
+        if suffixes[0] == ".nii" or suffixes[0] == ".dcm":
             image_id = filename.stem
         else:
-            return create_error_message_json("Misconfigured filename, not ending in .nii", output_dir, filename)
+            return create_error_message_json(
+                "Misconfigured filename, not ending in .nii or .dcm. Are you sure this is medical data?",
+                output_dir,
+                str(filename),
+            )
     else:
-        return create_error_message_json("Filename should contain extension", output_dir, filename)
+        return create_error_message_json(
+            "You are trying to export to nifti. Filename should contain either .nii, .nii.gz or .dcm extension."
+            "Are you sure this is medical data?",
+            output_dir,
+            str(filename),
+        )
     if video_annotation is None:
         return create_error_message_json("video_annotation not found", output_dir, image_id)
     # Pick the first slot to take the metadata from. We assume that all slots have the same metadata.
     metadata = video_annotation.slots[0].metadata
     if metadata is None:
-        return create_error_message_json(f"No metadata found for {str(filename)}", output_dir, image_id)
+        return create_error_message_json(
+            f"No metadata found for {str(filename)}, are you sure this is medical data?", output_dir, image_id
+        )
     volume_dims, pixdim, affine = process_metadata(metadata)
     if affine is None or pixdim is None or volume_dims is None:
         return create_error_message_json(
