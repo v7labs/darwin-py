@@ -171,7 +171,12 @@ def process_metadata(metadata):
             affine = None
     if isinstance(pixdim, str):
         pixdim = eval(pixdim)
-        if not isinstance(pixdim, tuple):
+        if isinstance(pixdim, tuple) or isinstance(pixdim, list):
+            if len(pixdim) == 4:
+                pixdim = pixdim[1:]
+            if len(pixdim) != 3:
+                pixdim = None
+        else:
             pixdim = None
     if isinstance(volume_dims, list):
         if volume_dims:
