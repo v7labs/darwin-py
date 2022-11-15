@@ -45,21 +45,21 @@ def export_single_nifti_file(video_annotation: dt.AnnotationFile, output_dir: Pa
         else:
             return create_error_message_json("Misconfigured filename, not ending in .nii", output_dir, filename)
     else:
-        return create_error_message_json("filename should contain extension", output_dir, filename)
+        return create_error_message_json("Filename should contain extension", output_dir, filename)
     if video_annotation is None:
-        return create_error_message_json("video_annotation not found", output_dir, filename)
+        return create_error_message_json("video_annotation not found", output_dir, image_id)
     # Pick the first slot to take the metadata from. We assume that all slots have the same metadata.
     metadata = video_annotation.slots[0].metadata
     if metadata is None:
-        return create_error_message_json(f"No metadata found for {str(filename)}", output_dir, filename)
+        return create_error_message_json(f"No metadata found for {str(filename)}", output_dir, image_id)
     if not video_annotation.annotations:
-        return create_error_message_json(f"No annotations found for {str(filename)}", output_dir, filename)
+        return create_error_message_json(f"No annotations found for {str(filename)}", output_dir, image_id)
     volume_dims, pixdim, affine = process_metadata(metadata)
     if affine is None or pixdim is None or volume_dims is None:
         return create_error_message_json(
             f"Missing one of affine, pixdim or shape in metadata for {str(filename)}, try reuploading file",
             output_dir,
-            filename,
+            image_id,
         )
     # Builds a map of class to integer
     class_map = {}
