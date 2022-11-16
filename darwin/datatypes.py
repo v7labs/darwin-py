@@ -272,6 +272,9 @@ class Slot:
     #: Frames per second
     fps: Optional[float] = None
 
+    #: Metadata of the slot
+    metadata: Optional[Dict[str, Any]] = None
+
 
 @dataclass
 class AnnotationFileVersion:
