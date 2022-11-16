@@ -18,6 +18,8 @@ from typing import (
     Union,
 )
 
+from rich.console import Console
+
 from darwin.dataset.download_manager import download_all_images_from_annotations
 from darwin.dataset.identifier import DatasetIdentifier
 from darwin.dataset.release import Release
@@ -41,7 +43,6 @@ from darwin.exporter.formats.darwin import build_image_annotation
 from darwin.item import DatasetItem
 from darwin.item_sorter import ItemSorter
 from darwin.utils import parse_darwin_json, split_video_annotation, urljoin
-from rich.console import Console
 
 if TYPE_CHECKING:
     from darwin.client import Client
@@ -258,6 +259,8 @@ class RemoteDataset(ABC):
                     except PermissionError:
                         print(f"Could not remove dataset in {annotations_dir}. Permission denied.")
                 annotations_dir.mkdir(parents=True, exist_ok=False)
+                stems: dict = {}
+
                 # Move the annotations into the right folder and rename them to have the image
                 # original filename as contained in the json
                 for annotation_path in tmp_dir.glob("*.json"):
@@ -266,6 +269,12 @@ class RemoteDataset(ABC):
                         continue
 
                     filename = Path(annotation.filename).stem
+                    if filename in stems:
+                        stems[filename] += 1
+                        filename = f"{filename}_{stems[filename]}"
+                    else:
+                        stems[filename] = 1
+
                     destination_name = annotations_dir / f"{filename}{annotation_path.suffix}"
                     shutil.move(str(annotation_path), str(destination_name))
 
