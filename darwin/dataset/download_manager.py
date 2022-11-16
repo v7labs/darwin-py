@@ -270,7 +270,7 @@ def _download_all_slots_from_json_annotation(annotation, api_key, parent_path, v
         slot_path = parent_path / sanitize_filename(annotation.filename) / sanitize_filename(slot.name)
         slot_path.mkdir(exist_ok=True, parents=True)
 
-        if video_frames and slot.type != "image":
+        if video_frames and slot.type == "video":
             video_path: Path = slot_path / "sections"
             video_path.mkdir(exist_ok=True, parents=True)
             for i, frame_url in enumerate(slot.frame_urls or []):
@@ -289,7 +289,7 @@ def _download_single_slot_from_json_annotation(annotation, api_key, parent_path,
     slot = annotation.slots[0]
     generator = []
 
-    if video_frames and slot.type != "image":
+    if video_frames and slot.type == "video":
         video_path: Path = parent_path / annotation_path.stem
         video_path.mkdir(exist_ok=True, parents=True)
         for i, frame_url in enumerate(slot.frame_urls or []):
