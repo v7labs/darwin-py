@@ -1128,7 +1128,7 @@ class Client:
         if payload is None:
             payload = {}
 
-        response: requests.Response = requests.delete(
+        response: requests.Response = self.session.delete(
             urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team_slug)
         )
 
