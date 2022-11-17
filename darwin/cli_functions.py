@@ -593,7 +593,7 @@ def upload_data(
     frames : bool
         Specify whether the files will be uploaded as a list of frames or not.
     extract_views : bool
-        If providing a volume, pecify whether to extract the orthogonal views or not.
+        If providing a volume, specify whether to extract the orthogonal views or not.
     preserve_folders : bool
         Specify whether or not to preserve folder paths when uploading.
     verbose : bool
