@@ -16,15 +16,16 @@ if TYPE_CHECKING:
     from darwin.client import Client
     from darwin.dataset import RemoteDataset
 
-import darwin.datatypes as dt
 import deprecation
+from rich.console import Console
+from rich.progress import track
+from rich.theme import Theme
+
+import darwin.datatypes as dt
 from darwin.datatypes import PathLike
 from darwin.exceptions import IncompatibleOptions, RequestEntitySizeExceeded
 from darwin.utils import secure_continue_request
 from darwin.version import __version__
-from rich.console import Console
-from rich.progress import track
-from rich.theme import Theme
 
 # Classes missing import support on backend side
 UNSUPPORTED_CLASSES = ["string", "graph"]
@@ -120,7 +121,7 @@ def build_attribute_lookup(dataset: "RemoteDataset") -> Dict[str, Any]:
     current_version=__version__,
     details=DEPRECATION_MESSAGE,
 )
-def get_remote_files(dataset: "RemoteDataset", filenames: List[str], chunk_size: int() = 100) -> Dict[str, int]:
+def get_remote_files(dataset: "RemoteDataset", filenames: List[str], chunk_size: int() = 100) -> Dict[str, Tuple[int, str]]:
     """Fetches remote files from the datasets in chunks; by default 100 filenames at a time"""
     remote_files = {}
     for i in range(0, len(filenames), chunk_size):
@@ -128,9 +129,16 @@ def get_remote_files(dataset: "RemoteDataset", filenames: List[str], chunk_size:
         for remote_file in dataset.fetch_remote_files(
             {"types": "image,playback_video,video_frame", "filenames": chunk}
         ):
-            remote_files[remote_file.full_path] = remote_file.id
+            slot_name = _get_slot_name(remote_file)
+            remote_files[remote_file.full_path] = (remote_file.id, slot_name)
     return remote_files
 
+def _get_slot_name(remote_file) -> str:
+    slot = next(iter(remote_file.slots))
+    if slot:
+        return slot["slot_name"]
+    else:
+        return '0'
 
 def _resolve_annotation_classes(
     local_annotation_classes: List[dt.AnnotationClass],
@@ -260,6 +268,7 @@ def import_annotations(
             if chunk_size <= 0:
                 raise ValueError("Unable to fetch remote file list.")
 
+
     for parsed_file in parsed_files:
         if parsed_file.full_path not in remote_files:
             local_files_missing_remotely.append(parsed_file)
@@ -364,13 +373,17 @@ def import_annotations(
         if files_to_track:
             _warn_unsupported_annotations(files_to_track)
             for parsed_file in track(files_to_track):
-                image_id = remote_files[parsed_file.full_path]
+                remote_file = remote_files[parsed_file.full_path]
+                image_id = remote_file[0]
+                default_slot_name = remote_file[1]
+
                 _import_annotations(
                     dataset.client,
                     image_id,
                     remote_classes,
                     attributes,
                     parsed_file.annotations,
+                    default_slot_name,
                     dataset,
                     append,
                     delete_for_empty,
@@ -436,11 +449,13 @@ def _import_annotations(
     remote_classes: Dict[str, Any],
     attributes: Dict[str, Any],
     annotations: List[dt.Annotation],
+    default_slot_name: str,
     dataset: "RemoteDataset",
     append: bool,
     delete_for_empty: bool,
 ):
     serialized_annotations = []
+
     for annotation in annotations:
         annotation_class = annotation.annotation_class
         annotation_type = annotation_class.annotation_internal_type or annotation_class.annotation_type
@@ -458,12 +473,9 @@ def _import_annotations(
             data = _handle_complex_polygon(annotation, data)
             data = _handle_subs(annotation, data, annotation_class_id, attributes)
 
-        # Fetch the default slot name if no available in the import source
+        # Insert the default slot name if no available in the import source
         if not annotation.slot_names and dataset.version > 1:
-            items = dataset.fetch_remote_files(filters={"item_ids": [str(id)]})
-            if items:
-                first_item = next(items)
-                annotation.slot_names.extend([first_item.slots[0]["slot_name"]])
+            annotation.slot_names.extend([default_slot_name])
 
         serialized_annotations.append(
             {
