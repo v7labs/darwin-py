@@ -373,9 +373,7 @@ def import_annotations(
         if files_to_track:
             _warn_unsupported_annotations(files_to_track)
             for parsed_file in track(files_to_track):
-                remote_file = remote_files[parsed_file.full_path]
-                image_id = remote_file[0]
-                default_slot_name = remote_file[1]
+                image_id, default_slot_name = remote_files[parsed_file.full_path]
 
                 _import_annotations(
                     dataset.client,
@@ -455,7 +453,6 @@ def _import_annotations(
     delete_for_empty: bool,
 ):
     serialized_annotations = []
-
     for annotation in annotations:
         annotation_class = annotation.annotation_class
         annotation_type = annotation_class.annotation_internal_type or annotation_class.annotation_type
@@ -473,7 +470,7 @@ def _import_annotations(
             data = _handle_complex_polygon(annotation, data)
             data = _handle_subs(annotation, data, annotation_class_id, attributes)
 
-        # Insert the default slot name if no available in the import source
+        # Insert the default slot name if not available in the import source
         if not annotation.slot_names and dataset.version > 1:
             annotation.slot_names.extend([default_slot_name])
 
