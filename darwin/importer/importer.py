@@ -122,7 +122,15 @@ def build_attribute_lookup(dataset: "RemoteDataset") -> Dict[str, Any]:
     details=DEPRECATION_MESSAGE,
 )
 def get_remote_files(dataset: "RemoteDataset", filenames: List[str], chunk_size: int() = 100) -> Dict[str, Tuple[int, str]]:
-    """Fetches remote files from the datasets in chunks; by default 100 filenames at a time"""
+    """
+    Fetches remote files from the datasets in chunks; by default 100 filenames at a time.
+
+    The output is a two-element tuple of:
+    - file ID
+    - the name of the first slot for V2 items, or '0' for V1 items
+
+    Fetching slot name is necessary here to avoid double-trip to Api downstream for remote files.
+    """
     remote_files = {}
     for i in range(0, len(filenames), chunk_size):
         chunk = filenames[i : i + chunk_size]
