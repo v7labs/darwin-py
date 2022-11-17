@@ -16,15 +16,16 @@ if TYPE_CHECKING:
     from darwin.client import Client
     from darwin.dataset import RemoteDataset
 
-import darwin.datatypes as dt
 import deprecation
+from rich.console import Console
+from rich.progress import track
+from rich.theme import Theme
+
+import darwin.datatypes as dt
 from darwin.datatypes import PathLike
 from darwin.exceptions import IncompatibleOptions, RequestEntitySizeExceeded
 from darwin.utils import secure_continue_request
 from darwin.version import __version__
-from rich.console import Console
-from rich.progress import track
-from rich.theme import Theme
 
 # Classes missing import support on backend side
 UNSUPPORTED_CLASSES = ["string", "graph"]
@@ -441,6 +442,7 @@ def _import_annotations(
     delete_for_empty: bool,
 ):
     serialized_annotations = []
+    slot_name_cache: dict = {}
     for annotation in annotations:
         annotation_class = annotation.annotation_class
         annotation_type = annotation_class.annotation_internal_type or annotation_class.annotation_type
@@ -460,10 +462,14 @@ def _import_annotations(
 
         # Fetch the default slot name if no available in the import source
         if not annotation.slot_names and dataset.version > 1:
-            items = dataset.fetch_remote_files(filters={"item_ids": [str(id)]})
-            if items:
-                first_item = next(items)
-                annotation.slot_names.extend([first_item.slots[0]["slot_name"]])
+            if str(id) in slot_name_cache:
+                annotation.slot_names.extend([slot_name_cache[str(id)]])
+            else:
+                items = dataset.fetch_remote_files(filters={"item_ids": [str(id)]})
+                if items:
+                    first_item = next(items)
+                    slot_name_cache[str(id)] = first_item.slots[0]["slot_name"]
+                    annotation.slot_names.extend([first_item.slots[0]["slot_name"]])
 
         serialized_annotations.append(
             {
@@ -472,7 +478,6 @@ def _import_annotations(
                 "context_keys": {"slot_names": annotation.slot_names},
             }
         )
-
     payload: Dict[str, Any] = {"annotations": serialized_annotations}
     if append:
         payload["overwrite"] = "false"
