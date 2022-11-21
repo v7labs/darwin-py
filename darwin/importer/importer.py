@@ -142,11 +142,11 @@ def get_remote_files(dataset: "RemoteDataset", filenames: List[str], chunk_size:
     return remote_files
 
 def _get_slot_name(remote_file) -> str:
-    slot = next(iter(remote_file.slots))
+    slot = next(iter(remote_file.slots), {"slot_name": "0"})
     if slot:
         return slot["slot_name"]
     else:
-        return '0'
+        return "0"
 
 def _resolve_annotation_classes(
     local_annotation_classes: List[dt.AnnotationClass],
