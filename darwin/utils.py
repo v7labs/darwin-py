@@ -267,7 +267,10 @@ def persist_client_configuration(
 
 
 def _get_local_filename(metadata: Dict[str, Any]) -> str:
-    return metadata["filename"]
+    if "original_filename" in metadata:
+        return metadata["original_filename"]
+    else:
+        return metadata["filename"]
 
 
 def parse_darwin_json(path: Path, count: Optional[int]) -> Optional[dt.AnnotationFile]:
