@@ -34,6 +34,12 @@ class InvalidTeam(Exception):
     """
 
 
+class InvalidCompressionLevel(Exception):
+    """
+    Used when compression level is invalid.
+    """
+
+
 class MissingConfig(Exception):
     """
     Used when the configuration file was not found.

@@ -22,6 +22,15 @@ class Options(object):
         # AUTHENTICATE
         subparsers.add_parser("authenticate", help="Authenticate the user. ")
 
+        # SET COMPRESSION LEVEL
+        parser_compression = subparsers.add_parser("compression", help="Set compression level.")
+        parser_compression.add_argument(
+            "compression_level",
+            type=int,
+            choices=range(0, 10),
+            help="Compression level to use on uploaded data. 0 is no compression, 9 is the best.",
+        )
+
         # SELECT TEAM
         parser_create = subparsers.add_parser("team", help="List or pick teams.")
         parser_create.add_argument("team_name", nargs="?", type=str, help="Team name to use.")
