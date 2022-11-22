@@ -145,8 +145,8 @@ class Config(object):
         InvalidCompressionLevel
             Compression level is out of supported range. Use number from 0 to 9 to avoid this issue.
         """
-        if (level < 0 or level > 9):
-            raise InvalidCompressionLevel()
+        if level < 0 or level > 9:
+            raise InvalidCompressionLevel(level)
         self.put("global/payload_compression_level", level)
 
     def set_global(self, api_endpoint: str, base_url: str, default_team: Optional[str] = None) -> None:
