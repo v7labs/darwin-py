@@ -68,7 +68,8 @@ def parse_json(path: Path, data: Dict[str, Any]) -> Iterator[dt.AnnotationFile]:
     annotations = data["annotations"]
     image_lookup_table = {image["id"]: image for image in data["images"]}
     category_lookup_table = {category["id"]: category for category in data["categories"]}
-    tag_category_lookup_table = {category["id"]: category for category in data.get("tag_categories", [])}
+    tag_categories = data.get("tag_categories") or []
+    tag_category_lookup_table = {category["id"]: category for category in tag_categories}
     image_annotations: Dict[str, Any] = {}
 
     for image in data["images"]:
