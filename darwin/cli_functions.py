@@ -150,9 +150,10 @@ def set_team(team_slug: str) -> None:
     config = _config()
     config.set_default_team(team_slug)
 
+
 def set_compression_level(compression_level: int) -> None:
     """
-    Change the compression level of text/json contents sent to backend and persist the change on the configuration file.
+    Change the compression level of text/json contents sent to Darwin APIs and persist the change on the configuration file.
 
     Can be in range from 0 - no compression, to 9 - best compression. By default, 0 is used.
 
