@@ -171,8 +171,7 @@ class LocalFile:
         return {
             "slots": [slot],
             "name": self.data["filename"],
-            "path": "",
-            "tags": [],
+            "path": self.data["path"],
         }
 
     @property
