@@ -114,6 +114,7 @@ class RemoteDatasetV2(RemoteDataset):
         max_workers: Optional[int] = None,
         fps: int = 0,
         as_frames: bool = False,
+        extract_views: bool = False,
         files_to_exclude: Optional[List[PathLike]] = None,
         path: Optional[str] = None,
         preserve_folders: bool = False,
@@ -138,6 +139,8 @@ class RemoteDatasetV2(RemoteDataset):
             When the uploading file is a video, specify its framerate.
         as_frames: bool, default: False
             When the uploading file is a video, specify whether it's going to be uploaded as a list of frames.
+        extract_views: bool, default: False
+            When the uploading file is a volume, specify whether it's going to be split into orthogonal views.
         files_to_exclude : Optional[PathLike]], default: None
             Optional list of files to exclude from the file scan. Those can be folders.
         path: Optional[str], default: None
@@ -180,7 +183,9 @@ class RemoteDatasetV2(RemoteDataset):
                 source_files = [source_file for source_file in search_files if is_relative_to(found_file, source_file)]
                 if source_files:
                     local_path = str(found_file.relative_to(source_files[0]).parent)
-            uploading_files.append(LocalFile(found_file, fps=fps, as_frames=as_frames, path=local_path))
+            uploading_files.append(
+                LocalFile(found_file, fps=fps, as_frames=as_frames, extract_views=extract_views, spath=local_path)
+            )
 
         if not uploading_files:
             raise ValueError("No files to upload, check your path, exclusion filters and resume flag")

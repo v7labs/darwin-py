@@ -162,7 +162,7 @@ class LocalFile:
         return {"files": [{"file_name": self.data["filename"], "slot_name": "0"}], "name": self.data["filename"]}
 
     def serialize_v2(self):
-        optional_properties = ["tags", "fps", "as_frames"]
+        optional_properties = ["tags", "fps", "as_frames", "extract_views"]
         slot = {"file_name": self.data["filename"], "slot_name": "0"}
         for optional_property in optional_properties:
             if optional_property in self.data:

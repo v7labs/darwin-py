@@ -95,6 +95,7 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
                 args.fps,
                 args.path,
                 args.frames,
+                args.extract_views,
                 args.preserve_folders,
                 args.verbose,
             )
