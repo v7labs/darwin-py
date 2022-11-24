@@ -14,7 +14,7 @@ jobs:
 
       - uses: v7labs/update-linear-labels-action@v1
         with:
-          label_name: "Backend"
+          label_name: "DarwinPy"
           branch_name: "${{ github.head_ref }}"
           linear_token: "${{ secrets.LINEAR_TOKEN }}"
           error_exit_code: 0
