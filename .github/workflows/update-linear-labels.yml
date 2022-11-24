@@ -6,7 +6,7 @@ on:
 
 jobs:
   update-linear:
-    if: github.ref_name != 'master'
+    if: github.ref_name != 'master' && !github.event.pull_request.head.repo.fork
     name: Update Linear
     runs-on: ubuntu-latest
     steps:
