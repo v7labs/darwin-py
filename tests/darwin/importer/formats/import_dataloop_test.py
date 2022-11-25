@@ -1,9 +1,12 @@
+from json import loads as json_loads
 from os.path import dirname, join, realpath
 from pathlib import Path
+from pprint import pprint
 from typing import Dict
 from unittest import TestCase, skip
 from unittest.mock import MagicMock, Mock, patch
 
+from darwin.datatypes import Annotation
 from darwin.importer.formats.dataloop import (
     _parse_annotation,
     _remove_leading_slash,
@@ -28,6 +31,9 @@ class DataLoopTestCase(TestCase):
 
 
 class TestParsePath(DataLoopTestCase):
+    def tearDown(self):
+        patch.stopall()
+
     @patch(
         "darwin.importer.formats.dataloop._remove_leading_slash",
     )
@@ -52,13 +58,16 @@ class TestParsePath(DataLoopTestCase):
 
         parse_path(Path(test_path))
 
-        _parse_annotation_mock.assert_called_once()
+        self.assertEqual(_parse_annotation_mock.call_count, 3)
         path_open_mock.assert_called_once()
         json_load_mock.assert_called_once()
         mock_remove_leading_slash.assert_called_once()
 
 
 class TestRemoveLeadingSlash(DataLoopTestCase):
+    def tearDown(self) -> None:
+        patch.stopall()
+
     def test_removes_slash_if_present(self):
         self.assertEqual(_remove_leading_slash("/foo"), "foo")
 
@@ -67,14 +76,30 @@ class TestRemoveLeadingSlash(DataLoopTestCase):
 
 
 class TestParseAnnotation(DataLoopTestCase):
-    @skip("Not yet implemented")
+    def setUp(self):
+        super().setUp()
+        self.parsed_json = json_loads(self.DATALOOP_MOCK_DATA)
+
+    def tearDown(self) -> None:
+        patch.stopall()
+
     def test_handles_box_type(self):
-        ...
+        from darwin.importer.formats.dataloop import _parse_annotation as pa
 
-    @skip("Not yet implemented")
+        with patch("darwin.importer.formats.dataloop.dt.make_bounding_box") as make_bounding_box_mock:
+            make_bounding_box_mock.return_value = Annotation("class_1", 0, 0, 0, 0)
+            pa(self.parsed_json["annotations"][0])  # 0 is a box type
+
+            make_bounding_box_mock.assert_called_with("box_class", 288.81, 845.49, 1932.5100000000002, 2682.75)
+
     def test_handles_class_type(self):
-        ...
+        annotation = _parse_annotation(self.parsed_json["annotations"][1])  # 1 is a class type
+        self.assertEqual(annotation, None)
 
-    @skip("Not yet implemented")
     def test_handles_segment_type(self):
-        ...
+        from darwin.importer.formats.dataloop import _parse_annotation as pa
+
+        with patch("darwin.importer.formats.dataloop.dt.make_polygon") as make_polygon_mock:
+            pa(self.parsed_json["annotations"][2])  # 2 is a segment type
+
+            make_polygon_mock.assert_called_with("segment_class", 288.81, 845.49, 1932.5100000000002, 2682.75)
