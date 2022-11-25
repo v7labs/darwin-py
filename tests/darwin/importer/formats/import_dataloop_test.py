@@ -1,6 +1,8 @@
-from os.path import dirname, join
+from os.path import dirname, join, realpath
+from pathlib import Path
+from typing import Dict
 from unittest import TestCase, skip
-from unittest.mock import patch
+from unittest.mock import MagicMock, Mock, patch
 
 from darwin.importer.formats.dataloop import (
     _parse_annotation,
@@ -10,28 +12,50 @@ from darwin.importer.formats.dataloop import (
 
 
 class DataLoopTestCase(TestCase):
-    dataloop_mock_data_fd = open(join(dirname(__file__), "dataloop_mock_data.json"))
-    dataloop_mock_data = dataloop_mock_data_fd.read()
-    dataloop_mock_data_fd.close()
-    del dataloop_mock_data_fd
+    def setUp(self):
+        _fd = open(realpath(join(dirname(__file__), "..", "..", "data", "dataloop.example.json")))
+        self.DATALOOP_MOCK_DATA = _fd.read()
+        _fd.close()
+
+    DARWIN_PARSED_DATA = {
+        "filename": "test.jpg",
+        "annotations": [
+            {"class": "class_1"},
+            {"class": "class_2"},
+            {"class": "class_3"},
+        ],
+    }
 
 
 class TestParsePath(DataLoopTestCase):
-    def test_returns_none_if_file_extension_is_not_json(self):
-        self.assertIsNone(parse_path("foo.bar"))
+    @patch(
+        "darwin.importer.formats.dataloop._remove_leading_slash",
+    )
+    def test_returns_none_if_file_extension_is_not_json(self, mock_remove_leading_slash):
+        self.assertIsNone(parse_path(Path("foo.bar")))
 
-    @skip("WIP")
-    def test_opens_with_list_of_annotations(self):
-        with patch("darwin.importer.formats.dataloop.pathlib.Path.open") as mock_open:
-            mock_open.return_value.return_value = self.dataloop_mock_data
+    @patch(
+        "darwin.importer.formats.dataloop._remove_leading_slash",
+    )
+    @patch("darwin.importer.formats.dataloop.json.load")
+    @patch("darwin.importer.formats.dataloop.Path.open")
+    @patch("darwin.importer.formats.dataloop._parse_annotation")
+    def test_opens_annotations_file_and_parses(
+        self,
+        _parse_annotation_mock: MagicMock,
+        path_open_mock: MagicMock,
+        json_load_mock: MagicMock,
+        mock_remove_leading_slash: MagicMock,
+    ):
+        json_load_mock.return_value = self.DARWIN_PARSED_DATA
+        test_path = "foo.json"
 
-            parse_path("foo.json")
-            mock_open.assert_called_with("foo.json")
-        # TODO: Continue here
+        parse_path(Path(test_path))
 
-    @skip("WIP")
-    def test_returns_only_one_of_each_annotation_class(self):
-        ...
+        _parse_annotation_mock.assert_called_once()
+        path_open_mock.assert_called_once()
+        json_load_mock.assert_called_once()
+        mock_remove_leading_slash.assert_called_once()
 
 
 class TestRemoveLeadingSlash(DataLoopTestCase):
