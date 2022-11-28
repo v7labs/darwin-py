@@ -106,7 +106,7 @@ class TestParseAnnotation(DataLoopTestCase):
         with patch("darwin.importer.formats.dataloop.dt.make_polygon") as make_polygon_mock:
             pa(self.parsed_json["annotations"][2])  # 2 is a segment type
 
-            point_path = [(p["x"], p["y"]) for p in make_polygon_mock.call_args.kwargs["point_path"]]
+            point_path = [tuple(p["x"], p["y"]) for p in make_polygon_mock.call_args.kwargs["point_path"]]
             expectation_points = [
                 (856.73076923, 1077.88461538),
                 (575, 657.69230769),
