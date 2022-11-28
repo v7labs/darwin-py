@@ -61,7 +61,7 @@ def _parse_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotation]:
 
     if annotation_type == "segment":
         coords = annotation["coordinates"]
-        points: List[dt.Point] = [dt.Point(x=c["x"], y=c["y"]) for c in coords]
+        points: List[dt.Point] = [{"x": c["x"], "y": c["y"]} for c in coords]
         return dt.make_polygon(annotation_label, point_path=points)
 
     return None

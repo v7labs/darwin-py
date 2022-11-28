@@ -1,10 +1,10 @@
 from json import loads as json_loads
+from math import isclose as math_isclose
 from os.path import dirname, join, realpath
 from pathlib import Path
-from pprint import pprint
-from typing import Dict
-from unittest import TestCase, skip
-from unittest.mock import MagicMock, Mock, patch
+from typing import Union
+from unittest import TestCase
+from unittest.mock import MagicMock, patch
 
 from darwin.datatypes import Annotation
 from darwin.importer.formats.dataloop import (
@@ -15,10 +15,13 @@ from darwin.importer.formats.dataloop import (
 
 
 class DataLoopTestCase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         _fd = open(realpath(join(dirname(__file__), "..", "..", "data", "dataloop.example.json")))
         self.DATALOOP_MOCK_DATA = _fd.read()
         _fd.close()
+
+    def assertApproximatelyEqualNumber(self, a: Union[int, float], b: Union[int, float], places: int = 8):
+        math_isclose(a, b, rel_tol=10**-places)
 
     DARWIN_PARSED_DATA = {
         "filename": "test.jpg",
@@ -102,4 +105,19 @@ class TestParseAnnotation(DataLoopTestCase):
         with patch("darwin.importer.formats.dataloop.dt.make_polygon") as make_polygon_mock:
             pa(self.parsed_json["annotations"][2])  # 2 is a segment type
 
-            make_polygon_mock.assert_called_with("segment_class", 288.81, 845.49, 1932.5100000000002, 2682.75)
+            point_path = [(p["x"], p["y"]) for p in make_polygon_mock.call_args.kwargs["point_path"]]
+            expectation_points = [
+                (856.73076923, 1077.88461538),
+                (575, 657.69230769),
+                (989.42307692, 409.61538462),
+                (974.03846154, 640.38461538),
+                (1033.65384615, 915.38461538),
+                (1106.73076923, 1053.84615385),
+                (1204.80769231, 1079.80769231),
+            ]
+
+            [
+                self.assertApproximatelyEqualNumber(a[0], b[0]) and self.assertApproximatelyEqualNumber(a[1], b[1])
+                for a, b in zip(point_path, expectation_points)
+            ]
+            self.assertTrue(make_polygon_mock.call_args[0][0], "segment_class")
