@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
 import darwin.datatypes as dt
+from darwin.exceptions import UnsupportedImportAnnotationType
 
 
 def parse_path(path: Path) -> Optional[dt.AnnotationFile]:
@@ -47,7 +48,7 @@ def _parse_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotation]:
     annotation_type = annotation["type"]
     annotation_label = annotation["label"]
     if annotation_type not in ["box", "class", "segment"]:
-        raise ValueError(f"Unknown supported annotation type: {annotation_type}")
+        raise UnsupportedImportAnnotationType("dataloop", annotation_type)
 
     if len(annotation["metadata"]["system"].get("snapshots_", [])) > 1:
         raise ValueError("multiple snapshots per annotations are not supported")
