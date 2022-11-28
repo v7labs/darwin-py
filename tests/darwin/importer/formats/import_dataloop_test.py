@@ -2,7 +2,7 @@ from json import loads as json_loads
 from math import isclose as math_isclose
 from os.path import dirname, join, realpath
 from pathlib import Path
-from typing import Union
+from typing import Dict, Tuple, Union
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
 
@@ -106,7 +106,10 @@ class TestParseAnnotation(DataLoopTestCase):
         with patch("darwin.importer.formats.dataloop.dt.make_polygon") as make_polygon_mock:
             pa(self.parsed_json["annotations"][2])  # 2 is a segment type
 
-            point_path = [tuple(p["x"], p["y"]) for p in make_polygon_mock.call_args.kwargs["point_path"]]
+            def make_tuple_entry(point: Dict[str, float]) -> Tuple[float, float]:
+                return (point["x"], point["y"])
+
+            point_path = [make_tuple_entry(p) for p in make_polygon_mock.call_args.kwargs["point_path"]]
             expectation_points = [
                 (856.73076923, 1077.88461538),
                 (575, 657.69230769),
