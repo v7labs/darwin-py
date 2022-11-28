@@ -29,7 +29,11 @@ def parse_path(path: Path) -> Optional[dt.AnnotationFile]:
         annotations: List[dt.Annotation] = list(filter(None, map(_parse_annotation, data["annotations"])))
         annotation_classes: Set[dt.AnnotationClass] = set([annotation.annotation_class for annotation in annotations])
         return dt.AnnotationFile(
-            path, _remove_leading_slash(data["filename"]), annotation_classes, annotations, remote_path="/"
+            path,
+            _remove_leading_slash(data["filename"]),
+            annotation_classes,
+            annotations,
+            remote_path="/",
         )
 
 
