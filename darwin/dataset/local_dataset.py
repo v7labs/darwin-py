@@ -1,6 +1,5 @@
 import json
 import multiprocessing as mp
-from multiprocessing.dummy import Array
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional, Tuple
 
