@@ -238,6 +238,23 @@ def describe_get_dataset():
         assert label["image_path"] == str(dataset.dataset_path / "images" / "0.png")
         assert label["width"] == 50
 
+    def it_loads_semantic_segmentation_dataset_from_polygon_annotations(
+        v1_or_v2_slug: str, local_config_file: Config, team_extracted_dataset_path: Path
+    ):
+        dataset = get_dataset(f"{v1_or_v2_slug}/coco", "semantic-segmentation")
+        assert isinstance(dataset, SemanticSegmentationDataset)
+        assert len(dataset) == 20
+
+        image, label = dataset[0]
+        assert image.size() == (3, 50, 50)
+
+        label = {k: _maybe_tensor_to_list(v) for k, v in label.items()}
+
+        assert label["image_id"] == [0]
+        assert type(label["mask"][0]) == list
+        assert label["height"] == 50
+        assert label["width"] == 50
+
 
 def _maybe_tensor_to_list(arg: Any) -> Any:
     if isinstance(arg, torch.Tensor):
