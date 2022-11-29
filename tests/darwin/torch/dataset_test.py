@@ -97,10 +97,41 @@ def describe_get_dataset():
         assert image.size() == (3, 50, 50)
         assert label.item() == 0
 
+    def it_loads_multi_label_classification_dataset(
+        team_slug: str, local_config_file: Config, team_extracted_dataset_path: Path
+    ):
+        dataset = get_dataset(f"{team_slug}/ml", "classification")
+        assert isinstance(dataset, ClassificationDataset)
+        assert len(dataset) == 20
+        assert dataset.is_multi_label
+
+        image, label = dataset[0]
+        assert image.size() == (3, 50, 50)
+        assert _maybe_tensor_to_list(label) == [1, 0, 1]
+
     def it_loads_object_detection_dataset(team_slug: str, local_config_file: Config, team_extracted_dataset_path: Path):
         dataset = get_dataset(f"{team_slug}/coco", "object-detection")
         assert isinstance(dataset, ObjectDetectionDataset)
         assert len(dataset) == 20
+
+        image, label = dataset[0]
+        assert image.size() == (3, 50, 50)
+
+        label = {k: v.numpy().tolist() for k, v in label.items()}
+        assert label == {
+            "boxes": [[4, 33, 17, 36]],
+            "area": [612],
+            "labels": [1],
+            "image_id": [0],
+            "iscrowd": [0],
+        }
+
+    def it_loads_object_detection_dataset_from_bounding_box_annotations(
+        team_slug: str, local_config_file: Config, team_extracted_dataset_path: Path
+    ):
+        dataset = get_dataset(f"{team_slug}/bb", "object-detection")
+        assert isinstance(dataset, ObjectDetectionDataset)
+        assert len(dataset) == 1
 
         image, label = dataset[0]
         assert image.size() == (3, 50, 50)
@@ -123,6 +154,7 @@ def describe_get_dataset():
 
         image, label = dataset[0]
         assert image.size() == (3, 50, 50)
+        print(label)
 
         label = {k: _maybe_tensor_to_list(v) for k, v in label.items()}
 

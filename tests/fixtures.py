@@ -24,7 +24,11 @@ def darwin_datasets_path(darwin_path: Path) -> Path:
 
 @pytest.fixture
 def team_slug() -> str:
-    return "v7"
+    return "v7-darwin-json-v1"
+
+
+def team_slug_darwin_json_v2() -> str:
+    return "v7-darwin-json-v2"
 
 
 @pytest.fixture

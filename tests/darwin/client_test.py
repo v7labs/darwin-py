@@ -184,8 +184,7 @@ def describe_fetch_remote_files():
 @pytest.mark.usefixtures("file_read_write_test")
 def describe_fetch_remote_classes():
     @responses.activate
-    def it_returns_remote_classes(darwin_client: Client):
-        team_slug: str = "v7"
+    def it_returns_remote_classes(team_slug: str, darwin_client: Client):
         endpoint: str = f"/teams/{team_slug}/annotation_classes?include_tags=true"
         response: Dict[str, Any] = {
             "annotation_classes": [
@@ -221,8 +220,7 @@ def describe_fetch_remote_classes():
 @pytest.mark.usefixtures("file_read_write_test")
 def describe_get_team_features():
     @responses.activate
-    def it_returns_list_of_features(darwin_client: Client):
-        team_slug: str = "v7"
+    def it_returns_list_of_features(team_slug: str, darwin_client: Client):
         endpoint: str = f"/teams/{team_slug}/features"
         json_response = [
             {"enabled": False, "name": "WORKFLOW_V2"},

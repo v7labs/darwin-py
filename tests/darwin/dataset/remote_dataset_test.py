@@ -622,7 +622,7 @@ def describe_delete_items():
     ):
         with patch.object(Client, "delete_item", return_value={}) as stub:
             remote_dataset.delete_items([dataset_item])
-            stub.assert_called_once_with("test-dataset", "v7", {"filter": {"dataset_item_ids": [1]}})
+            stub.assert_called_once_with("test-dataset", team_slug, {"filter": {"dataset_item_ids": [1]}})
 
 
 def assert_upload_mocks_are_correctly_called(remote_dataset: RemoteDataset, *args):
