@@ -77,19 +77,26 @@ def describe_object_detection_dataset():
             assert torch.all(bbox[1::2] < img.shape[-2])
 
 
+@pytest.fixture(params=["team_slug", "team_slug_darwin_json_v2"])
+def v1_or_v2_slug(request):
+    return request.getfixturevalue(request.param)
+
+
 def describe_get_dataset():
-    def it_exits_when_dataset_not_supported(team_slug: str, local_config_file: Config):
+    def it_exits_when_dataset_not_supported(v1_or_v2_slug: str, local_config_file: Config):
         with patch.object(sys, "exit") as exception:
-            get_dataset(f"{team_slug}/test", "unknown")
+            get_dataset(f"{v1_or_v2_slug}/test", "unknown")
             exception.assert_called_once_with(1)
 
-    def it_exits_when_dataset_does_not_exist_locally(team_slug: str, local_config_file: Config):
+    def it_exits_when_dataset_does_not_exist_locally(v1_or_v2_slug: str, local_config_file: Config):
         with patch.object(sys, "exit") as exception:
-            get_dataset(f"{team_slug}/test", "classification")
+            get_dataset(f"{v1_or_v2_slug}/test", "classification")
             exception.assert_called_once_with(1)
 
-    def it_loads_classification_dataset(team_slug: str, local_config_file: Config, team_extracted_dataset_path: Path):
-        dataset = get_dataset(f"{team_slug}/sl", "classification")
+    def it_loads_classification_dataset(
+        v1_or_v2_slug: str, local_config_file: Config, team_extracted_dataset_path: Path
+    ):
+        dataset = get_dataset(f"{v1_or_v2_slug}/sl", "classification")
         assert isinstance(dataset, ClassificationDataset)
         assert len(dataset) == 20
 
@@ -97,8 +104,41 @@ def describe_get_dataset():
         assert image.size() == (3, 50, 50)
         assert label.item() == 0
 
-    def it_loads_object_detection_dataset(team_slug: str, local_config_file: Config, team_extracted_dataset_path: Path):
-        dataset = get_dataset(f"{team_slug}/coco", "object-detection")
+    def it_loads_multi_label_classification_dataset(
+        v1_or_v2_slug: str, local_config_file: Config, team_extracted_dataset_path: Path
+    ):
+        dataset = get_dataset(f"{v1_or_v2_slug}/ml", "classification")
+        assert isinstance(dataset, ClassificationDataset)
+        assert len(dataset) == 20
+        assert dataset.is_multi_label
+
+        image, label = dataset[0]
+        assert image.size() == (3, 50, 50)
+        assert _maybe_tensor_to_list(label) == [1, 0, 1]
+
+    def it_loads_object_detection_dataset_from_bounding_box_annotations(
+        v1_or_v2_slug: str, local_config_file: Config, team_extracted_dataset_path: Path
+    ):
+        dataset = get_dataset(f"{v1_or_v2_slug}/bb", "object-detection")
+        assert isinstance(dataset, ObjectDetectionDataset)
+        assert len(dataset) == 1
+
+        image, label = dataset[0]
+        assert image.size() == (3, 50, 50)
+
+        label = {k: v.numpy().tolist() for k, v in label.items()}
+        assert label == {
+            "boxes": [[4, 33, 17, 36]],
+            "area": [612],
+            "labels": [1],
+            "image_id": [0],
+            "iscrowd": [0],
+        }
+
+    def it_loads_object_detection_dataset_from_polygon_annotations(
+        v1_or_v2_slug: str, local_config_file: Config, team_extracted_dataset_path: Path
+    ):
+        dataset = get_dataset(f"{v1_or_v2_slug}/coco", "object-detection")
         assert isinstance(dataset, ObjectDetectionDataset)
         assert len(dataset) == 20
 
@@ -114,10 +154,52 @@ def describe_get_dataset():
             "iscrowd": [0],
         }
 
-    def it_loads_instance_segmentation_dataset(
-        team_slug: str, local_config_file: Config, team_extracted_dataset_path: Path
+    def it_loads_object_detection_dataset_from_complex_polygon_annotations(
+        v1_or_v2_slug: str, local_config_file: Config, team_extracted_dataset_path: Path
     ):
-        dataset = get_dataset(f"{team_slug}/coco", "instance-segmentation")
+        dataset = get_dataset(f"{v1_or_v2_slug}/complex_polygons", "object-detection")
+        assert isinstance(dataset, ObjectDetectionDataset)
+        assert len(dataset) == 1
+
+        image, label = dataset[0]
+        assert image.size() == (3, 50, 50)
+
+        label = {k: v.numpy().tolist() for k, v in label.items()}
+        assert label == {
+            "boxes": [[1, 1, 39, 49]],
+            "area": [1911],
+            "labels": [1],
+            "image_id": [0],
+            "iscrowd": [0],
+        }
+
+    def it_loads_instance_segmentation_dataset_from_bounding_box_annotations(
+        v1_or_v2_slug: str, local_config_file: Config, team_extracted_dataset_path: Path
+    ):
+        # You can load an instance segmentation dataset from an export that only has bounding boxes.
+        # But it will ignore all the annotations, so you'll end up with 0 annotations.
+        dataset = get_dataset(f"{v1_or_v2_slug}/bb", "instance-segmentation")
+        assert isinstance(dataset, InstanceSegmentationDataset)
+        assert len(dataset) == 1
+
+        image, label = dataset[0]
+        assert image.size() == (3, 50, 50)
+
+        label = {k: _maybe_tensor_to_list(v) for k, v in label.items()}
+
+        assert label["boxes"] == []
+        assert label["area"] == []
+        assert label["labels"] == []
+        assert label["image_id"] == [0]
+        assert label["iscrowd"] == []
+        assert label["height"] == 50
+        assert label["image_path"] == str(dataset.dataset_path / "images" / "0.png")
+        assert label["width"] == 50
+
+    def it_loads_instance_segmentation_dataset_from_polygon_annotations(
+        v1_or_v2_slug: str, local_config_file: Config, team_extracted_dataset_path: Path
+    ):
+        dataset = get_dataset(f"{v1_or_v2_slug}/coco", "instance-segmentation")
         assert isinstance(dataset, InstanceSegmentationDataset)
         assert len(dataset) == 20
 
@@ -133,6 +215,44 @@ def describe_get_dataset():
         assert label["iscrowd"] == [0]
         assert label["height"] == 50
         assert label["image_path"] == str(dataset.dataset_path / "images" / "0.png")
+        assert label["width"] == 50
+
+    def it_loads_instance_segmentation_dataset_from_complex_polygon_annotations(
+        v1_or_v2_slug: str, local_config_file: Config, team_extracted_dataset_path: Path
+    ):
+        dataset = get_dataset(f"{v1_or_v2_slug}/complex_polygons", "instance-segmentation")
+        assert isinstance(dataset, InstanceSegmentationDataset)
+        assert len(dataset) == 1
+
+        image, label = dataset[0]
+        assert image.size() == (3, 50, 50)
+
+        label = {k: _maybe_tensor_to_list(v) for k, v in label.items()}
+
+        assert label["boxes"] == [[1.0, 1.0, 41.0, 50.0]]
+        assert label["area"] == [592.0]
+        assert label["labels"] == [1]
+        assert label["image_id"] == [0]
+        assert label["iscrowd"] == [0]
+        assert label["height"] == 50
+        assert label["image_path"] == str(dataset.dataset_path / "images" / "0.png")
+        assert label["width"] == 50
+
+    def it_loads_semantic_segmentation_dataset_from_polygon_annotations(
+        v1_or_v2_slug: str, local_config_file: Config, team_extracted_dataset_path: Path
+    ):
+        dataset = get_dataset(f"{v1_or_v2_slug}/coco", "semantic-segmentation")
+        assert isinstance(dataset, SemanticSegmentationDataset)
+        assert len(dataset) == 20
+
+        image, label = dataset[0]
+        assert image.size() == (3, 50, 50)
+
+        label = {k: _maybe_tensor_to_list(v) for k, v in label.items()}
+
+        assert label["image_id"] == [0]
+        assert type(label["mask"][0]) == list
+        assert label["height"] == 50
         assert label["width"] == 50
 
 

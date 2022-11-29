@@ -15,9 +15,9 @@ from darwin.dataset.remote_dataset_v1 import RemoteDatasetV1
 
 
 @pytest.fixture
-def remote_dataset(dataset_slug: str, local_config_file: Config):
+def remote_dataset(team_slug: str, dataset_slug: str, local_config_file: Config):
     client = Client(local_config_file)
-    return RemoteDatasetV1(client=client, team="v7", name="TEST_DATASET", slug=dataset_slug, dataset_id=1)
+    return RemoteDatasetV1(client=client, team=team_slug, name="TEST_DATASET", slug=dataset_slug, dataset_id=1)
 
 
 def describe_upload_data():
