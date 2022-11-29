@@ -109,23 +109,6 @@ def describe_get_dataset():
         assert image.size() == (3, 50, 50)
         assert _maybe_tensor_to_list(label) == [1, 0, 1]
 
-    def it_loads_object_detection_dataset(team_slug: str, local_config_file: Config, team_extracted_dataset_path: Path):
-        dataset = get_dataset(f"{team_slug}/coco", "object-detection")
-        assert isinstance(dataset, ObjectDetectionDataset)
-        assert len(dataset) == 20
-
-        image, label = dataset[0]
-        assert image.size() == (3, 50, 50)
-
-        label = {k: v.numpy().tolist() for k, v in label.items()}
-        assert label == {
-            "boxes": [[4, 33, 17, 36]],
-            "area": [612],
-            "labels": [1],
-            "image_id": [0],
-            "iscrowd": [0],
-        }
-
     def it_loads_object_detection_dataset_from_bounding_box_annotations(
         team_slug: str, local_config_file: Config, team_extracted_dataset_path: Path
     ):
@@ -145,7 +128,68 @@ def describe_get_dataset():
             "iscrowd": [0],
         }
 
-    def it_loads_instance_segmentation_dataset(
+    def it_loads_object_detection_dataset_from_polygon_annotations(
+        team_slug: str, local_config_file: Config, team_extracted_dataset_path: Path
+    ):
+        dataset = get_dataset(f"{team_slug}/coco", "object-detection")
+        assert isinstance(dataset, ObjectDetectionDataset)
+        assert len(dataset) == 20
+
+        image, label = dataset[0]
+        assert image.size() == (3, 50, 50)
+
+        label = {k: v.numpy().tolist() for k, v in label.items()}
+        assert label == {
+            "boxes": [[4, 33, 17, 36]],
+            "area": [612],
+            "labels": [1],
+            "image_id": [0],
+            "iscrowd": [0],
+        }
+
+    def it_loads_object_detection_dataset_from_complex_polygon_annotations(
+        team_slug: str, local_config_file: Config, team_extracted_dataset_path: Path
+    ):
+        dataset = get_dataset(f"{team_slug}/complex_polygons", "object-detection")
+        assert isinstance(dataset, ObjectDetectionDataset)
+        assert len(dataset) == 1
+
+        image, label = dataset[0]
+        assert image.size() == (3, 50, 50)
+
+        label = {k: v.numpy().tolist() for k, v in label.items()}
+        assert label == {
+            "boxes": [[1, 1, 39, 49]],
+            "area": [1911],
+            "labels": [1],
+            "image_id": [0],
+            "iscrowd": [0],
+        }
+
+    def it_loads_instance_segmentation_dataset_from_bounding_box_annotations(
+        team_slug: str, local_config_file: Config, team_extracted_dataset_path: Path
+    ):
+        # You can load an instance segmentation dataset from an export that only has bounding boxes.
+        # But it will ignore all the annotations, so you'll end up with 0 annotations.
+        dataset = get_dataset(f"{team_slug}/bb", "instance-segmentation")
+        assert isinstance(dataset, InstanceSegmentationDataset)
+        assert len(dataset) == 1
+
+        image, label = dataset[0]
+        assert image.size() == (3, 50, 50)
+
+        label = {k: _maybe_tensor_to_list(v) for k, v in label.items()}
+
+        assert label["boxes"] == []
+        assert label["area"] == []
+        assert label["labels"] == []
+        assert label["image_id"] == [0]
+        assert label["iscrowd"] == []
+        assert label["height"] == 50
+        assert label["image_path"] == str(dataset.dataset_path / "images" / "0.png")
+        assert label["width"] == 50
+
+    def it_loads_instance_segmentation_dataset_from_polygon_annotations(
         team_slug: str, local_config_file: Config, team_extracted_dataset_path: Path
     ):
         dataset = get_dataset(f"{team_slug}/coco", "instance-segmentation")
@@ -154,12 +198,179 @@ def describe_get_dataset():
 
         image, label = dataset[0]
         assert image.size() == (3, 50, 50)
-        print(label)
 
         label = {k: _maybe_tensor_to_list(v) for k, v in label.items()}
 
         assert label["boxes"] == [[4.0, 33.0, 41.0, 50.0]]
         assert label["area"] == [576.0]
+        assert label["labels"] == [1]
+        assert label["image_id"] == [0]
+        assert label["iscrowd"] == [0]
+        assert label["height"] == 50
+        assert label["image_path"] == str(dataset.dataset_path / "images" / "0.png")
+        assert label["width"] == 50
+
+    def it_loads_instance_segmentation_dataset_from_complex_polygon_annotations(
+        team_slug: str, local_config_file: Config, team_extracted_dataset_path: Path
+    ):
+        dataset = get_dataset(f"{team_slug}/complex_polygons", "instance-segmentation")
+        assert isinstance(dataset, InstanceSegmentationDataset)
+        assert len(dataset) == 1
+
+        image, label = dataset[0]
+        assert image.size() == (3, 50, 50)
+
+        label = {k: _maybe_tensor_to_list(v) for k, v in label.items()}
+
+        assert label["boxes"] == [[1.0, 1.0, 41.0, 50.0]]
+        assert label["area"] == [592.0]
+        assert label["labels"] == [1]
+        assert label["image_id"] == [0]
+        assert label["iscrowd"] == [0]
+        assert label["height"] == 50
+        assert label["image_path"] == str(dataset.dataset_path / "images" / "0.png")
+        assert label["width"] == 50
+
+
+def describe_get_dataset_darwin_json_v2():
+    def it_loads_classification_dataset(
+        team_slug_darwin_json_v2: str, local_config_file: Config, team_extracted_dataset_path: Path
+    ):
+        dataset = get_dataset(f"{team_slug_darwin_json_v2}/sl", "classification")
+        assert isinstance(dataset, ClassificationDataset)
+        assert len(dataset) == 1
+
+        image, label = dataset[0]
+        assert image.size() == (3, 50, 50)
+        assert label.item() == 0
+
+    def it_loads_multi_label_classification_dataset(
+        team_slug_darwin_json_v2: str, local_config_file: Config, team_extracted_dataset_path: Path
+    ):
+        dataset = get_dataset(f"{team_slug_darwin_json_v2}/ml", "classification")
+        assert isinstance(dataset, ClassificationDataset)
+        assert len(dataset) == 1
+        assert dataset.is_multi_label
+
+        image, label = dataset[0]
+        assert image.size() == (3, 50, 50)
+        assert _maybe_tensor_to_list(label) == [1, 0, 1]
+
+    def it_loads_object_detection_dataset_from_bounding_box_annotations(
+        team_slug_darwin_json_v2: str, local_config_file: Config, team_extracted_dataset_path: Path
+    ):
+        dataset = get_dataset(f"{team_slug_darwin_json_v2}/bb", "object-detection")
+        assert isinstance(dataset, ObjectDetectionDataset)
+        assert len(dataset) == 1
+
+        image, label = dataset[0]
+        assert image.size() == (3, 50, 50)
+
+        label = {k: v.numpy().tolist() for k, v in label.items()}
+        assert label == {
+            "boxes": [[4, 33, 17, 36]],
+            "area": [612],
+            "labels": [1],
+            "image_id": [0],
+            "iscrowd": [0],
+        }
+
+    def it_loads_object_detection_dataset_from_polygon_annotations(
+        team_slug_darwin_json_v2: str, local_config_file: Config, team_extracted_dataset_path: Path
+    ):
+        dataset = get_dataset(f"{team_slug_darwin_json_v2}/coco", "object-detection")
+        assert isinstance(dataset, ObjectDetectionDataset)
+        assert len(dataset) == 1
+
+        image, label = dataset[0]
+        assert image.size() == (3, 50, 50)
+
+        label = {k: v.numpy().tolist() for k, v in label.items()}
+        assert label == {
+            "boxes": [[4, 33, 17, 36]],
+            "area": [612],
+            "labels": [1],
+            "image_id": [0],
+            "iscrowd": [0],
+        }
+
+    def it_loads_object_detection_dataset_from_complex_polygon_annotations(
+        team_slug_darwin_json_v2: str, local_config_file: Config, team_extracted_dataset_path: Path
+    ):
+        dataset = get_dataset(f"{team_slug_darwin_json_v2}/complex_polygons", "object-detection")
+        assert isinstance(dataset, ObjectDetectionDataset)
+        assert len(dataset) == 1
+
+        image, label = dataset[0]
+        assert image.size() == (3, 50, 50)
+
+        label = {k: v.numpy().tolist() for k, v in label.items()}
+        assert label == {
+            "boxes": [[1, 1, 39, 49]],
+            "area": [1911],
+            "labels": [1],
+            "image_id": [0],
+            "iscrowd": [0],
+        }
+
+    def it_loads_instance_segmentation_dataset_from_bounding_box_annotations(
+        team_slug_darwin_json_v2: str, local_config_file: Config, team_extracted_dataset_path: Path
+    ):
+        # You can load an instance segmentation dataset from an export that only has bounding boxes.
+        # But it will ignore all the annotations, so you'll end up with 0 annotations.
+        dataset = get_dataset(f"{team_slug_darwin_json_v2}/bb", "instance-segmentation")
+        assert isinstance(dataset, InstanceSegmentationDataset)
+        assert len(dataset) == 1
+
+        image, label = dataset[0]
+        assert image.size() == (3, 50, 50)
+
+        label = {k: _maybe_tensor_to_list(v) for k, v in label.items()}
+
+        assert label["boxes"] == []
+        assert label["area"] == []
+        assert label["labels"] == []
+        assert label["image_id"] == [0]
+        assert label["iscrowd"] == []
+        assert label["height"] == 50
+        assert label["image_path"] == str(dataset.dataset_path / "images" / "0.png")
+        assert label["width"] == 50
+
+    def it_loads_instance_segmentation_dataset_from_polygon_annotations(
+        team_slug_darwin_json_v2: str, local_config_file: Config, team_extracted_dataset_path: Path
+    ):
+        dataset = get_dataset(f"{team_slug_darwin_json_v2}/coco", "instance-segmentation")
+        assert isinstance(dataset, InstanceSegmentationDataset)
+        assert len(dataset) == 1
+
+        image, label = dataset[0]
+        assert image.size() == (3, 50, 50)
+
+        label = {k: _maybe_tensor_to_list(v) for k, v in label.items()}
+
+        assert label["boxes"] == [[4.0, 33.0, 41.0, 50.0]]
+        assert label["area"] == [576.0]
+        assert label["labels"] == [1]
+        assert label["image_id"] == [0]
+        assert label["iscrowd"] == [0]
+        assert label["height"] == 50
+        assert label["image_path"] == str(dataset.dataset_path / "images" / "0.png")
+        assert label["width"] == 50
+
+    def it_loads_instance_segmentation_dataset_from_complex_polygon_annotations(
+        team_slug_darwin_json_v2: str, local_config_file: Config, team_extracted_dataset_path: Path
+    ):
+        dataset = get_dataset(f"{team_slug_darwin_json_v2}/complex_polygons", "instance-segmentation")
+        assert isinstance(dataset, InstanceSegmentationDataset)
+        assert len(dataset) == 1
+
+        image, label = dataset[0]
+        assert image.size() == (3, 50, 50)
+
+        label = {k: _maybe_tensor_to_list(v) for k, v in label.items()}
+
+        assert label["boxes"] == [[1.0, 1.0, 41.0, 50.0]]
+        assert label["area"] == [592.0]
         assert label["labels"] == [1]
         assert label["image_id"] == [0]
         assert label["iscrowd"] == [0]

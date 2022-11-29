@@ -27,6 +27,7 @@ def team_slug() -> str:
     return "v7-darwin-json-v1"
 
 
+@pytest.fixture
 def team_slug_darwin_json_v2() -> str:
     return "v7-darwin-json-v2"
 
@@ -92,7 +93,7 @@ def file_read_write_test(darwin_path: Path, annotations_path: Path, split_path: 
 
 
 @pytest.fixture
-def local_config_file(team_slug: str, darwin_datasets_path: Path):
+def local_config_file(team_slug: str, team_slug_darwin_json_v2: str, darwin_datasets_path: Path):
     darwin_path = Path.home() / ".darwin"
     backup_darwin_path = Path.home() / ".darwin_backup"
     config_path = darwin_path / "config.yaml"
@@ -105,8 +106,12 @@ def local_config_file(team_slug: str, darwin_datasets_path: Path):
     config = Config(config_path)
     config.put(["global", "api_endpoint"], "http://localhost/api")
     config.put(["global", "base_url"], "http://localhost")
+
     config.put(["teams", team_slug, "api_key"], "mock_api_key")
     config.put(["teams", team_slug, "datasets_dir"], str(darwin_datasets_path))
+
+    config.put(["teams", team_slug_darwin_json_v2, "api_key"], "mock_api_key")
+    config.put(["teams", team_slug_darwin_json_v2, "datasets_dir"], str(darwin_datasets_path))
 
     # Useful if the test needs to reuse attrs
     yield config
