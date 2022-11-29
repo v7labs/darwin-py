@@ -264,7 +264,7 @@ class LocalDataset(object):
             "annotations": annotations,
         }
 
-    def annotation_type_supported(self, annotation) -> List[str]:
+    def annotation_type_supported(self, annotation) -> bool:
         annotation_type = annotation.annotation_class.annotation_type
         if self.annotation_type == "tag":
             return annotation_type == "tag"
