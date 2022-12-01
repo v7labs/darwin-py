@@ -49,21 +49,25 @@ SUPPORTED_VIDEO_EXTENSIONS = [
 SUPPORTED_EXTENSIONS = SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
 
 
-def is_extension_allowed(extension: str) -> bool:
+def is_extension_allowed(filename: str) -> bool:
     """
     Returns whether or not the given video or image extension is allowed.
 
     Parameters
     ----------
-    extension : str
-        The extension.
+    filename : str
+        The filename.
 
     Returns
     -------
     bool
-        Whether or not the given extension is allowed.
+        Whether or not the given extension of the filename is allowed.
     """
-    return extension.lower() in SUPPORTED_EXTENSIONS
+    for ext in SUPPORTED_EXTENSIONS:
+        if filename.lower().endswith(ext):
+            return True
+
+    return False
 
 
 def is_image_extension_allowed(extension: str) -> bool:
@@ -210,13 +214,15 @@ def find_files(
     for f in files:
         path = Path(f)
         if path.is_dir():
-            found_files.extend([f for f in path.glob(pattern) if is_extension_allowed("".join(f.suffixes))])
-        elif is_extension_allowed("".join(path.suffixes)):
+            found_files.extend([f for f in path.glob(pattern) if is_extension_allowed(str(path))])
+        elif is_extension_allowed(str(path)):
             found_files.append(path)
         else:
             raise UnsupportedFileType(path)
 
-    return [f for f in found_files if f not in map(Path, files_to_exclude)]
+    files_to_exclude_full_paths = [str(Path(f)) for f in files_to_exclude]
+
+    return [f for f in found_files if str(f) not in files_to_exclude_full_paths]
 
 
 def secure_continue_request() -> bool:
