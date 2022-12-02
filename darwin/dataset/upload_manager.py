@@ -16,6 +16,7 @@ from typing import (
 )
 
 import requests
+
 from darwin.datatypes import PathLike
 from darwin.doc_enum import DocEnum
 from darwin.path_utils import construct_full_path
@@ -161,8 +162,14 @@ class LocalFile:
         return {"files": [{"file_name": self.data["filename"], "slot_name": "0"}], "name": self.data["filename"]}
 
     def serialize_v2(self):
+        optional_properties = ["tags", "fps", "as_frames", "extract_views"]
+        slot = {"file_name": self.data["filename"], "slot_name": "0"}
+        for optional_property in optional_properties:
+            if optional_property in self.data:
+                slot[optional_property] = self.data.get(optional_property)
+
         return {
-            "slots": [{"file_name": self.data["filename"], "slot_name": "0", "fps": self.data["fps"]}],
+            "slots": [slot],
             "name": self.data["filename"],
             "path": self.data["path"],
         }

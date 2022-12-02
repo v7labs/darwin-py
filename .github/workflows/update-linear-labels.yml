@@ -1,0 +1,20 @@
+name: "Update Linear Labels"
+
+on:
+  pull_request:
+    branches: [master]
+
+jobs:
+  update-linear:
+    if: github.ref_name != 'master' && !github.event.pull_request.head.repo.fork
+    name: Update Linear
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: v7labs/update-linear-labels-action@v1
+        with:
+          label_name: "DarwinPy"
+          branch_name: "${{ github.head_ref }}"
+          linear_token: "${{ secrets.LINEAR_TOKEN }}"
+          error_exit_code: 0

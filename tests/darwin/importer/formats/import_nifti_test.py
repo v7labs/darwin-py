@@ -13,13 +13,16 @@ from darwin.datatypes import (
     VideoAnnotation,
 )
 from darwin.importer.formats.nifti import parse_path
+from tests.fixtures import *
 
 
-def test_image_annotation_nifti_import():
+def test_image_annotation_nifti_import(team_slug: str):
     with tempfile.TemporaryDirectory() as tmpdir:
         with ZipFile("tests/data.zip") as zfile:
             zfile.extractall(tmpdir)
-            label_path = Path(tmpdir) / "v7" / "nifti" / "releases" / "latest" / "annotations" / "vol0_brain.nii.gz"
+            label_path = (
+                Path(tmpdir) / team_slug / "nifti" / "releases" / "latest" / "annotations" / "vol0_brain.nii.gz"
+            )
             input_dict = {
                 "data": [
                     {"image": "vol0 (1).nii", "label": str(label_path), "class_map": {"1": "brain"}, "mode": "video"}
@@ -30,7 +33,9 @@ def test_image_annotation_nifti_import():
             annotation_files = parse_path(path=upload_json)
             annotation_file = annotation_files[0]
             output_json_string = json.loads(serialise_annotation_file(annotation_file, as_dict=False))
-            expected_json_string = json.load(open(Path(tmpdir) / "v7" / "nifti" / "vol0_annotation_file.json", "r"))
+            expected_json_string = json.load(
+                open(Path(tmpdir) / team_slug / "nifti" / "vol0_annotation_file.json", "r")
+            )
             json.dump(output_json_string, open("test_output_for_nifti_import_test.json", "w"), indent=4)
             assert output_json_string["annotations"][0]["frames"] == expected_json_string["annotations"][0]["frames"]
 
