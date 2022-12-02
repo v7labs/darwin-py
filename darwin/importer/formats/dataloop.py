@@ -3,7 +3,10 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
 import darwin.datatypes as dt
-from darwin.exceptions import UnsupportedImportAnnotationType
+from darwin.exceptions import (
+    DataloopComplexPolygonsNotYetSupported,
+    UnsupportedImportAnnotationType,
+)
 
 
 def parse_path(path: Path) -> Optional[dt.AnnotationFile]:
@@ -26,8 +29,12 @@ def parse_path(path: Path) -> Optional[dt.AnnotationFile]:
         return None
     with path.open() as f:
         data = json.load(f)
-        annotations: List[dt.Annotation] = list(filter(None, map(_parse_annotation, data["annotations"])))
-        annotation_classes: Set[dt.AnnotationClass] = set([annotation.annotation_class for annotation in annotations])
+        annotations: List[dt.Annotation] = list(
+            filter(None, map(_parse_annotation, data["annotations"]))
+        )
+        annotation_classes: Set[dt.AnnotationClass] = set(
+            [annotation.annotation_class for annotation in annotations]
+        )
         return dt.AnnotationFile(
             path,
             _remove_leading_slash(data["filename"]),
@@ -65,7 +72,10 @@ def _parse_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotation]:
 
     if annotation_type == "segment":
         coords = annotation["coordinates"]
-        points: List[dt.Point] = [{"x": c["x"], "y": c["y"]} for c in coords]
+        if len(coords) != 1:
+            raise DataloopComplexPolygonsNotYetSupported()
+
+        points: List[dt.Point] = [{"x": c["x"], "y": c["y"]} for c in coords[0]]
         return dt.make_polygon(annotation_label, point_path=points)
 
     return None
