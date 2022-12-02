@@ -109,24 +109,26 @@ class TestParseAnnotation(DataLoopTestCase):
         with patch("darwin.importer.formats.dataloop.dt.make_polygon") as make_polygon_mock:
             pa(self.parsed_json["annotations"][2])  # 2 is a segment type
 
-            def make_tuple_entry(point: Dict[str, float]) -> Tuple[float, float]:
-                return (point["x"], point["y"])
+            if "kwargs" in make_polygon_mock.call_args:
 
-            point_path = [make_tuple_entry(p) for p in make_polygon_mock.call_args.kwargs["point_path"]]
-            expectation_points = [
-                (856.73076923, 1077.88461538),
-                (575, 657.69230769),
-                (989.42307692, 409.61538462),
-                (974.03846154, 640.38461538),
-                (1033.65384615, 915.38461538),
-                (1106.73076923, 1053.84615385),
-                (1204.80769231, 1079.80769231),
-            ]
+                def make_tuple_entry(point: Dict[str, float]) -> Tuple[float, float]:
+                    return (point["x"], point["y"])
 
-            [
-                self.assertApproximatelyEqualNumber(a[0], b[0]) and self.assertApproximatelyEqualNumber(a[1], b[1])
-                for a, b in zip(point_path, expectation_points)
-            ]
+                point_path = [make_tuple_entry(p) for p in make_polygon_mock.call_args.kwargs["point_path"]]
+                expectation_points = [
+                    (856.73076923, 1077.88461538),
+                    (575, 657.69230769),
+                    (989.42307692, 409.61538462),
+                    (974.03846154, 640.38461538),
+                    (1033.65384615, 915.38461538),
+                    (1106.73076923, 1053.84615385),
+                    (1204.80769231, 1079.80769231),
+                ]
+
+                [
+                    self.assertApproximatelyEqualNumber(a[0], b[0]) and self.assertApproximatelyEqualNumber(a[1], b[1])
+                    for a, b in zip(point_path, expectation_points)
+                ]
             self.assertTrue(make_polygon_mock.call_args[0][0], "segment_class")
 
     def test_throws_on_unknown_type(self):
