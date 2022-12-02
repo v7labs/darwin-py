@@ -1,17 +1,10 @@
-from dataclasses import dataclass
 from pathlib import Path, PosixPath
-from typing import Any, Callable, Dict, List, Optional
+from typing import List
 from unittest import TestCase, skip
 from unittest.mock import MagicMock, patch
 
 from darwin.exceptions import UnsupportedFileType
-from darwin.utils import (
-    SUPPORTED_EXTENSIONS,
-    SUPPORTED_IMAGE_EXTENSIONS,
-    SUPPORTED_VIDEO_EXTENSIONS,
-    find_files,
-    is_extension_allowed,
-)
+from darwin.utils import SUPPORTED_EXTENSIONS, find_files, is_extension_allowed
 
 
 class FindFileTestCase(TestCase):
@@ -38,14 +31,14 @@ class FindFileTestCase(TestCase):
 
 
 class TestFindFiles(FindFileTestCase):
-    @patch("darwin.utils.is_extension_allowed_by_filename", return_value=True)
+    @patch("darwin.utils.is_extension_allowed", return_value=True)
     def test_find_files_returns_a_list_of_files(self, mock_is_extension_allowed):
         output = find_files(self.fake_files, files_to_exclude=[], recursive=False)
 
         self.assertIsInstance(output, list)
         [self.assertIsInstance(file, Path) for file in output]
 
-    @patch("darwin.utils.is_extension_allowed_by_filename", return_value=True)
+    @patch("darwin.utils.is_extension_allowed", return_value=True)
     def test_find_files_excludes_files_in_excluded_list(self, mock_is_extension_allowed):
         output = find_files(
             self.fake_files,
@@ -58,13 +51,13 @@ class TestFindFiles(FindFileTestCase):
 
         self.assertEqual(len(self.fake_files) - 2, len(output))
 
-    @patch("darwin.utils.is_extension_allowed_by_filename", return_value=False)
+    @patch("darwin.utils.is_extension_allowed", return_value=False)
     def test_raises_error_unsupported_filetype(self, mock_is_extension_allowed):
         with self.assertRaises(UnsupportedFileType):
             find_files(["1"], files_to_exclude=[], recursive=False)
 
     @patch("darwin.utils.Path", autospec=True)
-    @patch("darwin.utils.is_extension_allowed_by_filename")
+    @patch("darwin.utils.is_extension_allowed")
     def test_uses_correct_glob_if_recursive(self, mock_is_extension_allowed, mock_path):
         mock_path.is_dir.return_value = True
         mock_path.glob.return_value = ["1"]
@@ -74,7 +67,7 @@ class TestFindFiles(FindFileTestCase):
         mock_path.return_value.glob.assert_called_once_with("**/*")
 
     @patch("darwin.utils.Path", autospec=True)
-    @patch("darwin.utils.is_extension_allowed_by_filename")
+    @patch("darwin.utils.is_extension_allowed")
     def test_uses_correct_glob_if_not_recursive(self, mock_is_extension_allowed, mock_path):
         mock_path.is_dir.return_value = True
         mock_path.glob.return_value = ["1"]
@@ -84,53 +77,14 @@ class TestFindFiles(FindFileTestCase):
         mock_path.return_value.glob.assert_called_once_with("*")
 
 
-class TestIsExtensionAllowedByFilenameFunctions(FindFileTestCase):
-    @dataclass
-    class Dependencies:
-        ieabf: Optional[Callable[[str], bool]] = None
-        iveabf: Optional[Callable[[str], bool]] = None
-        iieabf: Optional[Callable[[str], bool]] = None
+class TestIsExtensionAllowed(FindFileTestCase):
+    def test_returns_true_for_a_valid_extension(self):
+        for file in [*self.fake_supported_files, *self.fake_supported_files_varied_case]:
+            with self.subTest(file=file):
+                print(file)
+                self.assertTrue(is_extension_allowed(file))
 
-    def dependency_factory(self) -> Dependencies:
-        """
-        Dependency injection factory that allows different instantions of the dependencies
-        to avoid race condition failures and flaky tests.
-
-        returns: Dependencies
-        """
-        from darwin.utils import is_extension_allowed_by_filename as ieabf
-        from darwin.utils import is_image_extension_allowed_by_filename as iieabf
-        from darwin.utils import is_video_extension_allowed_by_filename as iveabf
-
-        return self.Dependencies(ieabf=ieabf, iveabf=iveabf, iieabf=iieabf)
-
-    def test_ieabf_returns_true_for_a_valid_extension(self):
-        valid_extensions = [*self.fake_supported_files, *self.fake_supported_files_varied_case]
-        results = [self.dependency_factory().ieabf(file) for file in valid_extensions]
-
-        self.assertTrue(all(results))
-
-    def test_ieabf_returns_false_for_an_invalid_extension(self):
-        results = [self.dependency_factory().ieabf(file) for file in self.fake_invalid_files]
-
-        self.assertFalse(all(results))
-
-    def test_iveabf_returns_true_for_a_valid_extension(self):
-        results = [self.dependency_factory().iveabf(file) for file in SUPPORTED_VIDEO_EXTENSIONS]
-
-        self.assertTrue(all(results))
-
-    def test_iveabf_returns_false_for_an_invalid_extension(self):
-        results = [self.dependency_factory().iveabf(file) for file in self.fake_invalid_files]
-
-        self.assertFalse(all(results))
-
-    def test_iieabf_returns_true_for_a_valid_extension(self):
-        results = [self.dependency_factory().iieabf(file) for file in SUPPORTED_IMAGE_EXTENSIONS]
-
-        self.assertTrue(all(results))
-
-    def test_iieabf_returns_false_for_an_invalid_extension(self):
-        results = [self.dependency_factory().iieabf(file) for file in self.fake_invalid_files]
-
-        self.assertFalse(all(results))
+    def test_returns_false_for_an_invalid_extension(self):
+        for file in self.fake_invalid_files:
+            with self.subTest(file=file):
+                self.assertFalse(is_extension_allowed(file))

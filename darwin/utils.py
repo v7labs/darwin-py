@@ -49,7 +49,7 @@ SUPPORTED_VIDEO_EXTENSIONS = [
 SUPPORTED_EXTENSIONS = SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
 
 
-def is_extension_allowed_by_filename(filename: str) -> bool:
+def is_extension_allowed(filename: str) -> bool:
     """
     Returns whether or not the given video or image extension is allowed.
 
@@ -63,43 +63,11 @@ def is_extension_allowed_by_filename(filename: str) -> bool:
     bool
         Whether or not the given extension of the filename is allowed.
     """
-    return any([filename.lower().endswith(ext) for ext in SUPPORTED_EXTENSIONS])
+    for ext in SUPPORTED_EXTENSIONS:
+        if filename.lower().endswith(ext):
+            return True
 
-
-def is_extension_allowed(extension: str) -> bool:
-    """
-    Returns whether or not the given extension is allowed.
-    @Deprecated. Use is_extension_allowed_by_filename instead, and pass full filename.
-    This is due to the fact that some extensions now include multiple dots, e.g. .nii.gz
-
-    Parameters
-    ----------
-    extension : str
-        The extension.
-
-    Returns
-    -------
-    bool
-        Whether or not the given extension is allowed.
-    """
-    return extension.lower() in SUPPORTED_EXTENSIONS
-
-
-def is_image_extension_allowed_by_filename(filename: str) -> bool:
-    """
-    Returns whether or not the given image extension is allowed.
-
-    Parameters
-    ----------
-    filename : str
-        The image extension.
-
-    Returns
-    -------
-    bool
-        Whether or not the given extension is allowed.
-    """
-    return any([filename.lower().endswith(ext) for ext in SUPPORTED_IMAGE_EXTENSIONS])
+    return False
 
 
 def is_image_extension_allowed(extension: str) -> bool:
@@ -119,23 +87,6 @@ def is_image_extension_allowed(extension: str) -> bool:
     return extension.lower() in SUPPORTED_IMAGE_EXTENSIONS
 
 
-def is_image_extension_allowed_by_filename(extension: str) -> bool:
-    """
-    Returns whether or not the given image extension is allowed.
-
-    Parameters
-    ----------
-    extension : str
-        The image extension.
-
-    Returns
-    -------
-    bool
-        Whether or not the given extension is allowed.
-    """
-    return any([extension.lower().endswith(ext) for ext in SUPPORTED_IMAGE_EXTENSIONS])
-
-
 def is_video_extension_allowed(extension: str) -> bool:
     """
     Returns whether or not the given video extension is allowed.
@@ -151,23 +102,6 @@ def is_video_extension_allowed(extension: str) -> bool:
         Whether or not the given extension is allowed.
     """
     return extension.lower() in SUPPORTED_VIDEO_EXTENSIONS
-
-
-def is_video_extension_allowed_by_filename(filename: str) -> bool:
-    """
-    Returns whether or not the given video extension is allowed.
-
-    Parameters
-    ----------
-    filename : str
-        The filename.
-
-    Returns
-    -------
-    bool
-        Whether or not the given extension is allowed.
-    """
-    return any([filename.lower().endswith(ext) for ext in SUPPORTED_VIDEO_EXTENSIONS])
 
 
 def urljoin(*parts: str) -> str:
@@ -281,7 +215,7 @@ def find_files(
         path = Path(f)
         if path.is_dir():
             found_files.extend([f for f in path.glob(pattern) if is_extension_allowed(str(path))])
-        elif is_extension_allowed_by_filename(str(path)):
+        elif is_extension_allowed(str(path)):
             found_files.append(path)
         else:
             raise UnsupportedFileType(path)
