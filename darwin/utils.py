@@ -66,6 +66,7 @@ def is_extension_allowed_by_filename(filename: str) -> bool:
     return any([filename.lower().endswith(ext) for ext in SUPPORTED_EXTENSIONS])
 
 
+@deprecation.deprecated(deprecated_in="0.8.4", current_version=__version__)
 def is_extension_allowed(extension: str) -> bool:
     """
     Returns whether or not the given extension is allowed.
@@ -102,6 +103,7 @@ def is_image_extension_allowed_by_filename(filename: str) -> bool:
     return any([filename.lower().endswith(ext) for ext in SUPPORTED_IMAGE_EXTENSIONS])
 
 
+@deprecation.deprecated(deprecated_in="0.8.4", current_version=__version__)
 def is_image_extension_allowed(extension: str) -> bool:
     """
     Returns whether or not the given image extension is allowed.
@@ -119,7 +121,7 @@ def is_image_extension_allowed(extension: str) -> bool:
     return extension.lower() in SUPPORTED_IMAGE_EXTENSIONS
 
 
-def is_image_extension_allowed_by_filename(extension: str) -> bool:
+def is_video_extension_allowed_by_filename(extension: str) -> bool:
     """
     Returns whether or not the given image extension is allowed.
 
@@ -133,9 +135,10 @@ def is_image_extension_allowed_by_filename(extension: str) -> bool:
     bool
         Whether or not the given extension is allowed.
     """
-    return any([extension.lower().endswith(ext) for ext in SUPPORTED_IMAGE_EXTENSIONS])
+    return any([extension.lower().endswith(ext) for ext in SUPPORTED_VIDEO_EXTENSIONS])
 
 
+@deprecation.deprecated(deprecated_in="0.8.4", current_version=__version__)
 def is_video_extension_allowed(extension: str) -> bool:
     """
     Returns whether or not the given video extension is allowed.
@@ -151,23 +154,6 @@ def is_video_extension_allowed(extension: str) -> bool:
         Whether or not the given extension is allowed.
     """
     return extension.lower() in SUPPORTED_VIDEO_EXTENSIONS
-
-
-def is_video_extension_allowed_by_filename(filename: str) -> bool:
-    """
-    Returns whether or not the given video extension is allowed.
-
-    Parameters
-    ----------
-    filename : str
-        The filename.
-
-    Returns
-    -------
-    bool
-        Whether or not the given extension is allowed.
-    """
-    return any([filename.lower().endswith(ext) for ext in SUPPORTED_VIDEO_EXTENSIONS])
 
 
 def urljoin(*parts: str) -> str:
@@ -280,7 +266,7 @@ def find_files(
     for f in files:
         path = Path(f)
         if path.is_dir():
-            found_files.extend([f for f in path.glob(pattern) if is_extension_allowed(str(path))])
+            found_files.extend([f for f in path.glob(pattern) if is_extension_allowed_by_filename(str(path))])
         elif is_extension_allowed_by_filename(str(path)):
             found_files.append(path)
         else:
@@ -991,7 +977,7 @@ def get_response_content(response: Response) -> Any:
 
 def _parse_version(data) -> dt.AnnotationFileVersion:
     version_string = data.get("version", "1.0")
-    major, minor, suffix = re.findall("^(\d+)\.(\d+)(.*)$", version_string)[0]
+    major, minor, suffix = re.findall(r"^(\d+)\.(\d+)(.*)$", version_string)[0]
     return dt.AnnotationFileVersion(int(major), int(minor), suffix)
 
 
