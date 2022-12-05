@@ -112,7 +112,7 @@ class Unauthorized(Exception):
     """
 
     def __str__(self):
-        return f"Unauthorized"
+        return "Unauthorized"
 
 
 class OutdatedDarwinJSONFormat(Exception):
@@ -142,3 +142,43 @@ class UnknownExportVersion(Exception):
 
     def __str__(self):
         return f"Unknown version: '{self.version}'"
+
+
+class UnsupportedImportAnnotationType(Exception):
+    """
+    Used when one tries to parse an annotation with an unsupported type.
+    """
+
+    def __init__(self, import_type: str, annotation_type: str):
+        """
+        Parameters
+        ----------
+        import_type: str
+            The type of import, e.g. "dataloop".
+        annotation_type: str
+            The unsupported annotation type.
+        """
+        super().__init__(
+            f"Unsupported annotation type {annotation_type} for {import_type} import"
+        )
+        self.import_type = import_type
+        self.annotation_type = annotation_type
+
+
+class DataloopComplexPolygonsNotYetSupported(Exception):
+    """
+    Used when one tries to parse an annotation with a complex polygon.
+    """
+
+    def __init__(
+        self,
+    ):
+        """
+        Parameters
+        ----------
+        import_type: str
+            The type of import, e.g. "dataloop".
+        annotation_type: str
+            The unsupported annotation type.
+        """
+        super().__init__("Complex polygons not yet supported for dataloop import")

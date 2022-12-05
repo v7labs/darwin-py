@@ -6,7 +6,7 @@ import setuptools
 with open(Path(__file__).parent / "darwin" / "version" / "__init__.py", "r") as f:
     content = f.read()
     # from https://www.py4u.net/discuss/139845
-    version = re.search(r'__version__\s*=\s*[\'"]([^\'"]*)[\'"]', content).group(1)
+    version = re.search(r'__version__\s*=\s*[\'"]([^\'"]*)[\'"]', content).group(1)  # type: ignore
 
 with open("README.md", "rb") as f:
     long_description = f.read().decode("utf-8")
@@ -37,6 +37,7 @@ setuptools.setup(
     ],
     extras_require={
         "test": ["responses", "pytest", "pytest-describe", "scikit-learn"],
+        "dev": ["black", "flake8", "isort", "mypy", "responses", "pytest", "pytest-describe", "scikit-learn"],
         "ml": ["scikit-learn", "torch", "torchvision"],
         "medical": ["nibabel", "connected-components-3d"],
     },
