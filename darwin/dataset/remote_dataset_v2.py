@@ -184,7 +184,7 @@ class RemoteDatasetV2(RemoteDataset):
                 if source_files:
                     local_path = str(found_file.relative_to(source_files[0]).parent)
             uploading_files.append(
-                LocalFile(found_file, fps=fps, as_frames=as_frames, extract_views=extract_views, spath=local_path)
+                LocalFile(found_file, fps=fps, as_frames=as_frames, extract_views=extract_views, path=local_path)
             )
 
         if not uploading_files:
