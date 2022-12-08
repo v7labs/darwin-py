@@ -7,10 +7,15 @@ import json
 import time
 import urllib
 from pathlib import Path
-from typing import Any, Callable, Iterable, List, Tuple
+from typing import Any, Callable, Iterable, List, Optional, Tuple
 
 import deprecation
+import numpy as np
 import requests
+from PIL import Image
+from rich.console import Console
+
+import darwin.datatypes as dt
 from darwin.dataset.utils import sanitize_filename
 from darwin.datatypes import AnnotationFile
 from darwin.utils import (
@@ -20,7 +25,6 @@ from darwin.utils import (
     parse_darwin_json,
 )
 from darwin.version import __version__
-from rich.console import Console
 
 
 @deprecation.deprecated(
@@ -275,7 +279,7 @@ def _download_all_slots_from_json_annotation(annotation, api_key, parent_path, v
             video_path.mkdir(exist_ok=True, parents=True)
             for i, frame_url in enumerate(slot.frame_urls or []):
                 path = video_path / f"{i:07d}.png"
-                generator.append(functools.partial(_download_image, frame_url, path, api_key))
+                generator.append(functools.partial(_download_image, frame_url, path, api_key, slot))
         else:
             for upload in slot.source_files:
                 file_path = slot_path / sanitize_filename(upload["file_name"])
@@ -294,7 +298,7 @@ def _download_single_slot_from_json_annotation(annotation, api_key, parent_path,
         video_path.mkdir(exist_ok=True, parents=True)
         for i, frame_url in enumerate(slot.frame_urls or []):
             path = video_path / f"{i:07d}.png"
-            generator.append(functools.partial(_download_image, frame_url, path, api_key))
+            generator.append(functools.partial(_download_image, frame_url, path, api_key, slot))
     else:
         if len(slot.source_files) > 0:
             image_url = slot.source_files[0]["url"]
@@ -414,11 +418,16 @@ def download_image(url: str, path: Path, api_key: str) -> None:
         time.sleep(1)
 
 
-def _download_image(url: str, path: Path, api_key: str) -> None:
+def _download_image(url: str, path: Path, api_key: str, slot: Optional[dt.Slot] = None) -> None:
     if path.exists():
         return
     TIMEOUT: int = 60
     start: float = time.time()
+
+    transform_file_function = None
+    if slot and slot.metadata and slot.metadata.get("colorspace") == "RG16":
+        transform_file_function = _rg16_to_grayscale
+
     while True:
         if "token" in url:
             response: requests.Response = requests.get(url, stream=True)
@@ -428,10 +437,10 @@ def _download_image(url: str, path: Path, api_key: str) -> None:
         if response.ok and has_json_content_type(response):
             # this branch is a workaround for edge case in V1 when video file from external storage could be registered
             # with multiple keys (so that one file consist of several other)
-            _fetch_multiple_files(path, response)
+            _fetch_multiple_files(path, response, transform_file_function)
             return
         elif response.ok:
-            _write_file(path, response)
+            _write_file(path, response, transform_file_function)
             return
         # Fatal-error status: fail
         if 400 <= response.status_code <= 499:
@@ -449,7 +458,7 @@ def _download_image_with_trace(annotation, image_url, image_path, api_key):
     _update_local_path(annotation, image_url, image_path)
 
 
-def _fetch_multiple_files(path: Path, response: requests.Response) -> None:
+def _fetch_multiple_files(path: Path, response: requests.Response, transform_file_function=None) -> None:
     obj = response.json()
     if "urls" not in obj:
         raise Exception(f"Malformed response: {obj}")
@@ -464,14 +473,33 @@ def _fetch_multiple_files(path: Path, response: requests.Response) -> None:
         path = dir_path / filename
         response = requests.get(url, stream=True)
         if response.ok:
-            _write_file(path, response)
+            _write_file(path, response, transform_file_function)
         else:
             raise Exception(
                 f"Request to ({url}) failed. Status code: {response.status_code}, content:\n{get_response_content(response)}."
             )
 
 
-def _write_file(path: Path, response: requests.Response) -> None:
+def _write_file(path: Path, response: requests.Response, transform_file_function=None) -> None:
     with open(str(path), "wb") as file:
         for chunk in response:
             file.write(chunk)
+    if transform_file_function is not None:
+        transform_file_function(path)
+
+
+def _rg16_to_grayscale(path):
+    # Custom 16bit grayscale encoded on (RG)B channels
+    # into regular 8bit grayscale
+
+    image = Image.open(path)
+    image_2d_rgb = np.asarray(image)
+
+    image_2d_r = np.uint16(image_2d_rgb[:, :, 0]) << 8
+    image_2d_g = np.uint16(image_2d_rgb[:, :, 1])
+
+    image_2d_gray = np.bitwise_or(image_2d_r, image_2d_g)
+    image_2d_gray = image_2d_gray / (1 << 16) * 255
+
+    new_image = Image.fromarray(np.uint8(image_2d_gray), mode="L")
+    new_image.save(path)

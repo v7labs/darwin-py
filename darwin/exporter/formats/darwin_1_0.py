@@ -37,6 +37,7 @@ def _build_image_json(annotation_file: dt.AnnotationFile):
             "thumbnail_url": annotation_file.image_thumbnail_url,
             "path": annotation_file.remote_path,
             "workview_url": annotation_file.workview_url,
+            **_build_metadata(annotation_file),
         },
         "annotations": list(map(_build_annotation, annotation_file.annotations)),
     }
@@ -56,6 +57,7 @@ def _build_video_json(annotation_file: dt.AnnotationFile):
             "url": annotation_file.image_url,
             "path": annotation_file.remote_path,
             "workview_url": annotation_file.workview_url,
+            **_build_metadata(annotation_file),
         },
         "annotations": list(map(_build_annotation, annotation_file.annotations)),
     }
@@ -133,3 +135,10 @@ def _build_legacy_annotation_data(annotation_class: dt.AnnotationClass, data: Di
         return {"complex_polygon": data}
     else:
         return {annotation_class.annotation_type: data}
+
+
+def _build_metadata(annotation_file: dt.AnnotationFile):
+    if len(annotation_file.slots) > 0 and annotation_file.slots[0].metadata:
+        return {"metadata": annotation_file.slots[0].metadata}
+    else:
+        return {}
