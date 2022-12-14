@@ -1,12 +1,13 @@
-import json
 import multiprocessing as mp
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 import numpy as np
+import ujson as json
+from PIL import Image as PILImage
+
 from darwin.dataset.utils import get_classes, get_release_path, load_pil_image
 from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS, parse_darwin_json
-from PIL import Image as PILImage
 
 
 class LocalDataset(object):

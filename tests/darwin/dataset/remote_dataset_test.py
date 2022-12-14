@@ -1,4 +1,3 @@
-import json
 import types
 from datetime import datetime
 from pathlib import Path
@@ -7,6 +6,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 import responses
+import ujson as json
+
 from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset import RemoteDataset

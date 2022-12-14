@@ -3,7 +3,6 @@ Holds helper functions that deal with downloading videos and images.
 """
 
 import functools
-import json
 import time
 import urllib
 from pathlib import Path
@@ -12,6 +11,7 @@ from typing import Any, Callable, Iterable, List, Optional, Tuple
 import deprecation
 import numpy as np
 import requests
+import ujson as json
 from PIL import Image
 from rich.console import Console
 

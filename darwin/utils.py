@@ -2,7 +2,6 @@
 Contains several unrelated utility functions used across the SDK.
 """
 
-import json
 import platform
 import re
 from pathlib import Path
@@ -21,6 +20,7 @@ from typing import (
 
 import deprecation
 import numpy as np
+import ujson as json
 from requests import Response
 from rich.progress import ProgressType, track
 from upolygon import draw_polygon

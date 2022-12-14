@@ -1,4 +1,3 @@
-import json
 import os
 import shutil
 import tempfile
@@ -18,6 +17,7 @@ from typing import (
     Union,
 )
 
+import ujson as json
 from rich.console import Console
 
 from darwin.dataset.download_manager import download_all_images_from_annotations

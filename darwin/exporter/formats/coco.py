@@ -1,4 +1,3 @@
-import json
 from datetime import date
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional
@@ -6,6 +5,7 @@ from zlib import crc32
 
 import deprecation
 import numpy as np
+import ujson as json
 from upolygon import draw_polygon, rle_encode
 
 import darwin.datatypes as dt
@@ -396,6 +396,7 @@ def _build_image(annotation_file: dt.AnnotationFile, tag_categories: Dict[str, i
         "id": _build_image_id(annotation_file),
         "tag_ids": [tag_categories[tag.annotation_class.name] for tag in tags],
     }
+
 
 def _build_image_id(annotation_file: dt.AnnotationFile) -> int:
     # CoCo file format requires unique image IDs

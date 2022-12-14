@@ -1,10 +1,10 @@
-import json
 from asyncore import loop
 from pathlib import Path
 from typing import Iterable
 
 import nibabel as nib
 import numpy as np
+import ujson as json
 from PIL import Image
 
 import darwin.datatypes as dt

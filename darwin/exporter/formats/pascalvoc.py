@@ -1,9 +1,9 @@
-import json
 from pathlib import Path
 from typing import Any, Dict, Iterable
 from xml.etree.ElementTree import Element, SubElement, tostring
 
 import deprecation
+import ujson as json
 
 import darwin.datatypes as dt
 from darwin.version import __version__

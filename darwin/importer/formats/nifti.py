@@ -1,10 +1,10 @@
-import json
 import warnings
 import zipfile
 from collections import OrderedDict, defaultdict
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Union
 
+import ujson as json
 from rich.console import Console
 
 console = Console()

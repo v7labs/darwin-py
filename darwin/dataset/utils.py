@@ -1,12 +1,16 @@
 import itertools
-import json
 import multiprocessing as mp
 from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any, Dict, Generator, Iterator, List, Optional, Set, Tuple, Union
 
-import darwin.datatypes as dt
 import numpy as np
+import ujson as json
+from PIL import Image as PILImage
+from rich.live import Live
+from rich.progress import ProgressBar, track
+
+import darwin.datatypes as dt
 from darwin.datatypes import PathLike
 from darwin.exceptions import NotFound
 from darwin.importer.formats.darwin import parse_path
@@ -15,9 +19,6 @@ from darwin.utils import (
     SUPPORTED_VIDEO_EXTENSIONS,
     is_unix_like_os,
 )
-from PIL import Image as PILImage
-from rich.live import Live
-from rich.progress import ProgressBar, track
 
 # E.g.: {"partition" => {"class_name" => 123}}
 AnnotationDistribution = Dict[str, Counter]

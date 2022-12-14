@@ -1,6 +1,7 @@
-import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
+
+import ujson as json
 
 import darwin.datatypes as dt
 from darwin.exceptions import (
@@ -29,12 +30,8 @@ def parse_path(path: Path) -> Optional[dt.AnnotationFile]:
         return None
     with path.open() as f:
         data = json.load(f)
-        annotations: List[dt.Annotation] = list(
-            filter(None, map(_parse_annotation, data["annotations"]))
-        )
-        annotation_classes: Set[dt.AnnotationClass] = set(
-            [annotation.annotation_class for annotation in annotations]
-        )
+        annotations: List[dt.Annotation] = list(filter(None, map(_parse_annotation, data["annotations"])))
+        annotation_classes: Set[dt.AnnotationClass] = set([annotation.annotation_class for annotation in annotations])
         return dt.AnnotationFile(
             path,
             _remove_leading_slash(data["filename"]),

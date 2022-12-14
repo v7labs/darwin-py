@@ -1,6 +1,7 @@
-import json
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Union
+
+import ujson as json
 
 import darwin.datatypes as dt
 from darwin.exporter.formats.numpy_encoder import NumpyEncoder
