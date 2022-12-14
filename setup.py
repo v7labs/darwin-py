@@ -35,6 +35,7 @@ setuptools.setup(
         "deprecation",
         "pydantic",
         "ujson",
+        "orjson",
     ],
     extras_require={
         "test": ["responses", "pytest", "pytest-describe", "scikit-learn"],
