@@ -3,8 +3,8 @@ from pathlib import Path
 from typing import Dict
 from unittest.mock import MagicMock, patch
 
+import orjson as json
 import pytest
-import ujson as json
 
 from darwin.dataset.utils import (
     compute_distributions,

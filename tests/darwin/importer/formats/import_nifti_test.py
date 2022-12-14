@@ -1,10 +1,9 @@
 import argparse
+import json
 import tempfile
 from pathlib import Path
 from typing import Union
 from zipfile import ZipFile
-
-import ujson as json
 
 from darwin.datatypes import (
     Annotation,

@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterable
 
 import deprecation
-import ujson as json
+import orjson as json
 
 import darwin.datatypes as dt
 from darwin.exporter.formats.numpy_encoder import NumpyEncoder

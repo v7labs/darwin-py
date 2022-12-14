@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional
 
 import deprecation
-import ujson as json
+import orjson as json
 from upolygon import find_contours, rle_decode
 
 import darwin.datatypes as dt
@@ -170,11 +170,11 @@ def parse_annotation(annotation: Dict[str, Any], category_lookup_table: Dict[str
 def _decode_file(current_encoding: str, path: Path):
     if current_encoding == "system_default":
         with path.open() as f:
-            data = json.load(f)
+            data = json.loads(f.read())
             return list(parse_json(path, data))
     else:
         with path.open(encoding=current_encoding) as f:
-            data = json.load(f)
+            data = json.loads(f.read())
             return list(parse_json(path, data))
 
 

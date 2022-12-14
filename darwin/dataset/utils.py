@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any, Dict, Generator, Iterator, List, Optional, Set, Tuple, Union
 
 import numpy as np
-import ujson as json
+import orjson as json
 from PIL import Image as PILImage
 from rich.live import Live
 from rich.progress import ProgressBar, track
@@ -265,7 +265,7 @@ def get_coco_format_record(
         box_mode = 0
 
     with annotation_path.open() as f:
-        data = json.load(f)
+        data = json.loads(f.read())
     height, width = data["image"]["height"], data["image"]["width"]
     annotations = data["annotations"]
 
@@ -457,7 +457,7 @@ def get_annotations(
     elif annotation_format == "darwin":
         for annotation_path in annotations_paths:
             with annotation_path.open() as f:
-                record = json.load(f)
+                record = json.loads(f.read())
             yield record
 
 
@@ -544,7 +544,7 @@ def compute_max_density(annotations_dir: Path) -> int:
     for annotation_path in annotations_dir.glob("**/*.json"):
         annotation_density = 0
         with open(annotation_path) as f:
-            darwin_json = json.load(f)
+            darwin_json = json.loads(f.read())
             for annotation in darwin_json["annotations"]:
                 if "polygon" not in annotation and "complex_polygon" not in annotation:
                     continue

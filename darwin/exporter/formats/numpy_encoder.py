@@ -1,7 +1,7 @@
 from typing import Any
 
 import numpy as np
-import ujson as json
+import orjson as json
 
 
 class NumpyEncoder(json.JSONEncoder):

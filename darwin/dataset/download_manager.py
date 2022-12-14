@@ -10,8 +10,8 @@ from typing import Any, Callable, Iterable, List, Optional, Tuple
 
 import deprecation
 import numpy as np
+import orjson as json
 import requests
-import ujson as json
 from PIL import Image
 from rich.console import Console
 
@@ -316,7 +316,7 @@ def _update_local_path(annotation: AnnotationFile, url, local_path):
 
     # we modify raw json, as internal representation does't store all the data
     with annotation.path.open() as file:
-        raw_annotation = json.load(file)
+        raw_annotation = json.loads(file.read())
 
         for slot in raw_annotation["item"]["slots"]:
             for source_file in slot["source_files"]:
@@ -356,7 +356,7 @@ def download_image_from_json_annotation(
         Pulls video frames images instead of video files
     """
     with annotation_path.open() as file:
-        annotation = json.load(file)
+        annotation = json.loads(file.read())
 
     # If we are using folders, extract the path for the image and create the folder if needed
     sub_path = annotation["image"].get("path", "/") if use_folders else "/"

@@ -4,7 +4,7 @@ from collections import OrderedDict, defaultdict
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Union
 
-import ujson as json
+import orjson as json
 from rich.console import Console
 
 console = Console()
@@ -49,7 +49,7 @@ def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
         console.print("Skipping file: {} (not a json file)".format(path), style="bold yellow")
         return None
     with open(path, "r") as f:
-        data = json.load(f)
+        data = json.loads(f.read())
         try:
             validate(data, schema=nifti_import_schema)
         except Exception as e:

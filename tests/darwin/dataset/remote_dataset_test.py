@@ -4,9 +4,9 @@ from pathlib import Path
 from typing import Any, Dict
 from unittest.mock import MagicMock, patch
 
+import orjson as json
 import pytest
 import responses
-import ujson as json
 
 from darwin.client import Client
 from darwin.config import Config
@@ -332,7 +332,7 @@ def describe_split_video_annotations():
         assert not (video_path / "0000003.json").exists()
 
         with (video_path / "0000000.json").open() as f:
-            assert json.load(f) == {
+            assert json.loads(f.read()) == {
                 "annotations": [
                     {"name": "test_class", "polygon": {"path": [{"x": 0, "y": 0}, {"x": 1, "y": 1}, {"x": 1, "y": 0}]}}
                 ],
@@ -340,13 +340,13 @@ def describe_split_video_annotations():
             }
 
         with (video_path / "0000001.json").open() as f:
-            assert json.load(f) == {
+            assert json.loads(f.read()) == {
                 "annotations": [],
                 "image": {"filename": "test_video/0000001.png", "height": 1080, "url": "frame_2.jpg", "width": 1920},
             }
 
         with (video_path / "0000002.json").open() as f:
-            assert json.load(f) == {
+            assert json.loads(f.read()) == {
                 "annotations": [
                     {"name": "test_class", "polygon": {"path": [{"x": 5, "y": 5}, {"x": 6, "y": 6}, {"x": 6, "y": 5}]}}
                 ],

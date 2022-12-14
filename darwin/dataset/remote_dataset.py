@@ -17,7 +17,7 @@ from typing import (
     Union,
 )
 
-import ujson as json
+import orjson as json
 from rich.console import Console
 
 from darwin.dataset.download_manager import download_all_images_from_annotations

@@ -5,7 +5,8 @@ from zlib import crc32
 
 import deprecation
 import numpy as np
-import ujson as json
+import orjson
+import orjson as json
 from upolygon import draw_polygon, rle_encode
 
 import darwin.datatypes as dt

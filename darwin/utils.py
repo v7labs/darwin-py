@@ -20,7 +20,7 @@ from typing import (
 
 import deprecation
 import numpy as np
-import ujson as json
+import orjson as json
 from requests import Response
 from rich.progress import ProgressType, track
 from upolygon import draw_polygon
@@ -358,7 +358,7 @@ def parse_darwin_json(path: Path, count: Optional[int]) -> Optional[dt.Annotatio
 
     path = Path(path)
     with path.open() as f:
-        data = json.load(f)
+        data = json.loads(f.read())
         if "annotations" not in data:
             return None
 

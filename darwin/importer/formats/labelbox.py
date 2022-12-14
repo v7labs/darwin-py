@@ -2,7 +2,7 @@ from functools import partial, reduce
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Set, cast
 
-import ujson as json
+import orjson as json
 from jsonschema import validate
 
 from darwin.datatypes import (
@@ -87,7 +87,7 @@ def parse_path(path: Path) -> Optional[List[AnnotationFile]]:
         return None
 
     with path.open() as f:
-        data = json.load(f)
+        data = json.loads(f.read())
         validate(data, schema=labelbox_export)
         convert_with_path = partial(_convert, path=path)
 
