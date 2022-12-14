@@ -1,10 +1,15 @@
+import json
 from typing import Any
 
 import numpy as np
-import orjson as json
+import ujson
 
 
-class NumpyEncoder(json.JSONEncoder):
+class JSONEncoder(json.JSONEncoder):
+    encode = ujson.encode  # type: ignore
+
+
+class NumpyEncoder(JSONEncoder):
     """
     Holds auxiliary functions to bridge numpy functionality with Python primitive types which are
     JSON friendly.

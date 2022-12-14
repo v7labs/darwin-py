@@ -1,3 +1,4 @@
+import json
 from datetime import date
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional
@@ -5,8 +6,6 @@ from zlib import crc32
 
 import deprecation
 import numpy as np
-import orjson
-import orjson as json
 from upolygon import draw_polygon, rle_encode
 
 import darwin.datatypes as dt
