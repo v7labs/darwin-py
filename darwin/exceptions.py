@@ -134,6 +134,25 @@ class RequestEntitySizeExceeded(Exception):
     """
 
 
+class MissingSchema(Exception):
+    """
+    Used to indicate a problem loading or finding the schema
+    """
+
+    def __init__(self, message: str):
+        """_summary_
+
+        Parameters
+        ----------
+        message : str
+            Message to propogate up the stack
+        """
+        self.message = message
+
+    def __str__(self) -> str:
+        return f"Unable to find schema: '{self.message}'"
+
+
 class AnnotationFileValidationError(Exception):
     """
     Used to indicate error while validation JSON annotation files.

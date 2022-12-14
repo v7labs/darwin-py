@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import Any, Dict, Iterator, List, NoReturn, Optional, Set, Union
 
 import humanize
-import jsonschema
 from rich.console import Console
 from rich.live import Live
 from rich.progress import (
