@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
-import orjson as json
+import ujson as json
 
 import darwin.datatypes as dt
 from darwin.exceptions import (

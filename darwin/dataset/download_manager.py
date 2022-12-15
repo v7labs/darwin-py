@@ -10,8 +10,8 @@ from typing import Any, Callable, Iterable, List, Optional, Tuple
 
 import deprecation
 import numpy as np
-import orjson as json
 import requests
+import ujson as json
 from PIL import Image
 from rich.console import Console
 

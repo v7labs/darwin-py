@@ -4,9 +4,9 @@ from pathlib import Path
 from typing import Any, Dict
 from unittest.mock import MagicMock, patch
 
-import orjson as json
 import pytest
 import responses
+import ujson as json
 
 from darwin.client import Client
 from darwin.config import Config

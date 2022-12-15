@@ -20,7 +20,7 @@ from typing import (
 
 import deprecation
 import numpy as np
-import orjson as json
+import ujson as json
 from requests import Response
 from rich.progress import ProgressType, track
 from upolygon import draw_polygon

@@ -4,7 +4,7 @@ from typing import Iterable
 
 import nibabel as nib
 import numpy as np
-import orjson as json
+import ujson as json
 from PIL import Image
 
 import darwin.datatypes as dt

@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional
 
 import deprecation
-import orjson as json
+import ujson as json
 from upolygon import find_contours, rle_decode
 
 import darwin.datatypes as dt
