@@ -193,6 +193,7 @@ class ConvertPolygonsToInstanceMasks(object):
         boxes[:, 1::2].clamp_(min=0, max=h)
 
         classes = [obj["category_id"] for obj in annotations]
+        print(classes) # CHANGE
         classes = torch.tensor(classes, dtype=torch.int64)
 
         segmentations = [obj["segmentation"] for obj in annotations]
@@ -205,7 +206,7 @@ class ConvertPolygonsToInstanceMasks(object):
             num_keypoints = keypoints.shape[0]
             if num_keypoints:
                 keypoints = keypoints.view(num_keypoints, -1, 3)
-
+    
         keep = (boxes[:, 3] > boxes[:, 1]) & (boxes[:, 2] > boxes[:, 0])
         boxes = boxes[keep]
         classes = classes[keep]
@@ -242,6 +243,7 @@ class ConvertPolygonsToSemanticMask(object):
         annotations = target.pop("annotations")
         segmentations = [obj["segmentation"] for obj in annotations]
         cats = [obj["category_id"] for obj in annotations]
+
         if segmentations:
             masks = convert_segmentation_to_mask(segmentations, h, w)
             cats = torch.as_tensor(cats, dtype=masks.dtype)
@@ -249,7 +251,7 @@ class ConvertPolygonsToSemanticMask(object):
             # with its corresponding categories
             mask, _ = (masks * cats[:, None, None]).max(dim=0)
             # discard overlapping instances
-            mask[masks.sum(0) > 1] = 255
+            mask[masks.sum(0) > 1] = 255    
         else:
             mask = torch.zeros((h, w), dtype=torch.uint8)
 
