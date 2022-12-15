@@ -35,11 +35,19 @@ setuptools.setup(
         "deprecation",
         "pydantic",
         "orjson",
-        "orjson",
     ],
     extras_require={
         "test": ["responses", "pytest", "pytest-describe", "scikit-learn"],
-        "dev": ["black", "flake8", "isort", "mypy", "responses", "pytest", "pytest-describe", "scikit-learn"],
+        "dev": [
+            "black",
+            "flake8",
+            "isort",
+            "mypy",
+            "responses",
+            "pytest",
+            "pytest-describe",
+            "scikit-learn",
+        ],
         "ml": ["scikit-learn", "torch", "torchvision"],
         "medical": ["nibabel", "connected-components-3d"],
     },
@@ -54,6 +62,9 @@ setuptools.setup(
         "darwin.version",
     ],
     entry_points={"console_scripts": ["darwin=darwin.cli:main"]},
-    classifiers=["Programming Language :: Python :: 3", "License :: OSI Approved :: MIT License"],
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: MIT License",
+    ],
     python_requires=">=3.6",
 )

@@ -103,7 +103,9 @@ def parse_path(path: Path) -> Optional[AnnotationFile]:
 
     classes_path = path.parent / "classes.json"
     if not classes_path.is_file():
-        raise ValueError("Folder must contain a 'classes.json' file with classes information.")
+        raise ValueError(
+            "Folder must contain a 'classes.json' file with classes information."
+        )
 
     with classes_path.open() as classes_file:
         classes = json.loads(classes_file.read())
@@ -127,7 +129,9 @@ def _convert(
     metadata: Dict[str, Any],
     tags: List[str],
 ) -> AnnotationFile:
-    conver_to_darwin_object = partial(_convert_instance, superannotate_classes=superannotate_classes)
+    conver_to_darwin_object = partial(
+        _convert_instance, superannotate_classes=superannotate_classes
+    )
 
     filename: str = str(metadata.get("name"))
     darwin_tags: List[Annotation] = _map_to_list(make_tag, tags)
@@ -144,7 +148,9 @@ def _convert(
     )
 
 
-def _convert_instance(obj: Dict[str, Any], superannotate_classes: List[Dict[str, Any]]) -> Annotation:
+def _convert_instance(
+    obj: Dict[str, Any], superannotate_classes: List[Dict[str, Any]]
+) -> Annotation:
     type: str = str(obj.get("type"))
 
     if type == "point":
@@ -168,7 +174,9 @@ def _convert_instance(obj: Dict[str, Any], superannotate_classes: List[Dict[str,
     raise ValueError(f"Unknown label object {obj}")
 
 
-def _to_keypoint_annotation(point: Dict[str, Any], classes: List[Dict[str, Any]]) -> Annotation:
+def _to_keypoint_annotation(
+    point: Dict[str, Any], classes: List[Dict[str, Any]]
+) -> Annotation:
     x: float = cast(float, point.get("x"))
     y: float = cast(float, point.get("y"))
     class_id: int = cast(int, point.get("classId"))
@@ -182,7 +190,9 @@ def _to_keypoint_annotation(point: Dict[str, Any], classes: List[Dict[str, Any]]
     return make_keypoint(f"{name}-point", x, y, subannotations)
 
 
-def _to_bbox_annotation(bbox: Dict[str, Any], classes: List[Dict[str, Any]]) -> Annotation:
+def _to_bbox_annotation(
+    bbox: Dict[str, Any], classes: List[Dict[str, Any]]
+) -> Annotation:
     points: Dict[str, float] = cast(Dict[str, float], bbox.get("points"))
     x: float = cast(float, points.get("x1"))
     y: float = cast(float, points.get("y1"))
@@ -200,11 +210,23 @@ def _to_bbox_annotation(bbox: Dict[str, Any], classes: List[Dict[str, Any]]) -> 
     return make_bounding_box(f"{name}-bbox", x, y, w, h, subannotations)
 
 
-def _to_ellipse_annotation(ellipse: Dict[str, Any], classes: List[Dict[str, Any]]) -> Annotation:
+def _to_ellipse_annotation(
+    ellipse: Dict[str, Any], classes: List[Dict[str, Any]]
+) -> Annotation:
     angle: float = cast(float, ellipse.get("angle"))
-    center: Point = {"x": cast(float, ellipse.get("cx")), "y": cast(float, ellipse.get("cy"))}
-    radius: Point = {"x": cast(float, ellipse.get("rx")), "y": cast(float, ellipse.get("ry"))}
-    ellipse_data: Dict[str, Union[float, Point]] = {"angle": angle, "center": center, "radius": radius}
+    center: Point = {
+        "x": cast(float, ellipse.get("cx")),
+        "y": cast(float, ellipse.get("cy")),
+    }
+    radius: Point = {
+        "x": cast(float, ellipse.get("rx")),
+        "y": cast(float, ellipse.get("ry")),
+    }
+    ellipse_data: Dict[str, Union[float, Point]] = {
+        "angle": angle,
+        "center": center,
+        "radius": radius,
+    }
     class_id: int = cast(int, ellipse.get("classId"))
 
     instance_class: Dict[str, Any] = _find_class(class_id, classes)
@@ -217,23 +239,41 @@ def _to_ellipse_annotation(ellipse: Dict[str, Any], classes: List[Dict[str, Any]
     return make_ellipse(f"{name}-ellipse", ellipse_data, subannotations)
 
 
-def _to_cuboid_annotation(cuboid: Dict[str, Any], classes: List[Dict[str, Any]]) -> Annotation:
-    points: Dict[str, Dict[str, float]] = cast(Dict[str, Dict[str, float]], cuboid.get("points"))
+def _to_cuboid_annotation(
+    cuboid: Dict[str, Any], classes: List[Dict[str, Any]]
+) -> Annotation:
+    points: Dict[str, Dict[str, float]] = cast(
+        Dict[str, Dict[str, float]], cuboid.get("points")
+    )
     back_top_left_point: Dict[str, float] = cast(Dict[str, float], points.get("r1"))
     back_bottom_right_point: Dict[str, float] = cast(Dict[str, float], points.get("r2"))
     front_top_left_point: Dict[str, float] = cast(Dict[str, float], points.get("f1"))
-    front_bottom_right_point: Dict[str, float] = cast(Dict[str, float], points.get("f2"))
+    front_bottom_right_point: Dict[str, float] = cast(
+        Dict[str, float], points.get("f2")
+    )
 
     cuboid_data: CuboidData = {
         "back": {
-            "h": abs(cast(float, back_top_left_point.get("y")) - cast(float, back_bottom_right_point.get("y"))),
-            "w": abs(cast(float, back_bottom_right_point.get("x")) - cast(float, back_top_left_point.get("x"))),
+            "h": abs(
+                cast(float, back_top_left_point.get("y"))
+                - cast(float, back_bottom_right_point.get("y"))
+            ),
+            "w": abs(
+                cast(float, back_bottom_right_point.get("x"))
+                - cast(float, back_top_left_point.get("x"))
+            ),
             "x": cast(float, back_top_left_point.get("x")),
             "y": cast(float, back_top_left_point.get("y")),
         },
         "front": {
-            "h": abs(cast(float, front_top_left_point.get("y")) - cast(float, front_bottom_right_point.get("y"))),
-            "w": abs(cast(float, front_bottom_right_point.get("x")) - cast(float, front_top_left_point.get("x"))),
+            "h": abs(
+                cast(float, front_top_left_point.get("y"))
+                - cast(float, front_bottom_right_point.get("y"))
+            ),
+            "w": abs(
+                cast(float, front_bottom_right_point.get("x"))
+                - cast(float, front_top_left_point.get("x"))
+            ),
             "x": cast(float, front_top_left_point.get("x")),
             "y": cast(float, front_top_left_point.get("y")),
         },
@@ -250,7 +290,9 @@ def _to_cuboid_annotation(cuboid: Dict[str, Any], classes: List[Dict[str, Any]])
     return make_cuboid(f"{name}-cuboid", cuboid_data, subannotations)
 
 
-def _to_polygon_annotation(polygon: Dict[str, Any], classes: List[Dict[str, Any]]) -> Annotation:
+def _to_polygon_annotation(
+    polygon: Dict[str, Any], classes: List[Dict[str, Any]]
+) -> Annotation:
     data: List[float] = cast(List[float], polygon.get("points"))
     class_id: int = cast(int, polygon.get("classId"))
     instance_class: Dict[str, Any] = _find_class(class_id, classes)
@@ -264,7 +306,9 @@ def _to_polygon_annotation(polygon: Dict[str, Any], classes: List[Dict[str, Any]
     return make_polygon(f"{name}-polygon", points, None, subannotations)
 
 
-def _to_line_annotation(line: Dict[str, Any], classes: List[Dict[str, Any]]) -> Annotation:
+def _to_line_annotation(
+    line: Dict[str, Any], classes: List[Dict[str, Any]]
+) -> Annotation:
     data: List[float] = cast(List[float], line.get("points"))
     class_id: int = cast(int, line.get("classId"))
     instance_class: Dict[str, Any] = _find_class(class_id, classes)
@@ -279,7 +323,9 @@ def _to_line_annotation(line: Dict[str, Any], classes: List[Dict[str, Any]]) -> 
 
 
 def _find_class(class_id: int, classes: List[Dict[str, Any]]) -> Dict[str, Any]:
-    obj: Optional[Dict[str, Any]] = next((class_obj for class_obj in classes if class_obj.get("id") == class_id), None)
+    obj: Optional[Dict[str, Any]] = next(
+        (class_obj for class_obj in classes if class_obj.get("id") == class_id), None
+    )
 
     if obj is None:
         raise ValueError(
@@ -289,9 +335,15 @@ def _find_class(class_id: int, classes: List[Dict[str, Any]]) -> Dict[str, Any]:
     return obj
 
 
-def _get_attributes(instance: Dict[str, Any], instance_class: Dict[str, Any]) -> Optional[SubAnnotation]:
-    attribute_info: List[Dict[str, int]] = cast(List[Dict[str, int]], instance.get("attributes"))
-    groups: List[Dict[str, Any]] = cast(List[Dict[str, Any]], instance_class.get("attribute_groups"))
+def _get_attributes(
+    instance: Dict[str, Any], instance_class: Dict[str, Any]
+) -> Optional[SubAnnotation]:
+    attribute_info: List[Dict[str, int]] = cast(
+        List[Dict[str, int]], instance.get("attributes")
+    )
+    groups: List[Dict[str, Any]] = cast(
+        List[Dict[str, Any]], instance_class.get("attribute_groups")
+    )
     all_attributes: List[str] = []
 
     for info in attribute_info:
@@ -304,15 +356,24 @@ def _get_attributes(instance: Dict[str, Any], instance_class: Dict[str, Any]) ->
             if info_group_id != group_id:
                 continue
 
-            group_attributes: List[AttributeGroup] = cast(List[AttributeGroup], group.get("attributes"))
+            group_attributes: List[AttributeGroup] = cast(
+                List[AttributeGroup], group.get("attributes")
+            )
             attribute: Optional[AttributeGroup] = next(
-                (attribute for attribute in group_attributes if attribute.get("id") == attribute_id), None
+                (
+                    attribute
+                    for attribute in group_attributes
+                    if attribute.get("id") == attribute_id
+                ),
+                None,
             )
 
             if attribute is None:
                 raise ValueError(f"No attribute data found for {info}.")
 
-            final_attribute: str = f"{str(group.get('name'))}:{str(attribute.get('name'))}"
+            final_attribute: str = (
+                f"{str(group.get('name'))}:{str(attribute.get('name'))}"
+            )
             all_attributes.append(final_attribute)
 
     if all_attributes == []:
