@@ -149,7 +149,7 @@ class ClassificationDataset(LocalDataset):
 
         data = self.parse_json(index)
         annotations = data.pop("annotations")
-        tags = [a["name"] for a in annotations if "tag" in a]
+        tags = [a.annotation_class.name for a in annotations if a.annotation_class.annotation_type == "tag"]
 
         assert len(tags) >= 1, f"No tags were found for index={index}"
 
@@ -172,7 +172,7 @@ class ClassificationDataset(LocalDataset):
         for idx in range(len(self)):
             target = self.parse_json(idx)
             annotations = target.pop("annotations")
-            tags = [a["name"] for a in annotations if "tag" in a]
+            tags = [a.annotation_class.name for a in annotations if a.annotation_class.annotation_type == "tag"]
 
             if len(tags) > 1:
                 self.is_multi_label = True
@@ -312,12 +312,13 @@ class InstanceSegmentationDataset(LocalDataset):
 
         annotations = []
         for annotation in target["annotations"]:
-            if "polygon" not in annotation and "complex_polygon" not in annotation:
+            annotation_type: str = annotation.annotation_class.annotation_type
+            path_key = "paths" if annotation_type == "complex_polygon" else "path"
+            if path_key not in annotation.data:
                 print(f"Warning: missing polygon in annotation {self.annotations_path[index]}")
             # Extract the sequences of coordinates from the polygon annotation
-            annotation_type: str = "polygon" if "polygon" in annotation else "complex_polygon"
             sequences = convert_polygons_to_sequences(
-                annotation[annotation_type]["path"],
+                annotation.data[path_key],
                 height=target["height"],
                 width=target["width"],
             )
@@ -337,7 +338,7 @@ class InstanceSegmentationDataset(LocalDataset):
             # Create and append the new entry for this annotation
             annotations.append(
                 {
-                    "category_id": self.classes.index(annotation["name"]),
+                    "category_id": self.classes.index(annotation.annotation_class.name),
                     "segmentation": sequences,
                     "bbox": [min_x, min_y, w, h],
                     "area": poly_area,
@@ -453,7 +454,7 @@ class SemanticSegmentationDataset(LocalDataset):
         annotations: List[Dict[str, Union[int, List[List[Union[int, float]]]]]] = []
         for obj in target["annotations"]:
             sequences = convert_polygons_to_sequences(
-                obj["polygon"]["path"],
+                obj.data["path"],
                 height=target["height"],
                 width=target["width"],
             )
@@ -462,10 +463,14 @@ class SemanticSegmentationDataset(LocalDataset):
             if not sequences:
                 continue
             annotations.append(
+<<<<<<< HEAD
                 {
                     "category_id": self.classes.index(obj["name"]),
                     "segmentation": sequences,
                 }
+=======
+                {"category_id": self.classes.index(obj.annotation_class.name), "segmentation": sequences}
+>>>>>>> master
             )
         target["annotations"] = annotations
 
@@ -570,7 +575,11 @@ class ObjectDetectionDataset(LocalDataset):
 
         targets = []
         for annotation in annotations:
-            bbox = annotation["bounding_box"]
+            bbox = (
+                annotation.data
+                if annotation.annotation_class.annotation_type == "bounding_box"
+                else annotation.data["bounding_box"]
+            )
 
             x = bbox["x"]
             y = bbox["y"]
@@ -579,7 +588,7 @@ class ObjectDetectionDataset(LocalDataset):
 
             bbox = torch.tensor([x, y, w, h])
             area = bbox[2] * bbox[3]
-            label = torch.tensor(self.classes.index(annotation["name"]))
+            label = torch.tensor(self.classes.index(annotation.annotation_class.name))
 
             ann = {"bbox": bbox, "area": area, "label": label}
 

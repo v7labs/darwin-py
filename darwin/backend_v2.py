@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional, Tuple, Union
 from urllib import parse
 
 from darwin.datatypes import ItemId
@@ -49,7 +49,7 @@ class BackendV2:
 
     @inject_default_team_slug
     def fetch_items(
-        self, dataset_id: int, cursor: Dict[str, Any], *, team_slug: Optional[str] = None
+        self, dataset_id: int, cursor: Union[Dict[str, Any], List[Tuple[str, Any]]], *, team_slug: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Fetch the remote items from the given dataset.
@@ -70,8 +70,10 @@ class BackendV2:
          Dict[str, Any]
             A response dictionary with the file information.
         """
+        if isinstance(cursor, dict):
+            cursor = list(cursor.items())
 
-        cursor["dataset_ids"] = dataset_id
+        cursor.append(("dataset_ids[]", dataset_id))
 
         return self._client._get(f"/v2/teams/{team_slug}/items?{parse.urlencode(cursor, True)}", team_slug)
 
@@ -87,7 +89,7 @@ class BackendV2:
         payload: Dict[str, Any]
             A filter Dictionary that defines the items to be archived.
         """
-        self._client._put(f"v2/teams/{team_slug}/items/archive", payload, team_slug)
+        self._client._post(f"v2/teams/{team_slug}/items/archive", payload, team_slug)
 
     @inject_default_team_slug
     def restore_archived_items(self, payload: Dict[str, Any], *, team_slug: Optional[str] = None) -> None:
@@ -101,7 +103,7 @@ class BackendV2:
         payload: Dict[str, Any]
             A filter Dictionary that defines the items to be restored.
         """
-        self._client._put(f"v2/teams/{team_slug}/items/restore", payload, team_slug)
+        self._client._post(f"v2/teams/{team_slug}/items/restore", payload, team_slug)
 
     @inject_default_team_slug
     def move_to_stage(
@@ -148,13 +150,20 @@ class BackendV2:
         team_slug: Optional[str] = None,
     ):
         payload = {
-            "filters": filters,
-            "format": format,
             "include_authorship": include_authorship,
             "include_export_token": include_token,
             "name": name,
-            "annotation_filters": {"annotation_class_ids": annotation_class_ids},
+            "annotation_filters": {},
         }
+        if format:
+            payload["format"] = format
+
+        if annotation_class_ids:
+            payload["annotation_filters"] = {"annotation_class_ids": list(map(int, annotation_class_ids))}
+        if filters is not None:
+            # Backend assumes default filters only if those are completely missing.
+            payload["filters"] = filters
+
         return self._client._post(f"v2/teams/{team_slug}/datasets/{dataset_slug}/exports", payload, team_slug)
 
     def get_exports(self, dataset_slug, *, team_slug: Optional[str] = None):

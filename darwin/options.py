@@ -87,6 +87,10 @@ class Options(object):
         )
         parser_push.add_argument("--frames", action="store_true", help="Annotate a video as independent frames.")
 
+        parser_push.add_argument(
+            "--extract_views", action="store_true", help="Upload a volume with all 3 orthogonal views."
+        )
+
         parser_push.add_argument("--path", type=str, default=None, help="Folder to upload the files into.")
 
         parser_push.add_argument("--verbose", action="store_true", help="Flag to show upload details.")
@@ -135,8 +139,16 @@ class Options(object):
             "--include-url-token",
             default=False,
             action="store_true",
-            help="Each annotation file includes a url with an access token."
+            help="Each annotation file includes a url with an access token. "
             "Warning, anyone with the url can access the images, even without being a team member.",
+        )
+        parser_export.add_argument(
+            "--version",
+            default=None,
+            type=str,
+            choices=["1.0", "2.0"],
+            help="When used for V2 dataset, allows to force generation of either Darwin JSON 1.0 (Legacy) or newer 2.0. "
+            "Omit this option to get your team's default.",
         )
 
         # Releases
@@ -152,6 +164,11 @@ class Options(object):
         parser_pull.add_argument("--folders", action="store_true", help="Recreates image folders.")
         parser_pull.add_argument(
             "--video-frames", action="store_true", help="Pulls video frame images instead of video files."
+        )
+        parser_pull.add_argument(
+            "--force-slots",
+            action="store_true",
+            help="Forces pull of all slots of items into deeper file structure ({prefix}/{item_name}/{slot_name}/{file_name}). If your dataset includes items with multiple slots, or multiple source files per slot, this option becomes implicitly enabled.",
         )
 
         # Import
@@ -173,7 +190,11 @@ class Options(object):
         parser_import.add_argument(
             "--yes", action="store_true", help="Skips prompts for creating and adding classes to dataset."
         )
-        parser_import.add_argument("--delete-for-empty", action="store_true", help="Empty annotations will delete annotations from remote files.")
+        parser_import.add_argument(
+            "--delete-for-empty",
+            action="store_true",
+            help="Empty annotations will delete annotations from remote files.",
+        )
 
         # Convert
         parser_convert = dataset_action.add_parser("convert", help="Converts darwin json to other annotation formats.")

@@ -16,15 +16,19 @@ if TYPE_CHECKING:
     from darwin.client import Client
     from darwin.dataset import RemoteDataset
 
-import darwin.datatypes as dt
 import deprecation
-from darwin.datatypes import PathLike
-from darwin.exceptions import IncompatibleOptions
-from darwin.utils import secure_continue_request
-from darwin.version import __version__
 from rich.console import Console
 from rich.progress import track
 from rich.theme import Theme
+
+import darwin.datatypes as dt
+from darwin.datatypes import PathLike
+from darwin.exceptions import IncompatibleOptions, RequestEntitySizeExceeded
+from darwin.utils import secure_continue_request
+from darwin.version import __version__
+
+# Classes missing import support on backend side
+UNSUPPORTED_CLASSES = ["string", "graph"]
 
 DEPRECATION_MESSAGE = """
 
@@ -52,6 +56,9 @@ def build_main_annotations_lookup_table(annotation_classes: List[Dict[str, Any]]
         "polygon",
         "skeleton",
         "tag",
+        "string",
+        "table",
+        "graph",
     ]
     lookup: Dict[str, Any] = {}
     for cls in annotation_classes:
@@ -114,17 +121,32 @@ def build_attribute_lookup(dataset: "RemoteDataset") -> Dict[str, Any]:
     current_version=__version__,
     details=DEPRECATION_MESSAGE,
 )
-def get_remote_files(dataset: "RemoteDataset", filenames: List[str]) -> Dict[str, int]:
-    """Fetches remote files from the datasets, in chunks of 100 filenames at a time"""
+def get_remote_files(dataset: "RemoteDataset", filenames: List[str], chunk_size: int() = 100) -> Dict[str, Tuple[int, str]]:
+    """
+    Fetches remote files from the datasets in chunks; by default 100 filenames at a time.
+
+    The output is a two-element tuple of:
+    - file ID
+    - the name of the first slot for V2 items, or '0' for V1 items
+
+    Fetching slot name is necessary here to avoid double-trip to Api downstream for remote files.
+    """
     remote_files = {}
-    for i in range(0, len(filenames), 100):
-        chunk = filenames[i : i + 100]
+    for i in range(0, len(filenames), chunk_size):
+        chunk = filenames[i : i + chunk_size]
         for remote_file in dataset.fetch_remote_files(
-            {"types": "image,playback_video,video_frame", "filenames": ",".join(chunk)}
+            {"types": "image,playback_video,video_frame", "filenames": chunk}
         ):
-            remote_files[remote_file.full_path] = remote_file.id
+            slot_name = _get_slot_name(remote_file)
+            remote_files[remote_file.full_path] = (remote_file.id, slot_name)
     return remote_files
 
+def _get_slot_name(remote_file) -> str:
+    slot = next(iter(remote_file.slots), {"slot_name": "0"})
+    if slot:
+        return slot["slot_name"]
+    else:
+        return "0"
 
 def _resolve_annotation_classes(
     local_annotation_classes: List[dt.AnnotationClass],
@@ -192,6 +214,7 @@ def import_annotations(
         - If ``file_paths`` is not a list.
         - If the application is unable to fetch any remote classes.
         - If the application was unable to find/parse any annotation files.
+        - If the application was unable to fetch remote file list.
 
     IncompatibleOptions
 
@@ -239,7 +262,21 @@ def import_annotations(
     console.print("Fetching remote file list...", style="info")
     # This call will only filter by filename; so can return a superset of matched files across different paths
     # There is logic in this function to then include paths to narrow down to the single correct matching file
-    remote_files = get_remote_files(dataset, filenames)
+    remote_files = []
+
+    # Try to fetch files in large chunks; in case the filenames are too large and exceed the url size
+    # retry in smaller chunks
+    chunk_size = 100
+    while chunk_size > 0:
+        try:
+            remote_files = get_remote_files(dataset, filenames, chunk_size)
+            break
+        except RequestEntitySizeExceeded as e:
+            chunk_size -= 8
+            if chunk_size <= 0:
+                raise ValueError("Unable to fetch remote file list.")
+
+
     for parsed_file in parsed_files:
         if parsed_file.full_path not in remote_files:
             local_files_missing_remotely.append(parsed_file)
@@ -342,18 +379,36 @@ def import_annotations(
 
         files_to_track = [file for file in parsed_files if file not in files_to_not_track]
         if files_to_track:
+            _warn_unsupported_annotations(files_to_track)
             for parsed_file in track(files_to_track):
-                image_id = remote_files[parsed_file.full_path]
+                image_id, default_slot_name = remote_files[parsed_file.full_path]
+
                 _import_annotations(
                     dataset.client,
                     image_id,
                     remote_classes,
                     attributes,
                     parsed_file.annotations,
+                    default_slot_name,
                     dataset,
                     append,
                     delete_for_empty,
                 )
+
+
+def _warn_unsupported_annotations(parsed_files):
+    console = Console(theme=_console_theme())
+    for parsed_file in parsed_files:
+        skipped_annotations = []
+        for annotation in parsed_file.annotations:
+            if annotation.annotation_class.annotation_type in UNSUPPORTED_CLASSES:
+                skipped_annotations.append(annotation)
+        if len(skipped_annotations) > 0:
+            types = set(map(lambda c: c.annotation_class.annotation_type, skipped_annotations))
+            console.print(
+                f"Import of annotation class types '{', '.join(types)}' is not yet supported. Skipping {len(skipped_annotations)} annotations from '{parsed_file.full_path}'.\n",
+                style="warning",
+            )
 
 
 def _is_skeleton_class(the_class: dt.AnnotationClass) -> bool:
@@ -400,6 +455,7 @@ def _import_annotations(
     remote_classes: Dict[str, Any],
     attributes: Dict[str, Any],
     annotations: List[dt.Annotation],
+    default_slot_name: str,
     dataset: "RemoteDataset",
     append: bool,
     delete_for_empty: bool,
@@ -422,12 +478,9 @@ def _import_annotations(
             data = _handle_complex_polygon(annotation, data)
             data = _handle_subs(annotation, data, annotation_class_id, attributes)
 
-        # Fetch the default slot name if no available in the import source
+        # Insert the default slot name if not available in the import source
         if not annotation.slot_names and dataset.version > 1:
-            items = dataset.fetch_remote_files(filters={"item_ids": [str(id)]})
-            if items:
-                first_item = next(items)
-                annotation.slot_names.extend([first_item.slots[0]["slot_name"]])
+            annotation.slot_names.extend([default_slot_name])
 
         serialized_annotations.append(
             {

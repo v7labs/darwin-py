@@ -8,7 +8,7 @@ jobs:
     timeout-minutes: 30
     strategy:
       matrix:
-        python-version: [3.6, 3.7, 3.8, 3.9]
+        python-version: [3.7, 3.8, 3.9, "3.10"]
 
     steps:
       - uses: actions/checkout@v2
@@ -21,7 +21,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install wheel
           pip install --upgrade setuptools
-          pip install --editable ".[test,ml]"
+          pip install --editable ".[test,ml,medical]"
 
       - name: Run tests
         run: pytest
@@ -30,7 +30,7 @@ jobs:
     timeout-minutes: 30
     strategy:
       matrix:
-        python-version: [3.6, 3.7, 3.8, 3.9]
+        python-version: [3.6, 3.7, 3.8, 3.9, "3.10"]
 
     steps:
       - uses: actions/checkout@v2
@@ -43,7 +43,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install wheel
           pip install --upgrade setuptools
-          pip install --editable ".[test,ml]"
+          pip install --editable ".[test,ml,medical]"
 
       - name: Run tests
         run: pytest

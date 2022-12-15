@@ -2,7 +2,10 @@ __all__ = ["main"]
 
 import getpass
 import os
+import platform
 from argparse import ArgumentParser, Namespace
+from datetime import datetime
+from json import dumps
 
 import requests.exceptions
 
@@ -40,6 +43,21 @@ def main() -> None:
         f._error("The team specified is not in the configuration, please authenticate first.")
     except requests.exceptions.ConnectionError:
         f._error("Darwin seems unreachable, please try again in a minute or contact support.")
+    except Exception as e:  # Catch unhandled exceptions
+        filename = f"darwin_error_{datetime.now().timestamp()}.log"
+
+        fd = open(filename, "w")
+        fd.write("Darwin CLI error log")
+        fd.write(f"Version: {__version__}")
+        fd.write(f"OS: {platform.platform()}")
+        fd.write(f"Command: {dumps(args, check_circular=True)}")
+        fd.write(f"Error: {dumps(e, check_circular=True)}")
+        fd.close()
+
+        f._error(
+            "An unexpected error occurred, errors have been written to {filename}, please contact support, and send them the file."
+            + str(e)
+        )
 
 
 def _run(args: Namespace, parser: ArgumentParser) -> None:
@@ -95,6 +113,7 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
                 args.fps,
                 args.path,
                 args.frames,
+                args.extract_views,
                 args.preserve_folders,
                 args.verbose,
             )
@@ -104,13 +123,15 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
         elif args.action == "report":
             f.dataset_report(args.dataset, args.granularity or "day", args.pretty)
         elif args.action == "export":
-            f.export_dataset(args.dataset, args.include_url_token, args.name, args.class_ids, args.include_authorship)
+            f.export_dataset(
+                args.dataset, args.include_url_token, args.name, args.class_ids, args.include_authorship, args.version
+            )
         elif args.action == "files":
             f.list_files(args.dataset, args.status, args.path, args.only_filenames, args.sort_by)
         elif args.action == "releases":
             f.dataset_list_releases(args.dataset)
         elif args.action == "pull":
-            f.pull_dataset(args.dataset, args.only_annotations, args.folders, args.video_frames)
+            f.pull_dataset(args.dataset, args.only_annotations, args.folders, args.video_frames, args.force_slots)
         elif args.action == "import":
             f.dataset_import(args.dataset, args.format, args.files, args.append, not args.yes, args.delete_for_empty)
         elif args.action == "convert":

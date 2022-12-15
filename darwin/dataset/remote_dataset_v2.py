@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, Tuple, Union
 
 from darwin.dataset import RemoteDataset
 from darwin.dataset.release import Release
@@ -11,7 +11,7 @@ from darwin.dataset.upload_manager import (
 )
 from darwin.dataset.utils import is_relative_to
 from darwin.datatypes import ItemId, PathLike
-from darwin.exceptions import NotFound
+from darwin.exceptions import NotFound, UnknownExportVersion
 from darwin.item import DatasetItem
 from darwin.item_sorter import ItemSorter
 from darwin.utils import find_files, urljoin
@@ -111,8 +111,10 @@ class RemoteDatasetV2(RemoteDataset):
         *,
         blocking: bool = True,
         multi_threaded: bool = True,
+        max_workers: Optional[int] = None,
         fps: int = 0,
         as_frames: bool = False,
+        extract_views: bool = False,
         files_to_exclude: Optional[List[PathLike]] = None,
         path: Optional[str] = None,
         preserve_folders: bool = False,
@@ -131,10 +133,14 @@ class RemoteDatasetV2(RemoteDataset):
         multi_threaded : bool, default: True
             Uses multiprocessing to upload the dataset in parallel.
             If blocking is False this has no effect.
+        max_workers : int, default: None
+            Maximum number of workers to use for parallel upload.
         fps : int, default: 0
             When the uploading file is a video, specify its framerate.
         as_frames: bool, default: False
             When the uploading file is a video, specify whether it's going to be uploaded as a list of frames.
+        extract_views: bool, default: False
+            When the uploading file is a volume, specify whether it's going to be split into orthogonal views.
         files_to_exclude : Optional[PathLike]], default: None
             Optional list of files to exclude from the file scan. Those can be folders.
         path: Optional[str], default: None
@@ -158,7 +164,6 @@ class RemoteDatasetV2(RemoteDataset):
             - If a path is specified when uploading a LocalFile object.
             - If there are no files to upload (because path is wrong or the exclude filter excludes everything).
         """
-
         if files_to_exclude is None:
             files_to_exclude = []
 
@@ -178,7 +183,9 @@ class RemoteDatasetV2(RemoteDataset):
                 source_files = [source_file for source_file in search_files if is_relative_to(found_file, source_file)]
                 if source_files:
                     local_path = str(found_file.relative_to(source_files[0]).parent)
-            uploading_files.append(LocalFile(found_file, fps=fps, as_frames=as_frames, path=local_path))
+            uploading_files.append(
+                LocalFile(found_file, fps=fps, as_frames=as_frames, extract_views=extract_views, path=local_path)
+            )
 
         if not uploading_files:
             raise ValueError("No files to upload, check your path, exclusion filters and resume flag")
@@ -186,6 +193,7 @@ class RemoteDatasetV2(RemoteDataset):
         handler = UploadHandlerV2(self, uploading_files)
         if blocking:
             handler.upload(
+                max_workers=max_workers,
                 multi_threaded=multi_threaded,
                 progress_callback=progress_callback,
                 file_upload_callback=file_upload_callback,
@@ -214,29 +222,30 @@ class RemoteDatasetV2(RemoteDataset):
         Iterator[DatasetItem]
             An iterator of ``DatasetItem``.
         """
-        post_filters: Dict[str, Union[str, List[str]]] = {}
+        post_filters: List[Tuple[str, Any]] = []
         post_sort: Dict[str, str] = {}
 
         if filters:
             if "filenames" in filters:
                 # compability layer with v1
                 filters["item_names"] = filters["filenames"]
-            for list_type in ["item_names", "statuses", "item_ids"]:
+                del filters["filenames"]
+
+            for list_type in ["item_names", "statuses", "item_ids", "slot_types"]:
                 if list_type in filters:
                     if type(filters[list_type]) is list:
-                        post_filters[list_type] = filters[list_type]
+                        for value in filters[list_type]:
+                            post_filters.append(("{}[]".format(list_type), value))
                     else:
-                        post_filters[list_type] = str(filters[list_type])
-            if "slot_types" in filters:
-                post_filters["types"] = filters["slot_types"]
+                        post_filters.append((list_type, str(filters[list_type])))
 
         if sort:
             item_sorter = ItemSorter.parse(sort)
             post_sort[f"sort[{item_sorter.field}]"] = item_sorter.direction.value
         cursor = {"page[size]": 500}
         while True:
-            cursor = {**post_filters, **post_sort, **cursor}
-            response = self.client.api_v2.fetch_items(self.dataset_id, cursor, team_slug=self.team)
+            query = post_filters + list(post_sort.items()) + list(cursor.items())
+            response = self.client.api_v2.fetch_items(self.dataset_id, query, team_slug=self.team)
             yield from [DatasetItem.parse(item) for item in response["items"]]
 
             if response["page"]["next"]:
@@ -282,20 +291,13 @@ class RemoteDatasetV2(RemoteDataset):
             The ``DatasetItem``\\s whose status will change.
         """
 
-        detailed_dataset = self.client.api_v2.get_dataset(self.dataset_id)
-        workflow_ids = detailed_dataset["workflow_ids"]
-        if len(workflow_ids) == 0:
-            raise ValueError("Dataset is not part of a workflow")
-        # currently we can only be part of one workflow
-        workflow_id = workflow_ids[0]
-        workflow = self.client.api_v2.get_workflow(workflow_id, team_slug=self.team)
-        dataset_stages = [stage for stage in workflow["stages"] if stage["type"] == "dataset"]
-        if not dataset_stages:
+        (workflow_id, stages) = self._fetch_stages("dataset")
+        if not stages:
             raise ValueError("Dataset's workflow is missing a dataset stage")
 
         self.client.api_v2.move_to_stage(
             {"item_ids": [item.id for item in items], "dataset_ids": [self.dataset_id]},
-            dataset_stages[0]["id"],
+            stages[0]["id"],
             workflow_id,
             team_slug=self.team,
         )
@@ -311,6 +313,26 @@ class RemoteDatasetV2(RemoteDataset):
             The ``DatasetItem``\\s to be resetted.
         """
         raise ValueError("Reset is deprecated for version 2 datasets")
+
+    def complete(self, items: Iterator[DatasetItem]) -> None:
+        """
+        Completes the given ``DatasetItem``\\s.
+
+        Parameters
+        ----------
+        items : Iterator[DatasetItem]
+            The ``DatasetItem``\\s to be completed.
+        """
+        (workflow_id, stages) = self._fetch_stages("complete")
+        if not stages:
+            raise ValueError("Dataset's workflow is missing a complete stage")
+
+        self.client.api_v2.move_to_stage(
+            {"item_ids": [item.id for item in items], "dataset_ids": [self.dataset_id]},
+            stages[0]["id"],
+            workflow_id,
+            team_slug=self.team,
+        )
 
     def delete_items(self, items: Iterator[DatasetItem]) -> None:
         """
@@ -331,6 +353,7 @@ class RemoteDatasetV2(RemoteDataset):
         annotation_class_ids: Optional[List[str]] = None,
         include_url_token: bool = False,
         include_authorship: bool = False,
+        version: Optional[str] = None,
     ) -> None:
         """
         Create a new release for this ``RemoteDataset``.
@@ -346,18 +369,27 @@ class RemoteDatasetV2(RemoteDataset):
             membership or not?
         include_authorship : bool, default: False
             If set, include annotator and reviewer metadata for each annotation.
-
+        version : Optional[str], default: None, enum: ["1.0", "2.0"]
+            When used for V2 dataset, allows to force generation of either Darwin JSON 1.0 (Legacy) or newer 2.0.
+            Omit this option to get your team's default.
         """
-        if annotation_class_ids is None:
-            annotation_class_ids = []
+        str_version = str(version)
+        if str_version == "2.0":
+            format = "darwin_json_2"
+        elif str_version == "1.0":
+            format = "json"
+        elif version == None:
+            format = None
+        else:
+            raise UnknownExportVersion(version)
 
         self.client.api_v2.export_dataset(
-            format="json",
+            format=format,
             name=name,
             include_authorship=include_authorship,
             include_token=include_url_token,
             annotation_class_ids=annotation_class_ids,
-            filters={},
+            filters=None,
             dataset_slug=self.slug,
             team_slug=self.team,
         )
@@ -423,3 +455,13 @@ class RemoteDatasetV2(RemoteDataset):
         """
 
         self.client.api_v2.import_annotation(item_id, payload=payload, team_slug=self.team)
+
+    def _fetch_stages(self, stage_type):
+        detailed_dataset = self.client.api_v2.get_dataset(self.dataset_id)
+        workflow_ids = detailed_dataset["workflow_ids"]
+        if len(workflow_ids) == 0:
+            raise ValueError("Dataset is not part of a workflow")
+        # currently we can only be part of one workflow
+        workflow_id = workflow_ids[0]
+        workflow = self.client.api_v2.get_workflow(workflow_id, team_slug=self.team)
+        return (workflow_id, [stage for stage in workflow["stages"] if stage["type"] == stage_type])

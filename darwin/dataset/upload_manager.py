@@ -16,6 +16,7 @@ from typing import (
 )
 
 import requests
+
 from darwin.datatypes import PathLike
 from darwin.doc_enum import DocEnum
 from darwin.path_utils import construct_full_path
@@ -161,8 +162,14 @@ class LocalFile:
         return {"files": [{"file_name": self.data["filename"], "slot_name": "0"}], "name": self.data["filename"]}
 
     def serialize_v2(self):
+        optional_properties = ["tags", "fps", "as_frames", "extract_views"]
+        slot = {"file_name": self.data["filename"], "slot_name": "0"}
+        for optional_property in optional_properties:
+            if optional_property in self.data:
+                slot[optional_property] = self.data.get(optional_property)
+
         return {
-            "slots": [{"file_name": self.data["filename"], "slot_name": "0"}],
+            "slots": [slot],
             "name": self.data["filename"],
             "path": self.data["path"],
         }
@@ -342,6 +349,14 @@ class UploadHandler(ABC):
                     file_complete.add(file_name)
                     progress_callback(self.pending_count, 1)
 
+        if max_workers:
+            if max_workers < 1:
+                raise ValueError("max_workers must be greater than 0")
+            elif max_workers > concurrent.futures.ThreadPoolExecutor()._max_workers:
+                raise ValueError(
+                    f"max_workers must be less than or equal to {concurrent.futures.ThreadPoolExecutor()._max_workers}"
+                )
+
         if multi_threaded and self.progress:
             with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
                 future_to_progress = {executor.submit(f, callback) for f in self.progress}
@@ -443,7 +458,7 @@ class UploadHandlerV1(UploadHandler):
                     if upload_response.status_code != 503:
                         break
 
-                    time.sleep(2 ** retries)
+                    time.sleep(2**retries)
                     retries += 1
 
             upload_response.raise_for_status()
@@ -536,7 +551,7 @@ class UploadHandlerV2(UploadHandler):
                     if upload_response.status_code != 503:
                         break
 
-                    time.sleep(2 ** retries)
+                    time.sleep(2**retries)
                     retries += 1
 
             upload_response.raise_for_status()

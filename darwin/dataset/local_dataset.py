@@ -5,7 +5,7 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 import numpy as np
 from darwin.dataset.utils import get_classes, get_release_path, load_pil_image
-from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS
+from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS, parse_darwin_json
 from PIL import Image as PILImage
 
 
@@ -248,19 +248,36 @@ class LocalDataset(object):
         Dict[str, Any]
             A dictionary containing the index and the filtered annotation.
         """
-        with self.annotations_path[index].open() as f:
-            data = json.load(f)
+        parsed = parse_darwin_json(self.annotations_path[index], index)
+        annotations = [] if parsed.is_video else parsed.annotations
+
         # Filter out unused classes and annotations of a different type
-        annotations = data["annotations"]
         if self.classes is not None:
-            annotations = [a for a in annotations if a["name"] in self.classes and self.annotation_type in a]
+            annotations = [
+                a for a in annotations if a.annotation_class.name in self.classes and self.annotation_type_supported(a)
+            ]
         return {
             "image_id": index,
             "image_path": str(self.images_path[index]),
-            "height": data["image"]["height"],
-            "width": data["image"]["width"],
+            "height": parsed.image_height,
+            "width": parsed.image_width,
             "annotations": annotations,
         }
+
+    def annotation_type_supported(self, annotation) -> bool:
+        annotation_type = annotation.annotation_class.annotation_type
+        if self.annotation_type == "tag":
+            return annotation_type == "tag"
+        elif self.annotation_type == "bounding_box":
+            is_bounding_box = annotation_type == "bounding_box"
+            is_supported_polygon = (
+                annotation_type in ["polygon", "complex_polygon"] and "bounding_box" in annotation.data
+            )
+            return is_bounding_box or is_supported_polygon
+        elif self.annotation_type == "polygon":
+            return annotation_type in ["polygon", "complex_polygon"]
+        else:
+            raise ValueError("annotation_type should be either 'tag', 'bounding_box', or 'polygon'")
 
     def measure_mean_std(self, multi_threaded: bool = True) -> Tuple[np.ndarray, np.ndarray]:
         """

@@ -51,6 +51,10 @@ class DatasetItem(BaseModel):
     #: only used for v2 dataset items
     slots: List[Any]
 
+    #: Metadata of this ``DatasetItem``'s workflow. A ``None`` value means this ``DatasetItem`` is
+    #: new and was never worked on, or was reset to the new state.
+    current_workflow: Optional[Dict[str, Any]]
+
     @property
     def full_path(self) -> str:
         """
@@ -91,7 +95,9 @@ class DatasetItem(BaseModel):
                 "dataset_slug": "n/a",
                 "seq": None,
                 "current_workflow_id": None,
+                "current_workflow": None,
                 "slots": raw["slots"],
+                "current_workflow": None,
             }
         else:
             data = {
@@ -104,6 +110,7 @@ class DatasetItem(BaseModel):
                 "dataset_slug": "n/a",
                 "seq": raw["seq"],
                 "current_workflow_id": raw.get("current_workflow_id"),
+                "current_workflow": raw.get("current_workflow"),
                 "path": raw["path"],
                 "slots": [],
             }
@@ -141,4 +148,6 @@ def parse_dataset_item(raw: Dict[str, Any]) -> DatasetItem:
         raw["seq"],
         raw.get("current_workflow_id"),
         raw["path"],
+        [],
+        raw.get("current_workflow"),
     )

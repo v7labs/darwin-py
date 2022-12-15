@@ -60,12 +60,22 @@ def _build_txt(annotation_file: dt.AnnotationFile, class_index: ClassIndex) -> s
 
         if annotation.data is None:
             continue
+        if annotation_file.image_height is None or annotation_file.image_width is None:
+            continue
 
         i = class_index[annotation.annotation_class.name]
-        x = round(data["x"])
-        y = round(data["y"])
-        w = round(data["w"])
-        h = round(data["h"])
+        # x, y should be the center of the box
+        # x, y, w, h are normalized to the image size
+        x = data["x"] + data["w"] / 2
+        y = data["y"] + data["h"] / 2
+        w = data["w"]
+        h = data["h"]
+        imh = annotation_file.image_height
+        imw = annotation_file.image_width
+        x = x / imw
+        y = y / imh
+        w = w / imw
+        h = h / imh
 
         yolo_lines.append(f"{i} {x} {y} {w} {h}")
     return "\n".join(yolo_lines)

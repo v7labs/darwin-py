@@ -3,7 +3,7 @@ import os
 import time
 from logging import Logger
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Optional, Union, cast
+from typing import Any, Dict, Iterator, List, Optional, Tuple, Union, cast
 from urllib import parse
 
 import requests
@@ -22,9 +22,11 @@ from darwin.exceptions import (
     MissingConfig,
     NameTaken,
     NotFound,
+    RequestEntitySizeExceeded,
     Unauthorized,
     ValidationError,
 )
+from darwin.item import DatasetItem
 from darwin.utils import (
     get_response_content,
     has_json_content_type,
@@ -41,6 +43,9 @@ class Client:
         self.default_team: str = default_team or config.get("global/default_team")
         self.features: Dict[str, List[Feature]] = {}
         self._newer_version: Optional[DarwinVersionNumber] = None
+        self.session = requests.Session()
+        adapter = requests.adapters.HTTPAdapter(pool_maxsize=100)
+        self.session.mount("https://", adapter)
 
         if log is None:
             self.log: Logger = logging.getLogger("darwin")
@@ -110,7 +115,7 @@ class Client:
                     slug=dataset["slug"],
                     team=team_slug or self.default_team,
                     dataset_id=dataset["id"],
-                    item_count=dataset["num_images"] + dataset["num_videos"],
+                    item_count=dataset.get("num_images", 0) + dataset.get("num_videos", 0),
                     progress=dataset["progress"],
                     client=self,
                 )
@@ -175,7 +180,7 @@ class Client:
                     slug=dataset["slug"],
                     team=parsed_dataset_identifier.team_slug,
                     dataset_id=dataset["id"],
-                    item_count=dataset.get("num_items", dataset["num_images"] + dataset["num_videos"]),
+                    item_count=dataset.get("num_items", dataset.get("num_images", 0) + dataset.get("num_videos", 0)),
                     progress=0,
                     client=self,
                 )
@@ -216,7 +221,7 @@ class Client:
                 team=team_slug or self.default_team,
                 slug=dataset["slug"],
                 dataset_id=dataset["id"],
-                item_count=dataset.get("num_items", dataset["num_images"] + dataset["num_videos"]),
+                item_count=dataset.get("num_items", dataset.get("num_images", 0) + dataset.get("num_videos", 0)),
                 progress=0,
                 client=self,
             )
@@ -757,6 +762,27 @@ class Client:
         """
         self._put_raw(f"teams/{team_slug}/datasets/{dataset_slug}/items/reset", payload, team_slug)
 
+    def move_to_stage(self, dataset_slug: str, team_slug: str, filters: Dict[str, Any], stage_id: int) -> None:
+        """
+        Moves the given items to the specified stage
+
+        Parameters
+        ----------
+        dataset_slug: str
+            The slug of the dataset.
+        team_slug: str
+            The slug of the team.
+        filters: Dict[str, Any]
+            A filter Dictionary that defines the items to have the new, selected stage.
+        stage_id: int
+            ID of the stage to set.
+        """
+        payload: Dict[str, Any] = {
+            "filter": filters,
+            "workflow_stage_template_id": stage_id,
+        }
+        self._put_raw(f"teams/{team_slug}/datasets/{dataset_slug}/set_stage", payload, team_slug)
+
     def post_workflow_comment(
         self, workflow_id: int, text: str, x: float = 1, y: float = 1, w: float = 1, h: float = 1
     ) -> int:
@@ -797,7 +823,7 @@ class Client:
 
         return comment_id
 
-    def instantiate_item(self, item_id: int) -> int:
+    def instantiate_item(self, item_id: int, include_metadata: bool = False) -> Union[int, Tuple[int, DatasetItem]]:
         """
         Instantiates the given item with a workflow.
 
@@ -805,6 +831,9 @@ class Client:
         ----------
         item_id: int
             The id of the item to be instantiated.
+
+        include_metadata: bool
+            If set to True, this method returns a tuple instead, with 2nd element being DatasetItem.
 
         Returns
         -------
@@ -822,7 +851,10 @@ class Client:
         if id is None:
             raise ValueError(f"No Workflow Id found for item_id: {item_id}")
 
-        return id
+        if include_metadata:
+            return (id, DatasetItem.parse(response))
+        else:
+            return id
 
     def fetch_binary(self, url: str) -> Response:
         """
@@ -985,7 +1017,7 @@ class Client:
     def _get_raw_from_full_url(
         self, url: str, team_slug: Optional[str] = None, retry: bool = False, stream: bool = False
     ) -> Response:
-        response: Response = requests.get(url, headers=self._get_headers(team_slug), stream=stream)
+        response: Response = self.session.get(url, headers=self._get_headers(team_slug), stream=stream)
 
         self.log.debug(
             f"Client GET request response ({get_response_content(response)}) with status "
@@ -1018,7 +1050,7 @@ class Client:
     def _put_raw(
         self, endpoint: str, payload: Dict[str, Any], team_slug: Optional[str] = None, retry: bool = False
     ) -> Response:
-        response: requests.Response = requests.put(
+        response: requests.Response = self.session.put(
             urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team_slug)
         )
 
@@ -1055,7 +1087,7 @@ class Client:
         if payload is None:
             payload = {}
 
-        response: Response = requests.post(
+        response: Response = self.session.post(
             urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team_slug)
         )
 
@@ -1096,7 +1128,7 @@ class Client:
         if payload is None:
             payload = {}
 
-        response: requests.Response = requests.delete(
+        response: requests.Response = self.session.delete(
             urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team_slug)
         )
 
@@ -1124,6 +1156,9 @@ class Client:
 
         if response.status_code == 404:
             raise NotFound(url)
+
+        if response.status_code == 413:
+            raise RequestEntitySizeExceeded(url)
 
         if has_json_content_type(response):
             body = response.json()

@@ -173,7 +173,9 @@ def _f(x: Any) -> Any:
         return x()
 
 
-def exhaust_generator(progress: Generator, count: int, multi_threaded: bool) -> List[Dict[str, Any]]:
+def exhaust_generator(
+    progress: Generator, count: int, multi_threaded: bool, worker_count: Optional[int] = None
+) -> List[Dict[str, Any]]:
     """
     Exhausts the generator passed as parameter. Can be done multi threaded if desired.
 
@@ -185,6 +187,8 @@ def exhaust_generator(progress: Generator, count: int, multi_threaded: bool) -> 
         Size of the generator.
     multi_threaded : bool
         Flag for multi-threaded enabled operations.
+    worker_count : Optional[int]
+        Number of workers to use if multi_threaded=True. By default CPU count is used.
 
     Returns
     -------
@@ -198,8 +202,11 @@ def exhaust_generator(progress: Generator, count: int, multi_threaded: bool) -> 
         def update(*a):
             progress_bar.completed += 1
 
+        if worker_count is None:
+            worker_count = mp.cpu_count()
+
         with Live(progress_bar):
-            with mp.Pool(mp.cpu_count()) as pool:
+            with mp.Pool(worker_count) as pool:
                 for f in progress:
                     responses.append(pool.apply_async(_f, args=(f,), callback=update))
                 pool.close()

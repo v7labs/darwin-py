@@ -6,6 +6,7 @@ import deprecation
 from upolygon import find_contours, rle_decode
 
 import darwin.datatypes as dt
+from darwin.exceptions import UnrecognizableFileEncoding
 from darwin.path_utils import deconstruct_full_path
 from darwin.version import __version__
 
@@ -36,9 +37,16 @@ def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
     if path.suffix != ".json":
         return None
 
-    with path.open() as f:
-        data = json.load(f)
-        return list(parse_json(path, data))
+    encodings = ["system_default", "utf-32", "utf-16", "utf-8", "ascii"]
+    while True:
+        try:
+            if encodings:
+                return _decode_file(encodings.pop(0), path)
+            raise UnrecognizableFileEncoding(
+                f"Could not decode file {path}. Encodings tried: system_default, utf-32, utf-16, utf-8, ascii."
+            )
+        except UnicodeDecodeError:
+            continue
 
 
 def parse_json(path: Path, data: Dict[str, Any]) -> Iterator[dt.AnnotationFile]:
@@ -60,7 +68,20 @@ def parse_json(path: Path, data: Dict[str, Any]) -> Iterator[dt.AnnotationFile]:
     annotations = data["annotations"]
     image_lookup_table = {image["id"]: image for image in data["images"]}
     category_lookup_table = {category["id"]: category for category in data["categories"]}
+    tag_categories = data.get("tag_categories") or []
+    tag_category_lookup_table = {category["id"]: category for category in tag_categories}
     image_annotations: Dict[str, Any] = {}
+
+    for image in data["images"]:
+        image_id = image["id"]
+        tag_ids = image.get("tag_ids") or []
+
+        if image_id not in image_annotations:
+            image_annotations[image_id] = []
+
+        for tag_id in tag_ids:
+            tag = tag_category_lookup_table[tag_id]
+            image_annotations[image_id].append(dt.make_tag(tag["name"]))
 
     for annotation in annotations:
         image_id = annotation["image_id"]
@@ -144,6 +165,17 @@ def parse_annotation(annotation: Dict[str, Any], category_lookup_table: Dict[str
         return dt.make_polygon(category["name"], path)
     else:
         return None
+
+
+def _decode_file(current_encoding: str, path: Path):
+    if current_encoding == "system_default":
+        with path.open() as f:
+            data = json.load(f)
+            return list(parse_json(path, data))
+    else:
+        with path.open(encoding=current_encoding) as f:
+            data = json.load(f)
+            return list(parse_json(path, data))
 
 
 @deprecation.deprecated(

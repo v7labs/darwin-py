@@ -1,4 +1,5 @@
 import json
+import os
 import shutil
 import tempfile
 import zipfile
@@ -17,6 +18,8 @@ from typing import (
     Union,
 )
 
+from rich.console import Console
+
 from darwin.dataset.download_manager import download_all_images_from_annotations
 from darwin.dataset.identifier import DatasetIdentifier
 from darwin.dataset.release import Release
@@ -33,7 +36,6 @@ from darwin.dataset.utils import (
     get_classes,
     is_unix_like_os,
     make_class_lists,
-    sanitize_filename,
 )
 from darwin.datatypes import AnnotationClass, AnnotationFile, ItemId, PathLike, Team
 from darwin.exceptions import NotFound, UnsupportedExportFormat
@@ -41,7 +43,6 @@ from darwin.exporter.formats.darwin import build_image_annotation
 from darwin.item import DatasetItem
 from darwin.item_sorter import ItemSorter
 from darwin.utils import parse_darwin_json, split_video_annotation, urljoin
-from rich.console import Console
 
 if TYPE_CHECKING:
     from darwin.client import Client
@@ -124,8 +125,10 @@ class RemoteDataset(ABC):
         *,
         blocking: bool = True,
         multi_threaded: bool = True,
+        max_workers: Optional[int] = None,
         fps: int = 0,
         as_frames: bool = False,
+        extract_views: bool = False,
         files_to_exclude: Optional[List[PathLike]] = None,
         path: Optional[str] = None,
         preserve_folders: bool = False,
@@ -182,6 +185,7 @@ class RemoteDataset(ABC):
         subset_folder_name: Optional[str] = None,
         use_folders: bool = False,
         video_frames: bool = False,
+        force_slots: bool = False,
     ) -> Tuple[Optional[Callable[[], Iterator[Any]]], int]:
         """
         Downloads a remote dataset (images and annotations) to the datasets directory.
@@ -210,6 +214,8 @@ class RemoteDataset(ABC):
             Recreates folders from the dataset.
         video_frames : bool, default: False
             Pulls video frames images instead of video files.
+        force_slots: bool
+            Pulls all slots of items into deeper file structure ({prefix}/{item_name}/{slot_name}/{file_name})
 
         Returns
         -------
@@ -228,7 +234,7 @@ class RemoteDataset(ABC):
         if release is None:
             release = self.get_release()
 
-        if release.format != "json":
+        if release.format != "json" and release.format != "darwin_json_2":
             raise UnsupportedExportFormat(release.format)
 
         release_dir = self.local_releases_path / release.name
@@ -254,12 +260,22 @@ class RemoteDataset(ABC):
                     except PermissionError:
                         print(f"Could not remove dataset in {annotations_dir}. Permission denied.")
                 annotations_dir.mkdir(parents=True, exist_ok=False)
+                stems: dict = {}
+
                 # Move the annotations into the right folder and rename them to have the image
                 # original filename as contained in the json
                 for annotation_path in tmp_dir.glob("*.json"):
-                    with annotation_path.open() as file:
-                        annotation = json.load(file)
-                    filename = sanitize_filename(Path(annotation["image"]["filename"]).stem)
+                    annotation = parse_darwin_json(annotation_path, count=None)
+                    if annotation is None:
+                        continue
+
+                    filename = Path(annotation.filename).stem
+                    if filename in stems:
+                        stems[filename] += 1
+                        filename = f"{filename}_{stems[filename]}"
+                    else:
+                        stems[filename] = 1
+
                     destination_name = annotations_dir / f"{filename}{annotation_path.suffix}"
                     shutil.move(str(annotation_path), str(destination_name))
 
@@ -297,13 +313,19 @@ class RemoteDataset(ABC):
             remove_extra=remove_extra,
             use_folders=use_folders,
             video_frames=video_frames,
+            force_slots=force_slots,
         )
         if count == 0:
             return None, count
 
         # If blocking is selected, download the dataset on the file system
         if blocking:
-            exhaust_generator(progress=progress(), count=count, multi_threaded=multi_threaded)
+            max_workers = None
+            env_max_workers = os.getenv("DARWIN_DOWNLOAD_FILES_CONCURRENCY")
+            if env_max_workers and int(env_max_workers) > 0:
+                max_workers = int(env_max_workers)
+
+            exhaust_generator(progress=progress(), count=count, multi_threaded=multi_threaded, worker_count=max_workers)
             return None, count
         else:
             return progress, count
@@ -375,6 +397,17 @@ class RemoteDataset(ABC):
         ----------
         items : Iterator[DatasetItem]
             The ``DatasetItem``\\s to be reset.
+        """
+
+    @abstractmethod
+    def complete(self, items: Iterator[DatasetItem]) -> None:
+        """
+        Completes the given ``DatasetItem``\\s.
+
+        Parameters
+        ----------
+        items : Iterator[DatasetItem]
+            The ``DatasetItem``\\s to be completed.
         """
 
     @abstractmethod
@@ -546,6 +579,7 @@ class RemoteDataset(ABC):
         annotation_class_ids: Optional[List[str]] = None,
         include_url_token: bool = False,
         include_authorship: bool = False,
+        version: Optional[str] = None,
     ) -> None:
         """
         Create a new release for this ``RemoteDataset``.
@@ -561,7 +595,9 @@ class RemoteDataset(ABC):
             membership or not?
         include_authorship : bool, default: False
             If set, include annotator and reviewer metadata for each annotation.
-
+        version : Optional[str], default: None, enum: ["1.0", "2.0"]
+            When used for V2 dataset, allows to force generation of either Darwin JSON 1.0 (Legacy) or newer 2.0.
+            Omit this option to get your team's default.
         """
 
     @abstractmethod
