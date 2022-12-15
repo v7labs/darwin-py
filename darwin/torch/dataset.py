@@ -463,14 +463,10 @@ class SemanticSegmentationDataset(LocalDataset):
             if not sequences:
                 continue
             annotations.append(
-<<<<<<< HEAD
                 {
                     "category_id": self.classes.index(obj["name"]),
                     "segmentation": sequences,
                 }
-=======
-                {"category_id": self.classes.index(obj.annotation_class.name), "segmentation": sequences}
->>>>>>> master
             )
         target["annotations"] = annotations
 
