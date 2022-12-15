@@ -250,7 +250,7 @@ class ConvertPolygonsToSemanticMask(object):
             # with its corresponding categories
             mask, _ = (masks * cats[:, None, None]).max(dim=0)
             # discard overlapping instances
-            mask[masks.sum(0) > 1] = 255    
+            mask[masks.sum(0) > 1] = 255
         else:
             mask = torch.zeros((h, w), dtype=torch.uint8)
 

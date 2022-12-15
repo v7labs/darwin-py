@@ -1,12 +1,9 @@
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
-import torchvision.transforms as T
-import torchvision.transforms.functional as TF
 from darwin.cli_functions import _error, _load_client
 from darwin.dataset import LocalDataset
 from darwin.dataset.identifier import DatasetIdentifier
-from darwin.dataset.utils import convert_to_rgb
 from darwin.torch.transforms import (
     Compose,
     ConvertPolygonsToInstanceMasks,
@@ -15,6 +12,7 @@ from darwin.torch.transforms import (
 from darwin.torch.utils import polygon_area
 from darwin.utils import convert_polygons_to_sequences
 from PIL import Image as PILImage
+from torchvision.transforms.functional import to_tensor
 
 import torch
 from torch.functional import Tensor
@@ -126,7 +124,7 @@ class ClassificationDataset(LocalDataset):
         if self.transform is not None:
             img_tensor = self.transform(img)
         else:
-            img_tensor = TF.to_tensor(img)
+            img_tensor = to_tensor(img)
 
         target = self.get_target(index)
 
@@ -276,7 +274,7 @@ class InstanceSegmentationDataset(LocalDataset):
         if self.transform is not None:
             img_tensor, target = self.transform(img, target)
         else:
-            img_tensor = TF.to_tensor(img)
+            img_tensor = to_tensor(img)
 
         return img_tensor, target
 
@@ -416,7 +414,7 @@ class SemanticSegmentationDataset(LocalDataset):
         if self.transform is not None:
             img_tensor, target = self.transform(img, target)
         else:
-            img_tensor = TF.to_tensor(img)
+            img_tensor = to_tensor(img)
 
         return img_tensor, target
 
@@ -541,7 +539,7 @@ class ObjectDetectionDataset(LocalDataset):
         if self.transform is not None:
             img_tensor, target = self.transform(img, target)
         else:
-            img_tensor = TF.to_tensor(img)
+            img_tensor = to_tensor(img)
 
         return img_tensor, target
 
