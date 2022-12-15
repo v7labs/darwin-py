@@ -1,4 +1,5 @@
 import warnings
+import zipfile
 from collections import OrderedDict, defaultdict
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Union
@@ -12,17 +13,18 @@ try:
     import nibabel as nib
 except ImportError:
     import_fail_string = """
-    You must install darwin-py with pip install darwin-py[medical]
+    You must install darwin-py with pip install darwin-py\[medical]
     in order to import with using nifti format
     """
     console.print(import_fail_string)
     exit()
-import numpy as np  # noqa: E402
-from jsonschema import validate  # noqa: E402
-from upolygon import find_contours  # noqa: E402
+import numpy as np
+from jsonschema import validate
+from upolygon import find_contours
 
-import darwin.datatypes as dt  # noqa: E402
-from darwin.importer.formats.nifti_schemas import nifti_import_schema  # noqa: E402
+import darwin.datatypes as dt
+from darwin.importer.formats.nifti_schemas import nifti_import_schema
+from darwin.version import __version__
 
 
 def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
@@ -50,10 +52,9 @@ def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
         data = json.loads(f.read())
         try:
             validate(data, schema=nifti_import_schema)
-        except Exception:
+        except Exception as e:
             console.print(
-                "Skipping file: {} (invalid json file, see schema for details)".format(path),
-                style="bold yellow",
+                "Skipping file: {} (invalid json file, see schema for details)".format(path), style="bold yellow"
             )
             return None
     nifti_annotations = data.get("data")
@@ -127,13 +128,7 @@ def _parse_nifti(nifti_path: Path, filename: Path, json_path: Path, class_map: D
         remote_path="/",
         annotation_classes=annotation_classes,
         annotations=video_annotations,
-        slots=[
-            dt.Slot(
-                name=None,
-                type="dicom",
-                source_files=[{"url": None, "file_name": str(filename)}],
-            )
-        ],
+        slots=[dt.Slot(name=None, type="dicom", source_files=[{"url": None, "file_name": str(filename)}])],
     )
 
 
@@ -300,7 +295,7 @@ def process_nifti(input_data: Union[Sequence[nib.nifti1.Nifti1Image], nib.nifti1
     if isinstance(input_data, nib.nifti1.Nifti1Image):
         img = correct_nifti_header_if_necessary(input_data)
         img = nib.funcs.as_closest_canonical(img)
-        # axcodes = nib.orientations.aff2axcodes(img.affine)
+        axcodes = nib.orientations.aff2axcodes(img.affine)
         # TODO: Future feature to pass custom ornt could go here.
         ornt = [[0.0, -1.0], [1.0, -1.0], [1.0, -1.0]]
         data_array = nib.orientations.apply_orientation(img.get_fdata(), ornt)

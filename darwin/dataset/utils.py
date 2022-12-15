@@ -172,10 +172,7 @@ def _f(x: Any) -> Any:
 
 
 def exhaust_generator(
-    progress: Generator,
-    count: int,
-    multi_threaded: bool,
-    worker_count: Optional[int] = None,
+    progress: Generator, count: int, multi_threaded: bool, worker_count: Optional[int] = None
 ) -> List[Dict[str, Any]]:
     """
     Exhausts the generator passed as parameter. Can be done multi threaded if desired.
@@ -303,12 +300,7 @@ def get_coco_format_record(
             new_obj["bbox"] = [np.min(px), np.min(py), np.max(px), np.max(py)]
         elif annotation_type == "bounding_box":
             bbox = obj["bounding_box"]
-            new_obj["bbox"] = [
-                bbox["x"],
-                bbox["y"],
-                bbox["x"] + bbox["w"],
-                bbox["y"] + bbox["h"],
-            ]
+            new_obj["bbox"] = [bbox["x"], bbox["y"], bbox["x"] + bbox["w"], bbox["y"] + bbox["h"]]
 
         objs.append(new_obj)
     record["annotations"] = objs
@@ -384,12 +376,7 @@ def get_annotations(
         raise ValueError("annotation_type should be either 'tag', 'bounding_box', or 'polygon'")
 
     # Get the list of classes
-    classes = get_classes(
-        dataset_path,
-        release_name,
-        annotation_type=annotation_type,
-        remove_background=True,
-    )
+    classes = get_classes(dataset_path, release_name, annotation_type=annotation_type, remove_background=True)
     # Get the list of stems
     if partition:
         # Get the split
@@ -408,8 +395,8 @@ def get_annotations(
             stems: Iterator[str] = (e.rstrip("\n\r") for e in split_path.open())
         else:
             raise FileNotFoundError(
-                "Could not find a dataset partition. ",
-                "To split the dataset you can use 'split_dataset' from darwin.dataset.split_manager",
+                f"Could not find a dataset partition. ",
+                f"To split the dataset you can use 'split_dataset' from darwin.dataset.split_manager",
             )
     else:
         # If the partition is not specified, get all the annotations

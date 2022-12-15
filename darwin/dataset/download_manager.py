@@ -3,7 +3,6 @@ Holds helper functions that deal with downloading videos and images.
 """
 
 import functools
-import json as native_json
 import time
 import urllib
 from pathlib import Path
@@ -89,7 +88,7 @@ def download_all_images_from_annotations(
         raise ValueError(f"Annotation format {annotation_format} not supported")
 
     # Verify that there is not already image in the images folder
-    unfiltered_files = images_path.rglob("*") if use_folders else images_path.glob("*")
+    unfiltered_files = images_path.rglob(f"*") if use_folders else images_path.glob(f"*")
     existing_images = {image.stem: image for image in unfiltered_files if is_image_extension_allowed(image.suffix)}
 
     annotations_to_download_path = []
@@ -184,12 +183,7 @@ def download_image_from_annotation(
 
     if annotation_format == "json":
         downloadables = _download_image_from_json_annotation(
-            api_key,
-            annotation_path,
-            images_path,
-            use_folders,
-            video_frames,
-            force_slots,
+            api_key, annotation_path, images_path, use_folders, video_frames, force_slots
         )
         for downloadable in downloadables:
             downloadable()
@@ -238,12 +232,7 @@ def lazy_download_image_from_annotation(
 
     if annotation_format == "json":
         return _download_image_from_json_annotation(
-            api_key,
-            annotation_path,
-            images_path,
-            use_folders,
-            video_frames,
-            force_slots,
+            api_key, annotation_path, images_path, use_folders, video_frames, force_slots
         )
     else:
         console.print("[bold red]Unsupported file format. Please use 'json'.")
@@ -264,10 +253,6 @@ def _download_image_from_json_annotation(
 
     # If we are using folders, extract the path for the image and create the folder if needed
     sub_path = annotation.remote_path if use_folders else Path("/")
-
-    if sub_path is None:
-        raise ValueError(f"Annotation {annotation_path} does not have a remote path")
-
     parent_path = Path(image_path) / Path(sub_path).relative_to(Path(sub_path).anchor)
     parent_path.mkdir(exist_ok=True, parents=True)
 
@@ -299,13 +284,7 @@ def _download_all_slots_from_json_annotation(annotation, api_key, parent_path, v
             for upload in slot.source_files:
                 file_path = slot_path / sanitize_filename(upload["file_name"])
                 generator.append(
-                    functools.partial(
-                        _download_image_with_trace,
-                        annotation,
-                        upload["url"],
-                        file_path,
-                        api_key,
-                    )
+                    functools.partial(_download_image_with_trace, annotation, upload["url"], file_path, api_key)
                 )
     return generator
 
@@ -326,15 +305,7 @@ def _download_single_slot_from_json_annotation(annotation, api_key, parent_path,
             filename = slot.source_files[0]["file_name"]
             image_path = parent_path / sanitize_filename(filename or annotation.filename)
 
-            generator.append(
-                functools.partial(
-                    _download_image_with_trace,
-                    annotation,
-                    image_url,
-                    image_path,
-                    api_key,
-                )
-            )
+            generator.append(functools.partial(_download_image_with_trace, annotation, image_url, image_path, api_key))
     return generator
 
 
@@ -353,7 +324,7 @@ def _update_local_path(annotation: AnnotationFile, url, local_path):
                     source_file["local_path"] = str(local_path)
 
     with annotation.path.open(mode="w") as file:
-        native_json.dump(raw_annotation, file, indent=4)
+        json.dump(raw_annotation, file, indent=4)
 
 
 @deprecation.deprecated(
@@ -363,12 +334,7 @@ def _update_local_path(annotation: AnnotationFile, url, local_path):
     details="Use the ``download_image_from_annotation`` instead.",
 )
 def download_image_from_json_annotation(
-    api_key: str,
-    api_url: str,
-    annotation_path: Path,
-    image_path: Path,
-    use_folders: bool,
-    video_frames: bool,
+    api_key: str, api_url: str, annotation_path: Path, image_path: Path, use_folders: bool, video_frames: bool
 ) -> None:
     """
     Downloads an image given a ``.json`` annotation path and renames the json after the image's

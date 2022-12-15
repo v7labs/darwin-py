@@ -10,15 +10,15 @@ from darwin.version import __version__
 
 DEPRECATION_MESSAGE = """
 
-This function is going to be turned into private. This means that breaking
-changes in its interface and implementation are to be expected. We encourage using ``export``
+This function is going to be turned into private. This means that breaking 
+changes in its interface and implementation are to be expected. We encourage using ``export`` 
 instead of calling this low-level function directly.
 
 """
 
 REMOVAL_MESSAGE = """
 
-This function is going to be removed. This means that breaking
+This function is going to be removed. This means that breaking 
 changes in its interface and implementation are to be expected. We encourage no longer using it.
 
 """

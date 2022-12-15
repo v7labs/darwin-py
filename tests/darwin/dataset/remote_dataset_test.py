@@ -1,10 +1,10 @@
-import json
 import types
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict
 from unittest.mock import MagicMock, patch
 
+import orjson as json
 import pytest
 import responses
 
@@ -16,7 +16,7 @@ from darwin.dataset.remote_dataset_v1 import RemoteDatasetV1
 from darwin.dataset.upload_manager import LocalFile, UploadHandlerV1
 from darwin.exceptions import UnsupportedExportFormat, UnsupportedFileType
 from darwin.item import DatasetItem
-from tests.fixtures import shutil
+from tests.fixtures import *
 
 
 @pytest.fixture
@@ -37,33 +37,9 @@ def annotation_content() -> Dict[str, Any]:
         "annotations": [
             {
                 "frames": {
-                    "0": {
-                        "polygon": {
-                            "path": [
-                                {"x": 0, "y": 0},
-                                {"x": 1, "y": 1},
-                                {"x": 1, "y": 0},
-                            ]
-                        }
-                    },
-                    "2": {
-                        "polygon": {
-                            "path": [
-                                {"x": 5, "y": 5},
-                                {"x": 6, "y": 6},
-                                {"x": 6, "y": 5},
-                            ]
-                        }
-                    },
-                    "4": {
-                        "polygon": {
-                            "path": [
-                                {"x": 9, "y": 9},
-                                {"x": 8, "y": 8},
-                                {"x": 8, "y": 9},
-                            ]
-                        }
-                    },
+                    "0": {"polygon": {"path": [{"x": 0, "y": 0}, {"x": 1, "y": 1}, {"x": 1, "y": 0}]}},
+                    "2": {"polygon": {"path": [{"x": 5, "y": 5}, {"x": 6, "y": 6}, {"x": 6, "y": 5}]}},
+                    "4": {"polygon": {"path": [{"x": 9, "y": 9}, {"x": 8, "y": 8}, {"x": 8, "y": 9}]}},
                 },
                 "name": "test_class",
                 "segments": [[0, 3]],
@@ -187,9 +163,9 @@ def files_content() -> Dict[str, Any]:
                         "id": 171674,
                         "key": "data/datasets/312/originals/00000006.jpg",
                         "original_filename": "dan-gold-Q_2p94h8rjI-unsplash.jpg",
-                        "thumbnail_url": "https://localhost/data/datasets/312/thumbnails/00000006.jpg?Policy=eyJTdGF0ZW1lbnQiOlt7IkNvbmRpdGlvbiI6eyJEYXRlTGVzc1RoYW4iOnsiQVdTOkVwb2NoVGltZSI6MTYyNjUxMDE5Mn19LCJSZXNvdXJjZSI6Imh0dHBzOi8vc3RhZ2luZy52N2xhYnMuY29tL2RhdGEvZGF0YXNldHMvMzEyL3RodW1ibmFpbHMvMDAwMDAwMDYuanBnIn1dfQ==&Signature=iVrFk5qiDohQnr5UUgBAFsJtXC3G8rBSNmQTFeIjP2M4HE5QASII/rikRLDbMvRtG2QopWIpohclGp8tFEi2W1moo5LOQ69S+wmEulfr38ZWz4BHinzVesmC/oNeU0hGNeFKkkKlezDE2kOZADWx5fbgRBmRcsqXWM5aTpxn97G7GhmhQtzgKJB3uY4HSpMLw+/6R3m5g86c5mlzogBa6wdisN8AWNs8ftyQrFQiucHKfV0NyHgsFr8+zzSDbh6qp1A62d++IvDn3NWMMZju3bJMvmHGsuW2BqL4JbXHICQsIQSnpkLvCuqNsxqSrMzkeBgpjrT3E0YX7RVAseLAPA==&Key-Pair-Id=APKAIQLX6XUIH32V3QKA",  # noqa: E501
+                        "thumbnail_url": "https://localhost/data/datasets/312/thumbnails/00000006.jpg?Policy=eyJTdGF0ZW1lbnQiOlt7IkNvbmRpdGlvbiI6eyJEYXRlTGVzc1RoYW4iOnsiQVdTOkVwb2NoVGltZSI6MTYyNjUxMDE5Mn19LCJSZXNvdXJjZSI6Imh0dHBzOi8vc3RhZ2luZy52N2xhYnMuY29tL2RhdGEvZGF0YXNldHMvMzEyL3RodW1ibmFpbHMvMDAwMDAwMDYuanBnIn1dfQ==&Signature=iVrFk5qiDohQnr5UUgBAFsJtXC3G8rBSNmQTFeIjP2M4HE5QASII/rikRLDbMvRtG2QopWIpohclGp8tFEi2W1moo5LOQ69S+wmEulfr38ZWz4BHinzVesmC/oNeU0hGNeFKkkKlezDE2kOZADWx5fbgRBmRcsqXWM5aTpxn97G7GhmhQtzgKJB3uY4HSpMLw+/6R3m5g86c5mlzogBa6wdisN8AWNs8ftyQrFQiucHKfV0NyHgsFr8+zzSDbh6qp1A62d++IvDn3NWMMZju3bJMvmHGsuW2BqL4JbXHICQsIQSnpkLvCuqNsxqSrMzkeBgpjrT3E0YX7RVAseLAPA==&Key-Pair-Id=APKAIQLX6XUIH32V3QKA",
                         "uploaded": True,
-                        "url": "https://localhost/data/datasets/312/originals/00000006.jpg?Policy=eyJTdGF0ZW1lbnQiOlt7IkNvbmRpdGlvbiI6eyJEYXRlTGVzc1RoYW4iOnsiQVdTOkVwb2NoVGltZSI6MTYyNjUxMDE5Mn19LCJSZXNvdXJjZSI6Imh0dHBzOi8vc3RhZ2luZy52N2xhYnMuY29tL2RhdGEvZGF0YXNldHMvMzEyL29yaWdpbmFscy8wMDAwMDAwNi5qcGcifV19&Signature=TYxoSOGeANEgjiGsG2krf4m0D3Xev/1w47pvwXL3kVhP50xTkgg7Zhy3XUg6bxQCWaJwsBgwxf6txqUzKUQxCzUHw131bZ4+il6tu9d8xUmoVcx/GpviNDbOmdTxJlPqqggR5xxgFTFj6EQ+kvR02MNbhLstHJpNJNf00TzYeQLhTTa/8XC99keuJ3wlZVuVz3yny3zTlAfYWd9t5SkTkeqQtn7T0Vm8IYrk3khOdJbI4kp65iHGu/3uuNsDKZI57D2A3jRMGOIiAKXNP4ZZfL3oBkYf3nn8oCdiOQ/dik5SBYutgif0QcJWH/dZ9wziKEV1k+tnlX+dZ1NiUwT2hQ==&Key-Pair-Id=APKAIQLX6XUIH32V3QKA",  # noqa: E501
+                        "url": "https://localhost/data/datasets/312/originals/00000006.jpg?Policy=eyJTdGF0ZW1lbnQiOlt7IkNvbmRpdGlvbiI6eyJEYXRlTGVzc1RoYW4iOnsiQVdTOkVwb2NoVGltZSI6MTYyNjUxMDE5Mn19LCJSZXNvdXJjZSI6Imh0dHBzOi8vc3RhZ2luZy52N2xhYnMuY29tL2RhdGEvZGF0YXNldHMvMzEyL29yaWdpbmFscy8wMDAwMDAwNi5qcGcifV19&Signature=TYxoSOGeANEgjiGsG2krf4m0D3Xev/1w47pvwXL3kVhP50xTkgg7Zhy3XUg6bxQCWaJwsBgwxf6txqUzKUQxCzUHw131bZ4+il6tu9d8xUmoVcx/GpviNDbOmdTxJlPqqggR5xxgFTFj6EQ+kvR02MNbhLstHJpNJNf00TzYeQLhTTa/8XC99keuJ3wlZVuVz3yny3zTlAfYWd9t5SkTkeqQtn7T0Vm8IYrk3khOdJbI4kp65iHGu/3uuNsDKZI57D2A3jRMGOIiAKXNP4ZZfL3oBkYf3nn8oCdiOQ/dik5SBYutgif0QcJWH/dZ9wziKEV1k+tnlX+dZ1NiUwT2hQ==&Key-Pair-Id=APKAIQLX6XUIH32V3QKA",
                         "width": 4032,
                     },
                     "seq": 6,
@@ -298,9 +274,9 @@ def files_content() -> Dict[str, Any]:
                         "id": 171673,
                         "key": "data/datasets/312/originals/00000005.jpg",
                         "original_filename": "dan-gold-N7RiDzfF2iw-unsplash.jpg",
-                        "thumbnail_url": "https://localhost/data/datasets/312/thumbnails/00000005.jpg?Policy=eyJTdGF0ZW1lbnQiOlt7IkNvbmRpdGlvbiI6eyJEYXRlTGVzc1RoYW4iOnsiQVdTOkVwb2NoVGltZSI6MTYyNjUxMDE5Mn19LCJSZXNvdXJjZSI6Imh0dHBzOi8vc3RhZ2luZy52N2xhYnMuY29tL2RhdGEvZGF0YXNldHMvMzEyL3RodW1ibmFpbHMvMDAwMDAwMDUuanBnIn1dfQ==&Signature=issN9nvtEYfIQWiK5K1o+zOOOPkUb6aIbehuI/JqG/Yytq5UxGsnWzot880FlFF2yIQ6nsbRexvWCc7EO41oJGVx8qMRISbDMvbDkmj//uGlh1bjE7W6GntcBVmNh71JWgzDyNKUq8H8sScQpv1DQ9B6LOs1bPmPor3nfm3RFmobAJo5Yh5qeGJ0nSlpNH1+DUqI3fnLC7vV/w+tFdQVyswHIIKYKNEUk1indVbsLazLjpUpr5E9Vv7yUjq1adw2uXyGrPbWobxgvMkFK7lpHJVtTq3FTCpwMso7xbkb6VppSEkKnH+FLfa661U35rUKnH1DYBOnv3Q7HGDUGeKEDQ==&Key-Pair-Id=APKAIQLX6XUIH32V3QKA",  # noqa: E501
+                        "thumbnail_url": "https://localhost/data/datasets/312/thumbnails/00000005.jpg?Policy=eyJTdGF0ZW1lbnQiOlt7IkNvbmRpdGlvbiI6eyJEYXRlTGVzc1RoYW4iOnsiQVdTOkVwb2NoVGltZSI6MTYyNjUxMDE5Mn19LCJSZXNvdXJjZSI6Imh0dHBzOi8vc3RhZ2luZy52N2xhYnMuY29tL2RhdGEvZGF0YXNldHMvMzEyL3RodW1ibmFpbHMvMDAwMDAwMDUuanBnIn1dfQ==&Signature=issN9nvtEYfIQWiK5K1o+zOOOPkUb6aIbehuI/JqG/Yytq5UxGsnWzot880FlFF2yIQ6nsbRexvWCc7EO41oJGVx8qMRISbDMvbDkmj//uGlh1bjE7W6GntcBVmNh71JWgzDyNKUq8H8sScQpv1DQ9B6LOs1bPmPor3nfm3RFmobAJo5Yh5qeGJ0nSlpNH1+DUqI3fnLC7vV/w+tFdQVyswHIIKYKNEUk1indVbsLazLjpUpr5E9Vv7yUjq1adw2uXyGrPbWobxgvMkFK7lpHJVtTq3FTCpwMso7xbkb6VppSEkKnH+FLfa661U35rUKnH1DYBOnv3Q7HGDUGeKEDQ==&Key-Pair-Id=APKAIQLX6XUIH32V3QKA",
                         "uploaded": True,
-                        "url": "https://localhost/data/datasets/312/originals/00000005.jpg?Policy=eyJTdGF0ZW1lbnQiOlt7IkNvbmRpdGlvbiI6eyJEYXRlTGVzc1RoYW4iOnsiQVdTOkVwb2NoVGltZSI6MTYyNjUxMDE5Mn19LCJSZXNvdXJjZSI6Imh0dHBzOi8vc3RhZ2luZy52N2xhYnMuY29tL2RhdGEvZGF0YXNldHMvMzEyL29yaWdpbmFscy8wMDAwMDAwNS5qcGcifV19&Signature=HgKTEtl7nK2dKCf5jzECx+p/TdiICQkXw8sTGiLUFotn9iI5e46PCF+ShTvBXrVG9uhvIv0ifrmGmjSapA9vOXGHvyFRo/+RkcVjvQGhvg5B7JCS6ii3nolLZraqr5kHR4otNKwxs0+oynsliJSmffK+o7EPpYlrZ4Xqx/nXG5W9qSk4ndvSrC822VulzbARjPupC4lGMoHA+AUALnC8y9JXPmouexGeRBcQ+y8Bg7WD0hEbbPe20JvzGDc8JwJ6mu9wCZfbFC/RS3AWCudUXvXbl1X3PWt9DQveTO60zO9/xB+ubKu6Cj9np9ol45TJUGEfrLsdT5CkFL2+J8ZgTg==&Key-Pair-Id=APKAIQLX6XUIH32V3QKA",  # noqa: E501
+                        "url": "https://localhost/data/datasets/312/originals/00000005.jpg?Policy=eyJTdGF0ZW1lbnQiOlt7IkNvbmRpdGlvbiI6eyJEYXRlTGVzc1RoYW4iOnsiQVdTOkVwb2NoVGltZSI6MTYyNjUxMDE5Mn19LCJSZXNvdXJjZSI6Imh0dHBzOi8vc3RhZ2luZy52N2xhYnMuY29tL2RhdGEvZGF0YXNldHMvMzEyL29yaWdpbmFscy8wMDAwMDAwNS5qcGcifV19&Signature=HgKTEtl7nK2dKCf5jzECx+p/TdiICQkXw8sTGiLUFotn9iI5e46PCF+ShTvBXrVG9uhvIv0ifrmGmjSapA9vOXGHvyFRo/+RkcVjvQGhvg5B7JCS6ii3nolLZraqr5kHR4otNKwxs0+oynsliJSmffK+o7EPpYlrZ4Xqx/nXG5W9qSk4ndvSrC822VulzbARjPupC4lGMoHA+AUALnC8y9JXPmouexGeRBcQ+y8Bg7WD0hEbbPe20JvzGDc8JwJ6mu9wCZfbFC/RS3AWCudUXvXbl1X3PWt9DQveTO60zO9/xB+ubKu6Cj9np9ol45TJUGEfrLsdT5CkFL2+J8ZgTg==&Key-Pair-Id=APKAIQLX6XUIH32V3QKA",
                         "width": 5943,
                     },
                     "seq": 5,
@@ -340,11 +316,7 @@ def describe_split_video_annotations():
         team_slug: str,
     ):
         remote_dataset = RemoteDatasetV1(
-            client=darwin_client,
-            team=team_slug,
-            name=dataset_name,
-            slug=dataset_slug,
-            dataset_id=1,
+            client=darwin_client, team=team_slug, name=dataset_name, slug=dataset_slug, dataset_id=1
         )
 
         remote_dataset.split_video_annotations()
@@ -362,75 +334,32 @@ def describe_split_video_annotations():
         with (video_path / "0000000.json").open() as f:
             assert json.loads(f.read()) == {
                 "annotations": [
-                    {
-                        "name": "test_class",
-                        "polygon": {
-                            "path": [
-                                {"x": 0, "y": 0},
-                                {"x": 1, "y": 1},
-                                {"x": 1, "y": 0},
-                            ]
-                        },
-                    }
+                    {"name": "test_class", "polygon": {"path": [{"x": 0, "y": 0}, {"x": 1, "y": 1}, {"x": 1, "y": 0}]}}
                 ],
-                "image": {
-                    "filename": "test_video/0000000.png",
-                    "height": 1080,
-                    "url": "frame_1.jpg",
-                    "width": 1920,
-                },
+                "image": {"filename": "test_video/0000000.png", "height": 1080, "url": "frame_1.jpg", "width": 1920},
             }
 
         with (video_path / "0000001.json").open() as f:
             assert json.loads(f.read()) == {
                 "annotations": [],
-                "image": {
-                    "filename": "test_video/0000001.png",
-                    "height": 1080,
-                    "url": "frame_2.jpg",
-                    "width": 1920,
-                },
+                "image": {"filename": "test_video/0000001.png", "height": 1080, "url": "frame_2.jpg", "width": 1920},
             }
 
         with (video_path / "0000002.json").open() as f:
             assert json.loads(f.read()) == {
                 "annotations": [
-                    {
-                        "name": "test_class",
-                        "polygon": {
-                            "path": [
-                                {"x": 5, "y": 5},
-                                {"x": 6, "y": 6},
-                                {"x": 6, "y": 5},
-                            ]
-                        },
-                    }
+                    {"name": "test_class", "polygon": {"path": [{"x": 5, "y": 5}, {"x": 6, "y": 6}, {"x": 6, "y": 5}]}}
                 ],
-                "image": {
-                    "filename": "test_video/0000002.png",
-                    "height": 1080,
-                    "url": "frame_3.jpg",
-                    "width": 1920,
-                },
+                "image": {"filename": "test_video/0000002.png", "height": 1080, "url": "frame_3.jpg", "width": 1920},
             }
 
 
 @pytest.mark.usefixtures("files_content", "file_read_write_test")
 def describe_fetch_remote_files():
     @responses.activate
-    def it_works(
-        darwin_client: Client,
-        dataset_name: str,
-        dataset_slug: str,
-        team_slug: str,
-        files_content: dict,
-    ):
+    def it_works(darwin_client: Client, dataset_name: str, dataset_slug: str, team_slug: str, files_content: dict):
         remote_dataset = RemoteDatasetV1(
-            client=darwin_client,
-            team=team_slug,
-            name=dataset_name,
-            slug=dataset_slug,
-            dataset_id=1,
+            client=darwin_client, team=team_slug, name=dataset_name, slug=dataset_slug, dataset_id=1
         )
         url = "http://localhost/api/datasets/1/items?page%5Bsize%5D=500"
         responses.add(
@@ -453,18 +382,10 @@ def describe_fetch_remote_files():
 
     @responses.activate
     def it_fetches_files_with_commas(
-        darwin_client: Client,
-        dataset_name: str,
-        dataset_slug: str,
-        team_slug: str,
-        files_content: dict,
+        darwin_client: Client, dataset_name: str, dataset_slug: str, team_slug: str, files_content: dict
     ):
         remote_dataset = RemoteDatasetV1(
-            client=darwin_client,
-            team=team_slug,
-            name=dataset_name,
-            slug=dataset_slug,
-            dataset_id=1,
+            client=darwin_client, team=team_slug, name=dataset_name, slug=dataset_slug, dataset_id=1
         )
         url = "http://localhost/api/datasets/1/items?page%5Bsize%5D=500"
         responses.add(
@@ -476,20 +397,14 @@ def describe_fetch_remote_files():
 
         list(remote_dataset.fetch_remote_files({"filenames": ["example,with, comma.mp4"]}))
 
-        request_body = json.loads(responses.calls[0].request.body)  # type: ignore
+        request_body = json.loads(responses.calls[0].request.body)
 
         assert request_body["filter"]["filenames"] == ["example,with, comma.mp4"]
 
 
 @pytest.fixture
 def remote_dataset(darwin_client: Client, dataset_name: str, dataset_slug: str, team_slug: str):
-    return RemoteDatasetV1(
-        client=darwin_client,
-        team=team_slug,
-        name=dataset_name,
-        slug=dataset_slug,
-        dataset_id=1,
-    )
+    return RemoteDatasetV1(client=darwin_client, team=team_slug, name=dataset_name, slug=dataset_slug, dataset_id=1)
 
 
 @pytest.mark.usefixtures("file_read_write_test")
@@ -506,9 +421,7 @@ def describe_push():
         with pytest.raises(ValueError):
             remote_dataset.push([LocalFile("test.jpg")], fps=2)
 
-    def raises_if_both_as_frames_and_local_files_are_given(
-        remote_dataset: RemoteDataset,
-    ):
+    def raises_if_both_as_frames_and_local_files_are_given(remote_dataset: RemoteDataset):
         with pytest.raises(ValueError):
             remote_dataset.push([LocalFile("test.jpg")], as_frames=True)
 
@@ -673,12 +586,7 @@ def dataset_item(dataset_slug: str) -> DatasetItem:
 
 @pytest.mark.usefixtures("file_read_write_test")
 def describe_archive():
-    def calls_client_put(
-        remote_dataset: RemoteDataset,
-        dataset_item: DatasetItem,
-        team_slug: str,
-        dataset_slug: str,
-    ):
+    def calls_client_put(remote_dataset: RemoteDataset, dataset_item: DatasetItem, team_slug: str, dataset_slug: str):
         with patch.object(Client, "archive_item", return_value={}) as stub:
             remote_dataset.archive([dataset_item])
             stub.assert_called_once_with(dataset_slug, team_slug, {"filter": {"dataset_item_ids": [1]}})
@@ -686,12 +594,7 @@ def describe_archive():
 
 @pytest.mark.usefixtures("file_read_write_test")
 def describe_move_to_new():
-    def calls_client_put(
-        remote_dataset: RemoteDataset,
-        dataset_item: DatasetItem,
-        team_slug: str,
-        dataset_slug: str,
-    ):
+    def calls_client_put(remote_dataset: RemoteDataset, dataset_item: DatasetItem, team_slug: str, dataset_slug: str):
         with patch.object(Client, "move_item_to_new", return_value={}) as stub:
             remote_dataset.move_to_new([dataset_item])
             stub.assert_called_once_with(dataset_slug, team_slug, {"filter": {"dataset_item_ids": [1]}})
@@ -699,12 +602,7 @@ def describe_move_to_new():
 
 @pytest.mark.usefixtures("file_read_write_test")
 def describe_reset():
-    def calls_client_put(
-        remote_dataset: RemoteDataset,
-        dataset_item: DatasetItem,
-        team_slug: str,
-        dataset_slug: str,
-    ):
+    def calls_client_put(remote_dataset: RemoteDataset, dataset_item: DatasetItem, team_slug: str, dataset_slug: str):
         with patch.object(Client, "reset_item", return_value={}) as stub:
             remote_dataset.reset([dataset_item])
             stub.assert_called_once_with(dataset_slug, team_slug, {"filter": {"dataset_item_ids": [1]}})
@@ -712,12 +610,7 @@ def describe_reset():
 
 @pytest.mark.usefixtures("file_read_write_test")
 def describe_restore_archived():
-    def calls_client_put(
-        remote_dataset: RemoteDataset,
-        dataset_item: DatasetItem,
-        team_slug: str,
-        dataset_slug: str,
-    ):
+    def calls_client_put(remote_dataset: RemoteDataset, dataset_item: DatasetItem, team_slug: str, dataset_slug: str):
         with patch.object(Client, "restore_archived_item", return_value={}) as stub:
             remote_dataset.restore_archived([dataset_item])
             stub.assert_called_once_with(dataset_slug, team_slug, {"filter": {"dataset_item_ids": [1]}})
@@ -726,10 +619,7 @@ def describe_restore_archived():
 @pytest.mark.usefixtures("file_read_write_test")
 def describe_delete_items():
     def calls_client_delete(
-        remote_dataset: RemoteDataset,
-        dataset_item: DatasetItem,
-        team_slug: str,
-        dataset_slug: str,
+        remote_dataset: RemoteDataset, dataset_item: DatasetItem, team_slug: str, dataset_slug: str
     ):
         with patch.object(Client, "delete_item", return_value={}) as stub:
             remote_dataset.delete_items([dataset_item])
@@ -743,10 +633,7 @@ def assert_upload_mocks_are_correctly_called(remote_dataset: RemoteDataset, *arg
 
             request_upload_mock.assert_called_once()
             upload_mock.assert_called_once_with(
-                multi_threaded=True,
-                progress_callback=None,
-                file_upload_callback=None,
-                max_workers=None,
+                multi_threaded=True, progress_callback=None, file_upload_callback=None, max_workers=None
             )
 
 
