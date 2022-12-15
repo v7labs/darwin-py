@@ -205,7 +205,7 @@ class ConvertPolygonsToInstanceMasks(object):
             num_keypoints = keypoints.shape[0]
             if num_keypoints:
                 keypoints = keypoints.view(num_keypoints, -1, 3)
-    
+
         keep = (boxes[:, 3] > boxes[:, 1]) & (boxes[:, 2] > boxes[:, 0])
         boxes = boxes[keep]
         classes = classes[keep]
@@ -242,7 +242,6 @@ class ConvertPolygonsToSemanticMask(object):
         annotations = target.pop("annotations")
         segmentations = [obj["segmentation"] for obj in annotations]
         cats = [obj["category_id"] for obj in annotations]
-
         if segmentations:
             masks = convert_segmentation_to_mask(segmentations, h, w)
             cats = torch.as_tensor(cats, dtype=masks.dtype)

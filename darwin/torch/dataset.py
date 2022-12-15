@@ -471,7 +471,6 @@ class SemanticSegmentationDataset(LocalDataset):
              )
 
         target["annotations"] = annotations
-
         return target
 
     def measure_weights(self) -> np.ndarray:
