@@ -1,9 +1,11 @@
 import argparse
 import concurrent.futures
 import datetime
+import json
 import os
 import sys
 import traceback
+from glob import glob
 from itertools import tee
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, NoReturn, Optional, Set, Union
@@ -38,6 +40,7 @@ from darwin.exceptions import (
     IncompatibleOptions,
     InvalidLogin,
     MissingConfig,
+    MissingSchema,
     NameTaken,
     NotFound,
     Unauthenticated,
@@ -57,6 +60,7 @@ from darwin.utils import (
     persist_client_configuration,
     prompt,
     secure_continue_request,
+    validate_file_against_schema,
 )
 
 
@@ -927,6 +931,66 @@ def delete_files(dataset_slug: str, files: List[str], skip_user_confirmation: bo
         _error(f"No dataset with name '{e.name}'")
     except:
         _error(f"An error has occurred, please try again later.")
+
+
+def validate_schemas(
+    files: Optional[List[str]] = None,
+    folder: Optional[str] = None,
+    pattern: Optional[str] = None,
+    silent: bool = False,
+    output: Optional[Path] = None,
+):
+    """
+    Validate function for the CLI. Takes one of 3 required key word arguments describing the location of files and prints and/or saves an output
+
+    Parameters
+    ----------
+    files : Optional[List[str]], optional
+        list of file paths to check, by default None
+    folder : Optional[str], optional
+        folder location to check for *.json files, by default None
+    pattern : Optional[str], optional
+        glob style pattern matching, by default None
+    silent : bool, optional
+        flag to set silent console printing, only showing errors, by default False
+    output : Optional[Path], optional
+        filename for saving to output, by default None
+    """
+    if not files and not folder and not pattern:
+        # TODO insert logging here once we introduce that
+        return
+    all_errors = {}
+    if files:
+        to_validate = [Path(filename) for filename in files]
+    if folder:
+        to_validate = [Path(filename) for filename in Path(folder).glob("*.json")]
+    if pattern:
+        to_validate = [Path(filename) for filename in glob(pattern)]
+
+    console = Console(theme=_console_theme(), stderr=True)
+
+    if len(to_validate) == 0:
+        console.print("No files found to validate", style="warning")
+        return
+
+    console.print(f"Validating schemas for {len(to_validate)} files")
+
+    for file in to_validate:
+        try:
+            errors = validate_file_against_schema(file)
+        except MissingSchema as e:
+            errors = [e]
+        all_errors[str(file)] = [str(error) for error in errors]
+        if len(errors) == 0:
+            if not silent:
+                console.print(f"{str(file)}: No Errors", style="success")
+            continue
+        console.print(f"{str(file)}: {len(errors)} errors", style="error")
+        for error in errors:
+            console.print(f"\t- {error.message}", style="error")
+    if output:
+        with open(output, "w") as outfile:
+            json.dump(all_errors, outfile, indent=2)
 
 
 def dataset_convert(dataset_identifier: str, format: str, output_dir: Optional[PathLike] = None) -> None:

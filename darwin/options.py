@@ -40,11 +40,22 @@ class Options(object):
         parser_validate_schema = subparsers.add_parser(
             "validate", help="Validate annotation files against Darwin schema"
         )
-        group = parser_validate_schema.add_mutually_exclusive_group(required=True)
-        group.add_argument("--file", type=str, help="File to validate")
-        group.add_argument("--glob", type=str, help="Folder + File Pattern to search (eg: ./*.json)")
-        group.add_argument("--folder", type=str, help="Folder to search for *.json files")
+        validation_group = parser_validate_schema.add_argument_group(
+            "Annotations", "Method to link to annotation files, one required"
+        )
+        to_validate = validation_group.add_mutually_exclusive_group(
+            required=True,
+        )
+        to_validate.add_argument("--files", type=str, nargs="+", help="File to validate")
+        to_validate.add_argument(
+            "--pattern", type=str, help="Folder + File glob style pattern to search (eg: ./*.json)"
+        )
+        to_validate.add_argument("--folder", type=str, help="Folder to search for *.json files")
 
+        parser_validate_schema.add_argument(
+            "--silent", action="store_true", help="Flag to suppress all output except errors to console"
+        )
+        parser_validate_schema.add_argument("--output", help="name of file to write output json to")
         # DATASET
         dataset = subparsers.add_parser(
             "dataset", help="Dataset related functions.", description="Arguments to interact with datasets"

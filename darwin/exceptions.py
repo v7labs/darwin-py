@@ -150,7 +150,7 @@ class MissingSchema(Exception):
         self.message = message
 
     def __str__(self) -> str:
-        return f"Unable to find schema: '{self.message}'"
+        return self.message
 
 
 class AnnotationFileValidationError(Exception):

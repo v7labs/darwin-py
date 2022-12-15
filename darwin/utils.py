@@ -31,6 +31,7 @@ import darwin.datatypes as dt
 from darwin.config import Config
 from darwin.exceptions import (
     AnnotationFileValidationError,
+    MissingSchema,
     OutdatedDarwinJSONFormat,
     UnknownAnnotationFileSchema,
     UnsupportedFileType,
@@ -282,12 +283,23 @@ def _get_schema(data: dict) -> Optional[dict]:
     return _darwin_schema_cache[schema_url]
 
 
-def validate_file_against_schema(data: dict, schema: Optional[dict] = None) -> List:
-    schema = schema if schema else _get_schema(data)
+def validate_file_against_schema(path: Path, schema: Optional[dict] = None) -> List:
+    data, _ = load_data_from_file(path)
+    try:
+        schema = schema if schema else _get_schema(data)
+    except requests.exceptions.RequestException as e:
+        raise MissingSchema(f"Error retrieving schema from url: {e}")
     if not schema:
-        raise ValueError("Schema not found")
+        raise MissingSchema("Schema not found")
     validator = validators.Draft202012Validator(schema)
-    return validator.iter_errors(data)
+    return list(validator.iter_errors(data))
+
+
+def load_data_from_file(path: Path):
+    with path.open() as infile:
+        data = json.load(infile)
+    version = _parse_version(data)
+    return data, version
 
 
 def parse_darwin_json(path: Path, count: Optional[int]) -> Optional[dt.AnnotationFile]:
@@ -316,10 +328,7 @@ def parse_darwin_json(path: Path, count: Optional[int]) -> Optional[dt.Annotatio
     """
 
     path = Path(path)
-    with path.open() as infile:
-        data = json.load(infile)
-
-    version = _parse_version(data)
+    data, version = load_data_from_file(path)
     schema = _get_schema(data)
 
     if version.major == 2:
@@ -335,9 +344,9 @@ def parse_darwin_json(path: Path, count: Optional[int]) -> Optional[dt.Annotatio
             raise UnknownAnnotationFileSchema(path, supported_versions, version)
 
         try:
-            validate_file_against_schema(data, schema=schema)
-        except exceptions.ValidationError as e:
-            raise AnnotationFileValidationError(e, path)
+            validate_file_against_schema(path, schema=schema)
+        except ValueError as e:
+            raise MissingSchema(f"{str(e)}")
 
         return _parse_darwin_v2(path, data)
 
