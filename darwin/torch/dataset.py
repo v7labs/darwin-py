@@ -448,23 +448,30 @@ class SemanticSegmentationDataset(LocalDataset):
         """
         target = self.parse_json(index)
 
-        print("NEW DP")
-        print(target) #CHANGE
-
         annotations: List[Dict[str, Union[int, List[List[Union[int, float]]]]]] = []
-        for obj in target["annotations"]:
+        for annotation in target["annotations"]:
+
+            annotation_type: str = annotation.annotation_class.annotation_type
+            path_key = "paths" if annotation_type == "complex_polygon" else "path"
+
+            if path_key not in annotation.data:
+                print(f"Warning: missing polygon in annotation {self.annotations_path[index]}")
+
             sequences = convert_polygons_to_sequences(
-                obj.data["path"],
+                annotation.data[path_key], 
                 height=target["height"],
                 width=target["width"],
             )
+
             # Discard polygons with less than three points
             sequences[:] = [s for s in sequences if len(s) >= 6]
             if not sequences:
                 continue
+
             annotations.append(
-                 {"category_id": self.classes.index(obj.annotation_class.name), "segmentation": sequences}
+                 {"category_id": self.classes.index(annotation.annotation_class.name), "segmentation": sequences}
              )
+
         target["annotations"] = annotations
 
         return target
