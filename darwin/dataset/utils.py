@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any, Dict, Generator, Iterator, List, Optional, Set, Tuple, Union
 
 import numpy as np
-import ujson as json
+import orjson as json
 from PIL import Image as PILImage
 from rich.live import Live
 from rich.progress import ProgressBar, track

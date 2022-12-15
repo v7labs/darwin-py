@@ -34,7 +34,7 @@ setuptools.setup(
         "jsonschema==3.2.0",
         "deprecation",
         "pydantic",
-        "ujson",
+        "orjson",
         "orjson",
     ],
     extras_require={

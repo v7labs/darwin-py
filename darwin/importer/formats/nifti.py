@@ -4,7 +4,7 @@ from collections import OrderedDict, defaultdict
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Union
 
-import ujson as json
+import orjson as json
 from rich.console import Console
 
 console = Console()

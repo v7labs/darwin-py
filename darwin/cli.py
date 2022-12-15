@@ -5,9 +5,9 @@ import os
 import platform
 from argparse import ArgumentParser, Namespace
 from datetime import datetime
+from json import dumps
 
 import requests.exceptions
-from ujson import dumps
 
 import darwin.cli_functions as f
 from darwin import __version__

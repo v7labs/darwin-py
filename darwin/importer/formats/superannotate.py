@@ -3,7 +3,7 @@ from itertools import zip_longest
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Union, cast
 
-import ujson as json
+import orjson as json
 from jsonschema import validate
 
 from darwin.datatypes import (
