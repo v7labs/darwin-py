@@ -20,6 +20,7 @@ from typing import (
 
 import deprecation
 import numpy as np
+import orjson as json
 from requests import Response
 from rich.progress import ProgressType, track
 from upolygon import draw_polygon
@@ -27,7 +28,6 @@ from upolygon import draw_polygon
 import darwin.datatypes as dt
 from darwin.config import Config
 from darwin.exceptions import OutdatedDarwinJSONFormat, UnsupportedFileType
-from darwin.json import load
 from darwin.version import __version__
 
 if TYPE_CHECKING:
@@ -376,17 +376,19 @@ def parse_darwin_json(path: Path, count: Optional[int]) -> Optional[dt.Annotatio
         dictionary.
     """
 
-    data = load(path)
-    if "annotations" not in data:
-        return None
+    path = Path(path)
+    with path.open() as f:
+        data = json.loads(f.read())
+        if "annotations" not in data:
+            return None
 
-    if _parse_version(data).major == 2:
-        return _parse_darwin_v2(path, data)
-    else:
-        if "fps" in data["image"] or "frame_count" in data["image"]:
-            return _parse_darwin_video(path, data, count)
+        if _parse_version(data).major == 2:
+            return _parse_darwin_v2(path, data)
         else:
-            return _parse_darwin_image(path, data, count)
+            if "fps" in data["image"] or "frame_count" in data["image"]:
+                return _parse_darwin_video(path, data, count)
+            else:
+                return _parse_darwin_image(path, data, count)
 
 
 def _parse_darwin_v2(path: Path, data: Dict[str, Any]) -> dt.AnnotationFile:

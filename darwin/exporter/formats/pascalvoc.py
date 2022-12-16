@@ -3,9 +3,9 @@ from typing import Any, Dict, Iterable
 from xml.etree.ElementTree import Element, SubElement, tostring
 
 import deprecation
+import orjson as json
 
 import darwin.datatypes as dt
-from darwin.json import load
 from darwin.version import __version__
 
 DEPRECATION_MESSAGE = """
@@ -123,8 +123,9 @@ def add_subelement_text(parent: Element, name: str, value: Any) -> Element:
     details=REMOVAL_MESSAGE,
 )
 def convert_file(path: Path) -> Element:
-    data = load(path)
-    return build_voc(data["image"], data["annotations"])
+    with open(path, "r") as f:
+        data = json.loads(f.read())
+        return build_voc(data["image"], data["annotations"])
 
 
 @deprecation.deprecated(

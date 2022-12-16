@@ -1,10 +1,11 @@
+import json
 from pathlib import Path
 from typing import Any, Dict, Iterable
 
 import deprecation
 
 import darwin.datatypes as dt
-from darwin.json import dump
+from darwin.exporter.formats.numpy_encoder import NumpyEncoder
 from darwin.version import __version__
 
 DEPRECATION_MESSAGE = """
@@ -40,8 +41,8 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path) -> N
 def export_file(annotation_file: dt.AnnotationFile, id: int, output_dir: Path) -> None:
     output: Dict[str, Any] = _build_json(annotation_file, id)
     output_file_path: Path = (output_dir / annotation_file.filename).with_suffix(".json")
-
-    dump(output, output_file_path)
+    with open(output_file_path, "w") as f:
+        json.dump(output, f, cls=NumpyEncoder, indent=1)
 
 
 @deprecation.deprecated(
@@ -77,10 +78,10 @@ def build_annotations(annotation_file: dt.AnnotationFile, id: int) -> Iterable[D
                 "label": annotation.annotation_class.name,
                 "attributes": [],
                 "coordinates": [
-                    {"x": annotation.data["x"], "y": annotation.data["y"], "z": 0},  # type: ignore
+                    {"x": annotation.data["x"], "y": annotation.data["y"], "z": 0},
                     {
-                        "x": annotation.data["x"] + annotation.data["w"],  # type: ignore
-                        "y": annotation.data["y"] + annotation.data["h"],  # type: ignore
+                        "x": annotation.data["x"] + annotation.data["w"],
+                        "y": annotation.data["y"] + annotation.data["h"],
                         "z": 0,
                     },
                 ],
@@ -94,7 +95,7 @@ def build_annotations(annotation_file: dt.AnnotationFile, id: int) -> Iterable[D
                 "type": "segment",
                 "label": annotation.annotation_class.name,
                 "attributes": [],
-                "coordinates": [{"x": point["x"], "y": point["y"], "z": 0} for point in annotation.data["path"]],  # type: ignore
+                "coordinates": [{"x": point["x"], "y": point["y"], "z": 0} for point in annotation.data["path"]],
                 "metadata": {},
             }
             output.append(entry)
@@ -105,8 +106,8 @@ def build_annotations(annotation_file: dt.AnnotationFile, id: int) -> Iterable[D
 def _export_file(annotation_file: dt.AnnotationFile, id: int, output_dir: Path) -> None:
     output: Dict[str, Any] = _build_json(annotation_file, id)
     output_file_path: Path = (output_dir / annotation_file.filename).with_suffix(".json")
-
-    dump(output, output_file_path)
+    with open(output_file_path, "w") as f:
+        json.dump(output, f, cls=NumpyEncoder, indent=1)
 
 
 def _build_annotations(annotation_file: dt.AnnotationFile, id: int) -> Iterable[Dict[str, Any]]:
@@ -121,10 +122,10 @@ def _build_annotations(annotation_file: dt.AnnotationFile, id: int) -> Iterable[
                 "label": annotation.annotation_class.name,
                 "attributes": [],
                 "coordinates": [
-                    {"x": annotation.data["x"], "y": annotation.data["y"], "z": 0},  # type: ignore
+                    {"x": annotation.data["x"], "y": annotation.data["y"], "z": 0},
                     {
-                        "x": annotation.data["x"] + annotation.data["w"],  # type: ignore
-                        "y": annotation.data["y"] + annotation.data["h"],  # type: ignore
+                        "x": annotation.data["x"] + annotation.data["w"],
+                        "y": annotation.data["y"] + annotation.data["h"],
                         "z": 0,
                     },
                 ],
@@ -138,7 +139,7 @@ def _build_annotations(annotation_file: dt.AnnotationFile, id: int) -> Iterable[
                 "type": "segment",
                 "label": annotation.annotation_class.name,
                 "attributes": [],
-                "coordinates": [{"x": point["x"], "y": point["y"], "z": 0} for point in annotation.data["path"]],  # type: ignore
+                "coordinates": [{"x": point["x"], "y": point["y"], "z": 0} for point in annotation.data["path"]],
                 "metadata": {},
             }
             output.append(entry)

@@ -3,10 +3,10 @@ from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 import numpy as np
+import orjson as json
 from PIL import Image as PILImage
 
 from darwin.dataset.utils import get_classes, get_release_path, load_pil_image
-from darwin.json import loads
 from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS, parse_darwin_json
 
 
@@ -145,10 +145,8 @@ class LocalDataset(object):
             raise ValueError("There are no annotations downloaded.")
 
         with self.annotations_path[index].open() as f:
-            data = loads(f.read())
-            image = data["image"]
-
-            return image
+            data = json.loads(f.read())["image"]
+            return data
 
     def get_height_and_width(self, index: int) -> Tuple[float, float]:
         """
@@ -248,7 +246,7 @@ class LocalDataset(object):
         specified in ``self.classes`` and the ``annotation_type``.
 
         Parameters
-        ----------s
+        ----------
         index : int
             Index of the annotation to read.
 

@@ -3,6 +3,7 @@ Holds helper functions that deal with downloading videos and images.
 """
 
 import functools
+import json as native_json
 import time
 import urllib
 from pathlib import Path
@@ -10,6 +11,7 @@ from typing import Any, Callable, Iterable, List, Optional, Tuple
 
 import deprecation
 import numpy as np
+import orjson as json
 import requests
 from PIL import Image
 from rich.console import Console
@@ -17,7 +19,6 @@ from rich.console import Console
 import darwin.datatypes as dt
 from darwin.dataset.utils import sanitize_filename
 from darwin.datatypes import AnnotationFile
-from darwin.json import dump, load, loads
 from darwin.utils import (
     get_response_content,
     has_json_content_type,
@@ -344,14 +345,15 @@ def _update_local_path(annotation: AnnotationFile, url, local_path):
 
     # we modify raw json, as internal representation does't store all the data
     with annotation.path.open() as file:
-        raw_annotation = loads(file.read())
+        raw_annotation = json.loads(file.read())
 
         for slot in raw_annotation["item"]["slots"]:
             for source_file in slot["source_files"]:
                 if source_file["url"] == url:
                     source_file["local_path"] = str(local_path)
 
-    dump(raw_annotation, str(annotation.path), indent=4)
+    with annotation.path.open(mode="w") as file:
+        native_json.dump(raw_annotation, file, indent=4)
 
 
 @deprecation.deprecated(
@@ -387,7 +389,8 @@ def download_image_from_json_annotation(
     video_frames : bool
         Pulls video frames images instead of video files
     """
-    annotation = load(annotation_path)
+    with annotation_path.open() as file:
+        annotation = json.loads(file.read())
 
     # If we are using folders, extract the path for the image and create the folder if needed
     sub_path = annotation["image"].get("path", "/") if use_folders else "/"
