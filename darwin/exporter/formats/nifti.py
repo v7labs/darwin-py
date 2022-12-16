@@ -29,19 +29,27 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path) -> N
         export_single_nifti_file(video_annotation, output_dir)
 
 
-def export_single_nifti_file(video_annotation: dt.AnnotationFile, output_dir: Path) -> None:
+def export_single_nifti_file(
+    video_annotation: dt.AnnotationFile, output_dir: Path
+) -> None:
     output_volumes = None
     filename = Path(video_annotation.filename)
     suffixes = filename.suffixes
     if len(suffixes) > 2:
         return create_error_message_json(
-            "Misconfigured filename, contains too many suffixes", output_dir, str(filename)
+            "Misconfigured filename, contains too many suffixes",
+            output_dir,
+            str(filename),
         )
     elif len(suffixes) == 2:
         if suffixes[0] == ".nii" and suffixes[1] == ".gz":
             image_id = str(filename).strip("".join(suffixes))
         else:
-            return create_error_message_json("Two suffixes found but not ending in .nii.gz", output_dir, str(filename))
+            return create_error_message_json(
+                "Two suffixes found but not ending in .nii.gz",
+                output_dir,
+                str(filename),
+            )
     elif len(suffixes) == 1:
         if suffixes[0] == ".nii" or suffixes[0] == ".dcm":
             image_id = filename.stem
@@ -59,12 +67,16 @@ def export_single_nifti_file(video_annotation: dt.AnnotationFile, output_dir: Pa
             str(filename),
         )
     if video_annotation is None:
-        return create_error_message_json("video_annotation not found", output_dir, image_id)
+        return create_error_message_json(
+            "video_annotation not found", output_dir, image_id
+        )
     # Pick the first slot to take the metadata from. We assume that all slots have the same metadata.
     metadata = video_annotation.slots[0].metadata
     if metadata is None:
         return create_error_message_json(
-            f"No metadata found for {str(filename)}, are you sure this is medical data?", output_dir, image_id
+            f"No metadata found for {str(filename)}, are you sure this is medical data?",
+            output_dir,
+            image_id,
         )
     volume_dims, pixdim, affine = process_metadata(metadata)
     if affine is None or pixdim is None or volume_dims is None:
@@ -87,7 +99,9 @@ def export_single_nifti_file(video_annotation: dt.AnnotationFile, output_dir: Pa
                 class_count += 1
     # Builds output volumes per class
     if output_volumes is None:
-        output_volumes = {class_name: np.zeros(volume_dims) for class_name in class_map.keys()}
+        output_volumes = {
+            class_name: np.zeros(volume_dims) for class_name in class_map.keys()
+        }
     # Loops through annotations to build volumes
     for _, annotation in enumerate(video_annotation.annotations):
         frames = annotation.frames
@@ -127,11 +141,17 @@ def export_single_nifti_file(video_annotation: dt.AnnotationFile, output_dir: Pa
             im_mask = convert_polygons_to_mask(polygons, height=height, width=width)
             output_volume = output_volumes[class_name]
             if view_idx == 0:
-                output_volume[:, :, frame_idx] = np.logical_or(im_mask, output_volume[:, :, frame_idx])
+                output_volume[:, :, frame_idx] = np.logical_or(
+                    im_mask, output_volume[:, :, frame_idx]
+                )
             elif view_idx == 1:
-                output_volume[:, frame_idx, :] = np.logical_or(im_mask, output_volume[:, frame_idx, :])
+                output_volume[:, frame_idx, :] = np.logical_or(
+                    im_mask, output_volume[:, frame_idx, :]
+                )
             elif view_idx == 2:
-                output_volume[frame_idx, :, :] = np.logical_or(im_mask, output_volume[frame_idx, :, :])
+                output_volume[frame_idx, :, :] = np.logical_or(
+                    im_mask, output_volume[frame_idx, :, :]
+                )
     for class_name in class_map.keys():
         img = nib.Nifti1Image(
             dataobj=np.flip(output_volumes[class_name], (0, 1, 2)).astype(np.int16),
@@ -145,7 +165,10 @@ def export_single_nifti_file(video_annotation: dt.AnnotationFile, output_dir: Pa
 
 def shift_polygon_coords(polygon, height, width, pixdim):
     # Need to make it clear that we flip x/y because we need to take the transpose later.
-    return [{"x": p["y"] * float(pixdim[0]), "y": p["x"] * float(pixdim[1])} for p in polygon]
+    return [
+        {"x": p["y"] * float(pixdim[0]), "y": p["x"] * float(pixdim[1])}
+        for p in polygon
+    ]
 
 
 def get_view_idx(frame_idx, groups):
@@ -200,5 +223,8 @@ def create_empty_nifti_file(volume_dims, affine, output_dir, image_id: str):
     output_path = Path(output_dir) / f"{image_id}_empty.nii.gz"
     if not output_path.parent.exists():
         output_path.parent.mkdir(parents=True)
-    img = nib.Nifti1Image(dataobj=np.flip(np.zeros(volume_dims), (0, 1, 2)).astype(np.int16), affine=affine)
+    img = nib.Nifti1Image(
+        dataobj=np.flip(np.zeros(volume_dims), (0, 1, 2)).astype(np.int16),
+        affine=affine,
+    )
     nib.save(img=img, filename=output_path)
