@@ -374,7 +374,7 @@ def _update_local_path(annotation: AnnotationFile, url, local_path):
                     source_file["local_path"] = str(local_path)
 
     with annotation.path.open(mode="w") as file:
-        op = json.dumps(raw_annotation, json.OPT_INDENT_2)
+        op = json.dumps(raw_annotation, json.OPT_INDENT_2).decode("utf-8")
         file.write(op)
 
 
