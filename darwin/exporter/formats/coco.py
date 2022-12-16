@@ -68,18 +68,12 @@ def calculate_categories(annotation_files: List[dt.AnnotationFile]) -> Dict[str,
     categories: Dict[str, int] = {}
     for annotation_file in annotation_files:
         for annotation_class in annotation_file.annotation_classes:
-            if (
-                annotation_class.name not in categories
-                and annotation_class.annotation_type
-                in [
-                    "polygon",
-                    "complex_polygon",
-                    "bounding_box",
-                ]
-            ):
-                categories[annotation_class.name] = _calculate_category_id(
-                    annotation_class
-                )
+            if annotation_class.name not in categories and annotation_class.annotation_type in [
+                "polygon",
+                "complex_polygon",
+                "bounding_box",
+            ]:
+                categories[annotation_class.name] = _calculate_category_id(annotation_class)
     return categories
 
 
@@ -89,19 +83,12 @@ def calculate_categories(annotation_files: List[dt.AnnotationFile]) -> Dict[str,
     current_version=__version__,
     details=DEPRECATION_MESSAGE,
 )
-def calculate_tag_categories(
-    annotation_files: List[dt.AnnotationFile],
-) -> Dict[str, int]:
+def calculate_tag_categories(annotation_files: List[dt.AnnotationFile]) -> Dict[str, int]:
     categories: Dict[str, int] = {}
     for annotation_file in annotation_files:
         for annotation_class in annotation_file.annotation_classes:
-            if (
-                annotation_class.name not in categories
-                and annotation_class.annotation_type == "tag"
-            ):
-                categories[annotation_class.name] = _calculate_category_id(
-                    annotation_class
-                )
+            if annotation_class.name not in categories and annotation_class.annotation_type == "tag":
+                categories[annotation_class.name] = _calculate_category_id(annotation_class)
     return categories
 
 
@@ -140,9 +127,7 @@ def build_licenses() -> List[Dict[str, Any]]:
     current_version=__version__,
     details=DEPRECATION_MESSAGE,
 )
-def build_images(
-    annotation_files: List[dt.AnnotationFile], tag_categories: Dict[str, int]
-) -> List[Dict[str, Any]]:
+def build_images(annotation_files: List[dt.AnnotationFile], tag_categories: Dict[str, int]) -> List[Dict[str, Any]]:
     return [
         build_image(annotation_file, tag_categories)
         for annotation_file in sorted(annotation_files, key=lambda x: x.seq)
@@ -155,13 +140,9 @@ def build_images(
     current_version=__version__,
     details=DEPRECATION_MESSAGE,
 )
-def build_image(
-    annotation_file: dt.AnnotationFile, tag_categories: Dict[str, int]
-) -> Dict[str, Any]:
+def build_image(annotation_file: dt.AnnotationFile, tag_categories: Dict[str, int]) -> Dict[str, Any]:
     tags = [
-        annotation
-        for annotation in annotation_file.annotations
-        if annotation.annotation_class.annotation_type == "tag"
+        annotation for annotation in annotation_file.annotations if annotation.annotation_class.annotation_type == "tag"
     ]
     return {
         "license": 0,
@@ -191,9 +172,7 @@ def build_annotations(
     for annotation_file in annotation_files:
         for annotation in annotation_file.annotations:
             annotation_id += 1
-            annotation_data = build_annotation(
-                annotation_file, annotation_id, annotation, categories
-            )
+            annotation_data = build_annotation(annotation_file, annotation_id, annotation, categories)
             if annotation_data:
                 yield annotation_data
 
@@ -205,16 +184,11 @@ def build_annotations(
     details=DEPRECATION_MESSAGE,
 )
 def build_annotation(
-    annotation_file: dt.AnnotationFile,
-    annotation_id: int,
-    annotation: dt.Annotation,
-    categories: Dict[str, int],
+    annotation_file: dt.AnnotationFile, annotation_id: int, annotation: dt.Annotation, categories: Dict[str, int]
 ) -> Optional[Dict[str, Any]]:
     annotation_type = annotation.annotation_class.annotation_type
     if annotation_type == "polygon":
-        sequences = convert_polygons_to_sequences(
-            annotation.data["path"], rounding=False
-        )
+        sequences = convert_polygons_to_sequences(annotation.data["path"], rounding=False)
         x_coords = [s[0::2] for s in sequences]
         y_coords = [s[1::2] for s in sequences]
         min_x = np.min([np.min(x_coord) for x_coord in x_coords])
@@ -224,12 +198,7 @@ def build_annotation(
         w = max_x - min_x
         h = max_y - min_y
         # Compute the area of the polygon
-        poly_area = np.sum(
-            [
-                polygon_area(x_coord, y_coord)
-                for x_coord, y_coord in zip(x_coords, y_coords)
-            ]
-        )
+        poly_area = np.sum([polygon_area(x_coord, y_coord) for x_coord, y_coord in zip(x_coords, y_coords)])
 
         return {
             "id": annotation_id,
@@ -260,10 +229,7 @@ def build_annotation(
             "id": annotation_id,
             "image_id": _build_image_id(annotation_file),
             "category_id": categories[annotation.annotation_class.name],
-            "segmentation": {
-                "counts": counts,
-                "size": [annotation_file.image_height, annotation_file.image_width],
-            },
+            "segmentation": {"counts": counts, "size": [annotation_file.image_height, annotation_file.image_width]},
             "area": np.sum(mask),
             "bbox": [min_x, min_y, w, h],
             "iscrowd": 1,
@@ -282,12 +248,7 @@ def build_annotation(
             annotation_id,
             dt.make_polygon(
                 annotation.annotation_class.name,
-                [
-                    {"x": x, "y": y},
-                    {"x": x + w, "y": y},
-                    {"x": x + w, "y": y + h},
-                    {"x": x, "y": y + h},
-                ],
+                [{"x": x, "y": y}, {"x": x + w, "y": y}, {"x": x + w, "y": y + h}, {"x": x, "y": y + h}],
                 None,
                 annotation.subs,
             ),
@@ -371,34 +332,21 @@ def _calculate_categories(annotation_files: List[dt.AnnotationFile]) -> Dict[str
     categories: Dict[str, int] = {}
     for annotation_file in annotation_files:
         for annotation_class in annotation_file.annotation_classes:
-            if (
-                annotation_class.name not in categories
-                and annotation_class.annotation_type
-                in [
-                    "polygon",
-                    "complex_polygon",
-                    "bounding_box",
-                ]
-            ):
-                categories[annotation_class.name] = _calculate_category_id(
-                    annotation_class
-                )
+            if annotation_class.name not in categories and annotation_class.annotation_type in [
+                "polygon",
+                "complex_polygon",
+                "bounding_box",
+            ]:
+                categories[annotation_class.name] = _calculate_category_id(annotation_class)
     return categories
 
 
-def _calculate_tag_categories(
-    annotation_files: List[dt.AnnotationFile],
-) -> Dict[str, int]:
+def _calculate_tag_categories(annotation_files: List[dt.AnnotationFile]) -> Dict[str, int]:
     categories: Dict[str, int] = {}
     for annotation_file in annotation_files:
         for annotation_class in annotation_file.annotation_classes:
-            if (
-                annotation_class.name not in categories
-                and annotation_class.annotation_type == "tag"
-            ):
-                categories[annotation_class.name] = _calculate_category_id(
-                    annotation_class
-                )
+            if annotation_class.name not in categories and annotation_class.annotation_type == "tag":
+                categories[annotation_class.name] = _calculate_category_id(annotation_class)
     return categories
 
 
@@ -423,22 +371,16 @@ def _build_licenses() -> List[Dict[str, Any]]:
     return [{"url": "n/a", "id": 0, "name": "placeholder license"}]
 
 
-def _build_images(
-    annotation_files: List[dt.AnnotationFile], tag_categories: Dict[str, int]
-) -> List[Dict[str, Any]]:
+def _build_images(annotation_files: List[dt.AnnotationFile], tag_categories: Dict[str, int]) -> List[Dict[str, Any]]:
     return [
         _build_image(annotation_file, tag_categories)
         for annotation_file in sorted(annotation_files, key=lambda x: x.seq)
     ]
 
 
-def _build_image(
-    annotation_file: dt.AnnotationFile, tag_categories: Dict[str, int]
-) -> Dict[str, Any]:
+def _build_image(annotation_file: dt.AnnotationFile, tag_categories: Dict[str, int]) -> Dict[str, Any]:
     tags = [
-        annotation
-        for annotation in annotation_file.annotations
-        if annotation.annotation_class.annotation_type == "tag"
+        annotation for annotation in annotation_file.annotations if annotation.annotation_class.annotation_type == "tag"
     ]
 
     return {
@@ -463,9 +405,7 @@ def _build_image_id(annotation_file: dt.AnnotationFile) -> int:
     if annotation_file.seq:
         return annotation_file.seq
     else:
-        full_path = str(
-            Path(annotation_file.remote_path or "/") / Path(annotation_file.filename)
-        )
+        full_path = str(Path(annotation_file.remote_path or "/") / Path(annotation_file.filename))
         return crc32(str.encode(full_path))
 
 
@@ -476,24 +416,17 @@ def _build_annotations(
     for annotation_file in annotation_files:
         for annotation in annotation_file.annotations:
             annotation_id += 1
-            annotation_data = _build_annotation(
-                annotation_file, annotation_id, annotation, categories
-            )
+            annotation_data = _build_annotation(annotation_file, annotation_id, annotation, categories)
             if annotation_data:
                 yield annotation_data
 
 
 def _build_annotation(
-    annotation_file: dt.AnnotationFile,
-    annotation_id: int,
-    annotation: dt.Annotation,
-    categories: Dict[str, int],
+    annotation_file: dt.AnnotationFile, annotation_id: int, annotation: dt.Annotation, categories: Dict[str, int]
 ) -> Optional[Dict[str, Any]]:
     annotation_type = annotation.annotation_class.annotation_type
     if annotation_type == "polygon":
-        sequences = convert_polygons_to_sequences(
-            annotation.data["path"], rounding=False
-        )
+        sequences = convert_polygons_to_sequences(annotation.data["path"], rounding=False)
         x_coords = [s[0::2] for s in sequences]
         y_coords = [s[1::2] for s in sequences]
         min_x = np.min([np.min(x_coord) for x_coord in x_coords])
@@ -503,12 +436,7 @@ def _build_annotation(
         w = max_x - min_x
         h = max_y - min_y
         # Compute the area of the polygon
-        poly_area = np.sum(
-            [
-                _polygon_area(x_coord, y_coord)
-                for x_coord, y_coord in zip(x_coords, y_coords)
-            ]
-        )
+        poly_area = np.sum([_polygon_area(x_coord, y_coord) for x_coord, y_coord in zip(x_coords, y_coords)])
 
         return {
             "id": annotation_id,
@@ -539,10 +467,7 @@ def _build_annotation(
             "id": annotation_id,
             "image_id": _build_image_id(annotation_file),
             "category_id": categories[annotation.annotation_class.name],
-            "segmentation": {
-                "counts": counts,
-                "size": [annotation_file.image_height, annotation_file.image_width],
-            },
+            "segmentation": {"counts": counts, "size": [annotation_file.image_height, annotation_file.image_width]},
             "area": np.sum(mask),
             "bbox": [min_x, min_y, w, h],
             "iscrowd": 1,
@@ -561,12 +486,7 @@ def _build_annotation(
             annotation_id,
             dt.make_polygon(
                 annotation.annotation_class.name,
-                [
-                    {"x": x, "y": y},
-                    {"x": x + w, "y": y},
-                    {"x": x + w, "y": y + h},
-                    {"x": x, "y": y + h},
-                ],
+                [{"x": x, "y": y}, {"x": x + w, "y": y}, {"x": x + w, "y": y + h}, {"x": x, "y": y + h}],
                 None,
                 annotation.subs,
             ),
