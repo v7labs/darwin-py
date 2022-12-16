@@ -20,17 +20,11 @@ from darwin.importer.formats.dataloop import (
 
 class DataLoopTestCase(TestCase):
     def setUp(self) -> None:
-        _fd = open(
-            realpath(
-                join(dirname(__file__), "..", "..", "data", "dataloop.example.json")
-            )
-        )
+        _fd = open(realpath(join(dirname(__file__), "..", "..", "data", "dataloop.example.json")))
         self.DATALOOP_MOCK_DATA = _fd.read()
         _fd.close()
 
-    def assertApproximatelyEqualNumber(
-        self, a: Union[int, float], b: Union[int, float], places: int = 8
-    ):
+    def assertApproximatelyEqualNumber(self, a: Union[int, float], b: Union[int, float], places: int = 8):
         math_isclose(a, b, rel_tol=10**-places)
 
     DARWIN_PARSED_DATA = {
@@ -50,9 +44,7 @@ class TestParsePath(DataLoopTestCase):
     @patch(
         "darwin.importer.formats.dataloop._remove_leading_slash",
     )
-    def test_returns_none_if_file_extension_is_not_json(
-        self, mock_remove_leading_slash
-    ):
+    def test_returns_none_if_file_extension_is_not_json(self, mock_remove_leading_slash):
         self.assertIsNone(parse_path(Path("foo.bar")))
 
     @patch(
@@ -101,28 +93,20 @@ class TestParseAnnotation(DataLoopTestCase):
     def test_handles_box_type(self):
         from darwin.importer.formats.dataloop import _parse_annotation as pa
 
-        with patch(
-            "darwin.importer.formats.dataloop.dt.make_bounding_box"
-        ) as make_bounding_box_mock:
+        with patch("darwin.importer.formats.dataloop.dt.make_bounding_box") as make_bounding_box_mock:
             make_bounding_box_mock.return_value = Annotation("class_1", 0, 0, 0, 0)
             pa(self.parsed_json["annotations"][0])  # 0 is a box type
 
-            make_bounding_box_mock.assert_called_with(
-                "box_class", 288.81, 845.49, 1932.5100000000002, 2682.75
-            )
+            make_bounding_box_mock.assert_called_with("box_class", 288.81, 845.49, 1932.5100000000002, 2682.75)
 
     def test_handles_class_type(self):
-        annotation = _parse_annotation(
-            self.parsed_json["annotations"][1]
-        )  # 1 is a class type
+        annotation = _parse_annotation(self.parsed_json["annotations"][1])  # 1 is a class type
         self.assertEqual(annotation, None)
 
     def test_handles_segment_type(self):
         from darwin.importer.formats.dataloop import _parse_annotation as pa
 
-        with patch(
-            "darwin.importer.formats.dataloop.dt.make_polygon"
-        ) as make_polygon_mock:
+        with patch("darwin.importer.formats.dataloop.dt.make_polygon") as make_polygon_mock:
             pa(self.parsed_json["annotations"][2])  # 2 is a segment type
 
             if "kwargs" in make_polygon_mock.call_args:
@@ -130,10 +114,7 @@ class TestParseAnnotation(DataLoopTestCase):
                 def make_tuple_entry(point: Dict[str, float]) -> Tuple[float, float]:
                     return (point["x"], point["y"])
 
-                point_path = [
-                    make_tuple_entry(p)
-                    for p in make_polygon_mock.call_args.kwargs["point_path"]
-                ]
+                point_path = [make_tuple_entry(p) for p in make_polygon_mock.call_args.kwargs["point_path"]]
                 expectation_points = [
                     (856.73076923, 1077.88461538),
                     (575, 657.69230769),
@@ -145,17 +126,14 @@ class TestParseAnnotation(DataLoopTestCase):
                 ]
 
                 [
-                    self.assertApproximatelyEqualNumber(a[0], b[0])
-                    and self.assertApproximatelyEqualNumber(a[1], b[1])
+                    self.assertApproximatelyEqualNumber(a[0], b[0]) and self.assertApproximatelyEqualNumber(a[1], b[1])
                     for a, b in zip(point_path, expectation_points)
                 ]
             self.assertTrue(make_polygon_mock.call_args[0][0], "segment_class")
 
     def test_throws_on_unknown_type(self):
         try:
-            _parse_annotation(
-                self.parsed_json["annotations"][3]
-            )  # 3 is an unsupported type
+            _parse_annotation(self.parsed_json["annotations"][3])  # 3 is an unsupported type
         except UnsupportedImportAnnotationType as e:
             self.assertEqual(e.import_type, "dataloop")
             self.assertEqual(e.annotation_type, "UNSUPPORTED_TYPE")
@@ -164,6 +142,4 @@ class TestParseAnnotation(DataLoopTestCase):
 
     def test_rejects_complex_polygons(self):
         with self.assertRaises(DataloopComplexPolygonsNotYetSupported):
-            _parse_annotation(
-                self.parsed_json["annotations"][4]
-            )  # 4 is a complex polygon
+            _parse_annotation(self.parsed_json["annotations"][4])  # 4 is a complex polygon

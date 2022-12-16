@@ -46,9 +46,7 @@ def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
     if not isinstance(path, Path):
         path = Path(path)
     if path.suffix != ".json":
-        console.print(
-            "Skipping file: {} (not a json file)".format(path), style="bold yellow"
-        )
+        console.print("Skipping file: {} (not a json file)".format(path), style="bold yellow")
         return None
     with open(path, "r") as f:
         data = json.loads(f.read())
@@ -56,17 +54,12 @@ def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
             validate(data, schema=nifti_import_schema)
         except Exception as e:
             console.print(
-                "Skipping file: {} (invalid json file, see schema for details)".format(
-                    path
-                ),
-                style="bold yellow",
+                "Skipping file: {} (invalid json file, see schema for details)".format(path), style="bold yellow"
             )
             return None
     nifti_annotations = data.get("data")
     if nifti_annotations is None or nifti_annotations == []:
-        console.print(
-            "Skipping file: {} (no data found)".format(path), style="bold yellow"
-        )
+        console.print("Skipping file: {} (no data found)".format(path), style="bold yellow")
         return None
     annotation_files = []
     for nifti_annotation in nifti_annotations:
@@ -81,9 +74,7 @@ def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
     return annotation_files
 
 
-def _parse_nifti(
-    nifti_path: Path, filename: Path, json_path: Path, class_map: Dict, mode: str
-) -> dt.AnnotationFile:
+def _parse_nifti(nifti_path: Path, filename: Path, json_path: Path, class_map: Dict, mode: str) -> dt.AnnotationFile:
 
     img: np.ndarray = process_nifti(nib.load(nifti_path))
 
@@ -97,14 +88,10 @@ def _parse_nifti(
             class_img = np.isin(img, class_idxs).astype(np.uint8)
             cc_img, num_labels = cc3d.connected_components(class_img, return_N=True)
             for instance_id in range(1, num_labels):
-                video_annotation = get_video_annotation(
-                    cc_img, class_idxs=[instance_id], class_name=class_name
-                )
+                video_annotation = get_video_annotation(cc_img, class_idxs=[instance_id], class_name=class_name)
                 if video_annotation:
                     video_annotations.append(video_annotation)
-    elif (
-        mode == "image"
-    ):  # For each frame and each class produce a single frame video annotation
+    elif mode == "image":  # For each frame and each class produce a single frame video annotation
         for i in range(shape[-1]):
             slice_mask = img[:, :, i].astype(np.uint8)
             for class_name, class_idxs in processed_class_map.items():
@@ -128,17 +115,12 @@ def _parse_nifti(
         for class_name, class_idxs in processed_class_map.items():
             if class_name == "background":
                 continue
-            video_annotation = get_video_annotation(
-                img, class_idxs=class_idxs, class_name=class_name
-            )
+            video_annotation = get_video_annotation(img, class_idxs=class_idxs, class_name=class_name)
             if video_annotation is None:
                 continue
             video_annotations.append(video_annotation)
     annotation_classes = set(
-        [
-            dt.AnnotationClass(class_name, "polygon", "polygon")
-            for class_name in class_map.values()
-        ]
+        [dt.AnnotationClass(class_name, "polygon", "polygon") for class_name in class_map.values()]
     )
     return dt.AnnotationFile(
         path=json_path,
@@ -146,19 +128,11 @@ def _parse_nifti(
         remote_path="/",
         annotation_classes=annotation_classes,
         annotations=video_annotations,
-        slots=[
-            dt.Slot(
-                name=None,
-                type="dicom",
-                source_files=[{"url": None, "file_name": str(filename)}],
-            )
-        ],
+        slots=[dt.Slot(name=None, type="dicom", source_files=[{"url": None, "file_name": str(filename)}])],
     )
 
 
-def get_video_annotation(
-    volume: np.ndarray, class_name: str, class_idxs: List[int]
-) -> Optional[dt.VideoAnnotation]:
+def get_video_annotation(volume: np.ndarray, class_name: str, class_idxs: List[int]) -> Optional[dt.VideoAnnotation]:
     frame_annotations = OrderedDict()
     for i in range(volume.shape[-1]):
         slice_mask = volume[:, :, i].astype(np.uint8)
@@ -196,10 +170,7 @@ def mask_to_polygon(mask: np.ndarray, class_name: str) -> Optional[dt.Annotation
             # skip paths with less than 2 points
             if len(external_path) // 2 <= 2:
                 continue
-            path = [
-                {"x": y, "y": x}
-                for x, y in zip(external_path[0::2], external_path[1::2])
-            ]
+            path = [{"x": y, "y": x} for x, y in zip(external_path[0::2], external_path[1::2])]
             paths.append(path)
         if len(paths) > 1:
             polygon = dt.make_complex_polygon(class_name, paths)
@@ -216,10 +187,7 @@ def mask_to_polygon(mask: np.ndarray, class_name: str) -> Optional[dt.Annotation
             return None
         polygon = dt.make_polygon(
             class_name,
-            point_path=[
-                {"x": y, "y": x}
-                for x, y in zip(external_path[0::2], external_path[1::2])
-            ],
+            point_path=[{"x": y, "y": x} for x, y in zip(external_path[0::2], external_path[1::2])],
         )
     else:
         return None
@@ -275,9 +243,7 @@ def rectify_header_sform_qform(img_nii):
     return img_nii
 
 
-def affine_to_spacing(
-    affine: np.ndarray, r: int = 3, dtype=float, suppress_zeros: bool = True
-) -> np.ndarray:
+def affine_to_spacing(affine: np.ndarray, r: int = 3, dtype=float, suppress_zeros: bool = True) -> np.ndarray:
     """
     Copied over from monai.data.utils - https://docs.monai.io/en/stable/_modules/monai/data/utils.html
 
@@ -321,9 +287,7 @@ def correct_nifti_header_if_necessary(img_nii):
     return img_nii
 
 
-def process_nifti(
-    input_data: Union[Sequence[nib.nifti1.Nifti1Image], nib.nifti1.Nifti1Image]
-):
+def process_nifti(input_data: Union[Sequence[nib.nifti1.Nifti1Image], nib.nifti1.Nifti1Image]):
     """
     Function which takes in a single nifti path or a list of nifti paths
     and returns the pixel_array, affine and pixdim
