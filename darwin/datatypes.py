@@ -255,7 +255,7 @@ class Slot:
     source_files: List[Dict[str, str]]
 
     #: Thumbnail url to the file
-    thubmnail_url: Optional[str] = None
+    thumbnail_url: Optional[str] = None
 
     #: Width in pixel
     width: Optional[int] = None
@@ -271,6 +271,9 @@ class Slot:
 
     #: Frames per second
     fps: Optional[float] = None
+
+    #: Metadata of the slot
+    metadata: Optional[Dict[str, Any]] = None
 
 
 @dataclass

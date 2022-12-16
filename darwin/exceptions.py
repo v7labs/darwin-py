@@ -3,7 +3,7 @@ from pathlib import Path
 from textwrap import dedent
 from typing import List
 
-from jsonschema.exceptions import ValidationError
+from jsonschema.exceptions import ValidationError as jscValidationError
 
 from darwin.datatypes import AnnotationFileVersion
 
@@ -119,7 +119,7 @@ class Unauthorized(Exception):
     """
 
     def __str__(self):
-        return f"Unauthorized"
+        return "Unauthorized"
 
 
 class OutdatedDarwinJSONFormat(Exception):
@@ -158,7 +158,7 @@ class AnnotationFileValidationError(Exception):
     Used to indicate error while validation JSON annotation files.
     """
 
-    def __init__(self, parent_error: ValidationError, file_path: Path):
+    def __init__(self, parent_error: jscValidationError, file_path: Path):
         """
         Parameters
         ----------
@@ -210,3 +210,58 @@ class UnknownAnnotationFileSchema(Exception):
             Detected annotation file version is: '{self.detected_version}'.
             """
         )
+
+
+class UnknownExportVersion(Exception):
+    """Used when dataset version is not recognized."""
+
+    def __init__(self, version: str):
+        """
+        Parameters
+        ----------
+        version: str
+            The version that is not recognized.
+        """
+        super().__init__()
+        self.version = version
+
+    def __str__(self):
+        return f"Unknown version: '{self.version}'"
+
+
+class UnsupportedImportAnnotationType(Exception):
+    """
+    Used when one tries to parse an annotation with an unsupported type.
+    """
+
+    def __init__(self, import_type: str, annotation_type: str):
+        """
+        Parameters
+        ----------
+        import_type: str
+            The type of import, e.g. "dataloop".
+        annotation_type: str
+            The unsupported annotation type.
+        """
+        super().__init__(f"Unsupported annotation type {annotation_type} for {import_type} import")
+        self.import_type = import_type
+        self.annotation_type = annotation_type
+
+
+class DataloopComplexPolygonsNotYetSupported(Exception):
+    """
+    Used when one tries to parse an annotation with a complex polygon.
+    """
+
+    def __init__(
+        self,
+    ):
+        """
+        Parameters
+        ----------
+        import_type: str
+            The type of import, e.g. "dataloop".
+        annotation_type: str
+            The unsupported annotation type.
+        """
+        super().__init__("Complex polygons not yet supported for dataloop import")

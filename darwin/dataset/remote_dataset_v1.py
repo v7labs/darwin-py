@@ -116,6 +116,7 @@ class RemoteDatasetV1(RemoteDataset):
         max_workers: Optional[int] = None,
         fps: int = 0,
         as_frames: bool = False,
+        extract_views: bool = False,
         files_to_exclude: Optional[List[PathLike]] = None,
         path: Optional[str] = None,
         preserve_folders: bool = False,
@@ -379,7 +380,7 @@ class RemoteDatasetV1(RemoteDataset):
             membership or not?
         include_authorship : bool, default: False
             If set, include annotator and reviewer metadata for each annotation.
-        version : Optional[str], default: None
+        version : Optional[str], default: None, enum: ["1.0", "2.0"]
             When used for V2 dataset, allows to force generation of either Darwin JSON 1.0 (Legacy) or newer 2.0.
             Omit this option to get your team's default.
         """

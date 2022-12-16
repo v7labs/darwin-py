@@ -573,6 +573,7 @@ def upload_data(
     fps: int,
     path: Optional[str],
     frames: bool,
+    extract_views: bool = False,
     preserve_folders: bool = False,
     verbose: bool = False,
 ) -> None:
@@ -597,6 +598,8 @@ def upload_data(
         files are in, otherwise an error will be raised.
     frames : bool
         Specify whether the files will be uploaded as a list of frames or not.
+    extract_views : bool
+        If providing a volume, specify whether to extract the orthogonal views or not.
     preserve_folders : bool
         Specify whether or not to preserve folder paths when uploading.
     verbose : bool
@@ -663,6 +666,7 @@ def upload_data(
                 files_to_exclude=files_to_exclude,
                 fps=fps,
                 as_frames=frames,
+                extract_views=extract_views,
                 path=path,
                 preserve_folders=preserve_folders,
                 progress_callback=progress_callback,
@@ -777,8 +781,8 @@ def dataset_import(
         import_annotations(dataset, parser, files, append, class_prompt, delete_for_empty)
     except ImporterNotFoundError:
         _error(f"Unsupported import format: {format}, currently supported: {import_formats}")
-    except AttributeError:
-        _error(f"Unsupported import format: {format}, currently supported: {import_formats}")
+    except AttributeError as e:
+        _error(f"Internal problem with import occured: {str(e)}")
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
     except IncompatibleOptions as e:
@@ -1058,7 +1062,7 @@ def convert(format: str, files: List[PathLike], output_dir: Path) -> None:
     except AttributeError:
         _error(f"Unsupported export format, currently supported: {export_formats}")
 
-    export_annotations(parser, files, output_dir, split_sequences=(format != "darwin_1.0"))
+    export_annotations(parser, files, output_dir, split_sequences=(format not in ["darwin_1.0", "nifti"]))
 
 
 def post_comment(

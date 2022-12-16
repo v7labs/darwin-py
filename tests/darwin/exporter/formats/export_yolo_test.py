@@ -17,11 +17,12 @@ def describe_export():
         annotation_class: AnnotationClass = AnnotationClass(
             name="car", annotation_type="polygon", annotation_internal_type=None
         )
+        bbox = {"x": 94.0, "y": 438.0, "w": 1709.0, "h": 545.0}
         annotation = Annotation(
             annotation_class=annotation_class,
             data={
                 "path": [{...}],
-                "bounding_box": {"x": 94.0, "y": 438.0, "w": 1709.0, "h": 545.0},
+                "bounding_box": bbox,
             },
             subs=[],
         )
@@ -45,7 +46,9 @@ def describe_export():
         assert (folder_path / "darknet.labels") in files
 
         yolo_lines = (folder_path / "annotation_test.txt").read_text().split("\n")
-        assert yolo_lines[0] == "0 94 438 1709 545"
+        assert yolo_lines[0] == "0 {} {} {} {}".format(
+            (bbox["x"] + bbox["w"] / 2) / 1920, (bbox["y"] + bbox["h"] / 2) / 1080, bbox["w"] / 1920, bbox["h"] / 1080
+        )
 
         yolo_classes = (folder_path / "darknet.labels").read_text().split("\n")
         assert yolo_classes[0] == "car"

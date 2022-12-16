@@ -107,6 +107,10 @@ class Options(object):
         )
         parser_push.add_argument("--frames", action="store_true", help="Annotate a video as independent frames.")
 
+        parser_push.add_argument(
+            "--extract_views", action="store_true", help="Upload a volume with all 3 orthogonal views."
+        )
+
         parser_push.add_argument("--path", type=str, default=None, help="Folder to upload the files into.")
 
         parser_push.add_argument("--verbose", action="store_true", help="Flag to show upload details.")

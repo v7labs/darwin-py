@@ -1,4 +1,5 @@
 from unittest.mock import MagicMock, patch
+
 from requests import Response
 
 import darwin.datatypes as dt
@@ -470,11 +471,10 @@ def describe_parse_darwin_json():
             response: Response = Response()
             response.headers["content-type"] = "application/json"
             response._content = b'{"key":"a"}'
-            assert {'key':'a'} == get_response_content(response)
+            assert {"key": "a"} == get_response_content(response)
 
         def it_returns_text():
             response: Response = Response()
             response.headers["content-type"] = "text/plain"
-            response._content = b'hello'
+            response._content = b"hello"
             assert "hello" == get_response_content(response)
-

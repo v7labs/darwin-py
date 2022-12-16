@@ -89,7 +89,7 @@ class BackendV2:
         payload: Dict[str, Any]
             A filter Dictionary that defines the items to be archived.
         """
-        self._client._put(f"v2/teams/{team_slug}/items/archive", payload, team_slug)
+        self._client._post(f"v2/teams/{team_slug}/items/archive", payload, team_slug)
 
     @inject_default_team_slug
     def restore_archived_items(self, payload: Dict[str, Any], *, team_slug: Optional[str] = None) -> None:
@@ -103,7 +103,7 @@ class BackendV2:
         payload: Dict[str, Any]
             A filter Dictionary that defines the items to be restored.
         """
-        self._client._put(f"v2/teams/{team_slug}/items/restore", payload, team_slug)
+        self._client._post(f"v2/teams/{team_slug}/items/restore", payload, team_slug)
 
     @inject_default_team_slug
     def move_to_stage(
@@ -150,7 +150,6 @@ class BackendV2:
         team_slug: Optional[str] = None,
     ):
         payload = {
-            "filters": filters,
             "include_authorship": include_authorship,
             "include_export_token": include_token,
             "name": name,
@@ -160,7 +159,10 @@ class BackendV2:
             payload["format"] = format
 
         if annotation_class_ids:
-            payload["annotation_filters"] = {"annotation_class_ids": annotation_class_ids}
+            payload["annotation_filters"] = {"annotation_class_ids": list(map(int, annotation_class_ids))}
+        if filters is not None:
+            # Backend assumes default filters only if those are completely missing.
+            payload["filters"] = filters
 
         return self._client._post(f"v2/teams/{team_slug}/datasets/{dataset_slug}/exports", payload, team_slug)
 

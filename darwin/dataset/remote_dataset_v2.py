@@ -1,15 +1,4 @@
-from operator import le
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Dict,
-    Iterator,
-    List,
-    Optional,
-    Sequence,
-    Tuple,
-    Union,
-)
+from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, Tuple, Union
 
 from darwin.dataset import RemoteDataset
 from darwin.dataset.release import Release
@@ -22,7 +11,7 @@ from darwin.dataset.upload_manager import (
 )
 from darwin.dataset.utils import is_relative_to
 from darwin.datatypes import ItemId, PathLike
-from darwin.exceptions import NotFound
+from darwin.exceptions import NotFound, UnknownExportVersion
 from darwin.item import DatasetItem
 from darwin.item_sorter import ItemSorter
 from darwin.utils import find_files, urljoin
@@ -125,6 +114,7 @@ class RemoteDatasetV2(RemoteDataset):
         max_workers: Optional[int] = None,
         fps: int = 0,
         as_frames: bool = False,
+        extract_views: bool = False,
         files_to_exclude: Optional[List[PathLike]] = None,
         path: Optional[str] = None,
         preserve_folders: bool = False,
@@ -149,6 +139,8 @@ class RemoteDatasetV2(RemoteDataset):
             When the uploading file is a video, specify its framerate.
         as_frames: bool, default: False
             When the uploading file is a video, specify whether it's going to be uploaded as a list of frames.
+        extract_views: bool, default: False
+            When the uploading file is a volume, specify whether it's going to be split into orthogonal views.
         files_to_exclude : Optional[PathLike]], default: None
             Optional list of files to exclude from the file scan. Those can be folders.
         path: Optional[str], default: None
@@ -191,7 +183,9 @@ class RemoteDatasetV2(RemoteDataset):
                 source_files = [source_file for source_file in search_files if is_relative_to(found_file, source_file)]
                 if source_files:
                     local_path = str(found_file.relative_to(source_files[0]).parent)
-            uploading_files.append(LocalFile(found_file, fps=fps, as_frames=as_frames, path=local_path))
+            uploading_files.append(
+                LocalFile(found_file, fps=fps, as_frames=as_frames, extract_views=extract_views, path=local_path)
+            )
 
         if not uploading_files:
             raise ValueError("No files to upload, check your path, exclusion filters and resume flag")
@@ -375,17 +369,19 @@ class RemoteDatasetV2(RemoteDataset):
             membership or not?
         include_authorship : bool, default: False
             If set, include annotator and reviewer metadata for each annotation.
-        version : Optional[str], default: None
+        version : Optional[str], default: None, enum: ["1.0", "2.0"]
             When used for V2 dataset, allows to force generation of either Darwin JSON 1.0 (Legacy) or newer 2.0.
             Omit this option to get your team's default.
         """
-
-        if version == "2.0":
+        str_version = str(version)
+        if str_version == "2.0":
             format = "darwin_json_2"
-        elif version == "1.0":
+        elif str_version == "1.0":
             format = "json"
-        else:
+        elif version == None:
             format = None
+        else:
+            raise UnknownExportVersion(version)
 
         self.client.api_v2.export_dataset(
             format=format,
@@ -393,7 +389,7 @@ class RemoteDatasetV2(RemoteDataset):
             include_authorship=include_authorship,
             include_token=include_url_token,
             annotation_class_ids=annotation_class_ids,
-            filters={},
+            filters=None,
             dataset_slug=self.slug,
             team_slug=self.team,
         )
