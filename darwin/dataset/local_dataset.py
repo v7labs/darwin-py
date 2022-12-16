@@ -88,7 +88,10 @@ class LocalDataset(object):
 
         # Get the list of classes
         self.classes = get_classes(
-            self.dataset_path, release_name, annotation_type=self.annotation_type, remove_background=True
+            self.dataset_path,
+            release_name,
+            annotation_type=self.annotation_type,
+            remove_background=True,
         )
         self.num_classes = len(self.classes)
 
@@ -111,7 +114,10 @@ class LocalDataset(object):
             self.annotations_path.append(annotation_path)
 
         if len(self.images_path) == 0:
-            raise ValueError(f"Could not find any {SUPPORTED_IMAGE_EXTENSIONS} file", f" in {images_dir}")
+            raise ValueError(
+                f"Could not find any {SUPPORTED_IMAGE_EXTENSIONS} file",
+                f" in {images_dir}",
+            )
 
         assert len(self.images_path) == len(self.annotations_path)
 
@@ -190,9 +196,9 @@ class LocalDataset(object):
             raise ValueError("Annotation type of both datasets should match")
         if self.classes != dataset.classes and not extend_classes:
             raise ValueError(
-                f"Operation dataset_a + dataset_b could not be computed: classes "
-                f"should match. Use flag extend_classes=True to combine both lists "
-                f"of classes."
+                "Operation dataset_a + dataset_b could not be computed: classes "
+                "should match. Use flag extend_classes=True to combine both lists "
+                "of classes."
             )
         self.classes = list(set(self.classes).union(set(dataset.classes)))
 
@@ -440,6 +446,6 @@ def build_stems(
         return (e.strip("\n\r") for e in split_path.open())
 
     raise FileNotFoundError(
-        f"could not find a dataset partition. "
-        f"Split the dataset using `split_dataset()` from `darwin.dataset.split_manager`"
+        "could not find a dataset partition. "
+        "Split the dataset using `split_dataset()` from `darwin.dataset.split_manager`"
     )
