@@ -60,7 +60,9 @@ def get_release_path(dataset_path: Path, release_name: Optional[str] = None) -> 
     return release_path
 
 
-def extract_classes(annotations_path: Path, annotation_type: str) -> Tuple[Dict[str, Set[int]], Dict[int, Set[str]]]:
+def extract_classes(
+    annotations_path: Path, annotation_type: str
+) -> Tuple[Dict[str, Set[int]], Dict[int, Set[str]]]:
     """
     Given a the GT as json files extracts all classes and an maps images index to classes.
 
@@ -172,7 +174,10 @@ def _f(x: Any) -> Any:
 
 
 def exhaust_generator(
-    progress: Generator, count: int, multi_threaded: bool, worker_count: Optional[int] = None
+    progress: Generator,
+    count: int,
+    multi_threaded: bool,
+    worker_count: Optional[int] = None,
 ) -> List[Dict[str, Any]]:
     """
     Exhausts the generator passed as parameter. Can be done multi threaded if desired.
@@ -209,7 +214,9 @@ def exhaust_generator(
                     responses.append(pool.apply_async(_f, args=(f,), callback=update))
                 pool.close()
                 pool.join()
-            responses = [response.get() for response in responses if response.successful()]
+            responses = [
+                response.get() for response in responses if response.successful()
+            ]
     else:
         for f in track(progress, total=count, description="Progress"):
             responses.append(_f(f))
@@ -300,7 +307,12 @@ def get_coco_format_record(
             new_obj["bbox"] = [np.min(px), np.min(py), np.max(px), np.max(py)]
         elif annotation_type == "bounding_box":
             bbox = obj["bounding_box"]
-            new_obj["bbox"] = [bbox["x"], bbox["y"], bbox["x"] + bbox["w"], bbox["y"] + bbox["h"]]
+            new_obj["bbox"] = [
+                bbox["x"],
+                bbox["y"],
+                bbox["x"] + bbox["w"],
+                bbox["y"] + bbox["h"],
+            ]
 
         objs.append(new_obj)
     record["annotations"] = objs
@@ -373,10 +385,17 @@ def get_annotations(
     if split_type not in ["random", "stratified", None]:
         raise ValueError("split_type should be either 'random', 'stratified', or None")
     if annotation_type not in ["tag", "polygon", "bounding_box"]:
-        raise ValueError("annotation_type should be either 'tag', 'bounding_box', or 'polygon'")
+        raise ValueError(
+            "annotation_type should be either 'tag', 'bounding_box', or 'polygon'"
+        )
 
     # Get the list of classes
-    classes = get_classes(dataset_path, release_name, annotation_type=annotation_type, remove_background=True)
+    classes = get_classes(
+        dataset_path,
+        release_name,
+        annotation_type=annotation_type,
+        remove_background=True,
+    )
     # Get the list of stems
     if partition:
         # Get the split
@@ -424,9 +443,13 @@ def get_annotations(
             invalid_annotation_paths.append(annotation_path)
             continue
         elif image_count < 1:
-            raise ValueError(f"Annotation ({annotation_path}) does not have a corresponding image")
+            raise ValueError(
+                f"Annotation ({annotation_path}) does not have a corresponding image"
+            )
         elif image_count > 1:
-            raise ValueError(f"Image ({stem}) is present with multiple extensions. This is forbidden.")
+            raise ValueError(
+                f"Image ({stem}) is present with multiple extensions. This is forbidden."
+            )
 
         images_paths.append(images[0])
         annotations_paths.append(annotation_path)
@@ -436,16 +459,23 @@ def get_annotations(
         print(p)
 
     if len(images_paths) == 0:
-        raise ValueError(f"Could not find any {SUPPORTED_EXTENSIONS} file" f" in {dataset_path / 'images'}")
+        raise ValueError(
+            f"Could not find any {SUPPORTED_EXTENSIONS} file"
+            f" in {dataset_path / 'images'}"
+        )
 
     assert len(images_paths) == len(annotations_paths)
 
     # Load and re-format all the annotations
     if annotation_format == "coco":
         images_ids = list(range(len(images_paths)))
-        for annotation_path, image_path, image_id in zip(annotations_paths, images_paths, images_ids):
+        for annotation_path, image_path, image_id in zip(
+            annotations_paths, images_paths, images_ids
+        ):
             if image_path.suffix.lower() in SUPPORTED_VIDEO_EXTENSIONS:
-                print(f"[WARNING] Cannot load video annotation into COCO format. Skipping {image_path}")
+                print(
+                    f"[WARNING] Cannot load video annotation into COCO format. Skipping {image_path}"
+                )
                 continue
             yield get_coco_format_record(
                 annotation_path=annotation_path,
@@ -585,25 +615,34 @@ def compute_distributions(
         - instance_distribution: count of all instances of a given class exist for each partition
     """
 
-    class_distribution: AnnotationDistribution = {partition: Counter() for partition in partitions}
-    instance_distribution: AnnotationDistribution = {partition: Counter() for partition in partitions}
+    class_distribution: AnnotationDistribution = {
+        partition: Counter() for partition in partitions
+    }
+    instance_distribution: AnnotationDistribution = {
+        partition: Counter() for partition in partitions
+    }
 
     for partition in partitions:
         for annotation_type in annotation_types:
-            split_file: Path = split_path / f"stratified_{annotation_type}_{partition}.txt"
+            split_file: Path = (
+                split_path / f"stratified_{annotation_type}_{partition}.txt"
+            )
             if not split_file.exists():
                 split_file = split_path / f"random_{partition}.txt"
             stems: List[str] = [e.rstrip("\n\r") for e in split_file.open()]
 
             for stem in stems:
                 annotation_path: Path = annotations_dir / f"{stem}.json"
-                annotation_file: Optional[dt.AnnotationFile] = parse_path(annotation_path)
+                annotation_file: Optional[dt.AnnotationFile] = parse_path(
+                    annotation_path
+                )
 
                 if annotation_file is None:
                     continue
 
                 annotation_class_names: List[str] = [
-                    annotation.annotation_class.name for annotation in annotation_file.annotations
+                    annotation.annotation_class.name
+                    for annotation in annotation_file.annotations
                 ]
 
                 class_distribution[partition] += Counter(set(annotation_class_names))
