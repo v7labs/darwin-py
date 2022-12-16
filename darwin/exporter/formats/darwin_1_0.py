@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Union
+from typing import Any, Dict, Iterable, Union
 
 import orjson as json
 
