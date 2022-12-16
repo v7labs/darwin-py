@@ -1,12 +1,14 @@
+from asyncore import loop
 from pathlib import Path
 from typing import Iterable
 
 import nibabel as nib
 import numpy as np
 import orjson as json
+from PIL import Image
 
 import darwin.datatypes as dt
-from darwin.utils import convert_polygons_to_mask
+from darwin.utils import convert_polygons_to_mask, get_progress_bar
 
 
 def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path) -> None:
@@ -32,19 +34,13 @@ def export_single_nifti_file(video_annotation: dt.AnnotationFile, output_dir: Pa
     suffixes = filename.suffixes
     if len(suffixes) > 2:
         return create_error_message_json(
-            "Misconfigured filename, contains too many suffixes",
-            output_dir,
-            str(filename),
+            "Misconfigured filename, contains too many suffixes", output_dir, str(filename)
         )
     elif len(suffixes) == 2:
         if suffixes[0] == ".nii" and suffixes[1] == ".gz":
             image_id = str(filename).strip("".join(suffixes))
         else:
-            return create_error_message_json(
-                "Two suffixes found but not ending in .nii.gz",
-                output_dir,
-                str(filename),
-            )
+            return create_error_message_json("Two suffixes found but not ending in .nii.gz", output_dir, str(filename))
     elif len(suffixes) == 1:
         if suffixes[0] == ".nii" or suffixes[0] == ".dcm":
             image_id = filename.stem
@@ -67,9 +63,7 @@ def export_single_nifti_file(video_annotation: dt.AnnotationFile, output_dir: Pa
     metadata = video_annotation.slots[0].metadata
     if metadata is None:
         return create_error_message_json(
-            f"No metadata found for {str(filename)}, are you sure this is medical data?",
-            output_dir,
-            image_id,
+            f"No metadata found for {str(filename)}, are you sure this is medical data?", output_dir, image_id
         )
     volume_dims, pixdim, affine = process_metadata(metadata)
     if affine is None or pixdim is None or volume_dims is None:
@@ -172,7 +166,7 @@ def process_metadata(metadata):
     pixdim = metadata.get("pixdim")
     affine = metadata.get("affine")
     if isinstance(affine, str):
-        affine = np.squeeze(np.array([eval(line) for line in affine.split("\n")]))
+        affine = np.squeeze(np.array([eval(l) for l in affine.split("\n")]))
         if not isinstance(affine, np.ndarray):
             affine = None
     if isinstance(pixdim, str):
@@ -205,8 +199,5 @@ def create_empty_nifti_file(volume_dims, affine, output_dir, image_id: str):
     output_path = Path(output_dir) / f"{image_id}_empty.nii.gz"
     if not output_path.parent.exists():
         output_path.parent.mkdir(parents=True)
-    img = nib.Nifti1Image(
-        dataobj=np.flip(np.zeros(volume_dims), (0, 1, 2)).astype(np.int16),
-        affine=affine,
-    )
+    img = nib.Nifti1Image(dataobj=np.flip(np.zeros(volume_dims), (0, 1, 2)).astype(np.int16), affine=affine)
     nib.save(img=img, filename=output_path)

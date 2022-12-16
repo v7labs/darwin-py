@@ -34,17 +34,7 @@ if TYPE_CHECKING:
     from darwin.client import Client
 
 
-SUPPORTED_IMAGE_EXTENSIONS = [
-    ".png",
-    ".jpeg",
-    ".jpg",
-    ".jfif",
-    ".tif",
-    ".tiff",
-    ".bmp",
-    ".svs",
-    ".webp",
-]
+SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpeg", ".jpg", ".jfif", ".tif", ".tiff", ".bmp", ".svs", ".webp"]
 SUPPORTED_VIDEO_EXTENSIONS = [
     ".avi",
     ".bpm",
@@ -249,10 +239,7 @@ def prompt(msg: str, default: Optional[str] = None) -> str:
 
 
 def find_files(
-    files: List[dt.PathLike],
-    *,
-    files_to_exclude: List[dt.PathLike] = [],
-    recursive: bool = True,
+    files: List[dt.PathLike], *, files_to_exclude: List[dt.PathLike] = [], recursive: bool = True
 ) -> List[Path]:
     """
     Retrieve a list of all files belonging to supported extensions. The exploration can be made
@@ -304,9 +291,7 @@ def secure_continue_request() -> bool:
 
 
 def persist_client_configuration(
-    client: "Client",
-    default_team: Optional[str] = None,
-    config_path: Optional[Path] = None,
+    client: "Client", default_team: Optional[str] = None, config_path: Optional[Path] = None
 ) -> Config:
     """
     Authenticate user against the server and creates a configuration file for him/her.
@@ -334,11 +319,7 @@ def persist_client_configuration(
         raise ValueError("Unable to get default team.")
 
     config: Config = Config(config_path)
-    config.set_team(
-        team=team_config.slug,
-        api_key=team_config.api_key,
-        datasets_dir=team_config.datasets_dir,
-    )
+    config.set_team(team=team_config.slug, api_key=team_config.api_key, datasets_dir=team_config.datasets_dir)
     config.set_global(api_endpoint=client.url, base_url=client.base_url, default_team=default_team)
 
     return config
@@ -461,12 +442,7 @@ def _parse_darwin_image(path: Path, data: Dict[str, Any], count: Optional[int]) 
     slot = dt.Slot(
         name=None,
         type="image",
-        source_files=[
-            {
-                "url": data["image"].get("url"),
-                "file_name": _get_local_filename(data["image"]),
-            }
-        ],
+        source_files=[{"url": data["image"].get("url"), "file_name": _get_local_filename(data["image"])}],
         thumbnail_url=data["image"].get("thumbnail_url"),
         width=data["image"].get("width"),
         height=data["image"].get("height"),
@@ -503,12 +479,7 @@ def _parse_darwin_video(path: Path, data: Dict[str, Any], count: Optional[int]) 
     slot = dt.Slot(
         name=None,
         type="video",
-        source_files=[
-            {
-                "url": data["image"].get("url"),
-                "file_name": _get_local_filename(data["image"]),
-            }
-        ],
+        source_files=[{"url": data["image"].get("url"), "file_name": _get_local_filename(data["image"])}],
         thumbnail_url=data["image"].get("thumbnail_url"),
         width=data["image"].get("width"),
         height=data["image"].get("height"),
@@ -576,12 +547,7 @@ def _parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotati
     elif "bounding_box" in annotation:
         bounding_box = annotation["bounding_box"]
         main_annotation = dt.make_bounding_box(
-            name,
-            bounding_box["x"],
-            bounding_box["y"],
-            bounding_box["w"],
-            bounding_box["h"],
-            slot_names=slot_names,
+            name, bounding_box["x"], bounding_box["y"], bounding_box["w"], bounding_box["h"], slot_names=slot_names
         )
     elif "tag" in annotation:
         main_annotation = dt.make_tag(name, slot_names=slot_names)
@@ -589,10 +555,7 @@ def _parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotati
         main_annotation = dt.make_line(name, annotation["line"]["path"], slot_names=slot_names)
     elif "keypoint" in annotation:
         main_annotation = dt.make_keypoint(
-            name,
-            annotation["keypoint"]["x"],
-            annotation["keypoint"]["y"],
-            slot_names=slot_names,
+            name, annotation["keypoint"]["x"], annotation["keypoint"]["y"], slot_names=slot_names
         )
     elif "ellipse" in annotation:
         main_annotation = dt.make_ellipse(name, annotation["ellipse"], slot_names=slot_names)
@@ -602,19 +565,13 @@ def _parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotati
         main_annotation = dt.make_skeleton(name, annotation["skeleton"]["nodes"], slot_names=slot_names)
     elif "table" in annotation:
         main_annotation = dt.make_table(
-            name,
-            annotation["table"]["bounding_box"],
-            annotation["table"]["cells"],
-            slot_names=slot_names,
+            name, annotation["table"]["bounding_box"], annotation["table"]["cells"], slot_names=slot_names
         )
     elif "string" in annotation:
         main_annotation = dt.make_string(name, annotation["string"]["sources"], slot_names=slot_names)
     elif "graph" in annotation:
         main_annotation = dt.make_graph(
-            name,
-            annotation["graph"]["nodes"],
-            annotation["graph"]["edges"],
-            slot_names=slot_names,
+            name, annotation["graph"]["nodes"], annotation["graph"]["edges"], slot_names=slot_names
         )
 
     if not main_annotation:
@@ -819,9 +776,7 @@ def convert_polygons_to_sequences(
     details="Do not use.",
 )
 def convert_sequences_to_polygons(
-    sequences: List[Union[List[int], List[float]]],
-    height: Optional[int] = None,
-    width: Optional[int] = None,
+    sequences: List[Union[List[int], List[float]]], height: Optional[int] = None, width: Optional[int] = None
 ) -> Dict[str, List[dt.Polygon]]:
     """
     Converts a list of polygons, encoded as a list of dictionaries of into a list of nd.arrays
