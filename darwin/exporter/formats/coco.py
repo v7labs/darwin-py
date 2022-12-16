@@ -1,4 +1,3 @@
-import json
 from datetime import date
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional
@@ -9,7 +8,7 @@ import numpy as np
 from upolygon import draw_polygon, rle_encode
 
 import darwin.datatypes as dt
-from darwin.exporter.formats.numpy_encoder import NumpyEncoder
+from darwin.json import dump
 from darwin.utils import convert_polygons_to_sequences
 from darwin.version import __version__
 
@@ -35,8 +34,8 @@ def export(annotation_files: Iterator[dt.AnnotationFile], output_dir: Path) -> N
     """
     output = _build_json(list(annotation_files))
     output_file_path = (output_dir / "output").with_suffix(".json")
-    with open(output_file_path, "w") as f:
-        json.dump(output, f, cls=NumpyEncoder, indent=1)
+
+    dump(output, output_file_path)
 
 
 @deprecation.deprecated(

@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import Any, Dict, Generator, Iterator, List, Optional, Set, Tuple, Union
 
 import numpy as np
-import orjson as json
 from PIL import Image as PILImage
 from rich.live import Live
 from rich.progress import ProgressBar, track
@@ -14,6 +13,7 @@ import darwin.datatypes as dt
 from darwin.datatypes import PathLike
 from darwin.exceptions import NotFound
 from darwin.importer.formats.darwin import parse_path
+from darwin.json import load
 from darwin.utils import (
     SUPPORTED_EXTENSIONS,
     SUPPORTED_VIDEO_EXTENSIONS,
@@ -267,8 +267,7 @@ def get_coco_format_record(
     except ImportError:
         box_mode = 0
 
-    with annotation_path.open() as f:
-        data = json.loads(f.read())
+    data = load(annotation_path)
     height, width = data["image"]["height"], data["image"]["width"]
     annotations = data["annotations"]
 
@@ -469,8 +468,7 @@ def get_annotations(
             )
     elif annotation_format == "darwin":
         for annotation_path in annotations_paths:
-            with annotation_path.open() as f:
-                record = json.loads(f.read())
+            record = load(annotation_path)
             yield record
 
 
@@ -556,14 +554,13 @@ def compute_max_density(annotations_dir: Path) -> int:
     max_density = 0
     for annotation_path in annotations_dir.glob("**/*.json"):
         annotation_density = 0
-        with open(annotation_path) as f:
-            darwin_json = json.loads(f.read())
-            for annotation in darwin_json["annotations"]:
-                if "polygon" not in annotation and "complex_polygon" not in annotation:
-                    continue
-                annotation_density += 1
-            if annotation_density > max_density:
-                max_density = annotation_density
+        darwin_json = load(annotation_path)
+        for annotation in darwin_json["annotations"]:
+            if "polygon" not in annotation and "complex_polygon" not in annotation:
+                continue
+            annotation_density += 1
+        if annotation_density > max_density:
+            max_density = annotation_density
     return max_density
 
 

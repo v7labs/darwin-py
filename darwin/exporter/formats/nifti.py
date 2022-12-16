@@ -3,9 +3,9 @@ from typing import Iterable
 
 import nibabel as nib
 import numpy as np
-import orjson as json
 
 import darwin.datatypes as dt
+from darwin.json import dump
 from darwin.utils import convert_polygons_to_mask
 
 
@@ -84,7 +84,7 @@ def export_single_nifti_file(video_annotation: dt.AnnotationFile, output_dir: Pa
     class_map = {}
     class_count = 1
     for _, annotation in enumerate(video_annotation.annotations):
-        frames = annotation.frames
+        frames = annotation.frames  # type: ignore
         for frame_idx in frames.keys():
             class_name = frames[frame_idx].annotation_class.name
             if class_name not in class_map:
@@ -197,8 +197,8 @@ def create_error_message_json(error_message, output_dir, image_id: str):
     output_path = Path(output_dir) / f"{image_id}_error.json"
     if not output_path.parent.exists():
         output_path.parent.mkdir(parents=True)
-    with open(output_path, "w") as f:
-        json.dump({"error": error_message}, f)
+
+    dump({"error": error_message}, output_path)
 
 
 def create_empty_nifti_file(volume_dims, affine, output_dir, image_id: str):
