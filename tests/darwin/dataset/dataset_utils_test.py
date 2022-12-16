@@ -1,9 +1,9 @@
-import json
 import shutil
 from pathlib import Path
 from typing import Dict
 from unittest.mock import MagicMock, patch
 
+import orjson as json
 import pytest
 
 from darwin.dataset.utils import (
@@ -12,8 +12,7 @@ from darwin.dataset.utils import (
     get_release_path,
     sanitize_filename,
 )
-
-# from tests.fixtures import
+from tests.fixtures import *
 
 
 def open_resource_file():
@@ -31,12 +30,7 @@ def parsed_annotation_file():
             {"name": "class_2", "polygon": {"path": []}},
             {"name": "class_3", "polygon": {"path": []}},
         ],
-        "image": {
-            "filename": "test.jpg",
-            "height": 1080,
-            "url": "https://darwin.v7labs.com/test.jpg",
-            "width": 1920,
-        },
+        "image": {"filename": "test.jpg", "height": 1080, "url": "https://darwin.v7labs.com/test.jpg", "width": 1920},
     }
 
 
@@ -71,10 +65,7 @@ def describe_extract_classes():
         payload = {
             "annotations": [
                 {"name": "class_1", "polygon": {"path": []}},
-                {
-                    "name": "class_2",
-                    "bounding_box": {"x": 0, "y": 0, "w": 100, "h": 100},
-                },
+                {"name": "class_2", "bounding_box": {"x": 0, "y": 0, "w": 100, "h": 100}},
                 {"name": "class_3", "polygon": {"path": []}},
                 {"name": "class_4", "tag": {}},
                 {"name": "class_1", "polygon": {"path": []}},
@@ -86,10 +77,7 @@ def describe_extract_classes():
         payload = {
             "annotations": [
                 {"name": "class_5", "polygon": {"path": []}},
-                {
-                    "name": "class_6",
-                    "bounding_box": {"x": 0, "y": 0, "w": 100, "h": 100},
-                },
+                {"name": "class_6", "bounding_box": {"x": 0, "y": 0, "w": 100, "h": 100}},
                 {"name": "class_1", "polygon": {"path": []}},
                 {"name": "class_4", "tag": {}},
                 {"name": "class_1", "polygon": {"path": []}},
@@ -101,10 +89,7 @@ def describe_extract_classes():
         class_dict, index_dict = extract_classes(annotations_path, "polygon")
 
         assert dict(class_dict) == {"class_1": {0, 1}, "class_3": {0}, "class_5": {1}}
-        assert dict(index_dict) == {
-            0: {"class_1", "class_3"},
-            1: {"class_1", "class_5"},
-        }
+        assert dict(index_dict) == {0: {"class_1", "class_3"}, 1: {"class_1", "class_5"}}
 
         class_dict, index_dict = extract_classes(annotations_path, "bounding_box")
 
