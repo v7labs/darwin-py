@@ -17,7 +17,7 @@ from typing import (
     Union,
 )
 
-import ujson as json
+import orjson as json
 from rich.console import Console
 
 from darwin.dataset.download_manager import download_all_images_from_annotations
@@ -164,7 +164,8 @@ class RemoteDataset(ABC):
                 stem = Path(frame_annotation.filename).stem
                 output_path = video_frame_annotations_path / f"{stem}.json"
                 with output_path.open("w") as f:
-                    json.dump(annotation, f)
+                    op = json.dumps(annotation).decode("utf-8")
+                    f.write(op)
 
             # Finally delete video annotations
             annotation_file.unlink()

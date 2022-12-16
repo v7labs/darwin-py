@@ -1,4 +1,3 @@
-import json
 from datetime import date
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional
@@ -6,6 +5,7 @@ from zlib import crc32
 
 import deprecation
 import numpy as np
+import orjson as json
 from upolygon import draw_polygon, rle_encode
 
 import darwin.datatypes as dt
@@ -36,7 +36,8 @@ def export(annotation_files: Iterator[dt.AnnotationFile], output_dir: Path) -> N
     output = _build_json(list(annotation_files))
     output_file_path = (output_dir / "output").with_suffix(".json")
     with open(output_file_path, "w") as f:
-        json.dump(output, f, cls=NumpyEncoder, indent=1)
+        op = json.dumps(output, option=json.OPT_INDENT_2 | json.OPT_SERIALIZE_NUMPY).decode("utf-8")
+        f.write(op)
 
 
 @deprecation.deprecated(

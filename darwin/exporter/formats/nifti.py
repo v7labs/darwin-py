@@ -1,10 +1,11 @@
+import json as native_json
 from asyncore import loop
 from pathlib import Path
 from typing import Iterable
 
 import nibabel as nib
 import numpy as np
-import ujson as json
+import orjson as json
 from PIL import Image
 
 import darwin.datatypes as dt
@@ -192,7 +193,7 @@ def create_error_message_json(error_message, output_dir, image_id: str):
     if not output_path.parent.exists():
         output_path.parent.mkdir(parents=True)
     with open(output_path, "w") as f:
-        json.dump({"error": error_message}, f)
+        native_json.dump({"error": error_message}, f)
 
 
 def create_empty_nifti_file(volume_dims, affine, output_dir, image_id: str):

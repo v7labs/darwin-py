@@ -4,9 +4,9 @@ from pathlib import Path
 from typing import Any, Dict
 from unittest.mock import MagicMock, patch
 
+import orjson as json
 import pytest
 import responses
-import ujson as json
 
 from darwin.client import Client
 from darwin.config import Config
@@ -71,7 +71,8 @@ def create_annotation_file(
     annotations.mkdir(exist_ok=True, parents=True)
 
     with (annotations / annotation_name).open("w") as f:
-        json.dump(annotation_content, f)
+        op = json.dumps(annotation_content).decode("utf-8")
+        f.write(op)
 
 
 @pytest.fixture()

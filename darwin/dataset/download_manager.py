@@ -10,8 +10,8 @@ from typing import Any, Callable, Iterable, List, Optional, Tuple
 
 import deprecation
 import numpy as np
+import orjson as json
 import requests
-import ujson as json
 from PIL import Image
 from rich.console import Console
 
@@ -324,7 +324,8 @@ def _update_local_path(annotation: AnnotationFile, url, local_path):
                     source_file["local_path"] = str(local_path)
 
     with annotation.path.open(mode="w") as file:
-        json.dump(raw_annotation, file, indent=4)
+        op = json.dumps(raw_annotation, json.OPT_INDENT_2)
+        file.write(op)
 
 
 @deprecation.deprecated(
