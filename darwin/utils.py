@@ -20,7 +20,7 @@ from typing import (
 
 import deprecation
 import numpy as np
-import orjson as json
+import ujson as json
 from requests import Response
 from rich.progress import ProgressType, track
 from upolygon import draw_polygon
@@ -286,7 +286,6 @@ def secure_continue_request() -> bool:
     bool
         True if the user wishes to continue, False otherwise.
     """
-    return True
     return input("Do you want to continue? [y/N] ") in ["Y", "y"]
 
 
