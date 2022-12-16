@@ -27,7 +27,7 @@ from upolygon import draw_polygon
 import darwin.datatypes as dt
 from darwin.config import Config
 from darwin.exceptions import OutdatedDarwinJSONFormat, UnsupportedFileType
-from darwin.json import load
+from darwin.json import loads
 from darwin.version import __version__
 
 if TYPE_CHECKING:
@@ -376,9 +376,10 @@ def parse_darwin_json(path: Path, count: Optional[int]) -> Optional[dt.Annotatio
         dictionary.
     """
 
-    data = load(path)
-    if "annotations" not in data:
-        return None
+    with open(path, "r") as f:
+        data = loads(f.read())
+        if "annotations" not in data:
+            return None
 
     if _parse_version(data).major == 2:
         return _parse_darwin_v2(path, data)
