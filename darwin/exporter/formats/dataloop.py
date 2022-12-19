@@ -5,6 +5,7 @@ import deprecation
 import orjson as json
 
 import darwin.datatypes as dt
+from darwin.exporter.formats.numpy_encoder import NumpyEncoder
 from darwin.version import __version__
 
 DEPRECATION_MESSAGE = """
@@ -39,13 +40,9 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path) -> N
 )
 def export_file(annotation_file: dt.AnnotationFile, id: int, output_dir: Path) -> None:
     output: Dict[str, Any] = _build_json(annotation_file, id)
-    output_file_path: Path = (output_dir / annotation_file.filename).with_suffix(
-        ".json"
-    )
+    output_file_path: Path = (output_dir / annotation_file.filename).with_suffix(".json")
     with open(output_file_path, "w") as f:
-        op = json.dumps(
-            output, option=json.OPT_INDENT_2 | json.OPT_SERIALIZE_NUMPY
-        ).decode("utf-8")
+        op = json.dumps(output, option=json.OPT_INDENT_2 | json.OPT_SERIALIZE_NUMPY).decode("utf-8")
         f.write(op)
 
 
@@ -70,9 +67,7 @@ def build_json(annotation_file: dt.AnnotationFile, id: int) -> Dict[str, Any]:
     current_version=__version__,
     details=DEPRECATION_MESSAGE,
 )
-def build_annotations(
-    annotation_file: dt.AnnotationFile, id: int
-) -> Iterable[Dict[str, Any]]:
+def build_annotations(annotation_file: dt.AnnotationFile, id: int) -> Iterable[Dict[str, Any]]:
     output = []
     for annotation_id, annotation in enumerate(annotation_file.annotations):
         print(annotation)
@@ -101,10 +96,7 @@ def build_annotations(
                 "type": "segment",
                 "label": annotation.annotation_class.name,
                 "attributes": [],
-                "coordinates": [
-                    {"x": point["x"], "y": point["y"], "z": 0}
-                    for point in annotation.data["path"]
-                ],
+                "coordinates": [{"x": point["x"], "y": point["y"], "z": 0} for point in annotation.data["path"]],
                 "metadata": {},
             }
             output.append(entry)
@@ -114,19 +106,13 @@ def build_annotations(
 
 def _export_file(annotation_file: dt.AnnotationFile, id: int, output_dir: Path) -> None:
     output: Dict[str, Any] = _build_json(annotation_file, id)
-    output_file_path: Path = (output_dir / annotation_file.filename).with_suffix(
-        ".json"
-    )
+    output_file_path: Path = (output_dir / annotation_file.filename).with_suffix(".json")
     with open(output_file_path, "w") as f:
-        op = json.dumps(
-            output, option=json.OPT_INDENT_2 | json.OPT_SERIALIZE_NUMPY
-        ).decode("utf-8")
+        op = json.dumps(output, option=json.OPT_INDENT_2 | json.OPT_SERIALIZE_NUMPY).decode("utf-8")
         f.write(op)
 
 
-def _build_annotations(
-    annotation_file: dt.AnnotationFile, id: int
-) -> Iterable[Dict[str, Any]]:
+def _build_annotations(annotation_file: dt.AnnotationFile, id: int) -> Iterable[Dict[str, Any]]:
     output = []
     for annotation_id, annotation in enumerate(annotation_file.annotations):
         print(annotation)
@@ -155,10 +141,7 @@ def _build_annotations(
                 "type": "segment",
                 "label": annotation.annotation_class.name,
                 "attributes": [],
-                "coordinates": [
-                    {"x": point["x"], "y": point["y"], "z": 0}
-                    for point in annotation.data["path"]
-                ],
+                "coordinates": [{"x": point["x"], "y": point["y"], "z": 0} for point in annotation.data["path"]],
                 "metadata": {},
             }
             output.append(entry)

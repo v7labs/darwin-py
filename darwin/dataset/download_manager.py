@@ -88,14 +88,8 @@ def download_all_images_from_annotations(
         raise ValueError(f"Annotation format {annotation_format} not supported")
 
     # Verify that there is not already image in the images folder
-    unfiltered_files = (
-        images_path.rglob(f"*") if use_folders else images_path.glob(f"*")
-    )
-    existing_images = {
-        image.stem: image
-        for image in unfiltered_files
-        if is_image_extension_allowed(image.suffix)
-    }
+    unfiltered_files = images_path.rglob(f"*") if use_folders else images_path.glob(f"*")
+    existing_images = {image.stem: image for image in unfiltered_files if is_image_extension_allowed(image.suffix)}
 
     annotations_to_download_path = []
     for annotation_path in annotations_path.glob(f"*.{annotation_format}"):
@@ -119,14 +113,10 @@ def download_all_images_from_annotations(
 
     if remove_extra:
         # Removes existing images for which there is not corresponding annotation
-        annotations_downloaded_stem = [
-            a.stem for a in annotations_path.glob(f"*.{annotation_format}")
-        ]
+        annotations_downloaded_stem = [a.stem for a in annotations_path.glob(f"*.{annotation_format}")]
         for existing_image in existing_images.values():
             if existing_image.stem not in annotations_downloaded_stem:
-                print(
-                    f"Removing {existing_image} as there is no corresponding annotation"
-                )
+                print(f"Removing {existing_image} as there is no corresponding annotation")
                 existing_image.unlink()
     # Create the generator with the partial functions
     download_functions: List = []
@@ -193,12 +183,7 @@ def download_image_from_annotation(
 
     if annotation_format == "json":
         downloadables = _download_image_from_json_annotation(
-            api_key,
-            annotation_path,
-            images_path,
-            use_folders,
-            video_frames,
-            force_slots,
+            api_key, annotation_path, images_path, use_folders, video_frames, force_slots
         )
         for downloadable in downloadables:
             downloadable()
@@ -247,12 +232,7 @@ def lazy_download_image_from_annotation(
 
     if annotation_format == "json":
         return _download_image_from_json_annotation(
-            api_key,
-            annotation_path,
-            images_path,
-            use_folders,
-            video_frames,
-            force_slots,
+            api_key, annotation_path, images_path, use_folders, video_frames, force_slots
         )
     else:
         console.print("[bold red]Unsupported file format. Please use 'json'.")
@@ -279,9 +259,7 @@ def _download_image_from_json_annotation(
     annotation.slots.sort(key=lambda slot: slot.name or "0")
     if len(annotation.slots) > 0:
         if force_slots:
-            return _download_all_slots_from_json_annotation(
-                annotation, api_key, parent_path, video_frames
-            )
+            return _download_all_slots_from_json_annotation(annotation, api_key, parent_path, video_frames)
         else:
             return _download_single_slot_from_json_annotation(
                 annotation, api_key, parent_path, annotation_path, video_frames
@@ -290,16 +268,10 @@ def _download_image_from_json_annotation(
     return []
 
 
-def _download_all_slots_from_json_annotation(
-    annotation, api_key, parent_path, video_frames
-):
+def _download_all_slots_from_json_annotation(annotation, api_key, parent_path, video_frames):
     generator = []
     for slot in annotation.slots:
-        slot_path = (
-            parent_path
-            / sanitize_filename(annotation.filename)
-            / sanitize_filename(slot.name)
-        )
+        slot_path = parent_path / sanitize_filename(annotation.filename) / sanitize_filename(slot.name)
         slot_path.mkdir(exist_ok=True, parents=True)
 
         if video_frames and slot.type != "image":
@@ -307,27 +279,17 @@ def _download_all_slots_from_json_annotation(
             video_path.mkdir(exist_ok=True, parents=True)
             for i, frame_url in enumerate(slot.frame_urls or []):
                 path = video_path / f"{i:07d}.png"
-                generator.append(
-                    functools.partial(_download_image, frame_url, path, api_key, slot)
-                )
+                generator.append(functools.partial(_download_image, frame_url, path, api_key, slot))
         else:
             for upload in slot.source_files:
                 file_path = slot_path / sanitize_filename(upload["file_name"])
                 generator.append(
-                    functools.partial(
-                        _download_image_with_trace,
-                        annotation,
-                        upload["url"],
-                        file_path,
-                        api_key,
-                    )
+                    functools.partial(_download_image_with_trace, annotation, upload["url"], file_path, api_key)
                 )
     return generator
 
 
-def _download_single_slot_from_json_annotation(
-    annotation, api_key, parent_path, annotation_path, video_frames
-):
+def _download_single_slot_from_json_annotation(annotation, api_key, parent_path, annotation_path, video_frames):
     slot = annotation.slots[0]
     generator = []
 
@@ -336,26 +298,14 @@ def _download_single_slot_from_json_annotation(
         video_path.mkdir(exist_ok=True, parents=True)
         for i, frame_url in enumerate(slot.frame_urls or []):
             path = video_path / f"{i:07d}.png"
-            generator.append(
-                functools.partial(_download_image, frame_url, path, api_key, slot)
-            )
+            generator.append(functools.partial(_download_image, frame_url, path, api_key, slot))
     else:
         if len(slot.source_files) > 0:
             image_url = slot.source_files[0]["url"]
             filename = slot.source_files[0]["file_name"]
-            image_path = parent_path / sanitize_filename(
-                filename or annotation.filename
-            )
+            image_path = parent_path / sanitize_filename(filename or annotation.filename)
 
-            generator.append(
-                functools.partial(
-                    _download_image_with_trace,
-                    annotation,
-                    image_url,
-                    image_path,
-                    api_key,
-                )
-            )
+            generator.append(functools.partial(_download_image_with_trace, annotation, image_url, image_path, api_key))
     return generator
 
 
@@ -385,12 +335,7 @@ def _update_local_path(annotation: AnnotationFile, url, local_path):
     details="Use the ``download_image_from_annotation`` instead.",
 )
 def download_image_from_json_annotation(
-    api_key: str,
-    api_url: str,
-    annotation_path: Path,
-    image_path: Path,
-    use_folders: bool,
-    video_frames: bool,
+    api_key: str, api_url: str, annotation_path: Path, image_path: Path, use_folders: bool, video_frames: bool
 ) -> None:
     """
     Downloads an image given a ``.json`` annotation path and renames the json after the image's
@@ -458,9 +403,7 @@ def download_image(url: str, path: Path, api_key: str) -> None:
         if "token" in url:
             response: requests.Response = requests.get(url, stream=True)
         else:
-            response = requests.get(
-                url, headers={"Authorization": f"ApiKey {api_key}"}, stream=True
-            )
+            response = requests.get(url, headers={"Authorization": f"ApiKey {api_key}"}, stream=True)
         # Correct status: download image
         if response.ok:
             with open(str(path), "wb") as file:
@@ -476,9 +419,7 @@ def download_image(url: str, path: Path, api_key: str) -> None:
         time.sleep(1)
 
 
-def _download_image(
-    url: str, path: Path, api_key: str, slot: Optional[dt.Slot] = None
-) -> None:
+def _download_image(url: str, path: Path, api_key: str, slot: Optional[dt.Slot] = None) -> None:
     if path.exists():
         return
     TIMEOUT: int = 60
@@ -492,9 +433,7 @@ def _download_image(
         if "token" in url:
             response: requests.Response = requests.get(url, stream=True)
         else:
-            response = requests.get(
-                url, headers={"Authorization": f"ApiKey {api_key}"}, stream=True
-            )
+            response = requests.get(url, headers={"Authorization": f"ApiKey {api_key}"}, stream=True)
         # Correct status: download image
         if response.ok and has_json_content_type(response):
             # this branch is a workaround for edge case in V1 when video file from external storage could be registered
@@ -520,9 +459,7 @@ def _download_image_with_trace(annotation, image_url, image_path, api_key):
     _update_local_path(annotation, image_url, image_path)
 
 
-def _fetch_multiple_files(
-    path: Path, response: requests.Response, transform_file_function=None
-) -> None:
+def _fetch_multiple_files(path: Path, response: requests.Response, transform_file_function=None) -> None:
     obj = response.json()
     if "urls" not in obj:
         raise Exception(f"Malformed response: {obj}")
@@ -544,9 +481,7 @@ def _fetch_multiple_files(
             )
 
 
-def _write_file(
-    path: Path, response: requests.Response, transform_file_function=None
-) -> None:
+def _write_file(path: Path, response: requests.Response, transform_file_function=None) -> None:
     with open(str(path), "wb") as file:
         for chunk in response:
             file.write(chunk)
