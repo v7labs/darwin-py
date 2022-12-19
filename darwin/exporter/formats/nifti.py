@@ -2,8 +2,19 @@ import json
 from asyncore import loop
 from pathlib import Path
 from typing import Iterable
+from rich.console import Console
 
-import nibabel as nib
+console = Console()
+try:
+    import nibabel as nib
+    from nibabel.orientations import io_orientation, axcodes2ornt, ornt_transform
+except ImportError:
+    import_fail_string = """
+    You must install darwin-py with pip install darwin-py\[medical]
+    in order to export using nifti format
+    """
+    console.print(import_fail_string)
+    exit()
 import numpy as np
 from PIL import Image
 
@@ -65,7 +76,7 @@ def export_single_nifti_file(video_annotation: dt.AnnotationFile, output_dir: Pa
         return create_error_message_json(
             f"No metadata found for {str(filename)}, are you sure this is medical data?", output_dir, image_id
         )
-    volume_dims, pixdim, affine = process_metadata(metadata)
+    volume_dims, pixdim, affine, original_affine = process_metadata(metadata)
     if affine is None or pixdim is None or volume_dims is None:
         return create_error_message_json(
             f"Missing one of affine, pixdim or shape in metadata for {str(filename)}, try reuploading file",
@@ -132,10 +143,16 @@ def export_single_nifti_file(video_annotation: dt.AnnotationFile, output_dir: Pa
             elif view_idx == 2:
                 output_volume[frame_idx, :, :] = np.logical_or(im_mask, output_volume[frame_idx, :, :])
     for class_name in class_map.keys():
+        print(affine, original_affine)
         img = nib.Nifti1Image(
             dataobj=np.flip(output_volumes[class_name], (0, 1, 2)).astype(np.int16),
             affine=affine,
         )
+        if original_affine is not None:
+            img_ornt = io_orientation(original_affine)  # Get orientation of current affine
+            ras_ornt = axcodes2ornt("RAI")  # Get RAI orientation
+            from_canonical = ornt_transform(ras_ornt, img_ornt)  # Get transform from RAS to current affine
+            img = img.as_reoriented(from_canonical)
         output_path = Path(output_dir) / f"{image_id}_{class_name}.nii.gz"
         if not output_path.parent.exists():
             output_path.parent.mkdir(parents=True)
@@ -144,7 +161,8 @@ def export_single_nifti_file(video_annotation: dt.AnnotationFile, output_dir: Pa
 
 def shift_polygon_coords(polygon, height, width, pixdim):
     # Need to make it clear that we flip x/y because we need to take the transpose later.
-    return [{"x": p["y"] * float(pixdim[0]), "y": p["x"] * float(pixdim[1])} for p in polygon]
+    # return [{"x": p["y"] * float(pixdim[0]), "y": p["x"] * float(pixdim[1])} for p in polygon]
+    return [{"x": p["y"], "y": p["x"]} for p in polygon]
 
 
 def get_view_idx(frame_idx, groups):
@@ -164,11 +182,9 @@ def get_view_idx_from_slot_name(slot_name):
 def process_metadata(metadata):
     volume_dims = metadata.get("shape")
     pixdim = metadata.get("pixdim")
-    affine = metadata.get("affine")
-    if isinstance(affine, str):
-        affine = np.squeeze(np.array([eval(l) for l in affine.split("\n")]))
-        if not isinstance(affine, np.ndarray):
-            affine = None
+    affine = process_affine(metadata.get("affine"))
+    original_affine = process_affine(metadata.get("original_affine"))
+    # If the original affine is in the medical payload of metadata then use it
     if isinstance(pixdim, str):
         pixdim = eval(pixdim)
         if isinstance(pixdim, tuple) or isinstance(pixdim, list):
@@ -184,7 +200,18 @@ def process_metadata(metadata):
                 volume_dims = volume_dims[1:]
         else:
             volume_dims = None
-    return volume_dims, pixdim, affine
+    return volume_dims, pixdim, affine, original_affine
+
+
+def process_affine(affine):
+    if isinstance(affine, str):
+        affine = np.squeeze(np.array([eval(l) for l in affine.split("\n")]))
+    elif isinstance(affine, list):
+        affine = np.array(affine).astype(np.float)
+    else:
+        return
+    if isinstance(affine, np.ndarray):
+        return affine
 
 
 def create_error_message_json(error_message, output_dir, image_id: str):
