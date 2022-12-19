@@ -519,7 +519,7 @@ def describe_parse_path():
 
         assert "is not valid under any of the given schemas" in str(
             error.value
-        ) or "'answer' is a required property" not in str(error.value)
+        ) or "'answer' is a required property" in str(error.value)
 
     def test_it_raises_if_classification_answer_has_no_value(file_path: Path):
         json: str = """
