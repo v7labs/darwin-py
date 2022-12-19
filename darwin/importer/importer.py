@@ -1,3 +1,5 @@
+import pickle
+from functools import partial
 from multiprocessing import Pool as MPPool
 from multiprocessing import cpu_count
 from pathlib import Path
@@ -80,14 +82,20 @@ def build_main_annotations_lookup_table(annotation_classes: List[Dict[str, Any]]
     details=DEPRECATION_MESSAGE,
 )
 def find_and_parse(
-    importer: Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]], file_paths: List[PathLike]
+    importer: Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]],
+    file_paths: List[PathLike],
+    use_multi_cpu: bool = True,
+    cpu_limit: int = 1,
 ) -> Optional[Iterable[dt.AnnotationFile]]:
-    # TODO: this could be done in parallel
     for file_path in map(Path, file_paths):
         files = file_path.glob("**/*") if file_path.is_dir() else [file_path]
+        parsed_files: Union[List[dt.AnnotationFile], dt.AnnotationFile, None] = None
+        if use_multi_cpu:
+            with MPPool(cpu_limit or cpu_count()) as pool:
+                parsed_files = pool.map(importer, files)
         for f in files:
             # importer returns either None, 1 annotation file or a list of annotation files
-            parsed_files: Union[List[dt.AnnotationFile], dt.AnnotationFile, None] = importer(f)
+            parsed_files = importer(f)
             if parsed_files is None:
                 continue
 
@@ -245,7 +253,11 @@ def import_annotations(
             "The options 'append' and 'delete_for_empty' cannot be used together. Use only one of them."
         )
 
-    cpu_limit, use_multi_cpu = _get_multi_cpu_settings(cpu_limit, use_multi_cpu, use_multi_cpu)
+    cpu_limit, use_multi_cpu = _get_multi_cpu_settings(cpu_limit, cpu_count(), use_multi_cpu)
+    if use_multi_cpu:
+        console.print(f"Using {cpu_limit} CPUs for parsing...", style="info")
+    else:
+        console.print("Using 1 CPU for parsing...", style="info")
 
     if not isinstance(file_paths, list):
         raise ValueError(f"file_paths must be a list of 'Path' or 'str'. Current value: {file_paths}")
@@ -272,7 +284,12 @@ def import_annotations(
     console.print("Retrieving local annotations ...", style="info")
     local_files = []
     local_files_missing_remotely = []
-    maybe_parsed_files: Optional[Iterable[dt.AnnotationFile]] = find_and_parse(importer, file_paths)
+
+    # ! Other place we can use multiprocessing - hard to pass in the importer though
+    maybe_parsed_files: Optional[Iterable[dt.AnnotationFile]] = find_and_parse(
+        importer, file_paths, use_multi_cpu, cpu_limit
+    )
+
     if not maybe_parsed_files:
         raise ValueError("Not able to parse any files.")
 
