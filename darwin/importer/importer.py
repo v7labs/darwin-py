@@ -1,3 +1,5 @@
+from multiprocessing import Pool as MPPool
+from multiprocessing import cpu_count
 from pathlib import Path
 from typing import (
     TYPE_CHECKING,
@@ -121,7 +123,9 @@ def build_attribute_lookup(dataset: "RemoteDataset") -> Dict[str, Any]:
     current_version=__version__,
     details=DEPRECATION_MESSAGE,
 )
-def get_remote_files(dataset: "RemoteDataset", filenames: List[str], chunk_size: int() = 100) -> Dict[str, Tuple[int, str]]:
+def get_remote_files(
+    dataset: "RemoteDataset", filenames: List[str], chunk_size: int() = 100
+) -> Dict[str, Tuple[int, str]]:
     """
     Fetches remote files from the datasets in chunks; by default 100 filenames at a time.
 
@@ -141,12 +145,14 @@ def get_remote_files(dataset: "RemoteDataset", filenames: List[str], chunk_size:
             remote_files[remote_file.full_path] = (remote_file.id, slot_name)
     return remote_files
 
+
 def _get_slot_name(remote_file) -> str:
     slot = next(iter(remote_file.slots), {"slot_name": "0"})
     if slot:
         return slot["slot_name"]
     else:
         return "0"
+
 
 def _resolve_annotation_classes(
     local_annotation_classes: List[dt.AnnotationClass],
@@ -183,6 +189,8 @@ def import_annotations(
     append: bool,
     class_prompt: bool = True,
     delete_for_empty: bool = False,
+    use_multi_cpu: bool = True,
+    cpu_limit: Optional[int] = None,  # 0 because it's set later in logic
 ) -> None:
     """
     Imports the given given Annotations into the given Dataset.
@@ -206,6 +214,16 @@ def import_annotations(
         If ``False``, empty annotation files will simply be skipped.
         Only works for V2 datasets.
         Incompatible with ``append``.
+    use_multi_cpu : bool, default: True
+        If ``True`` will use multiple available CPU cores to parse the annotation files.
+        If ``False`` will use only the current Python process, which runs in one core.
+        Processing using multiple cores is faster, but may slow down a machine also running other processes.
+        Processing with one core is slower, but will run well alongside other processes.
+    cpu_limit : int, default: 2 less than total cpu count
+        The maximum number of CPU cores to use when ``use_multi_cpu`` is ``True``.
+        If ``cpu_limit`` is greater than the number of available CPU cores, it will be set to the number of available cores.
+        If ``cpu_limit`` is less than 1, it will be set to CPU count - 2.
+        If ``cpu_limit`` is omitted, it will be set to CPU count - 2.
 
     Raises
     -------
@@ -226,6 +244,8 @@ def import_annotations(
         raise IncompatibleOptions(
             "The options 'append' and 'delete_for_empty' cannot be used together. Use only one of them."
         )
+
+    cpu_limit, use_multi_cpu = _get_multi_cpu_settings(cpu_limit, use_multi_cpu, use_multi_cpu)
 
     if not isinstance(file_paths, list):
         raise ValueError(f"file_paths must be a list of 'Path' or 'str'. Current value: {file_paths}")
@@ -275,7 +295,6 @@ def import_annotations(
             chunk_size -= 8
             if chunk_size <= 0:
                 raise ValueError("Unable to fetch remote file list.")
-
 
     for parsed_file in parsed_files:
         if parsed_file.full_path not in remote_files:
@@ -394,6 +413,16 @@ def import_annotations(
                     append,
                     delete_for_empty,
                 )
+
+
+def _get_multi_cpu_settings(cpu_limit: Optional[int], cpu_count: int, use_multi_cpu: bool) -> Tuple[int, bool]:
+    if cpu_limit == 1 or cpu_count == 1 or not use_multi_cpu:
+        return 1, False
+
+    if cpu_limit is None:
+        return max([cpu_count - 2, 2]), True
+
+    return cpu_limit if cpu_limit <= cpu_count else cpu_count, True
 
 
 def _warn_unsupported_annotations(parsed_files):
