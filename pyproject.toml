@@ -1,0 +1,18 @@
+# Coming soon: Moving to a pyproject.toml file build
+
+[tool.isort]
+profile = 'black'
+skip =[".venv"]
+
+[tool.flake8]
+# REMINDER: If you change this, you must also change the line length in .vscode/settings.json
+max-line-length = 120
+exclude = ['.venv']
+ignore = ['E231', 'E241']
+per-file-ignores = [
+    '__init__.py:F401',
+]
+
+[tool.black]
+# REMINDER: If you change this, you must also change the line length in .vscode/settings.json
+line-length = 120

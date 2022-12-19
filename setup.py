@@ -39,7 +39,7 @@ setuptools.setup(
     ],
     extras_require={
         "test": ["responses", "pytest", "pytest-describe", "scikit-learn"],
-        "dev": ["black", "flake8", "isort", "mypy", "responses", "pytest", "pytest-describe", "scikit-learn"],
+        "dev": ["black", "flake8", "flake8-pyproject"", "isort", "mypy", "responses", "pytest", "pytest-describe", "scikit-learn"],
         "ml": ["scikit-learn", "torch", "torchvision"],
         "medical": ["nibabel", "connected-components-3d"],
     },
