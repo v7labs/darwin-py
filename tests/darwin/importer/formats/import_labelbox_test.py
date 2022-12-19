@@ -93,8 +93,9 @@ def describe_parse_path():
         with pytest.raises(ValidationError) as error:
             parse_path(file_path)
 
-        assert "is not valid under any of the given schemas" in str(error.value)
-        assert "oneOf" in str(error.value)
+        assert "is not valid under any of the given schemas" in str(
+            error.value
+        ) or "'point' is a required property" in str(error.value)
 
     def test_it_raises_if_annotation_has_no_title(file_path: Path):
         json: str = """
@@ -519,7 +520,6 @@ def describe_parse_path():
         assert "is not valid under any of the given schemas" in str(
             error.value
         ) or "'answer' is a required property" not in str(error.value)
-        assert "oneOf" in str(error.value)
 
     def test_it_raises_if_classification_answer_has_no_value(file_path: Path):
         json: str = """
