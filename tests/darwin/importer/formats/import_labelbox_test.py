@@ -2,6 +2,8 @@ from pathlib import Path
 from typing import List, Optional, cast
 
 import pytest
+from jsonschema import ValidationError
+
 from darwin.datatypes import (
     Annotation,
     AnnotationClass,
@@ -10,7 +12,6 @@ from darwin.datatypes import (
     SubAnnotation,
 )
 from darwin.importer.formats.labelbox import parse_path
-from jsonschema import ValidationError
 
 
 def describe_parse_path():
@@ -74,7 +75,7 @@ def describe_parse_path():
         with pytest.raises(ValidationError) as error:
             parse_path(file_path)
 
-        assert "'objects' is a required propert" in str(error.value)
+        assert "'objects' is a required property" in str(error.value)
 
     def test_it_raises_if_label_object_has_unknown_format(file_path: Path):
         json: str = """
@@ -92,7 +93,8 @@ def describe_parse_path():
         with pytest.raises(ValidationError) as error:
             parse_path(file_path)
 
-        assert "'point' is a required property" in str(error.value)
+        assert "is not valid under any of the given schemas" in str(error.value)
+        assert "oneOf" in str(error.value)
 
     def test_it_raises_if_annotation_has_no_title(file_path: Path):
         json: str = """
@@ -514,7 +516,8 @@ def describe_parse_path():
         with pytest.raises(ValidationError) as error:
             parse_path(file_path)
 
-        assert "'answer' is a required property" in str(error.value)
+        assert "is not valid under any of the given schemas" in str(error.value)
+        assert "oneOf" in str(error.value)
 
     def test_it_raises_if_classification_answer_has_no_value(file_path: Path):
         json: str = """
@@ -546,7 +549,8 @@ def describe_parse_path():
 
         # The library asserts agains both types and if all fail, it prints the error of the
         # first type only.
-        assert "{} is not of type 'string'" in str(error.value)
+        error_str = str(error.value)
+        assert all(["{}" in error_str, "string" in error_str])
 
     def test_it_imports_classification_from_radio_buttons(file_path: Path):
         json: str = """

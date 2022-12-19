@@ -1,8 +1,11 @@
 from unittest.mock import MagicMock, patch
 
+import pytest
+from jsonschema.exceptions import ValidationError
 from requests import Response
 
 import darwin.datatypes as dt
+import darwin.exceptions as de
 from darwin.utils import (
     get_response_content,
     has_json_content_type,
@@ -13,7 +16,30 @@ from darwin.utils import (
     is_video_extension_allowed,
     parse_darwin_json,
     urljoin,
+    validate_data_against_schema,
 )
+
+
+def describe_validation():
+    def it_should_raise_missing_schema_url():
+        with pytest.raises(de.MissingSchema) as error:
+            validate_data_against_schema({})
+        assert "Schema not found" in str(error.value)
+
+    def it_fails_on_incorrect_data():
+        data = {
+            "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json_2_0.schema.json",
+        }
+        assert len(validate_data_against_schema(data)) >= 1
+
+    def it_validates_correct_data():
+        data = {
+            "version": "2.0",
+            "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json_2_0.schema.json",
+            "item": {"name": "", "path": ""},
+            "annotations": [],
+        }
+        assert len(validate_data_against_schema(data)) == 0
 
 
 def describe_is_extension_allowed():

@@ -354,16 +354,21 @@ def _get_schema(data: dict) -> Optional[dict]:
     return _darwin_schema_cache[schema_url]
 
 
-def validate_file_against_schema(path: Path, schema: Optional[dict] = None) -> List:
+def validate_file_against_schema(path: Path) -> List:
     data, _ = load_data_from_file(path)
+    return validate_data_against_schema(data)
+
+
+def validate_data_against_schema(data) -> List:
     try:
-        schema = schema if schema else _get_schema(data)
+        schema = _get_schema(data)
     except requests.exceptions.RequestException as e:
         raise MissingSchema(f"Error retrieving schema from url: {e}")
     if not schema:
         raise MissingSchema("Schema not found")
     validator = validators.Draft202012Validator(schema)
-    return list(validator.iter_errors(data))
+    errors = list(validator.iter_errors(data))
+    return errors
 
 
 def load_data_from_file(path: Path):
@@ -400,36 +405,16 @@ def parse_darwin_json(path: Path, count: Optional[int]) -> Optional[dt.Annotatio
 
     path = Path(path)
     data, version = load_data_from_file(path)
-    schema = _get_schema(data)
-
-    if version.major == 2:
-        if schema is None:
-            supported_versions = list(
-                map(
-                    lambda version_tuple: dt.AnnotationFileVersion(
-                        version_tuple[0], version_tuple[1], version_tuple[2]
-                    ),
-                    _supported_schema_versions().keys(),
-                )
-            )
-            raise UnknownAnnotationFileSchema(path, supported_versions, version)
-
-        try:
-            validate_file_against_schema(path, schema=schema)
-        except ValueError as e:
-            raise MissingSchema(f"{str(e)}")
-
-        return _parse_darwin_v2(path, data)
-
     if "annotations" not in data:
         return None
-    if not count:
-        return None
 
-    if "fps" in data["image"] or "frame_count" in data["image"]:
-        return _parse_darwin_video(path, data, count)
+    if version.major == 2:
+        return _parse_darwin_v2(path, data)
     else:
-        return _parse_darwin_image(path, data, count)
+        if "fps" in data["image"] or "frame_count" in data["image"]:
+            return _parse_darwin_video(path, data, count)
+        else:
+            return _parse_darwin_image(path, data, count)
 
 
 def _parse_darwin_v2(path: Path, data: Dict[str, Any]) -> dt.AnnotationFile:
