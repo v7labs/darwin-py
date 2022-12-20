@@ -130,7 +130,6 @@ def export_single_nifti_file(video_annotation: dt.AnnotationFile, output_dir: Pa
             elif view_idx == 2:
                 output_volume[frame_idx, :, :] = np.logical_or(im_mask, output_volume[frame_idx, :, :])
     for class_name in class_map.keys():
-        print(affine, original_affine)
         img = nib.Nifti1Image(
             dataobj=np.flip(output_volumes[class_name], (0, 1, 2)).astype(np.int16),
             affine=affine,
