@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional, Union
 import yaml
 
 from darwin.datatypes import PathLike, Team
-from darwin.exceptions import InvalidTeam
+from darwin.exceptions import InvalidCompressionLevel, InvalidTeam
 
 
 class Config(object):
@@ -130,6 +130,24 @@ class Config(object):
         if self.get(f"teams/{team}") is None:
             raise InvalidTeam()
         self.put("global/default_team", team)
+
+    def set_compression_level(self, level: int) -> None:
+        """
+        Sets the given compression level globally.
+
+        Parameters
+        ----------
+        level: int
+            The compression level.
+
+        Raises
+        ------
+        InvalidCompressionLevel
+            Compression level is out of supported range. Use number from 0 to 9 to avoid this issue.
+        """
+        if level < 0 or level > 9:
+            raise InvalidCompressionLevel(level)
+        self.put("global/payload_compression_level", level)
 
     def set_global(self, api_endpoint: str, base_url: str, default_team: Optional[str] = None) -> None:
         """
