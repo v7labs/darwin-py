@@ -265,8 +265,14 @@ def find_files(
 
     for f in files:
         path = Path(f)
-        if path.is_dir():
-            found_files.extend([f for f in path.glob(pattern) if is_extension_allowed_by_filename(str(path))])
+        if path.is_dir() == True:
+            found_files.extend(
+                [
+                    path_object
+                    for path_object in path.glob(pattern)
+                    if is_extension_allowed_by_filename(str(path_object))
+                ]
+            )
         elif is_extension_allowed_by_filename(str(path)):
             found_files.append(path)
         else:

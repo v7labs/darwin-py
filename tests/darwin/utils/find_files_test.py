@@ -63,25 +63,48 @@ class TestFindFiles(FindFileTestCase):
         with self.assertRaises(UnsupportedFileType):
             find_files(["1"], files_to_exclude=[], recursive=False)
 
-    @patch("darwin.utils.Path", autospec=True)
     @patch("darwin.utils.is_extension_allowed_by_filename")
-    def test_uses_correct_glob_if_recursive(self, mock_is_extension_allowed, mock_path):
-        mock_path.is_dir.return_value = True
-        mock_path.glob.return_value = ["1"]
+    def test_uses_correct_glob_if_recursive(self, mock_is_extension_allowed):
+        with patch("darwin.utils.Path.is_dir") as mock_is_dir:
+            with patch("darwin.utils.Path.glob") as mock_glob:
+                mock_is_dir.return_value = True
+                mock_glob.return_value = ["1"]
 
-        find_files(["1"], files_to_exclude=[], recursive=True)
+                find_files(["123"], files_to_exclude=[], recursive=True)
 
-        mock_path.return_value.glob.assert_called_once_with("**/*")
+                self.assertTrue(mock_glob.called)
+                self.assertEqual(mock_glob.call_args[0][0], "**/*")
 
-    @patch("darwin.utils.Path", autospec=True)
     @patch("darwin.utils.is_extension_allowed_by_filename")
-    def test_uses_correct_glob_if_not_recursive(self, mock_is_extension_allowed, mock_path):
-        mock_path.is_dir.return_value = True
-        mock_path.glob.return_value = ["1"]
+    def test_glob_results_in_correct_call_to_is_extension_allowed_by_filename(self, mock_is_extension_allowed):
+        mock_is_extension_allowed.return_value = True
+        with patch("darwin.utils.Path.is_dir") as mock_is_dir:
+            with patch("darwin.utils.Path.glob") as mock_glob:
+                mock_is_dir.return_value = True
+                mock_glob.return_value = [Path("1.png"), Path("1/b/c/2.png"), Path("1/b/c/3.png")]
 
-        find_files(["1"], files_to_exclude=[], recursive=False)
+                result = find_files(["1"], files_to_exclude=[], recursive=True)
 
-        mock_path.return_value.glob.assert_called_once_with("*")
+                self.assertEqual(
+                    result,
+                    [
+                        PosixPath("1.png"),
+                        PosixPath("1/b/c/2.png"),
+                        PosixPath("1/b/c/3.png"),
+                    ],
+                )
+
+    @patch("darwin.utils.is_extension_allowed_by_filename")
+    def test_uses_correct_glob_if_not_recursive(self, mock_is_extension_allowed):
+        with patch("darwin.utils.Path.is_dir") as mock_is_dir:
+            with patch("darwin.utils.Path.glob") as mock_glob:
+                mock_is_dir.return_value = True
+                mock_glob.return_value = ["1"]
+
+                find_files(["1"], files_to_exclude=[], recursive=False)
+
+                self.assertTrue(mock_glob.called)
+                self.assertEqual(mock_glob.call_args[0][0], "*")
 
 
 class TestIsExtensionAllowedByFilenameFunctions(FindFileTestCase):
