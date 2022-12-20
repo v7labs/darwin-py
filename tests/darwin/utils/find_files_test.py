@@ -88,9 +88,9 @@ class TestFindFiles(FindFileTestCase):
                 self.assertEqual(
                     result,
                     [
-                        PosixPath("1.png"),
-                        PosixPath("1/b/c/2.png"),
-                        PosixPath("1/b/c/3.png"),
+                        Path("1.png"),
+                        Path("1/b/c/2.png"),
+                        Path("1/b/c/3.png"),
                     ],
                 )
 
