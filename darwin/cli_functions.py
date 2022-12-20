@@ -151,6 +151,21 @@ def set_team(team_slug: str) -> None:
     config.set_default_team(team_slug)
 
 
+def set_compression_level(compression_level: int) -> None:
+    """
+    Change the compression level of text/json contents sent to Darwin APIs and persist the change on the configuration file.
+
+    Can be in range from 0 - no compression, to 9 - best compression. By default, 0 is used.
+
+    Parameters
+    ----------
+    compression_level : int
+        Compression level to use.
+    """
+    config = _config()
+    config.set_compression_level(compression_level)
+
+
 def create_dataset(dataset_slug: str) -> None:
     """
     Creates a dataset remotely. Exits the application if the dataset's name is already taken or is
