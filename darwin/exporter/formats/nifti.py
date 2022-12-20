@@ -114,23 +114,10 @@ def export_single_nifti_file(video_annotation: dt.AnnotationFile, output_dir: Pa
                 pixdims = [pixdim[1], pixdim[2]]
             if "paths" in frames[frame_idx].data:
                 # Dealing with a complex polygon
-                polygons = [
-                    shift_polygon_coords(
-                        polygon_path,
-                        height=height,
-                        width=width,
-                        pixdim=pixdims,
-                    )
-                    for polygon_path in frames[frame_idx].data["paths"]
-                ]
+                polygons = [shift_polygon_coords(polygon_path) for polygon_path in frames[frame_idx].data["paths"]]
             elif "path" in frames[frame_idx].data:
                 # Dealing with a simple polygon
-                polygons = shift_polygon_coords(
-                    frames[frame_idx].data["path"],
-                    height=height,
-                    width=width,
-                    pixdim=pixdims,
-                )
+                polygons = shift_polygon_coords(frames[frame_idx].data["path"])
             else:
                 continue
             class_name = frames[frame_idx].annotation_class.name
@@ -159,9 +146,9 @@ def export_single_nifti_file(video_annotation: dt.AnnotationFile, output_dir: Pa
         nib.save(img=img, filename=output_path)
 
 
-def shift_polygon_coords(polygon, height, width, pixdim):
+def shift_polygon_coords(polygon):
     # Need to make it clear that we flip x/y because we need to take the transpose later.
-    # return [{"x": p["y"] * float(pixdim[0]), "y": p["x"] * float(pixdim[1])} for p in polygon]
+    # TODO: We might need to add a correction factor here for anisotropic pixdims.
     return [{"x": p["y"], "y": p["x"]} for p in polygon]
 
 
