@@ -163,7 +163,4 @@ environment.yml
 
 .DS_Store
 
-!.vscode/settings.json
-!.vscode/recommendations.json
-
 test_output_*
