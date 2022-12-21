@@ -1,13 +1,12 @@
-import pickle
-from functools import partial
-from multiprocessing import Pool as MPPool
 from multiprocessing import cpu_count
 from pathlib import Path
+from time import perf_counter
 from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
     Dict,
+    Generator,
     Iterable,
     List,
     Optional,
@@ -15,6 +14,8 @@ from typing import (
     Tuple,
     Union,
 )
+
+from mpire import WorkerPool, tqdm
 
 if TYPE_CHECKING:
     from darwin.client import Client
@@ -84,28 +85,53 @@ def build_main_annotations_lookup_table(annotation_classes: List[Dict[str, Any]]
 def find_and_parse(
     importer: Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]],
     file_paths: List[PathLike],
+    console: Optional[Console] = None,
     use_multi_cpu: bool = True,
     cpu_limit: int = 1,
 ) -> Optional[Iterable[dt.AnnotationFile]]:
-    for file_path in map(Path, file_paths):
-        files = file_path.glob("**/*") if file_path.is_dir() else [file_path]
-        parsed_files: Union[List[dt.AnnotationFile], dt.AnnotationFile, None] = None
-        if use_multi_cpu:
-            with MPPool(cpu_limit or cpu_count()) as pool:
-                parsed_files = pool.map(importer, files)
-        for f in files:
-            # importer returns either None, 1 annotation file or a list of annotation files
-            parsed_files = importer(f)
-            if parsed_files is None:
-                continue
+    is_console = console is not None
+    maybe_console = lambda *args: console.print(*[f"[{str(perf_time())}]", *args]) if console is not None else None
 
-            if type(parsed_files) is not list:
-                parsed_files = [parsed_files]
+    def perf_time(reset: bool = False) -> Generator[float, float, None]:
+        start = perf_counter()
+        yield start
+        while True:
+            if reset:
+                start = perf_counter()
+            yield perf_counter() - start
 
-            for parsed_file in parsed_files:
-                # clear to save memory
-                parsed_file.annotations = []
-                yield parsed_file
+    maybe_console(f"Parsing files... ")
+
+    files: List[Path] = _get_files_for_parsing(file_paths)
+
+    maybe_console(f"Found {len(files)} files")
+
+    if use_multi_cpu:
+        maybe_console(f"Using multiprocessing with {cpu_limit} workers")
+        try:
+            with WorkerPool(cpu_limit) as pool:
+                parsed_files = pool.map(importer, files, progress_bar=is_console)
+        except KeyboardInterrupt:
+            maybe_console("Keyboard interrupt. Stopping.")
+            return None
+        except Exception as e:
+            maybe_console(f"Error: {e}")
+            return None
+    else:
+        maybe_console(f"Using single CPU")
+        parsed_files = list(map(importer, tqdm(files) if is_console else files))
+
+    maybe_console(f"Finished.")
+
+    if not isinstance(parsed_files, list):
+        parsed_files = [parsed_files]
+
+    return parsed_files
+
+
+def _get_files_for_parsing(file_paths: List[PathLike]) -> List[Path]:
+    packed_files = [filepath.glob("**/*") if filepath.is_dir() else [filepath] for filepath in map(Path, file_paths)]
+    return [file for files in packed_files for file in files]
 
 
 @deprecation.deprecated(
@@ -132,7 +158,7 @@ def build_attribute_lookup(dataset: "RemoteDataset") -> Dict[str, Any]:
     details=DEPRECATION_MESSAGE,
 )
 def get_remote_files(
-    dataset: "RemoteDataset", filenames: List[str], chunk_size: int() = 100
+    dataset: "RemoteDataset", filenames: List[str], chunk_size: int = 100
 ) -> Dict[str, Tuple[int, str]]:
     """
     Fetches remote files from the datasets in chunks; by default 100 filenames at a time.
@@ -287,7 +313,7 @@ def import_annotations(
 
     # ! Other place we can use multiprocessing - hard to pass in the importer though
     maybe_parsed_files: Optional[Iterable[dt.AnnotationFile]] = find_and_parse(
-        importer, file_paths, use_multi_cpu, cpu_limit
+        importer, file_paths, console, use_multi_cpu, cpu_limit
     )
 
     if not maybe_parsed_files:
