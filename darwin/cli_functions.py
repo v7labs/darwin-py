@@ -943,7 +943,7 @@ def validate_schemas(
     pattern: Optional[str] = None,
     silent: bool = False,
     output: Optional[Path] = None,
-):
+) -> None:
     """
     Validate function for the CLI. Takes one of 3 required key word arguments describing the location of files and prints and/or saves an output
 
