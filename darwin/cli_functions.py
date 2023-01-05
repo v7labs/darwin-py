@@ -934,7 +934,7 @@ def delete_files(dataset_slug: str, files: List[str], skip_user_confirmation: bo
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
     except:
-        _error(f"An error has occurred, please try again later.")
+        _error("An error has occurred, please try again later.")
 
 
 def validate_schemas(
@@ -960,9 +960,12 @@ def validate_schemas(
     output : Optional[Path], optional
         filename for saving to output, by default None
     """
+    console = Console(theme=_console_theme(), stderr=True)
     if not files and not folder and not pattern:
         # TODO insert logging here once we introduce that
+        console.print("requires one of --files, --folder or --pattern flags")
         return
+
     all_errors = {}
     if files:
         to_validate = [Path(filename) for filename in files]
@@ -971,9 +974,7 @@ def validate_schemas(
     if pattern:
         to_validate = [Path(filename) for filename in glob(pattern)]
 
-    console = Console(theme=_console_theme(), stderr=True)
-
-    if len(to_validate) == 0:
+    if not to_validate:
         console.print("No files found to validate", style="warning")
         return
 

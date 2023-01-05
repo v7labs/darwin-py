@@ -163,7 +163,7 @@ class AnnotationFileValidationError(Exception):
         Parameters
         ----------
         parent_error: ValidationError
-            Error reported by `jsonschema`.
+            Error reported by ``jsonschema``.
         file_path: Path
             Path to annotation file that failed to validate.
         """
