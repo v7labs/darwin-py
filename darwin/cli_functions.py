@@ -986,7 +986,7 @@ def validate_schemas(
         except MissingSchema as e:
             errors = [e]
         all_errors[str(file)] = [str(error) for error in errors]
-        if len(errors) == 0:
+        if not errors:
             if not silent:
                 console.print(f"{str(file)}: No Errors", style="success")
             continue
