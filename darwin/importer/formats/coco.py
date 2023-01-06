@@ -158,7 +158,7 @@ def parse_annotation(annotation: Dict[str, Any], category_lookup_table: Dict[str
         polygons = []
         for path in paths:
             point_path = []
-            points = iter(paths)
+            points = iter(path)
             while True:
                 try:
                     x, y = next(points), next(points)
