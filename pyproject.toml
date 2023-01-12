@@ -1,6 +1,6 @@
 [tool.poetry]
-name = "darwin-py"
-version = "0.8.6" # update this when you change the version - See: https://peps.python.org/pep-0440/
+name = "darwin-py-test"
+version = "0.9.3" # update this when you change the version - See: https://peps.python.org/pep-0440/
 description = "Library and command line interface for darwin.v7labs.com"
 homepage = "https://docs.v7labs.com/reference/getting-started-2"
 documentation = "https://darwin-py-sdk.v7labs.com/index.html"
@@ -14,20 +14,10 @@ classifiers = ["Programming Language :: Python :: 3", "License :: OSI Approved :
 
 packages = [
     { include = "darwin" },
-    { include = "darwin.importer", from = "darwin/importer" },
-    { include = "darwin.dataset", from = "darwin/dataset" },
-    { include = "darwin.torch", from = "darwin/torch" },
-    { include = "darwin.exporter", from = "darwin/exporter" },
-    { include = "darwin.importer.formats", from = "darwin/importer/formats" },
-    { include = "darwin.exporter.formats", from = "darwin/exporter/formats" },
-    { include = "darwin.version", from = "darwin/version" },
 ]
 
-[tool.poetry.scripts]
-darwin = "darwin.cli:main"
-
 [tool.poetry.dependencies]
-python = ">=3.8.0,<3.10"
+python = ">=3.8.0,<3.11"
 argcomplete = "^2.0.0"
 humanize = "^4.4.0"
 numpy = "^1.24.1"
@@ -42,47 +32,28 @@ deprecation = "^2.1.0"
 pydantic = "^1.10.4"
 orjson = "^3.8.5"
 
+[tool.poetry.extras]
+
+test = ["responses", "pytest", "pytest-describe", "scikit-learn"]
+dev = ["black", "flake8", "isort", "mypy", "responses", "pytest", "pytest-describe", "scikit-learn"]
+ml = ["scikit-learn", "torch", "torchvision"]
+medical = ["nibabel", "connected-components-3d"]
+
 [tool.poetry.group]
 
-[tool.poetry.group.test]
-optional = true
-
-[tool.poetry.group.ml]
-optional = true
-
-[tool.poetry.group.medical]
-optional = true
-
-
-[tool.poetry.group.test.dependencies]
-response = "^0.5.0"
-pytest = "^7.2.0"
-pytest-describe = "^2.0.1"
-scikit-learn = "^1.2.0"
-
-[tool.poetry.group.ml.dependencies]
-scikit-learn = "^1.2.0"
-torch = "^1.13.1"
-torchvision = "^0.14.1"
-
-[tool.poetry.group.medical.dependencies]
-nibabel = "^5.0.0"
-connected-components-3d = "^3.10.3"
-
-
 [tool.poetry.group.dev.dependencies]
-black = "^22.12.0"
-isort = "^5.11.4"
-mypy = "^0.991"
-response = "^0.5.0"
-pytest = "^7.2.0"
-pytest-describe = "^2.0.1"
-scikit-learn = "^1.2.0"
+black = {markers = "python_version > \"3.9\"", version = "^22.12.0"}
+isort = {markers = "python_version > \"3.9\"", version = "^5.11.4"}
+mypy = {markers = "python_version > \"3.9\"", version = "^0.991"}
+response = {markers = "python_version > \"3.9\"", version = "^0.5.0"}
+pytest = {markers = "python_version > \"3.9\"", version = "^7.2.0"}
+pytest-describe = {markers = "python_version > \"3.9\"", version = "^2.0.1"}
+scikit-learn = {markers = "python_version > \"3.9\"", version ="^1.2.0"}
 flake8 = {markers = "python_version > \"3.9\"", version = "^6.0.0"}
+flake8-pyproject = {markers = "python_version > \"3.9\"", version = "^1.2.2"}
 
-
-[tool.poetry.plugins.console_scripts]
-"darwin" = "darwin.cli:main"
+[tool.poetry.scripts]
+darwin = "darwin.cli:main"
 
 [build-system]
 requires = ["poetry-core"]
@@ -94,29 +65,25 @@ build-backend = "poetry.core.masonry.api"
 profile = "black"
 
 [tool.mypy]
-# 3rd party import
 ignore_missing_imports = true
-# dynamic typing
 disallow_any_unimported = true
 disallow_any_expr = false
 disallow_any_decorated = false
 disallow_any_explicit = true
 disallow_any_generics = false
 disallow_subclassing_any = true
-# platform
 python_version = "3.10"
-# untyped
 disallow_untyped_calls = true
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
 disallow_untyped_decorators = true
-# None and Optional
 no_implicit_optional = true
-# Warnings
 warn_return_any = false
 warn_unreachable = true
-# Misc
 pretty = true
 
 [tool.black]
 line-length = 160
+
+[tool.flake8]
+max-line-length = 160
