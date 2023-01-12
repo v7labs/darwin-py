@@ -938,9 +938,8 @@ def delete_files(dataset_slug: str, files: List[str], skip_user_confirmation: bo
 
 
 def validate_schemas(
-    files: Optional[List[str]] = None,
-    folder: Optional[str] = None,
-    pattern: Optional[str] = None,
+    location: str,
+    pattern: bool = False,
     silent: bool = False,
     output: Optional[Path] = None,
 ) -> None:
@@ -949,30 +948,25 @@ def validate_schemas(
 
     Parameters
     ----------
-    files : Optional[List[str]], optional
-        list of file paths to check, by default None
-    folder : Optional[str], optional
-        folder location to check for *.json files, by default None
-    pattern : Optional[str], optional
+    location : str
+        str path to a folder or file location to search
+    pattern : bool, optional
         glob style pattern matching, by default None
     silent : bool, optional
         flag to set silent console printing, only showing errors, by default False
     output : Optional[Path], optional
         filename for saving to output, by default None
     """
-    console = Console(theme=_console_theme(), stderr=True)
-    if not files and not folder and not pattern:
-        # TODO insert logging here once we introduce that
-        console.print("requires one of --files, --folder or --pattern flags")
-        return
 
     all_errors = {}
-    if files:
-        to_validate = [Path(filename) for filename in files]
-    if folder:
-        to_validate = [Path(filename) for filename in Path(folder).glob("*.json")]
     if pattern:
-        to_validate = [Path(filename) for filename in glob(pattern)]
+        to_validate = [Path(filename) for filename in glob(location)]
+    elif os.path.isfile(location):
+        to_validate = [Path(location)]
+    elif os.path.isdir(location):
+        to_validate = [Path(filename) for filename in Path(location).glob("*.json")]
+
+    console = Console(theme=_console_theme(), stderr=True)
 
     if not to_validate:
         console.print("No files found to validate", style="warning")
@@ -982,17 +976,20 @@ def validate_schemas(
 
     for file in to_validate:
         try:
-            errors = validate_file_against_schema(file)
+            errors = [{"message": e.message, "location": e.json_path} for e in validate_file_against_schema(file)]
         except MissingSchema as e:
-            errors = [e]
-        all_errors[str(file)] = [str(error) for error in errors]
+            errors = [{"message": e.message, "location": "schema link"}]
+
+        all_errors[str(file)] = errors
         if not errors:
             if not silent:
                 console.print(f"{str(file)}: No Errors", style="success")
             continue
         console.print(f"{str(file)}: {len(errors)} errors", style="error")
         for error in errors:
-            console.print(f"\t- {error.message}", style="error")
+            console.print(f"\t- Problem found in {error['location']}", style="error")
+            console.print(f"\t\t- {error['message']}", style="error")
+
     if output:
         with open(output, "w") as outfile:
             json.dump(all_errors, outfile, indent=2)

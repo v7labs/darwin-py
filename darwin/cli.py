@@ -156,12 +156,7 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
             )
     # Annotation schema validation
     elif args.command == "validate":
-        if args.files:
-            f.validate_schemas(files=args.files, silent=args.silent, output=args.output)
-        elif args.folder:
-            f.validate_schemas(folder=args.folder, silent=args.silent, output=args.output)
-        elif args.pattern:
-            f.validate_schemas(pattern=args.pattern, silent=args.silent, output=args.output)
+        f.validate_schemas(location=args.location, pattern=args.pattern, silent=args.silent, output=args.output)
 
 
 if __name__ == "__main__":
