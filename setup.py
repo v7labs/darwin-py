@@ -25,7 +25,7 @@ setuptools.setup(
         "argcomplete",
         "dataclasses;python_version<'3.7'",
         "humanize",
-        "numpy",
+        "numpy==1.23.0",
         "pillow",
         "pyyaml>=5.1",
         "requests",
