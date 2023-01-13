@@ -3,7 +3,6 @@ Holds helper functions that deal with downloading videos and images.
 """
 
 import functools
-import json
 import time
 import urllib
 from pathlib import Path
@@ -11,6 +10,7 @@ from typing import Any, Callable, Iterable, List, Optional, Tuple
 
 import deprecation
 import numpy as np
+import orjson as json
 import requests
 from PIL import Image
 from rich.console import Console
@@ -316,7 +316,7 @@ def _update_local_path(annotation: AnnotationFile, url, local_path):
 
     # we modify raw json, as internal representation does't store all the data
     with annotation.path.open() as file:
-        raw_annotation = json.load(file)
+        raw_annotation = json.loads(file.read())
 
         for slot in raw_annotation["item"]["slots"]:
             for source_file in slot["source_files"]:
@@ -324,7 +324,8 @@ def _update_local_path(annotation: AnnotationFile, url, local_path):
                     source_file["local_path"] = str(local_path)
 
     with annotation.path.open(mode="w") as file:
-        json.dump(raw_annotation, file, indent=4)
+        op = json.dumps(raw_annotation, json.OPT_INDENT_2).decode("utf-8")
+        file.write(op)
 
 
 @deprecation.deprecated(
@@ -356,7 +357,7 @@ def download_image_from_json_annotation(
         Pulls video frames images instead of video files
     """
     with annotation_path.open() as file:
-        annotation = json.load(file)
+        annotation = json.loads(file.read())
 
     # If we are using folders, extract the path for the image and create the folder if needed
     sub_path = annotation["image"].get("path", "/") if use_folders else "/"
