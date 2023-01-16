@@ -26,7 +26,7 @@ jobs:
       - name: Install dependencies
         run: poetry install --no-interaction --no-root --extras "ml medical test dev"
       - name: Run Tests
-        run: pytest
+        run: poetry run pytest
       
   
 
