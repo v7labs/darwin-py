@@ -2,7 +2,10 @@
 
 name: Testing
 
-on: [pull-request, merge]
+on:
+  pull-request:
+    branches:
+      - master
 
 jobs:
   tests:
