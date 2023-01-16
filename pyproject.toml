@@ -35,7 +35,7 @@ numpy = "<=1.23.0"
 [tool.poetry.extras]
 
 test = ["responses", "pytest", "pytest-describe", "scikit-learn"]
-dev = ["black", "flake8", "isort", "mypy", "responses", "pytest", "pytest-describe", "scikit-learn"]
+dev = ["black", "flake8", "isort", "mypy"]
 ml = ["scikit-learn", "torch", "torchvision"]
 medical = ["nibabel", "connected-components-3d"]
 
