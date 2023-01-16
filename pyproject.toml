@@ -31,6 +31,7 @@ deprecation = "^2.1.0"
 pydantic = "^1.10.4"
 orjson = "^3.8.5"
 numpy = "<=1.23.0"
+toml = "^0.10.2"
 
 [tool.poetry.extras]
 
