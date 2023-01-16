@@ -6,28 +6,26 @@ jobs:
   ubuntu:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    env:
-      poetry_version: "1.3.2"
     strategy:
       matrix:
         python-version: [3.7, 3.8, 3.9, "3.10"]
-
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
         with:
           python-version: {{ matrix.python_version }}
-      - name: Cached Poetry Install
+      - name: Cache Poetry Install
         uses: actions/cache@v2
         with:
           path: ~/.local
           key: poetry-1.3.2-0
-      - uses: snok/install-poetry@v1
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
         with:
           version: 1.3.2
           virtualenvs-create: true
           virtualenvs-in-project: true
-      - name: Cached install dependencies
+      - name: Install dependencies
         id: cache-deps
         uses: actions/cache@v2
         with:
@@ -35,8 +33,9 @@ jobs:
           key: pydeps-${{ hashFiles('**/poetry.lock') }}
       - run: poetry install --no-interaction --no-root --all-extras
         if: steps.cache-deps.outputs.cache-hit != 'true'
-      - run: poetry install --no-interaction
-      - run: poetry run pytest
+      - run: poetry install --no-interaction 
+      - name: Run Tests
+        run: poetry run pytest
   windows:
     runs-on: windows-latest
     timeout-minutes: 30
