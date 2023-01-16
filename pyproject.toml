@@ -30,7 +30,7 @@ jsonschema = "3.2.0"
 deprecation = "^2.1.0"
 pydantic = "^1.10.4"
 orjson = "^3.8.5"
-numpy = "1.23.0"
+numpy = "<=1.23.0"
 
 [tool.poetry.extras]
 
