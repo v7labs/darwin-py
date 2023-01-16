@@ -1,12 +1,16 @@
 import itertools
-import json
 import multiprocessing as mp
 from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any, Dict, Generator, Iterator, List, Optional, Set, Tuple, Union
 
-import darwin.datatypes as dt
 import numpy as np
+import orjson as json
+from PIL import Image as PILImage
+from rich.live import Live
+from rich.progress import ProgressBar, track
+
+import darwin.datatypes as dt
 from darwin.datatypes import PathLike
 from darwin.exceptions import NotFound
 from darwin.importer.formats.darwin import parse_path
@@ -15,9 +19,6 @@ from darwin.utils import (
     SUPPORTED_VIDEO_EXTENSIONS,
     is_unix_like_os,
 )
-from PIL import Image as PILImage
-from rich.live import Live
-from rich.progress import ProgressBar, track
 
 # E.g.: {"partition" => {"class_name" => 123}}
 AnnotationDistribution = Dict[str, Counter]
@@ -264,7 +265,7 @@ def get_coco_format_record(
         box_mode = 0
 
     with annotation_path.open() as f:
-        data = json.load(f)
+        data = json.loads(f.read())
     height, width = data["image"]["height"], data["image"]["width"]
     annotations = data["annotations"]
 
@@ -456,7 +457,7 @@ def get_annotations(
     elif annotation_format == "darwin":
         for annotation_path in annotations_paths:
             with annotation_path.open() as f:
-                record = json.load(f)
+                record = json.loads(f.read())
             yield record
 
 
@@ -543,7 +544,7 @@ def compute_max_density(annotations_dir: Path) -> int:
     for annotation_path in annotations_dir.glob("**/*.json"):
         annotation_density = 0
         with open(annotation_path) as f:
-            darwin_json = json.load(f)
+            darwin_json = json.loads(f.read())
             for annotation in darwin_json["annotations"]:
                 if "polygon" not in annotation and "complex_polygon" not in annotation:
                     continue
