@@ -24,8 +24,7 @@ jobs:
 
       - name: Run tests
         run: |
-          poetry shell
-          pytest
+          poetry run pytest
   windows:
     runs-on: windows-latest
     timeout-minutes: 30
@@ -47,5 +46,4 @@ jobs:
 
       - name: Run tests
         run: |
-          poetry shell
-          pytest
+          poetry run pytest
