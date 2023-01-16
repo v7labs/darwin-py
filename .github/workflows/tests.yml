@@ -19,9 +19,8 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install wheel
-          pip install --upgrade setuptools
-          pip install --editable ".[test,ml,medical]"
+          pip install poetry
+          poetry install --extras "test ml medical dev" -G dev
 
       - name: Run tests
         run: pytest
@@ -41,9 +40,8 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install wheel
-          pip install --upgrade setuptools
-          pip install --editable ".[test,ml,medical]"
+          pip install poetry
+          poetry install --extras "test ml medical dev" -G dev
 
       - name: Run tests
         run: pytest
