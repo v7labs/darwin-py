@@ -23,7 +23,9 @@ jobs:
           poetry install --extras "test ml medical dev" --with dev
 
       - name: Run tests
-        run: pytest
+        run: |
+          poetry shell
+          pytest
   windows:
     runs-on: windows-latest
     timeout-minutes: 30
@@ -44,4 +46,6 @@ jobs:
           poetry install --extras "test ml medical dev" --with dev
 
       - name: Run tests
-        run: pytest
+        run: |
+          poetry shell
+          pytest
