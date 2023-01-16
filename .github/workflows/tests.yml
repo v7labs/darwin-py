@@ -1,5 +1,9 @@
 # CI/CD Flow
 
+name: Testing
+
+on: [pull-request, merge]
+
 jobs:
   tests:
     strategy:
