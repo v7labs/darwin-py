@@ -31,9 +31,9 @@ jobs:
         with:
           path: .venv
           key: pydeps-${{ hashFiles('**/poetry.lock') }}
-      - run: poetry install --no-interaction --no-root --all-extras
+      - run: poetry install --no-interaction --no-root --extras "ml medical test dev" --with dev
         if: steps.cache-deps.outputs.cache-hit != 'true'
-      - run: poetry install --no-interaction --all-extras
+      - run: poetry install --no-interaction --extras "ml medical test dev" --with dev
       - name: Run Tests
         run: poetry run pytest
   windows:
