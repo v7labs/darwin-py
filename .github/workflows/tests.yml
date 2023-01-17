@@ -6,6 +6,10 @@ on:
       - master
   pull_request:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   ci:
     strategy:
@@ -28,7 +32,9 @@ jobs:
       - name: Install dependencies
         run: |
           poetry install --no-interaction --no-root --all-extras -vvv
-          pip install .
+          pip install wheel
+          pip install --upgrade setuptools
+          pip install --editable ".[test,ml,medical,dev]"
           pip install pytest pytest-describe
       - name: Run Tests
         run: pytest
