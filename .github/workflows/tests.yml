@@ -27,7 +27,7 @@ jobs:
           poetry-version: ${{ matrix.poetry-version }}
       - name: Install dependencies
         run: |
-          poetry install --no-interaction --no-root --extras "ml medical test dev" --with dev
+          poetry install --no-interaction --no-root --all-extras -vvv
           pip install .
           pip install pytest pytest-describe
       - name: Run Tests
