@@ -35,15 +35,3 @@ class Test_get_multi_cpu_settings(TestCaseImporter):
 
         cpu_limit, _ = gmcus(900, 768, True)
         self.assertEqual(cpu_limit, 768)
-
-    def test_get_multi_cpu_settings__sets_cpu_count_to_cpu_count_if_greater_that_total_available_passed(self):
-        from darwin.importer.importer import _get_multi_cpu_settings as gmcus
-
-        cpu_limit, _ = gmcus(900, 768, True)
-        self.assertEqual(cpu_limit, 768)
-
-    def test_get_multi_cpu_settings__sets_cpu_count_to_cpu_count_if_greater_that_total_available_passed(self):
-        from darwin.importer.importer import _get_multi_cpu_settings as gmcus
-
-        cpu_limit, _ = gmcus(900, 768, True)
-        self.assertEqual(cpu_limit, 768)
