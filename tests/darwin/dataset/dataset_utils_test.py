@@ -1,10 +1,11 @@
-import json
 import shutil
 from pathlib import Path
 from typing import Dict
 from unittest.mock import MagicMock, patch
 
+import orjson as json
 import pytest
+
 from darwin.dataset.utils import (
     compute_distributions,
     extract_classes,
@@ -33,7 +34,7 @@ def parsed_annotation_file():
     }
 
 
-@patch("json.load", return_value=parsed_annotation_file())
+@patch("orjson.loads", return_value=parsed_annotation_file())
 @patch("pathlib.Path.open", return_value=open_resource_file())
 def test_compute_distributions(parse_file_mock, open_mock):
     value = compute_distributions(Path("test"), Path("split"), partitions=["train"])
@@ -128,7 +129,8 @@ def describe_sanitize_filename():
 
 def _create_annotation_file(annotation_path: Path, filename: str, payload: Dict):
     with open(annotation_path / filename, "w") as f:
-        json.dump(payload, f)
+        op = json.dumps(payload).decode("utf-8")
+        f.write(op)
 
 
 def describe_get_release_path():

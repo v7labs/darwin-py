@@ -1,9 +1,9 @@
-import json
 from functools import partial
 from itertools import zip_longest
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Union, cast
 
+import orjson as json
 from jsonschema import validate
 
 from darwin.datatypes import (
@@ -106,11 +106,11 @@ def parse_path(path: Path) -> Optional[AnnotationFile]:
         raise ValueError("Folder must contain a 'classes.json' file with classes information.")
 
     with classes_path.open() as classes_file:
-        classes = json.load(classes_file)
+        classes = json.loads(classes_file.read())
         validate(classes, schema=classes_export)
 
     with path.open() as annotation_file:
-        data = json.load(annotation_file)
+        data = json.loads(annotation_file.read())
         validate(data, schema=superannotate_export)
 
         instances: List[Dict[str, Any]] = data.get("instances")
