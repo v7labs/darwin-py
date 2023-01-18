@@ -758,6 +758,7 @@ def dataset_import(
     append: bool,
     class_prompt: bool = True,
     delete_for_empty: bool = False,
+    cpu_limit: Optional[int] = None,
 ) -> None:
     """
     Imports annotation files to the given dataset.
@@ -787,7 +788,8 @@ def dataset_import(
     try:
         parser: ImportParser = get_importer(format)
         dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
-        import_annotations(dataset, parser, files, append, class_prompt, delete_for_empty)
+        use_multi_cpu = cpu_limit is None or cpu_limit > 1
+        import_annotations(dataset, parser, files, append, class_prompt, delete_for_empty, use_multi_cpu, cpu_limit)
     except ImporterNotFoundError:
         _error(f"Unsupported import format: {format}, currently supported: {import_formats}")
     except AttributeError as e:
