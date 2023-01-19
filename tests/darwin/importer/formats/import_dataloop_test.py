@@ -50,7 +50,7 @@ class TestParsePath(DataLoopTestCase):
     @patch(
         "darwin.importer.formats.dataloop._remove_leading_slash",
     )
-    @patch("darwin.importer.formats.dataloop.json.load")
+    @patch("darwin.importer.formats.dataloop.json.loads")
     @patch("darwin.importer.formats.dataloop.Path.open")
     @patch("darwin.importer.formats.dataloop._parse_annotation")
     def test_opens_annotations_file_and_parses(

@@ -2,7 +2,6 @@
 Contains several unrelated utility functions used across the SDK.
 """
 
-import json
 import platform
 import re
 from pathlib import Path
@@ -24,6 +23,7 @@ import numpy as np
 import requests
 from jsonschema import exceptions, validators
 from requests import Response, request
+import orjson as json
 from rich.progress import ProgressType, track
 from upolygon import draw_polygon
 
@@ -275,8 +275,14 @@ def find_files(
 
     for f in files:
         path = Path(f)
-        if path.is_dir():
-            found_files.extend([f for f in path.glob(pattern) if is_extension_allowed_by_filename(str(path))])
+        if path.is_dir() == True:
+            found_files.extend(
+                [
+                    path_object
+                    for path_object in path.glob(pattern)
+                    if is_extension_allowed_by_filename(str(path_object))
+                ]
+            )
         elif is_extension_allowed_by_filename(str(path)):
             found_files.append(path)
         else:
@@ -404,9 +410,11 @@ def parse_darwin_json(path: Path, count: Optional[int]) -> Optional[dt.Annotatio
     """
 
     path = Path(path)
+
     data, version = load_data_from_file(path)
     if "annotations" not in data:
         return None
+
 
     if version.major == 2:
         return _parse_darwin_v2(path, data)

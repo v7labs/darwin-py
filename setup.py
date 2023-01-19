@@ -25,7 +25,7 @@ setuptools.setup(
         "argcomplete",
         "dataclasses;python_version<'3.7'",
         "humanize",
-        "numpy",
+        "numpy<=1.23.0",
         "pillow",
         "pyyaml>=5.1",
         "requests",
@@ -34,6 +34,8 @@ setuptools.setup(
         "jsonschema>=4.0.0",
         "deprecation",
         "pydantic",
+        "ujson",
+        "orjson",
     ],
     extras_require={
         "test": ["responses", "pytest", "pytest-describe", "scikit-learn"],

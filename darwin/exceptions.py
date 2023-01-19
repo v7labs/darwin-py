@@ -41,6 +41,25 @@ class InvalidTeam(Exception):
     """
 
 
+class InvalidCompressionLevel(Exception):
+    """
+    Used when compression level is invalid.
+    """
+
+    def __init__(self, level: int):
+        """
+        Parameters
+        ----------
+        level: int
+            The new value of compression level.
+        """
+        super().__init__()
+        self.level = level
+
+    def __str__(self):
+        return f"Unsupported compression level: '{self.level}'. Supported compression levels are 0-9."
+
+
 class MissingConfig(Exception):
     """
     Used when the configuration file was not found.
