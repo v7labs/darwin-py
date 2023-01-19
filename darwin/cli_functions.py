@@ -965,6 +965,8 @@ def validate_schemas(
         to_validate = [Path(location)]
     elif os.path.isdir(location):
         to_validate = [Path(filename) for filename in Path(location).glob("*.json")]
+    else:
+        to_validate = []
 
     console = Console(theme=_console_theme(), stderr=True)
 
