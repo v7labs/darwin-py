@@ -21,13 +21,21 @@ from typing import (
 import deprecation
 import numpy as np
 import orjson as json
-from requests import Response
+import requests
+from jsonschema import exceptions, validators
+from requests import Response, request
 from rich.progress import ProgressType, track
 from upolygon import draw_polygon
 
 import darwin.datatypes as dt
 from darwin.config import Config
-from darwin.exceptions import OutdatedDarwinJSONFormat, UnsupportedFileType
+from darwin.exceptions import (
+    AnnotationFileValidationError,
+    MissingSchema,
+    OutdatedDarwinJSONFormat,
+    UnknownAnnotationFileSchema,
+    UnsupportedFileType,
+)
 from darwin.version import __version__
 
 if TYPE_CHECKING:
@@ -47,6 +55,8 @@ SUPPORTED_VIDEO_EXTENSIONS = [
     ".ndpi",
 ]
 SUPPORTED_EXTENSIONS = SUPPORTED_IMAGE_EXTENSIONS + SUPPORTED_VIDEO_EXTENSIONS
+
+_darwin_schema_cache = {}
 
 
 def is_extension_allowed_by_filename(filename: str) -> bool:
@@ -337,6 +347,43 @@ def _get_local_filename(metadata: Dict[str, Any]) -> str:
         return metadata["filename"]
 
 
+def _get_schema(data: dict) -> Optional[dict]:
+    version = _parse_version(data)
+    schema_url = data.get("schema_ref") or _default_schema(version)
+    if not schema_url:
+        return None
+    if schema_url not in _darwin_schema_cache:
+        response = requests.get(schema_url)
+        response.raise_for_status()
+        schema = response.json()
+        _darwin_schema_cache[schema_url] = schema
+    return _darwin_schema_cache[schema_url]
+
+
+def validate_file_against_schema(path: Path) -> List:
+    data, _ = load_data_from_file(path)
+    return validate_data_against_schema(data)
+
+
+def validate_data_against_schema(data) -> List:
+    try:
+        schema = _get_schema(data)
+    except requests.exceptions.RequestException as e:
+        raise MissingSchema(f"Error retrieving schema from url: {e}")
+    if not schema:
+        raise MissingSchema("Schema not found")
+    validator = validators.Draft202012Validator(schema)
+    errors = list(validator.iter_errors(data))
+    return errors
+
+
+def load_data_from_file(path: Path):
+    with path.open() as infile:
+        data = json.loads(infile.read())
+    version = _parse_version(data)
+    return data, version
+
+
 def parse_darwin_json(path: Path, count: Optional[int]) -> Optional[dt.AnnotationFile]:
     """
     Parses the given JSON file in v7's darwin proprietary format. Works for images, split frame
@@ -363,18 +410,18 @@ def parse_darwin_json(path: Path, count: Optional[int]) -> Optional[dt.Annotatio
     """
 
     path = Path(path)
-    with path.open() as f:
-        data = json.loads(f.read())
-        if "annotations" not in data:
-            return None
 
-        if _parse_version(data).major == 2:
-            return _parse_darwin_v2(path, data)
+    data, version = load_data_from_file(path)
+    if "annotations" not in data:
+        return None
+
+    if version.major == 2:
+        return _parse_darwin_v2(path, data)
+    else:
+        if "fps" in data["image"] or "frame_count" in data["image"]:
+            return _parse_darwin_video(path, data, count)
         else:
-            if "fps" in data["image"] or "frame_count" in data["image"]:
-                return _parse_darwin_video(path, data, count)
-            else:
-                return _parse_darwin_image(path, data, count)
+            return _parse_darwin_image(path, data, count)
 
 
 def _parse_darwin_v2(path: Path, data: Dict[str, Any]) -> dt.AnnotationFile:
@@ -995,3 +1042,11 @@ def _data_to_annotations(data: Dict[str, Any]) -> List[Union[dt.Annotation, dt.V
         filter(None, map(_parse_darwin_video_annotation, raw_video_annotations))
     )
     return [*image_annotations, *video_annotations]
+
+
+def _supported_schema_versions():
+    return {(2, 0, ""): "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json"}
+
+
+def _default_schema(version: dt.AnnotationFileVersion):
+    return _supported_schema_versions().get((version.major, version.minor, version.suffix))

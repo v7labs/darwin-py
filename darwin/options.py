@@ -45,6 +45,24 @@ class Options(object):
 
         parser_convert.add_argument("output_dir", type=str, help="Where to store output files.")
 
+        # VALIDATE SCHEMA
+        parser_validate_schema = subparsers.add_parser(
+            "validate", help="Validate annotation files against Darwin schema"
+        )
+        parser_validate_schema.add_argument(
+            "location",
+            help="Location of file/folder to validate. Accepts single files or a folder to search *.json files",
+        )
+        parser_validate_schema.add_argument(
+            "--pattern",
+            action="store_true",
+            help="'location' is a Folder + File glob style pattern to search (eg: ./*.json)",
+        )
+
+        parser_validate_schema.add_argument(
+            "--silent", action="store_true", help="Flag to suppress all output except errors to console"
+        )
+        parser_validate_schema.add_argument("--output", help="name of file to write output json to")
         # DATASET
         dataset = subparsers.add_parser(
             "dataset", help="Dataset related functions.", description="Arguments to interact with datasets"

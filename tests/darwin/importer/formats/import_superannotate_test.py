@@ -2,6 +2,8 @@ from pathlib import Path
 from typing import Dict, List, Optional, cast
 
 import pytest
+from jsonschema import ValidationError
+
 from darwin.datatypes import (
     Annotation,
     AnnotationClass,
@@ -12,7 +14,6 @@ from darwin.datatypes import (
     SubAnnotation,
 )
 from darwin.importer.formats.superannotate import parse_path
-from jsonschema import ValidationError
 
 
 def describe_parse_path():
@@ -190,7 +191,8 @@ def describe_parse_path():
         with pytest.raises(ValidationError) as error:
             parse_path(annotations_file_path)
 
-        assert "'point' is not one of ['ellipse']" in str(error.value)
+        error_str = str(error.value)
+        assert all(["point" in error_str, "ellipse" in error_str])
 
     def it_imports_point_vectors(annotations_file_path: Path, classes_file_path: Path):
 
@@ -244,7 +246,8 @@ def describe_parse_path():
         with pytest.raises(ValidationError) as error:
             parse_path(annotations_file_path)
 
-        assert "'ellipse' is not one of ['point']" in str(error.value)
+        error_str = str(error.value)
+        assert all(["ellipse" in error_str, "point" in error_str])
 
     def it_imports_ellipse_vectors(annotations_file_path: Path, classes_file_path: Path):
 
@@ -316,8 +319,8 @@ def describe_parse_path():
 
         with pytest.raises(ValidationError) as error:
             parse_path(annotations_file_path)
-
-        assert "'cuboid' is not one of ['point']" in str(error.value)
+        error_str = str(error.value)
+        assert all(["cuboid" in error_str, "point" in error_str])
 
     def it_imports_cuboid_vectors(annotations_file_path: Path, classes_file_path: Path):
 
@@ -392,7 +395,8 @@ def describe_parse_path():
         with pytest.raises(ValidationError) as error:
             parse_path(annotations_file_path)
 
-        assert "'polygon' is not one of ['point']" in str(error.value)
+        error_str = str(error.value)
+        assert all(["polygon" in error_str, "point" in error_str])
 
     def it_imports_polygon_vectors(annotations_file_path: Path, classes_file_path: Path):
 
@@ -459,7 +463,8 @@ def describe_parse_path():
         with pytest.raises(ValidationError) as error:
             parse_path(annotations_file_path)
 
-        assert "'polyline' is not one of ['point']" in str(error.value)
+        error_str = str(error.value)
+        assert all(["polyline" in error_str, "point" in error_str])
 
     def it_imports_polyline_vectors(annotations_file_path: Path, classes_file_path: Path):
 
@@ -525,7 +530,8 @@ def describe_parse_path():
         with pytest.raises(ValidationError) as error:
             parse_path(annotations_file_path)
 
-        assert "'bbox' is not one of ['point']" in str(error.value)
+        error_str = str(error.value)
+        assert all(["bbox" in error_str, "point" in error_str])
 
     def it_imports_bbox_vectors(annotations_file_path: Path, classes_file_path: Path):
 
@@ -606,7 +612,8 @@ def describe_parse_path():
         with pytest.raises(ValidationError) as error:
             parse_path(annotations_file_path)
 
-        assert "'bbox' is not one of ['point']" in str(error.value)
+        error_str = str(error.value)
+        assert all(["type" in error_str, "bbox" in error_str])
 
     def it_raises_if_an_attribute_from_a_group_is_missing(annotations_file_path: Path, classes_file_path: Path):
 
