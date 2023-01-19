@@ -20,10 +20,10 @@ from typing import (
 
 import deprecation
 import numpy as np
+import orjson as json
 import requests
 from jsonschema import exceptions, validators
 from requests import Response, request
-import orjson as json
 from rich.progress import ProgressType, track
 from upolygon import draw_polygon
 
@@ -379,7 +379,7 @@ def validate_data_against_schema(data) -> List:
 
 def load_data_from_file(path: Path):
     with path.open() as infile:
-        data = json.load(infile)
+        data = json.loads(infile.read())
     version = _parse_version(data)
     return data, version
 
@@ -414,7 +414,6 @@ def parse_darwin_json(path: Path, count: Optional[int]) -> Optional[dt.Annotatio
     data, version = load_data_from_file(path)
     if "annotations" not in data:
         return None
-
 
     if version.major == 2:
         return _parse_darwin_v2(path, data)
