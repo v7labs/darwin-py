@@ -8,7 +8,7 @@ from PIL import Image as PILImage
 
 import torch
 
-TargetKey = Union["boxes", "labels", "masks", "image_id", "area", "iscrowd"]
+TargetKey = Union["boxes", "labels", "mask", "masks", "image_id", "area", "iscrowd"]
 TargetType = Dict[TargetKey, torch.Tensor]
 
 
