@@ -993,8 +993,16 @@ def validate_schemas(
             console.print(f"\t\t- {error['message']}", style="error")
 
     if output:
-        with open(output, "w") as outfile:
-            json.dump(all_errors, outfile, indent=2)
+        try:
+            filename: Path = output
+            if os.path.isdir(output):
+                filename = Path(os.path.join(output, "report.json"))
+            with open(filename, "w") as outfile:
+                json.dump(all_errors, outfile, indent=2)
+            console.print(f"Writing report to {filename}", style="success")
+        except Exception as e:
+            console.print(f"Error writing output file with {e}", style="error")
+            console.print("Did you supply an invalid filename?")
 
 
 def dataset_convert(dataset_identifier: str, format: str, output_dir: Optional[PathLike] = None) -> None:
