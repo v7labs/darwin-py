@@ -42,6 +42,7 @@ def _build_image_json(annotation_file: dt.AnnotationFile):
             **_build_metadata(annotation_file),
         },
         "annotations": list(map(_build_annotation, annotation_file.annotations)),
+        "dataset": str(annotation_file.dataset_name)
     }
 
 
@@ -62,6 +63,7 @@ def _build_video_json(annotation_file: dt.AnnotationFile):
             **_build_metadata(annotation_file),
         },
         "annotations": list(map(_build_annotation, annotation_file.annotations)),
+        "dataset": str(annotation_file.dataset_name)
     }
 
 
@@ -131,8 +133,7 @@ def _build_image_annotation(annotation: dt.Annotation, skip_slots: bool = False)
 
 def _build_legacy_annotation_data(annotation_class: dt.AnnotationClass, data: Dict[str, Any]) -> Dict[str, Any]:
     if annotation_class.annotation_type == "complex_polygon":
-        data["path"] = data["paths"][0]
-        data["additional_paths"] = data["paths"][1:]
+        data["path"] = data["paths"]
         del data["paths"]
         return {"complex_polygon": data}
     else:

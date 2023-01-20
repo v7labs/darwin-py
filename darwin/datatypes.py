@@ -346,6 +346,9 @@ class AnnotationFile:
     #: URL of the image's thumbnail in this annotation.
     image_thumbnail_url: Optional[str] = None
 
+    #: Dataset name
+    dataset_name: Optional[str] = None
+
     # Version of the file in format (MAJOR, MINOR, SUFFIX)
     # e.g. (1, 0, 'a')
     version: AnnotationFileVersion = field(default_factory=AnnotationFileVersion)

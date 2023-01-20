@@ -148,6 +148,9 @@ def describe_parse_darwin_json():
 
         assert annotation_file.path == import_file
         assert annotation_file.filename == "P49-RediPad-ProPlayLEFTY_442.jpg"
+        assert annotation_file.dataset_name == None
+        assert annotation_file.version == dt.AnnotationFileVersion(major=1, minor=0, suffix='')
+
         assert len(annotation_file.annotations) == 2
         assert len(annotation_file.annotation_classes) == 2
         assert not annotation_file.is_video
@@ -232,6 +235,9 @@ def describe_parse_darwin_json():
 
         assert annotation_file.path == import_file
         assert annotation_file.filename == "above tractor.mp4"
+        assert annotation_file.dataset_name == None
+        assert annotation_file.version == dt.AnnotationFileVersion(major=1, minor=0, suffix='')
+
         assert len(annotation_file.annotations) == 1
         assert len(annotation_file.annotation_classes) == 1
         assert annotation_file.is_video
@@ -265,6 +271,103 @@ def describe_parse_darwin_json():
                 interpolated=True,
             )
         ]
+
+    def it_parses_darwin_v2_correctly(tmp_path):
+        content = """
+        {
+          "version": "2.0",
+          "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json_2_0.schema.json",
+          "item": {
+            "name": "item-0.jpg",
+            "path": "/path-0/folder",
+            "source_info": {
+              "dataset": {
+                "name": "Dataset 0",
+                "slug": "dataset-0",
+                "dataset_management_url": "http://example.com/datasets/545/dataset-management"
+              },
+              "item_id": "0185c280-bbad-6117-71a7-a6853a6e3f2e",
+              "team": {
+                "name": "Team 0",
+                "slug": "team-0"
+              },
+              "workview_url": "http://example.com/workview?dataset=545&item=0185c280-bbad-6117-71a7-a6853a6e3f2e"
+            },
+            "slots": [
+              {
+                "type": "image",
+                "slot_name": "0",
+                "width": 123,
+                "height": 456,
+                "thumbnail_url": "http://example.com/fake-api-url/v2/teams/v7/files/71857eb3-6feb-428a-8fc6-0c8a895ea611/thumbnail",
+                "source_files": [
+                  {
+                    "file_name": "file-0",
+                    "url": "http://example.com/fake-api-url/v2/teams/v7/uploads/43a83276-1abf-483b-877e-6e61349f2d1f"
+                  }
+                ]
+              }
+            ]
+          },
+          "annotations": [
+            {
+              "bounding_box": {
+                "h": 2,
+                "w": 1,
+                "x": 1,
+                "y": 1
+              },
+              "id": "f8f5f235-bd47-47be-b4fe-07d49e0177a7",
+              "name": "polygon",
+              "polygon": {
+                "paths": [
+                  [
+                    {
+                      "x": 1,
+                      "y": 1
+                    },
+                    {
+                      "x": 2,
+                      "y": 2
+                    },
+                    {
+                      "x": 1,
+                      "y": 3
+                    }
+                  ]
+                ]
+              },
+              "slot_names": [
+                "0"
+              ]
+            }
+          ]
+        }
+        """
+
+        directory = tmp_path / "imports"
+        directory.mkdir()
+        import_file = directory / "darwin-file.json"
+        import_file.write_text(content)
+
+        annotation_file: dt.AnnotationFile = parse_darwin_json(import_file, None)
+
+        assert annotation_file.path == import_file
+        assert annotation_file.filename == "item-0.jpg"
+        assert annotation_file.dataset_name == "Dataset 0"
+        assert annotation_file.version == dt.AnnotationFileVersion(major=2, minor=0, suffix='')
+
+        assert len(annotation_file.annotations) == 1
+        assert len(annotation_file.annotation_classes) == 1
+        assert not annotation_file.is_video
+        assert annotation_file.image_width == 123
+        assert annotation_file.image_height == 456
+        assert annotation_file.image_url == "http://example.com/fake-api-url/v2/teams/v7/uploads/43a83276-1abf-483b-877e-6e61349f2d1f"
+        assert annotation_file.workview_url == "http://example.com/workview?dataset=545&item=0185c280-bbad-6117-71a7-a6853a6e3f2e"
+        assert not annotation_file.seq
+        assert not annotation_file.frame_urls
+        assert annotation_file.remote_path == "/path-0/folder"
+
 
     def it_returns_None_if_no_annotations_exist(tmp_path):
         content = """
