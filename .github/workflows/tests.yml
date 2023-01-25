@@ -24,7 +24,7 @@ jobs:
           pip install --editable ".[test,ml,medical]"
 
       - name: Run tests
-        run: pytest
+        run: python -m pytest
   windows:
     runs-on: windows-latest
     timeout-minutes: 30
@@ -46,4 +46,4 @@ jobs:
           pip install --editable ".[test,ml,medical,dev]"
 
       - name: Run tests
-        run: pytest
+        run: python -m pytest
