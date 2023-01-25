@@ -393,7 +393,7 @@ def _write_to_file(annotation_path: Path, annotation_files: List[Path], file_pat
         for i in split_idx:
             # To deal with recursive search, we want to write the difference between the annotation path
             # and its parent, without the file extension
-            stem = str(annotation_files[i]).replace(f"{annotation_path}/", "").split(".json")[0]
+            stem = str(annotation_files[i]).replace(f"{annotation_path}/", "").rsplit(".json", 1)[0]
             f.write(f"{stem}\n")
 
 
