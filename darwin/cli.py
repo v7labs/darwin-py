@@ -159,6 +159,9 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
                 args.w,
                 args.h,
             )
+    # Annotation schema validation
+    elif args.command == "validate":
+        f.validate_schemas(location=args.location, pattern=args.pattern, silent=args.silent, output=args.output)
 
 
 if __name__ == "__main__":
