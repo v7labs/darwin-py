@@ -5,7 +5,7 @@ from typing import Optional, Tuple
 import argcomplete
 
 
-class Options(object):
+class Options:
     """
     Has functions to parse CLI options given by the user.
     """
@@ -205,7 +205,7 @@ class Options(object):
             help="Empty annotations will delete annotations from remote files.",
         )
 
-        #
+        # Cpu limit for multiprocessing tasks
         def cpu_default_types(input) -> Optional[int]:
             try:
                 return int(input)

@@ -1,4 +1,6 @@
 from unittest import TestCase
+from pathlib import Path
+from darwin.importer.importer import _get_files_for_parsing
 
 
 class TestCaseImporter(TestCase):
@@ -35,3 +37,42 @@ class Test_get_multi_cpu_settings(TestCaseImporter):
 
         cpu_limit, _ = gmcus(900, 768, True)
         self.assertEqual(cpu_limit, 768)
+
+
+class Test_get_files_for_parsing(TestCaseImporter):
+    def setUp(self) -> None:
+        return super().setUp()
+
+    def tearDown(self) -> None:
+        return super().tearDown()
+
+    def test_get_files_for_parsing(self):
+        # Test directory with multiple files
+        dir_path = Path("example_dir")
+        dir_files = [Path("example_dir/file1.txt"), Path("example_dir/file2.txt"), Path("example_dir/subdir/file3.txt")]
+        for file in dir_files:
+            file.touch()
+        result = _get_files_for_parsing([dir_path])
+        assert set(result) == set(dir_files)
+
+        # Clean up
+        for file in dir_files:
+            file.unlink()
+        dir_path.rmdir()
+
+        # Test single file
+        file_path = Path("example.txt")
+        file_path.touch()
+        result = _get_files_for_parsing([file_path])
+        assert result == [file_path]
+        file_path.unlink()
+
+        # Test multiple input files
+        file1 = Path("file1.txt")
+        file1.touch()
+        file2 = Path("file2.txt")
+        file2.touch()
+        result = _get_files_for_parsing([file1, file2])
+        assert set(result) == {file1, file2}
+        file1.unlink()
+        file2.unlink()
