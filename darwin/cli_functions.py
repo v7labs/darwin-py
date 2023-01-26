@@ -1,9 +1,11 @@
 import argparse
 import concurrent.futures
 import datetime
+import json
 import os
 import sys
 import traceback
+from glob import glob
 from itertools import tee
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, NoReturn, Optional, Set, Union
@@ -34,12 +36,15 @@ from darwin.dataset.upload_manager import LocalFile
 from darwin.dataset.utils import get_release_path
 from darwin.datatypes import ExportParser, ImportParser, PathLike, Team
 from darwin.exceptions import (
+    AnnotationFileValidationError,
     IncompatibleOptions,
     InvalidLogin,
     MissingConfig,
+    MissingSchema,
     NameTaken,
     NotFound,
     Unauthenticated,
+    UnknownAnnotationFileSchema,
     UnrecognizableFileEncoding,
     UnsupportedExportFormat,
     UnsupportedFileType,
@@ -55,6 +60,7 @@ from darwin.utils import (
     persist_client_configuration,
     prompt,
     secure_continue_request,
+    validate_file_against_schema,
 )
 
 
@@ -798,6 +804,10 @@ def dataset_import(
         _error(str(e))
     except UnrecognizableFileEncoding as e:
         _error(str(e))
+    except UnknownAnnotationFileSchema as e:
+        _error(str(e))
+    except AnnotationFileValidationError as e:
+        _error(str(e))
 
 
 def list_files(
@@ -939,7 +949,75 @@ def delete_files(dataset_slug: str, files: List[str], skip_user_confirmation: bo
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
     except:
-        _error(f"An error has occurred, please try again later.")
+        _error("An error has occurred, please try again later.")
+
+
+def validate_schemas(
+    location: str,
+    pattern: bool = False,
+    silent: bool = False,
+    output: Optional[Path] = None,
+) -> None:
+    """
+    Validate function for the CLI. Takes one of 3 required key word arguments describing the location of files and prints and/or saves an output
+
+    Parameters
+    ----------
+    location : str
+        str path to a folder or file location to search
+    pattern : bool, optional
+        glob style pattern matching, by default None
+    silent : bool, optional
+        flag to set silent console printing, only showing errors, by default False
+    output : Optional[Path], optional
+        filename for saving to output, by default None
+    """
+
+    all_errors = {}
+    if pattern:
+        to_validate = [Path(filename) for filename in glob(location)]
+    elif os.path.isfile(location):
+        to_validate = [Path(location)]
+    elif os.path.isdir(location):
+        to_validate = [Path(filename) for filename in Path(location).glob("*.json")]
+    else:
+        to_validate = []
+
+    console = Console(theme=_console_theme(), stderr=True)
+
+    if not to_validate:
+        console.print("No files found to validate", style="warning")
+        return
+
+    console.print(f"Validating schemas for {len(to_validate)} files")
+
+    for file in to_validate:
+        try:
+            errors = [{"message": e.message, "location": e.json_path} for e in validate_file_against_schema(file)]
+        except MissingSchema as e:
+            errors = [{"message": e.message, "location": "schema link"}]
+
+        all_errors[str(file)] = errors
+        if not errors:
+            if not silent:
+                console.print(f"{str(file)}: No Errors", style="success")
+            continue
+        console.print(f"{str(file)}: {len(errors)} errors", style="error")
+        for error in errors:
+            console.print(f"\t- Problem found in {error['location']}", style="error")
+            console.print(f"\t\t- {error['message']}", style="error")
+
+    if output:
+        try:
+            filename: Path = output
+            if os.path.isdir(output):
+                filename = Path(os.path.join(output, "report.json"))
+            with open(filename, "w") as outfile:
+                json.dump(all_errors, outfile, indent=2)
+            console.print(f"Writing report to {filename}", style="success")
+        except Exception as e:
+            console.print(f"Error writing output file with {e}", style="error")
+            console.print("Did you supply an invalid filename?")
 
 
 def dataset_convert(dataset_identifier: str, format: str, output_dir: Optional[PathLike] = None) -> None:

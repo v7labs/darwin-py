@@ -448,18 +448,24 @@ class SemanticSegmentationDataset(LocalDataset):
 
         annotations: List[Dict[str, Union[int, List[List[Union[int, float]]]]]] = []
         for obj in target["annotations"]:
-            sequences = convert_polygons_to_sequences(
-                obj.data["path"],
-                height=target["height"],
-                width=target["width"],
-            )
-            # Discard polygons with less than three points
-            sequences[:] = [s for s in sequences if len(s) >= 6]
-            if not sequences:
-                continue
-            annotations.append(
-                {"category_id": self.classes.index(obj.annotation_class.name), "segmentation": sequences}
-            )
+            if "paths" in obj.data:
+                paths = obj.data["paths"]
+            else:
+                paths = [obj.data["path"]]
+
+            for path in paths:
+                sequences = convert_polygons_to_sequences(
+                    path,
+                    height=target["height"],
+                    width=target["width"],
+                )
+                # Discard polygons with less than three points
+                sequences[:] = [s for s in sequences if len(s) >= 6]
+                if not sequences:
+                    continue
+                annotations.append(
+                    {"category_id": self.classes.index(obj.annotation_class.name), "segmentation": sequences}
+                )
         target["annotations"] = annotations
 
         return target
