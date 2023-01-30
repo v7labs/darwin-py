@@ -10,10 +10,16 @@ from typing import (
     Iterable,
     List,
     Optional,
+    Sequence,
     Set,
     Tuple,
     Union,
 )
+
+from darwin.datatypes import AnnotationFile
+from darwin.item import DatasetItem
+
+Unknown = Any  # type: ignore
 
 from mpire import WorkerPool, tqdm
 
@@ -44,13 +50,13 @@ instead of calling this low-level function directly.
 """
 
 
-@deprecation.deprecated(
+@deprecation.deprecated(  # type:ignore
     deprecated_in="0.7.12",
     removed_in="0.8.0",
     current_version=__version__,
     details=DEPRECATION_MESSAGE,
 )
-def build_main_annotations_lookup_table(annotation_classes: List[Dict[str, Any]]) -> Dict[str, Any]:
+def build_main_annotations_lookup_table(annotation_classes: List[Dict[str, Unknown]]) -> Dict[str, Unknown]:
     MAIN_ANNOTATION_TYPES = [
         "bounding_box",
         "cuboid",
@@ -65,7 +71,7 @@ def build_main_annotations_lookup_table(annotation_classes: List[Dict[str, Any]]
         "table",
         "graph",
     ]
-    lookup: Dict[str, Any] = {}
+    lookup: Dict[str, Unknown] = {}
     for cls in annotation_classes:
         for annotation_type in cls["annotation_types"]:
             if annotation_type in MAIN_ANNOTATION_TYPES:
@@ -76,7 +82,7 @@ def build_main_annotations_lookup_table(annotation_classes: List[Dict[str, Any]]
     return lookup
 
 
-@deprecation.deprecated(
+@deprecation.deprecated(  # type:ignore
     deprecated_in="0.7.12",
     removed_in="0.8.0",
     current_version=__version__,
@@ -90,7 +96,6 @@ def find_and_parse(
     cpu_limit: int = 1,
 ) -> Optional[Iterable[dt.AnnotationFile]]:
     is_console = console is not None
-    maybe_console = lambda *args: console.print(*[f"[{str(perf_time())}]", *args]) if console is not None else None
 
     def perf_time(reset: bool = False) -> Generator[float, float, None]:
         start = perf_counter()
@@ -100,7 +105,11 @@ def find_and_parse(
                 start = perf_counter()
             yield perf_counter() - start
 
-    maybe_console(f"Parsing files... ")
+    def maybe_console(*args: Union[str, int, float]) -> None:
+        if console is not None:
+            console.print(*[f"[{str(perf_time())}]", *args])
+
+    maybe_console("Parsing files... ")
 
     files: List[Path] = _get_files_for_parsing(file_paths)
 
@@ -134,15 +143,15 @@ def _get_files_for_parsing(file_paths: List[PathLike]) -> List[Path]:
     return [file for files in packed_files for file in files]
 
 
-@deprecation.deprecated(
+@deprecation.deprecated(  # type:ignore
     deprecated_in="0.7.12",
     removed_in="0.8.0",
     current_version=__version__,
     details=DEPRECATION_MESSAGE,
 )
-def build_attribute_lookup(dataset: "RemoteDataset") -> Dict[str, Any]:
-    attributes: Any = dataset.fetch_remote_attributes()
-    lookup: Dict[str, Any] = {}
+def build_attribute_lookup(dataset: "RemoteDataset") -> Dict[str, Unknown]:
+    attributes: List[Dict[str, Unknown]] = dataset.fetch_remote_attributes()
+    lookup: Dict[str, Unknown] = {}
     for attribute in attributes:
         class_id = attribute["class_id"]
         if class_id not in lookup:
@@ -151,7 +160,7 @@ def build_attribute_lookup(dataset: "RemoteDataset") -> Dict[str, Any]:
     return lookup
 
 
-@deprecation.deprecated(
+@deprecation.deprecated(  # type:ignore
     deprecated_in="0.7.12",
     removed_in="0.8.0",
     current_version=__version__,
@@ -180,7 +189,7 @@ def get_remote_files(
     return remote_files
 
 
-def _get_slot_name(remote_file) -> str:
+def _get_slot_name(remote_file: DatasetItem) -> str:
     slot = next(iter(remote_file.slots), {"slot_name": "0"})
     if slot:
         return slot["slot_name"]
@@ -190,8 +199,8 @@ def _get_slot_name(remote_file) -> str:
 
 def _resolve_annotation_classes(
     local_annotation_classes: List[dt.AnnotationClass],
-    classes_in_dataset: Dict[str, Any],
-    classes_in_team: Dict[str, Any],
+    classes_in_dataset: Dict[str, Unknown],
+    classes_in_team: Dict[str, Unknown],
 ) -> Tuple[Set[dt.AnnotationClass], Set[dt.AnnotationClass]]:
     local_classes_not_in_dataset: Set[dt.AnnotationClass] = set()
     local_classes_not_in_team: Set[dt.AnnotationClass] = set()
@@ -289,7 +298,7 @@ def import_annotations(
         raise ValueError(f"file_paths must be a list of 'Path' or 'str'. Current value: {file_paths}")
 
     console.print("Fetching remote class list...", style="info")
-    team_classes: List[Dict[str, Any]] = dataset.fetch_remote_classes(True)
+    team_classes: List[Dict[str, Unknown]] = dataset.fetch_remote_classes(True)
     if not team_classes:
         raise ValueError("Unable to fetch remote class list.")
 
@@ -299,10 +308,10 @@ def import_annotations(
             style="warning",
         )
 
-    classes_in_dataset: Dict[str, Any] = build_main_annotations_lookup_table(
+    classes_in_dataset: Dict[str, Unknown] = build_main_annotations_lookup_table(
         [cls for cls in team_classes if cls["available"]]
     )
-    classes_in_team: Dict[str, Any] = build_main_annotations_lookup_table(
+    classes_in_team: Dict[str, Unknown] = build_main_annotations_lookup_table(
         [cls for cls in team_classes if not cls["available"]]
     )
     attributes = build_attribute_lookup(dataset)
@@ -325,7 +334,7 @@ def import_annotations(
     console.print("Fetching remote file list...", style="info")
     # This call will only filter by filename; so can return a superset of matched files across different paths
     # There is logic in this function to then include paths to narrow down to the single correct matching file
-    remote_files = []
+    remote_files: Dict[str, Tuple[int, str]] = {}
 
     # Try to fetch files in large chunks; in case the filenames are too large and exceed the url size
     # retry in smaller chunks
@@ -394,7 +403,7 @@ def import_annotations(
 
     # Refetch classes to update mappings
     if local_classes_not_in_team or local_classes_not_in_dataset:
-        maybe_remote_classes: List[Dict[str, Any]] = dataset.fetch_remote_classes()
+        maybe_remote_classes: List[Dict[str, Unknown]] = dataset.fetch_remote_classes()
         if not maybe_remote_classes:
             raise ValueError("Unable to fetch remote classes.")
 
@@ -468,7 +477,7 @@ def _get_multi_cpu_settings(cpu_limit: Optional[int], cpu_count: int, use_multi_
     return cpu_limit if cpu_limit <= cpu_count else cpu_count, True
 
 
-def _warn_unsupported_annotations(parsed_files):
+def _warn_unsupported_annotations(parsed_files: List[AnnotationFile]) -> None:
     console = Console(theme=_console_theme())
     for parsed_file in parsed_files:
         skipped_annotations = []
@@ -492,8 +501,8 @@ def _get_skeleton_name(skeleton: dt.AnnotationClass) -> str:
 
 
 def _handle_subs(
-    annotation: dt.Annotation, data: Dict[str, Any], annotation_class_id: str, attributes: Dict[str, Any]
-) -> Dict[str, Any]:
+    annotation: dt.Annotation, data: Dict[str, Unknown], annotation_class_id: str, attributes: Dict[str, Unknown]
+) -> Dict[str, Unknown]:
     for sub in annotation.subs:
         if sub.annotation_type == "text":
             data["text"] = {"text": sub.data}
@@ -514,7 +523,7 @@ def _handle_subs(
     return data
 
 
-def _handle_complex_polygon(annotation: dt.Annotation, data: Dict[str, Any]) -> Dict[str, Any]:
+def _handle_complex_polygon(annotation: dt.Annotation, data: Dict[str, Unknown]) -> Dict[str, Unknown]:
     if "complex_polygon" in data:
         del data["complex_polygon"]
         data["polygon"] = {"path": annotation.data["paths"][0], "additional_paths": annotation.data["paths"][1:]}
@@ -524,14 +533,14 @@ def _handle_complex_polygon(annotation: dt.Annotation, data: Dict[str, Any]) -> 
 def _import_annotations(
     client: "Client",
     id: Union[str, int],
-    remote_classes: Dict[str, Any],
-    attributes: Dict[str, Any],
-    annotations: List[dt.Annotation],
+    remote_classes: Dict[str, Unknown],
+    attributes: Dict[str, Unknown],
+    annotations: Sequence[Union[dt.Annotation, dt.VideoAnnotation]],
     default_slot_name: str,
     dataset: "RemoteDataset",
     append: bool,
     delete_for_empty: bool,
-):
+) -> None:
     serialized_annotations = []
     for annotation in annotations:
         annotation_class = annotation.annotation_class
@@ -562,7 +571,7 @@ def _import_annotations(
             }
         )
 
-    payload: Dict[str, Any] = {"annotations": serialized_annotations}
+    payload: Dict[str, Unknown] = {"annotations": serialized_annotations}
     if append:
         payload["overwrite"] = "false"
     else:
