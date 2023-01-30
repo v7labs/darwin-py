@@ -43,8 +43,8 @@ UNSUPPORTED_CLASSES = ["string", "graph"]
 
 DEPRECATION_MESSAGE = """
 
-This function is going to be turned into private. This means that breaking 
-changes in its interface and implementation are to be expected. We encourage using ``import_annotations`` 
+This function is going to be turned into private. This means that breaking
+changes in its interface and implementation are to be expected. We encourage using ``import_annotations``
 instead of calling this low-level function directly.
 
 """
@@ -127,10 +127,10 @@ def find_and_parse(
             maybe_console(f"Error: {e}")
             return None
     else:
-        maybe_console(f"Using single CPU")
+        maybe_console("Using single CPU")
         parsed_files = list(map(importer, tqdm(files) if is_console else files))
 
-    maybe_console(f"Finished.")
+    maybe_console("Finished.")
 
     if not isinstance(parsed_files, list):
         parsed_files = [parsed_files]
@@ -343,7 +343,7 @@ def import_annotations(
         try:
             remote_files = get_remote_files(dataset, filenames, chunk_size)
             break
-        except RequestEntitySizeExceeded as e:
+        except RequestEntitySizeExceeded:
             chunk_size -= 8
             if chunk_size <= 0:
                 raise ValueError("Unable to fetch remote file list.")
@@ -487,7 +487,8 @@ def _warn_unsupported_annotations(parsed_files: List[AnnotationFile]) -> None:
         if len(skipped_annotations) > 0:
             types = set(map(lambda c: c.annotation_class.annotation_type, skipped_annotations))
             console.print(
-                f"Import of annotation class types '{', '.join(types)}' is not yet supported. Skipping {len(skipped_annotations)} annotations from '{parsed_file.full_path}'.\n",
+                f"Import of annotation class types '{', '.join(types)}' is not yet supported. Skipping {len(skipped_annotations)} "
+                + "annotations from '{parsed_file.full_path}'.\n",
                 style="warning",
             )
 

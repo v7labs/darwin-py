@@ -404,10 +404,10 @@ def pull_dataset(
     except NotFound:
         _error(
             f"Dataset '{dataset_slug}' does not exist, please check the spelling. "
-            f"Use 'darwin remote' to list all the remote datasets."
+            "Use 'darwin remote' to list all the remote datasets."
         )
     except Unauthenticated:
-        _error(f"please re-authenticate")
+        _error("please re-authenticate")
 
     try:
         release: Release = dataset.get_release(version)
@@ -654,11 +654,11 @@ def upload_data(
                 "[green]Total progress", filename="Total progress", total=0, visible=False
             )
 
-            def progress_callback(total_file_count, file_advancement):
+            def progress_callback(total_file_count: float, file_advancement: float) -> None:
                 sync_metadata.update(sync_task, visible=False)
                 overall_progress.update(overall_task, total=total_file_count, advance=file_advancement, visible=True)
 
-            def file_upload_callback(file_name, file_total_bytes, file_bytes_sent):
+            def file_upload_callback(file_name: str, file_total_bytes: float, file_bytes_sent: float) -> None:
                 if file_name not in file_tasks:
                     file_tasks[file_name] = file_progress.add_task(
                         f"[blue]{file_name}", filename=file_name, total=file_total_bytes
@@ -673,7 +673,7 @@ def upload_data(
                     for task in file_progress.tasks:
                         if task.finished and len(file_progress.tasks) >= max_workers:
                             file_progress.remove_task(task.id)
-                except Exception as e:
+                except Exception:
                     pass
 
             upload_manager = dataset.push(
@@ -698,7 +698,7 @@ def upload_data(
         already_existing_items = []
         other_skipped_items = []
         for item in upload_manager.blocked_items:
-            if item.reason.upper() == "ALREADY_EXISTS":
+            if (item.reason is not None) and (item.reason.upper() == "ALREADY_EXISTS"):
                 already_existing_items.append(item)
             else:
                 other_skipped_items.append(item)
@@ -754,7 +754,7 @@ def upload_data(
     except UnsupportedFileType as e:
         _error(f"Unsupported file type {e.path.suffix} ({e.path.name})")
     except ValueError:
-        _error(f"No files found")
+        _error("No files found")
 
 
 def dataset_import(
@@ -841,7 +841,7 @@ def list_files(
     client: Client = _load_client(dataset_identifier=dataset_slug)
     try:
         dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
-        filters: Dict[str, Any] = {}
+        filters: Dict[str, Any] = {}  # type: ignore
 
         if statuses:
             for status in statuses.split(","):
@@ -913,7 +913,7 @@ def set_file_status(dataset_slug: str, status: str, files: List[str]) -> None:
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
     except ValueError as e:
-        _error(e)
+        _error(str(e))
 
 
 def delete_files(dataset_slug: str, files: List[str], skip_user_confirmation: bool = False) -> None:
@@ -950,7 +950,7 @@ def delete_files(dataset_slug: str, files: List[str], skip_user_confirmation: bo
 
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
-    except:
+    except Exception:
         _error("An error has occurred, please try again later.")
 
 
@@ -1256,14 +1256,14 @@ def _has_valid_status(status: str) -> bool:
     return status in ["new", "annotate", "review", "complete", "archived"]
 
 
-def _print_new_json_format_warning(dataset):
+def _print_new_json_format_warning(dataset: RemoteDataset) -> None:
     console = Console(theme=_console_theme(), stderr=True)
     console.print(
-        f"NOTE: Your dataset has been exported using new Darwin JSON 2.0 format.",
-        f"    If you wish to use the legacy Darwin format, please use the following to convert: ",
-        f"",
+        "NOTE: Your dataset has been exported using new Darwin JSON 2.0 format.",
+        "    If you wish to use the legacy Darwin format, please use the following to convert: ",
+        "",
         f"    darwin convert darwin_1.0 {dataset.local_path} OUTPUT_DIR",
-        f"",
+        "",
         sep="\n",
         style="warning",
     )

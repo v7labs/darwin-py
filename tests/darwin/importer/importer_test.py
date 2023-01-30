@@ -3,10 +3,8 @@ from typing import Optional
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
 
-from mpire import WorkerPool
 from rich.console import Console
 
-from darwin.datatypes import AnnotationFile
 from darwin.importer.importer import _get_files_for_parsing
 
 
