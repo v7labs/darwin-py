@@ -37,4 +37,4 @@ jobs:
           pip install --editable ".[test,ml,medical,dev]"
           pip install pytest pytest-describe
       - name: Run Tests
-        run: poetry run pytest
+        run: python -m run pytest
