@@ -10,7 +10,7 @@ class Options(object):
     Has functions to parse CLI options given by the user.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
 
         self.parser: ArgumentParser = ArgumentParser(
             description="Command line tool to create/upload/download datasets on darwin."
@@ -221,6 +221,16 @@ class Options(object):
             "--delete-for-empty",
             action="store_true",
             help="Empty annotations will delete annotations from remote files.",
+        )
+        parser_import.add_argument(
+            "--import-annotators",
+            action="import_annotators",
+            help="Import annotators metadata from the annotation files, where available",
+        )
+        parser_import.add_argument(
+            "--import-reviewers",
+            action="import_reviewers",
+            help="Import reviewers metadata from the annotation files, where available",
         )
 
         # Convert

@@ -136,7 +136,16 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
         elif args.action == "pull":
             f.pull_dataset(args.dataset, args.only_annotations, args.folders, args.video_frames, args.force_slots)
         elif args.action == "import":
-            f.dataset_import(args.dataset, args.format, args.files, args.append, not args.yes, args.delete_for_empty)
+            f.dataset_import(
+                args.dataset,
+                args.format,
+                args.files,
+                args.append,
+                not args.yes,
+                args.delete_for_empty,
+                args.import_annotators,
+                args.import_reviewers,
+            ),
         elif args.action == "convert":
             f.dataset_convert(args.dataset, args.format, args.output_dir)
         elif args.action == "set-file-status":

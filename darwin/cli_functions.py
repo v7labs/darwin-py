@@ -764,6 +764,8 @@ def dataset_import(
     append: bool,
     class_prompt: bool = True,
     delete_for_empty: bool = False,
+    import_annotators: bool = False,
+    import_reviewers: bool = False,
 ) -> None:
     """
     Imports annotation files to the given dataset.
@@ -789,6 +791,8 @@ def dataset_import(
     """
 
     client: Client = _load_client(dataset_identifier=dataset_slug)
+
+    # TODO: introduce import_annotators and import_reviewers
 
     try:
         parser: ImportParser = get_importer(format)
