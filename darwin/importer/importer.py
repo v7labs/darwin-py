@@ -1,3 +1,4 @@
+from logging import getLogger
 from multiprocessing import cpu_count
 from pathlib import Path
 from time import perf_counter
@@ -21,7 +22,12 @@ from darwin.item import DatasetItem
 
 Unknown = Any  # type: ignore
 
-from mpire import WorkerPool, tqdm
+try:
+    from mpire import WorkerPool, tqdm
+
+    MPIRE_AVAILABLE = True
+except ImportError:
+    MPIRE_AVAILABLE = False
 
 if TYPE_CHECKING:
     from darwin.client import Client
@@ -97,6 +103,8 @@ def find_and_parse(
 ) -> Optional[Iterable[dt.AnnotationFile]]:
     is_console = console is not None
 
+    logger = getLogger(__name__)
+
     def perf_time(reset: bool = False) -> Generator[float, float, None]:
         start = perf_counter()
         yield start
@@ -108,6 +116,8 @@ def find_and_parse(
     def maybe_console(*args: Union[str, int, float]) -> None:
         if console is not None:
             console.print(*[f"[{str(perf_time())}]", *args])
+        else:
+            logger.info(*[f"[{str(perf_time())}]", *args])
 
     maybe_console("Parsing files... ")
 
@@ -115,7 +125,7 @@ def find_and_parse(
 
     maybe_console(f"Found {len(files)} files")
 
-    if use_multi_cpu:
+    if use_multi_cpu and MPIRE_AVAILABLE:
         maybe_console(f"Using multiprocessing with {cpu_limit} workers")
         try:
             with WorkerPool(cpu_limit) as pool:
@@ -126,8 +136,12 @@ def find_and_parse(
         except Exception as e:
             maybe_console(f"Error: {e}")
             return None
+
     else:
-        maybe_console("Using single CPU")
+        if use_multi_cpu and not MPIRE_AVAILABLE:
+            maybe_console("Multiprocessing module not available. Falling back to single CPU")
+        else:
+            maybe_console("Using single CPU")
         parsed_files = list(map(importer, tqdm(files) if is_console else files))
 
     maybe_console("Finished.")
