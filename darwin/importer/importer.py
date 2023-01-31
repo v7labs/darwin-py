@@ -139,7 +139,7 @@ def find_and_parse(
 
     else:
         if use_multi_cpu and not MPIRE_AVAILABLE:
-            maybe_console("Multiprocessing module not available. Falling back to single CPU")
+            maybe_console("Using single CPU for upload. Run pip install mpire to benefit from faster uploads.")
         else:
             maybe_console("Using single CPU")
         parsed_files = list(map(importer, tqdm(files) if is_console else files))
