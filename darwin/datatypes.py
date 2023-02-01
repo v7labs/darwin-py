@@ -16,6 +16,14 @@ from typing import (
 
 from darwin.path_utils import construct_full_path
 
+# Utility types
+
+NumberLike = Union[int, float]  # Used for functions that can take either an int or a float
+# Used for functions that _genuinely_ don't know what type they're dealing with, such as those that test if something is of a certain type.
+UnknownType = Any  # type:ignore
+
+# Specific types
+
 Point = Dict[str, float]
 BoundingBox = Dict[str, float]
 Polygon = List[Point]

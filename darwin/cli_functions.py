@@ -654,11 +654,11 @@ def upload_data(
                 "[green]Total progress", filename="Total progress", total=0, visible=False
             )
 
-            def progress_callback(total_file_count, file_advancement):
+            def progress_callback(total_file_count: Any, file_advancement: Any) -> None:
                 sync_metadata.update(sync_task, visible=False)
                 overall_progress.update(overall_task, total=total_file_count, advance=file_advancement, visible=True)
 
-            def file_upload_callback(file_name, file_total_bytes, file_bytes_sent):
+            def file_upload_callback(file_name, file_total_bytes, file_bytes_sent) -> None:
                 if file_name not in file_tasks:
                     file_tasks[file_name] = file_progress.add_task(
                         f"[blue]{file_name}", filename=file_name, total=file_total_bytes
@@ -1258,7 +1258,7 @@ def _has_valid_status(status: str) -> bool:
     return status in ["new", "annotate", "review", "complete", "archived"]
 
 
-def _print_new_json_format_warning(dataset):
+def _print_new_json_format_warning(dataset) -> None:
     console = Console(theme=_console_theme(), stderr=True)
     console.print(
         f"NOTE: Your dataset has been exported using new Darwin JSON 2.0 format.",
