@@ -26,10 +26,10 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path) -> N
     """
     video_annotations = list(annotation_files)
     for video_annotation in video_annotations:
-        export_single_nifti_file(video_annotation, output_dir)
+        export_single_nifti_file(video_annotation, output_dir, multilabel=False)
 
 
-def export_single_nifti_file(video_annotation: dt.AnnotationFile, output_dir: Path) -> None:
+def export_single_nifti_file(video_annotation: dt.AnnotationFile, output_dir: Path, multilabel: bool) -> None:
     output_volumes = None
     filename = Path(video_annotation.filename)
     suffixes = filename.suffixes
@@ -132,15 +132,32 @@ def export_single_nifti_file(video_annotation: dt.AnnotationFile, output_dir: Pa
                 output_volume[:, frame_idx, :] = np.logical_or(im_mask, output_volume[:, frame_idx, :])
             elif view_idx == 2:
                 output_volume[frame_idx, :, :] = np.logical_or(im_mask, output_volume[frame_idx, :, :])
-    for class_name in class_map.keys():
+    if multilabel:
+        # This will create a single nifti file with all classes in it.
+        # If there are multiple classes for a given voxel, the voxel will be assigned the value of the last class.
+        multilabel_volume = np.zeros(volume_dims)
+        for class_name in class_map.keys():
+            output_volume = output_volumes[class_name]
+            multilabel_volume = np.where(output_volume, class_map[class_name], multilabel_volume)
         img = nib.Nifti1Image(
-            dataobj=np.flip(output_volumes[class_name], (0, 1, 2)).astype(np.int16),
+            dataobj=np.flip(multilabel_volume, (0, 1, 2)).astype(np.int16),
             affine=affine,
         )
-        output_path = Path(output_dir) / f"{image_id}_{class_name}.nii.gz"
+        output_path = Path(output_dir) / f"{image_id}_multilabel.nii.gz"
         if not output_path.parent.exists():
             output_path.parent.mkdir(parents=True)
         nib.save(img=img, filename=output_path)
+    else:
+        # This will create a nifti file for each class.
+        for class_name in class_map.keys():
+            img = nib.Nifti1Image(
+                dataobj=np.flip(output_volumes[class_name], (0, 1, 2)).astype(np.int16),
+                affine=affine,
+            )
+            output_path = Path(output_dir) / f"{image_id}_{class_name}.nii.gz"
+            if not output_path.parent.exists():
+                output_path.parent.mkdir(parents=True)
+            nib.save(img=img, filename=output_path)
 
 
 def shift_polygon_coords(polygon, height, width, pixdim):
