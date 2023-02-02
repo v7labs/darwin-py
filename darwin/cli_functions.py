@@ -34,7 +34,14 @@ from darwin.dataset.release import Release
 from darwin.dataset.split_manager import split_dataset
 from darwin.dataset.upload_manager import LocalFile
 from darwin.dataset.utils import get_release_path
-from darwin.datatypes import ExportParser, ImportParser, PathLike, Team
+from darwin.datatypes import (
+    ExportParser,
+    ImportParser,
+    NumberLike,
+    PathLike,
+    Team,
+    UnknownType,
+)
 from darwin.exceptions import (
     AnnotationFileValidationError,
     IncompatibleOptions,
@@ -654,11 +661,11 @@ def upload_data(
                 "[green]Total progress", filename="Total progress", total=0, visible=False
             )
 
-            def progress_callback(total_file_count, file_advancement):
+            def progress_callback(total_file_count: NumberLike, file_advancement: NumberLike) -> None:
                 sync_metadata.update(sync_task, visible=False)
                 overall_progress.update(overall_task, total=total_file_count, advance=file_advancement, visible=True)
 
-            def file_upload_callback(file_name, file_total_bytes, file_bytes_sent):
+            def file_upload_callback(file_name: str, file_total_bytes: NumberLike, file_bytes_sent: NumberLike) -> None:
                 if file_name not in file_tasks:
                     file_tasks[file_name] = file_progress.add_task(
                         f"[blue]{file_name}", filename=file_name, total=file_total_bytes
@@ -698,7 +705,7 @@ def upload_data(
         already_existing_items = []
         other_skipped_items = []
         for item in upload_manager.blocked_items:
-            if item.reason.upper() == "ALREADY_EXISTS":
+            if item.reason is not None and item.reason.upper() == "ALREADY_EXISTS":
                 already_existing_items.append(item)
             else:
                 other_skipped_items.append(item)
@@ -764,6 +771,8 @@ def dataset_import(
     append: bool,
     class_prompt: bool = True,
     delete_for_empty: bool = False,
+    import_annotators: bool = False,
+    import_reviewers: bool = False,
 ) -> None:
     """
     Imports annotation files to the given dataset.
@@ -789,6 +798,8 @@ def dataset_import(
     """
 
     client: Client = _load_client(dataset_identifier=dataset_slug)
+
+    # TODO: introduce import_annotators and import_reviewers
 
     try:
         parser: ImportParser = get_importer(format)
@@ -839,7 +850,7 @@ def list_files(
     client: Client = _load_client(dataset_identifier=dataset_slug)
     try:
         dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
-        filters: Dict[str, Any] = {}
+        filters: Dict[str, UnknownType] = {}
 
         if statuses:
             for status in statuses.split(","):
@@ -862,7 +873,7 @@ def list_files(
             table.add_column("Status", justify="left")
             table.add_column("URL", justify="left")
 
-        for file in dataset.fetch_remote_files(filters, sort_by):
+        for file in dataset.fetch_remote_files(filters, sort_by):  # type: ignore
             if only_filenames:
                 table.add_row(file.filename)
             else:
@@ -911,7 +922,7 @@ def set_file_status(dataset_slug: str, status: str, files: List[str]) -> None:
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
     except ValueError as e:
-        _error(e)
+        _error(str(e))
 
 
 def delete_files(dataset_slug: str, files: List[str], skip_user_confirmation: bool = False) -> None:
@@ -1254,7 +1265,7 @@ def _has_valid_status(status: str) -> bool:
     return status in ["new", "annotate", "review", "complete", "archived"]
 
 
-def _print_new_json_format_warning(dataset):
+def _print_new_json_format_warning(dataset: RemoteDataset) -> None:
     console = Console(theme=_console_theme(), stderr=True)
     console.print(
         f"NOTE: Your dataset has been exported using new Darwin JSON 2.0 format.",

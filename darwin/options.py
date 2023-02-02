@@ -5,12 +5,12 @@ from typing import Tuple
 import argcomplete
 
 
-class Options(object):
+class Options:
     """
     Has functions to parse CLI options given by the user.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
 
         self.parser: ArgumentParser = ArgumentParser(
             description="Command line tool to create/upload/download datasets on darwin."

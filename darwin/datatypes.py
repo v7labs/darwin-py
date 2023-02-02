@@ -16,11 +16,14 @@ from typing import (
 
 from darwin.path_utils import construct_full_path
 
+UnknownType = object
+NumberLike = Union[int, float]
+
 Point = Dict[str, float]
 BoundingBox = Dict[str, float]
 Polygon = List[Point]
 ComplexPolygon = List[Polygon]
-Node = Dict[str, Any]
+Node = Dict[str, UnknownType]
 EllipseData = Dict[str, Union[float, Point]]
 CuboidData = Dict[str, Dict[str, float]]
 Segment = List[int]
@@ -98,7 +101,7 @@ class SubAnnotation:
 
     #: Any external data, in any format, relevant to this ``SubAnnotation``.
     #: Used for compatibility purposes with external formats.
-    data: Any
+    data: UnknownType
 
 
 @dataclass(frozen=True, eq=True)
@@ -125,7 +128,7 @@ class Annotation:
 
     #: Any external data, in any format, relevant to this ``Annotation``.
     #: Used for compatibility purposes with external formats.
-    data: Any
+    data: UnknownType
 
     #: List of ``SubAnnotations`` belonging to this ``Annotation``.
     subs: List[SubAnnotation] = field(default_factory=list)
@@ -169,7 +172,7 @@ class VideoAnnotation:
     annotation_class: AnnotationClass
 
     #: A dictionary of frames for this ``VideoAnnotation``.
-    frames: Dict[int, Any]
+    frames: Dict[int, UnknownType]
 
     #: The keyframes for this ``VideoAnnotation``.
     #: Keyframes are a selection of frames from the ``frames`` attribute.
@@ -191,8 +194,10 @@ class VideoAnnotation:
     reviewers: Optional[List[AnnotationAuthor]] = None
 
     def get_data(
-        self, only_keyframes: bool = True, post_processing: Optional[Callable[[Annotation, Any], Any]] = None
-    ) -> Dict[str, Any]:
+        self,
+        only_keyframes: bool = True,
+        post_processing: Optional[Callable[[Annotation, UnknownType], UnknownType]] = None,
+    ) -> Dict[str, UnknownType]:
         """
         Return the post-processed frames and the additional information from this
         ``VideoAnnotation`` in a dictionary with the format:
@@ -224,7 +229,9 @@ class VideoAnnotation:
             and whether or not it is interpolated.
         """
         if not post_processing:
-            post_processing = lambda annotation, data: data
+
+            def post_processing(annotation: Annotation, data: UnknownType) -> UnknownType:
+                return data
 
         return {
             "frames": {
@@ -273,7 +280,7 @@ class Slot:
     fps: Optional[float] = None
 
     #: Metadata of the slot
-    metadata: Optional[Dict[str, Any]] = None
+    metadata: Optional[Dict[str, UnknownType]] = None
 
 
 @dataclass
@@ -716,7 +723,7 @@ def make_cuboid(
 def make_table(
     class_name: str,
     bounding_box: BoundingBox,
-    cells: List[Dict[str, Any]],
+    cells: List[Dict[str, UnknownType]],
     subs: Optional[List[SubAnnotation]] = None,
     slot_names: Optional[List[str]] = None,
 ) -> Annotation:
@@ -771,7 +778,7 @@ def make_table(
 
 def make_string(
     class_name: str,
-    sources: List[Dict[str, Any]],
+    sources: List[Dict[str, UnknownType]],
     subs: Optional[List[SubAnnotation]] = None,
     slot_names: Optional[List[str]] = None,
 ) -> Annotation:
@@ -918,7 +925,7 @@ def make_text(text: str) -> SubAnnotation:
     return SubAnnotation("text", text)
 
 
-def make_opaque_sub(type: str, data: Any) -> SubAnnotation:
+def make_opaque_sub(type: str, data: UnknownType) -> SubAnnotation:
     """
     Creates and returns a opaque sub-annotation.
 
@@ -961,7 +968,7 @@ def make_keyframe(annotation: Annotation, idx: int) -> KeyFrame:
 
 
 def make_video_annotation(
-    frames: Dict[int, Any],
+    frames: Dict[int, UnknownType],
     keyframes: Dict[int, bool],
     segments: List[Segment],
     interpolated: bool,
@@ -1000,7 +1007,7 @@ def make_video_annotation(
     )
 
 
-def _maybe_add_bounding_box_data(data: Dict[str, Any], bounding_box: Optional[Dict]) -> Dict[str, Any]:
+def _maybe_add_bounding_box_data(data: Dict[str, UnknownType], bounding_box: Optional[Dict]) -> Dict[str, UnknownType]:
     if bounding_box:
         data["bounding_box"] = {
             "x": bounding_box["x"],
