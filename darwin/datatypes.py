@@ -65,47 +65,6 @@ class DictFreeForm:
 
 
 @dataclass
-class Frame:
-    def __init__(self, **kwargs: DictFreeForm):
-        self.__dict__.update(kwargs)
-
-    def __setattr__(self, __name: str, __value: UnknownType) -> None:
-        if __name == "key":
-            # check is valid int, although being set as string
-            try:
-                _ = int(__value, 10)
-            except AssertionError:
-                raise ValueError(
-                    f"Frame class expects string that casts correctly to integer, e.g. '16' or '016'\nProvided {__value}"
-                )
-
-        setattr(self, __name, __value)
-
-    def __getattr__(self, __name: str) -> UnknownType:
-        if __name == "key":
-            return str(self.key)
-
-        return getattr(self, __name)
-
-    key: str
-    segments: List[Segment]
-    interpolated: bool
-
-
-@dataclass
-class FramesDict:
-    frame: Dict[int, Frame]
-
-
-@dataclass
-class VideoAnnotationDict(JSONWizard):  # type: ignore
-
-    frames: FramesDict
-    segments: List[Segment]
-    interpolated: bool
-
-
-@dataclass
 class Team:
     """
     Definition of a V7 team.
@@ -299,28 +258,26 @@ class VideoAnnotation:
         """
         if not post_processing:
 
-            def post_processing(annotation: Annotation, data: UnknownType) -> Frame:
+            def post_processing(annotation: Annotation, data: UnknownType) -> UnknownType:
                 return data  # type: ignore
 
-        output = VideoAnnotationDict.from_dict(
-            {
-                "frames": {
-                    frame: {
-                        **post_processing(
-                            self.frames[frame],  # type: ignore
-                            {self.frames[frame].annotation_class.annotation_type: self.frames[frame].data},  # type: ignore
-                        ),
-                        **{"keyframe": self.keyframes[frame]},  # type: ignore
-                    }
-                    for frame in self.frames
-                    if not only_keyframes or self.keyframes[frame]
-                },
-                "segments": self.segments,
-                "interpolated": self.interpolated,
-            }
-        )
+        output = {
+            "frames": {
+                frame: {
+                    **post_processing(
+                        self.frames[frame],  # type: ignore
+                        {self.frames[frame].annotation_class.annotation_type: self.frames[frame].data},  # type: ignore
+                    ),
+                    **{"keyframe": self.keyframes[frame]},  # type: ignore
+                }
+                for frame in self.frames
+                if not only_keyframes or self.keyframes[frame]
+            },
+            "segments": self.segments,
+            "interpolated": self.interpolated,
+        }
 
-        return output.to_dict()
+        return output
 
 
 @dataclass
