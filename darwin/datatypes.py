@@ -14,9 +14,11 @@ from typing import (
     Union,
 )
 
+from dataclass_wizard import JSONWizard
+
 from darwin.path_utils import construct_full_path
 
-UnknownType = object
+UnknownType = Any  # type: ignore
 NumberLike = Union[int, float]
 
 Point = Dict[str, float]
@@ -34,6 +36,73 @@ PathLike = Union[str, Path]
 ErrorHandler = Callable[[int, str], None]
 
 ItemId = Union[str, int]
+JSONFreeForm = Dict[str, Any]  # type: ignore
+
+
+class JSONType:
+    def __init__(self, **kwargs: JSONFreeForm):
+        self.__dict__.update(kwargs)
+
+    def to_json(self) -> JSONFreeForm:
+        return self.__dict__
+
+    @classmethod
+    def from_json(cls, json: JSONFreeForm) -> "JSONType":
+        return cls(**json)
+
+    @classmethod
+    def from_dict(cls, json: JSONFreeForm) -> "JSONType":
+        return cls(**json)
+
+
+class DictFreeForm:
+    def __init__(self, **kwargs: JSONFreeForm):
+        self.__dict__.update(kwargs)
+
+    @classmethod
+    def from_dict(cls, json: JSONFreeForm) -> "DictFreeForm":
+        return cls(**json)
+
+
+@dataclass
+class Frame:
+    def __init__(self, **kwargs: DictFreeForm):
+        self.__dict__.update(kwargs)
+
+    def __setattr__(self, __name: str, __value: UnknownType) -> None:
+        if __name == "key":
+            # check is valid int, although being set as string
+            try:
+                _ = int(__value, 10)
+            except AssertionError:
+                raise ValueError(
+                    f"Frame class expects string that casts correctly to integer, e.g. '16' or '016'\nProvided {__value}"
+                )
+
+        setattr(self, __name, __value)
+
+    def __getattr__(self, __name: str) -> UnknownType:
+        if __name == "key":
+            return str(self.key)
+
+        return getattr(self, __name)
+
+    key: str
+    segments: List[Segment]
+    interpolated: bool
+
+
+@dataclass
+class FramesDict:
+    frame: Dict[int, Frame]
+
+
+@dataclass
+class VideoAnnotationDict(JSONWizard):  # type: ignore
+
+    frames: FramesDict
+    segments: List[Segment]
+    interpolated: bool
 
 
 @dataclass
@@ -197,7 +266,7 @@ class VideoAnnotation:
         self,
         only_keyframes: bool = True,
         post_processing: Optional[Callable[[Annotation, UnknownType], UnknownType]] = None,
-    ) -> Dict[str, UnknownType]:
+    ) -> Dict:
         """
         Return the post-processed frames and the additional information from this
         ``VideoAnnotation`` in a dictionary with the format:
@@ -230,24 +299,28 @@ class VideoAnnotation:
         """
         if not post_processing:
 
-            def post_processing(annotation: Annotation, data: UnknownType) -> UnknownType:
-                return data
+            def post_processing(annotation: Annotation, data: UnknownType) -> Frame:
+                return data  # type: ignore
 
-        return {
-            "frames": {
-                frame: {
-                    **post_processing(
-                        self.frames[frame],
-                        {self.frames[frame].annotation_class.annotation_type: self.frames[frame].data},
-                    ),
-                    **{"keyframe": self.keyframes[frame]},
-                }
-                for frame in self.frames
-                if not only_keyframes or self.keyframes[frame]
-            },
-            "segments": self.segments,
-            "interpolated": self.interpolated,
-        }
+        output = VideoAnnotationDict.from_dict(
+            {
+                "frames": {
+                    frame: {
+                        **post_processing(
+                            self.frames[frame],  # type: ignore
+                            {self.frames[frame].annotation_class.annotation_type: self.frames[frame].data},  # type: ignore
+                        ),
+                        **{"keyframe": self.keyframes[frame]},  # type: ignore
+                    }
+                    for frame in self.frames
+                    if not only_keyframes or self.keyframes[frame]
+                },
+                "segments": self.segments,
+                "interpolated": self.interpolated,
+            }
+        )
+
+        return output.to_dict()
 
 
 @dataclass
@@ -998,8 +1071,8 @@ def make_video_annotation(
     ValueError
         If some of the frames have different annotation class names.
     """
-    first_annotation: Annotation = list(frames.values())[0]
-    if not all(frame.annotation_class.name == first_annotation.annotation_class.name for frame in frames.values()):
+    first_annotation: Annotation = list(frames.values())[0]  # type: ignore
+    if not all(frame.annotation_class.name == first_annotation.annotation_class.name for frame in frames.values()):  # type: ignore
         raise ValueError("invalid argument to make_video_annotation")
 
     return VideoAnnotation(
