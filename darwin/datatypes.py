@@ -14,8 +14,6 @@ from typing import (
     Union,
 )
 
-from dataclass_wizard import JSONWizard
-
 from darwin.path_utils import construct_full_path
 
 UnknownType = Any  # type: ignore
