@@ -799,8 +799,6 @@ def dataset_import(
 
     client: Client = _load_client(dataset_identifier=dataset_slug)
 
-    # TODO: introduce import_annotators and import_reviewers
-
     try:
         parser: ImportParser = get_importer(format)
         dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
