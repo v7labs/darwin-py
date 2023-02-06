@@ -1,10 +1,9 @@
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Union
+from typing import Any, Dict, Iterable, Union
 
 import orjson as json
 
 import darwin.datatypes as dt
-from darwin.exporter.formats.numpy_encoder import NumpyEncoder
 
 
 def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path) -> None:
@@ -12,11 +11,13 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path) -> N
         _export_file(annotation_file, id, output_dir)
 
 
-def _export_file(annotation_file: dt.AnnotationFile, id: int, output_dir: Path):
+def _export_file(annotation_file: dt.AnnotationFile, id: int, output_dir: Path) -> None:
     output: Dict[str, Any] = _build_json(annotation_file)
     output_file_path: Path = (output_dir / annotation_file.filename).with_suffix(".json")
     with open(output_file_path, "w") as f:
-        op = json.dumps(output, option=json.OPT_INDENT_2 | json.OPT_SERIALIZE_NUMPY).decode("utf-8")
+        op = json.dumps(output, option=json.OPT_INDENT_2 | json.OPT_SERIALIZE_NUMPY | json.OPT_NON_STR_KEYS).decode(
+            "utf-8"
+        )
         f.write(op)
 
 
@@ -42,7 +43,7 @@ def _build_image_json(annotation_file: dt.AnnotationFile):
             **_build_metadata(annotation_file),
         },
         "annotations": list(map(_build_annotation, annotation_file.annotations)),
-        "dataset": str(annotation_file.dataset_name)
+        "dataset": str(annotation_file.dataset_name),
     }
 
 
@@ -63,7 +64,7 @@ def _build_video_json(annotation_file: dt.AnnotationFile):
             **_build_metadata(annotation_file),
         },
         "annotations": list(map(_build_annotation, annotation_file.annotations)),
-        "dataset": str(annotation_file.dataset_name)
+        "dataset": str(annotation_file.dataset_name),
     }
 
 

@@ -1,14 +1,19 @@
-# Developing for `darwin-py`
+# Developing for `darwin-py` <!-- omit in toc -->
 
 `darwin-py` uses a `pyproject.toml` file, and manages it with `poetry`
 
-- [Developing for `darwin-py`](#developing-for-darwin-py)
-  - [Development environment](#development-environment)
-  - [Basic poetry commands](#basic-poetry-commands)
-    - [Add a package to general dependencies:](#add-a-package-to-general-dependencies)
-    - [Add a package to one of the extras groups](#add-a-package-to-one-of-the-extras-groups)
-    - [Add a package to the poetry dev dependencies](#add-a-package-to-the-poetry-dev-dependencies)
-  - [The `pyproject.toml` file](#the-pyprojecttoml-file)
+## Contents <!-- omit in toc -->
+- [Other links](#other-links)
+- [Development environment](#development-environment)
+- [Basic poetry commands](#basic-poetry-commands)
+  - [Add a package to general dependencies:](#add-a-package-to-general-dependencies)
+  - [Add a package to one of the extras groups](#add-a-package-to-one-of-the-extras-groups)
+  - [Add a package to the poetry dev dependencies](#add-a-package-to-the-poetry-dev-dependencies)
+- [The `pyproject.toml` file](#the-pyprojecttoml-file)
+
+## Other links
+
+* [Release process](release_process.md)
 
 
 ## Development environment
