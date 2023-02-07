@@ -534,10 +534,7 @@ def dataset_list_releases(dataset_slug: str) -> None:
             if not release.available:
                 continue
             table.add_row(
-                str(release.identifier),
-                str(release.image_count),
-                str(release.class_count),
-                str(release.export_date),
+                str(release.identifier), str(release.image_count), str(release.class_count), str(release.export_date)
             )
 
         Console().print(table)
@@ -682,7 +679,7 @@ def upload_data(
             return
 
         error_table: Table = Table(
-            "Dataset Item ID", "Filename", "Remote Path", "Stage", "Reason", show_header=True, eader_style="bold cyan"
+            "Dataset Item ID", "Filename", "Remote Path", "Stage", "Reason", show_header=True, header_style="bold cyan"
         )
 
         for item in upload_manager.blocked_items:
