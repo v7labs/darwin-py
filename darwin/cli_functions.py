@@ -79,11 +79,7 @@ def validate_api_key(api_key: str) -> None:
         _error(f"Expected key prefix to be 7 characters long\n(example: {example_key})")
 
 
-def authenticate(
-    api_key: str,
-    default_team: Optional[bool] = None,
-    datasets_dir: Optional[Path] = None,
-) -> Config:
+def authenticate(api_key: str, default_team: Optional[bool] = None, datasets_dir: Optional[Path] = None) -> Config:
     """
     Authenticate the API key against the server and creates a configuration file for it.
 
@@ -351,10 +347,7 @@ def export_dataset(
 
 
 def pull_dataset(
-    dataset_slug: str,
-    only_annotations: bool = False,
-    folders: bool = False,
-    video_frames: bool = False,
+    dataset_slug: str, only_annotations: bool = False, folders: bool = False, video_frames: bool = False
 ) -> None:
     """
     Downloads a remote dataset (images and annotations) in the datasets directory.
@@ -386,12 +379,7 @@ def pull_dataset(
 
     try:
         release: Release = dataset.get_release(version)
-        dataset.pull(
-            release=release,
-            only_annotations=only_annotations,
-            use_folders=folders,
-            video_frames=video_frames,
-        )
+        dataset.pull(release=release, only_annotations=only_annotations, use_folders=folders, video_frames=video_frames)
         if video_frames:
             dataset.split_video_annotations(release_name=release.name)
         print_new_version_info(client)
@@ -485,11 +473,7 @@ def list_remote_datasets(all_teams: bool, team: Optional[str] = None) -> None:
         datasets = list(client.list_remote_datasets())
 
     for dataset in datasets:
-        table.add_row(
-            f"{dataset.team}/{dataset.slug}",
-            str(dataset.item_count),
-            f"{dataset.progress * 100:.1f}%",
-        )
+        table.add_row(f"{dataset.team}/{dataset.slug}", str(dataset.item_count), f"{dataset.progress * 100:.1f}%")
     if table.row_count == 0:
         print("No dataset available.")
     else:
@@ -607,9 +591,7 @@ def upload_data(
         sync_metadata: Progress = Progress(SpinnerColumn(), TextColumn("[bold blue]Syncing metadata"))
 
         overall_progress = Progress(
-            TextColumn("[bold blue]{task.fields[filename]}"),
-            BarColumn(),
-            "{task.completed} of {task.total}",
+            TextColumn("[bold blue]{task.fields[filename]}"), BarColumn(), "{task.completed} of {task.total}"
         )
 
         file_progress = Progress(
@@ -631,20 +613,12 @@ def upload_data(
             sync_task: TaskID = sync_metadata.add_task("")
             file_tasks: Dict[str, TaskID] = {}
             overall_task = overall_progress.add_task(
-                "[green]Total progress",
-                filename="Total progress",
-                total=0,
-                visible=False,
+                "[green]Total progress", filename="Total progress", total=0, visible=False
             )
 
             def progress_callback(total_file_count, file_advancement):
                 sync_metadata.update(sync_task, visible=False)
-                overall_progress.update(
-                    overall_task,
-                    total=total_file_count,
-                    advance=file_advancement,
-                    visible=True,
-                )
+                overall_progress.update(overall_task, total=total_file_count, advance=file_advancement, visible=True)
 
             def file_upload_callback(file_name, file_total_bytes, file_bytes_sent):
                 if file_name not in file_tasks:
@@ -679,10 +653,7 @@ def upload_data(
         console.print()
 
         if not upload_manager.blocked_count and not upload_manager.error_count:
-            console.print(
-                f"All {upload_manager.total_count} files have been successfully uploaded.\n",
-                style="success",
-            )
+            console.print(f"All {upload_manager.total_count} files have been successfully uploaded.\n", style="success")
             return
 
         already_existing_items = []
@@ -711,24 +682,12 @@ def upload_data(
             return
 
         error_table: Table = Table(
-            "Dataset Item ID",
-            "Filename",
-            "Remote Path",
-            "Stage",
-            "Reason",
-            show_header=True,
-            header_style="bold cyan",
+            "Dataset Item ID", "Filename", "Remote Path", "Stage", "Reason", show_header=True, eader_style="bold cyan"
         )
 
         for item in upload_manager.blocked_items:
             if item.reason != "ALREADY_EXISTS":
-                error_table.add_row(
-                    str(item.dataset_item_id),
-                    item.filename,
-                    item.path,
-                    "UPLOAD_REQUEST",
-                    item.reason,
-                )
+                error_table.add_row(str(item.dataset_item_id), item.filename, item.path, "UPLOAD_REQUEST", item.reason)
 
         for error in upload_manager.errors:
             for local_file in upload_manager.local_files:
@@ -865,11 +824,7 @@ def list_files(
                 table.add_row(file.filename)
             else:
                 image_url = dataset.workview_url_for_item(file)
-                table.add_row(
-                    file.filename,
-                    f"{file.status if not file.archived else 'archived'}",
-                    image_url,
-                )
+                table.add_row(file.filename, f"{file.status if not file.archived else 'archived'}", image_url)
 
         Console().print(table)
     except NotFound as e:
@@ -1023,13 +978,7 @@ def convert(format: str, files: List[PathLike], output_dir: Path) -> None:
 
 
 def post_comment(
-    dataset_slug: str,
-    filename: str,
-    text: str,
-    x: float = 1,
-    y: float = 1,
-    w: float = 1,
-    h: float = 1,
+    dataset_slug: str, filename: str, text: str, x: float = 1, y: float = 1, w: float = 1, h: float = 1
 ) -> None:
     """
     Creates a comment box with a comment for the given file in the given dataset.
