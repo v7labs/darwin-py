@@ -830,6 +830,7 @@ class RemoteDataset(ABC):
             A dictionary with the annotation to import. The default format is:
             `{"annotations": serialized_annotations, "overwrite": "false"}`
         """
+        ...
 
     @property
     def remote_path(self) -> Path:

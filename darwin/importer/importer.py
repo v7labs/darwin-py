@@ -121,7 +121,9 @@ def build_attribute_lookup(dataset: "RemoteDataset") -> Dict[str, Any]:
     current_version=__version__,
     details=DEPRECATION_MESSAGE,
 )
-def get_remote_files(dataset: "RemoteDataset", filenames: List[str], chunk_size: int() = 100) -> Dict[str, Tuple[int, str]]:
+def get_remote_files(
+    dataset: "RemoteDataset", filenames: List[str], chunk_size: int() = 100
+) -> Dict[str, Tuple[int, str]]:
     """
     Fetches remote files from the datasets in chunks; by default 100 filenames at a time.
 
@@ -141,12 +143,14 @@ def get_remote_files(dataset: "RemoteDataset", filenames: List[str], chunk_size:
             remote_files[remote_file.full_path] = (remote_file.id, slot_name)
     return remote_files
 
+
 def _get_slot_name(remote_file) -> str:
     slot = next(iter(remote_file.slots), {"slot_name": "0"})
     if slot:
         return slot["slot_name"]
     else:
         return "0"
+
 
 def _resolve_annotation_classes(
     local_annotation_classes: List[dt.AnnotationClass],
@@ -183,6 +187,8 @@ def import_annotations(
     append: bool,
     class_prompt: bool = True,
     delete_for_empty: bool = False,
+    import_annotators: bool = False,
+    import_reviewers: bool = False,
 ) -> None:
     """
     Imports the given given Annotations into the given Dataset.
@@ -206,7 +212,12 @@ def import_annotations(
         If ``False``, empty annotation files will simply be skipped.
         Only works for V2 datasets.
         Incompatible with ``append``.
-
+    import_annotators : bool, default: False
+        If ``True`` it will import the annotators from the files to the dataset, if available.
+        If ``False`` it will not import the annotators.
+    import_reviewers : bool, default: False
+        If ``True`` it will import the reviewers from the files to the dataset, if .
+        If ``False`` it will not import the reviewers.
     Raises
     -------
     ValueError
@@ -275,7 +286,6 @@ def import_annotations(
             chunk_size -= 8
             if chunk_size <= 0:
                 raise ValueError("Unable to fetch remote file list.")
-
 
     for parsed_file in parsed_files:
         if parsed_file.full_path not in remote_files:
@@ -393,6 +403,8 @@ def import_annotations(
                     dataset,
                     append,
                     delete_for_empty,
+                    import_annotators,
+                    import_reviewers,
                 )
 
 
@@ -459,12 +471,17 @@ def _import_annotations(
     dataset: "RemoteDataset",
     append: bool,
     delete_for_empty: bool,
+    import_annotators: bool,
+    import_reviewers: bool,
 ):
+    # TODO: introduce import_annotators and import_reviewers
     serialized_annotations = []
     for annotation in annotations:
         annotation_class = annotation.annotation_class
         annotation_type = annotation_class.annotation_internal_type or annotation_class.annotation_type
         annotation_class_id = remote_classes[annotation_type][annotation_class.name]
+        # TODO: Add import_annotators
+        # TODO: Add import_reviewers
 
         if isinstance(annotation, dt.VideoAnnotation):
             data = annotation.get_data(

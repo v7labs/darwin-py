@@ -795,11 +795,15 @@ def dataset_import(
         If ``False``, empty annotation files will simply be skipped.
         Only works for V2 datasets.
         Incompatible with ``append``.
+    import_annotators : bool, default: False
+        If ``True`` it will import the annotators from the files to the dataset, if available.
+        If ``False`` it will not import the annotators.
+    import_reviewers : bool, default: False
+        If ``True`` it will import the reviewers from the files to the dataset, if .
+        If ``False`` it will not import the reviewers.
     """
 
     client: Client = _load_client(dataset_identifier=dataset_slug)
-
-    # TODO: introduce import_annotators and import_reviewers
 
     try:
         parser: ImportParser = get_importer(format)
