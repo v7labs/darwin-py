@@ -24,6 +24,9 @@ UnknownType = Any  # type:ignore
 
 # Specific types
 
+UnknownType = Any  # type: ignore
+NumberLike = Union[int, float]
+
 Point = Dict[str, float]
 BoundingBox = Dict[str, float]
 Polygon = List[Point]
