@@ -5,7 +5,7 @@ from typing import Tuple
 import argcomplete
 
 
-class Options(object):
+class Options:
     """
     Has functions to parse CLI options given by the user.
     """
