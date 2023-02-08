@@ -224,12 +224,12 @@ class Options:
         )
         parser_import.add_argument(
             "--import-annotators",
-            action="import_annotators",
+            action="store_true",
             help="Import annotators metadata from the annotation files, where available",
         )
         parser_import.add_argument(
             "--import-reviewers",
-            action="import_reviewers",
+            action="store_true",
             help="Import reviewers metadata from the annotation files, where available",
         )
 

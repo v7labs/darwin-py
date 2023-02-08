@@ -24,9 +24,6 @@ UnknownType = Any  # type:ignore
 
 # Specific types
 
-UnknownType = Any  # type: ignore
-NumberLike = Union[int, float]
-
 Point = Dict[str, float]
 BoundingBox = Dict[str, float]
 Polygon = List[Point]
@@ -42,32 +39,8 @@ PathLike = Union[str, Path]
 ErrorHandler = Callable[[int, str], None]
 
 ItemId = Union[str, int]
-JSONFreeForm = Dict[str, Any]  # type: ignore
-
-
-class JSONType:
-    def __init__(self, **kwargs: JSONFreeForm):
-        self.__dict__.update(kwargs)
-
-    def to_json(self) -> JSONFreeForm:
-        return self.__dict__
-
-    @classmethod
-    def from_json(cls, json: JSONFreeForm) -> "JSONType":
-        return cls(**json)
-
-    @classmethod
-    def from_dict(cls, json: JSONFreeForm) -> "JSONType":
-        return cls(**json)
-
-
-class DictFreeForm:
-    def __init__(self, **kwargs: JSONFreeForm):
-        self.__dict__.update(kwargs)
-
-    @classmethod
-    def from_dict(cls, json: JSONFreeForm) -> "DictFreeForm":
-        return cls(**json)
+JSONFreeForm = Dict[str, UnknownType]  # type: ignore
+DictFreeForm = JSONFreeForm
 
 
 @dataclass

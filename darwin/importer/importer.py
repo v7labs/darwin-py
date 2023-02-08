@@ -242,7 +242,7 @@ def import_annotations(
         raise ValueError(f"file_paths must be a list of 'Path' or 'str'. Current value: {file_paths}")
 
     console.print("Fetching remote class list...", style="info")
-    team_classes: List[Dict[str, Any]] = dataset.fetch_remote_classes(True)
+    team_classes: List[dt.DictFreeForm] = dataset.fetch_remote_classes(True)
     if not team_classes:
         raise ValueError("Unable to fetch remote class list.")
 
@@ -252,10 +252,10 @@ def import_annotations(
             style="warning",
         )
 
-    classes_in_dataset: Dict[str, Any] = build_main_annotations_lookup_table(
+    classes_in_dataset: dt.DictFreeForm = build_main_annotations_lookup_table(
         [cls for cls in team_classes if cls["available"]]
     )
-    classes_in_team: Dict[str, Any] = build_main_annotations_lookup_table(
+    classes_in_team: dt.DictFreeForm = build_main_annotations_lookup_table(
         [cls for cls in team_classes if not cls["available"]]
     )
     attributes = build_attribute_lookup(dataset)
@@ -273,7 +273,7 @@ def import_annotations(
     console.print("Fetching remote file list...", style="info")
     # This call will only filter by filename; so can return a superset of matched files across different paths
     # There is logic in this function to then include paths to narrow down to the single correct matching file
-    remote_files = []
+    remote_files: Dict[str, Tuple[int, str]] = dict()
 
     # Try to fetch files in large chunks; in case the filenames are too large and exceed the url size
     # retry in smaller chunks
@@ -342,7 +342,7 @@ def import_annotations(
 
     # Refetch classes to update mappings
     if local_classes_not_in_team or local_classes_not_in_dataset:
-        maybe_remote_classes: List[Dict[str, Any]] = dataset.fetch_remote_classes()
+        maybe_remote_classes: List[dt.DictFreeForm] = dataset.fetch_remote_classes()
         if not maybe_remote_classes:
             raise ValueError("Unable to fetch remote classes.")
 
@@ -391,6 +391,7 @@ def import_annotations(
         if files_to_track:
             _warn_unsupported_annotations(files_to_track)
             for parsed_file in track(files_to_track):
+
                 image_id, default_slot_name = remote_files[parsed_file.full_path]
 
                 _import_annotations(
@@ -398,7 +399,7 @@ def import_annotations(
                     image_id,
                     remote_classes,
                     attributes,
-                    parsed_file.annotations,
+                    parsed_file.annotations,  # type: ignore
                     default_slot_name,
                     dataset,
                     append,
@@ -408,7 +409,7 @@ def import_annotations(
                 )
 
 
-def _warn_unsupported_annotations(parsed_files):
+def _warn_unsupported_annotations(parsed_files: List[dt.AnnotationFile]) -> None:
     console = Console(theme=_console_theme())
     for parsed_file in parsed_files:
         skipped_annotations = []
@@ -432,8 +433,8 @@ def _get_skeleton_name(skeleton: dt.AnnotationClass) -> str:
 
 
 def _handle_subs(
-    annotation: dt.Annotation, data: Dict[str, Any], annotation_class_id: str, attributes: Dict[str, Any]
-) -> Dict[str, Any]:
+    annotation: dt.Annotation, data: dt.DictFreeForm, annotation_class_id: str, attributes: Dict[str, dt.UnknownType]
+) -> dt.DictFreeForm:
     for sub in annotation.subs:
         if sub.annotation_type == "text":
             data["text"] = {"text": sub.data}
@@ -454,46 +455,73 @@ def _handle_subs(
     return data
 
 
-def _handle_complex_polygon(annotation: dt.Annotation, data: Dict[str, Any]) -> Dict[str, Any]:
+def _handle_complex_polygon(annotation: dt.Annotation, data: dt.DictFreeForm) -> dt.DictFreeForm:
     if "complex_polygon" in data:
         del data["complex_polygon"]
         data["polygon"] = {"path": annotation.data["paths"][0], "additional_paths": annotation.data["paths"][1:]}
     return data
 
 
+def _handle_reviewers(annotation: dt.Annotation, data: dt.DictFreeForm, import_reviewers: bool) -> dt.DictFreeForm:
+    if import_reviewers:
+        if annotation.reviewers:
+            data["reviewers"] = annotation.reviewers
+
+    return data
+
+
+def _handle_annotators(annotation: dt.Annotation, data: dt.DictFreeForm, import_annotators: bool) -> dt.DictFreeForm:
+    if import_annotators:
+        if annotation.annotators:
+            data["annotators"] = annotation.annotators
+    return data
+
+
+def _handle_video_annotations(
+    annotation: dt.Annotation,
+    annotation_class: dt.AnnotationClass,
+    annotation_class_id: str,
+    attributes: dt.DictFreeForm,
+    data: dt.DictFreeForm,
+) -> dt.DictFreeForm:
+    if isinstance(annotation, dt.VideoAnnotation):
+        data = annotation.get_data(
+            only_keyframes=True,
+            post_processing=lambda annotation, data: _handle_subs(
+                annotation, _handle_complex_polygon(annotation, data), annotation_class_id, attributes
+            ),
+        )
+    else:
+        data = {annotation_class.annotation_type: annotation.data}
+        data = _handle_complex_polygon(annotation, data)
+        data = _handle_subs(annotation, data, annotation_class_id, attributes)
+
+    return data
+
+
 def _import_annotations(
-    client: "Client",
+    client: "Client",  # TODO: This is unused, should it be?
     id: Union[str, int],
-    remote_classes: Dict[str, Any],
+    remote_classes: dt.DictFreeForm,
     attributes: Dict[str, Any],
     annotations: List[dt.Annotation],
     default_slot_name: str,
     dataset: "RemoteDataset",
     append: bool,
-    delete_for_empty: bool,
+    delete_for_empty: bool,  # TODO: This is unused, should it be?
     import_annotators: bool,
     import_reviewers: bool,
-):
-    # TODO: introduce import_annotators and import_reviewers
+) -> None:
     serialized_annotations = []
     for annotation in annotations:
         annotation_class = annotation.annotation_class
         annotation_type = annotation_class.annotation_internal_type or annotation_class.annotation_type
-        annotation_class_id = remote_classes[annotation_type][annotation_class.name]
-        # TODO: Add import_annotators
-        # TODO: Add import_reviewers
+        annotation_class_id: str = remote_classes[annotation_type][annotation_class.name]
 
-        if isinstance(annotation, dt.VideoAnnotation):
-            data = annotation.get_data(
-                only_keyframes=True,
-                post_processing=lambda annotation, data: _handle_subs(
-                    annotation, _handle_complex_polygon(annotation, data), annotation_class_id, attributes
-                ),
-            )
-        else:
-            data = {annotation_class.annotation_type: annotation.data}
-            data = _handle_complex_polygon(annotation, data)
-            data = _handle_subs(annotation, data, annotation_class_id, attributes)
+        data = _handle_video_annotations(annotation, annotation_class, annotation.data, attributes, annotation.data)
+
+        data = _handle_annotators(annotation, annotation.data, import_annotators)
+        data = _handle_reviewers(annotation, annotation.data, import_reviewers)
 
         # Insert the default slot name if not available in the import source
         if not annotation.slot_names and dataset.version > 1:
@@ -502,12 +530,12 @@ def _import_annotations(
         serialized_annotations.append(
             {
                 "annotation_class_id": annotation_class_id,
-                "data": data,
+                "data": data,  # TODO: Confirm schema with Alex
                 "context_keys": {"slot_names": annotation.slot_names},
             }
         )
 
-    payload: Dict[str, Any] = {"annotations": serialized_annotations}
+    payload: dt.DictFreeForm = {"annotations": serialized_annotations}
     if append:
         payload["overwrite"] = "false"
     else:
