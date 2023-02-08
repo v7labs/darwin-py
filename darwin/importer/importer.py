@@ -462,10 +462,18 @@ def _handle_complex_polygon(annotation: dt.Annotation, data: dt.DictFreeForm) ->
     return data
 
 
+def _annotators_or_reviewers_to_payload(
+    actors: List[dt.AnnotationAuthor], role: dt.AnnotationAuthorRole
+) -> List[dt.DictFreeForm]:
+    return [{"email": actor.email, "role": role.value} for actor in actors]
+
+
 def _handle_reviewers(annotation: dt.Annotation, data: dt.DictFreeForm, import_reviewers: bool) -> dt.DictFreeForm:
     if import_reviewers:
         if annotation.reviewers:
-            data["reviewers"] = annotation.reviewers
+            data["reviewers"] = _annotators_or_reviewers_to_payload(
+                annotation.reviewers, dt.AnnotationAuthorRole.REVIEWER
+            )
 
     return data
 
@@ -473,7 +481,9 @@ def _handle_reviewers(annotation: dt.Annotation, data: dt.DictFreeForm, import_r
 def _handle_annotators(annotation: dt.Annotation, data: dt.DictFreeForm, import_annotators: bool) -> dt.DictFreeForm:
     if import_annotators:
         if annotation.annotators:
-            data["annotators"] = annotation.annotators
+            data["annotators"] = _annotators_or_reviewers_to_payload(
+                annotation.annotators, dt.AnnotationAuthorRole.ANNOTATOR
+            )
     return data
 
 
@@ -493,8 +503,9 @@ def _handle_video_annotations(
         )
     else:
         data = {annotation_class.annotation_type: annotation.data}
-        data = _handle_complex_polygon(annotation, data)
-        data = _handle_subs(annotation, data, annotation_class_id, attributes)
+
+    data = _handle_complex_polygon(annotation, data)
+    data = _handle_subs(annotation, data, annotation_class_id, attributes)
 
     return data
 
@@ -503,7 +514,7 @@ def _import_annotations(
     client: "Client",  # TODO: This is unused, should it be?
     id: Union[str, int],
     remote_classes: dt.DictFreeForm,
-    attributes: Dict[str, Any],
+    attributes: dt.DictFreeForm,
     annotations: List[dt.Annotation],
     default_slot_name: str,
     dataset: "RemoteDataset",

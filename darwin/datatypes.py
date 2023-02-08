@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from email.policy import default
+from enum import Enum
 from pathlib import Path
 from typing import (
     Any,
@@ -109,6 +110,11 @@ class SubAnnotation:
     #: Any external data, in any format, relevant to this ``SubAnnotation``.
     #: Used for compatibility purposes with external formats.
     data: UnknownType
+
+
+class AnnotationAuthorRole(Enum):
+    ANNOTATOR = "annotator"
+    REVIEWER = "reviewer"
 
 
 @dataclass(frozen=True, eq=True)
