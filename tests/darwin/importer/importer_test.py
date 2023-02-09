@@ -84,7 +84,7 @@ def test__handle_subs() -> None:
 def test__handle_complex_polygon() -> None:
     from darwin.importer.importer import _handle_complex_polygon
 
-    assert _handle_complex_polygon({}, {"example": "data", "example2": "data2", "example3": "data3",},) == {
+    assert _handle_complex_polygon({}, {"example": "data", "example2": "data2", "example3": "data3",},) == {  # type: ignore
         "example": "data",
         "example2": "data2",
         "example3": "data3",
