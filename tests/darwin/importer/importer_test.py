@@ -19,6 +19,18 @@ from darwin.importer.importer import (
 )
 
 
+def root_path(x: str) -> str:
+    return f"darwin.importer.importer.{x}"
+
+
+def mock_pass_through(data: dt.UnknownType) -> dt.UnknownType:
+    return data
+
+
+def patch_factory(module: str) -> _patch:
+    return patch(root_path(module))
+
+
 @pytest.mark.skip("Not yet implemented.")
 def test_build_main_annotations_lookup_table() -> None:
     ...  # TODO: Write this test
@@ -146,16 +158,8 @@ def test__handle_video_annotations() -> None:
 
 # TODO: In progress
 def test__import_annotations() -> None:
-    def root_path(x: str) -> str:
-        return f"darwin.importer.importer.{x}"
 
-    def mock_pass_through(data: dt.UnknownType) -> dt.UnknownType:
-        return data
-
-    def patch_factory(module: str) -> _patch:
-        return patch(root_path(module), mock_pass_through)
-
-    with patch_factory("_handle_video_annotation") as mock_hva, patch_factory(
+    with patch_factory("_handle_video_annotations") as mock_hva, patch_factory(
         "_handle_complex_polygon"
     ) as mock_hcp, patch_factory("_handle_reviewers") as mock_hr, patch_factory(
         "_handle_annotators"
@@ -169,7 +173,64 @@ def test__import_annotations() -> None:
         mock_client = Mock(Client)
         mock_dataset = Mock(RemoteDataset)
 
-        _import_annotations(mock_client, "test", {}, {}, [], "test_slot", mock_dataset, False, False, True, True)
+        mock_dataset.version = 2
+
+        mock_hr.return_value = "test_data"
+
+        annotation = dt.Annotation(dt.AnnotationClass("test_class", "bbox"), {"paths": [1, 2, 3, 4, 5]}, [], [])
+
+        _import_annotations(
+            mock_client,
+            "test",
+            {"bbox": {"test_class": "1337"}},
+            {},
+            [annotation],
+            "test_slot",
+            mock_dataset,
+            False,
+            False,
+            True,
+            True,
+        )
+
+        _import_annotations(
+            mock_client,
+            "test",
+            {"bbox": {"test_class": "1337"}},
+            {},
+            [annotation],
+            "test_slot",
+            mock_dataset,
+            True,
+            False,
+            True,
+            True,
+        )
+
+        assert mock_dataset.import_annotation.call_count == 2
+        assert mock_hva.call_count == 2
+        assert mock_hcp.call_count == 2
+        assert mock_hr.call_count == 2
+        assert mock_ha.call_count == 2
+        assert mock_hs.call_count == 2
+
+        assert mock_dataset.import_annotation.call_args_list[0][0][0] == "test"
+        # TODO: Assert failing
+        assert mock_dataset.import_annotation.call_args_list[0][1] == {
+            "annotations": [
+                {"annotation_class_id": "1337", "data": "test_data", "context_keys": {"slot_names": ["test_slot"]}}
+            ],
+            "overwrite": "true",
+        }
+
+        assert mock_dataset.import_annotation.call_args_list[1][0][0] == "test"
+        # TODO: Assert failing
+        assert mock_dataset.import_annotation.call_args_list[1][1] == {
+            "annotations": [
+                {"annotation_class_id": "1337", "data": "test_data", "context_keys": {"slot_names": ["test_slot"]}}
+            ],
+            "overwrite": "false",
+        }
 
 
 def test_console_theme() -> None:

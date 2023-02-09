@@ -529,8 +529,8 @@ def _import_annotations(
         data = _handle_video_annotations(annotation, annotation_class_id, attributes, annotation.data)
         data = _handle_complex_polygon(annotation, data)
         data = _handle_subs(annotation, data, annotation_class_id, attributes)
-        data = _handle_annotators(annotation, annotation.data, import_annotators)
-        data = _handle_reviewers(annotation, annotation.data, import_reviewers)
+        data = _handle_annotators(annotation, data, import_annotators)
+        data = _handle_reviewers(annotation, data, import_reviewers)
 
         # Insert the default slot name if not available in the import source
         if not annotation.slot_names and dataset.version > 1:
