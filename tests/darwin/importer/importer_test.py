@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, Mock, _patch, patch
 
 import pytest
 from rich.theme import Theme
@@ -9,10 +9,6 @@ from darwin.importer.importer import (
     _console_theme,
     _get_skeleton_name,
     _get_slot_name,
-    _handle_annotators,
-    _handle_complex_polygon,
-    _handle_subs,
-    _handle_video_annotations,
     _import_annotations,
     _is_skeleton_class,
     _resolve_annotation_classes,
@@ -24,7 +20,7 @@ from darwin.importer.importer import (
 
 
 @pytest.mark.skip("Not yet implemented.")
-def test_build_attribute_lookup() -> None:
+def test_build_main_annotations_lookup_table() -> None:
     ...  # TODO: Write this test
 
 
@@ -74,6 +70,8 @@ def test__handle_subs() -> None:
 
 
 def test__handle_complex_polygon() -> None:
+    from darwin.importer.importer import _handle_complex_polygon
+
     assert _handle_complex_polygon({}, {"example": "data", "example2": "data2", "example3": "data3",},) == {
         "example": "data",
         "example2": "data2",
@@ -130,14 +128,48 @@ def test__handle_annotators() -> None:
         assert op2 == {}
 
 
-@pytest.mark.skip("Not yet implemented")  # TODO: Write this test
 def test__handle_video_annotations() -> None:
-    ...
+    annotation_class = dt.AnnotationClass("class", "TEST_TYPE")
+    video_annotation_class = dt.AnnotationClass("video_class", "video")
+
+    annotation = dt.Annotation(annotation_class, {}, [], [])
+    video_annotation = dt.VideoAnnotation(video_annotation_class, dict(), dict(), [], False)
+
+    annotation.data = "TEST DATA"
+
+    with patch.object(dt.VideoAnnotation, "get_data", return_value="TEST VIDEO DATA"):
+        from darwin.importer.importer import _handle_video_annotations
+
+        assert _handle_video_annotations(video_annotation, "video_class_id", {}, {}) == "TEST VIDEO DATA"
+        assert _handle_video_annotations(annotation, "class_id", {}, {}) == {"TEST_TYPE": "TEST DATA"}
 
 
-@pytest.mark.skip("Not yet implemented")  # TODO: Write this test
+# TODO: In progress
 def test__import_annotations() -> None:
-    ...
+    def root_path(x: str) -> str:
+        return f"darwin.importer.importer.{x}"
+
+    def mock_pass_through(data: dt.UnknownType) -> dt.UnknownType:
+        return data
+
+    def patch_factory(module: str) -> _patch:
+        return patch(root_path(module), mock_pass_through)
+
+    with patch_factory("_handle_video_annotation") as mock_hva, patch_factory(
+        "_handle_complex_polygon"
+    ) as mock_hcp, patch_factory("_handle_reviewers") as mock_hr, patch_factory(
+        "_handle_annotators"
+    ) as mock_ha, patch_factory(
+        "_handle_subs"
+    ) as mock_hs:
+        from darwin.client import Client
+        from darwin.dataset import RemoteDataset
+        from darwin.importer.importer import _import_annotations
+
+        mock_client = Mock(Client)
+        mock_dataset = Mock(RemoteDataset)
+
+        _import_annotations(mock_client, "test", {}, {}, [], "test_slot", mock_dataset, False, False, True, True)
 
 
 def test_console_theme() -> None:

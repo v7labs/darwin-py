@@ -488,12 +488,12 @@ def _handle_annotators(annotation: dt.Annotation, data: dt.DictFreeForm, import_
 
 
 def _handle_video_annotations(
-    annotation: dt.Annotation,
-    annotation_class: dt.AnnotationClass,
+    annotation: dt.AnnotationLike,
     annotation_class_id: str,
     attributes: dt.DictFreeForm,
     data: dt.DictFreeForm,
 ) -> dt.DictFreeForm:
+    annotation_class = annotation.annotation_class
     if isinstance(annotation, dt.VideoAnnotation):
         data = annotation.get_data(
             only_keyframes=True,
@@ -503,9 +503,6 @@ def _handle_video_annotations(
         )
     else:
         data = {annotation_class.annotation_type: annotation.data}
-
-    data = _handle_complex_polygon(annotation, data)
-    data = _handle_subs(annotation, data, annotation_class_id, attributes)
 
     return data
 
@@ -529,8 +526,9 @@ def _import_annotations(
         annotation_type = annotation_class.annotation_internal_type or annotation_class.annotation_type
         annotation_class_id: str = remote_classes[annotation_type][annotation_class.name]
 
-        data = _handle_video_annotations(annotation, annotation_class, annotation.data, attributes, annotation.data)
-
+        data = _handle_video_annotations(annotation, annotation_class_id, attributes, annotation.data)
+        data = _handle_complex_polygon(annotation, data)
+        data = _handle_subs(annotation, data, annotation_class_id, attributes)
         data = _handle_annotators(annotation, annotation.data, import_annotators)
         data = _handle_reviewers(annotation, annotation.data, import_reviewers)
 

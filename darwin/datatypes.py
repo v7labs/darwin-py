@@ -265,6 +265,9 @@ class VideoAnnotation:
         return output
 
 
+AnnotationLike = Union[Annotation, VideoAnnotation]
+
+
 @dataclass
 class Slot:
     #: Unique slot name in the item. Will be `None` when loading V1 exports.
