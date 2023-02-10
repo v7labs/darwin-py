@@ -306,6 +306,24 @@ def files_content() -> Dict[str, Any]:
     }
 
 
+def test_dataset_creation_from_id():
+    def it_should_set_id_correctly_from_id(darwin_client: Client):
+        dataset_id = "team_slug/dataset_name:test_release"
+        dataset = darwin_client.get_remote_dataset(dataset_id)
+
+        assert dataset.slug == "team_slug"
+        assert dataset.name == "dataset_name"
+        assert dataset.release == "test_release"
+
+    def it_should_work_without_a_release(darwin_client: Client):
+        dataset_id = "team_slug/dataset_name"
+        dataset = darwin_client.get_remote_dataset(dataset_id)
+
+        assert dataset.slug == "team_slug"
+        assert dataset.name == "dataset_name"
+        assert dataset.release == None
+
+
 @pytest.mark.usefixtures("file_read_write_test", "create_annotation_file")
 def describe_split_video_annotations():
     def it_works_on_videos(
