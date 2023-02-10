@@ -224,7 +224,6 @@ def test_get_overwrite_value() -> None:
     assert _get_overwrite_value(False) == "false"
 
 
-# TODO: In progress
 def test__import_annotations() -> None:
 
     with patch_factory("_handle_video_annotations") as mock_hva, patch_factory(
@@ -284,8 +283,6 @@ def test__import_annotations() -> None:
         assert mock_hsn.call_args_list[0][0][1] == 2
         assert mock_hsn.call_args_list[0][0][2] == "test_slot"
         assert mock_dataset.import_annotation.call_args_list[0][0][0] == "test_id"
-
-        # TODO: Assert failing
 
         # Assert assembly of payload
         output = mock_dataset.import_annotation.call_args_list[0][1]["payload"]
