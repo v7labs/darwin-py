@@ -1,3 +1,4 @@
+from typing import List, Tuple
 from unittest.mock import MagicMock, Mock, _patch, patch
 
 import pytest
@@ -156,6 +157,50 @@ def test__handle_video_annotations() -> None:
         assert _handle_video_annotations(annotation, "class_id", {}, {}) == {"TEST_TYPE": "TEST DATA"}
 
 
+def __expectation_factory(i: int, slot_names: List[str]) -> dt.Annotation:
+    annotation = dt.Annotation(dt.AnnotationClass(f"class_{i}", f"TEST_TYPE_{i}"), {}, [], [])
+    annotation.slot_names.extend(slot_names)
+
+    return annotation
+
+
+expectations: List[Tuple[dt.Annotation, int, str, dt.Annotation]] = [
+    (__expectation_factory(0, []), 1, "default_slot_name", __expectation_factory(0, [])),
+    (
+        __expectation_factory(1, ["slot", "names"]),
+        1,
+        "default_slot_name",
+        __expectation_factory(1, ["slot", "names"]),
+    ),
+    (
+        __expectation_factory(2, []),
+        2,
+        "default_slot_name",
+        __expectation_factory(2, ["default_slot_name"]),
+    ),
+    (__expectation_factory(3, ["slot", "names"]), 2, "default_slot_name", __expectation_factory(3, ["slot", "names"])),
+]
+
+
+@pytest.mark.parametrize("annotation, version, default_slot_name, expected", expectations)
+def test__handle_slot_names(
+    annotation: dt.Annotation, version: int, default_slot_name: str, expected: dt.Annotation
+) -> None:
+    from darwin.importer.importer import _handle_slot_names
+
+    assert _handle_slot_names(annotation, version, default_slot_name) == expected
+
+
+def test_get_overwrite_value() -> None:
+    from darwin.importer.importer import _get_overwrite_value
+
+    # Scenario 1: No overwrite value
+    assert _get_overwrite_value(True) == "true"
+
+    # Scenario 2: Overwrite value
+    assert _get_overwrite_value(False) == "false"
+
+
 # TODO: In progress
 def test__import_annotations() -> None:
 
@@ -165,7 +210,11 @@ def test__import_annotations() -> None:
         "_handle_annotators"
     ) as mock_ha, patch_factory(
         "_handle_subs"
-    ) as mock_hs:
+    ) as mock_hs, patch_factory(
+        "_get_overwrite_value"
+    ) as mock_gov, patch_factory(
+        "_handle_slot_names"
+    ) as mock_hsn:
         from darwin.client import Client
         from darwin.dataset import RemoteDataset
         from darwin.importer.importer import _import_annotations
@@ -174,63 +223,58 @@ def test__import_annotations() -> None:
         mock_dataset = Mock(RemoteDataset)
 
         mock_dataset.version = 2
-
         mock_hr.return_value = "test_data"
+        mock_gov.return_value = "test_append_out"
+        mock_hsn.return_value = dt.Annotation(
+            dt.AnnotationClass("test_class", "bbox"), {"paths": [1, 2, 3, 4, 5]}, [], ["test_slot_name"]
+        )
 
         annotation = dt.Annotation(dt.AnnotationClass("test_class", "bbox"), {"paths": [1, 2, 3, 4, 5]}, [], [])
 
         _import_annotations(
             mock_client,
-            "test",
+            "test_id",
             {"bbox": {"test_class": "1337"}},
             {},
             [annotation],
             "test_slot",
             mock_dataset,
+            "test_append_in",  # type: ignore
             False,
-            False,
-            True,
-            True,
+            "test_import_annotators",  # type: ignore
+            "test_import_reviewers",  # type: ignore
         )
 
-        _import_annotations(
-            mock_client,
-            "test",
-            {"bbox": {"test_class": "1337"}},
-            {},
-            [annotation],
-            "test_slot",
-            mock_dataset,
-            True,
-            False,
-            True,
-            True,
-        )
+        assert mock_dataset.import_annotation.call_count == 1
+        assert mock_hva.call_count == 1
+        assert mock_hcp.call_count == 1
+        assert mock_hr.call_count == 1
+        assert mock_ha.call_count == 1
+        assert mock_hs.call_count == 1
 
-        assert mock_dataset.import_annotation.call_count == 2
-        assert mock_hva.call_count == 2
-        assert mock_hcp.call_count == 2
-        assert mock_hr.call_count == 2
-        assert mock_ha.call_count == 2
-        assert mock_hs.call_count == 2
+        assert mock_gov.call_args_list[0][0][0] == "test_append_in"
+        assert mock_ha.call_args_list[0][0][2] == "test_import_annotators"
+        assert mock_hr.call_args_list[0][0][2] == "test_import_reviewers"
 
-        assert mock_dataset.import_annotation.call_args_list[0][0][0] == "test"
+        # Assert handle slot names
+        assert mock_hsn.call_args_list[0][0][0] == annotation
+        assert mock_hsn.call_args_list[0][0][1] == 2
+        assert mock_hsn.call_args_list[0][0][2] == "test_slot"
+        assert mock_dataset.import_annotation.call_args_list[0][0][0] == "test_id"
+
         # TODO: Assert failing
-        assert mock_dataset.import_annotation.call_args_list[0][1] == {
+
+        # Assert assembly of payload
+        output = mock_dataset.import_annotation.call_args_list[0][1]["payload"]
+        assertion = {
             "annotations": [
-                {"annotation_class_id": "1337", "data": "test_data", "context_keys": {"slot_names": ["test_slot"]}}
+                {"annotation_class_id": "1337", "data": "test_data", "context_keys": {"slot_names": ["test_slot_name"]}}
             ],
-            "overwrite": "true",
+            "overwrite": "test_append_out",
         }
 
-        assert mock_dataset.import_annotation.call_args_list[1][0][0] == "test"
-        # TODO: Assert failing
-        assert mock_dataset.import_annotation.call_args_list[1][1] == {
-            "annotations": [
-                {"annotation_class_id": "1337", "data": "test_data", "context_keys": {"slot_names": ["test_slot"]}}
-            ],
-            "overwrite": "false",
-        }
+        assert output["annotations"] == assertion["annotations"]
+        assert output["overwrite"] == assertion["overwrite"]
 
 
 def test_console_theme() -> None:

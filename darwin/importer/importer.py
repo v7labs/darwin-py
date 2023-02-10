@@ -122,7 +122,7 @@ def build_attribute_lookup(dataset: "RemoteDataset") -> Dict[str, Any]:
     details=DEPRECATION_MESSAGE,
 )
 def get_remote_files(
-    dataset: "RemoteDataset", filenames: List[str], chunk_size: int() = 100
+    dataset: "RemoteDataset", filenames: List[str], chunk_size: int = 100
 ) -> Dict[str, Tuple[int, str]]:
     """
     Fetches remote files from the datasets in chunks; by default 100 filenames at a time.
@@ -507,6 +507,17 @@ def _handle_video_annotations(
     return data
 
 
+def _handle_slot_names(annotation: dt.Annotation, dataset_version: int, default_slot_name: str) -> dt.Annotation:
+    if not annotation.slot_names and dataset_version > 1:
+        annotation.slot_names.extend([default_slot_name])
+
+    return annotation
+
+
+def _get_overwrite_value(append: bool) -> str:
+    return "true" if append else "false"
+
+
 def _import_annotations(
     client: "Client",  # TODO: This is unused, should it be?
     id: Union[str, int],
@@ -533,22 +544,18 @@ def _import_annotations(
         data = _handle_reviewers(annotation, data, import_reviewers)
 
         # Insert the default slot name if not available in the import source
-        if not annotation.slot_names and dataset.version > 1:
-            annotation.slot_names.extend([default_slot_name])
+        annotation = _handle_slot_names(annotation, dataset.version, default_slot_name)
 
         serialized_annotations.append(
             {
                 "annotation_class_id": annotation_class_id,
-                "data": data,  # TODO: Confirm schema with Alex
+                "data": data,
                 "context_keys": {"slot_names": annotation.slot_names},
             }
         )
 
     payload: dt.DictFreeForm = {"annotations": serialized_annotations}
-    if append:
-        payload["overwrite"] = "false"
-    else:
-        payload["overwrite"] = "true"
+    payload["overwrite"] = _get_overwrite_value(append)
 
     dataset.import_annotation(id, payload=payload)
 
