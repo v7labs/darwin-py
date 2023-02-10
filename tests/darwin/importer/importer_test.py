@@ -5,19 +5,6 @@ import pytest
 from rich.theme import Theme
 
 from darwin import datatypes as dt
-from darwin.importer.importer import (
-    _annotators_or_reviewers_to_payload,
-    _console_theme,
-    _get_skeleton_name,
-    _get_slot_name,
-    _import_annotations,
-    _is_skeleton_class,
-    _resolve_annotation_classes,
-    build_attribute_lookup,
-    find_and_parse,
-    get_remote_files,
-    import_annotations,
-)
 
 
 def root_path(x: str) -> str:
@@ -72,14 +59,48 @@ def test__is_skeleton_class() -> None:
     ...  # TODO: Write this test
 
 
-@pytest.mark.skip("Not yet implemented.")
 def test__get_skeleton_name() -> None:
-    ...  # TODO: Write this test
+    from darwin.importer.importer import _get_skeleton_name
+
+    class MockAnnotationClass:
+        name: str
+
+        def __init__(self, name: str):
+            self.name = name
+
+    assert _get_skeleton_name(MockAnnotationClass("test")) == "test"  # type: ignore
+    assert _get_skeleton_name(MockAnnotationClass("test_skeleton")) == "test_skeleton"  # type: ignore
 
 
-@pytest.mark.skip("Not yet implemented.")
-def test__handle_subs() -> None:
-    ...  # TODO: Write this test - not in current ticket
+def test_handle_subs() -> None:
+    from darwin.importer.importer import _handle_subs
+
+    annotation = dt.Annotation(
+        dt.AnnotationClass("class1", "bbox"),
+        {},
+        [
+            dt.SubAnnotation(annotation_type="text", data="some text"),
+            dt.SubAnnotation(annotation_type="attributes", data=["attr1", "attr2"]),
+            dt.SubAnnotation(annotation_type="instance_id", data="12345"),
+            dt.SubAnnotation(annotation_type="other", data={"key": "value"}),
+        ],
+        [],
+        [],
+    )
+
+    attributes: dt.DictFreeForm = {"class1": {"attr1": "value1", "attr3": "value3"}}
+    annotation_class_id: str = "class1"
+    data: dt.DictFreeForm = {}
+
+    expected_result = {
+        "text": {"text": "some text"},
+        "attributes": {"attributes": ["value1"]},
+        "instance_id": {"value": "12345"},
+        "other": {"key": "value"},
+    }
+
+    result = _handle_subs(annotation, data, annotation_class_id, attributes)
+    assert result == expected_result
 
 
 def test__handle_complex_polygon() -> None:
@@ -99,6 +120,8 @@ def test__handle_complex_polygon() -> None:
 
 
 def test__annotators_or_reviewers_to_payload() -> None:
+    from darwin.importer.importer import _annotators_or_reviewers_to_payload
+
     authors = [
         dt.AnnotationAuthor("John Doe", "john@doe.com"),
         dt.AnnotationAuthor("Jane Doe", "jane@doe.com"),
@@ -164,7 +187,7 @@ def __expectation_factory(i: int, slot_names: List[str]) -> dt.Annotation:
     return annotation
 
 
-expectations: List[Tuple[dt.Annotation, int, str, dt.Annotation]] = [
+expectations_hsr: List[Tuple[dt.Annotation, int, str, dt.Annotation]] = [
     (__expectation_factory(0, []), 1, "default_slot_name", __expectation_factory(0, [])),
     (
         __expectation_factory(1, ["slot", "names"]),
@@ -182,7 +205,7 @@ expectations: List[Tuple[dt.Annotation, int, str, dt.Annotation]] = [
 ]
 
 
-@pytest.mark.parametrize("annotation, version, default_slot_name, expected", expectations)
+@pytest.mark.parametrize("annotation, version, default_slot_name, expected", expectations_hsr)
 def test__handle_slot_names(
     annotation: dt.Annotation, version: int, default_slot_name: str, expected: dt.Annotation
 ) -> None:
@@ -278,4 +301,6 @@ def test__import_annotations() -> None:
 
 
 def test_console_theme() -> None:
+    from darwin.importer.importer import _console_theme
+
     assert isinstance(_console_theme(), Theme)
