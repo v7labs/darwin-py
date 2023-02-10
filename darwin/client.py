@@ -188,6 +188,7 @@ class Client:
                 )
         if not matching_datasets:
             raise NotFound(str(parsed_dataset_identifier))
+
         if parsed_dataset_identifier.version:
             matching_datasets[0].release = parsed_dataset_identifier.version
         return matching_datasets[0]
