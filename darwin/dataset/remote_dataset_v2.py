@@ -1,4 +1,16 @@
-from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, Tuple, Union, Sequence
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Iterator,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
+
+from requests.models import Response
 
 from darwin.dataset import RemoteDataset
 from darwin.dataset.release import Release
@@ -15,7 +27,6 @@ from darwin.exceptions import NotFound, UnknownExportVersion
 from darwin.item import DatasetItem
 from darwin.item_sorter import ItemSorter
 from darwin.utils import find_files, urljoin
-from requests.models import Response
 
 if TYPE_CHECKING:
     from darwin.client import Client

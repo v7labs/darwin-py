@@ -1,6 +1,8 @@
 import itertools
-from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, Union, Sequence
+from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, Sequence, Union
 from xml.dom import ValidationErr
+
+from requests.models import Response
 
 from darwin.dataset.release import Release
 from darwin.dataset.upload_manager import (
@@ -16,7 +18,6 @@ from darwin.exceptions import NotFound, ValidationError
 from darwin.item import DatasetItem
 from darwin.item_sorter import ItemSorter
 from darwin.utils import find_files, urljoin
-from requests.models import Response
 
 if TYPE_CHECKING:
     from darwin.client import Client
