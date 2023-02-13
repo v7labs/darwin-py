@@ -1,5 +1,5 @@
 import itertools
-from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, Union, Sequence
 from xml.dom import ValidationErr
 
 from darwin.dataset.release import Release
@@ -109,7 +109,7 @@ class RemoteDatasetV1(RemoteDataset):
 
     def push(
         self,
-        files_to_upload: Optional[List[Union[PathLike, LocalFile]]],
+        files_to_upload: Optional[Sequence[Union[PathLike, LocalFile]]],
         *,
         blocking: bool = True,
         multi_threaded: bool = True,
