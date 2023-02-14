@@ -115,9 +115,9 @@ def find_and_parse(
 
     def maybe_console(*args: Union[str, int, float]) -> None:
         if console is not None:
-            console.print(*[f"[{str(perf_time())}]", *args])
+            console.print(*[f"[{str(next(perf_time()))} seconds elapsed]", *args])
         else:
-            logger.info(*[f"[{str(perf_time())}]", *args])
+            logger.info(*[f"[{str(next(perf_time()))}]", *args])
 
     maybe_console("Parsing files... ")
 
