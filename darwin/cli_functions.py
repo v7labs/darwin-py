@@ -411,10 +411,10 @@ def pull_dataset(
     except NotFound:
         _error(
             f"Dataset '{dataset_slug}' does not exist, please check the spelling. "
-            f"Use 'darwin remote' to list all the remote datasets."
+            "Use 'darwin remote' to list all the remote datasets."
         )
     except Unauthenticated:
-        _error(f"please re-authenticate")
+        _error("please re-authenticate")
 
     try:
         release: Release = dataset.get_release(version)
@@ -680,7 +680,7 @@ def upload_data(
                     for task in file_progress.tasks:
                         if task.finished and len(file_progress.tasks) >= max_workers:
                             file_progress.remove_task(task.id)
-                except Exception as e:
+                except Exception:
                     pass
 
             upload_manager = dataset.push(
@@ -705,7 +705,7 @@ def upload_data(
         already_existing_items = []
         other_skipped_items = []
         for item in upload_manager.blocked_items:
-            if item.reason is not None and item.reason.upper() == "ALREADY_EXISTS":
+            if (item.reason is not None) and (item.reason.upper() == "ALREADY_EXISTS"):
                 already_existing_items.append(item)
             else:
                 other_skipped_items.append(item)
@@ -761,7 +761,7 @@ def upload_data(
     except UnsupportedFileType as e:
         _error(f"Unsupported file type {e.path.suffix} ({e.path.name})")
     except ValueError:
-        _error(f"No files found")
+        _error("No files found")
 
 
 def dataset_import(
@@ -773,6 +773,7 @@ def dataset_import(
     delete_for_empty: bool = False,
     import_annotators: bool = False,
     import_reviewers: bool = False,
+    cpu_limit: Optional[int] = None,
 ) -> None:
     """
     Imports annotation files to the given dataset.
@@ -802,7 +803,8 @@ def dataset_import(
     try:
         parser: ImportParser = get_importer(format)
         dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
-        import_annotations(dataset, parser, files, append, class_prompt, delete_for_empty)
+        use_multi_cpu = cpu_limit is None or cpu_limit > 1
+        import_annotations(dataset, parser, files, append, class_prompt, delete_for_empty, use_multi_cpu, cpu_limit)
     except ImporterNotFoundError:
         _error(f"Unsupported import format: {format}, currently supported: {import_formats}")
     except AttributeError as e:
@@ -957,7 +959,7 @@ def delete_files(dataset_slug: str, files: List[str], skip_user_confirmation: bo
 
     except NotFound as e:
         _error(f"No dataset with name '{e.name}'")
-    except:
+    except Exception:
         _error("An error has occurred, please try again later.")
 
 
@@ -1266,11 +1268,11 @@ def _has_valid_status(status: str) -> bool:
 def _print_new_json_format_warning(dataset: RemoteDataset) -> None:
     console = Console(theme=_console_theme(), stderr=True)
     console.print(
-        f"NOTE: Your dataset has been exported using new Darwin JSON 2.0 format.",
-        f"    If you wish to use the legacy Darwin format, please use the following to convert: ",
-        f"",
+        "NOTE: Your dataset has been exported using new Darwin JSON 2.0 format.",
+        "    If you wish to use the legacy Darwin format, please use the following to convert: ",
+        "",
         f"    darwin convert darwin_1.0 {dataset.local_path} OUTPUT_DIR",
-        f"",
+        "",
         sep="\n",
         style="warning",
     )
