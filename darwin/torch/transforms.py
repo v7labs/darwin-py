@@ -1,12 +1,12 @@
 import random
 from typing import Any, Dict, Optional, Tuple, Union
 
+import torch
 import torchvision.transforms as transforms
 import torchvision.transforms.functional as F
-from darwin.torch.utils import convert_segmentation_to_mask
 from PIL import Image as PILImage
 
-import torch
+from darwin.torch.utils import convert_segmentation_to_mask
 
 TargetKey = Union["boxes", "labels", "mask", "masks", "image_id", "area", "iscrowd"]
 TargetType = Dict[TargetKey, torch.Tensor]
@@ -250,8 +250,7 @@ class ConvertPolygonsToSemanticMask(object):
             # merge all instance masks into a single segmentation map
             # with its corresponding categories
             mask, _ = (masks * cats[:, None, None]).max(dim=0)
-            # discard overlapping instances
-            mask[masks.sum(0) > 1] = 255
+
         else:
             mask = torch.zeros((h, w), dtype=torch.uint8)
 
