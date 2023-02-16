@@ -471,9 +471,7 @@ def _annotators_or_reviewers_to_payload(
 def _handle_reviewers(annotation: dt.Annotation, data: dt.DictFreeForm, import_reviewers: bool) -> dt.DictFreeForm:
     if import_reviewers:
         if annotation.reviewers:
-            data["reviewers"] = _annotators_or_reviewers_to_payload(
-                annotation.reviewers, dt.AnnotationAuthorRole.REVIEWER
-            )
+            data = _annotators_or_reviewers_to_payload(annotation.reviewers, dt.AnnotationAuthorRole.REVIEWER)
 
     return data
 
@@ -481,9 +479,7 @@ def _handle_reviewers(annotation: dt.Annotation, data: dt.DictFreeForm, import_r
 def _handle_annotators(annotation: dt.Annotation, data: dt.DictFreeForm, import_annotators: bool) -> dt.DictFreeForm:
     if import_annotators:
         if annotation.annotators:
-            data["annotators"] = _annotators_or_reviewers_to_payload(
-                annotation.annotators, dt.AnnotationAuthorRole.ANNOTATOR
-            )
+            data = _annotators_or_reviewers_to_payload(annotation.annotators, dt.AnnotationAuthorRole.ANNOTATOR)
     return data
 
 
@@ -548,14 +544,16 @@ def _import_annotations(
         # Insert the default slot name if not available in the import source
         annotation = _handle_slot_names(annotation, dataset.version, default_slot_name)
 
-        serialized_annotations.append(
-            {
-                "annotation_class_id": annotation_class_id,
-                "data": data,
-                "context_keys": {"slot_names": annotation.slot_names},
-                "actors": actors,
-            }
-        )
+        serial_obj = {
+            "annotation_class_id": annotation_class_id,
+            "data": data,
+            "context_keys": {"slot_names": annotation.slot_names},
+        }
+
+        if actors:
+            serial_obj["actors"] = actors
+
+        serialized_annotations.append(serial_obj)
 
     payload: dt.DictFreeForm = {"annotations": serialized_annotations}
     payload["overwrite"] = _get_overwrite_value(append)

@@ -808,7 +808,9 @@ def dataset_import(
     try:
         parser: ImportParser = get_importer(format)
         dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
-        import_annotations(dataset, parser, files, append, class_prompt, delete_for_empty)
+        import_annotations(
+            dataset, parser, files, append, class_prompt, delete_for_empty, import_annotators, import_reviewers
+        )
     except ImporterNotFoundError:
         _error(f"Unsupported import format: {format}, currently supported: {import_formats}")
     except AttributeError as e:

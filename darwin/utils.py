@@ -647,10 +647,10 @@ def _parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotati
     if "auto_annotate" in annotation:
         main_annotation.subs.append(dt.make_opaque_sub("auto_annotate", annotation["auto_annotate"]))
 
-    if "annotators" in annotation:
+    if annotation.get("annotators") is not None:
         main_annotation.annotators = _parse_annotators(annotation["annotators"])
 
-    if "reviewers" in annotation:
+    if annotation.get("reviewers") is not None:
         main_annotation.reviewers = _parse_annotators(annotation["reviewers"])
 
     return main_annotation
@@ -675,16 +675,19 @@ def _parse_darwin_video_annotation(annotation: dict) -> Optional[dt.VideoAnnotat
         slot_names=parse_slot_names(annotation),
     )
 
-    if "annotators" in annotation:
+    if annotation.get("annotators") is not None:
         main_annotation.annotators = _parse_annotators(annotation["annotators"])
 
-    if "reviewers" in annotation:
+    if annotation.get("reviewers") is not None:
         main_annotation.reviewers = _parse_annotators(annotation["reviewers"])
 
     return main_annotation
 
 
 def _parse_annotators(annotators: List[Dict[str, Any]]) -> List[dt.AnnotationAuthor]:
+    if not (hasattr(annotators, "full_name") or not hasattr(annotators, "email")):
+        raise AttributeError("JSON file must contain annotators with 'full_name' and 'email' fields")
+
     return [dt.AnnotationAuthor(annotator["full_name"], annotator["email"]) for annotator in annotators]
 
 

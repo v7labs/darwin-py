@@ -147,7 +147,7 @@ def test__handle_reviewers() -> None:
         op1 = _handle_reviewers(dt.Annotation("class", {}, [], reviewers=[1, 2, 3]), {}, True)  # type: ignore
         op2 = _handle_reviewers(dt.Annotation("class", {}, [], reviewers=[1, 2, 3]), {}, False)  # type: ignore
 
-        assert op1 == {"reviewers": "test"}
+        assert op1 == "test"
         assert op2 == {}
 
 
@@ -160,7 +160,7 @@ def test__handle_annotators() -> None:
         op1 = _handle_annotators(dt.Annotation("class", {}, [], annotators=[1, 2, 3]), {}, True)  # type: ignore
         op2 = _handle_annotators(dt.Annotation("class", {}, [], annotators=[1, 2, 3]), {}, False)  # type: ignore
 
-        assert op1 == {"annotators": "test"}
+        assert op1 == "test"
         assert op2 == {}
 
 
