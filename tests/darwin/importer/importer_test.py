@@ -245,8 +245,9 @@ def test__import_annotations() -> None:
         mock_dataset = Mock(RemoteDataset)
 
         mock_dataset.version = 2
-        mock_hr.return_value = "test_data"
+        mock_hr.return_value = "test_reviewers"
         mock_gov.return_value = "test_append_out"
+        mock_hs.return_value = "test_sub"
         mock_hsn.return_value = dt.Annotation(
             dt.AnnotationClass("test_class", "bbox"), {"paths": [1, 2, 3, 4, 5]}, [], ["test_slot_name"]
         )
@@ -288,7 +289,12 @@ def test__import_annotations() -> None:
         output = mock_dataset.import_annotation.call_args_list[0][1]["payload"]
         assertion = {
             "annotations": [
-                {"annotation_class_id": "1337", "data": "test_data", "context_keys": {"slot_names": ["test_slot_name"]}}
+                {
+                    "annotation_class_id": "1337",
+                    "data": "test_sub",
+                    "actors": "test_reviewers",
+                    "context_keys": {"slot_names": ["test_slot_name"]},
+                }
             ],
             "overwrite": "test_append_out",
         }

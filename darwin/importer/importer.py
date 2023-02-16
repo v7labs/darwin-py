@@ -540,8 +540,10 @@ def _import_annotations(
         data = _handle_video_annotations(annotation, annotation_class_id, attributes, annotation.data)
         data = _handle_complex_polygon(annotation, data)
         data = _handle_subs(annotation, data, annotation_class_id, attributes)
-        data = _handle_annotators(annotation, data, import_annotators)
-        data = _handle_reviewers(annotation, data, import_reviewers)
+
+        actors: dt.DictFreeForm = {}
+        actors = _handle_annotators(annotation, actors, import_annotators)
+        actors = _handle_reviewers(annotation, actors, import_reviewers)
 
         # Insert the default slot name if not available in the import source
         annotation = _handle_slot_names(annotation, dataset.version, default_slot_name)
@@ -551,6 +553,7 @@ def _import_annotations(
                 "annotation_class_id": annotation_class_id,
                 "data": data,
                 "context_keys": {"slot_names": annotation.slot_names},
+                "actors": actors,
             }
         )
 
