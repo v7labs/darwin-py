@@ -273,7 +273,7 @@ class ConvertPolygonToMask(object):
             cats_tensor: torch.Tensor = torch.as_tensor(cats, dtype=masks.dtype)
             # merge all instance masks into a single segmentation map
             # with its corresponding categories
-            target = flatten_masks_by_category(masks, cats_tensor, remove_overlap=True)
+            target = flatten_masks_by_category(masks, cats_tensor)
 
         else:
             target = torch.zeros((h, w), dtype=torch.uint8)
