@@ -33,10 +33,10 @@ jobs:
           poetry-version: ${{ matrix.poetry-version }}
       - name: Install dependencies
         run: |
-          poetry install --no-interaction --no-root --all-extras -vvv
+          poetry install --no-interaction --no-root -vvv
           pip install wheel
           pip install --upgrade setuptools
-          pip install --editable ".[test,ml,medical,dev]"
+          pip install --editable "."
   ci:
     strategy:
       fail-fast: false
