@@ -17,7 +17,7 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.7.0,<=3.11"
+python = ">=3.7.0,<3.12"
 argcomplete = "^2.0.0"
 humanize = "^4.4.0"
 pillow = "^9.4.0"
