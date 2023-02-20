@@ -12,6 +12,8 @@ from typing import (
 
 from requests.models import Response
 
+from requests.models import Response
+
 from darwin.dataset import RemoteDataset
 from darwin.dataset.release import Release
 from darwin.dataset.upload_manager import (

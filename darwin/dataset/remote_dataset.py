@@ -107,6 +107,7 @@ class RemoteDataset(ABC):
         item_count: int = 0,
         progress: float = 0,
         version: int = 1,
+        release: Optional[str] = None,
     ):
         self.team = team
         self.name = name
@@ -118,6 +119,7 @@ class RemoteDataset(ABC):
         self.annotation_types: Optional[List[Dict[str, Any]]] = None
         self.console: Console = Console()
         self.version = version
+        self.release = release
 
     @abstractmethod
     def push(
@@ -652,7 +654,10 @@ class RemoteDataset(ABC):
         if not releases:
             raise NotFound(str(self.identifier))
 
-        if name == "latest":
+        # overwrite default name with stored dataset.release if supplied
+        if self.release and name == "latest":
+            name = self.release
+        elif name == "latest":
             return next((release for release in releases if release.latest))
 
         for release in releases:
