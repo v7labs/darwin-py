@@ -4,12 +4,44 @@ from pathlib import Path
 from typing import Iterable, List, Optional, Tuple
 
 import numpy as np
+import torch
+from upolygon import draw_polygon
+
 from darwin.cli_functions import _error, _load_client
 from darwin.dataset.identifier import DatasetIdentifier
 from darwin.datatypes import Segment
-from upolygon import draw_polygon
 
-import torch
+
+def flatten_masks_by_category(
+    masks: torch.Tensor, cats: torch.Tensor, remove_overlap: bool = False, overlap: int = 255
+) -> torch.Tensor:
+    """
+    Takes a list of masks and flattens into a single mask output with category id's overlaid into one tensor.
+    By default overlapping sections of masks are replaced with the numerically largest category id.
+    Parameters
+    ----------
+    masks : torch.Tensor
+        lists of masks with shape [x, image_height, image_width] where x is the number of categories
+    cats : torch.Tensor
+        tensor vector of category id's with shape [x]
+    remove_overlap : bool, optional
+        overlapping areas will be replaced with default_overlap value, by default False
+    overlap : int, optional
+        value to replace the overlapping segments with, used in conjuction with remove_overlap, by default 255
+
+    Returns
+    -------
+    torch.Tensor
+        Flattened mask of category id's
+    """
+    if masks.shape[0] != cats.shape[0]:
+        raise AssertionError("masks and cats should have the same shape")
+    # Uses matrix multiplication here with `masks` being a binary array of same dimensions as image
+    # and category_id numerical values being overlaid onto the relevant mask
+    flattened, _ = (masks * cats[:, None, None]).max(dim=0)
+    if remove_overlap:
+        flattened[masks.sum(0) > 1] = overlap
+    return flattened
 
 
 def convert_segmentation_to_mask(segmentations: List[Segment], height: int, width: int) -> torch.Tensor:
