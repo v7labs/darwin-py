@@ -1,6 +1,11 @@
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
+import torch
+from PIL import Image as PILImage
+from torch.functional import Tensor
+from torchvision.transforms.functional import to_tensor
+
 from darwin.cli_functions import _error, _load_client
 from darwin.client import Client
 from darwin.dataset import LocalDataset
@@ -12,11 +17,6 @@ from darwin.torch.transforms import (
 )
 from darwin.torch.utils import polygon_area
 from darwin.utils import convert_polygons_to_sequences
-from PIL import Image as PILImage
-from torchvision.transforms.functional import to_tensor
-
-import torch
-from torch.functional import Tensor
 
 
 def get_dataset(

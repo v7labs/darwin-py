@@ -34,8 +34,9 @@ def flatten_masks_by_category(
     torch.Tensor
         Flattened mask of category id's
     """
-    if masks.shape[0] != cats.shape[0]:
-        raise AssertionError("masks and cats should have the same shape")
+    assert isinstance(masks, torch.Tensor)
+    assert isinstance(cats, torch.Tensor)
+    assert masks.shape[0] == cats.shape[0]
     # Uses matrix multiplication here with `masks` being a binary array of same dimensions as image
     # and category_id numerical values being overlaid onto the relevant mask
     flattened, _ = (masks * cats[:, None, None]).max(dim=0)
