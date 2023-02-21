@@ -468,7 +468,7 @@ def import_annotations(
             for parsed_file in track(files_to_track):
                 image_id, default_slot_name = remote_files[parsed_file.full_path]
 
-                _import_annotations(
+                errors, succes = _import_annotations(
                     dataset.client,
                     image_id,
                     remote_classes,
@@ -479,6 +479,11 @@ def import_annotations(
                     append,
                     delete_for_empty,
                 )
+
+                if errors:
+                    console.print(f"Errors importing {parsed_file.filename}", style="error")
+                    for error in errors:
+                        console.print(f"\t{error}", style="error")
 
 
 def _get_multi_cpu_settings(cpu_limit: Optional[int], cpu_count: int, use_multi_cpu: bool) -> Tuple[int, bool]:
@@ -555,36 +560,52 @@ def _import_annotations(
     dataset: "RemoteDataset",
     append: bool,
     delete_for_empty: bool,
-) -> None:
+) -> Tuple[dt.ErrorList, dt.Success]:
+    errors: dt.ErrorList = []
+    success: dt.Success = dt.Success.SUCCESS
+
     serialized_annotations = []
     for annotation in annotations:
         annotation_class = annotation.annotation_class
         annotation_type = annotation_class.annotation_internal_type or annotation_class.annotation_type
-        annotation_class_id = remote_classes[annotation_type][annotation_class.name]
 
-        if isinstance(annotation, dt.VideoAnnotation):
-            data = annotation.get_data(
-                only_keyframes=True,
-                post_processing=lambda annotation, data: _handle_subs(
-                    annotation, _handle_complex_polygon(annotation, data), annotation_class_id, attributes
-                ),
+        try:
+            annotation_class_id = remote_classes[annotation_type][annotation_class.name]
+        except KeyError:
+            try:
+                annotation_class_id = remote_classes[annotation_type][annotation_class.name.strip()]
+            except KeyError as e:
+                errors.append(
+                    ValueError(f"Annotation class {annotation_class.name} not found on server. Skipping annotation.")
+                )
+                success = dt.Success.PARTIAL_SUCCESS
+        try:
+            if isinstance(annotation, dt.VideoAnnotation):
+                data = annotation.get_data(
+                    only_keyframes=True,
+                    post_processing=lambda annotation, data: _handle_subs(
+                        annotation, _handle_complex_polygon(annotation, data), annotation_class_id, attributes
+                    ),
+                )
+            else:
+                data = {annotation_class.annotation_type: annotation.data}
+                data = _handle_complex_polygon(annotation, data)
+                data = _handle_subs(annotation, data, annotation_class_id, attributes)
+
+            # Insert the default slot name if not available in the import source
+            if not annotation.slot_names and dataset.version > 1:
+                annotation.slot_names.extend([default_slot_name])
+
+            serialized_annotations.append(
+                {
+                    "annotation_class_id": annotation_class_id,
+                    "data": data,
+                    "context_keys": {"slot_names": annotation.slot_names},
+                }
             )
-        else:
-            data = {annotation_class.annotation_type: annotation.data}
-            data = _handle_complex_polygon(annotation, data)
-            data = _handle_subs(annotation, data, annotation_class_id, attributes)
-
-        # Insert the default slot name if not available in the import source
-        if not annotation.slot_names and dataset.version > 1:
-            annotation.slot_names.extend([default_slot_name])
-
-        serialized_annotations.append(
-            {
-                "annotation_class_id": annotation_class_id,
-                "data": data,
-                "context_keys": {"slot_names": annotation.slot_names},
-            }
-        )
+        except Exception as e:
+            errors.append(e)
+            success = dt.Success.PARTIAL_SUCCESS
 
     payload: Dict[str, Unknown] = {"annotations": serialized_annotations}
     if append:
@@ -592,7 +613,13 @@ def _import_annotations(
     else:
         payload["overwrite"] = "true"
 
-    dataset.import_annotation(id, payload=payload)
+    try:
+        dataset.import_annotation(id, payload=payload)
+    except Exception as e:
+        errors.append(e)
+        success = dt.Success.FAILURE
+
+    return errors, success
 
 
 def _console_theme() -> Theme:

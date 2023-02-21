@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from email.policy import default
+from enum import Enum, auto
 from pathlib import Path
 from typing import (
     Any,
@@ -18,6 +19,16 @@ from darwin.path_utils import construct_full_path
 
 UnknownType = Any  # type: ignore
 NumberLike = Union[int, float]
+
+ErrorList = List[Exception]
+
+
+class Success(Enum):
+    SUCCESS = auto()
+    FAILURE = auto()
+    PARTIAL_SUCCESS = auto()
+    UNDETERMINED = auto()
+
 
 Point = Dict[str, float]
 BoundingBox = Dict[str, float]
