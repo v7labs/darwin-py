@@ -85,6 +85,9 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
             f.current_team()
         else:
             f.list_teams()
+    # Set compression level
+    elif args.command == "compression":
+        f.set_compression_level(args.compression_level)
     # Version
     elif args.command == "version":
         print(__version__)
@@ -133,7 +136,9 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
         elif args.action == "pull":
             f.pull_dataset(args.dataset, args.only_annotations, args.folders, args.video_frames, args.force_slots)
         elif args.action == "import":
-            f.dataset_import(args.dataset, args.format, args.files, args.append, not args.yes, args.delete_for_empty)
+            f.dataset_import(
+                args.dataset, args.format, args.files, args.append, not args.yes, args.delete_for_empty, args.cpu_limit
+            )
         elif args.action == "convert":
             f.dataset_convert(args.dataset, args.format, args.output_dir)
         elif args.action == "set-file-status":
@@ -154,6 +159,9 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
                 args.w,
                 args.h,
             )
+    # Annotation schema validation
+    elif args.command == "validate":
+        f.validate_schemas(location=args.location, pattern=args.pattern, silent=args.silent, output=args.output)
 
 
 if __name__ == "__main__":

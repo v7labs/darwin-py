@@ -8,7 +8,7 @@ from PIL import Image as PILImage
 
 import torch
 
-TargetKey = Union["boxes", "labels", "masks", "image_id", "area", "iscrowd"]
+TargetKey = Union["boxes", "labels", "mask", "masks", "image_id", "area", "iscrowd"]
 TargetType = Dict[TargetKey, torch.Tensor]
 
 
@@ -59,8 +59,9 @@ class RandomHorizontalFlip(transforms.RandomHorizontalFlip):
                 bbox = target["boxes"]
                 bbox[:, [0, 2]] = image.size[0] - bbox[:, [2, 0]]
                 target["boxes"] = bbox
-            if "masks" in target:
-                target["masks"] = target["masks"].flip(-1)
+            for k in ["mask", "masks"]:
+                if k in target:
+                    target[k] = target[k].flip(-1)
             return image, target
 
         if target is None:
@@ -103,8 +104,9 @@ class RandomVerticalFlip(transforms.RandomVerticalFlip):
                 bbox = target["boxes"]
                 bbox[:, [1, 3]] = image.size[1] - bbox[:, [1, 3]]
                 target["boxes"] = bbox
-            if "masks" in target:
-                target["masks"] = target["masks"].flip(-2)
+            for k in ["mask", "masks"]:
+                if k in target:
+                    target[k] = target[k].flip(-2)
             return image, target
 
         if target is None:

@@ -1,6 +1,8 @@
+import json
 import logging
 import os
 import time
+import zlib
 from logging import Logger
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Union, cast
@@ -186,6 +188,8 @@ class Client:
                 )
         if not matching_datasets:
             raise NotFound(str(parsed_dataset_identifier))
+        if parsed_dataset_identifier.version:
+            matching_datasets[0].release = parsed_dataset_identifier.version
         return matching_datasets[0]
 
     def create_dataset(self, name: str, team_slug: Optional[str] = None) -> RemoteDataset:
@@ -225,7 +229,6 @@ class Client:
                 progress=0,
                 client=self,
             )
-        end
 
     def archive_remote_dataset(self, dataset_id: int, team_slug: str) -> None:
         """
@@ -998,8 +1001,9 @@ class Client:
         """
         return os.getenv("DARWIN_BASE_URL", "https://darwin.v7labs.com")
 
-    def _get_headers(self, team_slug: Optional[str] = None) -> Dict[str, str]:
+    def _get_headers(self, team_slug: Optional[str] = None, compressed: bool = False) -> Dict[str, str]:
         headers: Dict[str, str] = {"Content-Type": "application/json"}
+
         api_key: Optional[str] = None
         team_config: Optional[Team] = self.config.get_team(team_slug or self.default_team, raise_on_invalid_team=False)
 
@@ -1008,6 +1012,9 @@ class Client:
 
         if api_key and len(api_key) > 0:
             headers["Authorization"] = f"ApiKey {api_key}"
+
+        if compressed:
+            headers["X-Darwin-Payload-Compression-Version"] = "1"
 
         from darwin import __version__
 
@@ -1087,9 +1094,20 @@ class Client:
         if payload is None:
             payload = {}
 
-        response: Response = self.session.post(
-            urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team_slug)
-        )
+        compression_level = int(self.config.get("global/payload_compression_level", "0"))
+
+        if compression_level > 0:
+            compressed_payload = zlib.compress(json.dumps(payload).encode("utf-8"), level=compression_level)
+
+            response: Response = requests.post(
+                urljoin(self.url, endpoint),
+                data=compressed_payload,
+                headers=self._get_headers(team_slug, compressed=True),
+            )
+        else:
+            response: Response = requests.post(
+                urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team_slug)
+            )
 
         self.log.debug(
             f"Client POST request response ({get_response_content(response)}) with unexpected status "

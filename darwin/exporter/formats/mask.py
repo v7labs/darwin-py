@@ -53,8 +53,8 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path, mode
         RGB_colors = [c for e in RGB_color_list for c in e]
 
     for annotation_file in annotation_files:
-        image_id = os.path.splitext(annotation_file.filename)[0]
-        outfile = masks_dir / f"{image_id}.png"
+        image_rel_path = os.path.splitext(annotation_file.full_path)[0].lstrip("/")
+        outfile = masks_dir / f"{image_rel_path}.png"
         outfile.parent.mkdir(parents=True, exist_ok=True)
 
         height = annotation_file.image_height

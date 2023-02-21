@@ -2,6 +2,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 from darwin.cli_functions import _error, _load_client
+from darwin.client import Client
 from darwin.dataset import LocalDataset
 from darwin.dataset.identifier import DatasetIdentifier
 from darwin.torch.transforms import (
@@ -25,6 +26,7 @@ def get_dataset(
     split: str = "default",
     split_type: str = "random",
     transform: Optional[List] = None,
+    client: Optional[Client] = None,
 ) -> LocalDataset:
     """
     Creates and returns a ``LocalDataset``.
@@ -43,6 +45,8 @@ def get_dataset(
         Heuristic used to do the split ``[random, stratified]``.
     transform : Optional[List], default: None
         List of PyTorch transforms.
+    client : Optional[Client], default: None
+        Client to use to retrieve the dataset.
     """
     dataset_functions = {
         "classification": ClassificationDataset,
@@ -56,7 +60,8 @@ def get_dataset(
         return _error(f"dataset_type needs to be one of '{list_of_types}'")
 
     identifier = DatasetIdentifier.parse(dataset_slug)
-    client = _load_client(offline=True)
+    if client is None:
+        client = _load_client(offline=True)
 
     for p in client.list_local_datasets(team_slug=identifier.team_slug):
         if identifier.dataset_slug == p.name:
@@ -448,18 +453,24 @@ class SemanticSegmentationDataset(LocalDataset):
 
         annotations: List[Dict[str, Union[int, List[List[Union[int, float]]]]]] = []
         for obj in target["annotations"]:
-            sequences = convert_polygons_to_sequences(
-                obj.data["path"],
-                height=target["height"],
-                width=target["width"],
-            )
-            # Discard polygons with less than three points
-            sequences[:] = [s for s in sequences if len(s) >= 6]
-            if not sequences:
-                continue
-            annotations.append(
-                {"category_id": self.classes.index(obj.annotation_class.name), "segmentation": sequences}
-            )
+            if "paths" in obj.data:
+                paths = obj.data["paths"]
+            else:
+                paths = [obj.data["path"]]
+
+            for path in paths:
+                sequences = convert_polygons_to_sequences(
+                    path,
+                    height=target["height"],
+                    width=target["width"],
+                )
+                # Discard polygons with less than three points
+                sequences[:] = [s for s in sequences if len(s) >= 6]
+                if not sequences:
+                    continue
+                annotations.append(
+                    {"category_id": self.classes.index(obj.annotation_class.name), "segmentation": sequences}
+                )
         target["annotations"] = annotations
 
         return target

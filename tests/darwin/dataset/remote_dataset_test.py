@@ -1,12 +1,13 @@
-import json
 import types
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict
 from unittest.mock import MagicMock, patch
 
+import orjson as json
 import pytest
 import responses
+
 from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset import RemoteDataset
@@ -70,7 +71,8 @@ def create_annotation_file(
     annotations.mkdir(exist_ok=True, parents=True)
 
     with (annotations / annotation_name).open("w") as f:
-        json.dump(annotation_content, f)
+        op = json.dumps(annotation_content).decode("utf-8")
+        f.write(op)
 
 
 @pytest.fixture()
@@ -304,6 +306,24 @@ def files_content() -> Dict[str, Any]:
     }
 
 
+def test_dataset_creation_from_id():
+    def it_should_set_id_correctly_from_id(darwin_client: Client):
+        dataset_id = "team_slug/dataset_name:test_release"
+        dataset = darwin_client.get_remote_dataset(dataset_id)
+
+        assert dataset.slug == "team_slug"
+        assert dataset.name == "dataset_name"
+        assert dataset.release == "test_release"
+
+    def it_should_work_without_a_release(darwin_client: Client):
+        dataset_id = "team_slug/dataset_name"
+        dataset = darwin_client.get_remote_dataset(dataset_id)
+
+        assert dataset.slug == "team_slug"
+        assert dataset.name == "dataset_name"
+        assert dataset.release == None
+
+
 @pytest.mark.usefixtures("file_read_write_test", "create_annotation_file")
 def describe_split_video_annotations():
     def it_works_on_videos(
@@ -331,7 +351,7 @@ def describe_split_video_annotations():
         assert not (video_path / "0000003.json").exists()
 
         with (video_path / "0000000.json").open() as f:
-            assert json.load(f) == {
+            assert json.loads(f.read()) == {
                 "annotations": [
                     {"name": "test_class", "polygon": {"path": [{"x": 0, "y": 0}, {"x": 1, "y": 1}, {"x": 1, "y": 0}]}}
                 ],
@@ -339,13 +359,13 @@ def describe_split_video_annotations():
             }
 
         with (video_path / "0000001.json").open() as f:
-            assert json.load(f) == {
+            assert json.loads(f.read()) == {
                 "annotations": [],
                 "image": {"filename": "test_video/0000001.png", "height": 1080, "url": "frame_2.jpg", "width": 1920},
             }
 
         with (video_path / "0000002.json").open() as f:
-            assert json.load(f) == {
+            assert json.loads(f.read()) == {
                 "annotations": [
                     {"name": "test_class", "polygon": {"path": [{"x": 5, "y": 5}, {"x": 6, "y": 6}, {"x": 6, "y": 5}]}}
                 ],

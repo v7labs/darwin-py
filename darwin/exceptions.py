@@ -1,4 +1,11 @@
+from cmath import exp
 from pathlib import Path
+from textwrap import dedent
+from typing import List
+
+from jsonschema.exceptions import ValidationError as jscValidationError
+
+from darwin.datatypes import AnnotationFileVersion
 
 
 class IncompatibleOptions(Exception):
@@ -32,6 +39,25 @@ class InvalidTeam(Exception):
     """
     Used when a team is not found or has no valid API key.
     """
+
+
+class InvalidCompressionLevel(Exception):
+    """
+    Used when compression level is invalid.
+    """
+
+    def __init__(self, level: int):
+        """
+        Parameters
+        ----------
+        level: int
+            The new value of compression level.
+        """
+        super().__init__()
+        self.level = level
+
+    def __str__(self):
+        return f"Unsupported compression level: '{self.level}'. Supported compression levels are 0-9."
 
 
 class MissingConfig(Exception):
@@ -127,6 +153,84 @@ class RequestEntitySizeExceeded(Exception):
     """
 
 
+class MissingSchema(Exception):
+    """
+    Used to indicate a problem loading or finding the schema
+    """
+
+    def __init__(self, message: str):
+        """_summary_
+
+        Parameters
+        ----------
+        message : str
+            Message to propogate up the stack
+        """
+        self.message = message
+
+    def __str__(self) -> str:
+        return self.message
+
+
+class AnnotationFileValidationError(Exception):
+    """
+    Used to indicate error while validation JSON annotation files.
+    """
+
+    def __init__(self, parent_error: jscValidationError, file_path: Path):
+        """
+        Parameters
+        ----------
+        parent_error: ValidationError
+            Error reported by ``jsonschema``.
+        file_path: Path
+            Path to annotation file that failed to validate.
+        """
+        self.parent_error = parent_error
+        self.file_path = file_path
+
+    def __str__(self) -> str:
+        return f"Unable to verify annotation file: '{self.file_path}'\n\n{self.parent_error.__str__()}".rstrip()
+
+
+class UnknownAnnotationFileSchema(Exception):
+    """
+    Used to indicate error when inferring schema for JSON annotation file.
+    """
+
+    def __init__(
+        self, file_path: Path, supported_versions: List[AnnotationFileVersion], detected_version: AnnotationFileVersion
+    ):
+        """
+        Parameters
+        ----------
+        file_path: Path
+            Path to annotation file that failed to validate.
+
+        supported_versions: List[AnnotationFileVersion]
+            todo
+
+        detected_version: AnnotationFileVersion
+            todo
+        """
+        self.file_path = file_path
+        self.detected_version = detected_version
+        self.supported_versions = list(map(str, supported_versions))
+
+    def __str__(self) -> str:
+        return dedent(
+            f"""\
+            Unable to find JSON schema for annotation file: '{self.file_path}'
+
+            Given annotation file should have either:
+                * optional `schema_ref` field with URL to JSON schema
+                * `version` field set to one of supported natively versions: {self.supported_versions}
+
+            Detected annotation file version is: '{self.detected_version}'.
+            """
+        )
+
+
 class UnknownExportVersion(Exception):
     """Used when dataset version is not recognized."""
 
@@ -158,9 +262,7 @@ class UnsupportedImportAnnotationType(Exception):
         annotation_type: str
             The unsupported annotation type.
         """
-        super().__init__(
-            f"Unsupported annotation type {annotation_type} for {import_type} import"
-        )
+        super().__init__(f"Unsupported annotation type {annotation_type} for {import_type} import")
         self.import_type = import_type
         self.annotation_type = annotation_type
 

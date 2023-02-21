@@ -5,13 +5,13 @@ from unittest.mock import call, patch
 import pytest
 import responses
 from rich.console import Console
-from tests.fixtures import *
 
 from darwin.cli_functions import delete_files, set_file_status, upload_data
 from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset import RemoteDataset
 from darwin.dataset.remote_dataset_v1 import RemoteDatasetV1
+from tests.fixtures import *
 
 
 @pytest.fixture

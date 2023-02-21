@@ -1,9 +1,9 @@
-import json
 from pathlib import Path
 from typing import Any, Dict, Iterable
 from xml.etree.ElementTree import Element, SubElement, tostring
 
 import deprecation
+import orjson as json
 
 import darwin.datatypes as dt
 from darwin.version import __version__
@@ -124,7 +124,7 @@ def add_subelement_text(parent: Element, name: str, value: Any) -> Element:
 )
 def convert_file(path: Path) -> Element:
     with open(path, "r") as f:
-        data = json.load(f)
+        data = json.loads(f.read())
         return build_voc(data["image"], data["annotations"])
 
 

@@ -1,4 +1,3 @@
-import json
 import os
 import shutil
 import tempfile
@@ -14,10 +13,12 @@ from typing import (
     Iterator,
     List,
     Optional,
+    Sequence,
     Tuple,
     Union,
 )
 
+import orjson as json
 from rich.console import Console
 
 from darwin.dataset.download_manager import download_all_images_from_annotations
@@ -106,6 +107,7 @@ class RemoteDataset(ABC):
         item_count: int = 0,
         progress: float = 0,
         version: int = 1,
+        release: Optional[str] = None,
     ):
         self.team = team
         self.name = name
@@ -117,11 +119,12 @@ class RemoteDataset(ABC):
         self.annotation_types: Optional[List[Dict[str, Any]]] = None
         self.console: Console = Console()
         self.version = version
+        self.release = release
 
     @abstractmethod
     def push(
         self,
-        files_to_upload: Optional[List[Union[PathLike, LocalFile]]],
+        files_to_upload: Optional[Sequence[Union[PathLike, LocalFile]]],
         *,
         blocking: bool = True,
         multi_threaded: bool = True,
@@ -164,7 +167,8 @@ class RemoteDataset(ABC):
                 stem = Path(frame_annotation.filename).stem
                 output_path = video_frame_annotations_path / f"{stem}.json"
                 with output_path.open("w") as f:
-                    json.dump(annotation, f)
+                    op = json.dumps(annotation).decode("utf-8")
+                    f.write(op)
 
             # Finally delete video annotations
             annotation_file.unlink()
@@ -650,7 +654,10 @@ class RemoteDataset(ABC):
         if not releases:
             raise NotFound(str(self.identifier))
 
-        if name == "latest":
+        # overwrite default name with stored dataset.release if supplied
+        if self.release and name == "latest":
+            name = self.release
+        elif name == "latest":
             return next((release for release in releases if release.latest))
 
         for release in releases:
