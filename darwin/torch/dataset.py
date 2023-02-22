@@ -392,6 +392,7 @@ class SemanticSegmentationDataset(LocalDataset):
 
         super().__init__(annotation_type="polygon", **kwargs)
         self.classes.insert(0, "__background__")
+        # self.num_classes += 1
         if transform is not None and isinstance(transform, list):
             transform = Compose(transform)
 
@@ -488,7 +489,9 @@ class SemanticSegmentationDataset(LocalDataset):
             Weight for each class in the train set (one for each class) as a 1D array normalized.
         """
         # Collect all the labels by iterating over the whole dataset
-        labels = []
+        # specifically add in the background class as it won't be an annotation to include
+        BACKGROUND_CLASS: int = 0
+        labels = [BACKGROUND_CLASS]
         for i, _ in enumerate(self.images_path):
             target = self.get_target(i)
             labels.extend([a["category_id"] for a in target["annotations"]])
