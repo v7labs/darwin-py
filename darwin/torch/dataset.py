@@ -436,6 +436,7 @@ class SemanticSegmentationDataset(LocalDataset):
                     {
                         "category_id": int,
                         "segmentation": List[List[float | int]]
+                        "class_name": str
                     }
                 ]
             }
@@ -471,7 +472,11 @@ class SemanticSegmentationDataset(LocalDataset):
                     continue
                 # offset the index by 1 so that masks don't get mixed with background classes
                 annotations.append(
-                    {"category_id": self.classes.index(obj.annotation_class.name) + 1, "segmentation": sequences}
+                    {
+                        "category_id": self.classes.index(obj.annotation_class.name),
+                        "segmentation": sequences,
+                        "class_name": obj.annotation_class.name,
+                    }
                 )
         target["annotations"] = annotations
 
