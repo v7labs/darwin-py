@@ -144,11 +144,11 @@ def test__handle_reviewers() -> None:
 
         m.return_value = "test"
 
-        op1 = _handle_reviewers(dt.Annotation("class", {}, [], reviewers=[1, 2, 3]), {}, True)  # type: ignore
-        op2 = _handle_reviewers(dt.Annotation("class", {}, [], reviewers=[1, 2, 3]), {}, False)  # type: ignore
+        op1 = _handle_reviewers(dt.Annotation("class", {}, [], reviewers=[1, 2, 3]), True)  # type: ignore
+        op2 = _handle_reviewers(dt.Annotation("class", {}, [], reviewers=[1, 2, 3]), False)  # type: ignore
 
         assert op1 == "test"
-        assert op2 == {}
+        assert op2 == []
 
 
 def test__handle_annotators() -> None:
@@ -157,11 +157,11 @@ def test__handle_annotators() -> None:
 
         m.return_value = "test"
 
-        op1 = _handle_annotators(dt.Annotation("class", {}, [], annotators=[1, 2, 3]), {}, True)  # type: ignore
-        op2 = _handle_annotators(dt.Annotation("class", {}, [], annotators=[1, 2, 3]), {}, False)  # type: ignore
+        op1 = _handle_annotators(dt.Annotation("class", {}, [], annotators=[1, 2, 3]), True)  # type: ignore
+        op2 = _handle_annotators(dt.Annotation("class", {}, [], annotators=[1, 2, 3]), False)  # type: ignore
 
         assert op1 == "test"
-        assert op2 == {}
+        assert op2 == []
 
 
 def test__handle_video_annotations() -> None:
@@ -217,11 +217,11 @@ def test__handle_slot_names(
 def test_get_overwrite_value() -> None:
     from darwin.importer.importer import _get_overwrite_value
 
-    # Scenario 1: No overwrite value
-    assert _get_overwrite_value(True) == "true"
+    # Scenario 1: No append value
+    assert _get_overwrite_value(True) == "false"
 
-    # Scenario 2: Overwrite value
-    assert _get_overwrite_value(False) == "false"
+    # Scenario 2: append value
+    assert _get_overwrite_value(False) == "true"
 
 
 def test__import_annotations() -> None:
@@ -245,7 +245,14 @@ def test__import_annotations() -> None:
         mock_dataset = Mock(RemoteDataset)
 
         mock_dataset.version = 2
-        mock_hr.return_value = "test_reviewers"
+        mock_hr.return_value = [
+            {"email": "reviewer1@example.com", "role": "reviewer"},
+            {"email": "reviewer2@example.com", "role": "reviewer"},
+        ]
+        mock_ha.return_value = [
+            {"email": "annotator1@example.com", "role": "annotator"},
+            {"email": "annotator2@example.com", "role": "annotator"},
+        ]
         mock_gov.return_value = "test_append_out"
         mock_hs.return_value = "test_sub"
         mock_hsn.return_value = dt.Annotation(
@@ -276,8 +283,8 @@ def test__import_annotations() -> None:
         assert mock_hs.call_count == 1
 
         assert mock_gov.call_args_list[0][0][0] == "test_append_in"
-        assert mock_ha.call_args_list[0][0][2] == "test_import_annotators"
-        assert mock_hr.call_args_list[0][0][2] == "test_import_reviewers"
+        assert mock_ha.call_args_list[0][0][1] == "test_import_annotators"
+        assert mock_hr.call_args_list[0][0][1] == "test_import_reviewers"
 
         # Assert handle slot names
         assert mock_hsn.call_args_list[0][0][0] == annotation
@@ -292,7 +299,12 @@ def test__import_annotations() -> None:
                 {
                     "annotation_class_id": "1337",
                     "data": "test_sub",
-                    "actors": "test_reviewers",
+                    "actors": [
+                        {"email": "annotator1@example.com", "role": "annotator"},
+                        {"email": "annotator2@example.com", "role": "annotator"},
+                        {"email": "reviewer1@example.com", "role": "reviewer"},
+                        {"email": "reviewer2@example.com", "role": "reviewer"},
+                    ],
                     "context_keys": {"slot_names": ["test_slot_name"]},
                 }
             ],

@@ -465,22 +465,22 @@ def _handle_complex_polygon(annotation: dt.Annotation, data: dt.DictFreeForm) ->
 def _annotators_or_reviewers_to_payload(
     actors: List[dt.AnnotationAuthor], role: dt.AnnotationAuthorRole
 ) -> List[dt.DictFreeForm]:
+
     return [{"email": actor.email, "role": role.value} for actor in actors]
 
 
-def _handle_reviewers(annotation: dt.Annotation, data: dt.DictFreeForm, import_reviewers: bool) -> dt.DictFreeForm:
+def _handle_reviewers(annotation: dt.Annotation, import_reviewers: bool) -> List[dt.DictFreeForm]:
     if import_reviewers:
         if annotation.reviewers:
-            data = _annotators_or_reviewers_to_payload(annotation.reviewers, dt.AnnotationAuthorRole.REVIEWER)
+            return _annotators_or_reviewers_to_payload(annotation.reviewers, dt.AnnotationAuthorRole.REVIEWER)
+    return []
 
-    return data
 
-
-def _handle_annotators(annotation: dt.Annotation, data: dt.DictFreeForm, import_annotators: bool) -> dt.DictFreeForm:
+def _handle_annotators(annotation: dt.Annotation, import_annotators: bool) -> List[dt.DictFreeForm]:
     if import_annotators:
         if annotation.annotators:
-            data = _annotators_or_reviewers_to_payload(annotation.annotators, dt.AnnotationAuthorRole.ANNOTATOR)
-    return data
+            return _annotators_or_reviewers_to_payload(annotation.annotators, dt.AnnotationAuthorRole.ANNOTATOR)
+    return []
 
 
 def _handle_video_annotations(
@@ -511,7 +511,7 @@ def _handle_slot_names(annotation: dt.Annotation, dataset_version: int, default_
 
 
 def _get_overwrite_value(append: bool) -> str:
-    return "true" if append else "false"
+    return "false" if append else "true"
 
 
 def _import_annotations(
@@ -537,9 +537,9 @@ def _import_annotations(
         data = _handle_complex_polygon(annotation, data)
         data = _handle_subs(annotation, data, annotation_class_id, attributes)
 
-        actors: dt.DictFreeForm = {}
-        actors = _handle_annotators(annotation, actors, import_annotators)
-        actors = _handle_reviewers(annotation, actors, import_reviewers)
+        actors: List[dt.DictFreeForm] = []
+        actors.extend(_handle_annotators(annotation, import_annotators))
+        actors.extend(_handle_reviewers(annotation, import_reviewers))
 
         # Insert the default slot name if not available in the import source
         annotation = _handle_slot_names(annotation, dataset.version, default_slot_name)
@@ -551,7 +551,7 @@ def _import_annotations(
         }
 
         if actors:
-            serial_obj["actors"] = actors
+            serial_obj["actors"] = actors  # type: ignore
 
         serialized_annotations.append(serial_obj)
 
