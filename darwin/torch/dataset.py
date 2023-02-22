@@ -392,7 +392,7 @@ class SemanticSegmentationDataset(LocalDataset):
 
         super().__init__(annotation_type="polygon", **kwargs)
         self.classes.insert(0, "__background__")
-        # self.num_classes += 1
+        self.num_classes += 1
         if transform is not None and isinstance(transform, list):
             transform = Compose(transform)
 
@@ -471,7 +471,7 @@ class SemanticSegmentationDataset(LocalDataset):
                     continue
                 # offset the index by 1 so that masks don't get mixed with background classes
                 annotations.append(
-                    {"category_id": self.classes.index(obj.annotation_class.name), "segmentation": sequences}
+                    {"category_id": self.classes.index(obj.annotation_class.name) + 1, "segmentation": sequences}
                 )
         target["annotations"] = annotations
 
