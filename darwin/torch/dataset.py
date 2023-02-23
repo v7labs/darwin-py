@@ -471,7 +471,7 @@ class SemanticSegmentationDataset(LocalDataset):
                 sequences[:] = [s for s in sequences if len(s) >= 6]
                 if not sequences:
                     continue
-                # offset the index by 1 so that masks don't get mixed with background classes
+
                 annotations.append(
                     {
                         "category_id": self.classes.index(obj.annotation_class.name),
