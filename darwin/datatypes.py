@@ -352,9 +352,6 @@ class AnnotationFile:
     #: List of ``VideoAnnotation``\s or ``Annotation``\s.
     annotations: Sequence[Union[Annotation, VideoAnnotation]]
 
-    # The darwin ID of the item that these annotations belong to.
-    item_id: Optional[str] = None
-
     # Deprecated
     #: Whether the annotations in the ``annotations`` attribute are ``VideoAnnotation`` or not.
     is_video: bool = False
@@ -396,6 +393,9 @@ class AnnotationFile:
     # Version of the file in format (MAJOR, MINOR, SUFFIX)
     # e.g. (1, 0, 'a')
     version: AnnotationFileVersion = field(default_factory=AnnotationFileVersion)
+
+    # The darwin ID of the item that these annotations belong to.
+    item_id: Optional[str] = None
 
     @property
     def full_path(self) -> str:
