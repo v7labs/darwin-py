@@ -35,10 +35,11 @@ def flatten_masks_by_category(masks: torch.Tensor, cats: List[int]) -> torch.Ten
     BACKGROUND: int = 0
     polygon_mapping[BACKGROUND] = 0
     # Uses matrix multiplication here with `masks` being a binary array of same dimensions as image
-    # and category_id numerical values being overlaid onto the relevant mask
+    # and polygon orders being overlaid onto the relevant mask
     order_tensor = torch.as_tensor(order_of_polygons, dtype=masks.dtype)
     flattened, _ = (masks * order_tensor[:, None, None]).max(dim=0)
     # The mask is now flattened in order of the polygons but needs to be converted back to the categories
+    # vectorize the dictionary to return the original category id's
     mapped = np.vectorize(polygon_mapping.__getitem__)(flattened)
     return torch.as_tensor(mapped, dtype=masks.dtype)
 
