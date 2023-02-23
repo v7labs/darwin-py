@@ -136,9 +136,9 @@ def export_single_nifti_file(video_annotation: dt.AnnotationFile, output_dir: Pa
             affine=affine,
         )
         if original_affine is not None:
-            img_ornt = io_orientation(original_affine)  # Get orientation of current affine
-            ras_ornt = axcodes2ornt("RAI")  # Get RAI orientation
-            from_canonical = ornt_transform(ras_ornt, img_ornt)  # Get transform from RAS to current affine
+            orig_ornt = io_orientation(original_affine)  # Get orientation of current affine
+            img_ornt = io_orientation(affine) # Get orientation of RAS affine
+            from_canonical = ornt_transform(img_ornt, orig_ornt)  # Get transform from RAS to current affine
             img = img.as_reoriented(from_canonical)
         output_path = Path(output_dir) / f"{image_id}_{class_name}.nii.gz"
         if not output_path.parent.exists():
@@ -161,6 +161,9 @@ def get_view_idx(frame_idx, groups):
 
 
 def get_view_idx_from_slot_name(slot_name):
+    # if mpr:
+    #     #do this correct treatment volumetrically.
+    #     pass
     slot_names = {"0.1": 0, "0.2": 1, "0.3": 2}
     slot_names.get(slot_name, 0)
     return slot_names.get(slot_name, 0)
