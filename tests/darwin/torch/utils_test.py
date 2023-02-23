@@ -26,7 +26,7 @@ def multiple_overlap_masks() -> Tuple[torch.Tensor, List[int]]:
     """
     masks = torch.as_tensor(torch.zeros(3, 3, 3), dtype=torch.uint8)
     cats = [1, 2, 1]
-    # should have 1 overlap in the corner, with the corner belonging to category '2'
+    # should have 1 overlap in the corner, with the corner belonging to category '1'
     masks[0, :, :] = 1
     masks[1, 0, :] = 1
     masks[2, :, 0] = 1
