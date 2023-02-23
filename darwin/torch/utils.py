@@ -12,9 +12,7 @@ from darwin.dataset.identifier import DatasetIdentifier
 from darwin.datatypes import Segment
 
 
-def flatten_masks_by_category(
-    masks: torch.Tensor, cats: List[int], remove_overlap: bool = False, overlap: int = 255
-) -> torch.Tensor:
+def flatten_masks_by_category(masks: torch.Tensor, cats: List[int]) -> torch.Tensor:
     """
     Takes a list of masks and flattens into a single mask output with category id's overlaid into one tensor.
     Overlapping sections of masks are replaced with the numerically largest category id in that position
@@ -34,7 +32,8 @@ def flatten_masks_by_category(
     assert masks.shape[0] == len(cats)
     order_of_polygons = [i for i in range(1, len(cats) + 1)]
     polygon_mapping = {order: cat for cat, order in zip(cats, order_of_polygons)}
-    polygon_mapping[0] = 0  # specifically add the base background
+    BACKGROUND: int = 0
+    polygon_mapping[BACKGROUND] = 0
     # Uses matrix multiplication here with `masks` being a binary array of same dimensions as image
     # and category_id numerical values being overlaid onto the relevant mask
     order_tensor = torch.as_tensor(order_of_polygons, dtype=masks.dtype)
