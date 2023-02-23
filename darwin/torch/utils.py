@@ -15,7 +15,7 @@ from darwin.datatypes import Segment
 def flatten_masks_by_category(masks: torch.Tensor, cats: List[int]) -> torch.Tensor:
     """
     Takes a list of masks and flattens into a single mask output with category id's overlaid into one tensor.
-    Overlapping sections of masks are replaced with the numerically largest category id in that position
+    Overlapping sections of masks are replaced with the top most annotation in that position
     Parameters
     ----------
     masks : torch.Tensor
