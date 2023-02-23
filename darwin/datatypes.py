@@ -222,6 +222,9 @@ class VideoAnnotation:
     #: Authorship of the annotation (reviewers)
     reviewers: Optional[List[AnnotationAuthor]] = None
 
+    # The darwin ID of this annotation.
+    id: Optional[str] = None
+
     def get_data(
         self,
         only_keyframes: bool = True,

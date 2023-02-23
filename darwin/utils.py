@@ -666,7 +666,9 @@ def _parse_darwin_video_annotation(annotation: dict) -> Optional[dt.VideoAnnotat
     keyframes: Dict[int, bool] = {}
     frames = {**annotation.get("frames", {}), **annotation.get("sections", {})}
     for f, frame in frames.items():
-        frame_annotations[int(f)] = _parse_darwin_annotation({**frame, **{"name": name}})
+        frame_annotations[int(f)] = _parse_darwin_annotation(
+            {**frame, **{"name": name, "id": annotation.get("id", None)}}
+        )
         keyframes[int(f)] = frame.get("keyframe", False)
 
     if not frame_annotations:
@@ -678,6 +680,9 @@ def _parse_darwin_video_annotation(annotation: dict) -> Optional[dt.VideoAnnotat
         annotation.get("interpolated", False),
         slot_names=parse_slot_names(annotation),
     )
+
+    if "id" in annotation:
+        main_annotation.id = annotation["id"]
 
     if "annotators" in annotation:
         main_annotation.annotators = _parse_annotators(annotation["annotators"])
