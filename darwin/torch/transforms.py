@@ -246,10 +246,9 @@ class ConvertPolygonsToSemanticMask(object):
         cats = [obj["category_id"] for obj in annotations]
         if segmentations:
             masks = convert_segmentation_to_mask(segmentations, h, w)
-            cats_tensor: torch.Tensor = torch.as_tensor(cats, dtype=masks.dtype)
             # merge all instance masks into a single segmentation map
             # with its corresponding categories
-            mask = flatten_masks_by_category(masks, cats_tensor)
+            mask = flatten_masks_by_category(masks, cats)
 
         else:
             mask = torch.zeros((h, w), dtype=torch.uint8)
@@ -270,10 +269,9 @@ class ConvertPolygonToMask(object):
         cats = [obj["category_id"] for obj in annotation]
         if segmentations:
             masks = convert_segmentation_to_mask(segmentations, h, w)
-            cats_tensor: torch.Tensor = torch.as_tensor(cats, dtype=masks.dtype)
             # merge all instance masks into a single segmentation map
             # with its corresponding categories
-            target = flatten_masks_by_category(masks, cats_tensor)
+            target = flatten_masks_by_category(masks, cats)
 
         else:
             target = torch.zeros((h, w), dtype=torch.uint8)

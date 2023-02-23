@@ -13,36 +13,35 @@ from darwin.datatypes import Segment
 
 
 def flatten_masks_by_category(
-    masks: torch.Tensor, cats: torch.Tensor, remove_overlap: bool = False, overlap: int = 255
+    masks: torch.Tensor, cats: List[int], remove_overlap: bool = False, overlap: int = 255
 ) -> torch.Tensor:
     """
     Takes a list of masks and flattens into a single mask output with category id's overlaid into one tensor.
-    By default overlapping sections of masks are replaced with the numerically largest category id.
+    Overlapping sections of masks are replaced with the numerically largest category id in that position
     Parameters
     ----------
     masks : torch.Tensor
         lists of masks with shape [x, image_height, image_width] where x is the number of categories
-    cats : torch.Tensor
-        tensor vector of category id's with shape [x]
-    remove_overlap : bool, optional
-        overlapping areas will be replaced with default_overlap value, by default False
-    overlap : int, optional
-        value to replace the overlapping segments with, used in conjuction with remove_overlap, by default 255
-
+    cats : List[int]
+        int list of category id's with len(x)
     Returns
     -------
     torch.Tensor
         Flattened mask of category id's
     """
     assert isinstance(masks, torch.Tensor)
-    assert isinstance(cats, torch.Tensor)
-    assert masks.shape[0] == cats.shape[0]
+    assert isinstance(cats, List)
+    assert masks.shape[0] == len(cats)
+    order_of_polygons = [i for i in range(1, len(cats) + 1)]
+    polygon_mapping = {order: cat for cat, order in zip(cats, order_of_polygons)}
+    polygon_mapping[0] = 0  # specifically add the base background
     # Uses matrix multiplication here with `masks` being a binary array of same dimensions as image
     # and category_id numerical values being overlaid onto the relevant mask
-    flattened, _ = (masks * cats[:, None, None]).max(dim=0)
-    if remove_overlap:
-        flattened[masks.sum(0) > 1] = overlap
-    return flattened
+    order_tensor = torch.as_tensor(order_of_polygons, dtype=masks.dtype)
+    flattened, _ = (masks * order_tensor[:, None, None]).max(dim=0)
+    # The mask is now flattened in order of the polygons but needs to be converted back to the categories
+    mapped = np.vectorize(polygon_mapping.__getitem__)(flattened)
+    return torch.as_tensor(mapped, dtype=masks.dtype)
 
 
 def convert_segmentation_to_mask(segmentations: List[Segment], height: int, width: int) -> torch.Tensor:
