@@ -244,6 +244,7 @@ def describe_get_dataset():
         dataset = get_dataset(f"{v1_or_v2_slug}/coco", "semantic-segmentation")
         assert isinstance(dataset, SemanticSegmentationDataset)
         assert len(dataset) == 20
+        assert "__background__" in dataset.classes
 
         image, label = dataset[0]
         assert image.size() == (3, 50, 50)

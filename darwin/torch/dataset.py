@@ -391,8 +391,9 @@ class SemanticSegmentationDataset(LocalDataset):
     def __init__(self, transform: Optional[Union[List[Callable], Callable]] = None, **kwargs):
 
         super().__init__(annotation_type="polygon", **kwargs)
-        self.classes.insert(0, "__background__")
-        self.num_classes += 1
+        if not "__background__" in self.classes:
+            self.classes.insert(0, "__background__")
+            self.num_classes += 1
         if transform is not None and isinstance(transform, list):
             transform = Compose(transform)
 
