@@ -437,7 +437,6 @@ class SemanticSegmentationDataset(LocalDataset):
                     {
                         "category_id": int,
                         "segmentation": List[List[float | int]]
-                        "class_name": str
                     }
                 ]
             }
@@ -476,7 +475,6 @@ class SemanticSegmentationDataset(LocalDataset):
                     {
                         "category_id": self.classes.index(obj.annotation_class.name),
                         "segmentation": sequences,
-                        "class_name": obj.annotation_class.name,
                     }
                 )
         target["annotations"] = annotations
