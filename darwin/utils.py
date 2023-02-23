@@ -436,6 +436,7 @@ def _parse_darwin_v2(path: Path, data: Dict[str, Any]) -> dt.AnnotationFile:
             version=_parse_version(data),
             path=path,
             filename=item["name"],
+            item_id=item.get("source_info", {}).get("item_id", None),
             dataset_name=item.get("source_info", {}).get("dataset", {}).get("name", None),
             annotation_classes=annotation_classes,
             annotations=annotations,
@@ -456,6 +457,7 @@ def _parse_darwin_v2(path: Path, data: Dict[str, Any]) -> dt.AnnotationFile:
             version=_parse_version(data),
             path=path,
             filename=item["name"],
+            item_id=item.get("source_info", {}).get("item_id", None),
             dataset_name=item.get("source_info", {}).get("dataset", {}).get("name", None),
             annotation_classes=annotation_classes,
             annotations=annotations,
@@ -632,6 +634,8 @@ def _parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotati
         print(f"[WARNING] Unsupported annotation type: '{annotation.keys()}'")
         return None
 
+    if "id" in annotation:
+        main_annotation.id = annotation["id"]
     if "instance_id" in annotation:
         main_annotation.subs.append(dt.make_instance_id(annotation["instance_id"]["value"]))
     if "attributes" in annotation:
@@ -734,6 +738,7 @@ def split_video_annotation(annotation: dt.AnnotationFile) -> List[dt.AnnotationF
                 frame_url,
                 annotation.workview_url,
                 annotation.seq,
+                item_id=annotation.item_id,
                 slots=annotation.slots,
             )
         )

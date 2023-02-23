@@ -168,6 +168,9 @@ class Annotation:
     #: Authorship of the annotation (reviewers)
     reviewers: Optional[List[AnnotationAuthor]] = None
 
+    # The darwin ID of this annotation.
+    id: Optional[str] = None
+
     def get_sub(self, annotation_type: str) -> Optional[SubAnnotation]:
         """
         Returns the first SubAnnotation that matches the given type.
@@ -345,6 +348,9 @@ class AnnotationFile:
 
     #: List of ``VideoAnnotation``\s or ``Annotation``\s.
     annotations: Sequence[Union[Annotation, VideoAnnotation]]
+
+    # The darwin ID of the item that these annotations belong to.
+    item_id: Optional[str] = None
 
     # Deprecated
     #: Whether the annotations in the ``annotations`` attribute are ``VideoAnnotation`` or not.
