@@ -1,3 +1,5 @@
+import orjson as json
+
 from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, Tuple, Union
 
 from darwin.dataset import RemoteDataset
@@ -455,6 +457,19 @@ class RemoteDatasetV2(RemoteDataset):
         """
 
         self.client.api_v2.import_annotation(item_id, payload=payload, team_slug=self.team)
+
+    def create_annotation_group(self, name: str) -> str:
+        """
+        Creates an annotation group for importing annotations.
+
+        Parameters
+        ----------
+        name: str
+            Name of the annotation group.
+        """
+        payload = {"dataset_id": self.dataset_id, "name": name}
+        response: Response = self.client.api_v2.create_annotation_group(payload=payload, team_slug=self.team)
+        return json.loads(response.text)["id"]
 
     def _fetch_stages(self, stage_type):
         detailed_dataset = self.client.api_v2.get_dataset(self.dataset_id)

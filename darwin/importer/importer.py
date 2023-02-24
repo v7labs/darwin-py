@@ -121,7 +121,9 @@ def build_attribute_lookup(dataset: "RemoteDataset") -> Dict[str, Any]:
     current_version=__version__,
     details=DEPRECATION_MESSAGE,
 )
-def get_remote_files(dataset: "RemoteDataset", filenames: List[str], chunk_size: int() = 100) -> Dict[str, Tuple[int, str]]:
+def get_remote_files(
+    dataset: "RemoteDataset", filenames: List[str], chunk_size: int() = 100
+) -> Dict[str, Tuple[int, str]]:
     """
     Fetches remote files from the datasets in chunks; by default 100 filenames at a time.
 
@@ -141,12 +143,14 @@ def get_remote_files(dataset: "RemoteDataset", filenames: List[str], chunk_size:
             remote_files[remote_file.full_path] = (remote_file.id, slot_name)
     return remote_files
 
+
 def _get_slot_name(remote_file) -> str:
     slot = next(iter(remote_file.slots), {"slot_name": "0"})
     if slot:
         return slot["slot_name"]
     else:
         return "0"
+
 
 def _resolve_annotation_classes(
     local_annotation_classes: List[dt.AnnotationClass],
@@ -183,6 +187,7 @@ def import_annotations(
     append: bool,
     class_prompt: bool = True,
     delete_for_empty: bool = False,
+    to_new_annotation_group: bool = False,
 ) -> None:
     """
     Imports the given given Annotations into the given Dataset.
@@ -206,6 +211,10 @@ def import_annotations(
         If ``False``, empty annotation files will simply be skipped.
         Only works for V2 datasets.
         Incompatible with ``append``.
+    to_new_annotation_group: bool, default: False
+        If ``True`` the imported annotations will be linked to a newly created annotation group
+        if ``False`` the imported annotations will be linked to the default annotation group
+        Only works for V2 datasets
 
     Raises
     -------
@@ -276,7 +285,6 @@ def import_annotations(
             if chunk_size <= 0:
                 raise ValueError("Unable to fetch remote file list.")
 
-
     for parsed_file in parsed_files:
         if parsed_file.full_path not in remote_files:
             local_files_missing_remotely.append(parsed_file)
@@ -340,6 +348,14 @@ def import_annotations(
     else:
         remote_classes = build_main_annotations_lookup_table(team_classes)
 
+    annotation_group_id = None
+    if dataset.version == 2 and to_new_annotation_group:
+        console.print(
+            "Creating a new annotation group for the import...",
+            style="info",
+        )
+        annotation_group_id = dataset.create_annotation_group(f"{dataset.name}_import")
+
     if dataset.version == 1:
         console.print("Importing annotations...\nEmpty annotations will be skipped.", style="info")
     elif dataset.version == 2 and delete_for_empty:
@@ -389,6 +405,7 @@ def import_annotations(
                     remote_classes,
                     attributes,
                     parsed_file.annotations,
+                    annotation_group_id,
                     default_slot_name,
                     dataset,
                     append,
@@ -455,6 +472,7 @@ def _import_annotations(
     remote_classes: Dict[str, Any],
     attributes: Dict[str, Any],
     annotations: List[dt.Annotation],
+    annotation_group_id: Optional[str],
     default_slot_name: str,
     dataset: "RemoteDataset",
     append: bool,
@@ -485,6 +503,7 @@ def _import_annotations(
         serialized_annotations.append(
             {
                 "annotation_class_id": annotation_class_id,
+                "annotation_group_id": annotation_group_id,
                 "data": data,
                 "context_keys": {"slot_names": annotation.slot_names},
             }

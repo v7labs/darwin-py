@@ -456,3 +456,14 @@ class RemoteDatasetV1(RemoteDataset):
         """
 
         self.client.import_annotation(item_id, payload=payload)
+
+    def create_annotation_group(self, name: str) -> str:
+        """
+        Creates an annotation group for importing annotations.
+
+        Parameters
+        ----------
+        name: str
+            Name of the annotation group.
+        """
+        raise ValueError("Annotation group creation is not supported for V1 datasets")

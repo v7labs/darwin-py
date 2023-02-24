@@ -193,3 +193,17 @@ class BackendV2:
         """
 
         return self._client._post_raw(f"v2/teams/{team_slug}/items/{item_id}/import", payload=payload)
+
+    @inject_default_team_slug
+    def create_annotation_group(self, payload: Dict[str, Any], team_slug: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Creates an annotation group for a team.
+
+        Parameters
+        ----------
+        payload: Dict[str, Any]
+            Payload to create an annotation group. The default format is:
+            `{"name": name, "dataset_id": dataset_id}`
+        """
+
+        return self._client._post_raw(f"v2/teams/{team_slug}/annotation_groups", payload=payload)

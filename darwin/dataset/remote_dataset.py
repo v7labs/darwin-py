@@ -831,6 +831,22 @@ class RemoteDataset(ABC):
             `{"annotations": serialized_annotations, "overwrite": "false"}`
         """
 
+    @abstractmethod
+    def create_annotation_group(self, name: str) -> str:
+        """
+        Creates an annotation group for importing annotations.
+
+        Parameters
+        ----------
+        name: str
+            Name of the annotation group.
+
+        Returns
+        -------
+        str
+            The ID of the annotation group.
+        """
+
     @property
     def remote_path(self) -> Path:
         """Returns an URL specifying the location of the remote dataset."""
