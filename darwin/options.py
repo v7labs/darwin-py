@@ -1,16 +1,16 @@
 import sys
 from argparse import ArgumentParser, Namespace
-from typing import Tuple
+from typing import Any, Optional, Tuple
 
 import argcomplete
 
 
-class Options(object):
+class Options:
     """
     Has functions to parse CLI options given by the user.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
 
         self.parser: ArgumentParser = ArgumentParser(
             description="Command line tool to create/upload/download datasets on darwin."
@@ -195,7 +195,8 @@ class Options(object):
         parser_pull.add_argument(
             "--force-slots",
             action="store_true",
-            help="Forces pull of all slots of items into deeper file structure ({prefix}/{item_name}/{slot_name}/{file_name}). If your dataset includes items with multiple slots, or multiple source files per slot, this option becomes implicitly enabled.",
+            help="Forces pull of all slots of items into deeper file structure ({prefix}/{item_name}/{slot_name}/{file_name}). "
+            + "If your dataset includes items with multiple slots, or multiple source files per slot, this option becomes implicitly enabled.",
         )
 
         # Import
@@ -223,8 +224,24 @@ class Options(object):
             help="Empty annotations will delete annotations from remote files.",
         )
 
+        # Cpu limit for multiprocessing tasks
+        def cpu_default_types(input: Any) -> Optional[int]:  # type: ignore
+            try:
+                return int(input)
+            except TypeError:
+                return None
+
+        parser_import.add_argument(
+            "--cpu_limit",
+            type=cpu_default_types,
+            required=False,
+            default=None,
+            help="Limits amount of cores used on machine to process results, default to total cores - 2",
+        )
+
         # Convert
         parser_convert = dataset_action.add_parser("convert", help="Converts darwin json to other annotation formats.")
+
         parser_convert.add_argument(
             "dataset",
             type=str,
