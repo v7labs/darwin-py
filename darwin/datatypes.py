@@ -155,6 +155,9 @@ class Annotation:
     #: Authorship of the annotation (reviewers)
     reviewers: Optional[List[AnnotationAuthor]] = None
 
+    # The darwin ID of this annotation.
+    id: Optional[str] = None
+
     def get_sub(self, annotation_type: str) -> Optional[SubAnnotation]:
         """
         Returns the first SubAnnotation that matches the given type.
@@ -205,6 +208,9 @@ class VideoAnnotation:
 
     #: Authorship of the annotation (reviewers)
     reviewers: Optional[List[AnnotationAuthor]] = None
+
+    # The darwin ID of this annotation.
+    id: Optional[str] = None
 
     def get_data(
         self,
@@ -377,6 +383,9 @@ class AnnotationFile:
     # Version of the file in format (MAJOR, MINOR, SUFFIX)
     # e.g. (1, 0, 'a')
     version: AnnotationFileVersion = field(default_factory=AnnotationFileVersion)
+
+    # The darwin ID of the item that these annotations belong to.
+    item_id: Optional[str] = None
 
     @property
     def full_path(self) -> str:

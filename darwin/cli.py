@@ -43,21 +43,21 @@ def main() -> None:
         f._error("The team specified is not in the configuration, please authenticate first.")
     except requests.exceptions.ConnectionError:
         f._error("Darwin seems unreachable, please try again in a minute or contact support.")
-    # except Exception as e:  # Catch unhandled exceptions
-    #     filename = f"darwin_error_{datetime.now().timestamp()}.log"
+    except Exception as e:  # Catch unhandled exceptions
+        filename = f"darwin_error_{datetime.now().timestamp()}.log"
 
-    #     fd = open(filename, "w")
-    #     fd.write("Darwin CLI error log")
-    #     fd.write(f"Version: {__version__}")
-    #     fd.write(f"OS: {platform.platform()}")
-    #     fd.write(f"Command: {str(args)}")
-    #     fd.write(f"Error: {str(e.with_traceback(None))}")
-    #     fd.close()
+        fd = open(filename, "w")
+        fd.write("Darwin CLI error log")
+        fd.write(f"Version: {__version__}")
+        fd.write(f"OS: {platform.platform()}")
+        fd.write(f"Command: {str(args)}")
+        fd.write(f"Error: {str(e)}")
+        fd.close()
 
-    #     f._error(
-    #         "An unexpected error occurred, errors have been written to {filename}, please contact support, and send them the file."
-    #         + f"Error: {str(e)}"
-    #     )
+        f._error(
+            "An unexpected error occurred, errors have been written to {filename}, please contact support, and send them the file."
+            + f"Error: {str(e)}"
+        )
 
 
 def _run(args: Namespace, parser: ArgumentParser) -> None:
@@ -145,6 +145,7 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
                 args.delete_for_empty,
                 args.import_annotators,
                 args.import_reviewers,
+                args.cpu_limit,
             ),
         elif args.action == "convert":
             f.dataset_convert(args.dataset, args.format, args.output_dir)
