@@ -145,8 +145,12 @@ def find_and_parse(
         parsed_files = list(map(importer, tqdm(files) if is_console else files))
 
     maybe_console("Finished.")
-
-    if not isinstance(parsed_files, list):
+    # Sometimes we have a list of lists of AnnotationFile, sometimes we have a list of AnnotationFile
+    # We flatten the list of lists
+    if isinstance(parsed_files, list):
+        if isinstance(parsed_files[0], list):
+            parsed_files = [item for sublist in parsed_files for item in sublist]
+    else:
         parsed_files = [parsed_files]
 
     return parsed_files
@@ -467,7 +471,8 @@ def import_annotations(
             _warn_unsupported_annotations(files_to_track)
             for parsed_file in track(files_to_track):
                 image_id, default_slot_name = remote_files[parsed_file.full_path]
-
+                if parsed_file.slots:
+                    default_slot_name = parsed_file.slots[0].name
                 _import_annotations(
                     dataset.client,
                     image_id,
@@ -577,7 +582,6 @@ def _import_annotations(
         # Insert the default slot name if not available in the import source
         if not annotation.slot_names and dataset.version > 1:
             annotation.slot_names.extend([default_slot_name])
-
         serialized_annotations.append(
             {
                 "annotation_class_id": annotation_class_id,

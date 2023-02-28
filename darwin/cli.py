@@ -50,7 +50,7 @@ def main() -> None:
         fd.write("Darwin CLI error log")
         fd.write(f"Version: {__version__}")
         fd.write(f"OS: {platform.platform()}")
-        fd.write(f"Command: {dumps(args, check_circular=True)}")
+        fd.write(f"Command: {dumps(vars(args), check_circular=True)}")
         fd.write(f"Error: {dumps(e, check_circular=True)}")
         fd.close()
 
