@@ -154,9 +154,7 @@ def find_and_parse(
 
 
 def _get_files_for_parsing(file_paths: List[PathLike]) -> List[Path]:
-    packed_files = [
-        filepath.glob("**/*.json") if filepath.is_dir() else [filepath] for filepath in map(Path, file_paths)
-    ]
+    packed_files = [filepath.glob("**/*") if filepath.is_dir() else [filepath] for filepath in map(Path, file_paths)]
     return [file for files in packed_files for file in files]
 
 

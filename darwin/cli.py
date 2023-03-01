@@ -55,7 +55,7 @@ def main() -> None:
         fd.close()
 
         f._error(
-            "An unexpected error occurred, errors have been written to {filename}, please contact support, and send them the file."
+            f"An unexpected error occurred, errors have been written to {filename}, please contact support, and send them the file."
             + f"Error: {str(e)}"
         )
 
