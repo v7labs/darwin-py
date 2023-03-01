@@ -1,3 +1,4 @@
+import sys
 import warnings
 import zipfile
 from collections import OrderedDict, defaultdict
@@ -17,7 +18,7 @@ except ImportError:
     in order to import with using nifti format
     """
     console.print(import_fail_string)
-    exit()
+    sys.exit(1)
 import numpy as np
 from jsonschema import validate
 from upolygon import find_contours
