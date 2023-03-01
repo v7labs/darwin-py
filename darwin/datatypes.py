@@ -40,9 +40,28 @@ PathLike = Union[str, Path]
 ErrorHandler = Callable[[int, str], None]
 
 ItemId = Union[str, int]
-JSONFreeForm = Dict[str, UnknownType]  # type: ignore
-DictFreeForm = JSONFreeForm
 
+# Types that assist in handling JSON payloads
+JSONFreeForm = Dict[str, UnknownType]
+DictFreeForm = JSONFreeForm
+KeyValuePairDict = Dict[str, UnknownType]
+
+
+class JSONType:
+    def __init__(self, **kwargs: JSONFreeForm):
+        self.__dict__.update(kwargs)
+
+    def to_json(self) -> JSONFreeForm:
+        return self.__dict__
+
+    @classmethod
+    def from_json(cls, json: JSONFreeForm) -> "JSONType":
+        return cls(**json)
+
+    @classmethod
+    def from_dict(cls, json: JSONFreeForm) -> "JSONType":
+        return cls(**json)
+        
 
 @dataclass
 class Team:
