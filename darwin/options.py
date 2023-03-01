@@ -242,6 +242,7 @@ class Options:
                 return None
 
         parser_import.add_argument(
+            "--cpu-limit",
             "--cpu_limit",
             type=cpu_default_types,
             required=False,

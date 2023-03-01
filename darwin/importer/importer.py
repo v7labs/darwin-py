@@ -149,11 +149,14 @@ def find_and_parse(
     if not isinstance(parsed_files, list):
         parsed_files = [parsed_files]
 
+    parsed_files = [f for f in parsed_files if f is not None]
     return parsed_files
 
 
 def _get_files_for_parsing(file_paths: List[PathLike]) -> List[Path]:
-    packed_files = [filepath.glob("**/*") if filepath.is_dir() else [filepath] for filepath in map(Path, file_paths)]
+    packed_files = [
+        filepath.glob("**/*.json") if filepath.is_dir() else [filepath] for filepath in map(Path, file_paths)
+    ]
     return [file for files in packed_files for file in files]
 
 
@@ -351,7 +354,7 @@ def import_annotations(
         raise ValueError("Not able to parse any files.")
 
     parsed_files = list(maybe_parsed_files)
-    filenames: List[str] = [parsed_file.filename for parsed_file in parsed_files]
+    filenames: List[str] = [parsed_file.filename for parsed_file in parsed_files if parsed_file is not None]
 
     console.print("Fetching remote file list...", style="info")
     # This call will only filter by filename; so can return a superset of matched files across different paths
