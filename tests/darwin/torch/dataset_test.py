@@ -4,6 +4,8 @@ from typing import Any
 from unittest.mock import patch
 
 import numpy as np
+import torch
+
 from darwin.torch.dataset import (
     ClassificationDataset,
     InstanceSegmentationDataset,
@@ -12,8 +14,6 @@ from darwin.torch.dataset import (
     get_dataset,
 )
 from tests.fixtures import *
-
-import torch
 
 
 def generic_dataset_test(ds, n, size):
@@ -244,6 +244,7 @@ def describe_get_dataset():
         dataset = get_dataset(f"{v1_or_v2_slug}/coco", "semantic-segmentation")
         assert isinstance(dataset, SemanticSegmentationDataset)
         assert len(dataset) == 20
+        assert "__background__" in dataset.classes
 
         image, label = dataset[0]
         assert image.size() == (3, 50, 50)

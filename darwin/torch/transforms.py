@@ -1,12 +1,12 @@
 import random
 from typing import Any, Dict, Optional, Tuple, Union
 
+import torch
 import torchvision.transforms as transforms
 import torchvision.transforms.functional as F
-from darwin.torch.utils import convert_segmentation_to_mask
 from PIL import Image as PILImage
 
-import torch
+from darwin.torch.utils import convert_segmentation_to_mask
 
 TargetKey = Union["boxes", "labels", "mask", "masks", "image_id", "area", "iscrowd"]
 TargetType = Dict[TargetKey, torch.Tensor]

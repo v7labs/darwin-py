@@ -1632,6 +1632,21 @@ files = [
 ]
 
 [[package]]
+name = "types-requests"
+version = "2.28.11.15"
+description = "Typing stubs for requests"
+category = "main"
+optional = false
+python-versions = "*"
+files = [
+    {file = "types-requests-2.28.11.15.tar.gz", hash = "sha256:fc8eaa09cc014699c6b63c60c2e3add0c8b09a410c818b5ac6e65f92a26dde09"},
+    {file = "types_requests-2.28.11.15-py3-none-any.whl", hash = "sha256:a05e4c7bc967518fba5789c341ea8b0c942776ee474c7873129a61161978e586"},
+]
+
+[package.dependencies]
+types-urllib3 = "<1.27"
+
+[[package]]
 name = "types-toml"
 version = "0.10.8.5"
 description = "Typing stubs for toml"
@@ -1641,6 +1656,18 @@ python-versions = "*"
 files = [
     {file = "types-toml-0.10.8.5.tar.gz", hash = "sha256:bf80fce7d2d74be91148f47b88d9ae5adeb1024abef22aa2fdbabc036d6b8b3c"},
     {file = "types_toml-0.10.8.5-py3-none-any.whl", hash = "sha256:2432017febe43174af0f3c65f03116e3d3cf43e7e1406b8200e106da8cf98992"},
+]
+
+[[package]]
+name = "types-urllib3"
+version = "1.26.25.8"
+description = "Typing stubs for urllib3"
+category = "main"
+optional = false
+python-versions = "*"
+files = [
+    {file = "types-urllib3-1.26.25.8.tar.gz", hash = "sha256:ecf43c42d8ee439d732a1110b4901e9017a79a38daca26f08e42c8460069392c"},
+    {file = "types_urllib3-1.26.25.8-py3-none-any.whl", hash = "sha256:95ea847fbf0bf675f50c8ae19a665baedcf07e6b4641662c4c3c72e7b2edf1a9"},
 ]
 
 [[package]]
@@ -1739,4 +1766,4 @@ test = ["responses", "pytest", "pytest-describe", "flake8-pyproject"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.7.0,<3.12"
-content-hash = "5b64f2e057ae099ace76f6a38034f5c33b961b112c8119a0cdef602faab3d4f9"
+content-hash = "aa71a5b33f707c6bae4c90cdb642b5422e0151d02c7b9d350e0dbdd6833b3c10"

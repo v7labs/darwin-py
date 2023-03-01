@@ -1,34 +1,71 @@
 from pathlib import Path
-from typing import Any, Dict, Iterable, Union
+from typing import Any, Dict, Iterable, List, Union
 
 import orjson as json
 
-import darwin.datatypes as dt
+from darwin.datatypes import (
+    Annotation,
+    AnnotationAuthor,
+    AnnotationClass,
+    AnnotationFile,
+    DictFreeForm,
+    SubAnnotation,
+    VideoAnnotation,
+)
+from darwin.exceptions import (
+    ExportException,
+    ExportException_CouldNotAssembleOutputPath,
+    ExportException_CouldNotBuildOutput,
+    ExportException_CouldNotWriteFile,
+)
 
 
-def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path) -> None:
+def export(annotation_files: Iterable[AnnotationFile], output_dir: Path) -> None:
+    errors: List[Exception] = []
+
     for id, annotation_file in enumerate(annotation_files):
-        _export_file(annotation_file, id, output_dir)
+        try:
+            _export_file(annotation_file, id, output_dir)
+        except Exception as e:
+            errors.append(e)
+
+    if errors:
+        raise ExportException.from_multiple_exceptions(errors)
 
 
-def _export_file(annotation_file: dt.AnnotationFile, id: int, output_dir: Path) -> None:
-    output: Dict[str, Any] = _build_json(annotation_file)
-    output_file_path: Path = (output_dir / annotation_file.filename).with_suffix(".json")
-    with open(output_file_path, "w") as f:
-        op = json.dumps(output, option=json.OPT_INDENT_2 | json.OPT_SERIALIZE_NUMPY | json.OPT_NON_STR_KEYS).decode(
-            "utf-8"
-        )
-        f.write(op)
+def _export_file(annotation_file: AnnotationFile, _: int, output_dir: Path) -> None:
+
+    try:
+        filename = annotation_file.path.parts[-1]
+        output_file_path = (output_dir / filename).with_suffix(".json")
+    except Exception as e:
+        raise ExportException_CouldNotAssembleOutputPath(
+            f"Could not export file {annotation_file.path} to {output_dir}"
+        ) from e
+
+    try:
+        output: DictFreeForm = _build_json(annotation_file)
+    except Exception as e:
+        raise ExportException_CouldNotBuildOutput(f"Could not build output for {annotation_file.path}") from e
+
+    try:
+        with open(output_file_path, "w") as f:
+            op = json.dumps(output, option=json.OPT_INDENT_2 | json.OPT_SERIALIZE_NUMPY | json.OPT_NON_STR_KEYS).decode(
+                "utf-8"
+            )
+            f.write(op)
+    except Exception as e:
+        raise ExportException_CouldNotWriteFile(f"Could not write output for {annotation_file.path}") from e
 
 
-def _build_json(annotation_file: dt.AnnotationFile):
+def _build_json(annotation_file: AnnotationFile) -> DictFreeForm:
     if annotation_file.is_video:
         return _build_video_json(annotation_file)
     else:
         return _build_image_json(annotation_file)
 
 
-def _build_image_json(annotation_file: dt.AnnotationFile):
+def _build_image_json(annotation_file: AnnotationFile) -> DictFreeForm:
     return {
         "image": {
             "seq": annotation_file.seq,
@@ -47,7 +84,7 @@ def _build_image_json(annotation_file: dt.AnnotationFile):
     }
 
 
-def _build_video_json(annotation_file: dt.AnnotationFile):
+def _build_video_json(annotation_file: AnnotationFile) -> DictFreeForm:
     return {
         "image": {
             "seq": annotation_file.seq,
@@ -68,18 +105,18 @@ def _build_video_json(annotation_file: dt.AnnotationFile):
     }
 
 
-def _build_annotation(annotation):
-    if isinstance(annotation, dt.VideoAnnotation):
+def _build_annotation(annotation: Union[Annotation, VideoAnnotation]) -> DictFreeForm:
+    if isinstance(annotation, VideoAnnotation):
         return _build_video_annotation(annotation)
     else:
         return _build_image_annotation(annotation)
 
 
-def _build_author(author: dt.AnnotationAuthor) -> Dict[str, Any]:
+def _build_author(author: AnnotationAuthor) -> DictFreeForm:
     return {"full_name": author.name, "email": author.email}
 
 
-def _build_sub_annotation(sub: dt.SubAnnotation) -> Dict[str, Any]:
+def _build_sub_annotation(sub: SubAnnotation) -> DictFreeForm:
     if sub.annotation_type == "instance_id":
         return {sub.annotation_type: {"value": sub.data}}
     elif sub.annotation_type == "attributes":
@@ -90,7 +127,7 @@ def _build_sub_annotation(sub: dt.SubAnnotation) -> Dict[str, Any]:
         return {sub.annotation_type: sub.data}
 
 
-def _build_authorship(annotation: Union[dt.VideoAnnotation, dt.Annotation]) -> Dict[str, Any]:
+def _build_authorship(annotation: Union[VideoAnnotation, Annotation]) -> DictFreeForm:
     annotators = {}
     if annotation.annotators:
         annotators = {"annotators": [_build_author(annotator) for annotator in annotation.annotators]}
@@ -102,7 +139,7 @@ def _build_authorship(annotation: Union[dt.VideoAnnotation, dt.Annotation]) -> D
     return {**annotators, **reviewers}
 
 
-def _build_video_annotation(annotation: dt.VideoAnnotation) -> Dict[str, Any]:
+def _build_video_annotation(annotation: VideoAnnotation) -> DictFreeForm:
     return {
         **annotation.get_data(
             only_keyframes=False,
@@ -114,7 +151,7 @@ def _build_video_annotation(annotation: dt.VideoAnnotation) -> Dict[str, Any]:
     }
 
 
-def _build_image_annotation(annotation: dt.Annotation, skip_slots: bool = False) -> Dict[str, Any]:
+def _build_image_annotation(annotation: Annotation, skip_slots: bool = False) -> DictFreeForm:
     json_subs = {}
     for sub in annotation.subs:
         json_subs.update(_build_sub_annotation(sub))
@@ -132,7 +169,7 @@ def _build_image_annotation(annotation: dt.Annotation, skip_slots: bool = False)
         return {**base_json, "slot_names": annotation.slot_names}
 
 
-def _build_legacy_annotation_data(annotation_class: dt.AnnotationClass, data: Dict[str, Any]) -> Dict[str, Any]:
+def _build_legacy_annotation_data(annotation_class: AnnotationClass, data: DictFreeForm) -> DictFreeForm:
     if annotation_class.annotation_type == "complex_polygon":
         data["path"] = data["paths"]
         del data["paths"]
@@ -141,7 +178,7 @@ def _build_legacy_annotation_data(annotation_class: dt.AnnotationClass, data: Di
         return {annotation_class.annotation_type: data}
 
 
-def _build_metadata(annotation_file: dt.AnnotationFile):
+def _build_metadata(annotation_file: AnnotationFile) -> DictFreeForm:
     if len(annotation_file.slots) > 0 and annotation_file.slots[0].metadata:
         return {"metadata": annotation_file.slots[0].metadata}
     else:

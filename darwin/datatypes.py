@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from email.policy import default
+from enum import Enum
 from pathlib import Path
 from typing import (
     Any,
@@ -16,8 +17,13 @@ from typing import (
 
 from darwin.path_utils import construct_full_path
 
-UnknownType = Any  # type: ignore
-NumberLike = Union[int, float]
+# Utility types
+
+NumberLike = Union[int, float]  # Used for functions that can take either an int or a float
+# Used for functions that _genuinely_ don't know what type they're dealing with, such as those that test if something is of a certain type.
+UnknownType = Any  # type:ignore
+
+# Specific types
 
 Point = Dict[str, float]
 BoundingBox = Dict[str, float]
@@ -34,7 +40,11 @@ PathLike = Union[str, Path]
 ErrorHandler = Callable[[int, str], None]
 
 ItemId = Union[str, int]
-JSONFreeForm = Dict[str, Any]  # type: ignore
+
+# Types that assist in handling JSON payloads
+JSONFreeForm = Dict[str, UnknownType]
+DictFreeForm = JSONFreeForm
+KeyValuePairDict = Dict[str, UnknownType]
 
 
 class JSONType:
@@ -51,16 +61,7 @@ class JSONType:
     @classmethod
     def from_dict(cls, json: JSONFreeForm) -> "JSONType":
         return cls(**json)
-
-
-class DictFreeForm:
-    def __init__(self, **kwargs: JSONFreeForm):
-        self.__dict__.update(kwargs)
-
-    @classmethod
-    def from_dict(cls, json: JSONFreeForm) -> "DictFreeForm":
-        return cls(**json)
-
+        
 
 @dataclass
 class Team:
@@ -128,6 +129,11 @@ class SubAnnotation:
     #: Any external data, in any format, relevant to this ``SubAnnotation``.
     #: Used for compatibility purposes with external formats.
     data: UnknownType
+
+
+class AnnotationAuthorRole(Enum):
+    ANNOTATOR = "annotator"
+    REVIEWER = "reviewer"
 
 
 @dataclass(frozen=True, eq=True)
@@ -282,6 +288,9 @@ class VideoAnnotation:
         }
 
         return output
+
+
+AnnotationLike = Union[Annotation, VideoAnnotation]
 
 
 @dataclass
