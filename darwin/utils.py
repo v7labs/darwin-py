@@ -436,6 +436,7 @@ def _parse_darwin_v2(path: Path, data: Dict[str, Any]) -> dt.AnnotationFile:
             version=_parse_version(data),
             path=path,
             filename=item["name"],
+            item_id=item.get("source_info", {}).get("item_id", None),
             dataset_name=item.get("source_info", {}).get("dataset", {}).get("name", None),
             annotation_classes=annotation_classes,
             annotations=annotations,
@@ -456,6 +457,7 @@ def _parse_darwin_v2(path: Path, data: Dict[str, Any]) -> dt.AnnotationFile:
             version=_parse_version(data),
             path=path,
             filename=item["name"],
+            item_id=item.get("source_info", {}).get("item_id", None),
             dataset_name=item.get("source_info", {}).get("dataset", {}).get("name", None),
             annotation_classes=annotation_classes,
             annotations=annotations,
@@ -632,6 +634,8 @@ def _parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotati
         print(f"[WARNING] Unsupported annotation type: '{annotation.keys()}'")
         return None
 
+    if "id" in annotation:
+        main_annotation.id = annotation["id"]
     if "instance_id" in annotation:
         main_annotation.subs.append(dt.make_instance_id(annotation["instance_id"]["value"]))
     if "attributes" in annotation:
@@ -647,10 +651,10 @@ def _parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotati
     if "auto_annotate" in annotation:
         main_annotation.subs.append(dt.make_opaque_sub("auto_annotate", annotation["auto_annotate"]))
 
-    if "annotators" in annotation:
+    if annotation.get("annotators") is not None:
         main_annotation.annotators = _parse_annotators(annotation["annotators"])
 
-    if "reviewers" in annotation:
+    if annotation.get("reviewers") is not None:
         main_annotation.reviewers = _parse_annotators(annotation["reviewers"])
 
     return main_annotation
@@ -662,7 +666,9 @@ def _parse_darwin_video_annotation(annotation: dict) -> Optional[dt.VideoAnnotat
     keyframes: Dict[int, bool] = {}
     frames = {**annotation.get("frames", {}), **annotation.get("sections", {})}
     for f, frame in frames.items():
-        frame_annotations[int(f)] = _parse_darwin_annotation({**frame, **{"name": name}})
+        frame_annotations[int(f)] = _parse_darwin_annotation(
+            {**frame, **{"name": name, "id": annotation.get("id", None)}}
+        )
         keyframes[int(f)] = frame.get("keyframe", False)
 
     if not frame_annotations:
@@ -675,16 +681,22 @@ def _parse_darwin_video_annotation(annotation: dict) -> Optional[dt.VideoAnnotat
         slot_names=parse_slot_names(annotation),
     )
 
+    if "id" in annotation:
+        main_annotation.id = annotation["id"]
+
     if "annotators" in annotation:
         main_annotation.annotators = _parse_annotators(annotation["annotators"])
 
-    if "reviewers" in annotation:
+    if annotation.get("reviewers") is not None:
         main_annotation.reviewers = _parse_annotators(annotation["reviewers"])
 
     return main_annotation
 
 
 def _parse_annotators(annotators: List[Dict[str, Any]]) -> List[dt.AnnotationAuthor]:
+    if not (hasattr(annotators, "full_name") or not hasattr(annotators, "email")):
+        raise AttributeError("JSON file must contain annotators with 'full_name' and 'email' fields")
+
     return [dt.AnnotationAuthor(annotator["full_name"], annotator["email"]) for annotator in annotators]
 
 
@@ -734,6 +746,7 @@ def split_video_annotation(annotation: dt.AnnotationFile) -> List[dt.AnnotationF
                 frame_url,
                 annotation.workview_url,
                 annotation.seq,
+                item_id=annotation.item_id,
                 slots=annotation.slots,
             )
         )

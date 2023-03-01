@@ -13,6 +13,7 @@ from typing import (
     Iterator,
     List,
     Optional,
+    Sequence,
     Tuple,
     Union,
 )
@@ -106,6 +107,7 @@ class RemoteDataset(ABC):
         item_count: int = 0,
         progress: float = 0,
         version: int = 1,
+        release: Optional[str] = None,
     ):
         self.team = team
         self.name = name
@@ -117,11 +119,12 @@ class RemoteDataset(ABC):
         self.annotation_types: Optional[List[Dict[str, Any]]] = None
         self.console: Console = Console()
         self.version = version
+        self.release = release
 
     @abstractmethod
     def push(
         self,
-        files_to_upload: Optional[List[Union[PathLike, LocalFile]]],
+        files_to_upload: Optional[Sequence[Union[PathLike, LocalFile]]],
         *,
         blocking: bool = True,
         multi_threaded: bool = True,
@@ -651,7 +654,10 @@ class RemoteDataset(ABC):
         if not releases:
             raise NotFound(str(self.identifier))
 
-        if name == "latest":
+        # overwrite default name with stored dataset.release if supplied
+        if self.release and name == "latest":
+            name = self.release
+        elif name == "latest":
             return next((release for release in releases if release.latest))
 
         for release in releases:
@@ -830,6 +836,7 @@ class RemoteDataset(ABC):
             A dictionary with the annotation to import. The default format is:
             `{"annotations": serialized_annotations, "overwrite": "false"}`
         """
+        ...
 
     @property
     def remote_path(self) -> Path:

@@ -8,6 +8,7 @@ from PIL import Image as PILImage
 
 from darwin.torch.utils import convert_segmentation_to_mask, flatten_masks_by_category
 
+
 TargetKey = Union["boxes", "labels", "mask", "masks", "image_id", "area", "iscrowd"]
 TargetType = Dict[TargetKey, torch.Tensor]
 

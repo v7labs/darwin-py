@@ -50,13 +50,13 @@ def main() -> None:
         fd.write("Darwin CLI error log")
         fd.write(f"Version: {__version__}")
         fd.write(f"OS: {platform.platform()}")
-        fd.write(f"Command: {dumps(args, check_circular=True)}")
-        fd.write(f"Error: {dumps(e, check_circular=True)}")
+        fd.write(f"Command: {str(args)}")
+        fd.write(f"Error: {str(e)}")
         fd.close()
 
         f._error(
             "An unexpected error occurred, errors have been written to {filename}, please contact support, and send them the file."
-            + str(e)
+            + f"Error: {str(e)}"
         )
 
 
@@ -136,7 +136,17 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
         elif args.action == "pull":
             f.pull_dataset(args.dataset, args.only_annotations, args.folders, args.video_frames, args.force_slots)
         elif args.action == "import":
-            f.dataset_import(args.dataset, args.format, args.files, args.append, not args.yes, args.delete_for_empty)
+            f.dataset_import(
+                args.dataset,
+                args.format,
+                args.files,
+                args.append,
+                not args.yes,
+                args.delete_for_empty,
+                args.import_annotators,
+                args.import_reviewers,
+                args.cpu_limit,
+            ),
         elif args.action == "convert":
             f.dataset_convert(args.dataset, args.format, args.output_dir)
         elif args.action == "set-file-status":
