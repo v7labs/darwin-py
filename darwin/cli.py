@@ -145,7 +145,7 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
                 args.delete_for_empty,
                 args.import_annotators,
                 args.import_reviewers,
-                args.cpu_limit,
+                cpu_limit=args.cpu_limit,
             ),
         elif args.action == "convert":
             f.dataset_convert(args.dataset, args.format, args.output_dir)
