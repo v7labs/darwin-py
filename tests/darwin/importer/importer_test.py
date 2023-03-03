@@ -164,7 +164,7 @@ def test__handle_annotators() -> None:
         assert op2 == []
 
 
-def test__get_annotation_data() -> None:
+def test__handle_video_annotations() -> None:
     annotation_class = dt.AnnotationClass("class", "TEST_TYPE")
     video_annotation_class = dt.AnnotationClass("video_class", "video")
 
@@ -173,29 +173,11 @@ def test__get_annotation_data() -> None:
 
     annotation.data = "TEST DATA"
 
-    with patch_factory("_handle_complex_polygon") as mock_hcp, patch_factory("_handle_subs") as mock_hs, patch.object(
-        dt.VideoAnnotation, "get_data", return_value="TEST VIDEO DATA"
-    ):
-        from darwin.importer.importer import _get_annotation_data
+    with patch.object(dt.VideoAnnotation, "get_data", return_value="TEST VIDEO DATA"):
+        from darwin.importer.importer import _handle_video_annotations
 
-        mock_hcp.return_value = "TEST DATA_HCP"
-        mock_hs.return_value = "TEST DATA_HS"
-
-        assert _get_annotation_data(video_annotation, "video_class_id", {}, {}) == "TEST VIDEO DATA"
-        assert _get_annotation_data(annotation, "class_id", {}, {}) == "TEST DATA_HS"
-
-        assert mock_hcp.call_count == 1
-        assert mock_hs.call_count == 1
-
-    with patch_factory("_handle_complex_polygon") as mock_hcp, patch_factory("_handle_subs") as mock_hs:
-        from darwin.importer.importer import _get_annotation_data
-
-        mock_hs.return_value = {"TEST_TYPE": "TEST DATA"}
-
-        assert _get_annotation_data(annotation, "class_id", {}, {}) == {"TEST_TYPE": "TEST DATA"}
-
-        assert mock_hcp.call_args_list[0][0][0] == annotation
-        assert mock_hcp.call_args_list[0][0][1] == {"TEST_TYPE": "TEST DATA"}
+        assert _handle_video_annotations(video_annotation, "video_class_id", {}, {}) == "TEST VIDEO DATA"
+        assert _handle_video_annotations(annotation, "class_id", {}, {}) == {"TEST_TYPE": "TEST DATA"}
 
 
 def __expectation_factory(i: int, slot_names: List[str]) -> dt.Annotation:
@@ -244,9 +226,11 @@ def test_get_overwrite_value() -> None:
 
 def test__import_annotations() -> None:
 
-    with patch_factory("_handle_complex_polygon") as mock_hcp, patch_factory(
-        "_handle_reviewers"
-    ) as mock_hr, patch_factory("_handle_annotators") as mock_ha, patch_factory(
+    with patch_factory("_handle_video_annotations") as mock_hva, patch_factory(
+        "_handle_complex_polygon"
+    ) as mock_hcp, patch_factory("_handle_reviewers") as mock_hr, patch_factory(
+        "_handle_annotators"
+    ) as mock_ha, patch_factory(
         "_handle_subs"
     ) as mock_hs, patch_factory(
         "_get_overwrite_value"
@@ -292,8 +276,7 @@ def test__import_annotations() -> None:
         )
 
         assert mock_dataset.import_annotation.call_count == 1
-        # ! Removed, so this test is now co-dependent on function previously mocked. See IO-841 for future action.
-        # assert mock_hva.call_count == 1
+        assert mock_hva.call_count == 1
         assert mock_hcp.call_count == 1
         assert mock_hr.call_count == 1
         assert mock_ha.call_count == 1
