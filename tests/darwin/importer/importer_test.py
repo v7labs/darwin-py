@@ -292,6 +292,7 @@ def test__import_annotations() -> None:
         )
 
         assert mock_dataset.import_annotation.call_count == 1
+        # ! Removed, so this test is now co-dependent on function previously mocked. See IO-841 for future action.
         # assert mock_hva.call_count == 1
         assert mock_hcp.call_count == 1
         assert mock_hr.call_count == 1
