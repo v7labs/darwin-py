@@ -1738,5 +1738,5 @@ test = ["responses", "pytest", "pytest-describe", "flake8-pyproject"]
 
 [metadata]
 lock-version = "2.0"
-python-versions = ">=3.7.0,<=3.11"
-content-hash = "cc35b48af28034ff16f53d1f63440ac418ae0bb0016bf8e77e4eb484fc13417b"
+python-versions = ">=3.7.0,<3.12"
+content-hash = "9c2eec4b0b04bd9302e82cfd380bb87b9e654f4c46b0bebf7fe3346e73e975d4"
