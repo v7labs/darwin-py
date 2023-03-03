@@ -773,6 +773,7 @@ def dataset_import(
     delete_for_empty: bool = False,
     import_annotators: bool = False,
     import_reviewers: bool = False,
+    use_multi_cpu: bool = True,
     cpu_limit: Optional[int] = None,
 ) -> None:
     """
@@ -796,6 +797,16 @@ def dataset_import(
         If ``False``, empty annotation files will simply be skipped.
         Only works for V2 datasets.
         Incompatible with ``append``.
+    import_annotators : bool, default: False
+        If ``True`` it will import the annotators from the files to the dataset, if available.
+        If ``False`` it will not import the annotators.
+    import_reviewers : bool, default: False
+        If ``True`` it will import the reviewers from the files to the dataset, if .
+        If ``False`` it will not import the reviewers.
+    use_multi_cpu : bool, default: True
+        If ``True`` it will use all multiple CPUs to speed up the import process.
+    cpu_limit : Optional[int], default: Core count - 2
+        The maximum number of CPUs to use for the import process.
     """
 
     client: Client = _load_client(dataset_identifier=dataset_slug)
@@ -803,8 +814,20 @@ def dataset_import(
     try:
         parser: ImportParser = get_importer(format)
         dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
-        use_multi_cpu = cpu_limit is None or cpu_limit > 1
-        import_annotations(dataset, parser, files, append, class_prompt, delete_for_empty, use_multi_cpu, cpu_limit)
+
+        import_annotations(
+            dataset,
+            parser,
+            files,
+            append,
+            class_prompt,
+            delete_for_empty,
+            import_annotators,
+            import_reviewers,
+            use_multi_cpu,
+            cpu_limit,
+        )
+
     except ImporterNotFoundError:
         _error(f"Unsupported import format: {format}, currently supported: {import_formats}")
     except AttributeError as e:

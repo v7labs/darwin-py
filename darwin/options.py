@@ -223,6 +223,16 @@ class Options:
             action="store_true",
             help="Empty annotations will delete annotations from remote files.",
         )
+        parser_import.add_argument(
+            "--import-annotators",
+            action="store_true",
+            help="Import annotators metadata from the annotation files, where available",
+        )
+        parser_import.add_argument(
+            "--import-reviewers",
+            action="store_true",
+            help="Import reviewers metadata from the annotation files, where available",
+        )
 
         # Cpu limit for multiprocessing tasks
         def cpu_default_types(input: Any) -> Optional[int]:  # type: ignore
@@ -232,11 +242,12 @@ class Options:
                 return None
 
         parser_import.add_argument(
+            "--cpu-limit",
             "--cpu_limit",
             type=cpu_default_types,
             required=False,
-            default=None,
-            help="Limits amount of cores used on machine to process results, default to total cores - 2",
+            default=1,
+            help="Limits amount of cores used on machine to process results, default to single core",
         )
 
         # Convert

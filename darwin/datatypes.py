@@ -17,8 +17,13 @@ from typing import (
 
 from darwin.path_utils import construct_full_path
 
-UnknownType = Any  # type: ignore
-NumberLike = Union[int, float]
+# Utility types
+
+NumberLike = Union[int, float]  # Used for functions that can take either an int or a float
+# Used for functions that _genuinely_ don't know what type they're dealing with, such as those that test if something is of a certain type.
+UnknownType = Any  # type:ignore
+
+# Specific types
 
 ErrorList = List[Exception]
 
@@ -45,7 +50,11 @@ PathLike = Union[str, Path]
 ErrorHandler = Callable[[int, str], None]
 
 ItemId = Union[str, int]
-JSONFreeForm = Dict[str, Any]  # type: ignore
+
+# Types that assist in handling JSON payloads
+JSONFreeForm = Dict[str, UnknownType]
+DictFreeForm = JSONFreeForm
+KeyValuePairDict = Dict[str, UnknownType]
 
 
 class JSONType:
@@ -61,15 +70,6 @@ class JSONType:
 
     @classmethod
     def from_dict(cls, json: JSONFreeForm) -> "JSONType":
-        return cls(**json)
-
-
-class DictFreeForm:
-    def __init__(self, **kwargs: JSONFreeForm):
-        self.__dict__.update(kwargs)
-
-    @classmethod
-    def from_dict(cls, json: JSONFreeForm) -> "DictFreeForm":
         return cls(**json)
 
 
@@ -141,6 +141,11 @@ class SubAnnotation:
     data: UnknownType
 
 
+class AnnotationAuthorRole(Enum):
+    ANNOTATOR = "annotator"
+    REVIEWER = "reviewer"
+
+
 @dataclass(frozen=True, eq=True)
 class AnnotationAuthor:
     """
@@ -178,6 +183,9 @@ class Annotation:
 
     #: Authorship of the annotation (reviewers)
     reviewers: Optional[List[AnnotationAuthor]] = None
+
+    # The darwin ID of this annotation.
+    id: Optional[str] = None
 
     def get_sub(self, annotation_type: str) -> Optional[SubAnnotation]:
         """
@@ -229,6 +237,9 @@ class VideoAnnotation:
 
     #: Authorship of the annotation (reviewers)
     reviewers: Optional[List[AnnotationAuthor]] = None
+
+    # The darwin ID of this annotation.
+    id: Optional[str] = None
 
     def get_data(
         self,
@@ -287,6 +298,9 @@ class VideoAnnotation:
         }
 
         return output
+
+
+AnnotationLike = Union[Annotation, VideoAnnotation]
 
 
 @dataclass
@@ -398,6 +412,9 @@ class AnnotationFile:
     # Version of the file in format (MAJOR, MINOR, SUFFIX)
     # e.g. (1, 0, 'a')
     version: AnnotationFileVersion = field(default_factory=AnnotationFileVersion)
+
+    # The darwin ID of the item that these annotations belong to.
+    item_id: Optional[str] = None
 
     @property
     def full_path(self) -> str:
