@@ -626,7 +626,6 @@ def _import_annotations(
         annotation_class = annotation.annotation_class
         annotation_type = annotation_class.annotation_internal_type or annotation_class.annotation_type
         annotation_class_id: str = remote_classes[annotation_type][annotation_class.name]
-        print(annotation)
         if isinstance(annotation, dt.VideoAnnotation):
             data = _handle_video_annotations(annotation, annotation_class_id, attributes)
         else:
