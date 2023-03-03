@@ -578,7 +578,7 @@ def _handle_annotators(annotation: dt.Annotation, import_annotators: bool) -> Li
     return []
 
 
-def _handle_video_annotations(
+def _get_annotation_data(
     annotation: dt.AnnotationLike,
     annotation_class_id: str,
     attributes: dt.DictFreeForm,
@@ -594,6 +594,8 @@ def _handle_video_annotations(
         )
     else:
         data = {annotation_class.annotation_type: annotation.data}
+        data = _handle_complex_polygon(annotation, data)
+        data = _handle_subs(annotation, data, annotation_class_id, attributes)
 
     return data
 
@@ -628,9 +630,7 @@ def _import_annotations(
         annotation_type = annotation_class.annotation_internal_type or annotation_class.annotation_type
         annotation_class_id: str = remote_classes[annotation_type][annotation_class.name]
 
-        data = _handle_video_annotations(annotation, annotation_class_id, attributes, annotation.data)
-        data = _handle_complex_polygon(annotation, data)
-        data = _handle_subs(annotation, data, annotation_class_id, attributes)
+        data = _get_annotation_data(annotation, annotation_class_id, attributes, annotation.data)
 
         actors: List[dt.DictFreeForm] = []
         actors.extend(_handle_annotators(annotation, import_annotators))
