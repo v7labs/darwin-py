@@ -34,13 +34,24 @@ if TYPE_CHECKING:
     from darwin.dataset import RemoteDataset
 
 import deprecation
+from requests import HTTPError
 from rich.console import Console
 from rich.progress import track
 from rich.theme import Theme
 
 import darwin.datatypes as dt
 from darwin.datatypes import PathLike
-from darwin.exceptions import IncompatibleOptions, RequestEntitySizeExceeded
+from darwin.exceptions import (
+    IncompatibleOptions,
+    InsufficientStorage,
+    InvalidLogin,
+    MissingConfig,
+    NameTaken,
+    NotFound,
+    RequestEntitySizeExceeded,
+    Unauthorized,
+    ValidationError,
+)
 from darwin.utils import secure_continue_request
 from darwin.version import __version__
 
@@ -148,7 +159,7 @@ def find_and_parse(
 
     if not isinstance(parsed_files, list):
         parsed_files = [parsed_files]
-
+    parsed_files = [file for file in parsed_files if file is not None]
     return parsed_files
 
 
@@ -471,13 +482,13 @@ def import_annotations(
             console.print(f"{file.filename} has no annotations. Skipping upload...", style="warning")
 
         files_to_track = [file for file in parsed_files if file not in files_to_not_track]
+        errors = []
         if files_to_track:
             _warn_unsupported_annotations(files_to_track)
             for parsed_file in track(files_to_track):
 
                 image_id, default_slot_name = remote_files[parsed_file.full_path]
-
-                _import_annotations(
+                potential_error = _import_annotations(
                     dataset.client,
                     image_id,
                     remote_classes,
@@ -490,6 +501,12 @@ def import_annotations(
                     import_annotators,
                     import_reviewers,
                 )
+                if potential_error:
+                    errors.append((parsed_file.full_path, potential_error))
+        if errors:
+            console.print(f"Encountered errors on {len(errors)} imports", style="error")
+            for (path, exception) in errors:
+                console.print(f"\t- {path}: {exception}", style="error")
 
 
 def _get_multi_cpu_settings(cpu_limit: Optional[int], cpu_count: int, use_multi_cpu: bool) -> Tuple[int, bool]:
@@ -620,7 +637,7 @@ def _import_annotations(
     delete_for_empty: bool,  # TODO: This is unused, should it be?
     import_annotators: bool,
     import_reviewers: bool,
-) -> None:
+) -> Optional[Exception]:
     serialized_annotations = []
     for annotation in annotations:
         annotation_class = annotation.annotation_class
@@ -651,8 +668,19 @@ def _import_annotations(
 
     payload: dt.DictFreeForm = {"annotations": serialized_annotations}
     payload["overwrite"] = _get_overwrite_value(append)
-
-    dataset.import_annotation(id, payload=payload)
+    try:
+        dataset.import_annotation(id, payload=payload)
+    except (
+        HTTPError,
+        Unauthorized,
+        NotFound,
+        RequestEntitySizeExceeded,
+        NameTaken,
+        ValidationError,
+        InsufficientStorage,
+    ) as error:
+        # Pass the exception back to import_annotations so that it can collate a list for printing to console
+        return error
 
 
 def _console_theme() -> Theme:

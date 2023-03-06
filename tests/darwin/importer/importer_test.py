@@ -261,7 +261,7 @@ def test__import_annotations() -> None:
 
         annotation = dt.Annotation(dt.AnnotationClass("test_class", "bbox"), {"paths": [1, 2, 3, 4, 5]}, [], [])
 
-        _import_annotations(
+        potential_error = _import_annotations(
             mock_client,
             "test_id",
             {"bbox": {"test_class": "1337"}},
@@ -274,7 +274,7 @@ def test__import_annotations() -> None:
             "test_import_annotators",  # type: ignore
             "test_import_reviewers",  # type: ignore
         )
-
+        assert potential_error is None
         assert mock_dataset.import_annotation.call_count == 1
         assert mock_hva.call_count == 1
         assert mock_hcp.call_count == 1
@@ -313,6 +313,66 @@ def test__import_annotations() -> None:
 
         assert output["annotations"] == assertion["annotations"]
         assert output["overwrite"] == assertion["overwrite"]
+
+        # Test that the errors get passed back for handling
+        from requests import HTTPError
+
+        from darwin.exceptions import (
+            InsufficientStorage,
+            NameTaken,
+            NotFound,
+            RequestEntitySizeExceeded,
+            Unauthorized,
+            ValidationError,
+        )
+
+        listed_errors = [
+            (HTTPError, []),
+            (NameTaken, []),
+            (NotFound, ["test"]),
+            (Unauthorized, []),
+            (InsufficientStorage, []),
+            (RequestEntitySizeExceeded, []),
+            (ValidationError, []),
+        ]
+        for (error, args) in listed_errors:
+            mock_dataset.import_annotation.side_effect = error(*args)
+            potential_error = _import_annotations(
+                mock_client,
+                "test_id",
+                {"bbox": {"test_class": "1337"}},
+                {},
+                [annotation],
+                "test_slot",
+                mock_dataset,
+                "test_append_in",  # type: ignore
+                False,
+                "test_import_annotators",  # type: ignore
+                "test_import_reviewers",  # type: ignore
+            )
+            assert potential_error is not None
+            assert isinstance(potential_error, error)
+
+        # Test that it raises for unknown exceptions
+        class UnhandledException(BaseException):
+            pass
+
+        mock_dataset.import_annotation.side_effect = UnhandledException()
+        with pytest.raises(UnhandledException) as exc_info:
+            potential_error = _import_annotations(
+                mock_client,
+                "test_id",
+                {"bbox": {"test_class": "1337"}},
+                {},
+                [annotation],
+                "test_slot",
+                mock_dataset,
+                "test_append_in",  # type: ignore
+                False,
+                "test_import_annotators",  # type: ignore
+                "test_import_reviewers",  # type: ignore
+            )
+        assert isinstance(exc_info.value, UnhandledException)
 
 
 def test_console_theme() -> None:
