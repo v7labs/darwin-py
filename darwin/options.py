@@ -242,11 +242,12 @@ class Options:
                 return None
 
         parser_import.add_argument(
+            "--cpu-limit",
             "--cpu_limit",
             type=cpu_default_types,
             required=False,
-            default=None,
-            help="Limits amount of cores used on machine to process results, default to total cores - 2",
+            default=1,
+            help="Limits amount of cores used on machine to process results, default to single core",
         )
 
         # Convert

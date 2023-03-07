@@ -159,7 +159,7 @@ def find_and_parse(
 
     if not isinstance(parsed_files, list):
         parsed_files = [parsed_files]
-    parsed_files = [file for file in parsed_files if file is not None]
+    parsed_files = [f for f in parsed_files if f is not None]
     return parsed_files
 
 
@@ -362,7 +362,7 @@ def import_annotations(
         raise ValueError("Not able to parse any files.")
 
     parsed_files = list(maybe_parsed_files)
-    filenames: List[str] = [parsed_file.filename for parsed_file in parsed_files]
+    filenames: List[str] = [parsed_file.filename for parsed_file in parsed_files if parsed_file is not None]
 
     console.print("Fetching remote file list...", style="info")
     # This call will only filter by filename; so can return a superset of matched files across different paths
@@ -594,7 +594,7 @@ def _handle_annotators(annotation: dt.Annotation, import_annotators: bool) -> Li
     return []
 
 
-def _handle_video_annotations(
+def _get_annotation_data(
     annotation: dt.AnnotationLike,
     annotation_class_id: str,
     attributes: dt.DictFreeForm,
@@ -610,6 +610,8 @@ def _handle_video_annotations(
         )
     else:
         data = {annotation_class.annotation_type: annotation.data}
+        data = _handle_complex_polygon(annotation, data)
+        data = _handle_subs(annotation, data, annotation_class_id, attributes)
 
     return data
 
@@ -644,9 +646,7 @@ def _import_annotations(
         annotation_type = annotation_class.annotation_internal_type or annotation_class.annotation_type
         annotation_class_id: str = remote_classes[annotation_type][annotation_class.name]
 
-        data = _handle_video_annotations(annotation, annotation_class_id, attributes, annotation.data)
-        data = _handle_complex_polygon(annotation, data)
-        data = _handle_subs(annotation, data, annotation_class_id, attributes)
+        data = _get_annotation_data(annotation, annotation_class_id, attributes, annotation.data)
 
         actors: List[dt.DictFreeForm] = []
         actors.extend(_handle_annotators(annotation, import_annotators))
