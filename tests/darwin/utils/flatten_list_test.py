@@ -1,6 +1,6 @@
 import pytest
 
-from darwin.helpers import flatten_list
+from darwin.utils import flatten_list
 
 
 def test_raises_if_passed_non_array() -> None:

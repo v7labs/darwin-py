@@ -41,8 +41,7 @@ from rich.theme import Theme
 import darwin.datatypes as dt
 from darwin.datatypes import PathLike
 from darwin.exceptions import IncompatibleOptions, RequestEntitySizeExceeded
-from darwin.helpers import flatten_list
-from darwin.utils import secure_continue_request
+from darwin.utils import flatten_list, secure_continue_request
 from darwin.version import __version__
 
 # Classes missing import support on backend side
