@@ -41,6 +41,7 @@ from rich.theme import Theme
 import darwin.datatypes as dt
 from darwin.datatypes import PathLike
 from darwin.exceptions import IncompatibleOptions, RequestEntitySizeExceeded
+from darwin.helpers import flatten_list
 from darwin.utils import secure_continue_request
 from darwin.version import __version__
 
@@ -351,7 +352,8 @@ def import_annotations(
     if not maybe_parsed_files:
         raise ValueError("Not able to parse any files.")
 
-    parsed_files = list(maybe_parsed_files)
+    parsed_files: List[AnnotationFile] = flatten_list(list(maybe_parsed_files))
+
     filenames: List[str] = [parsed_file.filename for parsed_file in parsed_files if parsed_file is not None]
 
     console.print("Fetching remote file list...", style="info")
