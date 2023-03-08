@@ -159,7 +159,8 @@ def find_and_parse(
 
     if not isinstance(parsed_files, list):
         parsed_files = [parsed_files]
-    parsed_files = [file for file in parsed_files if file is not None]
+
+    parsed_files = [f for f in parsed_files if f is not None]
     return parsed_files
 
 
@@ -362,7 +363,7 @@ def import_annotations(
         raise ValueError("Not able to parse any files.")
 
     parsed_files = list(maybe_parsed_files)
-    filenames: List[str] = [parsed_file.filename for parsed_file in parsed_files]
+    filenames: List[str] = [parsed_file.filename for parsed_file in parsed_files if parsed_file is not None]
 
     console.print("Fetching remote file list...", style="info")
     # This call will only filter by filename; so can return a superset of matched files across different paths
@@ -482,13 +483,14 @@ def import_annotations(
             console.print(f"{file.filename} has no annotations. Skipping upload...", style="warning")
 
         files_to_track = [file for file in parsed_files if file not in files_to_not_track]
-        errors = []
+        all_errors = []
         if files_to_track:
             _warn_unsupported_annotations(files_to_track)
             for parsed_file in track(files_to_track):
 
                 image_id, default_slot_name = remote_files[parsed_file.full_path]
-                potential_error = _import_annotations(
+
+                errors, success = _import_annotations(
                     dataset.client,
                     image_id,
                     remote_classes,
@@ -501,12 +503,17 @@ def import_annotations(
                     import_annotators,
                     import_reviewers,
                 )
-                if potential_error:
-                    errors.append((parsed_file.full_path, potential_error))
-        if errors:
+                if not success:
+                    all_errors.append((parsed_file.full_path, errors))
+        if all_errors:
             console.print(f"Encountered errors on {len(errors)} imports", style="error")
-            for (path, exception) in errors:
-                console.print(f"\t- {path}: {exception}", style="error")
+            for (path, exception_list) in all_errors:
+                if len(exception_list) == 1:  # Keep the message inline if only single error
+                    console.print(f"\t- {path}: {exception_list[0]}", style="error")
+                else:
+                    console.print(f"\t- {path}", style="error")
+                    for error in exception_list:
+                        console.print(f"\t\t- {error}", style="error")
 
 
 def _get_multi_cpu_settings(cpu_limit: Optional[int], cpu_count: int, use_multi_cpu: bool) -> Tuple[int, bool]:
@@ -594,7 +601,7 @@ def _handle_annotators(annotation: dt.Annotation, import_annotators: bool) -> Li
     return []
 
 
-def _handle_video_annotations(
+def _get_annotation_data(
     annotation: dt.AnnotationLike,
     annotation_class_id: str,
     attributes: dt.DictFreeForm,
@@ -610,6 +617,8 @@ def _handle_video_annotations(
         )
     else:
         data = {annotation_class.annotation_type: annotation.data}
+        data = _handle_complex_polygon(annotation, data)
+        data = _handle_subs(annotation, data, annotation_class_id, attributes)
 
     return data
 
@@ -637,16 +646,17 @@ def _import_annotations(
     delete_for_empty: bool,  # TODO: This is unused, should it be?
     import_annotators: bool,
     import_reviewers: bool,
-) -> Optional[Exception]:
+) -> Tuple[dt.ErrorList, dt.Success]:
+    errors: dt.ErrorList = []
+    success: dt.Success = dt.Success.SUCCESS
+
     serialized_annotations = []
     for annotation in annotations:
         annotation_class = annotation.annotation_class
         annotation_type = annotation_class.annotation_internal_type or annotation_class.annotation_type
         annotation_class_id: str = remote_classes[annotation_type][annotation_class.name]
 
-        data = _handle_video_annotations(annotation, annotation_class_id, attributes, annotation.data)
-        data = _handle_complex_polygon(annotation, data)
-        data = _handle_subs(annotation, data, annotation_class_id, attributes)
+        data = _get_annotation_data(annotation, annotation_class_id, attributes, annotation.data)
 
         actors: List[dt.DictFreeForm] = []
         actors.extend(_handle_annotators(annotation, import_annotators))
@@ -668,19 +678,14 @@ def _import_annotations(
 
     payload: dt.DictFreeForm = {"annotations": serialized_annotations}
     payload["overwrite"] = _get_overwrite_value(append)
+
     try:
         dataset.import_annotation(id, payload=payload)
-    except (
-        HTTPError,
-        Unauthorized,
-        NotFound,
-        RequestEntitySizeExceeded,
-        NameTaken,
-        ValidationError,
-        InsufficientStorage,
-    ) as error:
-        # Pass the exception back to import_annotations so that it can collate a list for printing to console
-        return error
+    except Exception as e:
+        errors.append(e)
+        success = dt.Success.FAILURE
+
+    return errors, success
 
 
 def _console_theme() -> Theme:

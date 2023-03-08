@@ -164,7 +164,7 @@ def test__handle_annotators() -> None:
         assert op2 == []
 
 
-def test__handle_video_annotations() -> None:
+def test__get_annotation_data() -> None:
     annotation_class = dt.AnnotationClass("class", "TEST_TYPE")
     video_annotation_class = dt.AnnotationClass("video_class", "video")
 
@@ -173,11 +173,29 @@ def test__handle_video_annotations() -> None:
 
     annotation.data = "TEST DATA"
 
-    with patch.object(dt.VideoAnnotation, "get_data", return_value="TEST VIDEO DATA"):
-        from darwin.importer.importer import _handle_video_annotations
+    with patch_factory("_handle_complex_polygon") as mock_hcp, patch_factory("_handle_subs") as mock_hs, patch.object(
+        dt.VideoAnnotation, "get_data", return_value="TEST VIDEO DATA"
+    ):
+        from darwin.importer.importer import _get_annotation_data
 
-        assert _handle_video_annotations(video_annotation, "video_class_id", {}, {}) == "TEST VIDEO DATA"
-        assert _handle_video_annotations(annotation, "class_id", {}, {}) == {"TEST_TYPE": "TEST DATA"}
+        mock_hcp.return_value = "TEST DATA_HCP"
+        mock_hs.return_value = "TEST DATA_HS"
+
+        assert _get_annotation_data(video_annotation, "video_class_id", {}, {}) == "TEST VIDEO DATA"
+        assert _get_annotation_data(annotation, "class_id", {}, {}) == "TEST DATA_HS"
+
+        assert mock_hcp.call_count == 1
+        assert mock_hs.call_count == 1
+
+    with patch_factory("_handle_complex_polygon") as mock_hcp, patch_factory("_handle_subs") as mock_hs:
+        from darwin.importer.importer import _get_annotation_data
+
+        mock_hs.return_value = {"TEST_TYPE": "TEST DATA"}
+
+        assert _get_annotation_data(annotation, "class_id", {}, {}) == {"TEST_TYPE": "TEST DATA"}
+
+        assert mock_hcp.call_args_list[0][0][0] == annotation
+        assert mock_hcp.call_args_list[0][0][1] == {"TEST_TYPE": "TEST DATA"}
 
 
 def __expectation_factory(i: int, slot_names: List[str]) -> dt.Annotation:
@@ -226,11 +244,9 @@ def test_get_overwrite_value() -> None:
 
 def test__import_annotations() -> None:
 
-    with patch_factory("_handle_video_annotations") as mock_hva, patch_factory(
-        "_handle_complex_polygon"
-    ) as mock_hcp, patch_factory("_handle_reviewers") as mock_hr, patch_factory(
-        "_handle_annotators"
-    ) as mock_ha, patch_factory(
+    with patch_factory("_handle_complex_polygon") as mock_hcp, patch_factory(
+        "_handle_reviewers"
+    ) as mock_hr, patch_factory("_handle_annotators") as mock_ha, patch_factory(
         "_handle_subs"
     ) as mock_hs, patch_factory(
         "_get_overwrite_value"
@@ -261,7 +277,7 @@ def test__import_annotations() -> None:
 
         annotation = dt.Annotation(dt.AnnotationClass("test_class", "bbox"), {"paths": [1, 2, 3, 4, 5]}, [], [])
 
-        potential_error = _import_annotations(
+        error, success = _import_annotations(
             mock_client,
             "test_id",
             {"bbox": {"test_class": "1337"}},
@@ -274,9 +290,11 @@ def test__import_annotations() -> None:
             "test_import_annotators",  # type: ignore
             "test_import_reviewers",  # type: ignore
         )
-        assert potential_error is None
+        assert not error
+        assert success == dt.Success.SUCCESS
         assert mock_dataset.import_annotation.call_count == 1
-        assert mock_hva.call_count == 1
+        # ! Removed, so this test is now co-dependent on function previously mocked. See IO-841 for future action.
+        # assert mock_hva.call_count == 1
         assert mock_hcp.call_count == 1
         assert mock_hr.call_count == 1
         assert mock_ha.call_count == 1
@@ -335,9 +353,9 @@ def test__import_annotations() -> None:
             (RequestEntitySizeExceeded, []),
             (ValidationError, []),
         ]
-        for (error, args) in listed_errors:
-            mock_dataset.import_annotation.side_effect = error(*args)
-            potential_error = _import_annotations(
+        for (test_error, args) in listed_errors:
+            mock_dataset.import_annotation.side_effect = test_error(*args)
+            error, success = _import_annotations(
                 mock_client,
                 "test_id",
                 {"bbox": {"test_class": "1337"}},
@@ -350,29 +368,9 @@ def test__import_annotations() -> None:
                 "test_import_annotators",  # type: ignore
                 "test_import_reviewers",  # type: ignore
             )
-            assert potential_error is not None
-            assert isinstance(potential_error, error)
-
-        # Test that it raises for unknown exceptions
-        class UnhandledException(BaseException):
-            pass
-
-        mock_dataset.import_annotation.side_effect = UnhandledException()
-        with pytest.raises(UnhandledException) as exc_info:
-            potential_error = _import_annotations(
-                mock_client,
-                "test_id",
-                {"bbox": {"test_class": "1337"}},
-                {},
-                [annotation],
-                "test_slot",
-                mock_dataset,
-                "test_append_in",  # type: ignore
-                False,
-                "test_import_annotators",  # type: ignore
-                "test_import_reviewers",  # type: ignore
-            )
-        assert isinstance(exc_info.value, UnhandledException)
+            assert success == dt.Success.FAILURE
+            assert len(error) > 0
+            assert isinstance(error[0], test_error)
 
 
 def test_console_theme() -> None:

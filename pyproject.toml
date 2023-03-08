@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "darwin-py"
-version = "0.8.15" # update this when you change the version - See: https://peps.python.org/pep-0440/
+version = "0.8.16" # update this when you change the version - See: https://peps.python.org/pep-0440/
 description = "Library and command line interface for darwin.v7labs.com"
 homepage = "https://docs.v7labs.com/reference/getting-started-2"
 documentation = "https://darwin-py-sdk.v7labs.com/index.html"
@@ -48,6 +48,7 @@ flake8-pyproject = {version = "^1.2.2", extras = ["test", "dev"], python = ">=3.
 debugpy = {version = "^1.6.5", extras = ["dev"]}
 types-requests = {version = "^2.28.11.8", extras = ["dev"]}
 mpire = {version = "^2.6.0", extras = ["dev", "test"]}
+tqdm = "^4.64.1"
 
 [tool.poetry.extras]
 dev = ["black", "isort", "flake8", "mypy", "debugpy", "responses", "pytest", "pytest-describe", "flake8-pyproject"]
