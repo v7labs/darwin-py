@@ -48,6 +48,7 @@ flake8-pyproject = {version = "^1.2.2", extras = ["test", "dev"], python = ">=3.
 debugpy = {version = "^1.6.5", extras = ["dev"]}
 types-requests = {version = "^2.28.11.8", extras = ["dev"]}
 mpire = {version = "^2.6.0", extras = ["dev", "test"]}
+tqdm = "^4.64.1"
 
 [tool.poetry.extras]
 dev = ["black", "isort", "flake8", "mypy", "debugpy", "responses", "pytest", "pytest-describe", "flake8-pyproject"]
