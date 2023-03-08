@@ -478,7 +478,7 @@ def import_annotations(
 
                 image_id, default_slot_name = remote_files[parsed_file.full_path]
 
-                _import_annotations(
+                errors, succes = _import_annotations(
                     dataset.client,
                     image_id,
                     remote_classes,
@@ -491,6 +491,11 @@ def import_annotations(
                     import_annotators,
                     import_reviewers,
                 )
+
+                if errors:
+                    console.print(f"Errors importing {parsed_file.filename}", style="error")
+                    for error in errors:
+                        console.print(f"\t{error}", style="error")
 
 
 def _get_multi_cpu_settings(cpu_limit: Optional[int], cpu_count: int, use_multi_cpu: bool) -> Tuple[int, bool]:
@@ -623,7 +628,10 @@ def _import_annotations(
     delete_for_empty: bool,  # TODO: This is unused, should it be?
     import_annotators: bool,
     import_reviewers: bool,
-) -> None:
+) -> Tuple[dt.ErrorList, dt.Success]:
+    errors: dt.ErrorList = []
+    success: dt.Success = dt.Success.SUCCESS
+
     serialized_annotations = []
     for annotation in annotations:
         annotation_class = annotation.annotation_class
@@ -653,7 +661,13 @@ def _import_annotations(
     payload: dt.DictFreeForm = {"annotations": serialized_annotations}
     payload["overwrite"] = _get_overwrite_value(append)
 
-    dataset.import_annotation(id, payload=payload)
+    try:
+        dataset.import_annotation(id, payload=payload)
+    except Exception as e:
+        errors.append(e)
+        success = dt.Success.FAILURE
+
+    return errors, success
 
 
 def _console_theme() -> Theme:

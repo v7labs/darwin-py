@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from email.policy import default
-from enum import Enum
+from enum import Enum, auto
 from pathlib import Path
 from typing import (
     Any,
@@ -24,6 +24,16 @@ NumberLike = Union[int, float]  # Used for functions that can take either an int
 UnknownType = Any  # type:ignore
 
 # Specific types
+
+ErrorList = List[Exception]
+
+
+class Success(Enum):
+    SUCCESS = auto()
+    FAILURE = auto()
+    PARTIAL_SUCCESS = auto()
+    UNDETERMINED = auto()
+
 
 Point = Dict[str, float]
 BoundingBox = Dict[str, float]
@@ -61,7 +71,7 @@ class JSONType:
     @classmethod
     def from_dict(cls, json: JSONFreeForm) -> "JSONType":
         return cls(**json)
-        
+
 
 @dataclass
 class Team:
