@@ -34,24 +34,13 @@ if TYPE_CHECKING:
     from darwin.dataset import RemoteDataset
 
 import deprecation
-from requests import HTTPError
 from rich.console import Console
 from rich.progress import track
 from rich.theme import Theme
 
 import darwin.datatypes as dt
 from darwin.datatypes import PathLike
-from darwin.exceptions import (
-    IncompatibleOptions,
-    InsufficientStorage,
-    InvalidLogin,
-    MissingConfig,
-    NameTaken,
-    NotFound,
-    RequestEntitySizeExceeded,
-    Unauthorized,
-    ValidationError,
-)
+from darwin.exceptions import IncompatibleOptions, RequestEntitySizeExceeded
 from darwin.utils import secure_continue_request
 from darwin.version import __version__
 
@@ -159,7 +148,6 @@ def find_and_parse(
 
     if not isinstance(parsed_files, list):
         parsed_files = [parsed_files]
-
     parsed_files = [f for f in parsed_files if f is not None]
     return parsed_files
 
