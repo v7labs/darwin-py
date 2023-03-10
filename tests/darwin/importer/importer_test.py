@@ -181,8 +181,8 @@ def test__get_annotation_data() -> None:
         mock_hcp.return_value = "TEST DATA_HCP"
         mock_hs.return_value = "TEST DATA_HS"
 
-        assert _get_annotation_data(video_annotation, "video_class_id", {}, {}) == "TEST VIDEO DATA"
-        assert _get_annotation_data(annotation, "class_id", {}, {}) == "TEST DATA_HS"
+        assert _get_annotation_data(video_annotation, "video_class_id", {}) == "TEST VIDEO DATA"
+        assert _get_annotation_data(annotation, "class_id", {}) == "TEST DATA_HS"
 
         assert mock_hcp.call_count == 1
         assert mock_hs.call_count == 1
@@ -192,7 +192,7 @@ def test__get_annotation_data() -> None:
 
         mock_hs.return_value = {"TEST_TYPE": "TEST DATA"}
 
-        assert _get_annotation_data(annotation, "class_id", {}, {}) == {"TEST_TYPE": "TEST DATA"}
+        assert _get_annotation_data(annotation, "class_id", {}) == {"TEST_TYPE": "TEST DATA"}
 
         assert mock_hcp.call_args_list[0][0][0] == annotation
         assert mock_hcp.call_args_list[0][0][1] == {"TEST_TYPE": "TEST DATA"}
