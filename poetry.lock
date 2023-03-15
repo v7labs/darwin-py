@@ -1350,6 +1350,21 @@ typing-extensions = {version = ">=4.0.0,<5.0", markers = "python_version < \"3.9
 jupyter = ["ipywidgets (>=7.5.1,<9)"]
 
 [[package]]
+name = "rich-argparse"
+version = "1.1.0"
+description = "A rich help formatter for argparse"
+category = "main"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "rich_argparse-1.1.0-py3-none-any.whl", hash = "sha256:ea9c632a501b0d840885905bae9370b51a52c82ae9267f837730ca769faa11c8"},
+    {file = "rich_argparse-1.1.0.tar.gz", hash = "sha256:6af790893d9d6a0d5160dcc1a1448e0d0923d96f7b77af5de1efd54f4bd499cc"},
+]
+
+[package.dependencies]
+rich = ">=11.0.0"
+
+[[package]]
 name = "scikit-learn"
 version = "1.2.2"
 description = "A set of python modules for machine learning and data mining"
@@ -1754,4 +1769,4 @@ test = ["responses", "pytest", "pytest-describe", "flake8-pyproject"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.7.0,<3.12"
-content-hash = "2c5167d82c496efd1de01be3afa8fd18637cce2e6bbddb83f0ba2eee94aa98be"
+content-hash = "4087b905ec9b14753b2524bafa021eae730529727b808dbdf2ecbedb950a15c3"
