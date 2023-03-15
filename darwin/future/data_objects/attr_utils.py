@@ -1,2 +1,2 @@
-def lowercase(x: str) -> str:
-    return x.lower()
+def parse(x: str) -> str:
+    return x.lower().strip()
