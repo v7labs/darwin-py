@@ -4,5 +4,6 @@ def parse_name(name: str) -> str:
 
 
 def is_positive(id: int) -> int:
+    assert isinstance(id, int)
     assert id >= 0
     return id
