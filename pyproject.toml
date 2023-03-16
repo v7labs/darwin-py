@@ -69,6 +69,9 @@ build-backend = "poetry.core.masonry.api"
 profile = "black"
 
 [tool.mypy]
+plugins = [
+    "pydantic.mypy"
+]
 ignore_missing_imports = true
 disallow_any_unimported = true
 disallow_any_expr = false
@@ -85,6 +88,12 @@ no_implicit_optional = true
 warn_return_any = false
 warn_unreachable = true
 pretty = true
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
+warn_untyped_fields = true
 
 [tool.black]
 line-length = 160
