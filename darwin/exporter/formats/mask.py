@@ -5,7 +5,7 @@ from typing import Dict, Iterable, List, Set
 
 import numpy as np
 from PIL import Image
-from upolygon import draw_polygon
+from upolygon import draw_polygon, rle_decode
 
 import darwin.datatypes as dt
 from darwin.utils import convert_polygons_to_sequences, ispolygon
@@ -40,12 +40,24 @@ def validate_annotations(annotations: List[dt.AnnotationLike]) -> None:
         raise ValueError(f"Annotation file contains both mask and raster layer annotations. This is not supported.")
 
 
-def _handle_mask(annotation: dt.Annotation) -> Image.Image:
+def _sparse_rle_decode(sparse_rle: List[int]) -> List[List[List[int]]]:
     ...
 
 
-def _handle_raster_layer(annotation: dt.Annotation) -> Image.Image:
-    ...
+def _handle_mask(annotation: dt.Annotation, mask: Image.Image) -> Image.Image:
+    # FIXUP - basic outline only
+    paths = _sparse_rle_decode(annotation.data["mask"])
+    mask = draw_polygon(mask, paths, 1)
+
+    return mask  # It's not actually necessary to return the mask, as it's modified in place, but it's a good practice
+
+
+def _handle_raster_layer(annotation: dt.Annotation, mask: Image.Image) -> Image.Image:
+    # FIXUP - basic outline only
+    paths = rle_decode(annotation.data["mask"])
+    mask = draw_polygon(mask, paths, 1)
+
+    return mask  # It's not actually necessary to return the mask, as it's modified in place, but it's a good practice
 
 
 def _handle_polygon(
