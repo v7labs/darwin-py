@@ -1,7 +1,7 @@
 import colorsys
 import os
 from pathlib import Path
-from typing import Dict, Iterable, List
+from typing import Dict, Iterable, List, Set
 
 import numpy as np
 from PIL import Image
@@ -34,6 +34,31 @@ def get_palette(mode: str, categories: List[str]) -> Dict[str, int]:
     raise ValueError(f"Unknown mode {mode}.")
 
 
+def validate_annotations(annotations: List[dt.AnnotationLike]) -> None:
+    types_in_annotations: Set[str] = set([a.annotation_class.annotation_type for a in annotations])
+    if "raster_layer" in types_in_annotations and "mask" in types_in_annotations:
+        raise ValueError(f"Annotation file contains both mask and raster layer annotations. This is not supported.")
+
+
+def _handle_mask(annotation: dt.Annotation) -> Image.Image:
+    ...
+
+
+def _handle_raster_layer(annotation: dt.Annotation) -> Image.Image:
+    ...
+
+
+def _handle_polygon(
+    annotation: dt.Annotation, height: int, width: int, mask: np.ndarray, cat: str, palette: Dict[str, int]
+) -> Image.Image:
+    type: str = annotation.annotation_class.annotation_type
+    polygon = annotation.data["path"] if type == "polygon" else annotation.data["paths"]
+    sequence = convert_polygons_to_sequences(polygon, height=height, width=width)
+    mask = draw_polygon(mask, sequence, palette[cat])
+
+    return mask  # It's not actually necessary to return the mask, as it's modified in place, but it's a good practice
+
+
 def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path, mode: str) -> None:
     masks_dir: Path = output_dir / "masks"
     masks_dir.mkdir(exist_ok=True, parents=True)
@@ -63,19 +88,26 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path, mode
             raise ValueError(f"Annotation file {annotation_file.filename} references an image with no height or width")
 
         mask: Image.Image = np.zeros((height, width)).astype(np.uint8)
-        annotations = [a for a in annotation_file.annotations if ispolygon(a.annotation_class)]
+        annotations: List[dt.AnnotationLike] = [a for a in annotation_file.annotations if ispolygon(a.annotation_class)]
+        validate_annotations(annotations)
+
         for a in annotations:
             if isinstance(a, dt.VideoAnnotation):
                 print(f"Skipping video annotation from file {annotation_file.filename}")
                 continue
 
             cat = a.annotation_class.name
-            if a.annotation_class.annotation_type == "polygon":
-                polygon = a.data["path"]
-            elif a.annotation_class.annotation_type == "complex_polygon":
-                polygon = a.data["paths"]
-            sequence = convert_polygons_to_sequences(polygon, height=height, width=width)
-            draw_polygon(mask, sequence, palette[cat])
+            if annotation_type := a.annotation_class.annotation_type in ["polygon", "complex_polygon"]:
+                # Polygon rendering
+                mask = _handle_polygon(a, height, width, mask, cat, palette)
+
+            elif annotation_type == "mask":
+                # Mask sparse rle rendering
+                mask = _handle_mask(a, mask)
+
+            elif annotation_type == "raster_layer":
+                # Raster layer dense RLE rendering
+                mask = _handle_raster_layer(a, mask)
 
         if mode == "rgb":
             mask = Image.fromarray(mask, "P")
