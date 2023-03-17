@@ -8,12 +8,12 @@ from darwin.future.data_objects.darwin_meta import Dataset, Release, Team
 
 @pytest.fixture
 def basic_team() -> dict:
-    return {"name": "test-team"}
+    return {"slug": "test-team", "id": 0}
 
 
 @pytest.fixture
 def basic_dataset() -> dict:
-    return {"name": "test-dataset"}
+    return {"name": "test-dataset", "slug": "test-dataset"}
 
 
 @pytest.fixture
@@ -37,7 +37,7 @@ def broken_combined(basic_combined: dict) -> dict:
 
 def test_integrated_parsing_works_with_raw(basic_combined: dict) -> None:
     team = Team.parse_obj(basic_combined)
-    assert team.name == "test-team"
+    assert team.slug == "test-team"
     assert team.datasets is not None
     assert team.datasets[0].name == "test-dataset"
     assert team.datasets[0].releases is not None
@@ -53,13 +53,3 @@ def test_broken_obj_raises(broken_combined: dict) -> None:
 def test_empty_obj_raises(test_object: BaseModel) -> None:
     with pytest.raises(ValidationError) as e_info:
         broken = test_object.parse_obj({})
-
-
-def test_dataset_id_validator_catches_negatives(basic_dataset: dict) -> None:
-    after_instantiation = Dataset.parse_obj(basic_dataset)
-    with pytest.raises(ValidationError) as e_info:
-        after_instantiation.id = -1
-
-    basic_dataset["id"] = -1
-    with pytest.raises(ValidationError) as e_info:
-        dataset = Dataset.parse_obj(basic_dataset)

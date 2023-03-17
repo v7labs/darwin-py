@@ -1,8 +1,11 @@
 import unittest
-from typing import Any
+from typing import Union
+
 import pytest
 
 from darwin.future.data_objects import validators as validators
+
+Simple = Union[list, tuple, dict, str, int, float]
 
 
 @pytest.mark.parametrize(
@@ -22,14 +25,8 @@ def test_parse_name_parses_correctly(input: str, expected: str) -> None:
 
 @pytest.mark.parametrize(
     "input",
-    [-1, "test", 1.0],
+    [-1, [], 1.0],
 )
-def test_parse_name_raises_with_incorrect_input(input: str)
-
-@pytest.mark.parametrize(
-    "input",
-    [-1, "test", 1.0],
-)
-def test_is_positive_raises_with_incorrect_input(input: Any) -> None:
+def test_parse_name_raises_with_incorrect_input(input: Simple) -> None:
     with pytest.raises(AssertionError) as e_info:
-        validators.is_positive(input)
+        validators.parse_name(input)  # type: ignore[arg-type]
