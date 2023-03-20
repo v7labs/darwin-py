@@ -111,7 +111,3 @@ class Client:
 
     def patch(self, url: str, data: dict) -> dict:
         pass
-
-    def get_team(self) -> Team:
-        raw_team = self.get(f"{self.url}/teams")
-        return Team(slug="test", id=1)
