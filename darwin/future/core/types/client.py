@@ -1,10 +1,24 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
+from pathlib import Path
 from typing import List, Optional
 
 from pydantic import BaseModel
 
 from darwin.future.core.types.query import Query
 from darwin.future.data_objects.darwin_meta import Team
+
+
+class Config(BaseModel):
+    base_url: str
+    default_team: Optional[Team]
+
+    def from_env(cls) -> Config:
+        pass
+
+    def from_file(cls, path: Path) -> Config:
+        pass
 
 
 class Result(BaseModel):
@@ -50,7 +64,7 @@ class Cursor(ABC):
     client: Client, client used to make requests
     """
 
-    def __init__(self, url: str, client: "Client"):
+    def __init__(self, url: str, client: Client):
         self.url = url
         self.client = client
         self.current_page: Optional[Page] = None
@@ -69,10 +83,16 @@ class Cursor(ABC):
 
 
 class Client:
-    def __init__(self, url: str, api_key: str, team: Team) -> None:
-        self.url = url
-        self.api_key = api_key
-        self.team = team
+    """Client Object to manage and make requests to the Darwin API
+    Attributes
+    ----------
+    url: str, url of the endpoint
+    api_key: str, api key to authenticate
+    team: Team, team to make requests to
+    """
+
+    def __init__(self, config: Config) -> None:
+        self.config = config
 
     def cursor(self) -> Cursor:
         pass
@@ -91,3 +111,7 @@ class Client:
 
     def patch(self, url: str, data: dict) -> dict:
         pass
+
+    def get_team(self) -> Team:
+        raw_team = self.get(f"{self.url}/teams")
+        return Team(slug="test", id=1)
