@@ -22,14 +22,9 @@ from darwin.item import DatasetItem
 
 Unknown = Any  # type: ignore
 
-try:
-    from mpire import WorkerPool, tqdm
+from mpire import WorkerPool, tqdm
 
-    MPIRE_AVAILABLE = True
-except ImportError:
-    from tqdm import tqdm
-
-    MPIRE_AVAILABLE = False
+MPIRE_AVAILABLE = True
 
 if TYPE_CHECKING:
     from darwin.client import Client
