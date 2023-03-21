@@ -22,7 +22,8 @@ from darwin.item import DatasetItem
 
 Unknown = Any  # type: ignore
 
-from mpire import WorkerPool, tqdm
+from mpire import WorkerPool
+from tqdm import tqdm
 
 MPIRE_AVAILABLE = True
 
