@@ -236,7 +236,7 @@ class RemoteDataset(ABC):
             If darwin in unable to get ``Team`` configuration.
         """
 
-        console = Console()
+        console = self.console or Console()
 
         if release is None:
             release = self.get_release()
