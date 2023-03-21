@@ -27,6 +27,8 @@ try:
 
     MPIRE_AVAILABLE = True
 except ImportError:
+    from tqdm import tqdm
+
     MPIRE_AVAILABLE = False
 
 if TYPE_CHECKING:
