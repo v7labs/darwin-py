@@ -316,7 +316,7 @@ python-versions = ">=3.7"
 
 [[package]]
 name = "mpire"
-version = "2.6.0"
+version = "2.7.0"
 description = "A Python package for easy multiprocessing, but faster than multiprocessing"
 category = "main"
 optional = false
@@ -1185,8 +1185,8 @@ mdurl = [
     {file = "mdurl-0.1.2.tar.gz", hash = "sha256:bb413d29f5eea38f31dd4754dd7377d4465116fb207585f97bf925588687c1ba"},
 ]
 mpire = [
-    {file = "mpire-2.6.0-py3-none-any.whl", hash = "sha256:e800dfa3f6f1b300e355d541fd0c0694a0eb6199dca183f8f5a66fb7a144403a"},
-    {file = "mpire-2.6.0.tar.gz", hash = "sha256:907051a4095779104eddcf5dae37e9d263778d8a51d4acec3e6354f5d45c933c"},
+    {file = "mpire-2.7.0-py3-none-any.whl", hash = "sha256:75a50a898828d560084044d49f7e56f5334754bf6de1f88c2d5ed2591314c26f"},
+    {file = "mpire-2.7.0.tar.gz", hash = "sha256:6ffe7ce92d4b40fcf35d73ebaadf76455d11e4a2c923ef0c9f25b6c885bf5d0f"},
 ]
 mypy = [
     {file = "mypy-0.991-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:7d17e0a9707d0772f4a7b878f04b4fd11f6f5bcb9b3813975a9b13c9332153ab"},
