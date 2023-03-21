@@ -25,8 +25,6 @@ Unknown = Any  # type: ignore
 from mpire import WorkerPool
 from tqdm import tqdm
 
-MPIRE_AVAILABLE = True
-
 if TYPE_CHECKING:
     from darwin.client import Client
     from darwin.dataset import RemoteDataset
