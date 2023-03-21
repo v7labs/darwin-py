@@ -908,7 +908,7 @@ test = ["responses", "pytest", "pytest-describe", "flake8-pyproject"]
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.7.0,<3.12"
-content-hash = "6dd8545e13af59602a7e16e863e23f669d583e51b7d77225b95072187a9f589f"
+content-hash = "90393e2aed1fc1237a51f4e43b9576bfde90fbd4e084f50dfbbd1655cd02f1d9"
 
 [metadata.files]
 argcomplete = [
