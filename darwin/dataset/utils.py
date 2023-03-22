@@ -173,7 +173,7 @@ def _f(x: Any) -> Any:
 
 def exhaust_generator(
     progress: Generator, count: int, multi_threaded: bool, worker_count: Optional[int] = None
-) -> List[Dict[str, Any]]:
+) -> Tuple[List[Dict[str, Any]], List[Exception]]:
     """
     Exhausts the generator passed as parameter. Can be done multi threaded if desired.
 
@@ -193,9 +193,11 @@ def exhaust_generator(
     List[Dict[str, Any]
         List of responses from the generator execution.
     """
-    responses = []
+    successes = []
+    errors = []
     if multi_threaded:
         progress_bar: ProgressBar = ProgressBar(total=count)
+        responses = []
 
         def update(*a):
             progress_bar.completed += 1
@@ -209,11 +211,19 @@ def exhaust_generator(
                     responses.append(pool.apply_async(_f, args=(f,), callback=update))
                 pool.close()
                 pool.join()
-            responses = [response.get() for response in responses if response.successful()]
+            for response in responses:
+                try:
+                    successes.append(response.get())
+                except Exception as e:
+                    errors.append(e)
+
     else:
         for f in track(progress, total=count, description="Progress"):
-            responses.append(_f(f))
-    return responses
+            try:
+                successes.append(_f(f))
+            except Exception as e:
+                errors.append(e)
+    return successes, errors
 
 
 def get_coco_format_record(

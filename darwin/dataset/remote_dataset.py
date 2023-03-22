@@ -329,7 +329,13 @@ class RemoteDataset(ABC):
             if env_max_workers and int(env_max_workers) > 0:
                 max_workers = int(env_max_workers)
 
-            exhaust_generator(progress=progress(), count=count, multi_threaded=multi_threaded, worker_count=max_workers)
+            successes, errors = exhaust_generator(
+                progress=progress(), count=count, multi_threaded=multi_threaded, worker_count=max_workers
+            )
+            if errors:
+                self.console.print(f"Encountered errors downloading {len(errors)} files")
+            for error in errors:
+                self.console.print(f"\t - {str(error)}")
             return None, count
         else:
             return progress, count
