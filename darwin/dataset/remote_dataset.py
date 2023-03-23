@@ -235,6 +235,9 @@ class RemoteDataset(ABC):
         ValueError
             If darwin in unable to get ``Team`` configuration.
         """
+
+        console = self.console or Console()
+
         if release is None:
             release = self.get_release()
 
@@ -329,6 +332,7 @@ class RemoteDataset(ABC):
             if env_max_workers and int(env_max_workers) > 0:
                 max_workers = int(env_max_workers)
 
+            console.print(f"Going to download {str(count)} files to {self.local_images_path.as_posix()}.")
             successes, errors = exhaust_generator(
                 progress=progress(), count=count, multi_threaded=multi_threaded, worker_count=max_workers
             )
@@ -336,6 +340,10 @@ class RemoteDataset(ABC):
                 self.console.print(f"Encountered errors downloading {len(errors)} files", style="error")
             for error in errors:
                 self.console.print(f"\t - {error}", style="error")
+
+            downloaded_file_count = len([f for f in self.local_images_path.rglob("*") if f.is_file()])
+            console.print(f"Total file count after download completed {str(downloaded_file_count)}.")
+
             return None, count
         else:
             return progress, count
