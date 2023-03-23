@@ -169,6 +169,7 @@ def _f(x: Any) -> Any:
     """Support function for ``pool.map()`` in ``_exhaust_generator()``."""
     if callable(x):
         return x()
+    return x
 
 
 def exhaust_generator(

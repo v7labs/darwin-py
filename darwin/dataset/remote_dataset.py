@@ -335,7 +335,7 @@ class RemoteDataset(ABC):
             if errors:
                 self.console.print(f"Encountered errors downloading {len(errors)} files")
             for error in errors:
-                self.console.print(f"\t - {str(error)}")
+                self.console.print(f"\t - {error}")
             return None, count
         else:
             return progress, count
