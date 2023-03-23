@@ -22,12 +22,8 @@ from darwin.item import DatasetItem
 
 Unknown = Any  # type: ignore
 
-try:
-    from mpire import WorkerPool, tqdm
-
-    MPIRE_AVAILABLE = True
-except ImportError:
-    MPIRE_AVAILABLE = False
+from mpire import WorkerPool
+from tqdm import tqdm
 
 if TYPE_CHECKING:
     from darwin.client import Client
@@ -125,7 +121,7 @@ def find_and_parse(
 
     maybe_console(f"Found {len(files)} files")
 
-    if use_multi_cpu and MPIRE_AVAILABLE:
+    if use_multi_cpu:
         maybe_console(f"Using multiprocessing with {cpu_limit} workers")
         try:
             with WorkerPool(cpu_limit) as pool:
@@ -138,10 +134,7 @@ def find_and_parse(
             return None
 
     else:
-        if use_multi_cpu and not MPIRE_AVAILABLE:
-            maybe_console("Using single CPU for upload. Run pip install mpire to benefit from faster uploads.")
-        else:
-            maybe_console("Using single CPU")
+        maybe_console("Using single CPU")
         parsed_files = list(map(importer, tqdm(files) if is_console else files))
 
     maybe_console("Finished.")
