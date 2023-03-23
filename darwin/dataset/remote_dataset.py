@@ -333,9 +333,9 @@ class RemoteDataset(ABC):
                 progress=progress(), count=count, multi_threaded=multi_threaded, worker_count=max_workers
             )
             if errors:
-                self.console.print(f"Encountered errors downloading {len(errors)} files")
+                self.console.print(f"Encountered errors downloading {len(errors)} files", style="error")
             for error in errors:
-                self.console.print(f"\t - {error}")
+                self.console.print(f"\t - {error}", style="error")
             return None, count
         else:
             return progress, count
