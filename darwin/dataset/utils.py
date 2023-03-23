@@ -193,6 +193,8 @@ def exhaust_generator(
     -------
     List[Dict[str, Any]
         List of responses from the generator execution.
+    List[Exception]
+        List of exceptions raised during the execution of the generator.
     """
     successes = []
     errors = []
