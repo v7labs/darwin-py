@@ -5,7 +5,7 @@ from typing import Optional
 from darwin.cli_functions import authenticate
 from darwin.client import Client
 from darwin.dataset.identifier import DatasetIdentifier
-from darwin.dataset.utils import split_dataset
+from darwin.dataset.split_manager import split_dataset
 
 
 def run_demo(
@@ -47,14 +47,19 @@ def run_demo(
     else:
         client = Client.local(team_slug=team_slug)
     # Create a dataset identifier
-    dataset_identifier = DatasetIdentifier.from_slug(dataset_slug=dataset_slug, team_slug=team_slug)
+    dataset_identifier = DatasetIdentifier(dataset_slug=dataset_slug, team_slug=team_slug)
     # Get an object representing the remote dataset
     ds = client.get_remote_dataset(dataset_identifier=dataset_identifier)
     # Download the dataset on the local file system
     ds.pull()
+
+    # Infer the base dataset path if not specified
+    if datasets_dir is None:
+        datasets_dir = ds.local_path
     # Split the dataset in train/val/test
-    splits = split_dataset(dataset=ds)
+    splits = split_dataset(datasets_dir)
     # Here you can start your Machine Learning model :)
+    print(splits)
 
 
 if __name__ == "__main__":
