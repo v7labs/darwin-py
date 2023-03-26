@@ -1,3 +1,4 @@
+import os
 from functools import reduce
 from pathlib import Path
 from typing import Dict, Iterable
@@ -11,6 +12,7 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path) -> N
     """
     Exports the given ``AnnotationFile``\\s into the YOLO format inside of the given
     ``output_dir``.
+
 
     Parameters
     ----------
@@ -32,10 +34,14 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path) -> N
 
 def _export_file(annotation_file: dt.AnnotationFile, class_index: ClassIndex, output_dir: Path) -> None:
     txt = _build_txt(annotation_file, class_index)
-    output_file_path = (output_dir / "train" / "labels" / annotation_file.filename).with_suffix(".txt")
+    remote_path = "train"
+    if annotation_file.remote_path and annotation_file.remote_path in ['/train', '/valid', '/test']:
+        remote_path = annotation_file.remote_path.replace("/", "")
+    output_file_path = (output_dir / remote_path / "labels" / annotation_file.filename).with_suffix(".txt")
     output_file_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_file_path, "w") as f:
         f.write(txt)
+
 
 
 def _build_class_index(annotation_files: Iterable[dt.AnnotationFile]) -> ClassIndex:
@@ -86,11 +92,17 @@ def _build_txt(annotation_file: dt.AnnotationFile, class_index: ClassIndex) -> s
 
 def _save_class_index(class_index: ClassIndex, output_dir: Path) -> None:
     sorted_items = sorted(class_index.items(), key=lambda item: item[1])
+    has_train_folder = os.path.exists(output_dir / "train")
+    has_valid_folder = os.path.exists(output_dir / "valid")
+    has_test_folder = os.path.exists(output_dir / "test")
 
     with open(output_dir / "dataset.yaml", "w") as f:
-        f.write("train: ../train/images\n")
-        f.write("valid: ../valid/images\n")
-        f.write("test: ../test/images\n\n")
+        if has_train_folder:
+            f.write("train: ../train/images\n")
+        if has_valid_folder:
+            f.write("val: ../valid/images\n")
+        if has_test_folder:
+            f.write("test: ../test/images\n\n")
         f.write(f"nc: {len(sorted_items)}\n")
         labels = ", ".join([f"'{item[0]}'" for item in sorted_items])
         f.write(f"names: [{labels}]\n")
