@@ -10,8 +10,10 @@ from upolygon import draw_polygon, rle_decode
 import darwin.datatypes as dt
 from darwin.utils import convert_polygons_to_sequences, ispolygon
 
+PalleteType = Dict[str, int]
 
-def get_palette(mode: str, categories: List[str]) -> Dict[str, int]:
+
+def get_palette(mode: str, categories: List[str]) -> PalleteType:
     num_categories: int = len(categories)
     if mode == "index":
         if num_categories > 254:
@@ -34,41 +36,78 @@ def get_palette(mode: str, categories: List[str]) -> Dict[str, int]:
     raise ValueError(f"Unknown mode {mode}.")
 
 
-def validate_annotations(annotations: List[dt.AnnotationLike]) -> None:
-    types_in_annotations: Set[str] = set([a.annotation_class.annotation_type for a in annotations])
-    if "raster_layer" in types_in_annotations and "mask" in types_in_annotations:
-        raise ValueError(f"Annotation file contains both mask and raster layer annotations. This is not supported.")
+def get_render_mode(annotations: List[dt.AnnotationLike]) -> str:
+    keys: Set[str] = set([a.data.keys() for a in annotations])
+
+    is_raster_mask = "mask" in keys and "raster_layer" in keys
+    is_polygon = "polygon" in keys or "complex_polygon" in keys
+
+    if is_raster_mask and is_polygon:
+        raise ValueError("Cannot have both raster and polygon annotations in the same file")
+
+    if is_raster_mask:
+        return "raster"
+    if is_polygon:
+        return "polygon"
+
+    raise ValueError("No renderable annotations found in file, found keys: " + ",".join(keys))
 
 
-def _sparse_rle_decode(sparse_rle: List[int]) -> List[List[List[int]]]:
-    ...
-
-
-def _handle_mask(annotation: dt.Annotation, mask: Image.Image) -> Image.Image:
-    # FIXUP - basic outline only
-    paths = _sparse_rle_decode(annotation.data["mask"])
-    mask = draw_polygon(mask, paths, 1)
-
-    return mask  # It's not actually necessary to return the mask, as it's modified in place, but it's a good practice
-
-
-def _handle_raster_layer(annotation: dt.Annotation, mask: Image.Image) -> Image.Image:
-    # FIXUP - basic outline only
-    paths = rle_decode(annotation.data["mask"])
-    mask = draw_polygon(mask, paths, 1)
-
-    return mask  # It's not actually necessary to return the mask, as it's modified in place, but it's a good practice
-
-
-def _handle_polygon(
-    annotation: dt.Annotation, height: int, width: int, mask: np.ndarray, cat: str, palette: Dict[str, int]
+def render_polygons(
+    mask: Image.Image,
+    annotations: List[dt.AnnotationLike],
+    annotation_file: dt.AnnotationFile,
+    height: int,
+    width: int,
+    palette: PalleteType,
 ) -> Image.Image:
-    type: str = annotation.annotation_class.annotation_type
-    polygon = annotation.data["path"] if type == "polygon" else annotation.data["paths"]
-    sequence = convert_polygons_to_sequences(polygon, height=height, width=width)
-    mask = draw_polygon(mask, sequence, palette[cat])
+    for a in annotations:
+        if isinstance(a, dt.VideoAnnotation):
+            print(f"Skipping video annotation from file {annotation_file.filename}")
+            continue
 
-    return mask  # It's not actually necessary to return the mask, as it's modified in place, but it's a good practice
+        cat = a.annotation_class.name
+        if a.annotation_class.annotation_type == "polygon":
+            polygon = a.data["path"]
+        elif a.annotation_class.annotation_type == "complex_polygon":
+            polygon = a.data["paths"]
+        sequence = convert_polygons_to_sequences(polygon, height=height, width=width)
+        mask = draw_polygon(mask, sequence, palette[cat])
+
+    # It's not necessary to return the mask, it's modified in place, but it's more explicit
+    return mask
+
+
+def render_raster(
+    mask: Image.Image,
+    annotations: List[dt.AnnotationLike],
+    annotation_file: dt.AnnotationFile,
+    height: int,
+    width: int,
+    palette: PalleteType,
+) -> Image.Image:
+    errors: List[Exception] = []
+    for a in annotations:
+        if isinstance(a, dt.VideoAnnotation):
+            print(f"Skipping video annotation from file {annotation_file.filename}")
+            continue
+
+        cat = a.annotation_class.name
+        if a.annotation_class.annotation_type == "raster": #TODO implement render raster type
+            name = a.data.get("name")
+            raster = a.data.get("raster_layer")
+            if not raster:
+                errors.append(ValueError(f"Annotation {name} has no raster layer"))
+                continue
+
+            rle = raster.get("rle")
+            if not rle:
+                errors.append(ValueError(f"Annotation {name} has no RLE data"))
+                continue
+
+            
+        else:
+            
 
 
 def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path, mode: str) -> None:
@@ -90,6 +129,11 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path, mode
         RGB_colors = [c for e in RGB_color_list for c in e]
 
     for annotation_file in annotation_files:
+        # TODO
+        # Identify if we have masks and raster or polygons
+        # If we have masks and raster, we need to calculate and render an image from that
+        # If we have polygons, we need to render the polygons into an image
+        # If we have masks and polygons, we need to render the polygons into an image
         image_rel_path = os.path.splitext(annotation_file.full_path)[0].lstrip("/")
         outfile = masks_dir / f"{image_rel_path}.png"
         outfile.parent.mkdir(parents=True, exist_ok=True)
@@ -99,27 +143,28 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path, mode
         if height is None or width is None:
             raise ValueError(f"Annotation file {annotation_file.filename} references an image with no height or width")
 
-        mask: Image.Image = np.zeros((height, width)).astype(np.uint8)
+        mask: Image.Image = np.zeros((height, width)).astype(np.uint8)  # type: ignore
         annotations: List[dt.AnnotationLike] = [a for a in annotation_file.annotations if ispolygon(a.annotation_class)]
-        validate_annotations(annotations)
 
-        for a in annotations:
-            if isinstance(a, dt.VideoAnnotation):
-                print(f"Skipping video annotation from file {annotation_file.filename}")
-                continue
+        mode = get_render_mode(annotations)
 
-            cat = a.annotation_class.name
-            if annotation_type := a.annotation_class.annotation_type in ["polygon", "complex_polygon"]:
-                # Polygon rendering
-                mask = _handle_polygon(a, height, width, mask, cat, palette)
+        if mode == "raster":
+            # TODO: implement this - render the raster
+            raise NotImplementedError("Raster masks are not yet supported")
 
-            elif annotation_type == "mask":
-                # Mask sparse rle rendering
-                mask = _handle_mask(a, mask)
+        else:
+            for a in annotations:
+                if isinstance(a, dt.VideoAnnotation):
+                    print(f"Skipping video annotation from file {annotation_file.filename}")
+                    continue
 
-            elif annotation_type == "raster_layer":
-                # Raster layer dense RLE rendering
-                mask = _handle_raster_layer(a, mask)
+                cat = a.annotation_class.name
+                if a.annotation_class.annotation_type == "polygon":
+                    polygon = a.data["path"]
+                elif a.annotation_class.annotation_type == "complex_polygon":
+                    polygon = a.data["paths"]
+                sequence = convert_polygons_to_sequences(polygon, height=height, width=width)
+                draw_polygon(mask, sequence, palette[cat])
 
         if mode == "rgb":
             mask = Image.fromarray(mask, "P")
