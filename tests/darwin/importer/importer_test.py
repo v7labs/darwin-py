@@ -283,6 +283,7 @@ def test__import_annotations() -> None:
             {"bbox": {"test_class": "1337"}},
             {},
             [annotation],
+            None,  # Annotation group ID
             "test_slot",
             mock_dataset,
             "test_append_in",  # type: ignore
@@ -315,6 +316,7 @@ def test__import_annotations() -> None:
             "annotations": [
                 {
                     "annotation_class_id": "1337",
+                    "annotation_group_id": None,
                     "data": "test_sub",
                     "actors": [
                         {"email": "annotator1@example.com", "role": "annotator"},
