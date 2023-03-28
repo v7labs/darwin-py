@@ -22,12 +22,8 @@ from darwin.item import DatasetItem
 
 Unknown = Any  # type: ignore
 
-try:
-    from mpire import WorkerPool, tqdm
-
-    MPIRE_AVAILABLE = True
-except ImportError:
-    MPIRE_AVAILABLE = False
+from mpire import WorkerPool
+from tqdm import tqdm
 
 if TYPE_CHECKING:
     from darwin.client import Client
@@ -41,7 +37,7 @@ from rich.theme import Theme
 import darwin.datatypes as dt
 from darwin.datatypes import PathLike
 from darwin.exceptions import IncompatibleOptions, RequestEntitySizeExceeded
-from darwin.utils import secure_continue_request
+from darwin.utils import flatten_list, secure_continue_request
 from darwin.version import __version__
 
 # Classes missing import support on backend side
@@ -125,7 +121,7 @@ def find_and_parse(
 
     maybe_console(f"Found {len(files)} files")
 
-    if use_multi_cpu and MPIRE_AVAILABLE:
+    if use_multi_cpu:
         maybe_console(f"Using multiprocessing with {cpu_limit} workers")
         try:
             with WorkerPool(cpu_limit) as pool:
@@ -138,10 +134,7 @@ def find_and_parse(
             return None
 
     else:
-        if use_multi_cpu and not MPIRE_AVAILABLE:
-            maybe_console("Using single CPU for upload. Run pip install mpire to benefit from faster uploads.")
-        else:
-            maybe_console("Using single CPU")
+        maybe_console("Using single CPU")
         parsed_files = list(map(importer, tqdm(files) if is_console else files))
 
     maybe_console("Finished.")
@@ -149,6 +142,7 @@ def find_and_parse(
     if not isinstance(parsed_files, list):
         parsed_files = [parsed_files]
 
+    parsed_files = [f for f in parsed_files if f is not None]
     return parsed_files
 
 
@@ -247,6 +241,8 @@ def import_annotations(
     class_prompt: bool = True,
     delete_for_empty: bool = False,
     to_new_annotation_group: bool = False,
+    import_annotators: bool = False,
+    import_reviewers: bool = False,
     use_multi_cpu: bool = True,
     cpu_limit: Optional[int] = None,  # 0 because it's set later in logic
 ) -> None:
@@ -276,6 +272,12 @@ def import_annotations(
         If ``True`` the imported annotations will be linked to a newly created annotation group
         if ``False`` the imported annotations will be linked to the default annotation group
         Only works for V2 datasets
+    import_annotators : bool, default: False
+        If ``True`` it will import the annotators from the files to the dataset, if available.
+        If ``False`` it will not import the annotators.
+    import_reviewers : bool, default: False
+        If ``True`` it will import the reviewers from the files to the dataset, if .
+        If ``False`` it will not import the reviewers.
     use_multi_cpu : bool, default: True
         If ``True`` will use multiple available CPU cores to parse the annotation files.
         If ``False`` will use only the current Python process, which runs in one core.
@@ -317,7 +319,7 @@ def import_annotations(
         raise ValueError(f"file_paths must be a list of 'Path' or 'str'. Current value: {file_paths}")
 
     console.print("Fetching remote class list...", style="info")
-    team_classes: List[Dict[str, Unknown]] = dataset.fetch_remote_classes(True)
+    team_classes: List[dt.DictFreeForm] = dataset.fetch_remote_classes(True)
     if not team_classes:
         raise ValueError("Unable to fetch remote class list.")
 
@@ -327,10 +329,10 @@ def import_annotations(
             style="warning",
         )
 
-    classes_in_dataset: Dict[str, Unknown] = build_main_annotations_lookup_table(
+    classes_in_dataset: dt.DictFreeForm = build_main_annotations_lookup_table(
         [cls for cls in team_classes if cls["available"]]
     )
-    classes_in_team: Dict[str, Unknown] = build_main_annotations_lookup_table(
+    classes_in_team: dt.DictFreeForm = build_main_annotations_lookup_table(
         [cls for cls in team_classes if not cls["available"]]
     )
     attributes = build_attribute_lookup(dataset)
@@ -347,13 +349,14 @@ def import_annotations(
     if not maybe_parsed_files:
         raise ValueError("Not able to parse any files.")
 
-    parsed_files = list(maybe_parsed_files)
-    filenames: List[str] = [parsed_file.filename for parsed_file in parsed_files]
+    parsed_files: List[AnnotationFile] = flatten_list(list(maybe_parsed_files))
+
+    filenames: List[str] = [parsed_file.filename for parsed_file in parsed_files if parsed_file is not None]
 
     console.print("Fetching remote file list...", style="info")
     # This call will only filter by filename; so can return a superset of matched files across different paths
     # There is logic in this function to then include paths to narrow down to the single correct matching file
-    remote_files: Dict[str, Tuple[int, str]] = {}
+    remote_files: Dict[str, Tuple[int, str]] = dict()
 
     # Try to fetch files in large chunks; in case the filenames are too large and exceed the url size
     # retry in smaller chunks
@@ -422,7 +425,7 @@ def import_annotations(
 
     # Refetch classes to update mappings
     if local_classes_not_in_team or local_classes_not_in_dataset:
-        maybe_remote_classes: List[Dict[str, Unknown]] = dataset.fetch_remote_classes()
+        maybe_remote_classes: List[dt.DictFreeForm] = dataset.fetch_remote_classes()
         if not maybe_remote_classes:
             raise ValueError("Unable to fetch remote classes.")
 
@@ -479,20 +482,32 @@ def import_annotations(
         if files_to_track:
             _warn_unsupported_annotations(files_to_track)
             for parsed_file in track(files_to_track):
+
                 image_id, default_slot_name = remote_files[parsed_file.full_path]
 
-                _import_annotations(
+                errors, succes = _import_annotations(
                     dataset.client,
                     image_id,
                     remote_classes,
                     attributes,
+<<<<<<< HEAD
                     parsed_file.annotations,
                     annotation_group_id,
+=======
+                    parsed_file.annotations,  # type: ignore
+>>>>>>> c2e325bfffbc902f8852fd4064e0f9e5ddab09b8
                     default_slot_name,
                     dataset,
                     append,
                     delete_for_empty,
+                    import_annotators,
+                    import_reviewers,
                 )
+
+                if errors:
+                    console.print(f"Errors importing {parsed_file.filename}", style="error")
+                    for error in errors:
+                        console.print(f"\t{error}", style="error")
 
 
 def _get_multi_cpu_settings(cpu_limit: Optional[int], cpu_count: int, use_multi_cpu: bool) -> Tuple[int, bool]:
@@ -530,8 +545,8 @@ def _get_skeleton_name(skeleton: dt.AnnotationClass) -> str:
 
 
 def _handle_subs(
-    annotation: dt.Annotation, data: Dict[str, Unknown], annotation_class_id: str, attributes: Dict[str, Unknown]
-) -> Dict[str, Unknown]:
+    annotation: dt.Annotation, data: dt.DictFreeForm, annotation_class_id: str, attributes: Dict[str, dt.UnknownType]
+) -> dt.DictFreeForm:
     for sub in annotation.subs:
         if sub.annotation_type == "text":
             data["text"] = {"text": sub.data}
@@ -552,63 +567,118 @@ def _handle_subs(
     return data
 
 
-def _handle_complex_polygon(annotation: dt.Annotation, data: Dict[str, Unknown]) -> Dict[str, Unknown]:
+def _handle_complex_polygon(annotation: dt.Annotation, data: dt.DictFreeForm) -> dt.DictFreeForm:
     if "complex_polygon" in data:
         del data["complex_polygon"]
         data["polygon"] = {"path": annotation.data["paths"][0], "additional_paths": annotation.data["paths"][1:]}
     return data
 
 
+def _annotators_or_reviewers_to_payload(
+    actors: List[dt.AnnotationAuthor], role: dt.AnnotationAuthorRole
+) -> List[dt.DictFreeForm]:
+
+    return [{"email": actor.email, "role": role.value} for actor in actors]
+
+
+def _handle_reviewers(annotation: dt.Annotation, import_reviewers: bool) -> List[dt.DictFreeForm]:
+    if import_reviewers:
+        if annotation.reviewers:
+            return _annotators_or_reviewers_to_payload(annotation.reviewers, dt.AnnotationAuthorRole.REVIEWER)
+    return []
+
+
+def _handle_annotators(annotation: dt.Annotation, import_annotators: bool) -> List[dt.DictFreeForm]:
+    if import_annotators:
+        if annotation.annotators:
+            return _annotators_or_reviewers_to_payload(annotation.annotators, dt.AnnotationAuthorRole.ANNOTATOR)
+    return []
+
+
+def _get_annotation_data(
+    annotation: dt.AnnotationLike, annotation_class_id: str, attributes: dt.DictFreeForm
+) -> dt.DictFreeForm:
+    annotation_class = annotation.annotation_class
+    if isinstance(annotation, dt.VideoAnnotation):
+        data = annotation.get_data(
+            only_keyframes=True,
+            post_processing=lambda annotation, data: _handle_subs(
+                annotation, _handle_complex_polygon(annotation, data), annotation_class_id, attributes
+            ),
+        )
+    else:
+        data = {annotation_class.annotation_type: annotation.data}
+        data = _handle_complex_polygon(annotation, data)
+        data = _handle_subs(annotation, data, annotation_class_id, attributes)
+
+    return data
+
+
+def _handle_slot_names(annotation: dt.Annotation, dataset_version: int, default_slot_name: str) -> dt.Annotation:
+    if not annotation.slot_names and dataset_version > 1:
+        annotation.slot_names.extend([default_slot_name])
+
+    return annotation
+
+
+def _get_overwrite_value(append: bool) -> str:
+    return "false" if append else "true"
+
+
 def _import_annotations(
-    client: "Client",
+    client: "Client",  # TODO: This is unused, should it be?
     id: Union[str, int],
-    remote_classes: Dict[str, Unknown],
-    attributes: Dict[str, Unknown],
+    remote_classes: dt.DictFreeForm,
+    attributes: dt.DictFreeForm,
     annotations: Sequence[Union[dt.Annotation, dt.VideoAnnotation]],
     annotation_group_id: Optional[str],
     default_slot_name: str,
     dataset: "RemoteDataset",
     append: bool,
-    delete_for_empty: bool,
-) -> None:
+    delete_for_empty: bool,  # TODO: This is unused, should it be?
+    import_annotators: bool,
+    import_reviewers: bool,
+) -> Tuple[dt.ErrorList, dt.Success]:
+    errors: dt.ErrorList = []
+    success: dt.Success = dt.Success.SUCCESS
+
     serialized_annotations = []
     for annotation in annotations:
         annotation_class = annotation.annotation_class
         annotation_type = annotation_class.annotation_internal_type or annotation_class.annotation_type
-        annotation_class_id = remote_classes[annotation_type][annotation_class.name]
+        annotation_class_id: str = remote_classes[annotation_type][annotation_class.name]
 
-        if isinstance(annotation, dt.VideoAnnotation):
-            data = annotation.get_data(
-                only_keyframes=True,
-                post_processing=lambda annotation, data: _handle_subs(
-                    annotation, _handle_complex_polygon(annotation, data), annotation_class_id, attributes
-                ),
-            )
-        else:
-            data = {annotation_class.annotation_type: annotation.data}
-            data = _handle_complex_polygon(annotation, data)
-            data = _handle_subs(annotation, data, annotation_class_id, attributes)
+        data = _get_annotation_data(annotation, annotation_class_id, attributes)
+
+        actors: List[dt.DictFreeForm] = []
+        actors.extend(_handle_annotators(annotation, import_annotators))
+        actors.extend(_handle_reviewers(annotation, import_reviewers))
 
         # Insert the default slot name if not available in the import source
-        if not annotation.slot_names and dataset.version > 1:
-            annotation.slot_names.extend([default_slot_name])
+        annotation = _handle_slot_names(annotation, dataset.version, default_slot_name)
 
-        serialized_annotations.append(
-            {
-                "annotation_class_id": annotation_class_id,
-                "annotation_group_id": annotation_group_id,
-                "data": data,
-                "context_keys": {"slot_names": annotation.slot_names},
-            }
-        )
+        serial_obj = {
+            "annotation_class_id": annotation_class_id,
+            "annotation_group_id": annotation_group_id,
+            "data": data,
+            "context_keys": {"slot_names": annotation.slot_names},
+        }
 
-    payload: Dict[str, Unknown] = {"annotations": serialized_annotations}
-    if append:
-        payload["overwrite"] = "false"
-    else:
-        payload["overwrite"] = "true"
+        if actors:
+            serial_obj["actors"] = actors  # type: ignore
 
-    dataset.import_annotation(id, payload=payload)
+        serialized_annotations.append(serial_obj)
+
+    payload: dt.DictFreeForm = {"annotations": serialized_annotations}
+    payload["overwrite"] = _get_overwrite_value(append)
+
+    try:
+        dataset.import_annotation(id, payload=payload)
+    except Exception as e:
+        errors.append(e)
+        success = dt.Success.FAILURE
+
+    return errors, success
 
 
 def _console_theme() -> Theme:
