@@ -337,9 +337,9 @@ class RemoteDataset(ABC):
                 progress=progress(), count=count, multi_threaded=multi_threaded, worker_count=max_workers
             )
             if errors:
-                self.console.print(f"Encountered errors downloading {len(errors)} files", style="error")
+                self.console.print(f"Encountered errors downloading {len(errors)} files")
             for error in errors:
-                self.console.print(f"\t - {error}", style="error")
+                self.console.print(f"\t - {error}")
 
             downloaded_file_count = len([f for f in self.local_images_path.rglob("*") if f.is_file()])
             console.print(f"Total file count after download completed {str(downloaded_file_count)}.")
