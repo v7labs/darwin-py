@@ -490,12 +490,8 @@ def import_annotations(
                     image_id,
                     remote_classes,
                     attributes,
-<<<<<<< HEAD
-                    parsed_file.annotations,
-                    annotation_group_id,
-=======
                     parsed_file.annotations,  # type: ignore
->>>>>>> c2e325bfffbc902f8852fd4064e0f9e5ddab09b8
+                    annotation_group_id,
                     default_slot_name,
                     dataset,
                     append,
