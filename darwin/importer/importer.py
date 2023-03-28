@@ -626,7 +626,7 @@ def _import_annotations(
     id: Union[str, int],
     remote_classes: dt.DictFreeForm,
     attributes: dt.DictFreeForm,
-    annotations: Sequence[Union[dt.Annotation, dt.VideoAnnotation]],
+    annotations: List[dt.Annotation],
     annotation_group_id: Optional[str],
     default_slot_name: str,
     dataset: "RemoteDataset",
