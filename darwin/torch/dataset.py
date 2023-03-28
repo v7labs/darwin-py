@@ -154,13 +154,14 @@ class ClassificationDataset(LocalDataset):
         annotations = data.pop("annotations")
         tags = [a.annotation_class.name for a in annotations if a.annotation_class.annotation_type == "tag"]
 
-        assert len(tags) >= 1, f"No tags were found for index={index}"
+        if not self.is_multi_label:
+            # Binary or multiclass must have a label per image
+            assert len(tags) >= 1, f"No tags were found for index={index}"
+            target: Tensor = torch.tensor(self.classes.index(tags[0]))
 
-        target: Tensor = torch.tensor(self.classes.index(tags[0]))
-
-        if self.is_multi_label:
+        else:
             target = torch.zeros(len(self.classes))
-            # one hot encode all the targets
+            # one hot encode all the targets, all zeros if the image/frame is without tag
             for tag in tags:
                 idx = self.classes.index(tag)
                 target[idx] = 1
