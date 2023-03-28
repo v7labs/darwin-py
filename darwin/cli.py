@@ -167,6 +167,9 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
                 args.w,
                 args.h,
             )
+    elif args.command == "benchmarks":
+        if args.action == "run":
+            f.begin_evaluation_run(args.target, args.name, args.files)
     # Annotation schema validation
     elif args.command == "validate":
         f.validate_schemas(location=args.location, pattern=args.pattern, silent=args.silent, output=args.output)

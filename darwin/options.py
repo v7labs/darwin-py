@@ -11,7 +11,6 @@ class Options:
     """
 
     def __init__(self) -> None:
-
         self.parser: ArgumentParser = ArgumentParser(
             description="Command line tool to create/upload/download datasets on darwin."
         )
@@ -336,6 +335,21 @@ class Options:
         )
         parser_comment.add_argument(
             "--h", "--height", required=False, type=float, default=1, help="Comment box height in pixels"
+        )
+
+        # Benchmarks
+        benchmarks = subparsers.add_parser(
+            "benchmarks", help="Benchmarks related functions.", description="Arguments to interact with benchmarks"
+        )
+        benchmarks_action = benchmarks.add_subparsers(dest="action")
+        parser_run_benchmark = benchmarks_action.add_parser("run", help="Begin a benchmarks run.")
+        parser_run_benchmark.add_argument("--target", type=str, required=True, help="The target dataset slug.")
+        parser_run_benchmark.add_argument("--name", type=str, required=True, help="The name of the evaluation run.")
+        parser_run_benchmark.add_argument(
+            "files",
+            type=str,
+            nargs="+",
+            help="The location of the prediction annotation files, or the folder where the prediction annotation files are.",
         )
 
         # Help

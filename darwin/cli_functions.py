@@ -1175,6 +1175,37 @@ def post_comment(
         console.print(f"[red]{traceback.format_exc()}")
 
 
+def begin_evaluation_run(dataset_slug: str, name: str, paths: List[PathLike]) -> None:
+    """
+    Begins an evaluation run for the given dataset, with the given name.
+
+    Parameters
+    ----------
+    dataset_slug: str
+        The slug of the dataset to run the evaluation for.
+    name: str
+        A name to give to the evaluation run.
+    files : List[PathLike]
+        List of where the prediction annotation files are.
+
+    Raises
+    ------
+    NotFound
+        If the Dataset was not found.
+    """
+    client: Client = _load_client(dataset_identifier=dataset_slug)
+    console = Console()
+
+    try:
+        dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
+    except NotFound:
+        _error(f"unable to find dataset: {dataset_slug}")
+
+    console.print(name)
+    console.print(dataset)
+    console.print(paths)
+
+
 def help(parser: argparse.ArgumentParser, subparser: Optional[str] = None) -> None:
     """
     Prints the help text for the given command.
