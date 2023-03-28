@@ -39,7 +39,6 @@ from darwin.datatypes import (
     ImportParser,
     NumberLike,
     PathLike,
-    Success,
     Team,
     UnknownType,
 )
@@ -1223,7 +1222,7 @@ def begin_evaluation_run(
             import_reviewers=True,
         )
 
-        if import_result.status != Success.SUCCESS:
+        if not import_result.finished:
             return _error("Import was cancelled")
 
         predictions_annotation_group_id = import_result.annotation_group_id

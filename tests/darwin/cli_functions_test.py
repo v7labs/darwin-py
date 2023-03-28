@@ -222,7 +222,7 @@ def describe_benchmarks():
         ) as get_remote_dataset_mock, patch.object(
             darwin.cli_functions,
             "import_annotations",
-            return_value=ImportResult(status=dt.Success.SUCCESS, annotation_group_id=predictions_annotation_group_id),
+            return_value=ImportResult(finished=True, annotation_group_id=predictions_annotation_group_id),
         ) as import_annotations_mock, patch.object(
             remote_dataset_v2, "get_or_create_ground_truth", return_value=ground_truth_id
         ) as get_or_create_ground_truth_mock, patch.object(
@@ -255,7 +255,7 @@ def describe_benchmarks():
         ) as get_remote_dataset_mock, patch.object(
             darwin.cli_functions,
             "import_annotations",
-            return_value=ImportResult(status=dt.Success.SUCCESS, annotation_group_id=predictions_annotation_group_id),
+            return_value=ImportResult(finished=True, annotation_group_id=predictions_annotation_group_id),
         ) as import_annotations_mock, patch.object(
             remote_dataset_v2, "get_or_create_ground_truth", return_value=ground_truth_id
         ) as get_or_create_ground_truth_mock, patch.object(
@@ -285,7 +285,7 @@ def describe_benchmarks():
         ) as get_remote_dataset_mock, patch.object(
             darwin.cli_functions,
             "import_annotations",
-            return_value=ImportResult(status=dt.Success.SUCCESS, annotation_group_id=predictions_annotation_group_id),
+            return_value=ImportResult(finished=True, annotation_group_id=predictions_annotation_group_id),
         ) as import_annotations_mock, patch.object(
             remote_dataset_v2, "get_or_create_ground_truth", return_value=ground_truth_id
         ) as get_or_create_ground_truth_mock, patch.object(
@@ -311,7 +311,7 @@ def describe_benchmarks():
         ) as get_remote_dataset_mock, patch.object(
             darwin.cli_functions,
             "import_annotations",
-            return_value=ImportResult(status=dt.Success.FAILURE, annotation_group_id=None),
+            return_value=ImportResult(finished=False, annotation_group_id=None),
         ) as import_annotations_mock, patch.object(
             remote_dataset_v2, "get_or_create_ground_truth", return_value=ground_truth_id
         ) as get_or_create_ground_truth_mock, patch.object(

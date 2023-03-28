@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from logging import getLogger
 from multiprocessing import cpu_count
 from pathlib import Path
+from sre_constants import SUCCESS
 from time import perf_counter
 from typing import (
     TYPE_CHECKING,
@@ -59,7 +60,7 @@ class ImportResult:
     Return type from importing annotations
     """
 
-    status: dt.Success
+    finished: bool
     annotation_group_id: Optional[str] = None
 
 
@@ -356,13 +357,13 @@ def import_annotations(
     maybe_parsed_files: Optional[Iterable[dt.AnnotationFile]] = find_and_parse(
         importer, file_paths, console, use_multi_cpu, cpu_limit
     )
-
     if not maybe_parsed_files:
         raise ValueError("Not able to parse any files.")
 
     parsed_files: List[AnnotationFile] = flatten_list(list(maybe_parsed_files))
 
     filenames: List[str] = [parsed_file.filename for parsed_file in parsed_files if parsed_file is not None]
+    print(filenames)
 
     console.print("Fetching remote file list...", style="info")
     # This call will only filter by filename; so can return a superset of matched files across different paths
@@ -394,7 +395,7 @@ def import_annotations(
             console.print(f"\t{local_file.path}: '{local_file.full_path}'", style="warning")
 
         if class_prompt and not secure_continue_request():
-            return ImportResult(status=dt.Success.FAILURE)
+            return ImportResult(finished=False)
 
     local_classes_not_in_dataset, local_classes_not_in_team = _resolve_annotation_classes(
         [annotation_class for file in local_files for annotation_class in file.annotation_classes],
@@ -414,7 +415,7 @@ def import_annotations(
             f"Found missing skeleton classes: {missing_skeleton_names}. Missing Skeleton classes cannot be created. Exiting now.",
             style="error",
         )
-        return ImportResult(status=dt.Success.FAILURE)
+        return ImportResult(finished=False)
 
     if local_classes_not_in_team:
         console.print("About to create the following classes", style="info")
@@ -424,7 +425,7 @@ def import_annotations(
                 style="info",
             )
         if class_prompt and not secure_continue_request():
-            return ImportResult(status=dt.Success.FAILURE)
+            return ImportResult(finished=False)
         for missing_class in local_classes_not_in_team:
             dataset.create_annotation_class(
                 missing_class.name, missing_class.annotation_internal_type or missing_class.annotation_type
@@ -514,7 +515,7 @@ def import_annotations(
                     for error in errors:
                         console.print(f"\t{error}", style="error")
 
-                return ImportResult(status=success, annotation_group_id=annotation_group_id)
+    return ImportResult(finished=True, annotation_group_id=annotation_group_id)
 
 
 def _get_multi_cpu_settings(cpu_limit: Optional[int], cpu_count: int, use_multi_cpu: bool) -> Tuple[int, bool]:
