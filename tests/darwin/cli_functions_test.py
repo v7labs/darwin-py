@@ -1,16 +1,28 @@
 import builtins
 import sys
+import uuid
+from typing import List, Union
 from unittest.mock import call, patch
 
 import pytest
 import responses
 from rich.console import Console
 
-from darwin.cli_functions import delete_files, set_file_status, upload_data
+import darwin
+import darwin.datatypes as dt
+from darwin.cli_functions import (
+    begin_evaluation_run,
+    delete_files,
+    set_file_status,
+    upload_data,
+)
 from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset import RemoteDataset
 from darwin.dataset.remote_dataset_v1 import RemoteDatasetV1
+from darwin.dataset.remote_dataset_v2 import RemoteDatasetV2
+from darwin.exceptions import NotFound, UnknownAnnotationFileSchema
+from darwin.importer.importer import ImportResult
 from tests.fixtures import *
 
 
@@ -18,6 +30,17 @@ from tests.fixtures import *
 def remote_dataset(team_slug: str, dataset_slug: str, local_config_file: Config):
     client = Client(local_config_file)
     return RemoteDatasetV1(client=client, team=team_slug, name="TEST_DATASET", slug=dataset_slug, dataset_id=1)
+
+
+@pytest.fixture
+def remote_dataset_v2(team_slug: str, dataset_slug: str, local_config_file: Config):
+    client = Client(local_config_file)
+    return RemoteDatasetV2(client=client, team=team_slug, name="TEST_DATASET", slug=dataset_slug, dataset_id=1)
+
+
+@pytest.fixture
+def dataset_identifier(team_slug: str, dataset_slug: str):
+    return f"{team_slug}/{dataset_slug}"
 
 
 def describe_upload_data():
@@ -101,10 +124,6 @@ def describe_upload_data():
 
 
 def describe_set_file_status():
-    @pytest.fixture
-    def dataset_identifier(team_slug: str, dataset_slug: str):
-        return f"{team_slug}/{dataset_slug}"
-
     def raises_if_status_not_supported(dataset_identifier: str):
         with pytest.raises(SystemExit) as exception:
             set_file_status(dataset_identifier, "unknown", [])
@@ -148,10 +167,6 @@ def describe_set_file_status():
 
 
 def describe_delete_files():
-    @pytest.fixture
-    def dataset_identifier(team_slug: str, dataset_slug: str):
-        return f"{team_slug}/{dataset_slug}"
-
     def test_bypasses_user_prompt_if_yes_flag_is_true(dataset_identifier: str, remote_dataset: RemoteDataset):
         with patch.object(Client, "get_remote_dataset", return_value=remote_dataset) as get_remote_dataset_mock:
             with patch.object(RemoteDatasetV1, "fetch_remote_files") as fetch_remote_files_mock:
@@ -189,10 +204,170 @@ def describe_delete_files():
             with patch.object(Client, "get_remote_dataset", return_value=remote_dataset) as get_remote_dataset_mock:
                 with patch.object(RemoteDatasetV1, "fetch_remote_files") as fetch_remote_files_mock:
                     with patch.object(RemoteDatasetV1, "delete_items", side_effect=error_mock) as mock:
-
                         delete_files(dataset_identifier, ["one.jpg", "two.jpg"], True)
 
                         get_remote_dataset_mock.assert_called_once_with(dataset_identifier=dataset_identifier)
                         fetch_remote_files_mock.assert_called_once_with({"filenames": ["one.jpg", "two.jpg"]})
                         mock.assert_called_once()
                         exception.assert_called_once_with(1)
+
+
+def describe_benchmarks():
+    def happy_path(dataset_identifier: str, remote_dataset_v2: RemoteDataset):
+        ground_truth_id = str(uuid.uuid4())
+        predictions_annotation_group_id = str(uuid.uuid4())
+
+        with patch.object(Client, "feature_enabled", return_value=True), patch.object(
+            Client, "get_remote_dataset", return_value=remote_dataset_v2
+        ) as get_remote_dataset_mock, patch.object(
+            darwin.cli_functions,
+            "import_annotations",
+            return_value=ImportResult(status=dt.Success.SUCCESS, annotation_group_id=predictions_annotation_group_id),
+        ) as import_annotations_mock, patch.object(
+            remote_dataset_v2, "get_or_create_ground_truth", return_value=ground_truth_id
+        ) as get_or_create_ground_truth_mock, patch.object(
+            remote_dataset_v2, "begin_evaluation_run"
+        ) as begin_evaluation_run_mock:
+            paths: List[Union[str, Path]] = ["/tmp/foo", "/tmp/bar"]
+            begin_evaluation_run(dataset_identifier, "My Run", paths, "darwin")
+
+            get_remote_dataset_mock.assert_called_once_with(dataset_identifier=dataset_identifier)
+            import_annotations_mock.assert_called_once_with(
+                remote_dataset_v2,
+                darwin.importer.formats.darwin.parse_path,
+                paths,
+                append=True,
+                to_new_annotation_group=True,
+                import_annotators=True,
+                import_reviewers=True,
+            )
+            get_or_create_ground_truth_mock.assert_called_once()
+            begin_evaluation_run_mock.assert_called_once_with(
+                ground_truth_id, predictions_annotation_group_id, "My Run"
+            )
+
+    def stops_if_feature_is_disabled(dataset_identifier: str, remote_dataset_v2: RemoteDataset):
+        ground_truth_id = str(uuid.uuid4())
+        predictions_annotation_group_id = str(uuid.uuid4())
+
+        with patch.object(Client, "feature_enabled", return_value=False), patch.object(
+            Client, "get_remote_dataset", return_value=remote_dataset_v2
+        ) as get_remote_dataset_mock, patch.object(
+            darwin.cli_functions,
+            "import_annotations",
+            return_value=ImportResult(status=dt.Success.SUCCESS, annotation_group_id=predictions_annotation_group_id),
+        ) as import_annotations_mock, patch.object(
+            remote_dataset_v2, "get_or_create_ground_truth", return_value=ground_truth_id
+        ) as get_or_create_ground_truth_mock, patch.object(
+            remote_dataset_v2, "begin_evaluation_run"
+        ) as begin_evaluation_run_mock, patch.object(
+            sys, "exit"
+        ) as sys_exit_mock:
+            paths: List[Union[str, Path]] = ["/tmp/foo", "/tmp/bar"]
+            begin_evaluation_run(dataset_identifier, "My Run", paths, "darwin")
+
+            sys_exit_mock.assert_called_once()
+
+            get_remote_dataset_mock.assert_not_called()
+            import_annotations_mock.assert_not_called()
+            get_or_create_ground_truth_mock.assert_not_called()
+            begin_evaluation_run_mock.assert_not_called()
+
+    def stops_if_dataset_not_found(dataset_identifier: str, remote_dataset_v2: RemoteDataset):
+        def raise_not_found(dataset_identifier):
+            raise NotFound(dataset_identifier)
+
+        ground_truth_id = str(uuid.uuid4())
+        predictions_annotation_group_id = str(uuid.uuid4())
+
+        with patch.object(Client, "feature_enabled", return_value=True), patch.object(
+            Client, "get_remote_dataset", side_effect=raise_not_found
+        ) as get_remote_dataset_mock, patch.object(
+            darwin.cli_functions,
+            "import_annotations",
+            return_value=ImportResult(status=dt.Success.SUCCESS, annotation_group_id=predictions_annotation_group_id),
+        ) as import_annotations_mock, patch.object(
+            remote_dataset_v2, "get_or_create_ground_truth", return_value=ground_truth_id
+        ) as get_or_create_ground_truth_mock, patch.object(
+            remote_dataset_v2, "begin_evaluation_run"
+        ) as begin_evaluation_run_mock, patch.object(
+            sys, "exit"
+        ) as sys_exit_mock:
+            paths: List[Union[str, Path]] = ["/tmp/foo", "/tmp/bar"]
+            begin_evaluation_run(dataset_identifier, "My Run", paths, "darwin")
+
+            sys_exit_mock.assert_called_once()
+            get_remote_dataset_mock.assert_called_once_with(dataset_identifier=dataset_identifier)
+
+            import_annotations_mock.assert_not_called()
+            get_or_create_ground_truth_mock.assert_not_called()
+            begin_evaluation_run_mock.assert_not_called()
+
+    def stops_if_import_was_cancelled(dataset_identifier: str, remote_dataset_v2: RemoteDataset):
+        ground_truth_id = str(uuid.uuid4())
+
+        with patch.object(Client, "feature_enabled", return_value=True), patch.object(
+            Client, "get_remote_dataset", return_value=remote_dataset_v2
+        ) as get_remote_dataset_mock, patch.object(
+            darwin.cli_functions,
+            "import_annotations",
+            return_value=ImportResult(status=dt.Success.FAILURE, annotation_group_id=None),
+        ) as import_annotations_mock, patch.object(
+            remote_dataset_v2, "get_or_create_ground_truth", return_value=ground_truth_id
+        ) as get_or_create_ground_truth_mock, patch.object(
+            remote_dataset_v2, "begin_evaluation_run"
+        ) as begin_evaluation_run_mock, patch.object(
+            sys, "exit"
+        ) as sys_exit_mock:
+            paths: List[Union[str, Path]] = ["/tmp/foo", "/tmp/bar"]
+            begin_evaluation_run(dataset_identifier, "My Run", paths, "darwin")
+
+            sys_exit_mock.assert_called_once()
+            get_remote_dataset_mock.assert_called_once_with(dataset_identifier=dataset_identifier)
+            import_annotations_mock.assert_called_once_with(
+                remote_dataset_v2,
+                darwin.importer.formats.darwin.parse_path,
+                paths,
+                append=True,
+                to_new_annotation_group=True,
+                import_annotators=True,
+                import_reviewers=True,
+            )
+
+            get_or_create_ground_truth_mock.assert_not_called()
+            begin_evaluation_run_mock.assert_not_called()
+
+    def stops_if_import_fails(dataset_identifier: str, remote_dataset_v2: RemoteDataset):
+        def raise_import_error(*args, **kwargs):
+            raise UnknownAnnotationFileSchema(Path("/tmp/foo"), [], dt.AnnotationFileVersion())
+
+        ground_truth_id = str(uuid.uuid4())
+
+        with patch.object(Client, "feature_enabled", return_value=True), patch.object(
+            Client, "get_remote_dataset", return_value=remote_dataset_v2
+        ) as get_remote_dataset_mock, patch.object(
+            darwin.cli_functions, "import_annotations", side_effect=raise_import_error
+        ) as import_annotations_mock, patch.object(
+            remote_dataset_v2, "get_or_create_ground_truth", return_value=ground_truth_id
+        ) as get_or_create_ground_truth_mock, patch.object(
+            remote_dataset_v2, "begin_evaluation_run"
+        ) as begin_evaluation_run_mock, patch.object(
+            sys, "exit"
+        ) as sys_exit_mock:
+            paths: List[Union[str, Path]] = ["/tmp/foo", "/tmp/bar"]
+            begin_evaluation_run(dataset_identifier, "My Run", paths, "darwin")
+
+            sys_exit_mock.assert_called_once()
+            get_remote_dataset_mock.assert_called_once_with(dataset_identifier=dataset_identifier)
+            import_annotations_mock.assert_called_once_with(
+                remote_dataset_v2,
+                darwin.importer.formats.darwin.parse_path,
+                paths,
+                append=True,
+                to_new_annotation_group=True,
+                import_annotators=True,
+                import_reviewers=True,
+            )
+
+            get_or_create_ground_truth_mock.assert_not_called()
+            begin_evaluation_run_mock.assert_not_called()

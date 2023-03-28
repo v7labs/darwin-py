@@ -205,7 +205,7 @@ class BackendV2:
             `{"name": name, "dataset_id": dataset_id}`
         """
 
-        return self._client._post_raw(f"v2/teams/{team_slug}/annotation_groups", payload=payload)
+        return self._client._post(f"v2/teams/{team_slug}/annotation_groups", team_slug=team_slug, payload=payload)
 
     @inject_default_team_slug
     def list_ground_truths(self, dataset_slug: str, team_slug: Optional[str] = None) -> Dict[str, Any]:

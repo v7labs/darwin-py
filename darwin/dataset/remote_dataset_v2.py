@@ -478,8 +478,8 @@ class RemoteDatasetV2(RemoteDataset):
             Name of the annotation group.
         """
         payload = {"dataset_id": self.dataset_id, "name": name}
-        response: Response = self.client.api_v2.create_annotation_group(payload=payload, team_slug=self.team)
-        return json.loads(response.text)["id"]
+        response = self.client.api_v2.create_annotation_group(payload=payload)
+        return response["id"]
 
     def get_or_create_ground_truth(self) -> str:
         """

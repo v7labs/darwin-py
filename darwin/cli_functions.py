@@ -1176,7 +1176,9 @@ def post_comment(
         console.print(f"[red]{traceback.format_exc()}")
 
 
-def begin_evaluation_run(dataset_identifier: str, name: str, paths: List[PathLike], format: str) -> None:
+def begin_evaluation_run(
+    dataset_identifier: str, name: str, paths: List[PathLike], format: str
+) -> Union[None, NoReturn]:
     """
     Begins an evaluation run for the given dataset, with the given name.
 
@@ -1198,18 +1200,14 @@ def begin_evaluation_run(dataset_identifier: str, name: str, paths: List[PathLik
     client: Client = _load_client(dataset_identifier=dataset_identifier)
 
     if not client.feature_enabled("BENCHMARKS", client.default_team):
-        _error(f"The benchmarks feature is not enabled for {client.default_team}.")
+        return _error(f"The benchmarks feature is not enabled for {client.default_team}.")
 
     try:
         dataset = client.get_remote_dataset(dataset_identifier=dataset_identifier)
     except NotFound:
-        _error(f"unable to find dataset: {dataset_identifier}")
+        return _error(f"unable to find dataset: {dataset_identifier}")
 
-    # 1. Get or create ground truth
-    console.print("Getting ground truth...", style="info")
-    ground_truth_id = dataset.get_or_create_ground_truth()
-
-    # 2. Import predictions to a new annotation group
+    # 1. Import predictions to a new annotation group
     console.print("Importing predictions...", style="info")
     predictions_annotation_group_id = None
     try:
@@ -1226,21 +1224,25 @@ def begin_evaluation_run(dataset_identifier: str, name: str, paths: List[PathLik
         )
 
         if import_result.status != Success.SUCCESS:
-            _error("Import was cancelled")
+            return _error("Import was cancelled")
 
         predictions_annotation_group_id = import_result.annotation_group_id
         assert predictions_annotation_group_id is not None  # Needed for type checking
 
     except ImporterNotFoundError:
-        _error(f"Unsupported import format: {format}, currently supported: {import_formats}")
+        return _error(f"Unsupported import format: {format}, currently supported: {import_formats}")
     except AttributeError as e:
-        _error(f"Internal problem with import occured: {str(e)}")
+        return _error(f"Internal problem with import occured: {str(e)}")
     except UnrecognizableFileEncoding as e:
-        _error(str(e))
+        return _error(str(e))
     except UnknownAnnotationFileSchema as e:
-        _error(str(e))
+        return _error(str(e))
     except AnnotationFileValidationError as e:
-        _error(str(e))
+        return _error(str(e))
+
+    # 2. Get or create ground truth
+    console.print("Getting ground truth...", style="info")
+    ground_truth_id = dataset.get_or_create_ground_truth()
 
     # 3. Start the evaluation run
     console.print("Beginning evaluation run...", style="info")

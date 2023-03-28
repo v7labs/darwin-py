@@ -306,6 +306,11 @@ def files_content() -> Dict[str, Any]:
     }
 
 
+@pytest.fixture
+def remote_dataset(darwin_client: Client, dataset_name: str, dataset_slug: str, team_slug: str):
+    return RemoteDatasetV1(client=darwin_client, team=team_slug, name=dataset_name, slug=dataset_slug, dataset_id=1)
+
+
 def test_dataset_creation_from_id():
     def it_should_set_id_correctly_from_id(darwin_client: Client):
         dataset_id = "team_slug/dataset_name:test_release"
@@ -419,11 +424,6 @@ def describe_fetch_remote_files():
         request_body = json.loads(responses.calls[0].request.body)
 
         assert request_body["filter"]["filenames"] == ["example,with, comma.mp4"]
-
-
-@pytest.fixture
-def remote_dataset(darwin_client: Client, dataset_name: str, dataset_slug: str, team_slug: str):
-    return RemoteDatasetV1(client=darwin_client, team=team_slug, name=dataset_name, slug=dataset_slug, dataset_id=1)
 
 
 @pytest.mark.usefixtures("file_read_write_test")
