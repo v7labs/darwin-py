@@ -26,7 +26,6 @@ class BackendV2:
     def register_data(
         self, dataset_slug: str, payload: Dict[str, Any], *, team_slug: Optional[str] = None
     ) -> Dict[str, Any]:
-
         payload["dataset_slug"] = dataset_slug
         response = self._client._post(
             endpoint=f"v2/teams/{team_slug}/items/register_upload",
@@ -207,3 +206,66 @@ class BackendV2:
         """
 
         return self._client._post_raw(f"v2/teams/{team_slug}/annotation_groups", payload=payload)
+
+    @inject_default_team_slug
+    def list_ground_truths(self, dataset_slug: str, team_slug: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Lists ground truths belonging to a given dataset.
+
+        Parameters
+        ----------
+        dataset_slug: str
+            The slug of the dataset.
+        """
+        return self._client._get(f"v2/teams/{team_slug}/datasets/{dataset_slug}/ground_truths")
+
+    @inject_default_team_slug
+    def create_ground_truth(self, dataset_slug: str, name: str, team_slug: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Creates a ground truth belonging to the given dataset.
+
+        Parameters
+        ----------
+        dataset_slug: str
+            The slug of the dataset.
+        name: str
+            The name of the ground truth.
+        """
+        return self._client._post(
+            f"v2/teams/{team_slug}/datasets/{dataset_slug}/ground_truths",
+            payload={"name": name},
+            team_slug=team_slug,
+        )
+
+    @inject_default_team_slug
+    def begin_evaluation_run(
+        self,
+        dataset_slug: str,
+        ground_truth_id: str,
+        predictions_annotation_group_id: str,
+        name: str,
+        team_slug: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Begins an evaluation run.
+
+        Parameters
+        ----------
+        dataset_slug: str
+            The slug of the dataset.
+        ground_truth_id: str
+            The ID of the ground truth to run the evaluation against.
+        predictions_annotation_group_id: str
+            The ID of of the annotation group containing predictions.
+        name: str
+            The name of the evaluation run.
+        """
+        return self._client._post(
+            f"v2/teams/{team_slug}/datasets/{dataset_slug}/evaluation_metrics_runs",
+            payload={
+                "name": name,
+                "ground_truth_id": ground_truth_id,
+                "predictions_annotation_group_id": predictions_annotation_group_id,
+            },
+            team_slug=team_slug,
+        )

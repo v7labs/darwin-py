@@ -1168,7 +1168,6 @@ class Client:
         return self._decode_response(response)
 
     def _raise_if_known_error(self, response: Response, url: str) -> None:
-
         if response.status_code == 401:
             raise Unauthorized()
 

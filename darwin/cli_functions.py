@@ -39,6 +39,7 @@ from darwin.datatypes import (
     ImportParser,
     NumberLike,
     PathLike,
+    Success,
     Team,
     UnknownType,
 )
@@ -1175,14 +1176,14 @@ def post_comment(
         console.print(f"[red]{traceback.format_exc()}")
 
 
-def begin_evaluation_run(dataset_slug: str, name: str, paths: List[PathLike]) -> None:
+def begin_evaluation_run(dataset_identifier: str, name: str, paths: List[PathLike], format: str) -> None:
     """
     Begins an evaluation run for the given dataset, with the given name.
 
     Parameters
     ----------
-    dataset_slug: str
-        The slug of the dataset to run the evaluation for.
+    dataset_identifier: str
+        The identifier of the dataset to run the evaluation for.
     name: str
         A name to give to the evaluation run.
     files : List[PathLike]
@@ -1193,17 +1194,58 @@ def begin_evaluation_run(dataset_slug: str, name: str, paths: List[PathLike]) ->
     NotFound
         If the Dataset was not found.
     """
-    client: Client = _load_client(dataset_identifier=dataset_slug)
-    console = Console()
+    console = Console(theme=_console_theme(), stderr=True)
+    client: Client = _load_client(dataset_identifier=dataset_identifier)
+
+    if not client.feature_enabled("BENCHMARKS", client.default_team):
+        _error(f"The benchmarks feature is not enabled for {client.default_team}.")
 
     try:
-        dataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
+        dataset = client.get_remote_dataset(dataset_identifier=dataset_identifier)
     except NotFound:
-        _error(f"unable to find dataset: {dataset_slug}")
+        _error(f"unable to find dataset: {dataset_identifier}")
 
-    console.print(name)
-    console.print(dataset)
-    console.print(paths)
+    # 1. Get or create ground truth
+    console.print("Getting ground truth...", style="info")
+    ground_truth_id = dataset.get_or_create_ground_truth()
+
+    # 2. Import predictions to a new annotation group
+    console.print("Importing predictions...", style="info")
+    predictions_annotation_group_id = None
+    try:
+        parser: ImportParser = get_importer(format)
+
+        import_result = import_annotations(
+            dataset,
+            parser,
+            paths,
+            append=True,  # So that we don't delete existing annotations in other groups
+            to_new_annotation_group=True,
+            import_annotators=True,
+            import_reviewers=True,
+        )
+
+        if import_result.status != Success.SUCCESS:
+            _error("Import was cancelled")
+
+        predictions_annotation_group_id = import_result.annotation_group_id
+        assert predictions_annotation_group_id is not None  # Needed for type checking
+
+    except ImporterNotFoundError:
+        _error(f"Unsupported import format: {format}, currently supported: {import_formats}")
+    except AttributeError as e:
+        _error(f"Internal problem with import occured: {str(e)}")
+    except UnrecognizableFileEncoding as e:
+        _error(str(e))
+    except UnknownAnnotationFileSchema as e:
+        _error(str(e))
+    except AnnotationFileValidationError as e:
+        _error(str(e))
+
+    # 3. Start the evaluation run
+    console.print("Beginning evaluation run...", style="info")
+    dataset.begin_evaluation_run(ground_truth_id, predictions_annotation_group_id, name)
+    console.print("Evaluation run created successfully.", style="success")
 
 
 def help(parser: argparse.ArgumentParser, subparser: Optional[str] = None) -> None:
@@ -1313,7 +1355,9 @@ def _load_client(
 
 
 def _console_theme() -> Theme:
-    return Theme({"success": "bold green", "warning": "bold yellow", "error": "bold red"})
+    return Theme(
+        {"success": "bold green", "warning": "bold yellow", "error": "bold red", "info": "bold deep_sky_blue1"}
+    )
 
 
 def _has_valid_status(status: str) -> bool:

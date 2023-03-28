@@ -346,6 +346,9 @@ class Options:
         parser_run_benchmark.add_argument("--target", type=str, required=True, help="The target dataset slug.")
         parser_run_benchmark.add_argument("--name", type=str, required=True, help="The name of the evaluation run.")
         parser_run_benchmark.add_argument(
+            "--format", type=str, required=True, help="The format of the annotations to import."
+        )
+        parser_run_benchmark.add_argument(
             "files",
             type=str,
             nargs="+",

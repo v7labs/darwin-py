@@ -1,5 +1,3 @@
-import orjson as json
-
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -12,7 +10,9 @@ from typing import (
     Union,
 )
 
+import orjson as json
 from requests.models import Response
+
 from darwin.dataset import RemoteDataset
 from darwin.dataset.release import Release
 from darwin.dataset.upload_manager import (
@@ -480,6 +480,47 @@ class RemoteDatasetV2(RemoteDataset):
         payload = {"dataset_id": self.dataset_id, "name": name}
         response: Response = self.client.api_v2.create_annotation_group(payload=payload, team_slug=self.team)
         return json.loads(response.text)["id"]
+
+    def get_or_create_ground_truth(self) -> str:
+        """
+        Gets a dataset's existing ground truth, or creates one if it doesn't exist.
+
+        Returns
+        -------
+        str
+            The ID of the ground truth.
+        """
+        response = self.client.api_v2.list_ground_truths(self.slug)
+        existing = response["ground_truths"]
+
+        if existing == []:
+            created = self.client.api_v2.create_ground_truth(self.slug, self.name)
+            return created["id"]
+        else:
+            return existing[0]["id"]
+
+    def begin_evaluation_run(self, ground_truth_id: str, predictions_annotation_group_id: str, name: str) -> str:
+        """
+        Begins an evaluation run.
+
+        Parameters
+        ----------
+        ground_truth_id: str
+            The ID of the ground truth to use for this evaluation run.
+        predictions_annotation_group_id: str
+            The ID of the predictions annotation group to use for this evaluation run.
+        name: str
+            A name to use for this evaluation run.
+
+        Returns
+        -------
+        str
+            The ID of the created evaluation run.
+        """
+        response = self.client.api_v2.begin_evaluation_run(
+            self.slug, ground_truth_id, predictions_annotation_group_id, name
+        )
+        return response["id"]
 
     def _fetch_stages(self, stage_type):
         detailed_dataset = self.client.api_v2.get_dataset(self.dataset_id)

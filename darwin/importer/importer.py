@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from logging import getLogger
 from multiprocessing import cpu_count
 from pathlib import Path
@@ -50,6 +51,16 @@ changes in its interface and implementation are to be expected. We encourage usi
 instead of calling this low-level function directly.
 
 """
+
+
+@dataclass
+class ImportResult:
+    """
+    Return type from importing annotations
+    """
+
+    status: dt.Success
+    annotation_group_id: Optional[str] = None
 
 
 @deprecation.deprecated(  # type:ignore
@@ -245,7 +256,7 @@ def import_annotations(
     import_reviewers: bool = False,
     use_multi_cpu: bool = True,
     cpu_limit: Optional[int] = None,  # 0 because it's set later in logic
-) -> None:
+) -> ImportResult:
     """
     Imports the given given Annotations into the given Dataset.
 
@@ -383,7 +394,7 @@ def import_annotations(
             console.print(f"\t{local_file.path}: '{local_file.full_path}'", style="warning")
 
         if class_prompt and not secure_continue_request():
-            return
+            return ImportResult(status=dt.Success.FAILURE)
 
     local_classes_not_in_dataset, local_classes_not_in_team = _resolve_annotation_classes(
         [annotation_class for file in local_files for annotation_class in file.annotation_classes],
@@ -403,7 +414,7 @@ def import_annotations(
             f"Found missing skeleton classes: {missing_skeleton_names}. Missing Skeleton classes cannot be created. Exiting now.",
             style="error",
         )
-        return
+        return ImportResult(status=dt.Success.FAILURE)
 
     if local_classes_not_in_team:
         console.print("About to create the following classes", style="info")
@@ -413,7 +424,7 @@ def import_annotations(
                 style="info",
             )
         if class_prompt and not secure_continue_request():
-            return
+            return ImportResult(status=dt.Success.FAILURE)
         for missing_class in local_classes_not_in_team:
             dataset.create_annotation_class(
                 missing_class.name, missing_class.annotation_internal_type or missing_class.annotation_type
@@ -456,7 +467,6 @@ def import_annotations(
 
     # Need to re parse the files since we didn't save the annotations in memory
     for local_path in set(local_file.path for local_file in local_files):
-
         imported_files: Union[List[dt.AnnotationFile], dt.AnnotationFile, None] = importer(local_path)
         if imported_files is None:
             parsed_files = []
@@ -482,10 +492,9 @@ def import_annotations(
         if files_to_track:
             _warn_unsupported_annotations(files_to_track)
             for parsed_file in track(files_to_track):
-
                 image_id, default_slot_name = remote_files[parsed_file.full_path]
 
-                errors, succes = _import_annotations(
+                errors, success = _import_annotations(
                     dataset.client,
                     image_id,
                     remote_classes,
@@ -504,6 +513,8 @@ def import_annotations(
                     console.print(f"Errors importing {parsed_file.filename}", style="error")
                     for error in errors:
                         console.print(f"\t{error}", style="error")
+
+                return ImportResult(status=success, annotation_group_id=annotation_group_id)
 
 
 def _get_multi_cpu_settings(cpu_limit: Optional[int], cpu_count: int, use_multi_cpu: bool) -> Tuple[int, bool]:
@@ -573,7 +584,6 @@ def _handle_complex_polygon(annotation: dt.Annotation, data: dt.DictFreeForm) ->
 def _annotators_or_reviewers_to_payload(
     actors: List[dt.AnnotationAuthor], role: dt.AnnotationAuthorRole
 ) -> List[dt.DictFreeForm]:
-
     return [{"email": actor.email, "role": role.value} for actor in actors]
 
 

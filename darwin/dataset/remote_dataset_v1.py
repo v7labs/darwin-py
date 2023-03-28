@@ -460,11 +460,38 @@ class RemoteDatasetV1(RemoteDataset):
 
     def create_annotation_group(self, name: str) -> str:
         """
-        Creates an annotation group for importing annotations.
+        Gets a dataset's existing ground truth, or creates one if it doesn't exist.
+
+        Returns
+        -------
+        str
+            The ID of the ground truth.
+        """
+        raise ValueError("Annotation group creation is not supported for V1 datasets")
+
+    def get_or_create_ground_truth(self) -> str:
+        """
+        Gets a dataset's existing ground truth, or creates one if it doesn't exist.
+        Returns the ground truth's ID.
+        """
+        raise ValueError("Ground truths are not supported for V1 datasets")
+
+    def begin_evaluation_run(self, _ground_truth_id: str, _predictions_annotation_group_id: str, _name: str) -> str:
+        """
+        Begins an evaluation run.
 
         Parameters
         ----------
+        ground_truth_id: str
+            The ID of the ground truth to use for this evaluation run.
+        predictions_annotation_group_id: str
+            The ID of the predictions annotation group to use for this evaluation run.
         name: str
-            Name of the annotation group.
+            A name to use for this evaluation run.
+
+        Returns
+        -------
+        str
+            The ID of the created evaluation run.
         """
-        raise ValueError("Annotation group creation is not supported for V1 datasets")
+        raise ValueError("Evaluation runs are not supported for V1 datasets")

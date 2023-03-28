@@ -335,7 +335,7 @@ class RemoteDataset(ABC):
             console.print(f"Going to download {str(count)} files to {self.local_images_path.as_posix()}.")
             exhaust_generator(progress=progress(), count=count, multi_threaded=multi_threaded, worker_count=max_workers)
 
-            downloaded_file_count = len([f for f in self.local_images_path.rglob('*') if f.is_file()])
+            downloaded_file_count = len([f for f in self.local_images_path.rglob("*") if f.is_file()])
             console.print(f"Total file count after download completed {str(downloaded_file_count)}.")
 
             return None, count
@@ -860,6 +860,37 @@ class RemoteDataset(ABC):
         -------
         str
             The ID of the annotation group.
+        """
+
+    @abstractmethod
+    def get_or_create_ground_truth(self) -> str:
+        """
+        Gets a dataset's existing ground truth, or creates one if it doesn't exist.
+
+        Returns
+        -------
+        str
+            The ID of the ground truth.
+        """
+
+    @abstractmethod
+    def begin_evaluation_run(self, ground_truth_id: str, predictions_annotation_group_id: str, name: str) -> str:
+        """
+        Begins an evaluation run.
+
+        Parameters
+        ----------
+        ground_truth_id: str
+            The ID of the ground truth to use for this evaluation run.
+        predictions_annotation_group_id: str
+            The ID of the predictions annotation group to use for this evaluation run.
+        name: str
+            A name to use for this evaluation run.
+
+        Returns
+        -------
+        str
+            The ID of the created evaluation run.
         """
 
     @property
