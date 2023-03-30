@@ -38,6 +38,14 @@ def test_query_filter_functionality(basic_filters: List[Query.QueryFilter], test
     q = q + dropped_filter
     assert q.filters == basic_filters
 
+    # Test filter drops from middle
+    dropped_filter = basic_filters.pop(1)
+    q = q - dropped_filter
+    assert q.filters == basic_filters
+    basic_filters.append(dropped_filter)
+    q = q + dropped_filter
+    assert q.filters == basic_filters
+
 
 def test_query_iterable(basic_filters: List[Query.QueryFilter], test_team: Team) -> None:
     q = Query.Query(test_team, basic_filters)

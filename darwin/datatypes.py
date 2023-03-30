@@ -372,7 +372,7 @@ class AnnotationFile:
     annotations: Sequence[Union[Annotation, VideoAnnotation]]
 
     # Deprecated
-    #: Whether the annotations in the ``annotations`` attribute are ``tation`` or not.
+    #: Whether the annotations in the ``annotations`` attribute are ``VideoAnnotation`` or not.
     is_video: bool = False
 
     # Deprecated

@@ -4,14 +4,22 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import List, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, HttpUrl
 
 from darwin.future.core.types.query import Query
 from darwin.future.data_objects.darwin_meta import Team
 
 
 class Config(BaseModel):
-    base_url: str
+    """Configuration object for the client
+
+    Attributes
+    ----------
+    base_url: pydantic.HttpUrl, base url of the API
+    default_team: Optional[Team], default team to make requests to
+    """
+
+    base_url: HttpUrl
     default_team: Optional[Team]
 
     def from_env(cls) -> Config:
@@ -22,7 +30,7 @@ class Config(BaseModel):
 
 
 class Result(BaseModel):
-    """Default model for a result, to be extended by other models sepcific to the API"""
+    """Default model for a result, to be extended by other models specific to the API"""
 
     pass
 
