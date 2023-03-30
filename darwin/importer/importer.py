@@ -363,7 +363,6 @@ def import_annotations(
     parsed_files: List[AnnotationFile] = flatten_list(list(maybe_parsed_files))
 
     filenames: List[str] = [parsed_file.filename for parsed_file in parsed_files if parsed_file is not None]
-    print(filenames)
 
     console.print("Fetching remote file list...", style="info")
     # This call will only filter by filename; so can return a superset of matched files across different paths
