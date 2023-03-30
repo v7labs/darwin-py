@@ -333,9 +333,15 @@ class RemoteDataset(ABC):
                 max_workers = int(env_max_workers)
 
             console.print(f"Going to download {str(count)} files to {self.local_images_path.as_posix()}.")
-            exhaust_generator(progress=progress(), count=count, multi_threaded=multi_threaded, worker_count=max_workers)
+            successes, errors = exhaust_generator(
+                progress=progress(), count=count, multi_threaded=multi_threaded, worker_count=max_workers
+            )
+            if errors:
+                self.console.print(f"Encountered errors downloading {len(errors)} files")
+            for error in errors:
+                self.console.print(f"\t - {error}")
 
-            downloaded_file_count = len([f for f in self.local_images_path.rglob('*') if f.is_file()])
+            downloaded_file_count = len([f for f in self.local_images_path.rglob("*") if f.is_file()])
             console.print(f"Total file count after download completed {str(downloaded_file_count)}.")
 
             return None, count
