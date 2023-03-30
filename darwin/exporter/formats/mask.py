@@ -1,23 +1,54 @@
+import colorsys
+import os
 from functools import reduce
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Set, Tuple
+from typing import Dict, Iterable, List, Literal, Optional, Set, Tuple, get_args
 
 import numpy as np
-from PIL import Image
+from PIL.Image import Image
 from upolygon import draw_polygon
 
 import darwin.datatypes as dt
+from darwin.exceptions import DarwinException
 from darwin.utils import convert_polygons_to_sequences, ispolygon
 
-PalleteType = Dict[str, int]
+Palette = Dict[str, int]
+Mode = Literal["index", "grey", "rgb"]
+TypeOfRender = Literal["raster", "polygon"]
+CategoryList = List[str]
+ExceptionList = List[dt.AnnotationLike]
+UndecodedRLE = List[int]
+DecodedRLE = List[List[int]]
 
 
-def get_palette(mode: str, categories: List[str]) -> PalleteType:
+def get_palette(mode: Mode, categories: List[str]) -> Palette:
+    """
+    Returns a palette for the given mode and categories.
+
+    Parameters
+    ----------
+    mode: Mode
+        The mode to use for the palette.
+    categories: List[str]
+        A list of categories to be rendered.
+
+    Returns
+    -------
+    Palette
+        A dict of categories and their corresponding palette value.
+    """
+
+    if not mode in get_args(Mode):
+        raise ValueError(f"Unknown mode {mode}.") from DarwinException
+
+    if not isinstance(categories, list) or not categories:
+        raise ValueError(f"categories must be a non-empty list. Got {categories}.")
+
     num_categories: int = len(categories)
     if mode == "index":
         if num_categories > 254:
             raise ValueError("maximum number of classes supported: 254.")
-        return {c: i for i, c in enumerate(categories)}
+        palette = {c: i for i, c in enumerate(categories)}
 
     if mode == "grey":
         if num_categories > 254:
@@ -25,17 +56,44 @@ def get_palette(mode: str, categories: List[str]) -> PalleteType:
         elif num_categories == 1:
             raise ValueError("only having the '__background__' class is not allowed. Please add more classes.")
 
-        return {c: int(i * 255 / (num_categories - 1)) for i, c in enumerate(categories)}
+        palette = {c: int(i * 255 / (num_categories - 1)) for i, c in enumerate(categories)}
 
     if mode == "rgb":
         if num_categories > 360:
             raise ValueError("maximum number of classes supported: 360.")
-        return {c: i for i, c in enumerate(categories)}
+        palette = {c: i for i, c in enumerate(categories)}
 
-    raise ValueError(f"Unknown mode {mode}.")
+    if not palette:
+        raise ValueError(f"Failed to generate a palette.", mode, categories) from DarwinException
+
+    if mode == "rgb":
+        # Generate HSV colors for all classes except for BG
+        HSV_colors = [(x / num_categories, 0.8, 1.0) for x in range(num_categories - 1)]
+        RGB_color_list = list(map(lambda x: [int(e * 255) for e in colorsys.hsv_to_rgb(*x)], HSV_colors))
+        # Now we add BG class with [0 0 0] RGB value
+        RGB_color_list.insert(0, [0, 0, 0])
+        palette_rgb = {c: rgb for c, rgb in zip(categories, RGB_color_list)}
+        RGB_colors = [c for e in RGB_color_list for c in e]
+
+    #! Confused, where do these values come from if it's not rgb?
+
+    return palette, RGB_colors, HSV_colors, RGB_color_list, palette_rgb  # TODO: correct return sig
 
 
-def get_render_mode(annotations: List[dt.AnnotationLike]) -> str:
+def get_render_mode(annotations: List[dt.AnnotationLike]) -> TypeOfRender:
+    """
+    Returns the type of render mode for the given annotations.
+
+    Parameters
+    ----------
+    annotations: List[dt.AnnotationLike]
+        A list of annotations to be rendered.
+
+    Returns
+    -------
+    TypeOfRenderType
+        A string reading either "raster" or "polygon".
+    """
     non_video_annotations: List[dt.Annotation] = [a for a in annotations if not isinstance(a, dt.VideoAnnotation)]
 
     list_of_keys: List[str] = reduce(list.__add__, [list(a.data.keys()) for a in non_video_annotations])
@@ -61,7 +119,7 @@ def get_render_mode(annotations: List[dt.AnnotationLike]) -> str:
     raise ValueError("No renderable annotations found in file, found keys: " + ",".join(keys))
 
 
-def rle_decode(rle: List[int]) -> List[int]:
+def rle_decode(rle: UndecodedRLE) -> DecodedRLE:
     """Decodes a run-length encoded list of integers.
 
     Args:
@@ -73,20 +131,24 @@ def rle_decode(rle: List[int]) -> List[int]:
     if len(rle) % 2 != 0:
         raise ValueError("RLE must be a list of pairs of integers.")
 
-    decoded = [[value] * count for value, count in [(rle[i], rle[i + 1]) for i in range(0, len(rle), 2)]]
+    output: DecodedRLE = reduce(
+        list.__add__, [[value] * count for value, count in [(rle[i], rle[i + 1]) for i in range(0, len(rle), 2)]]  # type: ignore
+    )  # Non-verbose, but performant way of flattening a list of lists
 
-    return reduce(list.__add__, decoded)  # Non-verbose, but performant way of flattening a list of lists
+    return output
 
 
 def render_polygons(
-    mask: Image.Image,
+    mask: Image,
+    palette: Palette,
+    categories: CategoryList,
     annotations: List[dt.AnnotationLike],
     annotation_file: dt.AnnotationFile,
     height: int,
     width: int,
-    palette: PalleteType,
-) -> Tuple[List[Exception], Image.Image]:
+) -> Tuple[List[Exception], Image, CategoryList]:
     errors: List[Exception] = []
+
     for a in annotations:
         try:
             if isinstance(a, dt.VideoAnnotation):
@@ -107,30 +169,27 @@ def render_polygons(
             continue
 
     # It's not necessary to return the mask, it's modified in place, but it's more explicit
-    return errors, mask
+    return errors, mask, categories
 
 
 def render_raster(
-    mask: Image.Image,
+    mask: Image,
     annotations: List[dt.AnnotationLike],
     annotation_file: dt.AnnotationFile,
     height: int,
     width: int,
-    palette: PalleteType,
-) -> Tuple[List[Exception], Image.Image, Dict[str, str]]:
+) -> Tuple[List[Exception], Image, CategoryList]:
     errors: List[Exception] = []
 
-    classes = List[str] = [] #TODO
     mask_annotations: List[dt.AnnotationMask] = []
     raster_layer: Optional[dt.RasterLayer] = None
+
+    categories: CategoryList = []
 
     for a in annotations:
         if isinstance(a, dt.VideoAnnotation):
             errors.append(f"Skipping video annotation from file {annotation_file.filename}")
             continue
-
-        #! This is wrong - get classes from mask correlations
-        category = a.annotation_class.name
 
         if m := getattr(a, "mask"):
             new_mask = dt.AnnotationMask(
@@ -145,9 +204,10 @@ def render_raster(
         if rl := getattr(a, "raster_layer"):
 
             if raster_layer:
-                errors.append(ValueError(f"Annotation {} has more than one raster layer"))
+                errors.append(ValueError(f"Annotation {a.id} has more than one raster layer"))
                 break
 
+            #! Correct the interface below
             new_rl = dt.RasterLayer(
                 id=getattr(rl, "id"),
                 name=getattr(rl, "name"),
@@ -156,18 +216,21 @@ def render_raster(
             )
             new_rl.validate()
             raster_layer = new_rl
-        
+
     if not raster_layer:
         errors.append(ValueError(f"Annotation has no raster layer"))
         return errors, mask
-    
-    rle = raster_layer.dense_rle
-    if not rle:
+
+    if not (rle := raster_layer.rle):
         errors.append(ValueError(f"Annotation has no RLE data"))
         return errors, mask
-    
+
+    # TODO: Correlate masks with classes, and return for adding to CSV
+
     rle_decoded = rle_decode(rle)
     mask_array = np.array(rle_decoded).reshape(height, width)
+
+    # TODO: Retrieve a list of palette for the list of categories
 
     # Colour the image with palette
     mask_array = np.where(mask_array == 1, palette[category], mask_array)
@@ -175,9 +238,9 @@ def render_raster(
     # Convert to PIL image
     mask = Image.fromarray(mask_array.astype("uint8"), "L")
 
-    #TODO: Correlate masks with classes, and return for adding to CSV
+    # TODO: Correlate masks with classes, and return for adding to CSV
 
-    return errors, mask, classes #TODO: populate classes
+    return errors, mask, classes  # TODO: populate classes
 
 
 def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path, mode: str) -> None:
@@ -189,18 +252,9 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path, mode
     num_categories = len(categories)
 
     palette = get_palette(mode=mode, categories=categories)
-    if mode == "rgb":
-        # Generate HSV colors for all classes except for BG
-        HSV_colors = [(x / num_categories, 0.8, 1.0) for x in range(num_categories - 1)]
-        RGB_color_list = list(map(lambda x: [int(e * 255) for e in colorsys.hsv_to_rgb(*x)], HSV_colors))
-        # Now we add BG class with [0 0 0] RGB value
-        RGB_color_list.insert(0, [0, 0, 0])
-        palette_rgb = {c: rgb for c, rgb in zip(categories, RGB_color_list)}
-        RGB_colors = [c for e in RGB_color_list for c in e]
 
     for annotation_file in annotation_files:
-        # TODO
-        # Identify if we have masks and raster or polygons ☑️
+
         # If we have masks and raster, we need to calculate and render an image from that
         # If we have polygons, we need to render the polygons into an image
         # If we have masks and polygons, we need to render the polygons into an image
@@ -213,15 +267,18 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path, mode
         if height is None or width is None:
             raise ValueError(f"Annotation file {annotation_file.filename} references an image with no height or width")
 
-        mask: Image.Image = np.zeros((height, width)).astype(np.uint8)  # type: ignore
+        mask: Image = np.zeros((height, width)).astype(np.uint8)  # type: ignore
         annotations: List[dt.AnnotationLike] = [a for a in annotation_file.annotations if ispolygon(a.annotation_class)]
 
-        mode = get_render_mode(annotations)
+        type = get_render_mode(annotations)
 
-        if mode == "raster":
-            errors, mask = render_raster
+        if type == "raster":
+            errors, mask, categories = render_raster(mask, annotations, annotation_file, height, width)
 
         else:
+            categories = extract_categories(annotations)
+            palette = get_palette(mode, categories)
+
             errors, mask = render_polygons(mask, annotations, annotation_file, height, width, palette)
 
         if mode == "rgb":
