@@ -428,7 +428,6 @@ def _download_image(url: str, path: Path, api_key: str, slot: Optional[dt.Slot] 
     transform_file_function = None
     if slot and slot.metadata and slot.metadata.get("colorspace") == "RG16":
         transform_file_function = _rg16_to_grayscale
-
     while True:
         if "token" in url:
             response: requests.Response = requests.get(url, stream=True)

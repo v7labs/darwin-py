@@ -242,7 +242,7 @@ def import_annotations(
     delete_for_empty: bool = False,
     import_annotators: bool = False,
     import_reviewers: bool = False,
-    use_multi_cpu: bool = True,
+    use_multi_cpu: bool = False,  # Set to False to give time to resolve MP behaviours
     cpu_limit: Optional[int] = None,  # 0 because it's set later in logic
 ) -> None:
     """

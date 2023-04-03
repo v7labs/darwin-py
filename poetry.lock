@@ -679,20 +679,20 @@ files = [
 
 [[package]]
 name = "nibabel"
-version = "5.0.1"
+version = "5.1.0"
 description = "Access a multitude of neuroimaging data formats"
 category = "main"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "nibabel-5.0.1-py3-none-any.whl", hash = "sha256:f2f1495a00ac3bb914ad4b1740d9100f7ace8f0af399c45da9075ad4cf01fcaa"},
-    {file = "nibabel-5.0.1.tar.gz", hash = "sha256:4af65015b4cc999404caf034e1c15c1ab6758795c25d6907ff74f5dbbfe9f43e"},
+    {file = "nibabel-5.1.0-py3-none-any.whl", hash = "sha256:b3deb8130c835b9d26e80880b0d5e443d9e3f30972b3b0302dd2fafa3ca629f8"},
+    {file = "nibabel-5.1.0.tar.gz", hash = "sha256:ce73ca5e957209e7219a223cb71f77235c9df2acf4d3f27f861ba38e9481ac53"},
 ]
 
 [package.dependencies]
+importlib-resources = {version = ">=1.3", markers = "python_version < \"3.9\""}
 numpy = ">=1.19"
 packaging = ">=17"
-setuptools = "*"
 
 [package.extras]
 all = ["nibabel[dev,dicomfs,doc,minc2,spm,style,test,zstd]"]
@@ -705,7 +705,7 @@ minc2 = ["h5py"]
 spm = ["scipy"]
 style = ["blue", "flake8", "isort"]
 test = ["coverage", "pytest (!=5.3.4)", "pytest-cov", "pytest-doctestplus", "pytest-httpserver", "pytest-xdist"]
-typing = ["mypy", "pydicom", "pytest", "types-pillow", "types-setuptools"]
+typing = ["importlib-resources", "mypy", "pydicom", "pytest", "pyzstd", "types-pillow", "types-setuptools"]
 zstd = ["pyzstd (>=0.14.3)"]
 
 [[package]]
