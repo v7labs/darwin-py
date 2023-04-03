@@ -129,6 +129,40 @@ def get_render_mode(annotations: List[dt.AnnotationLike]) -> dt.MaskTypes.TypeOf
     raise ValueError("No renderable annotations found in file, found keys: " + ",".join(keys))
 
 
+def colours_in_rle(
+    colours: dt.MaskTypes.ColoursDict,
+    raster_layer: dt.RasterLayer,
+    mask_lookup: Dict[str, dt.AnnotationMask],
+) -> dt.MaskTypes.ColoursDict:
+    """
+    Returns a dictionary of colours for each mask in the given RLE.
+
+    Parameters
+    ----------
+    colours: dt.MaskTypes.ColoursDict
+        A dictionary of colours for each mask in the given RLE.
+    mask_annotations: List[dt.AnnotationMask]
+        A list of masks to get the colours for.
+    mask_lookup: Set[str, dt.AnnotationMask]
+        A lookup table for the masks.
+
+    Returns
+    -------
+    dt.MaskTypes.ColoursDict
+        A dictionary of colours for each mask in the given RLE.
+    """
+    #! UNTESTED
+    for uuid, colour_value in raster_layer.mask_mappings.items():
+        mask: dt.AnnotationMask = mask_lookup.get(uuid)
+        if mask is None:
+            raise ValueError(f"Could not find mask with uuid {uuid} in mask lookup table.")
+
+        if not mask.name in colours:
+            colours[mask.name] = colour_value
+
+    return colours  # Returns same item as the outset, technically not needed, but best practice.
+
+
 def rle_decode(rle: dt.MaskTypes.UndecodedRLE) -> dt.MaskTypes.DecodedRLE:
     """Decodes a run-length encoded list of integers.
 
@@ -212,6 +246,9 @@ def render_polygons(
                 continue
 
             cat = a.annotation_class.name
+            if not cat in categories:
+                categories.append(cat)
+
             if a.annotation_class.annotation_type == "polygon":
                 polygon = a.data["path"]
             elif a.annotation_class.annotation_type == "complex_polygon":
@@ -264,6 +301,8 @@ def render_raster(
     mask_annotations: List[dt.AnnotationMask] = []
     raster_layer: Optional[dt.RasterLayer] = None
 
+    mask_lookup: Dict[str, dt.AnnotationMask] = dict()
+
     for a in annotations:
         if isinstance(a, dt.VideoAnnotation):
             continue
@@ -275,8 +314,14 @@ def render_raster(
                 slot_names=getattr(m, "slot_names"),
             )
             new_mask.validate()
-
             mask_annotations.append(m)
+
+            if not new_mask.id in mask_lookup:
+                mask_lookup[new_mask.id] = new_mask
+
+            # Add the category to the list of categories
+            if not getattr(m, "name") in categories:
+                categories.append(getattr(m, "name"))
 
         if rl := getattr(a, "raster_layer"):
 
@@ -306,7 +351,7 @@ def render_raster(
         errors.append(ValueError(f"Annotation has no RLE data"))
         return errors, mask, categories, colours
 
-    # TODO: Correlate masks with classes, and return for adding to CSV
+    colours = colours_in_rle(colours, raster_layer, mask_lookup)  # TODO: Wrap in try/except
 
     rle_decoded = rle_decode(rle)
     mask_array = np.array(rle_decoded).reshape(height, width)
@@ -365,7 +410,7 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path, mode
             (
                 palette,
                 RGB_colours,
-                HSVColors,
+                HSVColors,  #!?
                 rgb_colour_list,
                 palette_rgb,
             ) = get_palette(mode, categories)
