@@ -8,6 +8,7 @@ from typing import (
     Dict,
     Iterator,
     List,
+    Literal,
     Optional,
     Sequence,
     Set,
@@ -15,6 +16,7 @@ from typing import (
     Union,
 )
 
+from PIL import Image
 from pydantic.dataclasses import dataclass as pydantic_dataclass
 
 from darwin.exporter.formats.mask import rle_decode
@@ -337,48 +339,6 @@ class Slot:
 
     #: Metadata of the slot
     metadata: Optional[Dict[str, UnknownType]] = None
-
-
-@dataclass
-class AnnotationMask:
-    id: str
-    name: str
-    slot_names: List[str] = []
-
-    def validate(self) -> None:
-        if not self.name:
-            raise ValueError("Mask name cannot be empty")
-        if not self.slot_names:
-            raise ValueError("Mask must be associated with at least one slot")
-        if not self.id:
-            raise ValueError("Mask ID cannot be empty")
-
-
-@dataclass
-class RasterLayer:
-    rle: List[int]
-    decoded: List[int]
-    mask_mappings: Dict[str, int]
-    slot_names: List[str] = []
-    total_pixels: int = 0
-
-    def __setattr__(self, __name: str, __value: UnknownType) -> None:
-        if __name == "rle":
-            self.decoded = rle_decode(__value)
-        else:
-            super().__setattr__(__name, __value)
-
-    def validate(self) -> None:
-        if not self.rle:
-            raise ValueError("RasterLayer rle cannot be empty")
-        if not self.decoded:
-            raise ValueError("RasterLayer decoded cannot be empty")
-        if not self.mask_mappings:
-            raise ValueError("RasterLayer mask_mappings cannot be empty")
-        if not self.slot_names:
-            raise ValueError("RasterLayer must be associated with at least one slot")
-        if not self.total_pixels and not self.total_pixels > 0:
-            raise ValueError("RasterLayer total_pixels cannot be empty")
 
 
 @dataclass
@@ -1122,3 +1082,56 @@ def _maybe_add_bounding_box_data(data: Dict[str, UnknownType], bounding_box: Opt
 ExportParser = Callable[[Iterator[AnnotationFile], Path], None]
 
 ImportParser = Callable[[Path], Union[List[AnnotationFile], AnnotationFile, None]]
+
+
+class MaskTypes:
+    Palette = Dict[str, int]
+    Mode = Literal["index", "grey", "rgb"]
+    TypeOfRender = Literal["raster", "polygon"]
+    CategoryList = List[str]
+    ExceptionList = List[Exception]
+    UndecodedRLE = List[int]
+    DecodedRLE = List[List[int]]
+    ColoursDict = Dict[str, int]
+    RgbColors = list[int]
+    HsvColors = list[Tuple[float, float, float]]
+    RgbColorList = list[RgbColors]
+    RgbPalette = Dict[str, RgbColors]
+
+    RendererReturn = Tuple[ExceptionList, Image.Image, CategoryList, ColoursDict]
+
+
+@dataclass
+class AnnotationMask:
+    id: str
+    name: str
+    slot_names: List[str] = []
+
+    def validate(self) -> None:
+        if not self.name:
+            raise ValueError("Mask name cannot be empty")
+        if not self.slot_names:
+            raise ValueError("Mask must be associated with at least one slot")
+        if not self.id:
+            raise ValueError("Mask ID cannot be empty")
+
+
+@dataclass
+class RasterLayer:
+    rle: MaskTypes.UndecodedRLE
+    decoded: MaskTypes.DecodedRLE
+    mask_mappings: Dict[str, int]
+    slot_names: List[str] = []
+    total_pixels: int = 0
+
+    def validate(self) -> None:
+        if not self.rle:
+            raise ValueError("RasterLayer rle cannot be empty")
+        if not self.decoded:
+            raise ValueError("RasterLayer decoded cannot be empty")
+        if not self.mask_mappings:
+            raise ValueError("RasterLayer mask_mappings cannot be empty")
+        if not self.slot_names:
+            raise ValueError("RasterLayer must be associated with at least one slot")
+        if not self.total_pixels and not self.total_pixels > 0:
+            raise ValueError("RasterLayer total_pixels cannot be empty")
