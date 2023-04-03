@@ -22,12 +22,8 @@ from darwin.item import DatasetItem
 
 Unknown = Any  # type: ignore
 
-try:
-    from mpire import WorkerPool, tqdm
-
-    MPIRE_AVAILABLE = True
-except ImportError:
-    MPIRE_AVAILABLE = False
+from mpire import WorkerPool
+from tqdm import tqdm
 
 if TYPE_CHECKING:
     from darwin.client import Client
@@ -41,7 +37,7 @@ from rich.theme import Theme
 import darwin.datatypes as dt
 from darwin.datatypes import PathLike
 from darwin.exceptions import IncompatibleOptions, RequestEntitySizeExceeded
-from darwin.utils import secure_continue_request
+from darwin.utils import flatten_list, secure_continue_request
 from darwin.version import __version__
 
 # Classes missing import support on backend side
@@ -125,7 +121,7 @@ def find_and_parse(
 
     maybe_console(f"Found {len(files)} files")
 
-    if use_multi_cpu and MPIRE_AVAILABLE:
+    if use_multi_cpu:
         maybe_console(f"Using multiprocessing with {cpu_limit} workers")
         try:
             with WorkerPool(cpu_limit) as pool:
@@ -138,14 +134,11 @@ def find_and_parse(
             return None
 
     else:
-        if use_multi_cpu and not MPIRE_AVAILABLE:
-            maybe_console("Using single CPU for upload. Run pip install mpire to benefit from faster uploads.")
-        else:
-            maybe_console("Using single CPU")
+        maybe_console("Using single CPU")
         parsed_files = list(map(importer, tqdm(files) if is_console else files))
 
     maybe_console("Finished.")
-    # Sometimes we have a list of lists of AnnotationFile, sometimes we have a list of AnnotationFile
+    # Sometimes we have a list of lists of AnnotationFile, sometimes we have a list of AnnotationFile
     # We flatten the list of lists
     if isinstance(parsed_files, list):
         if isinstance(parsed_files[0], list):
@@ -253,7 +246,7 @@ def import_annotations(
     delete_for_empty: bool = False,
     import_annotators: bool = False,
     import_reviewers: bool = False,
-    use_multi_cpu: bool = True,
+    use_multi_cpu: bool = False,  # Set to False to give time to resolve MP behaviours
     cpu_limit: Optional[int] = None,  # 0 because it's set later in logic
 ) -> None:
     """
@@ -355,7 +348,8 @@ def import_annotations(
     if not maybe_parsed_files:
         raise ValueError("Not able to parse any files.")
 
-    parsed_files = list(maybe_parsed_files)
+    parsed_files: List[AnnotationFile] = flatten_list(list(maybe_parsed_files))
+
     filenames: List[str] = [parsed_file.filename for parsed_file in parsed_files if parsed_file is not None]
 
     console.print("Fetching remote file list...", style="info")
@@ -483,7 +477,8 @@ def import_annotations(
                 image_id, default_slot_name = remote_files[parsed_file.full_path]
                 if parsed_file.slots:
                     default_slot_name = parsed_file.slots[0].name
-                _import_annotations(
+
+                errors, succes = _import_annotations(
                     dataset.client,
                     image_id,
                     remote_classes,
@@ -496,6 +491,11 @@ def import_annotations(
                     import_annotators,
                     import_reviewers,
                 )
+
+                if errors:
+                    console.print(f"Errors importing {parsed_file.filename}", style="error")
+                    for error in errors:
+                        console.print(f"\t{error}", style="error")
 
 
 def _get_multi_cpu_settings(cpu_limit: Optional[int], cpu_count: int, use_multi_cpu: bool) -> Tuple[int, bool]:
@@ -583,17 +583,22 @@ def _handle_annotators(annotation: dt.Annotation, import_annotators: bool) -> Li
     return []
 
 
-def _handle_video_annotations(
-    annotation: dt.AnnotationLike,
-    annotation_class_id: str,
-    attributes: dt.DictFreeForm,
+def _get_annotation_data(
+    annotation: dt.AnnotationLike, annotation_class_id: str, attributes: dt.DictFreeForm
 ) -> dt.DictFreeForm:
-    data = annotation.get_data(
-        only_keyframes=True,
-        post_processing=lambda annotation, data: _handle_subs(
-            annotation, _handle_complex_polygon(annotation, data), annotation_class_id, attributes
-        ),
-    )
+    annotation_class = annotation.annotation_class
+    if isinstance(annotation, dt.VideoAnnotation):
+        data = annotation.get_data(
+            only_keyframes=True,
+            post_processing=lambda annotation, data: _handle_subs(
+                annotation, _handle_complex_polygon(annotation, data), annotation_class_id, attributes
+            ),
+        )
+    else:
+        data = {annotation_class.annotation_type: annotation.data}
+        data = _handle_complex_polygon(annotation, data)
+        data = _handle_subs(annotation, data, annotation_class_id, attributes)
+
     return data
 
 
@@ -620,18 +625,17 @@ def _import_annotations(
     delete_for_empty: bool,  # TODO: This is unused, should it be?
     import_annotators: bool,
     import_reviewers: bool,
-) -> None:
+) -> Tuple[dt.ErrorList, dt.Success]:
+    errors: dt.ErrorList = []
+    success: dt.Success = dt.Success.SUCCESS
+
     serialized_annotations = []
     for annotation in annotations:
         annotation_class = annotation.annotation_class
         annotation_type = annotation_class.annotation_internal_type or annotation_class.annotation_type
         annotation_class_id: str = remote_classes[annotation_type][annotation_class.name]
-        if isinstance(annotation, dt.VideoAnnotation):
-            data = _handle_video_annotations(annotation, annotation_class_id, attributes)
-        else:
-            data = {annotation_class.annotation_type: annotation.data}
-            data = _handle_complex_polygon(annotation, data)
-            data = _handle_subs(annotation, data, annotation_class_id, attributes)
+
+        data = _get_annotation_data(annotation, annotation_class_id, attributes)
 
         actors: List[dt.DictFreeForm] = []
         actors.extend(_handle_annotators(annotation, import_annotators))
@@ -654,7 +658,13 @@ def _import_annotations(
     payload: dt.DictFreeForm = {"annotations": serialized_annotations}
     payload["overwrite"] = _get_overwrite_value(append)
 
-    dataset.import_annotation(id, payload=payload)
+    try:
+        dataset.import_annotation(id, payload=payload)
+    except Exception as e:
+        errors.append(e)
+        success = dt.Success.FAILURE
+
+    return errors, success
 
 
 def _console_theme() -> Theme:

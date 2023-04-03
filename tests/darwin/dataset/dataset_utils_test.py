@@ -1,6 +1,6 @@
 import shutil
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Generator, List
 from unittest.mock import MagicMock, patch
 
 import orjson as json
@@ -8,6 +8,7 @@ import pytest
 
 from darwin.dataset.utils import (
     compute_distributions,
+    exhaust_generator,
     extract_classes,
     get_release_path,
     sanitize_filename,
@@ -143,3 +144,43 @@ def describe_get_release_path():
         test_release_path = team_dataset_path / "releases" / "test"
         test_release_path.mkdir(parents=True)
         assert get_release_path(team_dataset_path, "test") == test_release_path
+
+
+def throw():
+    # these need to be top level to be pickle-able
+    raise Exception("Test")
+
+
+def return_1():
+    # these need to be top level to be pickle-able
+    return 1
+
+
+def describe_exhaust_generator():
+    def it_works_with_no_exceptions():
+        # test multi-threaded
+        successes, errors = exhaust_generator([return_1, return_1], 2, True)
+        assert len(errors) == 0
+        assert len(successes) == 2
+        assert successes == [1, 1]
+
+        # test single-threaded
+        successes, errors = exhaust_generator([return_1, return_1], 2, False)
+        assert len(errors) == 0
+        assert len(successes) == 2
+        assert successes == [1, 1]
+
+    def it_passes_back_exceptions():
+        # test multi-threaded
+        successes, errors = exhaust_generator([return_1, throw], 2, True)
+        assert len(errors) == 1
+        assert len(successes) == 1
+        assert isinstance(errors[0], Exception)
+        assert errors[0].args[0] == "Test"
+
+        # test single-threaded
+        successes, errors = exhaust_generator([return_1, throw], 2, False)
+        assert len(errors) == 1
+        assert len(successes) == 1
+        assert isinstance(errors[0], Exception)
+        assert errors[0].args[0] == "Test"

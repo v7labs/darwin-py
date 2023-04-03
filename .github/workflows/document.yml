@@ -42,7 +42,7 @@ jobs:
           PYTHONPATH: "."
         run: |
           rm -rf docs/* 
-          sphinx-apidoc -f -o source darwin   
+          sphinx-apidoc -f -o source darwin darwin/future
           sphinx-build -b html source/ docs/ -W
       - name: Setup access to AWS
         uses: aws-actions/configure-aws-credentials@v1
