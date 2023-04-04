@@ -17,9 +17,7 @@ from typing import (
 )
 
 from PIL import Image
-from pydantic.dataclasses import dataclass as pydantic_dataclass
 
-from darwin.exporter.formats.mask import rle_decode
 from darwin.path_utils import construct_full_path
 
 # Utility types
@@ -1105,7 +1103,7 @@ class MaskTypes:
 class AnnotationMask:
     id: str
     name: str
-    slot_names: List[str] = []
+    slot_names: List[str] = field(default_factory=list)
 
     def validate(self) -> None:
         if not self.name:
@@ -1121,7 +1119,7 @@ class RasterLayer:
     rle: MaskTypes.UndecodedRLE
     decoded: MaskTypes.DecodedRLE
     mask_mappings: Dict[str, int]
-    slot_names: List[str] = []
+    slot_names: List[str] = field(default_factory=list)
     total_pixels: int = 0
 
     def validate(self) -> None:

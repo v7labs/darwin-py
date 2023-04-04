@@ -1,5 +1,6 @@
 import colorsys
 import os
+from csv import writer as csv_writer
 from functools import reduce
 from pathlib import Path
 from typing import Dict, Iterable, List, Literal, Optional, Set, Tuple, get_args
@@ -13,15 +14,7 @@ from darwin.exceptions import DarwinException
 from darwin.utils import convert_polygons_to_sequences, ispolygon
 
 
-def get_palette(
-    mode: dt.MaskTypes.Mode, categories: List[str]
-) -> Tuple[
-    dt.MaskTypes.Palette,
-    dt.MaskTypes.RgbColors,
-    dt.MaskTypes.HsvColors,
-    dt.MaskTypes.RgbColorList,
-    dt.MaskTypes.RgbPalette,
-]:
+def get_palette(mode: dt.MaskTypes.Mode, categories: List[str]) -> dt.MaskTypes.Palette:
     """
     Returns a palette for the given mode and categories.
 
@@ -36,14 +29,6 @@ def get_palette(
     -------
     dt.MaskTypes.Palette
         A dict of categories and their corresponding palette value.
-    dt.MaskTypes.RgbColors
-        A list of RGB colours for each category.
-    dt.MaskTypes.HsvColors
-        A list of HSV colours for each category.
-    dt.MaskTypes.RgbColorList
-        A list of RGB colours for each category.
-    dt.MaskTypes.RgbPalette
-        A dict of categories and their corresponding RGB palette value.
     """
 
     if not mode in get_args(dt.MaskTypes.Mode):
@@ -74,20 +59,38 @@ def get_palette(
     if not palette:
         raise ValueError(f"Failed to generate a palette.", mode, categories) from DarwinException
 
-    if mode == "rgb":
-        # Generate HSV colours for all classes except for BG
-        HSV_colours: dt.MaskTypes.HsvColors = [(x / num_categories, 0.8, 1.0) for x in range(num_categories - 1)]
-        RGB_colour_list: dt.MaskTypes.RgbColorList = list(
-            map(lambda x: [int(e * 255) for e in colorsys.hsv_to_rgb(*x)], HSV_colours)
-        )
-        # Now we add BG class with [0 0 0] RGB value
-        RGB_colour_list.insert(0, [0, 0, 0])
-        palette_rgb: dt.MaskTypes.RgbPalette = {c: rgb for c, rgb in zip(categories, RGB_colour_list)}
-        RGB_colours: dt.MaskTypes.RgbColors = [c for e in RGB_colour_list for c in e]
+    return palette
 
-    #! Confused, where do these values come from if it's not rgb?
 
-    return palette, RGB_colours, HSV_colours, RGB_colour_list, palette_rgb  # TODO: correct return sig
+def get_rgb_colours(categories: dt.MaskTypes.CategoryList) -> Tuple[dt.MaskTypes.RgbColors, dt.MaskTypes.RgbPalette]:
+    """
+    Returns a list of RGB colours and a dict of categories and their corresponding RGB palette value.
+
+    Parameters
+    ----------
+    categories: dt.MaskTypes.CategoryList
+        A list of categories to be rendered.
+
+    Returns
+    -------
+    dt.MaskTypes.RgbColors
+        A list of RGB colours for each category.
+    dt.MaskTypes.RgbPalette
+        A dict of categories and their corresponding RGB palette value.
+    """
+    num_categories: int = len(categories)
+
+    # Generate HSV colours for all classes except for BG
+    hsv_colours: dt.MaskTypes.HsvColors = [(x / num_categories, 0.8, 1.0) for x in range(num_categories - 1)]
+    rgb_colour_list: dt.MaskTypes.RgbColorList = list(
+        map(lambda x: [int(e * 255) for e in colorsys.hsv_to_rgb(*x)], hsv_colours)
+    )
+    # Now we add BG class with [0 0 0] RGB value
+    rgb_colour_list.insert(0, [0, 0, 0])
+    palette_rgb: dt.MaskTypes.RgbPalette = {c: rgb for c, rgb in zip(categories, rgb_colour_list)}
+    rgb_colours: dt.MaskTypes.RgbColors = [c for e in rgb_colour_list for c in e]
+
+    return rgb_colours, palette_rgb
 
 
 def get_render_mode(annotations: List[dt.AnnotationLike]) -> dt.MaskTypes.TypeOfRender:
@@ -151,9 +154,9 @@ def colours_in_rle(
     dt.MaskTypes.ColoursDict
         A dictionary of colours for each mask in the given RLE.
     """
-    #! UNTESTED
     for uuid, colour_value in raster_layer.mask_mappings.items():
-        mask: dt.AnnotationMask = mask_lookup.get(uuid)
+        mask: Optional[dt.AnnotationMask] = mask_lookup.get(uuid)
+
         if mask is None:
             raise ValueError(f"Could not find mask with uuid {uuid} in mask lookup table.")
 
@@ -351,7 +354,10 @@ def render_raster(
         errors.append(ValueError(f"Annotation has no RLE data"))
         return errors, mask, categories, colours
 
-    colours = colours_in_rle(colours, raster_layer, mask_lookup)  # TODO: Wrap in try/except
+    try:
+        colours = colours_in_rle(colours, raster_layer, mask_lookup)
+    except Exception as e:
+        errors.append(e)
 
     rle_decoded = rle_decode(rle)
     mask_array = np.array(rle_decoded).reshape(height, width)
@@ -406,38 +412,21 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path, mode
             raise DarwinException.from_multiple_exceptions(errors)
 
         # Map to palette
+        palette = get_palette(mode, categories)
         if mode == "rgb":
-            (
-                palette,
-                RGB_colours,
-                HSVColors,  #!?
-                rgb_colour_list,
-                palette_rgb,
-            ) = get_palette(mode, categories)
+            rgb_colours, palette_rgb = get_rgb_colours(categories)
             mask = Image.fromarray(mask, "P")
-            mask.putpalette(RGB_colours)
+            mask.putpalette(rgb_colours)
         else:
             mask = Image.fromarray(mask)
         mask.save(outfile)
 
     with open(output_dir / "class_mapping.csv", "w") as f:
-        f.write(f"class_name,class_colour\n")
+        writer = csv_writer(f)
+        writer.writerow(["class_name", "class_color"])
+
         for c in categories:
             if mode == "rgb":
-                f.write(f"{c},{palette_rgb[c][0]} {palette_rgb[c][1]} {palette_rgb[c][2]}\n")
+                writer.writerow([c, f"{palette_rgb[c][0]} {palette_rgb[c][1]} {palette_rgb[c][2]}"])
             else:
-                f.write(f"{c},{palette[c]}\n")
-
-
-def extract_categories(annotation_files: List[dt.AnnotationFile]) -> List[str]:
-    categories = set()
-    for annotation_file in annotation_files:
-        for annotation_class in annotation_file.annotation_classes:
-            if ispolygon(annotation_class):
-                categories.add(annotation_class.name)
-
-    result = list(categories)
-    result.sort()
-    result.insert(0, "__background__")
-
-    return result
+                writer.writerow([c, f"{palette[c]}"])
