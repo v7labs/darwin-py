@@ -226,12 +226,26 @@ def test_render_polygons() -> None:
     colours: dt.MaskTypes.ColoursDict = {}
     categories: dt.MaskTypes.CategoryList = []
     annotations: List[dt.AnnotationLike] = [
-        dt.Annotation(dt.AnnotationClass("cat1", "polygon"), {"path": [(10, 10), (20, 10), (20, 20), (10, 20)]}),
-        dt.Annotation(dt.AnnotationClass("cat2", "polygon"), {"path": [(30, 30), (40, 30), (40, 40), (30, 40)]}),
-        dt.Annotation(dt.AnnotationClass("cat1", "polygon"), {"path": [(50, 50), (60, 50), (60, 60), (50, 60)]}),
+        dt.Annotation(
+            dt.AnnotationClass("cat1", "polygon"),
+            {"path": [{"x": 10, "y": 10}, {"x": 20, "y": 10}, {"x": 20, "y": 20}, {"x": 10, "y": 20}]},
+        ),
+        dt.Annotation(
+            dt.AnnotationClass("cat2", "polygon"),
+            {"path": [{"x": 30, "y": 30}, {"x": 40, "y": 30}, {"x": 40, "y": 40}, {"x": 30, "y": 40}]},
+        ),
+        dt.Annotation(
+            dt.AnnotationClass("cat1", "polygon"),
+            {"path": [{"x": 50, "y": 50}, {"x": 60, "y": 50}, {"x": 60, "y": 60}, {"x": 50, "y": 60}]},
+        ),
         dt.Annotation(
             dt.AnnotationClass("cat3", "complex_polygon"),
-            {"paths": [[(70, 70), (80, 70), (80, 80), (70, 80)], [(75, 75), (75, 78), (78, 78)]]},
+            {
+                "paths": [
+                    [{"x": 70, "y": 70}, {"x": 80, "y": 70}, {"x": 80, "y": 80}, {"x": 70, "y": 80}],
+                    [{"x": 75, "y": 75}, {"x": 75, "y": 78}, {"x": 78, "y": 78}],
+                ]
+            },
         ),
     ]
     annotation_file = dt.AnnotationFile(

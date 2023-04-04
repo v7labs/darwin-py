@@ -261,7 +261,11 @@ def render_polygons(
             sequence = convert_polygons_to_sequences(polygon, height=height, width=width)
 
             colour_to_draw = get_or_generate_colour(cat, colours)
-            mask = draw_polygon(mask, sequence, colour_to_draw)
+            mask = draw_polygon(mask, sequence, colour_to_draw)  #! THIS IS CURRENTLY THROWING AN ERROR
+
+            if cat not in colours:
+                colours[cat] = colour_to_draw
+
         except Exception as e:
             errors.append(e)
             continue
