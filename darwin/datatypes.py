@@ -16,7 +16,7 @@ from typing import (
     Union,
 )
 
-from PIL import Image
+from numpy.typing import NDArray
 
 from darwin.path_utils import construct_full_path
 
@@ -1096,7 +1096,7 @@ class MaskTypes:
     RgbColorList = list[RgbColors]
     RgbPalette = Dict[str, RgbColors]
 
-    RendererReturn = Tuple[ExceptionList, Image.Image, CategoryList, ColoursDict]
+    RendererReturn = Tuple[ExceptionList, NDArray, CategoryList, ColoursDict]
 
 
 @dataclass

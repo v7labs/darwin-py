@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Literal, Optional, Set, Tuple, get_args
 
 import numpy as np
+from numpy.typing import NDArray
 from PIL import Image
 from upolygon import draw_polygon
 
@@ -207,7 +208,7 @@ def get_or_generate_colour(cat_name: str, colours: dt.MaskTypes.ColoursDict) -> 
 
 
 def render_polygons(
-    mask: Image.Image,
+    mask: NDArray,
     colours: dt.MaskTypes.ColoursDict,
     categories: dt.MaskTypes.CategoryList,
     annotations: List[dt.AnnotationLike],
@@ -220,7 +221,7 @@ def render_polygons(
 
     Parameters
     ----------
-    mask: Image.Image
+    mask: NDArray
         The mask to render the polygons onto.
     colours: dt.MaskTypes.ColoursDict
         A dictionary of category names and their corresponding colours.
@@ -261,7 +262,7 @@ def render_polygons(
             sequence = convert_polygons_to_sequences(polygon, height=height, width=width)
 
             colour_to_draw = get_or_generate_colour(cat, colours)
-            mask = draw_polygon(mask, sequence, colour_to_draw)  #! THIS IS CURRENTLY THROWING AN ERROR
+            mask = draw_polygon(mask, sequence, colour_to_draw)
 
             if cat not in colours:
                 colours[cat] = colour_to_draw
@@ -275,7 +276,7 @@ def render_polygons(
 
 
 def render_raster(
-    mask: Image.Image,
+    mask: NDArray,
     colours: dt.MaskTypes.ColoursDict,
     categories: dt.MaskTypes.CategoryList,
     annotations: List[dt.AnnotationLike],
@@ -288,7 +289,7 @@ def render_raster(
 
     Parameters
     ----------
-    mask: Image
+    mask: NDArray
         The mask to render the polygons onto.
     annotations: List[dt.AnnotationLike]
         A list of annotations to be rendered.
@@ -314,34 +315,36 @@ def render_raster(
         if isinstance(a, dt.VideoAnnotation):
             continue
 
-        if m := getattr(a, "mask"):
+        data = a.data
+
+        if "mask" in data:
             new_mask = dt.AnnotationMask(
-                id=getattr(m, "id"),
-                name=getattr(m, "name"),
-                slot_names=getattr(m, "slot_names"),
+                id=data["id"],
+                name=data["name"],
+                slot_names=data["slot_names"],
             )
             new_mask.validate()
-            mask_annotations.append(m)
+            mask_annotations.append(new_mask)
 
             if not new_mask.id in mask_lookup:
                 mask_lookup[new_mask.id] = new_mask
 
             # Add the category to the list of categories
-            if not getattr(m, "name") in categories:
-                categories.append(getattr(m, "name"))
+            if not new_mask.name in categories:
+                categories.append(new_mask.name)
 
-        if rl := getattr(a, "raster_layer"):
+        if "raster_layer" in data and (rl := data["raster_layer"]):
 
             if raster_layer:
                 errors.append(ValueError(f"Annotation {a.id} has more than one raster layer"))
                 break
 
             new_rl = dt.RasterLayer(
-                rle=getattr(rl, "dense_rle"),
-                decoded=rle_decode(getattr(rl, "dense_rle")),  # type: ignore
-                slot_names=getattr(rl, "slot_names"),
-                mask_mappings=getattr(rl, "mask_mappings"),
-                total_pixels=getattr(rl, "total_pixels"),
+                rle=rl["dense_rle"],
+                decoded=rle_decode(rl["dense_rle"]),  # type: ignore
+                slot_names=data["slot_names"],
+                mask_mappings=rl["mask_mappings"],
+                total_pixels=rl["total_pixels"],
             )
             new_rl.validate()
             raster_layer = new_rl
@@ -364,10 +367,7 @@ def render_raster(
         errors.append(e)
 
     rle_decoded = rle_decode(rle)
-    mask_array = np.array(rle_decoded).reshape(height, width)
-
-    # draw mask_array onto mask
-    mask = Image.fromarray(mask_array)  #! Double check this actually works.
+    mask = np.array(rle_decoded, dtype=np.uint8).reshape(height, width)
 
     return errors, mask, categories, colours
 
@@ -391,7 +391,7 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path, mode
         if height is None or width is None:
             raise ValueError(f"Annotation file {annotation_file.filename} references an image with no height or width")
 
-        mask: Image = np.zeros((height, width)).astype(np.uint8)  # type: ignore
+        mask: NDArray = np.zeros((height, width)).astype(np.uint8)
         annotations: List[dt.AnnotationLike] = [a for a in annotation_file.annotations if ispolygon(a.annotation_class)]
 
         type = get_render_mode(annotations)
@@ -419,11 +419,12 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path, mode
         palette = get_palette(mode, categories)
         if mode == "rgb":
             rgb_colours, palette_rgb = get_rgb_colours(categories)
-            mask = Image.fromarray(mask, "P")
-            mask.putpalette(rgb_colours)
+            image = Image.fromarray(mask, "P")
+            image.putpalette(rgb_colours)
+            image.convert("RGB")
         else:
-            mask = Image.fromarray(mask)
-        mask.save(outfile)
+            image = Image.fromarray(mask)
+        image.save(outfile)
 
     with open(output_dir / "class_mapping.csv", "w") as f:
         writer = csv_writer(f)
