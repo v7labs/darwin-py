@@ -2,12 +2,17 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, Callable, Dict, List, Optional, TypeVar, Union, overload
 
-from pydantic import BaseModel, HttpUrl
+import requests
+from pydantic import BaseModel, HttpUrl, validator
+from requests.adapters import HTTPAdapter, Retry
 
 from darwin.future.core.types.query import Query
 from darwin.future.data_objects.darwin_meta import Team
+
+# HTTPMethod = TypeVar("HTTPMethod", bound=Callable[..., requests.Response])
+HTTPMethod = Union[Callable[[str], requests.Response], Callable[[str, dict], requests.Response]]
 
 
 class Config(BaseModel):
@@ -15,10 +20,12 @@ class Config(BaseModel):
 
     Attributes
     ----------
+    api_key: Optional[str], api key to authenticate
     base_url: pydantic.HttpUrl, base url of the API
     default_team: Optional[Team], default team to make requests to
     """
 
+    api_key: Optional[str]
     base_url: HttpUrl
     default_team: Optional[Team]
 
@@ -63,7 +70,7 @@ class Page(BaseModel):
     detail: PageDetail
 
 
-class Cursor(ABC):
+class Cursor:
     """Abstract class for a cursor
 
     Attributes
@@ -99,23 +106,83 @@ class Client:
     team: Team, team to make requests to
     """
 
-    def __init__(self, config: Config) -> None:
+    def __init__(self, config: Config, retries: Optional[Retry] = None) -> None:
         self.config = config
+        self.session = requests.Session()
+        if not retries:
+            retries = Retry(total=3, backoff_factor=0.2, status_forcelist=[500, 502, 503, 504])
+        self._setup_session(retries)
+        self._mappings = {
+            "get": self.session.get,
+            "put": self.session.put,
+            "post": self.session.post,
+            "delete": self.session.delete,
+            "patch": self.session.patch,
+        }
+
+    def _setup_session(self, retries: Retry) -> None:
+        self.session.headers.update(self.headers)
+        self.session.mount("http://", HTTPAdapter(max_retries=retries))
+        self.session.mount("https://", HTTPAdapter(max_retries=retries))
+
+    @property
+    def headers(self) -> Dict[str, str]:
+        http_headers: Dict[str, str] = {"Content-Type": "application/json"}
+        if self.config.api_key:
+            http_headers["Authorization"] = f"ApiKey {self.config.api_key}"
+        return http_headers
+
+    @overload
+    def _generic_call(self, method: Callable[[str], requests.Response], endpoint: str) -> dict:
+        ...
+
+    @overload
+    def _generic_call(self, method: Callable[[str, dict], requests.Response], endpoint: str, payload: dict) -> dict:
+        ...
+
+    def _generic_call(self, method: Callable, endpoint: str, payload: Optional[dict] = None) -> dict:
+        endpoint = self._validate_endpoint(endpoint)
+        url = self.config.base_url + endpoint
+        if payload is not None:
+            response = method(url, payload)
+        else:
+            response = method(url)
+        response.raise_for_status()
+
+        return response.json()
 
     def cursor(self) -> Cursor:
         pass
 
-    def get(self, url: str) -> dict:
-        pass
+    def get(self, endpoint: str) -> dict:
+        return self._generic_call(self.session.get, endpoint)
 
-    def put(self, url: str, data: dict) -> dict:
-        pass
+    def put(self, endpoint: str, data: dict) -> dict:
+        return self._generic_call(self.session.put, endpoint, data)
 
-    def post(self, url: str, data: dict) -> dict:
-        pass
+    def post(self, endpoint: str, data: dict) -> dict:
+        return self._generic_call(self.session.post, endpoint, data)
 
-    def delete(self, url: str) -> dict:
-        pass
+    def delete(self, endpoint: str) -> dict:
+        return self._generic_call(self.session.delete, endpoint)
 
-    def patch(self, url: str, data: dict) -> dict:
-        pass
+    def patch(self, endpoint: str, data: dict) -> dict:
+        return self._generic_call(self.session.patch, endpoint, data)
+
+    def _validate_endpoint(self, endpoint: str) -> str:
+        return endpoint.strip().strip("/")
+
+
+def raise_for_darwin(response: requests.Response) -> None:
+    """Raises an exception if the response is not 200
+
+    Parameters
+    ----------
+    response: requests.Response, response to check
+    """
+    if response.status_code == 200:
+        return
+    if response.status_code == 401:
+        raise Unauthorized(response)
+    if response.status_code == 404:
+        raise NotFound(response)
