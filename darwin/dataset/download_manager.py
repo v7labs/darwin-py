@@ -310,12 +310,11 @@ def _download_single_slot_from_json_annotation(annotation, api_key, parent_path,
 
 
 def _update_local_path(annotation: AnnotationFile, url, local_path):
-
     if annotation.version.major == 1:
         return
 
     # we modify raw json, as internal representation does't store all the data
-    with annotation.path.open() as file:
+    with annotation.path.open(encoding="utf-8") as file:
         raw_annotation = json.loads(file.read())
 
         for slot in raw_annotation["item"]["slots"]:
@@ -356,7 +355,7 @@ def download_image_from_json_annotation(
     video_frames : bool
         Pulls video frames images instead of video files
     """
-    with annotation_path.open() as file:
+    with annotation_path.open(encoding="utf-8") as file:
         annotation = json.loads(file.read())
 
     # If we are using folders, extract the path for the image and create the folder if needed

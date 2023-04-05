@@ -86,7 +86,7 @@ def parse_path(path: Path) -> Optional[List[AnnotationFile]]:
     if path.suffix != ".json":
         return None
 
-    with path.open() as f:
+    with path.open(encoding="utf-8") as f:
         data = json.loads(f.read())
         validate(data, schema=labelbox_export)
         convert_with_path = partial(_convert, path=path)

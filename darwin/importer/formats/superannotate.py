@@ -105,11 +105,11 @@ def parse_path(path: Path) -> Optional[AnnotationFile]:
     if not classes_path.is_file():
         raise ValueError("Folder must contain a 'classes.json' file with classes information.")
 
-    with classes_path.open() as classes_file:
+    with classes_path.open(encoding="utf-8") as classes_file:
         classes = json.loads(classes_file.read())
         validate(classes, schema=classes_export)
 
-    with path.open() as annotation_file:
+    with path.open(encoding="utf-8") as annotation_file:
         data = json.loads(annotation_file.read())
         validate(data, schema=superannotate_export)
 

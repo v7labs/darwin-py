@@ -138,7 +138,7 @@ class LocalDataset(object):
         if not len(self.annotations_path):
             raise ValueError("There are no annotations downloaded.")
 
-        with self.annotations_path[index].open() as f:
+        with self.annotations_path[index].open(encoding="utf-8") as f:
             data = json.loads(f.read())["image"]
             return data
 

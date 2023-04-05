@@ -42,7 +42,19 @@ if TYPE_CHECKING:
     from darwin.client import Client
 
 
-SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpeg", ".jpg", ".jfif", ".tif", ".tiff", ".bmp", ".svs", ".webp", ".JPEG", ".JPG"]
+SUPPORTED_IMAGE_EXTENSIONS = [
+    ".png",
+    ".jpeg",
+    ".jpg",
+    ".jfif",
+    ".tif",
+    ".tiff",
+    ".bmp",
+    ".svs",
+    ".webp",
+    ".JPEG",
+    ".JPG",
+]
 SUPPORTED_VIDEO_EXTENSIONS = [
     ".avi",
     ".bpm",
@@ -378,7 +390,7 @@ def validate_data_against_schema(data) -> List:
 
 
 def load_data_from_file(path: Path):
-    with path.open() as infile:
+    with path.open(encoding="utf-8") as infile:
         data = json.loads(infile.read())
     version = _parse_version(data)
     return data, version

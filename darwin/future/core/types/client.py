@@ -63,7 +63,7 @@ class Page(BaseModel):
     detail: PageDetail
 
 
-class Cursor(ABC):
+class Cursor:
     """Abstract class for a cursor
 
     Attributes
@@ -102,20 +102,30 @@ class Client:
     def __init__(self, config: Config) -> None:
         self.config = config
 
+    def _generic_call(self, method: str, url: Optional[str] = None, payload: Optional[dict] = None) -> Optional[dict]:
+        mapped_methods = {
+            "GET": self.get_raw,
+            "POST": self.post_raw,
+            "PUT": self.put_raw,
+            "DELETE": self.delete_raw,
+            "PATCH": self.patch_raw,
+        }
+        pass
+
     def cursor(self) -> Cursor:
         pass
 
-    def get(self, url: str) -> dict:
+    def get_raw(self, url: str) -> dict:
         pass
 
-    def put(self, url: str, data: dict) -> dict:
+    def put_raw(self, url: str, data: dict) -> dict:
         pass
 
-    def post(self, url: str, data: dict) -> dict:
+    def post_raw(self, url: str, data: dict) -> dict:
         pass
 
-    def delete(self, url: str) -> dict:
+    def delete_raw(self, url: str) -> dict:
         pass
 
-    def patch(self, url: str, data: dict) -> dict:
+    def patch_raw(self, url: str, data: dict) -> dict:
         pass

@@ -123,7 +123,7 @@ def add_subelement_text(parent: Element, name: str, value: Any) -> Element:
     details=REMOVAL_MESSAGE,
 )
 def convert_file(path: Path) -> Element:
-    with open(path, "r") as f:
+    with open(path, "r", encoding="utf-8") as f:
         data = json.loads(f.read())
         return build_voc(data["image"], data["annotations"])
 

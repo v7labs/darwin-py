@@ -28,7 +28,7 @@ def parse_path(path: Path) -> Optional[dt.AnnotationFile]:
     """
     if path.suffix != ".json":
         return None
-    with path.open() as f:
+    with path.open(encoding="utf-8") as f:
         data = json.loads(f.read())
         annotations: List[dt.Annotation] = list(filter(None, map(_parse_annotation, data["annotations"])))
         annotation_classes: Set[dt.AnnotationClass] = set([annotation.annotation_class for annotation in annotations])

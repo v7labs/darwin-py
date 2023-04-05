@@ -277,7 +277,7 @@ def get_coco_format_record(
     except ImportError:
         box_mode = 0
 
-    with annotation_path.open() as f:
+    with annotation_path.open(encoding="utf-8") as f:
         data = json.loads(f.read())
     height, width = data["image"]["height"], data["image"]["width"]
     annotations = data["annotations"]
@@ -469,7 +469,7 @@ def get_annotations(
             )
     elif annotation_format == "darwin":
         for annotation_path in annotations_paths:
-            with annotation_path.open() as f:
+            with annotation_path.open(encoding="utf-8") as f:
                 record = json.loads(f.read())
             yield record
 
@@ -556,7 +556,7 @@ def compute_max_density(annotations_dir: Path) -> int:
     max_density = 0
     for annotation_path in annotations_dir.glob("**/*.json"):
         annotation_density = 0
-        with open(annotation_path) as f:
+        with open(annotation_path, encoding="utf-8") as f:
             darwin_json = json.loads(f.read())
             for annotation in darwin_json["annotations"]:
                 if "polygon" not in annotation and "complex_polygon" not in annotation:

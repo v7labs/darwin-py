@@ -48,7 +48,7 @@ def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
     if path.suffix != ".json":
         console.print("Skipping file: {} (not a json file)".format(path), style="bold yellow")
         return None
-    with open(path, "r") as f:
+    with open(path, "r", encoding="utf-8") as f:
         data = json.loads(f.read())
         try:
             validate(data, schema=nifti_import_schema)
@@ -75,7 +75,6 @@ def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
 
 
 def _parse_nifti(nifti_path: Path, filename: Path, json_path: Path, class_map: Dict, mode: str) -> dt.AnnotationFile:
-
     img: np.ndarray = process_nifti(nib.load(nifti_path))
 
     shape = img.shape
