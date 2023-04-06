@@ -377,7 +377,7 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path, mode
     masks_dir.mkdir(exist_ok=True, parents=True)
     annotation_files = list(annotation_files)
 
-    categories: List[str] = []
+    categories: List[str] = ["__background__"]
     colours: dt.MaskTypes.ColoursDict = dict()
 
     for annotation_file in annotation_files:
@@ -392,7 +392,11 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path, mode
             raise ValueError(f"Annotation file {annotation_file.filename} references an image with no height or width")
 
         mask: NDArray = np.zeros((height, width)).astype(np.uint8)
-        annotations: List[dt.AnnotationLike] = [a for a in annotation_file.annotations if ispolygon(a.annotation_class)]
+        annotations: List[dt.AnnotationLike] = [
+            a
+            for a in annotation_file.annotations
+            if a.annotation_class in ["polygon", "complex_polygon", "raster", "mask"]
+        ]
 
         type = get_render_mode(annotations)
 
@@ -416,12 +420,18 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path, mode
             raise DarwinException.from_multiple_exceptions(errors)
 
         # Map to palette
+        mask = np.array(mask, dtype=np.uint8)  # Final double check that type is using correct dtype
+
         palette = get_palette(mode, categories)
         if mode == "rgb":
             rgb_colours, palette_rgb = get_rgb_colours(categories)
             image = Image.fromarray(mask, "P")
             image.putpalette(rgb_colours)
-            image.convert("RGB")
+            image = image.convert("RGB")
+        elif mode == "grey":
+            for value, colour in enumerate(palette.values()):
+                mask = np.where(mask == value, colour, mask)
+            image = Image.fromarray(mask)
         else:
             image = Image.fromarray(mask)
         image.save(outfile)

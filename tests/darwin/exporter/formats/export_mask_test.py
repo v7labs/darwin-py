@@ -1,12 +1,13 @@
 from pathlib import Path
 from tempfile import NamedTemporaryFile, TemporaryDirectory
-from typing import Dict, List, Literal
+from typing import Callable, Dict, List, Optional
 from unittest.mock import patch
 
 import numpy as np
 import pytest
 from numpy.testing import assert_array_equal
 from numpy.typing import NDArray
+from PIL import Image
 
 from darwin import datatypes as dt
 from darwin.exporter.formats.mask import (
@@ -45,7 +46,7 @@ def test_in_index_mode_doesnt_spread_colors() -> None:
     assert palette == {"red": 0, "green": 1, "blue": 2, "yellow": 3, "purple": 4}
 
 
-def test_in_rgb_mode_spreads_colors_evenly() -> None:
+def test_in_rgb_mode_spreads_colors() -> None:
     palette = get_palette("rgb", ["red", "green", "blue"])
     assert palette == {"red": 0, "green": 1, "blue": 2}
 
@@ -149,7 +150,7 @@ def test_get_or_generate_colour() -> None:
 @pytest.fixture
 def annotations() -> List[dt.Annotation]:
     return [
-        dt.Annotation(dt.AnnotationClass("class_1", "raster"), data={"mask": "data", "raster_layer": "raster"}),
+        dt.Annotation(dt.AnnotationClass("class_1", "raster_layer"), data={"mask": "data", "raster_layer": "raster"}),
         dt.Annotation(dt.AnnotationClass("class_2", "polygon"), data={"polygon": "data"}),
     ]
 
@@ -171,7 +172,7 @@ def test_get_render_mode_raises_value_error_when_given_both_raster_mask_and_poly
 
 def test_get_render_mode_raises_value_error_when_no_renderable_annotations_found() -> None:  # type: ignore
     with pytest.raises(ValueError, match="No renderable annotations found in file, found keys:"):
-        get_render_mode([dt.Annotation(dt.AnnotationClass("class_3", "invalid"), data={"line": "data"})])
+        get_render_mode([dt.Annotation(dt.AnnotationClass("class_3", "invalid"), data={"line": "data"})])  # type: ignore
 
 
 # Test colours_in_rle
@@ -314,7 +315,7 @@ def test_render_raster() -> None:
             {"id": "mask3", "name": "mask3", "slot_names": ["slot1"], "mask": {"sparse_rle": None}},
         ),
         dt.Annotation(
-            dt.AnnotationClass("raster", "raster"),
+            dt.AnnotationClass("raster", "raster_layer"),
             {
                 "id": "raster",
                 "name": "__raster_layer__",
@@ -367,29 +368,63 @@ def test_render_raster() -> None:
 
 
 # Test the export function
-test_output_mask = lambda x: np.zeros((10, 10), dtype=np.uint8)
-test_indices = lambda x: [1, 2, 3]
-test_colours = []  #! Pick up here
+RED = [255, 0, 0]
+GREEN = [0, 255, 0]
+BLUE = [0, 0, 255]
+BLACK = [0, 0, 0]
+colours_for_test: Callable[[], dt.MaskTypes.RgbColors] = lambda: [*RED, *GREEN, *BLUE]
+colour_list_for_test: Callable[[], dt.MaskTypes.ColoursDict] = lambda: {"mask1": 0, "mask2": 1, "mask3": 2}
+data_path = (Path(__file__).parent / ".." / ".." / "data").resolve()
 
 
 @pytest.mark.parametrize(
-    "colour_mode, mode, renderer_output",
+    "colour_mode, render_mode, renderer_output, expected_mask_file, expected_csv_file",
     [
         (
             "rgb",
             "raster",
             (
                 [],
-                np.zeros((100, 100), dtype=np.uint8),
-                ["mask1", "mask2", "mask3"],
-                {"mask1": 1, "mask2": 2, "mask3": 3},
+                np.array(np.repeat([0, 1, 2], 34)[:100], dtype=np.uint8).reshape(10, 10),
+                ["class1", "class2", "class3"],
+                {"class1": 1, "class2": 2, "class3": 3},
             ),
+            data_path / "expected_image_rgb.png",
+            data_path / "expected_classes_rgb.csv",
+        ),
+        (
+            "grey",
+            "raster",
+            (
+                [],
+                np.array(np.repeat([0, 1, 2], 34)[:100], dtype=np.uint8).reshape(10, 10),
+                ["class1", "class2", "class3"],
+                {"class1": 1, "class2": 2, "class3": 3},
+            ),
+            data_path / "expected_image_grey.png",
+            data_path / "expected_classes_grey.csv",
+        ),
+        (
+            "index",
+            "raster",
+            (
+                [],
+                np.array(np.repeat([0, 1, 2], 34)[:100], dtype=np.uint8).reshape(10, 10),
+                ["class1", "class2", "class3"],
+                {"class1": 1, "class2": 2, "class3": 3},
+            ),
+            data_path / "expected_image_index.png",
+            data_path / "expected_classes_index.csv",
         ),
     ],
-    # TODO: More mode tests for happy paths
+    # TODO: Polygon mode tests for happy paths
 )
 def test_export(
-    colour_mode: dt.MaskTypes.Mode, mode: dt.MaskTypes.TypeOfRender, renderer_output: dt.MaskTypes.RendererReturn
+    colour_mode: dt.MaskTypes.Mode,
+    render_mode: dt.MaskTypes.TypeOfRender,
+    renderer_output: dt.MaskTypes.RendererReturn,
+    expected_mask_file: Optional[Path],
+    expected_csv_file: Optional[Path],
 ) -> None:
 
     with TemporaryDirectory() as output_dir, patch(
@@ -402,19 +437,37 @@ def test_export(
         "darwin.exporter.formats.mask.get_rgb_colours"
     ) as mock_get_rgb_colours:
 
-        annotation_files = [dt.AnnotationFile(Path("path"), annotations=[])]
+        height, width = renderer_output[1].shape
 
-        mock_get_render_mode.return_value = mode
+        annotation_files = [
+            dt.AnnotationFile(
+                Path("test"), "test", annotation_classes=set(), annotations=[], image_height=height, image_width=width
+            )
+        ]
+
+        mock_get_render_mode.return_value = render_mode
 
         if colour_mode == "rgb":
-            mock_get_rgb_colours.return_value = (  # TODO Correct type issue
-                [255, 0, 0, 0, 255, 0, 0, 0, 255],
-                {"mask1": (255, 0, 0), "mask2": (0, 255, 0), "mask3": (0, 0, 255)},
+            mock_get_rgb_colours.return_value = (
+                colours_for_test(),
+                {"class1": [255, 0, 0], "class2": [0, 255, 0], "class3": [0, 0, 255]},
             )
-            mock_get_palette.return_value: dt.MaskTypes.Palette = ""  # TODO Fill this in
 
-        # Raster run
-        if mode == "raster":
+        if colour_mode == "rgb" or colour_mode == "index":
+            mock_get_palette.return_value = {
+                "class1": 0,
+                "class2": 1,
+                "class3": 2,
+            }
+        else:
+            mock_get_palette.return_value = {
+                "class1": 0,
+                "class2": 127,
+                "class3": 255,
+            }
+
+        if render_mode == "raster":
+            # Raster run
             mock_render_raster.return_value = renderer_output
         else:
             mock_get_render_mode.return_value = "polygon"
@@ -422,13 +475,52 @@ def test_export(
 
         export(annotation_files, Path(output_dir), colour_mode)
 
+        """
+        Assertions based on function calls
+        """
+
+        # The things always called
         assert mock_get_render_mode.called
-        assert mock_render_raster.called
-        assert not mock_render_polygons.called
+        assert mock_get_palette.called
 
-        # TODO: More assertions based on logic
+        if render_mode == "raster":
+            # The things called only for raster
+            assert mock_render_raster.called
+            assert not mock_render_polygons.called
 
-        # TODO Assert contents of output files is correct
+        else:
+            # The things called only for polygon
+            assert mock_render_polygons.called
+            assert not mock_render_raster.called
+
+        """
+        Assertions based on output files
+        """
+        # CSV File
+        if expected_csv_file:
+            test_csv_path = Path(output_dir) / "class_mapping.csv"
+            assert expected_csv_file.exists()
+            assert test_csv_path.exists()
+
+            with expected_csv_file.open("r") as expected_csv, test_csv_path.open("r") as test_output_csv:
+                assert expected_csv.read() == test_output_csv.read()
+
+        # PNG File
+        if expected_mask_file:
+            test_png_path = Path(output_dir) / "masks" / "test.png"
+            assert expected_mask_file.exists()
+            assert test_png_path.exists()
+
+            expected = Image.open(expected_mask_file).convert("RGB")
+            test_output = Image.open(test_png_path).convert("RGB")
+
+            assert expected.width == test_output.width
+            assert expected.height == test_output.height
+            assert expected.mode == test_output.mode
+
+            for x in range(expected.width):
+                for y in range(expected.height):
+                    assert expected.getpixel((x, y)) == test_output.getpixel((x, y)), f"Pixel {x},{y} is different"
 
 
 if __name__ == "__main__":
