@@ -76,6 +76,25 @@ class JSONType:
         return cls(**json)
 
 
+AnnotationType = Literal[  # NB: Some of these are not supported yet
+    "bounding_box",
+    "polygon",
+    "complex_polygon",
+    "ellipse",
+    "cuboid",
+    "segmentation",
+    "raster_layer",
+    "mask",
+    "keypoint",
+    "tag",
+    "line",
+    "skeleton",
+    "table",
+    "string",
+    "graph",
+]
+
+
 @dataclass
 class Team:
     """
@@ -122,7 +141,7 @@ class AnnotationClass:
     name: str
 
     #: The type of this ``AnnotationClass``.
-    annotation_type: str
+    annotation_type: AnnotationType
 
     #: The V7 internal type of this ``AnnotationClass``.
     #: This is mostly used to convert from types that are known in the outside world by a given
