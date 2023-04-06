@@ -26,6 +26,7 @@ from darwin.importer.formats.superannotate_schemas import (
     classes_export,
     superannotate_export,
 )
+from darwin.utils import attempt_decode
 
 AttributeGroup = Dict[str, Union[str, int]]
 
@@ -108,16 +109,14 @@ def parse_path(path: Path) -> Optional[AnnotationFile]:
     with classes_path.open(encoding="utf-8") as classes_file:
         classes = json.loads(classes_file.read())
         validate(classes, schema=classes_export)
+    data = attempt_decode(path)
+    validate(data, schema=superannotate_export)
 
-    with path.open(encoding="utf-8") as annotation_file:
-        data = json.loads(annotation_file.read())
-        validate(data, schema=superannotate_export)
+    instances: List[Dict[str, Any]] = data.get("instances")
+    metadata: Dict[str, Any] = data.get("metadata")
+    tags: List[str] = data.get("tags")
 
-        instances: List[Dict[str, Any]] = data.get("instances")
-        metadata: Dict[str, Any] = data.get("metadata")
-        tags: List[str] = data.get("tags")
-
-        return _convert(instances, path, classes, metadata, tags)
+    return _convert(instances, path, classes, metadata, tags)
 
 
 def _convert(

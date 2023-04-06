@@ -17,6 +17,7 @@ from darwin.importer.formats.darwin import parse_path
 from darwin.utils import (
     SUPPORTED_EXTENSIONS,
     SUPPORTED_VIDEO_EXTENSIONS,
+    attempt_decode,
     is_unix_like_os,
 )
 
@@ -276,9 +277,7 @@ def get_coco_format_record(
         box_mode = BoxMode.XYXY_ABS
     except ImportError:
         box_mode = 0
-
-    with annotation_path.open(encoding="utf-8") as f:
-        data = json.loads(f.read())
+    data = attempt_decode(annotation_path)
     height, width = data["image"]["height"], data["image"]["width"]
     annotations = data["annotations"]
 
@@ -469,8 +468,7 @@ def get_annotations(
             )
     elif annotation_format == "darwin":
         for annotation_path in annotations_paths:
-            with annotation_path.open(encoding="utf-8") as f:
-                record = json.loads(f.read())
+            record = attempt_decode(annotation_path)
             yield record
 
 
@@ -556,14 +554,13 @@ def compute_max_density(annotations_dir: Path) -> int:
     max_density = 0
     for annotation_path in annotations_dir.glob("**/*.json"):
         annotation_density = 0
-        with open(annotation_path, encoding="utf-8") as f:
-            darwin_json = json.loads(f.read())
-            for annotation in darwin_json["annotations"]:
-                if "polygon" not in annotation and "complex_polygon" not in annotation:
-                    continue
-                annotation_density += 1
-            if annotation_density > max_density:
-                max_density = annotation_density
+        darwin_json = attempt_decode(annotation_path)
+        for annotation in darwin_json["annotations"]:
+            if "polygon" not in annotation and "complex_polygon" not in annotation:
+                continue
+            annotation_density += 1
+        if annotation_density > max_density:
+            max_density = annotation_density
     return max_density
 
 

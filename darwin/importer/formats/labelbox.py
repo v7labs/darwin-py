@@ -18,6 +18,7 @@ from darwin.datatypes import (
     make_tag,
 )
 from darwin.importer.formats.labelbox_schemas import labelbox_export
+from darwin.utils import attempt_decode
 
 
 def parse_path(path: Path) -> Optional[List[AnnotationFile]]:
@@ -85,13 +86,11 @@ def parse_path(path: Path) -> Optional[List[AnnotationFile]]:
     """
     if path.suffix != ".json":
         return None
+    data = attempt_decode(path)
+    validate(data, schema=labelbox_export)
+    convert_with_path = partial(_convert, path=path)
 
-    with path.open(encoding="utf-8") as f:
-        data = json.loads(f.read())
-        validate(data, schema=labelbox_export)
-        convert_with_path = partial(_convert, path=path)
-
-        return _map_list(convert_with_path, data)
+    return _map_list(convert_with_path, data)
 
 
 def _convert(file_data: Dict[str, Any], path) -> AnnotationFile:

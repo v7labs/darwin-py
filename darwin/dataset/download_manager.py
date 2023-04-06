@@ -19,6 +19,7 @@ import darwin.datatypes as dt
 from darwin.dataset.utils import sanitize_filename
 from darwin.datatypes import AnnotationFile
 from darwin.utils import (
+    attempt_decode,
     get_response_content,
     has_json_content_type,
     is_image_extension_allowed,
@@ -314,13 +315,12 @@ def _update_local_path(annotation: AnnotationFile, url, local_path):
         return
 
     # we modify raw json, as internal representation does't store all the data
-    with annotation.path.open(encoding="utf-8") as file:
-        raw_annotation = json.loads(file.read())
+    raw_annotation = attempt_decode(annotation.path)
 
-        for slot in raw_annotation["item"]["slots"]:
-            for source_file in slot["source_files"]:
-                if source_file["url"] == url:
-                    source_file["local_path"] = str(local_path)
+    for slot in raw_annotation["item"]["slots"]:
+        for source_file in slot["source_files"]:
+            if source_file["url"] == url:
+                source_file["local_path"] = str(local_path)
 
     with annotation.path.open(mode="w") as file:
         op = json.dumps(raw_annotation, json.OPT_INDENT_2).decode("utf-8")
@@ -355,8 +355,7 @@ def download_image_from_json_annotation(
     video_frames : bool
         Pulls video frames images instead of video files
     """
-    with annotation_path.open(encoding="utf-8") as file:
-        annotation = json.loads(file.read())
+    annotation = attempt_decode(annotation_path)
 
     # If we are using folders, extract the path for the image and create the folder if needed
     sub_path = annotation["image"].get("path", "/") if use_folders else "/"

@@ -14,6 +14,7 @@ from typing import (
     List,
     Optional,
     Set,
+    Tuple,
     Union,
     cast,
 )
@@ -34,6 +35,7 @@ from darwin.exceptions import (
     MissingSchema,
     OutdatedDarwinJSONFormat,
     UnknownAnnotationFileSchema,
+    UnrecognizableFileEncoding,
     UnsupportedFileType,
 )
 from darwin.version import __version__
@@ -389,9 +391,26 @@ def validate_data_against_schema(data) -> List:
     return errors
 
 
-def load_data_from_file(path: Path):
-    with path.open(encoding="utf-8") as infile:
-        data = json.loads(infile.read())
+def attempt_decode(path: Path) -> dict:
+    try:
+        with path.open() as infile:
+            data = json.loads(infile.read())
+        return data
+    except Exception:
+        pass
+    encodings = ["utf-8", "utf-16", "utf-32", "ascii"]
+    for encoding in encodings:
+        try:
+            with path.open(encoding=encoding) as infile:
+                data = json.loads(infile.read())
+            return data
+        except Exception:
+            continue
+    raise UnrecognizableFileEncoding(f"Unable to load file {path} with any encodings: {encodings}")
+
+
+def load_data_from_file(path: Path) -> Tuple[dict, dt.AnnotationFileVersion]:
+    data = attempt_decode(path)
     version = _parse_version(data)
     return data, version
 
@@ -1055,7 +1074,7 @@ def get_response_content(response: Response) -> Any:
         return response.text
 
 
-def _parse_version(data) -> dt.AnnotationFileVersion:
+def _parse_version(data: dict) -> dt.AnnotationFileVersion:
     version_string = data.get("version", "1.0")
     major, minor, suffix = re.findall(r"^(\d+)\.(\d+)(.*)$", version_string)[0]
     return dt.AnnotationFileVersion(int(major), int(minor), suffix)
@@ -1071,9 +1090,9 @@ def _data_to_annotations(data: Dict[str, Any]) -> List[Union[dt.Annotation, dt.V
     return [*image_annotations, *video_annotations]
 
 
-def _supported_schema_versions():
+def _supported_schema_versions() -> Dict[Tuple[int, int, str], str]:
     return {(2, 0, ""): "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json"}
 
 
-def _default_schema(version: dt.AnnotationFileVersion):
+def _default_schema(version: dt.AnnotationFileVersion) -> Optional[str]:
     return _supported_schema_versions().get((version.major, version.minor, version.suffix))

@@ -38,15 +38,14 @@ def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
         return None
 
     encodings = ["system_default", "utf-32", "utf-16", "utf-8", "ascii"]
-    while True:
+    for encoding in encodings:
         try:
-            if encodings:
-                return _decode_file(encodings.pop(0), path)
-            raise UnrecognizableFileEncoding(
-                f"Could not decode file {path}. Encodings tried: system_default, utf-32, utf-16, utf-8, ascii."
-            )
+            return _decode_file(encoding, path)
         except UnicodeDecodeError:
             continue
+    raise UnrecognizableFileEncoding(
+        f"Could not decode file {path}. Encodings tried: system_default, utf-32, utf-16, utf-8, ascii."
+    )
 
 
 def parse_json(path: Path, data: Dict[str, Any]) -> Iterator[dt.AnnotationFile]:
@@ -171,11 +170,10 @@ def _decode_file(current_encoding: str, path: Path):
     if current_encoding == "system_default":
         with path.open() as f:
             data = json.loads(f.read())
-            return list(parse_json(path, data))
     else:
         with path.open(encoding=current_encoding) as f:
             data = json.loads(f.read())
-            return list(parse_json(path, data))
+    return list(parse_json(path, data))
 
 
 @deprecation.deprecated(
