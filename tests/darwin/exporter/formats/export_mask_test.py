@@ -8,6 +8,7 @@ import pytest
 from numpy.testing import assert_array_equal
 from numpy.typing import NDArray
 from PIL import Image
+from upolygon import draw_polygon
 
 from darwin import datatypes as dt
 from darwin.exporter.formats.mask import (
@@ -285,7 +286,7 @@ def test_render_polygons() -> None:
 
     this_file_dir = Path(__file__).parent
     expected_data_path = (this_file_dir / ".." / ".." / "data").resolve()
-    expected_mask: NDArray = np.array(np.fromfile(expected_data_path / "expected_mask.dat", dtype=np.uint8)).reshape(  # type: ignore
+    expected_mask: NDArray = np.array(np.fromfile(expected_data_path / "expected_mask.bin", dtype=np.uint8)).reshape(  # type: ignore
         (100, 100)
     )
 
@@ -372,9 +373,17 @@ RED = [255, 0, 0]
 GREEN = [0, 255, 0]
 BLUE = [0, 0, 255]
 BLACK = [0, 0, 0]
-colours_for_test: Callable[[], dt.MaskTypes.RgbColors] = lambda: [*RED, *GREEN, *BLUE]
+colours_for_test: Callable[[], dt.MaskTypes.RgbColors] = lambda: [*BLACK, *RED, *GREEN, *BLUE]
 colour_list_for_test: Callable[[], dt.MaskTypes.ColoursDict] = lambda: {"mask1": 0, "mask2": 1, "mask3": 2}
 data_path = (Path(__file__).parent / ".." / ".." / "data").resolve()
+
+
+def polygon_shape() -> NDArray:
+    return np.fromfile(data_path / "expected_mask.bin", dtype=np.uint8).reshape((100, 100))  # type: ignore
+
+
+def raster_shape() -> NDArray:
+    return np.array(np.repeat([0, 1, 2, 3], 25), dtype=np.uint8).reshape(10, 10)  # type: ignore
 
 
 @pytest.mark.parametrize(
@@ -385,7 +394,7 @@ data_path = (Path(__file__).parent / ".." / ".." / "data").resolve()
             "raster",
             (
                 [],
-                np.array(np.repeat([0, 1, 2], 34)[:100], dtype=np.uint8).reshape(10, 10),
+                raster_shape(),
                 ["class1", "class2", "class3"],
                 {"class1": 1, "class2": 2, "class3": 3},
             ),
@@ -397,7 +406,7 @@ data_path = (Path(__file__).parent / ".." / ".." / "data").resolve()
             "raster",
             (
                 [],
-                np.array(np.repeat([0, 1, 2], 34)[:100], dtype=np.uint8).reshape(10, 10),
+                raster_shape(),
                 ["class1", "class2", "class3"],
                 {"class1": 1, "class2": 2, "class3": 3},
             ),
@@ -409,15 +418,50 @@ data_path = (Path(__file__).parent / ".." / ".." / "data").resolve()
             "raster",
             (
                 [],
-                np.array(np.repeat([0, 1, 2], 34)[:100], dtype=np.uint8).reshape(10, 10),
+                raster_shape(),
                 ["class1", "class2", "class3"],
                 {"class1": 1, "class2": 2, "class3": 3},
             ),
             data_path / "expected_image_index.png",
             data_path / "expected_classes_index.csv",
         ),
+        (
+            "rgb",
+            "polygon",
+            (
+                [],
+                polygon_shape(),
+                ["class1", "class2", "class3"],
+                {"class1": 1, "class2": 2, "class3": 3},
+            ),
+            data_path / "expected_polygons_image_rgb.png",
+            data_path / "expected_classes_rgb.csv",
+        ),
+        (
+            "grey",
+            "polygon",
+            (
+                [],
+                polygon_shape(),
+                ["class1", "class2", "class3"],
+                {"class1": 1, "class2": 2, "class3": 3},
+            ),
+            data_path / "expected_polygons_image_grey.png",
+            data_path / "expected_classes_grey.csv",
+        ),
+        (
+            "index",
+            "polygon",
+            (
+                [],
+                polygon_shape(),
+                ["class1", "class2", "class3"],
+                {"class1": 1, "class2": 2, "class3": 3},
+            ),
+            data_path / "expected_polygons_image_index.png",
+            data_path / "expected_classes_index.csv",
+        ),
     ],
-    # TODO: Polygon mode tests for happy paths
 )
 def test_export(
     colour_mode: dt.MaskTypes.Mode,
@@ -450,19 +494,21 @@ def test_export(
         if colour_mode == "rgb":
             mock_get_rgb_colours.return_value = (
                 colours_for_test(),
-                {"class1": [255, 0, 0], "class2": [0, 255, 0], "class3": [0, 0, 255]},
+                {"__background": [0, 0, 0], "class1": [255, 0, 0], "class2": [0, 255, 0], "class3": [0, 0, 255]},
             )
 
         if colour_mode == "rgb" or colour_mode == "index":
             mock_get_palette.return_value = {
-                "class1": 0,
-                "class2": 1,
-                "class3": 2,
+                "__background__": 0,
+                "class1": 1,
+                "class2": 2,
+                "class3": 3,
             }
         else:
             mock_get_palette.return_value = {
-                "class1": 0,
-                "class2": 127,
+                "__background__": 0,
+                "class1": 85,
+                "class2": 170,
                 "class3": 255,
             }
 
