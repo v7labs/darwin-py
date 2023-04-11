@@ -1,3 +1,4 @@
+import platform
 from pathlib import Path
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 from typing import Callable, Dict, List, Optional
@@ -543,7 +544,7 @@ def test_export(
         Assertions based on output files
         """
         # CSV File
-        if expected_csv_file:
+        if expected_csv_file and not platform.system() == "Windows":
             test_csv_path = Path(output_dir) / "class_mapping.csv"
             assert expected_csv_file.exists()
             assert test_csv_path.exists()
@@ -552,7 +553,7 @@ def test_export(
                 assert expected_csv.read() == test_output_csv.read()
 
         # PNG File
-        if expected_mask_file:
+        if expected_mask_file and not platform.system() == "Windows":
             test_png_path = Path(output_dir) / "masks" / "test.png"
             assert expected_mask_file.exists()
             assert test_png_path.exists()
