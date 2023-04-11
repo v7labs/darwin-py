@@ -1110,9 +1110,9 @@ class MaskTypes:
     UndecodedRLE = List[int]
     DecodedRLE = List[List[int]]
     ColoursDict = Dict[str, int]
-    RgbColors = list[int]
-    HsvColors = list[Tuple[float, float, float]]
-    RgbColorList = list[RgbColors]
+    RgbColors = List[int]
+    HsvColors = List[Tuple[float, float, float]]
+    RgbColorList = List[RgbColors]
     RgbPalette = Dict[str, RgbColors]
 
     RendererReturn = Tuple[ExceptionList, NDArray, CategoryList, ColoursDict]
