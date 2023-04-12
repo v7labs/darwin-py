@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Set, Tuple
 
 import numpy as np
+
 from darwin.dataset.utils import extract_classes, get_release_path
 from darwin.datatypes import PathLike
 

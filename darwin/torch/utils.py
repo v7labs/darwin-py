@@ -4,12 +4,44 @@ from pathlib import Path
 from typing import Iterable, List, Optional, Tuple
 
 import numpy as np
+import torch
+from upolygon import draw_polygon
+
 from darwin.cli_functions import _error, _load_client
 from darwin.dataset.identifier import DatasetIdentifier
 from darwin.datatypes import Segment
-from upolygon import draw_polygon
 
-import torch
+
+def flatten_masks_by_category(masks: torch.Tensor, cats: List[int]) -> torch.Tensor:
+    """
+    Takes a list of masks and flattens into a single mask output with category id's overlaid into one tensor.
+    Overlapping sections of masks are replaced with the top most annotation in that position
+    Parameters
+    ----------
+    masks : torch.Tensor
+        lists of masks with shape [x, image_height, image_width] where x is the number of categories
+    cats : List[int]
+        int list of category id's with len(x)
+    Returns
+    -------
+    torch.Tensor
+        Flattened mask of category id's
+    """
+    assert isinstance(masks, torch.Tensor)
+    assert isinstance(cats, List)
+    assert masks.shape[0] == len(cats)
+    order_of_polygons = [i for i in range(1, len(cats) + 1)]
+    polygon_mapping = {order: cat for cat, order in zip(cats, order_of_polygons)}
+    BACKGROUND: int = 0
+    polygon_mapping[BACKGROUND] = 0
+    # Uses matrix multiplication here with `masks` being a binary array of same dimensions as image
+    # and polygon orders being overlaid onto the relevant mask
+    order_tensor = torch.as_tensor(order_of_polygons, dtype=masks.dtype)
+    flattened, _ = (masks * order_tensor[:, None, None]).max(dim=0)
+    # The mask is now flattened in order of the polygons but needs to be converted back to the categories
+    # vectorize the dictionary to return the original category id's
+    mapped = np.vectorize(polygon_mapping.__getitem__)(flattened)
+    return torch.as_tensor(mapped, dtype=masks.dtype)
 
 
 def convert_segmentation_to_mask(segmentations: List[Segment], height: int, width: int) -> torch.Tensor:

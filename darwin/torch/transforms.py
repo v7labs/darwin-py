@@ -1,12 +1,13 @@
 import random
 from typing import Any, Dict, Optional, Tuple, Union
 
+import torch
 import torchvision.transforms as transforms
 import torchvision.transforms.functional as F
-from darwin.torch.utils import convert_segmentation_to_mask
 from PIL import Image as PILImage
 
-import torch
+from darwin.torch.utils import convert_segmentation_to_mask, flatten_masks_by_category
+
 
 TargetKey = Union["boxes", "labels", "mask", "masks", "image_id", "area", "iscrowd"]
 TargetType = Dict[TargetKey, torch.Tensor]
@@ -246,12 +247,10 @@ class ConvertPolygonsToSemanticMask(object):
         cats = [obj["category_id"] for obj in annotations]
         if segmentations:
             masks = convert_segmentation_to_mask(segmentations, h, w)
-            cats = torch.as_tensor(cats, dtype=masks.dtype)
             # merge all instance masks into a single segmentation map
             # with its corresponding categories
-            mask, _ = (masks * cats[:, None, None]).max(dim=0)
-            # discard overlapping instances
-            mask[masks.sum(0) > 1] = 255
+            mask = flatten_masks_by_category(masks, cats)
+
         else:
             mask = torch.zeros((h, w), dtype=torch.uint8)
 
@@ -271,12 +270,10 @@ class ConvertPolygonToMask(object):
         cats = [obj["category_id"] for obj in annotation]
         if segmentations:
             masks = convert_segmentation_to_mask(segmentations, h, w)
-            cats = torch.as_tensor(cats, dtype=masks.dtype)
             # merge all instance masks into a single segmentation map
             # with its corresponding categories
-            target, _ = (masks * cats[:, None, None]).max(dim=0)
-            # discard overlapping instances
-            target[masks.sum(0) > 1] = 255
+            target = flatten_masks_by_category(masks, cats)
+
         else:
             target = torch.zeros((h, w), dtype=torch.uint8)
         target = PILImage.fromarray(target.numpy())

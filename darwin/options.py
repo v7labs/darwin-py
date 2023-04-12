@@ -1,6 +1,6 @@
 import sys
 from argparse import ArgumentParser, Namespace
-from typing import Tuple
+from typing import Any, Optional, Tuple
 
 import argcomplete
 
@@ -195,7 +195,8 @@ class Options:
         parser_pull.add_argument(
             "--force-slots",
             action="store_true",
-            help="Forces pull of all slots of items into deeper file structure ({prefix}/{item_name}/{slot_name}/{file_name}). If your dataset includes items with multiple slots, or multiple source files per slot, this option becomes implicitly enabled.",
+            help="Forces pull of all slots of items into deeper file structure ({prefix}/{item_name}/{slot_name}/{file_name}). "
+            + "If your dataset includes items with multiple slots, or multiple source files per slot, this option becomes implicitly enabled.",
         )
 
         # Import
@@ -222,9 +223,36 @@ class Options:
             action="store_true",
             help="Empty annotations will delete annotations from remote files.",
         )
+        parser_import.add_argument(
+            "--import-annotators",
+            action="store_true",
+            help="Import annotators metadata from the annotation files, where available",
+        )
+        parser_import.add_argument(
+            "--import-reviewers",
+            action="store_true",
+            help="Import reviewers metadata from the annotation files, where available",
+        )
+
+        # Cpu limit for multiprocessing tasks
+        def cpu_default_types(input: Any) -> Optional[int]:  # type: ignore
+            try:
+                return int(input)
+            except TypeError:
+                return None
+
+        parser_import.add_argument(
+            "--cpu-limit",
+            "--cpu_limit",
+            type=cpu_default_types,
+            required=False,
+            default=1,
+            help="Limits amount of cores used on machine to process results, default to single core",
+        )
 
         # Convert
         parser_convert = dataset_action.add_parser("convert", help="Converts darwin json to other annotation formats.")
+
         parser_convert.add_argument(
             "dataset",
             type=str,

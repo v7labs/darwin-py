@@ -188,6 +188,8 @@ class Client:
                 )
         if not matching_datasets:
             raise NotFound(str(parsed_dataset_identifier))
+        if parsed_dataset_identifier.version:
+            matching_datasets[0].release = parsed_dataset_identifier.version
         return matching_datasets[0]
 
     def create_dataset(self, name: str, team_slug: Optional[str] = None) -> RemoteDataset:
@@ -227,7 +229,6 @@ class Client:
                 progress=0,
                 client=self,
             )
-        end
 
     def archive_remote_dataset(self, dataset_id: int, team_slug: str) -> None:
         """

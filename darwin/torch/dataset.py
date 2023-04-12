@@ -1,6 +1,11 @@
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
+import torch
+from PIL import Image as PILImage
+from torch.functional import Tensor
+from torchvision.transforms.functional import to_tensor
+
 from darwin.cli_functions import _error, _load_client
 from darwin.client import Client
 from darwin.dataset import LocalDataset
@@ -12,11 +17,6 @@ from darwin.torch.transforms import (
 )
 from darwin.torch.utils import polygon_area
 from darwin.utils import convert_polygons_to_sequences
-from PIL import Image as PILImage
-from torchvision.transforms.functional import to_tensor
-
-import torch
-from torch.functional import Tensor
 
 
 def get_dataset(
@@ -154,13 +154,14 @@ class ClassificationDataset(LocalDataset):
         annotations = data.pop("annotations")
         tags = [a.annotation_class.name for a in annotations if a.annotation_class.annotation_type == "tag"]
 
-        assert len(tags) >= 1, f"No tags were found for index={index}"
+        if not self.is_multi_label:
+            # Binary or multiclass must have a label per image
+            assert len(tags) >= 1, f"No tags were found for index={index}"
+            target: Tensor = torch.tensor(self.classes.index(tags[0]))
 
-        target: Tensor = torch.tensor(self.classes.index(tags[0]))
-
-        if self.is_multi_label:
+        else:
             target = torch.zeros(len(self.classes))
-            # one hot encode all the targets
+            # one hot encode all the targets, all zeros if the image/frame is without tag
             for tag in tags:
                 idx = self.classes.index(tag)
                 target[idx] = 1
@@ -391,7 +392,9 @@ class SemanticSegmentationDataset(LocalDataset):
     def __init__(self, transform: Optional[Union[List[Callable], Callable]] = None, **kwargs):
 
         super().__init__(annotation_type="polygon", **kwargs)
-
+        if not "__background__" in self.classes:
+            self.classes.insert(0, "__background__")
+            self.num_classes += 1
         if transform is not None and isinstance(transform, list):
             transform = Compose(transform)
 
@@ -468,8 +471,12 @@ class SemanticSegmentationDataset(LocalDataset):
                 sequences[:] = [s for s in sequences if len(s) >= 6]
                 if not sequences:
                     continue
+
                 annotations.append(
-                    {"category_id": self.classes.index(obj.annotation_class.name), "segmentation": sequences}
+                    {
+                        "category_id": self.classes.index(obj.annotation_class.name),
+                        "segmentation": sequences,
+                    }
                 )
         target["annotations"] = annotations
 
@@ -487,7 +494,9 @@ class SemanticSegmentationDataset(LocalDataset):
             Weight for each class in the train set (one for each class) as a 1D array normalized.
         """
         # Collect all the labels by iterating over the whole dataset
-        labels = []
+        # specifically add in the background class as it won't be an annotation to include
+        BACKGROUND_CLASS: int = 0
+        labels = [BACKGROUND_CLASS]
         for i, _ in enumerate(self.images_path):
             target = self.get_target(i)
             labels.extend([a["category_id"] for a in target["annotations"]])
