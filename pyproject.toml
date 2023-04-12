@@ -30,7 +30,7 @@ jsonschema = ">=4.0.0"
 deprecation = "^2.1.0"
 pydantic = "^1.10.4"
 orjson = "^3.8.5"
-numpy = "<=1.23.0"
+numpy = "*"
 toml = "^0.10.2"
 nibabel = {version = "^5.0.0", extras = ["medical"], python = ">=3.8.1"}
 connected-components-3d = {version = "^3.10.3", extras = ["medical"]}
