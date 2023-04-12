@@ -717,15 +717,15 @@ def _parse_darwin_raster_annotation(annotation: dict) -> Optional[dt.Annotation]
     if not id or not name or not raster_layer or not slot_names:
         raise ValueError("Raster annotation must have an 'id', 'name', 'slot_names' and 'raster_layer' field")
 
-    dense_rle, mask_annotations_ids_mapping, total_pixels = (
+    dense_rle, mask_annotation_ids_mapping, total_pixels = (
         raster_layer.get("dense_rle", None),
-        raster_layer.get("mask_annotations_ids_mapping", None),
+        raster_layer.get("mask_annotation_ids_mapping", None),
         raster_layer.get("total_pixels", None),
     )
 
-    if not dense_rle or not mask_annotations_ids_mapping or not total_pixels:
+    if not dense_rle or not mask_annotation_ids_mapping or not total_pixels:
         raise ValueError(
-            "Raster annotation must have a 'dense_rle', 'mask_annotations_ids_mapping' and 'total_pixels' field"
+            "Raster annotation must have a 'dense_rle', 'mask_annotation_ids_mapping' and 'total_pixels' field"
         )
 
     new_annotation = dt.Annotation(
@@ -735,7 +735,7 @@ def _parse_darwin_raster_annotation(annotation: dict) -> Optional[dt.Annotation]
             "name": name,
             "raster_layer": {
                 "dense_rle": dense_rle,
-                "mask_annotations_ids_mapping": mask_annotations_ids_mapping,
+                "mask_annotation_ids_mapping": mask_annotation_ids_mapping,
                 "total_pixels": total_pixels,
             },
         },

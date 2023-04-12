@@ -737,7 +737,7 @@ def describe__parse_darwin_raster_annotation() -> None:
             "name": "my_raster_annotation",
             "raster_layer": {
                 "dense_rle": "ABCD",
-                "mask_annotations_ids_mapping": {"1": 1},
+                "mask_annotation_ids_mapping": {"1": 1},
                 "total_pixels": 100,
             },
             "slot_names": ["0"],
@@ -753,7 +753,7 @@ def describe__parse_darwin_raster_annotation() -> None:
         assert annotation.annotation_class.annotation_type == "raster_layer"
 
         assert annotation.data["raster_layer"]["dense_rle"] == "ABCD"
-        assert annotation.data["raster_layer"]["mask_annotations_ids_mapping"] == {"1": 1}
+        assert annotation.data["raster_layer"]["mask_annotation_ids_mapping"] == {"1": 1}
         assert annotation.data["raster_layer"]["total_pixels"] == 100
 
     # Sad paths
@@ -766,7 +766,7 @@ def describe__parse_darwin_raster_annotation() -> None:
         with pytest.raises(ValueError):
             _parse_darwin_raster_annotation(annotation)
 
-    @pytest.mark.parametrize("parameter_name", ["dense_rle", "mask_annotations_ids_mapping", "total_pixels"])
+    @pytest.mark.parametrize("parameter_name", ["dense_rle", "mask_annotation_ids_mapping", "total_pixels"])
     def it_raises_value_error_for_missing_raster_layer_fields(
         good_raster_annotation: dt.JSONFreeForm, parameter_name: str
     ) -> None:

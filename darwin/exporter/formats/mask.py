@@ -110,6 +110,9 @@ def get_render_mode(annotations: List[dt.AnnotationLike]) -> dt.MaskTypes.TypeOf
     """
     non_video_annotations: List[dt.Annotation] = [a for a in annotations if not isinstance(a, dt.VideoAnnotation)]
 
+    if not non_video_annotations:
+        raise ValueError("No suitable annotations found in file.")
+
     list_of_keys: List[str] = reduce(list.__add__, [list(a.data.keys()) for a in non_video_annotations])
     keys: Set[str] = set(list_of_keys)
 
@@ -155,7 +158,7 @@ def colours_in_rle(
     dt.MaskTypes.ColoursDict
         A dictionary of colours for each mask in the given RLE.
     """
-    for uuid, colour_value in raster_layer.mask_mappings.items():
+    for uuid, colour_value in raster_layer.mask_annotation_ids_mapping.items():
         mask: Optional[dt.AnnotationMask] = mask_lookup.get(uuid)
 
         if mask is None:
@@ -342,8 +345,8 @@ def render_raster(
             new_rl = dt.RasterLayer(
                 rle=rl["dense_rle"],
                 decoded=rle_decode(rl["dense_rle"]),  # type: ignore
-                slot_names=data["slot_names"],
-                mask_mappings=rl["mask_mappings"],
+                slot_names=a.slot_names,
+                mask_annotation_ids_mapping=rl["mask_annotation_ids_mapping"],
                 total_pixels=rl["total_pixels"],
             )
             new_rl.validate()
@@ -395,12 +398,12 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path, mode
         annotations: List[dt.AnnotationLike] = [
             a
             for a in annotation_file.annotations
-            if a.annotation_class in ["polygon", "complex_polygon", "raster", "mask"]
+            if a.annotation_class.annotation_type in ["polygon", "complex_polygon", "raster_layer", "mask"]
         ]
 
-        type = get_render_mode(annotations)
+        render_type = get_render_mode(annotations)
 
-        if type == "raster":
+        if render_type == "raster":
             # Add categories to list
             errors, mask, categories, colours = render_raster(
                 mask, colours, categories, annotations, annotation_file, height, width
@@ -441,7 +444,7 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path, mode
         writer.writerow(["class_name", "class_color"])
 
         if "__background__" in categories:
-            categories.pop("__background__")  # type: ignore
+            categories.pop(categories.index("__background__"))  # type: ignore
 
         for c in categories:
             if mode == "rgb":

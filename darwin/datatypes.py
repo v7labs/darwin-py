@@ -1137,7 +1137,7 @@ class AnnotationMask:
 class RasterLayer:
     rle: MaskTypes.UndecodedRLE
     decoded: MaskTypes.DecodedRLE
-    mask_mappings: Dict[str, int]
+    mask_annotation_ids_mapping: Dict[str, int]
     slot_names: List[str] = field(default_factory=list)
     total_pixels: int = 0
 
@@ -1146,8 +1146,8 @@ class RasterLayer:
             raise ValueError("RasterLayer rle cannot be empty")
         if not self.decoded:
             raise ValueError("RasterLayer decoded cannot be empty")
-        if not self.mask_mappings:
-            raise ValueError("RasterLayer mask_mappings cannot be empty")
+        if not self.mask_annotation_ids_mapping:
+            raise ValueError("RasterLayer mask_annotation_ids_mapping cannot be empty")
         if not self.slot_names:
             raise ValueError("RasterLayer must be associated with at least one slot")
         if not self.total_pixels and not self.total_pixels > 0:

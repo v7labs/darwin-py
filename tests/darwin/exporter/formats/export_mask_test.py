@@ -185,7 +185,7 @@ def colours() -> dt.MaskTypes.ColoursDict:
 
 @pytest.fixture
 def raster_layer() -> dt.RasterLayer:
-    return dt.RasterLayer([], [], mask_mappings={"uuid1": 3, "uuid2": 4})
+    return dt.RasterLayer([], [], mask_annotation_ids_mapping={"uuid1": 3, "uuid2": 4})
 
 
 @pytest.fixture
@@ -307,14 +307,20 @@ def test_render_raster() -> None:
         dt.Annotation(
             dt.AnnotationClass("mask1", "mask"),
             {"id": "mask1", "name": "mask1", "slot_names": ["slot1"], "mask": {"sparse_rle": None}},
+            [],
+            ["slot1"],
         ),
         dt.Annotation(
             dt.AnnotationClass("mask2", "mask"),
             {"id": "mask2", "name": "mask2", "slot_names": ["slot1"], "mask": {"sparse_rle": None}},
+            [],
+            ["slot1"],
         ),
         dt.Annotation(
             dt.AnnotationClass("mask3", "mask"),
             {"id": "mask3", "name": "mask3", "slot_names": ["slot1"], "mask": {"sparse_rle": None}},
+            [],
+            ["slot1"],
         ),
         dt.Annotation(
             dt.AnnotationClass("raster", "raster_layer"),
@@ -325,10 +331,11 @@ def test_render_raster() -> None:
                 "raster_layer": {
                     "dense_rle": "my_rle_data",
                     "decoded": rle_code,
-                    "mask_mappings": {"mask1": 0, "mask2": 1, "mask3": 2},
+                    "mask_annotation_ids_mapping": {"mask1": 0, "mask2": 1, "mask3": 2},
                     "total_pixels": 10000,
                 },
             },
+            slot_names=["slot1"],
         ),
     ]
     annotation_file = dt.AnnotationFile(
