@@ -8,7 +8,7 @@ from typing import Dict, Iterable, List, Literal, Optional, Set, Tuple, get_args
 import numpy as np
 from numpy.typing import NDArray
 from PIL import Image
-from upolygon import draw_polygon, rle_decode
+from upolygon import draw_polygon
 
 import darwin.datatypes as dt
 from darwin.exceptions import DarwinException
@@ -170,23 +170,31 @@ def colours_in_rle(
     return colours  # Returns same item as the outset, technically not needed, but best practice.
 
 
-# def rle_decode(rle: dt.MaskTypes.UndecodedRLE) -> dt.MaskTypes.DecodedRLE:
-#     """Decodes a run-length encoded list of integers.
+def rle_decode(rle: dt.MaskTypes.UndecodedRLE) -> NDArray[np.uint8]:
+    """
+    Decodes a run-length encoded list of integers.
 
-#     Args:
-#         rle (List[int]): A run-length encoded list of integers.
+    Parameters
+    ----------
+    rle: dt.MaskTypes.UndecodedRLE
+        A run-length encoded list of integers.
 
-#     Returns:
-#         List[int]: The decoded list of integers.
-#     """
-#     if len(rle) % 2 != 0:
-#         raise ValueError("RLE must be a list of pairs of integers.")
+    Returns
+    -------
+    NDArray[np.uint8]
+        The decoded list of integers.
+    """
+    x = np.array(rle)
+    if x.size % 2 != 0:
+        raise ValueError("RLE must be a list of pairs of integers.")
 
-#     output: dt.MaskTypes.DecodedRLE = reduce(
-#         list.__add__, [[value] * count for value, count in [(rle[i], rle[i + 1]) for i in range(0, len(rle), 2)]]  # type: ignore
-#     )  # Non-verbose, but performant way of flattening a list of lists
+    output: NDArray[np.uint8]
 
-#     return output
+    counts = x[1::2]
+    values = x[::2]
+    output = np.repeat(values, counts)
+
+    return output.astype(np.uint8)
 
 
 def get_or_generate_colour(cat_name: str, colours: dt.MaskTypes.ColoursDict) -> int:
@@ -344,7 +352,7 @@ def render_raster(
 
             new_rl = dt.RasterLayer(
                 rle=rl["dense_rle"],
-                decoded=rle_decode(rl["dense_rle"], (height, width)),  # type: ignore
+                decoded=rle_decode(rl["dense_rle"]),
                 slot_names=a.slot_names,
                 mask_annotation_ids_mapping=rl["mask_annotation_ids_mapping"],
                 total_pixels=rl["total_pixels"],
@@ -422,7 +430,9 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path, mode
             raise DarwinException.from_multiple_exceptions(errors)
 
         # Map to palette
-        mask = np.array(mask, dtype=np.uint8)  # Final double check that type is using correct dtype
+        mask = np.array(mask, dtype=np.uint8).reshape(
+            height, width
+        )  # Final double check that type is using correct dtype
 
         palette = get_palette(mode, categories)
         if mode == "rgb":
