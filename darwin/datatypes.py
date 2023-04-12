@@ -1108,7 +1108,7 @@ class MaskTypes:
     CategoryList = List[str]
     ExceptionList = List[Exception]
     UndecodedRLE = List[int]
-    DecodedRLE = List[List[int]]
+    DecodedRLE = NDArray
     ColoursDict = Dict[str, int]
     RgbColors = List[int]
     HsvColors = List[Tuple[float, float, float]]

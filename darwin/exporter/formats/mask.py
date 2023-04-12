@@ -8,7 +8,7 @@ from typing import Dict, Iterable, List, Literal, Optional, Set, Tuple, get_args
 import numpy as np
 from numpy.typing import NDArray
 from PIL import Image
-from upolygon import draw_polygon
+from upolygon import draw_polygon, rle_decode
 
 import darwin.datatypes as dt
 from darwin.exceptions import DarwinException
@@ -170,23 +170,23 @@ def colours_in_rle(
     return colours  # Returns same item as the outset, technically not needed, but best practice.
 
 
-def rle_decode(rle: dt.MaskTypes.UndecodedRLE) -> dt.MaskTypes.DecodedRLE:
-    """Decodes a run-length encoded list of integers.
+# def rle_decode(rle: dt.MaskTypes.UndecodedRLE) -> dt.MaskTypes.DecodedRLE:
+#     """Decodes a run-length encoded list of integers.
 
-    Args:
-        rle (List[int]): A run-length encoded list of integers.
+#     Args:
+#         rle (List[int]): A run-length encoded list of integers.
 
-    Returns:
-        List[int]: The decoded list of integers.
-    """
-    if len(rle) % 2 != 0:
-        raise ValueError("RLE must be a list of pairs of integers.")
+#     Returns:
+#         List[int]: The decoded list of integers.
+#     """
+#     if len(rle) % 2 != 0:
+#         raise ValueError("RLE must be a list of pairs of integers.")
 
-    output: dt.MaskTypes.DecodedRLE = reduce(
-        list.__add__, [[value] * count for value, count in [(rle[i], rle[i + 1]) for i in range(0, len(rle), 2)]]  # type: ignore
-    )  # Non-verbose, but performant way of flattening a list of lists
+#     output: dt.MaskTypes.DecodedRLE = reduce(
+#         list.__add__, [[value] * count for value, count in [(rle[i], rle[i + 1]) for i in range(0, len(rle), 2)]]  # type: ignore
+#     )  # Non-verbose, but performant way of flattening a list of lists
 
-    return output
+#     return output
 
 
 def get_or_generate_colour(cat_name: str, colours: dt.MaskTypes.ColoursDict) -> int:
@@ -344,7 +344,7 @@ def render_raster(
 
             new_rl = dt.RasterLayer(
                 rle=rl["dense_rle"],
-                decoded=rle_decode(rl["dense_rle"]),  # type: ignore
+                decoded=rle_decode(rl["dense_rle"], (height, width)),  # type: ignore
                 slot_names=a.slot_names,
                 mask_annotation_ids_mapping=rl["mask_annotation_ids_mapping"],
                 total_pixels=rl["total_pixels"],
@@ -369,8 +369,7 @@ def render_raster(
     except Exception as e:
         errors.append(e)
 
-    rle_decoded = rle_decode(rle)
-    mask = np.array(rle_decoded, dtype=np.uint8).reshape(height, width)
+    mask = raster_layer.decoded
 
     return errors, mask, categories, colours
 
