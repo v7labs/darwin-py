@@ -324,7 +324,7 @@ def render_raster(
             new_mask = dt.AnnotationMask(
                 id=data["id"],
                 name=data["name"],
-                slot_names=data["slot_names"],
+                slot_names=a.slot_names,
             )
             new_mask.validate()
             mask_annotations.append(new_mask)
