@@ -170,7 +170,7 @@ def colours_in_rle(
     return colours  # Returns same item as the outset, technically not needed, but best practice.
 
 
-def rle_decode(rle: dt.MaskTypes.UndecodedRLE) -> dt.MaskTypes.DecodedRLE:
+def rle_decode(rle: dt.MaskTypes.UndecodedRLE) -> List[int]:
     """Decodes a run-length encoded list of integers.
 
     Args:
@@ -182,9 +182,9 @@ def rle_decode(rle: dt.MaskTypes.UndecodedRLE) -> dt.MaskTypes.DecodedRLE:
     if len(rle) % 2 != 0:
         raise ValueError("RLE must be a list of pairs of integers.")
 
-    output: dt.MaskTypes.DecodedRLE = reduce(
-        list.__add__, [[value] * count for value, count in [(rle[i], rle[i + 1]) for i in range(0, len(rle), 2)]]  # type: ignore
-    )  # Non-verbose, but performant way of flattening a list of lists
+    output = []
+    for i in range(0, len(rle), 2):
+        output += [rle[i]] * rle[i + 1]
 
     return output
 
