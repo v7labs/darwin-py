@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Callable, Dict, List, Optional, Union, overload
 
 import requests
-from pydantic import BaseModel, HttpUrl, parse_obj_as, validator
+from pydantic import BaseModel, validator
 from requests.adapters import HTTPAdapter, Retry
 
 from darwin.future.core.types.query import Query
@@ -84,7 +84,7 @@ class Page(BaseModel):
     detail: PageDetail
 
 
-class Cursor:
+class Cursor(ABC):
     """Abstract class for a cursor
 
     Attributes
