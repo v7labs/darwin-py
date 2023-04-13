@@ -2,14 +2,15 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, TypeVar, Union, overload
+from typing import Callable, Dict, List, Optional, Union, overload
 
 import requests
-from pydantic import BaseModel, HttpUrl, validator
+from pydantic import BaseModel, HttpUrl, parse_obj_as, validator
 from requests.adapters import HTTPAdapter, Retry
 
 from darwin.future.core.types.query import Query
 from darwin.future.data_objects.darwin_meta import Team
+from darwin.future.exceptions.client import NotFound, Unauthorized
 
 # HTTPMethod = TypeVar("HTTPMethod", bound=Callable[..., requests.Response])
 HTTPMethod = Union[Callable[[str], requests.Response], Callable[[str, dict], requests.Response]]
@@ -26,8 +27,17 @@ class Config(BaseModel):
     """
 
     api_key: Optional[str]
-    base_url: HttpUrl
+    base_url: str
     default_team: Optional[Team]
+
+    @validator("base_url")
+    def validate_base_url(cls, v: str) -> str:
+        v = v.strip()
+        if not v.endswith("/"):
+            v += "/"
+        assert v.startswith("http") or v.startswith("https"), "base_url must start with http or https"
+        assert v.count("/") >= 3, "base_url must contain at least 3 slashes"
+        return v
 
     def from_env(cls) -> Config:
         pass
@@ -35,11 +45,15 @@ class Config(BaseModel):
     def from_file(cls, path: Path) -> Config:
         pass
 
+    class Config:
+        validate_assignment = True
+
 
 class Result(BaseModel):
     """Default model for a result, to be extended by other models specific to the API"""
 
-    pass
+    def from_json(cls, json: dict) -> Result:
+        pass
 
 
 class PageDetail(BaseModel):
@@ -147,6 +161,8 @@ class Client:
             response = method(url, payload)
         else:
             response = method(url)
+
+        raise_for_darwin_exception(response)
         response.raise_for_status()
 
         return response.json()
@@ -173,7 +189,7 @@ class Client:
         return endpoint.strip().strip("/")
 
 
-def raise_for_darwin(response: requests.Response) -> None:
+def raise_for_darwin_exception(response: requests.Response) -> None:
     """Raises an exception if the response is not 200
 
     Parameters
