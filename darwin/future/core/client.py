@@ -12,7 +12,6 @@ from darwin.future.core.types.query import Query
 from darwin.future.data_objects.darwin_meta import Team
 from darwin.future.exceptions.client import NotFound, Unauthorized
 
-# HTTPMethod = TypeVar("HTTPMethod", bound=Callable[..., requests.Response])
 HTTPMethod = Union[Callable[[str], requests.Response], Callable[[str, dict], requests.Response]]
 
 
