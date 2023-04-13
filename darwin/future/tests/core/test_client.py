@@ -1,5 +1,4 @@
 import unittest
-from urllib.parse import urlparse
 
 import pytest
 import responses
