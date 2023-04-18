@@ -449,9 +449,6 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path, mode
         writer = csv_writer(f)
         writer.writerow(["class_name", "class_color"])
 
-        if "__background__" in categories:
-            categories.pop(categories.index("__background__"))  # type: ignore
-
         for c in categories:
             if mode == "rgb":
                 writer.writerow([c, f"{palette_rgb[c][0]} {palette_rgb[c][1]} {palette_rgb[c][2]}"])
