@@ -82,7 +82,11 @@ def get_rgb_colours(categories: dt.MaskTypes.CategoryList) -> Tuple[dt.MaskTypes
     num_categories: int = len(categories)
 
     # Generate HSV colours for all classes except for BG
-    hsv_colours: dt.MaskTypes.HsvColors = [(x / num_categories, 0.8, 1.0) for x in range(num_categories - 1)]
+    SATURATION_OF_COLOUR: float = 0.8
+    VALUE_OF_COLOUR: float = 1.0
+    hsv_colours: dt.MaskTypes.HsvColors = [
+        (x / num_categories, SATURATION_OF_COLOUR, VALUE_OF_COLOUR) for x in range(num_categories - 1)
+    ]
     rgb_colour_list: dt.MaskTypes.RgbColorList = list(
         map(lambda x: [int(e * 255) for e in colorsys.hsv_to_rgb(*x)], hsv_colours)
     )
@@ -283,7 +287,7 @@ def render_raster(
     colours: dt.MaskTypes.ColoursDict,
     categories: dt.MaskTypes.CategoryList,
     annotations: List[dt.AnnotationLike],
-    annotation_file: dt.AnnotationFile,
+    annotation_file: dt.AnnotationFile,  # Not used, but kept for consistency
     height: int,
     width: int,
 ) -> dt.MaskTypes.RendererReturn:
@@ -293,11 +297,13 @@ def render_raster(
     Parameters
     ----------
     mask: NDArray
-        The mask to render the polygons onto.
+        The mask to render the polygons onto. Not used.  Only returned if no errors occur.
+    colours: dt.MaskTypes.ColoursDict
+        The colours list. Only returned if no errors occur.
     annotations: List[dt.AnnotationLike]
         A list of annotations to be rendered.
     annotation_file: dt.AnnotationFile
-        The annotation file that the annotations belong to.
+        Not used. Present for interface consistency.
     height: int
         The height of the image.
     width: int
@@ -326,7 +332,12 @@ def render_raster(
                 name=data["name"],
                 slot_names=a.slot_names,
             )
-            new_mask.validate()
+            try:
+                new_mask.validate()
+            except Exception as e:
+                errors.append(e)
+                continue
+
             mask_annotations.append(new_mask)
 
             if not new_mask.id in mask_lookup:
@@ -360,17 +371,12 @@ def render_raster(
         errors.append(ValueError(f"Annotation has no masks"))
         return errors, mask, categories, colours
 
-    if not (rle := raster_layer.rle):
-        errors.append(ValueError(f"Annotation has no RLE data"))
-        return errors, mask, categories, colours
-
     try:
         colours = colours_in_rle(colours, raster_layer, mask_lookup)
     except Exception as e:
         errors.append(e)
 
-    rle_decoded = rle_decode(rle)
-    mask = np.array(rle_decoded, dtype=np.uint8).reshape(height, width)
+    mask = np.array(raster_layer.decoded, dtype=np.uint8).reshape(height, width)
 
     return errors, mask, categories, colours
 

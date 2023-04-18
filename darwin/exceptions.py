@@ -1,9 +1,11 @@
 from cmath import exp
 from pathlib import Path
+from pprint import pprint
 from textwrap import dedent
 from typing import List, Optional
 
 from jsonschema.exceptions import ValidationError as jscValidationError
+from rich.console import Console
 
 from darwin.datatypes import AnnotationFileVersion, KeyValuePairDict, UnknownType
 
@@ -60,7 +62,9 @@ class DarwinException(Exception):
         return super().__repr__()
 
     @classmethod
-    def from_multiple_exceptions(cls, exceptions: List[Exception]) -> "DarwinException":
+    def from_multiple_exceptions(
+        cls, exceptions: List[Exception], echo: bool = False, console: Optional[Console] = None
+    ) -> "DarwinException":
         """
         Creates a new exception from a list of exceptions.
 
@@ -78,6 +82,13 @@ class DarwinException(Exception):
             f"Multiple errors occurred while exporting: {', '.join([str(e) for e in exceptions])}",
         )
         instance.combined_exceptions = exceptions
+
+        if echo:
+            if console:
+                console.log(["Multiple Exceptions occurred.", *exceptions])
+            else:
+                for exc in exceptions:
+                    pprint(exc)
 
         return instance
 
@@ -130,7 +141,7 @@ class InvalidCompressionLevel(Exception):
         super().__init__()
         self.level = level
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Unsupported compression level: '{self.level}'. Supported compression levels are 0-9."
 
 
