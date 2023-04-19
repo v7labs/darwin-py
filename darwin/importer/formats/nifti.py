@@ -7,6 +7,8 @@ from typing import Dict, List, Optional, Sequence, Union
 import orjson as json
 from rich.console import Console
 
+from darwin.utils import attempt_decode
+
 console = Console()
 try:
     import cc3d
@@ -48,15 +50,12 @@ def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
     if path.suffix != ".json":
         console.print("Skipping file: {} (not a json file)".format(path), style="bold yellow")
         return None
-    with open(path, "r") as f:
-        data = json.loads(f.read())
-        try:
-            validate(data, schema=nifti_import_schema)
-        except Exception as e:
-            console.print(
-                "Skipping file: {} (invalid json file, see schema for details)".format(path), style="bold yellow"
-            )
-            return None
+    data = attempt_decode(path)
+    try:
+        validate(data, schema=nifti_import_schema)
+    except Exception as e:
+        console.print("Skipping file: {} (invalid json file, see schema for details)".format(path), style="bold yellow")
+        return None
     nifti_annotations = data.get("data")
     if nifti_annotations is None or nifti_annotations == []:
         console.print("Skipping file: {} (no data found)".format(path), style="bold yellow")
@@ -75,7 +74,6 @@ def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
 
 
 def _parse_nifti(nifti_path: Path, filename: Path, json_path: Path, class_map: Dict, mode: str) -> dt.AnnotationFile:
-
     img: np.ndarray = process_nifti(nib.load(nifti_path))
 
     shape = img.shape

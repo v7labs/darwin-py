@@ -8,6 +8,7 @@ from upolygon import find_contours, rle_decode
 import darwin.datatypes as dt
 from darwin.exceptions import UnrecognizableFileEncoding
 from darwin.path_utils import deconstruct_full_path
+from darwin.utils import attempt_decode
 from darwin.version import __version__
 
 DEPRECATION_MESSAGE = """
@@ -36,17 +37,8 @@ def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
     """
     if path.suffix != ".json":
         return None
-
-    encodings = ["system_default", "utf-32", "utf-16", "utf-8", "ascii"]
-    while True:
-        try:
-            if encodings:
-                return _decode_file(encodings.pop(0), path)
-            raise UnrecognizableFileEncoding(
-                f"Could not decode file {path}. Encodings tried: system_default, utf-32, utf-16, utf-8, ascii."
-            )
-        except UnicodeDecodeError:
-            continue
+    data = attempt_decode(path)
+    return list(parse_json(path, data))
 
 
 def parse_json(path: Path, data: Dict[str, Any]) -> Iterator[dt.AnnotationFile]:
@@ -171,11 +163,10 @@ def _decode_file(current_encoding: str, path: Path):
     if current_encoding == "system_default":
         with path.open() as f:
             data = json.loads(f.read())
-            return list(parse_json(path, data))
     else:
         with path.open(encoding=current_encoding) as f:
             data = json.loads(f.read())
-            return list(parse_json(path, data))
+    return list(parse_json(path, data))
 
 
 @deprecation.deprecated(
