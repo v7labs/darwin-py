@@ -40,6 +40,12 @@ def test_config_base_url(base_config: Config) -> None:
         base_config.base_url = ""
 
 
+@pytest.mark.parametrize("base_url", ["test_url.com", "ftp://test_url.com", ""])
+def test_invalid_config_url_validation(base_url: str) -> None:
+    with pytest.raises(ValidationError):
+        config = Config(api_key="test_key", base_url=base_url, default_team=None)
+
+
 def test_client(base_client: Client) -> None:
     assert base_client.config.api_key == "test_key"
     assert base_client.config.base_url == "http://test_url.com/"

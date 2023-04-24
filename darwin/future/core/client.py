@@ -1,8 +1,9 @@
 from __future__ import annotations
-
+from urlp
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Union, overload
+from urllib.parse import urlparse
 
 import requests
 from pydantic import BaseModel, validator
@@ -34,8 +35,9 @@ class Config(BaseModel):
         v = v.strip()
         if not v.endswith("/"):
             v += "/"
-        assert v.startswith("http") or v.startswith("https"), "base_url must start with http or https"
-        assert v.count("/") >= 3, "base_url must contain at least 3 slashes"
+        check = urlparse(v)
+        assert check.scheme in {"http", "https"}, "base_url must start with http or https"
+        assert check.netloc, "base_url must contain a domain"
         return v
 
     def from_env(cls) -> Config:
@@ -154,7 +156,7 @@ class Client:
         ...
 
     def _generic_call(self, method: Callable, endpoint: str, payload: Optional[dict] = None) -> dict:
-        endpoint = self._validate_endpoint(endpoint)
+        endpoint = self._sanitize_endpoint(endpoint)
         url = self.config.base_url + endpoint
         if payload is not None:
             response = method(url, payload)
@@ -184,12 +186,12 @@ class Client:
     def patch(self, endpoint: str, data: dict) -> dict:
         return self._generic_call(self.session.patch, endpoint, data)
 
-    def _validate_endpoint(self, endpoint: str) -> str:
+    def _sanitize_endpoint(self, endpoint: str) -> str:
         return endpoint.strip().strip("/")
 
 
 def raise_for_darwin_exception(response: requests.Response) -> None:
-    """Raises an exception if the response is not 200
+    """Raises an exception if the response.status_code matches a known darwin error
 
     Parameters
     ----------
