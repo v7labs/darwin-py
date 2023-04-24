@@ -8,6 +8,7 @@ from darwin.exceptions import (
     DataloopComplexPolygonsNotYetSupported,
     UnsupportedImportAnnotationType,
 )
+from darwin.utils import attempt_decode
 
 
 def parse_path(path: Path) -> Optional[dt.AnnotationFile]:
@@ -28,17 +29,16 @@ def parse_path(path: Path) -> Optional[dt.AnnotationFile]:
     """
     if path.suffix != ".json":
         return None
-    with path.open() as f:
-        data = json.loads(f.read())
-        annotations: List[dt.Annotation] = list(filter(None, map(_parse_annotation, data["annotations"])))
-        annotation_classes: Set[dt.AnnotationClass] = set([annotation.annotation_class for annotation in annotations])
-        return dt.AnnotationFile(
-            path,
-            _remove_leading_slash(data["filename"]),
-            annotation_classes,
-            annotations,
-            remote_path="/",
-        )
+    data = attempt_decode(path)
+    annotations: List[dt.Annotation] = list(filter(None, map(_parse_annotation, data["annotations"])))
+    annotation_classes: Set[dt.AnnotationClass] = set([annotation.annotation_class for annotation in annotations])
+    return dt.AnnotationFile(
+        path,
+        _remove_leading_slash(data["filename"]),
+        annotation_classes,
+        annotations,
+        remote_path="/",
+    )
 
 
 def _remove_leading_slash(filename: str) -> str:

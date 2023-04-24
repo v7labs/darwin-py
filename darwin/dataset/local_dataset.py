@@ -7,7 +7,7 @@ import orjson as json
 from PIL import Image as PILImage
 
 from darwin.dataset.utils import get_classes, get_release_path, load_pil_image
-from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS, parse_darwin_json
+from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS, attempt_decode, parse_darwin_json
 
 
 class LocalDataset(object):
@@ -137,10 +137,7 @@ class LocalDataset(object):
         """
         if not len(self.annotations_path):
             raise ValueError("There are no annotations downloaded.")
-
-        with self.annotations_path[index].open() as f:
-            data = json.loads(f.read())["image"]
-            return data
+        return attempt_decode(self.annotations_path[index])["image"]
 
     def get_height_and_width(self, index: int) -> Tuple[float, float]:
         """
