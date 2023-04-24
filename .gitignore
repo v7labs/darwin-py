@@ -164,3 +164,5 @@ environment.yml
 .DS_Store
 
 test_output_*
+
+!tests/darwin/data/*.png
