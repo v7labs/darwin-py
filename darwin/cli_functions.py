@@ -773,7 +773,7 @@ def dataset_import(
     delete_for_empty: bool = False,
     import_annotators: bool = False,
     import_reviewers: bool = False,
-    use_multi_cpu: bool = True,
+    use_multi_cpu: bool = False,
     cpu_limit: Optional[int] = None,
 ) -> None:
     """
