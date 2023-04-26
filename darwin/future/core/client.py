@@ -2,21 +2,27 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Union, overload
+from typing import Any, Callable, Dict, List, Optional, Union, overload
 from urllib.parse import urlparse
 
 import requests
-from pydantic import BaseModel, validator
+import yaml
+from pydantic import BaseModel, root_validator, validator
 from requests.adapters import HTTPAdapter, Retry
 
 from darwin.future.core.types.query import Query
 from darwin.future.data_objects.darwin_meta import Team
 from darwin.future.exceptions.client import NotFound, Unauthorized
 
-HTTPMethod = Union[Callable[[str], requests.Response], Callable[[str, dict], requests.Response]]
+JSONType = Dict[str, Any]  # type: ignore
 
 
-class Config(BaseModel):
+class TeamsConfig(BaseModel):
+    api_key: str
+    datasets_dir: Path
+
+
+class DarwinConfig(BaseModel):
     """Configuration object for the client
 
     Attributes
@@ -27,8 +33,11 @@ class Config(BaseModel):
     """
 
     api_key: Optional[str]
+    datasets_dir: Optional[Path]
+    api_endpoint: str
     base_url: str
-    default_team: Optional[Team]
+    default_team: str
+    teams: Dict[str, TeamsConfig]
 
     @validator("base_url")
     def validate_base_url(cls, v: str) -> str:
@@ -40,11 +49,42 @@ class Config(BaseModel):
         assert check.netloc, "base_url must contain a domain"
         return v
 
-    def from_env(cls) -> Config:
-        pass
+    @root_validator(pre=True)
+    def remove_global(cls, values: dict) -> dict:
+        if "global" not in values:
+            return values
+        global_conf = values["global"]
+        del values["global"]
+        values.update(global_conf)
+        return values
 
-    def from_file(cls, path: Path) -> Config:
-        pass
+    @root_validator()
+    def validate_defaults(cls, values: dict) -> dict:
+        if values["api_key"]:
+            return values
+        assert values["default_team"] in values["teams"]
+        team = values["default_team"]
+        values["api_key"] = values["teams"][team].api_key
+        values["datasets_dir"] = values["teams"][team].datasets_dir
+        return values
+
+    @classmethod
+    def local(cls) -> DarwinConfig:
+        return DarwinConfig.from_file(Path.home() / ".darwin" / "config.yaml")
+
+    @classmethod
+    def from_file(cls, path: Path) -> DarwinConfig:
+        if path.suffix.lower() == ".yaml":
+            data = DarwinConfig._parse_yaml(path)
+            return DarwinConfig.parse_obj(data)
+        else:
+            return DarwinConfig.parse_file(path)
+
+    @classmethod
+    def _parse_yaml(cls, path: Path) -> dict:
+        with open(path, encoding="utf-8") as infile:
+            data = yaml.safe_load(infile)
+        return data
 
     class Config:
         validate_assignment = True
@@ -53,8 +93,7 @@ class Config(BaseModel):
 class Result(BaseModel):
     """Default model for a result, to be extended by other models specific to the API"""
 
-    def from_json(cls, json: dict) -> Result:
-        pass
+    ...
 
 
 class PageDetail(BaseModel):
@@ -121,7 +160,7 @@ class Client:
     team: Team, team to make requests to
     """
 
-    def __init__(self, config: Config, retries: Optional[Retry] = None) -> None:
+    def __init__(self, config: DarwinConfig, retries: Optional[Retry] = None) -> None:
         self.config = config
         self.session = requests.Session()
         if not retries:
@@ -134,6 +173,11 @@ class Client:
             "delete": self.session.delete,
             "patch": self.session.patch,
         }
+
+    @classmethod
+    def local(cls) -> Client:
+        config = DarwinConfig.local()
+        return Client(config)
 
     def _setup_session(self, retries: Retry) -> None:
         self.session.headers.update(self.headers)
@@ -155,9 +199,9 @@ class Client:
     def _generic_call(self, method: Callable[[str, dict], requests.Response], endpoint: str, payload: dict) -> dict:
         ...
 
-    def _generic_call(self, method: Callable, endpoint: str, payload: Optional[dict] = None) -> dict:
+    def _generic_call(self, method: Callable, endpoint: str, payload: Optional[dict] = None) -> JSONType:
         endpoint = self._sanitize_endpoint(endpoint)
-        url = self.config.base_url + endpoint
+        url = self.config.api_endpoint + endpoint
         if payload is not None:
             response = method(url, payload)
         else:
@@ -171,19 +215,19 @@ class Client:
     def cursor(self) -> Cursor:
         pass
 
-    def get(self, endpoint: str) -> dict:
+    def get(self, endpoint: str) -> JSONType:
         return self._generic_call(self.session.get, endpoint)
 
-    def put(self, endpoint: str, data: dict) -> dict:
+    def put(self, endpoint: str, data: dict) -> JSONType:
         return self._generic_call(self.session.put, endpoint, data)
 
-    def post(self, endpoint: str, data: dict) -> dict:
+    def post(self, endpoint: str, data: dict) -> JSONType:
         return self._generic_call(self.session.post, endpoint, data)
 
-    def delete(self, endpoint: str) -> dict:
+    def delete(self, endpoint: str) -> JSONType:
         return self._generic_call(self.session.delete, endpoint)
 
-    def patch(self, endpoint: str, data: dict) -> dict:
+    def patch(self, endpoint: str, data: dict) -> JSONType:
         return self._generic_call(self.session.patch, endpoint, data)
 
     def _sanitize_endpoint(self, endpoint: str) -> str:
