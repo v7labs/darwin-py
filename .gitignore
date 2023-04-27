@@ -164,3 +164,6 @@ environment.yml
 .DS_Store
 
 test_output_*
+
+# scripts
+test.py

@@ -68,20 +68,20 @@ class DarwinConfig(BaseModel):
         values["datasets_dir"] = values["teams"][team].datasets_dir
         return values
 
-    @classmethod
-    def local(cls) -> DarwinConfig:
+    @staticmethod
+    def local() -> DarwinConfig:
         return DarwinConfig.from_file(Path.home() / ".darwin" / "config.yaml")
 
-    @classmethod
-    def from_file(cls, path: Path) -> DarwinConfig:
+    @staticmethod
+    def from_file(path: Path) -> DarwinConfig:
         if path.suffix.lower() == ".yaml":
             data = DarwinConfig._parse_yaml(path)
             return DarwinConfig.parse_obj(data)
         else:
             return DarwinConfig.parse_file(path)
 
-    @classmethod
-    def _parse_yaml(cls, path: Path) -> dict:
+    @staticmethod
+    def _parse_yaml(path: Path) -> dict:
         with open(path, encoding="utf-8") as infile:
             data = yaml.safe_load(infile)
         return data

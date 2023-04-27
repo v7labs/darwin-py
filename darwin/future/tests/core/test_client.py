@@ -9,18 +9,8 @@ from requests import HTTPError
 from darwin.future.core.client import Client, DarwinConfig, TeamsConfig
 from darwin.future.exceptions.base import DarwinException
 from darwin.future.exceptions.client import NotFound, Unauthorized
+from darwin.future.tests.core.fixtures import *
 from darwin.future.tests.fixtures import *
-
-
-@pytest.fixture
-def base_config() -> DarwinConfig:
-    return DarwinConfig(
-        api_key="test_key",
-        base_url="http://test_url.com/",
-        api_endpoint="http://test_url.com/api/",
-        default_team="default-team",
-        teams={},
-    )
 
 
 @pytest.fixture
