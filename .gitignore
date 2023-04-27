@@ -165,4 +165,7 @@ environment.yml
 
 test_output_*
 
+
 !tests/darwin/data/*.png
+# scripts
+test.py
