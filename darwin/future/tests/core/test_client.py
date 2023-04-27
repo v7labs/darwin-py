@@ -13,11 +13,6 @@ from darwin.future.tests.core.fixtures import *
 from darwin.future.tests.fixtures import *
 
 
-@pytest.fixture
-def base_client(base_config: DarwinConfig) -> Client:
-    return Client(base_config)
-
-
 def test_create_config(base_config: DarwinConfig) -> None:
     assert base_config.api_key == "test_key"
     assert base_config.base_url == "http://test_url.com/"
