@@ -6,7 +6,7 @@ from pydantic import ValidationError
 
 from darwin.future.core import backend as be
 from darwin.future.core.client import Client
-from darwin.future.data_objects.darwin_meta import Team
+from darwin.future.data_objects.team import Team
 from darwin.future.tests.core.fixtures import *
 from darwin.future.tests.fixtures import *
 
