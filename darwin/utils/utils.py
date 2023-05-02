@@ -14,6 +14,7 @@ from typing import (
     List,
     Optional,
     Set,
+    Tuple,
     Union,
     cast,
 )
@@ -34,6 +35,7 @@ from darwin.exceptions import (
     MissingSchema,
     OutdatedDarwinJSONFormat,
     UnknownAnnotationFileSchema,
+    UnrecognizableFileEncoding,
     UnsupportedFileType,
 )
 from darwin.version import __version__
@@ -42,7 +44,19 @@ if TYPE_CHECKING:
     from darwin.client import Client
 
 
-SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpeg", ".jpg", ".jfif", ".tif", ".tiff", ".bmp", ".svs", ".webp", ".JPEG", ".JPG"]
+SUPPORTED_IMAGE_EXTENSIONS = [
+    ".png",
+    ".jpeg",
+    ".jpg",
+    ".jfif",
+    ".tif",
+    ".tiff",
+    ".bmp",
+    ".svs",
+    ".webp",
+    ".JPEG",
+    ".JPG",
+]
 SUPPORTED_VIDEO_EXTENSIONS = [
     ".avi",
     ".bpm",
@@ -377,9 +391,26 @@ def validate_data_against_schema(data) -> List:
     return errors
 
 
-def load_data_from_file(path: Path):
-    with path.open() as infile:
-        data = json.loads(infile.read())
+def attempt_decode(path: Path) -> dict:
+    try:
+        with path.open() as infile:
+            data = json.loads(infile.read())
+        return data
+    except Exception:
+        pass
+    encodings = ["utf-8", "utf-16", "utf-32", "ascii"]
+    for encoding in encodings:
+        try:
+            with path.open(encoding=encoding) as infile:
+                data = json.loads(infile.read())
+            return data
+        except Exception:
+            continue
+    raise UnrecognizableFileEncoding(f"Unable to load file {path} with any encodings: {encodings}")
+
+
+def load_data_from_file(path: Path) -> Tuple[dict, dt.AnnotationFileVersion]:
+    data = attempt_decode(path)
     version = _parse_version(data)
     return data, version
 
@@ -691,6 +722,74 @@ def _parse_darwin_video_annotation(annotation: dict) -> Optional[dt.VideoAnnotat
         main_annotation.reviewers = _parse_annotators(annotation["reviewers"])
 
     return main_annotation
+
+
+def _parse_darwin_raster_annotation(annotation: dict) -> Optional[dt.Annotation]:
+    if not annotation.get("raster_layer"):
+        raise ValueError("Raster annotation must have a 'raster_layer' field")
+
+    id: Optional[str] = annotation.get("id")
+    name: Optional[str] = annotation.get("name")
+    raster_layer: Optional[dt.JSONFreeForm] = annotation.get("raster_layer")
+    slot_names: Optional[List[str]] = parse_slot_names(annotation)
+
+    if not id or not name or not raster_layer or not slot_names:
+        raise ValueError("Raster annotation must have an 'id', 'name', 'slot_names' and 'raster_layer' field")
+
+    dense_rle, mask_annotation_ids_mapping, total_pixels = (
+        raster_layer.get("dense_rle", None),
+        raster_layer.get("mask_annotation_ids_mapping", None),
+        raster_layer.get("total_pixels", None),
+    )
+
+    if not dense_rle or not mask_annotation_ids_mapping or not total_pixels:
+        raise ValueError(
+            "Raster annotation must have a 'dense_rle', 'mask_annotation_ids_mapping' and 'total_pixels' field"
+        )
+
+    new_annotation = dt.Annotation(
+        dt.AnnotationClass(name, "raster_layer"),
+        {
+            "id": id,
+            "name": name,
+            "raster_layer": {
+                "dense_rle": dense_rle,
+                "mask_annotation_ids_mapping": mask_annotation_ids_mapping,
+                "total_pixels": total_pixels,
+            },
+        },
+        slot_names=slot_names,
+    )
+
+    return new_annotation
+
+
+def _parse_darwin_mask_annotation(annotation: dict) -> Optional[dt.Annotation]:
+    if not annotation.get("mask"):
+        raise ValueError("Mask annotation must have a 'mask' field")
+
+    id: Optional[str] = annotation.get("id")
+    name: Optional[str] = annotation.get("name")
+    mask: Optional[dt.JSONFreeForm] = annotation.get("mask")
+    slot_names: Optional[List[str]] = parse_slot_names(annotation)
+
+    if not id or not name or not mask or not slot_names:
+        raise ValueError("Mask annotation must have an 'id', 'name', 'slot_names' and 'mask' field")
+
+    if (not "sparse_rle" in mask) or (not mask["sparse_rle"]) == None:
+        raise ValueError("Mask annotation must have a 'sparse_rle' field containing a null value")
+
+    new_annotation = dt.Annotation(
+        dt.AnnotationClass(name, "mask"),
+        {
+            "id": id,
+            "name": name,
+            "mask": mask,
+        },
+        slot_names=slot_names,
+    )
+
+    return new_annotation
 
 
 def _parse_annotators(annotators: List[Dict[str, Any]]) -> List[dt.AnnotationAuthor]:
@@ -1043,25 +1142,37 @@ def get_response_content(response: Response) -> Any:
         return response.text
 
 
-def _parse_version(data) -> dt.AnnotationFileVersion:
+def _parse_version(data: dict) -> dt.AnnotationFileVersion:
     version_string = data.get("version", "1.0")
     major, minor, suffix = re.findall(r"^(\d+)\.(\d+)(.*)$", version_string)[0]
     return dt.AnnotationFileVersion(int(major), int(minor), suffix)
 
 
 def _data_to_annotations(data: Dict[str, Any]) -> List[Union[dt.Annotation, dt.VideoAnnotation]]:
-    raw_image_annotations = filter(lambda annotation: "frames" not in annotation, data["annotations"])
+    raw_image_annotations = filter(
+        lambda annotation: (
+            ("frames" not in annotation) and ("raster_layer" not in annotation) and ("mask" not in annotation)
+        ),
+        data["annotations"],
+    )
     raw_video_annotations = filter(lambda annotation: "frames" in annotation, data["annotations"])
+    raw_raster_annotations = filter(lambda annotation: "raster_layer" in annotation, data["annotations"])
+    raw_mask_annotations = filter(lambda annotation: "mask" in annotation, data["annotations"])
     image_annotations: List[dt.Annotation] = list(filter(None, map(_parse_darwin_annotation, raw_image_annotations)))
     video_annotations: List[dt.VideoAnnotation] = list(
         filter(None, map(_parse_darwin_video_annotation, raw_video_annotations))
     )
-    return [*image_annotations, *video_annotations]
+    raster_annotations: List[dt.Annotation] = list(
+        filter(None, map(_parse_darwin_raster_annotation, raw_raster_annotations))
+    )
+    mask_annotations: List[dt.Annotation] = list(filter(None, map(_parse_darwin_mask_annotation, raw_mask_annotations)))
+
+    return [*image_annotations, *video_annotations, *raster_annotations, *mask_annotations]
 
 
-def _supported_schema_versions():
+def _supported_schema_versions() -> Dict[Tuple[int, int, str], str]:
     return {(2, 0, ""): "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json"}
 
 
-def _default_schema(version: dt.AnnotationFileVersion):
+def _default_schema(version: dt.AnnotationFileVersion) -> Optional[str]:
     return _supported_schema_versions().get((version.major, version.minor, version.suffix))

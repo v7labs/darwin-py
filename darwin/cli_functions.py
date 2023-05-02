@@ -773,7 +773,7 @@ def dataset_import(
     delete_for_empty: bool = False,
     import_annotators: bool = False,
     import_reviewers: bool = False,
-    use_multi_cpu: bool = True,
+    use_multi_cpu: bool = False,
     cpu_limit: Optional[int] = None,
 ) -> None:
     """
@@ -812,12 +812,12 @@ def dataset_import(
     client: Client = _load_client(dataset_identifier=dataset_slug)
 
     try:
-        parser: ImportParser = get_importer(format)
+        importer: ImportParser = get_importer(format)
         dataset: RemoteDataset = client.get_remote_dataset(dataset_identifier=dataset_slug)
 
         import_annotations(
             dataset,
-            parser,
+            importer,
             files,
             append,
             class_prompt,

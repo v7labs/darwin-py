@@ -8,12 +8,18 @@ from typing import (
     Dict,
     Iterator,
     List,
+    Literal,
     Optional,
     Sequence,
     Set,
     Tuple,
     Union,
 )
+
+try:
+    from numpy.typing import NDArray
+except ImportError:
+    NDArray = Any  # type:ignore
 
 from darwin.path_utils import construct_full_path
 
@@ -73,6 +79,25 @@ class JSONType:
         return cls(**json)
 
 
+AnnotationType = Literal[  # NB: Some of these are not supported yet
+    "bounding_box",
+    "polygon",
+    "complex_polygon",
+    "ellipse",
+    "cuboid",
+    "segmentation",
+    "raster_layer",
+    "mask",
+    "keypoint",
+    "tag",
+    "line",
+    "skeleton",
+    "table",
+    "string",
+    "graph",
+]
+
+
 @dataclass
 class Team:
     """
@@ -119,7 +144,7 @@ class AnnotationClass:
     name: str
 
     #: The type of this ``AnnotationClass``.
-    annotation_type: str
+    annotation_type: AnnotationType
 
     #: The V7 internal type of this ``AnnotationClass``.
     #: This is mostly used to convert from types that are known in the outside world by a given
@@ -1077,3 +1102,56 @@ def _maybe_add_bounding_box_data(data: Dict[str, UnknownType], bounding_box: Opt
 ExportParser = Callable[[Iterator[AnnotationFile], Path], None]
 
 ImportParser = Callable[[Path], Union[List[AnnotationFile], AnnotationFile, None]]
+
+
+class MaskTypes:
+    Palette = Dict[str, int]
+    Mode = Literal["index", "grey", "rgb"]
+    TypeOfRender = Literal["raster", "polygon"]
+    CategoryList = List[str]
+    ExceptionList = List[Exception]
+    UndecodedRLE = List[int]
+    DecodedRLE = List[List[int]]
+    ColoursDict = Dict[str, int]
+    RgbColors = List[int]
+    HsvColors = List[Tuple[float, float, float]]
+    RgbColorList = List[RgbColors]
+    RgbPalette = Dict[str, RgbColors]
+
+    RendererReturn = Tuple[ExceptionList, NDArray, CategoryList, ColoursDict]
+
+
+@dataclass
+class AnnotationMask:
+    id: str
+    name: str
+    slot_names: List[str] = field(default_factory=list)
+
+    def validate(self) -> None:
+        if not self.name:
+            raise ValueError("Mask name cannot be empty")
+        if not self.slot_names:
+            raise ValueError("Mask must be associated with at least one slot")
+        if not self.id:
+            raise ValueError("Mask ID cannot be empty")
+
+
+@dataclass
+class RasterLayer:
+    rle: MaskTypes.UndecodedRLE
+    decoded: MaskTypes.DecodedRLE
+    mask_annotation_ids_mapping: Dict[str, int]
+    slot_names: List[str] = field(default_factory=list)
+    total_pixels: int = 0
+
+    def validate(self) -> None:
+        if not self.rle:
+            raise ValueError("RasterLayer rle cannot be empty")
+        if not self.decoded:
+            raise ValueError("RasterLayer decoded cannot be empty")
+        if not self.mask_annotation_ids_mapping:
+            raise ValueError("RasterLayer mask_annotation_ids_mapping cannot be empty")
+        if not self.slot_names:
+            raise ValueError("RasterLayer must be associated with at least one slot")
+        if not self.total_pixels and not self.total_pixels > 0:
+            raise ValueError("RasterLayer total_pixels cannot be empty")

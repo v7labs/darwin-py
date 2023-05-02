@@ -22,7 +22,6 @@ from darwin.item import DatasetItem
 
 Unknown = Any  # type: ignore
 
-from mpire import WorkerPool
 from tqdm import tqdm
 
 if TYPE_CHECKING:
@@ -39,6 +38,13 @@ from darwin.datatypes import PathLike
 from darwin.exceptions import IncompatibleOptions, RequestEntitySizeExceeded
 from darwin.utils import flatten_list, secure_continue_request
 from darwin.version import __version__
+
+try:
+    from mpire import WorkerPool
+
+    MPIRE_AVAILABLE = True
+except ImportError:
+    MPIRE_AVAILABLE = False
 
 # Classes missing import support on backend side
 UNSUPPORTED_CLASSES = ["string", "graph"]
@@ -121,7 +127,7 @@ def find_and_parse(
 
     maybe_console(f"Found {len(files)} files")
 
-    if use_multi_cpu:
+    if use_multi_cpu and MPIRE_AVAILABLE and cpu_limit > 1:
         maybe_console(f"Using multiprocessing with {cpu_limit} workers")
         try:
             with WorkerPool(cpu_limit) as pool:
