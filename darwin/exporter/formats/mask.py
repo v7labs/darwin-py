@@ -6,7 +6,11 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Literal, Optional, Set, Tuple, get_args
 
 import numpy as np
-from numpy.typing import NDArray
+
+try:
+    from numpy.typing import NDArray
+except ImportError:
+    NDArray = Any  # type:ignore
 from PIL import Image
 from upolygon import draw_polygon
 

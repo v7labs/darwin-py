@@ -7,7 +7,11 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 from numpy.testing import assert_array_equal
-from numpy.typing import NDArray
+
+try:
+    from numpy.typing import NDArray
+except ImportError:
+    NDArray = Any  # type:ignore
 from PIL import Image
 from upolygon import draw_polygon
 
