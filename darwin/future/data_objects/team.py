@@ -2,12 +2,10 @@ from typing import List, Optional
 
 from pydantic import validator
 
-from darwin.future.data_objects import (
-    DatasetList,
-    DefaultDarwin,
-    TeamMemberRole,
-    parse_name,
-)
+from darwin.future.data_objects.dataset import DatasetList
+from darwin.future.data_objects.team_member_role import TeamMemberRole
+from darwin.future.data_objects.validators import parse_name
+from darwin.future.pydantic_base import DefaultDarwin
 
 
 class TeamMember(DefaultDarwin):

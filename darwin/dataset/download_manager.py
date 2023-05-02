@@ -19,6 +19,7 @@ import darwin.datatypes as dt
 from darwin.dataset.utils import sanitize_filename
 from darwin.datatypes import AnnotationFile
 from darwin.utils import (
+    attempt_decode,
     get_response_content,
     has_json_content_type,
     is_image_extension_allowed,
@@ -262,7 +263,7 @@ def _download_image_from_json_annotation(
             return _download_all_slots_from_json_annotation(annotation, api_key, parent_path, video_frames)
         else:
             return _download_single_slot_from_json_annotation(
-                annotation, api_key, parent_path, annotation_path, video_frames
+                annotation, api_key, parent_path, annotation_path, video_frames, use_folders
             )
 
     return []
@@ -289,7 +290,14 @@ def _download_all_slots_from_json_annotation(annotation, api_key, parent_path, v
     return generator
 
 
-def _download_single_slot_from_json_annotation(annotation, api_key, parent_path, annotation_path, video_frames):
+def _download_single_slot_from_json_annotation(
+    annotation: dt.AnnotationFile,
+    api_key: str,
+    parent_path: Path,
+    annotation_path: Path,
+    video_frames: bool,
+    use_folders: bool = False,
+):
     slot = annotation.slots[0]
     generator = []
 
@@ -301,8 +309,16 @@ def _download_single_slot_from_json_annotation(annotation, api_key, parent_path,
             generator.append(functools.partial(_download_image, frame_url, path, api_key, slot))
     else:
         if len(slot.source_files) > 0:
-            image_url = slot.source_files[0]["url"]
-            filename = slot.source_files[0]["file_name"]
+            image = slot.source_files[0]
+            image_url = image["url"]
+            image_filename = image["file_name"]
+
+            if not use_folders:
+                suffix = Path(image_filename).suffix
+                stem = annotation_path.stem
+                filename = str(Path(stem).with_suffix(suffix))
+            else:
+                filename = slot.source_files[0]["file_name"]
             image_path = parent_path / sanitize_filename(filename or annotation.filename)
 
             generator.append(functools.partial(_download_image_with_trace, annotation, image_url, image_path, api_key))
@@ -310,18 +326,16 @@ def _download_single_slot_from_json_annotation(annotation, api_key, parent_path,
 
 
 def _update_local_path(annotation: AnnotationFile, url, local_path):
-
     if annotation.version.major == 1:
         return
 
     # we modify raw json, as internal representation does't store all the data
-    with annotation.path.open() as file:
-        raw_annotation = json.loads(file.read())
+    raw_annotation = attempt_decode(annotation.path)
 
-        for slot in raw_annotation["item"]["slots"]:
-            for source_file in slot["source_files"]:
-                if source_file["url"] == url:
-                    source_file["local_path"] = str(local_path)
+    for slot in raw_annotation["item"]["slots"]:
+        for source_file in slot["source_files"]:
+            if source_file["url"] == url:
+                source_file["local_path"] = str(local_path)
 
     with annotation.path.open(mode="w") as file:
         op = json.dumps(raw_annotation, json.OPT_INDENT_2).decode("utf-8")
@@ -356,8 +370,7 @@ def download_image_from_json_annotation(
     video_frames : bool
         Pulls video frames images instead of video files
     """
-    with annotation_path.open() as file:
-        annotation = json.loads(file.read())
+    annotation = attempt_decode(annotation_path)
 
     # If we are using folders, extract the path for the image and create the folder if needed
     sub_path = annotation["image"].get("path", "/") if use_folders else "/"

@@ -3,7 +3,9 @@ import unittest
 import pytest
 from pydantic import BaseModel, ValidationError
 
-from darwin.future.data_objects.darwin_meta import Dataset, Release, Team
+from darwin.future.data_objects.dataset import Dataset
+from darwin.future.data_objects.release import Release
+from darwin.future.data_objects.team import Team
 
 
 @pytest.fixture

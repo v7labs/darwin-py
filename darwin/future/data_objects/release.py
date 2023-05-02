@@ -3,7 +3,7 @@ from typing import List
 from pydantic import validator
 
 from darwin.future.data_objects import validators as darwin_validators
-from darwin.future.data_objects.pydantic_base import DefaultDarwin
+from darwin.future.pydantic_base import DefaultDarwin
 
 
 class Release(DefaultDarwin):

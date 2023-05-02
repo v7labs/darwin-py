@@ -1,26 +1,25 @@
-from unittest.mock import Mock, patch
+from typing import Optional, Union
 
-from requests import HTTPError
-
-import darwin
-
-api_key = "d7YQUUx.Gr_KwrCej3Qu43izHqIFDUIIjGUpUwYs"
-dataset_identifier = "v7-labs/random-images"
+from pydantic import BaseModel, HttpUrl, parse_obj_as, validator
 
 
-def i_fail():
-    raise HTTPError("404")
+class Config(BaseModel):
+    url: Union[HttpUrl, str]
+
+    @validator("url", always=True)
+    def validate_url(cls, v: Union[HttpUrl, str]) -> HttpUrl:
+        if isinstance(v, str):
+            return parse_obj_as(HttpUrl, v)
+        return v
 
 
-@patch("darwin.dataset.remote_dataset.download_all_images_from_annotations")
-def test(mock_method):
-    mock_method.return_value = (lambda: [i_fail, i_fail], 2)
-    # mock_method.side_effect = Mock(side_effect=HTTPError("404"))
-    client = darwin.Client.from_api_key(api_key=api_key)
-    dataset = client.get_remote_dataset(dataset_identifier)
-    release = dataset.get_release()
-    dataset.pull(release=release)
+url = "http://test_url.com"
+test_config = Config(url=url)
 
+print(test_config.url)
+print(isinstance(test_config.url, HttpUrl))
 
-if __name__ == "__main__":
-    test()
+test_config2 = Config(url=parse_obj_as(HttpUrl, url))
+print(test_config2.url)
+print(isinstance(test_config2.url, HttpUrl))
+print(test_config2.url)

@@ -2,8 +2,9 @@ from typing import List, Optional
 
 from pydantic import PositiveInt, validator
 
-from darwin.future.data_objects import DefaultDarwin, ReleaseList, parse_name
-from darwin.future.data_objects import validators as darwin_validators
+from darwin.future.data_objects.release import ReleaseList
+from darwin.future.data_objects.validators import parse_name
+from darwin.future.pydantic_base import DefaultDarwin
 
 
 class Dataset(DefaultDarwin):

@@ -18,6 +18,10 @@ from darwin.utils import (
     urljoin,
     validate_data_against_schema,
 )
+from darwin.utils.utils import (
+    _parse_darwin_mask_annotation,
+    _parse_darwin_raster_annotation,
+)
 
 
 def describe_validation():
@@ -723,3 +727,96 @@ def describe_parse_darwin_json():
             response.headers["content-type"] = "text/plain"
             response._content = b"hello"
             assert "hello" == get_response_content(response)
+
+
+def describe__parse_darwin_raster_annotation() -> None:
+    @pytest.fixture
+    def good_raster_annotation() -> dt.JSONFreeForm:
+        return {
+            "id": "abc123",
+            "name": "my_raster_annotation",
+            "raster_layer": {
+                "dense_rle": "ABCD",
+                "mask_annotation_ids_mapping": {"1": 1},
+                "total_pixels": 100,
+            },
+            "slot_names": ["0"],
+        }
+
+    def it_parses_a_raster_annotation(good_raster_annotation: dt.JSONFreeForm) -> None:
+        annotation = _parse_darwin_raster_annotation(good_raster_annotation)
+
+        assert annotation is not None
+        assert annotation.annotation_class is not None
+
+        assert annotation.annotation_class.name == "my_raster_annotation"
+        assert annotation.annotation_class.annotation_type == "raster_layer"
+
+        assert annotation.data["raster_layer"]["dense_rle"] == "ABCD"
+        assert annotation.data["raster_layer"]["mask_annotation_ids_mapping"] == {"1": 1}
+        assert annotation.data["raster_layer"]["total_pixels"] == 100
+
+    # Sad paths
+    @pytest.mark.parametrize("parameter_name", ["id", "name", "raster_layer", "slot_names"])
+    def it_raises_value_error_for_missing_top_level_fields(
+        good_raster_annotation: dt.JSONFreeForm, parameter_name: str
+    ) -> None:
+        annotation = good_raster_annotation
+        del annotation[parameter_name]
+        with pytest.raises(ValueError):
+            _parse_darwin_raster_annotation(annotation)
+
+    @pytest.mark.parametrize("parameter_name", ["dense_rle", "mask_annotation_ids_mapping", "total_pixels"])
+    def it_raises_value_error_for_missing_raster_layer_fields(
+        good_raster_annotation: dt.JSONFreeForm, parameter_name: str
+    ) -> None:
+        annotation = good_raster_annotation
+        del annotation["raster_layer"][parameter_name]
+        with pytest.raises(ValueError):
+            _parse_darwin_raster_annotation(annotation)
+
+
+def describe__parse_darwin_mask_annotation() -> None:
+    @pytest.fixture
+    def good_mask_annotation() -> dt.JSONFreeForm:
+        return {
+            "id": "abc123",
+            "name": "my_raster_annotation",
+            "mask": {
+                "sparse_rle": None,
+            },
+            "slot_names": ["0"],
+        }
+
+    def it_parses_a_raster_annotation(good_mask_annotation: dt.JSONFreeForm) -> None:
+        annotation = _parse_darwin_mask_annotation(good_mask_annotation)
+
+        assert annotation is not None
+        assert annotation.annotation_class is not None
+
+        assert annotation.annotation_class.name == "my_raster_annotation"
+        assert annotation.annotation_class.annotation_type == "mask"
+
+        assert annotation.data["mask"]["sparse_rle"] == None
+
+    # Sad paths
+    @pytest.mark.parametrize("parameter_name", ["id", "name", "mask", "slot_names"])
+    def it_raises_value_error_for_missing_top_level_fields(
+        good_mask_annotation: dt.JSONFreeForm, parameter_name: str
+    ) -> None:
+        annotation = good_mask_annotation
+        del annotation[parameter_name]
+        with pytest.raises(ValueError):
+            _parse_darwin_raster_annotation(annotation)
+
+    def it_raises_value_error_for_missing_mask_fields(good_mask_annotation: dt.JSONFreeForm) -> None:
+        annotation = good_mask_annotation
+        del annotation["mask"]["sparse_rle"]
+        with pytest.raises(ValueError):
+            _parse_darwin_raster_annotation(annotation)
+
+    def it_raises_value_error_for_invalid_mask_fields(good_mask_annotation: dt.JSONFreeForm) -> None:
+        annotation = good_mask_annotation
+        annotation["mask"]["sparse_rle"] = "invalid"
+        with pytest.raises(ValueError):
+            _parse_darwin_raster_annotation(annotation)
