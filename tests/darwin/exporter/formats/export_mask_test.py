@@ -157,7 +157,8 @@ def test_get_or_generate_colour() -> None:
 def annotations() -> List[dt.Annotation]:
     return [
         dt.Annotation(dt.AnnotationClass("class_1", "raster_layer"), data={"mask": "data", "raster_layer": "raster"}),
-        dt.Annotation(dt.AnnotationClass("class_2", "polygon"), data={"polygon": "data"}),
+        dt.Annotation(dt.AnnotationClass("class_2", "polygon"), data={"path": "data"}),
+        dt.Annotation(dt.AnnotationClass("class_2", "polygon"), data={"paths": "data"}),
     ]
 
 
@@ -167,6 +168,7 @@ def test_get_render_mode_returns_raster_when_given_raster_mask(annotations: List
 
 def test_get_render_mode_returns_polygon_when_given_polygon(annotations: List[dt.AnnotationLike]) -> None:
     assert get_render_mode([annotations[1]]) == "polygon"
+    assert get_render_mode([annotations[2]]) == "polygon"
 
 
 def test_get_render_mode_raises_value_error_when_given_both_raster_mask_and_polygon(
@@ -176,7 +178,7 @@ def test_get_render_mode_raises_value_error_when_given_both_raster_mask_and_poly
         get_render_mode(annotations)
 
 
-def test_get_render_mode_raises_value_error_when_no_renderable_annotations_found() -> None:  # type: ignore
+def test_get_render_mode_raises_value_error_when_no_renderable_annotations_found() -> None:
     with pytest.raises(ValueError, match="No renderable annotations found in file, found keys:"):
         get_render_mode([dt.Annotation(dt.AnnotationClass("class_3", "invalid"), data={"line": "data"})])  # type: ignore
 
