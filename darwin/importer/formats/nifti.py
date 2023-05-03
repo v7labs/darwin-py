@@ -69,14 +69,21 @@ def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
             path,
             class_map=nifti_annotation.get("class_map"),
             mode=nifti_annotation.get("mode", "image"),
-            slot_name=nifti_annotation.get("slot_name"),
+            slot_names=nifti_annotation.get("slot_names", []),
+            is_mpr=nifti_annotation.get("is_mpr", False),
         )
         annotation_files.append(annotation_file)
     return annotation_files
 
 
 def _parse_nifti(
-    nifti_path: Path, filename: Path, json_path: Path, class_map: Dict, mode: str, slot_name: Optional[str] = None
+    nifti_path: Path,
+    filename: Path,
+    json_path: Path,
+    class_map: Dict,
+    mode: str,
+    slot_names: List[str],
+    is_mpr: bool,
 ) -> dt.AnnotationFile:
 
     img: np.ndarray = process_nifti(nib.load(nifti_path))
@@ -91,11 +98,11 @@ def _parse_nifti(
             class_img = np.isin(img, class_idxs).astype(np.uint8)
             cc_img, num_labels = cc3d.connected_components(class_img, return_N=True)
             for instance_id in range(1, num_labels):
-                video_annotation = get_video_annotation(
-                    cc_img, class_idxs=[instance_id], class_name=class_name, slot_name=slot_name
+                _video_annotations = get_video_annotation(
+                    cc_img, class_idxs=[instance_id], class_name=class_name, slot_names=slot_names, is_mpr=is_mpr
                 )
-                if video_annotation:
-                    video_annotations.append(video_annotation)
+                if _video_annotations:
+                    video_annotations += _video_annotations
     elif mode == "image":  # For each frame and each class produce a single frame video annotation
         for i in range(shape[-1]):
             slice_mask = img[:, :, i].astype(np.uint8)
@@ -113,19 +120,19 @@ def _parse_nifti(
                     keyframes={i: True, i + 1: True},
                     segments=[[i, i + 1]],
                     interpolated=False,
-                    slot_names=[] if slot_name is None else [slot_name],
+                    slot_names=slot_names,
                 )
                 video_annotations.append(video_annotation)
     elif mode == "video":  # For each class produce a single video annotation
         for class_name, class_idxs in processed_class_map.items():
             if class_name == "background":
                 continue
-            video_annotation = get_video_annotation(
-                img, class_idxs=class_idxs, class_name=class_name, slot_name=slot_name
+            _video_annotations = get_video_annotation(
+                img, class_idxs=class_idxs, class_name=class_name, slot_names=slot_names, is_mpr=is_mpr
             )
-            if video_annotation is None:
+            if _video_annotations is None:
                 continue
-            video_annotations.append(video_annotation)
+            video_annotations += _video_annotations
     annotation_classes = set(
         [dt.AnnotationClass(class_name, "polygon", "polygon") for class_name in class_map.values()]
     )
@@ -135,16 +142,40 @@ def _parse_nifti(
         remote_path="/",
         annotation_classes=annotation_classes,
         annotations=video_annotations,
-        slots=[dt.Slot(name=slot_name, type="dicom", source_files=[{"url": None, "file_name": str(filename)}])],
+        slots=[
+            dt.Slot(name=slot_name, type="dicom", source_files=[{"url": None, "file_name": str(filename)}])
+            for slot_name in slot_names
+        ],
     )
 
 
 def get_video_annotation(
-    volume: np.ndarray, class_name: str, class_idxs: List[int], slot_name: Optional[str]
-) -> Optional[dt.VideoAnnotation]:
+    volume: np.ndarray, class_name: str, class_idxs: List[int], slot_names: List[str], is_mpr: bool
+) -> Optional[List[dt.VideoAnnotation]]:
+    if not is_mpr:
+        return nifti_to_video_annotation(volume, class_name, class_idxs, slot_names)
+    elif is_mpr and len(slot_names) == 3:
+        video_annotations = []
+        for view_idx, slot_name in enumerate(slot_names):
+            _video_annotations = nifti_to_video_annotation(
+                volume, class_name, class_idxs, [slot_name], view_idx=view_idx
+            )
+            video_annotations += _video_annotations
+        return video_annotations
+    else:
+        raise Exception("If is_mpr is True, slot_names must be of length 3")
+
+
+def nifti_to_video_annotation(volume, class_name, class_idxs, slot_names, view_idx=2):
     frame_annotations = OrderedDict()
-    for i in range(volume.shape[-1]):
-        slice_mask = volume[:, :, i].astype(np.uint8)
+    for i in range(volume.shape[view_idx]):
+        if view_idx == 2:
+            slice_mask = volume[:, :, i].astype(np.uint8)
+        elif view_idx == 1:
+            slice_mask = volume[:, i, :].astype(np.uint8)
+        elif view_idx == 0:
+            slice_mask = volume[i, :, :].astype(np.uint8)
+
         class_mask = np.isin(slice_mask, class_idxs).astype(np.uint8).copy()
         if class_mask.sum() == 0:
             continue
@@ -165,9 +196,9 @@ def get_video_annotation(
         keyframes={f_id: True for f_id in all_frame_ids},
         segments=segments,
         interpolated=False,
-        slot_names=[] if slot_name is None else [slot_name],
+        slot_names=slot_names,
     )
-    return video_annotation
+    return [video_annotation]
 
 
 def mask_to_polygon(mask: np.ndarray, class_name: str) -> Optional[dt.Annotation]:
