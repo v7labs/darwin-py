@@ -125,7 +125,7 @@ def get_render_mode(annotations: List[dt.AnnotationLike]) -> dt.MaskTypes.TypeOf
     keys: Set[str] = set(list_of_keys)
 
     is_raster_mask = ("mask" in keys) and ("raster_layer" in keys)
-    is_polygon = ("polygon" in keys) or ("complex_polygon" in keys)
+    is_polygon = ("path" in keys) or ("paths" in keys)
 
     raster_layer_count = len([a for a in keys if a == "raster_layer"])
 
