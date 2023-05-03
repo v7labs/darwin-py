@@ -158,11 +158,12 @@ def _build_sub_annotations(annotation: dict):
         available.
     """
     extra_info = annotation.get("extra")
+    if not extra_info:
+        return None
     attributes = extra_info.get("attributes")
-    sub_ann = None
-    if extra_info and attributes:
-        sub_ann = [dt.make_attributes(attributes)]
-    return sub_ann
+    if not attributes:
+        return None
+    return [dt.make_attributes(attributes)]
 
 
 @deprecation.deprecated(
