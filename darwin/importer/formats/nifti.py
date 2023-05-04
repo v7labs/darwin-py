@@ -108,26 +108,6 @@ def _parse_nifti(
                 )
                 if _video_annotations:
                     video_annotations += _video_annotations
-    elif mode == "image":  # For each frame and each class produce a single frame video annotation
-        for i in range(shape[-1]):
-            slice_mask = img[:, :, i].astype(np.uint8)
-            for class_name, class_idxs in processed_class_map.items():
-                frame_annotations = {}
-                if class_name == "background":
-                    continue
-                class_mask = np.isin(slice_mask, class_idxs).astype(np.uint8).copy()
-                polygon = mask_to_polygon(mask=class_mask, class_name=class_name)
-                if polygon is None:
-                    continue
-                frame_annotations[i] = polygon
-                video_annotation = dt.make_video_annotation(
-                    frame_annotations,
-                    keyframes={i: True, i + 1: True},
-                    segments=[[i, i + 1]],
-                    interpolated=False,
-                    slot_names=slot_names,
-                )
-                video_annotations.append(video_annotation)
     elif mode == "video":  # For each class produce a single video annotation
         for class_name, class_idxs in processed_class_map.items():
             if class_name == "background":
@@ -164,7 +144,7 @@ def get_video_annotation(
 ) -> Optional[List[dt.VideoAnnotation]]:
 
     if not is_mpr:
-        return nifti_to_video_annotation(volume, class_name, class_idxs, slot_names, view_idx =2 , pixdims=pixdims)
+        return nifti_to_video_annotation(volume, class_name, class_idxs, slot_names, view_idx=2, pixdims=pixdims)
     elif is_mpr and len(slot_names) == 3:
         video_annotations = []
         for view_idx, slot_name in enumerate(slot_names):
