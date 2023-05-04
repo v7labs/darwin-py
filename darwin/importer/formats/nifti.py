@@ -215,6 +215,14 @@ def nifti_to_video_annotation(volume, class_name, class_idxs, slot_names, view_i
 
 
 def mask_to_polygon(mask: np.ndarray, class_name: str, pixdims: List[float]) -> Optional[dt.Annotation]:
+    def adjust_for_pixdims(x, y, pixdims):
+        if pixdims[1] > pixdims[0]:
+            return {"x": y, "y": x * pixdims[1] / pixdims[0]}
+        elif pixdims[1] < pixdims[0]:
+            return {"x": y * pixdims[0] / pixdims[1], "y": x}
+        else:
+            return {"x": y, "y": x}
+
     _labels, external_paths, _internal_paths = find_contours(mask)
     # annotations = []
     if len(external_paths) > 1:
@@ -223,9 +231,7 @@ def mask_to_polygon(mask: np.ndarray, class_name: str, pixdims: List[float]) -> 
             # skip paths with less than 2 points
             if len(external_path) // 2 <= 2:
                 continue
-            path = [
-                {"x": y, "y": x * pixdims[1] / pixdims[0]} for x, y in zip(external_path[0::2], external_path[1::2])
-            ]
+            path = [adjust_for_pixdims(x, y, pixdims) for x, y in zip(external_path[0::2], external_path[1::2])]
             paths.append(path)
         if len(paths) > 1:
             polygon = dt.make_complex_polygon(class_name, paths)
@@ -242,9 +248,7 @@ def mask_to_polygon(mask: np.ndarray, class_name: str, pixdims: List[float]) -> 
             return None
         polygon = dt.make_polygon(
             class_name,
-            point_path=[
-                {"x": y, "y": x * pixdims[1] / pixdims[0]} for x, y in zip(external_path[0::2], external_path[1::2])
-            ],
+            point_path=[adjust_for_pixdims(x, y, pixdims) for x, y in zip(external_path[0::2], external_path[1::2])],
         )
     else:
         return None
