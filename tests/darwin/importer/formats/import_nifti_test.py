@@ -14,7 +14,7 @@ from darwin.datatypes import (
 )
 from darwin.importer.formats.nifti import parse_path
 
-# from tests.fixtures import *
+from tests.fixtures import *
 
 
 def test_image_annotation_nifti_import_single_slot(team_slug: str):
