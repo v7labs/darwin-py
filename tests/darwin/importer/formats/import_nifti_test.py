@@ -66,7 +66,7 @@ def test_image_annotation_nifti_import_multi_slot(team_slug: str):
             annotation_file = annotation_files[0]
             output_json_string = json.loads(serialise_annotation_file(annotation_file, as_dict=False))
             expected_json_string = json.load(
-                open(Path(tmpdir) / team_slug / "nifti" / "vol0_annotation_file.json", "r")
+                open(Path(tmpdir) / team_slug / "nifti" / "vol0_annotation_file_multi_slot.json", "r")
             )
             json.dump(output_json_string, open("test_output_for_nifti_import_test_multi_slot.json", "w"), indent=4)
             assert output_json_string["annotations"][0]["frames"] == expected_json_string["annotations"][0]["frames"]
