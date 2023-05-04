@@ -164,7 +164,7 @@ def get_video_annotation(
 ) -> Optional[List[dt.VideoAnnotation]]:
 
     if not is_mpr:
-        return nifti_to_video_annotation(volume, class_name, class_idxs, slot_names, pixdims)
+        return nifti_to_video_annotation(volume, class_name, class_idxs, slot_names, view_idx =2 , pixdims=pixdims)
     elif is_mpr and len(slot_names) == 3:
         video_annotations = []
         for view_idx, slot_name in enumerate(slot_names):
