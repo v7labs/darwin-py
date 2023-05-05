@@ -14,6 +14,7 @@ from darwin.datatypes import (
 )
 from darwin.importer.formats.nifti import parse_path
 
+
 from tests.fixtures import *
 
 
@@ -70,6 +71,38 @@ def test_image_annotation_nifti_import_multi_slot(team_slug: str):
             )
             json.dump(output_json_string, open("test_output_for_nifti_import_test_multi_slot.json", "w"), indent=4)
             assert output_json_string["annotations"][0]["frames"] == expected_json_string["annotations"][0]["frames"]
+
+
+def test_image_annotation_nifti_import_incorrect_number_slot(team_slug: str):
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with ZipFile("tests/data.zip") as zfile:
+            zfile.extractall(tmpdir)
+            label_path = (
+                Path(tmpdir) / team_slug / "nifti" / "releases" / "latest" / "annotations" / "vol0_brain.nii.gz"
+            )
+            input_dict = {
+                "data": [
+                    {
+                        "image": "vol0 (1).nii",
+                        "label": str(label_path),
+                        "class_map": {"1": "brain"},
+                        "mode": "video",
+                        "is_mpr": True,
+                        "slot_names": ["0.3", "0.2"],
+                    }
+                ]
+            }
+            upload_json = Path(tmpdir) / "annotations.json"
+            upload_json.write_text(json.dumps(input_dict, indent=4, sort_keys=True, default=str))
+            annotation_files = parse_path(path=upload_json)
+            annotation_file = annotation_files[0]
+            output_json_string = json.loads(serialise_annotation_file(annotation_file, as_dict=False))
+            expected_json_string = json.load(
+                open(Path(tmpdir) / team_slug / "nifti" / "vol0_annotation_file_incorrect_number_slot.json", "r")
+            )
+            json.dump(output_json_string, open("test_output_for_nifti_import_test_incorrect_number_slot.json", "w"), indent=4)
+
+            assert len(input_dict["data"][0]["slot_names"]) != 3, "Slot length needs to be 3" 
 
 
 def serialise_annotation_file(annotation_file: AnnotationFile, as_dict) -> Union[str, dict]:
@@ -181,26 +214,27 @@ if __name__ == "__main__":
         "data": [
             {
                 "image": "vol0 (1).nii",
-                "label": "tests/v7/v7-darwin-json-v1/nifti/releases/latest/annotations/vol0_brain.nii.gz",
-                "class_map": {
-                    "1": "brain"
-                },
-                "is_mpr": true,
-                "slot_names": ["0.3", "0.2", "0.1"],
-                "mode": "video"
+                "label": str(label_path),
+                "class_map": {"1": "brain"},
+                "mode": "video",
+                "is_mpr": True,
+                "slot_names": ["0.3", "0.2"],
             }
         ]
     }
     """
     with tempfile.TemporaryDirectory() as tmp_dir:
+        print(tmp_dir)
         path = Path(tmp_dir) / "annotations.json"
         path.write_text(input_json_string)
         print(path)
-        annotation_files = parse_path(path=path)
+    annotation_files = parse_path(path=path)
     if isinstance(annotation_files, list):
         annotation_file = annotation_files[0]
         output_json_string = serialise_annotation_file(annotation_file, as_dict=False)
-        with open(
-            Path("tests") / "v7" / "v7-darwin-json-v1" / "nifti" / "vol0_annotation_file_multi_slot.json", "w"
+        #with open(
+         #   Path("tests") / "v7" / "v7-darwin-json-v1" / "nifti" / "vol0_annotation_file_incorrect_number_slot.json", "w"
+        with open("Users" /"nooshinghavami" / "Desktop" / "nooshin" / "darwin-py" / "tests" / "data" / "v7-darwin-json-v1" / "nifti" / "vol0_annotation_file_incorrect_number_slot.json", "w"
         ) as f:
             f.write(output_json_string)
+
