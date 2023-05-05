@@ -121,9 +121,7 @@ def get_render_mode(annotations: List[dt.AnnotationLike]) -> dt.MaskTypes.TypeOf
     if not non_video_annotations:
         return "polygon"
 
-    list_of_class_types: List[str] = reduce(
-        list.__add__, [a.annotation_class.annotation_type for a in non_video_annotations]
-    )
+    list_of_class_types: List[str] = [a.annotation_class.annotation_type for a in non_video_annotations]
     class_types: Set[str] = set(list_of_class_types)
 
     is_raster_mask = ("mask" in class_types) and ("raster_layer" in class_types)
