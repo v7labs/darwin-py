@@ -1,7 +1,7 @@
-from typing import Optional
+from typing import List, Optional, Tuple
 
 from darwin.future.core.client import Client
-from darwin.future.data_objects.darwin_meta import Team
+from darwin.future.data_objects.darwin_meta import Team, TeamMember
 
 
 def get_team(client: Client, team_slug: Optional[str] = None) -> Team:
@@ -10,3 +10,15 @@ def get_team(client: Client, team_slug: Optional[str] = None) -> Team:
         team_slug = client.config.default_team
     response = client.get(f"/teams/{team_slug}/")
     return Team.parse_obj(response)
+
+
+def get_team_members(client: Client) -> Tuple[List[TeamMember], List[Exception]]:
+    response = client.get(f"/memberships")
+    members = []
+    errors = []
+    for item in response:
+        try:
+            members.append(TeamMember.parse_obj(item))
+        except Exception as e:
+            errors.append(e)
+    return (members, errors)
