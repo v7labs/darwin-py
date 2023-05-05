@@ -21,13 +21,13 @@ def test_team() -> Team:
     return Team(slug="test-team", id=0)
 
 
-def test_query_instantiated(basic_filters: List[Query.QueryFilter], test_team: Team) -> None:
-    q = Query.Query(test_team, basic_filters)
+def test_query_instantiated(basic_filters: List[Query.QueryFilter]) -> None:
+    q = Query.Query(basic_filters)
     assert q.filters == basic_filters
 
 
-def test_query_filter_functionality(basic_filters: List[Query.QueryFilter], test_team: Team) -> None:
-    q = Query.Query(test_team)
+def test_query_filter_functionality(basic_filters: List[Query.QueryFilter]) -> None:
+    q = Query.Query()
     for f in basic_filters:
         q = q.filter(f)
     assert q.filters == basic_filters
@@ -47,8 +47,8 @@ def test_query_filter_functionality(basic_filters: List[Query.QueryFilter], test
     assert q.filters == basic_filters
 
 
-def test_query_iterable(basic_filters: List[Query.QueryFilter], test_team: Team) -> None:
-    q = Query.Query(test_team, basic_filters)
+def test_query_iterable(basic_filters: List[Query.QueryFilter]) -> None:
+    q = Query.Query(basic_filters)
     for i, f in enumerate(q):
         assert f == basic_filters[i]
     assert q.filters is not None

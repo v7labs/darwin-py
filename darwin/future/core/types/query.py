@@ -26,8 +26,7 @@ class Query:
         filter: adds a filter to the query object, returns a new query object
     """
 
-    def __init__(self, team: Team, filters: Optional[List[QueryFilter]] = None):
-        self.team = team
+    def __init__(self, filters: Optional[List[QueryFilter]] = None):
         self.filters = filters
 
     def filter(self, filter: QueryFilter) -> Query:
@@ -38,14 +37,14 @@ class Query:
         assert isinstance(filter, QueryFilter)
         if self.filters is None:
             self.filters = []
-        return Query(self.team, [*self.filters, filter])
+        return Query([*self.filters, filter])
 
     def __sub__(self, filter: QueryFilter) -> Query:
         assert filter is not None
         assert isinstance(filter, QueryFilter)
         if self.filters is None:
             return self
-        return Query(self.team, [f for f in self.filters if f != filter])
+        return Query([f for f in self.filters if f != filter])
 
     def __iadd__(self, filter: QueryFilter) -> Query:
         assert filter is not None
