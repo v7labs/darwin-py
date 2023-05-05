@@ -1,10 +1,14 @@
 from __future__ import annotations
 
-from typing import List, Optional
+from abc import ABC, abstractmethod
+from typing import Generic, List, Optional, TypeVar
 
 from pydantic import BaseModel
 
-from darwin.future.data_objects.darwin_meta import Team
+from darwin.future.core.client import Client
+from darwin.future.data_objects.darwin_meta import DefaultDarwin
+
+T = TypeVar("T", bound=DefaultDarwin)
 
 
 class QueryFilter(BaseModel):
@@ -20,7 +24,7 @@ class QueryFilter(BaseModel):
     param: str
 
 
-class Query:
+class Query(Generic[T], ABC):
     """Basic Query object with methods to manage filters
     Methods:
         filter: adds a filter to the query object, returns a new query object
@@ -37,14 +41,14 @@ class Query:
         assert isinstance(filter, QueryFilter)
         if self.filters is None:
             self.filters = []
-        return Query([*self.filters, filter])
+        return self.__class__([*self.filters, filter])
 
     def __sub__(self, filter: QueryFilter) -> Query:
         assert filter is not None
         assert isinstance(filter, QueryFilter)
         if self.filters is None:
             return self
-        return Query([f for f in self.filters if f != filter])
+        return self.__class__([f for f in self.filters if f != filter])
 
     def __iadd__(self, filter: QueryFilter) -> Query:
         assert filter is not None
@@ -82,13 +86,15 @@ class Query:
         else:
             raise StopIteration
 
+    @abstractmethod
+    def collect(self, client: Client) -> List[T]:
+        raise NotImplementedError("Not implemented")
+
 
 class ServerSideQuery(Query):
     """Server side query object
     TODO: add server specific methods and paramenters
     """
-
-    ...
 
 
 class ClientSideQuery(Query):
@@ -96,4 +102,6 @@ class ClientSideQuery(Query):
     TODO: add client side specific methods and parameters
     """
 
-    ...
+    def __init__(self, model: DefaultDarwin, filters: Optional[List[QueryFilter]] = None):
+        super().__init__(filters)
+        self.model = model

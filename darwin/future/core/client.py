@@ -10,7 +10,6 @@ import yaml
 from pydantic import BaseModel, root_validator, validator
 from requests.adapters import HTTPAdapter, Retry
 
-from darwin.future.core.types.query import Query
 from darwin.future.data_objects.darwin_meta import Team
 from darwin.future.exceptions.client import NotFound, Unauthorized
 
@@ -124,33 +123,6 @@ class Page(BaseModel):
     detail: PageDetail
 
 
-class Cursor(ABC):
-    """Abstract class for a cursor
-
-    Attributes
-    ----------
-    url: str, url of the endpoint
-    client: Client, client used to make requests
-    """
-
-    def __init__(self, url: str, client: Client):
-        self.url = url
-        self.client = client
-        self.current_page: Optional[Page] = None
-
-    @abstractmethod
-    def execute(self, query: Query) -> Page:
-        pass
-
-    @abstractmethod
-    def __iter__(self) -> Page:
-        pass
-
-    @abstractmethod
-    def __next__(self) -> Page:
-        pass
-
-
 class Client:
     """Client Object to manage and make requests to the Darwin API
     Attributes
@@ -211,9 +183,6 @@ class Client:
         response.raise_for_status()
 
         return response.json()
-
-    def cursor(self) -> Cursor:
-        pass
 
     def get(self, endpoint: str) -> JSONType:
         return self._generic_call(self.session.get, endpoint)

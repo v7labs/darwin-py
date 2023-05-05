@@ -1,10 +1,20 @@
 import unittest
-from typing import List
+from typing import List, Type
 
 import pytest
 
 from darwin.future.core.types import query as Query
 from darwin.future.data_objects.darwin_meta import Team
+
+
+@pytest.fixture
+def non_abc_query() -> Type[Query.Query]:
+    """Query is an abstract base class, this fixture removes the abstract methods
+    so that it can be instantiated for testing the default methods
+    """
+    fixed = Query.Query
+    fixed.__abstractmethods__ = set()  # type: ignore
+    return fixed
 
 
 @pytest.fixture
@@ -21,13 +31,13 @@ def test_team() -> Team:
     return Team(slug="test-team", id=0)
 
 
-def test_query_instantiated(basic_filters: List[Query.QueryFilter]) -> None:
-    q = Query.Query(basic_filters)
+def test_query_instantiated(basic_filters: List[Query.QueryFilter], non_abc_query: Type[Query.Query]) -> None:
+    q = non_abc_query(basic_filters)
     assert q.filters == basic_filters
 
 
-def test_query_filter_functionality(basic_filters: List[Query.QueryFilter]) -> None:
-    q = Query.Query()
+def test_query_filter_functionality(basic_filters: List[Query.QueryFilter], non_abc_query: Type[Query.Query]) -> None:
+    q = non_abc_query()
     for f in basic_filters:
         q = q.filter(f)
     assert q.filters == basic_filters
@@ -47,8 +57,8 @@ def test_query_filter_functionality(basic_filters: List[Query.QueryFilter]) -> N
     assert q.filters == basic_filters
 
 
-def test_query_iterable(basic_filters: List[Query.QueryFilter]) -> None:
-    q = Query.Query(basic_filters)
+def test_query_iterable(basic_filters: List[Query.QueryFilter], non_abc_query: Type[Query.Query]) -> None:
+    q = non_abc_query(basic_filters)
     for i, f in enumerate(q):
         assert f == basic_filters[i]
     assert q.filters is not None
