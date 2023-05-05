@@ -121,13 +121,15 @@ def get_render_mode(annotations: List[dt.AnnotationLike]) -> dt.MaskTypes.TypeOf
     if not non_video_annotations:
         return "polygon"
 
-    list_of_keys: List[str] = reduce(list.__add__, [list(a.data.keys()) for a in non_video_annotations])
-    keys: Set[str] = set(list_of_keys)
+    list_of_class_types: List[str] = reduce(
+        list.__add__, [list(a.annotation_class.annotation_type) for a in non_video_annotations]
+    )
+    class_types: Set[str] = set(list_of_class_types)
 
-    is_raster_mask = ("mask" in keys) and ("raster_layer" in keys)
-    is_polygon = ("path" in keys) or ("paths" in keys)
+    is_raster_mask = ("mask" in class_types) and ("raster_layer" in class_types)
+    is_polygon = ("complex_polygon" in class_types) or ("polygon" in class_types)
 
-    raster_layer_count = len([a for a in keys if a == "raster_layer"])
+    raster_layer_count = len([a for a in list_of_class_types if a == "raster_layer"])
 
     if is_raster_mask and is_polygon:
         raise ValueError("Cannot have both raster and polygon annotations in the same file")
@@ -141,7 +143,7 @@ def get_render_mode(annotations: List[dt.AnnotationLike]) -> dt.MaskTypes.TypeOf
     if is_polygon:
         return "polygon"
 
-    raise ValueError("No renderable annotations found in file, found keys: " + ",".join(keys))
+    raise ValueError("No renderable annotations found in file, found classes: " + ",".join(class_types))
 
 
 def colours_in_rle(
@@ -352,7 +354,6 @@ def render_raster(
                 categories.append(new_mask.name)
 
         if "raster_layer" in data and (rl := data["raster_layer"]):
-
             if raster_layer:
                 errors.append(ValueError(f"Annotation {a.id} has more than one raster layer"))
                 break
@@ -394,7 +395,6 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path, mode
     colours: dt.MaskTypes.ColoursDict = dict()
 
     for annotation_file in annotation_files:
-
         image_rel_path = os.path.splitext(annotation_file.full_path)[0].lstrip("/")
         outfile = masks_dir / f"{image_rel_path}.png"
         outfile.parent.mkdir(parents=True, exist_ok=True)
