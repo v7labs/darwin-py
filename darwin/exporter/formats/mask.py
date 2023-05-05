@@ -122,7 +122,7 @@ def get_render_mode(annotations: List[dt.AnnotationLike]) -> dt.MaskTypes.TypeOf
         return "polygon"
 
     list_of_class_types: List[str] = reduce(
-        list.__add__, [list(a.annotation_class.annotation_type) for a in non_video_annotations]
+        list.__add__, [a.annotation_class.annotation_type for a in non_video_annotations]
     )
     class_types: Set[str] = set(list_of_class_types)
 

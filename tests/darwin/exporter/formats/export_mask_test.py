@@ -156,9 +156,10 @@ def test_get_or_generate_colour() -> None:
 @pytest.fixture
 def annotations() -> List[dt.Annotation]:
     return [
-        dt.Annotation(dt.AnnotationClass("class_1", "raster_layer"), data={"mask": "data", "raster_layer": "raster"}),
+        dt.Annotation(dt.AnnotationClass("class_1", "raster_layer"), data={"raster_layer": "raster"}),
         dt.Annotation(dt.AnnotationClass("class_2", "polygon"), data={"path": "data"}),
         dt.Annotation(dt.AnnotationClass("class_2", "polygon"), data={"paths": "data"}),
+        dt.Annotation(dt.AnnotationClass("class_1", "mask"), data={"mask": "data"}),
     ]
 
 
@@ -484,7 +485,6 @@ def test_export(
     expected_mask_file: Optional[Path],
     expected_csv_file: Optional[Path],
 ) -> None:
-
     with TemporaryDirectory() as output_dir, patch(
         "darwin.exporter.formats.mask.get_render_mode"
     ) as mock_get_render_mode, patch("darwin.exporter.formats.mask.render_raster") as mock_render_raster, patch(
@@ -494,7 +494,6 @@ def test_export(
     ) as mock_get_palette, patch(
         "darwin.exporter.formats.mask.get_rgb_colours"
     ) as mock_get_rgb_colours:
-
         height, width = renderer_output[1].shape
 
         annotation_files = [
