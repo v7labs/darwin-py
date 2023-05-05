@@ -73,6 +73,7 @@ def test_image_annotation_nifti_import_multi_slot(team_slug: str):
             assert output_json_string["annotations"][0]["frames"] == expected_json_string["annotations"][0]["frames"]
 
 
+
 def test_image_annotation_nifti_import_incorrect_number_slot(team_slug: str):
     with tempfile.TemporaryDirectory() as tmpdir:
         with ZipFile("tests/data.zip") as zfile:
@@ -94,15 +95,10 @@ def test_image_annotation_nifti_import_incorrect_number_slot(team_slug: str):
             }
             upload_json = Path(tmpdir) / "annotations.json"
             upload_json.write_text(json.dumps(input_dict, indent=4, sort_keys=True, default=str))
-            annotation_files = parse_path(path=upload_json)
-            annotation_file = annotation_files[0]
-            output_json_string = json.loads(serialise_annotation_file(annotation_file, as_dict=False))
-            expected_json_string = json.load(
-                open(Path(tmpdir) / team_slug / "nifti" / "vol0_annotation_file_incorrect_number_slot.json", "r")
-            )
-            json.dump(output_json_string, open("test_output_for_nifti_import_test_incorrect_number_slot.json", "w"), indent=4)
+            with pytest.raises(Exception):
+                annotation_files = parse_path(path=upload_json)
 
-            assert len(input_dict["data"][0]["slot_names"]) != 3, "Slot length needs to be 3" 
+
 
 
 def serialise_annotation_file(annotation_file: AnnotationFile, as_dict) -> Union[str, dict]:
