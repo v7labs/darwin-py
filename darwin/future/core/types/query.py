@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Generic, List, Optional, TypeVar
+from enum import Enum
+from typing import Any, Callable, Generic, List, Literal, Optional, TypedDict, TypeVar
 
 from pydantic import BaseModel
 
@@ -9,6 +10,14 @@ from darwin.future.core.client import Client
 from darwin.future.data_objects.darwin_meta import DefaultDarwin
 
 T = TypeVar("T", bound=DefaultDarwin)
+
+
+class Modifiers(Enum):
+    GREATER_THAN = ">"
+    LESS_THAN = "<"
+    GREATER_EQUAL = ">="
+    LESS_EQUAL = "<="
+    NOT_EQUAL = "!="
 
 
 class QueryFilter(BaseModel):
@@ -22,6 +31,23 @@ class QueryFilter(BaseModel):
 
     name: str
     param: str
+    modifier: Optional[Modifiers] = None
+
+    def filter_attr(self, attr: Any) -> bool:  # type: ignore
+        if self.modifier is None:
+            return attr == self.param
+        elif self.modifier == Modifiers.GREATER_EQUAL:
+            return attr >= self.param
+        elif self.modifier == Modifiers.GREATER_THAN:
+            return attr > self.param
+        elif self.modifier == Modifiers.LESS_EQUAL:
+            return attr <= self.param
+        elif self.modifier == Modifiers.LESS_THAN:
+            return attr < self.param
+        elif self.modifier == Modifiers.NOT_EQUAL:
+            return attr != self.param
+        else:
+            raise ValueError(f"Unknown modifier {self.modifier}")
 
 
 class Query(Generic[T], ABC):
@@ -89,6 +115,9 @@ class Query(Generic[T], ABC):
     @abstractmethod
     def collect(self, client: Client) -> List[T]:
         raise NotImplementedError("Not implemented")
+
+    def _generic_execute_filter(self, objects: List[T], filter: QueryFilter) -> List[T]:
+        return [m for m in objects if filter.filter_attr(getattr(m, filter.name))]
 
 
 class ServerSideQuery(Query):
