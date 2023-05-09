@@ -6,7 +6,11 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Literal, Optional, Set, Tuple, get_args
 
 import numpy as np
-from numpy.typing import NDArray
+
+try:
+    from numpy.typing import NDArray
+except ImportError:
+    NDArray = Any  # type:ignore
 from PIL import Image
 from upolygon import draw_polygon
 
@@ -115,13 +119,13 @@ def get_render_mode(annotations: List[dt.AnnotationLike]) -> dt.MaskTypes.TypeOf
     non_video_annotations: List[dt.Annotation] = [a for a in annotations if not isinstance(a, dt.VideoAnnotation)]
 
     if not non_video_annotations:
-        raise ValueError("No suitable annotations found in file.")
+        return "polygon"
 
     list_of_keys: List[str] = reduce(list.__add__, [list(a.data.keys()) for a in non_video_annotations])
     keys: Set[str] = set(list_of_keys)
 
     is_raster_mask = ("mask" in keys) and ("raster_layer" in keys)
-    is_polygon = ("polygon" in keys) or ("complex_polygon" in keys)
+    is_polygon = ("path" in keys) or ("paths" in keys)
 
     raster_layer_count = len([a for a in keys if a == "raster_layer"])
 
