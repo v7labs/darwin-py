@@ -18,6 +18,7 @@ class Modifiers(Enum):
     GREATER_EQUAL = ">="
     LESS_EQUAL = "<="
     NOT_EQUAL = "!="
+    CONTAINS = "contains"
 
 
 class QueryFilter(BaseModel):
@@ -34,18 +35,22 @@ class QueryFilter(BaseModel):
     modifier: Optional[Modifiers] = None
 
     def filter_attr(self, attr: Any) -> bool:  # type: ignore
+        caster: Callable[[str], Any] = type(attr)  # type: ignore
+        param = caster(self.param)  # attempt to cast the param to the type of the attribute
         if self.modifier is None:
-            return attr == self.param
+            return attr == param
         elif self.modifier == Modifiers.GREATER_EQUAL:
-            return attr >= self.param
+            return attr >= param
         elif self.modifier == Modifiers.GREATER_THAN:
-            return attr > self.param
+            return attr > param
         elif self.modifier == Modifiers.LESS_EQUAL:
-            return attr <= self.param
+            return attr <= param
         elif self.modifier == Modifiers.LESS_THAN:
-            return attr < self.param
+            return attr < param
         elif self.modifier == Modifiers.NOT_EQUAL:
-            return attr != self.param
+            return attr != param
+        elif self.modifier == Modifiers.CONTAINS:
+            return param in attr
         else:
             raise ValueError(f"Unknown modifier {self.modifier}")
 
@@ -111,6 +116,10 @@ class Query(Generic[T], ABC):
             return result
         else:
             raise StopIteration
+
+    @abstractmethod
+    def where(self, filter: QueryFilter) -> Query[T]:
+        raise NotImplementedError("Not implemented")
 
     @abstractmethod
     def collect(self, client: Client) -> List[T]:

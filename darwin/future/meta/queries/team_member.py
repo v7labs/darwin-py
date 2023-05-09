@@ -1,23 +1,24 @@
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import Any, Dict, List
 
 from darwin.future.core.backend import get_team_members
 from darwin.future.core.client import Client
 from darwin.future.core.types.query import Modifiers, Query, QueryFilter
 from darwin.future.data_objects.darwin_meta import TeamMember, TeamMemberRole
 
+Param = Dict[str, Any]  # type: ignore
+
 
 class TeamMemberQuery(Query[TeamMember]):
-    def where(self, param: dict[str, str]) -> Query[TeamMember]:
-        selected_modifier: Optional[Modifiers] = None
-        for modifier in Modifiers:
-            if param["value"].startswith(modifier.value):
-                selected_modifier = modifier
-                break
-        if selected_modifier:
-            return self + QueryFilter(name=param["name"], param=param["value"], modifier=selected_modifier)
-        return self + QueryFilter(name=param["name"], param=param["value"])
+    def where(self, param: Param) -> TeamMemberQuery:
+        if "modifier" in param and param["modifier"] != "":
+            selected_modifier = Modifiers(param["modifier"])
+            query = self + QueryFilter(name=param["name"], param=param["value"], modifier=selected_modifier)
+            return TeamMemberQuery(filters=query.filters)
+
+        query = self + QueryFilter(name=param["name"], param=param["value"])
+        return TeamMemberQuery(query.filters)
 
     def collect(self, client: Client) -> List[TeamMember]:
         members, exceptions = get_team_members(client)

@@ -1,5 +1,5 @@
 import unittest
-from typing import List, Type
+from typing import Any, List, Optional, Type
 
 import pytest
 
@@ -63,3 +63,36 @@ def test_query_iterable(basic_filters: List[Query.QueryFilter], non_abc_query: T
         assert f == basic_filters[i]
     assert q.filters is not None
     assert len(q) == len(basic_filters)
+
+
+@pytest.mark.parametrize(
+    "mod,param,check,expected",
+    [
+        (None, "test", "test", True),  # test str equalities
+        ("!=", "test", "test", False),
+        ("contains", "test", "test", True),
+        (None, "test", "test1", False),  # test str inequalites
+        ("!=", "test", "test1", True),
+        ("contains", "test1", "test", False),
+        (None, 1, 1, True),  # test int equalities
+        ("!=", 1, 1, False),
+        (">", 1, 2, True),
+        (">=", 1, 1, True),
+        ("<", 1, 1, False),
+        ("<=", 1, 1, True),
+        (">", 1, 1, False),  # test int inequalites
+        ("<", 1, 2, False),
+        (">=", 1, 0, False),
+        ("<=", 1, 2, False),
+        (None, 1, 2, False),
+        ("!=", 1, 2, True),
+    ],
+)
+def test_query_filter_filters(mod: Optional[str], param: Any, check: Any, expected: bool) -> None:  # type: ignore
+    # test str
+    if mod:
+        modifier = Query.Modifiers(mod)
+    else:
+        modifier = None
+    QF = Query.QueryFilter(name="test", param=param, modifier=modifier)
+    assert QF.filter_attr(check) == expected
