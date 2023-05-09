@@ -2,12 +2,11 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from pydantic import BaseModel
+from darwin.future.data_objects.team import Team
+from darwin.future.pydantic_base import DefaultDarwin
 
-from darwin.future.data_objects.darwin_meta import Team
 
-
-class QueryFilter(BaseModel):
+class QueryFilter(DefaultDarwin):
     """Basic query filter with a name and a parameter
 
     Attributes

@@ -1,7 +1,7 @@
 from typing import List, Optional, Tuple
 
 from darwin.future.core.client import Client
-from darwin.future.data_objects.darwin_meta import Team, TeamMember
+from darwin.future.data_objects.team import Team, TeamMember
 
 
 def get_team(client: Client, team_slug: Optional[str] = None) -> Team:

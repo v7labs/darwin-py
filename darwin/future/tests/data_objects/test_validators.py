@@ -3,7 +3,7 @@ from typing import Union
 
 import pytest
 
-from darwin.future.data_objects import validators as validators
+from darwin.future.data_objects.validators import parse_name
 
 Simple = Union[list, tuple, dict, str, int, float]
 
@@ -19,7 +19,7 @@ Simple = Union[list, tuple, dict, str, int, float]
     ],
 )
 def test_parse_name_parses_correctly(input: str, expected: str) -> None:
-    parsed = validators.parse_name(input)
+    parsed = parse_name(input)
     assert parsed == expected
 
 
@@ -29,4 +29,4 @@ def test_parse_name_parses_correctly(input: str, expected: str) -> None:
 )
 def test_parse_name_raises_with_incorrect_input(input: Simple) -> None:
     with pytest.raises(AssertionError) as e_info:
-        validators.parse_name(input)  # type: ignore[arg-type]
+        parse_name(input)  # type: ignore[arg-type]
