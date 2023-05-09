@@ -146,8 +146,9 @@ def find_and_parse(
     maybe_console("Finished.")
     # Sometimes we have a list of lists of AnnotationFile, sometimes we have a list of AnnotationFile
     # We flatten the list of lists
-    if isinstance(parsed_files, list) and isinstance(parsed_files[0], list):
-        parsed_files = [item for sublist in parsed_files for item in sublist]
+    if isinstance(parsed_files, list):
+        if isinstance(parsed_files[0], list):
+            parsed_files = [item for sublist in parsed_files for item in sublist]
     else:
         parsed_files = [parsed_files]
 
