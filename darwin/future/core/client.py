@@ -10,6 +10,7 @@ import yaml
 from pydantic import BaseModel, root_validator, validator
 from requests.adapters import HTTPAdapter, Retry
 
+from darwin.future.core.types.common import QueryString
 from darwin.future.core.types.query import Query
 from darwin.future.exceptions.client import NotFound, Unauthorized
 
@@ -211,11 +212,18 @@ class Client:
 
         return response.json()
 
-    def cursor(self) -> Cursor:
+    def cursor(self) -> Cursor:  # type: ignore TODO:
+        # TODO Remove type ignore when Cursor is implemented
         pass
 
-    def get(self, endpoint: str) -> JSONType:
-        return self._generic_call(self.session.get, endpoint)
+    def get(self, endpoint: str, query_string: Optional[QueryString] = None) -> JSONType:
+        endpoint_with_qs = endpoint
+
+        if query_string:
+            assert "?" not in endpoint
+            endpoint_with_qs += "?" + str(query_string)
+
+        return self._generic_call(self.session.get, endpoint_with_qs)
 
     def put(self, endpoint: str, data: dict) -> JSONType:
         return self._generic_call(self.session.put, endpoint, data)
