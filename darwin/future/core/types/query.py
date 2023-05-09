@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Generic, List, Optional, TypeVar
+from typing import Any, Generic, List, Optional, TypeVar
 
 from pydantic import BaseModel
 
@@ -33,24 +33,24 @@ class Query(Generic[T], ABC):
     def __init__(self, filters: Optional[List[QueryFilter]] = None):
         self.filters = filters
 
-    def filter(self, filter: QueryFilter) -> Query:
+    def filter(self, filter: QueryFilter) -> Query[T]:
         return self + filter
 
-    def __add__(self, filter: QueryFilter) -> Query:
+    def __add__(self, filter: QueryFilter) -> Query[T]:
         assert filter is not None
         assert isinstance(filter, QueryFilter)
         if self.filters is None:
             self.filters = []
         return self.__class__([*self.filters, filter])
 
-    def __sub__(self, filter: QueryFilter) -> Query:
+    def __sub__(self, filter: QueryFilter) -> Query[T]:
         assert filter is not None
         assert isinstance(filter, QueryFilter)
         if self.filters is None:
             return self
         return self.__class__([f for f in self.filters if f != filter])
 
-    def __iadd__(self, filter: QueryFilter) -> Query:
+    def __iadd__(self, filter: QueryFilter) -> Query[T]:
         assert filter is not None
         assert isinstance(filter, QueryFilter)
         if self.filters is None:
@@ -59,7 +59,7 @@ class Query(Generic[T], ABC):
         self.filters.append(filter)
         return self
 
-    def __isub__(self, filter: QueryFilter) -> Query:
+    def __isub__(self, filter: QueryFilter) -> Query[T]:
         assert filter is not None
         assert isinstance(filter, QueryFilter)
         if self.filters is None:
@@ -72,7 +72,7 @@ class Query(Generic[T], ABC):
             return 0
         return len(self.filters)
 
-    def __iter__(self) -> Query:
+    def __iter__(self) -> Query[T]:
         self.n = 0
         return self
 
