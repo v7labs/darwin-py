@@ -5,6 +5,14 @@ on:
     branches: ["master"]
   workflow_dispatch:
 
+permissions:
+  id-token: write # This is required for requesting the JWT
+  contents: read  # This is required for actions/checkout
+
+env:
+  AWS_REGION: eu-west-1
+  AWS_SESSION_NAME: darwinPyDocumentation
+
 jobs:
   generate-docs:
     runs-on: ubuntu-latest
@@ -45,10 +53,10 @@ jobs:
           sphinx-apidoc -f -o source darwin darwin/future
           sphinx-build -b html source/ docs/ -W
       - name: Setup access to AWS
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v2
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: eu-west-1
+          role-to-assume: ${{ secrets.DARWIN_PY_AWS_GITHUB_CICD_ROLE }}
+          role-session-name: ${{ env.AWS_SESSION_NAME }}
+          aws-region: ${{ env.AWS_REGION }}
       - name: Upload docs to S3
         run: aws s3 cp docs/ s3://darwin-py-sdk.v7labs.com/ --recursive

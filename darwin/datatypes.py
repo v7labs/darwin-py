@@ -16,7 +16,10 @@ from typing import (
     Union,
 )
 
-from numpy.typing import NDArray
+try:
+    from numpy.typing import NDArray
+except ImportError:
+    NDArray = Any  # type:ignore
 
 from darwin.path_utils import construct_full_path
 
