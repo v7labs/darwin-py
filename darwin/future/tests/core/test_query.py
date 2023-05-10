@@ -4,7 +4,7 @@ from typing import Any, List, Optional, Type
 import pytest
 
 from darwin.future.core.types import query as Query
-from darwin.future.data_objects.darwin_meta import Team
+from darwin.future.data_objects.team import Team
 
 
 @pytest.fixture

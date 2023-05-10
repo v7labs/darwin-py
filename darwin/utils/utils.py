@@ -702,7 +702,7 @@ def _parse_darwin_video_annotation(annotation: dict) -> Optional[dt.VideoAnnotat
         )
         keyframes[int(f)] = frame.get("keyframe", False)
 
-    if not frame_annotations:
+    if not frame_annotations or None in frame_annotations.values():
         return None
     main_annotation = dt.make_video_annotation(
         frame_annotations,

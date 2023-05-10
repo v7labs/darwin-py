@@ -2,14 +2,13 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Any, Callable, Generic, List, Literal, Optional, TypedDict, TypeVar
-
-from pydantic import BaseModel
+from typing import Any, Callable, Dict, Generic, List, Optional, TypeVar
 
 from darwin.future.core.client import Client
-from darwin.future.data_objects.darwin_meta import DefaultDarwin
+from darwin.future.pydantic_base import DefaultDarwin
 
 T = TypeVar("T", bound=DefaultDarwin)
+Param = Dict[str, Any]  # type: ignore
 
 
 class Modifiers(Enum):
@@ -21,7 +20,7 @@ class Modifiers(Enum):
     CONTAINS = "contains"
 
 
-class QueryFilter(BaseModel):
+class QueryFilter(DefaultDarwin):
     """Basic query filter with a name and a parameter
 
     Attributes
@@ -118,7 +117,7 @@ class Query(Generic[T], ABC):
             raise StopIteration
 
     @abstractmethod
-    def where(self, filter: QueryFilter) -> Query[T]:
+    def where(self, param: Param) -> Query[T]:
         raise NotImplementedError("Not implemented")
 
     @abstractmethod

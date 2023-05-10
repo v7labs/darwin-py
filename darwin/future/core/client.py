@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Union, overload
+from typing import Any, Callable, Dict, List, Optional, overload
 from urllib.parse import urlparse
 
 import requests
@@ -10,7 +9,6 @@ import yaml
 from pydantic import BaseModel, root_validator, validator
 from requests.adapters import HTTPAdapter, Retry
 
-from darwin.future.data_objects.darwin_meta import Team
 from darwin.future.exceptions.client import NotFound, Unauthorized
 
 JSONType = Dict[str, Any]  # type: ignore

@@ -5,7 +5,8 @@ from typing import Any, Dict, List
 from darwin.future.core.backend import get_team_members
 from darwin.future.core.client import Client
 from darwin.future.core.types.query import Modifiers, Query, QueryFilter
-from darwin.future.data_objects.darwin_meta import TeamMember, TeamMemberRole
+from darwin.future.data_objects.team import TeamMember
+from darwin.future.data_objects.team_member_role import TeamMemberRole
 
 Param = Dict[str, Any]  # type: ignore
 

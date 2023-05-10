@@ -3,7 +3,7 @@ from typing import List
 import pytest
 
 from darwin.future.core.client import Client, DarwinConfig
-from darwin.future.data_objects.darwin_meta import Team, TeamMember, TeamMemberRole
+from darwin.future.data_objects.team import Team, TeamMember, TeamMemberRole
 
 
 @pytest.fixture
