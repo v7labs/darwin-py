@@ -10,7 +10,7 @@ from .fixtures import happy_get_client, sad_http_client
 
 
 def test_it_deletes_a_dataset(happy_get_client: Client) -> None:
-    happy_get_client.get.return_value = {  # type: ignore
+    happy_get_client.delete.return_value = {  # type: ignore
         "affected_item_count": 1,
     }
 

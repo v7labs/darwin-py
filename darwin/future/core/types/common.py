@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Dict
 
 from pydantic import ConstrainedStr
 
@@ -9,10 +9,19 @@ class TeamSlug(ConstrainedStr):
     """Team slug type"""
 
     min_length = 1
-    max_length = 100
+    max_length = 256
 
     validator = darwin_validators.parse_name
 
 
-UnknownType = Any  # type: ignore
-JSONType = Dict[str, UnknownType]
+class QueryString:
+    """Query string type"""
+
+    def __init__(self, value: Dict[str, str]) -> None:
+        assert isinstance(value, dict)
+        assert all(isinstance(k, str) and isinstance(v, str) for k, v in value.items())
+
+        self.value = value
+
+    def __str__(self) -> str:
+        return "?" + "&".join(f"{k}={v}" for k, v in self.value.items())

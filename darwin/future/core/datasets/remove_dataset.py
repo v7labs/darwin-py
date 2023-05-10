@@ -1,9 +1,5 @@
-from pydantic import parse_obj_as
-from requests import Response
-
-from darwin.future.core.client import Client
-from darwin.future.core.types.common import JSONType
-from darwin.future.data_objects.dataset import Dataset
+from darwin.future.core.client import Client, JSONType
+from darwin.future.core.types.common import QueryString
 
 
 def remove_dataset(api_client: Client, name: str) -> JSONType:
@@ -21,11 +17,13 @@ def remove_dataset(api_client: Client, name: str) -> JSONType:
     -------
     Dataset
     """
-    response: JSONType = api_client.delete(
+    response = api_client.delete(
         "/datasets",
-        {
-            "name": name,
-        },
+        QueryString(
+            {
+                "name": name,
+            }
+        ),
     )
 
     return response
