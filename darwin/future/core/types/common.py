@@ -9,7 +9,7 @@ class TeamSlug(ConstrainedStr):
     """Team slug type"""
 
     min_length = 1
-    max_length = 100
+    max_length = 256
 
     validator = darwin_validators.parse_name
 
@@ -24,4 +24,4 @@ class QueryString:
         self.value = value
 
     def __str__(self) -> str:
-        return "&".join(f"{k}={v}" for k, v in self.value.items())
+        return "?" + "&".join(f"{k}={v}" for k, v in self.value.items())

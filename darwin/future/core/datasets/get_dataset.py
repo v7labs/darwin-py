@@ -2,10 +2,11 @@ from pydantic import parse_obj_as
 
 from darwin.future.core.client import Client
 from darwin.future.core.types import TeamSlug
+from darwin.future.core.types.common import QueryString
 from darwin.future.data_objects.dataset import Dataset, DatasetList
 
 
-def get_dataset(api_client: Client, dataset_id: str) -> DatasetList:
+def get_dataset(api_client: Client, dataset_id: str) -> Dataset:
     """
     Returns a list of datasets for the given team
 
@@ -18,13 +19,13 @@ def get_dataset(api_client: Client, dataset_id: str) -> DatasetList:
 
     Returns
     -------
-    DatasetList
+    Dataset
 
     Raises
     ------
     HTTPError
         Any errors that occurred while making the request
     """
-    response = api_client.get("/datasets", {"team": TeamSlug(dataset_id).team_slug})  # TODO PICK UP HERE
+    response = api_client.get("/datasets", QueryString({"team": TeamSlug(dataset_id)}))
 
-    return parse_obj_as(DatasetList, response)
+    return parse_obj_as(Dataset, response)

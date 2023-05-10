@@ -31,8 +31,8 @@ def list_datasets(api_client: Client, team_slug: Optional[TeamSlug] = None) -> D
         Any errors that occurred while parsing the response
 
     """
-    if team_slug:
-        response = api_client.get("/datasets", QueryString({"team": str(team_slug)}))
-    response = api_client.get("/datasets")
+    response = (
+        api_client.get("/datasets", QueryString({"team": str(team_slug)})) if team_slug else api_client.get("/datasets")
+    )
 
     return parse_obj_as(DatasetList, response)

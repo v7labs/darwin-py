@@ -212,7 +212,7 @@ class Client:
 
         return response.json()
 
-    def cursor(self) -> Cursor:  # type: ignore TODO:
+    def cursor(self) -> Cursor:  # type: ignore
         # TODO Remove type ignore when Cursor is implemented
         pass
 
