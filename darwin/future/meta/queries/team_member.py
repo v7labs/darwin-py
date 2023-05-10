@@ -13,12 +13,8 @@ Param = Dict[str, Any]  # type: ignore
 
 class TeamMemberQuery(Query[TeamMember]):
     def where(self, param: Param) -> TeamMemberQuery:
-        if "modifier" in param and param["modifier"] != "":
-            selected_modifier = Modifiers(param["modifier"])
-            query = self + QueryFilter(name=param["name"], param=param["value"], modifier=selected_modifier)
-            return TeamMemberQuery(filters=query.filters)
-
-        query = self + QueryFilter(name=param["name"], param=param["value"])
+        filter = QueryFilter.parse_obj(param)
+        query = self + filter
         return TeamMemberQuery(query.filters)
 
     def collect(self, client: Client) -> List[TeamMember]:

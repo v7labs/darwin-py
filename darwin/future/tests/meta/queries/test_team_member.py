@@ -37,7 +37,7 @@ def test_team_member_filters_role(
 ) -> None:
     with responses.RequestsMock() as rsps:
         # Test equal
-        query = TeamMemberQuery().where({"name": "role", "value": role.value})
+        query = TeamMemberQuery().where({"name": "role", "param": role.value})
         endpoint = base_client.config.api_endpoint + "memberships"
         rsps.add(responses.GET, endpoint, json=base_team_members_json)
         members = query.collect(base_client)
@@ -46,7 +46,7 @@ def test_team_member_filters_role(
 
         # Test not equal
         rsps.reset()
-        query = TeamMemberQuery().where({"name": "role", "value": role.value, "modifier": "!="})
+        query = TeamMemberQuery().where({"name": "role", "param": role.value, "modifier": "!="})
         rsps.add(responses.GET, endpoint, json=base_team_members_json)
         members = query.collect(base_client)
         assert len(members) == len(TeamMemberRole) - 1
@@ -58,7 +58,7 @@ def test_team_member_filters_general(base_client: Client, base_team_members_json
         base_team_members_json[idx]["id"] = idx + 1
 
     with responses.RequestsMock() as rsps:
-        query = TeamMemberQuery().where({"name": "id", "value": 1})
+        query = TeamMemberQuery().where({"name": "id", "param": 1})
         endpoint = base_client.config.api_endpoint + "memberships"
         rsps.add(responses.GET, endpoint, json=base_team_members_json)
         members = query.collect(base_client)
@@ -72,8 +72,8 @@ def test_team_member_filters_general(base_client: Client, base_team_members_json
 
         members = (
             TeamMemberQuery()
-            .where({"name": "id", "value": 1, "modifier": ">"})
-            .where({"name": "id", "value": len(base_team_members_json), "modifier": "<"})
+            .where({"name": "id", "param": 1, "modifier": ">"})
+            .where({"name": "id", "param": len(base_team_members_json), "modifier": "<"})
             .collect(base_client)
         )
 
