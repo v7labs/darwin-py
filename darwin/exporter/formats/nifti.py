@@ -1,3 +1,4 @@
+import ast
 import json as native_json
 from asyncore import loop
 from pathlib import Path
@@ -161,9 +162,6 @@ def get_view_idx(frame_idx, groups):
 
 
 def get_view_idx_from_slot_name(slot_name):
-    # if mpr:
-    #     #do this correct treatment volumetrically.
-    #     pass
     slot_names = {"0.1": 0, "0.2": 1, "0.3": 2}
     slot_names.get(slot_name, 0)
     return slot_names.get(slot_name, 0)
@@ -176,7 +174,7 @@ def process_metadata(metadata):
     original_affine = process_affine(metadata.get("original_affine"))
     # If the original affine is in the medical payload of metadata then use it
     if isinstance(pixdim, str):
-        pixdim = eval(pixdim)
+        pixdim = ast.literal_eval(pixdim)
         if isinstance(pixdim, tuple) or isinstance(pixdim, list):
             if len(pixdim) == 4:
                 pixdim = pixdim[1:]
@@ -195,7 +193,7 @@ def process_metadata(metadata):
 
 def process_affine(affine):
     if isinstance(affine, str):
-        affine = np.squeeze(np.array([eval(l) for l in affine.split("\n")]))
+        affine = np.squeeze(np.array([ast.literal_eval(l) for l in affine.split("\n")]))
     elif isinstance(affine, list):
         affine = np.array(affine).astype(np.float)
     else:
