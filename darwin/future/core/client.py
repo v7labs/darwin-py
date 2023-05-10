@@ -216,14 +216,15 @@ class Client:
         # TODO Remove type ignore when Cursor is implemented
         pass
 
+    def _contain_qs_and_endpoint(self, endpoint: str, query_string: Optional[QueryString] = None) -> str:
+        if not query_string:
+            return endpoint
+
+        assert "?" not in endpoint
+        return endpoint + "?" + str(query_string)
+
     def get(self, endpoint: str, query_string: Optional[QueryString] = None) -> JSONType:
-        endpoint_with_qs = endpoint
-
-        if query_string:
-            assert "?" not in endpoint
-            endpoint_with_qs += "?" + str(query_string)
-
-        return self._generic_call(self.session.get, endpoint_with_qs)
+        return self._generic_call(self.session.get, self._contain_qs_and_endpoint(endpoint, query_string))
 
     def put(self, endpoint: str, data: dict) -> JSONType:
         return self._generic_call(self.session.put, endpoint, data)
@@ -231,8 +232,8 @@ class Client:
     def post(self, endpoint: str, data: dict) -> JSONType:
         return self._generic_call(self.session.post, endpoint, data)
 
-    def delete(self, endpoint: str) -> JSONType:
-        return self._generic_call(self.session.delete, endpoint)
+    def delete(self, endpoint: str, query_string: Optional[QueryString] = None) -> JSONType:
+        return self._generic_call(self.session.delete, self._contain_qs_and_endpoint(endpoint, query_string))
 
     def patch(self, endpoint: str, data: dict) -> JSONType:
         return self._generic_call(self.session.patch, endpoint, data)
