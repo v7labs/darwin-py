@@ -27,6 +27,7 @@ class QueryFilter(DefaultDarwin):
     ----------
     name: str
     param: str
+    modifier: Optional[Modifiers]: Optional modifier to apply to the filter
     """
 
     name: str
@@ -58,6 +59,9 @@ class Query(Generic[T], ABC):
     """Basic Query object with methods to manage filters
     Methods:
         filter: adds a filter to the query object, returns a new query object
+        where: Applies a filter on the query object, returns a new query object
+        collect: Executes the query on the client and returns the results
+        _generic_execute_filter: Executes a filter on a list of objects
     """
 
     def __init__(self, filters: Optional[List[QueryFilter]] = None):
@@ -133,12 +137,16 @@ class ServerSideQuery(Query):
     TODO: add server specific methods and paramenters
     """
 
+    def __init__(self, filters: Optional[List[QueryFilter]] = None, client: Optional[Client] = None):
+        self.client = client
+        super().__init__(filters=filters)
+
 
 class ClientSideQuery(Query):
     """Client side query object
     TODO: add client side specific methods and parameters
     """
 
-    def __init__(self, model: DefaultDarwin, filters: Optional[List[QueryFilter]] = None):
-        super().__init__(filters)
-        self.model = model
+    def __init__(self, filters: Optional[List[QueryFilter]] = None, objects: Optional[List[T]] = None):
+        self.objects = objects
+        super().__init__(filters=filters)
