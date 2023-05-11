@@ -93,6 +93,14 @@ class DarwinException(Exception):
         return instance
 
 
+class GracefulExit(DarwinException):
+    """
+    Used to exit the program gracefully.
+    """
+
+    message: str
+
+
 class IncompatibleOptions(Exception):
     """
     Used when a combination of options has one or more options that are not compatible between them.

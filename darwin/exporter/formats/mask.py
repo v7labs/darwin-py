@@ -390,10 +390,15 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path, mode
     annotation_files = list(annotation_files)
 
     all_classes_sets: List[Set[dt.AnnotationClass]] = [a.annotation_classes for a in annotation_files]
-    all_classes: Set[dt.AnnotationClass] = set.union(*all_classes_sets)
-    categories: List[str] = ["__background__"] + [c.name for c in list(all_classes)]
+    if len(all_classes_sets) > 0:
+        all_classes: Set[dt.AnnotationClass] = set.union(*all_classes_sets)
+        categories: List[str] = ["__background__"] + [c.name for c in list(all_classes)]
+        palette = get_palette(mode, categories)
+    else:
+        categories = ["__background__"]
+        palette = dict()
+
     colours: dt.MaskTypes.ColoursDict = dict()
-    palette = get_palette(mode, categories)
 
     for annotation_file in annotation_files:
         image_rel_path = os.path.splitext(annotation_file.full_path)[0].lstrip("/")
@@ -452,6 +457,12 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path, mode
     with open(output_dir / "class_mapping.csv", "w") as f:
         writer = csv_writer(f)
         writer.writerow(["class_name", "class_color"])
+
+        # Create a palette if there was no palette created
+        try:
+            palette_rgb
+        except NameError:
+            palette_rgb = {"__background__": [0, 0, 0]}
 
         for c in categories:
             if mode == "rgb":
