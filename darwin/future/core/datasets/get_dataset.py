@@ -28,7 +28,7 @@ def get_dataset(api_client: Client, dataset_id: str) -> Dataset:
     ValidationError
         Any errors that occurred while parsing the response
     """
-    
+
     response = api_client.get("/datasets", QueryString({"id": str(dataset_id)}))
 
     return parse_obj_as(Dataset, response)
