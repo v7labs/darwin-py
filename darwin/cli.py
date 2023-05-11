@@ -8,10 +8,11 @@ from datetime import datetime
 from json import dumps
 
 import requests.exceptions
+from rich.console import Console
 
 import darwin.cli_functions as f
 from darwin import __version__
-from darwin.exceptions import InvalidTeam, Unauthenticated, Unauthorized
+from darwin.exceptions import GracefulExit, InvalidTeam, Unauthenticated, Unauthorized
 from darwin.options import Options
 
 
@@ -43,21 +44,14 @@ def main() -> None:
         f._error("The team specified is not in the configuration, please authenticate first.")
     except requests.exceptions.ConnectionError:
         f._error("Darwin seems unreachable, please try again in a minute or contact support.")
-    except Exception as e:  # Catch unhandled exceptions
-        filename = f"darwin_error_{datetime.now().timestamp()}.log"
+    except GracefulExit as e:
+        f.error(e.message)
+    except Exception:  # Catch unhandled exceptions
+        console = Console()
+        console.print("An unexpected error occurred, please contact support, and send them the file.")
+        console.print_exception()
 
-        fd = open(filename, "w")
-        fd.write("Darwin CLI error log")
-        fd.write(f"Version: {__version__}")
-        fd.write(f"OS: {platform.platform()}")
-        fd.write(f"Command: {str(args)}")
-        fd.write(f"Error: {str(e)}")
-        fd.close()
-
-        f._error(
-            f"An unexpected error occurred, errors have been written to {filename}, please contact support, and send them the file."
-            + f"Error: {str(e)}"
-        )
+        exit(255)
 
 
 def _run(args: Namespace, parser: ArgumentParser) -> None:
