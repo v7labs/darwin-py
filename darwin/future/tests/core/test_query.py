@@ -91,7 +91,7 @@ def test_query_iterable(basic_filters: List[Query.QueryFilter], non_abc_query: T
 def test_query_filter_filters(mod: Optional[str], param: Any, check: Any, expected: bool) -> None:  # type: ignore
     # test str
     if mod:
-        modifier = Query.Modifiers(mod)
+        modifier = Query.Modifier(mod)
     else:
         modifier = None
     QF = Query.QueryFilter(name="test", param=param, modifier=modifier)

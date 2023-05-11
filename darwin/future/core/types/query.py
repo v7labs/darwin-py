@@ -11,7 +11,7 @@ T = TypeVar("T", bound=DefaultDarwin)
 Param = Dict[str, Any]  # type: ignore
 
 
-class Modifiers(Enum):
+class Modifier(Enum):
     GREATER_THAN = ">"
     LESS_THAN = "<"
     GREATER_EQUAL = ">="
@@ -32,24 +32,24 @@ class QueryFilter(DefaultDarwin):
 
     name: str
     param: str
-    modifier: Optional[Modifiers] = None
+    modifier: Optional[Modifier] = None
 
     def filter_attr(self, attr: Any) -> bool:  # type: ignore
         caster: Callable[[str], Any] = type(attr)  # type: ignore
         param = caster(self.param)  # attempt to cast the param to the type of the attribute
         if self.modifier is None:
             return attr == param
-        elif self.modifier == Modifiers.GREATER_EQUAL:
+        elif self.modifier == Modifier.GREATER_EQUAL:
             return attr >= param
-        elif self.modifier == Modifiers.GREATER_THAN:
+        elif self.modifier == Modifier.GREATER_THAN:
             return attr > param
-        elif self.modifier == Modifiers.LESS_EQUAL:
+        elif self.modifier == Modifier.LESS_EQUAL:
             return attr <= param
-        elif self.modifier == Modifiers.LESS_THAN:
+        elif self.modifier == Modifier.LESS_THAN:
             return attr < param
-        elif self.modifier == Modifiers.NOT_EQUAL:
+        elif self.modifier == Modifier.NOT_EQUAL:
             return attr != param
-        elif self.modifier == Modifiers.CONTAINS:
+        elif self.modifier == Modifier.CONTAINS:
             return param in attr
         else:
             raise ValueError(f"Unknown modifier {self.modifier}")
