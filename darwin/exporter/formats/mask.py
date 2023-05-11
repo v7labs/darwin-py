@@ -352,7 +352,6 @@ def render_raster(
                 categories.append(new_mask.name)
 
         if "raster_layer" in data and (rl := data["raster_layer"]):
-
             if raster_layer:
                 errors.append(ValueError(f"Annotation {a.id} has more than one raster layer"))
                 break
@@ -390,11 +389,13 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path, mode
     masks_dir.mkdir(exist_ok=True, parents=True)
     annotation_files = list(annotation_files)
 
-    categories: List[str] = ["__background__"]
+    all_classes_sets: List[Set[dt.AnnotationClass]] = [a.annotation_classes for a in annotation_files]
+    all_classes: Set[dt.AnnotationClass] = set.union(*all_classes_sets)
+    categories: List[str] = ["__background__"] + [c.name for c in list(all_classes)]
     colours: dt.MaskTypes.ColoursDict = dict()
+    palette = get_palette(mode, categories)
 
     for annotation_file in annotation_files:
-
         image_rel_path = os.path.splitext(annotation_file.full_path)[0].lstrip("/")
         outfile = masks_dir / f"{image_rel_path}.png"
         outfile.parent.mkdir(parents=True, exist_ok=True)
@@ -435,7 +436,6 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path, mode
         # Map to palette
         mask = np.array(mask, dtype=np.uint8)  # Final double check that type is using correct dtype
 
-        palette = get_palette(mode, categories)
         if mode == "rgb":
             rgb_colours, palette_rgb = get_rgb_colours(categories)
             image = Image.fromarray(mask, "P")
