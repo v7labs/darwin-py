@@ -3,12 +3,10 @@ from typing import Optional
 from pydantic import parse_obj_as
 
 from darwin.future.core.client import Client
-from darwin.future.core.types import TeamSlug
-from darwin.future.core.types.common import QueryString
-from darwin.future.data_objects.dataset import Dataset, DatasetList
+from darwin.future.data_objects.dataset import DatasetList
 
 
-def list_datasets(api_client: Client, team_slug: Optional[TeamSlug] = None) -> DatasetList:
+def list_datasets(api_client: Client) -> DatasetList:
     """
     Returns a list of datasets for the given team
 
@@ -31,8 +29,6 @@ def list_datasets(api_client: Client, team_slug: Optional[TeamSlug] = None) -> D
         Any errors that occurred while parsing the response
 
     """
-    response = (
-        api_client.get("/datasets", QueryString({"team": str(team_slug)})) if team_slug else api_client.get("/datasets")
-    )
+    response = api_client.get("/datasets")
 
     return parse_obj_as(DatasetList, response)

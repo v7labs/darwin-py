@@ -25,7 +25,10 @@ def get_dataset(api_client: Client, dataset_id: str) -> Dataset:
     ------
     HTTPError
         Any errors that occurred while making the request
+    ValidationError
+        Any errors that occurred while parsing the response
     """
-    response = api_client.get("/datasets", QueryString({"team": TeamSlug(dataset_id)}))
+    
+    response = api_client.get("/datasets", QueryString({"id": str(dataset_id)}))
 
     return parse_obj_as(Dataset, response)
