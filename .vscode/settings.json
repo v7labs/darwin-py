@@ -5,7 +5,8 @@
     "editor.tabSize": 4,
     "editor.codeActionsOnSave": {
       "source.organizeImports": true,
-    }
+    },
+    "editor.defaultFormatter": "ms-python.black-formatter"
   },
   "[javascript]": {
     "editor.formatOnSave": true,
@@ -13,7 +14,7 @@
     "editor.tabSize": 2
   },
   "python.formatting.blackPath": "black",
-  "python.formatting.provider": "black",
+  "python.formatting.provider": "none",
   "python.formatting.blackArgs": [
     "-l 120"
   ],
