@@ -93,34 +93,6 @@ class Result(BaseModel):
     ...
 
 
-class PageDetail(BaseModel):
-    """Page details model for managing pagination
-
-    Attributes
-    ----------
-    count: int, current position
-    next: Optional[str], url for the next page
-    previous: Optional[str], url for the previous page
-    """
-
-    count: int
-    next: Optional[str]
-    previous: Optional[str]
-
-
-class Page(BaseModel):
-    """Page of results
-
-    Attributes
-    ----------
-    results: List[Result], list of results
-    detail: PageDetail, details about the page
-    """
-
-    results: List[Result]
-    detail: PageDetail
-
-
 class Client:
     """Client Object to manage and make requests to the Darwin API
     Attributes
