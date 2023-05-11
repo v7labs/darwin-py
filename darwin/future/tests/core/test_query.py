@@ -1,10 +1,20 @@
 import unittest
-from typing import List
+from typing import Any, List, Optional, Type
 
 import pytest
 
 from darwin.future.core.types import query as Query
 from darwin.future.data_objects.team import Team
+
+
+@pytest.fixture
+def non_abc_query() -> Type[Query.Query]:
+    """Query is an abstract base class, this fixture removes the abstract methods
+    so that it can be instantiated for testing the default methods
+    """
+    fixed = Query.Query
+    fixed.__abstractmethods__ = set()  # type: ignore
+    return fixed
 
 
 @pytest.fixture
@@ -21,13 +31,13 @@ def test_team() -> Team:
     return Team(slug="test-team", id=0)
 
 
-def test_query_instantiated(basic_filters: List[Query.QueryFilter], test_team: Team) -> None:
-    q = Query.Query(test_team, basic_filters)
+def test_query_instantiated(basic_filters: List[Query.QueryFilter], non_abc_query: Type[Query.Query]) -> None:
+    q = non_abc_query(basic_filters)
     assert q.filters == basic_filters
 
 
-def test_query_filter_functionality(basic_filters: List[Query.QueryFilter], test_team: Team) -> None:
-    q = Query.Query(test_team)
+def test_query_filter_functionality(basic_filters: List[Query.QueryFilter], non_abc_query: Type[Query.Query]) -> None:
+    q = non_abc_query()
     for f in basic_filters:
         q = q.filter(f)
     assert q.filters == basic_filters
@@ -47,9 +57,42 @@ def test_query_filter_functionality(basic_filters: List[Query.QueryFilter], test
     assert q.filters == basic_filters
 
 
-def test_query_iterable(basic_filters: List[Query.QueryFilter], test_team: Team) -> None:
-    q = Query.Query(test_team, basic_filters)
+def test_query_iterable(basic_filters: List[Query.QueryFilter], non_abc_query: Type[Query.Query]) -> None:
+    q = non_abc_query(basic_filters)
     for i, f in enumerate(q):
         assert f == basic_filters[i]
     assert q.filters is not None
     assert len(q) == len(basic_filters)
+
+
+@pytest.mark.parametrize(
+    "mod,param,check,expected",
+    [
+        (None, "test", "test", True),  # test str equalities
+        ("!=", "test", "test", False),
+        ("contains", "test", "test", True),
+        (None, "test", "test1", False),  # test str inequalites
+        ("!=", "test", "test1", True),
+        ("contains", "test1", "test", False),
+        (None, 1, 1, True),  # test int equalities
+        ("!=", 1, 1, False),
+        (">", 1, 2, True),
+        (">=", 1, 1, True),
+        ("<", 1, 1, False),
+        ("<=", 1, 1, True),
+        (">", 1, 1, False),  # test int inequalites
+        ("<", 1, 2, False),
+        (">=", 1, 0, False),
+        ("<=", 1, 2, False),
+        (None, 1, 2, False),
+        ("!=", 1, 2, True),
+    ],
+)
+def test_query_filter_filters(mod: Optional[str], param: Any, check: Any, expected: bool) -> None:  # type: ignore
+    # test str
+    if mod:
+        modifier = Query.Modifier(mod)
+    else:
+        modifier = None
+    QF = Query.QueryFilter(name="test", param=param, modifier=modifier)
+    assert QF.filter_attr(check) == expected
