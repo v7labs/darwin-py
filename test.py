@@ -1,7 +1,6 @@
-from darwin.future.core.client import Client, DarwinConfig
-from darwin.future.meta.queries.team_member import TeamMemberQuery
+from darwin.future.meta.client import MetaClient
 
-client = Client.local()
+api_key = "MSpe3By.hhT3EkNgFXYGSqDBgenk9xGDNooy6ZDk"
+client = MetaClient.from_api_key(api_key=api_key)
 
-members = TeamMemberQuery().collect(client)
-print(len(members))
+print("test")
