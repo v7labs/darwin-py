@@ -11,7 +11,8 @@ class TeamSlug(ConstrainedStr):
     min_length = 1
     max_length = 256
 
-    validator = darwin_validators.parse_name
+    def __init__(self, value: str) -> None:
+        super().__init__(darwin_validators.parse_name(value))
 
 
 class QueryString:
