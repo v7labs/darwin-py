@@ -15,7 +15,7 @@ class MetaClient(Client):
     @classmethod
     def local(cls) -> MetaClient:
         config = DarwinConfig.local()
-        return MetaClient(config)
+        return cls(config)
 
     @classmethod
     def from_api_key(cls, api_key: str, datasets_dir: Optional[Path] = None) -> MetaClient:
@@ -26,4 +26,4 @@ class MetaClient(Client):
         config.default_team = default_team
         if datasets_dir:
             config.datasets_dir = datasets_dir
-        return MetaClient(config)
+        return cls(config)
