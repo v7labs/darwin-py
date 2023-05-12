@@ -2,10 +2,9 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
-from darwin.future.core.backend import get_team_members
 from darwin.future.core.client import Client
 from darwin.future.core.types.query import Query, QueryFilter
-from darwin.future.data_objects.team import TeamMember
+from darwin.future.data_objects.team import TeamMember, get_team_members
 
 Param = Dict[str, Any]  # type: ignore
 
