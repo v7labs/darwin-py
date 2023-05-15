@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock
 
-from pytest import fixture, raises
+from pytest import raises
 from requests import HTTPError
 
 from darwin.future.core.client import Client
