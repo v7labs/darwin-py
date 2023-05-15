@@ -12,6 +12,7 @@ def sad_http_client() -> Client:
     mock = MagicMock(Client)
     mock.post.side_effect = HTTPError("error")
     mock.get.side_effect = HTTPError("error")
+    mock.delete.side_effect = HTTPError("error")
 
     return mock
 

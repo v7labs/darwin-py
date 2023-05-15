@@ -1,7 +1,5 @@
 from typing import Dict
 
-from pydantic import ConstrainedStr
-
 from darwin.future.data_objects import validators as darwin_validators
 
 
