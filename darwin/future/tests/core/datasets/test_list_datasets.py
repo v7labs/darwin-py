@@ -1,8 +1,8 @@
-import responses
-
+from typing import List
 from unittest.mock import MagicMock, patch
 
 import pytest
+import responses
 from pydantic import ValidationError
 from requests.exceptions import HTTPError
 
@@ -11,10 +11,9 @@ from darwin.future.core.datasets.list_datasets import list_datasets
 from darwin.future.core.types import TeamSlug
 from darwin.future.core.types.common import QueryString
 from darwin.future.data_objects.dataset import Dataset
-from typing import List
+from darwin.future.tests.core.fixtures import *
 
 from .fixtures import *
-from darwin.future.tests.core.fixtures import *
 
 
 def test_it_lists_datasets(base_client: Client, basic_list_of_datasets: List[Dataset]) -> None:

@@ -37,7 +37,7 @@ def basic_list_of_datasets() -> list:
             "slug": "1339",
             "id": 3,
             "releases": [],
-        }
+        },
     ]
 
 
@@ -62,8 +62,6 @@ def happy_post_client() -> Client:
     }
 
     return mock_client
-
-
 
 
 @fixture
