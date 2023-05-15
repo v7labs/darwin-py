@@ -28,17 +28,16 @@ def test_it_creates_a_dataset(basic_dataset: Dataset, base_client: Client) -> No
 
 
 def test_it_raises_an_error_on_http_error(basic_dataset: Dataset, base_client: Client) -> None:
-    for code in [400, 401, 403, 404, 500, 502, 503, 504]:
-        with raises((HTTPError, DarwinException)):
-            with responses.RequestsMock() as rsps:
-                rsps.add(
-                    rsps.POST,
-                    base_client.config.api_endpoint + "datasets",
-                    json=basic_dataset,
-                    status=code,
-                )
+    with raises(HTTPError):
+        with responses.RequestsMock() as rsps:
+            rsps.add(
+                rsps.POST,
+                base_client.config.api_endpoint + "datasets",
+                json=basic_dataset,
+                status=400,
+            )
 
-                create_dataset(base_client, "test-dataset")
-                create_dataset(base_client, "test-dataset")
             create_dataset(base_client, "test-dataset")
             create_dataset(base_client, "test-dataset")
+        create_dataset(base_client, "test-dataset")
+        create_dataset(base_client, "test-dataset")

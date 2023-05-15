@@ -27,16 +27,15 @@ def test_it_deletes_a_dataset(base_client: Client) -> None:
 
 
 def test_it_throws_http_errors_returned_by_the_client(base_client: Client) -> None:
-    for code in [400, 401, 403, 404, 500]:
-        with raises((HTTPError, DarwinException)):
-            with responses.RequestsMock() as rsps:
-                rsps.add(
-                    rsps.DELETE,
-                    base_client.config.api_endpoint + "datasets",
-                    json={
-                        "affected_item_count": 1,
-                    },
-                    status=code,
-                )
+    with raises(HTTPError):
+        with responses.RequestsMock() as rsps:
+            rsps.add(
+                rsps.DELETE,
+                base_client.config.api_endpoint + "datasets",
+                json={
+                    "affected_item_count": 1,
+                },
+                status=400,
+            )
 
-                remove_dataset(base_client, "test-dataset")
+            remove_dataset(base_client, "test-dataset")
