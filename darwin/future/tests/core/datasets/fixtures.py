@@ -8,6 +8,40 @@ from darwin.future.core.client import Client
 
 
 @fixture
+def basic_dataset() -> dict:
+    return {
+        "name": "test-dataset",
+        "slug": "1337",
+        "id": 1,
+        "releases": [],
+    }
+
+
+@fixture
+def basic_list_of_datasets() -> list:
+    return [
+        {
+            "name": "test-dataset",
+            "slug": "1337",
+            "id": 1,
+            "releases": [],
+        },
+        {
+            "name": "test-dataset-2",
+            "slug": "1338",
+            "id": 2,
+            "releases": [],
+        },
+        {
+            "name": "test-dataset-3",
+            "slug": "1339",
+            "id": 3,
+            "releases": [],
+        }
+    ]
+
+
+@fixture
 def sad_http_client() -> Client:
     mock = MagicMock(Client)
     mock.post.side_effect = HTTPError("error")
@@ -28,6 +62,8 @@ def happy_post_client() -> Client:
     }
 
     return mock_client
+
+
 
 
 @fixture
