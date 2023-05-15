@@ -374,8 +374,8 @@ def export_dataset(
             include_authorship=include_authorship,
             version=version,
         )
-    except ValidationError as e:
-        _error(str(e))
+    except ValidationError:
+        _error("Nothing to export")
     else: 
         identifier.version = name
         print(f"Dataset {dataset_slug} successfully exported to {identifier}")
