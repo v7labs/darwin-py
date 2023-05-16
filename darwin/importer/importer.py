@@ -144,8 +144,12 @@ def find_and_parse(
         parsed_files = list(map(importer, tqdm(files) if is_console else files))
 
     maybe_console("Finished.")
-
-    if not isinstance(parsed_files, list):
+    # Sometimes we have a list of lists of AnnotationFile, sometimes we have a list of AnnotationFile
+    # We flatten the list of lists
+    if isinstance(parsed_files, list):
+        if isinstance(parsed_files[0], list):
+            parsed_files = [item for sublist in parsed_files for item in sublist]
+    else:
         parsed_files = [parsed_files]
 
     parsed_files = [f for f in parsed_files if f is not None]
@@ -477,6 +481,8 @@ def import_annotations(
             for parsed_file in track(files_to_track):
 
                 image_id, default_slot_name = remote_files[parsed_file.full_path]
+                if parsed_file.slots:
+                    default_slot_name = parsed_file.slots[0].name
 
                 errors, succes = _import_annotations(
                     dataset.client,

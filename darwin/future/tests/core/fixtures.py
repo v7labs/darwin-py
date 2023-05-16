@@ -1,7 +1,9 @@
+from typing import List
+
 import pytest
 
 from darwin.future.core.client import Client, DarwinConfig
-from darwin.future.data_objects.team import Team, TeamMember
+from darwin.future.data_objects.team import Team, TeamMember, TeamMemberRole
 
 
 @pytest.fixture
@@ -46,3 +48,18 @@ def base_team_member_json() -> dict:
 @pytest.fixture
 def base_team_member(base_team_member_json: dict) -> TeamMember:
     return TeamMember.parse_obj(base_team_member_json)
+
+
+@pytest.fixture
+def base_team_members_json(base_team_member_json: dict) -> List[dict]:
+    members = []
+    for item in TeamMemberRole:
+        member_w_role = base_team_member_json.copy()
+        member_w_role["role"] = item.value
+        members.append(member_w_role)
+    return members
+
+
+@pytest.fixture
+def team_members(base_team_members_json: List[dict]) -> List[TeamMember]:
+    return [TeamMember.parse_obj(item) for item in base_team_members_json]

@@ -1,8 +1,9 @@
+import sys
 import warnings
 import zipfile
 from collections import OrderedDict, defaultdict
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence, Union
+from typing import Dict, List, Optional, Sequence, Union, Tuple
 
 import orjson as json
 from rich.console import Console
@@ -15,11 +16,11 @@ try:
     import nibabel as nib
 except ImportError:
     import_fail_string = """
-    You must install darwin-py with pip install darwin-py\[medical]
+    You must install darwin-py with pip install nibabel connected-components-3d
     in order to import with using nifti format
     """
     console.print(import_fail_string)
-    exit()
+    sys.exit(1)
 import numpy as np
 from jsonschema import validate
 from upolygon import find_contours
@@ -68,13 +69,24 @@ def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
             path,
             class_map=nifti_annotation.get("class_map"),
             mode=nifti_annotation.get("mode", "image"),
+            slot_names=nifti_annotation.get("slot_names", []),
+            is_mpr=nifti_annotation.get("is_mpr", False),
         )
         annotation_files.append(annotation_file)
     return annotation_files
 
 
-def _parse_nifti(nifti_path: Path, filename: Path, json_path: Path, class_map: Dict, mode: str) -> dt.AnnotationFile:
-    img: np.ndarray = process_nifti(nib.load(nifti_path))
+def _parse_nifti(
+    nifti_path: Path,
+    filename: Path,
+    json_path: Path,
+    class_map: Dict,
+    mode: str,
+    slot_names: List[str],
+    is_mpr: bool,
+) -> dt.AnnotationFile:
+
+    img, pixdims = process_nifti(nib.load(nifti_path))
 
     shape = img.shape
     processed_class_map = process_class_map(class_map)
@@ -86,37 +98,26 @@ def _parse_nifti(nifti_path: Path, filename: Path, json_path: Path, class_map: D
             class_img = np.isin(img, class_idxs).astype(np.uint8)
             cc_img, num_labels = cc3d.connected_components(class_img, return_N=True)
             for instance_id in range(1, num_labels):
-                video_annotation = get_video_annotation(cc_img, class_idxs=[instance_id], class_name=class_name)
-                if video_annotation:
-                    video_annotations.append(video_annotation)
-    elif mode == "image":  # For each frame and each class produce a single frame video annotation
-        for i in range(shape[-1]):
-            slice_mask = img[:, :, i].astype(np.uint8)
-            for class_name, class_idxs in processed_class_map.items():
-                frame_annotations = {}
-                if class_name == "background":
-                    continue
-                class_mask = np.isin(slice_mask, class_idxs).astype(np.uint8).copy()
-                polygon = mask_to_polygon(mask=class_mask, class_name=class_name)
-                if polygon is None:
-                    continue
-                frame_annotations[i] = polygon
-                video_annotation = dt.make_video_annotation(
-                    frame_annotations,
-                    keyframes={i: True, i + 1: True},
-                    segments=[[i, i + 1]],
-                    interpolated=False,
-                    slot_names=[],
+                _video_annotations = get_video_annotation(
+                    cc_img,
+                    class_idxs=[instance_id],
+                    class_name=class_name,
+                    slot_names=slot_names,
+                    is_mpr=is_mpr,
+                    pixdims=pixdims,
                 )
-                video_annotations.append(video_annotation)
+                if _video_annotations:
+                    video_annotations += _video_annotations
     elif mode == "video":  # For each class produce a single video annotation
         for class_name, class_idxs in processed_class_map.items():
             if class_name == "background":
                 continue
-            video_annotation = get_video_annotation(img, class_idxs=class_idxs, class_name=class_name)
-            if video_annotation is None:
+            _video_annotations = get_video_annotation(
+                img, class_idxs=class_idxs, class_name=class_name, slot_names=slot_names, is_mpr=is_mpr, pixdims=pixdims
+            )
+            if _video_annotations is None:
                 continue
-            video_annotations.append(video_annotation)
+            video_annotations += _video_annotations
     annotation_classes = set(
         [dt.AnnotationClass(class_name, "polygon", "polygon") for class_name in class_map.values()]
     )
@@ -126,19 +127,53 @@ def _parse_nifti(nifti_path: Path, filename: Path, json_path: Path, class_map: D
         remote_path="/",
         annotation_classes=annotation_classes,
         annotations=video_annotations,
-        slots=[dt.Slot(name=None, type="dicom", source_files=[{"url": None, "file_name": str(filename)}])],
+        slots=[
+            dt.Slot(name=slot_name, type="dicom", source_files=[{"url": None, "file_name": str(filename)}])
+            for slot_name in slot_names
+        ],
     )
 
 
-def get_video_annotation(volume: np.ndarray, class_name: str, class_idxs: List[int]) -> Optional[dt.VideoAnnotation]:
+def get_video_annotation(
+    volume: np.ndarray,
+    class_name: str,
+    class_idxs: List[int],
+    slot_names: List[str],
+    is_mpr: bool,
+    pixdims: Tuple[float],
+) -> Optional[List[dt.VideoAnnotation]]:
+
+    if not is_mpr:
+        return nifti_to_video_annotation(volume, class_name, class_idxs, slot_names, view_idx=2, pixdims=pixdims)
+    elif is_mpr and len(slot_names) == 3:
+        video_annotations = []
+        for view_idx, slot_name in enumerate(slot_names):
+            _video_annotations = nifti_to_video_annotation(
+                volume, class_name, class_idxs, [slot_name], view_idx=view_idx, pixdims=pixdims
+            )
+            video_annotations += _video_annotations
+        return video_annotations
+    else:
+        raise Exception("If is_mpr is True, slot_names must be of length 3")
+
+
+def nifti_to_video_annotation(volume, class_name, class_idxs, slot_names, view_idx=2, pixdims=(1, 1, 1)):
     frame_annotations = OrderedDict()
-    for i in range(volume.shape[-1]):
-        slice_mask = volume[:, :, i].astype(np.uint8)
+    for i in range(volume.shape[view_idx]):
+        if view_idx == 2:
+            slice_mask = volume[:, :, i].astype(np.uint8)
+            _pixdims = [pixdims[0], pixdims[1]]
+        elif view_idx == 1:
+            slice_mask = volume[:, i, :].astype(np.uint8)
+            _pixdims = [pixdims[0], pixdims[2]]
+        elif view_idx == 0:
+            slice_mask = volume[i, :, :].astype(np.uint8)
+            _pixdims = [pixdims[1], pixdims[2]]
+
         class_mask = np.isin(slice_mask, class_idxs).astype(np.uint8).copy()
         if class_mask.sum() == 0:
             continue
-
-        polygon = mask_to_polygon(mask=class_mask, class_name=class_name)
+        polygon = mask_to_polygon(mask=class_mask, class_name=class_name, pixdims=_pixdims)
         if polygon is None:
             continue
         frame_annotations[i] = polygon
@@ -154,12 +189,20 @@ def get_video_annotation(volume: np.ndarray, class_name: str, class_idxs: List[i
         keyframes={f_id: True for f_id in all_frame_ids},
         segments=segments,
         interpolated=False,
-        slot_names=[],
+        slot_names=slot_names,
     )
-    return video_annotation
+    return [video_annotation]
 
 
-def mask_to_polygon(mask: np.ndarray, class_name: str) -> Optional[dt.Annotation]:
+def mask_to_polygon(mask: np.ndarray, class_name: str, pixdims: List[float]) -> Optional[dt.Annotation]:
+    def adjust_for_pixdims(x, y, pixdims):
+        if pixdims[1] > pixdims[0]:
+            return {"x": y, "y": x * pixdims[1] / pixdims[0]}
+        elif pixdims[1] < pixdims[0]:
+            return {"x": y * pixdims[0] / pixdims[1], "y": x}
+        else:
+            return {"x": y, "y": x}
+
     _labels, external_paths, _internal_paths = find_contours(mask)
     # annotations = []
     if len(external_paths) > 1:
@@ -168,7 +211,7 @@ def mask_to_polygon(mask: np.ndarray, class_name: str) -> Optional[dt.Annotation
             # skip paths with less than 2 points
             if len(external_path) // 2 <= 2:
                 continue
-            path = [{"x": y, "y": x} for x, y in zip(external_path[0::2], external_path[1::2])]
+            path = [adjust_for_pixdims(x, y, pixdims) for x, y in zip(external_path[0::2], external_path[1::2])]
             paths.append(path)
         if len(paths) > 1:
             polygon = dt.make_complex_polygon(class_name, paths)
@@ -185,7 +228,7 @@ def mask_to_polygon(mask: np.ndarray, class_name: str) -> Optional[dt.Annotation
             return None
         polygon = dt.make_polygon(
             class_name,
-            point_path=[{"x": y, "y": x} for x, y in zip(external_path[0::2], external_path[1::2])],
+            point_path=[adjust_for_pixdims(x, y, pixdims) for x, y in zip(external_path[0::2], external_path[1::2])],
         )
     else:
         return None
@@ -297,4 +340,5 @@ def process_nifti(input_data: Union[Sequence[nib.nifti1.Nifti1Image], nib.nifti1
         # TODO: Future feature to pass custom ornt could go here.
         ornt = [[0.0, -1.0], [1.0, -1.0], [1.0, -1.0]]
         data_array = nib.orientations.apply_orientation(img.get_fdata(), ornt)
-        return data_array
+        pixdims = img.header.get_zooms()
+        return data_array, pixdims
