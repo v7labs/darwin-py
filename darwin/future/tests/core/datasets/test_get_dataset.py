@@ -42,4 +42,3 @@ def test_it_raises_an_error_on_http_error(base_client: Client) -> None:
 def test_it_raises_an_error_on_pydantic_error(sad_client_pydantic: Client) -> None:
     with raises(ValidationError):
         get_dataset(sad_client_pydantic, "test-dataset")
-        get_dataset(sad_client_pydantic, "test-dataset")

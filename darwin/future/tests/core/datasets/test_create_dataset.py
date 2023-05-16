@@ -38,6 +38,4 @@ def test_it_raises_an_error_on_http_error(basic_dataset: Dataset, base_client: C
             )
 
             create_dataset(base_client, "test-dataset")
-            create_dataset(base_client, "test-dataset")
-        create_dataset(base_client, "test-dataset")
-        create_dataset(base_client, "test-dataset")
+
