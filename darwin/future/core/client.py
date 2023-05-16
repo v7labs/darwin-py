@@ -183,8 +183,15 @@ class Client:
 
         return response.json()
 
-    def get(self, endpoint: str) -> JSONType:
-        return self._generic_call(self.session.get, endpoint)
+    def _contain_qs_and_endpoint(self, endpoint: str, query_string: Optional[QueryString] = None) -> str:
+        if not query_string:
+            return endpoint
+
+        assert "?" not in endpoint
+        return endpoint + "?" + str(query_string)
+
+    def get(self, endpoint: str, query_string: Optional[QueryString] = None) -> JSONType:
+        return self._generic_call(self.session.get, self._contain_qs_and_endpoint(endpoint, query_string))
 
     def put(self, endpoint: str, data: dict) -> JSONType:
         return self._generic_call(self.session.put, endpoint, data)
