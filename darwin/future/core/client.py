@@ -66,8 +66,28 @@ class DarwinConfig(BaseModel):
         return values
 
     @staticmethod
+    def _default_config_path() -> Path:
+        return DarwinConfig._default_home_path() / "config.yaml"
+
+    @staticmethod
+    def _default_datasets_path() -> Path:
+        return DarwinConfig._default_home_path() / "datasets"
+
+    @staticmethod
+    def _default_home_path() -> Path:
+        return Path.home() / ".darwin"
+
+    @staticmethod
     def local() -> DarwinConfig:
-        return DarwinConfig.from_file(Path.home() / ".darwin" / "config.yaml")
+        return DarwinConfig.from_file(DarwinConfig._default_config_path())
+
+    @staticmethod
+    def _default_base_url() -> str:
+        return "https://darwin.v7labs.com/"
+
+    @staticmethod
+    def _default_api_endpoint() -> str:
+        return DarwinConfig._default_base_url() + "api/"
 
     @staticmethod
     def from_file(path: Path) -> DarwinConfig:
@@ -83,6 +103,17 @@ class DarwinConfig(BaseModel):
             data = yaml.safe_load(infile)
         return data
 
+    @staticmethod
+    def from_api_key_with_defaults(api_key: str) -> DarwinConfig:
+        return DarwinConfig(
+            api_key=api_key,
+            api_endpoint=DarwinConfig._default_api_endpoint(),
+            base_url=DarwinConfig._default_base_url(),
+            default_team="default",
+            teams={},
+            datasets_dir=DarwinConfig._default_config_path(),
+        )
+
     class Config:
         validate_assignment = True
 
@@ -91,34 +122,6 @@ class Result(BaseModel):
     """Default model for a result, to be extended by other models specific to the API"""
 
     ...
-
-
-class PageDetail(BaseModel):
-    """Page details model for managing pagination
-
-    Attributes
-    ----------
-    count: int, current position
-    next: Optional[str], url for the next page
-    previous: Optional[str], url for the previous page
-    """
-
-    count: int
-    next: Optional[str]
-    previous: Optional[str]
-
-
-class Page(BaseModel):
-    """Page of results
-
-    Attributes
-    ----------
-    results: List[Result], list of results
-    detail: PageDetail, details about the page
-    """
-
-    results: List[Result]
-    detail: PageDetail
 
 
 class Client:
@@ -143,11 +146,6 @@ class Client:
             "delete": self.session.delete,
             "patch": self.session.patch,
         }
-
-    @classmethod
-    def local(cls) -> Client:
-        config = DarwinConfig.local()
-        return Client(config)
 
     def _setup_session(self, retries: Retry) -> None:
         self.session.headers.update(self.headers)
