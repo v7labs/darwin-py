@@ -9,6 +9,7 @@ import yaml
 from pydantic import BaseModel, root_validator, validator
 from requests.adapters import HTTPAdapter, Retry
 
+from darwin.future.core.types.common import QueryString
 from darwin.future.exceptions.client import NotFound, Unauthorized
 
 JSONType = Dict[str, Any]  # type: ignore
@@ -180,8 +181,15 @@ class Client:
 
         return response.json()
 
-    def get(self, endpoint: str) -> JSONType:
-        return self._generic_call(self.session.get, endpoint)
+    def _contain_qs_and_endpoint(self, endpoint: str, query_string: Optional[QueryString] = None) -> str:
+        if not query_string:
+            return endpoint
+
+        assert "?" not in endpoint
+        return endpoint + "?" + str(query_string)
+
+    def get(self, endpoint: str, query_string: Optional[QueryString] = None) -> JSONType:
+        return self._generic_call(self.session.get, self._contain_qs_and_endpoint(endpoint, query_string))
 
     def put(self, endpoint: str, data: dict) -> JSONType:
         return self._generic_call(self.session.put, endpoint, data)
@@ -189,8 +197,8 @@ class Client:
     def post(self, endpoint: str, data: dict) -> JSONType:
         return self._generic_call(self.session.post, endpoint, data)
 
-    def delete(self, endpoint: str) -> JSONType:
-        return self._generic_call(self.session.delete, endpoint)
+    def delete(self, endpoint: str, query_string: Optional[QueryString] = None) -> JSONType:
+        return self._generic_call(self.session.delete, self._contain_qs_and_endpoint(endpoint, query_string))
 
     def patch(self, endpoint: str, data: dict) -> JSONType:
         return self._generic_call(self.session.patch, endpoint, data)
