@@ -30,19 +30,18 @@ class TeamSlug(str):
         return f"TeamSlug({super().__repr__()})"
 
 
-class QueryString(BaseModel):
+class QueryString:
     """Query string type"""
 
     value: Dict[str, str]
 
-    @pydantic.validator("value")
     def dict_check(cls, value: UnknownType) -> Dict[str, str]:
         assert isinstance(value, dict)
         assert all(isinstance(k, str) and isinstance(v, str) for k, v in value.items())
         return value
 
     def __init__(self, value: Dict[str, str]) -> None:
-        self.value = value
+        self.value = self.dict_check(value)
 
     def __str__(self) -> str:
         return "?" + "&".join(f"{k}={v}" for k, v in self.value.items())
