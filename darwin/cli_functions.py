@@ -388,6 +388,7 @@ def pull_dataset(
     folders: bool = False,
     video_frames: bool = False,
     force_slots: bool = False,
+    ignore_slots: bool = False,
 ) -> None:
     """
     Downloads a remote dataset (images and annotations) in the datasets directory.
@@ -427,6 +428,7 @@ def pull_dataset(
             use_folders=folders,
             video_frames=video_frames,
             force_slots=force_slots,
+            ignore_slots=ignore_slots,
         )
         print_new_version_info(client)
         if release.format == "darwin_json_2":
