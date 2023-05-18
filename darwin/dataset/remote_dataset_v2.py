@@ -12,8 +12,6 @@ from typing import (
 
 from requests.models import Response
 
-from requests.models import Response
-
 from darwin.dataset import RemoteDataset
 from darwin.dataset.release import Release
 from darwin.dataset.upload_manager import (
@@ -395,14 +393,16 @@ class RemoteDatasetV2(RemoteDataset):
             format = None
         else:
             raise UnknownExportVersion(version)
-
+        
+        filters = None if not annotation_class_ids else {"annotation_class_ids": list(map(int, annotation_class_ids))}
+        
         self.client.api_v2.export_dataset(
             format=format,
             name=name,
             include_authorship=include_authorship,
             include_token=include_url_token,
-            annotation_class_ids=annotation_class_ids,
-            filters=None,
+            annotation_class_ids=None,
+            filters=filters,
             dataset_slug=self.slug,
             team_slug=self.team,
         )

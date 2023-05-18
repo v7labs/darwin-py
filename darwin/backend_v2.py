@@ -1,15 +1,15 @@
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 from urllib import parse
 
 from darwin.datatypes import ItemId
 
 
-def inject_default_team_slug(method):
+def inject_default_team_slug(method: Callable) -> Callable:
     """
     Injects team_slug if not specified
     """
 
-    def wrapper(self, *args, **kwargs):
+    def wrapper(self, *args, **kwargs) -> Callable:
         if "team_slug" not in kwargs:
             kwargs["team_slug"] = self._default_team
         return method(self, *args, **kwargs)
