@@ -3,7 +3,7 @@ from typing import Any, List, Optional
 from darwin.future.data_objects.typing import KeyValuePairDict, UnknownType
 
 
-class DarwinException(Exception):
+class DarwinException(BaseException):
     """
     Generic Darwin exception.
 
@@ -15,14 +15,14 @@ class DarwinException(Exception):
     Also has a `combined_exceptions` field to store a list of exceptions that were combined into
     """
 
-    parent_exception: Optional[Exception] = None
-    combined_exceptions: Optional[List[Exception]] = None
+    parent_exception: Optional[BaseException] = None
+    combined_exceptions: Optional[List[BaseException]] = None
 
     def __init__(self, *args: UnknownType, **kwargs: KeyValuePairDict) -> None:
         super().__init__(*args, **kwargs)
 
     @classmethod
-    def from_exception(cls, exc: Exception) -> "DarwinException":
+    def from_exception(cls, exc: BaseException) -> "DarwinException":
         """
         Creates a new exception from an existing exception.
 
