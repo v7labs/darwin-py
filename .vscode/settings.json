@@ -8,6 +8,9 @@
     },
     "editor.defaultFormatter": "ms-python.black-formatter"
   },
+  "isort.args": [
+    "--profile=black"
+  ],
   "[javascript]": {
     "editor.formatOnSave": true,
     "editor.insertSpaces": true,
@@ -19,10 +22,6 @@
     "-l 120"
   ],
   "python.linting.mypyEnabled": true,
-  "python.sortImports.args": [
-    "--profile",
-    "black"
-  ],
   "python.testing.pytestEnabled": true,
   "python.linting.enabled": true
 }
