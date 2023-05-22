@@ -1,12 +1,23 @@
 import sys
-from typing import Optional
+from enum import Enum, auto
 
 from rich.console import Console
 
 from darwin.future.exceptions.base import DarwinException
 
 
-def pretty_exception(halt: bool = False, bubble: bool = True, frame_limit: int = 0) -> None:
+class PrettyExceptionMode(Enum):
+    """
+    An enum representing the different modes of pretty_exception.
+    """
+
+    HALT = auto()
+    RAISE = auto()
+
+    NEITHER_HALT_NOT_RAISE = auto()
+
+
+def pretty_exception(mode: PrettyExceptionMode = PrettyExceptionMode.RAISE, frame_limit: int = 0) -> None:
     """
     Prints a formatted exception to the console, and optionally halts execution.
 
@@ -26,11 +37,11 @@ def pretty_exception(halt: bool = False, bubble: bool = True, frame_limit: int =
         max_frames=frame_limit,
     )
 
-    if halt:
+    if mode == PrettyExceptionMode.HALT:
         console.print("Halting execution due to exception.")
         sys.exit(1)
 
-    if bubble:
+    if mode == PrettyExceptionMode.RAISE:
         if exception is not None:
             raise DarwinException.from_exception(exception)
         raise DarwinException("Unknown error occurred.")
