@@ -1,13 +1,9 @@
-import sys
 from typing import Any, Dict, List
-
-from rich.console import Console
 
 from darwin.future.core.client import Client
 from darwin.future.core.datasets.list_datasets import list_datasets
 from darwin.future.core.types.query import Query, QueryFilter
 from darwin.future.data_objects.dataset import Dataset, DatasetList
-from darwin.future.data_objects.release import Release, ReleaseList
 from darwin.future.exceptions.base import DarwinException
 from darwin.future.helpers.pretty_exception import pretty_exception
 
@@ -23,12 +19,20 @@ class DatasetQuery(Query[Dataset]):
     """
 
     @staticmethod
-    def by_id(id: int) -> "DatasetQuery":
-        return DatasetQuery([QueryFilter(name="id", param=str(id))])
+    def by_id(client: Client, id: int) -> Dataset:
+        output = DatasetQuery([QueryFilter(name="id", param=str(id))]).collect(client)
+        if len(output) == 1:
+            return output[0]
+        else:
+            raise DarwinException(f"Dataset with id {id} not found")
 
     @staticmethod
-    def by_name(name: str) -> "DatasetQuery":
-        return DatasetQuery([QueryFilter(name="name", param=name)])
+    def by_name(client: Client, name: str) -> Dataset:
+        output = DatasetQuery([QueryFilter(name="name", param=name)]).collect(client)
+        if len(output) == 1:
+            return output[0]
+        else:
+            raise DarwinException(f"Dataset with name {name} not found")
 
     def where(self, param: Param) -> "DatasetQuery":
         filter = QueryFilter.parse_obj(param)
@@ -39,7 +43,8 @@ class DatasetQuery(Query[Dataset]):
         try:
             datasets = list_datasets(client)
         except Exception:
-            pretty_exception(bubble=True)
+            datasets = []
+            pretty_exception()
 
         if not self.filters:
             return datasets
