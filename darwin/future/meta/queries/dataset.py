@@ -57,6 +57,10 @@ class DatasetQuery(Query[Dataset]):
         # In place to prevent operator matching by the filter_attr method.
         return [dataset for dataset in datasets if filter.filter_attr(dataset.id)]
 
+    def _name_filter(self, datasets: DatasetList, filter: QueryFilter) -> DatasetList:
+        # In place to prevent operator matching by the filter_attr method.
+        return [dataset for dataset in datasets if filter.filter_attr(dataset.name)]
+
     def _releases_filter(self, datasets: DatasetList, filter: QueryFilter) -> DatasetList:
         datasets_for_return: DatasetList = []
 
