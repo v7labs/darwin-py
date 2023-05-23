@@ -220,6 +220,12 @@ files = [
     {file = "connected_components_3d-3.10.5-cp310-cp310-win32.whl", hash = "sha256:2526357ed6feb54b453807d25ed588628bffb043bc2bf1e08b19231832faced9"},
     {file = "connected_components_3d-3.10.5-cp310-cp310-win_amd64.whl", hash = "sha256:ece6045b87d9d62fd71bdf90c338061811a983a2d547d278dc8b2da23381333e"},
     {file = "connected_components_3d-3.10.5-cp311-cp311-macosx_10_9_universal2.whl", hash = "sha256:bb5a827e7df9db3e5caa195714bed5ad4bd5d2b2095628276294111c34403577"},
+    {file = "connected_components_3d-3.10.5-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:ad749f66a7a9ae180cfca18852ebce7edc59b2d8c5ef23afc13def9c2ab76100"},
+    {file = "connected_components_3d-3.10.5-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:a3708e90ea6776ab53882911b5eec608b4a540873c8ea7390ab3a67680a23482"},
+    {file = "connected_components_3d-3.10.5-cp311-cp311-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:f9e8c21a214de80ae72656ac1aae0bc3984a3feae2e5172021ffc8314f709599"},
+    {file = "connected_components_3d-3.10.5-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:381f719134126d7801350c47989affbc6d67f8821303f5f4801025f8f2118fcb"},
+    {file = "connected_components_3d-3.10.5-cp311-cp311-win32.whl", hash = "sha256:ba80320c2804fd142df1a2c3bb42cbf1c123d2b8f3c10445005c23c2265aafc8"},
+    {file = "connected_components_3d-3.10.5-cp311-cp311-win_amd64.whl", hash = "sha256:c972fe90de58d7f6a48a548bd4ca59a667e160a860007f97fa386eecc405c19a"},
     {file = "connected_components_3d-3.10.5-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:4e14ef41370631d19927faffdcb0df10409f07a12c9fb6a5749b6dabde105803"},
     {file = "connected_components_3d-3.10.5-cp37-cp37m-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:f84f7a13ffb553c349133055715607db0ccd6154801076813bdde152dd759496"},
     {file = "connected_components_3d-3.10.5-cp37-cp37m-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:5a0684af199706fcd3ea0640baa9a7dae6f044b7d3375892637a35e228bb01e7"},
@@ -1199,14 +1205,14 @@ files = [
 
 [[package]]
 name = "requests"
-version = "2.30.0"
+version = "2.31.0"
 description = "Python HTTP for Humans."
 category = "main"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "requests-2.30.0-py3-none-any.whl", hash = "sha256:10e94cc4f3121ee6da529d358cdaeaff2f1c409cd377dbc72b825852f2f7e294"},
-    {file = "requests-2.30.0.tar.gz", hash = "sha256:239d7d4458afcb28a692cdd298d87542235f4ca8d36d03a15bfc128a6559a2f4"},
+    {file = "requests-2.31.0-py3-none-any.whl", hash = "sha256:58cd2187c01e70e6e26505bca751777aa9f2ee0b7f4300988b709f44e013003f"},
+    {file = "requests-2.31.0.tar.gz", hash = "sha256:942c5a758f98d790eaed1a29cb6eefc7ffb0d1cf7af05c3d2791656dbd6ad1e1"},
 ]
 
 [package.dependencies]
