@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from enum import Enum
+from operator import attrgetter
 from typing import Any, Callable, Dict, Generic, List, Optional, TypeVar
 
 from darwin.future.core.client import Client
@@ -53,6 +54,11 @@ class QueryFilter(DefaultDarwin):
             return param in attr
         else:
             raise ValueError(f"Unknown modifier {self.modifier}")
+
+    def apply_to_objects(self, objects: List[T], deep_object: Optional[str] = None) -> List[T]:
+        if not deep_object:
+            return [o for o in objects if self.filter_attr(getattr(o, self.name))]
+        return [o for o in objects if self.filter_attr(attrgetter(deep_object)(o))]
 
 
 class Query(Generic[T], ABC):
@@ -127,9 +133,6 @@ class Query(Generic[T], ABC):
     @abstractmethod
     def collect(self, client: Client) -> List[T]:
         raise NotImplementedError("Not implemented")
-
-    def _generic_execute_filter(self, objects: List[T], filter: QueryFilter) -> List[T]:
-        return [m for m in objects if filter.filter_attr(getattr(m, filter.name))]
 
 
 class ServerSideQuery(Query):

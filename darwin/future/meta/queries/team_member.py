@@ -30,23 +30,8 @@ class TeamMemberQuery(Query[TeamMember]):
         if not self.filters:
             return members
         for filter in self.filters:
-            members = self._execute_filter(members, filter)
+            if filter.name == "role":
+                members = filter.apply_to_objects(members, "role.value")
+            else:
+                members = filter.apply_to_objects(members)
         return members
-
-    def _execute_filter(self, members: List[TeamMember], filter: QueryFilter) -> List[TeamMember]:
-        """Executes filtering on the local list of members, applying special logic for role filtering
-        otherwise calls the parent method for general filtering on the values of the members
-
-        Parameters
-        ----------
-        members : List[TeamMember]
-        filter : QueryFilter
-
-        Returns
-        -------
-        List[TeamMember]: Filtered subset of members
-        """
-        if filter.name == "role":
-            return [m for m in members if filter.filter_attr(m.role.value)]
-        else:
-            return super()._generic_execute_filter(members, filter)

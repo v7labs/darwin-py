@@ -6,11 +6,13 @@ from typing import Optional
 from requests.adapters import Retry
 
 from darwin.future.core.client import Client, DarwinConfig
+from darwin.future.meta.types.team import Team
 
 
 class MetaClient:
     def __init__(self, config: DarwinConfig, retries: Optional[Retry] = None) -> None:
         self._client = Client(config, retries=retries)
+        self._team = Team(self._client)
 
     @classmethod
     def local(cls) -> MetaClient:
@@ -31,3 +33,7 @@ class MetaClient:
     @property
     def config(self) -> DarwinConfig:
         return self._client.config
+
+    @property
+    def team(self) -> Team:
+        return self._team

@@ -47,7 +47,7 @@ class Team(DefaultDarwin):
     """
 
     slug: str
-    id: int
+    id: Optional[int] = None
     datasets: Optional[DatasetList] = None
     members: Optional[List[TeamMember]] = None
     default_role: TeamMemberRole = TeamMemberRole.USER
