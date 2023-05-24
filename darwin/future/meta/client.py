@@ -8,9 +8,9 @@ from requests.adapters import Retry
 from darwin.future.core.client import Client, DarwinConfig
 
 
-class MetaClient(Client):
+class MetaClient:
     def __init__(self, config: DarwinConfig, retries: Optional[Retry] = None) -> None:
-        super().__init__(config, retries=retries)
+        self._client = Client(config, retries=retries)
 
     @classmethod
     def local(cls) -> MetaClient:
@@ -27,3 +27,7 @@ class MetaClient(Client):
         if datasets_dir:
             config.datasets_dir = datasets_dir
         return cls(config)
+
+    @property
+    def config(self) -> DarwinConfig:
+        return self._client.config
