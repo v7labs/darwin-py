@@ -3,8 +3,10 @@ from typing import Any, List, Optional, Type
 
 import pytest
 
+from darwin.future.core.client import Client
 from darwin.future.core.types import query as Query
 from darwin.future.data_objects.team import Team
+from darwin.future.tests.core.fixtures import *
 
 
 @pytest.fixture
@@ -31,13 +33,17 @@ def test_team() -> Team:
     return Team(slug="test-team", id=0)
 
 
-def test_query_instantiated(basic_filters: List[Query.QueryFilter], non_abc_query: Type[Query.Query]) -> None:
-    q = non_abc_query(basic_filters)
+def test_query_instantiated(
+    basic_filters: List[Query.QueryFilter], non_abc_query: Type[Query.Query], base_client: Client
+) -> None:
+    q = non_abc_query(base_client, basic_filters)
     assert q.filters == basic_filters
 
 
-def test_query_filter_functionality(basic_filters: List[Query.QueryFilter], non_abc_query: Type[Query.Query]) -> None:
-    q = non_abc_query()
+def test_query_filter_functionality(
+    basic_filters: List[Query.QueryFilter], non_abc_query: Type[Query.Query], base_client: Client
+) -> None:
+    q = non_abc_query(base_client)
     for f in basic_filters:
         q = q.filter(f)
     assert q.filters == basic_filters
@@ -57,8 +63,10 @@ def test_query_filter_functionality(basic_filters: List[Query.QueryFilter], non_
     assert q.filters == basic_filters
 
 
-def test_query_iterable(basic_filters: List[Query.QueryFilter], non_abc_query: Type[Query.Query]) -> None:
-    q = non_abc_query(basic_filters)
+def test_query_iterable(
+    basic_filters: List[Query.QueryFilter], non_abc_query: Type[Query.Query], base_client: Client
+) -> None:
+    q = non_abc_query(base_client, basic_filters)
     for i, f in enumerate(q):
         assert f == basic_filters[i]
     assert q.filters is not None

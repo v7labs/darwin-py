@@ -20,10 +20,10 @@ class TeamMemberQuery(Query[TeamMember]):
     def where(self, param: Param) -> TeamMemberQuery:
         filter = QueryFilter.parse_obj(param)
         query = self + filter
-        return TeamMemberQuery(query.filters)
+        return TeamMemberQuery(self.client, query.filters)
 
-    def collect(self, client: Client) -> List[TeamMember]:
-        members, exceptions = get_team_members(client)
+    def collect(self) -> List[TeamMember]:
+        members, exceptions = get_team_members(self.client)
         if exceptions:
             # TODO: print and or raise exceptions, tbd how we want to handle this
             pass

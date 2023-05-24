@@ -28,4 +28,4 @@ class Team:
 
     @property
     def members(self) -> TeamMemberQuery:
-        return None
+        return TeamMemberQuery()
