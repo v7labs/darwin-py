@@ -10,7 +10,7 @@ from darwin.dataset.utils import get_classes, get_release_path, load_pil_image
 from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS, attempt_decode, parse_darwin_json
 
 
-class LocalDataset(object):
+class LocalDataset:
     """
     Base class representing a V7 Darwin dataset that has been pulled locally already.
     It can be used with PyTorch dataloaders. See ``darwin.torch`` module for more specialized dataset classes, extending this one.
@@ -102,10 +102,9 @@ class LocalDataset(object):
                 image_path = images_dir / f"{stem}{ext}"
                 if image_path.exists():
                     images.append(image_path)
+                    break
             if len(images) < 1:
                 raise ValueError(f"Annotation ({annotation_path}) does not have a corresponding image")
-            if len(images) > 1:
-                raise ValueError(f"Image ({stem}) is present with multiple extensions. This is forbidden.")
             assert len(images) == 1
             self.images_path.append(images[0])
             self.annotations_path.append(annotation_path)
