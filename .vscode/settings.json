@@ -24,5 +24,6 @@
     "black"
   ],
   "python.testing.pytestEnabled": true,
-  "python.linting.enabled": true
+  "python.linting.enabled": true,
+  "python.testing.cwd": "${workspaceFolder}/darwin/future/tests"
 }

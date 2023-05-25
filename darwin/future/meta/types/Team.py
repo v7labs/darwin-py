@@ -10,7 +10,7 @@ class Team:
     def __init__(self, client: CoreClient, team: Optional[CoreTeam] = None):
         self.client = client
         if team is None:
-            team = get_team(self.client)
+            team = CoreTeam(slug=client.config.default_team)
         self._team = team
 
     @property
@@ -28,4 +28,4 @@ class Team:
 
     @property
     def members(self) -> TeamMemberQuery:
-        return TeamMemberQuery()
+        return TeamMemberQuery(self.client)
