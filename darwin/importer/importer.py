@@ -481,7 +481,9 @@ def import_annotations(
             for parsed_file in track(files_to_track):
 
                 image_id, default_slot_name = remote_files[parsed_file.full_path]
-                if parsed_file.slots:
+                # We need to check if name is not-None as Darwin JSON 1.0 
+                # defaults to name=None
+                if parsed_file.slots and parsed_file.slots[0].name:
                     default_slot_name = parsed_file.slots[0].name
 
                 errors, succes = _import_annotations(

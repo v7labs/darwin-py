@@ -497,7 +497,7 @@ def _parse_darwin_v2(path: Path, data: Dict[str, Any]) -> dt.AnnotationFile:
             image_height=slot.height,
             image_url=None if len(slot.source_files or []) == 0 else slot.source_files[0]["url"],
             image_thumbnail_url=slot.thumbnail_url,
-            workview_url=item_source["workview_url"],
+            workview_url=item_source.get("workview_url", None),
             seq=0,
             frame_urls=slot.frame_urls,
             remote_path=item["path"],
