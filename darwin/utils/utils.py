@@ -750,15 +750,12 @@ def _parse_darwin_raster_annotation(annotation: dict) -> Optional[dt.Annotation]
     new_annotation = dt.Annotation(
         dt.AnnotationClass(name, "raster_layer"),
         {
-            "id": id,
-            "name": name,
-            "raster_layer": {
-                "dense_rle": dense_rle,
-                "mask_annotation_ids_mapping": mask_annotation_ids_mapping,
-                "total_pixels": total_pixels,
-            },
+            "dense_rle": dense_rle,
+            "mask_annotation_ids_mapping": mask_annotation_ids_mapping,
+            "total_pixels": total_pixels,
         },
         slot_names=slot_names,
+        id=id,
     )
 
     return new_annotation
@@ -781,12 +778,9 @@ def _parse_darwin_mask_annotation(annotation: dict) -> Optional[dt.Annotation]:
 
     new_annotation = dt.Annotation(
         dt.AnnotationClass(name, "mask"),
-        {
-            "id": id,
-            "name": name,
-            "mask": mask,
-        },
+        mask,
         slot_names=slot_names,
+        id=id,
     )
 
     return new_annotation
