@@ -49,6 +49,9 @@ except ImportError:
 # Classes missing import support on backend side
 UNSUPPORTED_CLASSES = ["string", "graph"]
 
+# Classes that are defined on team level automatically and available in all datasets
+GLOBAL_CLASSES = ['__raster_layer__']
+
 DEPRECATION_MESSAGE = """
 
 This function is going to be turned into private. This means that breaking
@@ -336,11 +339,12 @@ def import_annotations(
             style="warning",
         )
 
+
     classes_in_dataset: dt.DictFreeForm = build_main_annotations_lookup_table(
-        [cls for cls in team_classes if cls["available"] or cls['name'] == '__raster_layer__']
+        [cls for cls in team_classes if cls["available"] or cls['name'] in GLOBAL_CLASSES]
     )
     classes_in_team: dt.DictFreeForm = build_main_annotations_lookup_table(
-        [cls for cls in team_classes if not cls["available"] and cls['name'] != '__raster_layer__']
+        [cls for cls in team_classes if not cls["available"] and cls['name'] not in GLOBAL_CLASSES]
     )
     attributes = build_attribute_lookup(dataset)
 
