@@ -325,7 +325,7 @@ def _download_single_slot_from_json_annotation(
             if not use_folders:
                 suffix = Path(image_filename).suffix
                 stem = annotation_path.stem
-                filename = str(Path(stem).with_suffix(suffix))
+                filename = stem + suffix
             else:
                 filename = slot.source_files[0]["file_name"]
             image_path = parent_path / sanitize_filename(filename or annotation.filename)
