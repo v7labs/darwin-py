@@ -3,12 +3,13 @@ import json as native_json
 from asyncore import loop
 from pathlib import Path
 from typing import Iterable
+
 from rich.console import Console
 
 console = Console()
 try:
     import nibabel as nib
-    from nibabel.orientations import io_orientation, axcodes2ornt, ornt_transform
+    from nibabel.orientations import axcodes2ornt, io_orientation, ornt_transform
 except ImportError:
     import_fail_string = """
     You must install darwin-py with pip install darwin-py\[medical]
@@ -72,86 +73,99 @@ def export_single_nifti_file(video_annotation: dt.AnnotationFile, output_dir: Pa
         )
     if video_annotation is None:
         return create_error_message_json("video_annotation not found", output_dir, image_id)
-    # Pick the first slot to take the metadata from. We assume that all slots have the same metadata.
-    metadata = video_annotation.slots[0].metadata
-    if metadata is None:
-        return create_error_message_json(
-            f"No metadata found for {str(filename)}, are you sure this is medical data?", output_dir, image_id
-        )
-    volume_dims, pixdim, affine, original_affine = process_metadata(metadata)
-    if affine is None or pixdim is None or volume_dims is None:
-        return create_error_message_json(
-            f"Missing one of affine, pixdim or shape in metadata for {str(filename)}, try reuploading file",
-            output_dir,
-            image_id,
-        )
-    if not video_annotation.annotations:
-        create_empty_nifti_file(volume_dims, affine, output_dir, image_id)
-    # Builds a map of class to integer
-    class_map = {}
-    class_count = 1
-    for _, annotation in enumerate(video_annotation.annotations):
-        frames = annotation.frames
-        for frame_idx in frames.keys():
-            class_name = frames[frame_idx].annotation_class.name
-            if class_name not in class_map:
-                class_map[class_name] = class_count
-                class_count += 1
-    # Builds output volumes per class
-    if output_volumes is None:
-        output_volumes = {class_name: np.zeros(volume_dims) for class_name in class_map.keys()}
-    # Loops through annotations to build volumes
-    for _, annotation in enumerate(video_annotation.annotations):
-        frames = annotation.frames
-        for frame_idx in frames.keys():
-            view_idx = get_view_idx_from_slot_name(annotation.slot_names[0])
-            if view_idx == 0:
-                height, width = volume_dims[0], volume_dims[1]
-                pixdims = [pixdim[0], pixdim[1]]
-            elif view_idx == 1:
-                height, width = volume_dims[0], volume_dims[2]
-                pixdims = [pixdim[0], pixdim[2]]
-            elif view_idx == 2:
-                height, width = volume_dims[1], volume_dims[2]
-                pixdims = [pixdim[1], pixdim[2]]
-            if "paths" in frames[frame_idx].data:
-                # Dealing with a complex polygon
-                polygons = [shift_polygon_coords(polygon_path) for polygon_path in frames[frame_idx].data["paths"]]
-            elif "path" in frames[frame_idx].data:
-                # Dealing with a simple polygon
-                polygons = shift_polygon_coords(frames[frame_idx].data["path"])
-            else:
-                continue
-            class_name = frames[frame_idx].annotation_class.name
-            im_mask = convert_polygons_to_mask(polygons, height=height, width=width)
-            output_volume = output_volumes[class_name]
-            if view_idx == 0:
-                output_volume[:, :, frame_idx] = np.logical_or(im_mask, output_volume[:, :, frame_idx])
-            elif view_idx == 1:
-                output_volume[:, frame_idx, :] = np.logical_or(im_mask, output_volume[:, frame_idx, :])
-            elif view_idx == 2:
-                output_volume[frame_idx, :, :] = np.logical_or(im_mask, output_volume[frame_idx, :, :])
-    for class_name in class_map.keys():
-        img = nib.Nifti1Image(
-            dataobj=np.flip(output_volumes[class_name], (0, 1, 2)).astype(np.int16),
-            affine=affine,
-        )
-        if original_affine is not None:
-            orig_ornt = io_orientation(original_affine)  # Get orientation of current affine
-            img_ornt = io_orientation(affine) # Get orientation of RAS affine
-            from_canonical = ornt_transform(img_ornt, orig_ornt)  # Get transform from RAS to current affine
-            img = img.as_reoriented(from_canonical)
-        output_path = Path(output_dir) / f"{image_id}_{class_name}.nii.gz"
-        if not output_path.parent.exists():
-            output_path.parent.mkdir(parents=True)
-        nib.save(img=img, filename=output_path)
+    
+ 
+     # Iterate over each slot in the video annotation
+    for slot in video_annotation.slots:
+        slot_name = slot.name
+ 
+        # Pick the first slot to take the metadata from. We assume that all slots have the same metadata.
+        metadata = slot.metadata
+        if metadata is None:
+            return create_error_message_json(
+                f"No metadata found for {str(filename)}, are you sure this is medical data?", output_dir, image_id
+            )
+        volume_dims, pixdim, affine, original_affine = process_metadata(metadata)
+        if affine is None or pixdim is None or volume_dims is None:
+            return create_error_message_json(
+                f"Missing one of affine, pixdim or shape in metadata for {str(filename)}, try reuploading file",
+                output_dir,
+                image_id,
+            )
+        if not slot.annotations:
+            create_empty_nifti_file(volume_dims, affine, output_dir, f"{image_id}_{slot_name}")
+        # Builds a map of class to integer
+        class_map = {}
+        class_count = 1
+        for _, annotation in enumerate(slot.annotations):
+            frames = annotation.frames
+            for frame_idx in frames.keys():
+                class_name = frames[frame_idx].annotation_class.name
+                if class_name not in class_map:
+                    class_map[class_name] = class_count
+                    class_count += 1
+        # Builds output volumes per class
+        if output_volumes is None:
+            output_volumes = {class_name: np.zeros(volume_dims) for class_name in class_map.keys()}
+        # Loops through annotations to build volumes
+        for _, annotation in enumerate(slot.annotations):
+            frames = annotation.frames
+            for frame_idx in frames.keys():
+                view_idx = get_view_idx_from_slot_name(annotation.slot_names[0])
+                if view_idx == 0:
+                    height, width = volume_dims[0], volume_dims[1]
+                    pixdims = [pixdim[0], pixdim[1]]
+                elif view_idx == 1:
+                    height, width = volume_dims[0], volume_dims[2]
+                    pixdims = [pixdim[0], pixdim[2]]
+                elif view_idx == 2:
+                    height, width = volume_dims[1], volume_dims[2]
+                    pixdims = [pixdim[1], pixdim[2]]
+                if "paths" in frames[frame_idx].data:
+                    # Dealing with a complex polygon
+                    polygons = [shift_polygon_coords(polygon_path, pixdim) for polygon_path in frames[frame_idx].data["paths"]]
+                elif "path" in frames[frame_idx].data:
+                    # Dealing with a simple polygon
+                    polygons = shift_polygon_coords(frames[frame_idx].data["path"], pixdim)
+                else:
+                    continue
+                class_name = frames[frame_idx].annotation_class.name
+                im_mask = convert_polygons_to_mask(polygons, height=height, width=width)
+                output_volume = output_volumes[class_name]
+                if view_idx == 0:
+                    output_volume[:, :, frame_idx] = np.logical_or(im_mask, output_volume[:, :, frame_idx])
+                elif view_idx == 1:
+                    output_volume[:, frame_idx, :] = np.logical_or(im_mask, output_volume[:, frame_idx, :])
+                elif view_idx == 2:
+                    output_volume[frame_idx, :, :] = np.logical_or(im_mask, output_volume[frame_idx, :, :])
+        for class_name in class_map.keys():
+            img = nib.Nifti1Image(
+                dataobj=np.flip(output_volumes[class_name], (0, 1, 2)).astype(np.int16),
+                affine=affine,
+            )
+            if original_affine is not None:
+                orig_ornt = io_orientation(original_affine)  # Get orientation of current affine
+                img_ornt = io_orientation(affine) # Get orientation of RAS affine
+                from_canonical = ornt_transform(img_ornt, orig_ornt)  # Get transform from RAS to current affine
+                img = img.as_reoriented(from_canonical)
+            output_path = Path(output_dir) / f"{image_id}_{slot_name}_{class_name}.nii.gz"
+            if not output_path.parent.exists():
+                output_path.parent.mkdir(parents=True)
+            nib.save(img=img, filename=output_path)
 
 
-def shift_polygon_coords(polygon):
+def shift_polygon_coords(polygon, pixdim):
     # Need to make it clear that we flip x/y because we need to take the transpose later.
     # TODO: We might need to add a correction factor here for anisotropic pixdims.
-    return [{"x": p["y"], "y": p["x"]} for p in polygon]
+    volume_dims, pixdim, affine, original_affine = process_metadata(metadata)
 
+    if pixdim[1] > pixdim[0]:
+        return [{"x": p["y"], "y": p["x"] * pixdim[1] / pixdim[0]} for p in polygon]
+    elif pixdim[1] < pixdim[0]:
+        return [{"x": p["y"] * pixdim[0] / pixdim[1], "y": p["x"]} for p in polygon]
+    else:
+        return [{"x": p["y"], "y": p["x"]} for p in polygon]
+    
 
 def get_view_idx(frame_idx, groups):
     if groups is None:
@@ -163,7 +177,6 @@ def get_view_idx(frame_idx, groups):
 
 def get_view_idx_from_slot_name(slot_name):
     slot_names = {"0.1": 0, "0.2": 1, "0.3": 2}
-    slot_names.get(slot_name, 0)
     return slot_names.get(slot_name, 0)
 
 
@@ -202,16 +215,16 @@ def process_affine(affine):
         return affine
 
 
-def create_error_message_json(error_message, output_dir, image_id: str):
-    output_path = Path(output_dir) / f"{image_id}_error.json"
+def create_error_message_json(error_message, output_dir, image_id: str, slot_name: str):
+    output_path = Path(output_dir) / f"{image_id}_{slot_name}_error.json"
     if not output_path.parent.exists():
         output_path.parent.mkdir(parents=True)
     with open(output_path, "w") as f:
         native_json.dump({"error": error_message}, f)
 
 
-def create_empty_nifti_file(volume_dims, affine, output_dir, image_id: str):
-    output_path = Path(output_dir) / f"{image_id}_empty.nii.gz"
+def create_empty_nifti_file(volume_dims, affine, output_dir, image_id: str, slot_name: str):
+    output_path = Path(output_dir) / f"{image_id}_{slot_name}_empty.nii.gz"
     if not output_path.parent.exists():
         output_path.parent.mkdir(parents=True)
     img = nib.Nifti1Image(dataobj=np.flip(np.zeros(volume_dims), (0, 1, 2)).astype(np.int16), affine=affine)
