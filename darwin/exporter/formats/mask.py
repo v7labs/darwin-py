@@ -271,8 +271,7 @@ def render_polygons(
             else:
                 raise ValueError(f"Unknown annotation type {a.annotation_class.annotation_type}")
             sequence = convert_polygons_to_sequences(polygon, height=height, width=width)
-
-            colour_to_draw = get_or_generate_colour(cat, colours)
+            colour_to_draw = categories.index(cat)
             mask = draw_polygon(mask, sequence, colour_to_draw)
 
             if cat not in colours:
