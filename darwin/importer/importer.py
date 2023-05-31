@@ -78,6 +78,8 @@ def build_main_annotations_lookup_table(annotation_classes: List[Dict[str, Unkno
         "string",
         "table",
         "graph",
+        "mask",
+        "raster_layer"
     ]
     lookup: Dict[str, Unknown] = {}
     for cls in annotation_classes:
@@ -335,10 +337,10 @@ def import_annotations(
         )
 
     classes_in_dataset: dt.DictFreeForm = build_main_annotations_lookup_table(
-        [cls for cls in team_classes if cls["available"]]
+        [cls for cls in team_classes if cls["available"] or cls['name'] == '__raster_layer__']
     )
     classes_in_team: dt.DictFreeForm = build_main_annotations_lookup_table(
-        [cls for cls in team_classes if not cls["available"]]
+        [cls for cls in team_classes if not cls["available"] and cls['name'] != '__raster_layer__']
     )
     attributes = build_attribute_lookup(dataset)
 
@@ -656,6 +658,7 @@ def _import_annotations(
             "annotation_class_id": annotation_class_id,
             "data": data,
             "context_keys": {"slot_names": annotation.slot_names},
+            "id": annotation.id,
         }
 
         if actors:
@@ -666,6 +669,7 @@ def _import_annotations(
     payload: dt.DictFreeForm = {"annotations": serialized_annotations}
     payload["overwrite"] = _get_overwrite_value(append)
 
+    print(payload)
     try:
         dataset.import_annotation(id, payload=payload)
     except Exception as e:
