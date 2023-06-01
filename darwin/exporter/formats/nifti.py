@@ -17,8 +17,11 @@ except ImportError:
     """
     console.print(import_fail_string)
     exit()
+import json as json
+
 import numpy as np
-import orjson as json
+
+#import orjson as json
 from PIL import Image
 
 import darwin.datatypes as dt
@@ -40,6 +43,7 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path) -> N
     video_annotations = list(annotation_files)
     for video_annotation in video_annotations:
         for slot in video_annotation.slots:
+            print(slot)
             export_single_nifti_file(video_annotation, output_dir, slot)
 
 
@@ -91,14 +95,14 @@ def export_single_nifti_file(video_annotation: dt.AnnotationFile, output_dir: Pa
             output_dir,
             image_id,
         )
-    if not slot.annotations:
+    if not video_annotation.annotations:
         create_empty_nifti_file(volume_dims, affine, output_dir, image_id, slot_name)
     
 
     # Builds a map of class to integer
     class_map = {}
     class_count = 1
-    for _, annotation in enumerate(slot.annotations):
+    for _, annotation in enumerate(video_annotation.annotations):
         frames = annotation.frames
         for frame_idx in frames.keys():
             class_name = frames[frame_idx].annotation_class.name
@@ -109,7 +113,7 @@ def export_single_nifti_file(video_annotation: dt.AnnotationFile, output_dir: Pa
     if output_volumes is None:
         output_volumes = {class_name: np.zeros(volume_dims) for class_name in class_map.keys()}
     # Loops through annotations to build volumes
-    for _, annotation in enumerate(slot.annotations):
+    for _, annotation in enumerate(video_annotation.annotations):
         frames = annotation.frames
         for frame_idx in frames.keys():
             view_idx = get_view_idx_from_slot_name(annotation.slot_names[0])
@@ -127,7 +131,7 @@ def export_single_nifti_file(video_annotation: dt.AnnotationFile, output_dir: Pa
                 polygons = [shift_polygon_coords(polygon_path, pixdim) for polygon_path in frames[frame_idx].data["paths"]]
             elif "path" in frames[frame_idx].data:
                 # Dealing with a simple polygon
-                polygons = shift_polygon_coords(frames[frame_idx].data["path"], pixdim)
+                polygons = shift_polygon_coords(frames[frame_idx].data["path"], pixdim, metadata)
             else:
                 continue
             class_name = frames[frame_idx].annotation_class.name
@@ -155,7 +159,7 @@ def export_single_nifti_file(video_annotation: dt.AnnotationFile, output_dir: Pa
         nib.save(img=img, filename=output_path)
 
 
-def shift_polygon_coords(polygon, pixdim):
+def shift_polygon_coords(polygon, pixdim, metadata):
     # Need to make it clear that we flip x/y because we need to take the transpose later.
     # TODO: We might need to add a correction factor here for anisotropic pixdims.
     volume_dims, pixdim, affine, original_affine = process_metadata(metadata)
