@@ -39,10 +39,11 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path) -> N
     """
     video_annotations = list(annotation_files)
     for video_annotation in video_annotations:
-        export_single_nifti_file(video_annotation, output_dir)
+        for slot in video_annotation.slots:
+            export_single_nifti_file(video_annotation, output_dir, slot)
 
 
-def export_single_nifti_file(video_annotation: dt.AnnotationFile, output_dir: Path) -> None:
+def export_single_nifti_file(video_annotation: dt.AnnotationFile, output_dir: Path, slot: dt.Slot) -> None:
     output_volumes = None
     filename = Path(video_annotation.filename)
     suffixes = filename.suffixes
@@ -75,83 +76,83 @@ def export_single_nifti_file(video_annotation: dt.AnnotationFile, output_dir: Pa
         return create_error_message_json("video_annotation not found", output_dir, image_id)
     
  
-     # Iterate over each slot in the video annotation
-    for slot in video_annotation.slots:
-        slot_name = slot.name
- 
-        # Pick the first slot to take the metadata from. We assume that all slots have the same metadata.
-        metadata = slot.metadata
-        if metadata is None:
-            return create_error_message_json(
-                f"No metadata found for {str(filename)}, are you sure this is medical data?", output_dir, image_id
-            )
-        volume_dims, pixdim, affine, original_affine = process_metadata(metadata)
-        if affine is None or pixdim is None or volume_dims is None:
-            return create_error_message_json(
-                f"Missing one of affine, pixdim or shape in metadata for {str(filename)}, try reuploading file",
-                output_dir,
-                image_id,
-            )
-        if not slot.annotations:
-            create_empty_nifti_file(volume_dims, affine, output_dir, f"{image_id}_{slot_name}")
-        # Builds a map of class to integer
-        class_map = {}
-        class_count = 1
-        for _, annotation in enumerate(slot.annotations):
-            frames = annotation.frames
-            for frame_idx in frames.keys():
-                class_name = frames[frame_idx].annotation_class.name
-                if class_name not in class_map:
-                    class_map[class_name] = class_count
-                    class_count += 1
-        # Builds output volumes per class
-        if output_volumes is None:
-            output_volumes = {class_name: np.zeros(volume_dims) for class_name in class_map.keys()}
-        # Loops through annotations to build volumes
-        for _, annotation in enumerate(slot.annotations):
-            frames = annotation.frames
-            for frame_idx in frames.keys():
-                view_idx = get_view_idx_from_slot_name(annotation.slot_names[0])
-                if view_idx == 0:
-                    height, width = volume_dims[0], volume_dims[1]
-                    pixdims = [pixdim[0], pixdim[1]]
-                elif view_idx == 1:
-                    height, width = volume_dims[0], volume_dims[2]
-                    pixdims = [pixdim[0], pixdim[2]]
-                elif view_idx == 2:
-                    height, width = volume_dims[1], volume_dims[2]
-                    pixdims = [pixdim[1], pixdim[2]]
-                if "paths" in frames[frame_idx].data:
-                    # Dealing with a complex polygon
-                    polygons = [shift_polygon_coords(polygon_path, pixdim) for polygon_path in frames[frame_idx].data["paths"]]
-                elif "path" in frames[frame_idx].data:
-                    # Dealing with a simple polygon
-                    polygons = shift_polygon_coords(frames[frame_idx].data["path"], pixdim)
-                else:
-                    continue
-                class_name = frames[frame_idx].annotation_class.name
-                im_mask = convert_polygons_to_mask(polygons, height=height, width=width)
-                output_volume = output_volumes[class_name]
-                if view_idx == 0:
-                    output_volume[:, :, frame_idx] = np.logical_or(im_mask, output_volume[:, :, frame_idx])
-                elif view_idx == 1:
-                    output_volume[:, frame_idx, :] = np.logical_or(im_mask, output_volume[:, frame_idx, :])
-                elif view_idx == 2:
-                    output_volume[frame_idx, :, :] = np.logical_or(im_mask, output_volume[frame_idx, :, :])
-        for class_name in class_map.keys():
-            img = nib.Nifti1Image(
-                dataobj=np.flip(output_volumes[class_name], (0, 1, 2)).astype(np.int16),
-                affine=affine,
-            )
-            if original_affine is not None:
-                orig_ornt = io_orientation(original_affine)  # Get orientation of current affine
-                img_ornt = io_orientation(affine) # Get orientation of RAS affine
-                from_canonical = ornt_transform(img_ornt, orig_ornt)  # Get transform from RAS to current affine
-                img = img.as_reoriented(from_canonical)
-            output_path = Path(output_dir) / f"{image_id}_{slot_name}_{class_name}.nii.gz"
-            if not output_path.parent.exists():
-                output_path.parent.mkdir(parents=True)
-            nib.save(img=img, filename=output_path)
+    slot_name = slot.name
+
+    # Pick the first slot to take the metadata from. We assume that all slots have the same metadata.
+    metadata = slot.metadata
+    if metadata is None:
+        return create_error_message_json(
+            f"No metadata found for {str(filename)}, are you sure this is medical data?", output_dir, image_id
+        )
+    volume_dims, pixdim, affine, original_affine = process_metadata(metadata)
+    if affine is None or pixdim is None or volume_dims is None:
+        return create_error_message_json(
+            f"Missing one of affine, pixdim or shape in metadata for {str(filename)}, try reuploading file",
+            output_dir,
+            image_id,
+        )
+    if not slot.annotations:
+        create_empty_nifti_file(volume_dims, affine, output_dir, image_id, slot_name)
+    
+
+    # Builds a map of class to integer
+    class_map = {}
+    class_count = 1
+    for _, annotation in enumerate(slot.annotations):
+        frames = annotation.frames
+        for frame_idx in frames.keys():
+            class_name = frames[frame_idx].annotation_class.name
+            if class_name not in class_map:
+                class_map[class_name] = class_count
+                class_count += 1
+    # Builds output volumes per class
+    if output_volumes is None:
+        output_volumes = {class_name: np.zeros(volume_dims) for class_name in class_map.keys()}
+    # Loops through annotations to build volumes
+    for _, annotation in enumerate(slot.annotations):
+        frames = annotation.frames
+        for frame_idx in frames.keys():
+            view_idx = get_view_idx_from_slot_name(annotation.slot_names[0])
+            if view_idx == 0:
+                height, width = volume_dims[0], volume_dims[1]
+                pixdims = [pixdim[0], pixdim[1]]
+            elif view_idx == 1:
+                height, width = volume_dims[0], volume_dims[2]
+                pixdims = [pixdim[0], pixdim[2]]
+            elif view_idx == 2:
+                height, width = volume_dims[1], volume_dims[2]
+                pixdims = [pixdim[1], pixdim[2]]
+            if "paths" in frames[frame_idx].data:
+                # Dealing with a complex polygon
+                polygons = [shift_polygon_coords(polygon_path, pixdim) for polygon_path in frames[frame_idx].data["paths"]]
+            elif "path" in frames[frame_idx].data:
+                # Dealing with a simple polygon
+                polygons = shift_polygon_coords(frames[frame_idx].data["path"], pixdim)
+            else:
+                continue
+            class_name = frames[frame_idx].annotation_class.name
+            im_mask = convert_polygons_to_mask(polygons, height=height, width=width)
+            output_volume = output_volumes[class_name]
+            if view_idx == 0:
+                output_volume[:, :, frame_idx] = np.logical_or(im_mask, output_volume[:, :, frame_idx])
+            elif view_idx == 1:
+                output_volume[:, frame_idx, :] = np.logical_or(im_mask, output_volume[:, frame_idx, :])
+            elif view_idx == 2:
+                output_volume[frame_idx, :, :] = np.logical_or(im_mask, output_volume[frame_idx, :, :])
+    for class_name in class_map.keys():
+        img = nib.Nifti1Image(
+            dataobj=np.flip(output_volumes[class_name], (0, 1, 2)).astype(np.int16),
+            affine=affine,
+        )
+        if original_affine is not None:
+            orig_ornt = io_orientation(original_affine)  # Get orientation of current affine
+            img_ornt = io_orientation(affine) # Get orientation of RAS affine
+            from_canonical = ornt_transform(img_ornt, orig_ornt)  # Get transform from RAS to current affine
+            img = img.as_reoriented(from_canonical)
+        output_path = Path(output_dir) / f"{image_id}_{slot_name}_{class_name}.nii.gz"
+        if not output_path.parent.exists():
+            output_path.parent.mkdir(parents=True)
+        nib.save(img=img, filename=output_path)
 
 
 def shift_polygon_coords(polygon, pixdim):
