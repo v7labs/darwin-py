@@ -1,4 +1,5 @@
 import colorsys
+import math
 import os
 from csv import writer as csv_writer
 from functools import reduce
@@ -254,6 +255,16 @@ def render_polygons(
 
     errors: List[Exception] = []
 
+    annotations = [a for a in annotations if not isinstance(a, dt.VideoAnnotation)]
+    beyond_window = annotations_exceed_window(annotations, height, width)
+    if beyond_window:
+        image_mask = mask
+        x_min, x_max, y_min, y_max = get_extents(annotations, height, width)
+        new_height = y_max - y_min
+        new_width = x_max - x_min
+        mask = np.zeros((new_height, new_width), dtype=np.uint8)
+        offset_x, offset_y = new_width - width, new_height - height
+
     for a in annotations:
         try:
             if isinstance(a, dt.VideoAnnotation):
@@ -270,7 +281,12 @@ def render_polygons(
                 polygon = a.data["paths"]
             else:
                 raise ValueError(f"Unknown annotation type {a.annotation_class.annotation_type}")
-            sequence = convert_polygons_to_sequences(polygon, height=height, width=width)
+
+            if beyond_window:
+                sequence = convert_polygons_to_sequences(polygon, height=new_height, width=new_width)
+                sequence = offset_sequence(sequence, offset_x, offset_y)
+            else:
+                sequence = convert_polygons_to_sequences(polygon, height=height, width=width)
             colour_to_draw = categories.index(cat)
             mask = draw_polygon(mask, sequence, colour_to_draw)
 
@@ -281,6 +297,8 @@ def render_polygons(
             errors.append(e)
             continue
 
+    if beyond_window:
+        mask = mask[offset_x : offset_x + width, offset_y : offset_y + height]
     # It's not necessary to return the mask, it's modified in place, but it's more explicit
     return errors, mask, categories, colours
 
@@ -387,11 +405,14 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path, mode
     masks_dir: Path = output_dir / "masks"
     masks_dir.mkdir(exist_ok=True, parents=True)
     annotation_files = list(annotation_files)
-
+    accepted_types = ["polygon", "complex_polygon", "raster_layer", "mask"]
     all_classes_sets: List[Set[dt.AnnotationClass]] = [a.annotation_classes for a in annotation_files]
     if len(all_classes_sets) > 0:
         all_classes: Set[dt.AnnotationClass] = set.union(*all_classes_sets)
-        categories: List[str] = ["__background__"] + [c.name for c in list(all_classes)]
+        sorted_classes = sorted(list(all_classes), key=lambda x: x.name)
+        categories: List[str] = ["__background__"] + [
+            c.name for c in sorted_classes if c.annotation_type in accepted_types
+        ]
         palette = get_palette(mode, categories)
     else:
         categories = ["__background__"]
@@ -411,9 +432,7 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path, mode
 
         mask: NDArray = np.zeros((height, width)).astype(np.uint8)
         annotations: List[dt.AnnotationLike] = [
-            a
-            for a in annotation_file.annotations
-            if a.annotation_class.annotation_type in ["polygon", "complex_polygon", "raster_layer", "mask"]
+            a for a in annotation_file.annotations if a.annotation_class.annotation_type in accepted_types
         ]
 
         render_type = get_render_mode(annotations)
@@ -468,3 +487,36 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path, mode
                 writer.writerow([c, f"{palette_rgb[c][0]} {palette_rgb[c][1]} {palette_rgb[c][2]}"])
             else:
                 writer.writerow([c, f"{palette[c]}"])
+
+
+def annotations_exceed_window(annotations: List[dt.Annotation], height: int, width: int) -> bool:
+    for item in annotations:
+        bbox = item.data["bounding_box"]
+        if bbox["x"] < 0:
+            return True
+        if bbox["y"] < 0:
+            return True
+        if bbox["x"] + bbox["w"] > width:
+            return True
+        if bbox["y"] + bbox["h"] > height:
+            return True
+    return False
+
+
+def get_extents(annotations: List[dt.Annotation], height: int, width: int) -> Tuple[int, int, int, int]:
+    x_min = y_min = 0
+    x_max, y_max = width, height
+    for item in annotations:
+        bbox = item.data["bounding_box"]
+        x_min = min(x_min, bbox["x"])
+        x_max = max(x_max, bbox["x"] + bbox["w"])
+        y_min = min(y_min, bbox["y"])
+        y_max = max(y_max, bbox["y"] + bbox["h"])
+    return math.floor(x_min), math.ceil(x_max), math.floor(y_min), math.ceil(y_max)
+
+
+def offset_sequence(sequence: List, offset_x: int, offset_y) -> List:
+    for i in range(0, len(sequence) - 1, 2):
+        sequence[i] += offset_x
+        sequence[i + 1] += offset_y
+    return sequence
