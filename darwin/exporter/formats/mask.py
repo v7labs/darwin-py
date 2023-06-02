@@ -500,6 +500,8 @@ def annotations_exceed_window(annotations: List[dt.Annotation], height: int, wid
         bool: True if any annotation exceeds window, false otherwise
     """
     for item in annotations:
+        if "bounding_box" not in item.data:
+            continue
         bbox = item.data["bounding_box"]
         if bbox["x"] < 0:
             return True
@@ -526,6 +528,8 @@ def get_extents(annotations: List[dt.Annotation], height: int = 0, width: int = 
     x_min = y_min = 0
     x_max, y_max = width, height
     for item in annotations:
+        if "bounding_box" not in item.data:
+            continue
         bbox = item.data["bounding_box"]
         x_min = min(x_min, bbox["x"])
         x_max = max(x_max, bbox["x"] + bbox["w"])
