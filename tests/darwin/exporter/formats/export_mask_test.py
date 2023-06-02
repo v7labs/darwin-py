@@ -239,22 +239,23 @@ def test_render_polygons() -> None:
     mask = np.zeros((100, 100), dtype=np.uint8)
     colours: dt.MaskTypes.ColoursDict = {}
     categories: dt.MaskTypes.CategoryList = ["__background__"]
+    base_bb = {"x": 0, "y": 0, "w": 1, "h": 1}
     annotations: List[dt.AnnotationLike] = [
         dt.Annotation(
             dt.AnnotationClass("cat1", "polygon"),
-            {"path": [{"x": 10, "y": 10}, {"x": 20, "y": 10}, {"x": 20, "y": 20}, {"x": 10, "y": 20}]},
+            {"path": [{"x": 10, "y": 10}, {"x": 20, "y": 10}, {"x": 20, "y": 20}, {"x": 10, "y": 20}], "bounding_box": base_bb},
         ),
         dt.Annotation(
             dt.AnnotationClass("cat2", "polygon"),
-            {"path": [{"x": 30, "y": 30}, {"x": 40, "y": 30}, {"x": 40, "y": 40}, {"x": 30, "y": 40}]},
+            {"path": [{"x": 30, "y": 30}, {"x": 40, "y": 30}, {"x": 40, "y": 40}, {"x": 30, "y": 40}], "bounding_box": base_bb},
         ),
         dt.Annotation(
             dt.AnnotationClass("cat1", "polygon"),
-            {"path": [{"x": 50, "y": 50}, {"x": 60, "y": 50}, {"x": 60, "y": 60}, {"x": 50, "y": 60}]},
+            {"path": [{"x": 50, "y": 50}, {"x": 60, "y": 50}, {"x": 60, "y": 60}, {"x": 50, "y": 60}], "bounding_box": base_bb},
         ),
         dt.Annotation(
             dt.AnnotationClass("cat1", "polygon"),
-            {"path": [{"x": 10, "y": 80}, {"x": 20, "y": 80}, {"x": 20, "y": 60}]},
+            {"path": [{"x": 10, "y": 80}, {"x": 20, "y": 80}, {"x": 20, "y": 60}], "bounding_box": base_bb},
         ),
         dt.Annotation(
             dt.AnnotationClass("cat3", "complex_polygon"),
@@ -262,7 +263,7 @@ def test_render_polygons() -> None:
                 "paths": [
                     [{"x": 70, "y": 70}, {"x": 80, "y": 70}, {"x": 80, "y": 80}, {"x": 70, "y": 80}],
                     [{"x": 75, "y": 75}, {"x": 75, "y": 78}, {"x": 78, "y": 78}],
-                ]
+                ], "bounding_box": base_bb
             },
         ),
     ]
