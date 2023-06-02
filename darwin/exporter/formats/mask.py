@@ -255,22 +255,19 @@ def render_polygons(
 
     errors: List[Exception] = []
 
-    annotations = [a for a in annotations if not isinstance(a, dt.VideoAnnotation)]
-    beyond_window = annotations_exceed_window(annotations, height, width)
+    filtered_annotations: List[dt.Annotation] = [a for a in annotations if not isinstance(a, dt.VideoAnnotation)]
+    beyond_window = annotations_exceed_window(filtered_annotations, height, width)
     if beyond_window:
-        image_mask = mask
-        x_min, x_max, y_min, y_max = get_extents(annotations, height, width)
+        # If the annotations exceed the window, we need to offset the mask to fit them all in.
+        # Capture the offsets so we can shift the annotations back to their original positions later
+        x_min, x_max, y_min, y_max = get_extents(filtered_annotations, height, width)
         new_height = y_max - y_min
         new_width = x_max - x_min
         mask = np.zeros((new_height, new_width), dtype=np.uint8)
-        offset_x, offset_y = new_width - width, new_height - height
+        offset_x, offset_y = -x_min, -y_min
 
-    for a in annotations:
+    for a in filtered_annotations:
         try:
-            if isinstance(a, dt.VideoAnnotation):
-                print(f"Skipping video annotation from file {annotation_file.filename}")
-                continue
-
             cat = a.annotation_class.name
             if not cat in categories:
                 categories.append(cat)
@@ -283,8 +280,9 @@ def render_polygons(
                 raise ValueError(f"Unknown annotation type {a.annotation_class.annotation_type}")
 
             if beyond_window:
-                sequence = convert_polygons_to_sequences(polygon, height=new_height, width=new_width)
-                sequence = offset_sequence(sequence, offset_x, offset_y)
+                # Offset the polygon by the minimum x and y values to shift it to new frame of reference
+                polygon_off = offset_polygon(polygon, offset_x, offset_y)
+                sequence = convert_polygons_to_sequences(polygon_off, height=new_height, width=new_width)
             else:
                 sequence = convert_polygons_to_sequences(polygon, height=height, width=width)
             colour_to_draw = categories.index(cat)
@@ -298,7 +296,8 @@ def render_polygons(
             continue
 
     if beyond_window:
-        mask = mask[offset_x : offset_x + width, offset_y : offset_y + height]
+        # crop the mask to the original image size and in the correct offset location
+        mask = mask[offset_y : offset_y + height, offset_x : offset_x + width]
     # It's not necessary to return the mask, it's modified in place, but it's more explicit
     return errors, mask, categories, colours
 
@@ -490,6 +489,16 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path, mode
 
 
 def annotations_exceed_window(annotations: List[dt.Annotation], height: int, width: int) -> bool:
+    """ Check if any annotations exceed the image window
+
+    Args:
+        annotations (List[dt.Annotation]): List of annotations
+        height (int): height of image
+        width (int): width of image
+
+    Returns:
+        bool: True if any annotation exceeds window, false otherwise
+    """
     for item in annotations:
         bbox = item.data["bounding_box"]
         if bbox["x"] < 0:
@@ -503,7 +512,17 @@ def annotations_exceed_window(annotations: List[dt.Annotation], height: int, wid
     return False
 
 
-def get_extents(annotations: List[dt.Annotation], height: int, width: int) -> Tuple[int, int, int, int]:
+def get_extents(annotations: List[dt.Annotation], height: int = 0, width: int = 0) -> Tuple[int, int, int, int]:
+    """ Create a bounding box around all annotations in discrete pixel space
+
+    Args:
+        annotations (List[dt.Annotation]): List of annotations
+        height (int): Height to start with
+        width (int): Width to start with
+
+    Returns:
+        Tuple[int, int, int, int]: x_min, x_max, y_min, y_max
+    """
     x_min = y_min = 0
     x_max, y_max = width, height
     for item in annotations:
@@ -515,8 +534,21 @@ def get_extents(annotations: List[dt.Annotation], height: int, width: int) -> Tu
     return math.floor(x_min), math.ceil(x_max), math.floor(y_min), math.ceil(y_max)
 
 
-def offset_sequence(sequence: List, offset_x: int, offset_y) -> List:
-    for i in range(0, len(sequence) - 1, 2):
-        sequence[i] += offset_x
-        sequence[i + 1] += offset_y
-    return sequence
+def offset_polygon(polygon: List, offset_x: int, offset_y: int) -> List:
+    """Offsets a polygon by a given amount
+
+    Args:
+        polygon (List): List of coordinates
+        offset_x (int): x offset value
+        offset_y (int): y offset value
+
+    Returns:
+        List: polygon with offset applied
+    """
+    new_polygon = []
+    for i in range(0, len(polygon)):
+        new_polygon.append({
+            'x': polygon[i]['x'] + offset_x,
+            'y': polygon[i]['y'] + offset_y
+        })
+    return new_polygon
