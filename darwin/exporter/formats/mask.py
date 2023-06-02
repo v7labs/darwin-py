@@ -546,9 +546,9 @@ def offset_polygon(polygon: List, offset_x: int, offset_y: int) -> List:
         List: polygon with offset applied
     """
     new_polygon = []
-    for i in range(0, len(polygon)):
+    for point in polygon:
         new_polygon.append({
-            'x': polygon[i]['x'] + offset_x,
-            'y': polygon[i]['y'] + offset_y
+            'x': point['x'] + offset_x,
+            'y': point['y'] + offset_y
         })
     return new_polygon
