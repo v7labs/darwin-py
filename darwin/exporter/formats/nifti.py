@@ -43,7 +43,7 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path) -> N
     video_annotations = list(annotation_files)
     for video_annotation in video_annotations:
         for slot in video_annotation.slots:
-            print(slot)
+            #print(slot)
             export_single_nifti_file(video_annotation, output_dir, slot)
 
 
@@ -81,6 +81,7 @@ def export_single_nifti_file(video_annotation: dt.AnnotationFile, output_dir: Pa
     
  
     slot_name = slot.name
+    print(slot_name)
 
     # Pick the first slot to take the metadata from. We assume that all slots have the same metadata.
     metadata = slot.metadata
@@ -114,35 +115,40 @@ def export_single_nifti_file(video_annotation: dt.AnnotationFile, output_dir: Pa
         output_volumes = {class_name: np.zeros(volume_dims) for class_name in class_map.keys()}
     # Loops through annotations to build volumes
     for _, annotation in enumerate(video_annotation.annotations):
+        #print(annotation.slot_names[0]==slot_name)
         frames = annotation.frames
+        frame_new = {}        
         for frame_idx in frames.keys():
-            view_idx = get_view_idx_from_slot_name(annotation.slot_names[0])
-            if view_idx == 0:
-                height, width = volume_dims[0], volume_dims[1]
-                pixdims = [pixdim[0], pixdim[1]]
-            elif view_idx == 1:
-                height, width = volume_dims[0], volume_dims[2]
-                pixdims = [pixdim[0], pixdim[2]]
-            elif view_idx == 2:
-                height, width = volume_dims[1], volume_dims[2]
-                pixdims = [pixdim[1], pixdim[2]]
-            if "paths" in frames[frame_idx].data:
-                # Dealing with a complex polygon
-                polygons = [shift_polygon_coords(polygon_path, pixdim) for polygon_path in frames[frame_idx].data["paths"]]
-            elif "path" in frames[frame_idx].data:
-                # Dealing with a simple polygon
-                polygons = shift_polygon_coords(frames[frame_idx].data["path"], pixdim, metadata)
-            else:
-                continue
-            class_name = frames[frame_idx].annotation_class.name
-            im_mask = convert_polygons_to_mask(polygons, height=height, width=width)
-            output_volume = output_volumes[class_name]
-            if view_idx == 0:
-                output_volume[:, :, frame_idx] = np.logical_or(im_mask, output_volume[:, :, frame_idx])
-            elif view_idx == 1:
-                output_volume[:, frame_idx, :] = np.logical_or(im_mask, output_volume[:, frame_idx, :])
-            elif view_idx == 2:
-                output_volume[frame_idx, :, :] = np.logical_or(im_mask, output_volume[frame_idx, :, :])
+            if annotation.slot_names[0] == slot_name:
+                frame_new[frame_idx] = frames
+                print(frame_idx)
+                view_idx = get_view_idx_from_slot_name(annotation.slot_names == slot_name)
+                if view_idx == 0:
+                    height, width = volume_dims[0], volume_dims[1]
+                    pixdims = [pixdim[0], pixdim[1]]
+                elif view_idx == 1:
+                    height, width = volume_dims[0], volume_dims[2]
+                    pixdims = [pixdim[0], pixdim[2]]
+                elif view_idx == 2:
+                    height, width = volume_dims[1], volume_dims[2]
+                    pixdims = [pixdim[1], pixdim[2]]
+                if "paths" in frames[frame_idx].data:
+                    # Dealing with a complex polygon
+                    polygons = [shift_polygon_coords(polygon_path, pixdim) for polygon_path in frames[frame_idx].data["paths"]]
+                elif "path" in frames[frame_idx].data:
+                    # Dealing with a simple polygon
+                    polygons = shift_polygon_coords(frames[frame_idx].data["path"], pixdim, metadata)
+                else:
+                    continue
+                class_name = frames[frame_idx].annotation_class.name
+                im_mask = convert_polygons_to_mask(polygons, height=height, width=width)
+                output_volume = output_volumes[class_name]
+                if view_idx == 0:
+                    output_volume[:, :, frame_idx] = np.logical_or(im_mask, output_volume[:, :, frame_idx])
+                elif view_idx == 1:
+                    output_volume[:, frame_idx, :] = np.logical_or(im_mask, output_volume[:, frame_idx, :])
+                elif view_idx == 2:
+                    output_volume[frame_idx, :, :] = np.logical_or(im_mask, output_volume[frame_idx, :, :])
     for class_name in class_map.keys():
         img = nib.Nifti1Image(
             dataobj=np.flip(output_volumes[class_name], (0, 1, 2)).astype(np.int16),
@@ -234,3 +240,4 @@ def create_empty_nifti_file(volume_dims, affine, output_dir, image_id: str, slot
         output_path.parent.mkdir(parents=True)
     img = nib.Nifti1Image(dataobj=np.flip(np.zeros(volume_dims), (0, 1, 2)).astype(np.int16), affine=affine)
     nib.save(img=img, filename=output_path)
+
