@@ -285,7 +285,6 @@ def render_polygons(
                 sequence = convert_polygons_to_sequences(polygon_off, height=new_height, width=new_width)
             else:
                 sequence = convert_polygons_to_sequences(polygon, height=height, width=width)
-            sequence = convert_polygons_to_sequences(polygon, height=height, width=width)
             colour_to_draw = categories.index(cat)
             mask = draw_polygon(mask, sequence, colour_to_draw)
 
