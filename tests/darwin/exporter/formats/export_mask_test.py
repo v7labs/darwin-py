@@ -268,6 +268,7 @@ def test_render_polygons() -> None:
     mask = np.zeros((100, 100), dtype=np.uint8)
     colours: dt.MaskTypes.ColoursDict = {}
     categories: dt.MaskTypes.CategoryList = ["__background__"]
+      
     base_bb = {"x": 0, "y": 0, "w": 1, "h": 1}
     annotations: List[dt.AnnotationLike] = [
         dt.Annotation(
