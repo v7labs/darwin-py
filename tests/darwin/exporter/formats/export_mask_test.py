@@ -238,7 +238,7 @@ def test_render_polygons() -> None:
     # Create some mock data for testing
     mask = np.zeros((100, 100), dtype=np.uint8)
     colours: dt.MaskTypes.ColoursDict = {}
-    categories: dt.MaskTypes.CategoryList = []
+    categories: dt.MaskTypes.CategoryList = ["__background__"]
     annotations: List[dt.AnnotationLike] = [
         dt.Annotation(
             dt.AnnotationClass("cat1", "polygon"),
@@ -286,7 +286,7 @@ def test_render_polygons() -> None:
     assert_array_equal(mask, new_mask)  # type: ignore
 
     # Check that the categories and colours were updated correctly
-    assert new_categories == ["cat1", "cat2", "cat3"]
+    assert new_categories == ["__background__", "cat1", "cat2", "cat3"]
     assert new_colours == {"cat1": 1, "cat2": 2, "cat3": 3}
 
     # Check that the polygons were drawn correctly
@@ -484,7 +484,6 @@ def test_export(
     expected_mask_file: Optional[Path],
     expected_csv_file: Optional[Path],
 ) -> None:
-
     with TemporaryDirectory() as output_dir, patch(
         "darwin.exporter.formats.mask.get_render_mode"
     ) as mock_get_render_mode, patch("darwin.exporter.formats.mask.render_raster") as mock_render_raster, patch(
@@ -494,7 +493,6 @@ def test_export(
     ) as mock_get_palette, patch(
         "darwin.exporter.formats.mask.get_rgb_colours"
     ) as mock_get_rgb_colours:
-
         height, width = renderer_output[1].shape
 
         annotation_files = [
