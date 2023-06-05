@@ -233,28 +233,59 @@ def test_rle_decoder() -> None:
         rle_decode(odd_number_of_integers)
 
 
+def test_beyond_bb_window() -> None:
+    mask = np.zeros((5,5), dtype=np.uint8)
+    colours: dt.MaskTypes.ColoursDict = {}
+    categories: dt.MaskTypes.CategoryList = ["__background__"]
+    annotations: List[dt.AnnotationLike] = [
+        dt.Annotation(
+            dt.AnnotationClass("cat1", "polygon"),
+            {"path": [{"x": -1, "y": -1},{"x": -1, "y": 1},{"x": 1, "y": 1},{"x": 1, "y": -1},{"x": -1, "y": -1}], "bounding_box": {"x": -1, "y": -1, "w": 2, "h": 2}},
+        )
+    ]
+    annotation_file = dt.AnnotationFile(
+        Path("testfile"),
+        "testfile",
+        set([a.annotation_class for a in annotations]),
+        annotations,
+    )
+    height, width = 5, 5
+    errors, new_mask, new_categories, new_colours = render_polygons(
+        mask, colours, categories, annotations, annotation_file, height, width
+    )
+    
+    expected = np.array([[1, 1, 0, 0, 0],
+       [1, 1, 0, 0, 0],
+       [0, 0, 0, 0, 0],
+       [0, 0, 0, 0, 0],
+       [0, 0, 0, 0, 0]], dtype=np.uint8)
+    assert np.array_equal(new_mask, expected)
+    assert not errors
+    
 # Test render_polygons
 def test_render_polygons() -> None:
     # Create some mock data for testing
     mask = np.zeros((100, 100), dtype=np.uint8)
     colours: dt.MaskTypes.ColoursDict = {}
     categories: dt.MaskTypes.CategoryList = ["__background__"]
+      
+    base_bb = {"x": 0, "y": 0, "w": 1, "h": 1}
     annotations: List[dt.AnnotationLike] = [
         dt.Annotation(
             dt.AnnotationClass("cat1", "polygon"),
-            {"path": [{"x": 10, "y": 10}, {"x": 20, "y": 10}, {"x": 20, "y": 20}, {"x": 10, "y": 20}]},
+            {"path": [{"x": 10, "y": 10}, {"x": 20, "y": 10}, {"x": 20, "y": 20}, {"x": 10, "y": 20}], "bounding_box": base_bb},
         ),
         dt.Annotation(
             dt.AnnotationClass("cat2", "polygon"),
-            {"path": [{"x": 30, "y": 30}, {"x": 40, "y": 30}, {"x": 40, "y": 40}, {"x": 30, "y": 40}]},
+            {"path": [{"x": 30, "y": 30}, {"x": 40, "y": 30}, {"x": 40, "y": 40}, {"x": 30, "y": 40}], "bounding_box": base_bb},
         ),
         dt.Annotation(
             dt.AnnotationClass("cat1", "polygon"),
-            {"path": [{"x": 50, "y": 50}, {"x": 60, "y": 50}, {"x": 60, "y": 60}, {"x": 50, "y": 60}]},
+            {"path": [{"x": 50, "y": 50}, {"x": 60, "y": 50}, {"x": 60, "y": 60}, {"x": 50, "y": 60}], "bounding_box": base_bb},
         ),
         dt.Annotation(
             dt.AnnotationClass("cat1", "polygon"),
-            {"path": [{"x": 10, "y": 80}, {"x": 20, "y": 80}, {"x": 20, "y": 60}]},
+            {"path": [{"x": 10, "y": 80}, {"x": 20, "y": 80}, {"x": 20, "y": 60}], "bounding_box": base_bb},
         ),
         dt.Annotation(
             dt.AnnotationClass("cat3", "complex_polygon"),
@@ -262,7 +293,7 @@ def test_render_polygons() -> None:
                 "paths": [
                     [{"x": 70, "y": 70}, {"x": 80, "y": 70}, {"x": 80, "y": 80}, {"x": 70, "y": 80}],
                     [{"x": 75, "y": 75}, {"x": 75, "y": 78}, {"x": 78, "y": 78}],
-                ]
+                ], "bounding_box": base_bb
             },
         ),
     ]
