@@ -549,6 +549,19 @@ def offset_polygon(polygon: List, offset_x: int, offset_y: int) -> List:
     Returns:
         List: polygon with offset applied
     """
+    if isinstance(polygon[0], list):
+        return offset_complex_polygon(polygon, offset_x, offset_y)
+    else:
+        return offset_simple_polygon(polygon, offset_x, offset_y)
+
+
+def offset_complex_polygon(polygons: List, offset_x: int, offset_y: int) -> List:
+    new_polygons = []
+    for polygon in polygons:
+        new_polygons.append(offset_simple_polygon(polygon, offset_x, offset_y))
+    return new_polygons
+
+def offset_simple_polygon(polygon: List, offset_x: int, offset_y: int) -> List:
     new_polygon = []
     for point in polygon:
         new_polygon.append({
