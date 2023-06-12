@@ -1,10 +1,10 @@
 import ast
 import json as native_json
 from asyncore import loop
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Union
 
-from future import dataclass
 from rich.console import Console
 
 console = Console()
@@ -132,8 +132,6 @@ def check_for_error_and_return_imageid(video_annotation, output_dir):
         )
     if video_annotation is None:
         return create_error_message_json("video_annotation not found", output_dir, image_id)  
-
-
     
     for slot in video_annotation.slots:
         # Pick the first slot to take the metadata from. We assume that all slots have the same metadata.
@@ -150,51 +148,45 @@ def check_for_error_and_return_imageid(video_annotation, output_dir):
                 output_dir,
                 image_id,
             )
-
-
     return image_id
 
 
-def populate_output_volumes(annotation: Union[dt.Annotation, dt.VideoAnnotation],
-                             output_dir: Path, slot_map: Dict, output_volumes: Dict, image_id: str) -> None:
-
-    # Loops through annotations to build volumes
-    if not annotation:
-        create_empty_nifti_file(volume_dims, affine, output_dir, image_id, slot_map.name)
-
+def populate_output_volumes(annotation: Union[dt.Annotation, dt.VideoAnnotation], output_dir: str, slot_map: Dict, output_volumes: Dict, image_id: str) -> None:
 
     slot_name = annotation.slot_names[0]
     slot = slot_map[slot_name]
     series_instance_uid = slot.metadata.get("SeriesInstanceUID", "SeriesIntanceUIDNotProvided")
     volume = output_volumes.get(series_instance_uid)
+    volume = output_volumes.get(series_instance_uid)
     frames = annotation.frames
     frame_new = {}        
     for frame_idx in frames.keys():
         frame_new[frame_idx] = frames
-        view_idx = get_view_idx_from_slot_name(annotation.slot_names == slot_name, slot.metadata.get("orientation"))
+        view_idx = get_view_idx_from_slot_name(slot_name, slot.metadata.get("orientation"))
         if view_idx == 0:
-            height, width = volume.dims[0], volume.dims[1]
+            height, width = volume[annotation.annotation_class.name].dims[0], volume[annotation.annotation_class.name].dims[1]
         elif view_idx == 1:
-            height, width = volume.dims[0], volume.dims[2]
+            height, width = volume[annotation.annotation_class.name].dims[0], volume[annotation.annotation_class.name].dims[2]
         elif view_idx == 2:
-            height, width = volume.dims[1], volume.dims[2]
+            height, width = volume[annotation.annotation_class.name].dims[1], volume[annotation.annotation_class.name].dims[2]
         if "paths" in frames[frame_idx].data:
             # Dealing with a complex polygon
-            polygons = [shift_polygon_coords(polygon_path, volume.pixdims) for polygon_path in frames[frame_idx].data["paths"]]
+            polygons = [shift_polygon_coords(polygon_path, volume[annotation.annotation_class.name].pixdims) for polygon_path in frames[frame_idx].data["paths"]]
         elif "path" in frames[frame_idx].data:
             # Dealing with a simple polygon
-            polygons = shift_polygon_coords(frames[frame_idx].data["path"], volume.pixdims, slot.metadata)
+            polygons = shift_polygon_coords(frames[frame_idx].data["path"], volume[annotation.annotation_class.name].pixdims)
         else:
             continue
         class_name = frames[frame_idx].annotation_class.name
         im_mask = convert_polygons_to_mask(polygons, height=height, width=width)
-        output_volume = output_volumes[series_instance_uid][class_name]
+        #volume = output_volumes[series_instance_uid][class_name]
+        volume = output_volumes[series_instance_uid]
         if view_idx == 0:
-            output_volume[:, :, frame_idx] = np.logical_or(im_mask, output_volume[:, :, frame_idx])
+            volume[annotation.annotation_class.name].pixel_array[:, :, frame_idx] = np.logical_or(im_mask, volume[annotation.annotation_class.name].pixel_array[:, :, frame_idx])
         elif view_idx == 1:
-            output_volume[:, frame_idx, :] = np.logical_or(im_mask, output_volume[:, frame_idx, :])
+            volume[annotation.annotation_class.name].pixel_array[:, frame_idx, :] = np.logical_or(im_mask, volume[annotation.annotation_class.name].pixel_array[:, frame_idx, :])
         elif view_idx == 2:
-            output_volume[frame_idx, :, :] = np.logical_or(im_mask, output_volume[frame_idx, :, :])
+            volume[annotation.annotation_class.name].pixel_array[frame_idx, :, :] = np.logical_or(im_mask, volume[annotation.annotation_class.name].pixel_array[frame_idx, :, :])
 
 
 def write_output_volume_to_disk(output_volumes: Dict, image_id: str, output_dir: str):
@@ -278,7 +270,7 @@ def process_affine(affine):
     if isinstance(affine, str):
         affine = np.squeeze(np.array([ast.literal_eval(l) for l in affine.split("\n")]))
     elif isinstance(affine, list):
-        affine = np.array(affine).astype(np.float)
+        affine = np.array(affine).astype(float)
     else:
         return
     if isinstance(affine, np.ndarray):
