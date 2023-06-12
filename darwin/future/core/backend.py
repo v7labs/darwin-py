@@ -13,7 +13,7 @@ def get_team(client: Client, team_slug: Optional[str] = None) -> Team:
 
 
 def get_team_members(client: Client) -> Tuple[List[TeamMember], List[Exception]]:
-    response = client.get(f"/memberships")
+    response = client.get("/memberships")
     members = []
     errors = []
     for item in response:
