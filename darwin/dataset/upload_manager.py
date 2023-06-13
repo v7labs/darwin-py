@@ -165,8 +165,8 @@ class LocalFile:
         optional_properties = ["tags", "fps", "as_frames", "extract_views"]
         slot = {"file_name": self.data["filename"], "slot_name": "0"}
         for optional_property in optional_properties:
-                if optional_property in self.data:
-                    slot[optional_property] = self.data.get(optional_property)
+            if optional_property in self.data:
+                slot[optional_property] = self.data.get(optional_property)
         serialized = {
             "slots": [slot],
             "name": self.data["filename"],
