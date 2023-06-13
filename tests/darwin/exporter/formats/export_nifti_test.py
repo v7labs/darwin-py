@@ -43,7 +43,7 @@ def test_video_annotation_nifti_export_mpr(team_slug: str):
         with ZipFile("tests/data.zip") as zfile:
             zfile.extractall(tmpdir)
             annotations_dir = Path(tmpdir) / team_slug / "nifti/releases/latest/annotations"
-            video_annotation_filepaths = [annotations_dir / "hippocampus_multislot_mpr_003.json"]
+            video_annotation_filepaths = [annotations_dir / "hippocampus_multislot_001_mpr.json"]
             video_annotations = list(darwin_to_dt_gen(video_annotation_filepaths, False))
             nifti.export(video_annotations, output_dir=tmpdir)
             export_im = nib.load(Path(tmpdir) / f"hippocampus_001_mpr_1_test_hippo.nii.gz").get_fdata()
