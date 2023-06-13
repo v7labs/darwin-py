@@ -138,3 +138,7 @@ version = "^2.28.11.8"
 
 [tool.poetry.dependencies.mpire]
 version = "^2.7.0"
+
+
+[tool.ruff]
+max-line-length = 160

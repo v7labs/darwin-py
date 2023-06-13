@@ -53,7 +53,22 @@ class DatasetQuery(Query[Dataset]):
         """
 
         if filter.name == "release":
-            # TODO pick up here
-            return [r for r in datasets if filter.param in [r.name for r in r.releases]]
+            return self.release_filter(datasets, filter)
 
         return super()._generic_execute_filter(datasets, filter)
+
+    def release_filter(self, datasets: List[Dataset], filter: QueryFilter) -> List[Dataset]:
+        """Executes filtering on the local list of datasets, applying special logic for release filtering
+        otherwise calls the parent method for general filtering on the values of the datasets
+
+        Parameters
+        ----------
+        datasets : List[Dataset]
+        filter : QueryFilter
+
+        Returns
+        -------
+        List[Dataset]: Filtered subset of datasets
+        """
+        # TODO: Implement release filtering
+        raise NotImplementedError("Release filtering is not yet implemented")
