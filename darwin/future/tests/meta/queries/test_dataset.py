@@ -4,6 +4,7 @@ from darwin.future.core.client import Client
 from darwin.future.data_objects.dataset import Dataset
 
 from darwin.future.meta.queries.dataset import DatasetQuery
+from darwin.future.tests.core.fixtures import *
 
 
 def test_dataset_collects_basic(base_client: Client, base_datasets_json: dict) -> None:
@@ -17,7 +18,7 @@ def test_dataset_collects_basic(base_client: Client, base_datasets_json: dict) -
         assert all([isinstance(dataset, Dataset) for dataset in datasets])
 
 
-def datasetquery_only_passes_back_correctly_formed_objects(base_client: Client, base_dataset_json: dict) -> None:
+def test_datasetquery_only_passes_back_correctly_formed_objects(base_client: Client, base_dataset_json: dict) -> None:
     query = DatasetQuery()
     with responses.RequestsMock() as rsps:
         endpoint = base_client.config.api_endpoint + "datasets"
