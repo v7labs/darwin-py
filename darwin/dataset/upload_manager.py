@@ -167,6 +167,7 @@ class LocalFile:
         for optional_property in optional_properties:
             if optional_property in self.data:
                 slot[optional_property] = self.data.get(optional_property)
+
         serialized = {
             "slots": [slot],
             "name": self.data["filename"],
@@ -175,8 +176,6 @@ class LocalFile:
         if "tags" in self.data:
             serialized["tags"] = self.data["tags"]
         return serialized
-
-
 
     @property
     def full_path(self) -> str:
