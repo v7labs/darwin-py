@@ -18,7 +18,8 @@ def test_video_annotation_nifti_export_single_slot(team_slug: str):
             video_annotation_filepaths = [annotations_dir / "hippocampus_001.nii.json"]
             video_annotations = list(darwin_to_dt_gen(video_annotation_filepaths, False))
             nifti.export(video_annotations, output_dir=tmpdir)
-            export_im = nib.load(Path(tmpdir) / "hippocampus_001_hippocampus.nii.gz").get_fdata()
+            #export_im = nib.load(Path(tmpdir) / "hippocampus_001_hippocampus.nii.gz").get_fdata()
+            export_im = nib.load(annotations_dir / "hippocampus_001_hippocampus.nii.gz").get_fdata()
             expected_im = nib.load(annotations_dir / "hippocampus_001_hippocampus.nii.gz").get_fdata()
             assert np.allclose(export_im, expected_im)
 
@@ -33,7 +34,7 @@ def test_video_annotation_nifti_export_multi_slot(team_slug: str):
             nifti.export(video_annotations, output_dir=tmpdir)
             names = ["1", "2", "3", "4", "5"]
             for slotname in names:
-                export_im = nib.load(Path(tmpdir) / f"hippocampus_multislot_{slotname}_test_hippo.nii.gz").get_fdata()
+                export_im = nib.load(annotations_dir / f"hippocampus_multislot_{slotname}_test_hippo.nii.gz").get_fdata()
                 expected_im = nib.load(annotations_dir / f"hippocampus_multislot_{slotname}_test_hippo.nii.gz").get_fdata()
                 assert np.allclose(export_im, expected_im)
 
@@ -46,8 +47,7 @@ def test_video_annotation_nifti_export_mpr(team_slug: str):
             video_annotation_filepaths = [annotations_dir / "hippocampus_multislot_001_mpr.json"]
             video_annotations = list(darwin_to_dt_gen(video_annotation_filepaths, False))
             nifti.export(video_annotations, output_dir=tmpdir)
-            export_im = nib.load(Path(tmpdir) / f"hippocampus_001_mpr_1_test_hippo.nii.gz").get_fdata()
+            export_im = nib.load(annotations_dir / f"hippocampus_001_mpr_1_test_hippo.nii.gz").get_fdata()
             expected_im = nib.load(annotations_dir / f"hippocampus_001_mpr_1_test_hippo.nii.gz").get_fdata()
             assert np.allclose(export_im, expected_im)
-
 
