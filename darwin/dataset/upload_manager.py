@@ -164,15 +164,16 @@ class LocalFile:
     def serialize_v2(self):
         optional_properties = ["tags", "fps", "as_frames", "extract_views"]
         slot = {"file_name": self.data["filename"], "slot_name": "0"}
-        for optional_property in optional_properties:
-            if optional_property in self.data:
-                slot[optional_property] = self.data.get(optional_property)
-
-        return {
+        serialized = {
             "slots": [slot],
             "name": self.data["filename"],
             "path": self.data["path"],
         }
+        for optional_property in optional_properties:
+            if optional_property in self.data:
+                serialized[optional_property] = self.data.get(optional_property)
+        return serialized
+
 
     @property
     def full_path(self) -> str:
