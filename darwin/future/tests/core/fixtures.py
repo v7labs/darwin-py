@@ -99,7 +99,8 @@ def base_dataset_with_releases(base_dataset_json_with_releases: dict) -> Dataset
     return Dataset.parse_obj(base_dataset_json_with_releases)
 
 
-def base_datasets(base_dataset_json: dict) -> List[dict]:
+@pytest.fixture
+def base_datasets_json(base_dataset_json: dict) -> List[dict]:
     def transform_dataset(dataset_json_dict: dict, id: int) -> dict:
         dataset = dataset_json_dict.copy()
 
@@ -118,5 +119,22 @@ def base_datasets(base_dataset_json: dict) -> List[dict]:
 
 
 @pytest.fixture
-def base_datasets_json(base_dataset_json: dict) -> List[dict]:
-    return [base_dataset_json, base_dataset_json]
+def base_datasets_json_with_releases(base_dataset_json: dict) -> List[dict]:
+    def transform_dataset(dataset_json_dict: dict, id: int) -> dict:
+        dataset = dataset_json_dict.copy()
+
+        dataset["id"] = id
+        dataset["slug"] = f"{dataset['slug']}-{id}"
+        dataset["name"] = f"{dataset['name']} {id}"
+        dataset["releases"] = [{"name": "release2"}] if id % 2 == 0 else [{"name": "release1"}]
+
+        return dataset
+
+    # fmt: off
+    return [
+        transform_dataset(base_dataset_json, 1),
+        transform_dataset(base_dataset_json, 2),
+        transform_dataset(base_dataset_json, 3),
+        transform_dataset(base_dataset_json, 4),
+    ]
+    # fmt: on

@@ -19,6 +19,9 @@ class Release(DefaultDarwin):
 
     name: str
 
+    def __str__(self) -> str:
+        return self.name
+
     # Data Validation
     _name_validator = validator("name", allow_reuse=True)(darwin_validators.parse_name)
 

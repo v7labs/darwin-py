@@ -2,8 +2,9 @@ from typing import List
 
 from darwin.future.core.client import Client
 from darwin.future.core.datasets.list_datasets import list_datasets
-from darwin.future.core.types.query import Param, Query, QueryFilter
+from darwin.future.core.types.query import Modifier, Param, Query, QueryFilter
 from darwin.future.data_objects.dataset import Dataset
+from darwin.future.data_objects.release import ReleaseList
 
 
 class DatasetQuery(Query[Dataset]):
@@ -52,23 +53,7 @@ class DatasetQuery(Query[Dataset]):
         List[Dataset]: Filtered subset of datasets
         """
 
-        if filter.name == "release":
-            return self.release_filter(datasets, filter)
+        if filter.name == "releases":
+            return [d for d in datasets if d.releases and filter.param in [str(r) for r in d.releases]]
 
         return super()._generic_execute_filter(datasets, filter)
-
-    def release_filter(self, datasets: List[Dataset], filter: QueryFilter) -> List[Dataset]:
-        """Executes filtering on the local list of datasets, applying special logic for release filtering
-        otherwise calls the parent method for general filtering on the values of the datasets
-
-        Parameters
-        ----------
-        datasets : List[Dataset]
-        filter : QueryFilter
-
-        Returns
-        -------
-        List[Dataset]: Filtered subset of datasets
-        """
-        # TODO: Implement release filtering
-        raise NotImplementedError("Release filtering is not yet implemented")
