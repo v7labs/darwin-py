@@ -20,7 +20,7 @@ def response_json_slots() -> dict:
     }
 
 
-def test_item_parse(response_json_slots: dict) -> None:
+def test_item_parse_w_slots(response_json_slots: dict) -> None:
     item = DatasetItem.parse(response_json_slots, "test_dataset_slug")
     assert item.id == response_json_slots["id"]
     assert item.filename == response_json_slots["name"]

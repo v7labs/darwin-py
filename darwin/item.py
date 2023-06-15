@@ -96,7 +96,7 @@ class DatasetItem(BaseModel):
                 "seq": None,
                 "current_workflow_id": raw.get("workflow_data", {}).get("workflow_id"),
                 "current_workflow": raw.get("workflow_status"),
-                "slots": raw["slots"]
+                "slots": raw["slots"],
             }
         else:
             data = {
@@ -106,7 +106,7 @@ class DatasetItem(BaseModel):
                 "archived": raw["archived"],
                 "filesize": raw["file_size"],
                 "dataset_id": raw["dataset_id"],
-                "dataset_slug": "n/a",
+                "dataset_slug": dataset_slug,
                 "seq": raw["seq"],
                 "current_workflow_id": raw.get("current_workflow_id"),
                 "current_workflow": raw.get("current_workflow"),
