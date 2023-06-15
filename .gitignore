@@ -175,3 +175,5 @@ test.py
 
 # scripts
 scripts/
+
+.ruff_cache/
