@@ -475,11 +475,6 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path, mode
         writer = csv_writer(f)
         writer.writerow(["class_name", "class_color"])
 
-        # Create a palette if there was no palette created
-        # try:
-        #     palette_rgb
-        # except NameError:
-        #     palette_rgb = {"__background__": [0, 0, 0]} if mode == "rgb" else {"__background__": [0]}
         for class_key in categories:
             if mode == "rgb":
                 col = palette_rgb[class_key]
