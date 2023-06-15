@@ -84,6 +84,7 @@ def get_rgb_colours(categories: dt.MaskTypes.CategoryList) -> Tuple[dt.MaskTypes
     dt.MaskTypes.RgbPalette
         A dict of categories and their corresponding RGB palette value.
     """
+    # categories = set(categories)
     num_categories: int = len(categories)
 
     # Generate HSV colours for all classes except for BG
@@ -408,10 +409,9 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path, mode
     all_classes_sets: List[Set[dt.AnnotationClass]] = [a.annotation_classes for a in annotation_files]
     if len(all_classes_sets) > 0:
         all_classes: Set[dt.AnnotationClass] = set.union(*all_classes_sets)
-        sorted_classes = sorted(list(all_classes), key=lambda x: x.name)
-        categories: List[str] = ["__background__"] + [
-            c.name for c in sorted_classes if c.annotation_type in accepted_types
-        ]
+        categories: List[str] = ["__background__"] + sorted(
+            list(set([c.name for c in all_classes if c.annotation_type in accepted_types])), key=lambda x: x.lower()
+        )
         palette = get_palette(mode, categories)
     else:
         categories = ["__background__"]
@@ -481,11 +481,12 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path, mode
         except NameError:
             palette_rgb = {"__background__": [0, 0, 0]}
 
-        for c in categories:
+        for class_key in palette_rgb:
+            c = palette_rgb[class_key]
             if mode == "rgb":
-                writer.writerow([c, f"{palette_rgb[c][0]} {palette_rgb[c][1]} {palette_rgb[c][2]}"])
+                writer.writerow([class_key, f"{c[0]} {c[1]} {c[2]}"])
             else:
-                writer.writerow([c, f"{palette[c]}"])
+                writer.writerow([class_key, f"{c}"])
 
 
 def annotations_exceed_window(annotations: List[dt.Annotation], height: int, width: int) -> bool:
