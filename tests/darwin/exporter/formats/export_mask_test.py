@@ -1,3 +1,4 @@
+import csv
 import platform
 from pathlib import Path
 from tempfile import NamedTemporaryFile, TemporaryDirectory
@@ -7,6 +8,7 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 from numpy.testing import assert_array_equal
+from PIL import Image
 
 try:
     from numpy.typing import NDArray
@@ -662,6 +664,89 @@ def test_export(
             for x in range(expected.width):
                 for y in range(expected.height):
                     assert expected.getpixel((x, y)) == test_output.getpixel((x, y)), f"Pixel {x},{y} is different"
+
+
+def test_class_mappings_preserved_on_large_export() -> None:
+    """
+    Integration Test to ensure that class mappings are preserved on large exports with multiple files,
+    it does this by creating annotations of different but fixed sizes and ensuring that the class mappings
+    are the same for each file. This is to ensure that the class mappings are not being reset between files
+    or annotation classes are being re-indexed and assigned a different colour.
+    """
+    height, width = 10, 10
+    annotations = [
+        dt.Annotation(
+            dt.AnnotationClass("cat1", "polygon"),
+            {
+                "path": [{"x": 0, "y": 0}, {"x": 1, "y": 0}, {"x": 1, "y": 1}, {"x": 0, "y": 1}, {"x": 0, "y": 1}],
+            },
+        ),
+        dt.Annotation(
+            dt.AnnotationClass("cat2", "polygon"),
+            {
+                "path": [{"x": 2, "y": 2}, {"x": 4, "y": 2}, {"x": 4, "y": 4}, {"x": 2, "y": 4}, {"x": 2, "y": 2}],
+            },
+        ),
+        dt.Annotation(
+            dt.AnnotationClass("cat3", "polygon"),
+            {
+                "path": [{"x": 5, "y": 5}, {"x": 8, "y": 5}, {"x": 8, "y": 8}, {"x": 5, "y": 8}, {"x": 5, "y": 5}],
+            },
+        ),
+        dt.Annotation(
+            dt.AnnotationClass("cat1", "polygon"),
+            {
+                "path": [{"x": 4, "y": 0}, {"x": 5, "y": 0}, {"x": 5, "y": 1}, {"x": 4, "y": 1}, {"x": 4, "y": 0}],
+            },
+        ),
+        dt.Annotation(
+            dt.AnnotationClass("cat4", "complex_polygon"),
+            {
+                "paths": [
+                    [{"x": 0, "y": 3}, {"x": 1, "y": 3}, {"x": 1, "y": 5}, {"x": 0, "y": 5}, {"x": 0, "y": 3}],
+                    [{"x": 0, "y": 7}, {"x": 1, "y": 7}, {"x": 1, "y": 8}, {"x": 0, "y": 8}, {"x": 0, "y": 7}],
+                ]
+            },
+        ),
+    ]
+    # Pixel sizes of polygons, for used in asserting the correct colour is mapped to the correct class
+    sizes = {"cat1": 8, "cat2": 9, "cat3": 16, "cat4": 10}
+    sizes["__background__"] = height * width - sum([x for x in sizes.values()])
+    annotation_files = [
+        dt.AnnotationFile(
+            Path(f"test{x}"),
+            f"test{x}",
+            annotation_classes=set(),
+            annotations=annotations,
+            image_height=height,
+            image_width=width,
+        )
+        for x in range(100)
+    ]
+    with TemporaryDirectory() as output_directory:
+        export(annotation_files, Path(output_directory), "rgb")
+        class_mapping = {}
+        with open(Path(output_directory) / "class_mapping.csv", "r") as f:
+            csv_reader = csv.reader(f)
+            next(csv_reader, None)
+            for row in csv_reader:
+                rgb = row[1].split(" ")
+                class_mapping[row[0]] = [int(rgb[0]), int(rgb[1]), int(rgb[2])]
+                inverse_mapping = {tuple(v): k for k, v in class_mapping.items()}
+        assert len(class_mapping) == len(sizes)
+        # class_mapping_filename = Path(output_directory) / "class_mapping.csv"
+        for item in annotation_files:
+            assert Path(output_directory) / "masks" / f"{item.filename}.png"
+            filepath = Path(output_directory) / "masks" / f"{item.filename}.png"
+            image = Image.open(filepath)
+            np_image = np.array(image)
+            flat_image = np_image.reshape(-1, np_image.shape[-1])
+            colours, counts = np.unique(flat_image, axis=0, return_counts=True)  # type: ignore
+            assert len(colours) == len(counts)
+            assert len(colours) == len(sizes)
+            for index, colour in enumerate(colours):
+                assert tuple(colour) in inverse_mapping
+                assert counts[index] == sizes[inverse_mapping[tuple(colour)]]
 
 
 if __name__ == "__main__":
