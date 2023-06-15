@@ -589,7 +589,7 @@ def test_export(
         if colour_mode == "rgb":
             mock_get_rgb_colours.return_value = (
                 colours_for_test(),
-                {"__background": [0, 0, 0], "class1": [255, 0, 0], "class2": [0, 255, 0], "class3": [0, 0, 255]},
+                {"__background__": [0, 0, 0], "class1": [255, 0, 0], "class2": [0, 255, 0], "class3": [0, 0, 255]},
             )
 
         if colour_mode == "rgb" or colour_mode == "index":

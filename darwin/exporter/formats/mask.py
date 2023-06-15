@@ -476,17 +476,16 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path, mode
         writer.writerow(["class_name", "class_color"])
 
         # Create a palette if there was no palette created
-        try:
-            palette_rgb
-        except NameError:
-            palette_rgb = {"__background__": [0, 0, 0]}
-
-        for class_key in palette_rgb:
-            c = palette_rgb[class_key]
+        # try:
+        #     palette_rgb
+        # except NameError:
+        #     palette_rgb = {"__background__": [0, 0, 0]} if mode == "rgb" else {"__background__": [0]}
+        for class_key in categories:
             if mode == "rgb":
-                writer.writerow([class_key, f"{c[0]} {c[1]} {c[2]}"])
+                col = palette_rgb[class_key]
+                writer.writerow([class_key, f"{col[0]} {col[1]} {col[2]}"])
             else:
-                writer.writerow([class_key, f"{c}"])
+                writer.writerow([class_key, f"{palette[class_key]}"])
 
 
 def annotations_exceed_window(annotations: List[dt.Annotation], height: int, width: int) -> bool:
