@@ -84,7 +84,6 @@ def get_rgb_colours(categories: dt.MaskTypes.CategoryList) -> Tuple[dt.MaskTypes
     dt.MaskTypes.RgbPalette
         A dict of categories and their corresponding RGB palette value.
     """
-    # categories = set(categories)
     num_categories: int = len(categories)
 
     # Generate HSV colours for all classes except for BG
