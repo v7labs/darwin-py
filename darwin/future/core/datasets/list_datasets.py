@@ -1,10 +1,12 @@
+from typing import List, Tuple
+
 from pydantic import parse_obj_as
 
 from darwin.future.core.client import Client
-from darwin.future.data_objects.dataset import DatasetList
+from darwin.future.data_objects.dataset import Dataset
 
 
-def list_datasets(api_client: Client) -> DatasetList:
+def list_datasets(api_client: Client) -> Tuple[List[Dataset], List[Exception]]:
     """
     Returns a list of datasets for the given team
 
@@ -17,16 +19,16 @@ def list_datasets(api_client: Client) -> DatasetList:
 
     Returns
     -------
-    DatasetList
-
-    Raises
-    ------
-    HTTPError
-        Any errors that occurred while making the request
-    ValidationError
-        Any errors that occurred while parsing the response
-
+    Tuple[DatasetList, List[Exception]]
     """
-    response = api_client.get("/datasets")
+    datasets: List[Dataset] = []
+    errors: List[Exception] = []
 
-    return parse_obj_as(DatasetList, response)
+    try:
+        response = api_client.get("/datasets")
+        for item in response:
+            datasets.append(parse_obj_as(Dataset, item))
+    except Exception as e:
+        errors.append(e)
+
+    return datasets, errors

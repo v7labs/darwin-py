@@ -8,7 +8,9 @@ from darwin.future.pydantic_base import DefaultDarwin
 
 
 class Dataset(DefaultDarwin):
-    """A class to manage all the information around a dataset on the darwin platform, including validation
+    """
+    A class to manage all the information around a dataset on the darwin platform,
+    including validation
 
     Attributes
     ----------

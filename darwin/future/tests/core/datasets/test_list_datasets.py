@@ -1,9 +1,6 @@
 from typing import List
-from unittest.mock import MagicMock, patch
 
-import pytest
 import responses
-from pydantic import ValidationError
 from requests.exceptions import HTTPError
 
 from darwin.future.core.client import Client
@@ -25,14 +22,16 @@ def test_it_lists_datasets(base_client: Client, basic_list_of_datasets: List[Dat
             status=200,
         )
 
-        datasets = list_datasets(base_client)
+        datasets, errors = list_datasets(base_client)
+
+        assert len(errors) == 0
 
         assert len(datasets) == 3
         assert datasets[0].name == "test-dataset"
         assert datasets[0].slug == "1337"
 
 
-def test_it_raises_an_error_if_the_client_returns_an_http_error(base_client: Client) -> None:
+def test_it_returns_an_error_if_the_client_returns_an_http_error(base_client: Client) -> None:
     with responses.RequestsMock() as rsps:
         rsps.add(
             rsps.GET,
@@ -40,10 +39,10 @@ def test_it_raises_an_error_if_the_client_returns_an_http_error(base_client: Cli
             json={},
             status=400,
         )
-        with pytest.raises(HTTPError):
-            list_datasets(base_client)
 
+        response, errors = list_datasets(base_client)
 
-def test_it_raises_an_error_if_the_client_returns_a_pydantic_error(sad_client_pydantic: Client) -> None:
-    with pytest.raises(ValidationError):
-        list_datasets(sad_client_pydantic)
+        assert len(errors) == 1
+        assert isinstance(error := errors[0], HTTPError)
+        assert error.response.status_code == 400
+        assert not response

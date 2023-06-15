@@ -1,4 +1,3 @@
-import unittest
 from typing import List
 
 import pytest
