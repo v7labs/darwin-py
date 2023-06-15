@@ -730,7 +730,6 @@ def test_class_mappings_preserved_on_large_export() -> None:
             csv_reader = csv.reader(f, delimiter=",")
             next(csv_reader, None)
             for row in csv_reader:
-                print(row)
                 rgb = row[1].split(" ")
                 class_mapping[row[0]] = [int(rgb[0]), int(rgb[1]), int(rgb[2])]
 
