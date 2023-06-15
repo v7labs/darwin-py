@@ -732,7 +732,9 @@ def test_class_mappings_preserved_on_large_export() -> None:
             for row in csv_reader:
                 rgb = row[1].split(" ")
                 class_mapping[row[0]] = [int(rgb[0]), int(rgb[1]), int(rgb[2])]
-                inverse_mapping = {tuple(v): k for k, v in class_mapping.items()}
+
+            # maps the (r,g,b) tuple to the class name
+            inverse_mapping = {tuple(v): k for k, v in class_mapping.items()}
         assert len(class_mapping) == len(sizes)
         for item in annotation_files:
             assert Path(output_directory) / "masks" / f"{item.filename}.png"
@@ -746,7 +748,9 @@ def test_class_mappings_preserved_on_large_export() -> None:
             colours, counts = np.unique(flat_image, axis=0, return_counts=True)  # type: ignore
             assert len(colours) == len(counts)
             assert len(colours) == len(sizes)
+
             for index, colour in enumerate(colours):
+                # regardless of particular colours assigned, the pixel count should be the same for that (r,g,b) tuple
                 assert tuple(colour) in inverse_mapping
                 assert counts[index] == sizes[inverse_mapping[tuple(colour)]]
 
