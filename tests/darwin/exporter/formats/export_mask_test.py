@@ -729,12 +729,14 @@ def test_class_mappings_preserved_on_large_export(tmpdir) -> None:
     export(annotation_files, Path(output_directory), "rgb")
     class_mapping = {}
     with open(Path(output_directory) / "class_mapping.csv", "r") as f:
-        file_contents = f.read()
-        print(file_contents)
-        print(os.listdir(output_directory))
+        # file_contents = f.read()
+        # print(file_contents)
+        # print(os.listdir(output_directory))
         csv_reader = csv.reader(f, delimiter=",")
         next(csv_reader, None)
         for row in csv_reader:
+            if not row:
+                continue
             rgb = row[1].split(" ")
             class_mapping[row[0]] = [int(rgb[0]), int(rgb[1]), int(rgb[2])]
 
