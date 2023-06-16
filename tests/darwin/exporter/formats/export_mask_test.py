@@ -666,7 +666,8 @@ def test_export(
                     assert expected.getpixel((x, y)) == test_output.getpixel((x, y)), f"Pixel {x},{y} is different"
 
 
-def test_class_mappings_preserved_on_large_export() -> None:
+@pytest.fixture
+def test_class_mappings_preserved_on_large_export(tmpdir) -> None:
     """
     Integration Test to ensure that class mappings are preserved on large exports with multiple files,
     it does this by creating annotations of different but fixed sizes and ensuring that the class mappings
@@ -723,36 +724,36 @@ def test_class_mappings_preserved_on_large_export() -> None:
         )
         for x in range(100)
     ]
-    with TemporaryDirectory() as output_directory:
-        export(annotation_files, Path(output_directory), "rgb")
-        class_mapping = {}
-        with open(Path(output_directory) / "class_mapping.csv", "r") as f:
-            csv_reader = csv.reader(f, delimiter=",")
-            next(csv_reader, None)
-            for row in csv_reader:
-                rgb = row[1].split(" ")
-                class_mapping[row[0]] = [int(rgb[0]), int(rgb[1]), int(rgb[2])]
+    output_directory = tmpdir.mkdir()
+    export(annotation_files, Path(output_directory), "rgb")
+    class_mapping = {}
+    with open(Path(output_directory) / "class_mapping.csv", "r") as f:
+        csv_reader = csv.reader(f, delimiter=",")
+        next(csv_reader, None)
+        for row in csv_reader:
+            rgb = row[1].split(" ")
+            class_mapping[row[0]] = [int(rgb[0]), int(rgb[1]), int(rgb[2])]
 
-            # maps the (r,g,b) tuple to the class name
-            inverse_mapping = {tuple(v): k for k, v in class_mapping.items()}
-        assert len(class_mapping) == len(sizes)
-        for item in annotation_files:
-            assert Path(output_directory) / "masks" / f"{item.filename}.png"
-            filepath = Path(output_directory) / "masks" / f"{item.filename}.png"
-            image = Image.open(filepath)
+        # maps the (r,g,b) tuple to the class name
+        inverse_mapping = {tuple(v): k for k, v in class_mapping.items()}
+    assert len(class_mapping) == len(sizes)
+    for item in annotation_files:
+        assert Path(output_directory) / "masks" / f"{item.filename}.png"
+        filepath = Path(output_directory) / "masks" / f"{item.filename}.png"
+        image = Image.open(filepath)
 
-            # Check that the image contains the correct number of pixels for each class by mapping
-            # the pixel colour to the class and checking the number of pixels of that colour
-            np_image = np.array(image)
-            flat_image = np_image.reshape(-1, np_image.shape[-1])
-            colours, counts = np.unique(flat_image, axis=0, return_counts=True)  # type: ignore
-            assert len(colours) == len(counts)
-            assert len(colours) == len(sizes)
+        # Check that the image contains the correct number of pixels for each class by mapping
+        # the pixel colour to the class and checking the number of pixels of that colour
+        np_image = np.array(image)
+        flat_image = np_image.reshape(-1, np_image.shape[-1])
+        colours, counts = np.unique(flat_image, axis=0, return_counts=True)  # type: ignore
+        assert len(colours) == len(counts)
+        assert len(colours) == len(sizes)
 
-            for index, colour in enumerate(colours):
-                # regardless of particular colours assigned, the pixel count should be the same for that (r,g,b) tuple
-                assert tuple(colour) in inverse_mapping
-                assert counts[index] == sizes[inverse_mapping[tuple(colour)]]
+        for index, colour in enumerate(colours):
+            # regardless of particular colours assigned, the pixel count should be the same for that (r,g,b) tuple
+            assert tuple(colour) in inverse_mapping
+            assert counts[index] == sizes[inverse_mapping[tuple(colour)]]
 
 
 if __name__ == "__main__":
