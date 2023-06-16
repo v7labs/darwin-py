@@ -64,4 +64,4 @@ jobs:
           pip install --editable ".[test,ml,medical,dev]"
           pip install pytest pytest-describe
       - name: Run Tests
-        run: python -m pytest
+        run: python -m pytest -W ignore::DeprecationWarning
