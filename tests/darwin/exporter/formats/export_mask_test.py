@@ -1,4 +1,5 @@
 import csv
+import os
 import platform
 from pathlib import Path
 from tempfile import NamedTemporaryFile, TemporaryDirectory
@@ -728,6 +729,9 @@ def test_class_mappings_preserved_on_large_export(tmpdir) -> None:
     export(annotation_files, Path(output_directory), "rgb")
     class_mapping = {}
     with open(Path(output_directory) / "class_mapping.csv", "r") as f:
+        file_contents = f.read()
+        print(file_contents)
+        print(os.listdir(output_directory))
         csv_reader = csv.reader(f, delimiter=",")
         next(csv_reader, None)
         for row in csv_reader:
