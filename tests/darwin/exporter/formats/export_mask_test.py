@@ -482,7 +482,7 @@ def polygon_shape() -> NDArray:
 
 
 def raster_shape() -> NDArray:
-    return np.array(np.repeat([0, 1, 2, 3], 25), dtype=np.uint8).reshape(10, 10)  # type: ignore
+    return np.array(np.repeat([0, 1, 2, 3], 25), dtype=np.uint8).reshape(10, 10)
 
 
 @pytest.mark.parametrize(
@@ -666,7 +666,6 @@ def test_export(
                     assert expected.getpixel((x, y)) == test_output.getpixel((x, y)), f"Pixel {x},{y} is different"
 
 
-@pytest.fixture
 def test_class_mappings_preserved_on_large_export(tmpdir) -> None:
     """
     Integration Test to ensure that class mappings are preserved on large exports with multiple files,
@@ -674,6 +673,7 @@ def test_class_mappings_preserved_on_large_export(tmpdir) -> None:
     are the same for each file. This is to ensure that the class mappings are not being reset between files
     or annotation classes are being re-indexed and assigned a different colour.
     """
+
     height, width = 10, 10
     annotations = [
         dt.Annotation(
@@ -724,7 +724,7 @@ def test_class_mappings_preserved_on_large_export(tmpdir) -> None:
         )
         for x in range(100)
     ]
-    output_directory = tmpdir.mkdir()
+    output_directory = tmpdir.mkdir("output")
     export(annotation_files, Path(output_directory), "rgb")
     class_mapping = {}
     with open(Path(output_directory) / "class_mapping.csv", "r") as f:
