@@ -1,7 +1,4 @@
-from typing import Tuple, Union
-
-from pydantic import PositiveInt
-from torch import int16
+from typing import List, Optional, Tuple, Union
 
 from darwin.future.data_objects.dataset import Dataset
 from darwin.future.meta.queries.dataset import DatasetQuery
@@ -29,6 +26,17 @@ class DatasetMeta:
         raise NotImplementedError()
 
     @classmethod
-    def delete_dataset(cls, dataset_id: Union[int, str]) -> Tuple[Exception, int]:
-        # TODO: implement in IO-1019
-        raise NotImplementedError()
+    def delete_dataset(cls, dataset_id: Union[int, str]) -> Tuple[Optional[List[Exception]], int]:
+        exceptions = []
+        dataset_deleted = 0
+
+        try:
+            # TODO: implement
+            # 1. recover dataset if slug
+            # 2. delete dataset
+            # 3. assign int id to dataset_deleted
+            ...
+        except Exception as e:
+            exceptions.append(e)
+
+        return exceptions or None, dataset_deleted
