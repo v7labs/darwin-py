@@ -408,10 +408,9 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path, mode
     all_classes_sets: List[Set[dt.AnnotationClass]] = [a.annotation_classes for a in annotation_files]
     if len(all_classes_sets) > 0:
         all_classes: Set[dt.AnnotationClass] = set.union(*all_classes_sets)
-        sorted_classes = sorted(list(all_classes), key=lambda x: x.name)
-        categories: List[str] = ["__background__"] + [
-            c.name for c in sorted_classes if c.annotation_type in accepted_types
-        ]
+        categories: List[str] = ["__background__"] + sorted(
+            list(set([c.name for c in all_classes if c.annotation_type in accepted_types])), key=lambda x: x.lower()
+        )
         palette = get_palette(mode, categories)
     else:
         categories = ["__background__"]
@@ -475,21 +474,16 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path, mode
         writer = csv_writer(f)
         writer.writerow(["class_name", "class_color"])
 
-        # Create a palette if there was no palette created
-        try:
-            palette_rgb
-        except NameError:
-            palette_rgb = {"__background__": [0, 0, 0]}
-
-        for c in categories:
+        for class_key in categories:
             if mode == "rgb":
-                writer.writerow([c, f"{palette_rgb[c][0]} {palette_rgb[c][1]} {palette_rgb[c][2]}"])
+                col = palette_rgb[class_key]
+                writer.writerow([class_key, f"{col[0]} {col[1]} {col[2]}"])
             else:
-                writer.writerow([c, f"{palette[c]}"])
+                writer.writerow([class_key, f"{palette[class_key]}"])
 
 
 def annotations_exceed_window(annotations: List[dt.Annotation], height: int, width: int) -> bool:
-    """ Check if any annotations exceed the image window
+    """Check if any annotations exceed the image window
 
     Args:
         annotations (List[dt.Annotation]): List of annotations
@@ -515,7 +509,7 @@ def annotations_exceed_window(annotations: List[dt.Annotation], height: int, wid
 
 
 def get_extents(annotations: List[dt.Annotation], height: int = 0, width: int = 0) -> Tuple[int, int, int, int]:
-    """ Create a bounding box around all annotations in discrete pixel space
+    """Create a bounding box around all annotations in discrete pixel space
 
     Args:
         annotations (List[dt.Annotation]): List of annotations
@@ -561,11 +555,9 @@ def offset_complex_polygon(polygons: List, offset_x: int, offset_y: int) -> List
         new_polygons.append(offset_simple_polygon(polygon, offset_x, offset_y))
     return new_polygons
 
+
 def offset_simple_polygon(polygon: List, offset_x: int, offset_y: int) -> List:
     new_polygon = []
     for point in polygon:
-        new_polygon.append({
-            'x': point['x'] + offset_x,
-            'y': point['y'] + offset_y
-        })
+        new_polygon.append({"x": point["x"] + offset_x, "y": point["y"] + offset_y})
     return new_polygon
