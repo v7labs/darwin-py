@@ -22,11 +22,11 @@ def remove_dataset(api_client: Client, id: int, team_slug: Optional[str] = None)
         team_slug = api_client.config.default_team
 
     response = api_client.put(
-        f"/datasets/{int}/archive",
+        f"/datasets/{id}/archive",
         {"team_slug": team_slug},
     )
 
-    if not "id" in response:
+    if "id" not in response:
         raise Exception(f"Dataset with id {id} not found")
 
-    return int(response.id)  # type: ignore
+    return int(response["id"])  # type: ignore

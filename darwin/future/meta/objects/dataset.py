@@ -47,6 +47,9 @@ class DatasetMeta:
 
     @staticmethod
     def _delete_by_slug(client: MetaClient, slug: str) -> int:
+        assert isinstance(client, MetaClient), "client must be a MetaClient"
+        assert isinstance(slug, str), "slug must be a string"
+
         dataset = get_dataset(client, slug)
         if dataset and dataset.id:
             dataset_deleted = remove_dataset(client, dataset.id)
@@ -57,5 +60,8 @@ class DatasetMeta:
 
     @staticmethod
     def _delete_by_id(client: MetaClient, dataset_id: int) -> int:
+        assert isinstance(client, MetaClient), "client must be a MetaClient"
+        assert isinstance(dataset_id, int), "dataset_id must be an integer"
+
         dataset_deleted = remove_dataset(client, dataset_id)
         return dataset_deleted

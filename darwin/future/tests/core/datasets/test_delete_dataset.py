@@ -13,25 +13,25 @@ from .fixtures import *
 def test_it_deletes_a_dataset(base_client: Client) -> None:
     with responses.RequestsMock() as rsps:
         rsps.add(
-            rsps.DELETE,
-            base_client.config.api_endpoint + "datasets",
+            rsps.PUT,
+            base_client.config.api_endpoint + "datasets/1337/archive",
             json={
-                "affected_item_count": 1,
+                "id": 1337,
             },
             status=200,
         )
 
-        output = remove_dataset(base_client, "test-dataset")
+        output = remove_dataset(base_client, 1337)
 
-        assert output["affected_item_count"] == 1
+        assert output == 1337
 
 
 def test_it_throws_http_errors_returned_by_the_client(base_client: Client) -> None:
     with raises(HTTPError):
         with responses.RequestsMock() as rsps:
             rsps.add(
-                rsps.DELETE,
-                base_client.config.api_endpoint + "datasets",
+                rsps.PUT,
+                base_client.config.api_endpoint + "datasets/test-dataset/archive",
                 json={
                     "affected_item_count": 1,
                 },
