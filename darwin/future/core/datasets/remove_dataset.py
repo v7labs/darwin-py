@@ -1,8 +1,9 @@
+from typing import Optional
+
 from darwin.future.core.client import Client, JSONType
-from darwin.future.core.types.common import QueryString
 
 
-def remove_dataset(api_client: Client, name: str) -> JSONType:
+def remove_dataset(api_client: Client, id: int, team_slug: Optional[str] = None) -> int:
     """
     Creates a new dataset for the given team
 
@@ -10,20 +11,22 @@ def remove_dataset(api_client: Client, name: str) -> JSONType:
     ----------
     api_client : Client
         The client to use to make the request
-    name : str
+    id : int
         The name of the dataset to create
 
     Returns
     -------
-    Dataset
+    JSONType
     """
-    response = api_client.delete(
-        "/datasets",
-        QueryString(
-            {
-                "name": name,
-            }
-        ),
+    if not team_slug:
+        team_slug = api_client.config.default_team
+
+    response = api_client.put(
+        f"/datasets/{int}/archive",
+        {"team_slug": team_slug},
     )
 
-    return response
+    if not "id" in response:
+        raise Exception(f"Dataset with id {id} not found")
+
+    return int(response.id)  # type: ignore

@@ -1,42 +1,61 @@
 from typing import List, Optional, Tuple, Union
 
+from darwin.future.core.datasets.get_dataset import get_dataset
+from darwin.future.core.datasets.remove_dataset import remove_dataset
 from darwin.future.data_objects.dataset import Dataset
+from darwin.future.meta.client import MetaClient
 from darwin.future.meta.queries.dataset import DatasetQuery
 
 
 class DatasetMeta:
-    @classmethod
-    def datasets(cls) -> DatasetQuery:
+    client: MetaClient
+
+    def __init__(self, client: MetaClient) -> None:
+        # TODO: Initialise from chaining within MetaClient
+        self.client = client
+
+    def datasets(self) -> DatasetQuery:
         # TODO: implement
         raise NotImplementedError()
 
-    @classmethod
-    def get_dataset_by_id(cls) -> Dataset:
+    def get_dataset_by_id(self) -> Dataset:
         # TODO: implement
         raise NotImplementedError()
 
-    @classmethod
-    def create_dataset(cls) -> Dataset:
+    def create_dataset(self) -> Dataset:
         # TODO: implement in IO-1018
         raise NotImplementedError()
 
-    @classmethod
-    def update_dataset(cls) -> Dataset:
+    def update_dataset(self) -> Dataset:
         # TODO: implement in IO-1018
         raise NotImplementedError()
 
-    @classmethod
-    def delete_dataset(cls, dataset_id: Union[int, str]) -> Tuple[Optional[List[Exception]], int]:
+    def delete_dataset(self, dataset_id: Union[int, str]) -> Tuple[Optional[List[Exception]], int]:
         exceptions = []
-        dataset_deleted = 0
+        dataset_deleted = -1
 
         try:
-            # TODO: implement
-            # 1. recover dataset if slug
-            # 2. delete dataset
-            # 3. assign int id to dataset_deleted
-            ...
+            if isinstance(dataset_id, str):
+                dataset_deleted = self._delete_by_slug(self.client, dataset_id)
+            else:
+                dataset_deleted = self._delete_by_id(self.client, dataset_id)
+
         except Exception as e:
             exceptions.append(e)
 
         return exceptions or None, dataset_deleted
+
+    @staticmethod
+    def _delete_by_slug(client: MetaClient, slug: str) -> int:
+        dataset = get_dataset(client, slug)
+        if dataset and dataset.id:
+            dataset_deleted = remove_dataset(client, dataset.id)
+        else:
+            raise Exception(f"Dataset with slug {slug} not found")
+
+        return dataset_deleted
+
+    @staticmethod
+    def _delete_by_id(client: MetaClient, dataset_id: int) -> int:
+        dataset_deleted = remove_dataset(client, dataset_id)
+        return dataset_deleted
