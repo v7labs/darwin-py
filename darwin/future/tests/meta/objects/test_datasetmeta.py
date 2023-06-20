@@ -1,4 +1,3 @@
-from math import e
 from unittest.mock import Mock, patch
 
 from pytest import fixture, raises
@@ -11,13 +10,13 @@ from darwin.future.tests.core.fixtures import *
 
 
 @fixture
-def _delete_by_slug_mock():
+def _delete_by_slug_mock():  # type: ignore
     with patch.object(DatasetMeta, "_delete_by_slug") as mock:
         yield mock
 
 
 @fixture
-def _delete_by_id_mock():
+def _delete_by_id_mock():  # type: ignore
     with patch.object(DatasetMeta, "_delete_by_id") as mock:
         yield mock
 

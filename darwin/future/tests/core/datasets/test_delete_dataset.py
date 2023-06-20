@@ -4,7 +4,6 @@ from requests import HTTPError
 
 from darwin.future.core.client import Client
 from darwin.future.core.datasets.remove_dataset import remove_dataset
-from darwin.future.exceptions.base import DarwinException
 from darwin.future.tests.core.fixtures import *
 
 from .fixtures import *
@@ -38,4 +37,4 @@ def test_it_throws_http_errors_returned_by_the_client(base_client: Client) -> No
                 status=400,
             )
 
-            remove_dataset(base_client, "test-dataset")
+            remove_dataset(base_client, "test-dataset")  # type: ignore
