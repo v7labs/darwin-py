@@ -57,3 +57,7 @@ class DarwinException(Exception):
 
 class ValidationError(DarwinException):
     pass
+
+
+class AssertionError(DarwinException):
+    pass

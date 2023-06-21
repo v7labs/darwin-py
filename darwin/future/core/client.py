@@ -186,7 +186,7 @@ class Client:
             return endpoint
 
         assert "?" not in endpoint
-        return endpoint + "?" + str(query_string)
+        return endpoint + str(query_string)
 
     def get(self, endpoint: str, query_string: Optional[QueryString] = None) -> JSONType:
         return self._generic_call(self.session.get, self._contain_qs_and_endpoint(endpoint, query_string))
