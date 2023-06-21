@@ -1,6 +1,7 @@
+import string
 from unittest.mock import Mock, patch
 
-from pytest import fixture, raises
+from pytest import fixture, mark, raises
 from responses import RequestsMock
 
 from darwin.future.core.client import DarwinConfig
@@ -27,8 +28,24 @@ def _delete_by_id_mock():  # type: ignore
 # `get_dataset_by_id` tests
 # TODO get_dataset_by_id tests
 
+
 # `create_dataset` tests
-# TODO create_dataset tests
+def test_create_dataset_returns_exceptions_thrown(base_config: DarwinConfig) -> None:
+    valid_client = MetaClient(base_config)
+    valid_slug = "test_dataset"
+
+    base_url = base_config.base_url + "api/datasets"
+
+    with RequestsMock() as rsps:
+        rsps.add(rsps.POST, base_url, status=500)
+        dataset_meta = DatasetMeta(valid_client)
+
+        exceptions, dataset_created = dataset_meta.create_dataset(valid_slug)
+
+        assert exceptions is not None
+        assert str(exceptions[0]) == "500 Server Error: None for url: https://api.darwinai.com/api/datasets"
+        assert dataset_created is None
+
 
 # `update_dataset` tests
 # TODO update_dataset tests
@@ -147,3 +164,18 @@ def test_delete_by_id_returns_dataset_deleted_if_dataset_found(base_config: Darw
         dataset_deleted = DatasetMeta._delete_by_id(valid_client, valid_id)
 
         assert dataset_deleted == 1
+
+
+@mark.parametrize(
+    "invalid_slug",
+    ["", " ", "test dataset", *[f"dataset_{c}" for c in string.punctuation if c not in ["-", "_", "."]]],
+)
+def test_validate_slugh_raises_exception_if_passed_invalid_inputs(invalid_slug: str) -> None:
+    with raises(AssertionError):
+        DatasetMeta._validate_slug(invalid_slug)
+
+
+def test_validate_slug_returns_none_if_passed_valid_slug() -> None:
+    valid_slug = "test-dataset"
+
+    assert DatasetMeta._validate_slug(valid_slug) is None
