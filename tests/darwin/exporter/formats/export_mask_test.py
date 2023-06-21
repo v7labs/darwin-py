@@ -159,19 +159,20 @@ def test_get_or_generate_colour() -> None:
 @pytest.fixture
 def annotations() -> List[dt.Annotation]:
     return [
-        dt.Annotation(dt.AnnotationClass("class_1", "raster_layer"), data={"mask": "data", "raster_layer": "raster"}),
-        dt.Annotation(dt.AnnotationClass("class_2", "polygon"), data={"path": "data"}),
-        dt.Annotation(dt.AnnotationClass("class_2", "polygon"), data={"paths": "data"}),
+        dt.Annotation(dt.AnnotationClass("class_1", "raster_layer"), data={"dense_rle": [], "mask_annotation_ids_mapping": {}, "total_pixels": 247500}),
+        dt.Annotation(dt.AnnotationClass("class_2", "mask"), data={"sparse_rle": []}),
+        dt.Annotation(dt.AnnotationClass("class_3", "polygon"), data={"path": "data"}),
+        dt.Annotation(dt.AnnotationClass("class_4", "complex_polygon"), data={"paths": "data"}),
     ]
 
 
 def test_get_render_mode_returns_raster_when_given_raster_mask(annotations: List[dt.AnnotationLike]) -> None:
-    assert get_render_mode([annotations[0]]) == "raster"
+    assert get_render_mode([annotations[0], annotations[1]]) == "raster"
 
 
 def test_get_render_mode_returns_polygon_when_given_polygon(annotations: List[dt.AnnotationLike]) -> None:
-    assert get_render_mode([annotations[1]]) == "polygon"
     assert get_render_mode([annotations[2]]) == "polygon"
+    assert get_render_mode([annotations[3]]) == "polygon"
 
 
 def test_get_render_mode_raises_value_error_when_given_both_raster_mask_and_polygon(
@@ -182,7 +183,7 @@ def test_get_render_mode_raises_value_error_when_given_both_raster_mask_and_poly
 
 
 def test_get_render_mode_raises_value_error_when_no_renderable_annotations_found() -> None:
-    with pytest.raises(ValueError, match="No renderable annotations found in file, found keys:"):
+    with pytest.raises(ValueError, match="No renderable annotations found in file, found types:"):
         get_render_mode([dt.Annotation(dt.AnnotationClass("class_3", "invalid"), data={"line": "data"})])  # type: ignore
 
 
@@ -398,36 +399,35 @@ def test_render_raster() -> None:
     annotations: List[dt.AnnotationLike] = [
         dt.Annotation(
             dt.AnnotationClass("mask1", "mask"),
-            {"id": "mask1", "name": "mask1", "slot_names": ["slot1"], "mask": {"sparse_rle": None}},
-            [],
-            ["slot1"],
+            {"sparse_rle": None},
+            subs=[],
+            id="mask1",
+            slot_names=["slot1"]
         ),
         dt.Annotation(
             dt.AnnotationClass("mask2", "mask"),
-            {"id": "mask2", "name": "mask2", "slot_names": ["slot1"], "mask": {"sparse_rle": None}},
-            [],
-            ["slot1"],
+            {"sparse_rle": None},
+            subs=[],
+            id="mask2",
+            slot_names=["slot1"]
         ),
         dt.Annotation(
             dt.AnnotationClass("mask3", "mask"),
-            {"id": "mask3", "name": "mask3", "slot_names": ["slot1"], "mask": {"sparse_rle": None}},
-            [],
-            ["slot1"],
+            {"sparse_rle": None},
+            subs=[],
+            id="mask3",
+            slot_names=["slot1"]
         ),
         dt.Annotation(
-            dt.AnnotationClass("raster", "raster_layer"),
+            dt.AnnotationClass("__raster_layer__", "raster_layer"),
             {
-                "id": "raster",
-                "name": "__raster_layer__",
-                "slot_names": ["slot1"],
-                "raster_layer": {
-                    "dense_rle": "my_rle_data",
-                    "decoded": rle_code,
-                    "mask_annotation_ids_mapping": {"mask1": 0, "mask2": 1, "mask3": 2},
-                    "total_pixels": 10000,
-                },
+                "dense_rle": "my_rle_data",
+                "decoded": rle_code,
+                "mask_annotation_ids_mapping": {"mask1": 0, "mask2": 1, "mask3": 2},
+                "total_pixels": 10000,
             },
             slot_names=["slot1"],
+            id="raster",
         ),
     ]
     annotation_file = dt.AnnotationFile(

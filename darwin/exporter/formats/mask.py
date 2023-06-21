@@ -122,13 +122,13 @@ def get_render_mode(annotations: List[dt.AnnotationLike]) -> dt.MaskTypes.TypeOf
     if not non_video_annotations:
         return "polygon"
 
-    list_of_keys: List[str] = reduce(list.__add__, [list(a.data.keys()) for a in non_video_annotations])
-    keys: Set[str] = set(list_of_keys)
+    list_of_types: List[str] = [a.annotation_class.annotation_type for a in non_video_annotations]
+    types: Set[str] = set(list_of_types)
 
-    is_raster_mask = ("mask" in keys) and ("raster_layer" in keys)
-    is_polygon = ("path" in keys) or ("paths" in keys)
+    is_raster_mask = ("mask" in types) and ("raster_layer" in types)
+    is_polygon = ("polygon" in types) or ("complex_polygon" in types)
 
-    raster_layer_count = len([a for a in keys if a == "raster_layer"])
+    raster_layer_count = len([a for a in types if a == "raster_layer"])
 
     if is_raster_mask and is_polygon:
         raise ValueError("Cannot have both raster and polygon annotations in the same file")
@@ -142,7 +142,7 @@ def get_render_mode(annotations: List[dt.AnnotationLike]) -> dt.MaskTypes.TypeOf
     if is_polygon:
         return "polygon"
 
-    raise ValueError("No renderable annotations found in file, found keys: " + ",".join(keys))
+    raise ValueError("No renderable annotations found in file, found types: " + ",".join(list_of_types))
 
 
 def colours_in_rle(
@@ -346,10 +346,10 @@ def render_raster(
 
         data = a.data
 
-        if "mask" in data:
+        if a.annotation_class.annotation_type == "mask" and a.id:
             new_mask = dt.AnnotationMask(
-                id=data["id"],
-                name=data["name"],
+                id=a.id,
+                name=a.annotation_class.name,
                 slot_names=a.slot_names,
             )
             try:
@@ -367,7 +367,7 @@ def render_raster(
             if not new_mask.name in categories:
                 categories.append(new_mask.name)
 
-        if "raster_layer" in data and (rl := data["raster_layer"]):
+        if a.annotation_class.annotation_type == "raster_layer" and (rl := data):
             if raster_layer:
                 errors.append(ValueError(f"Annotation {a.id} has more than one raster layer"))
                 break
