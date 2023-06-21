@@ -1,6 +1,7 @@
 from typing import Optional
 
-from darwin.future.core.client import Client, JSONType
+from darwin.future.core.client import Client
+from darwin.future.exceptions.core.datasets import DatasetNotFound
 
 
 def remove_dataset(api_client: Client, id: int, team_slug: Optional[str] = None) -> int:
@@ -27,6 +28,6 @@ def remove_dataset(api_client: Client, id: int, team_slug: Optional[str] = None)
     )
 
     if "id" not in response:
-        raise Exception(f"Dataset with id {id} not found")
+        raise DatasetNotFound(f"Dataset with id {id} not found")
 
-    return int(response["id"])  # type: ignore
+    return int(response["id"])

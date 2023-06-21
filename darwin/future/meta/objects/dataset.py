@@ -3,6 +3,7 @@ from typing import List, Optional, Tuple, Union
 from darwin.future.core.datasets.get_dataset import get_dataset
 from darwin.future.core.datasets.remove_dataset import remove_dataset
 from darwin.future.data_objects.dataset import Dataset
+from darwin.future.helpers.assertion import assert_is
 from darwin.future.meta.client import MetaClient
 from darwin.future.meta.queries.dataset import DatasetQuery
 
@@ -47,8 +48,8 @@ class DatasetMeta:
 
     @staticmethod
     def _delete_by_slug(client: MetaClient, slug: str) -> int:
-        assert isinstance(client, MetaClient), "client must be a MetaClient"
-        assert isinstance(slug, str), "slug must be a string"
+        assert_is(isinstance(client, MetaClient), "client must be a MetaClient")
+        assert_is(isinstance(slug, str), "slug must be a string")
 
         dataset = get_dataset(client, slug)
         if dataset and dataset.id:
@@ -60,8 +61,8 @@ class DatasetMeta:
 
     @staticmethod
     def _delete_by_id(client: MetaClient, dataset_id: int) -> int:
-        assert isinstance(client, MetaClient), "client must be a MetaClient"
-        assert isinstance(dataset_id, int), "dataset_id must be an integer"
+        assert_is(isinstance(client, MetaClient), "client must be a MetaClient")
+        assert_is(isinstance(dataset_id, int), "dataset_id must be an integer")
 
         dataset_deleted = remove_dataset(client, dataset_id)
         return dataset_deleted
