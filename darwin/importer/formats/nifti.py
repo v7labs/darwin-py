@@ -115,6 +115,7 @@ def _parse_nifti(
             _video_annotations = get_video_annotation(
                 img, class_idxs=class_idxs, class_name=class_name, slot_names=slot_names, is_mpr=is_mpr, pixdims=pixdims
             )
+            print(_video_annotations, "video_annotations")
             if _video_annotations is None:
                 continue
             video_annotations += _video_annotations
@@ -169,7 +170,6 @@ def nifti_to_video_annotation(volume, class_name, class_idxs, slot_names, view_i
         elif view_idx == 0:
             slice_mask = volume[i, :, :].astype(np.uint8)
             _pixdims = [pixdims[1], pixdims[2]]
-
         class_mask = np.isin(slice_mask, class_idxs).astype(np.uint8).copy()
         if class_mask.sum() == 0:
             continue
@@ -204,7 +204,6 @@ def mask_to_polygon(mask: np.ndarray, class_name: str, pixdims: List[float]) -> 
             return {"x": y, "y": x}
 
     _labels, external_paths, _internal_paths = find_contours(mask)
-    # annotations = []
     if len(external_paths) > 1:
         paths = []
         for external_path in external_paths:

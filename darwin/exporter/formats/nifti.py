@@ -18,7 +18,8 @@ except ImportError:
     """
     console.print(import_fail_string)
     exit()
-import json as json
+#import json as json
+import orjson as json
 
 import numpy as np
 
