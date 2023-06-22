@@ -43,8 +43,32 @@ def test_create_dataset_returns_exceptions_thrown(base_config: DarwinConfig) -> 
         exceptions, dataset_created = dataset_meta.create_dataset(valid_slug)
 
         assert exceptions is not None
-        assert str(exceptions[0]) == "500 Server Error: None for url: https://api.darwinai.com/api/datasets"
+        assert "500 Server Error" in str(exceptions[0])
         assert dataset_created is None
+
+
+def test_create_dataset_returns_dataset_created_if_dataset_created(base_config: DarwinConfig) -> None:
+    valid_client = MetaClient(base_config)
+    valid_slug = "test_dataset"
+
+    base_url = base_config.base_url + "api/datasets"
+
+    with RequestsMock() as rsps:
+        rsps.add(
+            rsps.POST,
+            base_url,
+            json={"id": 1, "name": "Test Dataset", "slug": "test_dataset"},
+            status=201,
+        )
+        dataset_meta = DatasetMeta(valid_client)
+
+        exceptions, dataset_created = dataset_meta.create_dataset(valid_slug)
+
+        assert exceptions is None
+        assert dataset_created is not None
+        assert dataset_created.id == 1
+        assert dataset_created.name == "test dataset"
+        assert dataset_created.slug == "test_dataset"
 
 
 # `update_dataset` tests

@@ -149,9 +149,9 @@ class DatasetMeta:
         ------
         AssertionError
         """
-        slug = slug.lower().strip()
-        assert_is(isinstance(slug, str), "slug must be a string")
-        assert_is(len(slug) > 0, "slug must not be empty")
+        slug_copy = str(slug).lower().strip()
+        assert_is(isinstance(slug_copy, str), "slug must be a string")
+        assert_is(len(slug_copy) > 0, "slug must not be empty")
 
         VALID_SLUG_CHARS = "abcdefghijklmnopqrstuvwxyz0123456789-_"
-        assert_is(all(c in VALID_SLUG_CHARS for c in slug), "slug must only contain valid characters")
+        assert_is(all(c in VALID_SLUG_CHARS for c in slug_copy), "slug must only contain valid characters")
