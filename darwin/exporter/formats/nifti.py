@@ -18,10 +18,10 @@ except ImportError:
     """
     console.print(import_fail_string)
     exit()
+import numpy as np
+
 #import json as json
 import orjson as json
-
-import numpy as np
 
 #import orjson as json
 from PIL import Image
@@ -52,7 +52,14 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path) -> N
         The ``AnnotationFile``\\s to be exported.
     output_dir : Path
         The folder where the new instance mask files will be.
+
+    Returns
+    -------
+    sends output volumes, image_id and output_dir to the write_output_volume_to_disk function
+    
     """
+
+    
     video_annotations = list(annotation_files)    
     for video_annotation in video_annotations:
         image_id = check_for_error_and_return_imageid(video_annotation, output_dir)
@@ -71,13 +78,19 @@ def build_output_volumes(video_annotation: dt.AnnotationFile):
     
     Parameters
     ----------
-    video_annotation
+    video_annotation : dt.AnnotationFile
+
+    Returns
+    -------
+    output_volumes: Dict    
+        The output volume built per class
 
     """   
     # Builds a map of class to integer
     class_map = {}
     class_count = 1
-    for _, annotation in enumerate(video_annotation.annotations):
+#    for _, annotation in enumerate(video_annotation.annotations):
+    for annotation in video_annotation.annotations:
         frames = annotation.frames
         for frame_idx in frames.keys():
             class_name = frames[frame_idx].annotation_class.name
@@ -102,7 +115,25 @@ def build_output_volumes(video_annotation: dt.AnnotationFile):
     return output_volumes
 
 
-def check_for_error_and_return_imageid(video_annotation, output_dir):
+def check_for_error_and_return_imageid(video_annotation: dt.AnnotationFile, output_dir: Path):
+    """
+    Given the video_annotation file and the output directory, checks for a range of errors and 
+    returns messages accordingly.
+
+    Parameters
+    ----------
+    video_annotation : dt.AnnotationFile
+        The ``AnnotationFile``\\s to be exported.
+    output_dir : Path
+        The folder where the new instance mask files will be.
+
+    Returns
+    -------
+    image_id : str
+    
+    """
+
+
     output_volumes = None
     filename = Path(video_annotation.filename)
     suffixes = filename.suffixes
@@ -154,21 +185,50 @@ def check_for_error_and_return_imageid(video_annotation, output_dir):
 
 def populate_output_volumes(annotation: Union[dt.Annotation, dt.VideoAnnotation], output_dir: str, slot_map: Dict, output_volumes: Dict, image_id: str) -> None:
 
+    """
+    Exports the given ``AnnotationFile``\\s into nifti format inside of the given
+    ``output_dir``. Deletes everything within ``output_dir/masks`` before writting to it.
+
+    Parameters
+    ----------
+    annotation : Union[dt.Annotation, dt.VideoAnnotation]
+        The Union of these two files used to populate the volume with
+    output_dir : Path
+        The folder where the new instance mask files will be.
+    slot_map : Dict
+        Dictionary of the different slots within the annotation file
+    output_volumes : Dict
+        volumes created from the build_output_volumes file
+    image_id : str
+
+    Returns
+    -------
+    volume : dict
+        Returns the populated volume
+    
+    """
+
     slot_name = annotation.slot_names[0]
     slot = slot_map[slot_name]
     series_instance_uid = slot.metadata.get("SeriesInstanceUID", "SeriesIntanceUIDNotProvided")
     volume = output_volumes.get(series_instance_uid)
     volume = output_volumes.get(series_instance_uid)
     frames = annotation.frames
-    frame_new = {}        
+    frame_new = {}  
+
+    # define the different planes
+    XYPLANE = 0
+    XZPLANE = 1
+    YZPLANE = 2 
+          
     for frame_idx in frames.keys():
         frame_new[frame_idx] = frames
         view_idx = get_view_idx_from_slot_name(slot_name, slot.metadata.get("orientation"))
-        if view_idx == 0:
+        if view_idx == XYPLANE:
             height, width = volume[annotation.annotation_class.name].dims[0], volume[annotation.annotation_class.name].dims[1]
-        elif view_idx == 1:
+        elif view_idx == XZPLANE:
             height, width = volume[annotation.annotation_class.name].dims[0], volume[annotation.annotation_class.name].dims[2]
-        elif view_idx == 2:
+        elif view_idx == YZPLANE:
             height, width = volume[annotation.annotation_class.name].dims[1], volume[annotation.annotation_class.name].dims[2]
         if "paths" in frames[frame_idx].data:
             # Dealing with a complex polygon
@@ -278,7 +338,7 @@ def process_affine(affine):
         return affine
 
 
-def create_error_message_json(error_message, output_dir, image_id: str, slot_name: str):
+def create_error_message_json(error_message: str, output_dir: str, image_id: str, slot_name: str):
     output_path = Path(output_dir) / f"{image_id}_{slot_name}_error.json"
     if not output_path.parent.exists():
         output_path.parent.mkdir(parents=True)
@@ -287,11 +347,4 @@ def create_error_message_json(error_message, output_dir, image_id: str, slot_nam
 
     return False
 
-
-def create_empty_nifti_file(volume_dims, affine, output_dir, image_id: str, slot_name: str):
-    output_path = Path(output_dir) / f"{image_id}_{slot_name}_empty.nii.gz"
-    if not output_path.parent.exists():
-        output_path.parent.mkdir(parents=True)
-    img = nib.Nifti1Image(dataobj=np.flip(np.zeros(volume_dims), (0, 1, 2)).astype(np.int16), affine=affine)
-    nib.save(img=img, filename=output_path)
 
