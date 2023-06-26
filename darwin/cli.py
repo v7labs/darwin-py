@@ -128,7 +128,14 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
         elif args.action == "releases":
             f.dataset_list_releases(args.dataset)
         elif args.action == "pull":
-            f.pull_dataset(args.dataset, args.only_annotations, args.folders, args.video_frames, args.force_slots)
+            f.pull_dataset(
+                args.dataset,
+                args.only_annotations,
+                args.folders,
+                args.video_frames,
+                args.force_slots,
+                args.ignore_slots,
+            )
         elif args.action == "import":
             f.dataset_import(
                 args.dataset,
@@ -140,7 +147,7 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
                 args.import_annotators,
                 args.import_reviewers,
                 cpu_limit=args.cpu_limit,
-            ),
+            )
         elif args.action == "convert":
             f.dataset_convert(args.dataset, args.format, args.output_dir)
         elif args.action == "set-file-status":

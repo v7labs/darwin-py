@@ -366,17 +366,20 @@ def export_dataset(
     identifier: DatasetIdentifier = DatasetIdentifier.parse(dataset_slug)
     ds: RemoteDataset = client.get_remote_dataset(identifier)
 
-    ds.export(
-        annotation_class_ids=annotation_class_ids,
-        name=name,
-        include_url_token=include_url_token,
-        include_authorship=include_authorship,
-        version=version,
-    )
-
-    identifier.version = name
-    print(f"Dataset {dataset_slug} successfully exported to {identifier}")
-    print_new_version_info(client)
+    try:
+        ds.export(
+            annotation_class_ids=annotation_class_ids,
+            name=name,
+            include_url_token=include_url_token,
+            include_authorship=include_authorship,
+            version=version,
+        )
+    except ValidationError:
+        _error("Nothing to export")
+    else: 
+        identifier.version = name
+        print(f"Dataset {dataset_slug} successfully exported to {identifier}")
+        print_new_version_info(client)
 
 
 def pull_dataset(
@@ -385,6 +388,7 @@ def pull_dataset(
     folders: bool = False,
     video_frames: bool = False,
     force_slots: bool = False,
+    ignore_slots: bool = False,
 ) -> None:
     """
     Downloads a remote dataset (images and annotations) in the datasets directory.
@@ -424,6 +428,7 @@ def pull_dataset(
             use_folders=folders,
             video_frames=video_frames,
             force_slots=force_slots,
+            ignore_slots=ignore_slots,
         )
         print_new_version_info(client)
         if release.format == "darwin_json_2":

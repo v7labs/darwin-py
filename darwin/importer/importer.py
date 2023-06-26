@@ -49,6 +49,9 @@ except ImportError:
 # Classes missing import support on backend side
 UNSUPPORTED_CLASSES = ["string", "graph"]
 
+# Classes that are defined on team level automatically and available in all datasets
+GLOBAL_CLASSES = ['__raster_layer__']
+
 DEPRECATION_MESSAGE = """
 
 This function is going to be turned into private. This means that breaking
@@ -78,6 +81,8 @@ def build_main_annotations_lookup_table(annotation_classes: List[Dict[str, Unkno
         "string",
         "table",
         "graph",
+        "mask",
+        "raster_layer"
     ]
     lookup: Dict[str, Unknown] = {}
     for cls in annotation_classes:
@@ -334,11 +339,12 @@ def import_annotations(
             style="warning",
         )
 
+
     classes_in_dataset: dt.DictFreeForm = build_main_annotations_lookup_table(
-        [cls for cls in team_classes if cls["available"]]
+        [cls for cls in team_classes if cls["available"] or cls['name'] in GLOBAL_CLASSES]
     )
     classes_in_team: dt.DictFreeForm = build_main_annotations_lookup_table(
-        [cls for cls in team_classes if not cls["available"]]
+        [cls for cls in team_classes if not cls["available"] and cls['name'] not in GLOBAL_CLASSES]
     )
     attributes = build_attribute_lookup(dataset)
 
@@ -481,7 +487,9 @@ def import_annotations(
             for parsed_file in track(files_to_track):
 
                 image_id, default_slot_name = remote_files[parsed_file.full_path]
-                if parsed_file.slots:
+                # We need to check if name is not-None as Darwin JSON 1.0 
+                # defaults to name=None
+                if parsed_file.slots and parsed_file.slots[0].name:
                     default_slot_name = parsed_file.slots[0].name
 
                 errors, succes = _import_annotations(
@@ -655,6 +663,9 @@ def _import_annotations(
             "data": data,
             "context_keys": {"slot_names": annotation.slot_names},
         }
+
+        if annotation.id:
+            serial_obj["id"] = annotation.id
 
         if actors:
             serial_obj["actors"] = actors  # type: ignore

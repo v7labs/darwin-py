@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import List
 
 from darwin.future.core.client import Client
-from darwin.future.core.types.query import Query, QueryFilter
+from darwin.future.core.types.query import Param, Query, QueryFilter
 from darwin.future.data_objects.team import TeamMember, get_team_members
-
-Param = Dict[str, Any]  # type: ignore
 
 
 class TeamMemberQuery(Query[TeamMember]):
@@ -20,6 +18,7 @@ class TeamMemberQuery(Query[TeamMember]):
     def where(self, param: Param) -> TeamMemberQuery:
         filter = QueryFilter.parse_obj(param)
         query = self + filter
+
         return TeamMemberQuery(query.filters)
 
     def collect(self, client: Client) -> List[TeamMember]:

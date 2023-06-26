@@ -497,7 +497,7 @@ def _parse_darwin_v2(path: Path, data: Dict[str, Any]) -> dt.AnnotationFile:
             image_height=slot.height,
             image_url=None if len(slot.source_files or []) == 0 else slot.source_files[0]["url"],
             image_thumbnail_url=slot.thumbnail_url,
-            workview_url=item_source["workview_url"],
+            workview_url=item_source.get("workview_url", None),
             seq=0,
             frame_urls=slot.frame_urls,
             remote_path=item["path"],
@@ -750,15 +750,12 @@ def _parse_darwin_raster_annotation(annotation: dict) -> Optional[dt.Annotation]
     new_annotation = dt.Annotation(
         dt.AnnotationClass(name, "raster_layer"),
         {
-            "id": id,
-            "name": name,
-            "raster_layer": {
-                "dense_rle": dense_rle,
-                "mask_annotation_ids_mapping": mask_annotation_ids_mapping,
-                "total_pixels": total_pixels,
-            },
+            "dense_rle": dense_rle,
+            "mask_annotation_ids_mapping": mask_annotation_ids_mapping,
+            "total_pixels": total_pixels,
         },
         slot_names=slot_names,
+        id=id,
     )
 
     return new_annotation
@@ -781,12 +778,9 @@ def _parse_darwin_mask_annotation(annotation: dict) -> Optional[dt.Annotation]:
 
     new_annotation = dt.Annotation(
         dt.AnnotationClass(name, "mask"),
-        {
-            "id": id,
-            "name": name,
-            "mask": mask,
-        },
+        mask,
         slot_names=slot_names,
+        id=id,
     )
 
     return new_annotation

@@ -169,3 +169,11 @@ test_output_*
 !tests/darwin/data/*.png
 # scripts
 test.py
+
+# pyenv
+.python-version
+
+# scripts
+scripts/
+
+.ruff_cache/

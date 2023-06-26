@@ -11,7 +11,6 @@ class Options:
     """
 
     def __init__(self) -> None:
-
         self.parser: ArgumentParser = ArgumentParser(
             description="Command line tool to create/upload/download datasets on darwin."
         )
@@ -192,13 +191,18 @@ class Options:
         parser_pull.add_argument(
             "--video-frames", action="store_true", help="Pulls video frame images instead of video files."
         )
-        parser_pull.add_argument(
+        slots_group = parser_pull.add_mutually_exclusive_group()
+        slots_group.add_argument(
             "--force-slots",
             action="store_true",
             help="Forces pull of all slots of items into deeper file structure ({prefix}/{item_name}/{slot_name}/{file_name}). "
             + "If your dataset includes items with multiple slots, or multiple source files per slot, this option becomes implicitly enabled.",
         )
-
+        slots_group.add_argument(
+            "--ignore-slots",
+            action="store_true",
+            help="Ignores slots and only pulls the first slot of each item into a flat file structure ({prefix}/{file_name}).",
+        )
         # Import
         parser_import = dataset_action.add_parser("import", help="Import data to an existing (remote) dataset.")
         parser_import.add_argument(

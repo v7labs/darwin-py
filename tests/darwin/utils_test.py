@@ -752,9 +752,10 @@ def describe__parse_darwin_raster_annotation() -> None:
         assert annotation.annotation_class.name == "my_raster_annotation"
         assert annotation.annotation_class.annotation_type == "raster_layer"
 
-        assert annotation.data["raster_layer"]["dense_rle"] == "ABCD"
-        assert annotation.data["raster_layer"]["mask_annotation_ids_mapping"] == {"1": 1}
-        assert annotation.data["raster_layer"]["total_pixels"] == 100
+        assert annotation.data["dense_rle"] == "ABCD"
+        assert annotation.data["mask_annotation_ids_mapping"] == {"1": 1}
+        assert annotation.data["total_pixels"] == 100
+        assert annotation.id == "abc123"
 
     # Sad paths
     @pytest.mark.parametrize("parameter_name", ["id", "name", "raster_layer", "slot_names"])
@@ -797,7 +798,7 @@ def describe__parse_darwin_mask_annotation() -> None:
         assert annotation.annotation_class.name == "my_raster_annotation"
         assert annotation.annotation_class.annotation_type == "mask"
 
-        assert annotation.data["mask"]["sparse_rle"] == None
+        assert annotation.data["sparse_rle"] == None
 
     # Sad paths
     @pytest.mark.parametrize("parameter_name", ["id", "name", "mask", "slot_names"])

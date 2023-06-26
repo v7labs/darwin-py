@@ -1,4 +1,5 @@
 import colorsys
+import math
 import os
 from csv import writer as csv_writer
 from functools import reduce
@@ -121,13 +122,13 @@ def get_render_mode(annotations: List[dt.AnnotationLike]) -> dt.MaskTypes.TypeOf
     if not non_video_annotations:
         return "polygon"
 
-    list_of_keys: List[str] = reduce(list.__add__, [list(a.data.keys()) for a in non_video_annotations])
-    keys: Set[str] = set(list_of_keys)
+    list_of_types: List[str] = [a.annotation_class.annotation_type for a in non_video_annotations]
+    types: Set[str] = set(list_of_types)
 
-    is_raster_mask = ("mask" in keys) and ("raster_layer" in keys)
-    is_polygon = ("path" in keys) or ("paths" in keys)
+    is_raster_mask = ("mask" in types) and ("raster_layer" in types)
+    is_polygon = ("polygon" in types) or ("complex_polygon" in types)
 
-    raster_layer_count = len([a for a in keys if a == "raster_layer"])
+    raster_layer_count = len([a for a in types if a == "raster_layer"])
 
     if is_raster_mask and is_polygon:
         raise ValueError("Cannot have both raster and polygon annotations in the same file")
@@ -141,7 +142,7 @@ def get_render_mode(annotations: List[dt.AnnotationLike]) -> dt.MaskTypes.TypeOf
     if is_polygon:
         return "polygon"
 
-    raise ValueError("No renderable annotations found in file, found keys: " + ",".join(keys))
+    raise ValueError("No renderable annotations found in file, found types: " + ",".join(list_of_types))
 
 
 def colours_in_rle(
@@ -254,12 +255,19 @@ def render_polygons(
 
     errors: List[Exception] = []
 
-    for a in annotations:
-        try:
-            if isinstance(a, dt.VideoAnnotation):
-                print(f"Skipping video annotation from file {annotation_file.filename}")
-                continue
+    filtered_annotations: List[dt.Annotation] = [a for a in annotations if not isinstance(a, dt.VideoAnnotation)]
+    beyond_window = annotations_exceed_window(filtered_annotations, height, width)
+    if beyond_window:
+        # If the annotations exceed the window, we need to offset the mask to fit them all in.
+        # Capture the offsets so we can shift the annotations back to their original positions later
+        x_min, x_max, y_min, y_max = get_extents(filtered_annotations, height, width)
+        new_height = y_max - y_min
+        new_width = x_max - x_min
+        mask = np.zeros((new_height, new_width), dtype=np.uint8)
+        offset_x, offset_y = -x_min, -y_min
 
+    for a in filtered_annotations:
+        try:
             cat = a.annotation_class.name
             if not cat in categories:
                 categories.append(cat)
@@ -270,9 +278,14 @@ def render_polygons(
                 polygon = a.data["paths"]
             else:
                 raise ValueError(f"Unknown annotation type {a.annotation_class.annotation_type}")
-            sequence = convert_polygons_to_sequences(polygon, height=height, width=width)
 
-            colour_to_draw = get_or_generate_colour(cat, colours)
+            if beyond_window:
+                # Offset the polygon by the minimum x and y values to shift it to new frame of reference
+                polygon_off = offset_polygon(polygon, offset_x, offset_y)
+                sequence = convert_polygons_to_sequences(polygon_off, height=new_height, width=new_width)
+            else:
+                sequence = convert_polygons_to_sequences(polygon, height=height, width=width)
+            colour_to_draw = categories.index(cat)
             mask = draw_polygon(mask, sequence, colour_to_draw)
 
             if cat not in colours:
@@ -282,6 +295,9 @@ def render_polygons(
             errors.append(e)
             continue
 
+    if beyond_window:
+        # crop the mask to the original image size and in the correct offset location
+        mask = mask[offset_y : offset_y + height, offset_x : offset_x + width]
     # It's not necessary to return the mask, it's modified in place, but it's more explicit
     return errors, mask, categories, colours
 
@@ -330,10 +346,10 @@ def render_raster(
 
         data = a.data
 
-        if "mask" in data:
+        if a.annotation_class.annotation_type == "mask" and a.id:
             new_mask = dt.AnnotationMask(
-                id=data["id"],
-                name=data["name"],
+                id=a.id,
+                name=a.annotation_class.name,
                 slot_names=a.slot_names,
             )
             try:
@@ -351,7 +367,7 @@ def render_raster(
             if not new_mask.name in categories:
                 categories.append(new_mask.name)
 
-        if "raster_layer" in data and (rl := data["raster_layer"]):
+        if a.annotation_class.annotation_type == "raster_layer" and (rl := data):
             if raster_layer:
                 errors.append(ValueError(f"Annotation {a.id} has more than one raster layer"))
                 break
@@ -388,11 +404,13 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path, mode
     masks_dir: Path = output_dir / "masks"
     masks_dir.mkdir(exist_ok=True, parents=True)
     annotation_files = list(annotation_files)
-
+    accepted_types = ["polygon", "complex_polygon", "raster_layer", "mask"]
     all_classes_sets: List[Set[dt.AnnotationClass]] = [a.annotation_classes for a in annotation_files]
     if len(all_classes_sets) > 0:
         all_classes: Set[dt.AnnotationClass] = set.union(*all_classes_sets)
-        categories: List[str] = ["__background__"] + [c.name for c in list(all_classes)]
+        categories: List[str] = ["__background__"] + sorted(
+            list(set([c.name for c in all_classes if c.annotation_type in accepted_types])), key=lambda x: x.lower()
+        )
         palette = get_palette(mode, categories)
     else:
         categories = ["__background__"]
@@ -412,9 +430,7 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path, mode
 
         mask: NDArray = np.zeros((height, width)).astype(np.uint8)
         annotations: List[dt.AnnotationLike] = [
-            a
-            for a in annotation_file.annotations
-            if a.annotation_class.annotation_type in ["polygon", "complex_polygon", "raster_layer", "mask"]
+            a for a in annotation_file.annotations if a.annotation_class.annotation_type in accepted_types
         ]
 
         render_type = get_render_mode(annotations)
@@ -458,14 +474,90 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path, mode
         writer = csv_writer(f)
         writer.writerow(["class_name", "class_color"])
 
-        # Create a palette if there was no palette created
-        try:
-            palette_rgb
-        except NameError:
-            palette_rgb = {"__background__": [0, 0, 0]}
-
-        for c in categories:
+        for class_key in categories:
             if mode == "rgb":
-                writer.writerow([c, f"{palette_rgb[c][0]} {palette_rgb[c][1]} {palette_rgb[c][2]}"])
+                col = palette_rgb[class_key]
+                writer.writerow([class_key, f"{col[0]} {col[1]} {col[2]}"])
             else:
-                writer.writerow([c, f"{palette[c]}"])
+                writer.writerow([class_key, f"{palette[class_key]}"])
+
+
+def annotations_exceed_window(annotations: List[dt.Annotation], height: int, width: int) -> bool:
+    """Check if any annotations exceed the image window
+
+    Args:
+        annotations (List[dt.Annotation]): List of annotations
+        height (int): height of image
+        width (int): width of image
+
+    Returns:
+        bool: True if any annotation exceeds window, false otherwise
+    """
+    for item in annotations:
+        if "bounding_box" not in item.data:
+            continue
+        bbox = item.data["bounding_box"]
+        if bbox["x"] < 0:
+            return True
+        if bbox["y"] < 0:
+            return True
+        if bbox["x"] + bbox["w"] > width:
+            return True
+        if bbox["y"] + bbox["h"] > height:
+            return True
+    return False
+
+
+def get_extents(annotations: List[dt.Annotation], height: int = 0, width: int = 0) -> Tuple[int, int, int, int]:
+    """Create a bounding box around all annotations in discrete pixel space
+
+    Args:
+        annotations (List[dt.Annotation]): List of annotations
+        height (int): Height to start with
+        width (int): Width to start with
+
+    Returns:
+        Tuple[int, int, int, int]: x_min, x_max, y_min, y_max
+    """
+    x_min = y_min = 0
+    x_max, y_max = width, height
+    for item in annotations:
+        if "bounding_box" not in item.data:
+            continue
+        bbox = item.data["bounding_box"]
+        x_min = min(x_min, bbox["x"])
+        x_max = max(x_max, bbox["x"] + bbox["w"])
+        y_min = min(y_min, bbox["y"])
+        y_max = max(y_max, bbox["y"] + bbox["h"])
+    return math.floor(x_min), math.ceil(x_max), math.floor(y_min), math.ceil(y_max)
+
+
+def offset_polygon(polygon: List, offset_x: int, offset_y: int) -> List:
+    """Offsets a polygon by a given amount
+
+    Args:
+        polygon (List): List of coordinates
+        offset_x (int): x offset value
+        offset_y (int): y offset value
+
+    Returns:
+        List: polygon with offset applied
+    """
+    if isinstance(polygon[0], list):
+        return offset_complex_polygon(polygon, offset_x, offset_y)
+    else:
+        return offset_simple_polygon(polygon, offset_x, offset_y)
+
+
+def offset_complex_polygon(polygons: List, offset_x: int, offset_y: int) -> List:
+    new_polygons = []
+    for polygon in polygons:
+        new_polygons.append(offset_simple_polygon(polygon, offset_x, offset_y))
+    return new_polygons
+
+
+def offset_simple_polygon(polygon: List, offset_x: int, offset_y: int) -> List:
+    new_polygon = []
+    for point in polygon:
+        new_polygon.append({"x": point["x"] + offset_x, "y": point["y"] + offset_y})
+    return new_polygon

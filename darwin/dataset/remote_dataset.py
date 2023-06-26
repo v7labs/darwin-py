@@ -190,6 +190,7 @@ class RemoteDataset(ABC):
         use_folders: bool = False,
         video_frames: bool = False,
         force_slots: bool = False,
+        ignore_slots: bool = False,
     ) -> Tuple[Optional[Callable[[], Iterator[Any]]], int]:
         """
         Downloads a remote dataset (images and annotations) to the datasets directory.
@@ -321,6 +322,7 @@ class RemoteDataset(ABC):
             use_folders=use_folders,
             video_frames=video_frames,
             force_slots=force_slots,
+            ignore_slots=ignore_slots,
         )
         if count == 0:
             return None, count

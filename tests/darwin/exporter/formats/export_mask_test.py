@@ -1,3 +1,5 @@
+import csv
+import os
 import platform
 from pathlib import Path
 from tempfile import NamedTemporaryFile, TemporaryDirectory
@@ -7,6 +9,7 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 from numpy.testing import assert_array_equal
+from PIL import Image
 
 try:
     from numpy.typing import NDArray
@@ -156,19 +159,20 @@ def test_get_or_generate_colour() -> None:
 @pytest.fixture
 def annotations() -> List[dt.Annotation]:
     return [
-        dt.Annotation(dt.AnnotationClass("class_1", "raster_layer"), data={"mask": "data", "raster_layer": "raster"}),
-        dt.Annotation(dt.AnnotationClass("class_2", "polygon"), data={"path": "data"}),
-        dt.Annotation(dt.AnnotationClass("class_2", "polygon"), data={"paths": "data"}),
+        dt.Annotation(dt.AnnotationClass("class_1", "raster_layer"), data={"dense_rle": [], "mask_annotation_ids_mapping": {}, "total_pixels": 247500}),
+        dt.Annotation(dt.AnnotationClass("class_2", "mask"), data={"sparse_rle": []}),
+        dt.Annotation(dt.AnnotationClass("class_3", "polygon"), data={"path": "data"}),
+        dt.Annotation(dt.AnnotationClass("class_4", "complex_polygon"), data={"paths": "data"}),
     ]
 
 
 def test_get_render_mode_returns_raster_when_given_raster_mask(annotations: List[dt.AnnotationLike]) -> None:
-    assert get_render_mode([annotations[0]]) == "raster"
+    assert get_render_mode([annotations[0], annotations[1]]) == "raster"
 
 
 def test_get_render_mode_returns_polygon_when_given_polygon(annotations: List[dt.AnnotationLike]) -> None:
-    assert get_render_mode([annotations[1]]) == "polygon"
     assert get_render_mode([annotations[2]]) == "polygon"
+    assert get_render_mode([annotations[3]]) == "polygon"
 
 
 def test_get_render_mode_raises_value_error_when_given_both_raster_mask_and_polygon(
@@ -179,7 +183,7 @@ def test_get_render_mode_raises_value_error_when_given_both_raster_mask_and_poly
 
 
 def test_get_render_mode_raises_value_error_when_no_renderable_annotations_found() -> None:
-    with pytest.raises(ValueError, match="No renderable annotations found in file, found keys:"):
+    with pytest.raises(ValueError, match="No renderable annotations found in file, found types:"):
         get_render_mode([dt.Annotation(dt.AnnotationClass("class_3", "invalid"), data={"line": "data"})])  # type: ignore
 
 
@@ -233,28 +237,110 @@ def test_rle_decoder() -> None:
         rle_decode(odd_number_of_integers)
 
 
+def test_beyond_polygon_beyond_window() -> None:
+    mask = np.zeros((5, 5), dtype=np.uint8)
+    colours: dt.MaskTypes.ColoursDict = {}
+    categories: dt.MaskTypes.CategoryList = ["__background__"]
+    annotations: List[dt.AnnotationLike] = [
+        dt.Annotation(
+            dt.AnnotationClass("cat1", "polygon"),
+            {
+                "path": [
+                    {"x": -1, "y": -1},
+                    {"x": -1, "y": 1},
+                    {"x": 1, "y": 1},
+                    {"x": 1, "y": -1},
+                    {"x": -1, "y": -1},
+                ],
+                "bounding_box": {"x": -1, "y": -1, "w": 2, "h": 2},
+            },
+        )
+    ]
+    annotation_file = dt.AnnotationFile(
+        Path("testfile"),
+        "testfile",
+        set([a.annotation_class for a in annotations]),
+        annotations,
+    )
+    height, width = 5, 5
+    errors, new_mask, new_categories, new_colours = render_polygons(
+        mask, colours, categories, annotations, annotation_file, height, width
+    )
+
+    expected = np.array(
+        [[1, 1, 0, 0, 0], [1, 1, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0]], dtype=np.uint8
+    )
+    assert np.array_equal(new_mask, expected)
+    assert not errors
+
+
+def test_beyond_complex_polygon() -> None:
+    mask = np.zeros((5, 5), dtype=np.uint8)
+    colours: dt.MaskTypes.ColoursDict = {}
+    categories: dt.MaskTypes.CategoryList = ["__background__"]
+    annotations: List[dt.AnnotationLike] = [
+        dt.Annotation(
+            dt.AnnotationClass("cat3", "complex_polygon"),
+            {
+                "paths": [
+                    [{"x": -1, "y": -1}, {"x": -1, "y": 1}, {"x": 1, "y": 1}, {"x": 1, "y": -1}, {"x": -1, "y": -1}],
+                    [{"x": 3, "y": 3}, {"x": 3, "y": 4}, {"x": 4, "y": 4}, {"x": 4, "y": 3}, {"x": 3, "y": 3}],
+                ],
+                "bounding_box": {"x": -1, "y": -1, "w": 6, "h": 6},
+            },
+        ),
+    ]
+    annotation_file = dt.AnnotationFile(
+        Path("testfile"),
+        "testfile",
+        set([a.annotation_class for a in annotations]),
+        annotations,
+    )
+    height, width = 5, 5
+    errors, new_mask, new_categories, new_colours = render_polygons(
+        mask, colours, categories, annotations, annotation_file, height, width
+    )
+
+    expected = np.array(
+        [[1, 1, 0, 0, 0], [1, 1, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 1, 1], [0, 0, 0, 1, 1]], dtype=np.uint8
+    )
+    assert np.array_equal(new_mask, expected)
+    assert not errors
+
+
 # Test render_polygons
 def test_render_polygons() -> None:
     # Create some mock data for testing
     mask = np.zeros((100, 100), dtype=np.uint8)
     colours: dt.MaskTypes.ColoursDict = {}
-    categories: dt.MaskTypes.CategoryList = []
+    categories: dt.MaskTypes.CategoryList = ["__background__"]
+
+    base_bb = {"x": 0, "y": 0, "w": 1, "h": 1}
     annotations: List[dt.AnnotationLike] = [
         dt.Annotation(
             dt.AnnotationClass("cat1", "polygon"),
-            {"path": [{"x": 10, "y": 10}, {"x": 20, "y": 10}, {"x": 20, "y": 20}, {"x": 10, "y": 20}]},
+            {
+                "path": [{"x": 10, "y": 10}, {"x": 20, "y": 10}, {"x": 20, "y": 20}, {"x": 10, "y": 20}],
+                "bounding_box": base_bb,
+            },
         ),
         dt.Annotation(
             dt.AnnotationClass("cat2", "polygon"),
-            {"path": [{"x": 30, "y": 30}, {"x": 40, "y": 30}, {"x": 40, "y": 40}, {"x": 30, "y": 40}]},
+            {
+                "path": [{"x": 30, "y": 30}, {"x": 40, "y": 30}, {"x": 40, "y": 40}, {"x": 30, "y": 40}],
+                "bounding_box": base_bb,
+            },
         ),
         dt.Annotation(
             dt.AnnotationClass("cat1", "polygon"),
-            {"path": [{"x": 50, "y": 50}, {"x": 60, "y": 50}, {"x": 60, "y": 60}, {"x": 50, "y": 60}]},
+            {
+                "path": [{"x": 50, "y": 50}, {"x": 60, "y": 50}, {"x": 60, "y": 60}, {"x": 50, "y": 60}],
+                "bounding_box": base_bb,
+            },
         ),
         dt.Annotation(
             dt.AnnotationClass("cat1", "polygon"),
-            {"path": [{"x": 10, "y": 80}, {"x": 20, "y": 80}, {"x": 20, "y": 60}]},
+            {"path": [{"x": 10, "y": 80}, {"x": 20, "y": 80}, {"x": 20, "y": 60}], "bounding_box": base_bb},
         ),
         dt.Annotation(
             dt.AnnotationClass("cat3", "complex_polygon"),
@@ -262,7 +348,8 @@ def test_render_polygons() -> None:
                 "paths": [
                     [{"x": 70, "y": 70}, {"x": 80, "y": 70}, {"x": 80, "y": 80}, {"x": 70, "y": 80}],
                     [{"x": 75, "y": 75}, {"x": 75, "y": 78}, {"x": 78, "y": 78}],
-                ]
+                ],
+                "bounding_box": base_bb,
             },
         ),
     ]
@@ -286,7 +373,7 @@ def test_render_polygons() -> None:
     assert_array_equal(mask, new_mask)  # type: ignore
 
     # Check that the categories and colours were updated correctly
-    assert new_categories == ["cat1", "cat2", "cat3"]
+    assert new_categories == ["__background__", "cat1", "cat2", "cat3"]
     assert new_colours == {"cat1": 1, "cat2": 2, "cat3": 3}
 
     # Check that the polygons were drawn correctly
@@ -312,36 +399,35 @@ def test_render_raster() -> None:
     annotations: List[dt.AnnotationLike] = [
         dt.Annotation(
             dt.AnnotationClass("mask1", "mask"),
-            {"id": "mask1", "name": "mask1", "slot_names": ["slot1"], "mask": {"sparse_rle": None}},
-            [],
-            ["slot1"],
+            {"sparse_rle": None},
+            subs=[],
+            id="mask1",
+            slot_names=["slot1"]
         ),
         dt.Annotation(
             dt.AnnotationClass("mask2", "mask"),
-            {"id": "mask2", "name": "mask2", "slot_names": ["slot1"], "mask": {"sparse_rle": None}},
-            [],
-            ["slot1"],
+            {"sparse_rle": None},
+            subs=[],
+            id="mask2",
+            slot_names=["slot1"]
         ),
         dt.Annotation(
             dt.AnnotationClass("mask3", "mask"),
-            {"id": "mask3", "name": "mask3", "slot_names": ["slot1"], "mask": {"sparse_rle": None}},
-            [],
-            ["slot1"],
+            {"sparse_rle": None},
+            subs=[],
+            id="mask3",
+            slot_names=["slot1"]
         ),
         dt.Annotation(
-            dt.AnnotationClass("raster", "raster_layer"),
+            dt.AnnotationClass("__raster_layer__", "raster_layer"),
             {
-                "id": "raster",
-                "name": "__raster_layer__",
-                "slot_names": ["slot1"],
-                "raster_layer": {
-                    "dense_rle": "my_rle_data",
-                    "decoded": rle_code,
-                    "mask_annotation_ids_mapping": {"mask1": 0, "mask2": 1, "mask3": 2},
-                    "total_pixels": 10000,
-                },
+                "dense_rle": "my_rle_data",
+                "decoded": rle_code,
+                "mask_annotation_ids_mapping": {"mask1": 0, "mask2": 1, "mask3": 2},
+                "total_pixels": 10000,
             },
             slot_names=["slot1"],
+            id="raster",
         ),
     ]
     annotation_file = dt.AnnotationFile(
@@ -397,7 +483,7 @@ def polygon_shape() -> NDArray:
 
 
 def raster_shape() -> NDArray:
-    return np.array(np.repeat([0, 1, 2, 3], 25), dtype=np.uint8).reshape(10, 10)  # type: ignore
+    return np.array(np.repeat([0, 1, 2, 3], 25), dtype=np.uint8).reshape(10, 10)
 
 
 @pytest.mark.parametrize(
@@ -484,7 +570,6 @@ def test_export(
     expected_mask_file: Optional[Path],
     expected_csv_file: Optional[Path],
 ) -> None:
-
     with TemporaryDirectory() as output_dir, patch(
         "darwin.exporter.formats.mask.get_render_mode"
     ) as mock_get_render_mode, patch("darwin.exporter.formats.mask.render_raster") as mock_render_raster, patch(
@@ -494,7 +579,6 @@ def test_export(
     ) as mock_get_palette, patch(
         "darwin.exporter.formats.mask.get_rgb_colours"
     ) as mock_get_rgb_colours:
-
         height, width = renderer_output[1].shape
 
         annotation_files = [
@@ -508,7 +592,7 @@ def test_export(
         if colour_mode == "rgb":
             mock_get_rgb_colours.return_value = (
                 colours_for_test(),
-                {"__background": [0, 0, 0], "class1": [255, 0, 0], "class2": [0, 255, 0], "class3": [0, 0, 255]},
+                {"__background__": [0, 0, 0], "class1": [255, 0, 0], "class2": [0, 255, 0], "class3": [0, 0, 255]},
             )
 
         if colour_mode == "rgb" or colour_mode == "index":
@@ -581,6 +665,98 @@ def test_export(
             for x in range(expected.width):
                 for y in range(expected.height):
                     assert expected.getpixel((x, y)) == test_output.getpixel((x, y)), f"Pixel {x},{y} is different"
+
+
+def test_class_mappings_preserved_on_large_export(tmpdir) -> None:
+    """
+    Integration Test to ensure that class mappings are preserved on large exports with multiple files,
+    it does this by creating annotations of different but fixed sizes and ensuring that the class mappings
+    are the same for each file. This is to ensure that the class mappings are not being reset between files
+    or annotation classes are being re-indexed and assigned a different colour.
+    """
+
+    height, width = 10, 10
+    annotations = [
+        dt.Annotation(
+            dt.AnnotationClass("cat1", "polygon"),
+            {
+                "path": [{"x": 0, "y": 0}, {"x": 1, "y": 0}, {"x": 1, "y": 1}, {"x": 0, "y": 1}, {"x": 0, "y": 1}],
+            },
+        ),
+        dt.Annotation(
+            dt.AnnotationClass("cat2", "polygon"),
+            {
+                "path": [{"x": 2, "y": 2}, {"x": 4, "y": 2}, {"x": 4, "y": 4}, {"x": 2, "y": 4}, {"x": 2, "y": 2}],
+            },
+        ),
+        dt.Annotation(
+            dt.AnnotationClass("cat3", "polygon"),
+            {
+                "path": [{"x": 5, "y": 5}, {"x": 8, "y": 5}, {"x": 8, "y": 8}, {"x": 5, "y": 8}, {"x": 5, "y": 5}],
+            },
+        ),
+        dt.Annotation(
+            dt.AnnotationClass("cat1", "polygon"),
+            {
+                "path": [{"x": 4, "y": 0}, {"x": 5, "y": 0}, {"x": 5, "y": 1}, {"x": 4, "y": 1}, {"x": 4, "y": 0}],
+            },
+        ),
+        dt.Annotation(
+            dt.AnnotationClass("cat4", "complex_polygon"),
+            {
+                "paths": [
+                    [{"x": 0, "y": 3}, {"x": 1, "y": 3}, {"x": 1, "y": 5}, {"x": 0, "y": 5}, {"x": 0, "y": 3}],
+                    [{"x": 0, "y": 7}, {"x": 1, "y": 7}, {"x": 1, "y": 8}, {"x": 0, "y": 8}, {"x": 0, "y": 7}],
+                ]
+            },
+        ),
+    ]
+    # Pixel sizes of polygons, for used in asserting the correct colour is mapped to the correct class
+    sizes = {"cat1": 8, "cat2": 9, "cat3": 16, "cat4": 10}
+    sizes["__background__"] = height * width - sum([x for x in sizes.values()])
+    annotation_files = [
+        dt.AnnotationFile(
+            Path(f"test{x}"),
+            f"test{x}",
+            annotation_classes=set(),
+            annotations=annotations,
+            image_height=height,
+            image_width=width,
+        )
+        for x in range(100)
+    ]
+    output_directory = tmpdir.mkdir("output")
+    export(annotation_files, Path(output_directory), "rgb")
+    class_mapping = {}
+    with open(Path(output_directory) / "class_mapping.csv", "r", encoding="utf-8") as f:
+        csv_reader = csv.reader(f, delimiter=",")
+        next(csv_reader, None)
+        for row in csv_reader:
+            if not row:
+                continue
+            rgb = row[1].split(" ")
+            class_mapping[row[0]] = [int(rgb[0]), int(rgb[1]), int(rgb[2])]
+
+        # maps the (r,g,b) tuple to the class name
+        inverse_mapping = {tuple(v): k for k, v in class_mapping.items()}
+    assert len(class_mapping) == len(sizes)
+    for item in annotation_files:
+        assert Path(output_directory) / "masks" / f"{item.filename}.png"
+        filepath = Path(output_directory) / "masks" / f"{item.filename}.png"
+        image = Image.open(filepath)
+
+        # Check that the image contains the correct number of pixels for each class by mapping
+        # the pixel colour to the class and checking the number of pixels of that colour
+        np_image = np.array(image)
+        flat_image = np_image.reshape(-1, np_image.shape[-1])
+        colours, counts = np.unique(flat_image, axis=0, return_counts=True)  # type: ignore
+        assert len(colours) == len(counts)
+        assert len(colours) == len(sizes)
+
+        for index, colour in enumerate(colours):
+            # regardless of particular colours assigned, the pixel count should be the same for that (r,g,b) tuple
+            assert tuple(colour) in inverse_mapping
+            assert counts[index] == sizes[inverse_mapping[tuple(colour)]]
 
 
 if __name__ == "__main__":
