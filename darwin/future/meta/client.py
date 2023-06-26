@@ -6,10 +6,12 @@ from typing import Optional
 from requests.adapters import Retry
 
 from darwin.future.core.client import Client, DarwinConfig
+from darwin.future.meta.objects.team import TeamMeta
 
 
 class MetaClient(Client):
     def __init__(self, config: DarwinConfig, retries: Optional[Retry] = None) -> None:
+        self._team: Optional[TeamMeta] = None
         super().__init__(config, retries=retries)
 
     @classmethod
@@ -29,5 +31,7 @@ class MetaClient(Client):
         return cls(config)
 
     @property
-    def team(self) -> str:
-        return self.config.default_team
+    def team(self) -> TeamMeta:
+        if self._team is None:
+            self._team = TeamMeta(self)
+        return self._team
