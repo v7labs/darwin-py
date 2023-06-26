@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import List
 
 from darwin.future.core.client import Client
@@ -5,9 +7,10 @@ from darwin.future.core.datasets.list_datasets import list_datasets
 from darwin.future.core.types.query import Modifier, Param, Query, QueryFilter
 from darwin.future.data_objects.dataset import Dataset
 from darwin.future.data_objects.release import ReleaseList
+from darwin.future.meta.objects.dataset import DatasetMeta
 
 
-class DatasetQuery(Query[Dataset]):
+class DatasetQuery(Query[DatasetMeta, Dataset]):
     """
     DatasetQuery object with methods to manage filters, retrieve data, and execute
     filters
@@ -19,14 +22,14 @@ class DatasetQuery(Query[Dataset]):
     collect: Executes the query and returns the filtered data
     """
 
-    def where(self, param: Param) -> "DatasetQuery":
+    def where(self, param: Param) -> DatasetQuery:
         filter = QueryFilter.parse_obj(param)
         query = self + filter
 
-        return DatasetQuery(self.client, query.filters)
+        return DatasetQuery(query.filters)
 
-    def collect(self) -> List[Dataset]:
-        datasets, exceptions = list_datasets(self.client)
+    def collect(self, client: Client) -> List[Dataset]:
+        datasets, exceptions = list_datasets(client)
         if exceptions:
             # TODO: print and or raise exceptions, tbd how we want to handle this
             pass

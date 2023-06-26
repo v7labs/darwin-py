@@ -1,23 +1,22 @@
 from typing import List, Optional, Tuple, Union
 
+from darwin.future.core.client import Client
 from darwin.future.core.datasets.get_dataset import get_dataset
+from darwin.future.core.datasets.list_datasets import list_datasets
 from darwin.future.core.datasets.remove_dataset import remove_dataset
 from darwin.future.data_objects.dataset import Dataset
 from darwin.future.helpers.assertion import assert_is
-from darwin.future.meta.client import MetaClient
-from darwin.future.meta.queries.dataset import DatasetQuery
+from darwin.future.meta.objects.base import MetaBase
 
 
-class DatasetMeta:
-    client: MetaClient
+class DatasetMeta(MetaBase[Dataset]):
+    client: Client
 
-    def __init__(self, client: MetaClient) -> None:
+    def __init__(self, client: Client, datasets: Optional[List[Dataset]]=None) -> None:
         # TODO: Initialise from chaining within MetaClient
         self.client = client
-
-    def datasets(self) -> DatasetQuery:
-        # TODO: implement
-        raise NotImplementedError()
+        self.datasets = datasets
+        
 
     def get_dataset_by_id(self) -> Dataset:
         # TODO: implement
@@ -47,8 +46,8 @@ class DatasetMeta:
         return exceptions or None, dataset_deleted
 
     @staticmethod
-    def _delete_by_slug(client: MetaClient, slug: str) -> int:
-        assert_is(isinstance(client, MetaClient), "client must be a MetaClient")
+    def _delete_by_slug(client: Client, slug: str) -> int:
+        assert_is(isinstance(client, Client), "client must be a MetaClient")
         assert_is(isinstance(slug, str), "slug must be a string")
 
         dataset = get_dataset(client, slug)
@@ -60,9 +59,15 @@ class DatasetMeta:
         return dataset_deleted
 
     @staticmethod
-    def _delete_by_id(client: MetaClient, dataset_id: int) -> int:
-        assert_is(isinstance(client, MetaClient), "client must be a MetaClient")
+    def _delete_by_id(client: Client, dataset_id: int) -> int:
+        assert_is(isinstance(client, Client), "client must be a MetaClient")
         assert_is(isinstance(dataset_id, int), "dataset_id must be an integer")
 
         dataset_deleted = remove_dataset(client, dataset_id)
         return dataset_deleted
+
+
+    def __next__(self) -> Dataset:
+        if self._items is None:
+            self._items = list_datasets(self.client)
+        return super().__next__()
