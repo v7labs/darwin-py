@@ -23,10 +23,10 @@ class DatasetQuery(Query[Dataset]):
         filter = QueryFilter.parse_obj(param)
         query = self + filter
 
-        return DatasetQuery(query.filters)
+        return DatasetQuery(self.client, query.filters)
 
-    def collect(self, client: Client) -> List[Dataset]:
-        datasets, exceptions = list_datasets(client)
+    def collect(self) -> List[Dataset]:
+        datasets, exceptions = list_datasets(self.client)
         if exceptions:
             # TODO: print and or raise exceptions, tbd how we want to handle this
             pass

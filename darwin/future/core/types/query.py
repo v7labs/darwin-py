@@ -64,7 +64,8 @@ class Query(Generic[T], ABC):
         _generic_execute_filter: Executes a filter on a list of objects
     """
 
-    def __init__(self, filters: Optional[List[QueryFilter]] = None):
+    def __init__(self, client: Client, filters: Optional[List[QueryFilter]] = None):
+        self.client = client
         self.filters = filters
 
     def filter(self, filter: QueryFilter) -> Query[T]:
@@ -75,14 +76,14 @@ class Query(Generic[T], ABC):
         assert isinstance(filter, QueryFilter)
         if self.filters is None:
             self.filters = []
-        return self.__class__([*self.filters, filter])
+        return self.__class__(self.client, [*self.filters, filter])
 
     def __sub__(self, filter: QueryFilter) -> Query[T]:
         assert filter is not None
         assert isinstance(filter, QueryFilter)
         if self.filters is None:
             return self
-        return self.__class__([f for f in self.filters if f != filter])
+        return self.__class__(self.client, [f for f in self.filters if f != filter])
 
     def __iadd__(self, filter: QueryFilter) -> Query[T]:
         assert filter is not None
@@ -125,28 +126,9 @@ class Query(Generic[T], ABC):
         raise NotImplementedError("Not implemented")
 
     @abstractmethod
-    def collect(self, client: Client) -> List[T]:
+    def collect(self) -> List[T]:
         raise NotImplementedError("Not implemented")
 
     def _generic_execute_filter(self, objects: List[T], filter: QueryFilter) -> List[T]:
         return [m for m in objects if filter.filter_attr(getattr(m, filter.name))]
 
-
-class ServerSideQuery(Query):
-    """Server side query object
-    TODO: add server specific methods and paramenters
-    """
-
-    def __init__(self, filters: Optional[List[QueryFilter]] = None, client: Optional[Client] = None):
-        self.client = client
-        super().__init__(filters=filters)
-
-
-class ClientSideQuery(Query):
-    """Client side query object
-    TODO: add client side specific methods and parameters
-    """
-
-    def __init__(self, filters: Optional[List[QueryFilter]] = None, objects: Optional[List[T]] = None):
-        self.objects = objects
-        super().__init__(filters=filters)

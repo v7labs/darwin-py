@@ -27,3 +27,7 @@ class MetaClient(Client):
         if datasets_dir:
             config.datasets_dir = datasets_dir
         return cls(config)
+
+    @property
+    def team(self) -> str:
+        return self.config.default_team
