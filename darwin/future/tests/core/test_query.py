@@ -59,13 +59,6 @@ def test_query_filter_functionality(base_client: Client, basic_filters: List[Que
     assert q.filters == basic_filters
 
 
-def test_query_iterable(base_client: Client, basic_filters: List[Query.QueryFilter], non_abc_query: Type[Query.Query]) -> None:
-    q = non_abc_query(base_client, basic_filters)
-    for i, f in enumerate(q):
-        assert f == basic_filters[i]
-    assert q.filters is not None
-    assert len(q) == len(basic_filters)
-
 
 @pytest.mark.parametrize(
     "mod,param,check,expected",

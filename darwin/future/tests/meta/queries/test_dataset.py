@@ -13,7 +13,6 @@ def test_dataset_collects_basic(base_client: Client, base_datasets_json: dict) -
         endpoint = base_client.config.api_endpoint + "datasets"
         rsps.add(responses.GET, endpoint, json=base_datasets_json)
         datasets = query.collect()
-
         assert len(datasets) == 2
         assert all([isinstance(dataset, Dataset) for dataset in datasets])
 

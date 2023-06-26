@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Generic, List, Optional, TypeVar
 
 from darwin.future.pydantic_base import DefaultDarwin
@@ -18,11 +20,9 @@ class MetaBase(Generic[R]):
             self._items = []
         self._items[index] = value
     
-    def __iter__(self) -> R:
-        if self._items is None:
-            self._items = []
+    def __iter__(self) -> MetaBase[R]:
         self.n = 0
-        return self._items[self.n]
+        return self
     
     def __next__(self) -> R:
         if self._items is None:
@@ -33,3 +33,8 @@ class MetaBase(Generic[R]):
             return result
         else:
             raise StopIteration
+        
+    def __len__(self) -> int:
+        if self._items is None:
+            self._items = []
+        return len(self._items)

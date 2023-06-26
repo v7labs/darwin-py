@@ -15,7 +15,7 @@ class DatasetMeta(MetaBase[Dataset]):
     def __init__(self, client: Client, datasets: Optional[List[Dataset]]=None) -> None:
         # TODO: Initialise from chaining within MetaClient
         self.client = client
-        self.datasets = datasets
+        super().__init__(datasets)
         
 
     def get_dataset_by_id(self) -> Dataset:
@@ -69,5 +69,6 @@ class DatasetMeta(MetaBase[Dataset]):
 
     def __next__(self) -> Dataset:
         if self._items is None:
-            self._items = list_datasets(self.client)
+            items, exceptions = list_datasets(self.client)
+            self._items = items
         return super().__next__()
