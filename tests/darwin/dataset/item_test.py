@@ -31,5 +31,5 @@ def test_item_parse_w_slots(response_json_slots: dict) -> None:
     assert item.dataset_slug == "test_dataset_slug"
     assert item.seq == response_json_slots["seq"]
     assert item.current_workflow_id == response_json_slots["workflow_data"]["workflow_id"]
-    assert item.current_workflow == response_json_slots["workflow_status"]
+    assert item.current_workflow == response_json_slots["workflow_data"]
     assert item.slots == response_json_slots["slots"]
