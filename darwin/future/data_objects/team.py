@@ -4,7 +4,6 @@ from typing import List, Optional, Tuple
 
 from pydantic import validator
 
-# from darwin.future.core.backend import get_team
 from darwin.future.core.client import Client
 from darwin.future.data_objects.dataset import DatasetList
 from darwin.future.data_objects.team_member_role import TeamMemberRole
