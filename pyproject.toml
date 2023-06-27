@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "darwin-py"
-version = "0.8.29"
+version = "0.8.30"
 description = "Library and command line interface for darwin.v7labs.com"
 homepage = "https://docs.v7labs.com/reference/getting-started-2"
 documentation = "https://darwin-py-sdk.v7labs.com/index.html"
