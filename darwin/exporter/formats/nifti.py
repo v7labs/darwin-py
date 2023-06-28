@@ -19,11 +19,7 @@ except ImportError:
     console.print(import_fail_string)
     exit()
 import numpy as np
-
-#import json as json
 import orjson as json
-
-#import orjson as json
 from PIL import Image
 
 import darwin.datatypes as dt
