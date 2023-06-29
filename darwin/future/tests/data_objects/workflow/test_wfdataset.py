@@ -1,9 +1,14 @@
 from pathlib import Path
 
 import pytest
+from pydantic import PydanticTypeError, PydanticValueError, ValidationError
 
+from darwin import dataset
 from darwin.future.data_objects.workflow import (
     WFDataset,
+)
+from darwin.future.tests.data_objects.workflow.invalidvaluefortest import (
+    InvalidValueForTest,
 )
 
 test_data_path: Path = Path(__file__).parent / "data"
@@ -28,4 +33,30 @@ def test_cast_to_int_returns_dataset_id() -> None:
 
 def test_cast_to_str_returns_dataset_name() -> None:
     dataset = WFDataset.parse_file(validate_dataset_json)
-    assert dataset.name == "test_dataset"
+    assert dataset.name == "Test Dataset"
+
+
+def test_sad_paths() -> None:
+    dataset = WFDataset.parse_file(validate_dataset_json)
+
+    fields = ["id", "name", "instructions"]
+
+    # Test missing fields
+    for key in fields:
+        with pytest.raises(ValidationError) as excinfo:
+            working_dataset = dataset.copy().dict()
+            del working_dataset[key]
+            WFDataset.parse_obj(working_dataset)
+
+        assert "value_error.missing" in (err_string := str(excinfo.value))
+        assert err_string.startswith(f"1 validation error for WFDataset\n{key}")
+
+    # Test invalid types
+    for key in fields:
+        with pytest.raises(ValidationError) as excinfo:
+            working_dataset = dataset.copy().dict()
+            working_dataset[key] = InvalidValueForTest()  # type: ignore
+            WFDataset.parse_obj(working_dataset)
+
+        assert "type expected" in (err_string := str(excinfo.value))
+        assert err_string.startswith(f"1 validation error for WFDataset\n{key}")
