@@ -1,35 +1,17 @@
 from datetime import datetime
 from enum import Enum
-from typing import List
+from typing import List, Literal, Optional, Union
 from uuid import UUID
 
 from pydantic import validator
 
+from darwin.future.data_objects.typing import UnknownType
 from darwin.future.pydantic_base import DefaultDarwin
 
-
-def validate_uuid(uuid: str) -> bool:
-    """
-    Validates a uuid string
-
-    Parameters
-    ----------
-    uuid: str
-        - the uuid to validate
-
-    Returns
-    ----------
-    bool
-        - True if the uuid is valid, False otherwise
-    """
-    try:
-        UUID(uuid)
-        return True
-    except ValueError:
-        return False
+from .validators import validate_uuid
 
 
-class WFDataSet(DefaultDarwin):
+class WFDataset(DefaultDarwin):
     """
     A class to manage all the information around a dataset on the darwin platform,
     including validation
@@ -57,11 +39,6 @@ class WFDataSet(DefaultDarwin):
     def __str__(self) -> str:
         return self.name
 
-    def __repr__(self) -> str:
-        return f"<WFDataSet id={self.id} name={self.name}>"
-
-    _id_validator = validator("id", allow_reuse=True)(validate_uuid)
-
 
 class WFEdge(DefaultDarwin):
     """
@@ -76,10 +53,10 @@ class WFEdge(DefaultDarwin):
     target_stage_id: str
     """
 
-    id: str
+    id: UUID
     name: str
-    source_stage_id: str
-    target_stage_id: str
+    source_stage_id: UUID
+    target_stage_id: UUID
 
     _id_validator = validator("id", allow_reuse=True)(validate_uuid)
     _source_stage_id_validator = validator("source_stage_id", allow_reuse=True)(validate_uuid)
@@ -106,11 +83,41 @@ class WFType(Enum):
 
 
 class WFUser(DefaultDarwin):
-    ...  # TODO: implement this class, if it's needed
+    stage_id: UUID
+    user_id: int
 
 
 class WFStageConfig(DefaultDarwin):
-    ...  # TODO: implement this class, if it's needed
+    # ! NB: We may be able to remove many of these attributes
+    url: Optional[str]
+    x: int
+    y: int
+
+    dataset_id: int
+    model_type: str
+
+    parallel_stage_ids: Optional[List[UUID]]
+    readonly: bool
+
+    auto_instantiate: bool
+    include_annotations: bool
+    initial: bool
+    retry_if_fails: bool
+    rules: List
+    skippable: bool
+    test_stage_id: Optional[UUID]
+
+    #
+    allowed_class_ids: UnknownType
+    annotation_group_id: UnknownType
+    assignable_to: UnknownType
+    authorization_header: UnknownType
+    champion_stage_id: UnknownType
+    class_mapping: List
+    from_non_default_v1_template: UnknownType
+    iou_thresholds: UnknownType
+    model_id: UnknownType
+    threshold: UnknownType
 
 
 class WFStage(DefaultDarwin):
@@ -128,12 +135,12 @@ class WFStage(DefaultDarwin):
     edges: List[WFEdge]
     """
 
-    id: str
+    id: UUID
     name: str
 
     type: WFType
 
-    assignable_users: List[WFUser]  # ! Not sure of type
+    assignable_users: List[WFUser]
     edges: List[WFEdge]
 
     _id_validator = validator("id", allow_reuse=True)(validate_uuid)
@@ -166,7 +173,7 @@ class Workflow(DefaultDarwin):
     inserted_at: datetime
     updated_at: datetime
 
-    dataset: WFDataSet
+    dataset: WFDataset
     stages: List[WFStage]
 
     thumbnails: List[str]
