@@ -1,14 +1,12 @@
 from datetime import datetime
 from enum import Enum
-from typing import List, Literal, Optional, Union
+from typing import List, Optional
 from uuid import UUID
 
-from pydantic import validator
+from pydantic import Field
 
 from darwin.future.data_objects.typing import UnknownType
 from darwin.future.pydantic_base import DefaultDarwin
-
-from .validators import validate_uuid
 
 
 class WFDataset(DefaultDarwin):
@@ -31,7 +29,7 @@ class WFDataset(DefaultDarwin):
 
     id: int
     name: str
-    instructions: str
+    instructions: str = Field(min_length=0)
 
     def __int__(self) -> int:
         return self.id
@@ -57,10 +55,6 @@ class WFEdge(DefaultDarwin):
     name: str
     source_stage_id: UUID
     target_stage_id: UUID
-
-    _id_validator = validator("id", allow_reuse=True)(validate_uuid)
-    _source_stage_id_validator = validator("source_stage_id", allow_reuse=True)(validate_uuid)
-    _target_stage_id_validator = validator("target_stage_id", allow_reuse=True)(validate_uuid)
 
 
 class WFType(Enum):
@@ -143,8 +137,6 @@ class WFStage(DefaultDarwin):
     assignable_users: List[WFUser]
     edges: List[WFEdge]
 
-    _id_validator = validator("id", allow_reuse=True)(validate_uuid)
-
 
 class Workflow(DefaultDarwin):
     """
@@ -166,7 +158,7 @@ class Workflow(DefaultDarwin):
     thumbnails: List[str]
     """
 
-    id: str
+    id: UUID
     name: str
     team_id: int
 
@@ -177,5 +169,3 @@ class Workflow(DefaultDarwin):
     stages: List[WFStage]
 
     thumbnails: List[str]
-
-    _id_validator = validator("id", allow_reuse=True)(validate_uuid)

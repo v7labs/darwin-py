@@ -4,7 +4,7 @@ from unittest.mock import patch
 import pytest
 
 from darwin.exceptions import DarwinException
-from darwin.future.data_objects.validators import parse_name, validate_uuid
+from darwin.future.data_objects.validators import parse_name
 
 Simple = Union[list, tuple, dict, str, int, float]
 
