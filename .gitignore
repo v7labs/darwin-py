@@ -178,4 +178,4 @@ scripts/
 
 .ruff_cache/
 
-!darwin/future/tests/data_objects/workflow/data/*.json
+!darwin/future/tests/data_objects/workflow/data
