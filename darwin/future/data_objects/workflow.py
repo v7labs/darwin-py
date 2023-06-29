@@ -84,15 +84,16 @@ class WFUser(DefaultDarwin):
 class WFStageConfig(DefaultDarwin):
     # ! NB: We may be able to remove many of these attributes
     url: Optional[str]
-    x: int
-    y: int
+    x: Optional[int]
+    y: Optional[int]
 
-    dataset_id: int
-    model_type: str
+    dataset_id: Optional[int]
+    model_type: Optional[str]
 
     parallel_stage_ids: Optional[List[UUID]]
     readonly: bool
 
+    # Included, and type known, but potentially not involved in backend
     auto_instantiate: bool
     include_annotations: bool
     initial: bool
@@ -101,7 +102,7 @@ class WFStageConfig(DefaultDarwin):
     skippable: bool
     test_stage_id: Optional[UUID]
 
-    #
+    # unsure of needs for these, so they here for future proofing
     allowed_class_ids: UnknownType
     annotation_group_id: UnknownType
     assignable_to: UnknownType

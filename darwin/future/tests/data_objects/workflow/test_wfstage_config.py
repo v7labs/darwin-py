@@ -16,8 +16,7 @@ def test_file_exists() -> None:
     assert validate_json.exists()
 
 
-# TODO
 def test_WFStageConfig_validates_from_valid_json() -> None:
-    parsed_set = WFStageConfig.parse_file(validate_json)
+    parsed_stage_config = WFStageConfig.parse_file(validate_json)
 
-    # todo assertions
+    assert isinstance(parsed_stage_config, WFStageConfig)
