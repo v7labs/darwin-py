@@ -3,7 +3,7 @@ import warnings
 import zipfile
 from collections import OrderedDict, defaultdict
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence, Union, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple, Union
 
 import orjson as json
 from rich.console import Console
@@ -115,7 +115,6 @@ def _parse_nifti(
             _video_annotations = get_video_annotation(
                 img, class_idxs=class_idxs, class_name=class_name, slot_names=slot_names, is_mpr=is_mpr, pixdims=pixdims
             )
-            print(_video_annotations, "video_annotations")
             if _video_annotations is None:
                 continue
             video_annotations += _video_annotations
