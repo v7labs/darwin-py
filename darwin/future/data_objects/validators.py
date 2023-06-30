@@ -1,9 +1,3 @@
-from typing import Literal, Optional, Union
-from uuid import UUID
-
-from darwin.exceptions import DarwinException
-
-
 def parse_name(name: str) -> str:
     """
     A function to parse and validate a name
