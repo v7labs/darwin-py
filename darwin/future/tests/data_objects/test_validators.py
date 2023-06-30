@@ -1,9 +1,7 @@
 from typing import Union
-from unittest.mock import patch
 
 import pytest
 
-from darwin.exceptions import DarwinException
 from darwin.future.data_objects.validators import parse_name
 
 Simple = Union[list, tuple, dict, str, int, float]
@@ -29,5 +27,5 @@ def test_parse_name_parses_correctly(input: str, expected: str) -> None:
     [-1, [], 1.0],
 )
 def test_parse_name_raises_with_incorrect_input(input: Simple) -> None:
-    with pytest.raises(AssertionError) as e_info:
+    with pytest.raises(AssertionError):
         parse_name(input)  # type: ignore[arg-type]
