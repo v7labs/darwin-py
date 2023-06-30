@@ -3,9 +3,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from darwin.future.data_objects.workflow import (
-    WFDataset,
-)
+from darwin.future.data_objects.workflow import WFDataset
 from darwin.future.tests.data_objects.workflow.invalidvaluefortest import (
     InvalidValueForTest,
 )

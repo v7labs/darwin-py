@@ -2,11 +2,7 @@ from datetime import datetime
 from pathlib import Path
 from uuid import UUID
 
-from darwin.future.data_objects.workflow import (
-    WFDataset,
-    WFStage,
-    Workflow,
-)
+from darwin.future.data_objects.workflow import WFDataset, WFStage, Workflow
 
 test_data_path: Path = Path(__file__).parent / "data"
 validate_json = test_data_path / "workflow.json"

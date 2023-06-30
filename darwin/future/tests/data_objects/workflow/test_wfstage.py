@@ -5,9 +5,7 @@ from uuid import UUID
 
 import pytest
 
-from darwin.future.data_objects.workflow import (
-    WFStage,
-)
+from darwin.future.data_objects.workflow import WFStage
 
 test_data_path: Path = Path(__file__).parent / "data"
 validate_json = test_data_path / "stage.json"
