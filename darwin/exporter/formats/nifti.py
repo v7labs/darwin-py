@@ -85,7 +85,6 @@ def build_output_volumes(video_annotation: dt.AnnotationFile):
     # Builds a map of class to integer
     class_map = {}
     class_count = 1
-#    for _, annotation in enumerate(video_annotation.annotations):
     for annotation in video_annotation.annotations:
         frames = annotation.frames
         for frame_idx in frames.keys():
@@ -208,7 +207,6 @@ def populate_output_volumes(annotation: Union[dt.Annotation, dt.VideoAnnotation]
     slot = slot_map[slot_name]
     series_instance_uid = slot.metadata.get("SeriesInstanceUID", "SeriesIntanceUIDNotProvided")
     volume = output_volumes.get(series_instance_uid)
-    volume = output_volumes.get(series_instance_uid)
     frames = annotation.frames
     frame_new = {}  
 
@@ -236,7 +234,6 @@ def populate_output_volumes(annotation: Union[dt.Annotation, dt.VideoAnnotation]
             continue
         class_name = frames[frame_idx].annotation_class.name
         im_mask = convert_polygons_to_mask(polygons, height=height, width=width)
-        #volume = output_volumes[series_instance_uid][class_name]
         volume = output_volumes[series_instance_uid]
         if view_idx == 0:
             volume[annotation.annotation_class.name].pixel_array[:, :, frame_idx] = np.logical_or(im_mask, volume[annotation.annotation_class.name].pixel_array[:, :, frame_idx])
