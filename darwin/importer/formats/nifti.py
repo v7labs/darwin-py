@@ -3,7 +3,7 @@ import warnings
 import zipfile
 from collections import OrderedDict, defaultdict
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence, Union, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple, Union
 
 import orjson as json
 from rich.console import Console
@@ -169,7 +169,6 @@ def nifti_to_video_annotation(volume, class_name, class_idxs, slot_names, view_i
         elif view_idx == 0:
             slice_mask = volume[i, :, :].astype(np.uint8)
             _pixdims = [pixdims[1], pixdims[2]]
-
         class_mask = np.isin(slice_mask, class_idxs).astype(np.uint8).copy()
         if class_mask.sum() == 0:
             continue
@@ -204,7 +203,6 @@ def mask_to_polygon(mask: np.ndarray, class_name: str, pixdims: List[float]) -> 
             return {"x": y, "y": x}
 
     _labels, external_paths, _internal_paths = find_contours(mask)
-    # annotations = []
     if len(external_paths) > 1:
         paths = []
         for external_path in external_paths:
