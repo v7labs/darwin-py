@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import List
 
+import orjson as json
 import pytest
 
 from darwin.future.core.client import Client, DarwinConfig
@@ -138,3 +139,37 @@ def base_datasets_json_with_releases(base_dataset_json: dict) -> List[dict]:
         transform_dataset(base_dataset_json, 4),
     ]
     # fmt: on
+
+
+@pytest.fixture
+def workflow_json() -> str:
+    # fmt: off
+    path = (
+        Path(__file__).parent / 
+        ".." / "data_objects" / 
+        "workflow" / "data" / "workflow.json"
+    ).resolve()
+    # fmt: on
+    assert path.exists()
+
+    return path.read_bytes().decode("utf-8")
+
+
+@pytest.fixture
+def base_single_workflow_json(workflow_json: str) -> str:
+    return f"[{workflow_json}]"
+
+
+@pytest.fixture
+def base_workflows_json(workflow_json: str) -> str:
+    return f"[{workflow_json}, {workflow_json}, {workflow_json}]"
+
+
+@pytest.fixture
+def base_workflow_object(base_workflows_json: str) -> list:
+    return json.loads(base_workflows_json)
+
+
+@pytest.fixture
+def base_single_workflow_object(base_workflow_object: dict) -> list:
+    return list(base_workflow_object[0])

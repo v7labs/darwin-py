@@ -1,63 +1,72 @@
-from typing import List, Optional
+from typing import List
 
 import pytest
 import responses
 from pydantic import ValidationError
-from requests.exceptions import HTTPError
+from sklearn import base
 
 from darwin.future.core.client import Client
-from darwin.future.core.workflows.get_workflows import get_workflows
+from darwin.future.core.workflows.get_workflow import get_workflow
 from darwin.future.data_objects.workflow import Workflow
-from darwin.future.tests.fixtures import (
-    create_workflow_data,  # TODO Create this function
-)
-
-# FIXME
+from darwin.future.tests.core.fixtures import *
 
 
 @responses.activate
-def test_get_workflows(client: Client) -> None:
+def test_get_workflows(base_client: Client, base_workflows_json: str) -> None:
     # Mocking the response using responses library
-    response_data = [create_workflow_data(name="Workflow 1"), create_workflow_data(name="Workflow 2")]
+    response_data = base_workflows_json
     responses.add(
         responses.GET,
-        f"/api/v2/teams/{client.config.default_team}/workflows?worker=false",
+        f"{base_client.config.base_url}api/v2/teams/{base_client.config.default_team}/workflows/{id}",
         json=response_data,
         status=200,
     )
 
     # Call the function being tested
-    workflows = get_workflows(client)
+    workflow = get_workflow(base_client, "1")
 
     # Assertions
-    assert isinstance(workflows, List)
-    assert len(workflows) == len(response_data)
-    assert all(isinstance(workflow, Workflow) for workflow in workflows)
+    assert isinstance(workflow, Workflow)
+
+    # TODO: Probably not going to work!
+    assert workflow.id == 1
+    assert workflow.team_id == base_client.config.default_team
 
 
 @responses.activate
-def test_get_workflows_with_team_slug(client: Client) -> None:
+def test_get_workflow_with_team_slug(base_client: Client, base_single_workflow_json: str) -> None:
     # Mocking the response using responses library
     team_slug = "team-slug"
-    response_data = [create_workflow_data(name="Workflow 1"), create_workflow_data(name="Workflow 2")]
-    responses.add(responses.GET, f"/api/v2/teams/{team_slug}/workflows?worker=false", json=response_data, status=200)
+    id = "1"
 
-    # Call the function being tested
-    workflows = get_workflows(client, team_slug=team_slug)
-
-    # Assertions
-    assert isinstance(workflows, List)
-    assert len(workflows) == len(response_data)
-    assert all(isinstance(workflow, Workflow) for workflow in workflows)
-
-
-@responses.activate
-def test_get_workflows_with_invalid_response(client: Client) -> None:
-    # Mocking the response using responses library
+    response_data = base_single_workflow_json
     responses.add(
-        responses.GET, f"/api/v2/teams/{client.config.default_team}/workflows?worker=false", json=None, status=200
+        responses.GET,
+        f"{base_client.config.base_url}api/v2/teams/{team_slug}/workflows/{id}",
+        json=response_data,
+        status=200,
     )
 
     # Call the function being tested
+    workflow = get_workflow(base_client, id, team_slug)
+
+    # Assertions
+    assert isinstance(workflow, Workflow)
+
+
+@responses.activate
+def test_get_workflows_with_invalid_response(base_client: Client) -> None:
+    # Mocking the response using responses library
+    # fmt: off
+    responses.add(
+        responses.GET,
+        f"api/v2/teams/{base_client.config.default_team}/workflows/1",
+        json=None,
+        status=400
+    )
+    # fmt: on
+
+    # Call the function being tested
     with pytest.raises(ValidationError):
-        get_workflows(client)
+        NON_EXISTENT_ID = "1"
+        get_workflow(base_client, NON_EXISTENT_ID)
