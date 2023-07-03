@@ -4,16 +4,16 @@ import pytest
 import responses
 from pydantic import ValidationError
 
-from darwin.future.core.client import Client
+from darwin.future.core.client import Client, JSONType
 from darwin.future.core.workflows.get_workflows import get_workflows
 from darwin.future.data_objects.workflow import Workflow
 from darwin.future.tests.core.fixtures import *
 
 
 @responses.activate
-def test_get_workflows(base_client: Client, base_workflows_json: str) -> None:
+def test_get_workflows(base_client: Client, base_workflows_object: str) -> None:
     # Mocking the response using responses library
-    response_data = base_workflows_json
+    response_data = base_workflows_object
     responses.add(
         responses.GET,
         f"{base_client.config.base_url}api/v2/teams/{base_client.config.default_team}/workflows?worker=false",
@@ -31,10 +31,10 @@ def test_get_workflows(base_client: Client, base_workflows_json: str) -> None:
 
 
 @responses.activate
-def test_get_workflows_with_team_slug(base_client: Client, base_workflows_json: str) -> None:
+def test_get_workflows_with_team_slug(base_client: Client, base_workflows_object: JSONType) -> None:
     # Mocking the response using responses library
     team_slug = "team-slug"
-    response_data = base_workflows_json
+    response_data = base_workflows_object
     responses.add(
         responses.GET,
         f"{base_client.config.base_url}api/v2/teams/{team_slug}/workflows?worker=false",

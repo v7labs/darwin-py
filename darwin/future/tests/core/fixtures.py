@@ -166,8 +166,13 @@ def base_workflows_json(workflow_json: str) -> str:
 
 
 @pytest.fixture
-def base_workflow_object(base_workflows_json: str) -> list:
+def base_workflows_object(base_workflows_json: str) -> list:
     return json.loads(base_workflows_json)
+
+
+@pytest.fixture
+def base_workflow_object(base_workflows_object: str) -> list:
+    return json.loads(base_workflows_object)
 
 
 @pytest.fixture
