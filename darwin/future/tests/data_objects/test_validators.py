@@ -1,4 +1,3 @@
-import unittest
 from typing import Union
 
 import pytest
@@ -28,5 +27,5 @@ def test_parse_name_parses_correctly(input: str, expected: str) -> None:
     [-1, [], 1.0],
 )
 def test_parse_name_raises_with_incorrect_input(input: Simple) -> None:
-    with pytest.raises(AssertionError) as e_info:
+    with pytest.raises(AssertionError):
         parse_name(input)  # type: ignore[arg-type]
