@@ -3,6 +3,7 @@ from typing import List
 import pytest
 import responses
 from pydantic import ValidationError
+from requests import HTTPError
 
 from darwin.future.core.client import Client, JSONType
 from darwin.future.core.workflows.get_workflows import get_workflows
@@ -63,4 +64,19 @@ def test_get_workflows_with_invalid_response(base_client: Client) -> None:
 
     # Call the function being tested
     with pytest.raises(ValidationError):
+        get_workflows(base_client)
+
+
+@responses.activate
+def test_get_workflows_with_error(base_client: Client) -> None:
+    # Mocking the response using responses library
+    responses.add(
+        responses.GET,
+        f"{base_client.config.base_url}api/v2/teams/{base_client.config.default_team}/workflows?worker=false",
+        json="",
+        status=400,
+    )
+
+    # Call the function being tested
+    with pytest.raises(HTTPError):
         get_workflows(base_client)

@@ -1,6 +1,7 @@
 import pytest
 import responses
 from pydantic import ValidationError
+from requests import HTTPError
 
 from darwin.future.core.client import Client, JSONType
 from darwin.future.core.workflows.get_workflow import get_workflow
@@ -63,4 +64,22 @@ def test_get_workflows_with_invalid_response(base_client: Client) -> None:
 
     # Call the function being tested
     with pytest.raises(ValidationError):
+        get_workflow(base_client, NON_EXISTENT_ID)
+
+
+@responses.activate
+def test_get_workflows_with_error(base_client: Client) -> None:
+    # Mocking the response using responses library
+    # fmt: off
+    NON_EXISTENT_ID = "1"
+    responses.add(
+        responses.GET,
+        f"{base_client.config.base_url}api/v2/teams/{base_client.config.default_team}/workflows/{NON_EXISTENT_ID}",
+        json="{}",
+        status=400
+    )
+    # fmt: on
+
+    # Call the function being tested
+    with pytest.raises(HTTPError):
         get_workflow(base_client, NON_EXISTENT_ID)
