@@ -52,15 +52,15 @@ def test_get_workflow_with_team_slug(base_client: Client, base_single_workflow_o
 def test_get_workflows_with_invalid_response(base_client: Client) -> None:
     # Mocking the response using responses library
     # fmt: off
+    NON_EXISTENT_ID = "1"
     responses.add(
         responses.GET,
-        f"api/v2/teams/{base_client.config.default_team}/workflows/1",
+        f"{base_client.config.base_url}api/v2/teams/{base_client.config.default_team}/workflows/{NON_EXISTENT_ID}",
         json="{}",
-        status=400
+        status=200
     )
     # fmt: on
 
     # Call the function being tested
     with pytest.raises(ValidationError):
-        NON_EXISTENT_ID = "1"
         get_workflow(base_client, NON_EXISTENT_ID)
