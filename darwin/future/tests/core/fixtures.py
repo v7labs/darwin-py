@@ -152,7 +152,7 @@ def workflow_json() -> str:
     # fmt: on
     assert path.exists()
 
-    return path.read_bytes().decode("utf-8")
+    return path.read_bytes().decode("utf-8").replace("\n", "")
 
 
 @pytest.fixture
@@ -172,4 +172,4 @@ def base_workflow_object(base_workflows_json: str) -> list:
 
 @pytest.fixture
 def base_single_workflow_object(base_workflow_object: dict) -> list:
-    return list(base_workflow_object[0])
+    return base_workflow_object[0]
