@@ -22,10 +22,11 @@ def test_get_workflow(base_client: Client, base_single_workflow_object: JSONType
     )
 
     # Call the function being tested
-    workflow = get_workflow(base_client, workflow_id)
+    workflow, exceptions = get_workflow(base_client, workflow_id)
 
     # Assertions
     assert isinstance(workflow, Workflow)
+    assert not exceptions
 
 
 @responses.activate
@@ -43,10 +44,11 @@ def test_get_workflow_with_team_slug(base_client: Client, base_single_workflow_o
     )
 
     # Call the function being tested
-    workflow = get_workflow(base_client, workflow_id, team_slug)
+    workflow, exceptions = get_workflow(base_client, workflow_id, team_slug)
 
     # Assertions
     assert isinstance(workflow, Workflow)
+    assert not exceptions
 
 
 @responses.activate
@@ -63,8 +65,12 @@ def test_get_workflows_with_invalid_response(base_client: Client) -> None:
     # fmt: on
 
     # Call the function being tested
-    with pytest.raises(ValidationError):
-        get_workflow(base_client, NON_EXISTENT_ID)
+    workflow, exceptions = get_workflow(base_client, NON_EXISTENT_ID)
+
+    assert not workflow
+    assert exceptions
+    assert len(exceptions) == 1
+    assert isinstance(exceptions[0], ValidationError)
 
 
 @responses.activate
@@ -80,6 +86,9 @@ def test_get_workflows_with_error(base_client: Client) -> None:
     )
     # fmt: on
 
-    # Call the function being tested
-    with pytest.raises(HTTPError):
-        get_workflow(base_client, NON_EXISTENT_ID)
+    workflow, exceptions = get_workflow(base_client, NON_EXISTENT_ID)
+
+    assert not workflow
+    assert exceptions
+    assert len(exceptions) == 1
+    assert isinstance(exceptions[0], HTTPError)

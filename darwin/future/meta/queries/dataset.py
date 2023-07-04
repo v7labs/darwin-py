@@ -2,9 +2,8 @@ from typing import List
 
 from darwin.future.core.client import Client
 from darwin.future.core.datasets.list_datasets import list_datasets
-from darwin.future.core.types.query import Modifier, Param, Query, QueryFilter
+from darwin.future.core.types.query import Param, Query, QueryFilter
 from darwin.future.data_objects.dataset import Dataset
-from darwin.future.data_objects.release import ReleaseList
 
 
 class DatasetQuery(Query[Dataset]):
