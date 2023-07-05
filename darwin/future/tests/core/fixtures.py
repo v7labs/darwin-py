@@ -300,16 +300,16 @@ def base_filterable_workflows() -> list:
             },
             "stages": [
                 {
-                    "id": "",
+                    "id": "5445adcb-193d-4f76-adb0-0c6d5f5e4c04",
                     "name": "stage-1",
                     "type": "annotate",
                     "assignable_users": [
                         {
-                            "stage_id": "",
+                            "stage_id": "16d390ad-2a6b-4232-8434-0489e9533afd",
                             "user_id": "1",
                         },
                         {
-                            "stage_id": "",
+                            "stage_id": "f9816ea0-4bcf-4293-a399-3d35770db59e",
                             "user_id": "2",
                         },
                     ],

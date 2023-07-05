@@ -1,7 +1,10 @@
+from datetime import datetime
+
 import pytest
 import responses
 
 from darwin.future.core.client import Client
+from darwin.future.core.types.query import Modifier
 from darwin.future.data_objects.workflow import Workflow
 from darwin.future.meta.queries.workflow import WorkflowQuery
 from darwin.future.tests.core.fixtures import *
@@ -22,19 +25,52 @@ def test_workflowquery_collects_basic(base_client: Client, base_filterable_workf
     assert all([isinstance(workflow, Workflow) for workflow in workflows])
 
 
-@pytest.mark.todo("Implement test")
-def test_workflowquery_only_passes_back_correctly_formed_objects() -> None:
-    pytest.fail("Not implemented")
+@responses.activate
+def test_workflowquery_filters_uuid(base_client: Client, base_filterable_workflows: dict) -> None:
+    query = WorkflowQuery().where(
+        {
+            "name": "uuid",
+            "param": "6dca86a3-48fb-40cc-8594-88310f5f1fdf",
+        }
+    )
+    endpoint = base_client.config.api_endpoint + workflows_query_endpoint(base_client.config.default_team)
+    responses.add(responses.GET, endpoint, json=base_filterable_workflows)
+    workflows = query.collect(base_client)
+
+    assert len(workflows) == 1
+    assert str(workflows[0].id) == "6dca86a3-48fb-40cc-8594-88310f5f1fdf"
 
 
-@pytest.mark.todo("Implement test")
-def test_workflowquery_filters_uuid() -> None:
-    pytest.fail("Not implemented")
+@responses.activate
+def test_workflowquery_filters_inserted_at(base_client: Client, base_filterable_workflows: dict) -> None:
+    start = datetime.fromisoformat("2021-06-01T15:00:00.000000Z")
+    end = datetime.fromisoformat("2021-06-04T15:00:00.000000Z")
 
+    query = (
+        WorkflowQuery()
+        .where(
+            {
+                "name": "inserted_at",
+                "modified": Modifier.GREATER_EQUAL,
+                "param": start,
+            }
+        )
+        .where(
+            {
+                "name": "inserted_at",
+                "modifier": Modifier.LESS_EQUAL,
+                "param": end,
+            }
+        )
+    )
+    endpoint = base_client.config.api_endpoint + workflows_query_endpoint(base_client.config.default_team)
+    responses.add(responses.GET, endpoint, json=base_filterable_workflows)
+    workflows = query.collect(base_client)
 
-@pytest.mark.todo("Implement test")
-def test_workflowquery_filters_inserted_at() -> None:
-    pytest.fail("Not implemented")
+    assert len(workflows) == 2
+    ids = [str(workflow.id) for workflow in workflows]
+    assert "53d2c997-6bb0-4766-803c-3c8d1fb21072" in ids
+    assert "6dca86a3-48fb-40cc-8594-88310f5f1fdf" in ids
 
 
 @pytest.mark.todo("Implement test")
