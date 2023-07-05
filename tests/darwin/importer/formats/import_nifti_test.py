@@ -13,8 +13,6 @@ from darwin.datatypes import (
     VideoAnnotation,
 )
 from darwin.importer.formats.nifti import parse_path
-
-
 from tests.fixtures import *
 
 
@@ -38,7 +36,6 @@ def test_image_annotation_nifti_import_single_slot(team_slug: str):
             expected_json_string = json.load(
                 open(Path(tmpdir) / team_slug / "nifti" / "vol0_annotation_file.json", "r")
             )
-            json.dump(output_json_string, open("test_output_for_nifti_import_test.json", "w"), indent=4)
             assert output_json_string["annotations"][0]["frames"] == expected_json_string["annotations"][0]["frames"]
 
 
@@ -69,7 +66,6 @@ def test_image_annotation_nifti_import_multi_slot(team_slug: str):
             expected_json_string = json.load(
                 open(Path(tmpdir) / team_slug / "nifti" / "vol0_annotation_file_multi_slot.json", "r")
             )
-            json.dump(output_json_string, open("test_output_for_nifti_import_test_multi_slot.json", "w"), indent=4)
             assert output_json_string["annotations"][0]["frames"] == expected_json_string["annotations"][0]["frames"]
 
 
