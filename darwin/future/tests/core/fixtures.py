@@ -8,6 +8,7 @@ from darwin.future.core.client import Client, DarwinConfig
 from darwin.future.data_objects.dataset import Dataset
 from darwin.future.data_objects.team import Team, TeamMember
 from darwin.future.data_objects.team_member_role import TeamMemberRole
+from darwin.future.data_objects.workflow import WFType
 
 
 @pytest.fixture
@@ -173,3 +174,171 @@ def base_workflows_object(base_workflows_json: str) -> list:
 @pytest.fixture
 def base_single_workflow_object(base_workflows_object: dict) -> list:
     return base_workflows_object[0]
+
+
+@pytest.fixture
+def base_filterable_workflows() -> list:
+    return [
+        {
+            "id": "6dca86a3-48fb-40cc-8594-88310f5f1fdf",
+            "name": "test-workflow-1",
+            "team_id": "100",
+            "inserted_at": "2021-06-01T15:00:00.000000Z",
+            "updated_at": "2021-06-05T15:00:00.000000Z",
+            "dataset": {
+                "id": 1,
+                "name": "test-dataset-1",
+                "instructions": "test-instructions-1",
+            },
+            "stages": [
+                {
+                    "id": "53d2c997-6bb0-4766-803c-3c8d1fb21072",
+                    "name": "stage-1",
+                    "type": "annotate",
+                    "assignable_users": [
+                        {
+                            "stage_id": "d96a4865-f7d1-466a-abc6-5a61b2339c16",
+                            "user_id": "1",
+                        },
+                        {
+                            "stage_id": "70adf8be-d6b5-4f54-9d99-ecf1c6959442",
+                            "user_id": "2",
+                        },
+                    ],
+                    "edges": [
+                        {
+                            "id": "5e858c07-28d7-48b5-a7a3-4697f3212d7c",
+                            "name": "edge-1",
+                            "source_stage_id": None,
+                            "target_stage_id": "6aeb1b33-9234-4d00-95e7-97b8e477ee02",
+                        },
+                        {
+                            "id": "6aeb1b33-9234-4d00-95e7-97b8e477ee02",
+                            "name": "edge-2",
+                            "source_stage_id": "5e858c07-28d7-48b5-a7a3-4697f3212d7c",
+                            "target_stage_id": "32151eaf-edbd-4703-9049-50803f1df2bf",
+                        },
+                        {
+                            "id": "9b527a3d-c765-42fd-88b6-594f5b411c07",
+                            "name": "edge-3",
+                            "source_stage_id": "6aeb1b33-9234-4d00-95e7-97b8e477ee02",
+                            "target_stage_id": None,
+                        },
+                    ],
+                }
+            ],
+            "thumbnails": [
+                "https://0.0.0.0/thumbnails/1.png",
+                "https://0.0.0.0/thumbnails/2.png",
+                "https://0.0.0.0/thumbnails/3.png",
+            ],
+        },
+        {
+            "id": "6dca86a3-48fb-40cc-8594-88310f5f1fdf",
+            "name": "test-workflow-2",
+            "team_id": "100",
+            "inserted_at": "2021-06-03T15:00:00.000000Z",
+            "updated_at": "2021-06-05T15:00:00.000000Z",
+            "dataset": {
+                "id": 1,
+                "name": "test-dataset-1",
+                "instructions": "test-instructions-1",
+            },
+            "stages": [
+                {
+                    "id": "53d2c997-6bb0-4766-803c-3c8d1fb21072",
+                    "name": "stage-1",
+                    "type": "annotate",
+                    "assignable_users": [
+                        {
+                            "stage_id": "d96a4865-f7d1-466a-abc6-5a61b2339c16",
+                            "user_id": "1",
+                        },
+                        {
+                            "stage_id": "70adf8be-d6b5-4f54-9d99-ecf1c6959442",
+                            "user_id": "2",
+                        },
+                    ],
+                    "edges": [
+                        {
+                            "id": "42c53da7-e3f2-4c81-bec7-449439cef694",
+                            "name": "edge-1",
+                            "source_stage_id": None,
+                            "target_stage_id": "b5da9e56-4bf4-4a00-826d-741d1febd3da",
+                        },
+                        {
+                            "id": "8ea42761-8971-4be1-b359-66fc878a807b",
+                            "name": "edge-2",
+                            "source_stage_id": "b5da9e56-4bf4-4a00-826d-741d1febd3da",
+                            "target_stage_id": "2a3d8f47-dba6-4fdb-88e0-beb4b2a5ed24",
+                        },
+                        {
+                            "id": "2a3d8f47-dba6-4fdb-88e0-beb4b2a5ed24",
+                            "name": "edge-3",
+                            "source_stage_id": "8ea42761-8971-4be1-b359-66fc878a807b",
+                            "target_stage_id": None,
+                        },
+                    ],
+                }
+            ],
+            "thumbnails": [
+                "https://0.0.0.0/thumbnails/4.png",
+                "https://0.0.0.0/thumbnails/5.png",
+                "https://0.0.0.0/thumbnails/6.png",
+            ],
+        },
+        {
+            "id": "6dca86a3-48fb-40cc-8594-88310f5f1fdf",
+            "name": "test-workflow-3",
+            "team_id": "100",
+            "inserted_at": "2021-06-05T15:00:00.000000Z",
+            "updated_at": "2021-06-10T15:00:00.000000Z",
+            "dataset": {
+                "id": 1,
+                "name": "test-dataset-1",
+                "instructions": "test-instructions-1",
+            },
+            "stages": [
+                {
+                    "id": "",
+                    "name": "stage-1",
+                    "type": "annotate",
+                    "assignable_users": [
+                        {
+                            "stage_id": "",
+                            "user_id": "1",
+                        },
+                        {
+                            "stage_id": "",
+                            "user_id": "2",
+                        },
+                    ],
+                    "edges": [
+                        {
+                            "id": "7dc64300-dc1b-42f3-825f-de09ece4ed6f",
+                            "name": "edge-1",
+                            "source_stage_id": None,
+                            "target_stage_id": "d7510016-5286-4f72-a13c-e350fefb652b",
+                        },
+                        {
+                            "id": "d7510016-5286-4f72-a13c-e350fefb652b",
+                            "name": "edge-2",
+                            "source_stage_id": "7dc64300-dc1b-42f3-825f-de09ece4ed6f",
+                            "target_stage_id": "7233d3e4-ac01-4598-aada-1fc73e6fc518",
+                        },
+                        {
+                            "id": "7233d3e4-ac01-4598-aada-1fc73e6fc518",
+                            "name": "edge-3",
+                            "source_stage_id": "d7510016-5286-4f72-a13c-e350fefb652b",
+                            "target_stage_id": None,
+                        },
+                    ],
+                }
+            ],
+            "thumbnails": [
+                "https://0.0.0.0/thumbnails/7.png",
+                "https://0.0.0.0/thumbnails/8.png",
+                "https://0.0.0.0/thumbnails/9.png",
+            ],
+        },
+    ]

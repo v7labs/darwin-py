@@ -3,7 +3,7 @@ from enum import Enum
 from typing import List, Optional
 from uuid import UUID
 
-from pydantic import Field
+from pydantic import Field, root_validator, validator
 
 from darwin.future.data_objects.typing import UnknownType
 from darwin.future.pydantic_base import DefaultDarwin
@@ -53,8 +53,15 @@ class WFEdge(DefaultDarwin):
 
     id: UUID
     name: str
-    source_stage_id: UUID
-    target_stage_id: UUID
+    source_stage_id: Optional[UUID]
+    target_stage_id: Optional[UUID]
+
+    @root_validator(pre=True)
+    def _one_or_both_must_exist(cls, values: dict) -> dict:
+        if not values["source_stage_id"] and not values["target_stage_id"]:
+            raise ValueError("One or both of source_stage_id and target_stage_id must be defined")
+
+        return values
 
 
 class WFType(Enum):

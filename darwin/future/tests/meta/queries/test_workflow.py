@@ -6,17 +6,19 @@ from darwin.future.data_objects.workflow import Workflow
 from darwin.future.meta.queries.workflow import WorkflowQuery
 from darwin.future.tests.core.fixtures import *
 
-WORKFLOWS_QUERY_ENDPOINT = "v2/workflows?worker=false"
+
+def workflows_query_endpoint(team: str) -> str:
+    return f"v2/teams/{team}/workflows?worker=false"
 
 
 @responses.activate
-def test_workflowquery_collects_basic(base_client: Client, base_workflows_object: dict) -> None:
+def test_workflowquery_collects_basic(base_client: Client, base_filterable_workflows: dict) -> None:
     query = WorkflowQuery()
-    endpoint = base_client.config.api_endpoint + WORKFLOWS_QUERY_ENDPOINT
-    responses.add(responses.GET, endpoint, json=base_workflows_object)
+    endpoint = base_client.config.api_endpoint + workflows_query_endpoint(base_client.config.default_team)
+    responses.add(responses.GET, endpoint, json=base_filterable_workflows)
     workflows = query.collect(base_client)
 
-    assert len(workflows) == 2
+    assert len(workflows) == 3
     assert all([isinstance(workflow, Workflow) for workflow in workflows])
 
 

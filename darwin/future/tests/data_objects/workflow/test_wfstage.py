@@ -1,6 +1,5 @@
 from json import loads
 from pathlib import Path
-from tkinter import W
 from uuid import UUID
 
 import pytest

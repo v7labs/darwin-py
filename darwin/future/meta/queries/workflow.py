@@ -1,9 +1,11 @@
 from typing import List
 
+from darwin.exceptions import DarwinException
 from darwin.future.core.client import Client
 from darwin.future.core.types.query import Param, Query, QueryFilter
 from darwin.future.core.workflows.list_workflows import list_workflows
 from darwin.future.data_objects.workflow import Workflow
+from darwin.future.helpers.exception_handler import handle_exception
 
 
 class WorkflowQuery(Query[Workflow]):
@@ -27,8 +29,8 @@ class WorkflowQuery(Query[Workflow]):
     def collect(self, client: Client) -> List[Workflow]:
         workflows, exceptions = list_workflows(client)
         if exceptions:
-            # TODO: print and or raise exceptions, tbd how we want to handle this
-            pass
+            handle_exception(exceptions)
+            raise DarwinException from exceptions[0]
 
         if not self.filters:
             return workflows

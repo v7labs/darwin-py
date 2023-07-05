@@ -1,8 +1,9 @@
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from pydantic import parse_obj_as
 
 from darwin.future.core.client import Client
+from darwin.future.data_objects.typing import UnknownType
 from darwin.future.data_objects.workflow import Workflow
 
 
@@ -27,7 +28,8 @@ def list_workflows(client: Client, team_slug: Optional[str] = None) -> Tuple[Lis
     try:
         team_slug = team_slug or client.config.default_team
         response = client.get(f"/v2/teams/{team_slug}/workflows?worker=false")
-        workflows = [parse_obj_as(Workflow, workflow) for workflow in response]
+        assert isinstance(response, list), f"Expected list, got {type(response)}"
+        workflows = [Workflow.parse_obj(workflow) for workflow in response]
     except Exception as e:
         exceptions.append(e)
 
