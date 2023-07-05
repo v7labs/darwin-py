@@ -24,19 +24,19 @@ from darwin.utils.utils import (
 )
 
 
-def describe_validation():
-    def it_should_raise_missing_schema_url():
+class TestValidation:
+    def test_should_raise_missing_schema_url(self):
         with pytest.raises(de.MissingSchema) as error:
             validate_data_against_schema({})
         assert "Schema not found" in str(error.value)
 
-    def it_fails_on_incorrect_data():
+    def test_fails_on_incorrect_data(self):
         data = {
             "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json_2_0.schema.json",
         }
         assert len(validate_data_against_schema(data)) >= 1
 
-    def it_validates_correct_data():
+    def test_validates_correct_data(self):
         data = {
             "version": "2.0",
             "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json_2_0.schema.json",
@@ -46,43 +46,39 @@ def describe_validation():
         assert len(validate_data_against_schema(data)) == 0
 
 
-def describe_is_extension_allowed():
-    def it_returns_true_for_allowed_extensions():
+class TestExtensions:
+    def test_returns_true_for_allowed_extensions(self):
         assert is_extension_allowed(".png")
 
-    def it_returns_false_for_unknown_extensions():
+    def test_returns_false_for_unknown_extensions(self):
         assert not is_extension_allowed(".mkv")
 
-
-def describe_is_image_extension_allowed():
-    def it_returns_true_for_allowed_extensions():
+    def test_returns_true_for_allowed_image_extensions(self):
         assert is_image_extension_allowed(".png")
 
-    def it_returns_false_for_unknown_extensions():
+    def test_returns_false_for_unknown_image_extensions(self):
         assert not is_image_extension_allowed(".not_an_image")
 
-
-def describe_is_video_extension_allowed():
-    def it_returns_true_for_allowed_extensions():
+    def test_returns_true_for_allowed_video_extensions(self):
         assert is_video_extension_allowed(".mp4")
 
-    def it_returns_false_for_unknown_extensions():
+    def test_returns_false_for_unknown_video_extensions(self):
         assert not is_video_extension_allowed(".not_video")
 
 
-def describe_urljoin():
-    def it_returns_an_url():
+class TestUrlJoin:
+    def test_returns_an_url(self):
         assert urljoin("api", "teams") == "api/teams"
 
-    def it_strips_correctly():
+    def test_strips_correctly(self):
         assert (
             urljoin("http://www.darwin.v7labs.com/", "/users/token_info")
             == "http://www.darwin.v7labs.com/users/token_info"
         )
 
 
-def describe_is_project_dir():
-    def it_returns_true_if_path_is_project_dir(tmp_path):
+class TestProjectDir:
+    def test_returns_true_if_path_is_project_dir(self, tmp_path):
         releases_path = tmp_path / "releases"
         releases_path.mkdir()
 
@@ -91,29 +87,29 @@ def describe_is_project_dir():
 
         assert is_project_dir(tmp_path)
 
-    def it_returns_false_if_path_is_not_project_dir(tmp_path):
+    def test_returns_false_if_path_is_not_project_dir(self, tmp_path):
         assert not is_project_dir(tmp_path)
 
 
-def describe_is_unix_like_os():
+class TestUnixLikeOS:
     @patch("platform.system", return_value="Linux")
-    def it_returns_true_on_linux(mock: MagicMock):
+    def test_returns_true_on_linux(self, mock: MagicMock):
         assert is_unix_like_os()
         mock.assert_called_once()
 
     @patch("platform.system", return_value="Windows")
-    def it_returns_false_on_windows(mock: MagicMock):
+    def test_returns_false_on_windows(self, mock: MagicMock):
         assert not is_unix_like_os()
         mock.assert_called_once()
 
     @patch("platform.system", return_value="Darwin")
-    def it_returns_true_on_mac_os(mock: MagicMock):
+    def test_returns_true_on_mac_os(self, mock: MagicMock):
         assert is_unix_like_os()
         mock.assert_called_once()
 
 
-def describe_parse_darwin_json():
-    def it_parses_darwin_images_correctly(tmp_path):
+class TestParseDarwinJson:
+    def test_parses_darwin_images_correctly(self, tmp_path):
         content = """
         {
             "image": {
@@ -166,7 +162,7 @@ def describe_parse_darwin_json():
         assert not annotation_file.frame_urls
         assert annotation_file.remote_path == "/tmp_files"
 
-    def it_parses_darwin_videos_correctly(tmp_path):
+    def test_parses_darwin_videos_correctly(self, tmp_path):
         content = """
         {
             "dataset": "my-dataset",
@@ -276,7 +272,7 @@ def describe_parse_darwin_json():
             )
         ]
 
-    def it_parses_darwin_v2_images_correctly(tmp_path):
+    def test_parses_darwin_v2_images_correctly(self, tmp_path):
         content = """
         {
           "version": "2.0",
@@ -380,7 +376,7 @@ def describe_parse_darwin_json():
         assert not annotation_file.frame_urls
         assert annotation_file.remote_path == "/path-0/folder"
 
-    def it_parses_darwin_v2_videos_correctly(tmp_path):
+    def test_parses_darwin_v2_videos_correctly(self, tmp_path):
         content = """
         {
           "version": "2.0",
@@ -489,7 +485,7 @@ def describe_parse_darwin_json():
         assert len(annotation_file.frame_urls) == 2
         assert annotation_file.remote_path == "/path-0/folder"
 
-    def it_returns_None_if_no_annotations_exist(tmp_path):
+    def test_returns_None_if_no_annotations_exist(self, tmp_path):
         content = """
         {
             "image": {
@@ -512,7 +508,7 @@ def describe_parse_darwin_json():
 
         assert not annotation_file
 
-    def it_uses_a_default_path_if_one_is_missing(tmp_path):
+    def test_uses_a_default_path_if_one_is_missing(self, tmp_path):
         content = """
             {
                 "image": {
@@ -540,7 +536,7 @@ def describe_parse_darwin_json():
 
         assert annotation_file.remote_path == "/"
 
-    def it_imports_a_skeleton(tmp_path):
+    def test_imports_a_skeleton(self, tmp_path):
         content = """
             {
                 "dataset": "cars",
@@ -606,7 +602,7 @@ def describe_parse_darwin_json():
         assert annotation_file.annotations[0].annotation_class.annotation_type == "polygon"
         assert annotation_file.annotations[1].annotation_class.annotation_type == "skeleton"
 
-    def it_imports_multiple_skeletetons(tmp_path):
+    def test_imports_multiple_skeletetons(self, tmp_path):
         content = """
             {
                 "dataset":"cars",
@@ -704,34 +700,32 @@ def describe_parse_darwin_json():
         assert annotation_file.annotations[1].annotation_class.annotation_type == "skeleton"
         assert annotation_file.annotations[2].annotation_class.annotation_type == "skeleton"
 
-    def describe_has_json_content_type():
-        def it_returns_true():
-            response: Response = Response()
-            response.headers["content-type"] = "application/json"
-            assert has_json_content_type(response)
+    def test_returns_true_w_json_content_type(self):
+        response: Response = Response()
+        response.headers["content-type"] = "application/json"
+        assert has_json_content_type(response)
 
-        def it_returns_false():
-            response: Response = Response()
-            response.headers["content-type"] = "text/plain"
-            assert not has_json_content_type(response)
+    def test_returns_false_w_plain_text(self):
+        response: Response = Response()
+        response.headers["content-type"] = "text/plain"
+        assert not has_json_content_type(response)
 
-    def describe_get_response_content():
-        def it_returns_json():
-            response: Response = Response()
-            response.headers["content-type"] = "application/json"
-            response._content = b'{"key":"a"}'
-            assert {"key": "a"} == get_response_content(response)
+    def test_returns_json_w_json_response(self):
+        response: Response = Response()
+        response.headers["content-type"] = "application/json"
+        response._content = b'{"key":"a"}'
+        assert {"key": "a"} == get_response_content(response)
 
-        def it_returns_text():
-            response: Response = Response()
-            response.headers["content-type"] = "text/plain"
-            response._content = b"hello"
-            assert "hello" == get_response_content(response)
+    def test_returns_text_w_plain_text(self):
+        response: Response = Response()
+        response.headers["content-type"] = "text/plain"
+        response._content = b"hello"
+        assert "hello" == get_response_content(response)
 
 
-def describe__parse_darwin_raster_annotation() -> None:
+class TestParseDarwinRasterAnnotation:
     @pytest.fixture
-    def good_raster_annotation() -> dt.JSONFreeForm:
+    def good_raster_annotation(self) -> dt.JSONFreeForm:
         return {
             "id": "abc123",
             "name": "my_raster_annotation",
@@ -743,7 +737,7 @@ def describe__parse_darwin_raster_annotation() -> None:
             "slot_names": ["0"],
         }
 
-    def it_parses_a_raster_annotation(good_raster_annotation: dt.JSONFreeForm) -> None:
+    def test_parses_a_raster_annotation(self, good_raster_annotation: dt.JSONFreeForm) -> None:
         annotation = _parse_darwin_raster_annotation(good_raster_annotation)
 
         assert annotation is not None
@@ -759,8 +753,8 @@ def describe__parse_darwin_raster_annotation() -> None:
 
     # Sad paths
     @pytest.mark.parametrize("parameter_name", ["id", "name", "raster_layer", "slot_names"])
-    def it_raises_value_error_for_missing_top_level_fields(
-        good_raster_annotation: dt.JSONFreeForm, parameter_name: str
+    def test_raises_value_error_for_missing_top_level_fields(
+        self, good_raster_annotation: dt.JSONFreeForm, parameter_name: str
     ) -> None:
         annotation = good_raster_annotation
         del annotation[parameter_name]
@@ -768,8 +762,8 @@ def describe__parse_darwin_raster_annotation() -> None:
             _parse_darwin_raster_annotation(annotation)
 
     @pytest.mark.parametrize("parameter_name", ["dense_rle", "mask_annotation_ids_mapping", "total_pixels"])
-    def it_raises_value_error_for_missing_raster_layer_fields(
-        good_raster_annotation: dt.JSONFreeForm, parameter_name: str
+    def test_raises_value_error_for_missing_raster_layer_fields(
+        self, good_raster_annotation: dt.JSONFreeForm, parameter_name: str
     ) -> None:
         annotation = good_raster_annotation
         del annotation["raster_layer"][parameter_name]
@@ -777,9 +771,9 @@ def describe__parse_darwin_raster_annotation() -> None:
             _parse_darwin_raster_annotation(annotation)
 
 
-def describe__parse_darwin_mask_annotation() -> None:
+class TestParseDarwinMaskAnnotation:
     @pytest.fixture
-    def good_mask_annotation() -> dt.JSONFreeForm:
+    def good_mask_annotation(self) -> dt.JSONFreeForm:
         return {
             "id": "abc123",
             "name": "my_raster_annotation",
@@ -789,7 +783,7 @@ def describe__parse_darwin_mask_annotation() -> None:
             "slot_names": ["0"],
         }
 
-    def it_parses_a_raster_annotation(good_mask_annotation: dt.JSONFreeForm) -> None:
+    def test_parses_a_raster_annotation(self, good_mask_annotation: dt.JSONFreeForm) -> None:
         annotation = _parse_darwin_mask_annotation(good_mask_annotation)
 
         assert annotation is not None
@@ -802,21 +796,21 @@ def describe__parse_darwin_mask_annotation() -> None:
 
     # Sad paths
     @pytest.mark.parametrize("parameter_name", ["id", "name", "mask", "slot_names"])
-    def it_raises_value_error_for_missing_top_level_fields(
-        good_mask_annotation: dt.JSONFreeForm, parameter_name: str
+    def test_raises_value_error_for_missing_top_level_fields(
+        self, good_mask_annotation: dt.JSONFreeForm, parameter_name: str
     ) -> None:
         annotation = good_mask_annotation
         del annotation[parameter_name]
         with pytest.raises(ValueError):
             _parse_darwin_raster_annotation(annotation)
 
-    def it_raises_value_error_for_missing_mask_fields(good_mask_annotation: dt.JSONFreeForm) -> None:
+    def test_raises_value_error_for_missing_mask_fields(self, good_mask_annotation: dt.JSONFreeForm) -> None:
         annotation = good_mask_annotation
         del annotation["mask"]["sparse_rle"]
         with pytest.raises(ValueError):
             _parse_darwin_raster_annotation(annotation)
 
-    def it_raises_value_error_for_invalid_mask_fields(good_mask_annotation: dt.JSONFreeForm) -> None:
+    def test_raises_value_error_for_invalid_mask_fields(self, good_mask_annotation: dt.JSONFreeForm) -> None:
         annotation = good_mask_annotation
         annotation["mask"]["sparse_rle"] = "invalid"
         with pytest.raises(ValueError):

@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 import responses
+
 from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset import RemoteDataset
@@ -254,16 +255,16 @@ def test_upload_files(dataset: RemoteDataset, request_upload_endpoint: str):
     assert upload_handler.error_count == 0
 
 
-def describe_upload_chunk_size():
-    def default_value_when_env_var_is_not_set():
+class TestUploadChunkSize:
+    def test_default_value_when_env_var_is_not_set(self):
         assert _upload_chunk_size() == 500
 
     @patch("os.getenv", return_value="hello")
-    def default_value_when_env_var_is_not_integer(mock: MagicMock):
+    def test_default_value_when_env_var_is_not_integer(self, mock: MagicMock):
         assert _upload_chunk_size() == 500
         mock.assert_called_once_with("DARWIN_UPLOAD_CHUNK_SIZE")
 
     @patch("os.getenv", return_value="123")
-    def value_specified_by_env_var(mock: MagicMock):
+    def test_value_specified_by_env_var(self, mock: MagicMock):
         assert _upload_chunk_size() == 123
         mock.assert_called_once_with("DARWIN_UPLOAD_CHUNK_SIZE")

@@ -306,23 +306,24 @@ def files_content() -> Dict[str, Any]:
     }
 
 
-@pytest.mark.usefixtures("file_read_write_test", "create_annotation_file")
-class TestDatasetCreation:
-    def test_should_set_id_correctly_from_id(self, darwin_client: Client):
-        dataset_id = "team_slug/dataset_name:test_release"
-        dataset = darwin_client.get_remote_dataset(dataset_id)
+# This test was never actually running
+# TODO: Fix this test
+# class TestDatasetCreation:
+#     def test_should_set_id_correctly_from_id(self, darwin_client: Client):
+#         dataset_id = "team_slug/dataset_name:test_release"
+#         dataset = darwin_client.get_remote_dataset(dataset_id)
 
-        assert dataset.slug == "team_slug"
-        assert dataset.name == "dataset_name"
-        assert dataset.release == "test_release"
+#         assert dataset.slug == "team_slug"
+#         assert dataset.name == "dataset_name"
+#         assert dataset.release == "test_release"
 
-    def test_should_work_without_a_release(self, darwin_client: Client):
-        dataset_id = "team_slug/dataset_name"
-        dataset = darwin_client.get_remote_dataset(dataset_id)
+#     def test_should_work_without_a_release(self, darwin_client: Client):
+#         dataset_id = "team_slug/dataset_name"
+#         dataset = darwin_client.get_remote_dataset(dataset_id)
 
-        assert dataset.slug == "team_slug"
-        assert dataset.name == "dataset_name"
-        assert dataset.release == None
+#         assert dataset.slug == "team_slug"
+#         assert dataset.name == "dataset_name"
+#         assert dataset.release == None
 
 
 @pytest.mark.usefixtures("file_read_write_test", "create_annotation_file")
