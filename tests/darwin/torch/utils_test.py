@@ -33,14 +33,14 @@ def multiple_overlap_masks() -> Tuple[torch.Tensor, List[int]]:
     return masks, cats
 
 
-def describe_flatten_masks() -> None:
-    def it_should_raise_with_incorrect_shaped_inputs(basic_masks_with_cats) -> None:
+class TestFlattenMasks:
+    def test_should_raise_with_incorrect_shaped_inputs(self, basic_masks_with_cats) -> None:
         masks, _ = basic_masks_with_cats
         cats = [0]
         with pytest.raises(AssertionError) as error:
             flattened = flatten_masks_by_category(masks, cats)
 
-    def it_should_correctly_set_overlap(basic_masks_with_cats) -> None:
+    def test_should_correctly_set_overlap(self, basic_masks_with_cats) -> None:
         masks, cats = basic_masks_with_cats
         flattened: torch.Tensor = flatten_masks_by_category(masks, cats)
         assert flattened[0, 0] == 2
@@ -51,12 +51,12 @@ def describe_flatten_masks() -> None:
         assert torch.equal(unique, expected_unique)
         assert torch.equal(counts, expected_counts)
 
-    def it_should_handle_fully_masked_image(multiple_overlap_masks) -> None:
+    def test_should_handle_fully_masked_image(self, multiple_overlap_masks) -> None:
         masks, cats = multiple_overlap_masks
         flattened: torch.Tensor = flatten_masks_by_category(masks, cats)
         assert 0 not in np.unique(flattened)
 
-    def it_should_handle_multiple_overlaps(multiple_overlap_masks) -> None:
+    def test_should_handle_multiple_overlaps(self, multiple_overlap_masks) -> None:
         masks, cats = multiple_overlap_masks
         flattened: torch.Tensor = flatten_masks_by_category(masks, cats)
         unique, counts = flattened.unique(return_counts=True)
