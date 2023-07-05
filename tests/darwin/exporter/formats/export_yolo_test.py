@@ -7,7 +7,7 @@ from darwin.datatypes import Annotation, AnnotationClass, AnnotationFile
 from darwin.exporter.formats.yolo import export
 
 
-class TestDescribeExport:
+class TestExport:
     @pytest.fixture
     def folder_path(self, tmp_path: Path):
         path: Path = tmp_path / "yolo_export_output_files"

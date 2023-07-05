@@ -3,7 +3,7 @@ from typing import Dict, List
 from darwin.datatypes import Point, make_complex_polygon, make_polygon
 
 
-class TestDescribeMakePolygon:
+class TestMakePolygon:
     def test_it_returns_annotation_with_default_params(self):
         class_name: str = "class_name"
         points: List[Point] = [{"x": 1, "y": 2}, {"x": 3, "y": 4}, {"x": 1, "y": 2}]
@@ -29,7 +29,7 @@ class TestDescribeMakePolygon:
         assert class_bbox == bbox
 
 
-class TestDescribeMakeComplexPolygon:
+class TestMakeComplexPolygon:
     def test_it_returns_annotation_with_default_params(self):
         class_name: str = "class_name"
         points: List[List[Point]] = [

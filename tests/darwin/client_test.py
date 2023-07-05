@@ -182,7 +182,7 @@ class TestFetchRemoteFiles:
 
 
 @pytest.mark.usefixtures("file_read_write_test")
-class TestDescribeFetchRemoteClasses:
+class TestFetchRemoteClasses:
     @responses.activate
     def test_returns_remote_classes(self, team_slug: str, darwin_client: Client):
         endpoint: str = f"/teams/{team_slug}/annotation_classes?include_tags=true"

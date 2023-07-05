@@ -84,7 +84,7 @@ def v1_or_v2_slug(request):
     return request.getfixturevalue(request.param)
 
 
-class TestDescribeGetDataset:
+class TestGetDataset:
     def test_exits_when_dataset_not_supported(self, v1_or_v2_slug: str, local_config_file: Config):
         with patch.object(sys, "exit") as exception:
             get_dataset(f"{v1_or_v2_slug}/test", "unknown")
