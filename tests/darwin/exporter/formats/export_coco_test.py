@@ -6,7 +6,7 @@ import darwin.datatypes as dt
 from darwin.exporter.formats import coco
 
 
-class DescribeBuildAnnotations:
+class TestBuildAnnotations:
     @pytest.fixture
     def annotation_file(self) -> dt.AnnotationFile:
         return dt.AnnotationFile(path=Path("test.json"), filename="test.json", annotation_classes=set(), annotations=[])
