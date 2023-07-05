@@ -177,3 +177,5 @@ test.py
 scripts/
 
 .ruff_cache/
+
+!darwin/future/tests/data_objects/workflow/data
