@@ -2,12 +2,14 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Any, Callable, Dict, Generic, List, Optional, TypeVar
+from typing import Any, Callable, Dict, Generic, List, Mapping, Optional, TypeVar
 
 from darwin.future.core.client import Client
+from darwin.future.meta.objects.base import MetaBase
 from darwin.future.pydantic_base import DefaultDarwin
 
-T = TypeVar("T", bound=DefaultDarwin)
+T = TypeVar("T", bound=MetaBase)
+R = TypeVar("R", bound=DefaultDarwin)
 Param = Dict[str, Any]  # type: ignore
 
 
@@ -55,7 +57,7 @@ class QueryFilter(DefaultDarwin):
             raise ValueError(f"Unknown modifier {self.modifier}")
 
 
-class Query(Generic[T], ABC):
+class Query(Generic[T, R], ABC):
     """Basic Query object with methods to manage filters
     Methods:
         filter: adds a filter to the query object, returns a new query object
@@ -64,27 +66,29 @@ class Query(Generic[T], ABC):
         _generic_execute_filter: Executes a filter on a list of objects
     """
 
-    def __init__(self, filters: Optional[List[QueryFilter]] = None):
+    def __init__(self, client: Client, filters: Optional[List[QueryFilter]] = None):
+        self.client = client
         self.filters = filters
+        self.results: Optional[List[R]] = None
 
-    def filter(self, filter: QueryFilter) -> Query[T]:
+    def filter(self, filter: QueryFilter) -> Query[T, R]:
         return self + filter
 
-    def __add__(self, filter: QueryFilter) -> Query[T]:
+    def __add__(self, filter: QueryFilter) -> Query[T, R]:
         assert filter is not None
         assert isinstance(filter, QueryFilter)
         if self.filters is None:
             self.filters = []
-        return self.__class__([*self.filters, filter])
+        return self.__class__(self.client, [*self.filters, filter])
 
-    def __sub__(self, filter: QueryFilter) -> Query[T]:
+    def __sub__(self, filter: QueryFilter) -> Query[T, R]:
         assert filter is not None
         assert isinstance(filter, QueryFilter)
         if self.filters is None:
             return self
-        return self.__class__([f for f in self.filters if f != filter])
+        return self.__class__(self.client, [f for f in self.filters if f != filter])
 
-    def __iadd__(self, filter: QueryFilter) -> Query[T]:
+    def __iadd__(self, filter: QueryFilter) -> Query[T, R]:
         assert filter is not None
         assert isinstance(filter, QueryFilter)
         if self.filters is None:
@@ -93,7 +97,7 @@ class Query(Generic[T], ABC):
         self.filters.append(filter)
         return self
 
-    def __isub__(self, filter: QueryFilter) -> Query[T]:
+    def __isub__(self, filter: QueryFilter) -> Query[T, R]:
         assert filter is not None
         assert isinstance(filter, QueryFilter)
         if self.filters is None:
@@ -106,47 +110,38 @@ class Query(Generic[T], ABC):
             return 0
         return len(self.filters)
 
-    def __iter__(self) -> Query[T]:
+    def __iter__(self) -> Query[T, R]:
         self.n = 0
         return self
 
-    def __next__(self) -> QueryFilter:
-        if self.filters is None:
-            self.filters = []
-        if self.n < len(self.filters):
-            result = self.filters[self.n]
+    def __next__(self) -> R:
+        if self.results is None:
+            self.results = list(self.collect())
+        if self.n < len(self.results):
+            result = self.results[self.n]
             self.n += 1
             return result
         else:
             raise StopIteration
+        
+    def __getitem__(self, index: int) -> R:
+        if self.results is None:
+            self.results = list(self.collect())
+        return self.results[index]
+    
+    def __setitem__(self, index: int, value: R) -> None:
+        if self.results is None:
+            self.results = list(self.collect())
+        self.results[index] = value
 
     @abstractmethod
-    def where(self, param: Param) -> Query[T]:
+    def where(self, param: Param) -> Query[T, R]:
         raise NotImplementedError("Not implemented")
 
     @abstractmethod
-    def collect(self, client: Client) -> List[T]:
+    def collect(self) -> T:
         raise NotImplementedError("Not implemented")
 
-    def _generic_execute_filter(self, objects: List[T], filter: QueryFilter) -> List[T]:
+    def _generic_execute_filter(self, objects: List[R], filter: QueryFilter) -> List[R]:
         return [m for m in objects if filter.filter_attr(getattr(m, filter.name))]
 
-
-class ServerSideQuery(Query):
-    """Server side query object
-    TODO: add server specific methods and paramenters
-    """
-
-    def __init__(self, filters: Optional[List[QueryFilter]] = None, client: Optional[Client] = None):
-        self.client = client
-        super().__init__(filters=filters)
-
-
-class ClientSideQuery(Query):
-    """Client side query object
-    TODO: add client side specific methods and parameters
-    """
-
-    def __init__(self, filters: Optional[List[QueryFilter]] = None, objects: Optional[List[T]] = None):
-        self.objects = objects
-        super().__init__(filters=filters)
