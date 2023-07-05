@@ -24,6 +24,10 @@
     "black"
   ],
   "python.testing.pytestEnabled": true,
+  "python.testing.pytestArgs": [
+    "--ignore",
+    "${workspaceFolder}/tests"
+  ],
   "python.linting.enabled": true,
   "python.analysis.typeCheckingMode": "basic"
 }

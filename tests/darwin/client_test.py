@@ -3,7 +3,6 @@ from typing import Any, Dict, List
 
 import pytest
 import responses
-from tests.fixtures import *
 
 from darwin.client import Client
 from darwin.config import Config
@@ -11,6 +10,7 @@ from darwin.dataset.remote_dataset_v1 import RemoteDatasetV1
 from darwin.dataset.remote_dataset_v2 import RemoteDatasetV2
 from darwin.datatypes import Feature
 from darwin.exceptions import NameTaken, NotFound
+from tests.fixtures import *
 
 
 @pytest.fixture
@@ -24,9 +24,9 @@ def darwin_client(darwin_config_path: Path, darwin_datasets_path: Path, team_slu
 
 
 @pytest.mark.usefixtures("file_read_write_test")
-def describe_list_remote_datasets():
+class TestListRemoteDatasets:
     @responses.activate
-    def it_returns_list_of_datasets(darwin_client: Client):
+    def test_returns_list_of_datasets(self, darwin_client: Client):
         team_slug: str = "v7"
         endpoint: str = "/datasets"
         json_response: List[Dict[str, Any]] = [
@@ -75,9 +75,9 @@ def describe_list_remote_datasets():
 
 
 @pytest.mark.usefixtures("file_read_write_test")
-def describe_get_remote_dataset():
+class TestGetRemoteDataset:
     @responses.activate
-    def it_raises_if_dataset_is_not_found(darwin_client: Client):
+    def test_raises_if_dataset_is_not_found(self, darwin_client: Client):
         endpoint: str = "/datasets"
         json_response = [
             {
@@ -96,7 +96,7 @@ def describe_get_remote_dataset():
             darwin_client.get_remote_dataset("v7/dataset-slug-2")
 
     @responses.activate
-    def it_returns_the_dataset(darwin_client: Client):
+    def test_returns_the_dataset(self, darwin_client: Client):
         endpoint: str = "/datasets"
         json_response = [
             {
@@ -126,9 +126,9 @@ def describe_get_remote_dataset():
 
 
 @pytest.mark.usefixtures("file_read_write_test")
-def describe_create_dataset():
+class TestCreateDataset:
     @responses.activate
-    def it_returns_the_created_dataset(darwin_client: Client):
+    def test_returns_the_created_dataset(self, darwin_client: Client):
         endpoint: str = "/datasets"
         json_response: Dict[str, Any] = {
             "name": "my-dataset",
@@ -154,7 +154,7 @@ def describe_create_dataset():
         assert_dataset(actual_dataset, expected_dataset)
 
     @responses.activate
-    def it_raises_if_name_is_taken(darwin_client: Client):
+    def test_raises_if_name_is_taken(self, darwin_client: Client):
         endpoint: str = "/datasets"
         json_response: Dict[str, Any] = {"errors": {"name": ["has already been taken"]}}
 
@@ -171,9 +171,9 @@ def describe_create_dataset():
 
 
 @pytest.mark.usefixtures("file_read_write_test")
-def describe_fetch_remote_files():
+class TestFetchRemoteFiles:
     @responses.activate
-    def it_returns_remote_files(darwin_client: Client):
+    def test_returns_remote_files(self, darwin_client: Client):
         dataset_id = 1
         endpoint: str = f"/datasets/{dataset_id}/items?page%5Bsize%5D=500&page%5Bfrom%5D=0"
         responses.add(responses.POST, darwin_client.url + endpoint, json={}, status=200)
@@ -182,9 +182,9 @@ def describe_fetch_remote_files():
 
 
 @pytest.mark.usefixtures("file_read_write_test")
-def describe_fetch_remote_classes():
+class TestDescribeFetchRemoteClasses:
     @responses.activate
-    def it_returns_remote_classes(team_slug: str, darwin_client: Client):
+    def test_returns_remote_classes(self, team_slug: str, darwin_client: Client):
         endpoint: str = f"/teams/{team_slug}/annotation_classes?include_tags=true"
         response: Dict[str, Any] = {
             "annotation_classes": [
@@ -218,9 +218,9 @@ def describe_fetch_remote_classes():
 
 
 @pytest.mark.usefixtures("file_read_write_test")
-def describe_get_team_features():
+class TestGetTeamFeatures:
     @responses.activate
-    def it_returns_list_of_features(team_slug: str, darwin_client: Client):
+    def test_returns_list_of_features(self, team_slug: str, darwin_client: Client):
         endpoint: str = f"/teams/{team_slug}/features"
         json_response = [
             {"enabled": False, "name": "WORKFLOW_V2"},
@@ -236,9 +236,9 @@ def describe_get_team_features():
 
 
 @pytest.mark.usefixtures("file_read_write_test")
-def describe_instantiate_item():
+class TestInstantiateItem:
     @responses.activate
-    def it_raises_if_workflow_id_is_not_found(darwin_client: Client):
+    def test_raises_if_workflow_id_is_not_found(self, darwin_client: Client):
         item_id: int = 1234
         endpoint: str = f"/dataset_items/{item_id}/workflow"
         json_response: Dict[str, Any] = {}
@@ -251,7 +251,7 @@ def describe_instantiate_item():
         assert str(exception.value) == f"No Workflow Id found for item_id: {item_id}"
 
     @responses.activate
-    def it_returns_workflow_id(darwin_client: Client):
+    def test_returns_workflow_id(self, darwin_client: Client):
         item_id: int = 1234
         workflow_id: int = 1
         endpoint: str = f"/dataset_items/{item_id}/workflow"
@@ -262,9 +262,9 @@ def describe_instantiate_item():
 
 
 @pytest.mark.usefixtures("file_read_write_test")
-def describe_post_workflow_comment():
+class TestWorkflowComment:
     @responses.activate
-    def it_raises_if_comment_id_is_not_found(darwin_client: Client):
+    def test_raises_if_comment_id_is_not_found(self, darwin_client: Client):
         workflow_id = 1234
         endpoint: str = f"/workflows/{workflow_id}/workflow_comment_threads"
         json_response: Dict[str, Any] = {}
@@ -277,7 +277,7 @@ def describe_post_workflow_comment():
         assert str(exception.value) == f"Unable to retrieve comment id for workflow: {workflow_id}."
 
     @responses.activate
-    def it_returns_comment_id(darwin_client: Client):
+    def test_returns_comment_id(self, darwin_client: Client):
         comment_id: int = 1234
         workflow_id: int = 1
         endpoint: str = f"/workflows/{workflow_id}/workflow_comment_threads"

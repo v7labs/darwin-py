@@ -306,8 +306,9 @@ def files_content() -> Dict[str, Any]:
     }
 
 
-def test_dataset_creation_from_id():
-    def it_should_set_id_correctly_from_id(darwin_client: Client):
+@pytest.mark.usefixtures("file_read_write_test", "create_annotation_file")
+class TestDatasetCreation:
+    def test_should_set_id_correctly_from_id(self, darwin_client: Client):
         dataset_id = "team_slug/dataset_name:test_release"
         dataset = darwin_client.get_remote_dataset(dataset_id)
 
@@ -315,7 +316,7 @@ def test_dataset_creation_from_id():
         assert dataset.name == "dataset_name"
         assert dataset.release == "test_release"
 
-    def it_should_work_without_a_release(darwin_client: Client):
+    def test_should_work_without_a_release(self, darwin_client: Client):
         dataset_id = "team_slug/dataset_name"
         dataset = darwin_client.get_remote_dataset(dataset_id)
 
@@ -325,8 +326,9 @@ def test_dataset_creation_from_id():
 
 
 @pytest.mark.usefixtures("file_read_write_test", "create_annotation_file")
-def describe_split_video_annotations():
-    def it_works_on_videos(
+class TestSplitVideoAnnotations:
+    def test_works_on_videos(
+        self,
         darwin_client: Client,
         darwin_datasets_path: Path,
         dataset_name: str,
@@ -374,9 +376,11 @@ def describe_split_video_annotations():
 
 
 @pytest.mark.usefixtures("files_content", "file_read_write_test")
-def describe_fetch_remote_files():
+class TestFetchRemoteFiles:
     @responses.activate
-    def it_works(darwin_client: Client, dataset_name: str, dataset_slug: str, team_slug: str, files_content: dict):
+    def test_works(
+        self, darwin_client: Client, dataset_name: str, dataset_slug: str, team_slug: str, files_content: dict
+    ):
         remote_dataset = RemoteDatasetV1(
             client=darwin_client, team=team_slug, name=dataset_name, slug=dataset_slug, dataset_id=1
         )
@@ -400,8 +404,8 @@ def describe_fetch_remote_files():
         assert item_2.id == 386073
 
     @responses.activate
-    def it_fetches_files_with_commas(
-        darwin_client: Client, dataset_name: str, dataset_slug: str, team_slug: str, files_content: dict
+    def test_fetches_files_with_commas(
+        self, darwin_client: Client, dataset_name: str, dataset_slug: str, team_slug: str, files_content: dict
     ):
         remote_dataset = RemoteDatasetV1(
             client=darwin_client, team=team_slug, name=dataset_name, slug=dataset_slug, dataset_id=1
@@ -427,33 +431,33 @@ def remote_dataset(darwin_client: Client, dataset_name: str, dataset_slug: str, 
 
 
 @pytest.mark.usefixtures("file_read_write_test")
-def describe_push():
-    def raises_if_files_are_not_provided(remote_dataset: RemoteDataset):
+class TestPush:
+    def test_raises_if_files_are_not_provided(self, remote_dataset: RemoteDataset):
         with pytest.raises(ValueError):
             remote_dataset.push(None)
 
-    def raises_if_both_path_and_local_files_are_given(remote_dataset: RemoteDataset):
+    def test_raises_if_both_path_and_local_files_are_given(self, remote_dataset: RemoteDataset):
         with pytest.raises(ValueError):
             remote_dataset.push([LocalFile("test.jpg")], path="test")
 
-    def raises_if_both_fps_and_local_files_are_given(remote_dataset: RemoteDataset):
+    def test_raises_if_both_fps_and_local_files_are_given(self, remote_dataset: RemoteDataset):
         with pytest.raises(ValueError):
             remote_dataset.push([LocalFile("test.jpg")], fps=2)
 
-    def raises_if_both_as_frames_and_local_files_are_given(remote_dataset: RemoteDataset):
+    def test_raises_if_both_as_frames_and_local_files_are_given(self, remote_dataset: RemoteDataset):
         with pytest.raises(ValueError):
             remote_dataset.push([LocalFile("test.jpg")], as_frames=True)
 
-    def works_with_local_files_list(remote_dataset: RemoteDataset):
+    def test_works_with_local_files_list(self, remote_dataset: RemoteDataset):
         assert_upload_mocks_are_correctly_called(remote_dataset, [LocalFile("test.jpg")])
 
-    def works_with_path_list(remote_dataset: RemoteDataset):
+    def test_works_with_path_list(self, remote_dataset: RemoteDataset):
         assert_upload_mocks_are_correctly_called(remote_dataset, [Path("test.jpg")])
 
-    def works_with_str_list(remote_dataset: RemoteDataset):
+    def test_works_with_str_list(self, remote_dataset: RemoteDataset):
         assert_upload_mocks_are_correctly_called(remote_dataset, ["test.jpg"])
 
-    def works_with_supported_files(remote_dataset: RemoteDataset):
+    def test_works_with_supported_files(self, remote_dataset: RemoteDataset):
         supported_extensions = [
             ".png",
             ".jpeg",
@@ -474,15 +478,15 @@ def describe_push():
         filenames = [f"test{extension}" for extension in supported_extensions]
         assert_upload_mocks_are_correctly_called(remote_dataset, filenames)
 
-    def raises_with_unsupported_files(remote_dataset: RemoteDataset):
+    def test_raises_with_unsupported_files(self, remote_dataset: RemoteDataset):
         with pytest.raises(UnsupportedFileType):
             remote_dataset.push(["test.txt"])
 
 
 @pytest.mark.usefixtures("file_read_write_test")
-def describe_pull():
+class TestPull:
     @patch("platform.system", return_value="Linux")
-    def it_gets_latest_release_when_not_given_one(system_mock: MagicMock, remote_dataset: RemoteDataset):
+    def test_gets_latest_release_when_not_given_one(self, system_mock: MagicMock, remote_dataset: RemoteDataset):
         stub_release_response = Release(
             "dataset-slug",
             "team-slug",
@@ -508,7 +512,7 @@ def describe_pull():
                 get_release_stub.assert_called_once()
 
     @patch("platform.system", return_value="Windows")
-    def it_does_not_create_symlink_on_windows(mocker: MagicMock, remote_dataset: RemoteDataset):
+    def test_does_not_create_symlink_on_windows(self, mocker: MagicMock, remote_dataset: RemoteDataset):
         stub_release_response = Release(
             "dataset-slug",
             "team-slug",
@@ -536,7 +540,7 @@ def describe_pull():
                 assert not latest.is_symlink()
 
     @patch("platform.system", return_value="Linux")
-    def it_continues_if_symlink_creation_fails(system_mock: MagicMock, remote_dataset: RemoteDataset):
+    def test_continues_if_symlink_creation_fails(self, system_mock: MagicMock, remote_dataset: RemoteDataset):
         stub_release_response = Release(
             "dataset-slug",
             "team-slug",
@@ -566,7 +570,7 @@ def describe_pull():
                     assert not latest.is_symlink()
 
     @patch("platform.system", return_value="Linux")
-    def it_raises_if_release_format_is_not_json(system_mock: MagicMock, remote_dataset: RemoteDataset):
+    def test_raises_if_release_format_is_not_json(self, system_mock: MagicMock, remote_dataset: RemoteDataset):
         a_release = Release(
             remote_dataset.slug,
             remote_dataset.team,
@@ -604,41 +608,49 @@ def dataset_item(dataset_slug: str) -> DatasetItem:
 
 
 @pytest.mark.usefixtures("file_read_write_test")
-def describe_archive():
-    def calls_client_put(remote_dataset: RemoteDataset, dataset_item: DatasetItem, team_slug: str, dataset_slug: str):
+class TestArchive:
+    def test_calls_client_put(
+        self, remote_dataset: RemoteDataset, dataset_item: DatasetItem, team_slug: str, dataset_slug: str
+    ):
         with patch.object(Client, "archive_item", return_value={}) as stub:
             remote_dataset.archive([dataset_item])
             stub.assert_called_once_with(dataset_slug, team_slug, {"filter": {"dataset_item_ids": [1]}})
 
 
 @pytest.mark.usefixtures("file_read_write_test")
-def describe_move_to_new():
-    def calls_client_put(remote_dataset: RemoteDataset, dataset_item: DatasetItem, team_slug: str, dataset_slug: str):
+class TestMoveToNew:
+    def test_calls_client_put(
+        self, remote_dataset: RemoteDataset, dataset_item: DatasetItem, team_slug: str, dataset_slug: str
+    ):
         with patch.object(Client, "move_item_to_new", return_value={}) as stub:
             remote_dataset.move_to_new([dataset_item])
             stub.assert_called_once_with(dataset_slug, team_slug, {"filter": {"dataset_item_ids": [1]}})
 
 
 @pytest.mark.usefixtures("file_read_write_test")
-def describe_reset():
-    def calls_client_put(remote_dataset: RemoteDataset, dataset_item: DatasetItem, team_slug: str, dataset_slug: str):
+class TestReset:
+    def test_calls_client_put(
+        self, remote_dataset: RemoteDataset, dataset_item: DatasetItem, team_slug: str, dataset_slug: str
+    ):
         with patch.object(Client, "reset_item", return_value={}) as stub:
             remote_dataset.reset([dataset_item])
             stub.assert_called_once_with(dataset_slug, team_slug, {"filter": {"dataset_item_ids": [1]}})
 
 
 @pytest.mark.usefixtures("file_read_write_test")
-def describe_restore_archived():
-    def calls_client_put(remote_dataset: RemoteDataset, dataset_item: DatasetItem, team_slug: str, dataset_slug: str):
+class TestRestoreArchived:
+    def test_calls_client_put(
+        self, remote_dataset: RemoteDataset, dataset_item: DatasetItem, team_slug: str, dataset_slug: str
+    ):
         with patch.object(Client, "restore_archived_item", return_value={}) as stub:
             remote_dataset.restore_archived([dataset_item])
             stub.assert_called_once_with(dataset_slug, team_slug, {"filter": {"dataset_item_ids": [1]}})
 
 
 @pytest.mark.usefixtures("file_read_write_test")
-def describe_delete_items():
-    def calls_client_delete(
-        remote_dataset: RemoteDataset, dataset_item: DatasetItem, team_slug: str, dataset_slug: str
+class TestDeleteItems:
+    def test_calls_client_delete(
+        self, remote_dataset: RemoteDataset, dataset_item: DatasetItem, team_slug: str, dataset_slug: str
     ):
         with patch.object(Client, "delete_item", return_value={}) as stub:
             remote_dataset.delete_items([dataset_item])
@@ -657,8 +669,8 @@ def assert_upload_mocks_are_correctly_called(remote_dataset: RemoteDataset, *arg
 
 
 @pytest.mark.usefixtures("file_read_write_test")
-def describe_export_dataset():
-    def honours_include_authorship(remote_dataset: RemoteDataset):
+class TestExportDataset:
+    def test_honours_include_authorship(self, remote_dataset: RemoteDataset):
         with patch.object(Client, "create_export", return_value={}) as stub:
             remote_dataset.export("example", None, False, True)
             stub.assert_called_once_with(
@@ -672,7 +684,7 @@ def describe_export_dataset():
                 remote_dataset.team,
             )
 
-    def default_values_have_negative_includes(remote_dataset: RemoteDataset):
+    def test_default_values_have_negative_includes(self, remote_dataset: RemoteDataset):
         with patch.object(Client, "create_export", return_value={}) as stub:
             remote_dataset.export("example")
             stub.assert_called_once_with(

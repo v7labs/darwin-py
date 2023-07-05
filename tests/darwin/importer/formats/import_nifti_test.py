@@ -217,7 +217,6 @@ if __name__ == "__main__":
     with tempfile.TemporaryDirectory() as tmp_dir:
         path = Path(tmp_dir) / "annotations.json"
         path.write_text(input_json_string)
-        print(path)
         annotation_files = parse_path(path=path)
     if isinstance(annotation_files, list):
         annotation_file = annotation_files[0]

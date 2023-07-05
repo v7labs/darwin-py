@@ -1,16 +1,17 @@
 from pathlib import Path
 
-import darwin.datatypes as dt
 import pytest
+
+import darwin.datatypes as dt
 from darwin.exporter.formats import coco
 
 
-def describe_build_annotation():
+class DescribeBuildAnnotations:
     @pytest.fixture
-    def annotation_file() -> dt.AnnotationFile:
+    def annotation_file(self) -> dt.AnnotationFile:
         return dt.AnnotationFile(path=Path("test.json"), filename="test.json", annotation_classes=set(), annotations=[])
 
-    def polygon_include_extras(annotation_file: dt.AnnotationFile):
+    def test_polygon_include_extras(self, annotation_file: dt.AnnotationFile):
         polygon = dt.Annotation(
             dt.AnnotationClass("polygon_class", "polygon"),
             {"path": [{"x": 1, "y": 1}, {"x": 2, "y": 2}, {"x": 1, "y": 2}]},
@@ -21,7 +22,7 @@ def describe_build_annotation():
 
         assert coco._build_annotation(annotation_file, "test-id", polygon, categories)["extra"] == {"instance_id": 1}
 
-    def bounding_boxes_include_extras(annotation_file: dt.AnnotationFile):
+    def test_bounding_boxes_include_extras(self, annotation_file: dt.AnnotationFile):
         bbox = dt.Annotation(
             dt.AnnotationClass("bbox_class", "bounding_box"),
             {"x": 1, "y": 1, "w": 5, "h": 5},
