@@ -177,3 +177,7 @@ class Workflow(DefaultDarwin):
     stages: List[WFStage]
 
     thumbnails: List[str]
+
+
+class WorkflowListValidator(DefaultDarwin):
+    list: List[Workflow]

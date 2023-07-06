@@ -3,7 +3,7 @@ from typing import List, Optional, Tuple
 from pydantic import ValidationError
 
 from darwin.future.core.client import Client
-from darwin.future.data_objects.workflow import Workflow
+from darwin.future.data_objects.workflow import Workflow, WorkflowListValidator
 
 
 def list_workflows(client: Client, team_slug: Optional[str] = None) -> Tuple[List[Workflow], List[Exception]]:
@@ -27,12 +27,8 @@ def list_workflows(client: Client, team_slug: Optional[str] = None) -> Tuple[Lis
     try:
         team_slug = team_slug or client.config.default_team
         response = client.get(f"/v2/teams/{team_slug}/workflows?worker=false")
-        assert isinstance(response, list), f"Expected list, got {type(response)}"
-        for workflow in response:
-            try:
-                workflows.append(Workflow.parse_obj(workflow))
-            except ValidationError as e:
-                exceptions.append(e)
+        list_of_workflows = WorkflowListValidator(list=response)  # type: ignore
+        workflows = [Workflow.parse_obj(workflow) for workflow in list_of_workflows.list]
     except Exception as e:
         exceptions.append(e)
 

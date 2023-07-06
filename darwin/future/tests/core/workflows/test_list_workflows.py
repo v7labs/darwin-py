@@ -62,7 +62,7 @@ def test_list_workflows_with_invalid_response(base_client: Client) -> None:
     responses.add(
         responses.GET,
         f"{base_client.config.base_url}api/v2/teams/{base_client.config.default_team}/workflows?worker=false",
-        json="{}",
+        json="INVALIDRESPONSE",
         status=200,
     )
 
