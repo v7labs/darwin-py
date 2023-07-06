@@ -20,13 +20,6 @@ class DatasetMeta(MetaBase[Dataset]):
         _type_: DatasetMeta
     """
 
-    client: Client
-
-    def __init__(self, client: Client, datasets: Optional[List[Dataset]] = None) -> None:
-        # TODO: Initialise from chaining within Client
-        self.client = client
-        super().__init__(datasets)
-
     def get_dataset_by_id(self) -> Dataset:
         # TODO: implement
         raise NotImplementedError()
@@ -162,9 +155,3 @@ class DatasetMeta(MetaBase[Dataset]):
 
         VALID_SLUG_CHARS = "abcdefghijklmnopqrstuvwxyz0123456789-_"
         assert_is(all(c in VALID_SLUG_CHARS for c in slug_copy), "slug must only contain valid characters")
-
-    def __next__(self) -> Dataset:
-        if self._items is None:
-            items, exceptions = list_datasets(self.client)
-            self._items = items
-        return super().__next__()
