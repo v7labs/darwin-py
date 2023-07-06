@@ -3,7 +3,7 @@ from enum import Enum
 from typing import List, Optional
 from uuid import UUID
 
-from pydantic import Field, root_validator, validator
+from pydantic import Field, root_validator
 
 from darwin.future.data_objects.typing import UnknownType
 from darwin.future.pydantic_base import DefaultDarwin

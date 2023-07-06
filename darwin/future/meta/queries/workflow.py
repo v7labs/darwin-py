@@ -1,10 +1,13 @@
+from datetime import datetime, timezone
+from tracemalloc import start
 from typing import List
+from uuid import UUID
 
 from darwin.exceptions import DarwinException
 from darwin.future.core.client import Client
 from darwin.future.core.types.query import Param, Query, QueryFilter
 from darwin.future.core.workflows.list_workflows import list_workflows
-from darwin.future.data_objects.workflow import Workflow
+from darwin.future.data_objects.workflow import WFStage, Workflow
 from darwin.future.helpers.exception_handler import handle_exception
 
 
@@ -41,6 +44,46 @@ class WorkflowQuery(Query[Workflow]):
         return workflows
 
     def _execute_filters(self, workflows: List[Workflow], filter: QueryFilter) -> List[Workflow]:
-        # TODO implement filtering on workflows
+        if filter.name == "id":
+            id_to_find = UUID(filter.param)
+            return [w for w in workflows if w.id == id_to_find]
+
+        if filter.name == "inserted_at_start":
+            start_date = datetime.fromisoformat(filter.param)
+            return [w for w in workflows if self._date_compare(w.inserted_at, start_date)]
+
+        if filter.name == "inserted_at_end":
+            end_date = datetime.fromisoformat(filter.param)
+            return [w for w in workflows if self._date_compare(end_date, w.inserted_at)]
+
+        if filter.name == "updated_at_start":
+            start_date = datetime.fromisoformat(filter.param)
+            return [w for w in workflows if self._date_compare(w.updated_at, start_date)]
+
+        if filter.name == "updated_at_end":
+            end_date = datetime.fromisoformat(filter.param)
+            return [w for w in workflows if self._date_compare(end_date, w.updated_at)]
+
+        if filter.name == "dataset_id":
+            datasets_to_find_id: List[int] = [int(s) for s in filter.param.split(",")]
+            return [w for w in workflows if int(w.dataset) in datasets_to_find_id]
+
+        if filter.name == "dataset_name":
+            datasets_to_find_name: List[str] = [str(s) for s in filter.param.split(",")]
+            return [w for w in workflows if str(w.dataset) in datasets_to_find_name]
+
+        if filter.name == "has_stages":
+            stages_to_find = [s for s in filter.param.split(",")]
+            return [w for w in workflows if self._stages_contains(w.stages, stages_to_find)]
 
         return self._generic_execute_filter(workflows, filter)
+
+    def _date_compare(self, date1: datetime, date2: datetime) -> bool:
+        return date1.astimezone(timezone.utc) >= date2.astimezone(timezone.utc)
+
+    def _stages_contains(self, stages: List[WFStage], stages_to_find: List[str]) -> bool:
+        for stage in stages:
+            if str(stage.id) in stages_to_find:
+                return True
+
+        return False

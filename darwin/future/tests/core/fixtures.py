@@ -183,8 +183,8 @@ def base_filterable_workflows() -> list:
             "id": "6dca86a3-48fb-40cc-8594-88310f5f1fdf",
             "name": "test-workflow-1",
             "team_id": "100",
-            "inserted_at": "2021-06-01T15:00:00.000000Z",
-            "updated_at": "2021-06-05T15:00:00.000000Z",
+            "inserted_at": "2021-06-01T15:00:00.000+00:00",
+            "updated_at": "2021-06-05T15:00:00.000+00:00",
             "dataset": {
                 "id": 1,
                 "name": "test-dataset-1",
@@ -234,14 +234,14 @@ def base_filterable_workflows() -> list:
             ],
         },
         {
-            "id": "6dca86a3-48fb-40cc-8594-88310f5f1fdf",
+            "id": "e34fe935-4a1c-4231-bb55-454e2ac7673f",
             "name": "test-workflow-2",
             "team_id": "100",
-            "inserted_at": "2021-06-03T15:00:00.000000Z",
-            "updated_at": "2021-06-05T15:00:00.000000Z",
+            "inserted_at": "2021-06-03T15:00:00.000+00:00",
+            "updated_at": "2021-06-05T15:00:00.000+00:00",
             "dataset": {
-                "id": 1,
-                "name": "test-dataset-1",
+                "id": 2,
+                "name": "test-dataset-2",
                 "instructions": "test-instructions-1",
             },
             "stages": [
@@ -288,14 +288,14 @@ def base_filterable_workflows() -> list:
             ],
         },
         {
-            "id": "6dca86a3-48fb-40cc-8594-88310f5f1fdf",
+            "id": "45cf0abe-58a2-4878-b171-4fb5421a1c39",
             "name": "test-workflow-3",
             "team_id": "100",
-            "inserted_at": "2021-06-05T15:00:00.000000Z",
-            "updated_at": "2021-06-10T15:00:00.000000Z",
+            "inserted_at": "2021-06-05T15:00:00.000+00:00",
+            "updated_at": "2021-06-10T15:00:00.000+00:00",
             "dataset": {
-                "id": 1,
-                "name": "test-dataset-1",
+                "id": 3,
+                "name": "test-dataset-3",
                 "instructions": "test-instructions-1",
             },
             "stages": [
