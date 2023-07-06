@@ -1,4 +1,5 @@
-from datetime import datetime
+from collections import namedtuple
+from datetime import datetime, timezone
 
 import pytest
 import responses
@@ -211,8 +212,33 @@ def test_workflowquery_filters_stages_multiple(base_client: Client, base_filtera
     )
     workflows = query.collect(base_client)
 
-    assert len(workflows) == 1
+    assert len(workflows) == 2
     workflow_names = [workflow.name for workflow in workflows]
 
     assert "test-workflow-3" in workflow_names
     assert "test-workflow-1" in workflow_names
+
+
+# Test static methods
+def test__date_compare() -> None:
+    date1 = datetime(1970, 1, 1, 0, 0, 0, 1, timezone.utc)
+    date1_copy = datetime(1970, 1, 1, 0, 0, 0, 1, timezone.utc)
+    date2 = datetime(1970, 1, 1, 0, 0, 0, 0, timezone.utc)
+
+    assert WorkflowQuery._date_compare(date1, date2)
+    assert WorkflowQuery._date_compare(date1, date1_copy)
+    assert not WorkflowQuery._date_compare(date2, date1)
+
+
+def test__stages_contains() -> None:
+    FakeStage = namedtuple("FakeStage", ["id"])
+    stages = [
+        FakeStage("1"),
+        FakeStage("2"),
+        FakeStage("3"),
+    ]
+
+    assert WorkflowQuery._stages_contains(stages, "1")  # type: ignore
+    assert WorkflowQuery._stages_contains(stages, "2")  # type: ignore
+    assert WorkflowQuery._stages_contains(stages, "3")  # type: ignore
+    assert not WorkflowQuery._stages_contains(stages, "4")  # type: ignore

@@ -78,12 +78,11 @@ class WorkflowQuery(Query[Workflow]):
 
         return self._generic_execute_filter(workflows, filter)
 
-    def _date_compare(self, date1: datetime, date2: datetime) -> bool:
+    @classmethod
+    def _date_compare(cls, date1: datetime, date2: datetime) -> bool:
         return date1.astimezone(timezone.utc) >= date2.astimezone(timezone.utc)
 
-    def _stages_contains(self, stages: List[WFStage], stages_to_find: List[str]) -> bool:
-        for stage in stages:
-            if str(stage.id) in stages_to_find:
-                return True
-
-        return False
+    @classmethod
+    def _stages_contains(cls, stages: List[WFStage], stages_to_find: List[str]) -> bool:
+        stage_ids = [str(s.id) for s in stages]
+        return any(stage_to_find in stage_ids for stage_to_find in stages_to_find)
