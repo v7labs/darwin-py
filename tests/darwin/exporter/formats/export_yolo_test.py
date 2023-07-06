@@ -2,18 +2,19 @@ import shutil
 from pathlib import Path
 
 import pytest
+
 from darwin.datatypes import Annotation, AnnotationClass, AnnotationFile
 from darwin.exporter.formats.yolo import export
 
 
-def describe_export():
+class TestExport:
     @pytest.fixture
-    def folder_path(tmp_path: Path):
+    def folder_path(self, tmp_path: Path):
         path: Path = tmp_path / "yolo_export_output_files"
         yield path
         shutil.rmtree(path)
 
-    def test_it_creates_missing_folders(folder_path: Path):
+    def test_it_creates_missing_folders(self, folder_path: Path):
         annotation_class: AnnotationClass = AnnotationClass(
             name="car", annotation_type="polygon", annotation_internal_type=None
         )

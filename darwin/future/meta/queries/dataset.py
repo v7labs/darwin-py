@@ -1,12 +1,14 @@
+from __future__ import annotations
+
 from typing import List
 
-from darwin.future.core.client import Client
 from darwin.future.core.datasets.list_datasets import list_datasets
 from darwin.future.core.types.query import Param, Query, QueryFilter
 from darwin.future.data_objects.dataset import Dataset
+from darwin.future.meta.objects.dataset import DatasetMeta
 
 
-class DatasetQuery(Query[Dataset]):
+class DatasetQuery(Query[DatasetMeta, Dataset]):
     """
     DatasetQuery object with methods to manage filters, retrieve data, and execute
     filters
@@ -18,25 +20,25 @@ class DatasetQuery(Query[Dataset]):
     collect: Executes the query and returns the filtered data
     """
 
-    def where(self, param: Param) -> "DatasetQuery":
+    def where(self, param: Param) -> DatasetQuery:
         filter = QueryFilter.parse_obj(param)
         query = self + filter
 
-        return DatasetQuery(query.filters)
+        return DatasetQuery(self.client, query.filters)
 
-    def collect(self, client: Client) -> List[Dataset]:
-        datasets, exceptions = list_datasets(client)
+    def collect(self) -> DatasetMeta:
+        datasets, exceptions = list_datasets(self.client)
         if exceptions:
             # TODO: print and or raise exceptions, tbd how we want to handle this
             pass
 
         if not self.filters:
-            return datasets
+            self.filters = []
 
         for filter in self.filters:
             datasets = self._execute_filters(datasets, filter)
-
-        return datasets
+        meta = DatasetMeta(self.client, datasets)
+        return meta
 
     def _execute_filters(self, datasets: List[Dataset], filter: QueryFilter) -> List[Dataset]:
         """Executes filtering on the local list of datasets, applying special logic for role filtering

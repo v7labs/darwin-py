@@ -2,6 +2,7 @@ import sys
 
 import numpy as np
 import pytest
+
 from darwin.dataset.split_manager import split_dataset
 from tests.fixtures import *
 
@@ -19,18 +20,18 @@ def test_requires_scikit_learn():
             sys.modules["sklearn"] = sklearn_module
 
 
-def describe_classification_dataset():
+class TestClassificationDataset:
     @pytest.mark.parametrize("val_percentage,test_percentage", [(0, 0.3), (0, 0), (0.2, 0), (0.5, 0.5), (1, 0.1)])
-    def it_raises_for_invalid_split_configuration(
-        team_slug: str, team_extracted_dataset_path: Path, val_percentage: float, test_percentage: float
+    def test_raises_for_invalid_split_configuration(
+        self, team_slug: str, team_extracted_dataset_path: Path, val_percentage: float, test_percentage: float
     ):
         with pytest.raises(ValueError):
             root = team_extracted_dataset_path / team_slug / "sl"
             split_dataset(root, release_name="latest", val_percentage=val_percentage, test_percentage=test_percentage)
 
     @pytest.mark.parametrize("val_percentage,test_percentage", [(0.2, 0.3), (0.3, 0.2)])
-    def it_should_split_a_dataset(
-        team_slug: str, team_extracted_dataset_path: Path, val_percentage: float, test_percentage: float
+    def test_should_split_a_dataset(
+        self, team_slug: str, team_extracted_dataset_path: Path, val_percentage: float, test_percentage: float
     ):
         root = team_extracted_dataset_path / team_slug / "sl"
 

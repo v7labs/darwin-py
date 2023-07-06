@@ -2,6 +2,7 @@ import shutil
 from unittest.mock import patch
 
 import requests
+
 from darwin.dataset.release import Release
 from tests.fixtures import *
 
@@ -23,8 +24,8 @@ def release(dataset_slug: str, team_slug: str) -> Release:
     )
 
 
-def describe_release():
-    def it_downloads_zip(release: Release, tmp_path: Path):
+class TestRelease:
+    def test_downloads_zip(self, release: Release, tmp_path: Path):
         with patch.object(requests, "get") as get:
             with patch.object(shutil, "copyfileobj") as copyfileobj:
                 release.download_zip(tmp_path / "test.zip")
