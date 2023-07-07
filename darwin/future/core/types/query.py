@@ -66,7 +66,10 @@ class Query(Generic[T], ABC):
         _generic_execute_filter: Executes a filter on a list of objects
     """
 
-    def __init__(self, client: Client, filters: Optional[List[QueryFilter]] = None):
+    def __init__(
+        self, client: Client, filters: Optional[List[QueryFilter]] = None, meta_params: Optional[Param] = None
+    ):
+        self.meta_params = meta_params
         self.client = client
         self.filters = filters
         self.results: Optional[List[T]] = None
@@ -106,9 +109,9 @@ class Query(Generic[T], ABC):
         return self
 
     def __len__(self) -> int:
-        if self.filters is None:
-            return 0
-        return len(self.filters)
+        if self.results is None:
+            self.results = list(self.collect())
+        return len(self.results)
 
     def __iter__(self) -> Query[T]:
         self.n = 0

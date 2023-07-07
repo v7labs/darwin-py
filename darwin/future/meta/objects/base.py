@@ -15,3 +15,8 @@ class MetaBase(Generic[R]):
     def __init__(self, client: Client, item: Optional[R] = None) -> None:
         self.client = client
         self._item = item
+
+    def __str__(self) -> str:
+        if self._item is None:
+            raise ValueError("MetaBase has no item")
+        return str(self._item)

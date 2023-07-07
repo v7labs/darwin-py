@@ -13,3 +13,12 @@ class StageMeta(MetaBase[WFStage]):
     Args:
         MetaBase (_type_): _description_
     """
+
+    def __init__(
+        self,
+        client: Client,
+        item: Optional[WFStage] = None,
+        workflow_id: Optional[UUID] = None,
+    ) -> None:
+        self._workflow_id = workflow_id
+        super().__init__(client, item)
