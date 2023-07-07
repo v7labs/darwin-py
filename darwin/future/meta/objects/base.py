@@ -9,9 +9,9 @@ R = TypeVar("R", bound=DefaultDarwin)
 
 
 class MetaBase(Generic[R]):
-    _item: R
+    _item: Optional[R]
     client: Client
 
-    def __init__(self, client: Client, item: R) -> None:
+    def __init__(self, client: Client, item: Optional[R] = None) -> None:
         self.client = client
         self._item = item

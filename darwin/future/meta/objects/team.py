@@ -21,6 +21,10 @@ class TeamMeta(MetaBase[Team]):
         _type_: TeamMeta
     """
 
+    def __init__(self, client: Client, team: Optional[Team] = None) -> None:
+        team = team or get_team(client)
+        super().__init__(client, team)
+
     @property
     def members(self) -> TeamMemberQuery:
         return TeamMemberQuery(self.client)

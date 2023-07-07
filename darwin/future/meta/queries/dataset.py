@@ -59,6 +59,10 @@ class DatasetQuery(Query[DatasetMeta]):
         """
 
         if filter.name == "releases":
-            return [d for d in datasets if d._item.releases and filter.param in [str(r) for r in d._item.releases]]
+            return [
+                d
+                for d in datasets
+                if d._item is not None and d._item.releases and filter.param in [str(r) for r in d._item.releases]
+            ]
 
         return super()._generic_execute_filter(datasets, filter)

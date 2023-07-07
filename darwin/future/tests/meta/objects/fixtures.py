@@ -7,4 +7,4 @@ from darwin.future.meta.objects.team import TeamMeta
 
 @fixture
 def base_meta_team(base_client: Client, base_team: Team) -> TeamMeta:
-    return TeamMeta(base_client, [base_team])
+    return TeamMeta(base_client, base_team)

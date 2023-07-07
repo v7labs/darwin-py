@@ -48,6 +48,6 @@ class TeamMemberQuery(Query[TeamMemberMeta]):
         List[TeamMember]: Filtered subset of members
         """
         if filter.name == "role":
-            return [m for m in members if filter.filter_attr(m._item.role.value)]
+            return [m for m in members if m._item is not None and filter.filter_attr(m._item.role.value)]
         else:
             return super()._generic_execute_filter(members, filter)
