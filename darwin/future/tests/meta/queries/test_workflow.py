@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 
 import pytest
 import responses
+from sklearn import base
 
 from darwin.future.core.client import Client
 from darwin.future.core.types.query import Modifier
@@ -24,8 +25,8 @@ def test_workflowquery_collects_basic(base_client: Client, base_filterable_workf
     endpoint = base_client.config.api_endpoint + workflows_query_endpoint(base_client.config.default_team)
     responses.add(responses.GET, endpoint, json=base_filterable_workflows)
 
-    query = WorkflowQuery()
-    workflows = query.collect(base_client)
+    query = WorkflowQuery(base_client, [])
+    workflows = query.collect()
 
     assert len(workflows) == 3
     assert all([isinstance(workflow, Workflow) for workflow in workflows])
@@ -36,13 +37,13 @@ def test_workflowquery_filters_uuid(base_client: Client, base_filterable_workflo
     endpoint = base_client.config.api_endpoint + workflows_query_endpoint(base_client.config.default_team)
     responses.add(responses.GET, endpoint, json=base_filterable_workflows)
 
-    query = WorkflowQuery().where(
+    query = WorkflowQuery(base_client, []).where(
         {
             "name": "id",
             "param": "6dca86a3-48fb-40cc-8594-88310f5f1fdf",
         }
     )
-    workflows = query.collect(base_client)
+    workflows = query.collect()
 
     assert len(workflows) == 1
     assert str(workflows[0].id) == WORKFLOW_1
@@ -57,7 +58,7 @@ def test_workflowquery_filters_inserted_at(base_client: Client, base_filterable_
     end = "2021-06-04T15:00:00.000+00:00"
 
     query = (
-        WorkflowQuery()
+        WorkflowQuery(base_client, [])
         .where(
             {
                 "name": "inserted_at_start",
@@ -71,7 +72,7 @@ def test_workflowquery_filters_inserted_at(base_client: Client, base_filterable_
             }
         )
     )
-    workflows = query.collect(base_client)
+    workflows = query.collect()
 
     assert len(workflows) == 2
     ids = [str(workflow.id) for workflow in workflows]
@@ -88,7 +89,7 @@ def test_workflowquery_filters_updated_at(base_client: Client, base_filterable_w
     end = "2021-06-06T15:00:00.000+00:00"
 
     query = (
-        WorkflowQuery()
+        WorkflowQuery(base_client, [])
         .where(
             {
                 "name": "updated_at_start",
@@ -102,7 +103,7 @@ def test_workflowquery_filters_updated_at(base_client: Client, base_filterable_w
             }
         )
     )
-    workflows = query.collect(base_client)
+    workflows = query.collect()
 
     assert len(workflows) == 2
     ids = [str(workflow.id) for workflow in workflows]
@@ -115,13 +116,13 @@ def test_workflowquery_filters_dataset_id(base_client: Client, base_filterable_w
     endpoint = base_client.config.api_endpoint + workflows_query_endpoint(base_client.config.default_team)
     responses.add(responses.GET, endpoint, json=base_filterable_workflows)
 
-    query = WorkflowQuery().where(
+    query = WorkflowQuery(base_client, []).where(
         {
             "name": "dataset_id",
             "param": "1",
         }
     )
-    workflows = query.collect(base_client)
+    workflows = query.collect()
 
     assert len(workflows) == 1
     assert str(workflows[0].id) == WORKFLOW_1
@@ -132,13 +133,13 @@ def test_workflowquery_filters_dataset_id_multiple_ids(base_client: Client, base
     endpoint = base_client.config.api_endpoint + workflows_query_endpoint(base_client.config.default_team)
     responses.add(responses.GET, endpoint, json=base_filterable_workflows)
 
-    query = WorkflowQuery().where(
+    query = WorkflowQuery(base_client, []).where(
         {
             "name": "dataset_id",
             "param": "1,2",
         }
     )
-    workflows = query.collect(base_client)
+    workflows = query.collect()
 
     assert len(workflows) == 2
     assert str(workflows[0].id) == WORKFLOW_1
@@ -150,13 +151,13 @@ def test_workflowquery_filters_dataset_name(base_client: Client, base_filterable
     endpoint = base_client.config.api_endpoint + workflows_query_endpoint(base_client.config.default_team)
     responses.add(responses.GET, endpoint, json=base_filterable_workflows)
 
-    query = WorkflowQuery().where(
+    query = WorkflowQuery(base_client, []).where(
         {
             "name": "dataset_name",
             "param": "test-dataset-1",
         }
     )
-    workflows = query.collect(base_client)
+    workflows = query.collect()
 
     assert len(workflows) == 1
     assert str(workflows[0].id) == WORKFLOW_1
@@ -169,13 +170,13 @@ def test_workflowquery_filters_dataset_name_mutliple_names(
     endpoint = base_client.config.api_endpoint + workflows_query_endpoint(base_client.config.default_team)
     responses.add(responses.GET, endpoint, json=base_filterable_workflows)
 
-    query = WorkflowQuery().where(
+    query = WorkflowQuery(base_client, []).where(
         {
             "name": "dataset_name",
             "param": "test-dataset-1,test-dataset-2",
         }
     )
-    workflows = query.collect(base_client)
+    workflows = query.collect()
 
     assert len(workflows) == 2
     assert str(workflows[0].id) == WORKFLOW_1
@@ -187,13 +188,13 @@ def test_workflowquery_filters_stages(base_client: Client, base_filterable_workf
     endpoint = base_client.config.api_endpoint + workflows_query_endpoint(base_client.config.default_team)
     responses.add(responses.GET, endpoint, json=base_filterable_workflows)
 
-    query = WorkflowQuery().where(
+    query = WorkflowQuery(base_client, []).where(
         {
             "name": "has_stages",
             "param": "5445adcb-193d-4f76-adb0-0c6d5f5e4c04",
         }
     )
-    workflows = query.collect(base_client)
+    workflows = query.collect()
 
     assert len(workflows) == 1
     assert str(workflows[0].name) == "test-workflow-3"
@@ -204,13 +205,13 @@ def test_workflowquery_filters_stages_multiple(base_client: Client, base_filtera
     endpoint = base_client.config.api_endpoint + workflows_query_endpoint(base_client.config.default_team)
     responses.add(responses.GET, endpoint, json=base_filterable_workflows)
 
-    query = WorkflowQuery().where(
+    query = WorkflowQuery(base_client, []).where(
         {
             "name": "has_stages",
             "param": "5445adcb-193d-4f76-adb0-0c6d5f5e4c04,53d2c997-6bb0-4766-803c-3c8d1fb21072",
         }
     )
-    workflows = query.collect(base_client)
+    workflows = query.collect()
 
     assert len(workflows) == 2
     workflow_names = [workflow.name for workflow in workflows]

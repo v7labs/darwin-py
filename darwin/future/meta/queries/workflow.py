@@ -1,5 +1,4 @@
 from datetime import datetime, timezone
-from tracemalloc import start
 from typing import List
 from uuid import UUID
 
@@ -9,9 +8,10 @@ from darwin.future.core.types.query import Param, Query, QueryFilter
 from darwin.future.core.workflows.list_workflows import list_workflows
 from darwin.future.data_objects.workflow import WFStage, Workflow
 from darwin.future.helpers.exception_handler import handle_exception
+from darwin.future.meta.objects.workflow import WorkflowMeta
 
 
-class WorkflowQuery(Query[Workflow]):
+class WorkflowQuery(Query[WorkflowMeta, Workflow]):
     """
     WorkflowQuery object with methods to manage filters, retrieve data, and execute
     filters
@@ -27,10 +27,10 @@ class WorkflowQuery(Query[Workflow]):
         filter = QueryFilter.parse_obj(param)
         query = self + filter
 
-        return WorkflowQuery(query.filters)
+        return WorkflowQuery(self.client, query.filters)
 
-    def collect(self, client: Client) -> List[Workflow]:
-        workflows, exceptions = list_workflows(client)
+    def collect(self) -> List[Workflow]:
+        workflows, exceptions = list_workflows(self.client)
         if exceptions:
             handle_exception(exceptions)
             raise DarwinException from exceptions[0]
