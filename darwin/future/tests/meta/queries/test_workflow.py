@@ -1,9 +1,7 @@
 from collections import namedtuple
 from datetime import datetime, timezone
 
-import pytest
 import responses
-from sklearn import base
 
 from darwin.future.core.client import Client
 from darwin.future.core.types.query import Modifier
