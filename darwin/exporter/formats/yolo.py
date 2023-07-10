@@ -31,7 +31,7 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path) -> N
 
 def _export_file(annotation_file: dt.AnnotationFile, class_index: ClassIndex, output_dir: Path) -> None:
     txt = _build_txt(annotation_file, class_index)
-    output_file_path = (output_dir / annotation_file.filename).with_suffix(".txt")
+    output_file_path = (output_dir / annotation_file.path.stem).with_suffix(".txt")
     output_file_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_file_path, "w") as f:
         f.write(txt)
