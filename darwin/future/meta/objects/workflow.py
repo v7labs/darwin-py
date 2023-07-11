@@ -18,3 +18,9 @@ class WorkflowMeta(MetaBase[Workflow]):
         if self._item is None:
             raise ValueError("WorkflowMeta has no item")
         return self._item.id
+
+    @property
+    def name(self) -> str:
+        if self._item is None:
+            raise ValueError("WorkflowMeta has no item")
+        return self._item.name

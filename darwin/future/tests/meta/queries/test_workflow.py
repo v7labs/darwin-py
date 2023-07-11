@@ -6,6 +6,7 @@ import responses
 from darwin.future.core.client import Client
 from darwin.future.core.types.query import Modifier
 from darwin.future.data_objects.workflow import Workflow
+from darwin.future.meta.objects.workflow import WorkflowMeta
 from darwin.future.meta.queries.workflow import WorkflowQuery
 from darwin.future.tests.core.fixtures import *
 
@@ -27,7 +28,7 @@ def test_workflowquery_collects_basic(base_client: Client, base_filterable_workf
     workflows = query.collect()
 
     assert len(workflows) == 3
-    assert all([isinstance(workflow, Workflow) for workflow in workflows])
+    assert all([isinstance(workflow, WorkflowMeta) for workflow in workflows])
 
 
 @responses.activate
