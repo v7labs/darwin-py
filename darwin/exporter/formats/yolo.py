@@ -34,11 +34,10 @@ def _export_file(annotation_file: dt.AnnotationFile, class_index: ClassIndex, ou
 
     # Just using `.with_suffix(".txt")` would remove all suffixes, so we need to
     # do it manually.
+
     filename = annotation_file.path.name
     filename_to_write = filename.replace(".json", ".txt") if ".json" in filename else filename + ".txt"
     output_file_path = output_dir / filename_to_write
-
-    print(output_file_path)
 
     output_file_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_file_path, "w") as f:
