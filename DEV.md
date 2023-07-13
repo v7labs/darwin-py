@@ -1,13 +1,14 @@
 # Development Environment
 This doesn't represent the only way to develop on darwin-py, but does represent an easy and configurable way to manage things like underlying dependencies and python versions
 ## Shell environment
-No requirement for any particular shell, [zsh](https://github.com/ohmyzsh/ohmyzsh/wiki/Installing-ZSH) + [oh my zsh](https://ohmyz.sh/) is a good setup commonly used, but whatever environment you use make sure to install the recommended alias's and path exports that the below systems require for your particular shell environment, particularly pertinent for poetry. 
+No requirement for any particular shell, [zsh](https://github.com/ohmyzsh/ohmyzsh/wiki/Installing-ZSH) + [oh my zsh](https://ohmyz.sh/) is a good setup commonly used, but whatever environment you use make sure to install the recommended alias's and path exports that the below systems require for your particular shell environment, particularly pertinent for poetry which has an added step that it prints to console but isn't included on the webpage. 
 ## Pyenv
 Pyenv manages system python versions, install instructions can be found [here](https://github.com/pyenv/pyenv). 
-After installation, install a python version that is compatible with darwin-py (3.8-3.10 as of writing)
+After installation of pyenv, install a python version that is compatible with darwin-py (3.8-3.10 as of writing)
 
 `pyenv install 3.10`
 
+If the command `pyenv` isn't recognized, it hasn't installed to your shell environemnt config file correctly .zshrc .bashrc etc. 
 ## Poetry
 Poetry manages project level dependencies and local python versions. Install instructions [here](https://python-poetry.org/docs/). Make sure to follow the printed instructions and add the path to your shell environment, if running the command `poetry --version` after installation doesn't work, it means your path hasn't been updated
 
