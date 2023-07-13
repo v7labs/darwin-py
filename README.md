@@ -41,7 +41,8 @@ To run test, first install the `test` extra package
 ```
 pip install darwin-py[test]
 ```
-
+### Development
+See our development and QA environment installation recommendations [here](DEV.md)
 ---
 
 ## Usage as a Command Line Interface (CLI)
