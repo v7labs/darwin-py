@@ -16,7 +16,7 @@ Set 2 config settings for poetry once you have it setup and recognized as a comm
 
     - `poetry config virtualenvs.prefer-active-python true`
 
-2. Tell poetry to create a local folder copy of python inside .venv directory
+2. Tell poetry to create a local folder copy of python inside .venv directory when it's called to manage a project
 
     - `poetry config virtualenvs.in-project true` 
 ## New Folder Setup
@@ -26,6 +26,8 @@ To Start from scratch and get a development/QA environemnt setup. This process m
 - Set pyenv to use a local `pyenv local <version>` eg `pyenv local 3.10`
 - Create local environment with poetry `poetry shell`
 - Install dependencies `poetry install`
+
+Pyenv + Poetry here get used in conjuction, with pyenv telling the system whenever `python` is called in a folder that has been set with `pyenv local <version>` that it should use that local version. Poetry is then set to prefer that local version of python, and to create a per project copy of python to use, it will clone `<version>` into a .venv folder locally, including dependencies. If new environment is required, run `rm -rf .venv` while inside the project folder, set a new pyenv version if needed and re-run poetry commands 
 
 ## Subsequent Uses
 Once a folder is setup, it can easily be reused
