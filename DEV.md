@@ -27,7 +27,7 @@ To Start from scratch and get a development/QA environemnt setup. This process m
 - Create local environment with poetry `poetry shell`
 - Install dependencies `poetry install`
 
-Pyenv + Poetry here get used in conjuction, with pyenv telling the system whenever `python` is called in a folder that has been set with `pyenv local <version>` that it should use that local version. Poetry is then set to prefer that local version of python, and to create a per project copy of python to use, it will clone `<version>` into a .venv folder locally, including dependencies. If new environment is required, run `rm -rf .venv` while inside the project folder, set a new pyenv version if needed and re-run poetry commands 
+Pyenv + Poetry here get used in conjuction, with pyenv telling the system whenever `python` is called in a folder that has been set with `pyenv local <version>` that it should use that local version. Poetry is then set to prefer that local version of python, and to create a per project copy of python to use, it will clone `<version>` into a .venv folder locally, and install dependencies there. If new environment is required, run `rm -rf .venv` while inside the project folder, set a new pyenv version if needed and re-run poetry commands 
 
 ## Subsequent Uses
 Once a folder is setup, it can easily be reused
