@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from curses import meta
 from enum import Enum
 from typing import (
     Any,
