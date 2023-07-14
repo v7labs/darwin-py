@@ -11,7 +11,7 @@ from darwin.future.helpers.exception_handler import handle_exception
 from darwin.future.meta.objects.workflow import WorkflowMeta
 
 
-class WorkflowQuery(Query[WorkflowMeta, Workflow]):
+class WorkflowQuery(Query[WorkflowMeta]):
     """
     WorkflowQuery object with methods to manage filters, retrieve data, and execute
     filters
@@ -29,12 +29,13 @@ class WorkflowQuery(Query[WorkflowMeta, Workflow]):
 
         return WorkflowQuery(self.client, query.filters)
 
-    def collect(self) -> List[Workflow]:
-        workflows, exceptions = list_workflows(self.client)
+    def collect(self) -> List[WorkflowMeta]:
+        workflows_core, exceptions = list_workflows(self.client)
         if exceptions:
             handle_exception(exceptions)
             raise DarwinException from exceptions[0]
 
+        workflows = [WorkflowMeta(self.client, workflow) for workflow in workflows_core]
         if not self.filters:
             return workflows
 
@@ -43,38 +44,38 @@ class WorkflowQuery(Query[WorkflowMeta, Workflow]):
 
         return workflows
 
-    def _execute_filters(self, workflows: List[Workflow], filter: QueryFilter) -> List[Workflow]:
+    def _execute_filters(self, workflows: List[WorkflowMeta], filter: QueryFilter) -> List[WorkflowMeta]:
         if filter.name == "id":
             id_to_find = UUID(filter.param)
             return [w for w in workflows if w.id == id_to_find]
 
         if filter.name == "inserted_at_start":
             start_date = datetime.fromisoformat(filter.param)
-            return [w for w in workflows if self._date_compare(w.inserted_at, start_date)]
+            return [w for w in workflows if w._item is not None and self._date_compare(w._item.inserted_at, start_date)]
 
         if filter.name == "inserted_at_end":
             end_date = datetime.fromisoformat(filter.param)
-            return [w for w in workflows if self._date_compare(end_date, w.inserted_at)]
+            return [w for w in workflows if w._item is not None and self._date_compare(end_date, w._item.inserted_at)]
 
         if filter.name == "updated_at_start":
             start_date = datetime.fromisoformat(filter.param)
-            return [w for w in workflows if self._date_compare(w.updated_at, start_date)]
+            return [w for w in workflows if w._item is not None and self._date_compare(w._item.updated_at, start_date)]
 
         if filter.name == "updated_at_end":
             end_date = datetime.fromisoformat(filter.param)
-            return [w for w in workflows if self._date_compare(end_date, w.updated_at)]
+            return [w for w in workflows if w._item is not None and self._date_compare(end_date, w._item.updated_at)]
 
         if filter.name == "dataset_id":
             datasets_to_find_id: List[int] = [int(s) for s in filter.param.split(",")]
-            return [w for w in workflows if int(w.dataset) in datasets_to_find_id]
+            return [w for w in workflows if w._item is not None and int(w._item.dataset) in datasets_to_find_id]
 
         if filter.name == "dataset_name":
             datasets_to_find_name: List[str] = [str(s) for s in filter.param.split(",")]
-            return [w for w in workflows if str(w.dataset) in datasets_to_find_name]
+            return [w for w in workflows if w._item is not None and str(w._item.dataset) in datasets_to_find_name]
 
         if filter.name == "has_stages":
             stages_to_find = [s for s in filter.param.split(",")]
-            return [w for w in workflows if self._stages_contains(w.stages, stages_to_find)]
+            return [w for w in workflows if w._item is not None and self._stages_contains(w._item.stages, stages_to_find)]
 
         return self._generic_execute_filter(workflows, filter)
 

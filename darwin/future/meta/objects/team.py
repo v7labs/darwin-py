@@ -21,15 +21,14 @@ class TeamMeta(MetaBase[Team]):
         _type_: TeamMeta
     """
 
-    client: Client
-
-    def __init__(self, client: Client, teams: Optional[List[Team]] = None) -> None:
-        # TODO: Initialise from chaining within Client
-        self.client = client
-        if not teams:
-            teams = [get_team(self.client)]
-        super().__init__(teams)
+    def __init__(self, client: Client, team: Optional[Team] = None) -> None:
+        team = team or get_team(client)
+        super().__init__(client, team)
 
     @property
     def members(self) -> TeamMemberQuery:
         return TeamMemberQuery(self.client)
+
+    # @property
+    # def workflows(self) -> WorkflowQuery:
+    #     return WorkflowQuery(self.client)

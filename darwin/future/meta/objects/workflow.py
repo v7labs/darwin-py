@@ -1,23 +1,26 @@
-from typing import List, Optional
+from uuid import UUID
 
-from darwin.client import Client
 from darwin.future.data_objects.workflow import Workflow
 from darwin.future.meta.objects.base import MetaBase
+from darwin.future.meta.queries.stage import StageQuery
 
 
 class WorkflowMeta(MetaBase[Workflow]):
-    """WorkflowMeta object with methods to manage filters, retrieve data, and execute
-    filters
+    @property
+    def stages(self) -> StageQuery:
+        if self._item is None:
+            raise ValueError("WorkflowMeta has no item")
+        meta_params = {"workflow_id": self._item.id}
+        return StageQuery(self.client, meta_params=meta_params)
 
-    #TODO Placeholder to make other code work pending this
+    @property
+    def id(self) -> UUID:
+        if self._item is None:
+            raise ValueError("WorkflowMeta has no item")
+        return self._item.id
 
-
-    """
-
-    client: Client
-
-    def __init__(self, client: Client, workflows: Optional[List[Workflow]]):
-        self.client = client
-        super().__init__(workflows)
-
-    # TODO Meta CRUD
+    @property
+    def name(self) -> str:
+        if self._item is None:
+            raise ValueError("WorkflowMeta has no item")
+        return self._item.name

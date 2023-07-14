@@ -8,7 +8,7 @@ from darwin.future.data_objects.dataset import Dataset
 from darwin.future.meta.objects.dataset import DatasetMeta
 
 
-class DatasetQuery(Query[DatasetMeta, Dataset]):
+class DatasetQuery(Query[DatasetMeta]):
     """
     DatasetQuery object with methods to manage filters, retrieve data, and execute
     filters
@@ -26,21 +26,21 @@ class DatasetQuery(Query[DatasetMeta, Dataset]):
 
         return DatasetQuery(self.client, query.filters)
 
-    def collect(self) -> DatasetMeta:
+    def collect(self) -> List[DatasetMeta]:
         datasets, exceptions = list_datasets(self.client)
         if exceptions:
             # TODO: print and or raise exceptions, tbd how we want to handle this
             pass
-
+        datasets_meta = [DatasetMeta(self.client, dataset) for dataset in datasets]
         if not self.filters:
             self.filters = []
 
         for filter in self.filters:
-            datasets = self._execute_filters(datasets, filter)
-        meta = DatasetMeta(self.client, datasets)
-        return meta
+            datasets_meta = self._execute_filters(datasets_meta, filter)
 
-    def _execute_filters(self, datasets: List[Dataset], filter: QueryFilter) -> List[Dataset]:
+        return datasets_meta
+
+    def _execute_filters(self, datasets: List[DatasetMeta], filter: QueryFilter) -> List[DatasetMeta]:
         """Executes filtering on the local list of datasets, applying special logic for role filtering
         otherwise calls the parent method for general filtering on the values of the datasets
 
@@ -55,6 +55,10 @@ class DatasetQuery(Query[DatasetMeta, Dataset]):
         """
 
         if filter.name == "releases":
-            return [d for d in datasets if d.releases and filter.param in [str(r) for r in d.releases]]
+            return [
+                d
+                for d in datasets
+                if d._item is not None and d._item.releases and filter.param in [str(r) for r in d._item.releases]
+            ]
 
         return super()._generic_execute_filter(datasets, filter)
