@@ -189,12 +189,6 @@ class Query(Generic[T], ABC):
             self += item
         return self
 
-    def _parse_dict_param(self, d: Dict[str, Any]) -> QueryFilter:  # type: ignore
-        if "name" not in d or "param" not in d:
-            raise ValueError(f"args must be a QueryFilter or a dict with 'name' and 'param' keys, got {d}")
-        modifier = Modifier(d["modifier"]) if "modifier" in d else None
-        return QueryFilter(name=d["name"], param=str(d["param"]), modifier=modifier)
-
     @abstractmethod
     def collect(self) -> List[T]:
         raise NotImplementedError("Not implemented")
