@@ -16,15 +16,8 @@ class DatasetQuery(Query[DatasetMeta]):
     Methods
     -------
 
-    where: Adds a filter to the query
     collect: Executes the query and returns the filtered data
     """
-
-    def where(self, param: Param) -> DatasetQuery:
-        filter = QueryFilter.parse_obj(param)
-        query = self + filter
-
-        return DatasetQuery(self.client, query.filters)
 
     def collect(self) -> List[DatasetMeta]:
         datasets, exceptions = list_datasets(self.client)

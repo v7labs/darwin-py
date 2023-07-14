@@ -1,8 +1,19 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from curses import meta
 from enum import Enum
-from typing import Any, Callable, Dict, Generic, List, Mapping, Optional, TypeVar, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generic,
+    List,
+    Optional,
+    Tuple,
+    TypeVar,
+    overload,
+)
 
 from darwin.future.core.client import Client
 from darwin.future.meta.objects.base import MetaBase
@@ -56,6 +67,40 @@ class QueryFilter(DefaultDarwin):
         else:
             raise ValueError(f"Unknown modifier {self.modifier}")
 
+    @classmethod
+    def _from_dict(cls, d: Dict[str, Any]) -> QueryFilter:  # type: ignore
+        if "name" not in d or "param" not in d:
+            raise ValueError(f"args must be a QueryFilter or a dict with 'name' and 'param' keys, got {d}")
+        modifier = Modifier(d["modifier"]) if "modifier" in d else None
+        return QueryFilter(name=d["name"], param=str(d["param"]), modifier=modifier)
+
+    @classmethod
+    def _from_args(cls, *args: object, **kwargs: str) -> List[QueryFilter]:
+        filters = []
+        for arg in args:
+            filters.append(cls._from_arg(arg))
+        for key, value in kwargs.items():
+            filters.append(cls._from_kwarg(key, value))
+        return filters
+
+    @classmethod
+    def _from_arg(cls, arg: object) -> QueryFilter:
+        if isinstance(arg, QueryFilter):
+            return arg
+        elif isinstance(arg, dict):
+            return cls._from_dict(arg)
+        else:
+            raise ValueError(f"args must be a QueryFilter or a dict with 'name' and 'param' keys, got {arg}")
+
+    @classmethod
+    def _from_kwarg(cls, key: str, value: str) -> QueryFilter:
+        if ":" in value:
+            modifier_str, value = value.split(":", 1)
+            modifier = Modifier(modifier_str)
+        else:
+            modifier = None
+        return QueryFilter(name=key, param=value, modifier=modifier)
+
 
 class Query(Generic[T], ABC):
     """Basic Query object with methods to manage filters
@@ -82,14 +127,16 @@ class Query(Generic[T], ABC):
         assert isinstance(filter, QueryFilter)
         if self.filters is None:
             self.filters = []
-        return self.__class__(self.client, [*self.filters, filter])
+        return self.__class__(self.client, filters=[*self.filters, filter], meta_params=self.meta_params)
 
     def __sub__(self, filter: QueryFilter) -> Query[T]:
         assert filter is not None
         assert isinstance(filter, QueryFilter)
         if self.filters is None:
             return self
-        return self.__class__(self.client, [f for f in self.filters if f != filter])
+        return self.__class__(
+            self.client, filters=[f for f in self.filters if f != filter], meta_params=self.meta_params
+        )
 
     def __iadd__(self, filter: QueryFilter) -> Query[T]:
         assert filter is not None
@@ -137,9 +184,17 @@ class Query(Generic[T], ABC):
             self.results = list(self.collect())
         self.results[index] = value
 
-    @abstractmethod
-    def where(self, param: Param) -> Query[T]:
-        raise NotImplementedError("Not implemented")
+    def where(self, *args: object, **kwargs: str) -> Query[T]:
+        filters = QueryFilter._from_args(*args, **kwargs)
+        for item in filters:
+            self += item
+        return self
+
+    def _parse_dict_param(self, d: Dict[str, Any]) -> QueryFilter:  # type: ignore
+        if "name" not in d or "param" not in d:
+            raise ValueError(f"args must be a QueryFilter or a dict with 'name' and 'param' keys, got {d}")
+        modifier = Modifier(d["modifier"]) if "modifier" in d else None
+        return QueryFilter(name=d["name"], param=str(d["param"]), modifier=modifier)
 
     @abstractmethod
     def collect(self) -> List[T]:

@@ -26,6 +26,7 @@ def remove_dataset(api_client: Client, id: int, team_slug: Optional[str] = None)
         f"/datasets/{id}/archive",
         {"team_slug": team_slug},
     )
+    assert isinstance(response, dict)
 
     if "id" not in response:
         raise DatasetNotFound(f"Dataset with id {id} not found")
