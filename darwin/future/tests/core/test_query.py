@@ -1,5 +1,4 @@
 import unittest
-from cgi import test
 from typing import Any, List, Optional, Type
 
 import pytest
