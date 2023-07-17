@@ -49,9 +49,9 @@ def test_compute_distributions(parse_file_mock, open_mock):
     }
 
 
-def describe_extract_classes():
+class TestExtractClasses:
     @pytest.fixture
-    def annotations_path(tmp_path: Path):
+    def annotations_path(self, tmp_path: Path):
         # Executed before the test
         annotations_path = tmp_path / "annotations"
         annotations_path.mkdir(parents=True)
@@ -62,7 +62,7 @@ def describe_extract_classes():
         # Executed after the test
         shutil.rmtree(annotations_path)
 
-    def builds_correct_mapping_dictionaries(annotations_path: Path):
+    def test_builds_correct_mapping_dictionaries(self, annotations_path: Path):
         payload = {
             "annotations": [
                 {"name": "class_1", "polygon": {"path": []}},
@@ -103,11 +103,11 @@ def describe_extract_classes():
         assert dict(index_dict) == {0: {"class_4"}, 1: {"class_4"}}
 
 
-def describe_sanitize_filename():
-    def normal_filenames_stay_untouched():
+class TestSanitizeFilename:
+    def test_normal_filenames_stay_untouched(self):
         assert sanitize_filename("test.jpg") == "test.jpg"
 
-    def special_characters_are_replaced_with_underscores():
+    def test_special_characters_are_replaced_with_underscores(self):
         assert sanitize_filename("2020-06-18T08<50<13.14815Z.json") == "2020-06-18T08_50_13.14815Z.json"
         assert sanitize_filename("2020-06-18T08>50>13.14815Z.json") == "2020-06-18T08_50_13.14815Z.json"
         assert sanitize_filename('2020-06-18T08"50"13.14815Z.json') == "2020-06-18T08_50_13.14815Z.json"
@@ -118,12 +118,12 @@ def describe_sanitize_filename():
         assert sanitize_filename("2020-06-18T08*50*13.14815Z.json") == "2020-06-18T08_50_13.14815Z.json"
 
     @patch("platform.system", return_value="Windows")
-    def replace_columns_on_windows(mock: MagicMock):
+    def test_replace_columns_on_windows(self, mock: MagicMock):
         assert sanitize_filename("2020-06-18T08:50:13.14815Z.json") == "2020-06-18T08_50_13.14815Z.json"
         mock.assert_called_once()
 
     @patch("platform.system", return_value="Linux")
-    def avoid_replacing_columns_on_non_windows(mock: MagicMock):
+    def test_avoid_replacing_columns_on_non_windows(self, mock: MagicMock):
         assert sanitize_filename("2020-06-18T08:50:13.14815Z.json") == "2020-06-18T08:50:13.14815Z.json"
         mock.assert_called_once()
 
@@ -134,13 +134,13 @@ def _create_annotation_file(annotation_path: Path, filename: str, payload: Dict)
         f.write(op)
 
 
-def describe_get_release_path():
-    def it_defaults_to_latest_version_if_no_version_provided(team_dataset_path: Path):
+class TestGetReleasePath:
+    def test_defaults_to_latest_version_if_no_version_provided(self, team_dataset_path: Path):
         latest_release_path = team_dataset_path / "releases" / "latest"
         latest_release_path.mkdir(parents=True)
         assert get_release_path(team_dataset_path) == latest_release_path
 
-    def it_uses_provided_version_name_otherwise(team_dataset_path: Path):
+    def test_uses_provided_version_name_otherwise(self, team_dataset_path: Path):
         test_release_path = team_dataset_path / "releases" / "test"
         test_release_path.mkdir(parents=True)
         assert get_release_path(team_dataset_path, "test") == test_release_path
@@ -156,8 +156,8 @@ def return_1():
     return 1
 
 
-def describe_exhaust_generator():
-    def it_works_with_no_exceptions():
+class TestExhaustGenerator:
+    def test_works_with_no_exceptions(self):
         # test multi-threaded
         successes, errors = exhaust_generator([return_1, return_1], 2, True)
         assert len(errors) == 0
@@ -170,7 +170,7 @@ def describe_exhaust_generator():
         assert len(successes) == 2
         assert successes == [1, 1]
 
-    def it_passes_back_exceptions():
+    def test_passes_back_exceptions(self):
         # test multi-threaded
         successes, errors = exhaust_generator([return_1, throw], 2, True)
         assert len(errors) == 1

@@ -63,7 +63,7 @@ class DatasetItem(BaseModel):
         return construct_full_path(self.path, self.filename)
 
     @classmethod
-    def parse(cls, raw: Dict[str, Any]) -> "DatasetItem":
+    def parse(cls, raw: Dict[str, Any], dataset_slug: str = "n/a") -> "DatasetItem":
         """
         Parses the given dictionary into a ``DatasetItem``.
 
@@ -92,12 +92,11 @@ class DatasetItem(BaseModel):
                 "archived": raw["archived"],
                 "filesize": sum(file.get("size_bytes", 0) for file in raw["slots"]),
                 "dataset_id": raw["dataset_id"],
-                "dataset_slug": "n/a",
+                "dataset_slug": dataset_slug,
                 "seq": None,
-                "current_workflow_id": None,
-                "current_workflow": None,
+                "current_workflow_id": raw.get("workflow_data", {}).get("workflow_id"),
+                "current_workflow": raw.get("workflow_data"),
                 "slots": raw["slots"],
-                "current_workflow": None,
             }
         else:
             data = {
@@ -107,7 +106,7 @@ class DatasetItem(BaseModel):
                 "archived": raw["archived"],
                 "filesize": raw["file_size"],
                 "dataset_id": raw["dataset_id"],
-                "dataset_slug": "n/a",
+                "dataset_slug": dataset_slug,
                 "seq": raw["seq"],
                 "current_workflow_id": raw.get("current_workflow_id"),
                 "current_workflow": raw.get("current_workflow"),

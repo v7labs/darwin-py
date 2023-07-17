@@ -2,22 +2,23 @@ from pathlib import Path
 from typing import Optional
 
 import pytest
+
 from darwin.datatypes import AnnotationFile
 from darwin.importer.formats.darwin import parse_path
 
 
-def describe_parse_path():
+class TestParsePath:
     @pytest.fixture
-    def file_path(tmp_path: Path):
+    def file_path(self, tmp_path: Path):
         path = tmp_path / "annotation.json"
         yield path
         path.unlink()
 
-    def test_it_returns_none_if_there_are_no_annotations():
+    def test_it_returns_none_if_there_are_no_annotations(self):
         path = Path("path/to/file.xml")
         assert parse_path(path) is None
 
-    def test_it_parses_slot_names_properly_if_present_for_sequences(file_path: Path):
+    def test_it_parses_slot_names_properly_if_present_for_sequences(self, file_path: Path):
         json: str = """
         {
          "dataset": "test",
@@ -82,7 +83,7 @@ def describe_parse_path():
         for annotation in annotation_file.annotations:
             assert annotation.slot_names == ["my_slot"]
 
-    def test_it_parses_slot_names_properly_if_present_for_images(file_path: Path):
+    def test_it_parses_slot_names_properly_if_present_for_images(self, file_path: Path):
         json: str = """
          {
             "dataset": "test",
@@ -129,7 +130,7 @@ def describe_parse_path():
         for annotation in annotation_file.annotations:
             assert annotation.slot_names == ["my_slot"]
 
-    def test_it_skips_slot_names_when_no_slot_names_for_sequences(file_path: Path):
+    def test_it_skips_slot_names_when_no_slot_names_for_sequences(self, file_path: Path):
         json: str = """
         {
          "dataset": "test",
@@ -191,7 +192,7 @@ def describe_parse_path():
         for annotation in annotation_file.annotations:
             assert annotation.slot_names == []
 
-    def test_it_skips_slot_names_when_no_slot_names_for_images(file_path: Path):
+    def test_it_skips_slot_names_when_no_slot_names_for_images(self, file_path: Path):
         json: str = """
          {
             "dataset": "test",

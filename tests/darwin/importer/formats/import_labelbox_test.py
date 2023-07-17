@@ -14,18 +14,18 @@ from darwin.datatypes import (
 from darwin.importer.formats.labelbox import parse_path
 
 
-def describe_parse_path():
+class TestParsePath:
     @pytest.fixture
-    def file_path(tmp_path: Path):
+    def file_path(self, tmp_path: Path):
         path = tmp_path / "annotation.json"
         yield path
         path.unlink()
 
-    def test_it_returns_none_if_there_are_no_annotations():
+    def test_it_returns_none_if_there_are_no_annotations(self):
         path = Path("path/to/file.xml")
         assert parse_path(path) is None
 
-    def test_it_raises_if_external_id_is_missing(file_path: Path):
+    def test_it_raises_if_external_id_is_missing(self, file_path: Path):
         json: str = """
          [
             {
@@ -53,7 +53,7 @@ def describe_parse_path():
 
         assert "'External ID' is a required property" in str(error.value)
 
-    def test_it_raises_if_label_is_missing(file_path: Path):
+    def test_it_raises_if_label_is_missing(self, file_path: Path):
         json: str = """
          [{"External ID": "flowers.jpg"}]
         """
@@ -65,7 +65,7 @@ def describe_parse_path():
 
         assert "'Label' is a required propert" in str(error.value)
 
-    def test_it_raises_if_label_objects_is_missing(file_path: Path):
+    def test_it_raises_if_label_objects_is_missing(self, file_path: Path):
         json: str = """
          [{"External ID": "flowers.jpg", "Label": {}}]
         """
@@ -77,7 +77,7 @@ def describe_parse_path():
 
         assert "'objects' is a required property" in str(error.value)
 
-    def test_it_raises_if_label_object_has_unknown_format(file_path: Path):
+    def test_it_raises_if_label_object_has_unknown_format(self, file_path: Path):
         json: str = """
          [{
                "Label":{
@@ -97,7 +97,7 @@ def describe_parse_path():
             error.value
         ) or "'point' is a required property" in str(error.value)
 
-    def test_it_raises_if_annotation_has_no_title(file_path: Path):
+    def test_it_raises_if_annotation_has_no_title(self, file_path: Path):
         json: str = """
          [
             {
@@ -126,7 +126,7 @@ def describe_parse_path():
 
         assert "'title' is a required property" in str(error.value)
 
-    def test_it_raises_if_bbox_has_missing_top(file_path: Path):
+    def test_it_raises_if_bbox_has_missing_top(self, file_path: Path):
         json: str = """
          [
             {
@@ -155,7 +155,7 @@ def describe_parse_path():
 
         assert "'top' is a required property" in str(error.value)
 
-    def test_it_raises_if_bbox_has_missing_left(file_path: Path):
+    def test_it_raises_if_bbox_has_missing_left(self, file_path: Path):
         json: str = """
          [
             {
@@ -184,7 +184,7 @@ def describe_parse_path():
 
         assert "'left' is a required property" in str(error.value)
 
-    def test_it_raises_if_bbox_has_missing_width(file_path: Path):
+    def test_it_raises_if_bbox_has_missing_width(self, file_path: Path):
         json: str = """
          [
             {
@@ -213,7 +213,7 @@ def describe_parse_path():
 
         assert "'width' is a required property" in str(error.value)
 
-    def test_it_raises_if_bbox_has_missing_height(file_path: Path):
+    def test_it_raises_if_bbox_has_missing_height(self, file_path: Path):
         json: str = """
          [
             {
@@ -242,7 +242,7 @@ def describe_parse_path():
 
         assert "'height' is a required property" in str(error.value)
 
-    def test_it_imports_bbox_images(file_path: Path):
+    def test_it_imports_bbox_images(self, file_path: Path):
         json: str = """
          [
             {
@@ -283,7 +283,7 @@ def describe_parse_path():
         annotation_class = bbox_annotation.annotation_class
         assert_annotation_class(annotation_class, "Fruit", "bounding_box")
 
-    def test_it_raises_if_polygon_point_has_missing_x(file_path: Path):
+    def test_it_raises_if_polygon_point_has_missing_x(self, file_path: Path):
         json: str = """
          [
             {
@@ -312,7 +312,7 @@ def describe_parse_path():
 
         assert "'x' is a required property" in str(error.value)
 
-    def test_it_raises_if_polygon_point_has_missing_y(file_path: Path):
+    def test_it_raises_if_polygon_point_has_missing_y(self, file_path: Path):
         json: str = """
          [
             {
@@ -341,7 +341,7 @@ def describe_parse_path():
 
         assert "'y' is a required property" in str(error.value)
 
-    def test_it_imports_polygon_images(file_path: Path):
+    def test_it_imports_polygon_images(self, file_path: Path):
         json: str = """
             [
                {
@@ -385,7 +385,7 @@ def describe_parse_path():
         annotation_class = polygon_annotation.annotation_class
         assert_annotation_class(annotation_class, "Fish", "polygon")
 
-    def test_it_imports_point_images(file_path: Path):
+    def test_it_imports_point_images(self, file_path: Path):
         json: str = """
             [
                {
@@ -422,7 +422,7 @@ def describe_parse_path():
         annotation_class = point_annotation.annotation_class
         assert_annotation_class(annotation_class, "Dog", "keypoint")
 
-    def test_it_imports_polyline_images(file_path: Path):
+    def test_it_imports_polyline_images(self, file_path: Path):
         json: str = """
             [
                {
@@ -466,7 +466,7 @@ def describe_parse_path():
         annotation_class = line_annotation.annotation_class
         assert_annotation_class(annotation_class, "Lion", "line")
 
-    def test_it_raises_if_classification_is_missing(file_path: Path):
+    def test_it_raises_if_classification_is_missing(self, file_path: Path):
         json: str = """
             [
                {
@@ -490,7 +490,7 @@ def describe_parse_path():
 
         assert "'classifications' is a required property" in str(error.value)
 
-    def test_it_raises_if_classification_object_has_no_answer(file_path: Path):
+    def test_it_raises_if_classification_object_has_no_answer(self, file_path: Path):
         json: str = """
             [
                {
@@ -521,7 +521,7 @@ def describe_parse_path():
             error.value
         ) or "'answer' is a required property" in str(error.value)
 
-    def test_it_raises_if_classification_answer_has_no_value(file_path: Path):
+    def test_it_raises_if_classification_answer_has_no_value(self, file_path: Path):
         json: str = """
             [
                {
@@ -554,7 +554,7 @@ def describe_parse_path():
         error_str = str(error.value)
         assert all(["{}" in error_str, "string" in error_str])
 
-    def test_it_imports_classification_from_radio_buttons(file_path: Path):
+    def test_it_imports_classification_from_radio_buttons(self, file_path: Path):
         json: str = """
             [
                {
@@ -598,7 +598,7 @@ def describe_parse_path():
         tag_annotation_class = tag_annotation.annotation_class
         assert_annotation_class(tag_annotation_class, "r_c_or_l_side_radiograph:right", "tag")
 
-    def test_it_imports_classification_from_checklist(file_path: Path):
+    def test_it_imports_classification_from_checklist(self, file_path: Path):
         json: str = """
             [
                {
@@ -646,7 +646,7 @@ def describe_parse_path():
         tag_annotation_class_2 = tag_annotation_2.annotation_class
         assert_annotation_class(tag_annotation_class_2, "r_c_or_l_side_radiograph:left", "tag")
 
-    def test_it_imports_classification_from_free_text(file_path: Path):
+    def test_it_imports_classification_from_free_text(self, file_path: Path):
         json: str = """
             [
                {

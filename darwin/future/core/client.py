@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, overload
+from typing import Any, Callable, Dict, List, Optional, Union, overload
 from urllib.parse import urlparse
 
 import requests
@@ -12,7 +12,7 @@ from requests.adapters import HTTPAdapter, Retry
 from darwin.future.core.types.common import QueryString
 from darwin.future.exceptions.client import NotFound, Unauthorized
 
-JSONType = Dict[str, Any]  # type: ignore
+JSONType = Union[Dict[str, Any], List[Dict[str, Any]]]  # type: ignore
 
 
 class TeamsConfig(BaseModel):

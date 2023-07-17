@@ -31,7 +31,13 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path) -> N
 
 def _export_file(annotation_file: dt.AnnotationFile, class_index: ClassIndex, output_dir: Path) -> None:
     txt = _build_txt(annotation_file, class_index)
-    output_file_path = (output_dir / annotation_file.filename).with_suffix(".txt")
+
+    # Just using `.with_suffix(".txt")` would remove all suffixes, so we need to
+    # do it manually.
+    annotation_file_path = Path(output_dir / annotation_file.path.stem)
+    new_suffices = annotation_file_path.suffixes[:-1] + [".txt"]
+    output_file_path = Path(annotation_file_path).with_suffix("".join(new_suffices))
+
     output_file_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_file_path, "w") as f:
         f.write(txt)

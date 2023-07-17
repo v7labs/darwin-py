@@ -253,11 +253,11 @@ class RemoteDatasetV2(RemoteDataset):
         if sort:
             item_sorter = ItemSorter.parse(sort)
             post_sort[f"sort[{item_sorter.field}]"] = item_sorter.direction.value
-        cursor = {"page[size]": 500}
+        cursor = {"page[size]": 500, "include_workflow_data": "true"}
         while True:
             query = post_filters + list(post_sort.items()) + list(cursor.items())
             response = self.client.api_v2.fetch_items(self.dataset_id, query, team_slug=self.team)
-            yield from [DatasetItem.parse(item) for item in response["items"]]
+            yield from [DatasetItem.parse(item, dataset_slug=self.slug) for item in response["items"]]
 
             if response["page"]["next"]:
                 cursor["page[from]"] = response["page"]["next"]

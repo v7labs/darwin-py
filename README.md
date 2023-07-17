@@ -1,9 +1,16 @@
 # V7 Darwin Python SDK
 
-Official library to manage datasets along with
-[V7 Darwin annotation platform](https://darwin.v7labs.com).
+[![Downloads](https://static.pepy.tech/personalized-badge/darwin-py?period=total&units=international_system&left_color=black&right_color=blue&left_text=Downloads)](https://pepy.tech/project/darwin-py) [![Downloads](https://static.pepy.tech/personalized-badge/darwin-py?period=month&units=international_system&left_color=black&right_color=blue&left_text=This%20month)](https://pepy.tech/project/darwin-py) [![GitHub Repo stars](https://img.shields.io/github/stars/v7labs/darwin-py?style=social)](https://github.com/v7labs/darwin-py/stargazers)
+[![Twitter Follow](https://img.shields.io/twitter/follow/V7Labs?style=social)](https://twitter.com/V7Labs)
+
+⚡️ Official library to annotate, manage datasets, and models on
+[V7's Darwin Training Data Platform](https://darwin.v7labs.com). ⚡️
+
+Need to label data? [**Start using V7 free today**](https://www.v7labs.com/get-started)
 
 Darwin-py can both be used from the [command line](#usage-as-a-command-line-interface-cli) and as a [python library](#usage-as-a-python-library).
+
+<hr/>
 
 Main functions are (but not limited to):
 
@@ -15,7 +22,7 @@ Main functions are (but not limited to):
 
 Support tested for python 3.8.
 
-## Installation
+##  🏁 Installation
 
 ```
 pip install darwin-py
