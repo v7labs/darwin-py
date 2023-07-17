@@ -4,13 +4,12 @@ from dataclasses import dataclass
 from typing import List
 
 import pytest
+import requests
+
+from e2e_tests.exceptions import E2EException
 
 
 # Datastructures to store minimal info about the created datasets and items
-class E2EException(Exception):  # TODO Replace with one from ticket awaiting merge
-    pass
-
-
 @dataclass
 class E2EItem(Exception):
     name: str
