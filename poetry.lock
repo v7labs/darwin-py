@@ -1603,7 +1603,7 @@ files = [
 [[package]]
 name = "upolygon"
 version = "0.1.10"
-description = "Collection of fast polygon operations for DL"
+description = ""
 category = "main"
 optional = false
 python-versions = ">=3.6"
@@ -1616,8 +1616,8 @@ numpy = "*"
 [package.source]
 type = "git"
 url = "https://github.com/v7labs/upolygon.git"
-reference = "IO-1344"
-resolved_reference = "030cc46769bfb313d978e414977edc570e731a37"
+reference = "master"
+resolved_reference = "535f560e2883d1c692d5edab2aef65e1272e13e7"
 
 [[package]]
 name = "urllib3"
@@ -1677,4 +1677,4 @@ test = ["flake8-pyproject", "pytest", "pytest-describe", "responses"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.7.0,<3.12"
-content-hash = "5ebcf2fc4e8029c8faf8616719bb9580814331722d0228531eb8dbdcead13ddd"
+content-hash = "bd65b0cbd0e8d4176978b09866fdeda8397b6ad156371f89377241879ba5f66b"
