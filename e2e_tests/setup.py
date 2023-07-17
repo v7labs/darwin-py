@@ -80,6 +80,7 @@ def setup() -> List[E2EDataset]:
                 dataset.add_item(item)
 
     except E2EException as e:
+        print(e)
         pytest.exit("Test run failed in test setup stage")
 
     except Exception as e:
