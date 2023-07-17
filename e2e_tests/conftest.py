@@ -2,11 +2,11 @@ from collections import namedtuple
 from os import environ
 from os.path import dirname, join
 from pathlib import Path
-from pprint import pprint
 
 import dotenv
 import pytest
 
+from darwin.future.data_objects.typing import UnknownType
 from e2e_tests.exceptions import E2EEnvironmentVariableNotSet
 
 
@@ -42,8 +42,7 @@ ConfigValues = namedtuple("ConfigValues", ["server", "api_key"])
 @pytest.fixture(
     scope="session", autouse=True
 )  # autouse=True means that this fixture will be automatically used by all tests
-def config_values(request) -> ConfigValues:
-    pprint(request)
+def config_values(request: UnknownType) -> ConfigValues:
     session = request.node.session
 
     if not isinstance(session.config.cache, pytest.Cache):

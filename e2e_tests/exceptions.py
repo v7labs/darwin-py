@@ -1,6 +1,6 @@
 """Custom exceptions for the e2e_tests module."""
 
-from typing import Any, Dict, List
+from typing import Dict, List
 
 from pytest import PytestWarning
 
