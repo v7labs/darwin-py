@@ -34,10 +34,11 @@ def test_config_base_url(base_config: DarwinConfig) -> None:
 
 
 @pytest.mark.parametrize("base_url", ["test_url.com", "ftp://test_url.com", ""])
-def test_invalid_config_url_validation(base_url: str) -> None:
+def test_invalid_config_url_validation(base_url: str, tmp_path: Path) -> None:
     with pytest.raises(ValidationError):
         config = DarwinConfig(
             api_key="test_key",
+            datasets_dir=tmp_path,
             api_endpoint="http://test_url.com/api/",
             base_url=base_url,
             default_team="default-team",

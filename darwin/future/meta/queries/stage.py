@@ -10,12 +10,6 @@ from darwin.future.meta.objects.stage import StageMeta
 
 
 class StageQuery(Query[StageMeta]):
-    def where(self, param: Param) -> StageQuery:
-        filter = QueryFilter.parse_obj(param)
-        query = self + filter
-
-        return StageQuery(self.client, query.filters, self.meta_params)
-
     def collect(self) -> List[StageMeta]:
         if not self.meta_params:
             raise ValueError("Must specify workflow_id to query stages")

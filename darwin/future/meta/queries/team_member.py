@@ -10,16 +10,9 @@ from darwin.future.meta.objects.team_member import TeamMemberMeta
 class TeamMemberQuery(Query[TeamMemberMeta]):
     """TeamMemberQuery object with methods to manage filters, retrieve data, and execute filters
     Methods:
-    where: Adds a filter to the query
     collect: Executes the query and returns the filtered data
     _execute_filter: Executes a filter on a list of objects
     """
-
-    def where(self, param: Param) -> TeamMemberQuery:
-        filter = QueryFilter.parse_obj(param)
-        query = self + filter
-
-        return TeamMemberQuery(self.client, query.filters)
 
     def collect(self) -> List[TeamMemberMeta]:
         members, exceptions = get_team_members(self.client)
