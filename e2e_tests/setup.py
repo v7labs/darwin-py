@@ -1,10 +1,14 @@
 import random
 import string
 from dataclasses import dataclass
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import List, Literal
 
+import numpy as np
 import pytest
 import requests
+from PIL import Image
 
 from e2e_tests.conftest import ConfigValues
 from e2e_tests.exceptions import E2EException
@@ -116,7 +120,7 @@ def create_dataset(prefix: str, config: ConfigValues) -> E2EDataset:
 
 
 # ! Untested
-def create_item(dataset_slug: str, prefix: str, config: ConfigValues) -> E2EItem:
+def create_item(dataset_slug: str, prefix: str, image: Path, config: ConfigValues) -> E2EItem:
     """
     Creates a randomised new item, and return its minimal info for reference
 
@@ -150,6 +154,31 @@ def create_item(dataset_slug: str, prefix: str, config: ConfigValues) -> E2EItem
         pytest.exit("Test run failed in test setup stage")
 
 
+# ! Untested
+def create_random_image(prefix: str, directory: Path, height: int = 10, width: int = 10) -> Path:
+    """
+    Create a random image file in the given directory
+
+    Parameters
+    ----------
+
+    directory : Path
+        The directory to create the image in
+
+    Returns
+    -------
+    Path
+        The path to the created image
+    """
+    image_name = f"{prefix}_{generate_random_string(4)}_image.png"
+
+    image_array = np.array(np.random.rand(height, width, 3) * 255)
+    im = Image.fromarray(image_array.astype("uint8")).convert("RGBA")
+    im.save(directory / image_name)
+
+    return directory / image_name
+
+
 def setup(config: ConfigValues) -> List[E2EDataset]:
     """
     Setup data for End to end test runs
@@ -164,6 +193,7 @@ def setup(config: ConfigValues) -> List[E2EDataset]:
     List[E2EDataset]
         The minimal info about the created datasets
     """
+    temp_directory = Path(TemporaryDirectory().name)
     number_of_datasets = 3
     number_of_items = 0
 
@@ -174,7 +204,8 @@ def setup(config: ConfigValues) -> List[E2EDataset]:
         for _ in range(number_of_datasets):
             dataset = create_dataset(prefix, config)
             for _ in range(number_of_items):
-                item = create_item(dataset.name, prefix, config)
+                image_for_item = create_random_image(prefix, temp_directory)
+                item = create_item(dataset.name, prefix, image_for_item, config)
 
                 dataset.add_item(item)
 
