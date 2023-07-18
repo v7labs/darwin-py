@@ -1016,9 +1016,12 @@ class Client:
         if compressed:
             headers["X-Darwin-Payload-Compression-Version"] = "1"
 
-        from darwin import __version__
+        import sys
 
-        headers["User-Agent"] = f"darwin-py/{__version__}"
+        from darwin import __version__
+        
+        user_agent = f"darwin-py/{__version__}; python/{sys.version_info.major}.{sys.version_info.minor}"
+        headers["User-Agent"] = user_agent
         return headers
 
     def _get_raw_from_full_url(
