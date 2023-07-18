@@ -43,7 +43,7 @@ pip install darwin-py[test]
 ```
 ### Development
 
-See our development and QA environment installation recommendations [here](DEV.md)
+See our development and QA environment installation recommendations [here](docs/DEV.md)
 
 ---
 
