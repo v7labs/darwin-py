@@ -63,7 +63,6 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path) -> N
         output_volumes = build_output_volumes(video_annotation)
         slot_map = {slot.name: slot for slot in video_annotation.slots}
         for annotation in video_annotation.annotations:
-            # print(slot)
             populate_output_volumes(annotation, output_dir, slot_map, output_volumes, image_id)
         write_output_volume_to_disk(output_volumes, image_id=image_id, output_dir=output_dir)
 
