@@ -29,10 +29,12 @@ def move_items_to_stage(api_client: Client, team_slug: str, workflow_id: UUID, d
     """
 
     api_client.post(
-        f"/v2/teams/{team_slug}/items/stage", {"filters": {
+        f"/v2/teams/{team_slug}/items/stage", {
+            "filters": {
             "dataset_ids": [dataset_id],
             "item_ids": [str(id) for id in item_ids],
+            },
             "stage_id": str(stage_id),
             "workflow_id": str(workflow_id)
-        }}
+        }
     )

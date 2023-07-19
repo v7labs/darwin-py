@@ -21,3 +21,8 @@ class StageMeta(MetaBase[WFStage]):
     ) -> None:
         self._workflow_id = workflow_id
         super().__init__(client, item)
+
+    @property
+    def id(self) -> UUID:
+        assert self._item is not None
+        return self._item.id
