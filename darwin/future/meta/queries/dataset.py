@@ -18,7 +18,6 @@ class DatasetQuery(Query[DatasetMeta]):
 
     collect: Executes the query and returns the filtered data
     """
-
     def collect(self) -> List[DatasetMeta]:
         datasets, exceptions = list_datasets(self.client)
         if exceptions:

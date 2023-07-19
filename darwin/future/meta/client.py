@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 
 from requests.adapters import Retry
 
 from darwin.future.core.client import Client, DarwinConfig
 from darwin.future.meta.objects.team import TeamMeta
+from darwin.future.meta.objects.workflow import WorkflowMeta
+from darwin.future.meta.queries.workflow import WorkflowQuery
 
 
 class MetaClient(Client):
@@ -36,3 +38,8 @@ class MetaClient(Client):
         if self._team is None:
             self._team = TeamMeta(self)
         return self._team
+
+    @property
+    def workflows(self) -> WorkflowQuery:
+        return WorkflowQuery(self)
+    

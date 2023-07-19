@@ -4,6 +4,7 @@ from darwin.future.core.client import Client
 from darwin.future.data_objects.team import Team, get_team
 from darwin.future.helpers.assertion import assert_is
 from darwin.future.meta.objects.base import MetaBase
+from darwin.future.meta.queries.dataset import DatasetQuery
 from darwin.future.meta.queries.team_member import TeamMemberQuery
 
 
@@ -29,6 +30,15 @@ class TeamMeta(MetaBase[Team]):
     def members(self) -> TeamMemberQuery:
         return TeamMemberQuery(self.client)
 
+    @property
+    def slug(self) -> str:
+        assert self._item is not None
+        return self._item.slug
+    
+    @property
+    def datasets(self) -> DatasetQuery:
+        return DatasetQuery(self.client)
+    
     # @property
     # def workflows(self) -> WorkflowQuery:
     #     return WorkflowQuery(self.client)

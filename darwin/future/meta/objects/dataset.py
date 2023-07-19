@@ -1,10 +1,12 @@
 from typing import List, Optional, Tuple, Union
+from uuid import UUID
 
 from darwin.future.core.client import Client
 from darwin.future.core.datasets.create_dataset import create_dataset
 from darwin.future.core.datasets.get_dataset import get_dataset
 from darwin.future.core.datasets.list_datasets import list_datasets
 from darwin.future.core.datasets.remove_dataset import remove_dataset
+from darwin.future.core.items.get import get_item_ids
 from darwin.future.data_objects.dataset import Dataset
 from darwin.future.helpers.assertion import assert_is
 from darwin.future.meta.objects.base import MetaBase
@@ -20,6 +22,22 @@ class DatasetMeta(MetaBase[Dataset]):
         _type_: DatasetMeta
     """
 
+    @property
+    def id(self) -> int:
+        assert self._item is not None
+        assert self._item.id is not None
+        return self._item.id
+
+    def item_ids(self, team_slug: str) -> List[UUID]:
+        """Returns a list of item ids for the dataset
+
+        Returns:
+            List[UUID]: A list of item ids
+        """
+        assert self._item is not None
+        assert self._item.id is not None
+        return get_item_ids(self.client, team_slug, str(self._item.id))
+        
     def get_dataset_by_id(self) -> Dataset:
         # TODO: implement
         raise NotImplementedError()

@@ -60,7 +60,7 @@ class WorkflowQuery(Query[WorkflowMeta]):
 
         if filter.name == "dataset_id":
             datasets_to_find_id: List[int] = [int(s) for s in filter.param.split(",")]
-            return [w for w in workflows if w._item is not None and int(w._item.dataset) in datasets_to_find_id]
+            return [w for w in workflows if w._item is not None and w._item.dataset is not None and int(w._item.dataset.id) in datasets_to_find_id]
 
         if filter.name == "dataset_name":
             datasets_to_find_name: List[str] = [str(s) for s in filter.param.split(",")]
