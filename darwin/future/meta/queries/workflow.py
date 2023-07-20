@@ -1,12 +1,12 @@
+from curses import meta
 from datetime import datetime, timezone
 from typing import List
 from uuid import UUID
 
 from darwin.exceptions import DarwinException
-from darwin.future.core.client import Client
 from darwin.future.core.types.query import Param, Query, QueryFilter
 from darwin.future.core.workflows.list_workflows import list_workflows
-from darwin.future.data_objects.workflow import WFStage, Workflow
+from darwin.future.data_objects.workflow import WFStage
 from darwin.future.helpers.exception_handler import handle_exception
 from darwin.future.meta.objects.workflow import WorkflowMeta
 
@@ -27,8 +27,7 @@ class WorkflowQuery(Query[WorkflowMeta]):
         if exceptions:
             handle_exception(exceptions)
             raise DarwinException from exceptions[0]
-
-        workflows = [WorkflowMeta(self.client, workflow) for workflow in workflows_core]
+        workflows = [WorkflowMeta(self.client, workflow, self.meta_params) for workflow in workflows_core]
         if not self.filters:
             return workflows
 
@@ -60,7 +59,13 @@ class WorkflowQuery(Query[WorkflowMeta]):
 
         if filter.name == "dataset_id":
             datasets_to_find_id: List[int] = [int(s) for s in filter.param.split(",")]
-            return [w for w in workflows if w._item is not None and w._item.dataset is not None and int(w._item.dataset.id) in datasets_to_find_id]
+            return [
+                w
+                for w in workflows
+                if w._item is not None
+                and w._item.dataset is not None
+                and int(w._item.dataset.id) in datasets_to_find_id
+            ]
 
         if filter.name == "dataset_name":
             datasets_to_find_name: List[str] = [str(s) for s in filter.param.split(",")]

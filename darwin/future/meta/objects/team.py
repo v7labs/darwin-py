@@ -34,11 +34,11 @@ class TeamMeta(MetaBase[Team]):
     def slug(self) -> str:
         assert self._item is not None
         return self._item.slug
-    
+
     @property
     def datasets(self) -> DatasetQuery:
-        return DatasetQuery(self.client)
-    
+        return DatasetQuery(self.client, meta_params={"team_slug": self.slug})
+
     # @property
     # def workflows(self) -> WorkflowQuery:
     #     return WorkflowQuery(self.client)

@@ -1,12 +1,12 @@
-
-
 from typing import List
 from uuid import UUID
 
 from darwin.future.core.client import Client
 
 
-def move_items_to_stage(api_client: Client, team_slug: str, workflow_id: UUID, dataset_id: int, stage_id: UUID, item_ids: List[UUID]) -> None:
+def move_items_to_stage(
+    api_client: Client, team_slug: str, workflow_id: UUID, dataset_id: int, stage_id: UUID, item_ids: List[UUID]
+) -> None:
     """
     Moves a list of items to a stage
 
@@ -29,12 +29,13 @@ def move_items_to_stage(api_client: Client, team_slug: str, workflow_id: UUID, d
     """
 
     api_client.post(
-        f"/v2/teams/{team_slug}/items/stage", {
+        f"/v2/teams/{team_slug}/items/stage",
+        {
             "filters": {
-            "dataset_ids": [dataset_id],
-            "item_ids": [str(id) for id in item_ids],
+                "dataset_ids": [dataset_id],
+                "item_ids": [str(id) for id in item_ids],
             },
             "stage_id": str(stage_id),
-            "workflow_id": str(workflow_id)
-        }
+            "workflow_id": str(workflow_id),
+        },
     )
