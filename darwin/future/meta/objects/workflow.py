@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from enum import auto
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import List, Optional, Sequence, Union
 from uuid import UUID
 
 from darwin.cli_functions import upload_data
@@ -59,7 +59,7 @@ class WorkflowMeta(MetaBase[Workflow]):
 
     def upload_files(
         self,
-        files: Optional[List[Union[PathLike, LocalFile]]],
+        files: Sequence[Union[PathLike, LocalFile]],
         files_to_exclude: Optional[List[PathLike]] = None,
         fps: int = 1,
         path: Optional[str] = None,

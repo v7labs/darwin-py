@@ -1,6 +1,11 @@
-from typing import List, Optional, Tuple, Union
+from __future__ import annotations
+
+from typing import List, Optional, Sequence, Tuple, Union
 from uuid import UUID
 
+from darwin.cli_functions import upload_data
+from darwin.dataset.upload_manager import LocalFile
+from darwin.datatypes import PathLike
 from darwin.future.core.client import Client
 from darwin.future.core.datasets.create_dataset import create_dataset
 from darwin.future.core.datasets.get_dataset import get_dataset
@@ -37,7 +42,7 @@ class DatasetMeta(MetaBase[Dataset]):
         assert self._item is not None
         assert self._item.id is not None
         return get_item_ids(self.client, team_slug, str(self._item.id))
-        
+
     def get_dataset_by_id(self) -> Dataset:
         # TODO: implement
         raise NotImplementedError()
@@ -173,3 +178,20 @@ class DatasetMeta(MetaBase[Dataset]):
 
         VALID_SLUG_CHARS = "abcdefghijklmnopqrstuvwxyz0123456789-_"
         assert_is(all(c in VALID_SLUG_CHARS for c in slug_copy), "slug must only contain valid characters")
+
+    def upload_files(
+        self,
+        files: Sequence[Union[PathLike, LocalFile]],
+        files_to_exclude: Optional[List[PathLike]] = None,
+        fps: int = 1,
+        path: Optional[str] = None,
+        frames: bool = False,
+        extract_views: bool = False,
+        preserve_folders: bool = False,
+        verbose: bool = False,
+    ) -> DatasetMeta:
+        assert self._item is not None
+        upload_data(
+            self._item.name, files, files_to_exclude, fps, path, frames, extract_views, preserve_folders, verbose
+        )
+        return self

@@ -193,5 +193,21 @@ class Query(Generic[T], ABC):
     def collect(self) -> List[T]:
         raise NotImplementedError("Not implemented")
 
+    def collect_one(self) -> T:
+        if self.results is None:
+            self.results = list(self.collect())
+        if len(self.results) == 0:
+            raise ValueError("No results found")
+        if len(self.results) > 1:
+            raise ValueError("More than one result found")
+        return self.results[0]
+
+    def first(self) -> Optional[T]:
+        if self.results is None:
+            self.results = list(self.collect())
+        if len(self.results) == 0:
+            return None
+        return self.results[0]
+
     def _generic_execute_filter(self, objects: List[T], filter: QueryFilter) -> List[T]:
         return [m for m in objects if filter.filter_attr(getattr(m._item, filter.name))]

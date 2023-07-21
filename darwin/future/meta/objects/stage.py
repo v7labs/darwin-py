@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import List
 from uuid import UUID
 
-from darwin.future.core.client import Client
 from darwin.future.core.items.get import get_item_ids_stage
 from darwin.future.core.items.move_items import move_items_to_stage
 from darwin.future.data_objects.workflow import WFStage
