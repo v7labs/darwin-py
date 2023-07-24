@@ -24,6 +24,7 @@ class MetaClient(Client):
         config = DarwinConfig.from_api_key_with_defaults(api_key=api_key)
         client = Client(config)  # create a temporary client to get the default team
         token_info = client.get("/users/token_info")
+        assert isinstance(token_info, dict)
         default_team: str = token_info["selected_team"]["slug"]
         config.default_team = default_team
         if datasets_dir:

@@ -1,9 +1,9 @@
 import random
 import string
-from dataclasses import dataclass
+from dataclasses import Field, dataclass
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import List, Literal
+from typing import List, Literal, Optional
 
 import numpy as np
 import pytest
@@ -25,7 +25,12 @@ class E2EItem(Exception):
 class E2EDataset:
     id: int
     name: str
-    items: List[E2EItem] = []
+    items: List[E2EItem]
+
+    def __init__(self, id: int, name: str) -> None:
+        self.id = id
+        self.name = name
+        self.items = []
 
     def add_item(self, item: E2EItem) -> None:
         self.items.append(item)
@@ -65,10 +70,7 @@ def api_call(verb: Literal["get", "post", "put", "delete"], url: str, payload: d
     return response
 
 
-alphabet = string.ascii_lowercase + string.digits
-
-
-def generate_random_string(length: int = 6) -> str:
+def generate_random_string(length: int = 6, alphabet: Optional[str] = (string.ascii_lowercase + string.digits)) -> str:
     """
     A random-enough to avoid collision on test runs prefix generator
 
@@ -154,7 +156,6 @@ def create_item(dataset_slug: str, prefix: str, image: Path, config: ConfigValue
         pytest.exit("Test run failed in test setup stage")
 
 
-# ! Untested
 def create_random_image(prefix: str, directory: Path, height: int = 10, width: int = 10) -> Path:
     """
     Create a random image file in the given directory

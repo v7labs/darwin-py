@@ -19,15 +19,8 @@ class WorkflowQuery(Query[WorkflowMeta]):
     Methods
     -------
 
-    where: Adds a filter to the query
     collect: Executes the query and returns the filtered data
     """
-
-    def where(self, param: Param) -> "WorkflowQuery":
-        filter = QueryFilter.parse_obj(param)
-        query = self + filter
-
-        return WorkflowQuery(self.client, query.filters)
 
     def collect(self) -> List[WorkflowMeta]:
         workflows_core, exceptions = list_workflows(self.client)
@@ -75,7 +68,9 @@ class WorkflowQuery(Query[WorkflowMeta]):
 
         if filter.name == "has_stages":
             stages_to_find = [s for s in filter.param.split(",")]
-            return [w for w in workflows if w._item is not None and self._stages_contains(w._item.stages, stages_to_find)]
+            return [
+                w for w in workflows if w._item is not None and self._stages_contains(w._item.stages, stages_to_find)
+            ]
 
         return self._generic_execute_filter(workflows, filter)
 
