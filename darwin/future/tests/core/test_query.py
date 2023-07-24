@@ -1,8 +1,8 @@
-import unittest
 from typing import Any, List, Optional, Type
 
 import pytest
 
+from darwin import item
 from darwin.future.core.client import Client
 from darwin.future.core.types import query as Query
 from darwin.future.data_objects.team import Team
@@ -124,3 +124,19 @@ def test_QF_from_asteriks() -> None:
         Query.QueryFilter._from_args({})
         Query.QueryFilter._from_args([])
         Query.QueryFilter._from_args(1, 2, 3)
+
+def test_query_first(non_abc_query: Type[Query.Query], base_client: Client) -> None:
+    query = non_abc_query(base_client)
+    query.results = [1, 2, 3]
+    first = query.first()
+    assert first == 1
+    
+def test_query_collect_one(non_abc_query: Type[Query.Query], base_client: Client) -> None:
+    query = non_abc_query(base_client)
+    query.results = [1, 2, 3]
+    with pytest.raises(ValueError):
+        query.collect_one()
+        
+    query.results = [1]
+    assert query.collect_one() == 1
+    
