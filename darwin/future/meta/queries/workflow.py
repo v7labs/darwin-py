@@ -1,4 +1,3 @@
-from curses import meta
 from datetime import datetime, timezone
 from typing import List
 from uuid import UUID
