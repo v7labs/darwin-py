@@ -45,6 +45,7 @@ $ git push origin v1.2.3  # again, for example
 9.  In the ["Draft a new release"](https://github.com/v7labs/darwin-py/releases/new) section of github, select the tag you created.  Write an appropriate summary of the release (see Engineering team guidance on language), and create the release.  Click "Publish release"
 10. Ensure release is successful in CI/CD
 11. Ensure that release appears in Pypi.
+**12. Announce the release and update the tickets**
 
 ## Make a hotfix release
 
@@ -89,6 +90,7 @@ $ git push origin v1.2.3  # again, for example
 7.  In the ["Draft a new release"](https://github.com/v7labs/darwin-py/releases/new) section of github, select the tag you created, and the hotfix branch.  Write an appropriate summary of the release (see Engineering team guidance on language), and create the release.  Click "Publish release"
 8.  Ensure release is successful in CI/CD
 9.  Ensure release is successful in Pypi
+**10. Announce the release and update the tickets**
 
 ## Contact
 
