@@ -30,7 +30,7 @@ def base_client(base_config: DarwinConfig) -> Client:
 
 @pytest.fixture
 def base_team_json() -> dict:
-    return {"slug": "test-team", "id": "0"}
+    return {"slug": "test-team", "id": "0", "name": "test-team"}
 
 
 @pytest.fixture
