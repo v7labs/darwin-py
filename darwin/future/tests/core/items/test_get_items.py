@@ -1,21 +1,13 @@
 from typing import List
 from uuid import UUID, uuid4
 
-import pytest
 import responses
 
 from darwin.future.core.client import Client
 from darwin.future.core.items.get import get_item_ids, get_item_ids_stage
 from darwin.future.tests.core.fixtures import *
+from darwin.future.tests.core.items.fixtures import *
 
-
-@pytest.fixture
-def UUIDs() -> List[UUID]:
-    return [uuid4() for i in range(10)]
-
-@pytest.fixture
-def UUIDs_str(UUIDs: List[UUID]) -> List[str]:
-    return [str(uuid) for uuid in UUIDs]
 
 def test_get_item_ids(UUIDs: List[UUID], UUIDs_str: List[str], base_client: Client) -> None:
     with responses.RequestsMock() as rsps:

@@ -1,12 +1,12 @@
 from typing import List
 from uuid import UUID
 
-from darwin.future.core.client import Client
+from darwin.future.core.client import Client, JSONType
 
 
 def move_items_to_stage(
     api_client: Client, team_slug: str, workflow_id: UUID, dataset_id: int, stage_id: UUID, item_ids: List[UUID]
-) -> None:
+) -> JSONType:
     """
     Moves a list of items to a stage
 
@@ -28,7 +28,7 @@ def move_items_to_stage(
     None
     """
 
-    api_client.post(
+    return api_client.post(
         f"/v2/teams/{team_slug}/items/stage",
         {
             "filters": {
