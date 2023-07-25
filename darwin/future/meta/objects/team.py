@@ -30,8 +30,7 @@ class TeamMeta(MetaBase[Team]):
     @property
     def name(self) -> str:
         assert self._item is not None
-        assert self._item.slug is not None
-        return self._item.slug
+        return self._item.name
 
     @property
     def id(self) -> int:
@@ -58,5 +57,5 @@ class TeamMeta(MetaBase[Team]):
     
     def __str__(self) -> str:
         assert self._item is not None
-        return f"TeamMeta(slug='{self.slug}', id='{self.id}' - {len(self._item.members if self._item.members else [])} members)"
+        return f"TeamMeta(name='{self.name}', slug='{self.slug}', id='{self.id}' - {len(self._item.members if self._item.members else [])} members)"
         
