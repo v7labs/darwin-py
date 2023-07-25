@@ -6,6 +6,7 @@ from darwin.future.helpers.assertion import assert_is
 from darwin.future.meta.objects.base import MetaBase
 from darwin.future.meta.queries.dataset import DatasetQuery
 from darwin.future.meta.queries.team_member import TeamMemberQuery
+from darwin.future.meta.queries.workflow import WorkflowQuery
 
 
 class TeamMeta(MetaBase[Team]):
@@ -27,8 +28,20 @@ class TeamMeta(MetaBase[Team]):
         super().__init__(client, team)
 
     @property
+    def name(self) -> str:
+        assert self._item is not None
+        assert self._item.slug is not None
+        return self._item.slug
+
+    @property
+    def id(self) -> int:
+        assert self._item is not None
+        assert self._item.id is not None
+        return self._item.id
+    
+    @property
     def members(self) -> TeamMemberQuery:
-        return TeamMemberQuery(self.client)
+        return TeamMemberQuery(self.client, meta_params={"team_slug": self.slug})
 
     @property
     def slug(self) -> str:
@@ -39,6 +52,11 @@ class TeamMeta(MetaBase[Team]):
     def datasets(self) -> DatasetQuery:
         return DatasetQuery(self.client, meta_params={"team_slug": self.slug})
 
-    # @property
-    # def workflows(self) -> WorkflowQuery:
-    #     return WorkflowQuery(self.client)
+    @property
+    def workflows(self) -> WorkflowQuery:
+        return WorkflowQuery(self.client, meta_params={"team_slug": self.slug})
+    
+    def __str__(self) -> str:
+        assert self._item is not None
+        return f"TeamMeta(slug='{self.slug}', id='{self.id}' - {len(self._item.members if self._item.members else [])} members)"
+        

@@ -16,7 +16,7 @@ class MetaBase(Generic[R]):
     def __init__(self, client: Client, item: Optional[R] = None, meta_params: Optional[Param] = None) -> None:
         self.client = client
         self._item = item
-        self.meta_params = meta_params or {}
+        self.meta_params = meta_params or dict()
 
     def __str__(self) -> str:
         if self._item is None:

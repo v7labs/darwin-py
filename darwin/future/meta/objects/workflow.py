@@ -20,18 +20,18 @@ class WorkflowMeta(MetaBase[Workflow]):
             raise ValueError("WorkflowMeta has no item")
         meta_params = self.meta_params.copy()
         meta_params["workflow_id"] = self._item.id
-        if self.dataset is not None:
-            meta_params["dataset_id"] = self.dataset.id
-            meta_params["dataset_name"] = self.dataset.name
+        if self.datasets is not None:
+            meta_params["dataset_id"] = self.datasets[0].id
+            meta_params["dataset_name"] = self.datasets[0].name
         return StageQuery(self.client, meta_params=meta_params)
 
     @property
-    def dataset(self) -> WFDataset:
+    def datasets(self) -> List[WFDataset]:
         if self._item is None:
             raise ValueError("WorkflowMeta has no item")
         if self._item.dataset is None:
             raise ValueError("WorkflowMeta has no associated dataset")
-        return self._item.dataset
+        return [self._item.dataset]
 
     @property
     def id(self) -> UUID:
@@ -72,7 +72,7 @@ class WorkflowMeta(MetaBase[Workflow]):
         assert self._item is not None
         assert self._item.dataset is not None
         upload_data(
-            self.dataset.name, files, files_to_exclude, fps, path, frames, extract_views, preserve_folders, verbose
+            self.datasets[0].name, files, files_to_exclude, fps, path, frames, extract_views, preserve_folders, verbose
         )
         if auto_push:
             self.push_from_dataset_stage()

@@ -26,14 +26,24 @@ class DatasetMeta(MetaBase[Dataset]):
     Returns:
         _type_: DatasetMeta
     """
-
+    @property
+    def name(self) -> str:
+        assert self._item is not None
+        assert self._item.name is not None
+        return self._item.name
+    @property
+    def slug(self) -> str:
+        assert self._item is not None
+        assert self._item.slug is not None
+        return self._item.slug
     @property
     def id(self) -> int:
         assert self._item is not None
         assert self._item.id is not None
         return self._item.id
 
-    def item_ids(self, team_slug: str) -> List[UUID]:
+    @property
+    def item_ids(self) -> List[UUID]:
         """Returns a list of item ids for the dataset
 
         Returns:
@@ -41,7 +51,8 @@ class DatasetMeta(MetaBase[Dataset]):
         """
         assert self._item is not None
         assert self._item.id is not None
-        return get_item_ids(self.client, team_slug, str(self._item.id))
+        assert self.meta_params["team_slug"] is not None and type(self.meta_params["team_slug"]) == str
+        return get_item_ids(self.client, self.meta_params["team_slug"], str(self._item.id))
 
     def get_dataset_by_id(self) -> Dataset:
         # TODO: implement

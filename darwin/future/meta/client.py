@@ -39,6 +39,6 @@ class MetaClient(Client):
             self._team = TeamMeta(self)
         return self._team
 
-    @property
-    def workflows(self) -> WorkflowQuery:
-        return WorkflowQuery(self, meta_params={"team_slug": self.team.slug})
+    # @property
+    # def workflows(self) -> WorkflowQuery:
+    #     return WorkflowQuery(self, meta_params={"team_slug": self.team.slug})
