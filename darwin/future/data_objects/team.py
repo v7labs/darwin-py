@@ -44,7 +44,7 @@ class Team(DefaultDarwin):
     ----------
     _slug_validator: validates and auto formats the slug variable
     """
-
+    name: str
     slug: str
     id: int
     datasets: Optional[DatasetList] = None

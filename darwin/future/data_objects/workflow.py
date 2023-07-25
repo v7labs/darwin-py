@@ -81,6 +81,12 @@ class WFType(Enum):
     ANNOTATE = "annotate"
     REVIEW = "review"
     COMPLETE = "complete"
+    DISCARD = "discard"
+    MODEL = "model"
+    WEBHOOK = "webhook"
+    ARCHIVE = "archive"
+    CONSENSUS_TEST = "consensus_test"
+    CONSENSUS_ENTRYPOINT = "consensus_entrypoint"
 
 
 class WFUser(DefaultDarwin):
@@ -173,7 +179,7 @@ class Workflow(DefaultDarwin):
     inserted_at: datetime
     updated_at: datetime
 
-    dataset: WFDataset
+    dataset: Optional[WFDataset]
     stages: List[WFStage]
 
     thumbnails: List[str]
