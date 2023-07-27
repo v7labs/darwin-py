@@ -92,7 +92,7 @@ types-requests = { version = "^2.28.11.8" }
 mpire = { version = "^2.7.0" }
 tqdm = "^4.64.1"
 types-pyyaml = "^6.0.12.9"
-opencv-python = "^4.8.0.74"
+opencv-python-headless = "^4.8.0.74"
 
 [tool.poetry.extras]
 dev = [

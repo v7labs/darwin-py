@@ -400,7 +400,7 @@ setuptools = "*"
 wheel = "*"
 
 [[package]]
-name = "opencv-python"
+name = "opencv-python-headless"
 version = "4.8.0.74"
 description = "Wrapper package for OpenCV python bindings."
 category = "main"
@@ -793,7 +793,7 @@ python-versions = ">=3.7"
 
 [[package]]
 name = "upolygon"
-version = "0.1.10"
+version = "0.1.8"
 description = "Collection of fast polygon operations for DL"
 category = "main"
 optional = false
@@ -848,7 +848,7 @@ test = ["responses", "pytest", "flake8-pyproject"]
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8.0,<3.12"
-content-hash = "2fd9d212bc9cbc8adb90d2e4dc05879675c11a0caa514eca551c07059a4bb830"
+content-hash = "109494cb12b2afe0cecbb670ff06028a8d1a473c337533fe5de7049abfa975c1"
 
 [metadata.files]
 argcomplete = [
@@ -1159,14 +1159,14 @@ nvidia-cudnn-cu11 = [
     {file = "nvidia_cudnn_cu11-8.5.0.96-2-py3-none-manylinux1_x86_64.whl", hash = "sha256:402f40adfc6f418f9dae9ab402e773cfed9beae52333f6d86ae3107a1b9527e7"},
     {file = "nvidia_cudnn_cu11-8.5.0.96-py3-none-manylinux1_x86_64.whl", hash = "sha256:71f8111eb830879ff2836db3cccf03bbd735df9b0d17cd93761732ac50a8a108"},
 ]
-opencv-python = [
-    {file = "opencv-python-4.8.0.74.tar.gz", hash = "sha256:009e3ce356a0cd2d7423723e00a32fd3d3cc5bb5970ed27a9a1f8a8f221d1db5"},
-    {file = "opencv_python-4.8.0.74-cp37-abi3-macosx_10_16_x86_64.whl", hash = "sha256:31d0d59fc8fdf703de4cec46c79b9f8d026fdde9d23d6e2e6a66809feeebbda9"},
-    {file = "opencv_python-4.8.0.74-cp37-abi3-macosx_11_0_arm64.whl", hash = "sha256:66eadb5882ee56848b67f9fb57aadcaca2f4c9d9d00a0ef11043041925b51291"},
-    {file = "opencv_python-4.8.0.74-cp37-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:038ba7075e55cb8e2846663ae970f0fb776a45b48ee69a887bf4ee15e2570083"},
-    {file = "opencv_python-4.8.0.74-cp37-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:43dd0dfe331fb95767af581bf3b2781d7a72cf6560ddf2f55949fe547f3e5c9f"},
-    {file = "opencv_python-4.8.0.74-cp37-abi3-win32.whl", hash = "sha256:458e5dc377f15fcf769d80314f3d885bd95457b1a2891bee67df2eb24a1d3a52"},
-    {file = "opencv_python-4.8.0.74-cp37-abi3-win_amd64.whl", hash = "sha256:8fe0018d0056a5187c57120b6b3f6c3e706c13b45c48e54e86d245a9a16fac84"},
+opencv-python-headless = [
+    {file = "opencv-python-headless-4.8.0.74.tar.gz", hash = "sha256:a72770b8f2e08358b1faa41c8372b17d040aa9bb3e446ab7090e358f6f4e91ba"},
+    {file = "opencv_python_headless-4.8.0.74-cp37-abi3-macosx_10_16_x86_64.whl", hash = "sha256:f645b17667fc9bffec8c3b3a72a217430c8d7090ed3ebb80fd8efc657f372d6c"},
+    {file = "opencv_python_headless-4.8.0.74-cp37-abi3-macosx_11_0_arm64.whl", hash = "sha256:7c88744ce922b81747c86f2b7f1b3ec84ff2f53477ee9219a5e75ae2012b443f"},
+    {file = "opencv_python_headless-4.8.0.74-cp37-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:34e92fef90e8f768d92dca875aefaff8b11556427f82484378a3848eb690d4c0"},
+    {file = "opencv_python_headless-4.8.0.74-cp37-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:f8a88620c43a5d17f7df8317767da93b935656ab9236df92e1e2e0dd23195756"},
+    {file = "opencv_python_headless-4.8.0.74-cp37-abi3-win32.whl", hash = "sha256:b52a6eb2d92fff0f660e6aade958cb4373fbfcbafa0488f7ae88c4e6ce3f47f6"},
+    {file = "opencv_python_headless-4.8.0.74-cp37-abi3-win_amd64.whl", hash = "sha256:19d30269ae710f67e0ae549361a68b755e28599a572d5f72d0bbb177ab438a28"},
 ]
 orjson = [
     {file = "orjson-3.8.12-cp310-cp310-macosx_11_0_x86_64.macosx_11_0_arm64.macosx_11_0_universal2.whl", hash = "sha256:c84046e890e13a119404a83f2e09e622509ed4692846ff94c4ca03654fbc7fb5"},
@@ -1588,15 +1588,20 @@ typing-extensions = [
     {file = "typing_extensions-4.6.0.tar.gz", hash = "sha256:ff6b238610c747e44c268aa4bb23c8c735d665a63726df3f9431ce707f2aa768"},
 ]
 upolygon = [
-    {file = "upolygon-0.1.10-cp310-cp310-macosx_11_0_x86_64.whl", hash = "sha256:363c0e10768c64da5563242d4c4b0a83ff001d7d482b41bf8817381e31d61e26"},
-    {file = "upolygon-0.1.10-cp310-cp310-win_amd64.whl", hash = "sha256:480749a637feaab7da667be4c62f64472082ef74c9059ec2130ab8a3e2f4411d"},
-    {file = "upolygon-0.1.10-cp37-cp37m-macosx_10_15_x86_64.whl", hash = "sha256:c0604ce5536f9fc43f17020e0d71b090cc706bc9a2e6f2527e6915fa8789f58a"},
-    {file = "upolygon-0.1.10-cp37-cp37m-win_amd64.whl", hash = "sha256:b44da1bd58ada96362a8e2c77ba748dd45f8e590e029576402d85d6fb0a39c8b"},
-    {file = "upolygon-0.1.10-cp38-cp38-macosx_10_15_x86_64.whl", hash = "sha256:364d4dbf4b495aeb167cb00c256519a856a1216ec8be9eb3f1b91af3188c2146"},
-    {file = "upolygon-0.1.10-cp38-cp38-win_amd64.whl", hash = "sha256:8349feb3c1c49e17caccf572861d022c9fd6d9e06fdad13662167fd561483f61"},
-    {file = "upolygon-0.1.10-cp39-cp39-macosx_11_0_x86_64.whl", hash = "sha256:7c6735d14d7c2c5296e1c94c1a5a539ad4d7716974e433265c62d7734d9e37be"},
-    {file = "upolygon-0.1.10-cp39-cp39-win_amd64.whl", hash = "sha256:fc73ae4db1551b0d433f98a4092ec71a64bf0eee5da4fff5ca0d95a410e07549"},
-    {file = "upolygon-0.1.10.tar.gz", hash = "sha256:ab983bc1a146b58b6712be35d0de1656d89f3432f318b1e9ba6b990849192827"},
+    {file = "upolygon-0.1.8-cp310-cp310-macosx_10_15_universal2.whl", hash = "sha256:5fb8e3f4ecdd4ac766c9974c6e603400a148041005d1806eea6bcbfcbd106604"},
+    {file = "upolygon-0.1.8-cp310-cp310-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:0fc91178f7e6e7b8284d424cbef678f26ceb0818f3cc5badf9c47ac4eb4feff2"},
+    {file = "upolygon-0.1.8-cp310-cp310-win_amd64.whl", hash = "sha256:17f35d8a84ad7afd2d0f1988ced9f5e01fa8848ce16097e542944e11f45006c8"},
+    {file = "upolygon-0.1.8-cp36-cp36m-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:3cd230dc82a2f3467a6c2a46c621a7bb3186e68e862b096d4265e45585801964"},
+    {file = "upolygon-0.1.8-cp37-cp37m-macosx_10_15_x86_64.whl", hash = "sha256:7c9c3be4915d3310df34d48fb8c7b1cc4409099e82a32554db32fbd7c1f2931e"},
+    {file = "upolygon-0.1.8-cp37-cp37m-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:d2dea16ae6b3e5548b0f1b794843c32586e2831c7876fa5f278bb17e44e20e61"},
+    {file = "upolygon-0.1.8-cp37-cp37m-win_amd64.whl", hash = "sha256:0017a176b63ad536d704d8d0041eca3230b76b875da528aae6c950efa49ba530"},
+    {file = "upolygon-0.1.8-cp38-cp38-macosx_10_15_x86_64.whl", hash = "sha256:b36cb8159edb2d214dcc3430c04dad58e436e69f3e3685baa477db35dffda110"},
+    {file = "upolygon-0.1.8-cp38-cp38-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:012c9bffeaef34ab8130ecc968ecf6aa815129abf105bbea646e1bd7e8cae9f3"},
+    {file = "upolygon-0.1.8-cp38-cp38-win_amd64.whl", hash = "sha256:76fe9849caf92122365fb49ad73929b8ca9d79a1a07e3a953f1067117e01a330"},
+    {file = "upolygon-0.1.8-cp39-cp39-macosx_10_15_x86_64.whl", hash = "sha256:d7ceb3e45871234d1988372f5444c63e8e15f7d28f594c41e4419aff96378d73"},
+    {file = "upolygon-0.1.8-cp39-cp39-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:c47fab057b1f6924941177c0bce12c759974d09ddc2bf9134d4df93fbbae48e4"},
+    {file = "upolygon-0.1.8-cp39-cp39-win_amd64.whl", hash = "sha256:40de6070aa8b6bedbe0c6384825936423a34236321e0b8cb9441bdcce1bcf5d6"},
+    {file = "upolygon-0.1.8.tar.gz", hash = "sha256:26629e254e2dcba67e94b51a8b0fa99d6803d906b65315ffb1edba17a7a06ad2"},
 ]
 urllib3 = [
     {file = "urllib3-2.0.2-py3-none-any.whl", hash = "sha256:d055c2f9d38dc53c808f6fdc8eab7360b6fdbbde02340ed25cfbcd817c62469e"},
