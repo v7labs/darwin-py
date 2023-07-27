@@ -1,5 +1,5 @@
 [build-system]
-requires = [ "poetry-core",]
+requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
@@ -9,11 +9,14 @@ description = "Library and command line interface for darwin.v7labs.com"
 homepage = "https://docs.v7labs.com/reference/getting-started-2"
 documentation = "https://darwin-py-sdk.v7labs.com/index.html"
 repository = "https://github.com/v7labs/darwin-py"
-authors = [ "V7 <info@v7labs.com>",]
+authors = ["V7 <info@v7labs.com>"]
 readme = "README.md"
 license = "MIT"
 keywords = []
-classifiers = [ "Programming Language :: Python :: 3", "License :: OSI Approved :: MIT License",]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+]
 [[tool.poetry.packages]]
 include = "darwin"
 
@@ -21,7 +24,7 @@ include = "darwin"
 profile = "black"
 
 [tool.mypy]
-plugins = [ "pydantic.mypy",]
+plugins = ["pydantic.mypy"]
 follow_imports = "silent"
 warn_redundant_casts = true
 warn_unused_ignores = true
@@ -54,10 +57,10 @@ line-length = 160
 
 [tool.flake8]
 max-line-length = 160
-ignore = [ "E203", "W503", "E402",]
+ignore = ["E203", "W503", "E402"]
 
 [tool.poetry.dependencies]
-python = ">=3.7.0,<3.12"
+python = ">=3.8.0,<3.12"
 argcomplete = "^2.0.0"
 humanize = "^4.4.0"
 pillow = "^9.4.0"
@@ -89,12 +92,23 @@ types-requests = { version = "^2.28.11.8" }
 mpire = { version = "^2.7.0" }
 tqdm = "^4.64.1"
 types-pyyaml = "^6.0.12.9"
+opencv-python = "^4.8.0.74"
 
 [tool.poetry.extras]
-dev = [ "black", "isort", "flake8", "mypy", "debugpy", "responses", "pytest", "pytest-describe", "flake8-pyproject",]
-test = [ "responses", "pytest", "pytest-describe", "flake8-pyproject",]
-ml = [ "torch", "torchvision", "scikit-learn",]
-medical = [ "nibabel", "connected-components-3d",]
+dev = [
+    "black",
+    "isort",
+    "flake8",
+    "mypy",
+    "debugpy",
+    "responses",
+    "pytest",
+    "pytest-describe",
+    "flake8-pyproject",
+]
+test = ["responses", "pytest", "pytest-describe", "flake8-pyproject"]
+ml = ["torch", "torchvision", "scikit-learn"]
+medical = ["nibabel", "connected-components-3d"]
 
 [tool.poetry.scripts]
 darwin = "darwin.cli:main"
