@@ -3,8 +3,8 @@ import unittest
 import pytest
 from pydantic import BaseModel, ValidationError
 
-from darwin.future.data_objects.dataset import Dataset
-from darwin.future.data_objects.release import Release
+from darwin.future.data_objects.dataset import DatasetModel
+from darwin.future.data_objects.release import ReleaseModel
 from darwin.future.data_objects.team import Team
 from darwin.future.tests.data_objects.fixtures import *
 
@@ -23,7 +23,7 @@ def test_broken_obj_raises(broken_combined: dict) -> None:
         broken = Team.parse_obj(broken_combined)
 
 
-@pytest.mark.parametrize("test_object", [Team, Dataset, Release])
+@pytest.mark.parametrize("test_object", [Team, DatasetModel, ReleaseModel])
 def test_empty_obj_raises(test_object: BaseModel) -> None:
     with pytest.raises(ValidationError) as e_info:
         broken = test_object.parse_obj({})

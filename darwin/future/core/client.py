@@ -125,7 +125,7 @@ class Result(BaseModel):
     ...
 
 
-class Client:
+class CoreClient:
     """Client Object to manage and make requests to the Darwin API
     Attributes
     ----------

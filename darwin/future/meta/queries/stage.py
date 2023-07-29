@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import List
 from uuid import UUID
 
-from darwin.future.core.client import Client
+from darwin.future.core.client import CoreClient
 from darwin.future.core.types.query import Param, Query, QueryFilter
 from darwin.future.core.workflows.get_workflow import get_workflow
 from darwin.future.meta.objects.stage import StageMeta

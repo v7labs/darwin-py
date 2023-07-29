@@ -2,7 +2,7 @@ from datetime import datetime
 from pathlib import Path
 from uuid import UUID
 
-from darwin.future.data_objects.workflow import WFDataset, WFStage, Workflow
+from darwin.future.data_objects.workflow import WFDataset, WFStageModel, WorkflowModel
 
 test_data_path: Path = Path(__file__).parent / "data"
 validate_json = test_data_path / "workflow.json"
@@ -15,15 +15,15 @@ def test_file_exists() -> None:
 
 
 def test_Workflow_validates_from_valid_json() -> None:
-    parsed_set = Workflow.parse_file(validate_json)
+    parsed_set = WorkflowModel.parse_file(validate_json)
 
-    assert isinstance(parsed_set, Workflow)
+    assert isinstance(parsed_set, WorkflowModel)
     assert isinstance(parsed_set.id, UUID)
     assert isinstance(parsed_set.name, str)
     assert isinstance(parsed_set.team_id, int)
 
     assert isinstance(parsed_set.stages, list)
-    assert all(isinstance(i, WFStage) for i in parsed_set.stages)
+    assert all(isinstance(i, WFStageModel) for i in parsed_set.stages)
     assert isinstance(parsed_set.dataset, WFDataset)
 
     assert isinstance(parsed_set.inserted_at, datetime)

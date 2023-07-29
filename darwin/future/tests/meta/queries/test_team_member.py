@@ -3,15 +3,15 @@ from typing import List
 import pytest
 import responses
 
-from darwin.future.core.client import Client
-from darwin.future.data_objects.team import TeamMember
+from darwin.future.core.client import CoreClient
+from darwin.future.data_objects.team import TeamMemberModel
 from darwin.future.data_objects.team_member_role import TeamMemberRole
 from darwin.future.meta.objects.team_member import TeamMemberMeta
 from darwin.future.meta.queries.team_member import TeamMemberQuery
 from darwin.future.tests.core.fixtures import *
 
 
-def test_team_member_collects_basic(base_client: Client, base_team_members_json: List[dict]) -> None:
+def test_team_member_collects_basic(base_client: CoreClient, base_team_members_json: List[dict]) -> None:
     query = TeamMemberQuery(base_client)
     with responses.RequestsMock() as rsps:
         endpoint = base_client.config.api_endpoint + "memberships"
@@ -21,7 +21,7 @@ def test_team_member_collects_basic(base_client: Client, base_team_members_json:
         assert isinstance(members[0], TeamMemberMeta)
 
 
-def test_team_member_only_passes_back_correct(base_client: Client, base_team_member_json: dict) -> None:
+def test_team_member_only_passes_back_correct(base_client: CoreClient, base_team_member_json: dict) -> None:
     query = TeamMemberQuery(base_client)
     with responses.RequestsMock() as rsps:
         endpoint = base_client.config.api_endpoint + "memberships"
@@ -33,7 +33,7 @@ def test_team_member_only_passes_back_correct(base_client: Client, base_team_mem
 
 @pytest.mark.parametrize("role", [role for role in TeamMemberRole])
 def test_team_member_filters_role(
-    role: TeamMemberRole, base_client: Client, base_team_members_json: List[dict]
+    role: TeamMemberRole, base_client: CoreClient, base_team_members_json: List[dict]
 ) -> None:
     with responses.RequestsMock() as rsps:
         # Test equal
@@ -56,7 +56,7 @@ def test_team_member_filters_role(
             assert member._item.role != role
 
 
-def test_team_member_filters_general(base_client: Client, base_team_members_json: List[dict]) -> None:
+def test_team_member_filters_general(base_client: CoreClient, base_team_members_json: List[dict]) -> None:
     for idx in range(len(base_team_members_json)):
         base_team_members_json[idx]["id"] = idx + 1
 

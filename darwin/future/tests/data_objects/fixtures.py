@@ -4,7 +4,7 @@ from typing import List
 
 import pytest
 
-from darwin.future.data_objects.workflow import WFStage, Workflow
+from darwin.future.data_objects.workflow import WFStageModel, WorkflowModel
 
 test_data_path: Path = Path(__file__).parent / "workflow" / "data"
 valid_stage_json = test_data_path / "stage.json"

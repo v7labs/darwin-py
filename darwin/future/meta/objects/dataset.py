@@ -6,18 +6,18 @@ from uuid import UUID
 from darwin.cli_functions import upload_data
 from darwin.dataset.upload_manager import LocalFile
 from darwin.datatypes import PathLike
-from darwin.future.core.client import Client
+from darwin.future.core.client import CoreClient
 from darwin.future.core.datasets.create_dataset import create_dataset
 from darwin.future.core.datasets.get_dataset import get_dataset
 from darwin.future.core.datasets.list_datasets import list_datasets
 from darwin.future.core.datasets.remove_dataset import remove_dataset
 from darwin.future.core.items.get import get_item_ids
-from darwin.future.data_objects.dataset import Dataset
+from darwin.future.data_objects.dataset import DatasetModel
 from darwin.future.helpers.assertion import assert_is
 from darwin.future.meta.objects.base import MetaBase
 
 
-class DatasetMeta(MetaBase[Dataset]):
+class Dataset(MetaBase[DatasetModel]):
     """Dataset Meta object. Facilitates the creation of Query objects, lazy loading of sub fields
 
     Args:
@@ -26,16 +26,19 @@ class DatasetMeta(MetaBase[Dataset]):
     Returns:
         _type_: DatasetMeta
     """
+
     @property
     def name(self) -> str:
         assert self._item is not None
         assert self._item.name is not None
         return self._item.name
+
     @property
     def slug(self) -> str:
         assert self._item is not None
         assert self._item.slug is not None
         return self._item.slug
+
     @property
     def id(self) -> int:
         assert self._item is not None
@@ -54,11 +57,11 @@ class DatasetMeta(MetaBase[Dataset]):
         assert self.meta_params["team_slug"] is not None and type(self.meta_params["team_slug"]) == str
         return get_item_ids(self.client, self.meta_params["team_slug"], str(self._item.id))
 
-    def get_dataset_by_id(self) -> Dataset:
+    def get_dataset_by_id(self) -> DatasetModel:
         # TODO: implement
         raise NotImplementedError()
 
-    def create_dataset(self, slug: str) -> Tuple[Optional[List[Exception]], Optional[Dataset]]:
+    def create_dataset(self, slug: str) -> Tuple[Optional[List[Exception]], Optional[DatasetModel]]:
         """
         Creates a new dataset for the given team
 
@@ -74,7 +77,7 @@ class DatasetMeta(MetaBase[Dataset]):
 
         """
         exceptions = []
-        dataset: Optional[Dataset] = None
+        dataset: Optional[DatasetModel] = None
 
         try:
             self._validate_slug(slug)
@@ -84,7 +87,7 @@ class DatasetMeta(MetaBase[Dataset]):
 
         return exceptions or None, dataset
 
-    def update_dataset(self) -> Dataset:
+    def update_dataset(self) -> DatasetModel:
         # TODO: implement in IO-1018
         raise NotImplementedError()
 
@@ -117,7 +120,7 @@ class DatasetMeta(MetaBase[Dataset]):
         return exceptions or None, dataset_deleted
 
     @staticmethod
-    def _delete_by_slug(client: Client, slug: str) -> int:
+    def _delete_by_slug(client: CoreClient, slug: str) -> int:
         """
         (internal) Deletes a dataset by slug
 
@@ -134,7 +137,7 @@ class DatasetMeta(MetaBase[Dataset]):
         int
             The dataset deleted
         """
-        assert_is(isinstance(client, Client), "client must be a Core Client")
+        assert_is(isinstance(client, CoreClient), "client must be a Core Client")
         assert_is(isinstance(slug, str), "slug must be a string")
 
         dataset = get_dataset(client, slug)
@@ -146,7 +149,7 @@ class DatasetMeta(MetaBase[Dataset]):
         return dataset_deleted
 
     @staticmethod
-    def _delete_by_id(client: Client, dataset_id: int) -> int:
+    def _delete_by_id(client: CoreClient, dataset_id: int) -> int:
         """
         (internal) Deletes a dataset by id
 
@@ -163,7 +166,7 @@ class DatasetMeta(MetaBase[Dataset]):
         int
             The dataset deleted
         """
-        assert_is(isinstance(client, Client), "client must be a Client")
+        assert_is(isinstance(client, CoreClient), "client must be a Client")
         assert_is(isinstance(dataset_id, int), "dataset_id must be an integer")
 
         dataset_deleted = remove_dataset(client, dataset_id)
@@ -200,7 +203,7 @@ class DatasetMeta(MetaBase[Dataset]):
         extract_views: bool = False,
         preserve_folders: bool = False,
         verbose: bool = False,
-    ) -> DatasetMeta:
+    ) -> Dataset:
         assert self._item is not None
         upload_data(
             self._item.name, files, files_to_exclude, fps, path, frames, extract_views, preserve_folders, verbose

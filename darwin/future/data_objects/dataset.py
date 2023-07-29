@@ -7,7 +7,7 @@ from darwin.future.data_objects.validators import parse_name
 from darwin.future.pydantic_base import DefaultDarwin
 
 
-class Dataset(DefaultDarwin):
+class DatasetModel(DefaultDarwin):
     """
     A class to manage all the information around a dataset on the darwin platform,
     including validation
@@ -33,4 +33,4 @@ class Dataset(DefaultDarwin):
     _name_validator = validator("name", allow_reuse=True)(parse_name)
 
 
-DatasetList = List[Dataset]
+DatasetList = List[DatasetModel]

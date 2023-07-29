@@ -8,12 +8,12 @@ from uuid import UUID
 from darwin.cli_functions import upload_data
 from darwin.dataset.upload_manager import LocalFile
 from darwin.datatypes import PathLike
-from darwin.future.data_objects.workflow import WFDataset, WFType, Workflow
+from darwin.future.data_objects.workflow import WFDataset, WFType, WorkflowModel
 from darwin.future.meta.objects.base import MetaBase
 from darwin.future.meta.queries.stage import StageQuery
 
 
-class WorkflowMeta(MetaBase[Workflow]):
+class WorkflowMeta(MetaBase[WorkflowModel]):
     @property
     def stages(self) -> StageQuery:
         if self._item is None:

@@ -5,11 +5,11 @@ from typing import List
 from darwin.cli_functions import upload_data
 from darwin.future.core.datasets.list_datasets import list_datasets
 from darwin.future.core.types.query import Param, Query, QueryFilter
-from darwin.future.data_objects.dataset import Dataset
-from darwin.future.meta.objects.dataset import DatasetMeta
+from darwin.future.data_objects.dataset import DatasetModel
+from darwin.future.meta.objects.dataset import Dataset
 
 
-class DatasetQuery(Query[DatasetMeta]):
+class DatasetQuery(Query[Dataset]):
     """
     DatasetQuery object with methods to manage filters, retrieve data, and execute
     filters
@@ -20,12 +20,12 @@ class DatasetQuery(Query[DatasetMeta]):
     collect: Executes the query and returns the filtered data
     """
 
-    def collect(self) -> List[DatasetMeta]:
+    def collect(self) -> List[Dataset]:
         datasets, exceptions = list_datasets(self.client)
         if exceptions:
             # TODO: print and or raise exceptions, tbd how we want to handle this
             pass
-        datasets_meta = [DatasetMeta(self.client, dataset) for dataset in datasets]
+        datasets_meta = [Dataset(self.client, dataset) for dataset in datasets]
         if not self.filters:
             self.filters = []
 
@@ -34,7 +34,7 @@ class DatasetQuery(Query[DatasetMeta]):
 
         return datasets_meta
 
-    def _execute_filters(self, datasets: List[DatasetMeta], filter: QueryFilter) -> List[DatasetMeta]:
+    def _execute_filters(self, datasets: List[Dataset], filter: QueryFilter) -> List[Dataset]:
         """Executes filtering on the local list of datasets, applying special logic for role filtering
         otherwise calls the parent method for general filtering on the values of the datasets
 

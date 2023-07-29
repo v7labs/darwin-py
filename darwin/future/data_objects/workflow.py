@@ -128,7 +128,7 @@ class WFStageConfig(DefaultDarwin):
     threshold: UnknownType
 
 
-class WFStage(DefaultDarwin):
+class WFStageModel(DefaultDarwin):
     """
     A workflow stage
 
@@ -152,7 +152,7 @@ class WFStage(DefaultDarwin):
     edges: List[WFEdge]
 
 
-class Workflow(DefaultDarwin):
+class WorkflowModel(DefaultDarwin):
     """
     A class to manage all the information around a workflow on the darwin platform,
     including validation
@@ -180,10 +180,10 @@ class Workflow(DefaultDarwin):
     updated_at: datetime
 
     dataset: Optional[WFDataset]
-    stages: List[WFStage]
+    stages: List[WFStageModel]
 
     thumbnails: List[str]
 
 
 class WorkflowListValidator(DefaultDarwin):
-    list: List[Workflow]
+    list: List[WorkflowModel]
