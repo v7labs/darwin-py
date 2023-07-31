@@ -35,4 +35,4 @@ def test_raises_with_invalid_uuid() -> None:
         WFStageModel.parse_obj(dict_from_json)
 
     assert "not a valid uuid" in str(excinfo.value)
-    assert str(excinfo.value).startswith("1 validation error for WFStage\nid")
+    assert str(excinfo.value).startswith("1 validation error for WFStageModel\nid")
