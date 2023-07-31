@@ -4,14 +4,14 @@ import responses
 from pytest import fixture, raises
 
 from darwin.future.core.client import CoreClient, DarwinConfig
-from darwin.future.data_objects.team import Team, TeamMemberModel
-from darwin.future.meta.objects.team import TeamMeta
+from darwin.future.data_objects.team import TeamMemberModel, TeamModel
+from darwin.future.meta.objects.team import Team
 from darwin.future.tests.core.fixtures import *
 from darwin.future.tests.meta.objects.fixtures import *
 
 
 def test_team_meta_collects_members(
-    base_meta_team: TeamMeta, base_client: CoreClient, base_team_member: TeamMemberModel, base_team_member_json: dict
+    base_meta_team: Team, base_client: CoreClient, base_team_member: TeamMemberModel, base_team_member_json: dict
 ) -> None:
     with responses.RequestsMock() as rsps:
         endpoint = base_client.config.api_endpoint + "memberships"

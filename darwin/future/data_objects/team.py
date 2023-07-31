@@ -30,7 +30,7 @@ class TeamMemberModel(DefaultDarwin):
 TeamMemberList = List[TeamMemberModel]
 
 
-class Team(DefaultDarwin):
+class TeamModel(DefaultDarwin):
     """A class to manage all the information around a Team on the darwin platform, including validation
 
     Attributes
@@ -56,7 +56,7 @@ class Team(DefaultDarwin):
     _slug_validator = validator("slug", allow_reuse=True)(parse_name)
 
     @staticmethod
-    def from_client(client: CoreClient, team_slug: Optional[str] = None) -> Team:
+    def from_client(client: CoreClient, team_slug: Optional[str] = None) -> TeamModel:
         """Returns the team with the given slug from the client
 
         Args:
@@ -71,10 +71,10 @@ class Team(DefaultDarwin):
         return get_team(client, team_slug)
 
 
-TeamList = List[Team]
+TeamList = List[TeamModel]
 
 
-def get_team(client: CoreClient, team_slug: Optional[str] = None) -> Team:
+def get_team(client: CoreClient, team_slug: Optional[str] = None) -> TeamModel:
     """Returns the team with the given slug from the client
 
     Args:
@@ -87,7 +87,7 @@ def get_team(client: CoreClient, team_slug: Optional[str] = None) -> Team:
     if not team_slug:
         team_slug = client.config.default_team
     response = client.get(f"/teams/{team_slug}/")
-    return Team.parse_obj(response)
+    return TeamModel.parse_obj(response)
 
 
 def get_team_members(client: CoreClient) -> Tuple[List[TeamMemberModel], List[Exception]]:

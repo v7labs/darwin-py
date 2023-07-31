@@ -6,14 +6,14 @@ from typing import List, Optional
 from requests.adapters import Retry
 
 from darwin.future.core.client import CoreClient, DarwinConfig
-from darwin.future.meta.objects.team import TeamMeta
-from darwin.future.meta.objects.workflow import WorkflowMeta
+from darwin.future.meta.objects.team import Team
+from darwin.future.meta.objects.workflow import Workflow
 from darwin.future.meta.queries.workflow import WorkflowQuery
 
 
 class Client(CoreClient):
     def __init__(self, config: DarwinConfig, retries: Optional[Retry] = None) -> None:
-        self._team: Optional[TeamMeta] = None
+        self._team: Optional[Team] = None
         super().__init__(config, retries=retries)
 
     @classmethod
@@ -34,9 +34,9 @@ class Client(CoreClient):
         return cls(config)
 
     @property
-    def team(self) -> TeamMeta:
+    def team(self) -> Team:
         if self._team is None:
-            self._team = TeamMeta(self)
+            self._team = Team(self)
         return self._team
 
     # @property

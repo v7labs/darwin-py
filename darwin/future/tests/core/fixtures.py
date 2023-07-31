@@ -6,7 +6,7 @@ import pytest
 
 from darwin.future.core.client import CoreClient, DarwinConfig
 from darwin.future.data_objects.dataset import DatasetModel
-from darwin.future.data_objects.team import Team, TeamMemberModel
+from darwin.future.data_objects.team import TeamMemberModel, TeamModel
 from darwin.future.data_objects.team_member_role import TeamMemberRole
 from darwin.future.data_objects.workflow import WFType
 
@@ -34,8 +34,8 @@ def base_team_json() -> dict:
 
 
 @pytest.fixture
-def base_team(base_team_json: dict) -> Team:
-    return Team.parse_obj(base_team_json)
+def base_team(base_team_json: dict) -> TeamModel:
+    return TeamModel.parse_obj(base_team_json)
 
 
 @pytest.fixture

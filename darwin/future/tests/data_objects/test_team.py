@@ -6,8 +6,8 @@ from pydantic import ValidationError
 
 from darwin.future.core.client import CoreClient
 from darwin.future.data_objects.team import (
-    Team,
     TeamMemberModel,
+    TeamModel,
     get_team,
     get_team_members,
 )
@@ -15,7 +15,7 @@ from darwin.future.tests.core.fixtures import *
 from darwin.future.tests.fixtures import *
 
 
-def test_get_team_returns_valid_team(base_client: CoreClient, base_team_json: dict, base_team: Team) -> None:
+def test_get_team_returns_valid_team(base_client: CoreClient, base_team_json: dict, base_team: TeamModel) -> None:
     slug = "test-slug"
     endpoint = base_client.config.api_endpoint + f"teams/{slug}"
     with responses.RequestsMock() as rsps:
@@ -25,7 +25,7 @@ def test_get_team_returns_valid_team(base_client: CoreClient, base_team_json: di
         assert team == base_team
 
 
-def test_get_team_fails_on_incorrect_input(base_client: CoreClient, base_team: Team) -> None:
+def test_get_team_fails_on_incorrect_input(base_client: CoreClient, base_team: TeamModel) -> None:
     slug = "test-slug"
     endpoint = base_client.config.api_endpoint + f"teams/{slug}"
     with responses.RequestsMock() as rsps:
@@ -62,7 +62,7 @@ def test_get_team_members_fails_on_incorrect_input(base_client: CoreClient, base
         assert isinstance(members[0], TeamMemberModel)
 
 
-def test_team_from_client(base_client: CoreClient, base_team_json: dict, base_team: Team) -> None:
+def test_team_from_client(base_client: CoreClient, base_team_json: dict, base_team: TeamModel) -> None:
     with responses.RequestsMock() as rsps:
         rsps.add(
             responses.GET,
@@ -70,5 +70,5 @@ def test_team_from_client(base_client: CoreClient, base_team_json: dict, base_te
             json=base_team_json,
         )
 
-        team = Team.from_client(base_client)
+        team = TeamModel.from_client(base_client)
         assert team == base_team

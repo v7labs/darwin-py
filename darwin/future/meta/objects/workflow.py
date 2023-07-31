@@ -13,7 +13,7 @@ from darwin.future.meta.objects.base import MetaBase
 from darwin.future.meta.queries.stage import StageQuery
 
 
-class WorkflowMeta(MetaBase[WorkflowModel]):
+class Workflow(MetaBase[WorkflowModel]):
     @property
     def stages(self) -> StageQuery:
         if self._item is None:
@@ -45,7 +45,7 @@ class WorkflowMeta(MetaBase[WorkflowModel]):
             raise ValueError("WorkflowMeta has no item")
         return self._item.name
 
-    def push_from_dataset_stage(self) -> WorkflowMeta:
+    def push_from_dataset_stage(self) -> Workflow:
         assert self._item is not None
         assert self._item.dataset is not None
         stages = self.stages
@@ -68,7 +68,7 @@ class WorkflowMeta(MetaBase[WorkflowModel]):
         preserve_folders: bool = False,
         verbose: bool = False,
         auto_push: bool = True,
-    ) -> WorkflowMeta:
+    ) -> Workflow:
         assert self._item is not None
         assert self._item.dataset is not None
         upload_data(
