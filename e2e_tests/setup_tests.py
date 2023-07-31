@@ -1,9 +1,11 @@
+import base64
 import random
 import string
-from dataclasses import Field, dataclass
+from dataclasses import dataclass
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import List, Literal, Optional
+from typing import List, Literal
+from uuid import UUID
 
 import numpy as np
 import pytest
@@ -18,7 +20,10 @@ from e2e_tests.exceptions import E2EException
 @dataclass
 class E2EItem(Exception):
     name: str
-    # TODO: Add more fields
+    id: UUID
+    path: str
+    file_name: str
+    slot_name: str
 
 
 @dataclass
@@ -70,7 +75,7 @@ def api_call(verb: Literal["get", "post", "put", "delete"], url: str, payload: d
     return response
 
 
-def generate_random_string(length: int = 6, alphabet: Optional[str] = (string.ascii_lowercase + string.digits)) -> str:
+def generate_random_string(length: int = 6, alphabet: str = (string.ascii_lowercase + string.digits)) -> str:
     """
     A random-enough to avoid collision on test runs prefix generator
 
@@ -121,7 +126,6 @@ def create_dataset(prefix: str, config: ConfigValues) -> E2EDataset:
         pytest.exit("Test run failed in test setup stage")
 
 
-# ! Untested
 def create_item(dataset_slug: str, prefix: str, image: Path, config: ConfigValues) -> E2EItem:
     """
     Creates a randomised new item, and return its minimal info for reference
@@ -141,16 +145,57 @@ def create_item(dataset_slug: str, prefix: str, image: Path, config: ConfigValue
     name = f"{prefix}_{generate_random_string(4)}_item"
     host, api_key = config.server, config.api_key
     url = f"{host}/api/v1/datasets/{dataset_slug}/items"
+    register_url = f"{url}/direct_upload"
 
     try:
-        response = api_call("post", url, {"name": name}, api_key)
+        base64_image = base64.b64encode(image.read_bytes()).decode("utf-8")
+        response = api_call(
+            "post",
+            register_url,
+            {
+                "dataset_slug": "my-dataset",
+                "items": [
+                    {
+                        "as_frames": False,
+                        "extract_views": False,
+                        "file_content": base64_image,
+                        "fps": "native",
+                        "metadata": {},
+                        "name": "some-item",
+                        "path": "/",
+                        "tags": ["tag"],
+                        "type": "image",
+                    }
+                ],
+                "options": {"force_tiling": False, "ignore_dicom_layout": False},
+            },
+            api_key,
+        )
 
         if response.ok:
-            # ! needs replacing
             item_info = response.json()
-            return E2EItem(name=item_info["name"])
 
-        raise E2EException(f"Failed to create dataset {name} - {response.status_code} - {response.text}")
+            if "items" not in response.json() or len(response.json()["items"]) != 1:
+                raise E2EException(
+                    f"Failed to create item {name} - {response.status_code} - {response.text}:: Received unexpected response from server"
+                )
+
+            item_info = response.json()["items"][0]
+
+            return E2EItem(
+                name=item_info["name"],
+                id=item_info["id"],
+                path=item_info["path"],
+                file_name=item_info["slots"]["file_name"],
+                slot_name=item_info["slots"]["slot_name"],
+            )
+
+        raise E2EException(f"Failed to create item {name} - {response.status_code} - {response.text}")
+
+    except E2EException as e:
+        print(f"Failed to create dataset {name} - {e}")
+        pytest.exit("Test run failed in test setup stage")
+
     except Exception as e:
         print(f"Failed to create dataset {name} - {e}")
         pytest.exit("Test run failed in test setup stage")
@@ -175,12 +220,12 @@ def create_random_image(prefix: str, directory: Path, height: int = 10, width: i
 
     image_array = np.array(np.random.rand(height, width, 3) * 255)
     im = Image.fromarray(image_array.astype("uint8")).convert("RGBA")
-    im.save(directory / image_name)
+    im.save(str(directory / image_name))
 
     return directory / image_name
 
 
-def setup(config: ConfigValues) -> List[E2EDataset]:
+def setup_tests(config: ConfigValues) -> List[E2EDataset]:
     """
     Setup data for End to end test runs
 
@@ -221,7 +266,7 @@ def setup(config: ConfigValues) -> List[E2EDataset]:
     return datasets
 
 
-def teardown(config: ConfigValues, datasets: List[E2EDataset]) -> None:
+def teardown_tests(config: ConfigValues, datasets: List[E2EDataset]) -> None:
     """
     Teardown data for End to end test runs
 
