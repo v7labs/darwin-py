@@ -76,7 +76,6 @@ class WFType(Enum):
     COMPLETE: str
     """
 
-    # TODO: There may be more types
     DATASET = "dataset"
     ANNOTATE = "annotate"
     REVIEW = "review"
@@ -85,6 +84,8 @@ class WFType(Enum):
     MODEL = "model"
     WEBHOOK = "webhook"
     ARCHIVE = "archive"
+    LOGIC = "logic"
+    SAMPLING = "sampling"
     CONSENSUS_TEST = "consensus_test"
     CONSENSUS_ENTRYPOINT = "consensus_entrypoint"
 
