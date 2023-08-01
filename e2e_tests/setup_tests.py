@@ -186,18 +186,18 @@ def create_item(dataset_slug: str, prefix: str, image: Path, config: ConfigValue
                 name=item_info["name"],
                 id=item_info["id"],
                 path=item_info["path"],
-                file_name=item_info["slots"]["file_name"],
-                slot_name=item_info["slots"]["slot_name"],
+                file_name=item_info["slots"][0]["file_name"],
+                slot_name=item_info["slots"][0]["slot_name"],
             )
 
         raise E2EException(f"Failed to create item {name} - {response.status_code} - {response.text}")
 
     except E2EException as e:
-        print(f"Failed to create dataset {name} - {e}")
+        print(f"Failed to create item {name} - {e}")
         pytest.exit("Test run failed in test setup stage")
 
     except Exception as e:
-        print(f"Failed to create dataset {name} - {e}")
+        print(f"Failed to create item {name} - {e}")
         pytest.exit("Test run failed in test setup stage")
 
 

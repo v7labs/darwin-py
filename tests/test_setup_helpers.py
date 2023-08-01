@@ -1,10 +1,12 @@
 import re
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 import responses
 from PIL import Image
 
+from e2e_tests.conftest import ConfigValues
 from e2e_tests.setup_tests import (
     api_call,
     create_dataset,
@@ -41,12 +43,65 @@ def test_generate_random_string() -> None:
 
 
 def test_create_dataset() -> None:
-    pytest.fail("Not implemented")
+    with patch("e2e_tests.setup_tests.api_call") as mock_api_call:
+        mock_api_call.return_value.ok = True
+        mock_api_call.return_value.status_code = 200
+        mock_api_call.return_value.text = "test_text"
+        mock_api_call.return_value.json.return_value = {
+            # fmt: off
+            # fmt: on
+        }
+
+        dataset = create_dataset("test-prefix", ConfigValues(api_key="test_api_key", server="test_server"))
+
+    if not dataset:
+        pytest.fail("Dataset was not created")
+    else:
+        # TODO: assertions
 
 
-def test_create_item() -> None:
-    #! TODO: Resume here
-    pytest.fail("Not implemented")
+def test_create_item(tmpdir) -> None:
+    with patch("e2e_tests.setup_tests.api_call") as mock_api_call:
+        mock_api_call.return_value.ok = True
+        mock_api_call.return_value.status_code = 200
+        mock_api_call.return_value.text = "test_text"
+        mock_api_call.return_value.json.return_value = {
+            # fmt: off
+            "items": [
+                {
+                    "id": "test_id", 
+                    "name": "test_dataset",
+                    "path": "test_path",
+                    "slots": [
+                        {
+                            "file_name": "slot_file_name",
+                            "slot_name": "slot_name",
+                        }
+                    ],
+                }
+            ]
+            # fmt: on
+        }
+
+        image_path = create_random_image("test_prefix", Path(tmpdir))
+
+        item = create_item(
+            # fmt: off
+            "test_dataset", 
+            "test_prefix", 
+            image_path, 
+            ConfigValues(api_key="test_api_key", server="test_server")
+            # fmt: on
+        )
+
+    if not item:
+        pytest.fail("Item was not created")
+    else:
+        assert item.name == "test_dataset"
+        assert item.path == "test_path"
+        assert item.id == "test_id"
+        assert item.file_name == "slot_file_name"
+        assert item.slot_name == "slot_name"
 
 
 def test_create_random_image(tmpdir: Path) -> None:
@@ -67,7 +122,7 @@ def test_setup() -> None:
 
 
 def test_teardown() -> None:
-    ...
+    pytest.fail("Not implemented")
 
 
 if __name__ == "__main__":
