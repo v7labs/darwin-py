@@ -1,4 +1,5 @@
 import base64
+import math
 import random
 import string
 from dataclasses import dataclass
@@ -11,12 +12,19 @@ import numpy as np
 import pytest
 import requests
 from PIL import Image
+from pydantic import UUID4
 
+from darwin.future.data_objects import team
 from e2e_tests.conftest import ConfigValues
 from e2e_tests.exceptions import E2EException
 
 
 # Datastructures to store minimal info about the created datasets and items
+@dataclass
+class E2EAnnotation:
+    ...
+
+
 @dataclass
 class E2EItem(Exception):
     name: str
@@ -24,6 +32,10 @@ class E2EItem(Exception):
     path: str
     file_name: str
     slot_name: str
+    annotations: List[E2EAnnotation]
+
+    def add_annotation(self, annotation: E2EAnnotation) -> None:
+        self.annotations.append(annotation)
 
 
 @dataclass
@@ -152,16 +164,16 @@ def create_item(dataset_slug: str, prefix: str, image: Path, config: ConfigValue
     E2EItem
         The minimal info about the created item
     """
+    team_slug = config.team_slug
     name = f"{prefix}_{generate_random_string(4)}_item"
     host, api_key = config.server, config.api_key
-    url = f"{host}/api/v1/datasets/{dataset_slug}/items"
-    register_url = f"{url}/direct_upload"
+    url = f"{host}/api/v2/teams/{team_slug}/items/direct_upload"
 
     try:
         base64_image = base64.b64encode(image.read_bytes()).decode("utf-8")
         response = api_call(
             "post",
-            register_url,
+            url,
             {
                 "dataset_slug": dataset_slug,
                 "items": [
@@ -171,7 +183,7 @@ def create_item(dataset_slug: str, prefix: str, image: Path, config: ConfigValue
                         "file_content": base64_image,
                         "fps": "native",
                         "metadata": {},
-                        "name": "some-item",
+                        "name": f"some-item_{generate_random_string(4)}",
                         "path": "/",
                         "tags": ["tag"],
                         "type": "image",
@@ -198,6 +210,7 @@ def create_item(dataset_slug: str, prefix: str, image: Path, config: ConfigValue
                 path=item_info["path"],
                 file_name=item_info["slots"][0]["file_name"],
                 slot_name=item_info["slots"][0]["slot_name"],
+                annotations=[],
             )
 
         raise E2EException(f"Failed to create item {name} - {response.status_code} - {response.text}")
@@ -211,7 +224,63 @@ def create_item(dataset_slug: str, prefix: str, image: Path, config: ConfigValue
         pytest.exit("Test run failed in test setup stage")
 
 
-def create_random_image(prefix: str, directory: Path, height: int = 10, width: int = 10) -> Path:
+def create_annotation(prefix: str, item: E2EItem, class_id: int, config: ConfigValues) -> E2EAnnotation:
+    team_slug = config.team_slug
+    host, api_key = config.server, config.api_key
+    url = f"{host}/api/v2/teams/{team_slug}/items/{item.id}/import"
+
+    x = random.randint(0, 100)
+    y = random.randint(0, 100)
+    w = random.randint(0, 100)
+    h = random.randint(0, 100)
+
+    if w + x > 100:
+        w = 100 - x
+
+    if h + y > 100:
+        h = 100 - y
+
+    try:
+        payload = {
+            "annotations": [
+                {
+                    "annotation_class_id": class_id,
+                    "annotation_group_id": str(UUID4()),
+                    "data": {
+                        # fmt: off
+                        "bounding_box": {
+                            "h": h,
+                            "w": w,
+                            "x": x,
+                            "y": y,
+                        },
+                        "id": str(UUID4()),
+                        "name": "bbox_text",
+                        "slot_names": [
+                            "0"
+                        ]
+                        # fmt: on
+                    },
+                    "id": str(UUID4()),
+                }
+            ],
+        }
+
+        response = api_call("post", url, payload, api_key)
+
+        if response.ok:
+            annotation_info = response.json()
+            print(annotation_info)
+    except E2EException as e:
+        print(f"Failed to annotation for item {item.name} - {e}")
+        pytest.exit("Test run failed in test setup stage")
+
+    except Exception as e:
+        print(f"Failed to create item {item.name} - {e}")
+        pytest.exit("Test run failed in test setup stage")
+
+
+def create_random_image(prefix: str, directory: Path, height: int = 100, width: int = 100) -> Path:
     """
     Create a random image file in the given directory
 
@@ -249,31 +318,37 @@ def setup_tests(config: ConfigValues) -> List[E2EDataset]:
     List[E2EDataset]
         The minimal info about the created datasets
     """
-    temp_directory = Path(TemporaryDirectory().name)
-    number_of_datasets = 3
-    number_of_items = 0
+    with TemporaryDirectory() as temp_directory:
+        number_of_datasets = 3
+        number_of_items = 3
+        number_of_annotations = 0
 
-    datasets: List[E2EDataset] = []
+        datasets: List[E2EDataset] = []
 
-    try:
-        prefix = generate_random_string()
-        for _ in range(number_of_datasets):
-            dataset = create_dataset(prefix, config)
-            for _ in range(number_of_items):
-                image_for_item = create_random_image(prefix, temp_directory)
-                item = create_item(dataset.name, prefix, image_for_item, config)
+        try:
+            prefix = generate_random_string()
+            for _ in range(number_of_datasets):
+                dataset = create_dataset(prefix, config)
+                for _ in range(number_of_items):
+                    image_for_item = create_random_image(prefix, Path(temp_directory))
+                    item = create_item(dataset.name, prefix, image_for_item, config)
 
-                dataset.add_item(item)
+                    dataset.add_item(item)
+                    for i in range(number_of_annotations):
+                        annotation = create_annotation(prefix, item, i, config)
+                        item.add_annotation(annotation)
 
-    except E2EException as e:
-        print(e)
-        pytest.exit("Test run failed in test setup stage")
+                datasets.append(dataset)
 
-    except Exception as e:
-        print(e)
-        pytest.exit("Setup failed - unknown error")
+        except E2EException as e:
+            print(e)
+            pytest.exit("Test run failed in test setup stage")
 
-    return datasets
+        except Exception as e:
+            print(e)
+            pytest.exit("Setup failed - unknown error")
+
+        return datasets
 
 
 def teardown_tests(config: ConfigValues, datasets: List[E2EDataset]) -> None:
@@ -290,8 +365,8 @@ def teardown_tests(config: ConfigValues, datasets: List[E2EDataset]) -> None:
     host, api_key = config.server, config.api_key
 
     for dataset in datasets:
-        url = f"{host}/api/v1/datasets/{dataset.slug}"
-        response = api_call("delete", url, {}, api_key)
+        url = f"{host}/api/datasets/{dataset.id}/archive"
+        response = api_call("put", url, {}, api_key)
 
         if not response.ok:
             print(f"Failed to delete dataset {dataset.name} - {response.status_code} - {response.text}")

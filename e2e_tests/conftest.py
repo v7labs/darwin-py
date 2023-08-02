@@ -6,7 +6,6 @@ from pathlib import Path
 import dotenv
 import pytest
 
-from darwin.future.data_objects import team
 from darwin.future.data_objects.typing import UnknownType
 from e2e_tests.exceptions import E2EEnvironmentVariableNotSet
 

@@ -1,22 +1,24 @@
 import os
 from pathlib import Path
-from venv import create
+from time import sleep
 
 from dotenv import load_dotenv
 
-from e2e_tests import teardown_tests
 from e2e_tests.conftest import ConfigValues
 from e2e_tests.setup_tests import (
+    create_annotation,
     create_dataset,
     create_item,
     create_random_image,
+    setup_tests,
     teardown_tests,
 )
 
 # TODO List:
-# 1. Dogfood creating dataset
-# 2. Dogfood creating item
-# 3. Dogfood creating annotation
+# 1. Dogfood creating dataset ✔︎
+# 2. Dogfood creating item ✔️
+# 3. Dogfood creating annotation ~
+# 4. Dogfood teardown
 
 
 def main() -> None:
@@ -25,19 +27,22 @@ def main() -> None:
 
     load_dotenv(path)
 
-    host, key, team = os.getenv("E2E_ENVIRONMENT"), os.getenv("E2E_API_KEY"), os.getenv("E2E_TEAM_SLUG")
+    host, key, team = os.getenv("E2E_ENVIRONMENT"), os.getenv("E2E_API_KEY"), os.getenv("E2E_TEAM")
+
+    if not host or not key or not team:
+        raise ValueError(f"Environment variables not set: {host}, {key}, {team}")
+
     config_values = ConfigValues(api_key=key, server=host, team_slug=team)
 
-    dataset = create_dataset("test", config_values)
+    datasets = setup_tests(config_values)
 
-    image = create_random_image("test", Path(__file__).parent)
+    print(datasets)
 
-    # item = create_item(dataset.slug, "test", image, config_values)
+    sleep(5)
 
-    print(dataset)
-    # print(item)
+    print("Deleting datasets")
 
-    teardown_tests(config_values, [dataset])
+    teardown_tests(config_values, datasets)
 
 
 if __name__ == "__main__":
