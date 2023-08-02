@@ -6,6 +6,7 @@ import functools
 import time
 import urllib
 from pathlib import Path
+from shutil import rmtree
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
 import deprecation
@@ -592,16 +593,16 @@ def download_manifest_txts(urls: List[str], api_key: str, folder: Path) -> List[
             else:
                 session.headers = {"Authorization": f"ApiKey {api_key}"}
                 response = session.get(url)
-        if not response.ok or (400 <= response.status_code <= 499):
-            raise Exception(
-                f"Request to ({url}) failed. Status code: {response.status_code}, content:\n{get_response_content(response)}."
-            )
-        if not response.content:
-            raise Exception(f"Manifest file ({url}) is empty.")
-        path = folder / f"manifest_{index}.txt"
-        with open(str(path), "wb") as file:
-            file.write(response.content)
-        paths.append(path)
+            if not response.ok or (400 <= response.status_code <= 499):
+                raise Exception(
+                    f"Request to ({url}) failed. Status code: {response.status_code}, content:\n{get_response_content(response)}."
+                )
+            if not response.content:
+                raise Exception(f"Manifest file ({url}) is empty.")
+            path = folder / f"manifest_{index + 1}.txt"
+            with open(str(path), "wb") as file:
+                file.write(response.content)
+            paths.append(path)
     return paths
 
 
@@ -613,7 +614,7 @@ def get_segment_manifests(slot: dt.Slot, parent_path: Path, api_key: str) -> Lis
     frame_urls = [item["url"] for item in slot.frame_manifest]
     manifest_paths = download_manifest_txts(frame_urls, api_key, temp_dir)
     segment_manifests = _parse_manifests(manifest_paths, slot.name or "0")
-    temp_dir.unlink()
+    rmtree(temp_dir)
     return segment_manifests
 
 
