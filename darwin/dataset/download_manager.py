@@ -589,6 +589,12 @@ class ManifestItem:
 
 
 @dataclass
+class SegmentManifest:
+    slot: str
+    items: List[ManifestItem]
+
+
+@dataclass
 class FrameManifest:
     slot: str
     items: List[ManifestItem]
