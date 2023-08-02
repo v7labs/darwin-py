@@ -6,6 +6,7 @@ from pathlib import Path
 import dotenv
 import pytest
 
+from darwin.future.data_objects import team
 from darwin.future.data_objects.typing import UnknownType
 from e2e_tests.exceptions import E2EEnvironmentVariableNotSet
 
@@ -22,6 +23,7 @@ def pytest_sessionstart(session: pytest.Session) -> None:
 
     server = environ.get("E2E_ENVIRONMENT")
     api_key = environ.get("E2E_API_KEY")
+    team_slug = environ.get("E2E_TEAM")
 
     if server is None:
         raise E2EEnvironmentVariableNotSet("E2E_ENVIRONMENT")
@@ -29,14 +31,18 @@ def pytest_sessionstart(session: pytest.Session) -> None:
     if api_key is None:
         raise E2EEnvironmentVariableNotSet("E2E_API_KEY")
 
+    if team_slug is None:
+        raise E2EEnvironmentVariableNotSet("E2E_TEAM")
+
     if not isinstance(session.config.cache, pytest.Cache):
         raise TypeError("Pytest caching is not enabled, but E2E tests require it")
 
     session.config.cache.set("server", server)
     session.config.cache.set("api_key", api_key)
+    session.config.cache.set("team_slug", team_slug)
 
 
-ConfigValues = namedtuple("ConfigValues", ["server", "api_key"])
+ConfigValues = namedtuple("ConfigValues", ["server", "api_key", "team_slug"])
 
 
 @pytest.fixture(
@@ -50,6 +56,7 @@ def config_values(request: UnknownType) -> ConfigValues:
 
     server = session.config.cache.get("server", None)
     api_key = session.config.cache.get("api_key", None)
+    team = session.config.cache.get("team_slug", None)
 
     if server is None:
         raise ValueError("E2E_ENVIRONMENT is not set")
@@ -57,4 +64,7 @@ def config_values(request: UnknownType) -> ConfigValues:
     if api_key is None:
         raise ValueError("E2E_API_KEY is not set")
 
-    return ConfigValues(server=server, api_key=api_key)
+    if team is None:
+        raise ValueError("E2E_TEAM is not set")
+
+    return ConfigValues(server=server, api_key=api_key, team_slug=team)

@@ -13,8 +13,6 @@ from e2e_tests.setup_tests import (
     create_item,
     create_random_image,
     generate_random_string,
-    setup_tests,
-    teardown_tests,
 )
 
 
@@ -32,8 +30,8 @@ def test_api_call() -> None:
     req_call: responses.Call = responses.calls[0]  # type: ignore
 
     assert req_call.request.url == "http://0.0.0.0/testurl"
-    assert req_call.request.headers["Authorization"] == "Bearer test_api_key"
-    assert req_call.request.body == b'{"key": "json"}'
+    assert req_call.request.headers["Authorization"] == "ApiKey test_api_key"
+    assert req_call.request.body == b'{"key": "json"}'  # type: ignore
 
 
 def test_generate_random_string() -> None:
@@ -48,19 +46,48 @@ def test_create_dataset() -> None:
         mock_api_call.return_value.status_code = 200
         mock_api_call.return_value.text = "test_text"
         mock_api_call.return_value.json.return_value = {
-            # fmt: off
-            # fmt: on
+            "active": True,
+            "annotation_hotkeys": {},
+            "annotators_can_create_tags": True,
+            "annotators_can_instantiate_workflows": True,
+            "anyone_can_double_assign": False,
+            "archived": False,
+            "archived_at": None,
+            "default_workflow_template_id": 1337,
+            "id": 13371337,
+            "instructions": "",
+            "name": "test_dataset",
+            "num_classes": 0,
+            "num_images": 0,
+            "owner_id": 101,
+            "parent_id": None,
+            "pdf_fit_page": True,
+            "progress": 0.0,
+            "public": None,
+            "reviewers_can_annotate": False,
+            "slug": "test_dataset",
+            "team_id": 123,
+            "team_slug": "test-team",
+            "thumbnails": [],
+            "version": 1,
+            "work_prioritization": "inserted_at:desc",
+            "work_size": 30,
+            "workflow_ids": [],
         }
 
-        dataset = create_dataset("test-prefix", ConfigValues(api_key="test_api_key", server="test_server"))
+        dataset = create_dataset(
+            "test-prefix", ConfigValues(api_key="test_api_key", server="https://test_server", team_slug="test_team")
+        )
 
     if not dataset:
         pytest.fail("Dataset was not created")
     else:
-        # TODO: assertions
+        assert dataset.name == "test_dataset"
+        assert dataset.id == 13371337
+        assert dataset.slug == "test_dataset"
 
 
-def test_create_item(tmpdir) -> None:
+def test_create_item(tmpdir: Path) -> None:
     with patch("e2e_tests.setup_tests.api_call") as mock_api_call:
         mock_api_call.return_value.ok = True
         mock_api_call.return_value.status_code = 200
@@ -90,7 +117,7 @@ def test_create_item(tmpdir) -> None:
             "test_dataset", 
             "test_prefix", 
             image_path, 
-            ConfigValues(api_key="test_api_key", server="test_server")
+            ConfigValues(api_key="test_api_key", server="test_server", team_slug="test_team")
             # fmt: on
         )
 
@@ -117,10 +144,12 @@ def test_create_random_image(tmpdir: Path) -> None:
     assert Image.open(image_2).size == (9, 5)
 
 
+@pytest.mark.xfail("Not implemented")
 def test_setup() -> None:
     pytest.fail("Not implemented")
 
 
+@pytest.mark.xfail("Not implemented")
 def test_teardown() -> None:
     pytest.fail("Not implemented")
 

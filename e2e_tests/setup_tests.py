@@ -4,7 +4,7 @@ import string
 from dataclasses import dataclass
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import List, Literal
+from typing import List, Literal, Optional
 from uuid import UUID
 
 import numpy as np
@@ -30,11 +30,13 @@ class E2EItem(Exception):
 class E2EDataset:
     id: int
     name: str
+    slug: str
     items: List[E2EItem]
 
-    def __init__(self, id: int, name: str) -> None:
+    def __init__(self, id: int, name: str, slug: Optional[str]) -> None:
         self.id = id
         self.name = name
+        self.slug = slug or name.lower().replace(" ", "_")
         self.items = []
 
     def add_item(self, item: E2EItem) -> None:
@@ -68,7 +70,7 @@ def api_call(verb: Literal["get", "post", "put", "delete"], url: str, payload: d
     requests.Response
         The response object
     """
-    headers = {"Authorization": f"Bearer {api_key}"}
+    headers = {"Authorization": f"ApiKey {api_key}"}
     action = getattr(requests, verb)
 
     response = action(url, headers=headers, json=payload)
@@ -92,7 +94,6 @@ def generate_random_string(length: int = 6, alphabet: str = (string.ascii_lowerc
     return "".join(random.choice(alphabet) for i in range(length))
 
 
-# ! Untested
 def create_dataset(prefix: str, config: ConfigValues) -> E2EDataset:
     """
     Create a randomised new dataset, and return its minimal info for reference
@@ -111,14 +112,23 @@ def create_dataset(prefix: str, config: ConfigValues) -> E2EDataset:
     """
     name = f"{prefix}_{generate_random_string(4)}_dataset"
     host, api_key = config.server, config.api_key
-    url = f"{host}/api/v1/datasets"
+    url = f"{host}/api/datasets"
+
+    if not url.startswith("http"):
+        raise E2EException(f"Invalid server URL {host} - need to specify protocol in var E2E_ENVIRONMENT")
 
     try:
         response = api_call("post", url, {"name": name}, api_key)
 
         if response.ok:
             dataset_info = response.json()
-            return E2EDataset(id=dataset_info["id"], name=dataset_info["name"])
+            return E2EDataset(
+                # fmt: off
+                id=dataset_info["id"],
+                name=dataset_info["name"],
+                slug=dataset_info["slug"],
+                # fmt: on
+            )
 
         raise E2EException(f"Failed to create dataset {name} - {response.status_code} - {response.text}")
     except Exception as e:
@@ -153,7 +163,7 @@ def create_item(dataset_slug: str, prefix: str, image: Path, config: ConfigValue
             "post",
             register_url,
             {
-                "dataset_slug": "my-dataset",
+                "dataset_slug": dataset_slug,
                 "items": [
                     {
                         "as_frames": False,
@@ -280,7 +290,7 @@ def teardown_tests(config: ConfigValues, datasets: List[E2EDataset]) -> None:
     host, api_key = config.server, config.api_key
 
     for dataset in datasets:
-        url = f"{host}/api/v1/datasets/{dataset.id}"
+        url = f"{host}/api/v1/datasets/{dataset.slug}"
         response = api_call("delete", url, {}, api_key)
 
         if not response.ok:
