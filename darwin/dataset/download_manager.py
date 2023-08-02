@@ -5,7 +5,9 @@ Holds helper functions that deal with downloading videos and images.
 import functools
 import time
 import urllib
+from dataclasses import dataclass
 from pathlib import Path
+from tkinter import Frame
 from typing import Any, Callable, Iterable, List, Optional, Tuple
 
 import deprecation
@@ -13,6 +15,7 @@ import numpy as np
 import orjson as json
 import requests
 from PIL import Image
+from requests.adapters import HTTPAdapter, Retry
 from rich.console import Console
 
 import darwin.datatypes as dt
@@ -313,6 +316,14 @@ def _download_single_slot_from_json_annotation(
     if video_frames and slot.type != "image":
         video_path: Path = parent_path / annotation_path.stem
         video_path.mkdir(exist_ok=True, parents=True)
+        if (slot.frame_urls is None) or (len(slot.frame_urls) == 0):
+            temp_dir = parent_path / "temp"
+            temp_dir.mkdir(exist_ok=True, parents=True)
+            if slot.frame_manifest is None:
+                raise ValueError("No frame manifest found")
+            frame_urls = [item["url"] for item in slot.frame_manifest]
+            manifest_paths = download_manifest_txts(frame_urls, api_key, temp_dir)
+            slot_manifest = parse_manifests(manifest_paths, slot.name or "0")
         for i, frame_url in enumerate(slot.frame_urls or []):
             path = video_path / f"{i:07d}.png"
             generator.append(functools.partial(_download_image, frame_url, path, api_key, slot))
@@ -525,3 +536,70 @@ def _rg16_to_grayscale(path):
 
     new_image = Image.fromarray(np.uint8(image_2d_gray), mode="L")
     new_image.save(path)
+
+
+def download_video_segment(url: str, api_key: str, path: Path) -> None:
+    with requests.Session() as session:
+        retries = Retry(total=5, backoff_factor=1, status_forcelist=[500, 502, 503, 504])
+        session.mount("https://", HTTPAdapter(max_retries=retries))
+        if "token" in url:
+            response = session.get(url)
+        else:
+            session.headers = {"Authorization": f"ApiKey {api_key}"}
+            response = session.get(url)
+    if not response.ok or (400 <= response.status_code <= 499):
+        raise Exception(
+            f"Request to ({url}) failed. Status code: {response.status_code}, content:\n{get_response_content(response)}."
+        )
+    with open(str(path), "wb") as file:
+        for chunk in response:
+            file.write(chunk)
+
+
+def download_manifest_txts(urls: List[str], api_key: str, folder: Path) -> List[Path]:
+    paths = []
+    with requests.Session() as session:
+        retries = Retry(total=5, backoff_factor=1, status_forcelist=[500, 502, 503, 504])
+        session.mount("https://", HTTPAdapter(max_retries=retries))
+        for index, url in enumerate(urls):
+            if "token" in url:
+                response = session.get(url)
+            else:
+                session.headers = {"Authorization": f"ApiKey {api_key}"}
+                response = session.get(url)
+        if not response.ok or (400 <= response.status_code <= 499):
+            raise Exception(
+                f"Request to ({url}) failed. Status code: {response.status_code}, content:\n{get_response_content(response)}."
+            )
+        if not response.content:
+            raise Exception(f"Manifest file ({url}) is empty.")
+        path = folder / f"manifest_{index}.txt"
+        with open(str(path), "wb") as file:
+            file.write(response.content)
+        paths.append(path)
+    return paths
+
+
+@dataclass
+class ManifestItem:
+    frame: int
+    segment: int
+    visibility: bool
+    timestamp: float
+
+
+@dataclass
+class FrameManifest:
+    slot: str
+    items: List[ManifestItem]
+
+
+def parse_manifests(paths: List[Path], slot: str) -> FrameManifest:
+    items = []
+    for path in paths:
+        with open(path) as infile:
+            for line in infile:
+                frame, segment, visibility, timestamp = line.split()
+                items.append(ManifestItem(int(frame), int(segment), bool(int(visibility)), float(timestamp)))
+
+    return FrameManifest(slot=slot, items=items)

@@ -360,6 +360,12 @@ class Slot:
     #: Metadata of the slot
     metadata: Optional[Dict[str, UnknownType]] = None
 
+    #: Frame Manifest for video slots
+    frame_manifest: Optional[List[Dict[str, UnknownType]]] = None
+
+    #: Segments for video slots
+    segments: Optional[List[str]] = None
+
 
 @dataclass
 class AnnotationFileVersion:
