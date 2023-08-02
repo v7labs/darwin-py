@@ -364,7 +364,7 @@ class Slot:
     frame_manifest: Optional[List[Dict[str, UnknownType]]] = None
 
     #: Segments for video slots
-    segments: Optional[List[str]] = None
+    segments: Optional[List[Dict[str, UnknownType]]] = None
 
 
 @dataclass
@@ -1161,3 +1161,20 @@ class RasterLayer:
             raise ValueError("RasterLayer must be associated with at least one slot")
         if not self.total_pixels and not self.total_pixels > 0:
             raise ValueError("RasterLayer total_pixels cannot be empty")
+
+
+@dataclass
+class ManifestItem:
+    frame: int
+    absolute_frame: Optional[int]
+    segment: int
+    visibility: bool
+    timestamp: float
+
+
+@dataclass
+class SegmentManifest:
+    slot: str
+    segment: int
+    total_frames: int
+    items: List[ManifestItem]
