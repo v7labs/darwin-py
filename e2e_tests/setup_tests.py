@@ -14,6 +14,7 @@ import requests
 from PIL import Image
 from pydantic import UUID4
 
+from darwin.future.core.client import JSONType
 from darwin.future.data_objects import team
 from e2e_tests.conftest import ConfigValues
 from e2e_tests.exceptions import E2EException
@@ -22,7 +23,7 @@ from e2e_tests.exceptions import E2EException
 # Datastructures to store minimal info about the created datasets and items
 @dataclass
 class E2EAnnotation:
-    ...
+    annotation_data: JSONType
 
 
 @dataclass
@@ -242,6 +243,7 @@ def create_annotation(prefix: str, item: E2EItem, class_id: int, config: ConfigV
 
     try:
         payload = {
+            # TODO: THIS IS THE PART CURRENTLY NOT WORKING
             "annotations": [
                 {
                     "annotation_class_id": class_id,
@@ -270,7 +272,9 @@ def create_annotation(prefix: str, item: E2EItem, class_id: int, config: ConfigV
 
         if response.ok:
             annotation_info = response.json()
-            print(annotation_info)
+            return E2EAnnotation(annotation_data=annotation_info["annotations"][0]["data"])
+
+        raise E2EException(f"Failed to annotation for item {item.name} - {response.status_code} - {response.text}")
     except E2EException as e:
         print(f"Failed to annotation for item {item.name} - {e}")
         pytest.exit("Test run failed in test setup stage")
@@ -321,7 +325,7 @@ def setup_tests(config: ConfigValues) -> List[E2EDataset]:
     with TemporaryDirectory() as temp_directory:
         number_of_datasets = 3
         number_of_items = 3
-        number_of_annotations = 0
+        number_of_annotations = 3
 
         datasets: List[E2EDataset] = []
 
