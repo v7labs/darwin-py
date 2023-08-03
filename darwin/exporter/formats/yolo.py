@@ -2,8 +2,12 @@ from pathlib import Path
 from typing import Dict, Iterable
 
 import darwin.datatypes as dt
-
-ClassIndex = Dict[str, int]
+from darwin.exporter.formats.helpers.yolo_class_builder import (
+    ClassIndex,
+    build_class_index,
+    export_file,
+    save_class_index,
+)
 
 
 def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path) -> None:
@@ -21,42 +25,22 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path) -> N
 
     annotation_files = list(annotation_files)
 
-    class_index = _build_class_index(annotation_files)
+    class_index = build_class_index(annotation_files)
 
     for annotation_file in annotation_files:
-        _export_file(annotation_file, class_index, output_dir)
+        export_file(annotation_file, class_index, output_dir, _build_txt)
 
-    _save_class_index(class_index, output_dir)
-
-
-def _export_file(annotation_file: dt.AnnotationFile, class_index: ClassIndex, output_dir: Path) -> None:
-    txt = _build_txt(annotation_file, class_index)
-
-    # Just using `.with_suffix(".txt")` would remove all suffixes, so we need to
-    # do it manually.
-
-    filename = annotation_file.path.name
-    filename_to_write = filename.replace(".json", ".txt") if ".json" in filename else filename + ".txt"
-    output_file_path = output_dir / filename_to_write
-
-    output_file_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(output_file_path, "w") as f:
-        f.write(txt)
-
-
-def _build_class_index(annotation_files: Iterable[dt.AnnotationFile]) -> ClassIndex:
-    classes = set()
-    for annotation_file in annotation_files:
-        for annotation in annotation_file.annotations:
-            if annotation.annotation_class.annotation_type in ["bounding_box", "polygon", "complex_polygon"]:
-                classes.add(annotation.annotation_class.name)
-    return {k: v for (v, k) in enumerate(sorted(classes))}
+    save_class_index(class_index, output_dir)
 
 
 def _build_txt(annotation_file: dt.AnnotationFile, class_index: ClassIndex) -> str:
     yolo_lines = []
     for annotation in annotation_file.annotations:
         annotation_type = annotation.annotation_class.annotation_type
+
+        if isinstance(annotation, dt.VideoAnnotation):
+            raise ValueError("YOLO format does not support video annotations for export or conversion.")
+
         if annotation_type == "bounding_box":
             data = annotation.data
         elif annotation_type in ["polygon", "complex_polygon"]:
@@ -86,11 +70,3 @@ def _build_txt(annotation_file: dt.AnnotationFile, class_index: ClassIndex) -> s
 
         yolo_lines.append(f"{i} {x} {y} {w} {h}")
     return "\n".join(yolo_lines)
-
-
-def _save_class_index(class_index: ClassIndex, output_dir: Path) -> None:
-    sorted_items = sorted(class_index.items(), key=lambda item: item[1])
-
-    with open(output_dir / "darknet.labels", "w") as f:
-        for class_name, _ in sorted_items:
-            f.write(f"{class_name}\n")
