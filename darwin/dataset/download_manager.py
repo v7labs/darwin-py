@@ -292,7 +292,7 @@ def _download_all_slots_from_json_annotation(
         if video_frames and slot.type != "image":
             video_path: Path = slot_path / "sections"
             video_path.mkdir(exist_ok=True, parents=True)
-            if (slot.frame_urls is None) or (len(slot.frame_urls) == 0):
+            if not slot.frame_urls:
                 segment_manifests = get_segment_manifests(slot, slot_path, api_key)
                 for index, manifest in enumerate(segment_manifests):
                     if slot.segments is None:
@@ -331,7 +331,7 @@ def _download_single_slot_from_json_annotation(
         video_path.mkdir(exist_ok=True, parents=True)
 
         # Indicates it's a long video and uses the segment and manifest
-        if (slot.frame_urls is None) or (len(slot.frame_urls) == 0):
+        if not slot.frame_urls:
             segment_manifests = get_segment_manifests(slot, video_path, api_key)
             for index, manifest in enumerate(segment_manifests):
                 if slot.segments is None:
@@ -590,7 +590,7 @@ def _extract_frames_from_segment(path: Path, manifest: dt.SegmentManifest) -> No
 
 def _download_video_segment_file(url: str, api_key: str, path: Path) -> None:
     with requests.Session() as session:
-        retries = Retry(total=5, backoff_factor=1, status_forcelist=[500, 502, 503, 504])
+        retries = Retry(total=5, backoff_factor=0.5, status_forcelist=[500, 502, 503, 504])
         session.mount("https://", HTTPAdapter(max_retries=retries))
         if "token" in url:
             response = session.get(url)
@@ -610,7 +610,7 @@ def _download_video_segment_file(url: str, api_key: str, path: Path) -> None:
 def download_manifest_txts(urls: List[str], api_key: str, folder: Path) -> List[Path]:
     paths = []
     with requests.Session() as session:
-        retries = Retry(total=5, backoff_factor=1, status_forcelist=[500, 502, 503, 504])
+        retries = Retry(total=5, backoff_factor=0.5, status_forcelist=[500, 502, 503, 504])
         session.mount("https://", HTTPAdapter(max_retries=retries))
         for index, url in enumerate(urls):
             if "token" in url:
