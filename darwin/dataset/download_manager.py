@@ -279,18 +279,34 @@ def _download_image_from_json_annotation(
     return []
 
 
-def _download_all_slots_from_json_annotation(annotation, api_key, parent_path, video_frames):
+def _download_all_slots_from_json_annotation(
+    annotation: dt.AnnotationFile, api_key: str, parent_path: Path, video_frames: bool
+) -> Iterable[Callable[[], None]]:
     generator = []
     for slot in annotation.slots:
+        if not slot.name:
+            raise ValueError("Slot name is required to download all slots")
         slot_path = parent_path / sanitize_filename(annotation.filename) / sanitize_filename(slot.name)
         slot_path.mkdir(exist_ok=True, parents=True)
 
         if video_frames and slot.type != "image":
             video_path: Path = slot_path / "sections"
             video_path.mkdir(exist_ok=True, parents=True)
-            for i, frame_url in enumerate(slot.frame_urls or []):
-                path = video_path / f"{i:07d}.png"
-                generator.append(functools.partial(_download_image, frame_url, path, api_key, slot))
+            if (slot.frame_urls is None) or (len(slot.frame_urls) == 0):
+                segment_manifests = get_segment_manifests(slot, slot_path, api_key)
+                for index, manifest in enumerate(segment_manifests):
+                    if slot.segments is None:
+                        raise ValueError("No segments found")
+                    segment_url = slot.segments[index]["url"]
+                    generator.append(
+                        functools.partial(
+                            _download_and_extract_video_segment, segment_url, api_key, slot_path, manifest
+                        )
+                    )
+            else:
+                for i, frame_url in enumerate(slot.frame_urls or []):
+                    path = video_path / f"{i:07d}.png"
+                    generator.append(functools.partial(_download_image, frame_url, path, api_key, slot))
         else:
             for upload in slot.source_files:
                 file_path = slot_path / sanitize_filename(upload["file_name"])
@@ -307,7 +323,7 @@ def _download_single_slot_from_json_annotation(
     annotation_path: Path,
     video_frames: bool,
     use_folders: bool = False,
-):
+) -> Iterable[Callable[[], None]]:
     slot = annotation.slots[0]
     generator = []
 
@@ -317,11 +333,14 @@ def _download_single_slot_from_json_annotation(
 
         # Indicates it's a long video and uses the segment and manifest
         if (slot.frame_urls is None) or (len(slot.frame_urls) == 0):
+            segment_manifests = get_segment_manifests(slot, video_path, api_key)
             for index, manifest in enumerate(segment_manifests):
                 if slot.segments is None:
                     raise ValueError("No segments found")
                 segment_url = slot.segments[index]["url"]
-                generator.append(functools.partial(download_video_segment, segment_url, api_key, video_path, manifest))
+                generator.append(
+                    functools.partial(_download_and_extract_video_segment, segment_url, api_key, video_path, manifest)
+                )
         else:
             for i, frame_url in enumerate(slot.frame_urls):
                 path = video_path / f"{i:07d}.png"
@@ -537,12 +556,13 @@ def _rg16_to_grayscale(path):
     new_image.save(path)
 
 
-def download_video_segment(url: str, api_key: str, path: Path, manifest: dt.SegmentManifest) -> None:
+def _download_and_extract_video_segment(url: str, api_key: str, path: Path, manifest: dt.SegmentManifest) -> None:
     _download_video_segment_file(url, api_key, path)
-    _extract_frames_from_video(path, manifest)
+    _extract_frames_from_segment(path, manifest)
+    path.unlink()
 
 
-def _extract_frames_from_video(path: Path, manifest: dt.SegmentManifest) -> None:
+def _extract_frames_from_segment(path: Path, manifest: dt.SegmentManifest) -> None:
     try:
         import cv2
     except ImportError:
@@ -552,16 +572,17 @@ def _extract_frames_from_video(path: Path, manifest: dt.SegmentManifest) -> None
 
     # Read and save frames. Iterates over every frame because frame seeking in OCV is not reliable or guaranteed.
     frames_to_extract = [item.frame for item in manifest.items if item.visibility]
-    absolute_frames = [item.absolute_frame for item in manifest.items if item.visibility]
     for frame_index in range(total_frames):
-        frame = cap.read()
+        success, frame = cap.read()
+        if not success:
+            raise Exception(f"Failed to read frame {frame_index} from video segment {path}")
         if frame_index in frames_to_extract:
-            absolute_frame = absolute_frames[frames_to_extract.index(frame_index)]
-            frame_path = path.parent / f"{absolute_frame:07d}.png"
+            frames_to_extract.remove(frame_index)
+            frame_path = path.parent / f"{frame_index:07d}.png"
             cv2.imwrite(str(frame_path), frame)
-
-    # once done, clean up the video file
-    path.unlink()
+            if not frames_to_extract:
+                break
+    cap.release()
 
 
 def _download_video_segment_file(url: str, api_key: str, path: Path) -> None:
