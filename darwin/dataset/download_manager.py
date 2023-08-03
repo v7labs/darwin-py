@@ -298,10 +298,9 @@ def _download_all_slots_from_json_annotation(
                     if slot.segments is None:
                         raise ValueError("No segments found")
                     segment_url = slot.segments[index]["url"]
+                    path = video_path / f".{index:07d}.ts"
                     generator.append(
-                        functools.partial(
-                            _download_and_extract_video_segment, segment_url, api_key, slot_path, manifest
-                        )
+                        functools.partial(_download_and_extract_video_segment, segment_url, api_key, path, manifest)
                     )
             else:
                 for i, frame_url in enumerate(slot.frame_urls or []):
@@ -338,8 +337,9 @@ def _download_single_slot_from_json_annotation(
                 if slot.segments is None:
                     raise ValueError("No segments found")
                 segment_url = slot.segments[index]["url"]
+                path = video_path / f".{index:07d}.ts"
                 generator.append(
-                    functools.partial(_download_and_extract_video_segment, segment_url, api_key, video_path, manifest)
+                    functools.partial(_download_and_extract_video_segment, segment_url, api_key, path, manifest)
                 )
         else:
             for i, frame_url in enumerate(slot.frame_urls):
@@ -568,12 +568,14 @@ def _extract_frames_from_segment(path: Path, manifest: dt.SegmentManifest) -> No
     except ImportError:
         raise Exception("OpenCV is required to extract video frames. Please install with pip install darwin[ocv]")
     cap = cv2.VideoCapture(str(path))
-    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
     # Read and save frames. Iterates over every frame because frame seeking in OCV is not reliable or guaranteed.
     frames_to_extract = [item.frame for item in manifest.items if item.visibility]
-    for frame_index in range(total_frames):
+    frame_index = 0
+    while cap.isOpened():
         success, frame = cap.read()
+        if frame is None:
+            break
         if not success:
             raise Exception(f"Failed to read frame {frame_index} from video segment {path}")
         if frame_index in frames_to_extract:
@@ -582,6 +584,7 @@ def _extract_frames_from_segment(path: Path, manifest: dt.SegmentManifest) -> No
             cv2.imwrite(str(frame_path), frame)
             if not frames_to_extract:
                 break
+        frame_index += 1
     cap.release()
 
 
@@ -598,6 +601,7 @@ def _download_video_segment_file(url: str, api_key: str, path: Path) -> None:
         raise Exception(
             f"Request to ({url}) failed. Status code: {response.status_code}, content:\n{get_response_content(response)}."
         )
+    # create new filename for segment with .
     with open(str(path), "wb") as file:
         for chunk in response:
             file.write(chunk)
