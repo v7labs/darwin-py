@@ -18,8 +18,8 @@ from tests.fixtures import *
 @pytest.fixture
 def manifest_paths() -> List[Path]:
     return [
-        Path("tests/darwin/dataset/data/manifest_examples/manifest_1.txt"),
-        Path("tests/darwin/dataset/data/manifest_examples/manifest_2.txt"),
+        Path("tests/darwin/dataset/data/manifest_examples/manifest_1.txt.test"),
+        Path("tests/darwin/dataset/data/manifest_examples/manifest_2.txt.test"),
     ]
 
 
