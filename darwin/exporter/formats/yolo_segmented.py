@@ -1,6 +1,7 @@
 from collections import namedtuple
 from enum import Enum, auto
 from logging import getLogger
+from multiprocessing.pool import CLOSE
 from pathlib import Path
 from typing import Iterable, List
 
@@ -13,6 +14,8 @@ from darwin.exporter.formats.helpers.yolo_class_builder import (
 )
 
 logger = getLogger(__name__)
+
+CLOSE_VERTICES: bool = False  # Set true if polygons need to be closed
 
 
 def export(annotation_files: Iterable[AnnotationFile], output_dir: Path) -> None:
@@ -176,7 +179,10 @@ def _build_text(annotation_file: AnnotationFile, class_index: ClassIndex) -> str
                 points.append(Point(x=n_x2, y=n_y2))
                 points.append(Point(x=n_x3, y=n_y3))
                 points.append(Point(x=n_x4, y=n_y4))
-                points.append(Point(x=n_x5, y=n_y5))
+
+                if CLOSE_VERTICES:
+                    points.append(Point(x=n_x5, y=n_y5))
+
             except KeyError as exc:
                 logger.warn(
                     f"Skipped annotation at index {annotation_index} because an"
@@ -194,7 +200,10 @@ def _build_text(annotation_file: AnnotationFile, class_index: ClassIndex) -> str
                     x = point["x"] / annotation_file.image_width
                     y = point["y"] / annotation_file.image_height
                     points.append(Point(x=x, y=y))
-                points.append(points[0])  # Unsure if we have to close the polygon
+
+                if CLOSE_VERTICES:
+                    points.append(points[0])
+
             except KeyError as exc:
                 logger.warn(
                     f"Skipped annotation at index {annotation_index} because an"
