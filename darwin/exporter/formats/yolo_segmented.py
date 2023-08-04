@@ -1,4 +1,5 @@
 from collections import namedtuple
+from enum import Enum, auto
 from logging import getLogger
 from pathlib import Path
 from typing import Iterable, List
@@ -31,12 +32,44 @@ def export(annotation_files: Iterable[AnnotationFile], output_dir: Path) -> None
     """
     annotation_files = list(annotation_files)
 
-    class_index: ClassIndex = build_class_index(annotation_files, ["bounding_box", "polygon"])
+    class_index: ClassIndex = build_class_index(
+        # fmt: off
+        annotation_files, ["bounding_box", "polygon"]
+    )  # fmt: on
 
     for annotation_file in annotation_files:
         export_file(annotation_file, class_index, output_dir, _build_text)
 
     save_class_index(class_index, output_dir)
+
+
+def normalise(value: float, height_or_width: int) -> float:
+    """
+    Normalises the value to a proportion of the image size
+
+    Parameters
+    ----------
+    value : float
+        The value to be normalised.
+    height_or_width : Union[float, int]
+        The height or width of the image.
+
+    Returns
+    -------
+    float
+        The normalised value.
+    """
+    return value / height_or_width
+
+
+class YoloSegmentedAnnotationType(Enum):
+    """
+    The YoloV8 annotation types
+    """
+
+    UNKNOWN = auto()
+    BOUNDING_BOX = auto()
+    POLYGON = auto()
 
 
 def _build_text(annotation_file: AnnotationFile, class_index: ClassIndex) -> str:
@@ -57,14 +90,33 @@ def _build_text(annotation_file: AnnotationFile, class_index: ClassIndex) -> str
     """
     yolo_lines: List[str] = []
 
-    for annotation_index, annotation in enumerate(annotation_file.annotations):
-        annotation_type = annotation.annotation_class.annotation_type
+    im_w = annotation_file.image_width
+    im_h = annotation_file.image_height
 
+    if not im_w or not im_h:
+        raise ValueError(
+            "Annotation file has no image width or height. "
+            "YoloV8 Segments are encoded as a proportion of height and width. "
+            "This file cannot be YoloV8 encoded without image dimensions."
+        )
+
+    for annotation_index, annotation in enumerate(annotation_file.annotations):
         if isinstance(annotation, VideoAnnotation):
             logger.warn(
                 f"Skipped annotation at index {annotation_index} because video annotations don't contain the needed data."
             )
             continue
+
+        if "x" in annotation.data and "y" in annotation.data and "w" in annotation.data and "h" in annotation.data:
+            annotation_type = YoloSegmentedAnnotationType.BOUNDING_BOX
+        elif "points" in annotation.data:
+            if isinstance(annotation.data["points"][0], list):
+                logger.warn(f"Skipped annotation at index {annotation_index} because it's a complex polygon'")
+                continue
+
+            annotation_type = YoloSegmentedAnnotationType.POLYGON
+        else:
+            annotation_type = YoloSegmentedAnnotationType.UNKNOWN
 
         Point = namedtuple("Point", ["x", "y"])
 
@@ -75,25 +127,101 @@ def _build_text(annotation_file: AnnotationFile, class_index: ClassIndex) -> str
         data = annotation.data
         points: List[Point] = []
 
-        if annotation_type == "bounding_box":
+        if annotation_type == YoloSegmentedAnnotationType.BOUNDING_BOX:
             logger.debug(f"Exporting bounding box at index {annotation_index}.")
-            points.append(Point(x=data["x"], y=data["y"]))
-            points.append(Point(x=data["x"] + data["w"], y=data["y"]))
-            points.append(Point(x=data["x"] + data["w"], y=data["y"] + data["h"]))
-            points.append(Point(x=data["x"], y=data["y"] + data["h"]))
-        elif annotation_type == "polygon":
+
+            try:
+                # Create 8 coordinates for the x,y pairs of the 4 corners
+                x1, y1, x2, y2, x3, y3, x4, y4, x5, y5 = (
+                    data["x"],
+                    data["y"],
+                    (data["x"] + data["w"]),
+                    (data["y"] + data["h"]),
+                    (data["x"] + data["w"]),
+                    data["y"],
+                    data["x"],
+                    (data["y"] + data["h"]),
+                    data["x"],
+                    data["y"],
+                )
+
+                logger.debug(
+                    "Coordinates for bounding box: "
+                    f"({x1}, {y1}), ({x2}, {y2}), "
+                    f"({x3}, {y3}), ({x4}, {y4}), "
+                    f"({x5}, {y5})"  # Unsure if we have to close this.
+                )
+
+                # Normalize the coordinates to a proportion of the image size
+                n_x1 = normalise(x1, im_w)
+                n_y1 = normalise(y1, im_h)
+                n_x2 = normalise(x2, im_w)
+                n_y2 = normalise(y2, im_h)
+                n_x3 = normalise(x3, im_w)
+                n_y3 = normalise(y3, im_h)
+                n_x4 = normalise(x4, im_w)
+                n_y4 = normalise(y4, im_h)
+                n_x5 = normalise(x5, im_w)
+                n_y5 = normalise(y5, im_w)
+
+                logger.debug(
+                    "Normalized coordinates for bounding box: "
+                    f"({n_x1}, {n_y1}), ({n_x2}, {n_y2}), "
+                    f"({n_x3}, {n_y3}), ({n_x4}, {n_y4}), "
+                    f"({n_x5}, {n_y5})"
+                )
+
+                # Add the coordinates to the points list
+                points.append(Point(x=n_x1, y=n_y1))
+                points.append(Point(x=n_x2, y=n_y2))
+                points.append(Point(x=n_x3, y=n_y3))
+                points.append(Point(x=n_x4, y=n_y4))
+                points.append(Point(x=n_x5, y=n_y5))
+            except KeyError as exc:
+                logger.warn(
+                    f"Skipped annotation at index {annotation_index} because an"
+                    "expected key was not found in the data.",
+                    exc_info=exc,
+                )
+                continue
+        elif annotation_type == YoloSegmentedAnnotationType.POLYGON:
             logger.debug(f"Exporting polygon at index {annotation_index}.")
-            for point in data["points"]:
-                points.append(Point(x=point["x"], y=point["y"]))
+
+            last_point = None
+            try:
+                for point_index, point in enumerate(data["points"]):
+                    last_point = point_index
+                    x = point["x"] / annotation_file.image_width
+                    y = point["y"] / annotation_file.image_height
+                    points.append(Point(x=x, y=y))
+                points.append(points[0])  # Unsure if we have to close the polygon
+            except KeyError as exc:
+                logger.warn(
+                    f"Skipped annotation at index {annotation_index} because an"
+                    "expected key was not found in the data."
+                    f"Error occured while calculating point at index {last_point}."
+                    if last_point
+                    else "Error occured while enumerating points.",
+                    exc_info=exc,
+                )
+                continue
+            except Exception as exc:
+                logger.error(f"An unexpected error occured while exporting annotation at index {annotation_index}.")
         else:
             logger.warn(
                 f"Skipped annotation at index {annotation_index} because it's annotation type is not supported."
             )
             continue
 
-        #! As yet untested
-        for i in range(0, len(points), 2):
-            x1, y1 = "%f1.6" % points[i].x, "%f1.6" % points[i].y
-            x2, y2 = "%f1.6" % points[i + 1].x, "%f1.6" % points[i + 1].y
+        if len(points) < 3:
+            logger.warn(
+                f"Skipped annotation at index {annotation_index} because it "
+                "has less than 3 points.  Any valid polygon must have at least"
+                " 3 points."
+            )
+            continue
 
-            yolo_lines.append(f"{class_index[annotation.annotation_class.name]} {x1} {y1} {x2} {y2}")
+        # Create the line for the annotation
+        yolo_line = f"{class_index[annotation.annotation_class.name]} {' '.join([f'{p.x} {p.y}' for p in points])}"
+        yolo_lines.append(yolo_line)
+    return "\n".join(yolo_lines)
