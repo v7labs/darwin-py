@@ -4,7 +4,7 @@ from typing import List
 import pytest
 
 from darwin.datatypes import Annotation, AnnotationClass, AnnotationFile
-from darwin.exporter.formats.yolo_segmented import export
+from darwin.exporter.formats.yolo_segmented import CLOSE_VERTICES, export
 
 
 @pytest.fixture
@@ -77,5 +77,9 @@ def test_export_yolo_segmented(annotation_files: List[AnnotationFile], tmp_path:
     assert (tmp_path / "file1.txt").exists()
 
     output_lines = (tmp_path / "file1.txt").read_text().splitlines()
-    assert output_lines[0] == "0 0.02 0.03 0.27 0.16 0.27 0.03 0.02 0.16 0.02 0.03"
-    assert output_lines[1] == "1 0.0 0.0 0.0 0.1 0.05 0.15 0.1 0.1 0.0 0.1 0.0 0.0 0.0 0.0"
+    if CLOSE_VERTICES:
+        assert output_lines[0] == "0 0.02 0.03 0.27 0.16 0.27 0.03 0.02 0.16 0.02 0.03"
+        assert output_lines[1] == "1 0.0 0.0 0.0 0.1 0.05 0.15 0.1 0.1 0.0 0.1 0.0 0.0 0.0 0.0"
+    else:
+        assert output_lines[0] == "0 0.02 0.03 0.27 0.16 0.27 0.03 0.02 0.16"
+        assert output_lines[1] == "1 0.0 0.0 0.0 0.1 0.05 0.15 0.1 0.1 0.0 0.1 0.0 0.0"

@@ -18,6 +18,9 @@ logger = getLogger(__name__)
 CLOSE_VERTICES: bool = False  # Set true if polygons need to be closed
 
 
+Point = namedtuple("Point", ["x", "y"])
+
+
 def export(annotation_files: Iterable[AnnotationFile], output_dir: Path) -> None:
     """
     Exports YoloV8 format as segments
@@ -75,6 +78,113 @@ class YoloSegmentedAnnotationType(Enum):
     POLYGON = auto()
 
 
+def _determine_annotation_type(data: dict, annotation_index: int) -> YoloSegmentedAnnotationType:
+    if "x" in data and "y" in data and "w" in data and "h" in data:
+        return YoloSegmentedAnnotationType.BOUNDING_BOX
+    elif "points" in data:
+        if isinstance(data["points"][0], list):
+            logger.warn(f"Skipped annotation at index {annotation_index} because it's a complex polygon'")
+            return YoloSegmentedAnnotationType.UNKNOWN
+
+        return YoloSegmentedAnnotationType.POLYGON
+    else:
+        return YoloSegmentedAnnotationType.UNKNOWN
+
+
+def _handle_bounding_box(data: dict, im_w: int, im_h: int, annotation_index: int, points: List[Point]) -> bool:
+    logger.debug(f"Exporting bounding box at index {annotation_index}.")
+
+    try:
+        # Create 8 coordinates for the x,y pairs of the 4 corners
+        x1, y1, x2, y2, x3, y3, x4, y4, x5, y5 = (
+            data["x"],
+            data["y"],
+            (data["x"] + data["w"]),
+            (data["y"] + data["h"]),
+            (data["x"] + data["w"]),
+            data["y"],
+            data["x"],
+            (data["y"] + data["h"]),
+            data["x"],
+            data["y"],
+        )
+
+        logger.debug(
+            "Coordinates for bounding box: "
+            f"({x1}, {y1}), ({x2}, {y2}), "
+            f"({x3}, {y3}), ({x4}, {y4}), "
+            f"({x5}, {y5})"  # Unsure if we have to close this.
+        )
+
+        # Normalize the coordinates to a proportion of the image size
+        n_x1 = normalise(x1, im_w)
+        n_y1 = normalise(y1, im_h)
+        n_x2 = normalise(x2, im_w)
+        n_y2 = normalise(y2, im_h)
+        n_x3 = normalise(x3, im_w)
+        n_y3 = normalise(y3, im_h)
+        n_x4 = normalise(x4, im_w)
+        n_y4 = normalise(y4, im_h)
+        n_x5 = normalise(x5, im_w)
+        n_y5 = normalise(y5, im_w)
+
+        logger.debug(
+            "Normalized coordinates for bounding box: "
+            f"({n_x1}, {n_y1}), ({n_x2}, {n_y2}), "
+            f"({n_x3}, {n_y3}), ({n_x4}, {n_y4}), "
+            f"({n_x5}, {n_y5})"
+        )
+
+        # Add the coordinates to the points list
+        points.append(Point(x=n_x1, y=n_y1))
+        points.append(Point(x=n_x2, y=n_y2))
+        points.append(Point(x=n_x3, y=n_y3))
+        points.append(Point(x=n_x4, y=n_y4))
+
+        if CLOSE_VERTICES:
+            points.append(Point(x=n_x5, y=n_y5))
+
+    except KeyError as exc:
+        logger.warn(
+            f"Skipped annotation at index {annotation_index} because an" "expected key was not found in the data.",
+            exc_info=exc,
+        )
+        return False
+
+    return True
+
+
+def _handle_polygon(data: dict, im_w: int, im_h: int, annotation_index: int, points: List[Point]) -> bool:
+    logger.debug(f"Exporting polygon at index {annotation_index}.")
+
+    last_point = None
+    try:
+        for point_index, point in enumerate(data["points"]):
+            last_point = point_index
+            x = point["x"] / im_w
+            y = point["y"] / im_h
+            points.append(Point(x=x, y=y))
+
+        if CLOSE_VERTICES:
+            points.append(points[0])
+
+    except KeyError as exc:
+        logger.warn(
+            f"Skipped annotation at index {annotation_index} because an"
+            "expected key was not found in the data."
+            f"Error occured while calculating point at index {last_point}."
+            if last_point
+            else "Error occured while enumerating points.",
+            exc_info=exc,
+        )
+        return False
+
+    except Exception as exc:
+        logger.error(f"An unexpected error occured while exporting annotation at index {annotation_index}.")
+
+    return True
+
+
 def _build_text(annotation_file: AnnotationFile, class_index: ClassIndex) -> str:
     """
     Builds the YoloV8 format as segments
@@ -104,118 +214,34 @@ def _build_text(annotation_file: AnnotationFile, class_index: ClassIndex) -> str
         )
 
     for annotation_index, annotation in enumerate(annotation_file.annotations):
+        # Sanity checks
         if isinstance(annotation, VideoAnnotation):
             logger.warn(
                 f"Skipped annotation at index {annotation_index} because video annotations don't contain the needed data."
             )
             continue
 
-        if "x" in annotation.data and "y" in annotation.data and "w" in annotation.data and "h" in annotation.data:
-            annotation_type = YoloSegmentedAnnotationType.BOUNDING_BOX
-        elif "points" in annotation.data:
-            if isinstance(annotation.data["points"][0], list):
-                logger.warn(f"Skipped annotation at index {annotation_index} because it's a complex polygon'")
-                continue
-
-            annotation_type = YoloSegmentedAnnotationType.POLYGON
-        else:
-            annotation_type = YoloSegmentedAnnotationType.UNKNOWN
-
-        Point = namedtuple("Point", ["x", "y"])
-
         if annotation.data is None:
             logger.warn(f"Skipped annotation at index {annotation_index} because it's data fields are empty.'")
+            continue
+
+        # Process annotations
+
+        annotation_type = _determine_annotation_type(annotation.data, annotation_index)
+        if annotation_type == YoloSegmentedAnnotationType.UNKNOWN:
             continue
 
         data = annotation.data
         points: List[Point] = []
 
         if annotation_type == YoloSegmentedAnnotationType.BOUNDING_BOX:
-            logger.debug(f"Exporting bounding box at index {annotation_index}.")
-
-            try:
-                # Create 8 coordinates for the x,y pairs of the 4 corners
-                x1, y1, x2, y2, x3, y3, x4, y4, x5, y5 = (
-                    data["x"],
-                    data["y"],
-                    (data["x"] + data["w"]),
-                    (data["y"] + data["h"]),
-                    (data["x"] + data["w"]),
-                    data["y"],
-                    data["x"],
-                    (data["y"] + data["h"]),
-                    data["x"],
-                    data["y"],
-                )
-
-                logger.debug(
-                    "Coordinates for bounding box: "
-                    f"({x1}, {y1}), ({x2}, {y2}), "
-                    f"({x3}, {y3}), ({x4}, {y4}), "
-                    f"({x5}, {y5})"  # Unsure if we have to close this.
-                )
-
-                # Normalize the coordinates to a proportion of the image size
-                n_x1 = normalise(x1, im_w)
-                n_y1 = normalise(y1, im_h)
-                n_x2 = normalise(x2, im_w)
-                n_y2 = normalise(y2, im_h)
-                n_x3 = normalise(x3, im_w)
-                n_y3 = normalise(y3, im_h)
-                n_x4 = normalise(x4, im_w)
-                n_y4 = normalise(y4, im_h)
-                n_x5 = normalise(x5, im_w)
-                n_y5 = normalise(y5, im_w)
-
-                logger.debug(
-                    "Normalized coordinates for bounding box: "
-                    f"({n_x1}, {n_y1}), ({n_x2}, {n_y2}), "
-                    f"({n_x3}, {n_y3}), ({n_x4}, {n_y4}), "
-                    f"({n_x5}, {n_y5})"
-                )
-
-                # Add the coordinates to the points list
-                points.append(Point(x=n_x1, y=n_y1))
-                points.append(Point(x=n_x2, y=n_y2))
-                points.append(Point(x=n_x3, y=n_y3))
-                points.append(Point(x=n_x4, y=n_y4))
-
-                if CLOSE_VERTICES:
-                    points.append(Point(x=n_x5, y=n_y5))
-
-            except KeyError as exc:
-                logger.warn(
-                    f"Skipped annotation at index {annotation_index} because an"
-                    "expected key was not found in the data.",
-                    exc_info=exc,
-                )
+            bb_success = _handle_bounding_box(data, im_w, im_h, annotation_index, points)
+            if not bb_success:
                 continue
         elif annotation_type == YoloSegmentedAnnotationType.POLYGON:
-            logger.debug(f"Exporting polygon at index {annotation_index}.")
-
-            last_point = None
-            try:
-                for point_index, point in enumerate(data["points"]):
-                    last_point = point_index
-                    x = point["x"] / annotation_file.image_width
-                    y = point["y"] / annotation_file.image_height
-                    points.append(Point(x=x, y=y))
-
-                if CLOSE_VERTICES:
-                    points.append(points[0])
-
-            except KeyError as exc:
-                logger.warn(
-                    f"Skipped annotation at index {annotation_index} because an"
-                    "expected key was not found in the data."
-                    f"Error occured while calculating point at index {last_point}."
-                    if last_point
-                    else "Error occured while enumerating points.",
-                    exc_info=exc,
-                )
+            polygon_success = _handle_polygon(data, im_w, im_h, annotation_index, points)
+            if not polygon_success:
                 continue
-            except Exception as exc:
-                logger.error(f"An unexpected error occured while exporting annotation at index {annotation_index}.")
         else:
             logger.warn(
                 f"Skipped annotation at index {annotation_index} because it's annotation type is not supported."
