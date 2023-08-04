@@ -1,4 +1,5 @@
 from collections import namedtuple
+from logging import getLogger
 from pathlib import Path
 from typing import Iterable, List
 
@@ -9,6 +10,8 @@ from darwin.exporter.formats.helpers.yolo_class_builder import (
     export_file,
     save_class_index,
 )
+
+logger = getLogger(__name__)
 
 
 def export(annotation_files: Iterable[AnnotationFile], output_dir: Path) -> None:
@@ -54,34 +57,43 @@ def _build_text(annotation_file: AnnotationFile, class_index: ClassIndex) -> str
     """
     yolo_lines: List[str] = []
 
-    for annotation in annotation_file.annotations:
+    for annotation_index, annotation in enumerate(annotation_file.annotations):
         annotation_type = annotation.annotation_class.annotation_type
 
         if isinstance(annotation, VideoAnnotation):
-            raise ValueError("YOLO format does not support video annotations for export or conversion.")
+            logger.warn(
+                f"Skipped annotation at index {annotation_index} because video annotations don't contain the needed data."
+            )
+            continue
 
         Point = namedtuple("Point", ["x", "y"])
 
         if annotation.data is None:
+            logger.warn(f"Skipped annotation at index {annotation_index} because it's data fields are empty.'")
             continue
 
         data = annotation.data
         points: List[Point] = []
 
         if annotation_type == "bounding_box":
+            logger.debug(f"Exporting bounding box at index {annotation_index}.")
             points.append(Point(x=data["x"], y=data["y"]))
             points.append(Point(x=data["x"] + data["w"], y=data["y"]))
             points.append(Point(x=data["x"] + data["w"], y=data["y"] + data["h"]))
             points.append(Point(x=data["x"], y=data["y"] + data["h"]))
         elif annotation_type == "polygon":
+            logger.debug(f"Exporting polygon at index {annotation_index}.")
             for point in data["points"]:
                 points.append(Point(x=point["x"], y=point["y"]))
         else:
+            logger.warn(
+                f"Skipped annotation at index {annotation_index} because it's annotation type is not supported."
+            )
             continue
 
         #! As yet untested
         for i in range(0, len(points), 2):
-            x1, y1 = points[i].x, points[i].y
-            x2, y2 = points[i + 1].x, points[i + 1].y
+            x1, y1 = "%f1.6" % points[i].x, "%f1.6" % points[i].y
+            x2, y2 = "%f1.6" % points[i + 1].x, "%f1.6" % points[i + 1].y
 
             yolo_lines.append(f"{class_index[annotation.annotation_class.name]} {x1} {y1} {x2} {y2}")

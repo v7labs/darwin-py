@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Dict, Iterable
+from typing import Iterable
 
 import darwin.datatypes as dt
 from darwin.exporter.formats.helpers.yolo_class_builder import (
