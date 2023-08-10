@@ -566,7 +566,7 @@ def _extract_frames_from_segment(path: Path, manifest: dt.SegmentManifest) -> No
     try:
         import cv2
     except ImportError:
-        raise Exception("OpenCV is required to extract video frames. Please install with pip install darwin[ocv]")
+        raise Exception("OpenCV is required to extract video frames. Please install with pip install darwin\[ocv]")
     cap = cv2.VideoCapture(str(path))
 
     # Read and save frames. Iterates over every frame because frame seeking in OCV is not reliable or guaranteed.
