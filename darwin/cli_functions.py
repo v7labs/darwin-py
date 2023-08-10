@@ -444,7 +444,7 @@ def pull_dataset(
             f"only the darwin formats ('json', 'darwin_json_2') are supported for `darwin dataset pull`"
         )
 
-    print(f"Dataset {release.identifier} downloaded at {dataset.local_path}. ")
+    print(f"Dataset {release.identifier} downloaded at {dataset.local_path} .")
 
 
 def split(dataset_slug: str, val_percentage: float, test_percentage: float, seed: int = 0) -> None:
