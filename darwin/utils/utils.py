@@ -520,7 +520,7 @@ def _parse_darwin_slot(data: Dict[str, Any]) -> dt.Slot:
         fps=data.get("fps"),
         metadata=data.get("metadata"),
         segments=data.get("segments", []),
-        frame_manifest=data.get("frame_manifest"),
+        frame_manifest=data.get("frame_manifests"),
     )
 
 
