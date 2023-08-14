@@ -1170,6 +1170,7 @@ class ManifestItem:
     segment: int
     visibility: bool
     timestamp: float
+    visible_frame: Optional[int]
 
 
 @dataclass

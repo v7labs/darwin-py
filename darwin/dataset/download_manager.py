@@ -570,7 +570,7 @@ def _extract_frames_from_segment(path: Path, manifest: dt.SegmentManifest) -> No
     cap = cv2.VideoCapture(str(path))
 
     # Read and save frames. Iterates over every frame because frame seeking in OCV is not reliable or guaranteed.
-    frames_to_extract = [item.frame for item in manifest.items if item.visibility]
+    frames_to_extract = dict([(item.frame, item.visible_frame) for item in manifest.items if item.visibility])
     frame_index = 0
     while cap.isOpened():
         success, frame = cap.read()
@@ -579,8 +579,8 @@ def _extract_frames_from_segment(path: Path, manifest: dt.SegmentManifest) -> No
         if not success:
             raise Exception(f"Failed to read frame {frame_index} from video segment {path}")
         if frame_index in frames_to_extract:
-            frames_to_extract.remove(frame_index)
-            frame_path = path.parent / f"{frame_index:07d}.png"
+            visible_frame = frames_to_extract.pop(frame_index)
+            frame_path = path.parent / f"{visible_frame:07d}.png"
             cv2.imwrite(str(frame_path), frame)
             if not frames_to_extract:
                 break
@@ -645,6 +645,7 @@ def get_segment_manifests(slot: dt.Slot, parent_path: Path, api_key: str) -> Lis
 
 def _parse_manifests(paths: List[Path], slot: str) -> List[dt.SegmentManifest]:
     all_manifests: Dict[int, List[dt.ManifestItem]] = {}
+    visible_frame_index = 0
     for path in paths:
         with open(path) as infile:
             for line in infile:
@@ -652,9 +653,15 @@ def _parse_manifests(paths: List[Path], slot: str) -> List[dt.SegmentManifest]:
                 segment_int = int(segment_str)
                 if segment_int not in all_manifests:
                     all_manifests[segment_int] = []
-                all_manifests[segment_int].append(
-                    dt.ManifestItem(int(frame), None, segment_int, bool(int(visibility)), float(timestamp))
-                )
+                if bool(int(visibility)):
+                    all_manifests[segment_int].append(
+                        dt.ManifestItem(int(frame), None, segment_int, True, float(timestamp), visible_frame_index)
+                    )
+                    visible_frame_index += 1
+                else:
+                    all_manifests[segment_int].append(
+                        dt.ManifestItem(int(frame), None, segment_int, False, float(timestamp), None)
+                    )
     # Create a list of segments, sorted by segment number and all items sorted by frame number
     segments = []
     for segment_int, seg_manifests in all_manifests.items():
