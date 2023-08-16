@@ -7,6 +7,7 @@ import time
 import urllib
 from pathlib import Path
 from shutil import rmtree
+from tempfile import TemporaryDirectory
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
 import deprecation
@@ -20,6 +21,7 @@ from rich.console import Console
 import darwin.datatypes as dt
 from darwin.dataset.utils import sanitize_filename
 from darwin.datatypes import AnnotationFile
+from darwin.exceptions import MissingDependency
 from darwin.utils import (
     attempt_decode,
     get_response_content,
@@ -563,10 +565,13 @@ def _download_and_extract_video_segment(url: str, api_key: str, path: Path, mani
 
 
 def _extract_frames_from_segment(path: Path, manifest: dt.SegmentManifest) -> None:
+    # import cv2 here to avoid dependency on OpenCV when not needed if not installed as optional extra
     try:
-        import cv2
-    except ImportError:
-        raise Exception("OpenCV is required to extract video frames. Please install with pip install darwin\[ocv]")
+        import cv2  # pylint: disable=import-outside-toplevel
+    except ImportError as e:
+        raise MissingDependency(
+            "Missing Dependency: OpenCV required for Video Extraction. Install with `pip install darwin\[ocv]`"
+        ) from e
     cap = cv2.VideoCapture(str(path))
 
     # Read and save frames. Iterates over every frame because frame seeking in OCV is not reliable or guaranteed.
@@ -577,7 +582,7 @@ def _extract_frames_from_segment(path: Path, manifest: dt.SegmentManifest) -> No
         if frame is None:
             break
         if not success:
-            raise Exception(f"Failed to read frame {frame_index} from video segment {path}")
+            raise ValueError(f"Failed to read frame {frame_index} from video segment {path}")
         if frame_index in frames_to_extract:
             visible_frame = frames_to_extract.pop(frame_index)
             frame_path = path.parent / f"{visible_frame:07d}.png"
@@ -632,14 +637,13 @@ def download_manifest_txts(urls: List[str], api_key: str, folder: Path) -> List[
 
 
 def get_segment_manifests(slot: dt.Slot, parent_path: Path, api_key: str) -> List[dt.SegmentManifest]:
-    temp_dir = parent_path / "temp"
-    temp_dir.mkdir(exist_ok=True, parents=True)
-    if slot.frame_manifest is None:
-        raise ValueError("No frame manifest found")
-    frame_urls = [item["url"] for item in slot.frame_manifest]
-    manifest_paths = download_manifest_txts(frame_urls, api_key, temp_dir)
-    segment_manifests = _parse_manifests(manifest_paths, slot.name or "0")
-    rmtree(temp_dir)
+    with TemporaryDirectory(dir=parent_path) as tmpdirname:
+        tmpdir = Path(tmpdirname)
+        if slot.frame_manifest is None:
+            raise ValueError("No frame manifest found")
+        frame_urls = [item["url"] for item in slot.frame_manifest]
+        manifest_paths = download_manifest_txts(frame_urls, api_key, tmpdir)
+        segment_manifests = _parse_manifests(manifest_paths, slot.name or "0")
     return segment_manifests
 
 

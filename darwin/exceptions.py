@@ -109,6 +109,12 @@ class IncompatibleOptions(Exception):
     """
 
 
+class MissingDependency(Exception):
+    """
+    Used for when one of the optional install dependencies are missing
+    """
+
+
 class UnrecognizableFileEncoding(Exception):
     """
     Used when a we try to decode a file and all decoding algorithms fail.
