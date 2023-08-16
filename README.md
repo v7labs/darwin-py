@@ -36,7 +36,7 @@ If you wish to use the PyTorch bindings, then you can use the `ml` flag to insta
 pip install darwin-py[ml]
 ```
 
-If you wish to use LongVideo frame extraction, then you can use the `ocv` flag to install all the additional requirements
+If you wish to use video frame extraction, then you can use the `ocv` flag to install all the additional requirements
 
 ```
 pip install darwin-py[ocv]
