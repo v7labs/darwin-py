@@ -6,7 +6,6 @@ import functools
 import time
 import urllib
 from pathlib import Path
-from shutil import rmtree
 from tempfile import TemporaryDirectory
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
