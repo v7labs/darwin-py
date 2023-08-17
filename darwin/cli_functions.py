@@ -47,6 +47,7 @@ from darwin.exceptions import (
     IncompatibleOptions,
     InvalidLogin,
     MissingConfig,
+    MissingDependency,
     MissingSchema,
     NameTaken,
     NotFound,
@@ -376,7 +377,7 @@ def export_dataset(
         )
     except ValidationError:
         _error("Nothing to export")
-    else: 
+    else:
         identifier.version = name
         print(f"Dataset {dataset_slug} successfully exported to {identifier}")
         print_new_version_info(client)
@@ -443,6 +444,8 @@ def pull_dataset(
             f"Version '{dataset.identifier}:{version}' is of format '{uef.format}', "
             f"only the darwin formats ('json', 'darwin_json_2') are supported for `darwin dataset pull`"
         )
+    except MissingDependency as e:
+        _error(str(e))
 
     print(f"Dataset {release.identifier} downloaded at {dataset.local_path} .")
 
