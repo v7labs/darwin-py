@@ -447,7 +447,7 @@ def pull_dataset(
     except MissingDependency as e:
         _error(str(e))
 
-    print(f"Dataset {release.identifier} downloaded at {dataset.local_path}. ")
+    print(f"Dataset {release.identifier} downloaded at {dataset.local_path} .")
 
 
 def split(dataset_slug: str, val_percentage: float, test_percentage: float, seed: int = 0) -> None:
