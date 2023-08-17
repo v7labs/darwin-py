@@ -151,7 +151,7 @@ And to finally download a release.
 
 ```
 $ darwin dataset pull test:0.1
-Dataset example-team/test:0.1 downloaded at /directory/choosen/at/authentication/time.
+Dataset example-team/test:0.1 downloaded at /directory/choosen/at/authentication/time .
 ```
 
 ---

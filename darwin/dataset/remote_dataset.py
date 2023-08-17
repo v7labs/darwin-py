@@ -334,7 +334,7 @@ class RemoteDataset(ABC):
             if env_max_workers and int(env_max_workers) > 0:
                 max_workers = int(env_max_workers)
 
-            console.print(f"Going to download {str(count)} files to {self.local_images_path.as_posix()}.")
+            console.print(f"Going to download {str(count)} files to {self.local_images_path.as_posix()} .")
             successes, errors = exhaust_generator(
                 progress=progress(), count=count, multi_threaded=multi_threaded, worker_count=max_workers
             )
