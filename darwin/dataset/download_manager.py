@@ -569,7 +569,7 @@ def _extract_frames_from_segment(path: Path, manifest: dt.SegmentManifest) -> No
         import cv2  # pylint: disable=import-outside-toplevel
     except ImportError as e:
         raise MissingDependency(
-            "Missing Dependency: OpenCV required for Video Extraction. Install with `pip install darwin\[ocv]`"
+            "Missing Dependency: OpenCV required for Video Extraction. Install with `pip install darwin-py\[ocv]`"
         ) from e
     cap = cv2.VideoCapture(str(path))
 
