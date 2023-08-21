@@ -8,12 +8,30 @@ from PIL import Image
 
 from e2e_tests.conftest import ConfigValues
 from e2e_tests.setup_tests import (
+    E2EDataset,
+    add_classes_to_team,
     api_call,
     create_dataset,
     create_item,
     create_random_image,
     generate_random_string,
 )
+from tests.server_example_returns import (
+    ADD_CLASSES_RETURN_RAW,
+    CREATE_DATASET_RETURN_RAW,
+    CREATE_ITEM_RETURN_RAW,
+)
+
+
+@pytest.fixture
+def config_values() -> ConfigValues:
+    return ConfigValues(
+        # fmt: off
+        api_key="test_api_key", 
+        server="https://test_server",
+        team_slug="test_team"
+        # fmt: on
+    )
 
 
 @responses.activate
@@ -31,7 +49,7 @@ def test_api_call() -> None:
 
     assert req_call.request.url == "http://0.0.0.0/testurl"
     assert req_call.request.headers["Authorization"] == "ApiKey test_api_key"
-    assert req_call.request.body == b'{"key": "json"}'  # type: ignore
+    assert req_call.request.body == b'{"key": "json"}'
 
 
 def test_generate_random_string() -> None:
@@ -40,44 +58,45 @@ def test_generate_random_string() -> None:
         assert op.isalnum()
 
 
-def test_create_dataset() -> None:
+@pytest.mark.xfail("Not implemented")
+def test_add_classes_to_team(config_values: ConfigValues) -> None:
+    with patch("e2e_tests.setup_tests.api_call") as mock_api_call:
+        mock_api_call.return_value.ok = True
+        mock_api_call.return_value.status_code = 200
+        mock_api_call.return_value.json.return_value = ADD_CLASSES_RETURN_RAW
+
+        bbox_class, polygon_class = add_classes_to_team(
+            "test-prefix",
+            # fmt: off
+            E2EDataset(
+                1,
+                "test_dataset",
+                "test_dataset",
+            ),
+            # fmt: on
+            config_values,
+        )
+
+    if not bbox_class or not polygon_class:
+        pytest.fail("Classes were not created")
+    else:
+        assert bbox_class.name == "test_bbox_class"
+        assert bbox_class.id == 13371337
+        assert bbox_class.slug == "test_bbox_class"
+
+        assert polygon_class.name == "test_polygon_class"
+        assert polygon_class.id == 13371337
+        assert polygon_class.slug == "test_polygon_class"
+
+
+def test_create_dataset(config_values: ConfigValues) -> None:
     with patch("e2e_tests.setup_tests.api_call") as mock_api_call:
         mock_api_call.return_value.ok = True
         mock_api_call.return_value.status_code = 200
         mock_api_call.return_value.text = "test_text"
-        mock_api_call.return_value.json.return_value = {
-            "active": True,
-            "annotation_hotkeys": {},
-            "annotators_can_create_tags": True,
-            "annotators_can_instantiate_workflows": True,
-            "anyone_can_double_assign": False,
-            "archived": False,
-            "archived_at": None,
-            "default_workflow_template_id": 1337,
-            "id": 13371337,
-            "instructions": "",
-            "name": "test_dataset",
-            "num_classes": 0,
-            "num_images": 0,
-            "owner_id": 101,
-            "parent_id": None,
-            "pdf_fit_page": True,
-            "progress": 0.0,
-            "public": None,
-            "reviewers_can_annotate": False,
-            "slug": "test_dataset",
-            "team_id": 123,
-            "team_slug": "test-team",
-            "thumbnails": [],
-            "version": 1,
-            "work_prioritization": "inserted_at:desc",
-            "work_size": 30,
-            "workflow_ids": [],
-        }
+        mock_api_call.return_value.json.return_value = CREATE_DATASET_RETURN_RAW
 
-        dataset = create_dataset(
-            "test-prefix", ConfigValues(api_key="test_api_key", server="https://test_server", team_slug="test_team")
-        )
+        dataset = create_dataset("test-prefix", config_values)
 
     if not dataset:
         pytest.fail("Dataset was not created")
@@ -87,28 +106,12 @@ def test_create_dataset() -> None:
         assert dataset.slug == "test_dataset"
 
 
-def test_create_item(tmpdir: Path) -> None:
+def test_create_item(tmpdir: Path, config_values: ConfigValues) -> None:
     with patch("e2e_tests.setup_tests.api_call") as mock_api_call:
         mock_api_call.return_value.ok = True
         mock_api_call.return_value.status_code = 200
         mock_api_call.return_value.text = "test_text"
-        mock_api_call.return_value.json.return_value = {
-            # fmt: off
-            "items": [
-                {
-                    "id": "test_id", 
-                    "name": "test_dataset",
-                    "path": "test_path",
-                    "slots": [
-                        {
-                            "file_name": "slot_file_name",
-                            "slot_name": "slot_name",
-                        }
-                    ],
-                }
-            ]
-            # fmt: on
-        }
+        mock_api_call.return_value.json.return_value = CREATE_ITEM_RETURN_RAW
 
         image_path = create_random_image("test_prefix", Path(tmpdir))
 
@@ -117,7 +120,7 @@ def test_create_item(tmpdir: Path) -> None:
             "test_dataset", 
             "test_prefix", 
             image_path, 
-            ConfigValues(api_key="test_api_key", server="test_server", team_slug="test_team")
+            config_values
             # fmt: on
         )
 

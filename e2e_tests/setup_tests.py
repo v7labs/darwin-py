@@ -1,11 +1,11 @@
 import base64
-import math
 import random
 import string
 from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import List, Literal, Optional
+from typing import List, Literal, Optional, Tuple
 from uuid import UUID
 
 import numpy as np
@@ -15,7 +15,6 @@ from PIL import Image
 from pydantic import UUID4
 
 from darwin.future.core.client import JSONType
-from darwin.future.data_objects import team
 from e2e_tests.conftest import ConfigValues
 from e2e_tests.exceptions import E2EException
 
@@ -24,6 +23,14 @@ from e2e_tests.exceptions import E2EException
 @dataclass
 class E2EAnnotation:
     annotation_data: JSONType
+
+
+@dataclass
+class E2EAnnotationClass:
+    name: str
+    slug: str
+    type: Literal["bbox", "polygon"]
+    id: int
 
 
 @dataclass
@@ -60,6 +67,25 @@ class E2EDataset:
 class E2ETestRunInfo:
     prefix: str
     datasets: List[E2EDataset]
+
+
+class E2EAnnotationType(Enum):
+    bbox = 2
+    polygon = 3  # TODO: Check this is correct
+
+
+def class_create_payload_factory(name: str, type: E2EAnnotationType, dataset: E2EDataset) -> dict:
+    return {
+        "annotation_type_ids": [
+            type.value,
+        ],
+        "datasets": [dataset.id],
+        "description": "",
+        "metadata": {
+            "_color": "rgba(255,46,0,1.0)",
+        },
+        "name": name,
+    }
 
 
 def api_call(verb: Literal["get", "post", "put", "delete"], url: str, payload: dict, api_key: str) -> requests.Response:
@@ -105,6 +131,59 @@ def generate_random_string(length: int = 6, alphabet: str = (string.ascii_lowerc
         The generated prefix, of length (length).  Matches [a-z0-9]
     """
     return "".join(random.choice(alphabet) for i in range(length))
+
+
+def add_classes_to_team(
+    prefix: str, dataset: E2EDataset, config: ConfigValues
+) -> Tuple[E2EAnnotationClass, E2EAnnotationClass]:
+    """
+    Add classes to the team, one bbox and one polygon
+
+    Parameters
+    ----------
+    prefix : str
+        The prefix to use for the class names
+    config : ConfigValues
+        The config values to use
+
+    Returns
+    -------
+    Tuple[E2EAnnotationClass, E2EAnnotationClass]
+        The minimal info about the created classes
+    """
+    names = f"{prefix}_{generate_random_string(4)}_bbox_class", f"{prefix}_{generate_random_string(4)}_polygon_class"
+    types = E2EAnnotationType.bbox, E2EAnnotationType.polygon
+    name_types = zip(names, types)
+
+    host, api_key, team_slug = config.server, config.api_key, config.team_slug
+    url = f"{host}/api/teams/{team_slug}/annotation_classes"
+
+    if not url.startswith("http"):
+        raise E2EException(f"Invalid server URL {host} - need to specify protocol in var E2E_ENVIRONMENT")
+
+    output: List[E2EAnnotationClass] = []
+    try:
+        for name, type in name_types:
+            payload = class_create_payload_factory(name, type, dataset)
+            response = api_call("post", url, payload, api_key)
+
+            if not response.ok:
+                raise E2EException(f"Failed to create class {name} - {response.status_code} - {response.text}")
+
+            class_info = response.json()
+            output.append(
+                E2EAnnotationClass(
+                    name=class_info["name"],
+                    slug=str(class_info["name"]).lower().replace(" ", "_"),
+                    type="bbox" if type == E2EAnnotationType.bbox else "polygon",
+                    id=class_info["id"],
+                )
+            )
+        return output[0], output[1]
+
+    except Exception as e:
+        print(f"Failed to create classes {names} - {e}")
+        pytest.exit("Test run failed in test setup stage")
 
 
 def create_dataset(prefix: str, config: ConfigValues) -> E2EDataset:
@@ -308,7 +387,7 @@ def create_random_image(prefix: str, directory: Path, height: int = 100, width: 
     return directory / image_name
 
 
-def setup_tests(config: ConfigValues) -> List[E2EDataset]:
+def setup_tests(config: ConfigValues) -> Tuple[List[E2EDataset], List[E2EAnnotationClass]]:
     """
     Setup data for End to end test runs
 
@@ -328,11 +407,15 @@ def setup_tests(config: ConfigValues) -> List[E2EDataset]:
         number_of_annotations = 3
 
         datasets: List[E2EDataset] = []
+        classes: List[E2EAnnotationClass] = []
 
         try:
             prefix = generate_random_string()
+
             for _ in range(number_of_datasets):
                 dataset = create_dataset(prefix, config)
+                classes += list(add_classes_to_team(prefix, dataset, config))
+
                 for _ in range(number_of_items):
                     image_for_item = create_random_image(prefix, Path(temp_directory))
                     item = create_item(dataset.name, prefix, image_for_item, config)
@@ -352,10 +435,12 @@ def setup_tests(config: ConfigValues) -> List[E2EDataset]:
             print(e)
             pytest.exit("Setup failed - unknown error")
 
-        return datasets
+        return datasets, classes
 
 
-def teardown_tests(config: ConfigValues, datasets: List[E2EDataset]) -> None:
+def teardown_tests(
+    config: ConfigValues, datasets: List[E2EDataset], classes: Tuple[E2EAnnotationClass, E2EAnnotationClass]
+) -> None:
     """
     Teardown data for End to end test runs
 
@@ -368,9 +453,38 @@ def teardown_tests(config: ConfigValues, datasets: List[E2EDataset]) -> None:
     """
     host, api_key = config.server, config.api_key
 
+    failed = False
+
     for dataset in datasets:
         url = f"{host}/api/datasets/{dataset.id}/archive"
         response = api_call("put", url, {}, api_key)
 
         if not response.ok:
             print(f"Failed to delete dataset {dataset.name} - {response.status_code} - {response.text}")
+            failed = True
+
+    if failed:
+        pytest.exit("Test run failed in test teardown stage")
+
+    # team_id = None
+    # response = api_call("get", f"{host}/api/datasets", {}, api_key)
+    # if response.ok:
+    #     ds_list: List[JSONType] = response.json()
+    #     if len(ds_list) > 0:
+    #         team_id = getattr(ds_list[0], "team_id", None)
+
+    # if not team_id:
+    #     print("Failed to get team_id from datasets")
+    #     pytest.exit("Test run failed in test teardown stage")
+
+    # url = f"{host}/api/teams/{team_id}/delete_classes"
+    # response = api_call(
+    #     "post",
+    #     url,
+    #     {"annotation_class_ids": [c.id for c in classes], "annotations_to_delete_count": len(classes)},
+    #     api_key,
+    # )
+
+    # if not response.ok:
+    #     print(f"Failed to delete classes {classes} - {response.status_code} - {response.text}")
+    #     pytest.exit("Test run failed in test teardown stage")

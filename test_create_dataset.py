@@ -9,6 +9,7 @@ from e2e_tests.setup_tests import (
     create_dataset,
     create_item,
     create_random_image,
+    setup_tests,
     teardown_tests,
 )
 
@@ -32,19 +33,23 @@ def main() -> None:
 
     config_values = ConfigValues(api_key=key, server=host, team_slug=team)
 
-    dataset = create_dataset("test", config_values)
+    output = setup_tests(config_values)
 
-    image = create_random_image("test", Path(__file__).parent)
+    print(output)
 
-    item = create_item(dataset.slug, "test", image, config_values)
+    # dataset = create_dataset("test", config_values)
 
-    annotation = create_annotation(dataset.slug, item, 1, config_values)
+    # image = create_random_image("test", Path(__file__).parent)
 
-    print(dataset)
-    print(item)
-    print(annotation)
+    # item = create_item(dataset.slug, "test", image, config_values)
 
-    teardown_tests(config_values, [dataset])
+    # annotation = create_annotation(dataset.slug, item, 1, config_values)
+
+    # print(dataset)
+    # print(item)
+    # print(annotation)
+
+    # teardown_tests(config_values, [dataset])
 
 
 if __name__ == "__main__":
