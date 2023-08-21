@@ -52,36 +52,35 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path) -> N
     Returns
     -------
     sends output volumes, image_id and output_dir to the write_output_volume_to_disk function
-    
+
     """
 
-    
-    video_annotations = list(annotation_files)    
+    video_annotations = list(annotation_files)
     for video_annotation in video_annotations:
         image_id = check_for_error_and_return_imageid(video_annotation, output_dir)
         if not isinstance(image_id, str):
             continue
         output_volumes = build_output_volumes(video_annotation)
-        slot_map = {slot.name:slot for slot in video_annotation.slots}
+        slot_map = {slot.name: slot for slot in video_annotation.slots}
         for annotation in video_annotation.annotations:
-            #print(slot)
             populate_output_volumes(annotation, output_dir, slot_map, output_volumes, image_id)
         write_output_volume_to_disk(output_volumes, image_id=image_id, output_dir=output_dir)
+
 
 def build_output_volumes(video_annotation: dt.AnnotationFile):
     """
     This is a function to create the output volumes based on the whole annotation file
-    
+
     Parameters
     ----------
     video_annotation : dt.AnnotationFile
 
     Returns
     -------
-    output_volumes: Dict    
+    output_volumes: Dict
         The output volume built per class
 
-    """   
+    """
     # Builds a map of class to integer
     class_map = {}
     class_count = 1
@@ -99,20 +98,24 @@ def build_output_volumes(video_annotation: dt.AnnotationFile):
         series_instance_uid = slot_metadata.get("SeriesInstanceUID", "SeriesIntanceUIDNotProvided")
         # Builds output volumes per class
         volume_dims, pixdims, affine, original_affine = process_metadata(slot.metadata)
-        output_volumes[series_instance_uid] = {class_name: 
-                                               Volume(pixel_array=np.zeros(volume_dims),
-                                                      affine=affine,
-                                                      original_affine=original_affine,
-                                                      dims=volume_dims,
-                                                      pixdims=pixdims,
-                                                      series_instance_uid=series_instance_uid,
-                                                      class_name=class_name) for class_name in class_map.keys()}
+        output_volumes[series_instance_uid] = {
+            class_name: Volume(
+                pixel_array=np.zeros(volume_dims),
+                affine=affine,
+                original_affine=original_affine,
+                dims=volume_dims,
+                pixdims=pixdims,
+                series_instance_uid=series_instance_uid,
+                class_name=class_name,
+            )
+            for class_name in class_map.keys()
+        }
     return output_volumes
 
 
 def check_for_error_and_return_imageid(video_annotation: dt.AnnotationFile, output_dir: Path):
     """
-    Given the video_annotation file and the output directory, checks for a range of errors and 
+    Given the video_annotation file and the output directory, checks for a range of errors and
     returns messages accordingly.
 
     Parameters
@@ -125,9 +128,8 @@ def check_for_error_and_return_imageid(video_annotation: dt.AnnotationFile, outp
     Returns
     -------
     image_id : str
-    
-    """
 
+    """
 
     output_volumes = None
     filename = Path(video_annotation.filename)
@@ -158,8 +160,8 @@ def check_for_error_and_return_imageid(video_annotation: dt.AnnotationFile, outp
             str(filename),
         )
     if video_annotation is None:
-        return create_error_message_json("video_annotation not found", output_dir, image_id)  
-    
+        return create_error_message_json("video_annotation not found", output_dir, image_id)
+
     for slot in video_annotation.slots:
         # Pick the first slot to take the metadata from. We assume that all slots have the same metadata.
         metadata = slot.metadata
@@ -178,8 +180,13 @@ def check_for_error_and_return_imageid(video_annotation: dt.AnnotationFile, outp
     return image_id
 
 
-def populate_output_volumes(annotation: Union[dt.Annotation, dt.VideoAnnotation], output_dir: str, slot_map: Dict, output_volumes: Dict, image_id: str) -> None:
-
+def populate_output_volumes(
+    annotation: Union[dt.Annotation, dt.VideoAnnotation],
+    output_dir: str,
+    slot_map: Dict,
+    output_volumes: Dict,
+    image_id: str,
+) -> None:
     """
     Exports the given ``AnnotationFile``\\s into nifti format inside of the given
     ``output_dir``. Deletes everything within ``output_dir/masks`` before writting to it.
@@ -200,7 +207,7 @@ def populate_output_volumes(annotation: Union[dt.Annotation, dt.VideoAnnotation]
     -------
     volume : dict
         Returns the populated volume
-    
+
     """
 
     slot_name = annotation.slot_names[0]
@@ -208,39 +215,59 @@ def populate_output_volumes(annotation: Union[dt.Annotation, dt.VideoAnnotation]
     series_instance_uid = slot.metadata.get("SeriesInstanceUID", "SeriesIntanceUIDNotProvided")
     volume = output_volumes.get(series_instance_uid)
     frames = annotation.frames
-    frame_new = {}  
+    frame_new = {}
 
     # define the different planes
     XYPLANE = 0
     XZPLANE = 1
-    YZPLANE = 2 
-          
+    YZPLANE = 2
+
     for frame_idx in frames.keys():
         frame_new[frame_idx] = frames
         view_idx = get_view_idx_from_slot_name(slot_name, slot.metadata.get("orientation"))
         if view_idx == XYPLANE:
-            height, width = volume[annotation.annotation_class.name].dims[0], volume[annotation.annotation_class.name].dims[1]
+            height, width = (
+                volume[annotation.annotation_class.name].dims[0],
+                volume[annotation.annotation_class.name].dims[1],
+            )
         elif view_idx == XZPLANE:
-            height, width = volume[annotation.annotation_class.name].dims[0], volume[annotation.annotation_class.name].dims[2]
+            height, width = (
+                volume[annotation.annotation_class.name].dims[0],
+                volume[annotation.annotation_class.name].dims[2],
+            )
         elif view_idx == YZPLANE:
-            height, width = volume[annotation.annotation_class.name].dims[1], volume[annotation.annotation_class.name].dims[2]
+            height, width = (
+                volume[annotation.annotation_class.name].dims[1],
+                volume[annotation.annotation_class.name].dims[2],
+            )
         if "paths" in frames[frame_idx].data:
             # Dealing with a complex polygon
-            polygons = [shift_polygon_coords(polygon_path, volume[annotation.annotation_class.name].pixdims) for polygon_path in frames[frame_idx].data["paths"]]
+            polygons = [
+                shift_polygon_coords(polygon_path, volume[annotation.annotation_class.name].pixdims)
+                for polygon_path in frames[frame_idx].data["paths"]
+            ]
         elif "path" in frames[frame_idx].data:
             # Dealing with a simple polygon
-            polygons = shift_polygon_coords(frames[frame_idx].data["path"], volume[annotation.annotation_class.name].pixdims)
+            polygons = shift_polygon_coords(
+                frames[frame_idx].data["path"], volume[annotation.annotation_class.name].pixdims
+            )
         else:
             continue
         class_name = frames[frame_idx].annotation_class.name
         im_mask = convert_polygons_to_mask(polygons, height=height, width=width)
         volume = output_volumes[series_instance_uid]
         if view_idx == 0:
-            volume[annotation.annotation_class.name].pixel_array[:, :, frame_idx] = np.logical_or(im_mask, volume[annotation.annotation_class.name].pixel_array[:, :, frame_idx])
+            volume[annotation.annotation_class.name].pixel_array[:, :, frame_idx] = np.logical_or(
+                im_mask, volume[annotation.annotation_class.name].pixel_array[:, :, frame_idx]
+            )
         elif view_idx == 1:
-            volume[annotation.annotation_class.name].pixel_array[:, frame_idx, :] = np.logical_or(im_mask, volume[annotation.annotation_class.name].pixel_array[:, frame_idx, :])
+            volume[annotation.annotation_class.name].pixel_array[:, frame_idx, :] = np.logical_or(
+                im_mask, volume[annotation.annotation_class.name].pixel_array[:, frame_idx, :]
+            )
         elif view_idx == 2:
-            volume[annotation.annotation_class.name].pixel_array[frame_idx, :, :] = np.logical_or(im_mask, volume[annotation.annotation_class.name].pixel_array[frame_idx, :, :])
+            volume[annotation.annotation_class.name].pixel_array[frame_idx, :, :] = np.logical_or(
+                im_mask, volume[annotation.annotation_class.name].pixel_array[frame_idx, :, :]
+            )
 
 
 def write_output_volume_to_disk(output_volumes: Dict, image_id: str, output_dir: str):
@@ -253,6 +280,7 @@ def write_output_volume_to_disk(output_volumes: Dict, image_id: str, output_dir:
             else:
                 result.append(value)
         return result
+
     volumes = unnest_dict_to_list(output_volumes)
     for volume in volumes:
         img = nib.Nifti1Image(
@@ -261,13 +289,14 @@ def write_output_volume_to_disk(output_volumes: Dict, image_id: str, output_dir:
         )
         if volume.original_affine is not None:
             orig_ornt = io_orientation(volume.original_affine)  # Get orientation of current affine
-            img_ornt = io_orientation(volume.affine) # Get orientation of RAS affine
+            img_ornt = io_orientation(volume.affine)  # Get orientation of RAS affine
             from_canonical = ornt_transform(img_ornt, orig_ornt)  # Get transform from RAS to current affine
             img = img.as_reoriented(from_canonical)
         output_path = Path(output_dir) / f"{image_id}_{volume.series_instance_uid}_{volume.class_name}.nii.gz"
         if not output_path.parent.exists():
             output_path.parent.mkdir(parents=True)
         nib.save(img=img, filename=output_path)
+
 
 def shift_polygon_coords(polygon, pixdim):
     # Need to make it clear that we flip x/y because we need to take the transpose later.
@@ -277,7 +306,7 @@ def shift_polygon_coords(polygon, pixdim):
         return [{"x": p["y"] * pixdim[0] / pixdim[1], "y": p["x"]} for p in polygon]
     else:
         return [{"x": p["y"], "y": p["x"]} for p in polygon]
-    
+
 
 def get_view_idx(frame_idx, groups):
     if groups is None:
@@ -331,13 +360,11 @@ def process_affine(affine):
         return affine
 
 
-def create_error_message_json(error_message: str, output_dir: str, image_id: str, slot_name: str):
-    output_path = Path(output_dir) / f"{image_id}_{slot_name}_error.json"
+def create_error_message_json(error_message: str, output_dir: str, image_id: str):
+    output_path = Path(output_dir) / f"{image_id}_error.json"
     if not output_path.parent.exists():
         output_path.parent.mkdir(parents=True)
     with open(output_path, "w") as f:
         native_json.dump({"error": error_message}, f)
 
     return False
-
-

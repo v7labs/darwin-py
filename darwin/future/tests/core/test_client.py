@@ -53,7 +53,11 @@ def test_client(base_client: Client) -> None:
 
     assert base_client.session is not None
     assert base_client.headers is not None
-    assert base_client.headers == {"Content-Type": "application/json", "Authorization": "ApiKey test_key"}
+    assert base_client.headers == {
+        "Content-Type": "application/json",
+        "Authorization": "ApiKey test_key",
+        "Accept": "application/json",
+    }
 
     # Test client functionality works
     endpoint = base_client.config.api_endpoint + "test_endpoint"

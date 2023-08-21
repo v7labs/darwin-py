@@ -13,7 +13,7 @@ valid_workflow_json = test_data_path / "workflow.json"
 
 @pytest.fixture
 def basic_team() -> dict:
-    return {"slug": "test-team", "id": 0}
+    return {"slug": "test-team", "id": 0, "name": "test-team"}
 
 
 @pytest.fixture
