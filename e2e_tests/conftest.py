@@ -1,17 +1,22 @@
-from collections import namedtuple
 from os import environ
 from os.path import dirname, join
 from pathlib import Path
+from time import sleep
+from typing import List
 
 import dotenv
 import pytest
 
 from darwin.future.data_objects.typing import UnknownType
 from e2e_tests.exceptions import E2EEnvironmentVariableNotSet
+from e2e_tests.objects import ConfigValues, E2EDataset
+from e2e_tests.setup_tests import setup_tests, teardown_tests
+
+datasets: List[E2EDataset] = []
 
 
 def pytest_configure(config: pytest.Config) -> None:
-    config.addinivalue_line("addopts", "--ignore=../tests/, ../future")
+    config.addinivalue_line("addopts", "--ignore=../tests/, ../future --capture=tee-sys")
 
 
 def pytest_sessionstart(session: pytest.Session) -> None:
@@ -40,8 +45,31 @@ def pytest_sessionstart(session: pytest.Session) -> None:
     session.config.cache.set("api_key", api_key)
     session.config.cache.set("team_slug", team_slug)
 
+    global datasets
+    datasets = setup_tests(ConfigValues(server=server, api_key=api_key, team_slug=team_slug))
 
-ConfigValues = namedtuple("ConfigValues", ["server", "api_key", "team_slug"])
+    print("Sleeping for 10 seconds to allow the server to catch up")
+    sleep(10)
+
+
+def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
+    if not isinstance(session.config.cache, pytest.Cache):
+        raise TypeError("Pytest caching is not enabled, but E2E tests require it")
+
+    global datasets
+
+    if datasets is None:
+        raise ValueError("Datasets were not created, so could not tear them down")
+
+    server = session.config.cache.get("server", None)
+    api_key = session.config.cache.get("api_key", None)
+    team = session.config.cache.get("team_slug", None)
+
+    if server is None or api_key is None or team is None:
+        raise ValueError("E2E environment variables were not cached")
+
+    config = ConfigValues(server=server, api_key=api_key, team_slug=team)
+    teardown_tests(config, datasets)
 
 
 @pytest.fixture(

@@ -1,70 +1,17 @@
 import base64
 import random
 import string
-from dataclasses import dataclass
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import List, Literal, Optional, Tuple
-from uuid import UUID
+from typing import List, Literal
 
 import numpy as np
 import pytest
 import requests
 from PIL import Image
 
-from darwin.future.core.client import JSONType
-from e2e_tests.conftest import ConfigValues
 from e2e_tests.exceptions import E2EException
-
-
-# Datastructures to store minimal info about the created datasets and items
-@dataclass
-class E2EAnnotation:
-    annotation_data: JSONType
-
-
-@dataclass
-class E2EAnnotationClass:
-    name: str
-    slug: str
-    type: Literal["bbox", "polygon"]
-    id: int
-
-
-@dataclass
-class E2EItem(Exception):
-    name: str
-    id: UUID
-    path: str
-    file_name: str
-    slot_name: str
-    annotations: List[E2EAnnotation]
-
-    def add_annotation(self, annotation: E2EAnnotation) -> None:
-        self.annotations.append(annotation)
-
-
-@dataclass
-class E2EDataset:
-    id: int
-    name: str
-    slug: str
-    items: List[E2EItem]
-
-    def __init__(self, id: int, name: str, slug: Optional[str]) -> None:
-        self.id = id
-        self.name = name
-        self.slug = slug or name.lower().replace(" ", "_")
-        self.items = []
-
-    def add_item(self, item: E2EItem) -> None:
-        self.items.append(item)
-
-
-@dataclass
-class E2ETestRunInfo:
-    prefix: str
-    datasets: List[E2EDataset]
+from e2e_tests.objects import ConfigValues, E2EDataset, E2EItem
 
 
 def api_call(verb: Literal["get", "post", "put", "delete"], url: str, payload: dict, api_key: str) -> requests.Response:
@@ -274,8 +221,11 @@ def setup_tests(config: ConfigValues) -> List[E2EDataset]:
 
         datasets: List[E2EDataset] = []
 
+        print("Setting up data")
+
         try:
             prefix = generate_random_string()
+            print(f"Using prefix {prefix}")
 
             for _ in range(number_of_datasets):
                 dataset = create_dataset(prefix, config)
@@ -299,9 +249,7 @@ def setup_tests(config: ConfigValues) -> List[E2EDataset]:
         return datasets
 
 
-def teardown_tests(
-    config: ConfigValues, datasets: List[E2EDataset], classes: Tuple[E2EAnnotationClass, E2EAnnotationClass]
-) -> None:
+def teardown_tests(config: ConfigValues, datasets: List[E2EDataset]) -> None:
     """
     Teardown data for End to end test runs
 
@@ -314,7 +262,7 @@ def teardown_tests(
     """
     host, api_key = config.server, config.api_key
 
-    failed = False
+    print("Tearing down datasets")
 
     for dataset in datasets:
         url = f"{host}/api/datasets/{dataset.id}/archive"
@@ -322,7 +270,6 @@ def teardown_tests(
 
         if not response.ok:
             print(f"Failed to delete dataset {dataset.name} - {response.status_code} - {response.text}")
-            failed = True
+            pytest.exit("Test run failed in test teardown stage")
 
-    if failed:
-        pytest.exit("Test run failed in test teardown stage")
+    print("Tearing down data complete")
