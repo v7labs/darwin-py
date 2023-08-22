@@ -37,7 +37,7 @@ def annotations(annotation_classes: List[AnnotationClass]) -> List[Annotation]:
             annotation_class=annotation_classes[1],
             data={
                 # Polygon
-                "points": [
+                "path": [
                     { "x": 0, "y": 0, },
                     { "x": 0, "y": 100, },
                     { "x": 50, "y": 150, },
