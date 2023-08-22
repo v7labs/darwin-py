@@ -2,7 +2,6 @@ import base64
 import random
 import string
 from dataclasses import dataclass
-from enum import Enum
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import List, Literal, Optional, Tuple
@@ -12,7 +11,6 @@ import numpy as np
 import pytest
 import requests
 from PIL import Image
-from pydantic import UUID4
 
 from darwin.future.core.client import JSONType
 from e2e_tests.conftest import ConfigValues
@@ -67,25 +65,6 @@ class E2EDataset:
 class E2ETestRunInfo:
     prefix: str
     datasets: List[E2EDataset]
-
-
-class E2EAnnotationType(Enum):
-    bbox = 2
-    polygon = 3  # TODO: Check this is correct
-
-
-def class_create_payload_factory(name: str, type: E2EAnnotationType, dataset: E2EDataset) -> dict:
-    return {
-        "annotation_type_ids": [
-            type.value,
-        ],
-        "datasets": [dataset.id],
-        "description": "",
-        "metadata": {
-            "_color": "rgba(255,46,0,1.0)",
-        },
-        "name": name,
-    }
 
 
 def api_call(verb: Literal["get", "post", "put", "delete"], url: str, payload: dict, api_key: str) -> requests.Response:
@@ -404,7 +383,6 @@ def setup_tests(config: ConfigValues) -> Tuple[List[E2EDataset], List[E2EAnnotat
     with TemporaryDirectory() as temp_directory:
         number_of_datasets = 3
         number_of_items = 3
-        number_of_annotations = 3
 
         datasets: List[E2EDataset] = []
         classes: List[E2EAnnotationClass] = []
@@ -421,9 +399,6 @@ def setup_tests(config: ConfigValues) -> Tuple[List[E2EDataset], List[E2EAnnotat
                     item = create_item(dataset.name, prefix, image_for_item, config)
 
                     dataset.add_item(item)
-                    for i in range(number_of_annotations):
-                        annotation = create_annotation(prefix, item, i, config)
-                        item.add_annotation(annotation)
 
                 datasets.append(dataset)
 
@@ -465,26 +440,3 @@ def teardown_tests(
 
     if failed:
         pytest.exit("Test run failed in test teardown stage")
-
-    # team_id = None
-    # response = api_call("get", f"{host}/api/datasets", {}, api_key)
-    # if response.ok:
-    #     ds_list: List[JSONType] = response.json()
-    #     if len(ds_list) > 0:
-    #         team_id = getattr(ds_list[0], "team_id", None)
-
-    # if not team_id:
-    #     print("Failed to get team_id from datasets")
-    #     pytest.exit("Test run failed in test teardown stage")
-
-    # url = f"{host}/api/teams/{team_id}/delete_classes"
-    # response = api_call(
-    #     "post",
-    #     url,
-    #     {"annotation_class_ids": [c.id for c in classes], "annotations_to_delete_count": len(classes)},
-    #     api_key,
-    # )
-
-    # if not response.ok:
-    #     print(f"Failed to delete classes {classes} - {response.status_code} - {response.text}")
-    #     pytest.exit("Test run failed in test teardown stage")

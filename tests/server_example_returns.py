@@ -1,32 +1,5 @@
 from darwin.future.core.client import JSONType
 
-ADD_CLASSES_RETURN_RAW: JSONType = {
-    "annotation_class_image_url": None,
-    "annotation_class_properties": [],
-    "annotation_types": ["bounding_box", "measures", "inference"],
-    "dataset_id": None,
-    "datasets": [{"id": 10001}],
-    "deletion_blocked": False,
-    "description": None,
-    "id": 1001,
-    "images": [],
-    "inserted_at": "2023-08-21T11:50:03",
-    # fmt: off
-    "metadata":
-    {
-        "_color": "rgba(255,46,0,1.0)",
-        "bounding_box": {},
-        "inference": {},
-        "measures": {},
-    },
-    # fmt: on
-    "name": "",
-    "team_id": 286,
-    "updated_at": "2023-08-21T11:50:03",
-    "workflow_stage_types": [],
-    "workflows": [],
-}
-
 CREATE_DATASET_RETURN_RAW: JSONType = {
     "active": True,
     "annotation_hotkeys": {},

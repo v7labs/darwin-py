@@ -8,8 +8,6 @@ from PIL import Image
 
 from e2e_tests.conftest import ConfigValues
 from e2e_tests.setup_tests import (
-    E2EDataset,
-    add_classes_to_team,
     api_call,
     create_dataset,
     create_item,
@@ -17,7 +15,6 @@ from e2e_tests.setup_tests import (
     generate_random_string,
 )
 from tests.server_example_returns import (
-    ADD_CLASSES_RETURN_RAW,
     CREATE_DATASET_RETURN_RAW,
     CREATE_ITEM_RETURN_RAW,
 )
@@ -56,37 +53,6 @@ def test_generate_random_string() -> None:
     for i in range(1, 1000):
         assert len(op := generate_random_string(i)) == i
         assert op.isalnum()
-
-
-@pytest.mark.xfail("Not implemented")
-def test_add_classes_to_team(config_values: ConfigValues) -> None:
-    with patch("e2e_tests.setup_tests.api_call") as mock_api_call:
-        mock_api_call.return_value.ok = True
-        mock_api_call.return_value.status_code = 200
-        mock_api_call.return_value.json.return_value = ADD_CLASSES_RETURN_RAW
-
-        bbox_class, polygon_class = add_classes_to_team(
-            "test-prefix",
-            # fmt: off
-            E2EDataset(
-                1,
-                "test_dataset",
-                "test_dataset",
-            ),
-            # fmt: on
-            config_values,
-        )
-
-    if not bbox_class or not polygon_class:
-        pytest.fail("Classes were not created")
-    else:
-        assert bbox_class.name == "test_bbox_class"
-        assert bbox_class.id == 13371337
-        assert bbox_class.slug == "test_bbox_class"
-
-        assert polygon_class.name == "test_polygon_class"
-        assert polygon_class.id == 13371337
-        assert polygon_class.slug == "test_polygon_class"
 
 
 def test_create_dataset(config_values: ConfigValues) -> None:
@@ -140,21 +106,11 @@ def test_create_random_image(tmpdir: Path) -> None:
     assert image_location.is_file()
     FILENAME_MATCHER = re.compile(r"^prefix\_[A-z0-9]+\.png$")
     assert FILENAME_MATCHER.match(image_location.name)
-    assert Image.open(image_location).size == (10, 10)
+    assert Image.open(image_location).size == (100, 100)
 
     image_2 = create_random_image("prefix", Path(tmpdir), 5, 9)
     assert image_2.exists()
     assert Image.open(image_2).size == (9, 5)
-
-
-@pytest.mark.xfail("Not implemented")
-def test_setup() -> None:
-    pytest.fail("Not implemented")
-
-
-@pytest.mark.xfail("Not implemented")
-def test_teardown() -> None:
-    pytest.fail("Not implemented")
 
 
 if __name__ == "__main__":
