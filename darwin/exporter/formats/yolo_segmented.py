@@ -5,7 +5,8 @@ from multiprocessing.pool import CLOSE
 from pathlib import Path
 from typing import Iterable, List
 
-from darwin.datatypes import AnnotationFile, VideoAnnotation
+from darwin.datatypes import Annotation, AnnotationFile, JSONType, VideoAnnotation
+from darwin.exceptions import DarwinException
 from darwin.exporter.formats.helpers.yolo_class_builder import (
     ClassIndex,
     build_class_index,
@@ -78,14 +79,25 @@ class YoloSegmentedAnnotationType(Enum):
     POLYGON = auto()
 
 
-def _determine_annotation_type(data: dict, annotation_index: int) -> YoloSegmentedAnnotationType:
-    if "x" in data and "y" in data and "w" in data and "h" in data:
-        return YoloSegmentedAnnotationType.BOUNDING_BOX
-    elif "points" in data:
-        if isinstance(data["points"][0], list):
-            logger.warn(f"Skipped annotation at index {annotation_index} because it's a complex polygon'")
-            return YoloSegmentedAnnotationType.UNKNOWN
+def _determine_annotation_type(annotation: Annotation) -> YoloSegmentedAnnotationType:
+    """
+    Determines the annotation type
 
+    Parameters
+    ----------
+    annotation : Annotation
+        The annotation to be determined.
+
+    Returns
+    -------
+    YoloSegmentedAnnotationType
+        The annotation type.
+    """
+    type = annotation.annotation_class.annotation_type
+
+    if type == "bounding_box":
+        return YoloSegmentedAnnotationType.BOUNDING_BOX
+    elif type == "polygon":
         return YoloSegmentedAnnotationType.POLYGON
     else:
         return YoloSegmentedAnnotationType.UNKNOWN
@@ -159,7 +171,14 @@ def _handle_polygon(data: dict, im_w: int, im_h: int, annotation_index: int, poi
 
     last_point = None
     try:
-        for point_index, point in enumerate(data["points"]):
+        if "path" in data:
+            path_data = data["path"]
+        elif "points" in data:
+            # continuing to support old version, in case anything relies on it.
+            path_data = data["points"]
+        else:
+            raise DarwinException from ValueError("No path data found in annotation.")
+        for point_index, point in enumerate(path_data):
             last_point = point_index
             x = point["x"] / im_w
             y = point["y"] / im_h
@@ -227,7 +246,7 @@ def _build_text(annotation_file: AnnotationFile, class_index: ClassIndex) -> str
 
         # Process annotations
 
-        annotation_type = _determine_annotation_type(annotation.data, annotation_index)
+        annotation_type = _determine_annotation_type(annotation)
         if annotation_type == YoloSegmentedAnnotationType.UNKNOWN:
             continue
 
@@ -259,4 +278,4 @@ def _build_text(annotation_file: AnnotationFile, class_index: ClassIndex) -> str
         # Create the line for the annotation
         yolo_line = f"{class_index[annotation.annotation_class.name]} {' '.join([f'{p.x} {p.y}' for p in points])}"
         yolo_lines.append(yolo_line)
-    return "\n".join(yolo_lines)
+    return "\n".join(yolo_lines) + "\n"
