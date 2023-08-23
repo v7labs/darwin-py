@@ -12,6 +12,7 @@ def annotation_classes() -> List[AnnotationClass]:
     return [
         AnnotationClass(name="class1", annotation_type="bounding_box"),
         AnnotationClass(name="class2", annotation_type="polygon"),
+        AnnotationClass(name="class3", annotation_type="polygon"),
     ]
 
 
@@ -38,6 +39,25 @@ def annotations(annotation_classes: List[AnnotationClass]) -> List[Annotation]:
             data={
                 # Polygon
                 "path": [
+                    { "x": 0, "y": 0, },
+                    { "x": 0, "y": 100, },
+                    { "x": 50, "y": 150, },
+                    { "x": 100, "y": 100, },
+                    { "x": 0, "y": 100, },
+                    { "x": 0, "y": 0 },
+                ]
+            },
+            subs=[],
+            slot_names=[
+                "1",
+            ],
+        ),
+        # Unexpected case we should still handle
+        Annotation(
+            annotation_class=annotation_classes[2],
+            data={
+                # Polygon
+                "points": [
                     { "x": 0, "y": 0, },
                     { "x": 0, "y": 100, },
                     { "x": 50, "y": 150, },
@@ -80,6 +100,8 @@ def test_export_yolo_segmented(annotation_files: List[AnnotationFile], tmp_path:
     if CLOSE_VERTICES:
         assert output_lines[0] == "0 0.02 0.03 0.27 0.16 0.27 0.03 0.02 0.16 0.02 0.03"
         assert output_lines[1] == "1 0.0 0.0 0.0 0.1 0.05 0.15 0.1 0.1 0.0 0.1 0.0 0.0 0.0 0.0"
+        assert output_lines[2] == "2 0.0 0.0 0.0 0.1 0.05 0.15 0.1 0.1 0.0 0.1 0.0 0.0 0.0 0.0"
     else:
         assert output_lines[0] == "0 0.02 0.03 0.27 0.16 0.27 0.03 0.02 0.16"
         assert output_lines[1] == "1 0.0 0.0 0.0 0.1 0.05 0.15 0.1 0.1 0.0 0.1 0.0 0.0"
+        assert output_lines[2] == "2 0.0 0.0 0.0 0.1 0.05 0.15 0.1 0.1 0.0 0.1 0.0 0.0"
