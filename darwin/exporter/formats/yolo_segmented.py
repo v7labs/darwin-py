@@ -109,14 +109,19 @@ def _handle_bounding_box(data: dict, im_w: int, im_h: int, annotation_index: int
     try:
         # Create 8 coordinates for the x,y pairs of the 4 corners
         x1, y1, x2, y2, x3, y3, x4, y4, x5, y5 = (
+            # top left corner
             data["x"],
             data["y"],
+            # top right corner
+            (data["x"] + data["w"]),
+            (data["y"]),
+            # bottom right
             (data["x"] + data["w"]),
             (data["y"] + data["h"]),
-            (data["x"] + data["w"]),
-            data["y"],
+            # bottom left
             data["x"],
             (data["y"] + data["h"]),
+            # top left again to close the polygon
             data["x"],
             data["y"],
         )
