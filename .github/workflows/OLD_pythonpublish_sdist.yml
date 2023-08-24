@@ -1,8 +1,11 @@
 name: Upload Python Package (SDIST)
 
+# on:
+#   release:
+#     types: [created]
+#   workflow_dispatch:
+
 on:
-  release:
-    types: [created]
   workflow_dispatch:
 
 jobs:

@@ -1,8 +1,11 @@
 name: "Update Linear Labels"
 
+# on:
+#   pull_request:
+#     branches: [master]
+
 on:
-  pull_request:
-    branches: [master]
+  workflow_dispatch:
 
 jobs:
   update-linear:

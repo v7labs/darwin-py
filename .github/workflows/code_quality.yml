@@ -1,0 +1,45 @@
+name: pull_request
+run-name: Pull Request
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+    
+    
+# Prevent running concurrently
+concurrency:
+  group: ${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+      
+jobs:
+
+  #Check format of code
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.head_ref || github.ref }}
+      - name: Format code
+        run: python3 deploy/format.py ${{ github.workspace }}
+        
+  # Check code for linting errors
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.head_ref || github.ref }}
+      - name: Run tests
+        run: python3 deploy/lint.py ${{ github.workspace }}
+
+  # Run tests
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.head_ref || github.ref }}
+      - name: Run tests
+        run: python3 deploy/test.py ${{ github.workspace }}
+                    

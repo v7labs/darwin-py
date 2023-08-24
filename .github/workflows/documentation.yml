@@ -1,0 +1,52 @@
+name: documentation
+run-name: Generate Documentation
+
+on:
+  push:
+    branches:
+      - master
+
+concurrency:
+  group: documentation
+  cancel-in-progress: true
+
+
+permissions:
+  id-token: write # This is required for requesting the JWT
+  contents: read  # This is required for actions/checkout
+  
+env:
+  AWS_REGION: eu-west-1
+  AWS_SESSION_NAME: darwinPyDocumentation
+  
+jobs:
+  generate-docs:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.8, 3.9, "3.10", "3.11"]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: ${{ github.workspace }}/scripts/docs-dependencies.sh
+      - name: Parse README
+        run: ${{ github.workspace }}/scripts/docs_parse_readme.sh
+      - name: Generate new docs
+        env:
+          PYTHONPATH: "."
+        run: ${{ github.workspace }}/scripts/docs_generate_docs.sh
+          
+      - name: Setup access to AWS
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.DARWIN_PY_AWS_GITHUB_CICD_ROLE }}
+          role-session-name: ${{ env.AWS_SESSION_NAME }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Upload docs to S3
+        run: aws s3 cp docs/ s3://darwin-py-sdk.v7labs.com/ --recursive
+
+    

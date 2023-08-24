@@ -1,0 +1,47 @@
+name: created_tag
+run-name: Created Tag
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'test-*'
+
+concurrency:
+  group: created_tag
+  cancel-in-progress: true
+
+jobs:
+
+  checkout:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        name: Checkout
+        with:
+          ref: ${{ github.head_ref || github.ref }}
+
+  check_master_is_passing:
+    runs-on: ubuntu-latest
+    needs: checkout
+    steps:
+      - name: Check master is passing
+        uses: actions/github-script@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { data: { state } } = await github.repos.getCombinedStatusForRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: 'master'
+            });
+            if (state !== 'success') {
+              core.setFailed('master branch is not passing, cannot create a release');
+            }
+
+  deploy:
+    needs: [checkout, check_master_is_passing]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy
+        run: python3 release.py ${{ github.ref }}
