@@ -46,6 +46,18 @@ warn_return_any = false
 warn_unreachable = true
 pretty = true
 
+[[tool.mypy.overrides]]
+module = ["numpy"]
+disallow_untyped_calls = false
+disallow_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["darwin.*", "tests.*"]
+disallow_any_unimported = false
+disallow_any_explicit = false
+disallow_untyped_calls = false
+disallow_untyped_defs = false
+
 [tool.pydantic-mypy]
 init_forbid_extra = true
 init_typed = true

@@ -13,8 +13,8 @@ from requests import Response
 
 from darwin.backend_v2 import BackendV2
 from darwin.config import Config
-from darwin.dataset import RemoteDataset
 from darwin.dataset.identifier import DatasetIdentifier
+from darwin.dataset.remote_dataset import RemoteDataset
 from darwin.dataset.remote_dataset_v1 import RemoteDatasetV1
 from darwin.dataset.remote_dataset_v2 import RemoteDatasetV2
 from darwin.datatypes import DarwinVersionNumber, Feature, ItemId, Team
@@ -209,7 +209,8 @@ class Client:
             The created dataset.
         """
         dataset: Dict[str, Any] = cast(Dict[str, Any], self._post("/datasets", {"name": name}, team_slug=team_slug))
-        if dataset.get("version", 1) == 2:
+        version: int = dataset.get("version", 1)
+        if version == 2:
             return RemoteDatasetV2(
                 name=dataset["name"],
                 team=team_slug or self.default_team,
@@ -873,7 +874,7 @@ class Client:
         Response
             ``request``'s Response object.
         """
-        response: Response = cast(Response, self._get_raw_from_full_url(url, stream=True))
+        response: Response = self._get_raw_from_full_url(url, stream=True)
         return response
 
     @classmethod
@@ -1168,7 +1169,6 @@ class Client:
         return self._decode_response(response)
 
     def _raise_if_known_error(self, response: Response, url: str) -> None:
-
         if response.status_code == 401:
             raise Unauthorized()
 
@@ -1256,5 +1256,8 @@ class Client:
         return f"Client(default_team={self.default_team})"
 
     @property
-    def api_v2(self):
-        return BackendV2(self, self.config.get_default_team().slug)
+    def api_v2(self) -> BackendV2:
+        team = self.config.get_default_team()
+        if not team:
+            raise ValueError("No team was found.")
+        return BackendV2(self, team.slug)
