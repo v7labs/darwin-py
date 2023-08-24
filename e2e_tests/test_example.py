@@ -1,6 +1,6 @@
 import pytest
 
-from e2e_tests.conftest import ConfigValues
+from e2e_tests.objects import ConfigValues
 
 
 @pytest.mark.xfail(reason="Fails unless you set the server and key as below")
@@ -12,4 +12,4 @@ def test_example_test_does_nothing(config_values: ConfigValues) -> None:
 
 
 if __name__ == "__main__":
-    pytest.main()
+    pytest.main(["-vv", "-s", __file__])
