@@ -21,7 +21,9 @@ jobs:
         with:
           ref: ${{ github.head_ref || github.ref }}
       - name: Format code
-        run: python3 deploy/format.py ${{ github.workspace }}
+        # Lints and formats are called only against the changed files, because other
+        # files must have come from master
+        run: bash deploy/format.sh ${{ github.head_ref || github.ref }} 
         
   # Check code for linting errors
   lint:
@@ -31,7 +33,9 @@ jobs:
         with:
           ref: ${{ github.head_ref || github.ref }}
       - name: Run tests
-        run: python3 deploy/lint.py ${{ github.workspace }}
+        # Lints and formats are called only against the changed files, because other
+        # files must have come from master
+        run: python3 deploy/lint.sh ${{ github.head_ref || github.ref }} 
 
   # Run tests
   test:
@@ -41,5 +45,5 @@ jobs:
         with:
           ref: ${{ github.head_ref || github.ref }}
       - name: Run tests
-        run: python3 deploy/test.py ${{ github.workspace }}
+        run: python3 deploy/test.sh ${{ github.workspace }}
                     
