@@ -8,15 +8,29 @@
 # 2 - Python3 or dependency not found
 # 3 - Unit tests failed
 
-if [ "$#" -ne 1 ]; then
-    echo "Usage: $0 <directory>"
+THIS_FILE_DIRECTORY=`dirname "$0"`
+
+if [ "$#" -lt 1 ]; then
+    echo "Usage: $0 <directory> [<python version> <os>]"
     exit 1
 fi
 
-echo "Running unit tests in directory: $1"
-./check_python.sh || ./install_deps.sh || exit 2
+if [ "$#" -gt 1 ]; then
+    USING_CICD=1
+    OS=$3
+    PYTHON_VERSION=$2
+fi
 
-python3 -m poetry run pytest --cov="$1" --cov-report=xml --cov-report=term-missing --cov-fail-under=85 "$1" || exit 3
+echo "Running unit tests in directory: $1"
+"$THIS_FILE_DIRECTORY"/check_python.sh || "$THIS_FILE_DIRECTORY"/install_deps.sh || exit 2
+
+# Unit test config is in pyproject.toml and pytest.ini - don't set any here as it will only complicate CI/CD
+if [ "$USING_CICD" = 1 ]; then
+    poetry run pytest $1 -vvv --junit-xml=$0/$PYTHON_VERSION-$OS-test_results.xml || exit 3
+    exit 0
+fi
+
+poetry run pytest $1 || exit 3
 
 echo "Unit tests passed"
 

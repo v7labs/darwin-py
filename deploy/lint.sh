@@ -8,12 +8,14 @@
 # 2 - Python3 or dependency not found
 # 3 - PEP8 compliance failed
 
+THIS_FILE_DIRECTORY=`dirname "$0"`
+
 if [ "$#" -ne 1 ]; then
     echo "Usage: $0 <git-ref>"
     exit 1
 fi
 
 echo "Checking linting compliance of reference: $1"
-./check_python.sh || ./install_deps.sh || exit 2
+"$THIS_FILE_DIRECTORY"/check_python.sh || "$THIS_FILE_DIRECTORY"/install_deps.sh || exit 2
 
-git diff --name-only master.."$1" | grep -E '\.py$' | xargs | python3 -m poetry run flake8 --diff --no-color . || exit 3
+git diff --name-only master.."$1" | grep -E '\.py$' | xargs | poetry run flake8 --diff --no-color . || exit 3
