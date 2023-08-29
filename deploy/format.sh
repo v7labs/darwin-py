@@ -11,6 +11,8 @@
 THIS_FILE_DIRECTORY=`dirname "$0"`
 FILES_CHANGED="$1"
 
+echo "Checking formatting of reference: $1"
+
 if ! $CI; then
     echo "This script is intended for CI/CD only"
     exit 1

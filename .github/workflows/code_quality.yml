@@ -23,11 +23,7 @@ jobs:
       - name: Get changed files
         id: changed_files
         run: |
-          if ${{ github.event_name == 'pull_request' }}; then
-              echo "changed_files=$(git diff --name-only -r HEAD^1 HEAD | xargs)" >> $GITHUB_OUTPUT
-          else
-              echo "changed_files=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | xargs)" >> $GITHUB_OUTPUT
-          fi
+          changed_files=$(gh pr diff ${{ github.event.number }} --name-only | xargs)
       - name: Format code
         # Lints and formats are called only against the changed files, because other
         # files must have come from master
@@ -43,11 +39,7 @@ jobs:
       - name: Get changed files
         id: changed_files
         run: |
-          if ${{ github.event_name == 'pull_request' }}; then
-              echo "changed_files=$(git diff --name-only -r HEAD^1 HEAD | xargs)" >> $GITHUB_OUTPUT
-          else
-              echo "changed_files=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | xargs)" >> $GITHUB_OUTPUT
-          fi
+          changed_files=$(gh pr diff ${{ github.event.number }} --name-only | xargs)
       - name: Run linter
         # Lints and formats are called only against the changed files, because other
         # files must have come from master
