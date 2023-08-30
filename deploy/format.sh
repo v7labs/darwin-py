@@ -19,6 +19,8 @@ fi
 
 if [ "$#" -lt 1 ]; then
     echo "Usage: $0 <file>...<file>..."
+    echo
+    echo "Called with $@"
     exit 1
 fi
 
