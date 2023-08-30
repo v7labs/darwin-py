@@ -15,7 +15,6 @@ env:
   GH_TOKEN: ${{ github.token }}
 
 jobs:
-  #Check format of code
   get_changed_files:
     runs-on: ubuntu-latest
     steps:
@@ -34,7 +33,7 @@ jobs:
           echo ${{ steps.changed_files.outputs.changed_files }} | tr " " "\n"
       - name: Set environment variable
         run: |
-          echo "CHANGED_FILES=${{ steps.changed_files.outputs.changed_files }}" >> $GITHUB_ENV
+          echo "export CHANGED_FILES=${{ steps.changed_files.outputs.changed_files }}" >> $GITHUB_ENV
   
   test_retrieve_env:
     runs-on: ubuntu-latest
