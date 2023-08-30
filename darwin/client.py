@@ -5,7 +5,7 @@ import time
 import zlib
 from logging import Logger
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Optional, Tuple, Union, cast
+from typing import Dict, Iterator, List, Optional, Tuple, Union, cast
 from urllib import parse
 
 import requests
@@ -18,7 +18,7 @@ from darwin.dataset.identifier import DatasetIdentifier
 from darwin.dataset.remote_dataset import RemoteDataset
 from darwin.dataset.remote_dataset_v1 import RemoteDatasetV1
 from darwin.dataset.remote_dataset_v2 import RemoteDatasetV2
-from darwin.datatypes import DarwinVersionNumber, Feature, ItemId, JSONFreeForm, Team
+from darwin.datatypes import DarwinVersionNumber, Feature, ItemId, Team, UnknownType
 from darwin.exceptions import (
     InsufficientStorage,
     InvalidLogin,
@@ -56,13 +56,13 @@ class Client:
             self.log = log
 
     @staticmethod
-    def _get_item_count(dataset_dict: JSONFreeForm) -> int:
+    def _get_item_count(dataset_dict: Dict[str, UnknownType]) -> int:
         """
         Returns the number of items in the dataset.
 
         Parameters
         ----------
-        dataset_dict: JSONFreeForm
+        dataset_dict: Dict[str, UnknownType]
             The dataset dictionary.
 
         Returns
@@ -123,7 +123,9 @@ class Client:
         Iterator[RemoteDataset]
             List of all remote datasets
         """
-        response: List[JSONFreeForm] = cast(List[JSONFreeForm], self._get("/datasets/", team_slug=team_slug))
+        response: List[Dict[str, UnknownType]] = cast(
+            List[Dict[str, UnknownType]], self._get("/datasets/", team_slug=team_slug)
+        )
 
         for dataset in response:
             if dataset.get("version", 1) == 2:
@@ -179,8 +181,8 @@ class Client:
             ]
         except Unauthorized:
             # There is a chance that we tried to access an open dataset
-            dataset: JSONFreeForm = cast(
-                JSONFreeForm,
+            dataset: Dict[str, UnknownType] = cast(
+                Dict[str, UnknownType],
                 self._get(f"{parsed_dataset_identifier.team_slug}/{parsed_dataset_identifier.dataset_slug}"),
             )
 
@@ -233,7 +235,9 @@ class Client:
         RemoteDataset
             The created dataset.
         """
-        dataset: JSONFreeForm = cast(JSONFreeForm, self._post("/datasets", {"name": name}, team_slug=team_slug))
+        dataset: Dict[str, UnknownType] = cast(
+            Dict[str, UnknownType], self._post("/datasets", {"name": name}, team_slug=team_slug)
+        )
 
         if dataset.get("version", 1) == 2:
             return RemoteDatasetV2(
@@ -270,8 +274,8 @@ class Client:
         self._put(f"datasets/{dataset_id}/archive", payload={}, team_slug=team_slug)
 
     def fetch_remote_files(
-        self, dataset_id: int, cursor: JSONFreeForm, payload: JSONFreeForm, team_slug: str
-    ) -> JSONFreeForm:
+        self, dataset_id: int, cursor: Dict[str, UnknownType], payload: Dict[str, UnknownType], team_slug: str
+    ) -> Dict[str, UnknownType]:
         """
         Download the remote files from the given dataset.
 
@@ -279,24 +283,25 @@ class Client:
         ----------
         dataset_id: int
             Id of the dataset the file belong to.
-        cursor: JSONFreeForm
+        cursor: Dict[str, UnknownType]
             Number of items per page and page number. Defaults to {"page[size]": 500, "page[from]": 0}.
-        payload: JSONFreeForm
+        payload: Dict[str, UnknownType]
             Filter and sort parameters.
         team_slug: str
             The team slug of the dataset.
 
         Returns
         -------
-         JSONFreeForm
+         Dict[str, UnknownType]
             A response dictionary with the file information.
         """
-        response: JSONFreeForm = cast(
-            JSONFreeForm, self._post(f"/datasets/{dataset_id}/items?{parse.urlencode(cursor)}", payload, team_slug)
+        response: Dict[str, UnknownType] = cast(
+            Dict[str, UnknownType],
+            self._post(f"/datasets/{dataset_id}/items?{parse.urlencode(cursor)}", payload, team_slug),
         )
         return response
 
-    def fetch_remote_classes(self, team_slug: Optional[str] = None) -> List[JSONFreeForm]:
+    def fetch_remote_classes(self, team_slug: Optional[str] = None) -> List[Dict[str, UnknownType]]:
         """
         Fetches all remote classes on the remote dataset.
 
@@ -307,7 +312,7 @@ class Client:
 
         Returns
         -------
-        JSONFreeForm
+        Dict[str, UnknownType]
             None if no information about the team is found, a List of Annotation classes otherwise.
 
         Raises
@@ -321,13 +326,13 @@ class Client:
             raise ValueError("No team was found.")
 
         the_team_slug: str = the_team.slug
-        response: JSONFreeForm = cast(
-            JSONFreeForm, self._get(f"/teams/{the_team_slug}/annotation_classes?include_tags=true")
+        response: Dict[str, UnknownType] = cast(
+            Dict[str, UnknownType], self._get(f"/teams/{the_team_slug}/annotation_classes?include_tags=true")
         )
 
         return response["annotation_classes"]
 
-    def update_annotation_class(self, class_id: int, payload: JSONFreeForm) -> JSONFreeForm:
+    def update_annotation_class(self, class_id: int, payload: Dict[str, UnknownType]) -> Dict[str, UnknownType]:
         """
         Updates the AnnotationClass with the given id.
 
@@ -335,18 +340,20 @@ class Client:
         ----------
         class_id: int
             The id of the AnnotationClass to update.
-        payload: JSONFreeForm
+        payload: Dict[str, UnknownType]
             A dictionary with the changes to perform.
 
         Returns
         -------
-        JSONFreeForm
+        Dict[str, UnknownType]
             A dictionary with the result of the operation.
         """
-        response: JSONFreeForm = cast(JSONFreeForm, self._put(f"/annotation_classes/{class_id}", payload))
+        response: Dict[str, UnknownType] = cast(
+            Dict[str, UnknownType], self._put(f"/annotation_classes/{class_id}", payload)
+        )
         return response
 
-    def create_annotation_class(self, dataset_id: int, type_ids: List[int], name: str) -> JSONFreeForm:
+    def create_annotation_class(self, dataset_id: int, type_ids: List[int], name: str) -> Dict[str, UnknownType]:
         """
         Creates an AnnotationClass.
 
@@ -361,11 +368,11 @@ class Client:
 
         Returns
         -------
-        JSONFreeForm
+        Dict[str, UnknownType]
             A dictionary with the result of the operation.
         """
-        response: JSONFreeForm = cast(
-            JSONFreeForm,
+        response: Dict[str, UnknownType] = cast(
+            Dict[str, UnknownType],
             self._post(
                 "/annotation_classes",
                 payload={
@@ -379,7 +386,7 @@ class Client:
         )
         return response
 
-    def import_annotation(self, item_id: ItemId, payload: JSONFreeForm) -> None:
+    def import_annotation(self, item_id: ItemId, payload: Dict[str, UnknownType]) -> None:
         """
         Imports the annotation for the item with the given id.
 
@@ -387,14 +394,14 @@ class Client:
         ----------
         item_id: ItemId
             Identifier of the Image or Video that we are import the annotation to.
-        payload: JSONFreeForm
+        payload: Dict[str, UnknownType]
             A dictionary with the annotation to import. The default format is:
             `{"annotations": serialized_annotations, "overwrite": "false"}`
         """
 
         self._post_raw(f"/dataset_items/{item_id}/import", payload=payload)
 
-    def fetch_remote_attributes(self, dataset_id: int) -> List[JSONFreeForm]:
+    def fetch_remote_attributes(self, dataset_id: int) -> List[Dict[str, UnknownType]]:
         """
         Fetches all attributes remotely.
 
@@ -406,10 +413,12 @@ class Client:
 
         Returns
         -------
-        List[JSONFreeForm]
+        List[Dict[str, UnknownType]]
             A List with the attributes, where each attribute is a dictionary.
         """
-        response: List[JSONFreeForm] = cast(List[JSONFreeForm], self._get(f"/datasets/{dataset_id}/attributes"))
+        response: List[Dict[str, UnknownType]] = cast(
+            List[Dict[str, UnknownType]], self._get(f"/datasets/{dataset_id}/attributes")
+        )
         return response
 
     def load_feature_flags(self, team_slug: Optional[str] = None) -> None:
@@ -444,7 +453,9 @@ class Client:
         List[Feature]
             List of Features for the given team.
         """
-        response: List[JSONFreeForm] = cast(List[JSONFreeForm], self._get(f"/teams/{team_slug}/features"))
+        response: List[Dict[str, UnknownType]] = cast(
+            List[Dict[str, UnknownType]], self._get(f"/teams/{team_slug}/features")
+        )
 
         features: List[Feature] = []
         for feature in response:
@@ -545,7 +556,7 @@ class Client:
 
         self._put_raw(endpoint=f"/dataset_items/{dataset_item_id}/confirm_upload", payload={}, team_slug=the_team_slug)
 
-    def sign_upload(self, dataset_item_id: int, team_slug: Optional[str] = None) -> JSONFreeForm:
+    def sign_upload(self, dataset_item_id: int, team_slug: Optional[str] = None) -> Dict[str, UnknownType]:
         """
         Signs the upload of the given DatasetItem.
 
@@ -558,7 +569,7 @@ class Client:
 
         Returns
         ------
-        JSONFreeForm
+        Dict[str, UnknownType]
             A dictionary with the signed response, or None if the Team was not found.
 
         Raises
@@ -573,12 +584,14 @@ class Client:
 
         the_team_slug: str = the_team.slug
 
-        response: JSONFreeForm = cast(
-            JSONFreeForm, self._get(f"/dataset_items/{dataset_item_id}/sign_upload", team_slug=the_team_slug)
+        response: Dict[str, UnknownType] = cast(
+            Dict[str, UnknownType], self._get(f"/dataset_items/{dataset_item_id}/sign_upload", team_slug=the_team_slug)
         )
         return response
 
-    def upload_data(self, dataset_slug: str, payload: JSONFreeForm, team_slug: Optional[str] = None) -> JSONFreeForm:
+    def upload_data(
+        self, dataset_slug: str, payload: Dict[str, UnknownType], team_slug: Optional[str] = None
+    ) -> Dict[str, UnknownType]:
         """
         Uploads the given data to the given dataset.
 
@@ -586,7 +599,7 @@ class Client:
         ----------
         dataset_slug: str
             The slug of the dataset.
-        payload: JSONFreeForm
+        payload: Dict[str, UnknownType]
             The data we want to upload. Usually a Dictionary with an `items` key containing a list
             of items to upload.
         team_slug: Optional[str]
@@ -594,7 +607,7 @@ class Client:
 
         Returns
         ------
-        JSONFreeForm
+        Dict[str, UnknownType]
             A dictionary with the result of the operation, or None if the Team was not found.
 
         Raises
@@ -609,8 +622,8 @@ class Client:
 
         the_team_slug: str = the_team.slug
 
-        response: JSONFreeForm = cast(
-            JSONFreeForm,
+        response: Dict[str, UnknownType] = cast(
+            Dict[str, UnknownType],
             self._put(
                 endpoint=f"/teams/{the_team_slug}/datasets/{dataset_slug}/data",
                 payload=payload,
@@ -619,19 +632,19 @@ class Client:
         )
         return response
 
-    def annotation_types(self) -> List[JSONFreeForm]:
+    def annotation_types(self) -> List[Dict[str, UnknownType]]:
         """
         Returns a list of annotation types.
 
         Returns
         ------
-        List[JSONFreeForm]
+        List[Dict[str, UnknownType]]
             A list with the annotation types as dictionaries.
         """
-        response: List[JSONFreeForm] = cast(List[JSONFreeForm], self._get("/annotation_types"))
+        response: List[Dict[str, UnknownType]] = cast(List[Dict[str, UnknownType]], self._get("/annotation_types"))
         return response
 
-    def get_exports(self, dataset_id: int, team_slug: Optional[str] = None) -> List[JSONFreeForm]:
+    def get_exports(self, dataset_id: int, team_slug: Optional[str] = None) -> List[Dict[str, UnknownType]]:
         """
         Get all the exports from the given dataset.
 
@@ -644,7 +657,7 @@ class Client:
 
         Returns
         ------
-        List[JSONFreeForm]
+        List[Dict[str, UnknownType]]
             A list with all the exports (as dictionaries) or None if the Team was not found.
 
         Raises
@@ -659,12 +672,12 @@ class Client:
 
         the_team_slug: str = the_team.slug
 
-        response: List[JSONFreeForm] = cast(
-            List[JSONFreeForm], self._get(f"/datasets/{dataset_id}/exports", team_slug=the_team_slug)
+        response: List[Dict[str, UnknownType]] = cast(
+            List[Dict[str, UnknownType]], self._get(f"/datasets/{dataset_id}/exports", team_slug=the_team_slug)
         )
         return response
 
-    def create_export(self, dataset_id: int, payload: JSONFreeForm, team_slug: str) -> None:
+    def create_export(self, dataset_id: int, payload: Dict[str, UnknownType], team_slug: str) -> None:
         """
         Create an export for the given dataset.
 
@@ -672,7 +685,7 @@ class Client:
         ----------
         dataset_id: int
             The id of the dataset.
-        payload: JSONFreeForm
+        payload: Dict[str, UnknownType]
             The export infomation as a Dictionary.
         team_slug: Optional[str]
             Team slug of the team the dataset will belong to. Defaults to None.
@@ -714,7 +727,7 @@ class Client:
             the_team_slug,
         )
 
-    def delete_item(self, dataset_slug: str, team_slug: str, payload: JSONFreeForm) -> None:
+    def delete_item(self, dataset_slug: str, team_slug: str, payload: Dict[str, UnknownType]) -> None:
         """
         Gets the report for the given dataset.
 
@@ -724,12 +737,12 @@ class Client:
             The slug of the dataset.
         team_slug: str
             The slug of the team.
-        payload: JSONFreeForm
+        payload: Dict[str, UnknownType]
             A filter Dictionary that defines the items to be deleted.
         """
         self._delete(f"teams/{team_slug}/datasets/{dataset_slug}/items", payload, team_slug)
 
-    def archive_item(self, dataset_slug: str, team_slug: str, payload: JSONFreeForm) -> None:
+    def archive_item(self, dataset_slug: str, team_slug: str, payload: Dict[str, UnknownType]) -> None:
         """
         Archives the item from the given dataset.
 
@@ -739,12 +752,12 @@ class Client:
             The slug of the dataset.
         team_slug: str
             The slug of the team.
-        payload: JSONFreeForm
+        payload: Dict[str, UnknownType]
             A filter Dictionary that defines the items to be archived.
         """
         self._put_raw(f"teams/{team_slug}/datasets/{dataset_slug}/items/archive", payload, team_slug)
 
-    def restore_archived_item(self, dataset_slug: str, team_slug: str, payload: JSONFreeForm) -> None:
+    def restore_archived_item(self, dataset_slug: str, team_slug: str, payload: Dict[str, UnknownType]) -> None:
         """
         Restores the archived item from the given dataset.
 
@@ -754,12 +767,12 @@ class Client:
             The slug of the dataset.
         team_slug: str
             The slug of the team.
-        payload: JSONFreeForm
+        payload: Dict[str, UnknownType]
             A filter Dictionary that defines the items to be restored.
         """
         self._put_raw(f"teams/{team_slug}/datasets/{dataset_slug}/items/restore", payload, team_slug)
 
-    def move_item_to_new(self, dataset_slug: str, team_slug: str, payload: JSONFreeForm) -> None:
+    def move_item_to_new(self, dataset_slug: str, team_slug: str, payload: Dict[str, UnknownType]) -> None:
         """
         Moves the given item's status to new.
 
@@ -769,12 +782,12 @@ class Client:
             The slug of the dataset.
         team_slug: str
             The slug of the team.
-        payload: JSONFreeForm
+        payload: Dict[str, UnknownType]
             A filter Dictionary that defines the items to have the 'new' status.
         """
         self._put_raw(f"teams/{team_slug}/datasets/{dataset_slug}/items/move_to_new", payload, team_slug)
 
-    def reset_item(self, dataset_slug: str, team_slug: str, payload: JSONFreeForm) -> None:
+    def reset_item(self, dataset_slug: str, team_slug: str, payload: Dict[str, UnknownType]) -> None:
         """
         Resets the given item.
 
@@ -784,12 +797,12 @@ class Client:
             The slug of the dataset.
         team_slug: str
             The slug of the team.
-        payload: JSONFreeForm
+        payload: Dict[str, UnknownType]
             A filter Dictionary that defines the items to be reset.
         """
         self._put_raw(f"teams/{team_slug}/datasets/{dataset_slug}/items/reset", payload, team_slug)
 
-    def move_to_stage(self, dataset_slug: str, team_slug: str, filters: JSONFreeForm, stage_id: int) -> None:
+    def move_to_stage(self, dataset_slug: str, team_slug: str, filters: Dict[str, UnknownType], stage_id: int) -> None:
         """
         Moves the given items to the specified stage
 
@@ -799,12 +812,12 @@ class Client:
             The slug of the dataset.
         team_slug: str
             The slug of the team.
-        filters: JSONFreeForm
+        filters: Dict[str, UnknownType]
             A filter Dictionary that defines the items to have the new, selected stage.
         stage_id: int
             ID of the stage to set.
         """
-        payload: JSONFreeForm = {
+        payload: Dict[str, UnknownType] = {
             "filter": filters,
             "workflow_stage_template_id": stage_id,
         }
@@ -836,8 +849,8 @@ class Client:
         int
             The id of the created comment.
         """
-        response: JSONFreeForm = cast(
-            JSONFreeForm,
+        response: Dict[str, UnknownType] = cast(
+            Dict[str, UnknownType],
             self._post(
                 f"workflows/{workflow_id}/workflow_comment_threads",
                 {"bounding_box": {"x": x, "y": y, "w": w, "h": h}, "workflow_comments": [{"body": text}]},
@@ -872,7 +885,7 @@ class Client:
         ValueError
             If due to an error, no workflow was instantiated for this item an therefore no workflow id can be returned.
         """
-        response: JSONFreeForm = cast(JSONFreeForm, self._post(f"dataset_items/{item_id}/workflow"))
+        response: Dict[str, UnknownType] = cast(Dict[str, UnknownType], self._post(f"dataset_items/{item_id}/workflow"))
         id: Optional[int] = response.get("current_workflow_id")
 
         if id is None:
@@ -992,7 +1005,7 @@ class Client:
         if not response.ok:
             raise InvalidLogin()
 
-        data: JSONFreeForm = response.json()
+        data: Dict[str, UnknownType] = response.json()
         team: str = data["selected_team"]["slug"]
 
         config: Config = Config(path=None)
@@ -1074,12 +1087,12 @@ class Client:
 
     def _get(
         self, endpoint: str, team_slug: Optional[str] = None, retry: bool = False
-    ) -> Union[JSONFreeForm, List[JSONFreeForm]]:
+    ) -> Union[Dict[str, UnknownType], List[Dict[str, UnknownType]]]:
         response = self._get_raw(endpoint, team_slug, retry)
         return self._decode_response(response)
 
     def _put_raw(
-        self, endpoint: str, payload: JSONFreeForm, team_slug: Optional[str] = None, retry: bool = False
+        self, endpoint: str, payload: Dict[str, UnknownType], team_slug: Optional[str] = None, retry: bool = False
     ) -> Response:
         response: requests.Response = self.session.put(
             urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team_slug)
@@ -1103,15 +1116,15 @@ class Client:
         return response
 
     def _put(
-        self, endpoint: str, payload: JSONFreeForm, team_slug: Optional[str] = None, retry: bool = False
-    ) -> Union[JSONFreeForm, List[JSONFreeForm]]:
+        self, endpoint: str, payload: Dict[str, UnknownType], team_slug: Optional[str] = None, retry: bool = False
+    ) -> Union[Dict[str, UnknownType], List[Dict[str, UnknownType]]]:
         response: Response = self._put_raw(endpoint, payload, team_slug, retry)
         return self._decode_response(response)
 
     def _post_raw(
         self,
         endpoint: str,
-        payload: Optional[JSONFreeForm] = None,
+        payload: Optional[Dict[str, UnknownType]] = None,
         team_slug: Optional[str] = None,
         retry: bool = False,
     ) -> Response:
@@ -1153,20 +1166,20 @@ class Client:
     def _post(
         self,
         endpoint: str,
-        payload: Optional[JSONFreeForm] = None,
+        payload: Optional[Dict[str, UnknownType]] = None,
         team_slug: Optional[str] = None,
         retry: bool = False,
-    ) -> Union[JSONFreeForm, List[JSONFreeForm]]:
+    ) -> Union[Dict[str, UnknownType], List[Dict[str, UnknownType]]]:
         response: Response = self._post_raw(endpoint, payload, team_slug, retry)
         return self._decode_response(response)
 
     def _delete(
         self,
         endpoint: str,
-        payload: Optional[JSONFreeForm] = None,
+        payload: Optional[Dict[str, UnknownType]] = None,
         team_slug: Optional[str] = None,
         retry: bool = False,
-    ) -> Union[JSONFreeForm, List[JSONFreeForm]]:
+    ) -> Union[Dict[str, UnknownType], List[Dict[str, UnknownType]]]:
         if payload is None:
             payload = {}
 
@@ -1228,7 +1241,9 @@ class Client:
             if error_code == "INSUFFICIENT_REMAINING_STORAGE":
                 raise InsufficientStorage()
 
-    def _decode_response(self, response: requests.Response) -> Union[JSONFreeForm, List[JSONFreeForm]]:
+    def _decode_response(
+        self, response: requests.Response
+    ) -> Union[Dict[str, UnknownType], List[Dict[str, UnknownType]]]:
         """Decode the response as JSON entry or return a dictionary with the error
 
         Parameters
