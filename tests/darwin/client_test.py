@@ -1,16 +1,17 @@
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import List
 
 import pytest
 import responses
 
 from darwin.client import Client
 from darwin.config import Config
+from darwin.dataset.remote_dataset import RemoteDataset
 from darwin.dataset.remote_dataset_v1 import RemoteDatasetV1
 from darwin.dataset.remote_dataset_v2 import RemoteDatasetV2
-from darwin.datatypes import Feature, JSONType
+from darwin.datatypes import Feature, JSONFreeForm
 from darwin.exceptions import NameTaken, NotFound
-from tests.fixtures import *
+from tests.fixtures import *  # noqa: F401, F403
 
 
 @pytest.fixture
@@ -26,10 +27,10 @@ def darwin_client(darwin_config_path: Path, darwin_datasets_path: Path, team_slu
 @pytest.mark.usefixtures("file_read_write_test")
 class TestListRemoteDatasets:
     @responses.activate
-    def test_returns_list_of_datasets(self, darwin_client: Client):
+    def test_returns_list_of_datasets(self, darwin_client: Client) -> None:
         team_slug: str = "v7"
         endpoint: str = "/datasets"
-        json_response: List[Dict[str, Any]] = [
+        json_response: List[JSONFreeForm] = [
             {
                 "name": "dataset-name-1",
                 "slug": "dataset-slug-1",
@@ -73,11 +74,53 @@ class TestListRemoteDatasets:
             assert_dataset(remote_datasets[0], expected_dataset_1)
             assert_dataset(remote_datasets[1], expected_dataset_2)
 
+    @responses.activate
+    def test_coalesces_null_item_counts_to_zeroes(self, darwin_client: Client) -> None:
+        team_slug: str = "v7"
+        endpoint: str = "/datasets"
+        json_response: List[JSONFreeForm] = [
+            {
+                "name": "dataset-name-1",
+                "slug": "dataset-slug-1",
+                "id": 1,
+                "num_items": None,  # As this is None, num_images and num_videos should be used
+                "num_images": None,  # Should be coalesced to 0
+                "num_videos": None,  # Should be coalesced to 0
+                "progress": 4,
+            },
+            {
+                "name": "dataset-name-2",
+                "slug": "dataset-slug-2",
+                "id": 2,
+                "num_items": None,  # As this is None, num_images and num_videos should be used
+                "num_images": 2,  # Should be used
+                "num_videos": 3,  # Should be used
+                "progress": 32,
+            },
+            {
+                "name": "dataset-name-3",
+                "slug": "dataset-slug-3",
+                "id": 3,
+                "num_items": 11,  # Should be used
+                "num_images": 2,  # Should be ignored, as num_items is present
+                "num_videos": 3,  # Should be ignored, as num_items is present
+                "progress": 32,
+            },
+        ]
+
+        responses.add(responses.GET, darwin_client.url + endpoint, json=json_response, status=200)
+
+        remote_datasets = list(darwin_client.list_remote_datasets(team_slug))
+
+        expected_item_count = [0, 5, 11]
+        for i, ds in enumerate(remote_datasets):
+            assert ds.item_count == expected_item_count[i]
+
 
 @pytest.mark.usefixtures("file_read_write_test")
 class TestGetRemoteDataset:
     @responses.activate
-    def test_raises_if_dataset_is_not_found(self, darwin_client: Client):
+    def test_raises_if_dataset_is_not_found(self, darwin_client: Client) -> None:
         endpoint: str = "/datasets"
         json_response = [
             {
@@ -96,7 +139,7 @@ class TestGetRemoteDataset:
             darwin_client.get_remote_dataset("v7/dataset-slug-2")
 
     @responses.activate
-    def test_returns_the_dataset(self, darwin_client: Client):
+    def test_returns_the_dataset(self, darwin_client: Client) -> None:
         endpoint: str = "/datasets"
         json_response = [
             {
@@ -128,9 +171,9 @@ class TestGetRemoteDataset:
 @pytest.mark.usefixtures("file_read_write_test")
 class TestCreateDataset:
     @responses.activate
-    def test_returns_the_created_dataset(self, darwin_client: Client):
+    def test_returns_the_created_dataset(self, darwin_client: Client) -> None:
         endpoint: str = "/datasets"
-        json_response: Dict[str, Any] = {
+        json_response: JSONFreeForm = {
             "name": "my-dataset",
             "slug": "my-dataset",
             "id": 1,
@@ -154,9 +197,9 @@ class TestCreateDataset:
         assert_dataset(actual_dataset, expected_dataset)
 
     @responses.activate
-    def test_raises_if_name_is_taken(self, darwin_client: Client):
+    def test_raises_if_name_is_taken(self, darwin_client: Client) -> None:
         endpoint: str = "/datasets"
-        json_response: Dict[str, Any] = {"errors": {"name": ["has already been taken"]}}
+        json_response: JSONFreeForm = {"errors": {"name": ["has already been taken"]}}
 
         responses.add(
             responses.POST,
@@ -173,7 +216,7 @@ class TestCreateDataset:
 @pytest.mark.usefixtures("file_read_write_test")
 class TestFetchRemoteFiles:
     @responses.activate
-    def test_returns_remote_files(self, darwin_client: Client):
+    def test_returns_remote_files(self, darwin_client: Client) -> None:
         dataset_id = 1
         endpoint: str = f"/datasets/{dataset_id}/items?page%5Bsize%5D=500&page%5Bfrom%5D=0"
         responses.add(responses.POST, darwin_client.url + endpoint, json={}, status=200)
@@ -184,9 +227,9 @@ class TestFetchRemoteFiles:
 @pytest.mark.usefixtures("file_read_write_test")
 class TestFetchRemoteClasses:
     @responses.activate
-    def test_returns_remote_classes(self, team_slug: str, darwin_client: Client):
+    def test_returns_remote_classes(self, team_slug: str, darwin_client: Client) -> None:
         endpoint: str = f"/teams/{team_slug}/annotation_classes?include_tags=true"
-        response: Dict[str, Any] = {
+        response: JSONFreeForm = {
             "annotation_classes": [
                 {
                     "annotation_class_image_url": None,
@@ -207,8 +250,8 @@ class TestFetchRemoteClasses:
 
         responses.add(responses.GET, darwin_client.url + endpoint, json=response, status=200)
 
-        result: List[Dict[str, Any]] = darwin_client.fetch_remote_classes(team_slug)
-        annotation_class: Dict[str, Any] = result[0]
+        result: List[JSONFreeForm] = darwin_client.fetch_remote_classes(team_slug)
+        annotation_class: JSONFreeForm = result[0]
 
         assert annotation_class["annotation_class_image_url"] is None
         assert annotation_class["annotation_types"] == ["tag"]
@@ -220,7 +263,7 @@ class TestFetchRemoteClasses:
 @pytest.mark.usefixtures("file_read_write_test")
 class TestGetTeamFeatures:
     @responses.activate
-    def test_returns_list_of_features(self, team_slug: str, darwin_client: Client):
+    def test_returns_list_of_features(self, team_slug: str, darwin_client: Client) -> None:
         endpoint: str = f"/teams/{team_slug}/features"
         json_response = [
             {"enabled": False, "name": "WORKFLOW_V2"},
@@ -238,10 +281,10 @@ class TestGetTeamFeatures:
 @pytest.mark.usefixtures("file_read_write_test")
 class TestInstantiateItem:
     @responses.activate
-    def test_raises_if_workflow_id_is_not_found(self, darwin_client: Client):
+    def test_raises_if_workflow_id_is_not_found(self, darwin_client: Client) -> None:
         item_id: int = 1234
         endpoint: str = f"/dataset_items/{item_id}/workflow"
-        json_response: Dict[str, Any] = {}
+        json_response: JSONFreeForm = {}
 
         responses.add(responses.POST, darwin_client.url + endpoint, json=json_response, status=200)
 
@@ -251,11 +294,11 @@ class TestInstantiateItem:
         assert str(exception.value) == f"No Workflow Id found for item_id: {item_id}"
 
     @responses.activate
-    def test_returns_workflow_id(self, darwin_client: Client):
+    def test_returns_workflow_id(self, darwin_client: Client) -> None:
         item_id: int = 1234
         workflow_id: int = 1
         endpoint: str = f"/dataset_items/{item_id}/workflow"
-        json_response: Dict[str, Any] = {"current_workflow_id": workflow_id}
+        json_response: JSONFreeForm = {"current_workflow_id": workflow_id}
 
         responses.add(responses.POST, darwin_client.url + endpoint, json=json_response, status=200)
         assert darwin_client.instantiate_item(item_id) == workflow_id
@@ -264,10 +307,10 @@ class TestInstantiateItem:
 @pytest.mark.usefixtures("file_read_write_test")
 class TestWorkflowComment:
     @responses.activate
-    def test_raises_if_comment_id_is_not_found(self, darwin_client: Client):
+    def test_raises_if_comment_id_is_not_found(self, darwin_client: Client) -> None:
         workflow_id = 1234
         endpoint: str = f"/workflows/{workflow_id}/workflow_comment_threads"
-        json_response: Dict[str, Any] = {}
+        json_response: JSONFreeForm = {}
 
         responses.add(responses.POST, darwin_client.url + endpoint, json=json_response, status=200)
 
@@ -277,17 +320,17 @@ class TestWorkflowComment:
         assert str(exception.value) == f"Unable to retrieve comment id for workflow: {workflow_id}."
 
     @responses.activate
-    def test_returns_comment_id(self, darwin_client: Client):
+    def test_returns_comment_id(self, darwin_client: Client) -> None:
         comment_id: int = 1234
         workflow_id: int = 1
         endpoint: str = f"/workflows/{workflow_id}/workflow_comment_threads"
-        json_response: Dict[str, Any] = {"id": comment_id}
+        json_response: JSONFreeForm = {"id": comment_id}
 
         responses.add(responses.POST, darwin_client.url + endpoint, json=json_response, status=200)
         assert darwin_client.post_workflow_comment(workflow_id, "My comment.") == comment_id
 
 
-def assert_dataset(dataset_1, dataset_2):
+def assert_dataset(dataset_1: RemoteDataset, dataset_2: RemoteDataset) -> None:
     assert dataset_1.name == dataset_2.name
     assert dataset_1.team == dataset_2.team
     assert dataset_1.dataset_id == dataset_2.dataset_id
