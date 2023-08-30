@@ -19,7 +19,7 @@ jobs:
   format:
     runs-on: ubuntu-latest
     env:
-      GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v2
         with:
@@ -28,6 +28,8 @@ jobs:
         id: changed_files
         run: |
           changed_files=$(gh pr diff ${{ github.event.number }} --name-only | xargs)
+      - name: Print changed files
+        run: echo ${{ steps.changed_files.outputs.changed_files }} | tr " " "\n"
       - name: Format code
         # Lints and formats are called only against the changed files, because other
         # files must have come from master
