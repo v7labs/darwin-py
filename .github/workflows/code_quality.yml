@@ -10,9 +10,11 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
-      
+     
+env:
+  GH_TOKEN: ${{ secrets.GH_TOKEN }}
+  
 jobs:
-
   #Check format of code
   format:
     runs-on: ubuntu-latest

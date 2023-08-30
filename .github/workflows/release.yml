@@ -11,8 +11,10 @@ concurrency:
   group: created_tag
   cancel-in-progress: true
 
-jobs:
+env:
+  GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
+jobs:
   checkout:
     runs-on: ubuntu-latest
     steps:

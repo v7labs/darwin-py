@@ -10,14 +10,15 @@ concurrency:
   group: documentation
   cancel-in-progress: true
 
+env:
+  GH_TOKEN: ${{ secrets.GH_TOKEN }}
+  AWS_REGION: eu-west-1
+  AWS_SESSION_NAME: darwinPyDocumentation
+
 
 permissions:
   id-token: write # This is required for requesting the JWT
   contents: read  # This is required for actions/checkout
-  
-env:
-  AWS_REGION: eu-west-1
-  AWS_SESSION_NAME: darwinPyDocumentation
   
 jobs:
   generate-docs:
