@@ -36,6 +36,7 @@ from darwin.utils import (
     is_project_dir,
     urljoin,
 )
+from darwin.utils.get_item_count import get_item_count
 
 
 class Client:
@@ -54,30 +55,6 @@ class Client:
             self.log: Logger = logging.getLogger("darwin")
         else:
             self.log = log
-
-    @staticmethod
-    def _get_item_count(dataset_dict: Dict[str, UnknownType]) -> int:
-        """
-        Returns the number of items in the dataset.
-
-        Parameters
-        ----------
-        dataset_dict: Dict[str, UnknownType]
-            The dataset dictionary.
-
-        Returns
-        -------
-        int
-            The number of items in the dataset.
-        """
-        num_items: Optional[int] = dataset_dict.get("num_items")
-        num_videos: Optional[int] = dataset_dict.get("num_videos")
-        num_images: Optional[int] = dataset_dict.get("num_images")
-
-        if num_items is not None:
-            return num_items
-
-        return (num_images or 0) + (num_videos or 0)
 
     def list_local_datasets(self, team_slug: Optional[str] = None) -> Iterator[Path]:
         """
@@ -134,7 +111,7 @@ class Client:
                     slug=dataset["slug"],
                     team=team_slug or self.default_team,
                     dataset_id=dataset["id"],
-                    item_count=self._get_item_count(dataset),
+                    item_count=get_item_count(dataset),
                     progress=dataset["progress"],
                     client=self,
                 )
@@ -144,7 +121,7 @@ class Client:
                     slug=dataset["slug"],
                     team=team_slug or self.default_team,
                     dataset_id=dataset["id"],
-                    item_count=self._get_item_count(dataset),
+                    item_count=get_item_count(dataset),
                     progress=dataset["progress"],
                     client=self,
                 )
@@ -199,7 +176,7 @@ class Client:
                     slug=dataset["slug"],
                     team=parsed_dataset_identifier.team_slug,
                     dataset_id=dataset["id"],
-                    item_count=self._get_item_count(dataset),
+                    item_count=get_item_count(dataset),
                     progress=0,
                     client=self,
                 )
@@ -209,7 +186,7 @@ class Client:
                     slug=dataset["slug"],
                     team=parsed_dataset_identifier.team_slug,
                     dataset_id=dataset["id"],
-                    item_count=self._get_item_count(dataset),
+                    item_count=get_item_count(dataset),
                     progress=0,
                     client=self,
                 )
@@ -245,7 +222,7 @@ class Client:
                 team=team_slug or self.default_team,
                 slug=dataset["slug"],
                 dataset_id=dataset["id"],
-                item_count=self._get_item_count(dataset),
+                item_count=get_item_count(dataset),
                 progress=0,
                 client=self,
             )
@@ -255,7 +232,7 @@ class Client:
                 team=team_slug or self.default_team,
                 slug=dataset["slug"],
                 dataset_id=dataset["id"],
-                item_count=self._get_item_count(dataset),
+                item_count=get_item_count(dataset),
                 progress=0,
                 client=self,
             )
