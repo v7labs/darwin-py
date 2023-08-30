@@ -17,7 +17,14 @@ from darwin.dataset import RemoteDataset
 from darwin.dataset.identifier import DatasetIdentifier
 from darwin.dataset.remote_dataset_v1 import RemoteDatasetV1
 from darwin.dataset.remote_dataset_v2 import RemoteDatasetV2
-from darwin.datatypes import DarwinVersionNumber, Feature, ItemId, Team
+from darwin.datatypes import (
+    DarwinVersionNumber,
+    Feature,
+    ItemId,
+    JSONFreeForm,
+    JSONType,
+    Team,
+)
 from darwin.exceptions import (
     InsufficientStorage,
     InvalidLogin,
@@ -53,6 +60,30 @@ class Client:
             self.log: Logger = logging.getLogger("darwin")
         else:
             self.log = log
+
+    @staticmethod
+    def _get_item_count(dataset_dict: JSONFreeForm) -> int:
+        """
+        Returns the number of items in the dataset.
+
+        Parameters
+        ----------
+        dataset_dict: Dict[str, Any]
+            The dataset dictionary.
+
+        Returns
+        -------
+        int
+            The number of items in the dataset.
+        """
+        num_items: Optional[int] = dataset_dict.get("num_items")
+        num_videos: Optional[int] = dataset_dict.get("num_videos")
+        num_images: Optional[int] = dataset_dict.get("num_images")
+
+        if num_items is not None:
+            return num_items
+
+        return (num_images or 0) + (num_videos or 0)
 
     def list_local_datasets(self, team_slug: Optional[str] = None) -> Iterator[Path]:
         """
@@ -107,7 +138,7 @@ class Client:
                     slug=dataset["slug"],
                     team=team_slug or self.default_team,
                     dataset_id=dataset["id"],
-                    item_count=dataset.get("num_items", dataset.get("num_images", 0) + dataset.get("num_videos", 0)),
+                    item_count=self._get_item_count(dataset),
                     progress=dataset["progress"],
                     client=self,
                 )
@@ -172,7 +203,7 @@ class Client:
                     slug=dataset["slug"],
                     team=parsed_dataset_identifier.team_slug,
                     dataset_id=dataset["id"],
-                    item_count=dataset.get("num_items", dataset.get("num_images", 0) + dataset.get("num_videos", 0)),
+                    item_count=self._get_item_count(dataset),
                     progress=0,
                     client=self,
                 )
@@ -182,7 +213,7 @@ class Client:
                     slug=dataset["slug"],
                     team=parsed_dataset_identifier.team_slug,
                     dataset_id=dataset["id"],
-                    item_count=dataset.get("num_items", dataset.get("num_images", 0) + dataset.get("num_videos", 0)),
+                    item_count=self._get_item_count(dataset),
                     progress=0,
                     client=self,
                 )
@@ -209,13 +240,14 @@ class Client:
             The created dataset.
         """
         dataset: Dict[str, Any] = cast(Dict[str, Any], self._post("/datasets", {"name": name}, team_slug=team_slug))
+
         if dataset.get("version", 1) == 2:
             return RemoteDatasetV2(
                 name=dataset["name"],
                 team=team_slug or self.default_team,
                 slug=dataset["slug"],
                 dataset_id=dataset["id"],
-                item_count=dataset.get("num_items", dataset.get("num_images", 0) + dataset.get("num_videos", 0)),
+                item_count=self._get_item_count(dataset),
                 progress=0,
                 client=self,
             )
@@ -225,7 +257,7 @@ class Client:
                 team=team_slug or self.default_team,
                 slug=dataset["slug"],
                 dataset_id=dataset["id"],
-                item_count=dataset.get("num_items", dataset.get("num_images", 0) + dataset.get("num_videos", 0)),
+                item_count=self._get_item_count(dataset),
                 progress=0,
                 client=self,
             )
@@ -1168,7 +1200,6 @@ class Client:
         return self._decode_response(response)
 
     def _raise_if_known_error(self, response: Response, url: str) -> None:
-
         if response.status_code == 401:
             raise Unauthorized()
 

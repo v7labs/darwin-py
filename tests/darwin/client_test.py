@@ -8,7 +8,7 @@ from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset.remote_dataset_v1 import RemoteDatasetV1
 from darwin.dataset.remote_dataset_v2 import RemoteDatasetV2
-from darwin.datatypes import Feature
+from darwin.datatypes import Feature, JSONType
 from darwin.exceptions import NameTaken, NotFound
 from tests.fixtures import *
 
@@ -293,3 +293,43 @@ def assert_dataset(dataset_1, dataset_2):
     assert dataset_1.dataset_id == dataset_2.dataset_id
     assert dataset_1.slug == dataset_2.slug
     assert dataset_1.item_count == dataset_2.item_count
+
+
+# Tests for _get_item_count
+def test__get_item_count_defaults_to_num_items_if_present() -> None:
+    dataset_return = {
+        "num_images": 2,  # Should be ignored
+        "num_videos": 3,  # Should be ignored
+        "num_items": 5,  # Should get this one
+    }
+
+    assert Client._get_item_count(dataset_return) == 5
+
+
+def test__get_item_count_returns_sum_of_others_if_num_items_not_present() -> None:
+    dataset_return = {
+        "num_images": 7,  # Should be summed
+        "num_videos": 3,  # Should be summed
+    }
+
+    assert Client._get_item_count(dataset_return) == 10
+
+
+def test__get_item_count_should_tolerate_missing_members() -> None:
+    assert (
+        Client._get_item_count(
+            {
+                "num_videos": 3,  # Should be ignored
+            }
+        )
+        == 3
+    )
+
+    assert (
+        Client._get_item_count(
+            {
+                "num_images": 2,
+            }
+        )
+        == 2
+    )
