@@ -28,7 +28,7 @@ jobs:
           changed_files=$(gh pr diff ${{ github.event.number }} --name-only | xargs)
       - name: Echo changed files
         run: |
-          (echo ${{ steps.changed_files.outputs.changed_files }} | tr " " "\n") >> $GITHUB_OUTPUT
+          echo ${{ steps.changed_files.outputs.changed_files }} | tr " " "\n"
       - name: Set environment variable
         run: |
           echo "CHANGED_FILES=${{ steps.changed_files.outputs.changed_files }}" >> $GITHUB_ENV
@@ -39,7 +39,7 @@ jobs:
     steps:
       - name: Echo changed files
         run: |
-          echo ${{ env.CHANGED_FILES }}
+          echo "$CHANGED_FILES"
           
   # format:
   #   runs-on: ubuntu-latest
