@@ -24,24 +24,24 @@ jobs:
           ref: ${{ github.head_ref || github.ref }}
       - name: GH CLI Version
         run: gh --version
-  #     - name: Get changed files
-  #       id: changed_files
-  #       run: |
-  #         changed_files=gh pr diff ${{ github.event.number }} --name-only | xargs
-  #     - name: Echo changed files
-  #       run: |
-  #         echo ${{ steps.changed_files.outputs.changed_files }} | tr " " "\n"
-  #     - name: Set environment variable
-  #       run: |
-  #         echo "CHANGED_FILES=${{ steps.changed_files.outputs.changed_files }}" >> $GITHUB_ENV
+      - name: Get changed files
+        id: changed_files
+        run: |
+          changed_files=`gh pr diff ${{ github.event.number }} --name-only | xargs`
+      - name: Echo changed files
+        run: |
+          echo ${{ steps.changed_files.outputs.changed_files }} | tr " " "\n"
+      - name: Set environment variable
+        run: |
+          echo "CHANGED_FILES=${{ steps.changed_files.outputs.changed_files }}" >> $GITHUB_ENV
   
-  # test_retrieve_env:
-  #   runs-on: ubuntu-latest
-  #   needs: get_changed_files
-  #   steps:
-  #     - name: Echo changed files
-  #       run: |
-  #         echo "$CHANGED_FILES"
+  test_retrieve_env:
+    runs-on: ubuntu-latest
+    needs: get_changed_files
+    steps:
+      - name: Echo changed files
+        run: |
+          echo "$CHANGED_FILES"
           
   # format:
   #   runs-on: ubuntu-latest
