@@ -28,6 +28,7 @@ jobs:
         id: changed_files
         run: |
           changed_files=`gh pr diff ${{ github.event.number }} --name-only | xargs`
+          echo "::set-output name=changed_files::$changed_files"
       - name: Echo changed files
         run: |
           echo ${{ steps.changed_files.outputs.changed_files }} | tr " " "\n"
