@@ -7,7 +7,7 @@
 # 2 - Python3 or dependency not found
 # 3 - Black formatting failed
 
-THIS_FILE_DIRECTORY=$(dirname`realpath "$0"`)
+THIS_FILE_DIRECTORY=$(dirname `realpath "$0"`)
 FILES_CHANGED="$@"
 
 # Input checks

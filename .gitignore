@@ -181,4 +181,4 @@ scripts/
 !darwin/future/tests/data_objects/workflow/data
 !tests/darwin/dataset/data
 
-test_results.xml
+*test_results.xml
