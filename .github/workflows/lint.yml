@@ -1,16 +1,18 @@
-name: format
-run-name: Format
+name: lint
+run-name: Lint
 
 on:
   workflow_call:
     inputs:
       files:
-        description: "Files to check formatting of"
+        type: string
+        description: "Files to lint"
         required: true
 
 jobs:
-  runs-on: ubuntu-latest
   lint:
+    runs-on: ubuntu-latest
+    steps:
     - name: Check out source repository
       uses: actions/checkout@v3
 
@@ -19,8 +21,8 @@ jobs:
       with:
         python-version: "3.11"
 
-    - name: Black check
-      uses: psf/black@stable
+    - name: flake8 Lint
+      uses: py-actions/flake8@v2
       with:
-        options: "--check --no-color"
-        src: ${{ github.event.inputs.files }}}
+        plugins: "flake8-pyproject"
+        args: ${{ github.event.inputs.files }}
