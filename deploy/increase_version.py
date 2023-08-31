@@ -1,12 +1,9 @@
 #!/usr/bin/env python3
 
 import argparse
-import math
-from ast import Not
 from dataclasses import dataclass
 from os import environ
 from pathlib import Path
-from statistics import mean
 from typing import Tuple
 
 from requests import get

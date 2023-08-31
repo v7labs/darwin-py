@@ -36,6 +36,7 @@ jobs:
           echo ${{ steps.changed_files.outputs.changed_files }} | tr " " "\n"
           
   format:
+    name: Check format of python
     needs: get_changed_files
     runs-on: ubuntu-latest
     env:
@@ -52,6 +53,7 @@ jobs:
         
 
   lint:
+    name: Lint python
     needs: get_changed_files
     runs-on: ubuntu-latest
     steps:
@@ -67,44 +69,23 @@ jobs:
         # files must have come from master
         run: bash deploy/lint.sh ${{ needs.get_changed_files.outputs.changed_files }}
 
-  # # Run tests
-  # test:
-  #   strategy:
-  #     matrix:
-  #       os: [ubuntu-latest, macos-latest, windows-latest]
-  #       python-version: [3.8, 3.9, "3.10", "3.11"]
-  #       poetry-version: ["1.3.1"]
-  #   runs-on: ${{ matrix.os }}
-  #   steps:
-  #     #install python
-  #     - uses: actions/checkout@v2
-  #       with:
-  #         ref: ${{ github.head_ref || github.ref }}
+  # Run tests
+  test:
+    name: Run Testing matrix
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: [3.8, 3.9, "3.10", "3.11"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      #install python
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.head_ref || github.ref }}
+      - name: Run tests
+        run: |
+          bash deploy/run_tests.sh ${{ github.workspace }} ${{ matrix.python-version }} ${{ matrix.os }}
+      - name: Publish test results
+        uses: EnricoMi/publish-unit-test-result-action@v2
 
-  #     - name: Set up Python ${{ matrix.python-version }}
-  #       uses: actions/setup-python@v2
-  #       with:
-  #         python-version: ${{ matrix.python-version }}
-  #     - name: Upgrade pip
-  #       run: python -m pip install --upgrade pip
-  #     - name: Setup Poetry
-  #       uses: abatilo/actions-poetry@v2
-  #       with:
-  #         poetry-version: ${{ matrix.poetry-version }}
-  #     - name: Install dependencies
-  #       run: |
-  #         poetry install --no-interaction --no-root --all-extras -vvv
-  #         pip install wheel
-  #         pip install --upgrade setuptools
-  #         pip install --editable ".[test,ml,medical,dev]"
-  #         pip install pytest
-  #     - name: Run tests
-  #       run: |
-  #         pytest --junitxml=${{ github.workspace }}/os-${{ matrix.os }}-py${{ matrix.python-version}}-poetry${{ matrix.poetry-version }}-test-results.xml --cov=src --cov-report=xml --cov-report=term-missing --cov-fail-under=100
-  #     - name: Publish test results
-  #       uses: EnricoMi/publish-unit-test-result-action@v2
-  #       # Only run on windows
-  #       if: matrix.os == 'windows-latest'
-  #       with:
-  #         files: ${GITHUB_WORKSPACE}/**/*test-results.xml
                     

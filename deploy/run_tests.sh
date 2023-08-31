@@ -1,6 +1,5 @@
 #! /usr/bin/env bash
 # Run unit tests
-# This script is intended for CI/CD, but can be run locally
 #
 # Exit:
 # 0 - Success
@@ -15,7 +14,7 @@ if [ "$#" -lt 1 ]; then
     exit 1
 fi
 
-if [ "$#" -gt 1 ]; then
+if [ "$#" -eq 3 ]; then
     USING_CICD=1
     OS=$3
     PYTHON_VERSION=$2
@@ -26,7 +25,7 @@ echo "Running unit tests in directory: $1"
 
 # Unit test config is in pyproject.toml and pytest.ini - don't set any here as it will only complicate CI/CD
 if [ "$USING_CICD" = 1 ]; then
-    poetry run pytest $1 -vvv --junit-xml=$0/$PYTHON_VERSION-$OS-test_results.xml || exit 3
+    poetry run pytest $1 -vvv --junit-xml=$THIS_FILE_DIRECTORY/$PYTHON_VERSION-$OS-test_results.xml || exit 3
     exit 0
 fi
 

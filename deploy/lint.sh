@@ -1,6 +1,5 @@
 #! /usr/bin/env bash
 # Check PEP8 compliance and other linting
-# This script is intended for CI/CD, but can be run locally
 #
 # Exit:
 # 0 - Success

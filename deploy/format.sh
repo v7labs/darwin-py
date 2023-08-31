@@ -1,6 +1,5 @@
 #! /usr/bin/env bash
 # Check formatting
-# This script is intended for CI/CD only
 #
 # Exit:
 # 0 - Success
