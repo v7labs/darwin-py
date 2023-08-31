@@ -1,0 +1,25 @@
+name: lint
+run-name: Lint
+
+on:
+  workflow_call:
+    inputs:
+      files:
+        description: "Files to lint"
+        required: true
+
+jobs:
+  lint:
+    - name: Check out source repository
+      uses: actions/checkout@v3
+
+    - name: Set up Python environment
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+
+    - name: flake8 Lint
+      uses: py-actions/flake8@v2
+      args: ${{ github.event.inputs.files }}}
+      with:
+        plugins: "flake8-pyproject"
