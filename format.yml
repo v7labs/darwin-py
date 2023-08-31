@@ -9,6 +9,7 @@ on:
         required: true
 
 jobs:
+  runs-on: ubuntu-latest
   lint:
     - name: Check out source repository
       uses: actions/checkout@v3
