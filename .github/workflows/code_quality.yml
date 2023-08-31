@@ -70,6 +70,8 @@ jobs:
         run: bash deploy/lint.sh ${{ needs.get_changed_files.outputs.changed_files }}
 
   run_tests:
+    name: Run tests
+    needs: [format, lint]
     uses: ./.github/workflows/tests.yml
 
                     
