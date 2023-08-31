@@ -69,25 +69,7 @@ jobs:
         # files must have come from master
         run: bash deploy/lint.sh ${{ needs.get_changed_files.outputs.changed_files }}
 
-  # Run tests
-  test:
-    name: Run Testing matrix
-    strategy:
-      matrix:
-        # os: [ubuntu-latest, macos-latest, windows-latest]
-        os: [ubuntu-latest]
-        # python-version: [3.8, 3.9, "3.10", "3.11"]
-        python-version: [3.8]
-    runs-on: ${{ matrix.os }}
-    steps:
-      #install python
-      - uses: actions/checkout@v2
-        with:
-          ref: ${{ github.head_ref || github.ref }}
-      - name: Run tests
-        run: |
-          bash deploy/run_tests.sh ${{ github.workspace }} ${{ matrix.python-version }} ${{ matrix.os }}
-      - name: Publish test results
-        uses: EnricoMi/publish-unit-test-result-action@v2
+  run_tests:
+    uses: ./.github/workflows/tests.yml
 
                     
