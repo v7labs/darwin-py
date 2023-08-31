@@ -71,7 +71,6 @@ jobs:
 
   run_tests:
     name: Run tests
-    needs: [format, lint]
     uses: ./.github/workflows/tests.yml
 
                     

@@ -35,6 +35,7 @@ echo
 # Check dependencies
 "$THIS_FILE_DIRECTORY"/check_poetry.sh || "$THIS_FILE_DIRECTORY"/install_deps.sh || exit 2
 
+which poetry
 
 black_failed_files=""
 number_of_python_files=0
