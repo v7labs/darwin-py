@@ -3,7 +3,7 @@ name: tests
 run-name: Tests
 
 on:
-  workflow_dispatch:
+  workflow_call:
 
 jobs:  
   test:
