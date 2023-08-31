@@ -22,4 +22,5 @@ then
     exit 3
 fi
 
+echo "Confirmed Python and pip are installed"
 exit 0

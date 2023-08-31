@@ -33,7 +33,7 @@ echo "** Checking formatting of files **"
 echo
 
 # Check dependencies
-"$THIS_FILE_DIRECTORY"/check_python.sh || "$THIS_FILE_DIRECTORY"/install_deps.sh || exit 2
+"$THIS_FILE_DIRECTORY"/check_poetry.sh || "$THIS_FILE_DIRECTORY"/install_deps.sh || exit 2
 
 
 black_failed_files=""
