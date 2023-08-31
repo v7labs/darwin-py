@@ -7,7 +7,7 @@
 # 2 - Python3 or dependency not found
 # 3 - Black formatting failed
 
-THIS_FILE_DIRECTORY=`dirname "$0"`
+THIS_FILE_DIRECTORY=$(dirname`realpath "$0"`)
 FILES_CHANGED="$@"
 
 # Input checks
@@ -85,6 +85,16 @@ if [[ $black_failed_files -eq "" ]]; then
         echo "No checkable python files found in input."
     else
         echo "Black formatting passed"
+    fi
+    exit 0
+else
+    echo "** Black formatting failed **"
+    echo "These files failed black formatting:"
+    echo
+    echo $black_failed_files | tr " " "\n"
+    echo
+    exit 3
+fi      echo "Black formatting passed"
     fi
     exit 0
 else
