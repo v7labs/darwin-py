@@ -10,7 +10,7 @@ on:
         type: string
 
 jobs:
-  lint:
+  format:
     runs-on: ubuntu-latest
     steps:
     - name: Check out source repository
@@ -22,7 +22,16 @@ jobs:
         python-version: "3.11"
 
     - name: Black check
-      uses: psf/black@stable
-      with:
-        options: "--check --no-color"
-        src: ${{ github.event.inputs.files }}}
+      run: |
+        pip install black
+        success = 1
+        for file in ${{ github.event.inputs.files }}
+        do
+          black --check $file
+          if [ $? -ne 0 ]; then
+            success = 0
+          fi
+        done
+        if [ $success -eq 0 ]; then
+          exit 1
+        fi

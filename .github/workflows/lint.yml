@@ -1,5 +1,5 @@
 name: lint
-run-name: Lint
+run-name: Check linting
 
 on:
   workflow_call:
@@ -22,7 +22,16 @@ jobs:
         python-version: "3.11"
 
     - name: flake8 Lint
-      uses: py-actions/flake8@v2
-      with:
-        plugins: "flake8-pyproject"
-        args: ${{ github.event.inputs.files }}
+      run: |
+        pip install flake8 flake8-pyproject
+        success = 1
+        for file in ${{ github.event.inputs.files }}
+        do
+          flake8 $file
+          if [ $? -ne 0 ]; then
+            success = 0
+          fi
+        done
+        if [ $success -eq 0 ]; then
+          exit 1
+        fi
