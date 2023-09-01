@@ -40,21 +40,21 @@ jobs:
         id: changed_python_files
         shell: bash
         run: |
-          changed_python_files=`${{ github.workspace}}/deploy/_filter_files.py py ${{ steps.changed_files.outputs.changed_files }}`
+          changed_python_files=`python3 ${{ github.workspace }}/deploy/_filter_files.py py ${{ steps.changed_files.outputs.changed_files }}`
           echo $changed_python_files
           echo "changed_python_files=$changed_python_files" >> $GITHUB_OUTPUT
       - name: Get changed yaml files
         id: changed_yaml_files
         shell: bash
         run: |
-          changed_yaml_files=`${{ github.workspace}}/deploy/_filter_files.py yml ${{ steps.changed_files.outputs.changed_files }}`
+          changed_yaml_files=`python3 ${{ github.workspace }}/deploy/_filter_files.py yml ${{ steps.changed_files.outputs.changed_files }}`
           echo $changed_yaml_files
           echo "changed_yaml_files=$changed_yaml_files" >> $GITHUB_OUTPUT
       - name: Get changed json files
         id: changed_json_files
         shell: bash
         run: |
-          changed_json_files=`${{ github.workspace}}/deploy/_filter_files.py json ${{ steps.changed_files.outputs.changed_files }}`
+          changed_json_files=`python3 ${{ github.workspace }}/deploy/_filter_files.py json ${{ steps.changed_files.outputs.changed_files }}`
           echo $changed_json_files
           echo "changed_json_files=$changed_json_files" >> $GITHUB_OUTPUT
 
@@ -71,13 +71,13 @@ jobs:
           echo "${{ needs.get_changed_files.outputs.changed_files }}" | tr ' ' '\n' | wc -l
           echo
           echo "  Changed python files:"
-          echo "${{ needs.get_changed_files.outputs.changed_python_files }}" | tr ' ' '\n'
+          echo "${{ needs.get_changed_files.outputs.changed_python_files }}" | tr ' ' '\n' | wc -l
           echo
           echo "  Changed yaml files:"
-          echo "${{ needs.get_changed_files.outputs.changed_yaml_files }}" | tr ' ' '\n'
+          echo "${{ needs.get_changed_files.outputs.changed_yaml_files }}" | tr ' ' '\n' | wc -l
           echo
           echo "  Changed json files:"
-          echo "${{ needs.get_changed_files.outputs.changed_json_files }}" | tr ' ' '\n'
+          echo "${{ needs.get_changed_files.outputs.changed_json_files }}" | tr ' ' '\n' | wc -l
           
   # format:
   #   name: Check format of python
