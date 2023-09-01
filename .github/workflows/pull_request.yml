@@ -59,13 +59,13 @@ jobs:
         run: |
           echo
           echo "Summary of changed files:"
-          echo "  Total changed files: ${{ steps.changed_files.outputs.changed_files }}" | tr ' ' '\n' | wc -l
+          echo "  Total changed files: ${{ needs.get_changed_files.outputs.changed_files }}" | tr ' ' '\n' | wc -l
           echo
-          echo "  Changed python files: ${{ steps.changed_files.outputs.changed_python_files }}" | tr ' ' '\n'
+          echo "  Changed python files: ${{ needs.get_changed_files.outputs.changed_python_files }}" | tr ' ' '\n'
           echo
-          echo "  Changed yaml files: ${{ steps.changed_files.outputs.changed_yaml_files }}" | tr ' ' '\n'
+          echo "  Changed yaml files: ${{ needs.get_changed_files.outputs.changed_yaml_files }}" | tr ' ' '\n'
           echo
-          echo "  Changed json files: ${{ steps.changed_files.outputs.changed_json_files }}" | tr ' ' '\n'
+          echo "  Changed json files: ${{ needs.get_changed_files.outputs.changed_json_files }}" | tr ' ' '\n'
           
   # format:
   #   name: Check format of python
