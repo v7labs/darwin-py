@@ -37,15 +37,15 @@ jobs:
       - name: Get changed python files
         id: changed_python_files
         run: |
-          echo "${{ steps.changed_files.outputs.changed_files }}" | tr ' ' '\n' | grep -E '\.py$' | tr '\n' ' ' | xargs >> $GITHUB_OUTPUT
+          echo $(echo "${{ steps.changed_files.outputs.changed_files }}" | tr ' ' '\n' | grep -E '\.py$' | tr '\n' ' ' | xargs) >> $GITHUB_OUTPUT
       - name: Get changed yaml files
         id: changed_yaml_files
         run: |
-          echo "${{ steps.changed_files.outputs.changed_files }}" | tr ' ' '\n' | grep -E '\.yaml$|\.yml$' | tr '\n' ' ' | xargs >> $GITHUB_OUTPUT
+          echo $(echo "${{ steps.changed_files.outputs.changed_files }}" | tr ' ' '\n' | grep -E '\.yaml$|\.yml$' | tr '\n' ' ' | xargs) >> $GITHUB_OUTPUT
       - name: Get changed json files
         id: changed_json_files
         run: |
-          echo "${{ steps.changed_files.outputs.changed_files }}" | tr ' ' '\n' | grep -E '\.json$' | tr '\n' ' ' | xargs >> $GITHUB_OUTPUT
+          echo $(echo "${{ steps.changed_files.outputs.changed_files }}" | tr ' ' '\n' | grep -E '\.json$' | tr '\n' ' ' | xargs) >> $GITHUB_OUTPUT
 
   echo_changed_files:
     name: Echo changed files
