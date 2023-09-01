@@ -40,6 +40,9 @@ jobs:
         id: changed_python_files
         shell: bash
         run: |
+          changed_python_files=`echo "${{ steps.changed_files.outputs.changed_files }}"`
+          changed_python_files=`echo "${{ steps.changed_files.outputs.changed_files }}" | tr ' ' '\n'`
+          changed_python_files=`echo "${{ steps.changed_files.outputs.changed_files }}" | tr ' ' '\n' | grep -E '\.somethingelse$'`
           changed_python_files=`echo "${{ steps.changed_files.outputs.changed_files }}" | tr ' ' '\n' | grep -E '\.somethingelse$' | xargs`
           echo $changed_python_files
           echo "changed_python_files=$changed_python_files" >> $GITHUB_OUTPUT
