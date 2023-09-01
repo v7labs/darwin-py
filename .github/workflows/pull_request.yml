@@ -37,17 +37,17 @@ jobs:
       - name: Get changed python files
         id: changed_python_files
         run: |
-          changed_python_files=`echo "${{ steps.changed_files.outputs.changed_files }}" | tr ' ' '\n' | grep -E '\.py$' | tr '\n' ' ' | xargs`
+          changed_python_files=`echo "${{ steps.changed_files.outputs.changed_files }}" | tr ' ' '\n' | grep -E '\.py$' | xargs`
           echo "changed_python_files=$changed_python_files" >> $GITHUB_OUTPUT
       - name: Get changed yaml files
         id: changed_yaml_files
         run: |
-          changed_yaml_files=`echo "${{ steps.changed_files.outputs.changed_files }}" | tr ' ' '\n' | grep -E '\.yaml$|\.yml$' | tr '\n' ' ' | xargs`
+          changed_yaml_files=`echo "${{ steps.changed_files.outputs.changed_files }}" | tr ' ' '\n' | grep -E '\.yaml$|\.yml$' | xargs`
           echo "changed_yaml_files=$changed_yaml_files" >> $GITHUB_OUTPUT
       - name: Get changed json files
         id: changed_json_files
         run: |
-          changed_json_files=`echo "${{ steps.changed_files.outputs.changed_files }}" | tr ' ' '\n' | grep -E '\.json$' | tr '\n' ' ' | xargs`
+          changed_json_files=`echo "${{ steps.changed_files.outputs.changed_files }}" | tr ' ' '\n' | grep -E '\.json$' | xargs`
           echo "changed_json_files=$changed_json_files" >> $GITHUB_OUTPUT
 
   echo_changed_files:
@@ -59,13 +59,17 @@ jobs:
         run: |
           echo
           echo "Summary of changed files:"
-          echo "  Total changed files: ${{ needs.get_changed_files.outputs.changed_files }}" | tr ' ' '\n' | wc -l
+          echo "  Total changed files:"
+          echo "${{ needs.get_changed_files.outputs.changed_files }}" | tr ' ' '\n' | wc -l
           echo
-          echo "  Changed python files: ${{ needs.get_changed_files.outputs.changed_python_files }}" | tr ' ' '\n'
+          echo "  Changed python files:"
+          echo "${{ needs.get_changed_files.outputs.changed_python_files }}" | tr ' ' '\n'
           echo
-          echo "  Changed yaml files: ${{ needs.get_changed_files.outputs.changed_yaml_files }}" | tr ' ' '\n'
+          echo "  Changed yaml files:"
+          echo "${{ needs.get_changed_files.outputs.changed_yaml_files }}" | tr ' ' '\n'
           echo
-          echo "  Changed json files: ${{ needs.get_changed_files.outputs.changed_json_files }}" | tr ' ' '\n'
+          echo "  Changed json files:"
+          echo "${{ needs.get_changed_files.outputs.changed_json_files }}" | tr ' ' '\n'
           
   # format:
   #   name: Check format of python
