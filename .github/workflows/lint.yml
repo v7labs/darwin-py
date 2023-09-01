@@ -22,6 +22,7 @@ jobs:
         python-version: "3.11"
 
     - name: flake8 Lint
+      shell: bash
       run: |
         pip install flake8 flake8-pyproject
         success = 1

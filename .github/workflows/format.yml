@@ -22,6 +22,7 @@ jobs:
         python-version: "3.11"
 
     - name: Black check
+      shell: bash
       run: |
         pip install black
         success = 1
