@@ -26,6 +26,7 @@ jobs:
       run: |
         pip install flake8 flake8-pyproject
         success=1
+        echo "Linting files ${{ github.event.inputs.files }}"
         for file in ${{ github.event.inputs.files }}
         do
           echo "Linting $file"
