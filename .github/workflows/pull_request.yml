@@ -37,7 +37,7 @@ jobs:
       - name: Get changed python files
         id: changed_python_files
         run: |
-          changed_python_files='echo "${{ steps.changed_files.outputs.changed_files }}" | tr ' ' '\n' | grep -E '\.py$' | tr '\n' ' ' | xargs'
+          changed_python_files=`echo "${{ steps.changed_files.outputs.changed_files }}" | tr ' ' '\n' | grep -E '\.py$' | tr '\n' ' ' | xargs`
           echo "changed_python_files=$changed_python_files" >> $GITHUB_OUTPUT
       - name: Get changed yaml files
         id: changed_yaml_files
