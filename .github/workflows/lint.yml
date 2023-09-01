@@ -28,10 +28,8 @@ jobs:
         success=1
         for file in ${{ github.event.inputs.files }}
         do
-          flake8 $file
-          if [ $? -ne 0 ]; then
-            success = 0
-          fi
+          echo "Linting $file"
+          flake8 $file || success=0
         done
         if [ $success -eq 0 ]; then
           exit 1
