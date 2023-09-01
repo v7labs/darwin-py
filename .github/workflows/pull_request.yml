@@ -40,24 +40,15 @@ jobs:
         id: changed_python_files
         shell: bash
         run: |
-          changed_python_files=`echo "${{ steps.changed_files.outputs.changed_files }}" | tr ' ' '\n' | grep -E '\.py$' | xargs`
+          changed_python_files=`echo "${{ steps.changed_files.outputs.changed_files }}" | tr ' ' '\n' | grep -E '\.somethingelse$' | xargs`
           echo $changed_python_files
-          if [ -z "$changed_python_files" ]; then
-            echo "No python files changed"
-          else
-            echo "changed_python_files=$changed_python_files" >> $GITHUB_OUTPUT
-          fi
+          echo "changed_python_files=$changed_python_files" >> $GITHUB_OUTPUT
       - name: Get changed yaml files
         id: changed_yaml_files
         shell: bash
         run: |
           changed_yaml_files=`echo "${{ steps.changed_files.outputs.changed_files }}" | tr ' ' '\n' | grep -E '\.yaml$|\.yml$' | xargs`
           echo $changed_yaml_files
-          if [ -z "$changed_yaml_files" ]; then
-            echo "No yaml files changed"
-          else
-            echo "changed_yaml_files=$changed_yaml_files" >> $GITHUB_OUTPUT
-          fi
           echo "changed_yaml_files=$changed_yaml_files" >> $GITHUB_OUTPUT
       - name: Get changed json files
         id: changed_json_files
@@ -65,11 +56,7 @@ jobs:
         run: |
           changed_json_files=`echo "${{ steps.changed_files.outputs.changed_files }}" | tr ' ' '\n' | grep -E '\.json$' | xargs`
           echo $changed_json_files
-          if [ -z "$changed_json_files" ]; then
-            echo "No json files changed"
-          else
-            echo "changed_json_files=$changed_json_files" >> $GITHUB_OUTPUT
-          fi
+          echo "changed_json_files=$changed_json_files" >> $GITHUB_OUTPUT
 
   echo_changed_files:
     needs: get_changed_files
