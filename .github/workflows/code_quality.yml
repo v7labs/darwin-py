@@ -31,9 +31,15 @@ jobs:
         run: |
           changed_files=`gh pr diff ${{ github.event.number }} --name-only | xargs`
           echo "changed_files=$changed_files" >> $GITHUB_OUTPUT
+
+  echo_changed_files:
+    name: Echo changed files
+    needs: get_changed_files
+    runs-on: ubuntu-latest
+    steps:
       - name: Echo changed files
         run: |
-          echo ${{ steps.changed_files.outputs.changed_files }} | tr " " "\n"
+          echo "${{ needs.get_changed_files.outputs.changed_files }}" | tr ' ' '\n'
           
   format:
     name: Check format of python
