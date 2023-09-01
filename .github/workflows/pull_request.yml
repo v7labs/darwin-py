@@ -38,21 +38,21 @@ jobs:
           echo "changed_files=$changed_files" >> $GITHUB_OUTPUT
       - name: Get changed python files
         id: changed_python_files
-        shell: bash
+        shell: bash -ileo pipefail {0}
         run: |
-          changed_python_files=`echo "${{ steps.changed_files.outputs.changed_files }}" | tr ' ' '\n' | grep -E '\.somethingelse$' | xargs` &&\
+          changed_python_files=`echo "${{ steps.changed_files.outputs.changed_files }}" | tr ' ' '\n' | grep -E '\.py$' | xargs` &&\
           echo $changed_python_files &&\
           echo "changed_python_files=$changed_python_files" >> $GITHUB_OUTPUT
       - name: Get changed yaml files
         id: changed_yaml_files
-        shell: bash
+        shell: bash -ileo pipefail {0}
         run: |
           changed_yaml_files=`echo "${{ steps.changed_files.outputs.changed_files }}" | tr ' ' '\n' | grep -E '\.yaml$|\.yml$' | xargs`
           echo $changed_yaml_files
           echo "changed_yaml_files=$changed_yaml_files" >> $GITHUB_OUTPUT
       - name: Get changed json files
         id: changed_json_files
-        shell: bash
+        shell: bash -ileo pipefail {0}
         run: |
           changed_json_files=`echo "${{ steps.changed_files.outputs.changed_files }}" | tr ' ' '\n' | grep -E '\.json$' | xargs`
           echo $changed_json_files
