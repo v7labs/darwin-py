@@ -21,6 +21,8 @@ jobs:
     outputs:
       changed_files: ${{ steps.changed_files.outputs.changed_files }}
       changed_python_files: ${{ steps.changed_files.outputs.changed_python_files }}
+      changed_yaml_files: ${{ steps.changed_files.outputs.changed_yaml_files }}
+      changed_json_files: ${{ steps.changed_files.outputs.changed_json_files }}
     steps:
       - uses: actions/checkout@v2
         with:
@@ -35,7 +37,15 @@ jobs:
       - name: Get changed python files
         id: changed_python_files
         run: |
-          echo "${{ steps.changed_files.outputs.changed_files }}" | grep -E '\.py$' | xargs
+          echo "${{ steps.changed_files.outputs.changed_files }}" | tr ' ' '\n' | grep -E '\.py$' | tr '\n' ' ' >> $GITHUB_OUTPUT
+      - name: Get changed yaml files
+        id: changed_yaml_files
+        run: |
+          echo "${{ steps.changed_files.outputs.changed_files }}" | tr ' ' '\n' | grep -E '\.yaml$|\.yml$' | tr '\n' ' ' >> $GITHUB_OUTPUT
+      - name: Get changed json files
+        id: changed_json_files
+        run: |
+          echo "${{ steps.changed_files.outputs.changed_files }}" | tr ' ' '\n' | grep -E '\.json$' | tr '\n' ' ' >> $GITHUB_OUTPUT
 
   echo_changed_files:
     name: Echo changed files
@@ -44,7 +54,15 @@ jobs:
     steps:
       - name: Echo changed files
         run: |
-          echo "${{ needs.get_changed_files.outputs.changed_python_files }}" | tr ' ' '\n'
+          echo
+          echo "Summary of changed files:"
+          echo "  Total changed files: ${{ steps.changed_files.outputs.changed_files }}" | tr ' ' '\n' | wc -l
+          echo
+          echo "  Changed python files: ${{ steps.changed_files.outputs.changed_python_files }}" | tr ' ' '\n'
+          echo
+          echo "  Changed yaml files: ${{ steps.changed_files.outputs.changed_yaml_files }}" | tr ' ' '\n'
+          echo
+          echo "  Changed json files: ${{ steps.changed_files.outputs.changed_json_files }}" | tr ' ' '\n'
           
   # format:
   #   name: Check format of python
