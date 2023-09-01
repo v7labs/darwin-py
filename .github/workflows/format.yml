@@ -26,8 +26,8 @@ jobs:
       run: |
         pip install black
         success=1
-        echo "Checking files ${{ github.event.inputs.files }}"
-        for file in ${{ github.event.inputs.files }}
+        echo "Checking files ${{ inputs.files }}"
+        for file in ${{ inputs.files }}
         do
           echo "Checking $file"
           black --check $file || success=0

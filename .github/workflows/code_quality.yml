@@ -29,7 +29,7 @@ jobs:
       - name: Get changed files
         id: changed_files
         run: |
-          changed_files=`gh pr diff ${{ github.event.number }} --name-only | xargs`
+          changed_files=`gh pr diff ${{ github.event.number }} --name-only | xargs | grep -E '\.py$' | tr ' ' '\n' | sort -u | tr '\n' ' '`
           echo "changed_files=$changed_files" >> $GITHUB_OUTPUT
 
   echo_changed_files:
