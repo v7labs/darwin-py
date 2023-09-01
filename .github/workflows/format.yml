@@ -25,13 +25,15 @@ jobs:
       shell: bash
       run: |
         pip install black
-        success=1
+        failed_formatting=1
         echo "Checking files ${{ inputs.files }}"
         for file in ${{ inputs.files }}
         do
           echo "Checking $file"
-          black --check $file || success=0
+          black --check $file || failed_formatting=$((failed_formatting + 1))
         done
-        if [ $success -eq 0 ]; then
+        if [ $failed_formatting -ne 0 ]; then
+          echo "Formatting failed for $failed_formatting files"
           exit 1
         fi
+        exit 0
