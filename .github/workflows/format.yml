@@ -25,7 +25,7 @@ jobs:
       shell: bash
       run: |
         pip install black
-        success = 1
+        success=1
         for file in ${{ github.event.inputs.files }}
         do
           black --check $file

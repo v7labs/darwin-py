@@ -25,7 +25,7 @@ jobs:
       shell: bash
       run: |
         pip install flake8 flake8-pyproject
-        success = 1
+        success=1
         for file in ${{ github.event.inputs.files }}
         do
           flake8 $file
