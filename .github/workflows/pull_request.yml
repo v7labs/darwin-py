@@ -4,13 +4,13 @@ run-name: Pull Request
 on:
   pull_request:
     types: [opened, synchronize, reopened, closed]
-    
-    
+
+
 # Prevent running concurrently
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
-     
+
 env:
   GH_TOKEN: ${{ github.token }}
 
@@ -62,25 +62,29 @@ jobs:
         run: |
           echo "test_value=foo" >> "$GITHUB_OUTPUT"
 
-  echo_changed_files:
-    needs: get_changed_files
-    name: Echo changed files
-    runs-on: ubuntu-latest
-    steps:
-      - name: Echo changed files
-        env:
-          OUTPUTS: ${{ toJson(needs.get_changed_files.outputs) }}
-        run: |
-          echo "All outputs: $OUTPUTS"
+#   echo_changed_files:
+#     needs: get_changed_files
+#     name: Echo changed files
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Echo changed files
+#         env:
+#           OUTPUTS: ${{ toJson(needs.get_changed_files.outputs) }}
+#         run: |
+#           echo "All outputs: $OUTPUTS"
 
-          
+  debug:
+    name: Debug
+    uses: ./.github/workflows/debug_contexts.yml
+
+
   # format:
   #   name: Check format of python
   #   needs: get_changed_files
   #   uses: ./.github/workflows/format.yml
   #   with:
   #     files: ${{ needs.get_changed_files.outputs.changed_files }}
-        
+
 
   # lint:
   #   name: Lint python
@@ -93,4 +97,3 @@ jobs:
   #   name: Run tests
   #   uses: ./.github/workflows/tests.yml
 
-                    
