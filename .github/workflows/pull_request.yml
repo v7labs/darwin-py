@@ -20,9 +20,9 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       changed_files: ${{ steps.changed_files.outputs.changed_files }}
-      python_files: ${{ steps.changed_python_files.outputs.changed_files }}
-      changed_yaml_files: ${{ steps.changed_yaml_files.outputs.changed_files }}
-      changed_json_files: ${{ steps.changed_json_files.outputs.changed_files }}
+      python_files: ${{ steps.changed_python_files.outputs.python_changed_files }}
+      yaml_changed_files: ${{ steps.changed_yaml_files.outputs.yaml_changed_files }}
+      json_changed_files: ${{ steps.changed_json_files.outputs.json_changed_files }}
       test_value: ${{ steps.test_value.outputs.test_value }}
     steps:
       - uses: actions/checkout@v2
@@ -41,21 +41,21 @@ jobs:
         run: |
           changed_files=`python3 ${{ github.workspace }}/deploy/_filter_files.py py ${{ steps.changed_files.outputs.changed_files }}`
           echo "Changed python files: $changed_files"
-          echo "python_files=$changed_files" >> $GITHUB_OUTPUT
+          echo "python_changed_files=$changed_files" >> $GITHUB_OUTPUT
       - name: Get changed yaml files
         id: changed_yaml_files
         shell: bash
         run: |
           changed_files=`python3 ${{ github.workspace }}/deploy/_filter_files.py yml ${{ steps.changed_files.outputs.changed_files }}`
           echo "Changed yaml files: $changed_files"
-          echo "changed_yaml_files=$changed_files" >> $GITHUB_OUTPUT
+          echo "yaml_changed_files=$changed_files" >> $GITHUB_OUTPUT
       - name: Get changed json files
         id: changed_json_files
         shell: bash
         run: |
           cjf=`python3 ${{ github.workspace }}/deploy/_filter_files.py json ${{ steps.changed_files.outputs.changed_files }}`
           echo "Changed json files: $cjf"
-          echo "changed_json_files=$cjf" >> $GITHUB_OUTPUT
+          echo "json_changed_files=$cjf" >> $GITHUB_OUTPUT
       - name: Get test value
         id: test_value
         shell: bash
