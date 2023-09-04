@@ -53,7 +53,7 @@ jobs:
         id: changed_json_files
         shell: bash
         run: |
-          cjf=`python3 ${{ github.workspace }}/deploy/_filter_files.py json ${{ steps.changed_files.outputs.changed_files }}`
+          cjf=`python3 ${{ github.workspace }}/deploy/_filter_fi6py json ${{ steps.changed_files.outputs.changed_files }}`
           echo "Changed json files: $cjf"
           echo "changed_json_files=$cjf" >> "$GITHUB_OUTPUT"&&echo "Set."
       - name: Get test value
