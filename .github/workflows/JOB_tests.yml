@@ -27,10 +27,12 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install poetry
+      - name: Install dependencies
+        shell: bash # stops windows hosts from using powershell
         run: |
-          pip install poetry
+          ${{ github.workspace }}/deploy/install_deps.sh
       - name: Run pytest
+        shell: bash # stops windows hosts from using powershell
         run: |
           poetry install
           poetry run pytest
