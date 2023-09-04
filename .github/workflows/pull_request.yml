@@ -34,33 +34,33 @@ jobs:
         run: |
           changed_files=`gh pr diff ${{ github.event.number }} --name-only | xargs`
           echo "Changed files: $changed_files"
-          echo "changed_files=$changed_files" >> $GITHUB_OUTPUT
+          echo "changed_files=$changed_files" >> "$GITHUB_OUTPUT"
       - name: Get changed python files
         id: changed_python_files
         shell: bash
         run: |
           cpf=`python3 ${{ github.workspace }}/deploy/_filter_files.py py ${{ steps.changed_files.outputs.changed_files }}`
           echo "Changed python files: $cpf"
-          echo "changed_python_files=$cpf" >> $GITHUB_OUTPUT
+          echo "changed_python_files=$cpf" >> "$GITHUB_OUTPUT"
       - name: Get changed yaml files
         id: changed_yaml_files
         shell: bash
         run: |
           cyf=`python3 ${{ github.workspace }}/deploy/_filter_files.py yml ${{ steps.changed_files.outputs.changed_files }}`
           echo "Changed yaml files: $cyf"
-          echo "changed_yaml_files=$cyf" >> $GITHUB_OUTPUT
+          echo "changed_yaml_files=$cyf" >> "$GITHUB_OUTPUT"
       - name: Get changed json files
         id: changed_json_files
         shell: bash
         run: |
           cjf=`python3 ${{ github.workspace }}/deploy/_filter_files.py json ${{ steps.changed_files.outputs.changed_files }}`
           echo "Changed json files: $cjf"
-          echo "changed_json_files=$cjf" >> $GITHUB_OUTPUT
+          echo "changed_json_files=$cjf" >> "$GITHUB_OUTPUT"
       - name: Get test value
         id: test_value
         shell: bash
         run: |
-          echo "test_value=foo" >> $GITHUB_OUTPUT
+          echo "test_value=foo" >> "$GITHUB_OUTPUT"
 
   echo_changed_files:
     needs: get_changed_files
