@@ -39,21 +39,21 @@ jobs:
         id: changed_python_files
         shell: bash
         run: |
-          cpf=`python3 ${{ github.workspace }}/deploy/_filter_files.py py ${{ steps.changed_files.outputs.changed_files }}`
+          cpf=`python3 ${{ github.workspace }}/deploy/_filter_files.py py ${{ steps.changed_files.outputs.changed_files }} | xargs`
           echo "Changed python files: $cpf"
           echo "changed_python_files=$cpf" >> "$GITHUB_OUTPUT"
       - name: Get changed yaml files
         id: changed_yaml_files
         shell: bash
         run: |
-          cyf=`python3 ${{ github.workspace }}/deploy/_filter_files.py yml ${{ steps.changed_files.outputs.changed_files }}`
+          cyf=`python3 ${{ github.workspace }}/deploy/_filter_files.py yml ${{ steps.changed_files.outputs.changed_files }} | xargs`
           echo "Changed yaml files: $cyf"
           echo "changed_yaml_files=$cyf" >> "$GITHUB_OUTPUT"
       - name: Get changed json files
         id: changed_json_files
         shell: bash
         run: |
-          cjf=`python3 ${{ github.workspace }}/deploy/_filter_files.py json ${{ steps.changed_files.outputs.changed_files }}`
+          cjf=`python3 ${{ github.workspace }}/deploy/_filter_files.py json ${{ steps.changed_files.outputs.changed_files }} | xargs`
           echo "Changed json files: $cjf"
           echo "changed_json_files=$cjf" >> "$GITHUB_OUTPUT"
       - name: Get test value
