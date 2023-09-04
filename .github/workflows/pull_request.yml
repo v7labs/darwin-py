@@ -23,6 +23,7 @@ jobs:
       changed_python_files: ${{ steps.changed_files.outputs.changed_python_files }}
       changed_yaml_files: ${{ steps.changed_files.outputs.changed_yaml_files }}
       changed_json_files: ${{ steps.changed_files.outputs.changed_json_files }}
+      test_value: ${{ steps.changed_files.outputs.test_value }}
     steps:
       - uses: actions/checkout@v2
         with:
@@ -55,6 +56,11 @@ jobs:
           cjf=`python3 ${{ github.workspace }}/deploy/_filter_files.py json ${{ steps.changed_files.outputs.changed_files }}`
           echo "Changed json files: $cjf"
           echo "changed_json_files=$cjf" >> $GITHUB_OUTPUT
+      - name: Get test value
+        id: test_value
+        shell: bash
+        run: |
+          echo "test_value=foo" >> $GITHUB_OUTPUT
 
   echo_changed_files:
     needs: get_changed_files
