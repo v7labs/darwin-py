@@ -13,7 +13,7 @@ def main(argv: List[str]) -> None:
 
     files_out = [file for file in files_in if file.endswith(f".{file_extension}")]
 
-    sys.stdout.write(" ".join(files_out))
+    print(" ".join(files_out))
 
 
 if __name__ == "__main__":
