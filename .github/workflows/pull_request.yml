@@ -62,20 +62,16 @@ jobs:
         run: |
           echo "test_value=foo" >> "$GITHUB_OUTPUT"
 
-#   echo_changed_files:
-#     needs: get_changed_files
-#     name: Echo changed files
-#     runs-on: ubuntu-latest
-#     steps:
-#       - name: Echo changed files
-#         env:
-#           OUTPUTS: ${{ toJson(needs.get_changed_files.outputs) }}
-#         run: |
-#           echo "All outputs: $OUTPUTS"
-
-  debug:
-    name: Debug
-    uses: ./.github/workflows/debug_contexts.yml
+  echo_changed_files:
+    needs: get_changed_files
+    name: Echo changed files
+    runs-on: ubuntu-latest
+    steps:
+      - name: Echo changed files
+        env:
+          OUTPUTS: ${{ toJson(needs) }}
+        run: |
+          echo "All outputs: $OUTPUTS"
 
 
   # format:
