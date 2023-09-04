@@ -20,7 +20,9 @@ jobs:
       - uses: actions/checkout@v2
         with:
           ref: ${{ github.head_ref || github.ref }}
-        run:
+      - name: Set title
+        run: |
+          export MARKDOWN_OUTPUT="${MARKDOWN_OUTPUT}## Tests on ${{ matrix.python-version }}, OS: ${{ matrix.os }}\n\n"
       - name: Install Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
         with:
