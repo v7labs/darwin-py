@@ -30,12 +30,16 @@ jobs:
       - name: Install dependencies
         shell: bash # stops windows hosts from using powershell
         run: |
-          ${{ github.workspace }}/deploy/install_deps.sh
+          pip install poetry pytest
+          poetry install --no-interaction --no-root -vvv --all-extras
+          poetry install --no-interaction --no-root --all-extras -vvv
+          pip install wheel
+          pip install --upgrade setuptools
+          pip install --editable ".[test,ml,medical,dev]"
       - name: Run pytest
         shell: bash # stops windows hosts from using powershell
         run: |
-          poetry install
-          poetry run pytest
+          python -m pytest
           if [ $? -eq 0 ]; then
             export MARKDOWN_OUTPUT="${MARKDOWN_OUTPUT}## Test Results\n\n"
             export MARKDOWN_OUTPUT="${MARKDOWN_OUTPUT}**Test Results:** :white_check_mark:\n\n"
@@ -44,6 +48,7 @@ jobs:
             export MARKDOWN_OUTPUT="${MARKDOWN_OUTPUT}**Test Results:** :x:\n\n"
           fi
       - name: Output Summary
+        if: always()
         uses: actions/github-script@v4
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
