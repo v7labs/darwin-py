@@ -68,8 +68,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Echo changed files
+        env:
+          OUTPUTS: ${{ toJson(needs.get_changed_files.outputs) }}
         run: |
-          echo ${{ toJson(needs.get_changed_files.outputs) }}
+          echo "All outputs: $OUTPUTS"
 
           
   # format:
