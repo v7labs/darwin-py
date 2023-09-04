@@ -21,6 +21,7 @@ jobs:
         with:
           ref: ${{ github.head_ref || github.ref }}
       - name: Set title
+        shell: bash # stops windows hosts from using powershell
         run: |
           export MARKDOWN_OUTPUT="${MARKDOWN_OUTPUT}## Tests on ${{ matrix.python-version }}, OS: ${{ matrix.os }}\n\n"
       - name: Install Python ${{ matrix.python-version }}
