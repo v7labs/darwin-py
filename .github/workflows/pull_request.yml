@@ -63,19 +63,8 @@ jobs:
     steps:
       - name: Echo changed files
         run: |
-          echo
-          echo "Summary of changed files:"
-          echo "  Total changed files:"
-          echo "${{ needs.get_changed_files.outputs.changed_files }}" | tr ' ' '\n' | wc -l
-          echo
-          echo "  Changed python files:"
-          echo "${{ needs.get_changed_files.outputs.changed_python_files }}"
-          echo
-          echo "  Changed yaml files:"
-          echo "${{ needs.get_changed_files.outputs.changed_yaml_files }}"
-          echo
-          echo "  Changed json files:"
-          echo "${{ needs.get_changed_files.outputs.changed_json_files }}"
+          echo ${{ toJson(needs.get_changed_files.outputs) }}
+
           
   # format:
   #   name: Check format of python
