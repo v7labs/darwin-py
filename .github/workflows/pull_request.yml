@@ -69,7 +69,7 @@ jobs:
     steps:
       - name: Echo changed files
         env:
-          OUTPUTS: ${{ toJson(needs) }}
+          OUTPUTS: ${{ toJson(job) }}
         run: |
           echo "All outputs: $OUTPUTS"
 
