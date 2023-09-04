@@ -71,13 +71,13 @@ jobs:
           echo "${{ needs.get_changed_files.outputs.changed_files }}" | tr ' ' '\n' | wc -l
           echo
           echo "  Changed python files:"
-          echo "${{ needs.get_changed_files.outputs.changed_python_files }}" | tr ' ' '\n' | wc -l
+          echo "${{ needs.get_changed_files.outputs.changed_python_files }}"
           echo
           echo "  Changed yaml files:"
-          echo "${{ needs.get_changed_files.outputs.changed_yaml_files }}" | tr ' ' '\n' | wc -l
+          echo "${{ needs.get_changed_files.outputs.changed_yaml_files }}"
           echo
           echo "  Changed json files:"
-          echo "${{ needs.get_changed_files.outputs.changed_json_files }}" | tr ' ' '\n' | wc -l
+          echo "${{ needs.get_changed_files.outputs.changed_json_files }}"
           
   # format:
   #   name: Check format of python
