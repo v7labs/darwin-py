@@ -15,12 +15,12 @@ jobs:
 
   get_changed_files:
     name: Get changed files
-    uses: ./.github/workflows/jobs/get_changed_files.yml
+    uses: ./.github/workflows/JOB_get_changed_files.yml
 
   format:
     name: Check format of python
     needs: get_changed_files
-    uses: ./.github/workflows/jobs/format.yml
+    uses: ./.github/workflows/JOB_format.yml
     with:
       files: ${{ needs.get_changed_files.outputs.changed_files }}
 
@@ -28,11 +28,11 @@ jobs:
   lint:
     name: Lint python
     needs: get_changed_files
-    uses: ./.github/workflows/jobs/lint.yml
+    uses: ./.github/workflows/JOB_lint.yml
     with:
       files: ${{ needs.get_changed_files.outputs.changed_files }}
 
   run_tests:
     name: Run tests
-    uses: ./.github/workflows/jobs/tests.yml
+    uses: ./.github/workflows/JOB_tests.yml
 
