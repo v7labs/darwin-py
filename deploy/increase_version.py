@@ -133,12 +133,16 @@ def _get_pyproject_version() -> Version:
         return Version(int(major), int(minor), int(patch))
 
 
-def _get_pypi_version(force: bool) -> Version:
+def _get_pypi_version(force: bool, cicd: bool) -> Version:
     response = get(DARWIN_PYPI_INFO_PAGE)
 
     if not response.ok:
         print("PYPI connection not available, sanity checking for PyPi unavailable")
         if not force:
+            if cicd:
+                print("Failed on PYPI check")
+                exit(1)
+
             if not confirm("Continue without PyPi sanity check?"):
                 exit(1)
 
@@ -175,7 +179,7 @@ def _sanity_check(version: Version, pyproject_version: Version, pypi_version: Ve
 VERSION_TEMPLATE = '__version__ = "{}"\n'
 
 
-def _update_version(new_version: Version, force: bool) -> None:
+def _update_version(new_version: Version) -> None:
     version_file = (Path(__file__).parent / "..").resolve() / "darwin" / "version" / "__init__.py"
 
     print(f"Updating version in {version_file.absolute()}")
@@ -185,7 +189,7 @@ def _update_version(new_version: Version, force: bool) -> None:
         f.write(VERSION_TEMPLATE.format(str(new_version)))
 
 
-def _update_pyproject_version(new_version: Version, force: bool) -> None:
+def _update_pyproject_version(new_version: Version) -> None:
     pyproject_file = (Path(__file__).parent / "..").resolve() / "pyproject.toml"
     original_content = pyproject_file.read_text()
 
@@ -215,19 +219,32 @@ def _update_pyproject_version(new_version: Version, force: bool) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Increase version number")
+    parser.add_argument("-f", "--force", action="store_true", help="force actions, do not ask for confirmation")
+    parser.add_argument(
+        "-c",
+        "--cicd",
+        action="store_true",
+        help="run in CI/CD mode (no confirmation, assume failure unless --force specified)",
+    )
+
     parser.add_argument("-v", "--version", action="store_true", help="show version number and exit", default=True)
     parser.add_argument("-M", "--major", action="store_true", help="increase major version")
     parser.add_argument("-m", "--minor", action="store_true", help="increase minor version")
     parser.add_argument("-p", "--patch", action="store_true", help="increase patch version")
-    parser.add_argument("-f", "--force", action="store_true", help="force actions, do not ask for confirmation")
+    parser.add_argument("-N", "--new-version", type=str, help="set new version number (overrides -M, -m, -p)")
 
     args = parser.parse_args()
 
     force_actions = False
+    cicd_mode = False
 
     if args.force:
         print("Force mode enabled, no confirmation will be asked")
         force_actions = True
+
+    if args.cicd:
+        print("CI/CD mode enabled, no confirmation will be asked")
+        cicd_mode = True
 
     if args.major and args.minor and args.patch:
         print("Cannot increase major, minor and patch at the same time.  Specify only one of these.")
@@ -236,7 +253,7 @@ def main() -> None:
     # Constants so that these are not mutated by mistake
     LOCAL_VERSION = _get_version()
     PYPROJECT_VERSION = _get_pyproject_version()
-    PYPI_VERSION = _get_pypi_version(force_actions)
+    PYPI_VERSION = _get_pypi_version(force_actions, cicd_mode)
 
     if args.version:
         print(f"Current version in darwin.version module: {str(LOCAL_VERSION)}")
@@ -247,20 +264,31 @@ def main() -> None:
 
     new_version = LOCAL_VERSION.copy()
 
-    if args.major:
-        new_version.increment_major()
+    if (args.major or args.minor or args.patch) and args.new_version:
+        print("Cannot increase version and set new version at the same time.  Specify only one of these.")
+        exit(2)
 
-    if args.minor:
-        new_version.increment_minor()
+    if args.new_version:
+        print(f"Setting new version to {args.new_version}")
+        new_version = Version(*[int(x) for x in args.new_version.split(".")])
+        new_version._changed = True
+    else:
+        if args.major:
+            new_version.increment_major()
 
-    if args.patch:
-        new_version.increment_patch()
+        if args.minor:
+            new_version.increment_minor()
 
-    if new_version.was_changed() and (
-        force_actions or confirm(f"Update version from {str(LOCAL_VERSION)} to {str(new_version)}?")
+        if args.patch:
+            new_version.increment_patch()
+
+    if (
+        new_version.was_changed()
+        and not cicd_mode
+        and (force_actions or confirm(f"Update version from {str(LOCAL_VERSION)} to {str(new_version)}?"))
     ):
-        _update_version(new_version, force_actions)
-        _update_pyproject_version(new_version, force_actions)
+        _update_version(new_version)
+        _update_pyproject_version(new_version)
         print(f"Version updated successfully to {str(new_version)}")
     else:
         print("Version not updated")
