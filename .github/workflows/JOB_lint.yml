@@ -48,4 +48,4 @@ jobs:
           echo "Linting passed 🎉"
           echo "Tested files: ${{ inputs.files }}"
         fi
-        exit 1
+        exit 0

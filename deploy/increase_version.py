@@ -282,11 +282,7 @@ def main() -> None:
         if args.patch:
             new_version.increment_patch()
 
-    if (
-        new_version.was_changed()
-        and not cicd_mode
-        and (force_actions or confirm(f"Update version from {str(LOCAL_VERSION)} to {str(new_version)}?"))
-    ):
+    if new_version.was_changed() and not cicd_mode and (force_actions or confirm(f"Update version from {str(LOCAL_VERSION)} to {str(new_version)}?")):
         _update_version(new_version)
         _update_pyproject_version(new_version)
         print(f"Version updated successfully to {str(new_version)}")
