@@ -27,7 +27,7 @@ jobs:
         pip install flake8 flake8-pyproject
         failed_linting=0
         failed_files=""
-        echo "Linting files ${{ inputs.files }}"
+        echo "Linting files [${{ inputs.files }}]"
         MARKDOWN_OUTPUT=""
         for file in ${{ inputs.files }}
         do

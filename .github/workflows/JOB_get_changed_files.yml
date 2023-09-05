@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       changed_files: ${{ steps.changed_files.outputs.changed_files }}
-      python_files: ${{ steps.changed_python_files.outputs.python_changed_files }}
+      python_changed_files: ${{ steps.changed_python_files.outputs.python_changed_files }}
       yaml_changed_files: ${{ steps.changed_yaml_files.outputs.yaml_changed_files }}
       json_changed_files: ${{ steps.changed_json_files.outputs.json_changed_files }}
       test_value: ${{ steps.test_value.outputs.test_value }}

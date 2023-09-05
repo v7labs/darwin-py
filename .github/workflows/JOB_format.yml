@@ -26,7 +26,7 @@ jobs:
       run: |
         pip install black
         failed_formatting=1
-        echo "Checking files ${{ inputs.files }}"
+        echo "Checking files *${{ inputs.files }}*"
         for file in ${{ inputs.files }}
         do
           echo "Checking $file"

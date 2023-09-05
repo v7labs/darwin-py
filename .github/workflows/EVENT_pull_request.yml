@@ -22,14 +22,14 @@ jobs:
     needs: get_changed_files
     uses: ./.github/workflows/JOB_format.yml
     with:
-      files: ${{ needs.get_changed_files.outputs.changed_files }}
+      files: ${{ needs.get_changed_files.outputs.python_changed_files }}
 
   lint:
     name: Lint python
     needs: get_changed_files
     uses: ./.github/workflows/JOB_lint.yml
     with:
-      files: ${{ needs.get_changed_files.outputs.changed_files }}
+      files: ${{ needs.get_changed_files.outputs.python_changed_files }}
 
   run_tests:
     name: Run tests
