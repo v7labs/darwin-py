@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Tuple
 
 from requests import get
-from toml import loads
+from toml import dumps, loads
 
 DARWIN_PYPI_INFO_PAGE = environ.get("PYPY_INFO_PAGE", "https://pypi.org/pypi/darwin-py/json")
 
@@ -169,12 +169,30 @@ def _sanity_check(version: Version, pyproject_version: Version, pypi_version: Ve
     print("Versions are in sync, sanity check passed")
 
 
+VERSION_TEMPLATE = """
+__version__ = "{}"
+"""
+
+
 def _update_version(new_version: Version, force: bool) -> None:
-    raise NotImplementedError
+    version_file = Path(__file__).parent / "darwin" / "version" / "__init__.py"
+    assert version_file.exists(), "Version file not found"
+
+    with open(version_file, "w") as f:
+        f.write(VERSION_TEMPLATE.format(str(new_version)))
 
 
 def _update_pyproject_version(new_version: Version, force: bool) -> None:
-    raise NotImplementedError
+    pyproject_file = Path(__file__).parent.parent / "pyproject.toml"
+    assert pyproject_file.exists(), "pyproject.toml not found"
+
+    with open(pyproject_file, "r") as f:
+        toml_content = loads(f.read())
+
+    toml_content["tool"]["poetry"]["version"] = str(new_version)
+
+    with open(pyproject_file, "w") as f:
+        f.write(dumps(toml_content))
 
 
 def main() -> None:
@@ -220,7 +238,9 @@ def main() -> None:
     if args.patch:
         new_version.increment_patch()
 
-    if new_version.was_changed() and (force_actions or confirm(f"Update version from {str(LOCAL_VERSION)} to {str(new_version)}?")):
+    if new_version.was_changed() and (
+        force_actions or confirm(f"Update version from {str(LOCAL_VERSION)} to {str(new_version)}?")
+    ):
         _update_version(new_version, force_actions)
         _update_pyproject_version(new_version, force_actions)
         print(f"Version updated successfully to {str(new_version)}")
