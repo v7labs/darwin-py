@@ -35,15 +35,27 @@ jobs:
             const { data: { state } } = await github.repos.getCombinedStatusForRef({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              ref: 'master'
+              ref: '${{ github.head_ref || github.ref }}'
             });
             if (state !== 'success') {
-              core.setFailed('master branch is not passing, cannot create a release');
+              core.setFailed('Tagged branch is not passing, cannot create a release');
             }
 
   deploy:
     needs: [checkout, check_master_is_passing]
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy
-        run: python3 release.py ${{ github.ref }}
+      - name: Create release
+        uses: actions/github-script@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { data: { id: release_id } } = await github.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: context.ref,
+              name: context.ref,
+              draft: false,
+              prerelease: context.ref.startsWith('test-')
+            });
+            core.setOutput('release_id', release_id);
