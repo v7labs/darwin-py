@@ -125,9 +125,7 @@ def _get_changes_since_last_release(last_release_timestamp: datetime) -> List[st
     )
     gitref_to_compare = "{}@{{{} seconds ago}}".format(DEFAULT_BRANCH, seconds_since_last_release)
 
-    print(
-        f"It's been {seconds_since_last_release} seconds since the last release, about {int(seconds_since_last_release / SECONDS_IN_A_DAY)} days ago"
-    )
+    print(f"It's been {seconds_since_last_release} seconds since the last release, about {int(seconds_since_last_release / SECONDS_IN_A_DAY)} days ago")
     printl(f"Getting changes since {gitref_to_compare}")
 
     output, error = _run_command("git", "diff", DEFAULT_BRANCH, gitref_to_compare, "--name-only")
