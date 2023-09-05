@@ -7,15 +7,12 @@ on:
 jobs:
   install_dependencies:
     name: Install dependencies
+    runs-on: ubuntu-latest
     steps:
-      - name: Confirm environment
-        shell: bash # stops windows hosts from using powershell
-        run: |
-          python --version || echo "[FATAL]: Installing dependencies failed because python is not installed" && exit 1
-          if [ -z "${{ runner.os }}" ]; then
-            echo "[FATAL]: Install dependencies task can't be called from a flow that hasn't first called actions/checkout"
-            exit 2
-          fi
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.head_ref || github.ref }}
 
       - name: Install dependencies
         shell: bash # stops windows hosts from using powershell
