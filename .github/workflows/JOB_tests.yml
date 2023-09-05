@@ -24,7 +24,14 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
-        uses: ./.github/actions/MISC_install_deps.yml
+        shell: bash # stops windows hosts from using powershell
+        run: |
+          pip install poetry pytest
+          poetry install --no-interaction --no-root -vvv --all-extras
+          poetry install --no-interaction --no-root --all-extras -vvv
+          pip install wheel
+          pip install --upgrade setuptools
+          pip install --editable ".[test,ml,medical,dev, ocv]"
 
       - name: Run pytest
         shell: bash # stops windows hosts from using powershell
