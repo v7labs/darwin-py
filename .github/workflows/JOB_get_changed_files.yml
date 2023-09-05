@@ -7,7 +7,7 @@ on:
       changed_files:
         description: "Changed files"
         value: ${{ github.jobs.get_changed_files.outputs.changed_files }}
-      python_files:
+      python_changed_files:
         description: "Changed python files"
         value: ${{ github.jobs.get_changed_files.outputs.python_files }}
       yaml_changed_files:
