@@ -4,10 +4,13 @@ import argparse
 from dataclasses import dataclass
 from os import environ
 from pathlib import Path
+from pprint import pprint
 from typing import Tuple
 
 from requests import get
 from toml import dumps, loads
+from validate_pyproject import api as pyproject_api
+from validate_pyproject import errors as pyproject_errors
 
 DARWIN_PYPI_INFO_PAGE = environ.get("PYPY_INFO_PAGE", "https://pypi.org/pypi/darwin-py/json")
 
@@ -169,13 +172,13 @@ def _sanity_check(version: Version, pyproject_version: Version, pypi_version: Ve
     print("Versions are in sync, sanity check passed")
 
 
-VERSION_TEMPLATE = """
-__version__ = "{}"
-"""
+VERSION_TEMPLATE = '__version__ = "{}"\n'
 
 
 def _update_version(new_version: Version, force: bool) -> None:
-    version_file = Path(__file__).parent / "darwin" / "version" / "__init__.py"
+    version_file = (Path(__file__).parent / "..").resolve() / "darwin" / "version" / "__init__.py"
+
+    print(f"Updating version in {version_file.absolute()}")
     assert version_file.exists(), "Version file not found"
 
     with open(version_file, "w") as f:
@@ -183,7 +186,10 @@ def _update_version(new_version: Version, force: bool) -> None:
 
 
 def _update_pyproject_version(new_version: Version, force: bool) -> None:
-    pyproject_file = Path(__file__).parent.parent / "pyproject.toml"
+    pyproject_file = (Path(__file__).parent / "..").resolve() / "pyproject.toml"
+    original_content = pyproject_file.read_text()
+
+    print(f"Updating version in {pyproject_file.absolute()}")
     assert pyproject_file.exists(), "pyproject.toml not found"
 
     with open(pyproject_file, "r") as f:
@@ -193,6 +199,18 @@ def _update_pyproject_version(new_version: Version, force: bool) -> None:
 
     with open(pyproject_file, "w") as f:
         f.write(dumps(toml_content))
+
+    # Sanity check
+    try:
+        validator = pyproject_api.Validator()
+        validator(toml_content)
+    except pyproject_errors.ValidationError as e:
+        print("Error validating pyproject.toml, reverting changes")
+        pprint(e)
+        with open(pyproject_file, "w") as f:
+            f.write(original_content)
+        print("Reverted.  Please fix pyproject.toml and try again.")
+        exit(1)
 
 
 def main() -> None:

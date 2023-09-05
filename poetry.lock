@@ -299,6 +299,20 @@ files = [
 test = ["pytest (>=6)"]
 
 [[package]]
+name = "fastjsonschema"
+version = "2.18.0"
+description = "Fastest Python implementation of JSON schema"
+optional = false
+python-versions = "*"
+files = [
+    {file = "fastjsonschema-2.18.0-py3-none-any.whl", hash = "sha256:128039912a11a807068a7c87d0da36660afbfd7202780db26c4aa7153cfdc799"},
+    {file = "fastjsonschema-2.18.0.tar.gz", hash = "sha256:e820349dd16f806e4bd1467a138dced9def4bc7d6213a34295272a6cac95b5bd"},
+]
+
+[package.extras]
+devel = ["colorama", "json-spec", "jsonschema", "pylint", "pytest", "pytest-benchmark", "pytest-cache", "validictory"]
+
+[[package]]
 name = "flake8"
 version = "6.1.0"
 description = "the modular source code checker: pep8 pyflakes and co"
@@ -1632,6 +1646,26 @@ socks = ["pysocks (>=1.5.6,!=1.5.7,<2.0)"]
 zstd = ["zstandard (>=0.18.0)"]
 
 [[package]]
+name = "validate-pyproject"
+version = "0.14"
+description = "Validation library and CLI tool for checking on 'pyproject.toml' files using JSON Schema"
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "validate-pyproject-0.14.tar.gz", hash = "sha256:3457578f5b8589f11ff0d1fbafba273ed6b8d2ec9d1c62a7716bd7ac3f65a076"},
+    {file = "validate_pyproject-0.14-py3-none-any.whl", hash = "sha256:39a9451cfdda6f00745fa1bfc0839a0ab078e038bbb3963b038f754e641e3165"},
+]
+
+[package.dependencies]
+fastjsonschema = ">=2.16.2,<=3"
+importlib-metadata = {version = "*", markers = "python_version < \"3.8\""}
+
+[package.extras]
+all = ["packaging (>=20.4)", "tomli (>=1.2.1)", "trove-classifiers (>=2021.10.20)"]
+testing = ["pytest", "pytest-cov", "pytest-randomly", "pytest-xdist", "repo-review", "setuptools", "tomli (>=1.2.1)"]
+typecheck = ["importlib-resources", "mypy"]
+
+[[package]]
 name = "wheel"
 version = "0.41.1"
 description = "A built-package format for Python"
@@ -1670,4 +1704,4 @@ test = ["flake8-pyproject", "pytest", "responses"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.7.0,<3.11"
-content-hash = "bf2caf6db46010fe08b8aac8c522e07985b2a0758c89e830a0f92bdc455c86e3"
+content-hash = "f5cced251e698cf4aa836d5d37be54f433eba8d8c60ad07f6b8ec3ab8e923ad0"
