@@ -24,7 +24,6 @@ jobs:
     with:
       files: ${{ needs.get_changed_files.outputs.changed_files }}
 
-
   lint:
     name: Lint python
     needs: get_changed_files

@@ -18,11 +18,6 @@ max_line_length = 160
 [*.json]
 insert_final_newline = ignore
 
-# Minified JavaScript files shouldn't be changed
-[**.min.js]
-indent_style = ignore
-insert_final_newline = ignore
-
 # Makefiles always use tabs for indentation
 [Makefile]
 indent_style = tab
@@ -30,7 +25,11 @@ indent_style = tab
 [*.md]
 trim_trailing_whitespace = false
 
-[*.yml, *.yaml]
+[*.yml]
+indent_size = 2
+insert_final_newline = true
+
+[*.yaml]
 indent_size = 2
 insert_final_newline = true
 

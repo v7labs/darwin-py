@@ -8,55 +8,25 @@ on:
 jobs:
   test:
     name: "Run Testing OS: ${{ matrix.os }} Python: ${{ matrix.python-version }}"
-    env:
-        MARKDOWN_OUTPUT: "# Test Results\n"
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        # python-version: [3.8, 3.9, "3.10", "3.11"]
-        python-version: [3.8]
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
         with:
           ref: ${{ github.head_ref || github.ref }}
-      - name: Set title
-        shell: bash # stops windows hosts from using powershell
-        run: |
-          export MARKDOWN_OUTPUT="${MARKDOWN_OUTPUT}## Tests on ${{ matrix.python-version }}, OS: ${{ matrix.os }}\n\n"
+
       - name: Install Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
+
       - name: Install dependencies
-        shell: bash # stops windows hosts from using powershell
-        run: |
-          pip install poetry pytest
-          poetry install --no-interaction --no-root -vvv --all-extras
-          poetry install --no-interaction --no-root --all-extras -vvv
-          pip install wheel
-          pip install --upgrade setuptools
-          pip install --editable ".[test,ml,medical,dev]"
+        uses: ./.github/actions/MISC_install_deps.yml
+
       - name: Run pytest
         shell: bash # stops windows hosts from using powershell
         run: |
           python -m pytest
-          if [ $? -eq 0 ]; then
-            export MARKDOWN_OUTPUT="${MARKDOWN_OUTPUT}## Test Results\n\n"
-            export MARKDOWN_OUTPUT="${MARKDOWN_OUTPUT}**Test Results:** :white_check_mark:\n\n"
-          else
-            export MARKDOWN_OUTPUT="${MARKDOWN_OUTPUT}## Test Results\n\n"
-            export MARKDOWN_OUTPUT="${MARKDOWN_OUTPUT}**Test Results:** :x:\n\n"
-          fi
-      - name: Output Summary
-        if: always()
-        uses: actions/github-script@v4
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            github.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: process.env.MARKDOWN_OUTPUT
-            })
