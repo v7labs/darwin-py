@@ -6,16 +6,16 @@ on:
     outputs:
       changed_files:
         description: "Changed files"
-        value: ${{ github.jobs.get_changed_files.outputs.changed_files }}
+        value: ${{ jobs.get_changed_files.outputs.changed_files }}
       python_changed_files:
         description: "Changed python files"
-        value: ${{ github.jobs.get_changed_files.outputs.python_files }}
+        value: ${{ jobs.get_changed_files.outputs.python_changed_files }}
       yaml_changed_files:
         description: "Changed yaml files"
-        value: ${{ github.jobs.get_changed_files.outputs.yaml_changed_files }}
+        value: ${{ jobs.get_changed_files.outputs.yaml_changed_files }}
       json_changed_files:
         description: "Changed json files"
-        value: ${{ github.jobs.get_changed_files.outputs.json_changed_files }}
+        value: ${{ jobs.get_changed_files.outputs.json_changed_files }}
 
 env:
   GH_TOKEN: ${{ github.token }}
