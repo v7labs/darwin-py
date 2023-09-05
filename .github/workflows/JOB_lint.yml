@@ -38,14 +38,14 @@ jobs:
           echo "Linting failed on $failed_linting files"
           echo "Failed files: $failed_files"
 
-          echo "# Linting failed 😢" >> $GITHUB_STEP_SUMMARY
-          echo "## Failed files" >> $GITHUB_STEP_SUMMARY
+          echo "Linting failed 😢"
+          echo "Failed files"
           for file in $failed_files ; do
-            echo "- $file" >> $GITHUB_STEP_SUMMARY
+            echo "- $file"
           done
           exit 1
         else
-          echo "# Linting passed 🎉" >> $GITHUB_STEP_SUMMARY
-          echo "Tested files: ${{ inputs.files }}" >> $GITHUB_STEP_SUMMARY
+          echo "Linting passed 🎉"
+          echo "Tested files: ${{ inputs.files }}"
         fi
         exit 1
