@@ -23,4 +23,4 @@ jobs:
 
     - name: Black check
       shell: bash
-      run: ${{ github.workspace }}/scripts/format_lint.sh format ${{ inputs.files }}
+      run: bash ${{ github.workspace }}/deploy/format_lint.sh format ${{ inputs.files }}

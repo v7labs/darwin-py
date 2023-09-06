@@ -23,4 +23,4 @@ jobs:
 
     - name: flake8 Lint
       shell: bash
-      run: ${{ github.workspace }}/deploy/format.sh lint ${{ inputs.files }}
+      run: bash ${{ github.workspace }}/deploy/format.sh lint ${{ inputs.files }}
