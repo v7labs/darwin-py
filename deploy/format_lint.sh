@@ -72,9 +72,10 @@ for file in $FILES ; do
     echo "_________________________________________________________"
 done
 
-echo "$failed_files"
+echo
+echo
 
-if [[ "$failed_files" -ne "" ]]; then
+if [[ "$failed_files" != "" ]]; then
     echo "Checks failed for $failed_formatting files 😢"
     echo "Failed files"
     for file in $failed_files ; do
