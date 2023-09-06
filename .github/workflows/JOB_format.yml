@@ -23,24 +23,4 @@ jobs:
 
     - name: Black check
       shell: bash
-      run: |
-        pip install black
-        failed_formatting=1
-        failed_files=""
-        echo "Checking files [${{ inputs.files }}]"
-        for file in ${{ inputs.files }}
-        do
-          echo "Checking $file"
-          black --check $file || failed_formatting=$((failed_formatting + 1) && failed_files="$failed_files $file")
-        done
-        if [ $failed_formatting -ne 0 ]; then
-          echo "Formatting failed for $failed_formatting files 😢"
-          echo "Failed files
-          for file in $failed_files ; do
-            echo "- $file"
-          done
-          exit 1
-        else
-          echo "Formatting passed for all files 🎉"
-        fi
-        exit 0
+      run: ${{ github.workspace }}/scripts/format_lint.sh format ${{ inputs.files }}

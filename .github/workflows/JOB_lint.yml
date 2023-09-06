@@ -23,29 +23,4 @@ jobs:
 
     - name: flake8 Lint
       shell: bash
-      run: |
-        pip install flake8 flake8-pyproject
-        failed_linting=0
-        failed_files=""
-        echo "Linting files [${{ inputs.files }}]"
-        MARKDOWN_OUTPUT=""
-        for file in ${{ inputs.files }}
-        do
-          echo "Linting $file"
-          flake8 $file || failed_linting=$((failed_linting + 1) && failed_files="$failed_files $file")
-        done
-        if [ $failed_linting -ne 0 ]; then
-          echo "Linting failed on $failed_linting files"
-          echo "Failed files: $failed_files"
-
-          echo "Linting failed 😢"
-          echo "Failed files"
-          for file in $failed_files ; do
-            echo "- $file"
-          done
-          exit 1
-        else
-          echo "Linting passed 🎉"
-          echo "Tested files: ${{ inputs.files }}"
-        fi
-        exit 0
+      run: ${{ github.workspace }}/deploy/format.sh lint ${{ inputs.files }}
