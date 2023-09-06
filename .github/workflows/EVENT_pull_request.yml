@@ -17,24 +17,6 @@ jobs:
     name: Get changed files
     uses: ./.github/workflows/JOB_get_changed_files.yml
 
-
-  debug:
-    needs: get_changed_files
-    runs-on: ubuntu-latest
-    steps:
-    - name: Debug
-      run: |
-        echo "Changed files:"
-        echo "${{ needs.get_changed_files.outputs.changed_files }}"
-        echo "Python changed files:"
-        echo "${{ needs.get_changed_files.outputs.python_changed_files }}"
-        echo "Yaml changed files:"
-        echo "${{ needs.get_changed_files.outputs.yaml_changed_files }}"
-        echo "Json changed files:"
-        echo "${{ needs.get_changed_files.outputs.json_changed_files }}"
-
-
-
   format:
     name: Check format of python
     needs: get_changed_files

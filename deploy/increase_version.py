@@ -217,7 +217,7 @@ def _update_pyproject_version(new_version: Version) -> None:
         exit(1)
 
 
-def main() -> None:
+def arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Increase version number")
     parser.add_argument("-f", "--force", action="store_true", help="force actions, do not ask for confirmation")
     parser.add_argument(
@@ -233,11 +233,10 @@ def main() -> None:
     parser.add_argument("-p", "--patch", action="store_true", help="increase patch version")
     parser.add_argument("-N", "--new-version", type=str, help="set new version number (overrides -M, -m, -p)")
 
-    args = parser.parse_args()
+    return parser.parse_args()
 
-    force_actions = False
-    cicd_mode = False
 
+def validate_args(args: argparse.Namespace, force_actions: bool, cicd_mode: bool) -> Tuple[bool, bool]:
     if args.force:
         print("Force mode enabled, no confirmation will be asked")
         force_actions = True
@@ -249,6 +248,17 @@ def main() -> None:
     if args.major and args.minor and args.patch:
         print("Cannot increase major, minor and patch at the same time.  Specify only one of these.")
         exit(2)
+
+    return force_actions, cicd_mode
+
+
+def main() -> None:
+    args = arguments()
+
+    force_actions = False
+    cicd_mode = False
+
+    force_actions, cicd_mode = validate_args(args, force_actions, cicd_mode)
 
     # Constants so that these are not mutated by mistake
     LOCAL_VERSION = _get_version()
@@ -282,7 +292,11 @@ def main() -> None:
         if args.patch:
             new_version.increment_patch()
 
-    if new_version.was_changed() and not cicd_mode and (force_actions or confirm(f"Update version from {str(LOCAL_VERSION)} to {str(new_version)}?")):
+    if (
+        new_version.was_changed()
+        and not cicd_mode
+        and (force_actions or confirm(f"Update version from {str(LOCAL_VERSION)} to {str(new_version)}?"))
+    ):
         _update_version(new_version)
         _update_pyproject_version(new_version)
         print(f"Version updated successfully to {str(new_version)}")
