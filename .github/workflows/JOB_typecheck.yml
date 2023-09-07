@@ -25,7 +25,7 @@ jobs:
       shell: bash
       run: |
         pip install poetry
-        poetry install --all-extras --vvv --no-root
+        poetry install --all-extras --no-root
 
     - name: MyPy typecheck
       shell: bash
