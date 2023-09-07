@@ -32,7 +32,7 @@ jobs:
       files: ${{ needs.get_changed_files.outputs.python_changed_files }}
 
   typecheck:
-    name: Lint python
+    name: Analyse types in python
     needs: get_changed_files
     uses: ./.github/workflows/JOB_typecheck.yml
     with:
