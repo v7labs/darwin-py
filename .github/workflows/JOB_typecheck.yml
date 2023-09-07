@@ -23,5 +23,6 @@ jobs:
         with:
           path: '.'
           mypy_version: '1.5'
-          mypy_options: '--verbose'
-          mypy_config_file: 'pyproject.toml'
+          mypy_options: '--verbose --warn-redundant-casts --warn-unused-ignores --check-untyped-defs --no-implicit-reexport --ignore-missing-imports --disallow-any-unimported --disallow-any-explicit --disallow-subclassing-any --python-version --disallow-untyped-calls --disallow-untyped-defs --disallow-incomplete-defs --no-implicit-optional --warn-unreachable --pretty'
+          mypy_config_file: ''
+          python_version: '3.10'
