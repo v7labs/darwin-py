@@ -8,8 +8,8 @@ echo "Action: $ACTION"
 echo "Files: $FILES"
 
 # If action is not format or lint exit
-if [[ -z $ACTION || ("$ACTION" != "format" && "$ACTION" != "lint") ]] ; then
-    echo "Action must be format or lint"
+if [[ -z $ACTION || ("$ACTION" != "format" && "$ACTION" != "lint" && "$ACTION" != "typecheck") ]] ; then
+    echo "Action must be format, typecheck, or lint"
     exit 1
 fi
 
@@ -22,8 +22,13 @@ fi
 # Install dependencies
 if [ "$ACTION" == "format" ]; then
     pip install black &> pip_log.txt
-else
+    elif [ "$ACTION" == "lint" ]; then
     pip install ruff &> pip_log.txt
+    elif [ "$ACTION" == "typecheck" ]; then
+    pip install mypy &> pip_log.txt
+else
+    echo "Action must be format, typecheck, or lint"
+    exit 1
 fi
 
 # Check if pip install failed
@@ -46,6 +51,16 @@ for file in $FILES ; do
             ruff check $FILES; rc=$?
             echo "$rc"
             if [ $rc -ne 0 ]; then
+                failed_files="$failed_files $file"
+                echo "❌"
+            else
+                echo "✅"
+            fi
+        fi
+
+        if [ "$ACTION" == "typecheck" ]; then
+            mypy $file
+            if [ $? -ne 0 ]; then
                 failed_files="$failed_files $file"
                 echo "❌"
             else
