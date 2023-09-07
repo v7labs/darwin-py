@@ -1,0 +1,24 @@
+name: reverse-commit-on-fails
+run-name: Reverse commit on fails
+
+on:
+  workflow_call:
+
+
+# Run when master is failing due to a merge, and you want to reverse the merge
+# and push the reverse commit to master.
+
+jobs:
+
+  step-master-back-one-commit:
+    name: Step master back one commit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout master
+        uses: actions/checkout@v2
+        with:
+          ref: master
+      - name: Reverse commit
+        run: |
+          git revert HEAD~1
+          git push origin master

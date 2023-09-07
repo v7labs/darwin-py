@@ -1,0 +1,19 @@
+name: generate-documentation
+run-name: Generate Documentation
+
+on:
+  workflow_call:
+
+jobs:
+  generate-documentation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.head_ref }} # Will usually be master, but this allows running against any branch.
+
+      - name: Generate Documentation
+        run:
+          echo "TODO"
+          # TODO

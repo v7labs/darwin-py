@@ -1,0 +1,52 @@
+name: scheduled-release
+run-name: Scheduled Release
+
+on:
+  schedule:
+    - cron: '30 10 * * 2' # every Tuesday at 10:30am
+
+jobs:
+  checkout:
+    name: Checkout
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: master
+
+  check_master_can_release:
+    name: Check master can release
+    uses: ./.github/workflows/JOB_check-master-can-release.yml
+
+  run_tests:
+    name: Run tests
+    needs: check_master_can_release
+    uses: ./.github/workflows/JOB_tests.yml
+
+  increment_patch_version:
+    name: Increment patch version
+    needs: [checkout, check_master_can_release, run_tests]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run increment script
+        shell: bash
+        run: python3 ${{ github.workspace }}/deploy/increase_version.py --cicd --patch
+
+  commit_changes_to_master:
+    name: Commit changes to master
+    needs: increment_patch_version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Commit changes
+        shell: bash
+        run: |
+          version=`cat ${{ github.workspace }}/deploy/version.txt`
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          git add .
+          git commit -m "HOUSEKEEPING: Increment version number to $version"
+          git tag master "v$version"
+          git push origin master --tags
+
+    #TODO Ensure this triggers the release job, which is trigged on tag
+
