@@ -35,7 +35,8 @@ jobs:
           POETRY_HTTP_BASIC_PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
           POETRY_HTTP_BASIC_PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
         run: |
-          poetry publish
+          # poetry publish
+          echo "Publishing to pypi.org - Emulated"
 
       - name: Publish on test.pypi.org
         # if release is a prerelease, publish to test.pypi.org
@@ -44,4 +45,5 @@ jobs:
           POETRY_HTTP_BASIC_PYPI_USERNAME: ${{ secrets.TEST_PYPI_USERNAME }}
           POETRY_HTTP_BASIC_PYPI_PASSWORD: ${{ secrets.TEST_PYPI_PASSWORD }}
         run: |
-          poetry publish
+          # poetry publish
+          echo "Publishing to test.pypi.org - Emulated"
