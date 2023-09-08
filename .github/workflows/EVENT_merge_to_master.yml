@@ -4,7 +4,7 @@ run-name: Merge to master
 on:
   push:
     branches:
-      - master
+      - io-1554-test-merge # TODO change to master
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -19,6 +19,13 @@ jobs:
   documentation:
     name: Documentation
     uses: ./.github/workflows/JOB_generate_documentation.yml
+
+  # test_fail_action:
+  #   name: DEBUG Cause deliberate workflow failure to test last action
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Fail
+  #       run: exit 1
 
   reverse_commit_on_fails:
     name: Reverse commit on fails

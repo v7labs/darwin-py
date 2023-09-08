@@ -56,6 +56,13 @@ jobs:
           role-session-name: ${{ env.AWS_SESSION_NAME }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Upload docs to S3
-        run: aws s3 cp docs/ s3://darwin-py-sdk.v7labs.com/ --recursive
+      # - name: Upload docs to S3
+      #   run: aws s3 cp docs/ s3://darwin-py-sdk.v7labs.com/ --recursive
+
+      # Generate and save docs github action artefact
+      - name: Generate and save docs github action artefact
+        uses: actions/upload-artifact@v2
+        with:
+          name: darwin-py-docs
+          path: docs/
 
