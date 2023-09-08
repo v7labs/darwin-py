@@ -16,13 +16,21 @@ jobs:
     name: Step master back one commit
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout master
+      - name: DEBUG
+        shell: bash
+        run: |
+          echo "${{ github.event.workflow_run.head_branch }} - $BRANCH_NAME"
+          echo "${{ toJson(github.event.push) }}"
+
+      - name: Checkout merge branch [${{ env.BRANCH_NAME }}]
         uses: actions/checkout@v2
         with:
-          ref: master
+          ref: $BRANCH_NAME
+
       - name: Reverse commit
         run: |
-          git revert HEAD~1
-          git push origin master
+          echo "Just testing atm"
+          # git reset --hard HEAD~1
+          # git push origin $BRANCH_NAME --force
 
   # NB: This will run the parent workflow _again_ as it is a push to master
