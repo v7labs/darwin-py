@@ -49,12 +49,12 @@ jobs:
           sphinx-apidoc -f -o source darwin darwin/future &&\
           sphinx-build -b html source/ docs/ -W
 
-      - name: Setup access to AWS
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          role-to-assume: ${{ secrets.DARWIN_PY_AWS_GITHUB_CICD_ROLE }}
-          role-session-name: ${{ env.AWS_SESSION_NAME }}
-          aws-region: ${{ env.AWS_REGION }}
+      # - name: Setup access to AWS
+      #   uses: aws-actions/configure-aws-credentials@v2
+      #   with:
+      #     role-to-assume: ${{ secrets.DARWIN_PY_AWS_GITHUB_CICD_ROLE }}
+      #     role-session-name: ${{ env.AWS_SESSION_NAME }}
+      #     aws-region: ${{ env.AWS_REGION }}
 
       # - name: Upload docs to S3
       #   run: aws s3 cp docs/ s3://darwin-py-sdk.v7labs.com/ --recursive

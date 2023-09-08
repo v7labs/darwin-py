@@ -20,13 +20,6 @@ jobs:
     name: Documentation
     uses: ./.github/workflows/JOB_generate_documentation.yml
 
-  # test_fail_action:
-  #   name: DEBUG Cause deliberate workflow failure to test last action
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Fail
-  #       run: exit 1
-
   reverse_commit_on_fails:
     needs: [run_tests, documentation]
     if : ${{ failure() }}
