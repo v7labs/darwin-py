@@ -28,33 +28,40 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install dependencies
-        run: |
-          pip install poetry setuptools
-          poetry install --all-extras --no-interaction --no-root
-          pip install --editable ".[test,ml,medical,dev,ocv]"
-          pip install -U sphinx sphinx_rtd_theme m2r2
-
-      - name: Parse README
-        run: |
-          rm -f README.rst&&\
-          m2r2 README.md&&\
-          mv README.rst source/
-
-      - name: Generate new docs
+      - name: DEBUG env
         env:
-          PYTHONPATH: "."
+          ALL_THE_ENVS: ${{ toJson(env) }}
+        shell: bash
         run: |
-          rm -rf docs/* &&\
-          sphinx-apidoc -f -o source darwin darwin/future &&\
-          sphinx-build -b html source/ docs/ -W
+          echo "$ALL_THE_ENVS"
+
+      # - name: Install dependencies
+      #   run: |
+      #     pip install poetry setuptools
+      #     poetry install --all-extras --no-interaction --no-root
+      #     pip install --editable ".[test,ml,medical,dev,ocv]"
+      #     pip install -U sphinx sphinx_rtd_theme m2r2
+
+      # - name: Parse README
+      #   run: |
+      #     rm -f README.rst&&\
+      #     m2r2 README.md&&\
+      #     mv README.rst source/
+
+      # - name: Generate new docs
+      #   env:
+      #     PYTHONPATH: "."
+      #   run: |
+      #     rm -rf docs/* &&\
+      #     sphinx-apidoc -f -o source darwin darwin/future &&\
+      #     sphinx-build -b html source/ docs/ -W
 
       # - name: Setup access to AWS
       #   uses: aws-actions/configure-aws-credentials@v2
       #   with:
-      #     role-to-assume: ${{ secrets.DARWIN_PY_AWS_GITHUB_CICD_ROLE }}
-      #     role-session-name: ${{ env.AWS_SESSION_NAME }}
-      #     aws-region: ${{ env.AWS_REGION }}
+      #     role-to-assume: ${{ secrets.DARWIN_PY_AWS_GITHUB_CICD_ROLE }} # TODO: Check this works
+      #     role-session-name: ${{ env.AWS_SESSION_NAME }} # TODO: Check this works
+      #     aws-region: ${{ env.AWS_REGION }} # TODO: Check this works
 
       # - name: Upload docs to S3
       #   run: aws s3 cp docs/ s3://darwin-py-sdk.v7labs.com/ --recursive
