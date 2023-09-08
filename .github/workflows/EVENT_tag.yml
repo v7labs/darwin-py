@@ -39,18 +39,10 @@ jobs:
             /*
               NB: This only test the main branch, not the branch that was tagged - tests only run on that branch if it is a PR
             */
-            // get main branch name
-            // const main_branch = await github.repos.get({
-            //   owner: context.repo.owner,
-            //   repo: context.repo.repo
-            // }).then(res => res.data.default_branch);
 
             // get info for tag
             const branch = '${{ github.event.base_ref }}';
             console.log('Branch: ${{ github.event.base_ref }}');
-
-            //stop
-            return;
 
             // get latest commit on branch
             const { data: { object: { sha: ref } } } = await github.repos.getBranch({
@@ -59,7 +51,7 @@ jobs:
               branch: branch
             });
 
-            console.log('This branch: ' + main_branch);
+            console.log('This branch: ' + branch);
             console.log('This branch ref: ' + ref);
 
             // wait until branch is not pending
