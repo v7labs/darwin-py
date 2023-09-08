@@ -11,6 +11,8 @@ on:
 jobs:
 
   step-master-back-one-commit:
+    env:
+      BRANCH_NAME: ${{ github.event.workflow_run.head_branch }}
     name: Step master back one commit
     runs-on: ubuntu-latest
     steps:
@@ -22,3 +24,5 @@ jobs:
         run: |
           git revert HEAD~1
           git push origin master
+
+  # NB: This will run the parent workflow _again_ as it is a push to master
