@@ -46,13 +46,11 @@ jobs:
             // }).then(res => res.data.default_branch);
 
             // get info for tag
-            const main_branch = '${{ github.ref }}';
+            const branch = '${{ github.event.base_ref }}';
+            console.log('Branch: ${{ github.event.base_ref }}');
 
-
-
-            const branch = '${{ github.head_ref || github.ref }}';
-            console.log('Head ref: ${{ github.head_ref }}');
-            console.log('Ref: ${{ github.ref }}');
+            //stop
+            return;
 
             // get latest commit on branch
             const { data: { object: { sha: ref } } } = await github.repos.getBranch({
