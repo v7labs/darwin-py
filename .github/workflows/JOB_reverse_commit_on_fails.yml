@@ -8,8 +8,10 @@ on:
 # Run when master is failing due to a merge, and you want to reverse the merge
 # and push the reverse commit to master.
 
-jobs:
+permissions:
+  contents: write
 
+jobs:
   step-master-back-one-commit:
     env:
       BRANCH_NAME: ${{ github.ref_name }}
