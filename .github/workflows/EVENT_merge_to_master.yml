@@ -4,7 +4,7 @@ run-name: Merge to master
 on:
   push:
     branches:
-      - io-1554-test-merge # TODO change to master
+      - master
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -12,17 +12,9 @@ concurrency:
 
 jobs:
 
-  # run_tests:
-  #   name: Run tests
-  #   uses: ./.github/workflows/JOB_tests.yml
-
-  run_tests: # Save run time while we test this.
+  run_tests:
     name: Run tests
-    # passively succeed
-    runs-on: ubuntu-latest
-    steps:
-      - name: Run tests
-        run: echo "Run tests"
+    uses: ./.github/workflows/JOB_tests.yml
 
   documentation:
     name: Documentation
