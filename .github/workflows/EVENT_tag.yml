@@ -36,30 +36,42 @@ jobs:
               NB: This only test the main branch, not the branch that was tagged - tests only run on that branch if it is a PR
             */
             // get main branch name
-            const main_branch = await github.repos.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo
-            }).then(res => res.data.default_branch);
+            // const main_branch = await github.repos.get({
+            //   owner: context.repo.owner,
+            //   repo: context.repo.repo
+            // }).then(res => res.data.default_branch);
 
-            // wait until main branch is not pending
+            const branch = '${{ github.head_ref || github.ref }}';
+
+            // get latest commit on branch
+            const { data: { object: { sha: ref } } } = await github.repos.getBranch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              branch: branch
+            });
+
+            console.log('This branch: ' + main_branch);
+            console.log('This branch ref: ' + ref);
+
+            // wait until branch is not pending
             let state;
 
             // set a timeout to avoid waiting forever
             const TEN_MINUTES = 10 * 60 * 1000;
             const avoidInfiniteWait = setTimeout(() => {
-              core.setFailed('Timed out waiting for main branch to not be pending');
+              core.setFailed('Timed out waiting for branch to not be pending');
             }, TEN_MINUTES);
 
             while (true) {
               const { data: { state } } = await github.repos.getCombinedStatusForRef({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                ref: main_branch
+                ref: branch
               });
               if (state !== 'pending') {
                 break;
               }
-              console.log('Main branch is pending, waiting 10 seconds');
+              console.log('Branch is pending, waiting 10 seconds');
               await new Promise(resolve => setTimeout(resolve, 10000));
             }
             clearTimeout(avoidInfiniteWait);
