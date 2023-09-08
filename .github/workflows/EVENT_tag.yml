@@ -27,18 +27,46 @@ jobs:
     runs-on: ubuntu-latest
     needs: checkout
     steps:
-      - name: Check branch is passing
+      - name: Wait for branch to not be pending, and ensure it's passing
         uses: actions/github-script@v3
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const { data: { state } } = await github.repos.getCombinedStatusForRef({
+            /*
+              NB: This only test the main branch, not the branch that was tagged - tests only run on that branch if it is a PR
+            */
+            // get main branch name
+            const main_branch = await github.repos.get({
               owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: '${{ github.head_ref || github.ref }}'
-            });
-            //log state
-            console.log(state);
+              repo: context.repo.repo
+            }).then(res => res.data.default_branch);
+
+            // wait until main branch is not pending
+            let state;
+
+            // set a timeout to avoid waiting forever
+            const TEN_MINUTES = 10 * 60 * 1000;
+            const avoidInfiniteWait = setTimeout(() => {
+              core.setFailed('Timed out waiting for main branch to not be pending');
+            }, TEN_MINUTES);
+
+            while (true) {
+              const { data: { state } } = await github.repos.getCombinedStatusForRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: main_branch
+              });
+              if (state !== 'pending') {
+                break;
+              }
+              console.log('Main branch is pending, waiting 10 seconds');
+              await new Promise(resolve => setTimeout(resolve, 10000));
+            }
+            clearTimeout(avoidInfiniteWait);
+
+            console.log('Branch state: ' + state);
+            console.log('Branch ref: ' + ref');
+
             if (state !== 'success') {
               core.setFailed('Tagged branch is not passing, cannot create a release');
             }
