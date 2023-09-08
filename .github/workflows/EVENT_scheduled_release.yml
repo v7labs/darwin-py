@@ -4,7 +4,8 @@ run-name: Scheduled Release
 on:
   workflow_dispatch:
   schedule:
-    - cron: '30 10 * * 2' # every Tuesday at 10:30am
+    # - cron: '30 10 * * 2' # every Tuesday at 10:30am
+    - cron: '45 14 * * *' # every Tuesday at 10:30am
 
 permissions:
   contents: read
