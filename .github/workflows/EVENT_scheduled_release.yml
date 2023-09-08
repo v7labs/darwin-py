@@ -5,6 +5,9 @@ on:
   schedule:
     - cron: '30 10 * * 2' # every Tuesday at 10:30am
 
+permissions:
+  contents: read
+
 jobs:
   checkout:
     name: Checkout
@@ -46,7 +49,8 @@ jobs:
           git add .
           git commit -m "HOUSEKEEPING: Increment version number to $version"
           git tag master "v$version"
-          git push origin master --tags
+          git status
+          # git push origin master --tags
 
     #TODO Ensure this triggers the release job, which is trigged on tag
 
