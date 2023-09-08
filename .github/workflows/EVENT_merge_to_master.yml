@@ -31,6 +31,15 @@ jobs:
     needs: [run_tests, documentation]
     if : ${{ failure() }}
     name: Reverse commit on fails
-    uses: ./.github/workflows/JOB_reverse_commit_on_fails.yml
+    uses: ./.github/workflows/JOB_debug_contexts.yml
+
+  success: # Step for the flow to have to indicate success
+    needs: [run_tests, documentation]
+    if : ${{ success() }}
+    name: Success
+    runs-on: ubuntu-latest
+    steps:
+      - name: Success
+        run: echo "Success"
 
 
