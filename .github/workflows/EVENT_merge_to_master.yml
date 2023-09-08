@@ -4,7 +4,7 @@ run-name: Merge to master
 on:
   push:
     branches:
-      - io-1554-test-merge # TODO change to master
+      - master
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
