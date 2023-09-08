@@ -22,6 +22,8 @@ jobs:
         name: Checkout
         with:
           ref: ${{ github.head_ref || github.ref }}
+      - uses: ./.github/workflows/JOB_debug.yml
+        name: Debug
 
   check_master_is_passing:
     runs-on: ubuntu-latest
