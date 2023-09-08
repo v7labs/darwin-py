@@ -2,6 +2,7 @@ name: scheduled-release
 run-name: Scheduled Release
 
 on:
+  workflow_dispatch:
   schedule:
     - cron: '30 10 * * 2' # every Tuesday at 10:30am
 
