@@ -17,20 +17,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: DEBUG
-        shell: bash
-        run: |
-          echo "${{ github.event.workflow_run.head_branch }} - $BRANCH_NAME"
-          echo "${{ toJson(github.event.push) }}"
+        uses: ./.github/actions/JOB_debug-contexts.yml
 
-      - name: Checkout merge branch [${{ env.BRANCH_NAME }}]
-        uses: actions/checkout@v2
-        with:
-          ref: $BRANCH_NAME
+      # - name: Checkout merge branch [${{ env.BRANCH_NAME }}]
+      #   uses: actions/checkout@v2
+      #   with:
+      #     ref: $BRANCH_NAME
 
-      - name: Reverse commit
-        run: |
-          echo "Just testing atm"
-          # git reset --hard HEAD~1
-          # git push origin $BRANCH_NAME --force
+      # - name: Reverse commit
+      #   run: |
+      #     echo "Just testing atm"
+      #     # git reset --hard HEAD~1
+      #     # git push origin $BRANCH_NAME --force
 
   # NB: This will run the parent workflow _again_ as it is a push to master
