@@ -37,6 +37,8 @@ jobs:
               repo: context.repo.repo,
               ref: '${{ github.head_ref || github.ref }}'
             });
+            //log state
+            console.log(state);
             if (state !== 'success') {
               core.setFailed('Tagged branch is not passing, cannot create a release');
             }
