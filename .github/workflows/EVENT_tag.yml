@@ -22,7 +22,7 @@ jobs:
         name: Checkout
         with:
           ref: ${{ github.head_ref || github.ref }}
-      - uses: ./.github/workflows/JOB_debug.yml
+      - uses: ./.github/workflows/JOB_debug_contexts.yml
         name: Debug
 
   check_master_is_passing:
