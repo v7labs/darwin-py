@@ -65,7 +65,7 @@ jobs:
             clearTimeout(avoidInfiniteWait);
 
             console.log('Branch state: ' + state);
-            console.log('Branch ref: ' + ref');
+            console.log('Branch ref: ' + ref);
 
             if (state !== 'success') {
               core.setFailed('Tagged branch is not passing, cannot create a release');
