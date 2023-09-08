@@ -12,7 +12,7 @@ jobs:
 
   step-master-back-one-commit:
     env:
-      BRANCH_NAME: ${{ github.event.workflow_run.head_branch }}
+      BRANCH_NAME: ${{ github.ref_name }}
     name: Step master back one commit
     runs-on: ubuntu-latest
     steps:
