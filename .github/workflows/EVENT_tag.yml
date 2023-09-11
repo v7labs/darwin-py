@@ -24,12 +24,9 @@ jobs:
           ref: ${{ github.head_ref || github.ref }}
 
   run_tests:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Run tests
-        uses: ./.github/workflows/run_tests.yml
+    uses: ./.github/workflows/JOB_tests.yml
 
-  deploy:
+  create_release:
     needs: [checkout, run_tests]
     runs-on: ubuntu-latest
     steps:
@@ -47,3 +44,8 @@ jobs:
               prerelease: context.ref.startsWith('test-')
             });
             core.setOutput('release_id', release_id);
+
+  release:
+    needs: [create_release]
+    name: Release
+    uses: ./.github/workflows/EVENT_release.yml

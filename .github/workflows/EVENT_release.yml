@@ -5,6 +5,8 @@ on:
   release:
     types: [created]
 
+  workflow_call:
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
