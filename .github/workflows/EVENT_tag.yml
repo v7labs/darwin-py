@@ -51,14 +51,21 @@ jobs:
             const mostRecentCommit = data.commit.sha;
             console.log('Most recent commit: ' + mostRecentCommit);
 
-            // Get last workflow run triggered by this branch
-            const { data: { workflow_runs: workflow_runs } } = await github.actions.listWorkflowRunsForRepo({
+            const { data: commitData } = await github.repos.getCombinedStatusForRef({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              branch: branch,
-              status: 'completed',
-            })
-            console.log('Workflow runs: ' + workflow_runs);
+              ref: mostRecentCommit
+            });
+
+
+            const { data: branchData } await github.repos.getCombinedStatusForRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: branch
+            });
+
+            console.log('Commit state: ' + commitData);
+            console.log('Branch state: ' + branchData);
 
             //// wait until branch is not pending
             //let state;
