@@ -48,9 +48,7 @@ jobs:
               branch: branch
             });
 
-            const branch = data.name;
             const mostRecentCommit = data.commit.sha;
-            console.log('Branch: ' + branch);
             console.log('Most recent commit: ' + mostRecentCommit);
 
             // Get last workflow run triggered by this branch
