@@ -27,6 +27,7 @@ jobs:
     uses: ./.github/workflows/JOB_tests.yml
 
   create_release:
+    name: Create Release
     needs: [checkout, run_tests]
     runs-on: ubuntu-latest
     steps:
