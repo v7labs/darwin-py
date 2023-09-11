@@ -51,14 +51,14 @@ jobs:
             const mostRecentCommit = data.commit.sha;
             console.log('Most recent commit: ' + mostRecentCommit);
 
-            const { data: commitData } = await github.repos.getCombinedStatusForRef({
+            const { commitData: data } = await github.repos.getCombinedStatusForRef({
               owner: context.repo.owner,
               repo: context.repo.repo,
               ref: mostRecentCommit
             });
 
 
-            const { data: branchData } await github.repos.getCombinedStatusForRef({
+            const { branchData: data } await github.repos.getCombinedStatusForRef({
               owner: context.repo.owner,
               repo: context.repo.repo,
               ref: branch
