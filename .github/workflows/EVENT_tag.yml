@@ -41,24 +41,23 @@ jobs:
             console.log('Branch: ${{ github.event.base_ref }}');
 
             // get latest commit on branch
-            const { data: { object: { sha: ref } } } = await github.repos.getBranch({
+            const data = await github.repos.getBranch({
               owner: context.repo.owner,
               repo: context.repo.repo,
               branch: branch
             });
 
-            console.log('This branch: ' + branch);
-            console.log('This branch ref: ' + ref);
+            console.log(data)
 
             // Get last workflow run triggered by this branch
-            const { data: { workflow_runs: workflow_runs } } = await github.actions.listWorkflowRunsForRepo({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              branch: branch,
-              status: 'completed',
-            });
+            //const { data: { workflow_runs: workflow_runs } } = await github.actions.listWorkflowRunsForRepo({
+            //  owner: context.repo.owner,
+            //  repo: context.repo.repo,
+            //  branch: branch,
+            //  status: 'completed',
+            //});
 
-            console.log('Workflow runs: ' + workflow_runs);
+            //console.log('Workflow runs: ' + workflow_runs);
 
             //// wait until branch is not pending
             //let state;
