@@ -32,7 +32,7 @@ jobs:
     needs: checkout
     steps:
       - name: Wait for branch to not be pending, and ensure it's passing
-        uses: actions/github-script@v6
+        uses: actions/github-script@v3
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
