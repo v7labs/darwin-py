@@ -28,6 +28,7 @@ jobs:
     uses: ./.github/workflows/JOB_debug_contexts.yml
 
   check_master_is_passing:
+    name: Check master is passing
     runs-on: ubuntu-latest
     needs: checkout
     steps:
@@ -41,23 +42,25 @@ jobs:
             console.log('Branch: ${{ github.event.base_ref }}');
 
             // get latest commit on branch
-            const data = await github.repos.getBranch({
+            const { data } = await github.repos.getBranch({
               owner: context.repo.owner,
               repo: context.repo.repo,
               branch: branch
             });
 
-            console.log(data)
+            const branch = data.name;
+            const mostRecentCommit = data.commit.sha;
+            console.log('Branch: ' + branch);
+            console.log('Most recent commit: ' + mostRecentCommit);
 
             // Get last workflow run triggered by this branch
-            //const { data: { workflow_runs: workflow_runs } } = await github.actions.listWorkflowRunsForRepo({
-            //  owner: context.repo.owner,
-            //  repo: context.repo.repo,
-            //  branch: branch,
-            //  status: 'completed',
-            //});
-
-            //console.log('Workflow runs: ' + workflow_runs);
+            const { data: { workflow_runs: workflow_runs } } = await github.actions.listWorkflowRunsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              branch: branch,
+              status: 'completed',
+            })
+            console.log('Workflow runs: ' + workflow_runs);
 
             //// wait until branch is not pending
             //let state;
