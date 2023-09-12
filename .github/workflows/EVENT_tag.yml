@@ -26,3 +26,6 @@ jobs:
 
       - name: Create release
         uses: ./.github/workflows/JOB_create_release.yml
+        with:
+          is_draft: true
+

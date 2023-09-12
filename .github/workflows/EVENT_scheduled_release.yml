@@ -59,7 +59,7 @@ jobs:
     needs: commit_changes_to_master
     uses: ./.github/workflows/JOB_create_release.yml
     with:
-      is_draft: false
+      is_draft: true # will not publish, only create draft
 
   release:
     needs: create_release
@@ -67,5 +67,4 @@ jobs:
     with:
       release_tag: ${{ github.env.tag_name }}
       release_id: ${{ needs.create_release.outputs.release_id }}
-
-
+      is_draft: true # will not publish, only create draft

@@ -3,7 +3,7 @@ run-name: Release
 
 on:
   release:
-    types: [created]
+    types: [released]
 
   workflow_call:
     inputs:
@@ -17,9 +17,15 @@ on:
         description: "The tag of the release"
         required: false
 
+      is_draft:
+        type: boolean
+        description: "Is the release a draft"
+        required: false
+
 env:
   release_id: ${{ inputs.release_id || github.event.release.id }}
   release_tag: ${{ inputs.release_tag || github.event.release.tag_name }}
+  is_draft: ${{ inputs.is_draft || github.event.release.draft }}
 
 jobs:
   validate_tag:
@@ -78,7 +84,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Publish on pypi.org
-        if: startsWith(github.ref, 'refs/tags/v')
         env:
           POETRY_HTTP_BASIC_PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
           POETRY_HTTP_BASIC_PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
@@ -92,32 +97,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Publish on test.pypi.org
-        # if release is a prerelease, publish to test.pypi.org
-        if: startsWith(github.ref, 'refs/tags/test-')
         env:
           POETRY_HTTP_BASIC_PYPI_USERNAME: ${{ secrets.TEST_PYPI_USERNAME }}
           POETRY_HTTP_BASIC_PYPI_PASSWORD: ${{ secrets.TEST_PYPI_PASSWORD }}
         run: |
           # poetry publish
           echo "Publishing to test.pypi.org - Emulated"
-
-  set_release_status:
-    needs: [release, test_release]
-    if: always() && contains(needs.*.result, 'success')
-    runs-on: ubuntu-latest
-    steps:
-      - name: Set release status
-        uses: actions/github-script@v3
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            github.repos.createReleaseStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              release_id: ${{ env.release_id }},
-              state: 'success',
-              description: 'Release was successful',
-              target_url: '
 
   notify_release:
     # Slack notify
