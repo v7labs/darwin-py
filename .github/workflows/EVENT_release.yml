@@ -6,9 +6,42 @@ on:
     types: [created]
 
   workflow_call:
+    inputs:
+      release_id:
+        type: string
+        description: "The id of the release"
+        required: false
+
+      release_tag:
+        type: string
+        description: "The tag of the release"
+        required: false
+
+env:
+  release_id: ${{ inputs.release_id || github.event.release.id }}
+  release_tag: ${{ inputs.release_tag || github.event.release.tag_name }}
 
 jobs:
-  deploy:
+  validate_tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Fail early if tag schema is invalid
+        run: |
+          if [[ ! ${{ env.release_tag }} =~ ^refs/tags/(v[0-9]+\.[0-9]+\.[0-9]+)$ && ${{ env.release_tag }} =~ ^refs/tags/test-.*$ ]]; then
+            echo "Tag ${{ env.release_tag }} is not a valid semver tag"
+            exit 1
+          fi
+
+  run_tests:
+    needs: validate_tag
+    uses: ./.github/workflows/JOB_tests.yml
+
+  build:
+    needs: validate_tag
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -31,6 +64,19 @@ jobs:
           poetry install --no-interaction --no-root --all-extras -vvv
           poetry build
 
+      - name: Add build to release
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./dist/*
+          asset_name: ${{ env.release_id }}.tar.gz
+          asset_content_type: application/gzip
+
+  release:
+    needs: [run_tests, build]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
       - name: Publish on pypi.org
         if: startsWith(github.ref, 'refs/tags/v')
         env:
@@ -40,6 +86,11 @@ jobs:
           # poetry publish
           echo "Publishing to pypi.org - Emulated"
 
+  test_release:
+    needs: [run_tests, build]
+    if: startsWith(github.ref, 'refs/tags/test-')
+    runs-on: ubuntu-latest
+    steps:
       - name: Publish on test.pypi.org
         # if release is a prerelease, publish to test.pypi.org
         if: startsWith(github.ref, 'refs/tags/test-')
@@ -49,3 +100,39 @@ jobs:
         run: |
           # poetry publish
           echo "Publishing to test.pypi.org - Emulated"
+
+  set_release_status:
+    needs: [release, test_release]
+    if: always() && contains(needs.*.result, 'success')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set release status
+        uses: actions/github-script@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            github.repos.createReleaseStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: ${{ env.release_id }},
+              state: 'success',
+              description: 'Release was successful',
+              target_url: '
+
+  notify_release:
+    # Slack notify
+    needs: [release, test_release]
+    if: always() && contains(needs.*.result, 'success')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify Slack
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL }}
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_USERNAME: ${{ secrets.SLACK_USERNAME }}
+          SLACK_ICON: ${{ secrets.SLACK_ICON }}
+          SLACK_MESSAGE: |
+            *Darwin-py ${{ env.release_tag }} has been released 🎉*
+            ${{ github.event.release.html_url }}
+            ${{ github.event.release.body }}

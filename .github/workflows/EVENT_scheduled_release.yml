@@ -52,6 +52,20 @@ jobs:
           git tag master "v$version"
           git status
           # git push origin master --tags
+          echo "tag_name=v$version" >> $GITHUB_ENV
 
-    #TODO Ensure this triggers the release job, which is trigged on tag
+  create_release:
+    name: Create release
+    needs: commit_changes_to_master
+    uses: ./.github/workflows/JOB_create_release.yml
+    with:
+      is_draft: false
+
+  release:
+    needs: create_release
+    uses: ./.github/workflows/EVENT_release.yml
+    with:
+      release_tag: ${{ github.env.tag_name }}
+      release_id: ${{ needs.create_release.outputs.release_id }}
+
 

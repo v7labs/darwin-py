@@ -15,7 +15,8 @@ env:
   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
-  checkout:
+  create_release:
+    name: Create Release
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -23,30 +24,5 @@ jobs:
         with:
           ref: ${{ github.head_ref || github.ref }}
 
-  run_tests:
-    uses: ./.github/workflows/JOB_tests.yml
-
-  create_release:
-    name: Create Release
-    needs: [checkout, run_tests]
-    runs-on: ubuntu-latest
-    steps:
       - name: Create release
-        uses: actions/github-script@v3
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const { data: { id: release_id } } = await github.repos.createRelease({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              tag_name: context.ref,
-              name: context.ref,
-              draft: true,
-              prerelease: context.ref.startsWith('test-')
-            });
-            core.setOutput('release_id', release_id);
-
-  release:
-    needs: [create_release]
-    name: Release
-    uses: ./.github/workflows/EVENT_release.yml
+        uses: ./.github/workflows/JOB_create_release.yml
