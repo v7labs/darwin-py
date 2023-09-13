@@ -1,0 +1,27 @@
+name: slack-notify
+run-name: Slack Notify
+
+on:
+  workflow_call:
+    inputs:
+      message:
+        type: string
+        description: 'The message to send'
+        required: true
+
+jobs:
+  slack-notify:
+    name: Slack Notification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Slack Notification
+        run: |
+          PAYLOAD=$(cat <<EOF
+          {
+            "channel": "#${{ env.SLACK_CHANNEL }}",
+            "username": "${{ env.SLACK_USERNAME }}",
+            "text": "${{ inputs.message }}",
+            "icon_emoji": "${{ env.SLACK_ICON }}"
+          })
+          EOF
+          curl -X POST --data-urlencode "payload=$PAYLOAD" ${{ secrets.SLACK_WEBHOOK }}
