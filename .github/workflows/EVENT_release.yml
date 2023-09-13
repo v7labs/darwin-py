@@ -111,13 +111,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Notify Slack
-        uses: rtCamp/action-slack-notify@v2
-        env:
-          SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL }}
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-          SLACK_USERNAME: ${{ secrets.SLACK_USERNAME }}
-          SLACK_ICON: ${{ secrets.SLACK_ICON }}
-          SLACK_MESSAGE: |
-            *Darwin-py ${{ env.release_tag }} has been released 🎉*
-            ${{ github.event.release.html_url }}
-            ${{ github.event.release.body }}
+        uses: ./.github/workflows/JOB_slack_message.yml
+        with:
+          message: |
+            :rocket: *${{ env.release_tag }}* has been released!
+            :link:
+              - https://pypi.org/project/darwin-py
