@@ -769,10 +769,10 @@ def _parse_darwin_mask_annotation(annotation: dict) -> Optional[dt.Annotation]:
     mask: Optional[dt.JSONFreeForm] = annotation.get("mask")
     slot_names: Optional[List[str]] = parse_slot_names(annotation)
 
-    if not id or not name or mask == None or not slot_names:
+    if not id or not name or mask is None or not slot_names:
         raise ValueError("Mask annotation must have an 'id', 'name', 'slot_names' and 'mask' field")
 
-    if ("sparse_rle" in mask) and (mask["sparse_rle"] != None):
+    if ("sparse_rle" in mask) and (mask["sparse_rle"] is not None):
         raise ValueError("Mask annotation field 'sparse_rle' must contain a null value")
 
     new_annotation = dt.Annotation(
