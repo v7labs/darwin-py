@@ -1,3 +1,4 @@
+import os
 from os import environ
 from os.path import dirname, join
 from pathlib import Path
@@ -29,6 +30,8 @@ def pytest_sessionstart(session: pytest.Session) -> None:
     api_key = environ.get("E2E_API_KEY")
     team_slug = environ.get("E2E_TEAM")
 
+    
+
     if server is None:
         raise E2EEnvironmentVariableNotSet("E2E_ENVIRONMENT")
 
@@ -47,7 +50,11 @@ def pytest_sessionstart(session: pytest.Session) -> None:
 
     global datasets
     datasets = setup_tests(ConfigValues(server=server, api_key=api_key, team_slug=team_slug))
-
+    
+    os.environ["DARWIN_BASE_URL"] = server
+    os.environ["DARWIN_TEAM"] = team_slug
+    os.environ["DARWIN_API_KEY"] = api_key
+    
     print("Sleeping for 10 seconds to allow the server to catch up")
     sleep(10)
 
