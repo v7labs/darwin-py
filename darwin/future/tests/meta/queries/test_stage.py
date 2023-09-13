@@ -35,6 +35,11 @@ def multi_stage_workflow_object(base_single_workflow_object: dict) -> dict:
     return base_single_workflow_object
 
 
+def test_WFTypes_accept_unknonwn() -> None:
+    assert WFType("unknown") == WFType.UNKNOWN
+    assert WFType("test") == WFType.UNKNOWN
+
+
 def test_stage_collects_basic(
     filled_query: StageQuery, base_single_workflow_object: dict, base_workflow_meta: WorkflowMeta
 ) -> None:
