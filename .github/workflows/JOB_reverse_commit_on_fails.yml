@@ -27,7 +27,8 @@ jobs:
       - name: Reverse commit
         run: |
           echo "Just testing atm"
-          # git reset --hard HEAD~1
-          # git push origin $BRANCH_NAME --force
+          git reset --hard HEAD~1
+          git push origin $BRANCH_NAME --force
 
-  # NB: This will run the parent workflow _again_ as it is a push to master
+  recall-master-merge-flow:
+    uses: ./.github/workflows/EVENT_merge_to_master.yml
