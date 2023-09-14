@@ -40,12 +40,14 @@ class E2EDataset:
     name: str
     slug: str
     items: List[E2EItem]
-
-    def __init__(self, id: int, name: str, slug: Optional[str]) -> None:
+    directory: Optional[str] = None
+    
+    def __init__(self, id: int, name: str, slug: Optional[str], directory: Optional[str]=None) -> None:
         self.id = id
         self.name = name
         self.slug = slug or name.lower().replace(" ", "_")
         self.items = []
+        self.directory = directory
 
     def add_item(self, item: E2EItem) -> None:
         self.items.append(item)
