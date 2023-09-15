@@ -93,4 +93,8 @@ jobs:
           pip install pytest pytest-describe
       - name: Run Tests
         run: python -m pytest e2e_tests -W ignore::DeprecationWarning
+        env:
+          E2E_API_KEY: ${{ secrets.E2E_API_KEY }}
+          E2E_ENVIRONMENT: ${{ secrets.E2E_ENVIRONMENT }}
+
       
