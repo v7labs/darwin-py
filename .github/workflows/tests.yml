@@ -96,6 +96,7 @@ jobs:
         env:
           E2E_API_KEY: ${{ secrets.E2E_API_KEY }}
           E2E_ENVIRONMENT: ${{ secrets.E2E_ENVIRONMENT }}
+          E2E_TEAM: ${{ secrets.E2E_TEAM }}
 
 
       
