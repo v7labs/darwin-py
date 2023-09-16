@@ -278,7 +278,13 @@ def get_coco_format_record(
     except ImportError:
         box_mode = 0
     data = attempt_decode(annotation_path)
-    height, width = data["image"]["height"], data["image"]["width"]
+    item = data["item"]
+    if len(item["slots"]) != 1:
+        raise ValueError("unsupported number of slots")  # TODO: improve this error message
+    else:
+        item = item["slots"][0]
+
+    height, width = item["height"], item["width"]
     annotations = data["annotations"]
 
     record: Dict[str, Any] = {}
@@ -302,14 +308,23 @@ def get_coco_format_record(
         new_obj = {"bbox_mode": box_mode, "category_id": category, "iscrowd": 0}
 
         if annotation_type == "polygon":
-            for point in obj["polygon"]["path"]:
-                px.append(point["x"])
-                py.append(point["y"])
-            poly = [(x, y) for x, y in zip(px, py)]
-            if len(poly) < 3:  # Discard polyhons with less than 3 points
-                continue
-            new_obj["segmentation"] = [list(itertools.chain.from_iterable(poly))]
-            new_obj["bbox"] = [np.min(px), np.min(py), np.max(px), np.max(py)]
+            segmentation = []
+            all_px = []
+            all_py = []
+            for path in obj["polygon"]["paths"]:  # Support for complex polygons
+                px = []
+                py = []
+                for point in path:
+                    px.append(point["x"])
+                    py.append(point["y"])
+                poly = [(x, y) for x, y in zip(px, py)]
+                if len(poly) < 3:  # Discard polygons with less than 3 points
+                    continue
+                segmentation.append(list(itertools.chain.from_iterable(poly)))
+                all_px.extend(px)
+                all_py.extend(py)
+            new_obj["segmentation"] = segmentation
+            new_obj["bbox"] = [np.min(all_px), np.min(all_py), np.max(all_px), np.max(all_py)]
         elif annotation_type == "bounding_box":
             bbox = obj["bounding_box"]
             new_obj["bbox"] = [bbox["x"], bbox["y"], bbox["x"] + bbox["w"], bbox["y"] + bbox["h"]]
@@ -407,8 +422,8 @@ def get_annotations(
             stems: Iterator[str] = (e.rstrip("\n\r") for e in split_path.open())
         else:
             raise FileNotFoundError(
-                f"Could not find a dataset partition. ",
-                f"To split the dataset you can use 'split_dataset' from darwin.dataset.split_manager",
+                "Could not find a dataset partition. ",
+                "To split the dataset you can use 'split_dataset' from darwin.dataset.split_manager",
             )
     else:
         # If the partition is not specified, get all the annotations
