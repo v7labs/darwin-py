@@ -289,7 +289,7 @@ def find_files(
 
     for f in files:
         path = Path(f)
-        if path.is_dir() == True:
+        if path.is_dir() is True:
             found_files.extend(
                 [
                     path_object
@@ -415,7 +415,7 @@ def load_data_from_file(path: Path) -> Tuple[dict, dt.AnnotationFileVersion]:
     return data, version
 
 
-def parse_darwin_json(path: Path, count: Optional[int]) -> Optional[dt.AnnotationFile]:
+def parse_darwin_json(path: Path, count: Optional[int] = None) -> Optional[dt.AnnotationFile]:
     """
     Parses the given JSON file in v7's darwin proprietary format. Works for images, split frame
     videos (treated as images) and playback videos.
@@ -1091,7 +1091,7 @@ def chunk(items: List[Any], size: int) -> Iterator[Any]:
         A chunk of the of the given size.
     """
     for i in range(0, len(items), size):
-        yield items[i : i + size]
+        yield items[i:i + size]
 
 
 def is_unix_like_os() -> bool:

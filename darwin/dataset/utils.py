@@ -19,6 +19,7 @@ from darwin.utils import (
     SUPPORTED_VIDEO_EXTENSIONS,
     attempt_decode,
     is_unix_like_os,
+    parse_darwin_json,
 )
 
 # E.g.: {"partition" => {"class_name" => 123}}
@@ -277,56 +278,41 @@ def get_coco_format_record(
         box_mode = BoxMode.XYXY_ABS
     except ImportError:
         box_mode = 0
-    data = attempt_decode(annotation_path)
-    item = data["item"]
-    if len(item["slots"]) != 1:
-        raise ValueError("unsupported number of slots")  # TODO: improve this error message
-    else:
-        item = item["slots"][0]
-
-    height, width = item["height"], item["width"]
-    annotations = data["annotations"]
+    data = parse_darwin_json(annotation_path)
 
     record: Dict[str, Any] = {}
     if image_path is not None:
         record["file_name"] = str(image_path)
     if image_id is not None:
         record["image_id"] = image_id
-    record["height"] = height
-    record["width"] = width
+    record["height"] = data.image_height
+    record["width"] = data.image_width
 
     objs = []
-    for obj in annotations:
-        px, py = [], []
-        if annotation_type not in obj:
-            continue
+    for obj in data.annotations:
+        if annotation_type != obj.annotation_class.annotation_type:
+            if annotation_type not in obj.data:  # Allows training object detection with bboxes
+                continue
 
         if classes:
-            category = classes.index(obj["name"])
+            category = classes.index(obj.annotation_class.name)
         else:
-            category = obj["name"]
+            category = obj.annotation_class.name
         new_obj = {"bbox_mode": box_mode, "category_id": category, "iscrowd": 0}
 
         if annotation_type == "polygon":
-            segmentation = []
-            all_px = []
-            all_py = []
-            for path in obj["polygon"]["paths"]:  # Support for complex polygons
-                px = []
-                py = []
-                for point in path:
-                    px.append(point["x"])
-                    py.append(point["y"])
-                poly = [(x, y) for x, y in zip(px, py)]
-                if len(poly) < 3:  # Discard polygons with less than 3 points
-                    continue
-                segmentation.append(list(itertools.chain.from_iterable(poly)))
-                all_px.extend(px)
-                all_py.extend(py)
+            px, py = [], []
+            for point in obj.data["path"]:
+                px.append(point["x"])
+                py.append(point["y"])
+            poly = [(x, y) for x, y in zip(px, py)]
+            if len(poly) < 3:  # Discard polygons with less than 3 points
+                continue
+            segmentation = [list(itertools.chain.from_iterable(poly))]
             new_obj["segmentation"] = segmentation
-            new_obj["bbox"] = [np.min(all_px), np.min(all_py), np.max(all_px), np.max(all_py)]
+            new_obj["bbox"] = [np.min(px), np.min(py), np.max(px), np.max(py)]
         elif annotation_type == "bounding_box":
-            bbox = obj["bounding_box"]
+            bbox = obj.data["bounding_box"]
             new_obj["bbox"] = [bbox["x"], bbox["y"], bbox["x"] + bbox["w"], bbox["y"] + bbox["h"]]
 
         objs.append(new_obj)
