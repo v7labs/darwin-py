@@ -102,10 +102,14 @@ class LocalDataset:
                 image_path = images_dir / f"{stem}{ext}"
                 if image_path.exists():
                     images.append(image_path)
-                    break
+                    continue
+                image_path = images_dir / f"{stem}{ext.upper()}"
+                if image_path.exists():
+                    images.append(image_path)
             if len(images) < 1:
                 raise ValueError(f"Annotation ({annotation_path}) does not have a corresponding image")
-            assert len(images) == 1
+            if len(images) > 1:
+                raise ValueError(f"Image ({stem}) is present with multiple extensions. This is forbidden.")
             self.images_path.append(images[0])
             self.annotations_path.append(annotation_path)
 
