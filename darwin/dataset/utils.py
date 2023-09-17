@@ -569,9 +569,9 @@ def compute_max_density(annotations_dir: Path) -> int:
     max_density = 0
     for annotation_path in annotations_dir.glob("**/*.json"):
         annotation_density = 0
-        darwin_json = attempt_decode(annotation_path)
-        for annotation in darwin_json["annotations"]:
-            if "polygon" not in annotation and "complex_polygon" not in annotation:
+        darwin_json = parse_darwin_json(annotation_path)
+        for annotation in darwin_json.annotations:
+            if "path" not in annotation.data and "paths" not in annotation.data:
                 continue
             annotation_density += 1
         if annotation_density > max_density:
