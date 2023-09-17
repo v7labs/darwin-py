@@ -301,16 +301,30 @@ def get_coco_format_record(
         new_obj = {"bbox_mode": box_mode, "category_id": category, "iscrowd": 0}
 
         if annotation_type == "polygon":
-            px, py = [], []
-            for point in obj.data["path"]:
-                px.append(point["x"])
-                py.append(point["y"])
-            poly = [(x, y) for x, y in zip(px, py)]
-            if len(poly) < 3:  # Discard polygons with less than 3 points
-                continue
-            segmentation = [list(itertools.chain.from_iterable(poly))]
+            # Support for complex polygons
+            if "paths" in obj.data:
+                paths = obj.data["paths"]
+            elif "path" in obj.data:
+                paths = [obj.data["path"]]
+            else:
+                raise ValueError("polygon path not found")
+            all_px, all_py = [], []
+            segmentation = []
+
+            for path in paths:
+                px, py = [], []
+                for point in path:
+                    px.append(point["x"])
+                    py.append(point["y"])
+                poly = [(x, y) for x, y in zip(px, py)]
+                if len(poly) < 3:  # Discard polygons with less than 3 points
+                    continue
+                segmentation.append(list(itertools.chain.from_iterable(poly)))
+                all_px.extend(px)
+                all_py.extend(py)
+
             new_obj["segmentation"] = segmentation
-            new_obj["bbox"] = [np.min(px), np.min(py), np.max(px), np.max(py)]
+            new_obj["bbox"] = [np.min(all_px), np.min(all_py), np.max(all_px), np.max(all_py)]
         elif annotation_type == "bounding_box":
             bbox = obj.data["bounding_box"]
             new_obj["bbox"] = [bbox["x"], bbox["y"], bbox["x"] + bbox["w"], bbox["y"] + bbox["h"]]
