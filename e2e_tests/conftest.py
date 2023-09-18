@@ -1,4 +1,3 @@
-import os
 from os import environ
 from os.path import dirname, join
 from pathlib import Path
@@ -50,9 +49,9 @@ def pytest_sessionstart(session: pytest.Session) -> None:
     # pytest.datasets = datasets
     setattr(pytest, "datasets", datasets)
     # Set the environment variables for running CLI arguments
-    os.environ["DARWIN_BASE_URL"] = server
-    os.environ["DARWIN_TEAM"] = team_slug
-    os.environ["DARWIN_API_KEY"] = api_key
+    environ["DARWIN_BASE_URL"] = server
+    environ["DARWIN_TEAM"] = team_slug
+    environ["DARWIN_API_KEY"] = api_key
     
     print("Sleeping for 10 seconds to allow the server to catch up")
     sleep(10)
