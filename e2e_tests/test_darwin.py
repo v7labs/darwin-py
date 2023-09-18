@@ -18,7 +18,7 @@ def new_dataset() -> E2EDataset:
     new_dataset_name = "test_dataset_" + uuid_str
     result = run_cli_command(f"darwin dataset create {new_dataset_name}")
     assert result[0] == 0
-    id_raw = re.findall(r"/datasets/(\d+)", result[1])
+    id_raw = re.findall(r"datasets[/|\\+](\d+)", result[1])
     print(result)
     print(id_raw)
     assert id_raw is not None and len(id_raw) == 1
