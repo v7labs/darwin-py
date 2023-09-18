@@ -18,9 +18,9 @@ def new_dataset() -> E2EDataset:
     new_dataset_name = "test_dataset_" + uuid_str
     result = run_cli_command(f"darwin dataset create {new_dataset_name}")
     assert result[0] == 0
-    id_raw = re.search(r"/datasets/(\d+)", result[1])
-    assert id_raw is not None
-    id = int(id_raw.group(1))
+    id_raw = re.findall(r"/datasets/(\d+)", result[1])
+    assert id_raw is not None and len(id_raw) == 1
+    id = int(id_raw[0])
     teardown_dataset = E2EDataset(id, new_dataset_name, None)
     
     # Add the teardown dataset to the pytest object to ensure it gets deleted when pytest is done
