@@ -1,5 +1,7 @@
+name: Nightly E2E Tests
 on:
-  pull_request:
+  schedule:
+    - cron: "0 8 * * mon-fri"
 jobs:
   e2e:
     name: Nightly End to End Testing
@@ -37,7 +39,7 @@ jobs:
   slack-notifier:
     name: Slack Notifier Bot
     needs: e2e
-    if: always()
+    if: failure()
     runs-on: ubuntu-latest
     steps:
       - name: Send Slack Notification
