@@ -37,7 +37,7 @@ jobs:
   slack-notifier:
     name: Slack Notifier Bot
     needs: e2e
-    if: failure()
+    if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Send Slack Notification
