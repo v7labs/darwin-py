@@ -48,8 +48,9 @@ jobs:
             "username": "${{ vars.SLACK_USERNAME }}",
             "text": "Nightly E2E run succeeded @Darwin.py: https://github.com/v7labs/darwin-py/actions/runs/${{ github.run_id }}",
             "icon_emoji": "${{ vars.SLACK_ICON }}"
-          })
+          }
           EOF
+          )
           curl -X POST --data-urlencode "payload=$PAYLOAD" ${{ secrets.SLACK_WEBHOOK }}
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
