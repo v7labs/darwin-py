@@ -1,7 +1,5 @@
 on:
-  workflow_dispatch:
-  schedule:
-    - cron: '0 2 * * mon-fri'
+  pull_request:
 jobs:
   e2e:
     name: Nightly End to End Testing
