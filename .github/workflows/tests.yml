@@ -65,6 +65,3 @@ jobs:
           pip install pytest 
       - name: Run Tests
         run: python -m pytest -W ignore::DeprecationWarning
-
-
-      
