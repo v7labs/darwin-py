@@ -37,9 +37,11 @@ unmoved_tickets = len(wrong_lines) - len(body_lines)
 moved_tickets = len(body_lines)
 
 print("Tickets to move to done:")
+ticket_codes = []
 for line in body_lines:
     ticket = TICKET_MATCHER.match(line).group(1)  # type: ignore
     print(f"  - {ticket}")
+    ticket_codes.append(ticket)
 
 if unmoved_tickets > 0:
     print("\nWARNING: Some PRs weren't properly formatted")
@@ -52,3 +54,24 @@ if unmoved_tickets > 0:
 print("\n")
 
 # TODO move tickets to done
+if not dry_run:
+    for ticket in ticket_codes:
+        query = f"""
+        mutation IssueUpdate {{
+            issueUpdate(
+                id: "{ticket}",
+                input: {{
+                stateId: "Done",
+                }}
+            ) {{
+                success
+                issue {{
+                id
+                title
+                state {{
+                    id
+                    name
+                }}
+                }}
+            }}
+        }}"""
