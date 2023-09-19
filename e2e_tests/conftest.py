@@ -27,8 +27,6 @@ def pytest_sessionstart(session: pytest.Session) -> None:
     api_key = environ.get("E2E_API_KEY")
     team_slug = environ.get("E2E_TEAM")
 
-    
-
     if server is None:
         raise E2EEnvironmentVariableNotSet("E2E_ENVIRONMENT")
 
@@ -52,9 +50,10 @@ def pytest_sessionstart(session: pytest.Session) -> None:
     environ["DARWIN_BASE_URL"] = server
     environ["DARWIN_TEAM"] = team_slug
     environ["DARWIN_API_KEY"] = api_key
-    
+
     print("Sleeping for 10 seconds to allow the server to catch up")
     sleep(10)
+
 
 def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
     if not isinstance(session.config.cache, pytest.Cache):
@@ -70,6 +69,10 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
 
     if server is None or api_key is None or team is None:
         raise ValueError("E2E environment variables were not cached")
+
+    del environ["DARWIN_BASE_URL"]
+    del environ["DARWIN_TEAM"]
+    del environ["DARWIN_API_KEY"]
 
     config = ConfigValues(server=server, api_key=api_key, team_slug=team)
     assert isinstance(datasets, List)

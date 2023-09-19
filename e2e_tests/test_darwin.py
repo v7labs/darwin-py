@@ -22,16 +22,18 @@ def new_dataset() -> E2EDataset:
     assert id_raw is not None and len(id_raw) == 1
     id = int(id_raw[0])
     teardown_dataset = E2EDataset(id, new_dataset_name, None)
-    
+
     # Add the teardown dataset to the pytest object to ensure it gets deleted when pytest is done
-    pytest.datasets.append(teardown_dataset) # type: ignore
+    pytest.datasets.append(teardown_dataset)  # type: ignore
     return teardown_dataset
+
 
 @pytest.fixture
 def local_dataset(new_dataset: E2EDataset) -> Generator[E2EDataset, None, None]:
     with tempfile.TemporaryDirectory() as temp_directory:
         new_dataset.directory = temp_directory
         yield new_dataset
+
 
 @pytest.fixture
 def local_dataset_with_images(local_dataset: E2EDataset) -> E2EDataset:
@@ -42,13 +44,11 @@ def local_dataset_with_images(local_dataset: E2EDataset) -> E2EDataset:
 
 def test_darwin_create(local_dataset: E2EDataset) -> None:
     """
-    Test creating a dataset via the darwin cli, heavy lifting performed 
+    Test creating a dataset via the darwin cli, heavy lifting performed
     by the fixture which already creates a dataset and adds it to the pytest object via cli
     """
     assert local_dataset.id is not None
     assert local_dataset.name is not None
-
-    
 
 
 def test_darwin_push(local_dataset_with_images: E2EDataset) -> None:
@@ -58,11 +58,11 @@ def test_darwin_push(local_dataset_with_images: E2EDataset) -> None:
     assert local_dataset_with_images.id is not None
     assert local_dataset_with_images.name is not None
     assert local_dataset_with_images.directory is not None
-    result = run_cli_command(f"darwin dataset push {local_dataset_with_images.name} {local_dataset_with_images.directory}")
+    result = run_cli_command(
+        f"darwin dataset push {local_dataset_with_images.name} {local_dataset_with_images.directory}"
+    )
     assert result[0] == 0
 
 
 if __name__ == "__main__":
     pytest.main(["-vv", "-s", __file__])
-
-    

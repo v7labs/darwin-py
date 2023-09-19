@@ -1,7 +1,9 @@
 name: Nightly E2E Tests
+
 on:
   schedule:
     - cron: "0 8 * * mon-fri"
+
 jobs:
   e2e:
     name: Nightly End to End Testing
@@ -54,5 +56,3 @@ jobs:
           EOF
           )
           curl -X POST --data-urlencode "payload=$PAYLOAD" ${{ secrets.SLACK_WEBHOOK }}
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
