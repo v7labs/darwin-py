@@ -312,13 +312,13 @@ def get_coco_format_record(
             segmentation = []
 
             for path in paths:
+                if len(path) < 3:  # Discard polygons with less than 3 points
+                    continue
                 px, py = [], []
                 for point in path:
                     px.append(point["x"])
                     py.append(point["y"])
                 poly = [(x, y) for x, y in zip(px, py)]
-                if len(poly) < 3:  # Discard polygons with less than 3 points
-                    continue
                 segmentation.append(list(itertools.chain.from_iterable(poly)))
                 all_px.extend(px)
                 all_py.extend(py)

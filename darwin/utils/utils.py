@@ -289,7 +289,7 @@ def find_files(
 
     for f in files:
         path = Path(f)
-        if path.is_dir() is True:
+        if path.is_dir():
             found_files.extend(
                 [
                     path_object
