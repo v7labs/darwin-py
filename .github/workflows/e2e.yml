@@ -1,12 +1,12 @@
-name: Nightly E2E Tests
+name: E2E Tests
 
 on:
   schedule:
     - cron: "0 8 * * mon-fri"
-
+  workflow_dispatch:
 jobs:
   e2e:
-    name: Nightly End to End Testing
+    name: End to End Testing
     strategy:
       fail-fast: false
       matrix:
@@ -41,7 +41,7 @@ jobs:
   slack-notifier:
     name: Slack Notifier Bot
     needs: e2e
-    if: failure()
+    if: failure() && github.event_name == 'schedule'
     runs-on: ubuntu-latest
     steps:
       - name: Send Slack Notification
@@ -51,25 +51,6 @@ jobs:
             "channel": "#${{ vars.SLACK_CHANNEL }}",
             "username": "${{ vars.SLACK_USERNAME }}",
             "text": "Nightly E2E run failed <!subteam^S04T5MWDHJ6>: https://github.com/v7labs/darwin-py/actions/runs/${{ github.run_id }}",
-            "icon_emoji": "${{ vars.SLACK_ICON }}"
-          }
-          EOF
-          )
-          curl -X POST --data-urlencode "payload=$PAYLOAD" ${{ secrets.SLACK_WEBHOOK }}
-
-  slack-notifier-temp:
-    name: Slack Notifier Bot
-    needs: e2e
-    if: success()
-    runs-on: ubuntu-latest
-    steps:
-      - name: Send Slack Notification
-        run: |
-          PAYLOAD=$(cat <<EOF
-          {
-            "channel": "#${{ vars.SLACK_CHANNEL }}",
-            "username": "${{ vars.SLACK_USERNAME }}",
-            "text": "Nightly E2E run succeeded: https://github.com/v7labs/darwin-py/actions/runs/${{ github.run_id }}\n\nSanity check on master branch scheduled runs, delete me!",
             "icon_emoji": "${{ vars.SLACK_ICON }}"
           }
           EOF
