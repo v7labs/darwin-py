@@ -15,7 +15,7 @@ from darwin.torch.transforms import (
     ConvertPolygonsToInstanceMasks,
     ConvertPolygonsToSemanticMask,
 )
-from darwin.torch.utils import polygon_area
+from darwin.torch.utils import clamp_bbox_to_image_size, polygon_area
 from darwin.utils import convert_polygons_to_sequences
 
 
@@ -545,6 +545,9 @@ class ObjectDetectionDataset(LocalDataset):
         """
         img: PILImage.Image = self.get_image(index)
         target: Dict[str, Any] = self.get_target(index)
+
+        width, height = img.size
+        target = clamp_bbox_to_image_size(target, width, height)
 
         if self.transform is not None:
             img_tensor, target = self.transform(img, target)

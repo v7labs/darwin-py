@@ -192,3 +192,12 @@ def detectron2_register_dataset(
     if evaluator_type:
         MetadataCatalog.get(catalog_name).set(evaluator_type=evaluator_type)
     return catalog_name
+
+
+def clamp_bbox_to_image_size(annotations, width, height):
+    boxes = annotations['boxes']
+    boxes[:, 0::2].clamp_(min=0, max=width)
+    boxes[:, 1::2].clamp_(min=0, max=height)
+    annotations['boxes'] = boxes
+
+    return annotations

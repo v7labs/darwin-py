@@ -8,7 +8,6 @@ from PIL import Image as PILImage
 
 from darwin.torch.utils import convert_segmentation_to_mask, flatten_masks_by_category
 
-
 TargetKey = Union["boxes", "labels", "mask", "masks", "image_id", "area", "iscrowd"]
 TargetType = Dict[TargetKey, torch.Tensor]
 
@@ -191,7 +190,6 @@ class ConvertPolygonsToInstanceMasks(object):
         boxes = [obj["bbox"] for obj in annotations]
         # guard against no boxes via resizing
         boxes = torch.as_tensor(boxes, dtype=torch.float32).reshape(-1, 4)
-        boxes[:, 2:] += boxes[:, :2]
         boxes[:, 0::2].clamp_(min=0, max=w)
         boxes[:, 1::2].clamp_(min=0, max=h)
 
@@ -278,3 +276,69 @@ class ConvertPolygonToMask(object):
             target = torch.zeros((h, w), dtype=torch.uint8)
         target = PILImage.fromarray(target.numpy())
         return image, target
+
+
+class AlbumentationsTransform(object):
+    """
+    Applies albumentation augmentations
+    """
+    
+    def __init__(self, transform):
+        self.transform = transform
+        
+    @classmethod
+    def from_path(cls, config_path):
+        transform = A.load(config_path)
+        return cls(transform)
+        
+    @classmethod
+    def from_dict(cls, alb_dict):
+        transform = A.from_dict(alb_dict)
+        return cls(transform)
+
+    def __call__(self, image, annotation):
+        
+        np_image = np.array(image)
+        albu_data = self.pre_process(np_image, annotation)
+        transformed_data = self.transform(**albu_data)
+        image, transformed_annotation = self.post_process(transformed_data, annotation)
+        
+        return TF.pil_to_tensor(image), transformed_annotation
+
+    def pre_process(self, image, darwin_annotations):
+       
+        albumentation_dict = {"image": image}
+        width, height = image.shape[:2]
+        
+        if "boxes" in darwin_annotations:
+            boxes = darwin_annotations['boxes'].numpy()
+            # Clip the bounding box values to ensure they are within the image
+            boxes[:, [0, 2]] = np.clip(boxes[:, [0, 2]], 0, width)
+            boxes[:, [1, 3]] = np.clip(boxes[:, [1, 3]], 0, height)
+            albumentation_dict['bboxes'] = boxes.tolist()
+            
+        if "labels" in darwin_annotations:
+            albumentation_dict['labels'] = darwin_annotations['labels'].tolist()
+            
+        if "masks" in darwin_annotations:
+            albumentation_dict["mask"] = darwin_annotations['masks'].tolist()
+            
+        return albumentation_dict
+
+    def post_process(self, albumentation_output, darwin_annotations):
+        
+        darwin_annotation = {'image_id': darwin_annotations['image_id']}
+        image = Image.fromarray(albumentation_output['image'])
+        
+        if "bboxes" in albumentation_output:
+            darwin_annotation['boxes'] = torch.tensor(albumentation_output['bboxes'])
+            
+        if "labels" in albumentation_output:
+            darwin_annotation['labels'] = torch.tensor(albumentation_output['labels'])
+        
+        if "boxes" in albumentation_output and "area" in darwin_annotations and not "masks" in darwin_annotations:  
+            bboxes =transformed_annotation["boxes"]
+            transformed_annotation['area'] = bboxes[:,2] * bboxes[:,3]
+        
+
+        return image, darwin_annotation
