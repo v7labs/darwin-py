@@ -207,12 +207,12 @@ class ConvertPolygonsToInstanceMasks(object):
             if num_keypoints:
                 keypoints = keypoints.view(num_keypoints, -1, 3)
 
-        keep = (boxes[:, 3] > boxes[:, 1]) & (boxes[:, 2] > boxes[:, 0])
-        boxes = boxes[keep]
-        classes = classes[keep]
-        masks = masks[keep]
-        if keypoints is not None:
-            keypoints = keypoints[keep]
+        #keep = (boxes[:, 3] > boxes[:, 1]) & (boxes[:, 2] > boxes[:, 0])
+        #boxes = boxes[keep]
+        #classes = classes[keep]
+        #masks = masks[keep]
+        #if keypoints is not None:
+        #    keypoints = keypoints[keep]
 
         target["boxes"] = boxes
         target["labels"] = classes
