@@ -150,6 +150,8 @@ def test_darwin_export(local_dataset_with_annotations: E2EDataset, config_values
         f"darwin dataset releases {local_dataset_with_annotations.name}"
     )
     assert result[0] == 0
+    # Check that a release is there via inverse, the CLI will truncate outputs and pass/fail is not clear
+    # if we check for release name
     assert "No available releases, export one first" not in result[1]
 
 if __name__ == "__main__":
