@@ -1,7 +1,6 @@
 import base64
 import random
 import string
-from hmac import new
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import List, Literal, Optional
