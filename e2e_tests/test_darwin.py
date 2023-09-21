@@ -144,6 +144,12 @@ def test_darwin_export(local_dataset_with_annotations: E2EDataset, config_values
         f"darwin dataset export {local_dataset_with_annotations.name} test_darwin_export --class-ids {class_str}"
     )
     assert result[0] == 0
+    sleep(2)
+    result = run_cli_command(
+        f"darwin dataset releases {local_dataset_with_annotations.name}"
+    )
+    assert result[0] == 0
+    assert "test_darwin_export" in result[1]
 
 if __name__ == "__main__":
     pytest.main(["-vv", "-s", __file__])
