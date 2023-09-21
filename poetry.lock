@@ -295,17 +295,6 @@ files = [
 packaging = "*"
 
 [[package]]
-name = "dotenv"
-version = "0.0.5"
-description = "Handle .env files"
-category = "main"
-optional = false
-python-versions = "*"
-files = [
-    {file = "dotenv-0.0.5.tar.gz", hash = "sha256:b58d2ab3f83dbd4f8a362b21158a606bee87317a9444485566b3c8f0af847091"},
-]
-
-[[package]]
 name = "exceptiongroup"
 version = "1.1.3"
 description = "Backport of PEP 654 (exception groups)"
@@ -1763,4 +1752,4 @@ test = ["flake8-pyproject", "pytest", "responses"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.7.0,<3.11"
-content-hash = "eb70125650055ef52568dfa68365b63c82e357177829e3338d0fc720bfd7c720"
+content-hash = "bf2caf6db46010fe08b8aac8c522e07985b2a0758c89e830a0f92bdc455c86e3"
