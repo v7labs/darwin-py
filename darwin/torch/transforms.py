@@ -32,9 +32,7 @@ class RandomHorizontalFlip(transforms.RandomHorizontalFlip):
     Allows for horizontal flipping of an image, randomly.
     """
 
-    def forward(
-        self, image: torch.Tensor, target: Optional[TargetType] = None
-    ) -> Union[torch.Tensor, Tuple[torch.Tensor, TargetType]]:
+    def forward(self, image: torch.Tensor, target: Optional[TargetType] = None) -> Union[torch.Tensor, Tuple[torch.Tensor, TargetType]]:
         """
         May or may not horizontally flip an image depending on a random factor.
 
@@ -77,9 +75,7 @@ class RandomVerticalFlip(transforms.RandomVerticalFlip):
     Allows for vertical flipping of an image, randomly.
     """
 
-    def forward(
-        self, image: torch.Tensor, target: Optional[TargetType] = None
-    ) -> Union[torch.Tensor, Tuple[torch.Tensor, TargetType]]:
+    def forward(self, image: torch.Tensor, target: Optional[TargetType] = None) -> Union[torch.Tensor, Tuple[torch.Tensor, TargetType]]:
         """
         May or may not vertically flip an image depending on a random factor.
 
@@ -121,9 +117,7 @@ class ColorJitter(transforms.ColorJitter):
     Jitters the colors of the given transformation.
     """
 
-    def __call__(
-        self, image: PILImage.Image, target: Optional[TargetType] = None
-    ) -> Union[PILImage.Image, Tuple[PILImage.Image, TargetType]]:
+    def __call__(self, image: PILImage.Image, target: Optional[TargetType] = None) -> Union[PILImage.Image, Tuple[PILImage.Image, TargetType]]:
         transform = self.get_params(self.brightness, self.contrast, self.saturation, self.hue)
         image = transform(image)
         if target is None:
@@ -136,9 +130,7 @@ class ToTensor(transforms.ToTensor):
     Converts given ``PILImage`` to a ``Tensor``.
     """
 
-    def __call__(
-        self, image: PILImage.Image, target: Optional[TargetType] = None
-    ) -> Union[torch.Tensor, Tuple[torch.Tensor, TargetType]]:
+    def __call__(self, image: PILImage.Image, target: Optional[TargetType] = None) -> Union[torch.Tensor, Tuple[torch.Tensor, TargetType]]:
         image_tensor: torch.Tensor = F.to_tensor(image)
         if target is None:
             return image_tensor
@@ -150,9 +142,7 @@ class ToPILImage(transforms.ToPILImage):
     Converts given ``Tensor`` to a ``PILImage``.
     """
 
-    def __call__(
-        self, image: torch.Tensor, target: Optional[TargetType] = None
-    ) -> Union[PILImage.Image, Tuple[PILImage.Image, TargetType]]:
+    def __call__(self, image: torch.Tensor, target: Optional[TargetType] = None) -> Union[PILImage.Image, Tuple[PILImage.Image, TargetType]]:
         pil_image: PILImage.Image = F.to_pil_image(image)
         if target is None:
             return pil_image
@@ -164,9 +154,7 @@ class Normalize(transforms.Normalize):
     Normalizes the given ``Tensor``.
     """
 
-    def __call__(
-        self, tensor: torch.Tensor, target: Optional[TargetType] = None
-    ) -> Union[torch.Tensor, Tuple[torch.Tensor, TargetType]]:
+    def __call__(self, tensor: torch.Tensor, target: Optional[TargetType] = None) -> Union[torch.Tensor, Tuple[torch.Tensor, TargetType]]:
         tensor = F.normalize(tensor, self.mean, self.std, self.inplace)
 
         if target is None:
@@ -209,11 +197,11 @@ class ConvertPolygonsToInstanceMasks(object):
             if num_keypoints:
                 keypoints = keypoints.view(num_keypoints, -1, 3)
 
-        #keep = (boxes[:, 3] > boxes[:, 1]) & (boxes[:, 2] > boxes[:, 0])
-        #boxes = boxes[keep]
-        #classes = classes[keep]
-        #masks = masks[keep]
-        #if keypoints is not None:
+        # keep = (boxes[:, 3] > boxes[:, 1]) & (boxes[:, 2] > boxes[:, 0])
+        # boxes = boxes[keep]
+        # classes = classes[keep]
+        # masks = masks[keep]
+        # if keypoints is not None:
         #    keypoints = keypoints[keep]
 
         target["boxes"] = boxes
@@ -289,7 +277,7 @@ class AlbumentationsTransform:
         self.transform = transform
 
     @classmethod
-    def from_path(cls, config_path: str) -> 'AlbumentationsTransform':
+    def from_path(cls, config_path: str) -> "AlbumentationsTransform":
         try:
             transform = A.load(config_path)
             return cls(transform)
@@ -297,7 +285,7 @@ class AlbumentationsTransform:
             raise ValueError(f"Invalid config path: {config_path}. Error: {e}")
 
     @classmethod
-    def from_dict(cls, alb_dict: dict) -> 'AlbumentationsTransform':
+    def from_dict(cls, alb_dict: dict) -> "AlbumentationsTransform":
         try:
             transform = A.from_dict(alb_dict)
             return cls(transform)
@@ -309,23 +297,24 @@ class AlbumentationsTransform:
         albu_data = self._pre_process(np_image, annotation)
         transformed_data = self.transform(**albu_data)
         image, transformed_annotation = self._post_process(transformed_data, annotation)
-        return F.pil_to_tensor(image), transformed_annotation
+
+        return image, transformed_annotation
 
     def _pre_process(self, image: np.ndarray, annotation: dict) -> dict:
         """
         Prepare image and annotation for albumentations transformation.
         """
         albumentation_dict = {"image": image}
-        
-        boxes = annotation.get('boxes')
+
+        boxes = annotation.get("boxes")
         if boxes is not None:
-            albumentation_dict['bboxes'] = boxes.numpy().tolist()
+            albumentation_dict["bboxes"] = boxes.numpy().tolist()
 
-        labels = annotation.get('labels')
+        labels = annotation.get("labels")
         if labels is not None:
-            albumentation_dict['labels'] = labels.tolist()
+            albumentation_dict["labels"] = labels.tolist()
 
-        masks = annotation.get('masks')
+        masks = annotation.get("masks")
         if masks is not None:
             albumentation_dict["masks"] = masks.numpy()
 
@@ -335,24 +324,27 @@ class AlbumentationsTransform:
         """
         Process the output of albumentations transformation back to desired format.
         """
-        output_annotation = {'image_id': annotation['image_id']}
-        image = PILImage.fromarray(albumentation_output['image'])
+        output_annotation = {}
+        image = albumentation_output["image"]
 
-        bboxes = albumentation_output.get('bboxes')
+        bboxes = albumentation_output.get("bboxes")
         if bboxes is not None:
-            output_annotation['boxes'] = torch.tensor(bboxes)
-            if 'area' in annotation and 'masks' not in albumentation_output:
-                output_annotation['area'] = output_annotation['boxes'][:, 2] * output_annotation['boxes'][:, 3]
+            output_annotation["boxes"] = torch.tensor(bboxes)
+            if "area" in annotation and "masks" not in albumentation_output:
+                output_annotation["area"] = output_annotation["boxes"][:, 2] * output_annotation["boxes"][:, 3]
 
-        labels = albumentation_output.get('labels')
+        labels = albumentation_output.get("labels")
         if labels is not None:
-            output_annotation['labels'] = torch.tensor(labels)
+            output_annotation["labels"] = torch.tensor(labels)
 
-        masks = albumentation_output.get('masks')
+        masks = albumentation_output.get("masks")
         if masks is not None:
-            output_annotation['masks'] = torch.tensor(masks)
-            if 'area' in annotation:
-                output_annotation['area'] = torch.sum(output_annotation['masks'], dim=[1, 2])
+            if isinstance(masks[0], np.ndarray):
+                output_annotation["masks"] = torch.tensor(np.array(masks))
+            else:
+                output_annotation["masks"] = torch.stack(masks)
+            if "area" in annotation:
+                output_annotation["area"] = torch.sum(output_annotation["masks"], dim=[1, 2])
 
         # Copy other metadata from original annotation
         for key, value in annotation.items():
