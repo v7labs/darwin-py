@@ -33,9 +33,11 @@ def run_cli_command(command: str, working_directory: Optional[str] = None) -> Tu
     if ".." in command or (working_directory and ".." in working_directory):
         raise DarwinException("Cannot pass directory traversal to 'run_cli_command'.")
 
+
     if working_directory:
         result = run(
             command,
+            encoding="utf-8",
             cwd=working_directory,
             capture_output=True,
             shell=True,
@@ -43,10 +45,10 @@ def run_cli_command(command: str, working_directory: Optional[str] = None) -> Tu
     else:
         result = run(
             command,
+            encoding="utf-8",
             capture_output=True,
             shell=True,
         )
-    try:
-        return result.returncode, result.stdout.decode("utf-8"), result.stderr.decode("utf-8")
-    except:
-        return result.returncode, result.stdout.decode("cp437"), result.stderr.decode("cp437")
+
+    return result.returncode, result.stdout, result.stderr
+
