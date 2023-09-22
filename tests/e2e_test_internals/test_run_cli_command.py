@@ -31,7 +31,7 @@ def test_passes_working_directory_to_run_cli_command(mock_subprocess_run: mock.M
 @mock.patch("e2e_tests.helpers.run")
 def test_passes_back_returncode_stdout_and_stderr(mock_subprocess_run: mock.Mock) -> None:
     CompletedProcess = namedtuple("CompletedProcess", ["returncode", "stdout", "stderr"])
-    mocked_output = CompletedProcess(returncode=137, stdout=b"stdout", stderr=b"stderr")
+    mocked_output = CompletedProcess(returncode=137, stdout="stdout", stderr="stderr")
 
     mock_subprocess_run.return_value = mocked_output
 
