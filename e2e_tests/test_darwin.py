@@ -90,6 +90,7 @@ def test_darwin_push(local_dataset_with_images: E2EDataset) -> None:
     assert local_dataset_with_images.id is not None
     assert local_dataset_with_images.name is not None
     assert local_dataset_with_images.directory is not None
+    sleep(2)
     result = run_cli_command(
         f"darwin dataset push {local_dataset_with_images.name} {local_dataset_with_images.directory}"
     )
