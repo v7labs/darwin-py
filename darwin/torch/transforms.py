@@ -292,8 +292,10 @@ class AlbumentationsTransform:
         except Exception as e:
             raise ValueError(f"Invalid albumentations dictionary. Error: {e}")
 
-    def __call__(self, image, annotation: dict) -> tuple:
+    def __call__(self, image, annotation: dict = None) -> tuple:
         np_image = np.array(image)
+        if annotation is None:
+            annotation = {}
         albu_data = self._pre_process(np_image, annotation)
         transformed_data = self.transform(**albu_data)
         image, transformed_annotation = self._post_process(transformed_data, annotation)
