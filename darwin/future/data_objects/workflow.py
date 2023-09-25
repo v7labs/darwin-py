@@ -87,6 +87,11 @@ class WFType(Enum):
     ARCHIVE = "archive"
     CONSENSUS_TEST = "consensus_test"
     CONSENSUS_ENTRYPOINT = "consensus_entrypoint"
+    UNKNOWN = "unknown"
+
+    @classmethod
+    def _missing_(cls, value: str) -> "WFType":
+        return WFType.UNKNOWN
 
 
 class WFUser(DefaultDarwin):

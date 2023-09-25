@@ -1,3 +1,4 @@
+import math
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Set, Tuple
@@ -140,8 +141,8 @@ def split_dataset(
 
     # Compute sizes of each dataset partition
     dataset_size: int = len(annotation_files)
-    val_size: int = int(val_percentage * dataset_size)
-    test_size: int = int(test_percentage * dataset_size)
+    val_size: int = math.ceil(val_percentage * dataset_size)
+    test_size: int = math.ceil(test_percentage * dataset_size)
     train_size: int = dataset_size - val_size - test_size
     split_id = f"{train_size}_{val_size}_{test_size}"
 

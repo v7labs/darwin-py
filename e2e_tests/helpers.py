@@ -1,7 +1,15 @@
+import re
+import tempfile
+import uuid
+from pathlib import Path
 from subprocess import run
-from typing import Optional, Tuple
+from typing import Generator, Optional, Tuple
+
+import pytest
 
 from darwin.exceptions import DarwinException
+from e2e_tests.objects import E2EDataset
+from e2e_tests.setup_tests import create_random_image
 
 
 def run_cli_command(command: str, working_directory: Optional[str] = None) -> Tuple[int, str, str]:
@@ -38,5 +46,7 @@ def run_cli_command(command: str, working_directory: Optional[str] = None) -> Tu
             capture_output=True,
             shell=True,
         )
-
-    return result.returncode, result.stdout.decode("utf-8"), result.stderr.decode("utf-8")
+    try:
+        return result.returncode, result.stdout.decode("utf-8"), result.stderr.decode("utf-8")
+    except:
+        return result.returncode, result.stdout.decode("cp437"), result.stderr.decode("cp437")

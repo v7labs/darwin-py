@@ -7,7 +7,7 @@ import orjson as json
 from PIL import Image as PILImage
 
 from darwin.dataset.utils import get_classes, get_release_path, load_pil_image
-from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS, attempt_decode, parse_darwin_json
+from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS, parse_darwin_json
 
 
 class LocalDataset:
@@ -102,10 +102,14 @@ class LocalDataset:
                 image_path = images_dir / f"{stem}{ext}"
                 if image_path.exists():
                     images.append(image_path)
-                    break
+                    continue
+                image_path = images_dir / f"{stem}{ext.upper()}"
+                if image_path.exists():
+                    images.append(image_path)
             if len(images) < 1:
                 raise ValueError(f"Annotation ({annotation_path}) does not have a corresponding image")
-            assert len(images) == 1
+            if len(images) > 1:
+                raise ValueError(f"Image ({stem}) is present with multiple extensions. This is forbidden.")
             self.images_path.append(images[0])
             self.annotations_path.append(annotation_path)
 
@@ -136,7 +140,13 @@ class LocalDataset:
         """
         if not len(self.annotations_path):
             raise ValueError("There are no annotations downloaded.")
-        return attempt_decode(self.annotations_path[index])["image"]
+        parsed = parse_darwin_json(self.annotations_path[index], index)
+        return {
+            "image_id": index,
+            "image_path": str(self.images_path[index]),
+            "height": parsed.image_height,
+            "width": parsed.image_width,
+        }
 
     def get_height_and_width(self, index: int) -> Tuple[float, float]:
         """
@@ -153,8 +163,8 @@ class LocalDataset:
             A tuple where the first element is the ``height`` of the image and the second is the
             ``width``.
         """
-        data: Dict[str, Any] = self.get_img_info(index)
-        return data["height"], data["width"]
+        parsed = parse_darwin_json(self.annotations_path[index], index)
+        return parsed.image_height, parsed.image_width
 
     def extend(self, dataset: "LocalDataset", extend_classes: bool = False) -> "LocalDataset":
         """
@@ -186,9 +196,9 @@ class LocalDataset:
             raise ValueError("Annotation type of both datasets should match")
         if self.classes != dataset.classes and not extend_classes:
             raise ValueError(
-                f"Operation dataset_a + dataset_b could not be computed: classes "
-                f"should match. Use flag extend_classes=True to combine both lists "
-                f"of classes."
+                "Operation dataset_a + dataset_b could not be computed: classes "
+                "should match. Use flag extend_classes=True to combine both lists "
+                "of classes."
             )
         self.classes = list(set(self.classes).union(set(dataset.classes)))
 
@@ -436,6 +446,6 @@ def build_stems(
         return (e.strip("\n\r") for e in split_path.open())
 
     raise FileNotFoundError(
-        f"could not find a dataset partition. "
-        f"Split the dataset using `split_dataset()` from `darwin.dataset.split_manager`"
+        "could not find a dataset partition. "
+        "Split the dataset using `split_dataset()` from `darwin.dataset.split_manager`"
     )

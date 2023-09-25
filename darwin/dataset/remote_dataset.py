@@ -278,12 +278,12 @@ class RemoteDataset(ABC):
                         continue
 
                     if video_frames and any([not slot.frame_urls for slot in annotation.slots]):
-                        # will raise if not installed via pip install darwin[ocv]
+                        # will raise if not installed via pip install darwin-py[ocv]
                         try:
                             import cv2  # pylint: disable=import-outside-toplevel
                         except ImportError as e:
                             raise MissingDependency(
-                                "Missing Dependency: OpenCV required for Video Extraction. Install with `pip install darwin\[ocv]`"
+                                "Missing Dependency: OpenCV required for Video Extraction. Install with `pip install darwin-py\[ocv]`"
                             ) from e
                     filename = Path(annotation.filename).stem
                     if filename in stems:
