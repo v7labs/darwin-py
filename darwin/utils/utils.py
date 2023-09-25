@@ -662,6 +662,13 @@ def _parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotati
         main_annotation = dt.make_graph(
             name, annotation["graph"]["nodes"], annotation["graph"]["edges"], slot_names=slot_names
         )
+    elif "mask" in annotation:
+        main_annotation = dt.make_mask(name, slot_names=slot_names)
+    elif "raster_layer" in annotation:
+        raster_layer = annotation["raster_layer"]
+        main_annotation = dt.make_raster_layer(
+            name, raster_layer["mask_annotation_ids_mapping"], raster_layer["total_pixels"], raster_layer["dense_rle"], slot_names=slot_names
+        )
 
     if not main_annotation:
         print(f"[WARNING] Unsupported annotation type: '{annotation.keys()}'")

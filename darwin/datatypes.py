@@ -959,6 +959,74 @@ def make_graph(
         AnnotationClass(class_name, "graph"), {"nodes": nodes, "edges": edges}, subs or [], slot_names=slot_names or []
     )
 
+def make_mask(
+    class_name: str, subs: Optional[List[SubAnnotation]] = None, slot_names: Optional[List[str]] = None
+) -> Annotation:
+    """
+    Creates and returns a mask annotation.
+
+    Parameters
+    ----------
+    class_name : str
+        The name of the class for this ``Annotation``.
+    subs : Optional[List[SubAnnotation]], default: None
+        List of ``SubAnnotation``s for this ``Annotation``.
+
+    Returns
+    -------
+    Annotation
+        A mask ``Annotation``.
+    """
+    return Annotation(AnnotationClass(class_name, "mask"), {}, subs or [], slot_names=slot_names or [])
+
+def make_raster_layer(
+    class_name: str,
+    mask_annotation_ids_mapping: Dict[str, str],
+    total_pixels: int,
+    dense_rle: List[int],
+    subs: Optional[List[SubAnnotation]] = None,
+    slot_names: Optional[List[str]] = None,
+) -> Annotation:
+    """
+    Creates and returns a raster_layer annotation.
+
+    Parameters
+    ----------
+    class_name : str
+        The name of the class for this ``Annotation``.
+
+    mask_annotation_ids_mapping : Dict[str, str]
+        Mapping of mask annotations ids to unique small integers used in the dense_rle.
+        Should be in following format:
+            .. code-block:: javascript
+
+                {
+                    "91bb3c24-883a-433b-ae95-a6ee7845bea5": 1,
+                    "5a0ceba1-2e26-425e-8579-e6013ca415c5": 2
+                }
+
+    total_pixels : int
+        Total number of pixels in a corresponding image.
+
+    dense_rle : int
+        Run length encoding of all masks in the raster layer.
+        Should be in following format:
+            .. code-block:: javascript
+
+                [0, 5, 1, 15, 2, 10]
+
+    subs : Optional[List[SubAnnotation]], default: None
+        List of ``SubAnnotation``\\s for this ``Annotation``.
+
+    Returns
+    -------
+    Annotation
+        A raster_layer ``Annotation``.
+    """
+    return Annotation(
+        AnnotationClass(class_name, "raster_layer"), {"mask_annotation_ids_mapping": mask_annotation_ids_mapping, "total_pixels": total_pixels, "dense_rle": dense_rle}, subs or [], slot_names=slot_names or []
+    )
+
 
 def make_instance_id(value: int) -> SubAnnotation:
     """
