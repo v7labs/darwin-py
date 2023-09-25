@@ -43,7 +43,7 @@ from darwin.exceptions import MissingDependency, NotFound, UnsupportedExportForm
 from darwin.exporter.formats.darwin import build_image_annotation
 from darwin.item import DatasetItem
 from darwin.item_sorter import ItemSorter
-from darwin.utils import parse_darwin_json, split_video_annotation, urljoin
+from darwin.utils import parse_darwin_json, split_video_annotation, urljoin, is_image_extension_allowed
 
 if TYPE_CHECKING:
     from darwin.client import Client
@@ -351,7 +351,24 @@ class RemoteDataset(ABC):
             for error in errors:
                 self.console.print(f"\t - {error}")
 
-            downloaded_file_count = len([f for f in self.local_images_path.rglob("*") if f.is_file()])
+            # Remove images that don't have a corresponding annotation file in the release
+            if remove_extra:
+                annotations_paths = [annotation_path for annotation_path in annotations_dir.glob("*.json")]
+                unfiltered_files = self.local_images_path.rglob(f"*") if use_folders else self.local_images_path.glob(f"*")
+                existing_images = [image for image in unfiltered_files if is_image_extension_allowed(image.suffix)] 
+                local_paths = []
+
+                for annotation_path in annotations_dir.glob(f"*.json"):
+                    annotation = parse_darwin_json(annotation_path, count=0)
+                    local_paths.append(Path(annotation.slots[0].source_files[0]['local_path']))
+
+                for existing_image in existing_images:
+                    if existing_image not in local_paths:
+                        print(f"Removing {existing_image} as there is no corresponding annotation in this release")
+                        existing_image.unlink()
+
+            downloaded_file_count = len([f for f in self.local_images_path.rglob("*") if f.is_file() and not f.name.startswith('.')])
+
             console.print(f"Total file count after download completed {str(downloaded_file_count)}.")
 
             return None, count
