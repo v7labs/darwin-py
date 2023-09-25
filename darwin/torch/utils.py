@@ -5,13 +5,12 @@ from typing import Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
+from numpy.typing import ArrayLike
 from upolygon import draw_polygon
 
 from darwin.cli_functions import _error, _load_client
 from darwin.dataset.identifier import DatasetIdentifier
 from darwin.datatypes import Segment
-
-NumpyCastable = Union[np.ndarray, torch.Tensor, List[Union[int, float]]]
 
 
 def flatten_masks_by_category(masks: torch.Tensor, cats: List[int]) -> torch.Tensor:
@@ -74,7 +73,7 @@ def convert_segmentation_to_mask(segmentations: List[Segment], height: int, widt
     return torch.stack(masks)
 
 
-def polygon_area(x: NumpyCastable, y: NumpyCastable) -> float:
+def polygon_area(x: ArrayLike, y: ArrayLike) -> float:
     """
     Returns the area of the input polygon, represented by two numpy arrays for x and y coordinates.
 
