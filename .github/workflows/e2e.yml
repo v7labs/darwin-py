@@ -1,0 +1,58 @@
+name: E2E Tests
+
+on:
+  schedule:
+    - cron: "0 8 * * mon-fri"
+  workflow_dispatch:
+jobs:
+  e2e:
+    name: End to End Testing
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10"]
+        poetry-version: ["1.3.1"]
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
+      - name: Setup Poetry
+        uses: abatilo/actions-poetry@v2
+        with:
+          poetry-version: ${{ matrix.poetry-version }}
+      - name: Install dependencies
+        run: |
+          poetry install --no-interaction --no-root --all-extras -vvv
+          pip install wheel
+          pip install --upgrade setuptools
+          pip install --editable ".[test,ml,medical,dev,ocv]"
+          pip install pytest
+      - name: Run Tests
+        run: python -m pytest e2e_tests -W ignore::DeprecationWarning
+        env:
+          E2E_API_KEY: ${{ secrets.E2E_API_KEY }}
+          E2E_ENVIRONMENT: ${{ secrets.E2E_ENVIRONMENT }}
+          E2E_TEAM: ${{ secrets.E2E_TEAM }}
+  slack-notifier:
+    name: Slack Notifier Bot
+    needs: e2e
+    if: failure() && github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Slack Notification
+        run: |
+          PAYLOAD=$(cat <<EOF
+          {
+            "channel": "#${{ vars.SLACK_CHANNEL }}",
+            "username": "${{ vars.SLACK_USERNAME }}",
+            "text": "Nightly E2E run failed <!subteam^S04T5MWDHJ6>: https://github.com/v7labs/darwin-py/actions/runs/${{ github.run_id }}",
+            "icon_emoji": "${{ vars.SLACK_ICON }}"
+          }
+          EOF
+          )
+          curl -X POST --data-urlencode "payload=$PAYLOAD" ${{ secrets.SLACK_WEBHOOK }}

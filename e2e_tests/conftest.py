@@ -12,8 +12,6 @@ from e2e_tests.exceptions import E2EEnvironmentVariableNotSet
 from e2e_tests.objects import ConfigValues, E2EDataset
 from e2e_tests.setup_tests import setup_tests, teardown_tests
 
-datasets: List[E2EDataset] = []
-
 
 def pytest_configure(config: pytest.Config) -> None:
     config.addinivalue_line("addopts", "--ignore=../tests/, ../future --capture=tee-sys")
@@ -45,8 +43,13 @@ def pytest_sessionstart(session: pytest.Session) -> None:
     session.config.cache.set("api_key", api_key)
     session.config.cache.set("team_slug", team_slug)
 
-    global datasets
     datasets = setup_tests(ConfigValues(server=server, api_key=api_key, team_slug=team_slug))
+    # pytest.datasets = datasets
+    setattr(pytest, "datasets", datasets)
+    # Set the environment variables for running CLI arguments
+    environ["DARWIN_BASE_URL"] = server
+    environ["DARWIN_TEAM"] = team_slug
+    environ["DARWIN_API_KEY"] = api_key
 
     print("Sleeping for 10 seconds to allow the server to catch up")
     sleep(10)
@@ -56,8 +59,7 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
     if not isinstance(session.config.cache, pytest.Cache):
         raise TypeError("Pytest caching is not enabled, but E2E tests require it")
 
-    global datasets
-
+    datasets = pytest.datasets
     if datasets is None:
         raise ValueError("Datasets were not created, so could not tear them down")
 
@@ -68,7 +70,12 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
     if server is None or api_key is None or team is None:
         raise ValueError("E2E environment variables were not cached")
 
+    del environ["DARWIN_BASE_URL"]
+    del environ["DARWIN_TEAM"]
+    del environ["DARWIN_API_KEY"]
+
     config = ConfigValues(server=server, api_key=api_key, team_slug=team)
+    assert isinstance(datasets, List)
     teardown_tests(config, datasets)
 
 

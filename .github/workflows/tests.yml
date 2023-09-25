@@ -35,7 +35,7 @@ jobs:
           poetry install --no-interaction --no-root --all-extras -vvv
           pip install wheel
           pip install --upgrade setuptools
-          pip install --editable ".[test,ml,medical,dev]"
-          pip install pytest pytest-describe
+          pip install --editable ".[test,ml,medical,dev,ocv]"
+          pip install pytest 
       - name: Run Tests
         run: python -m pytest -W ignore::DeprecationWarning
