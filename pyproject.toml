@@ -94,7 +94,6 @@ types-pyyaml = "^6.0.12.9"
 python-dotenv = { version = "^1.0.0", python = ">3.8" }
 opencv-python-headless = { version = "^4.8.0.76", optional = true }
 pyyaml = "^6.0.1"
-albumentations = "^1.3.1"
 
 [tool.poetry.extras]
 dev = [
@@ -108,7 +107,7 @@ dev = [
     "flake8-pyproject",
 ]
 test = ["responses", "pytest", "flake8-pyproject"]
-ml = ["torch", "torchvision", "scikit-learn"]
+ml = ["torch", "torchvision", "scikit-learn", "albumentations"]
 medical = ["nibabel", "connected-components-3d"]
 ocv = ["opencv-python-headless"]
 

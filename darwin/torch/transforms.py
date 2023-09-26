@@ -1,12 +1,28 @@
 import random
+from pathlib import Path
 from typing import Any, Dict, Optional, Tuple, Union
 
-import albumentations as A
 import numpy as np
 import torch
 import torchvision.transforms as transforms
 import torchvision.transforms.functional as F
 from PIL import Image as PILImage
+
+# Optional dependency
+try:
+    import albumentations as A
+except ImportError:
+    A = None
+
+from typing import TYPE_CHECKING, Type
+
+if TYPE_CHECKING:
+    from albumentations.pytorch import ToTensorV2
+    AType = Type[ToTensorV2]
+else:
+    AType = Type[None]
+
+
 
 from darwin.torch.utils import convert_segmentation_to_mask, flatten_masks_by_category
 
@@ -197,13 +213,6 @@ class ConvertPolygonsToInstanceMasks(object):
             if num_keypoints:
                 keypoints = keypoints.view(num_keypoints, -1, 3)
 
-        # keep = (boxes[:, 3] > boxes[:, 1]) & (boxes[:, 2] > boxes[:, 0])
-        # boxes = boxes[keep]
-        # classes = classes[keep]
-        # masks = masks[keep]
-        # if keypoints is not None:
-        #    keypoints = keypoints[keep]
-
         target["boxes"] = boxes
         target["labels"] = classes
         target["masks"] = masks
@@ -273,13 +282,16 @@ class AlbumentationsTransform:
     Wrapper class for Albumentations augmentations.
     """
 
+
     def __init__(self, transform: A.Compose):
+        self._check_albumentaion_dependency()
         self.transform = transform
 
     @classmethod
     def from_path(cls, config_path: str) -> "AlbumentationsTransform":
+        config_path = Path(config_path)
         try:
-            transform = A.load(config_path)
+            transform = A.load(str(config_path))
             return cls(transform)
         except Exception as e:
             raise ValueError(f"Invalid config path: {config_path}. Error: {e}")
@@ -353,3 +365,9 @@ class AlbumentationsTransform:
             output_annotation.setdefault(key, value)
 
         return image, output_annotation
+
+    def  _check_albumentaion_dependency(self):
+        if A is None:
+            raise ImportError("The albumentations library is not installed. "
+                            "To use this function, install it with pip install albumentations, "
+                            "or install the ml extras of this package.")

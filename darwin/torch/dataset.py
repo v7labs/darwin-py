@@ -397,7 +397,7 @@ class SemanticSegmentationDataset(LocalDataset):
             self.num_classes += 1
         if transform is not None and isinstance(transform, list):
             transform = Compose(transform)
-
+ 
         self.transform: Optional[Callable] = transform
         self.convert_polygons = ConvertPolygonsToSemanticMask()
 
