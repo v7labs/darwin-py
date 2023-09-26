@@ -19,9 +19,9 @@ def new_dataset() -> E2EDataset:
     """Create a new dataset via darwin cli and return the dataset object, complete with teardown"""
     uuid_str = str(uuid.uuid4())
     new_dataset_name = "test_dataset_" + uuid_str
-    result = run_cli_command(f"darwin dataset create {new_dataset_name}")
-    assert result[0] == 0
-    id_raw = re.findall(r"datasets[/\\+](\d+)", result[1])
+    exit_level, std_out, _ = run_cli_command(f"darwin dataset create {new_dataset_name}")
+    assert exit_level == 0
+    id_raw = re.findall(r"datasets[/\\+](\d+)", std_out)
     assert id_raw is not None and len(id_raw) == 1
     id = int(id_raw[0])
     teardown_dataset = E2EDataset(id, new_dataset_name, None)
@@ -91,10 +91,10 @@ def test_darwin_push(local_dataset_with_images: E2EDataset) -> None:
     assert local_dataset_with_images.name is not None
     assert local_dataset_with_images.directory is not None
     sleep(2)
-    result = run_cli_command(
+    exit_level, std_out, std_err = run_cli_command(
         f"darwin dataset push {local_dataset_with_images.name} {local_dataset_with_images.directory}"
     )
-    assert result[0] == 0
+    assert exit_level == 0
 
 def test_darwin_import(local_dataset_with_annotations: E2EDataset) -> None:
     """
@@ -108,10 +108,11 @@ def test_darwin_import(local_dataset_with_annotations: E2EDataset) -> None:
     )
     assert result[0] == 0
     sleep(2)
-    result = run_cli_command(
-        f"yes Y | darwin dataset import {local_dataset_with_annotations.name} darwin {Path(local_dataset_with_annotations.directory) / 'annotations'}"
+    exit_level, std_out, std_err = run_cli_command(
+        f"darwin dataset import {local_dataset_with_annotations.name} darwin {Path(local_dataset_with_annotations.directory) / 'annotations'}",
+        yes=True
     )
-    assert result[0] == 0
+    assert exit_level == 0
 
 
 def test_darwin_export(local_dataset_with_annotations: E2EDataset, config_values: ConfigValues) -> None:
@@ -121,15 +122,16 @@ def test_darwin_export(local_dataset_with_annotations: E2EDataset, config_values
     assert local_dataset_with_annotations.id is not None
     assert local_dataset_with_annotations.name is not None
     assert local_dataset_with_annotations.directory is not None
-    result = run_cli_command(
+    exit_level, std_out, std_err = run_cli_command(
         f"darwin dataset push {local_dataset_with_annotations.name} {local_dataset_with_annotations.directory}"
     )
-    assert result[0] == 0
+    assert exit_level == 0
     sleep(2)
-    result = run_cli_command(
-        f"yes Y | darwin dataset import {local_dataset_with_annotations.name} darwin {Path(local_dataset_with_annotations.directory) / 'annotations'}"
+    exit_level, std_out, std_err = run_cli_command(
+        f"darwin dataset import {local_dataset_with_annotations.name} darwin {Path(local_dataset_with_annotations.directory) / 'annotations'}",
+        yes=True
     )
-    assert result[0] == 0
+    assert exit_level == 0
     
     # Get class ids as export either needs a workflow and complete annotations or the class ids
     url = f"{config_values.server}/api/teams/{config_values.team_slug}/annotation_classes?include_tags=true"
@@ -141,19 +143,19 @@ def test_darwin_export(local_dataset_with_annotations: E2EDataset, config_values
     class_str = " ".join([str(c) for c in class_ids])
     # Test darwin export
     sleep(2)
-    result = run_cli_command(
+    exit_level, std_out, std_err = run_cli_command(
         f"darwin dataset export {local_dataset_with_annotations.name} test_darwin_export --class-ids {class_str}"
     )
-    assert result[0] == 0
-    assert "successfully exported" in result[1], result[1]
+    assert exit_level == 0
+    assert "successfully exported" in std_out, std_out
     sleep(5)
-    result = run_cli_command(
+    exit_level, std_out, std_err = run_cli_command(
         f"darwin dataset releases {local_dataset_with_annotations.name}"
     )
-    assert result[0] == 0
+    assert exit_level == 0
     # Check that a release is there via inverse, the CLI will truncate outputs and pass/fail is not clear
     # if we check for release name
-    assert "No available releases, export one first" not in result[1]
+    assert "No available releases, export one first" not in std_out
 
 if __name__ == "__main__":
     pytest.main(["-vv", "-s", __file__])
