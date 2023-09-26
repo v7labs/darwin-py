@@ -104,6 +104,8 @@ jobs:
           # poetry publish
           echo "Publishing to test.pypi.org - Emulated"
 
+  # Linear tickets update
+
   notify_release:
     # Slack notify
     needs: [release, test_release]
