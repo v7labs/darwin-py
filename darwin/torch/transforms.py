@@ -11,6 +11,7 @@ from PIL import Image as PILImage
 # Optional dependency
 try:
     import albumentations as A
+    from albumentations import Compose
 except ImportError:
     A = None
 
@@ -22,6 +23,7 @@ if TYPE_CHECKING:
     AType = Type[ToTensorV2]
 else:
     AType = Type[None]
+    Compose = Type[None]
 
 
 from darwin.torch.utils import convert_segmentation_to_mask, flatten_masks_by_category
@@ -282,7 +284,7 @@ class AlbumentationsTransform:
     Wrapper class for Albumentations augmentations.
     """
 
-    def __init__(self, transform: A.Compose):
+    def __init__(self, transform: Compose):
         self._check_albumentaion_dependency()
         self.transform = transform
 
