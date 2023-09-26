@@ -180,3 +180,4 @@ scripts/
 
 !darwin/future/tests/data_objects/workflow/data
 !tests/darwin/dataset/data
+!e2e_tests/data

@@ -492,7 +492,7 @@ def import_annotations(
                 if parsed_file.slots and parsed_file.slots[0].name:
                     default_slot_name = parsed_file.slots[0].name
 
-                errors, succes = _import_annotations(
+                errors, _ = _import_annotations(
                     dataset.client,
                     image_id,
                     remote_classes,

@@ -3,7 +3,7 @@ import random
 import string
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import List, Literal
+from typing import List, Literal, Optional
 
 import numpy as np
 import pytest
@@ -14,7 +14,7 @@ from e2e_tests.exceptions import E2EException
 from e2e_tests.objects import ConfigValues, E2EDataset, E2EItem
 
 
-def api_call(verb: Literal["get", "post", "put", "delete"], url: str, payload: dict, api_key: str) -> requests.Response:
+def api_call(verb: Literal["get", "post", "put", "delete"], url: str, payload: Optional[dict], api_key: str) -> requests.Response:
     """
     Make an API call to the server
     (Written independently of the client library to avoid relying on tested items)
@@ -37,8 +37,10 @@ def api_call(verb: Literal["get", "post", "put", "delete"], url: str, payload: d
     """
     headers = {"Authorization": f"ApiKey {api_key}"}
     action = getattr(requests, verb)
-
-    response = action(url, headers=headers, json=payload)
+    if payload:
+        response = action(url, headers=headers, json=payload)
+    else:
+        response = action(url, headers=headers)
     return response
 
 
@@ -75,7 +77,7 @@ def create_dataset(prefix: str, config: ConfigValues) -> E2EDataset:
     E2EDataset
         The minimal info about the created dataset
     """
-    name = f"{prefix}_{generate_random_string(4)}_dataset"
+    name = f"test_dataset_{prefix}_{generate_random_string(4)}"
     host, api_key = config.server, config.api_key
     url = f"{host}/api/datasets"
 
@@ -177,7 +179,7 @@ def create_item(dataset_slug: str, prefix: str, image: Path, config: ConfigValue
         pytest.exit("Test run failed in test setup stage")
 
 
-def create_random_image(prefix: str, directory: Path, height: int = 100, width: int = 100) -> Path:
+def create_random_image(prefix: str, directory: Path, height: int = 100, width: int = 100, fixed_name: bool=False) -> Path:
     """
     Create a random image file in the given directory
 
@@ -192,7 +194,10 @@ def create_random_image(prefix: str, directory: Path, height: int = 100, width: 
     Path
         The path to the created image
     """
-    image_name = f"{prefix}_{generate_random_string(4)}_image.png"
+    if fixed_name:
+        image_name = f"image_{prefix}.png"
+    else:
+        image_name = f"{prefix}_{generate_random_string(4)}_image.png"
 
     image_array = np.array(np.random.rand(height, width, 3) * 255)
     im = Image.fromarray(image_array.astype("uint8")).convert("RGBA")
@@ -260,16 +265,62 @@ def teardown_tests(config: ConfigValues, datasets: List[E2EDataset]) -> None:
     datasets : List[E2EDataset]
         The minimal info about the created datasets
     """
-    host, api_key = config.server, config.api_key
+    host, api_key, team_slug = config.server, config.api_key, config.team_slug
 
-    print("Tearing down datasets")
+    print("\nTearing down datasets")
 
+    failures = []
     for dataset in datasets:
         url = f"{host}/api/datasets/{dataset.id}/archive"
         response = api_call("put", url, {}, api_key)
 
         if not response.ok:
-            print(f"Failed to delete dataset {dataset.name} - {response.status_code} - {response.text}")
-            pytest.exit("Test run failed in test teardown stage")
+            failures.append(f"Failed to delete dataset {dataset.name} - {response.status_code} - {response.text}")
+
+
+    # Teardown workflows as they need to be disconnected before datasets can be deleted
+    url = f"{host}/api/v2/teams/{team_slug}/workflows"
+    response = api_call("get", url, {}, api_key)
+    if response.ok:
+        items = response.json()
+        for item in items:
+            if not item["dataset"]:
+                continue
+            if not item['dataset']['name'].startswith("test_dataset_"):
+                continue
+            new_item = {
+                "name": item['name'],
+                "stages": item['stages']
+            }
+            for stage in new_item['stages']:
+                if stage['type'] == 'dataset':
+                    stage["config"]["dataset_id"] = None
+            url = f"{host}/api/v2/teams/{team_slug}/workflows/{item['id']}"
+            response = api_call("put", url, new_item, api_key)
+            if not response.ok:
+                failures.append(f"Failed to delete workflow {item['name']} - {response.status_code} - {response.text}")
+                
+            # Now Delete the workflow once dataset is disconnected
+            response = api_call("delete", url, None, api_key)
+            if not response.ok:
+                failures.append(f"Failed to delete workflow {item['name']} - {response.status_code} - {response.text}")
+                
+    # teardown any other datasets of specific format
+    url = f"{host}/api/datasets"
+    response = api_call("get", url, {}, api_key)
+    if response.ok:
+        items = response.json()
+        for item in items:
+            if not item["name"].startswith("test_dataset_"):
+                continue
+            url = f"{host}/api/datasets/{item['id']}/archive"
+            response = api_call("put", url, None, api_key)
+            if not response.ok:
+                failures.append(f"Failed to delete dataset {item['name']} - {response.status_code} - {response.text}")
+    
+    if failures:
+        for item in failures:
+            print(item)
+        pytest.exit("Test run failed in test teardown stage")
 
     print("Tearing down data complete")

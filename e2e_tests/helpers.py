@@ -12,7 +12,7 @@ from e2e_tests.objects import E2EDataset
 from e2e_tests.setup_tests import create_random_image
 
 
-def run_cli_command(command: str, working_directory: Optional[str] = None) -> Tuple[int, str, str]:
+def run_cli_command(command: str, working_directory: Optional[str] = None, yes: bool = False) -> Tuple[int, str, str]:
     """
     Run a CLI command and return the return code, stdout, and stderr.
 
@@ -33,6 +33,9 @@ def run_cli_command(command: str, working_directory: Optional[str] = None) -> Tu
     if ".." in command or (working_directory and ".." in working_directory):
         raise DarwinException("Cannot pass directory traversal to 'run_cli_command'.")
 
+    if yes:
+        command = f"yes Y | {command}"
+
     if working_directory:
         result = run(
             command,
@@ -46,7 +49,9 @@ def run_cli_command(command: str, working_directory: Optional[str] = None) -> Tu
             capture_output=True,
             shell=True,
         )
+
     try:
         return result.returncode, result.stdout.decode("utf-8"), result.stderr.decode("utf-8")
-    except:
+    except UnicodeDecodeError:
         return result.returncode, result.stdout.decode("cp437"), result.stderr.decode("cp437")
+
