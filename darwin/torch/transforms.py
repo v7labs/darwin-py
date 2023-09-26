@@ -18,10 +18,10 @@ from typing import TYPE_CHECKING, Type
 
 if TYPE_CHECKING:
     from albumentations.pytorch import ToTensorV2
+
     AType = Type[ToTensorV2]
 else:
     AType = Type[None]
-
 
 
 from darwin.torch.utils import convert_segmentation_to_mask, flatten_masks_by_category
@@ -282,7 +282,6 @@ class AlbumentationsTransform:
     Wrapper class for Albumentations augmentations.
     """
 
-
     def __init__(self, transform: A.Compose):
         self._check_albumentaion_dependency()
         self.transform = transform
@@ -366,8 +365,10 @@ class AlbumentationsTransform:
 
         return image, output_annotation
 
-    def  _check_albumentaion_dependency(self):
+    def _check_albumentaion_dependency(self):
         if A is None:
-            raise ImportError("The albumentations library is not installed. "
-                            "To use this function, install it with pip install albumentations, "
-                            "or install the ml extras of this package.")
+            raise ImportError(
+                "The albumentations library is not installed. "
+                "To use this function, install it with pip install albumentations, "
+                "or install the ml extras of this package."
+            )
