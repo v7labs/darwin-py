@@ -1,7 +1,8 @@
 from typing import List, Optional
 
 from darwin.future.core.client import ClientCore
-from darwin.future.data_objects.team import TeamCore, get_team
+from darwin.future.core.team.get_team import get_team
+from darwin.future.data_objects.team import TeamCore
 from darwin.future.helpers.assertion import assert_is
 from darwin.future.meta.objects.base import MetaBase
 from darwin.future.meta.queries.dataset import DatasetQuery

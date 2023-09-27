@@ -3,8 +3,8 @@ from unittest.mock import Mock, patch
 import responses
 from pytest import fixture, raises
 
-from darwin.future.core.client import ClientCore, DarwinConfig
-from darwin.future.data_objects.team import TeamCore, TeamMemberCore
+from darwin.future.core.client import ClientCore
+from darwin.future.data_objects.team import TeamMemberCore
 from darwin.future.meta.objects.team import Team
 from darwin.future.tests.core.fixtures import *
 from darwin.future.tests.meta.objects.fixtures import *

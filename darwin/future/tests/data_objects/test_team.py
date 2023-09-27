@@ -5,12 +5,8 @@ import responses
 from pydantic import ValidationError
 
 from darwin.future.core.client import ClientCore
-from darwin.future.data_objects.team import (
-    TeamCore,
-    TeamMemberCore,
-    get_team,
-    get_team_members,
-)
+from darwin.future.core.team.get_team import get_team, get_team_members
+from darwin.future.data_objects.team import TeamCore, TeamMemberCore
 from darwin.future.tests.core.fixtures import *
 from darwin.future.tests.fixtures import *
 

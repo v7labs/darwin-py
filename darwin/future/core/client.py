@@ -9,10 +9,8 @@ import yaml
 from pydantic import BaseModel, root_validator, validator
 from requests.adapters import HTTPAdapter, Retry
 
-from darwin.future.core.types.common import QueryString
+from darwin.future.core.types.common import JSONType, QueryString
 from darwin.future.exceptions.client import NotFound, Unauthorized
-
-JSONType = Union[Dict[str, Any], List[Dict[str, Any]]]  # type: ignore
 
 
 class TeamsConfig(BaseModel):

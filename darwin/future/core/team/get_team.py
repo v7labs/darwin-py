@@ -1,6 +1,7 @@
 from typing import List, Optional, Tuple
 
 from darwin.future.core.client import ClientCore
+from darwin.future.core.types.common import JSONType
 from darwin.future.data_objects.team import TeamCore, TeamMemberCore
 
 
