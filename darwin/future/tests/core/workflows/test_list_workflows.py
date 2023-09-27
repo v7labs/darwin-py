@@ -7,7 +7,7 @@ from requests import HTTPError
 
 from darwin.future.core.client import CoreClient, JSONType
 from darwin.future.core.workflows.list_workflows import list_workflows
-from darwin.future.data_objects.workflow import Workflow
+from darwin.future.data_objects.workflow import WorkflowCore
 from darwin.future.tests.core.fixtures import *
 
 
@@ -28,7 +28,7 @@ def test_list_workflows(base_client: CoreClient, base_workflows_object: str) -> 
     # Assertions
     assert isinstance(workflows, List)
     assert len(workflows) == 3
-    assert all(isinstance(workflow, Workflow) for workflow in workflows)
+    assert all(isinstance(workflow, WorkflowCore) for workflow in workflows)
 
     assert not exceptions
 
@@ -51,7 +51,7 @@ def test_list_workflows_with_team_slug(base_client: CoreClient, base_workflows_o
     # Assertions
     assert isinstance(workflows, List)
     assert len(workflows) == len(response_data)
-    assert all(isinstance(workflow, Workflow) for workflow in workflows)
+    assert all(isinstance(workflow, WorkflowCore) for workflow in workflows)
 
     assert not exceptions
 

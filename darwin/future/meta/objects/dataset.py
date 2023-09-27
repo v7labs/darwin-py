@@ -12,12 +12,12 @@ from darwin.future.core.datasets.get_dataset import get_dataset
 from darwin.future.core.datasets.list_datasets import list_datasets
 from darwin.future.core.datasets.remove_dataset import remove_dataset
 from darwin.future.core.items.get import get_item_ids
-from darwin.future.data_objects.dataset import Dataset
+from darwin.future.data_objects.dataset import DatasetCore
 from darwin.future.helpers.assertion import assert_is
 from darwin.future.meta.objects.base import MetaBase
 
 
-class DatasetMeta(MetaBase[Dataset]):
+class DatasetMeta(MetaBase[DatasetCore]):
     """Dataset Meta object. Facilitates the creation of Query objects, lazy loading of sub fields
 
     Args:
@@ -57,12 +57,12 @@ class DatasetMeta(MetaBase[Dataset]):
         assert self.meta_params["team_slug"] is not None and type(self.meta_params["team_slug"]) == str
         return get_item_ids(self.client, self.meta_params["team_slug"], str(self._element.id))
 
-    def get_dataset_by_id(self) -> Dataset:
+    def get_dataset_by_id(self) -> DatasetCore:
         # TODO: implement
         raise NotImplementedError()
 
     @classmethod
-    def create_dataset(cls, client: CoreClient, slug: str) -> Tuple[Optional[List[Exception]], Optional[Dataset]]:
+    def create_dataset(cls, client: CoreClient, slug: str) -> Tuple[Optional[List[Exception]], Optional[DatasetCore]]:
         """
         Creates a new dataset for the given team
 
@@ -78,7 +78,7 @@ class DatasetMeta(MetaBase[Dataset]):
 
         """
         exceptions = []
-        dataset: Optional[Dataset] = None
+        dataset: Optional[DatasetCore] = None
 
         try:
             cls._validate_slug(slug)
@@ -88,7 +88,7 @@ class DatasetMeta(MetaBase[Dataset]):
 
         return exceptions or None, dataset
 
-    def update_dataset(self) -> Dataset:
+    def update_dataset(self) -> DatasetCore:
         # TODO: implement in IO-1018
         raise NotImplementedError()
 

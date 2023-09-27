@@ -1,7 +1,7 @@
 from typing import List, Optional
 
 from darwin.future.core.client import CoreClient
-from darwin.future.data_objects.team import Team, get_team
+from darwin.future.data_objects.team import TeamCore, get_team
 from darwin.future.helpers.assertion import assert_is
 from darwin.future.meta.objects.base import MetaBase
 from darwin.future.meta.queries.dataset import DatasetQuery
@@ -9,7 +9,7 @@ from darwin.future.meta.queries.team_member import TeamMemberQuery
 from darwin.future.meta.queries.workflow import WorkflowQuery
 
 
-class TeamMeta(MetaBase[Team]):
+class TeamMeta(MetaBase[TeamCore]):
     """Team Meta object. Facilitates the creation of Query objects, lazy loading of sub fields like members
     unlike other MetaBase objects, does not extend the __next__ function because it is not iterable. This is because
     Team is linked to api key and only one team can be returned, but stores a list of teams for consistency. This
@@ -23,7 +23,7 @@ class TeamMeta(MetaBase[Team]):
         _type_: TeamMeta
     """
 
-    def __init__(self, client: CoreClient, team: Optional[Team] = None) -> None:
+    def __init__(self, client: CoreClient, team: Optional[TeamCore] = None) -> None:
         team = team or get_team(client)
         super().__init__(client, team)
 

@@ -4,7 +4,7 @@ import pytest
 import responses
 
 from darwin.future.core.client import DarwinConfig
-from darwin.future.data_objects.team import Team
+from darwin.future.data_objects.team import TeamCore
 from darwin.future.meta.client import Client
 from darwin.future.meta.objects.team import TeamMeta
 from darwin.future.tests.core.fixtures import *
@@ -19,7 +19,7 @@ def test_creates_from_api_key() -> None:
         assert client.config.default_team == "test-team"
 
 
-def test_team_property(base_meta_client: Client, base_team: Team, base_team_json: dict) -> None:
+def test_team_property(base_meta_client: Client, base_team: TeamCore, base_team_json: dict) -> None:
     client = base_meta_client
     endpoint = client.config.api_endpoint + f"teams/{client.config.default_team}"
     with responses.RequestsMock() as rsps:

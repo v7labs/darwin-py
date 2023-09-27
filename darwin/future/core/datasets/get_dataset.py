@@ -2,10 +2,10 @@ from pydantic import parse_obj_as
 
 from darwin.future.core.client import CoreClient
 from darwin.future.core.types.common import QueryString
-from darwin.future.data_objects.dataset import Dataset
+from darwin.future.data_objects.dataset import DatasetCore
 
 
-def get_dataset(api_client: CoreClient, dataset_id: str) -> Dataset:
+def get_dataset(api_client: CoreClient, dataset_id: str) -> DatasetCore:
     """
     Returns a list of datasets for the given team
 
@@ -30,4 +30,4 @@ def get_dataset(api_client: CoreClient, dataset_id: str) -> Dataset:
 
     response = api_client.get("/datasets", QueryString({"id": str(dataset_id)}))
 
-    return parse_obj_as(Dataset, response)
+    return parse_obj_as(DatasetCore, response)

@@ -5,7 +5,7 @@ import pytest
 from darwin import item
 from darwin.future.core.client import CoreClient
 from darwin.future.core.types import query as Query
-from darwin.future.data_objects.team import Team
+from darwin.future.data_objects.team import TeamCore
 from darwin.future.tests.core.fixtures import *
 
 
@@ -29,8 +29,8 @@ def basic_filters() -> List[Query.QueryFilter]:
 
 
 @pytest.fixture
-def test_team() -> Team:
-    return Team(slug="test-team", id=0)
+def test_team() -> TeamCore:
+    return TeamCore(slug="test-team", id=0)
 
 
 def test_query_instantiated(

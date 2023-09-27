@@ -5,7 +5,7 @@ from requests import HTTPError
 
 from darwin.future.core.client import CoreClient, JSONType
 from darwin.future.core.workflows.get_workflow import get_workflow
-from darwin.future.data_objects.workflow import Workflow
+from darwin.future.data_objects.workflow import WorkflowCore
 from darwin.future.tests.core.fixtures import *
 
 
@@ -25,7 +25,7 @@ def test_get_workflow(base_client: CoreClient, base_single_workflow_object: JSON
     workflow, exceptions = get_workflow(base_client, workflow_id)
 
     # Assertions
-    assert isinstance(workflow, Workflow)
+    assert isinstance(workflow, WorkflowCore)
     assert not exceptions
 
 
@@ -47,7 +47,7 @@ def test_get_workflow_with_team_slug(base_client: CoreClient, base_single_workfl
     workflow, exceptions = get_workflow(base_client, workflow_id, team_slug)
 
     # Assertions
-    assert isinstance(workflow, Workflow)
+    assert isinstance(workflow, WorkflowCore)
     assert not exceptions
 
 

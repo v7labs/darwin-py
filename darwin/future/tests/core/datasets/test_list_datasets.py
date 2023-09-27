@@ -7,13 +7,13 @@ from darwin.future.core.client import CoreClient
 from darwin.future.core.datasets.list_datasets import list_datasets
 from darwin.future.core.types import TeamSlug
 from darwin.future.core.types.common import QueryString
-from darwin.future.data_objects.dataset import Dataset
+from darwin.future.data_objects.dataset import DatasetCore
 from darwin.future.tests.core.fixtures import *
 
 from .fixtures import *
 
 
-def test_it_lists_datasets(base_client: CoreClient, basic_list_of_datasets: List[Dataset]) -> None:
+def test_it_lists_datasets(base_client: CoreClient, basic_list_of_datasets: List[DatasetCore]) -> None:
     with responses.RequestsMock() as rsps:
         rsps.add(
             rsps.GET,

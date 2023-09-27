@@ -5,7 +5,7 @@ from uuid import UUID
 from darwin.exceptions import DarwinException
 from darwin.future.core.types.query import Param, Query, QueryFilter
 from darwin.future.core.workflows.list_workflows import list_workflows
-from darwin.future.data_objects.workflow import WFStage
+from darwin.future.data_objects.workflow import WFStageCore
 from darwin.future.helpers.exception_handler import handle_exception
 from darwin.future.meta.objects.workflow import WorkflowMeta
 
@@ -95,6 +95,6 @@ class WorkflowQuery(Query[WorkflowMeta]):
         return date1.astimezone(timezone.utc) >= date2.astimezone(timezone.utc)
 
     @classmethod
-    def _stages_contains(cls, stages: List[WFStage], stages_to_find: List[str]) -> bool:
+    def _stages_contains(cls, stages: List[WFStageCore], stages_to_find: List[str]) -> bool:
         stage_ids = [str(s.id) for s in stages]
         return any(stage_to_find in stage_ids for stage_to_find in stages_to_find)

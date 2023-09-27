@@ -4,7 +4,7 @@ import pytest
 import responses
 
 from darwin.future.core.client import CoreClient
-from darwin.future.data_objects.team import TeamMember
+from darwin.future.data_objects.team import TeamMemberCore
 from darwin.future.data_objects.team_member_role import TeamMemberRole
 from darwin.future.meta.objects.team_member import TeamMemberMeta
 from darwin.future.meta.queries.team_member import TeamMemberQuery

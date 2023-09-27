@@ -7,7 +7,7 @@ from responses import RequestsMock
 from sklearn import base
 
 from darwin.future.core.client import DarwinConfig
-from darwin.future.data_objects.workflow import WFStage, WFType
+from darwin.future.data_objects.workflow import WFStageCore, WFTypeCore
 from darwin.future.meta.client import Client
 from darwin.future.meta.objects.stage import StageMeta
 from darwin.future.tests.core.fixtures import *
@@ -21,12 +21,12 @@ def uuid_str() -> str:
 
 
 @fixture
-def base_WFStage(uuid_str: str) -> WFStage:
-    return WFStage(id=UUID(uuid_str), name="test-stage", type=WFType.ANNOTATE, assignable_users=[], edges=[])
+def base_WFStage(uuid_str: str) -> WFStageCore:
+    return WFStageCore(id=UUID(uuid_str), name="test-stage", type=WFTypeCore.ANNOTATE, assignable_users=[], edges=[])
 
 
 @fixture
-def stage_meta(base_meta_client: Client, base_WFStage: WFStage, workflow_id: UUID) -> StageMeta:
+def stage_meta(base_meta_client: Client, base_WFStage: WFStageCore, workflow_id: UUID) -> StageMeta:
     return StageMeta(
         base_meta_client, base_WFStage, {"team_slug": "default-team", "dataset_id": 1337, "workflow_id": workflow_id}
     )

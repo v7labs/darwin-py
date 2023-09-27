@@ -5,11 +5,11 @@ from uuid import UUID
 
 from darwin.future.core.items.get import get_item_ids_stage
 from darwin.future.core.items.move_items import move_items_to_stage
-from darwin.future.data_objects.workflow import WFStage
+from darwin.future.data_objects.workflow import WFStageCore
 from darwin.future.meta.objects.base import MetaBase
 
 
-class StageMeta(MetaBase[WFStage]):
+class StageMeta(MetaBase[WFStageCore]):
     """_summary_
 
     Args:

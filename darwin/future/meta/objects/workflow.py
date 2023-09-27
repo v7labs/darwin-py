@@ -8,12 +8,12 @@ from uuid import UUID
 from darwin.cli_functions import upload_data
 from darwin.dataset.upload_manager import LocalFile
 from darwin.datatypes import PathLike
-from darwin.future.data_objects.workflow import WFDataset, WFType, Workflow
+from darwin.future.data_objects.workflow import WFDatasetCore, WFTypeCore, WorkflowCore
 from darwin.future.meta.objects.base import MetaBase
 from darwin.future.meta.queries.stage import StageQuery
 
 
-class WorkflowMeta(MetaBase[Workflow]):
+class WorkflowMeta(MetaBase[WorkflowCore]):
     @property
     def stages(self) -> StageQuery:
         if self._element is None:
@@ -26,7 +26,7 @@ class WorkflowMeta(MetaBase[Workflow]):
         return StageQuery(self.client, meta_params=meta_params)
 
     @property
-    def datasets(self) -> List[WFDataset]:
+    def datasets(self) -> List[WFDatasetCore]:
         if self._element is None:
             raise ValueError("WorkflowMeta has no item")
         if self._element.dataset is None:
@@ -51,7 +51,7 @@ class WorkflowMeta(MetaBase[Workflow]):
         stages = self.stages
         ds_stage = stages[0]
         assert len(stages) > 1
-        assert ds_stage._element is not None and ds_stage._element.type == WFType.DATASET
+        assert ds_stage._element is not None and ds_stage._element.type == WFTypeCore.DATASET
         next_stage = ds_stage._element.edges[0].target_stage_id
         assert next_stage is not None
         ds_stage.move_attached_files_to_stage(next_stage)

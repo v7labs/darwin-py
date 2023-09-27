@@ -5,7 +5,7 @@ import responses
 
 from darwin.future.core.client import CoreClient
 from darwin.future.core.types.query import Modifier
-from darwin.future.data_objects.workflow import Workflow
+from darwin.future.data_objects.workflow import WorkflowCore
 from darwin.future.meta.objects.workflow import WorkflowMeta
 from darwin.future.meta.queries.workflow import WorkflowQuery
 from darwin.future.tests.core.fixtures import *

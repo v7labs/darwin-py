@@ -11,7 +11,7 @@ from darwin.future.data_objects.validators import parse_name
 from darwin.future.pydantic_base import DefaultDarwin
 
 
-class TeamMember(DefaultDarwin):
+class TeamMemberCore(DefaultDarwin):
     """A class to manage all the information around a team member on the darwin platform
     Attributes
     ----------
@@ -27,10 +27,10 @@ class TeamMember(DefaultDarwin):
     user_id: int
 
 
-TeamMemberList = List[TeamMember]
+TeamMemberList = List[TeamMemberCore]
 
 
-class Team(DefaultDarwin):
+class TeamCore(DefaultDarwin):
     """A class to manage all the information around a Team on the darwin platform, including validation
 
     Attributes
@@ -49,14 +49,14 @@ class Team(DefaultDarwin):
     slug: str
     id: int
     datasets: Optional[DatasetList] = None
-    members: Optional[List[TeamMember]] = None
+    members: Optional[List[TeamMemberCore]] = None
     default_role: TeamMemberRole = TeamMemberRole.USER
 
     # Data Validation
     _slug_validator = validator("slug", allow_reuse=True)(parse_name)
 
     @staticmethod
-    def from_client(client: CoreClient, team_slug: Optional[str] = None) -> Team:
+    def from_client(client: CoreClient, team_slug: Optional[str] = None) -> TeamCore:
         """Returns the team with the given slug from the client
 
         Args:
@@ -71,10 +71,10 @@ class Team(DefaultDarwin):
         return get_team(client, team_slug)
 
 
-TeamList = List[Team]
+TeamList = List[TeamCore]
 
 
-def get_team(client: CoreClient, team_slug: Optional[str] = None) -> Team:
+def get_team(client: CoreClient, team_slug: Optional[str] = None) -> TeamCore:
     """Returns the team with the given slug from the client
 
     Args:
@@ -87,10 +87,10 @@ def get_team(client: CoreClient, team_slug: Optional[str] = None) -> Team:
     if not team_slug:
         team_slug = client.config.default_team
     response = client.get(f"/teams/{team_slug}/")
-    return Team.parse_obj(response)
+    return TeamCore.parse_obj(response)
 
 
-def get_team_members(client: CoreClient) -> Tuple[List[TeamMember], List[Exception]]:
+def get_team_members(client: CoreClient) -> Tuple[List[TeamMemberCore], List[Exception]]:
     """Returns a list of team members for the given client
 
     Args:
@@ -104,7 +104,7 @@ def get_team_members(client: CoreClient) -> Tuple[List[TeamMember], List[Excepti
     errors = []
     for item in response:
         try:
-            members.append(TeamMember.parse_obj(item))
+            members.append(TeamMemberCore.parse_obj(item))
         except Exception as e:
             errors.append(e)
     return members, errors

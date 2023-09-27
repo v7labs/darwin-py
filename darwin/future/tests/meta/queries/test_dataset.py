@@ -2,7 +2,7 @@ import responses
 from pytest import fixture, mark
 
 from darwin.future.core.client import CoreClient
-from darwin.future.data_objects.dataset import Dataset
+from darwin.future.data_objects.dataset import DatasetCore
 from darwin.future.meta.objects.dataset import DatasetMeta
 from darwin.future.meta.queries.dataset import DatasetQuery
 from darwin.future.tests.core.fixtures import *

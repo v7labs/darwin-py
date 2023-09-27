@@ -5,13 +5,13 @@ from requests import HTTPError
 
 from darwin.future.core.client import CoreClient
 from darwin.future.core.datasets.get_dataset import get_dataset
-from darwin.future.data_objects.dataset import Dataset
+from darwin.future.data_objects.dataset import DatasetCore
 from darwin.future.tests.core.fixtures import *
 
 from .fixtures import *
 
 
-def test_it_gets_a_dataset(base_client: CoreClient, basic_dataset: Dataset) -> None:
+def test_it_gets_a_dataset(base_client: CoreClient, basic_dataset: DatasetCore) -> None:
     with responses.RequestsMock() as rsps:
         rsps.add(
             rsps.GET,
