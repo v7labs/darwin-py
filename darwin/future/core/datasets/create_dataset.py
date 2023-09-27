@@ -1,10 +1,10 @@
 from pydantic import parse_obj_as
 
-from darwin.future.core.client import CoreClient
+from darwin.future.core.client import ClientCore
 from darwin.future.data_objects.dataset import DatasetCore
 
 
-def create_dataset(api_client: CoreClient, name: str) -> DatasetCore:
+def create_dataset(api_client: ClientCore, name: str) -> DatasetCore:
     """
     Creates a new dataset for the given team
 

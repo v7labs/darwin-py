@@ -3,7 +3,7 @@ from pydantic import ValidationError
 from pytest import raises
 from requests import HTTPError
 
-from darwin.future.core.client import CoreClient
+from darwin.future.core.client import ClientCore
 from darwin.future.core.datasets.get_dataset import get_dataset
 from darwin.future.data_objects.dataset import DatasetCore
 from darwin.future.tests.core.fixtures import *
@@ -11,7 +11,7 @@ from darwin.future.tests.core.fixtures import *
 from .fixtures import *
 
 
-def test_it_gets_a_dataset(base_client: CoreClient, basic_dataset: DatasetCore) -> None:
+def test_it_gets_a_dataset(base_client: ClientCore, basic_dataset: DatasetCore) -> None:
     with responses.RequestsMock() as rsps:
         rsps.add(
             rsps.GET,
@@ -26,7 +26,7 @@ def test_it_gets_a_dataset(base_client: CoreClient, basic_dataset: DatasetCore) 
         assert dataset.slug == "1337"
 
 
-def test_it_raises_an_error_on_http_error(base_client: CoreClient) -> None:
+def test_it_raises_an_error_on_http_error(base_client: ClientCore) -> None:
     with responses.RequestsMock() as rsps:
         rsps.add(
             rsps.GET,
@@ -39,6 +39,6 @@ def test_it_raises_an_error_on_http_error(base_client: CoreClient) -> None:
             get_dataset(base_client, "test-dataset")
 
 
-def test_it_raises_an_error_on_pydantic_error(sad_client_pydantic: CoreClient) -> None:
+def test_it_raises_an_error_on_pydantic_error(sad_client_pydantic: ClientCore) -> None:
     with raises(ValidationError):
         get_dataset(sad_client_pydantic, "test-dataset")

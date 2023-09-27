@@ -4,7 +4,7 @@ from typing import List
 import orjson as json
 import pytest
 
-from darwin.future.core.client import CoreClient, DarwinConfig
+from darwin.future.core.client import ClientCore, DarwinConfig
 from darwin.future.data_objects.dataset import DatasetCore
 from darwin.future.data_objects.team import TeamCore, TeamMemberCore
 from darwin.future.data_objects.team_member_role import TeamMemberRole
@@ -24,8 +24,8 @@ def base_config() -> DarwinConfig:
 
 
 @pytest.fixture
-def base_client(base_config: DarwinConfig) -> CoreClient:
-    return CoreClient(base_config)
+def base_client(base_config: DarwinConfig) -> ClientCore:
+    return ClientCore(base_config)
 
 
 @pytest.fixture

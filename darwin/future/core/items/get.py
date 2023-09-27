@@ -1,11 +1,11 @@
 from typing import List, Union
 from uuid import UUID
 
-from darwin.future.core.client import CoreClient
+from darwin.future.core.client import ClientCore
 from darwin.future.core.types.common import QueryString
 
 
-def get_item_ids(api_client: CoreClient, team_slug: str, dataset_id: Union[str, int]) -> List[UUID]:
+def get_item_ids(api_client: ClientCore, team_slug: str, dataset_id: Union[str, int]) -> List[UUID]:
     """
     Returns a list of item ids for the dataset
 
@@ -34,7 +34,7 @@ def get_item_ids(api_client: CoreClient, team_slug: str, dataset_id: Union[str, 
 
 
 def get_item_ids_stage(
-    api_client: CoreClient, team_slug: str, dataset_id: Union[int, str], stage_id: Union[UUID, str]
+    api_client: ClientCore, team_slug: str, dataset_id: Union[int, str], stage_id: Union[UUID, str]
 ) -> List[UUID]:
     """
     Returns a list of item ids for the stage

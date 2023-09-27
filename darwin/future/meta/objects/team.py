@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from darwin.future.core.client import CoreClient
+from darwin.future.core.client import ClientCore
 from darwin.future.data_objects.team import TeamCore, get_team
 from darwin.future.helpers.assertion import assert_is
 from darwin.future.meta.objects.base import MetaBase
@@ -23,7 +23,7 @@ class Team(MetaBase[TeamCore]):
         _type_: TeamMeta
     """
 
-    def __init__(self, client: CoreClient, team: Optional[TeamCore] = None) -> None:
+    def __init__(self, client: ClientCore, team: Optional[TeamCore] = None) -> None:
         team = team or get_team(client)
         super().__init__(client, team)
 

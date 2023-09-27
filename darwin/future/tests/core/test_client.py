@@ -6,7 +6,7 @@ import responses
 from pydantic import ValidationError
 from requests import HTTPError
 
-from darwin.future.core.client import CoreClient, DarwinConfig, TeamsConfig
+from darwin.future.core.client import ClientCore, DarwinConfig, TeamsConfig
 from darwin.future.exceptions.base import DarwinException
 from darwin.future.exceptions.client import NotFound, Unauthorized
 from darwin.future.tests.core.fixtures import *
@@ -46,7 +46,7 @@ def test_invalid_config_url_validation(base_url: str, tmp_path: Path) -> None:
         )
 
 
-def test_client(base_client: CoreClient) -> None:
+def test_client(base_client: ClientCore) -> None:
     assert base_client.config.api_key == "test_key"
     assert base_client.config.base_url == "http://test_url.com/"
     assert base_client.config.default_team == "default-team"
@@ -93,7 +93,7 @@ def test_client(base_client: CoreClient) -> None:
     "status_code, exception",
     [(401, Unauthorized), (404, NotFound)],
 )
-def test_client_raises_darwin(status_code: int, exception: DarwinException, base_client: CoreClient) -> None:
+def test_client_raises_darwin(status_code: int, exception: DarwinException, base_client: ClientCore) -> None:
     endpoint = base_client.config.api_endpoint + "test_endpoint"
     with responses.RequestsMock() as rsps:
         rsps.add(responses.GET, endpoint, json={"test": "test"}, status=status_code)
@@ -117,7 +117,7 @@ def test_client_raises_darwin(status_code: int, exception: DarwinException, base
             base_client.patch("test_endpoint", {"test": "test"})
 
 
-def test_client_raises_generic(base_client: CoreClient) -> None:
+def test_client_raises_generic(base_client: ClientCore) -> None:
     endpoint = base_client.config.api_endpoint + "test_endpoint"
     status_code = 499
     with responses.RequestsMock() as rsps:

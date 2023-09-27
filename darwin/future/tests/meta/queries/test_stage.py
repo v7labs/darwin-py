@@ -3,7 +3,7 @@ from typing import List
 import pytest
 import responses
 
-from darwin.future.core.client import CoreClient
+from darwin.future.core.client import ClientCore
 from darwin.future.data_objects.workflow import WFTypeCore, WorkflowCore
 from darwin.future.meta.objects.stage import Stage
 from darwin.future.meta.objects.workflow import Workflow
@@ -12,12 +12,12 @@ from darwin.future.tests.core.fixtures import *
 
 
 @pytest.fixture
-def filled_query(base_client: CoreClient, base_workflow_meta: Workflow) -> StageQuery:
+def filled_query(base_client: ClientCore, base_workflow_meta: Workflow) -> StageQuery:
     return StageQuery(base_client, meta_params={"workflow_id": str(base_workflow_meta.id)})
 
 
 @pytest.fixture
-def base_workflow_meta(base_client: CoreClient, base_single_workflow_object: dict) -> Workflow:
+def base_workflow_meta(base_client: ClientCore, base_single_workflow_object: dict) -> Workflow:
     return Workflow(base_client, WorkflowCore.parse_obj(base_single_workflow_object))
 
 

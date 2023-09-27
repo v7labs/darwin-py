@@ -4,7 +4,7 @@ from pydantic import BaseModel, ValidationError
 from pytest import fixture
 from requests import HTTPError
 
-from darwin.future.core.client import CoreClient
+from darwin.future.core.client import ClientCore
 
 
 @fixture
@@ -42,8 +42,8 @@ def basic_list_of_datasets() -> list:
 
 
 @fixture
-def sad_http_client() -> CoreClient:
-    mock = MagicMock(CoreClient)
+def sad_http_client() -> ClientCore:
+    mock = MagicMock(ClientCore)
     mock.post.side_effect = HTTPError("error")
     mock.get.side_effect = HTTPError("error")
     mock.delete.side_effect = HTTPError("error")
@@ -52,8 +52,8 @@ def sad_http_client() -> CoreClient:
 
 
 @fixture
-def happy_post_client() -> CoreClient:
-    mock_client = MagicMock(CoreClient)
+def happy_post_client() -> ClientCore:
+    mock_client = MagicMock(ClientCore)
     mock_client.post.return_value = {
         "name": "test-dataset",
         "slug": "1337",
@@ -65,8 +65,8 @@ def happy_post_client() -> CoreClient:
 
 
 @fixture
-def happy_get_client() -> CoreClient:
-    mock_client = MagicMock(CoreClient)
+def happy_get_client() -> ClientCore:
+    mock_client = MagicMock(ClientCore)
     mock_client.get.return_value = [
         {
             "name": "test-dataset",
@@ -80,5 +80,5 @@ def happy_get_client() -> CoreClient:
 
 
 @fixture
-def sad_client_pydantic() -> CoreClient:
-    return MagicMock(CoreClient, side_effect=ValidationError(["error1", "error2", "error3"], model=BaseModel))
+def sad_client_pydantic() -> ClientCore:
+    return MagicMock(ClientCore, side_effect=ValidationError(["error1", "error2", "error3"], model=BaseModel))

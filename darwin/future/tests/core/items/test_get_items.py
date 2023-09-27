@@ -3,13 +3,13 @@ from uuid import UUID, uuid4
 
 import responses
 
-from darwin.future.core.client import CoreClient
+from darwin.future.core.client import ClientCore
 from darwin.future.core.items.get import get_item_ids, get_item_ids_stage
 from darwin.future.tests.core.fixtures import *
 from darwin.future.tests.core.items.fixtures import *
 
 
-def test_get_item_ids(UUIDs: List[UUID], UUIDs_str: List[str], base_client: CoreClient) -> None:
+def test_get_item_ids(UUIDs: List[UUID], UUIDs_str: List[str], base_client: ClientCore) -> None:
     with responses.RequestsMock() as rsps:
         rsps.add(
             rsps.GET,
@@ -22,7 +22,7 @@ def test_get_item_ids(UUIDs: List[UUID], UUIDs_str: List[str], base_client: Core
         assert item_ids == UUIDs
 
 
-def test_get_item_ids_stage(UUIDs: List[UUID], UUIDs_str: List[str], base_client: CoreClient) -> None:
+def test_get_item_ids_stage(UUIDs: List[UUID], UUIDs_str: List[str], base_client: ClientCore) -> None:
     stage_id = str(uuid4())
     with responses.RequestsMock() as rsps:
         rsps.add(

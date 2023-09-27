@@ -3,7 +3,7 @@ from uuid import UUID
 
 from pytest import fixture, raises
 
-from darwin.future.core.client import CoreClient
+from darwin.future.core.client import ClientCore
 from darwin.future.data_objects.team import TeamCore
 from darwin.future.data_objects.workflow import WFStageCore, WorkflowCore
 from darwin.future.meta.objects import stage
@@ -19,17 +19,17 @@ def base_UUID() -> UUID:
 
 
 @fixture
-def base_meta_team(base_client: CoreClient, base_team: TeamCore) -> Team:
+def base_meta_team(base_client: ClientCore, base_team: TeamCore) -> Team:
     return Team(base_client, base_team)
 
 
 @fixture
-def base_meta_workflow(base_client: CoreClient, base_workflow: WorkflowCore) -> Workflow:
+def base_meta_workflow(base_client: ClientCore, base_workflow: WorkflowCore) -> Workflow:
     return Workflow(base_client, base_workflow)
 
 
 @fixture
-def base_meta_stage(base_client: CoreClient, base_stage: WFStageCore, base_UUID: UUID) -> Stage:
+def base_meta_stage(base_client: ClientCore, base_stage: WFStageCore, base_UUID: UUID) -> Stage:
     return Stage(base_client, base_stage, base_UUID)
 
 

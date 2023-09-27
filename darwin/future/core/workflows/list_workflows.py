@@ -2,11 +2,11 @@ from typing import List, Optional, Tuple
 
 from pydantic import ValidationError
 
-from darwin.future.core.client import CoreClient
+from darwin.future.core.client import ClientCore
 from darwin.future.data_objects.workflow import WorkflowCore, WorkflowListValidator
 
 
-def list_workflows(client: CoreClient, team_slug: Optional[str] = None) -> Tuple[List[WorkflowCore], List[Exception]]:
+def list_workflows(client: ClientCore, team_slug: Optional[str] = None) -> Tuple[List[WorkflowCore], List[Exception]]:
     """
     Returns a list of workflows for the given team
 

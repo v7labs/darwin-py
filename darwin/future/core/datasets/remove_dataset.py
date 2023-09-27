@@ -1,10 +1,10 @@
 from typing import Optional
 
-from darwin.future.core.client import CoreClient
+from darwin.future.core.client import ClientCore
 from darwin.future.exceptions.core.datasets import DatasetNotFound
 
 
-def remove_dataset(api_client: CoreClient, id: int, team_slug: Optional[str] = None) -> int:
+def remove_dataset(api_client: ClientCore, id: int, team_slug: Optional[str] = None) -> int:
     """
     Creates a new dataset for the given team
 

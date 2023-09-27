@@ -1,14 +1,14 @@
 import responses
 from pytest import fixture, mark
 
-from darwin.future.core.client import CoreClient
+from darwin.future.core.client import ClientCore
 from darwin.future.data_objects.dataset import DatasetCore
 from darwin.future.meta.objects.dataset import Dataset
 from darwin.future.meta.queries.dataset import DatasetQuery
 from darwin.future.tests.core.fixtures import *
 
 
-def test_dataset_collects_basic(base_client: CoreClient, base_datasets_json: dict) -> None:
+def test_dataset_collects_basic(base_client: ClientCore, base_datasets_json: dict) -> None:
     query = DatasetQuery(base_client)
     with responses.RequestsMock() as rsps:
         endpoint = base_client.config.api_endpoint + "datasets"
@@ -19,7 +19,7 @@ def test_dataset_collects_basic(base_client: CoreClient, base_datasets_json: dic
 
 
 def test_datasetquery_only_passes_back_correctly_formed_objects(
-    base_client: CoreClient, base_dataset_json: dict
+    base_client: ClientCore, base_dataset_json: dict
 ) -> None:
     query = DatasetQuery(base_client)
     with responses.RequestsMock() as rsps:
@@ -31,7 +31,7 @@ def test_datasetquery_only_passes_back_correctly_formed_objects(
         assert isinstance(datasets[0], Dataset)
 
 
-def test_dataset_filters_name(base_client: CoreClient, base_datasets_json: dict) -> None:
+def test_dataset_filters_name(base_client: ClientCore, base_datasets_json: dict) -> None:
     with responses.RequestsMock() as rsps:
         query = DatasetQuery(base_client).where({"name": "name", "param": "test dataset 1"})
         endpoint = base_client.config.api_endpoint + "datasets"
@@ -43,7 +43,7 @@ def test_dataset_filters_name(base_client: CoreClient, base_datasets_json: dict)
         assert datasets[0]._element.slug == "test-dataset-1"
 
 
-def test_dataset_filters_id(base_client: CoreClient, base_datasets_json: dict) -> None:
+def test_dataset_filters_id(base_client: ClientCore, base_datasets_json: dict) -> None:
     with responses.RequestsMock() as rsps:
         query = DatasetQuery(base_client).where({"name": "id", "param": 1})
         endpoint = base_client.config.api_endpoint + "datasets"
@@ -55,7 +55,7 @@ def test_dataset_filters_id(base_client: CoreClient, base_datasets_json: dict) -
         assert datasets[0]._element.slug == "test-dataset-1"
 
 
-def test_dataset_filters_slug(base_client: CoreClient, base_datasets_json: dict) -> None:
+def test_dataset_filters_slug(base_client: ClientCore, base_datasets_json: dict) -> None:
     with responses.RequestsMock() as rsps:
         query = DatasetQuery(base_client).where({"name": "slug", "param": "test-dataset-1"})
         endpoint = base_client.config.api_endpoint + "datasets"
@@ -67,7 +67,7 @@ def test_dataset_filters_slug(base_client: CoreClient, base_datasets_json: dict)
         assert datasets[0]._element.slug == "test-dataset-1"
 
 
-def test_dataset_filters_releases(base_client: CoreClient, base_datasets_json_with_releases: dict) -> None:
+def test_dataset_filters_releases(base_client: ClientCore, base_datasets_json_with_releases: dict) -> None:
     with responses.RequestsMock() as rsps:
         query = DatasetQuery(base_client).where({"name": "releases", "param": "release1"})
         endpoint = base_client.config.api_endpoint + "datasets"

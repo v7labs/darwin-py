@@ -3,7 +3,7 @@ from typing import Any, List, Optional, Type
 import pytest
 
 from darwin import item
-from darwin.future.core.client import CoreClient
+from darwin.future.core.client import ClientCore
 from darwin.future.core.types import query as Query
 from darwin.future.data_objects.team import TeamCore
 from darwin.future.tests.core.fixtures import *
@@ -34,14 +34,14 @@ def test_team() -> TeamCore:
 
 
 def test_query_instantiated(
-    base_client: CoreClient, basic_filters: List[Query.QueryFilter], non_abc_query: Type[Query.Query]
+    base_client: ClientCore, basic_filters: List[Query.QueryFilter], non_abc_query: Type[Query.Query]
 ) -> None:
     q = non_abc_query(base_client, basic_filters)
     assert q.filters == basic_filters
 
 
 def test_query_filter_functionality(
-    base_client: CoreClient, basic_filters: List[Query.QueryFilter], non_abc_query: Type[Query.Query]
+    base_client: ClientCore, basic_filters: List[Query.QueryFilter], non_abc_query: Type[Query.Query]
 ) -> None:
     q = non_abc_query(base_client)
     for f in basic_filters:
@@ -126,14 +126,14 @@ def test_QF_from_asteriks() -> None:
         Query.QueryFilter._from_args(1, 2, 3)
 
 
-def test_query_first(non_abc_query: Type[Query.Query], base_client: CoreClient) -> None:
+def test_query_first(non_abc_query: Type[Query.Query], base_client: ClientCore) -> None:
     query = non_abc_query(base_client)
     query.results = [1, 2, 3]
     first = query.first()
     assert first == 1
 
 
-def test_query_collect_one(non_abc_query: Type[Query.Query], base_client: CoreClient) -> None:
+def test_query_collect_one(non_abc_query: Type[Query.Query], base_client: ClientCore) -> None:
     query = non_abc_query(base_client)
     query.results = [1, 2, 3]
     with pytest.raises(ValueError):

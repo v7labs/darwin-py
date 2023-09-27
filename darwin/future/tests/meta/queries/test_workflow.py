@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 
 import responses
 
-from darwin.future.core.client import CoreClient
+from darwin.future.core.client import ClientCore
 from darwin.future.core.types.query import Modifier
 from darwin.future.data_objects.workflow import WorkflowCore
 from darwin.future.meta.objects.workflow import Workflow
@@ -20,7 +20,7 @@ def workflows_query_endpoint(team: str) -> str:
 
 
 @responses.activate
-def test_workflowquery_collects_basic(base_client: CoreClient, base_filterable_workflows: dict) -> None:
+def test_workflowquery_collects_basic(base_client: ClientCore, base_filterable_workflows: dict) -> None:
     endpoint = base_client.config.api_endpoint + workflows_query_endpoint(base_client.config.default_team)
     responses.add(responses.GET, endpoint, json=base_filterable_workflows)
 
@@ -32,7 +32,7 @@ def test_workflowquery_collects_basic(base_client: CoreClient, base_filterable_w
 
 
 @responses.activate
-def test_workflowquery_filters_uuid(base_client: CoreClient, base_filterable_workflows: dict) -> None:
+def test_workflowquery_filters_uuid(base_client: ClientCore, base_filterable_workflows: dict) -> None:
     endpoint = base_client.config.api_endpoint + workflows_query_endpoint(base_client.config.default_team)
     responses.add(responses.GET, endpoint, json=base_filterable_workflows)
 
@@ -49,7 +49,7 @@ def test_workflowquery_filters_uuid(base_client: CoreClient, base_filterable_wor
 
 
 @responses.activate
-def test_workflowquery_filters_inserted_at(base_client: CoreClient, base_filterable_workflows: dict) -> None:
+def test_workflowquery_filters_inserted_at(base_client: ClientCore, base_filterable_workflows: dict) -> None:
     endpoint = base_client.config.api_endpoint + workflows_query_endpoint(base_client.config.default_team)
     responses.add(responses.GET, endpoint, json=base_filterable_workflows)
 
@@ -80,7 +80,7 @@ def test_workflowquery_filters_inserted_at(base_client: CoreClient, base_filtera
 
 
 @responses.activate
-def test_workflowquery_filters_updated_at(base_client: CoreClient, base_filterable_workflows: dict) -> None:
+def test_workflowquery_filters_updated_at(base_client: ClientCore, base_filterable_workflows: dict) -> None:
     endpoint = base_client.config.api_endpoint + workflows_query_endpoint(base_client.config.default_team)
     responses.add(responses.GET, endpoint, json=base_filterable_workflows)
 
@@ -111,7 +111,7 @@ def test_workflowquery_filters_updated_at(base_client: CoreClient, base_filterab
 
 
 @responses.activate
-def test_workflowquery_filters_dataset_id(base_client: CoreClient, base_filterable_workflows: dict) -> None:
+def test_workflowquery_filters_dataset_id(base_client: ClientCore, base_filterable_workflows: dict) -> None:
     endpoint = base_client.config.api_endpoint + workflows_query_endpoint(base_client.config.default_team)
     responses.add(responses.GET, endpoint, json=base_filterable_workflows)
 
@@ -129,7 +129,7 @@ def test_workflowquery_filters_dataset_id(base_client: CoreClient, base_filterab
 
 @responses.activate
 def test_workflowquery_filters_dataset_id_multiple_ids(
-    base_client: CoreClient, base_filterable_workflows: dict
+    base_client: ClientCore, base_filterable_workflows: dict
 ) -> None:
     endpoint = base_client.config.api_endpoint + workflows_query_endpoint(base_client.config.default_team)
     responses.add(responses.GET, endpoint, json=base_filterable_workflows)
@@ -148,7 +148,7 @@ def test_workflowquery_filters_dataset_id_multiple_ids(
 
 
 @responses.activate
-def test_workflowquery_filters_dataset_name(base_client: CoreClient, base_filterable_workflows: dict) -> None:
+def test_workflowquery_filters_dataset_name(base_client: ClientCore, base_filterable_workflows: dict) -> None:
     endpoint = base_client.config.api_endpoint + workflows_query_endpoint(base_client.config.default_team)
     responses.add(responses.GET, endpoint, json=base_filterable_workflows)
 
@@ -166,7 +166,7 @@ def test_workflowquery_filters_dataset_name(base_client: CoreClient, base_filter
 
 @responses.activate
 def test_workflowquery_filters_dataset_name_mutliple_names(
-    base_client: CoreClient, base_filterable_workflows: dict
+    base_client: ClientCore, base_filterable_workflows: dict
 ) -> None:
     endpoint = base_client.config.api_endpoint + workflows_query_endpoint(base_client.config.default_team)
     responses.add(responses.GET, endpoint, json=base_filterable_workflows)
@@ -185,7 +185,7 @@ def test_workflowquery_filters_dataset_name_mutliple_names(
 
 
 @responses.activate
-def test_workflowquery_filters_stages(base_client: CoreClient, base_filterable_workflows: dict) -> None:
+def test_workflowquery_filters_stages(base_client: ClientCore, base_filterable_workflows: dict) -> None:
     endpoint = base_client.config.api_endpoint + workflows_query_endpoint(base_client.config.default_team)
     responses.add(responses.GET, endpoint, json=base_filterable_workflows)
 
@@ -202,7 +202,7 @@ def test_workflowquery_filters_stages(base_client: CoreClient, base_filterable_w
 
 
 @responses.activate
-def test_workflowquery_filters_stages_multiple(base_client: CoreClient, base_filterable_workflows: dict) -> None:
+def test_workflowquery_filters_stages_multiple(base_client: ClientCore, base_filterable_workflows: dict) -> None:
     endpoint = base_client.config.api_endpoint + workflows_query_endpoint(base_client.config.default_team)
     responses.add(responses.GET, endpoint, json=base_filterable_workflows)
 

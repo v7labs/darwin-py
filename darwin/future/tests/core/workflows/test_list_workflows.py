@@ -5,14 +5,14 @@ import responses
 from pydantic import ValidationError
 from requests import HTTPError
 
-from darwin.future.core.client import CoreClient, JSONType
+from darwin.future.core.client import ClientCore, JSONType
 from darwin.future.core.workflows.list_workflows import list_workflows
 from darwin.future.data_objects.workflow import WorkflowCore
 from darwin.future.tests.core.fixtures import *
 
 
 @responses.activate
-def test_list_workflows(base_client: CoreClient, base_workflows_object: str) -> None:
+def test_list_workflows(base_client: ClientCore, base_workflows_object: str) -> None:
     # Mocking the response using responses library
     response_data = base_workflows_object
     responses.add(
@@ -34,7 +34,7 @@ def test_list_workflows(base_client: CoreClient, base_workflows_object: str) -> 
 
 
 @responses.activate
-def test_list_workflows_with_team_slug(base_client: CoreClient, base_workflows_object: JSONType) -> None:
+def test_list_workflows_with_team_slug(base_client: ClientCore, base_workflows_object: JSONType) -> None:
     # Mocking the response using responses library
     team_slug = "team-slug"
     response_data = base_workflows_object
@@ -57,7 +57,7 @@ def test_list_workflows_with_team_slug(base_client: CoreClient, base_workflows_o
 
 
 @responses.activate
-def test_list_workflows_with_invalid_response(base_client: CoreClient) -> None:
+def test_list_workflows_with_invalid_response(base_client: ClientCore) -> None:
     # Mocking the response using responses library
     responses.add(
         responses.GET,
@@ -77,7 +77,7 @@ def test_list_workflows_with_invalid_response(base_client: CoreClient) -> None:
 
 
 @responses.activate
-def test_list_workflows_with_error(base_client: CoreClient) -> None:
+def test_list_workflows_with_error(base_client: ClientCore) -> None:
     # Mocking the response using responses library
     responses.add(
         responses.GET,

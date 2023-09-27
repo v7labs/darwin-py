@@ -5,13 +5,13 @@ from typing import List, Optional
 
 from requests.adapters import Retry
 
-from darwin.future.core.client import CoreClient, DarwinConfig
+from darwin.future.core.client import ClientCore, DarwinConfig
 from darwin.future.meta.objects.team import Team
 from darwin.future.meta.objects.workflow import Workflow
 from darwin.future.meta.queries.workflow import WorkflowQuery
 
 
-class Client(CoreClient):
+class Client(ClientCore):
     def __init__(self, config: DarwinConfig, retries: Optional[Retry] = None) -> None:
         self._team: Optional[Team] = None
         super().__init__(config, retries=retries)
@@ -24,7 +24,7 @@ class Client(CoreClient):
     @classmethod
     def from_api_key(cls, api_key: str, datasets_dir: Optional[Path] = None) -> Client:
         config = DarwinConfig.from_api_key_with_defaults(api_key=api_key)
-        client = CoreClient(config)  # create a temporary client to get the default team
+        client = ClientCore(config)  # create a temporary client to get the default team
         token_info = client.get("/users/token_info")
         assert isinstance(token_info, dict)
         default_team: str = token_info["selected_team"]["slug"]

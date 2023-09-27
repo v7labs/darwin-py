@@ -6,7 +6,7 @@ from uuid import UUID
 from darwin.cli_functions import upload_data
 from darwin.dataset.upload_manager import LocalFile
 from darwin.datatypes import PathLike
-from darwin.future.core.client import CoreClient
+from darwin.future.core.client import ClientCore
 from darwin.future.core.datasets.create_dataset import create_dataset
 from darwin.future.core.datasets.get_dataset import get_dataset
 from darwin.future.core.datasets.list_datasets import list_datasets
@@ -62,7 +62,7 @@ class Dataset(MetaBase[DatasetCore]):
         raise NotImplementedError()
 
     @classmethod
-    def create_dataset(cls, client: CoreClient, slug: str) -> Tuple[Optional[List[Exception]], Optional[DatasetCore]]:
+    def create_dataset(cls, client: ClientCore, slug: str) -> Tuple[Optional[List[Exception]], Optional[DatasetCore]]:
         """
         Creates a new dataset for the given team
 
@@ -93,7 +93,7 @@ class Dataset(MetaBase[DatasetCore]):
         raise NotImplementedError()
 
     @classmethod
-    def delete_dataset(cls, client: CoreClient, dataset_id: Union[int, str]) -> Tuple[Optional[List[Exception]], int]:
+    def delete_dataset(cls, client: ClientCore, dataset_id: Union[int, str]) -> Tuple[Optional[List[Exception]], int]:
         """
         Deletes a dataset by id or slug
 
@@ -122,7 +122,7 @@ class Dataset(MetaBase[DatasetCore]):
         return exceptions or None, dataset_deleted
 
     @staticmethod
-    def _delete_by_slug(client: CoreClient, slug: str) -> int:
+    def _delete_by_slug(client: ClientCore, slug: str) -> int:
         """
         (internal) Deletes a dataset by slug
 
@@ -139,7 +139,7 @@ class Dataset(MetaBase[DatasetCore]):
         int
             The dataset deleted
         """
-        assert_is(isinstance(client, CoreClient), "client must be a Core Client")
+        assert_is(isinstance(client, ClientCore), "client must be a Core Client")
         assert_is(isinstance(slug, str), "slug must be a string")
 
         dataset = get_dataset(client, slug)
@@ -151,7 +151,7 @@ class Dataset(MetaBase[DatasetCore]):
         return dataset_deleted
 
     @staticmethod
-    def _delete_by_id(client: CoreClient, dataset_id: int) -> int:
+    def _delete_by_id(client: ClientCore, dataset_id: int) -> int:
         """
         (internal) Deletes a dataset by id
 
@@ -168,7 +168,7 @@ class Dataset(MetaBase[DatasetCore]):
         int
             The dataset deleted
         """
-        assert_is(isinstance(client, CoreClient), "client must be a Client")
+        assert_is(isinstance(client, ClientCore), "client must be a Client")
         assert_is(isinstance(dataset_id, int), "dataset_id must be an integer")
 
         dataset_deleted = remove_dataset(client, dataset_id)

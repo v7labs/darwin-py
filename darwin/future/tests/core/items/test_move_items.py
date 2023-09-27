@@ -4,7 +4,7 @@ from uuid import UUID, uuid4
 import pytest
 import responses
 
-from darwin.future.core.client import CoreClient
+from darwin.future.core.client import ClientCore
 from darwin.future.core.items.move_items import move_items_to_stage
 from darwin.future.tests.core.fixtures import *
 from darwin.future.tests.core.items.fixtures import *
@@ -23,7 +23,7 @@ def move_payload(UUIDs_str: List[str], stage_id: UUID, workflow_id: UUID) -> Dic
 
 
 def test_move_items(
-    base_client: CoreClient,
+    base_client: ClientCore,
     move_payload: Dict,
     stage_id: UUID,
     workflow_id: UUID,
