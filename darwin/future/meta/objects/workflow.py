@@ -16,8 +16,6 @@ from darwin.future.meta.queries.stage import StageQuery
 class Workflow(MetaBase[WorkflowCore]):
     @property
     def stages(self) -> StageQuery:
-        if self._element is None:
-            raise ValueError("WorkflowMeta has no item")
         meta_params = self.meta_params.copy()
         meta_params["workflow_id"] = self._element.id
         if self.datasets is not None:
@@ -27,22 +25,16 @@ class Workflow(MetaBase[WorkflowCore]):
 
     @property
     def datasets(self) -> List[WFDatasetCore]:
-        if self._element is None:
-            raise ValueError("WorkflowMeta has no item")
         if self._element.dataset is None:
             raise ValueError("WorkflowMeta has no associated dataset")
         return [self._element.dataset]
 
     @property
     def id(self) -> UUID:
-        if self._element is None:
-            raise ValueError("WorkflowMeta has no item")
         return self._element.id
 
     @property
     def name(self) -> str:
-        if self._element is None:
-            raise ValueError("WorkflowMeta has no item")
         return self._element.name
 
     def push_from_dataset_stage(self) -> Workflow:

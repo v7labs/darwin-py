@@ -15,6 +15,12 @@ from typing import (
 )
 
 from darwin.future.core.client import ClientCore
+from darwin.future.exceptions.query import (
+    InvalidQueryFilter,
+    InvalidQueryModifier,
+    MoreThanOneResultFound,
+    ResultsNotFound,
+)
 from darwin.future.meta.objects.base import MetaBase
 from darwin.future.pydantic_base import DefaultDarwin
 
@@ -64,12 +70,12 @@ class QueryFilter(DefaultDarwin):
         elif self.modifier == Modifier.CONTAINS:
             return param in attr
         else:
-            raise ValueError(f"Unknown modifier {self.modifier}")
+            raise InvalidQueryModifier(f"Unknown modifier {self.modifier}")
 
     @classmethod
     def _from_dict(cls, d: Dict[str, Any]) -> QueryFilter:  # type: ignore
         if "name" not in d or "param" not in d:
-            raise ValueError(f"args must be a QueryFilter or a dict with 'name' and 'param' keys, got {d}")
+            raise InvalidQueryFilter(f"args must be a QueryFilter or a dict with 'name' and 'param' keys, got {d}")
         modifier = Modifier(d["modifier"]) if "modifier" in d else None
         return QueryFilter(name=d["name"], param=str(d["param"]), modifier=modifier)
 
@@ -89,7 +95,7 @@ class QueryFilter(DefaultDarwin):
         elif isinstance(arg, dict):
             return cls._from_dict(arg)
         else:
-            raise ValueError(f"args must be a QueryFilter or a dict with 'name' and 'param' keys, got {arg}")
+            raise InvalidQueryFilter(f"args must be a QueryFilter or a dict with 'name' and 'param' keys, got {arg}")
 
     @classmethod
     def _from_kwarg(cls, key: str, value: str) -> QueryFilter:
@@ -186,9 +192,9 @@ class Query(Generic[T], ABC):
         if not self.results:
             self.results = list(self.collect())
         if len(self.results) == 0:
-            raise ValueError("No results found")
+            raise ResultsNotFound("No results found")
         if len(self.results) > 1:
-            raise ValueError("More than one result found")
+            raise MoreThanOneResultFound("More than one result found")
         return self.results[0]
 
     def first(self) -> Optional[T]:

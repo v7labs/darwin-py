@@ -13,6 +13,7 @@ from darwin.future.core.datasets.list_datasets import list_datasets
 from darwin.future.core.datasets.remove_dataset import remove_dataset
 from darwin.future.core.items.get import get_item_ids
 from darwin.future.data_objects.dataset import DatasetCore
+from darwin.future.exceptions.meta import MissingDataset
 from darwin.future.helpers.assertion import assert_is
 from darwin.future.meta.objects.base import MetaBase
 
@@ -142,7 +143,7 @@ class Dataset(MetaBase[DatasetCore]):
         if dataset and dataset.id:
             dataset_deleted = remove_dataset(client, dataset.id)
         else:
-            raise Exception(f"Dataset with slug {slug} not found")
+            raise MissingDataset(f"Dataset with slug {slug} not found")
 
         return dataset_deleted
 

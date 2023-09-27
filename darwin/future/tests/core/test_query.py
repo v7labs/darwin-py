@@ -6,6 +6,7 @@ from darwin import item
 from darwin.future.core.client import ClientCore
 from darwin.future.core.types import query as Query
 from darwin.future.data_objects.team import TeamCore
+from darwin.future.exceptions.query import InvalidQueryFilter, MoreThanOneResultFound
 from darwin.future.tests.core.fixtures import *
 
 
@@ -120,7 +121,7 @@ def test_QF_from_asteriks() -> None:
     assert QF[1].modifier == Query.Modifier("!=")
 
     # fails on bad args
-    with pytest.raises(ValueError):
+    with pytest.raises(InvalidQueryFilter):
         Query.QueryFilter._from_args({})
         Query.QueryFilter._from_args([])
         Query.QueryFilter._from_args(1, 2, 3)
@@ -136,7 +137,7 @@ def test_query_first(non_abc_query: Type[Query.Query], base_client: ClientCore) 
 def test_query_collect_one(non_abc_query: Type[Query.Query], base_client: ClientCore) -> None:
     query = non_abc_query(base_client)
     query.results = [1, 2, 3]
-    with pytest.raises(ValueError):
+    with pytest.raises(MoreThanOneResultFound):
         query.collect_one()
 
     query.results = [1]

@@ -19,6 +19,4 @@ class MetaBase(Generic[R]):
         self.meta_params = meta_params or dict()
 
     def __str__(self) -> str:
-        if self._element is None:
-            raise ValueError("MetaBase has no element")
         return str(self._element)
