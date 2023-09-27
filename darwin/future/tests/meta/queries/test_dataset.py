@@ -3,7 +3,7 @@ from pytest import fixture, mark
 
 from darwin.future.core.client import CoreClient
 from darwin.future.data_objects.dataset import DatasetCore
-from darwin.future.meta.objects.dataset import DatasetMeta
+from darwin.future.meta.objects.dataset import Dataset
 from darwin.future.meta.queries.dataset import DatasetQuery
 from darwin.future.tests.core.fixtures import *
 
@@ -15,7 +15,7 @@ def test_dataset_collects_basic(base_client: CoreClient, base_datasets_json: dic
         rsps.add(responses.GET, endpoint, json=base_datasets_json)
         datasets = query.collect()
         assert len(datasets) == 2
-        assert all([isinstance(dataset, DatasetMeta) for dataset in datasets])
+        assert all([isinstance(dataset, Dataset) for dataset in datasets])
 
 
 def test_datasetquery_only_passes_back_correctly_formed_objects(
@@ -28,7 +28,7 @@ def test_datasetquery_only_passes_back_correctly_formed_objects(
         datasets = query.collect()
 
         assert len(datasets) == 1
-        assert isinstance(datasets[0], DatasetMeta)
+        assert isinstance(datasets[0], Dataset)
 
 
 def test_dataset_filters_name(base_client: CoreClient, base_datasets_json: dict) -> None:

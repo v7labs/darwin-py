@@ -6,7 +6,7 @@ from darwin.future.data_objects.team_member_role import TeamMemberRole
 from darwin.future.meta.objects.base import MetaBase
 
 
-class TeamMemberMeta(MetaBase[TeamMemberCore]):
+class TeamMember(MetaBase[TeamMemberCore]):
     @property
     def role(self) -> TeamMemberRole:
         if self._element is None:

@@ -9,7 +9,7 @@ from sklearn import base
 from darwin.future.core.client import DarwinConfig
 from darwin.future.data_objects.workflow import WFStageCore, WFTypeCore
 from darwin.future.meta.client import Client
-from darwin.future.meta.objects.stage import StageMeta
+from darwin.future.meta.objects.stage import Stage
 from darwin.future.tests.core.fixtures import *
 from darwin.future.tests.core.items.fixtures import *
 from darwin.future.tests.meta.fixtures import *
@@ -26,13 +26,13 @@ def base_WFStage(uuid_str: str) -> WFStageCore:
 
 
 @fixture
-def stage_meta(base_meta_client: Client, base_WFStage: WFStageCore, workflow_id: UUID) -> StageMeta:
-    return StageMeta(
+def stage_meta(base_meta_client: Client, base_WFStage: WFStageCore, workflow_id: UUID) -> Stage:
+    return Stage(
         base_meta_client, base_WFStage, {"team_slug": "default-team", "dataset_id": 1337, "workflow_id": workflow_id}
     )
 
 
-def test_item_ids(base_meta_client: Client, stage_meta: StageMeta, UUIDs_str: List[str], UUIDs: List[UUID]) -> None:
+def test_item_ids(base_meta_client: Client, stage_meta: Stage, UUIDs_str: List[str], UUIDs: List[UUID]) -> None:
     with responses.RequestsMock() as rsps:
         rsps.add(
             rsps.GET,
@@ -46,7 +46,7 @@ def test_item_ids(base_meta_client: Client, stage_meta: StageMeta, UUIDs_str: Li
 
 
 def test_move_attached_files_to_stage(
-    base_meta_client: Client, stage_meta: StageMeta, UUIDs_str: List[str], UUIDs: List[UUID]
+    base_meta_client: Client, stage_meta: Stage, UUIDs_str: List[str], UUIDs: List[UUID]
 ) -> None:
     with responses.RequestsMock() as rsps:
         rsps.add(

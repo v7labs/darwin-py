@@ -6,25 +6,25 @@ from uuid import UUID
 from darwin.future.core.client import CoreClient
 from darwin.future.core.types.query import Param, Query, QueryFilter
 from darwin.future.core.workflows.get_workflow import get_workflow
-from darwin.future.meta.objects.stage import StageMeta
+from darwin.future.meta.objects.stage import Stage
 
 
-class StageQuery(Query[StageMeta]):
-    def collect(self) -> List[StageMeta]:
+class StageQuery(Query[Stage]):
+    def collect(self) -> List[Stage]:
         if not self.meta_params:
             raise ValueError("Must specify workflow_id to query stages")
         workflow_id: UUID = self.meta_params["workflow_id"]
         meta_params = self.meta_params
         workflow, exceptions = get_workflow(self.client, str(workflow_id))
         assert workflow is not None
-        stages = [StageMeta(self.client, s, meta_params=meta_params) for s in workflow.stages]
+        stages = [Stage(self.client, s, meta_params=meta_params) for s in workflow.stages]
         if not self.filters:
             self.filters = []
         for filter in self.filters:
             stages = self._execute_filter(stages, filter)
         return stages
 
-    def _execute_filter(self, stages: List[StageMeta], filter: QueryFilter) -> List[StageMeta]:
+    def _execute_filter(self, stages: List[Stage], filter: QueryFilter) -> List[Stage]:
         """Executes filtering on the local list of stages
         Parameters
         ----------

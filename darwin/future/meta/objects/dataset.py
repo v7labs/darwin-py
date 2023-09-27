@@ -17,7 +17,7 @@ from darwin.future.helpers.assertion import assert_is
 from darwin.future.meta.objects.base import MetaBase
 
 
-class DatasetMeta(MetaBase[DatasetCore]):
+class Dataset(MetaBase[DatasetCore]):
     """Dataset Meta object. Facilitates the creation of Query objects, lazy loading of sub fields
 
     Args:
@@ -205,7 +205,7 @@ class DatasetMeta(MetaBase[DatasetCore]):
         extract_views: bool = False,
         preserve_folders: bool = False,
         verbose: bool = False,
-    ) -> DatasetMeta:
+    ) -> Dataset:
         assert self._element is not None
         upload_data(
             self._element.name, files, files_to_exclude, fps, path, frames, extract_views, preserve_folders, verbose

@@ -6,7 +6,7 @@ import responses
 from darwin.future.core.client import DarwinConfig
 from darwin.future.data_objects.team import TeamCore
 from darwin.future.meta.client import Client
-from darwin.future.meta.objects.team import TeamMeta
+from darwin.future.meta.objects.team import Team
 from darwin.future.tests.core.fixtures import *
 from darwin.future.tests.meta.fixtures import *
 
@@ -25,5 +25,5 @@ def test_team_property(base_meta_client: Client, base_team: TeamCore, base_team_
     with responses.RequestsMock() as rsps:
         rsps.add(responses.GET, endpoint, json=base_team_json)
         team = client.team
-        assert isinstance(team, TeamMeta)
+        assert isinstance(team, Team)
         assert team._element == base_team

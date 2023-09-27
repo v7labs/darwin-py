@@ -9,7 +9,7 @@ from darwin.future.data_objects.workflow import WFStageCore
 from darwin.future.meta.objects.base import MetaBase
 
 
-class StageMeta(MetaBase[WFStageCore]):
+class Stage(MetaBase[WFStageCore]):
     """_summary_
 
     Args:
@@ -29,7 +29,7 @@ class StageMeta(MetaBase[WFStageCore]):
             self.client, str(self.meta_params["team_slug"]), str(self.meta_params["dataset_id"]), self.id
         )
 
-    def move_attached_files_to_stage(self, new_stage_id: UUID) -> StageMeta:
+    def move_attached_files_to_stage(self, new_stage_id: UUID) -> Stage:
         assert self.meta_params["team_slug"] is not None and type(self.meta_params["team_slug"]) == str
         assert self.meta_params["workflow_id"] is not None and type(self.meta_params["workflow_id"]) == UUID
         assert self.meta_params["dataset_id"] is not None and type(self.meta_params["dataset_id"]) == int

@@ -6,7 +6,7 @@ import responses
 from darwin.future.core.client import CoreClient
 from darwin.future.data_objects.team import TeamMemberCore
 from darwin.future.data_objects.team_member_role import TeamMemberRole
-from darwin.future.meta.objects.team_member import TeamMemberMeta
+from darwin.future.meta.objects.team_member import TeamMember
 from darwin.future.meta.queries.team_member import TeamMemberQuery
 from darwin.future.tests.core.fixtures import *
 
@@ -18,7 +18,7 @@ def test_team_member_collects_basic(base_client: CoreClient, base_team_members_j
         rsps.add(responses.GET, endpoint, json=base_team_members_json)
         members = query.collect()
         assert len(members) == len(TeamMemberRole)
-        assert isinstance(members[0], TeamMemberMeta)
+        assert isinstance(members[0], TeamMember)
 
 
 def test_team_member_only_passes_back_correct(base_client: CoreClient, base_team_member_json: dict) -> None:
@@ -28,7 +28,7 @@ def test_team_member_only_passes_back_correct(base_client: CoreClient, base_team
         rsps.add(responses.GET, endpoint, json=[base_team_member_json, {}])
         members = query.collect()
         assert len(members) == 1
-        assert isinstance(members[0], TeamMemberMeta)
+        assert isinstance(members[0], TeamMember)
 
 
 @pytest.mark.parametrize("role", [role for role in TeamMemberRole])

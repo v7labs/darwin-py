@@ -7,10 +7,10 @@ from darwin.future.core.types.query import Param, Query, QueryFilter
 from darwin.future.core.workflows.list_workflows import list_workflows
 from darwin.future.data_objects.workflow import WFStageCore
 from darwin.future.helpers.exception_handler import handle_exception
-from darwin.future.meta.objects.workflow import WorkflowMeta
+from darwin.future.meta.objects.workflow import Workflow
 
 
-class WorkflowQuery(Query[WorkflowMeta]):
+class WorkflowQuery(Query[Workflow]):
     """
     WorkflowQuery object with methods to manage filters, retrieve data, and execute
     filters
@@ -21,12 +21,12 @@ class WorkflowQuery(Query[WorkflowMeta]):
     collect: Executes the query and returns the filtered data
     """
 
-    def collect(self) -> List[WorkflowMeta]:
+    def collect(self) -> List[Workflow]:
         workflows_core, exceptions = list_workflows(self.client)
         if exceptions:
             handle_exception(exceptions)
             raise DarwinException from exceptions[0]
-        workflows = [WorkflowMeta(self.client, workflow, self.meta_params) for workflow in workflows_core]
+        workflows = [Workflow(self.client, workflow, self.meta_params) for workflow in workflows_core]
         if not self.filters:
             return workflows
 
@@ -35,7 +35,7 @@ class WorkflowQuery(Query[WorkflowMeta]):
 
         return workflows
 
-    def _execute_filters(self, workflows: List[WorkflowMeta], filter: QueryFilter) -> List[WorkflowMeta]:
+    def _execute_filters(self, workflows: List[Workflow], filter: QueryFilter) -> List[Workflow]:
         if filter.name == "id":
             id_to_find = UUID(filter.param)
             return [w for w in workflows if w.id == id_to_find]

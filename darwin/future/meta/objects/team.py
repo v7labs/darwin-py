@@ -9,7 +9,7 @@ from darwin.future.meta.queries.team_member import TeamMemberQuery
 from darwin.future.meta.queries.workflow import WorkflowQuery
 
 
-class TeamMeta(MetaBase[TeamCore]):
+class Team(MetaBase[TeamCore]):
     """Team Meta object. Facilitates the creation of Query objects, lazy loading of sub fields like members
     unlike other MetaBase objects, does not extend the __next__ function because it is not iterable. This is because
     Team is linked to api key and only one team can be returned, but stores a list of teams for consistency. This
