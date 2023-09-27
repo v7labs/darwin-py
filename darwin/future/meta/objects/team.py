@@ -29,12 +29,10 @@ class Team(MetaBase[TeamCore]):
 
     @property
     def name(self) -> str:
-        assert self._element is not None
         return self._element.name
 
     @property
     def id(self) -> int:
-        assert self._element is not None
         assert self._element.id is not None
         return self._element.id
 
@@ -44,7 +42,6 @@ class Team(MetaBase[TeamCore]):
 
     @property
     def slug(self) -> str:
-        assert self._element is not None
         return self._element.slug
 
     @property
@@ -56,5 +53,4 @@ class Team(MetaBase[TeamCore]):
         return WorkflowQuery(self.client, meta_params={"team_slug": self.slug})
 
     def __str__(self) -> str:
-        assert self._element is not None
         return f"TeamMeta(name='{self.name}', slug='{self.slug}', id='{self.id}' - {len(self._element.members if self._element.members else [])} members)"
