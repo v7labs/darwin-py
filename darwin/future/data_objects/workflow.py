@@ -90,7 +90,7 @@ class WFTypeCore(Enum):
     UNKNOWN = "unknown"
 
     @classmethod
-    def _missing_(cls, value: str) -> "WFTypeCore":
+    def _missing_(cls, value: object) -> "WFTypeCore":
         return WFTypeCore.UNKNOWN
 
 

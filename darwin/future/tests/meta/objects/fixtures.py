@@ -30,7 +30,7 @@ def base_meta_workflow(base_client: ClientCore, base_workflow: WorkflowCore) -> 
 
 @fixture
 def base_meta_stage(base_client: ClientCore, base_stage: WFStageCore, base_UUID: UUID) -> Stage:
-    return Stage(base_client, base_stage, base_UUID)
+    return Stage(base_client, base_stage)
 
 
 @fixture

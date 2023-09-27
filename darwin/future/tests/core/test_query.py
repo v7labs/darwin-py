@@ -30,7 +30,7 @@ def basic_filters() -> List[Query.QueryFilter]:
 
 @pytest.fixture
 def test_team() -> TeamCore:
-    return TeamCore(slug="test-team", id=0)
+    return TeamCore(name="test-team", slug="test-team", id=0)
 
 
 def test_query_instantiated(
