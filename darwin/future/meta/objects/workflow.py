@@ -16,10 +16,10 @@ from darwin.future.meta.queries.stage import StageQuery
 class WorkflowMeta(MetaBase[Workflow]):
     @property
     def stages(self) -> StageQuery:
-        if self._item is None:
+        if self._element is None:
             raise ValueError("WorkflowMeta has no item")
         meta_params = self.meta_params.copy()
-        meta_params["workflow_id"] = self._item.id
+        meta_params["workflow_id"] = self._element.id
         if self.datasets is not None:
             meta_params["dataset_id"] = self.datasets[0].id
             meta_params["dataset_name"] = self.datasets[0].name
@@ -27,32 +27,32 @@ class WorkflowMeta(MetaBase[Workflow]):
 
     @property
     def datasets(self) -> List[WFDataset]:
-        if self._item is None:
+        if self._element is None:
             raise ValueError("WorkflowMeta has no item")
-        if self._item.dataset is None:
+        if self._element.dataset is None:
             raise ValueError("WorkflowMeta has no associated dataset")
-        return [self._item.dataset]
+        return [self._element.dataset]
 
     @property
     def id(self) -> UUID:
-        if self._item is None:
+        if self._element is None:
             raise ValueError("WorkflowMeta has no item")
-        return self._item.id
+        return self._element.id
 
     @property
     def name(self) -> str:
-        if self._item is None:
+        if self._element is None:
             raise ValueError("WorkflowMeta has no item")
-        return self._item.name
+        return self._element.name
 
     def push_from_dataset_stage(self) -> WorkflowMeta:
-        assert self._item is not None
-        assert self._item.dataset is not None
+        assert self._element is not None
+        assert self._element.dataset is not None
         stages = self.stages
         ds_stage = stages[0]
         assert len(stages) > 1
-        assert ds_stage._item is not None and ds_stage._item.type == WFType.DATASET
-        next_stage = ds_stage._item.edges[0].target_stage_id
+        assert ds_stage._element is not None and ds_stage._element.type == WFType.DATASET
+        next_stage = ds_stage._element.edges[0].target_stage_id
         assert next_stage is not None
         ds_stage.move_attached_files_to_stage(next_stage)
         return self
@@ -69,8 +69,8 @@ class WorkflowMeta(MetaBase[Workflow]):
         verbose: bool = False,
         auto_push: bool = True,
     ) -> WorkflowMeta:
-        assert self._item is not None
-        assert self._item.dataset is not None
+        assert self._element is not None
+        assert self._element.dataset is not None
         upload_data(
             self.datasets[0].name, files, files_to_exclude, fps, path, frames, extract_views, preserve_folders, verbose
         )

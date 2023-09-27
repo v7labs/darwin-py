@@ -62,8 +62,8 @@ def test_stage_filters_basic(
         stages = filled_query.where({"name": "name", "param": "stage1"}).collect()
         assert len(stages) == 1
         assert isinstance(stages[0], StageMeta)
-        assert stages[0]._item is not None
-        assert stages[0]._item.name == "stage1"
+        assert stages[0]._element is not None
+        assert stages[0]._element.name == "stage1"
 
 
 @pytest.mark.parametrize("wf_type", [t for t in WFType.__members__.values()])
@@ -78,5 +78,5 @@ def test_stage_filters_WFType(
         assert len(stages) == 3
         assert isinstance(stages[0], StageMeta)
         for stage in stages:
-            assert stage._item is not None
-            assert stage._item.type == wf_type
+            assert stage._element is not None
+            assert stage._element.type == wf_type

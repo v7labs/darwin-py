@@ -29,21 +29,21 @@ class DatasetMeta(MetaBase[Dataset]):
 
     @property
     def name(self) -> str:
-        assert self._item is not None
-        assert self._item.name is not None
-        return self._item.name
+        assert self._element is not None
+        assert self._element.name is not None
+        return self._element.name
 
     @property
     def slug(self) -> str:
-        assert self._item is not None
-        assert self._item.slug is not None
-        return self._item.slug
+        assert self._element is not None
+        assert self._element.slug is not None
+        return self._element.slug
 
     @property
     def id(self) -> int:
-        assert self._item is not None
-        assert self._item.id is not None
-        return self._item.id
+        assert self._element is not None
+        assert self._element.id is not None
+        return self._element.id
 
     @property
     def item_ids(self) -> List[UUID]:
@@ -52,10 +52,10 @@ class DatasetMeta(MetaBase[Dataset]):
         Returns:
             List[UUID]: A list of item ids
         """
-        assert self._item is not None
-        assert self._item.id is not None
+        assert self._element is not None
+        assert self._element.id is not None
         assert self.meta_params["team_slug"] is not None and type(self.meta_params["team_slug"]) == str
-        return get_item_ids(self.client, self.meta_params["team_slug"], str(self._item.id))
+        return get_item_ids(self.client, self.meta_params["team_slug"], str(self._element.id))
 
     def get_dataset_by_id(self) -> Dataset:
         # TODO: implement
@@ -204,8 +204,8 @@ class DatasetMeta(MetaBase[Dataset]):
         preserve_folders: bool = False,
         verbose: bool = False,
     ) -> DatasetMeta:
-        assert self._item is not None
+        assert self._element is not None
         upload_data(
-            self._item.name, files, files_to_exclude, fps, path, frames, extract_views, preserve_folders, verbose
+            self._element.name, files, files_to_exclude, fps, path, frames, extract_views, preserve_folders, verbose
         )
         return self

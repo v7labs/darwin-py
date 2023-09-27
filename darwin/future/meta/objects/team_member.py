@@ -9,6 +9,6 @@ from darwin.future.meta.objects.base import MetaBase
 class TeamMemberMeta(MetaBase[TeamMember]):
     @property
     def role(self) -> TeamMemberRole:
-        if self._item is None:
+        if self._element is None:
             raise ValueError("TeamMemberMeta has no item")
-        return self._item.role
+        return self._element.role

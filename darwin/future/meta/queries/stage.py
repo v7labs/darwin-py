@@ -36,5 +36,5 @@ class StageQuery(Query[StageMeta]):
         List[Stage]: Filtered subset of stages
         """
         if filter.name == "role":
-            return [s for s in stages if s._item is not None and filter.filter_attr(s._item.type.value)]
+            return [s for s in stages if s._element is not None and filter.filter_attr(s._element.type.value)]
         return super()._generic_execute_filter(stages, filter)

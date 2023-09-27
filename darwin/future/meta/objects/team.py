@@ -29,14 +29,14 @@ class TeamMeta(MetaBase[Team]):
 
     @property
     def name(self) -> str:
-        assert self._item is not None
-        return self._item.name
+        assert self._element is not None
+        return self._element.name
 
     @property
     def id(self) -> int:
-        assert self._item is not None
-        assert self._item.id is not None
-        return self._item.id
+        assert self._element is not None
+        assert self._element.id is not None
+        return self._element.id
 
     @property
     def members(self) -> TeamMemberQuery:
@@ -44,8 +44,8 @@ class TeamMeta(MetaBase[Team]):
 
     @property
     def slug(self) -> str:
-        assert self._item is not None
-        return self._item.slug
+        assert self._element is not None
+        return self._element.slug
 
     @property
     def datasets(self) -> DatasetQuery:
@@ -56,5 +56,5 @@ class TeamMeta(MetaBase[Team]):
         return WorkflowQuery(self.client, meta_params={"team_slug": self.slug})
 
     def __str__(self) -> str:
-        assert self._item is not None
-        return f"TeamMeta(name='{self.name}', slug='{self.slug}', id='{self.id}' - {len(self._item.members if self._item.members else [])} members)"
+        assert self._element is not None
+        return f"TeamMeta(name='{self.name}', slug='{self.slug}', id='{self.id}' - {len(self._element.members if self._element.members else [])} members)"

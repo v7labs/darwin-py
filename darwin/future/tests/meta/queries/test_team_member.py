@@ -42,8 +42,8 @@ def test_team_member_filters_role(
         rsps.add(responses.GET, endpoint, json=base_team_members_json)
         members = query.collect()
         assert len(members) == 1
-        assert members[0]._item is not None
-        assert members[0]._item.role == role
+        assert members[0]._element is not None
+        assert members[0]._element.role == role
 
         # Test not equal
         rsps.reset()
@@ -52,8 +52,8 @@ def test_team_member_filters_role(
         members = query.collect()
         assert len(members) == len(TeamMemberRole) - 1
         for member in members:
-            assert member._item is not None
-            assert member._item.role != role
+            assert member._element is not None
+            assert member._element.role != role
 
 
 def test_team_member_filters_general(base_client: CoreClient, base_team_members_json: List[dict]) -> None:
@@ -66,8 +66,8 @@ def test_team_member_filters_general(base_client: CoreClient, base_team_members_
         rsps.add(responses.GET, endpoint, json=base_team_members_json)
         members = query.collect()
         assert len(members) == 1
-        assert members[0]._item is not None
-        assert members[0]._item.id == 1
+        assert members[0]._element is not None
+        assert members[0]._element.id == 1
 
         # Test chained
         rsps.reset()

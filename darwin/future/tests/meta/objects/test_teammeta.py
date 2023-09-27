@@ -18,4 +18,4 @@ def test_team_meta_collects_members(
         rsps.add(responses.GET, endpoint, json=[base_team_member_json])
         members = base_meta_team.members.collect()
         assert len(members) == 1
-        assert members[0]._item == base_team_member
+        assert members[0]._element == base_team_member

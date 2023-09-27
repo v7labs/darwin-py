@@ -10,15 +10,15 @@ Param = Dict[str, object]
 
 
 class MetaBase(Generic[R]):
-    _item: Optional[R]
+    _element: Optional[R]
     client: CoreClient
 
-    def __init__(self, client: CoreClient, item: Optional[R] = None, meta_params: Optional[Param] = None) -> None:
+    def __init__(self, client: CoreClient, element: Optional[R] = None, meta_params: Optional[Param] = None) -> None:
         self.client = client
-        self._item = item
+        self._element = element
         self.meta_params = meta_params or dict()
 
     def __str__(self) -> str:
-        if self._item is None:
-            raise ValueError("MetaBase has no item")
-        return str(self._item)
+        if self._element is None:
+            raise ValueError("MetaBase has no element")
+        return str(self._element)

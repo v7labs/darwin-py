@@ -26,4 +26,4 @@ def test_team_property(base_meta_client: Client, base_team: Team, base_team_json
         rsps.add(responses.GET, endpoint, json=base_team_json)
         team = client.team
         assert isinstance(team, TeamMeta)
-        assert team._item == base_team
+        assert team._element == base_team

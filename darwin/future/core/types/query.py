@@ -113,7 +113,7 @@ class Query(Generic[T], ABC):
     def __init__(
         self, client: CoreClient, filters: Optional[List[QueryFilter]] = None, meta_params: Optional[Param] = None
     ):
-        self.meta_params = meta_params
+        self.meta_params = meta_params or dict()
         self.client = client
         self.filters = filters
         self.results: Optional[List[T]] = None
@@ -210,4 +210,4 @@ class Query(Generic[T], ABC):
         return self.results[0]
 
     def _generic_execute_filter(self, objects: List[T], filter: QueryFilter) -> List[T]:
-        return [m for m in objects if filter.filter_attr(getattr(m._item, filter.name))]
+        return [m for m in objects if filter.filter_attr(getattr(m._element, filter.name))]

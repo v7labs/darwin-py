@@ -42,38 +42,50 @@ class WorkflowQuery(Query[WorkflowMeta]):
 
         if filter.name == "inserted_at_start":
             start_date = datetime.fromisoformat(filter.param)
-            return [w for w in workflows if w._item is not None and self._date_compare(w._item.inserted_at, start_date)]
+            return [
+                w
+                for w in workflows
+                if w._element is not None and self._date_compare(w._element.inserted_at, start_date)
+            ]
 
         if filter.name == "inserted_at_end":
             end_date = datetime.fromisoformat(filter.param)
-            return [w for w in workflows if w._item is not None and self._date_compare(end_date, w._item.inserted_at)]
+            return [
+                w for w in workflows if w._element is not None and self._date_compare(end_date, w._element.inserted_at)
+            ]
 
         if filter.name == "updated_at_start":
             start_date = datetime.fromisoformat(filter.param)
-            return [w for w in workflows if w._item is not None and self._date_compare(w._item.updated_at, start_date)]
+            return [
+                w for w in workflows if w._element is not None and self._date_compare(w._element.updated_at, start_date)
+            ]
 
         if filter.name == "updated_at_end":
             end_date = datetime.fromisoformat(filter.param)
-            return [w for w in workflows if w._item is not None and self._date_compare(end_date, w._item.updated_at)]
+            return [
+                w for w in workflows if w._element is not None and self._date_compare(end_date, w._element.updated_at)
+            ]
 
         if filter.name == "dataset_id":
             datasets_to_find_id: List[int] = [int(s) for s in filter.param.split(",")]
             return [
                 w
                 for w in workflows
-                if w._item is not None
-                and w._item.dataset is not None
-                and int(w._item.dataset.id) in datasets_to_find_id
+                if w._element is not None
+                and w._element.dataset is not None
+                and int(w._element.dataset.id) in datasets_to_find_id
             ]
 
         if filter.name == "dataset_name":
             datasets_to_find_name: List[str] = [str(s) for s in filter.param.split(",")]
-            return [w for w in workflows if w._item is not None and str(w._item.dataset) in datasets_to_find_name]
+            return [w for w in workflows if w._element is not None and str(w._element.dataset) in datasets_to_find_name]
 
         if filter.name == "has_stages":
             stages_to_find = [s for s in filter.param.split(",")]
             return [
-                w for w in workflows if w._item is not None and self._stages_contains(w._item.stages, stages_to_find)
+                w
+                for w in workflows
+                if w._element is not None and self._stages_contains(w._element.stages, stages_to_find)
             ]
 
         return self._generic_execute_filter(workflows, filter)
