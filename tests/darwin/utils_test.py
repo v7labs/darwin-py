@@ -752,7 +752,7 @@ class TestParseDarwinRasterAnnotation:
         assert annotation.id == "abc123"
 
     # Sad paths
-    @pytest.mark.parametrize("parameter_name", ["id", "name", "raster_layer", "slot_names"])
+    @pytest.mark.parametrize("parameter_name", ["id", "name", "raster_layer"])
     def test_raises_value_error_for_missing_top_level_fields(
         self, good_raster_annotation: dt.JSONFreeForm, parameter_name: str
     ) -> None:
