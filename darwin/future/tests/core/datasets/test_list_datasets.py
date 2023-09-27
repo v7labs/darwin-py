@@ -4,9 +4,7 @@ import responses
 from requests.exceptions import HTTPError
 
 from darwin.future.core.client import ClientCore
-from darwin.future.core.datasets.list_datasets import list_datasets
-from darwin.future.core.types import TeamSlug
-from darwin.future.core.types.common import QueryString
+from darwin.future.core.datasets import list_datasets
 from darwin.future.data_objects.dataset import DatasetCore
 from darwin.future.tests.core.fixtures import *
 

@@ -5,9 +5,8 @@ from pytest import raises
 from requests import HTTPError
 
 from darwin.future.core.client import ClientCore
-from darwin.future.core.datasets.create_dataset import create_dataset
+from darwin.future.core.datasets import create_dataset
 from darwin.future.data_objects.dataset import DatasetCore
-from darwin.future.exceptions.base import DarwinException
 from darwin.future.tests.core.fixtures import *  # noqa: F401, F403
 
 from .fixtures import *  # noqa: F401, F403

@@ -7,11 +7,8 @@ from darwin.cli_functions import upload_data
 from darwin.dataset.upload_manager import LocalFile
 from darwin.datatypes import PathLike
 from darwin.future.core.client import ClientCore
-from darwin.future.core.datasets.create_dataset import create_dataset
-from darwin.future.core.datasets.get_dataset import get_dataset
-from darwin.future.core.datasets.list_datasets import list_datasets
-from darwin.future.core.datasets.remove_dataset import remove_dataset
-from darwin.future.core.items.get import get_item_ids
+from darwin.future.core.datasets import create_dataset, get_dataset, remove_dataset
+from darwin.future.core.items import get_item_ids
 from darwin.future.data_objects.dataset import DatasetCore
 from darwin.future.exceptions.meta import MissingDataset
 from darwin.future.helpers.assertion import assert_is

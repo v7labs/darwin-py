@@ -3,8 +3,7 @@ from __future__ import annotations
 from typing import List
 from uuid import UUID
 
-from darwin.future.core.items.get import get_item_ids_stage
-from darwin.future.core.items.move_items import move_items_to_stage
+from darwin.future.core.items import get_item_ids_stage, move_items_to_stage
 from darwin.future.data_objects.workflow import WFStageCore
 from darwin.future.meta.objects.base import MetaBase
 

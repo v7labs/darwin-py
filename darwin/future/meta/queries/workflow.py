@@ -4,7 +4,7 @@ from uuid import UUID
 
 from darwin.exceptions import DarwinException
 from darwin.future.core.types.query import Param, Query, QueryFilter
-from darwin.future.core.workflows.list_workflows import list_workflows
+from darwin.future.core.workflows import list_workflows
 from darwin.future.data_objects.workflow import WFStageCore
 from darwin.future.helpers.exception_handler import handle_exception
 from darwin.future.meta.objects.workflow import Workflow

@@ -3,7 +3,7 @@ from pytest import raises
 from requests import HTTPError
 
 from darwin.future.core.client import ClientCore
-from darwin.future.core.datasets.remove_dataset import remove_dataset
+from darwin.future.core.datasets import remove_dataset
 from darwin.future.tests.core.fixtures import *
 
 from .fixtures import *

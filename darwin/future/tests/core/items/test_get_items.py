@@ -4,7 +4,7 @@ from uuid import UUID, uuid4
 import responses
 
 from darwin.future.core.client import ClientCore
-from darwin.future.core.items.get import get_item_ids, get_item_ids_stage
+from darwin.future.core.items import get_item_ids, get_item_ids_stage
 from darwin.future.tests.core.fixtures import *
 from darwin.future.tests.core.items.fixtures import *
 

@@ -4,7 +4,7 @@ from pytest import raises
 from requests import HTTPError
 
 from darwin.future.core.client import ClientCore
-from darwin.future.core.datasets.get_dataset import get_dataset
+from darwin.future.core.datasets import get_dataset
 from darwin.future.data_objects.dataset import DatasetCore
 from darwin.future.tests.core.fixtures import *
 

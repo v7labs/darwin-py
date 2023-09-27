@@ -5,7 +5,7 @@ import pytest
 import responses
 
 from darwin.future.core.client import ClientCore
-from darwin.future.core.items.move_items import move_items_to_stage
+from darwin.future.core.items import move_items_to_stage
 from darwin.future.tests.core.fixtures import *
 from darwin.future.tests.core.items.fixtures import *
 
