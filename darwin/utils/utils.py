@@ -735,8 +735,8 @@ def _parse_darwin_raster_annotation(annotation: dict) -> Optional[dt.Annotation]
     raster_layer: Optional[dt.JSONFreeForm] = annotation.get("raster_layer")
     slot_names: Optional[List[str]] = parse_slot_names(annotation)
 
-    if not id or not name or not raster_layer or not slot_names:
-        raise ValueError("Raster annotation must have an 'id', 'name', 'slot_names' and 'raster_layer' field")
+    if not id or not name or not raster_layer:
+        raise ValueError("Raster annotation must have an 'id', 'name' and 'raster_layer' field")
 
     dense_rle, mask_annotation_ids_mapping, total_pixels = (
         raster_layer.get("dense_rle", None),
@@ -756,7 +756,7 @@ def _parse_darwin_raster_annotation(annotation: dict) -> Optional[dt.Annotation]
             "mask_annotation_ids_mapping": mask_annotation_ids_mapping,
             "total_pixels": total_pixels,
         },
-        slot_names=slot_names,
+        slot_names=slot_names or [],
         id=id,
     )
 
@@ -769,8 +769,8 @@ def _parse_darwin_mask_annotation(annotation: dict) -> Optional[dt.Annotation]:
     mask: Optional[dt.JSONFreeForm] = annotation.get("mask")
     slot_names: Optional[List[str]] = parse_slot_names(annotation)
 
-    if not id or not name or mask is None or not slot_names:
-        raise ValueError("Mask annotation must have an 'id', 'name', 'slot_names' and 'mask' field")
+    if not id or not name or mask is None:
+        raise ValueError("Mask annotation must have an 'id', 'name' and 'mask' field")
 
     if ("sparse_rle" in mask) and (mask["sparse_rle"] is not None):
         raise ValueError("Mask annotation field 'sparse_rle' must contain a null value")
@@ -778,7 +778,7 @@ def _parse_darwin_mask_annotation(annotation: dict) -> Optional[dt.Annotation]:
     new_annotation = dt.Annotation(
         dt.AnnotationClass(name, "mask"),
         mask,
-        slot_names=slot_names,
+        slot_names=slot_names or [],
         id=id,
     )
 
