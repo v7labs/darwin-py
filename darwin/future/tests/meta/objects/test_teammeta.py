@@ -16,6 +16,6 @@ def test_team_meta_collects_members(
     with responses.RequestsMock() as rsps:
         endpoint = base_client.config.api_endpoint + "memberships"
         rsps.add(responses.GET, endpoint, json=[base_team_member_json])
-        members = base_meta_team.members.collect()
+        members = base_meta_team.members._collect()
         assert len(members) == 1
         assert members[0]._element == base_team_member

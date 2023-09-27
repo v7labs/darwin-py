@@ -189,8 +189,14 @@ class Query(Generic[T], ABC):
             self += item
         return self
 
+    def collect(self, force: bool = False) -> List[T]:
+        if force:
+            self.results = []
+        self.results = self._collect()
+        return self.results or []
+
     @abstractmethod
-    def collect(self) -> List[T]:
+    def _collect(self) -> List[T]:
         raise NotImplementedError("Not implemented")
 
     def collect_one(self) -> T:

@@ -21,7 +21,7 @@ class WorkflowQuery(Query[Workflow]):
     collect: Executes the query and returns the filtered data
     """
 
-    def collect(self) -> List[Workflow]:
+    def _collect(self) -> List[Workflow]:
         workflows_core, exceptions = list_workflows(self.client)
         if exceptions:
             handle_exception(exceptions)

@@ -47,7 +47,7 @@ def test_stage_collects_basic(
     with responses.RequestsMock() as rsps:
         endpoint = filled_query.client.config.api_endpoint + f"v2/teams/default-team/workflows/{UUID}"
         rsps.add(responses.GET, endpoint, json=base_single_workflow_object)
-        stages = filled_query.collect()
+        stages = filled_query._collect()
         assert len(stages) == len(base_workflow_meta.stages)
         assert isinstance(stages[0], Stage)
 
@@ -59,7 +59,7 @@ def test_stage_filters_basic(
     with responses.RequestsMock() as rsps:
         endpoint = filled_query.client.config.api_endpoint + f"v2/teams/default-team/workflows/{UUID}"
         rsps.add(responses.GET, endpoint, json=multi_stage_workflow_object)
-        stages = filled_query.where({"name": "name", "param": "stage1"}).collect()
+        stages = filled_query.where({"name": "name", "param": "stage1"})._collect()
         assert len(stages) == 1
         assert isinstance(stages[0], Stage)
         assert stages[0]._element.name == "stage1"
@@ -73,7 +73,7 @@ def test_stage_filters_WFType(
     with responses.RequestsMock() as rsps:
         endpoint = filled_query.client.config.api_endpoint + f"v2/teams/default-team/workflows/{UUID}"
         rsps.add(responses.GET, endpoint, json=multi_stage_workflow_object)
-        stages = filled_query.where({"name": "type", "param": wf_type.value}).collect()
+        stages = filled_query.where({"name": "type", "param": wf_type.value})._collect()
         assert len(stages) == 3
         assert isinstance(stages[0], Stage)
         for stage in stages:

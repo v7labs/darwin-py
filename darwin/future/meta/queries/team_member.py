@@ -14,7 +14,7 @@ class TeamMemberQuery(Query[TeamMember]):
     _execute_filter: Executes a filter on a list of objects
     """
 
-    def collect(self) -> List[TeamMember]:
+    def _collect(self) -> List[TeamMember]:
         members, exceptions = get_team_members(self.client)
         members_meta = [TeamMember(self.client, member) for member in members]
         if exceptions:

@@ -20,7 +20,7 @@ class DatasetQuery(Query[Dataset]):
     collect: Executes the query and returns the filtered data
     """
 
-    def collect(self) -> List[Dataset]:
+    def _collect(self) -> List[Dataset]:
         datasets, exceptions = list_datasets(self.client)
         if exceptions:
             # TODO: print and or raise exceptions, tbd how we want to handle this

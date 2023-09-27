@@ -25,7 +25,7 @@ def test_workflowquery_collects_basic(base_client: ClientCore, base_filterable_w
     responses.add(responses.GET, endpoint, json=base_filterable_workflows)
 
     query = WorkflowQuery(base_client, [])
-    workflows = query.collect()
+    workflows = query._collect()
 
     assert len(workflows) == 3
     assert all([isinstance(workflow, Workflow) for workflow in workflows])
@@ -42,7 +42,7 @@ def test_workflowquery_filters_uuid(base_client: ClientCore, base_filterable_wor
             "param": "6dca86a3-48fb-40cc-8594-88310f5f1fdf",
         }
     )
-    workflows = query.collect()
+    workflows = query._collect()
 
     assert len(workflows) == 1
     assert str(workflows[0].id) == WORKFLOW_1
@@ -71,7 +71,7 @@ def test_workflowquery_filters_inserted_at(base_client: ClientCore, base_filtera
             }
         )
     )
-    workflows = query.collect()
+    workflows = query._collect()
 
     assert len(workflows) == 2
     ids = [str(workflow.id) for workflow in workflows]
@@ -102,7 +102,7 @@ def test_workflowquery_filters_updated_at(base_client: ClientCore, base_filterab
             }
         )
     )
-    workflows = query.collect()
+    workflows = query._collect()
 
     assert len(workflows) == 2
     ids = [str(workflow.id) for workflow in workflows]
@@ -121,7 +121,7 @@ def test_workflowquery_filters_dataset_id(base_client: ClientCore, base_filterab
             "param": "1",
         }
     )
-    workflows = query.collect()
+    workflows = query._collect()
 
     assert len(workflows) == 1
     assert str(workflows[0].id) == WORKFLOW_1
@@ -140,7 +140,7 @@ def test_workflowquery_filters_dataset_id_multiple_ids(
             "param": "1,2",
         }
     )
-    workflows = query.collect()
+    workflows = query._collect()
 
     assert len(workflows) == 2
     assert str(workflows[0].id) == WORKFLOW_1
@@ -158,7 +158,7 @@ def test_workflowquery_filters_dataset_name(base_client: ClientCore, base_filter
             "param": "test-dataset-1",
         }
     )
-    workflows = query.collect()
+    workflows = query._collect()
 
     assert len(workflows) == 1
     assert str(workflows[0].id) == WORKFLOW_1
@@ -177,7 +177,7 @@ def test_workflowquery_filters_dataset_name_mutliple_names(
             "param": "test-dataset-1,test-dataset-2",
         }
     )
-    workflows = query.collect()
+    workflows = query._collect()
 
     assert len(workflows) == 2
     assert str(workflows[0].id) == WORKFLOW_1
@@ -195,7 +195,7 @@ def test_workflowquery_filters_stages(base_client: ClientCore, base_filterable_w
             "param": "5445adcb-193d-4f76-adb0-0c6d5f5e4c04",
         }
     )
-    workflows = query.collect()
+    workflows = query._collect()
 
     assert len(workflows) == 1
     assert str(workflows[0].name) == "test-workflow-3"
@@ -212,7 +212,7 @@ def test_workflowquery_filters_stages_multiple(base_client: ClientCore, base_fil
             "param": "5445adcb-193d-4f76-adb0-0c6d5f5e4c04,53d2c997-6bb0-4766-803c-3c8d1fb21072",
         }
     )
-    workflows = query.collect()
+    workflows = query._collect()
 
     assert len(workflows) == 2
     workflow_names = [workflow.name for workflow in workflows]

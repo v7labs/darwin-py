@@ -10,8 +10,8 @@ from darwin.future.meta.objects.stage import Stage
 
 
 class StageQuery(Query[Stage]):
-    def collect(self) -> List[Stage]:
-        if not self.meta_params:
+    def _collect(self) -> List[Stage]:
+        if "workflow_id" not in self.meta_params:
             raise ValueError("Must specify workflow_id to query stages")
         workflow_id: UUID = self.meta_params["workflow_id"]
         meta_params = self.meta_params
