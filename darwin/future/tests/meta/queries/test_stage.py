@@ -62,7 +62,6 @@ def test_stage_filters_basic(
         stages = filled_query.where({"name": "name", "param": "stage1"}).collect()
         assert len(stages) == 1
         assert isinstance(stages[0], Stage)
-        assert stages[0]._element is not None
         assert stages[0]._element.name == "stage1"
 
 
@@ -78,5 +77,4 @@ def test_stage_filters_WFType(
         assert len(stages) == 3
         assert isinstance(stages[0], Stage)
         for stage in stages:
-            assert stage._element is not None
             assert stage._element.type == wf_type

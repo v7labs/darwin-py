@@ -29,19 +29,16 @@ class Dataset(MetaBase[DatasetCore]):
 
     @property
     def name(self) -> str:
-        assert self._element is not None
         assert self._element.name is not None
         return self._element.name
 
     @property
     def slug(self) -> str:
-        assert self._element is not None
         assert self._element.slug is not None
         return self._element.slug
 
     @property
     def id(self) -> int:
-        assert self._element is not None
         assert self._element.id is not None
         return self._element.id
 
@@ -52,7 +49,6 @@ class Dataset(MetaBase[DatasetCore]):
         Returns:
             List[UUID]: A list of item ids
         """
-        assert self._element is not None
         assert self._element.id is not None
         assert self.meta_params["team_slug"] is not None and type(self.meta_params["team_slug"]) == str
         return get_item_ids(self.client, self.meta_params["team_slug"], str(self._element.id))
@@ -206,7 +202,6 @@ class Dataset(MetaBase[DatasetCore]):
         preserve_folders: bool = False,
         verbose: bool = False,
     ) -> Dataset:
-        assert self._element is not None
         upload_data(
             self._element.name, files, files_to_exclude, fps, path, frames, extract_views, preserve_folders, verbose
         )

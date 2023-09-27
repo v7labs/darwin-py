@@ -46,12 +46,11 @@ class Workflow(MetaBase[WorkflowCore]):
         return self._element.name
 
     def push_from_dataset_stage(self) -> Workflow:
-        assert self._element is not None
         assert self._element.dataset is not None
         stages = self.stages
         ds_stage = stages[0]
         assert len(stages) > 1
-        assert ds_stage._element is not None and ds_stage._element.type == WFTypeCore.DATASET
+        assert ds_stage._element.type == WFTypeCore.DATASET
         next_stage = ds_stage._element.edges[0].target_stage_id
         assert next_stage is not None
         ds_stage.move_attached_files_to_stage(next_stage)
@@ -69,7 +68,6 @@ class Workflow(MetaBase[WorkflowCore]):
         verbose: bool = False,
         auto_push: bool = True,
     ) -> Workflow:
-        assert self._element is not None
         assert self._element.dataset is not None
         upload_data(
             self.datasets[0].name, files, files_to_exclude, fps, path, frames, extract_views, preserve_folders, verbose

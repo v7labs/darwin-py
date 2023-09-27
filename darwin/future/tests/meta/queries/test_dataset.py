@@ -39,7 +39,6 @@ def test_dataset_filters_name(base_client: ClientCore, base_datasets_json: dict)
         datasets = query.collect()
 
         assert len(datasets) == 1
-        assert datasets[0]._element is not None
         assert datasets[0]._element.slug == "test-dataset-1"
 
 
@@ -51,7 +50,6 @@ def test_dataset_filters_id(base_client: ClientCore, base_datasets_json: dict) -
         datasets = query.collect()
 
         assert len(datasets) == 1
-        assert datasets[0]._element is not None
         assert datasets[0]._element.slug == "test-dataset-1"
 
 
@@ -63,7 +61,6 @@ def test_dataset_filters_slug(base_client: ClientCore, base_datasets_json: dict)
         datasets = query.collect()
 
         assert len(datasets) == 1
-        assert datasets[0]._element is not None
         assert datasets[0]._element.slug == "test-dataset-1"
 
 
@@ -76,8 +73,6 @@ def test_dataset_filters_releases(base_client: ClientCore, base_datasets_json_wi
         datasets_odd_ids = query.collect()
 
         assert len(datasets_odd_ids) == 2
-        assert datasets_odd_ids[0]._element is not None
-        assert datasets_odd_ids[1]._element is not None
         assert datasets_odd_ids[0]._element.slug == "test-dataset-1"
         assert datasets_odd_ids[1]._element.slug == "test-dataset-3"
 
@@ -85,7 +80,5 @@ def test_dataset_filters_releases(base_client: ClientCore, base_datasets_json_wi
         datasets_even_ids = query2.collect()
 
         assert len(datasets_even_ids) == 2
-        assert datasets_even_ids[0]._element is not None
-        assert datasets_even_ids[1]._element is not None
         assert datasets_even_ids[0]._element.slug == "test-dataset-2"
         assert datasets_even_ids[1]._element.slug == "test-dataset-4"

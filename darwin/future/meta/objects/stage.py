@@ -23,7 +23,6 @@ class Stage(MetaBase[WFStageCore]):
         Returns:
             _type_: _description_
         """
-        assert self._element is not None
         assert self._element.id is not None
         return get_item_ids_stage(
             self.client, str(self.meta_params["team_slug"]), str(self.meta_params["dataset_id"]), self.id
@@ -43,5 +42,4 @@ class Stage(MetaBase[WFStageCore]):
 
     @property
     def id(self) -> UUID:
-        assert self._element is not None
         return self._element.id
