@@ -3,14 +3,14 @@ import responses
 from pydantic import ValidationError
 from requests import HTTPError
 
-from darwin.future.core.client import Client, JSONType
+from darwin.future.core.client import CoreClient, JSONType
 from darwin.future.core.workflows.get_workflow import get_workflow
 from darwin.future.data_objects.workflow import Workflow
 from darwin.future.tests.core.fixtures import *
 
 
 @responses.activate
-def test_get_workflow(base_client: Client, base_single_workflow_object: JSONType) -> None:
+def test_get_workflow(base_client: CoreClient, base_single_workflow_object: JSONType) -> None:
     # Mocking the response using responses library
     response_data = base_single_workflow_object
     workflow_id = "1"
@@ -30,7 +30,7 @@ def test_get_workflow(base_client: Client, base_single_workflow_object: JSONType
 
 
 @responses.activate
-def test_get_workflow_with_team_slug(base_client: Client, base_single_workflow_object: JSONType) -> None:
+def test_get_workflow_with_team_slug(base_client: CoreClient, base_single_workflow_object: JSONType) -> None:
     # Mocking the response using responses library
     team_slug = "team-slug"
     workflow_id = "1"
@@ -52,7 +52,7 @@ def test_get_workflow_with_team_slug(base_client: Client, base_single_workflow_o
 
 
 @responses.activate
-def test_get_workflows_with_invalid_response(base_client: Client) -> None:
+def test_get_workflows_with_invalid_response(base_client: CoreClient) -> None:
     # Mocking the response using responses library
     # fmt: off
     NON_EXISTENT_ID = "1"
@@ -74,7 +74,7 @@ def test_get_workflows_with_invalid_response(base_client: Client) -> None:
 
 
 @responses.activate
-def test_get_workflows_with_error(base_client: Client) -> None:
+def test_get_workflows_with_error(base_client: CoreClient) -> None:
     # Mocking the response using responses library
     # fmt: off
     NON_EXISTENT_ID = "1"

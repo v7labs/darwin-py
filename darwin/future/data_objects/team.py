@@ -4,7 +4,7 @@ from typing import List, Optional, Tuple
 
 from pydantic import validator
 
-from darwin.future.core.client import Client
+from darwin.future.core.client import CoreClient
 from darwin.future.data_objects.dataset import DatasetList
 from darwin.future.data_objects.team_member_role import TeamMemberRole
 from darwin.future.data_objects.validators import parse_name
@@ -44,6 +44,7 @@ class Team(DefaultDarwin):
     ----------
     _slug_validator: validates and auto formats the slug variable
     """
+
     name: str
     slug: str
     id: int
@@ -55,7 +56,7 @@ class Team(DefaultDarwin):
     _slug_validator = validator("slug", allow_reuse=True)(parse_name)
 
     @staticmethod
-    def from_client(client: Client, team_slug: Optional[str] = None) -> Team:
+    def from_client(client: CoreClient, team_slug: Optional[str] = None) -> Team:
         """Returns the team with the given slug from the client
 
         Args:
@@ -73,7 +74,7 @@ class Team(DefaultDarwin):
 TeamList = List[Team]
 
 
-def get_team(client: Client, team_slug: Optional[str] = None) -> Team:
+def get_team(client: CoreClient, team_slug: Optional[str] = None) -> Team:
     """Returns the team with the given slug from the client
 
     Args:
@@ -89,7 +90,7 @@ def get_team(client: Client, team_slug: Optional[str] = None) -> Team:
     return Team.parse_obj(response)
 
 
-def get_team_members(client: Client) -> Tuple[List[TeamMember], List[Exception]]:
+def get_team_members(client: CoreClient) -> Tuple[List[TeamMember], List[Exception]]:
     """Returns a list of team members for the given client
 
     Args:

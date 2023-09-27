@@ -2,11 +2,11 @@ from typing import List, Tuple
 
 from pydantic import parse_obj_as
 
-from darwin.future.core.client import Client
+from darwin.future.core.client import CoreClient
 from darwin.future.data_objects.dataset import Dataset
 
 
-def list_datasets(api_client: Client) -> Tuple[List[Dataset], List[Exception]]:
+def list_datasets(api_client: CoreClient) -> Tuple[List[Dataset], List[Exception]]:
     """
     Returns a list of datasets for the given team
 

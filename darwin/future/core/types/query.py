@@ -14,7 +14,7 @@ from typing import (
     overload,
 )
 
-from darwin.future.core.client import Client
+from darwin.future.core.client import CoreClient
 from darwin.future.meta.objects.base import MetaBase
 from darwin.future.pydantic_base import DefaultDarwin
 
@@ -111,7 +111,7 @@ class Query(Generic[T], ABC):
     """
 
     def __init__(
-        self, client: Client, filters: Optional[List[QueryFilter]] = None, meta_params: Optional[Param] = None
+        self, client: CoreClient, filters: Optional[List[QueryFilter]] = None, meta_params: Optional[Param] = None
     ):
         self.meta_params = meta_params
         self.client = client

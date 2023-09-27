@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from darwin.future.core.client import Client
+from darwin.future.core.client import CoreClient
 from darwin.future.data_objects.team import Team, get_team
 from darwin.future.helpers.assertion import assert_is
 from darwin.future.meta.objects.base import MetaBase
@@ -23,7 +23,7 @@ class TeamMeta(MetaBase[Team]):
         _type_: TeamMeta
     """
 
-    def __init__(self, client: Client, team: Optional[Team] = None) -> None:
+    def __init__(self, client: CoreClient, team: Optional[Team] = None) -> None:
         team = team or get_team(client)
         super().__init__(client, team)
 
@@ -37,7 +37,7 @@ class TeamMeta(MetaBase[Team]):
         assert self._item is not None
         assert self._item.id is not None
         return self._item.id
-    
+
     @property
     def members(self) -> TeamMemberQuery:
         return TeamMemberQuery(self.client, meta_params={"team_slug": self.slug})
@@ -54,8 +54,7 @@ class TeamMeta(MetaBase[Team]):
     @property
     def workflows(self) -> WorkflowQuery:
         return WorkflowQuery(self.client, meta_params={"team_slug": self.slug})
-    
+
     def __str__(self) -> str:
         assert self._item is not None
         return f"TeamMeta(name='{self.name}', slug='{self.slug}', id='{self.id}' - {len(self._item.members if self._item.members else [])} members)"
-        

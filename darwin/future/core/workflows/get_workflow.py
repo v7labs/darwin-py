@@ -2,12 +2,12 @@ from typing import List, Optional, Tuple
 
 from pydantic import parse_obj_as
 
-from darwin.future.core.client import Client
+from darwin.future.core.client import CoreClient
 from darwin.future.data_objects.workflow import Workflow
 
 
 def get_workflow(
-    client: Client, workflow_id: str, team_slug: Optional[str] = None
+    client: CoreClient, workflow_id: str, team_slug: Optional[str] = None
 ) -> Tuple[Optional[Workflow], List[Exception]]:
     workflow: Optional[Workflow] = None
     exceptions: List[Exception] = []

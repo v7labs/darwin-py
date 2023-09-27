@@ -4,13 +4,13 @@ import pytest
 import responses
 from pydantic import ValidationError
 
-from darwin.future.core.client import Client
+from darwin.future.core.client import CoreClient
 from darwin.future.data_objects.team import Team, TeamMember, get_team, get_team_members
 from darwin.future.tests.core.fixtures import *
 from darwin.future.tests.fixtures import *
 
 
-def test_get_team_returns_valid_team(base_client: Client, base_team_json: dict, base_team: Team) -> None:
+def test_get_team_returns_valid_team(base_client: CoreClient, base_team_json: dict, base_team: Team) -> None:
     slug = "test-slug"
     endpoint = base_client.config.api_endpoint + f"teams/{slug}"
     with responses.RequestsMock() as rsps:
@@ -20,7 +20,7 @@ def test_get_team_returns_valid_team(base_client: Client, base_team_json: dict, 
         assert team == base_team
 
 
-def test_get_team_fails_on_incorrect_input(base_client: Client, base_team: Team) -> None:
+def test_get_team_fails_on_incorrect_input(base_client: CoreClient, base_team: Team) -> None:
     slug = "test-slug"
     endpoint = base_client.config.api_endpoint + f"teams/{slug}"
     with responses.RequestsMock() as rsps:
@@ -30,7 +30,7 @@ def test_get_team_fails_on_incorrect_input(base_client: Client, base_team: Team)
             team = get_team(base_client, slug)
 
 
-def test_get_team_members_returns_valid_list(base_client: Client, base_team_member_json: dict) -> None:
+def test_get_team_members_returns_valid_list(base_client: CoreClient, base_team_member_json: dict) -> None:
     synthetic_list = [TeamMember.parse_obj(base_team_member_json), TeamMember.parse_obj(base_team_member_json)]
     endpoint = base_client.config.api_endpoint + "memberships"
     with responses.RequestsMock() as rsps:
@@ -42,7 +42,7 @@ def test_get_team_members_returns_valid_list(base_client: Client, base_team_memb
         assert members == synthetic_list
 
 
-def test_get_team_members_fails_on_incorrect_input(base_client: Client, base_team_member_json: dict) -> None:
+def test_get_team_members_fails_on_incorrect_input(base_client: CoreClient, base_team_member_json: dict) -> None:
     endpoint = base_client.config.api_endpoint + "memberships"
     with responses.RequestsMock() as rsps:
         rsps.add(responses.GET, endpoint, json=[base_team_member_json, {}])
@@ -54,7 +54,7 @@ def test_get_team_members_fails_on_incorrect_input(base_client: Client, base_tea
         assert isinstance(members[0], TeamMember)
 
 
-def test_team_from_client(base_client: Client, base_team_json: dict, base_team: Team) -> None:
+def test_team_from_client(base_client: CoreClient, base_team_json: dict, base_team: Team) -> None:
     with responses.RequestsMock() as rsps:
         rsps.add(
             responses.GET,

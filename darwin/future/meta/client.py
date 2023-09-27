@@ -5,26 +5,26 @@ from typing import List, Optional
 
 from requests.adapters import Retry
 
-from darwin.future.core.client import Client, DarwinConfig
+from darwin.future.core.client import CoreClient, DarwinConfig
 from darwin.future.meta.objects.team import TeamMeta
 from darwin.future.meta.objects.workflow import WorkflowMeta
 from darwin.future.meta.queries.workflow import WorkflowQuery
 
 
-class MetaClient(Client):
+class Client(CoreClient):
     def __init__(self, config: DarwinConfig, retries: Optional[Retry] = None) -> None:
         self._team: Optional[TeamMeta] = None
         super().__init__(config, retries=retries)
 
     @classmethod
-    def local(cls) -> MetaClient:
+    def local(cls) -> Client:
         config = DarwinConfig.local()
         return cls(config)
 
     @classmethod
-    def from_api_key(cls, api_key: str, datasets_dir: Optional[Path] = None) -> MetaClient:
+    def from_api_key(cls, api_key: str, datasets_dir: Optional[Path] = None) -> Client:
         config = DarwinConfig.from_api_key_with_defaults(api_key=api_key)
-        client = Client(config)  # create a temporary client to get the default team
+        client = CoreClient(config)  # create a temporary client to get the default team
         token_info = client.get("/users/token_info")
         assert isinstance(token_info, dict)
         default_team: str = token_info["selected_team"]["slug"]
