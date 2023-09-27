@@ -38,9 +38,8 @@ def test_create_dataset_returns_exceptions_thrown(base_config: DarwinConfig) -> 
 
     with RequestsMock() as rsps:
         rsps.add(rsps.POST, base_url, status=500)
-        dataset_meta = DatasetMeta(valid_client)
 
-        exceptions, dataset_created = dataset_meta.create_dataset(valid_slug)
+        exceptions, dataset_created = DatasetMeta.create_dataset(valid_client, valid_slug)
 
         assert exceptions is not None
         assert "500 Server Error" in str(exceptions[0])
@@ -60,9 +59,8 @@ def test_create_dataset_returns_dataset_created_if_dataset_created(base_config: 
             json={"id": 1, "name": "Test Dataset", "slug": "test_dataset"},
             status=201,
         )
-        dataset_meta = DatasetMeta(valid_client)
 
-        exceptions, dataset_created = dataset_meta.create_dataset(valid_slug)
+        exceptions, dataset_created = DatasetMeta.create_dataset(valid_client, valid_slug)
 
         assert exceptions is None
         assert dataset_created is not None
@@ -81,10 +79,9 @@ def test_delete_dataset_returns_exceptions_thrown(
 ) -> None:
     _delete_by_slug_mock.side_effect = Exception("test exception")
 
-    client = Client(base_config)
-    dataset_meta = DatasetMeta(client)
+    valid_client = Client(base_config)
 
-    exceptions, dataset_deleted = dataset_meta.delete_dataset("test_dataset")
+    exceptions, dataset_deleted = DatasetMeta.delete_dataset(valid_client, "test_dataset")
 
     assert exceptions is not None
     assert str(exceptions[0]) == "test exception"
@@ -97,10 +94,9 @@ def test_delete_dataset_returns_exceptions_thrown(
 def test_delete_dataset_calls_delete_by_slug_as_appropriate(
     base_config: DarwinConfig, _delete_by_id_mock: Mock, _delete_by_slug_mock: Mock
 ) -> None:
-    client = Client(base_config)
-    dataset_meta = DatasetMeta(client)
+    valid_client = Client(base_config)
 
-    exceptions, _ = dataset_meta.delete_dataset("test_dataset")
+    exceptions, _ = DatasetMeta.delete_dataset(valid_client, "test_dataset")
 
     assert exceptions is None
     assert _delete_by_slug_mock.call_count == 1
@@ -110,10 +106,9 @@ def test_delete_dataset_calls_delete_by_slug_as_appropriate(
 def test_delete_dataset_calls_delete_by_id_as_appropriate(
     base_config: DarwinConfig, _delete_by_id_mock: Mock, _delete_by_slug_mock: Mock
 ) -> None:
-    client = Client(base_config)
-    dataset_meta = DatasetMeta(client)
+    valid_client = Client(base_config)
 
-    exceptions, _ = dataset_meta.delete_dataset(1)
+    exceptions, _ = DatasetMeta.delete_dataset(valid_client, 1)
 
     assert exceptions is None
     assert _delete_by_slug_mock.call_count == 0

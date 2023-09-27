@@ -10,10 +10,10 @@ Param = Dict[str, object]
 
 
 class MetaBase(Generic[R]):
-    _element: Optional[R]
+    _element: R
     client: CoreClient
 
-    def __init__(self, client: CoreClient, element: Optional[R] = None, meta_params: Optional[Param] = None) -> None:
+    def __init__(self, client: CoreClient, element: R, meta_params: Optional[Param] = None) -> None:
         self.client = client
         self._element = element
         self.meta_params = meta_params or dict()

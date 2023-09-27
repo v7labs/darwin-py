@@ -61,7 +61,8 @@ class DatasetMeta(MetaBase[Dataset]):
         # TODO: implement
         raise NotImplementedError()
 
-    def create_dataset(self, slug: str) -> Tuple[Optional[List[Exception]], Optional[Dataset]]:
+    @classmethod
+    def create_dataset(cls, client: CoreClient, slug: str) -> Tuple[Optional[List[Exception]], Optional[Dataset]]:
         """
         Creates a new dataset for the given team
 
@@ -80,8 +81,8 @@ class DatasetMeta(MetaBase[Dataset]):
         dataset: Optional[Dataset] = None
 
         try:
-            self._validate_slug(slug)
-            dataset = create_dataset(self.client, slug)
+            cls._validate_slug(slug)
+            dataset = create_dataset(client, slug)
         except Exception as e:
             exceptions.append(e)
 
@@ -91,7 +92,8 @@ class DatasetMeta(MetaBase[Dataset]):
         # TODO: implement in IO-1018
         raise NotImplementedError()
 
-    def delete_dataset(self, dataset_id: Union[int, str]) -> Tuple[Optional[List[Exception]], int]:
+    @classmethod
+    def delete_dataset(cls, client: CoreClient, dataset_id: Union[int, str]) -> Tuple[Optional[List[Exception]], int]:
         """
         Deletes a dataset by id or slug
 
@@ -110,9 +112,9 @@ class DatasetMeta(MetaBase[Dataset]):
 
         try:
             if isinstance(dataset_id, str):
-                dataset_deleted = self._delete_by_slug(self.client, dataset_id)
+                dataset_deleted = cls._delete_by_slug(client, dataset_id)
             else:
-                dataset_deleted = self._delete_by_id(self.client, dataset_id)
+                dataset_deleted = cls._delete_by_id(client, dataset_id)
 
         except Exception as e:
             exceptions.append(e)

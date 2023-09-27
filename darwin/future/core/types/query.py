@@ -113,7 +113,7 @@ class Query(Generic[T], ABC):
     def __init__(
         self, client: CoreClient, filters: Optional[List[QueryFilter]] = None, meta_params: Optional[Param] = None
     ):
-        self.meta_params = meta_params or dict()
+        self.meta_params: dict = meta_params or dict()
         self.client = client
         self.filters = filters
         self.results: Optional[List[T]] = None
