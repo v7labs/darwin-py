@@ -115,48 +115,31 @@ class Query(Generic[T], ABC):
     ):
         self.meta_params: dict = meta_params or dict()
         self.client = client
-        self.filters = filters
+        self.filters = filters or []
         self.results: Optional[List[T]] = None
 
     def filter(self, filter: QueryFilter) -> Query[T]:
         return self + filter
 
     def __add__(self, filter: QueryFilter) -> Query[T]:
-        assert filter is not None
-        assert isinstance(filter, QueryFilter)
-        if self.filters is None:
-            self.filters = []
         return self.__class__(self.client, filters=[*self.filters, filter], meta_params=self.meta_params)
 
     def __sub__(self, filter: QueryFilter) -> Query[T]:
-        assert filter is not None
-        assert isinstance(filter, QueryFilter)
-        if self.filters is None:
-            return self
         return self.__class__(
             self.client, filters=[f for f in self.filters if f != filter], meta_params=self.meta_params
         )
 
     def __iadd__(self, filter: QueryFilter) -> Query[T]:
-        assert filter is not None
-        assert isinstance(filter, QueryFilter)
-        if self.filters is None:
-            self.filters = [filter]
-            return self
         self.filters.append(filter)
         return self
 
     def __isub__(self, filter: QueryFilter) -> Query[T]:
-        assert filter is not None
-        assert isinstance(filter, QueryFilter)
-        if self.filters is None:
-            return self
         self.filters = [f for f in self.filters if f != filter]
         return self
 
     def __len__(self) -> int:
-        if self.results is None:
-            self.results = list(self.collect())
+        if not self.results:
+            self.results = list(self._collect())
         return len(self.results)
 
     def __iter__(self) -> Query[T]:
@@ -164,8 +147,8 @@ class Query(Generic[T], ABC):
         return self
 
     def __next__(self) -> T:
-        if self.results is None:
-            self.results = list(self.collect())
+        if not self.results:
+            self.results = list(self._collect())
         if self.n < len(self.results):
             result = self.results[self.n]
             self.n += 1
@@ -174,13 +157,13 @@ class Query(Generic[T], ABC):
             raise StopIteration
 
     def __getitem__(self, index: int) -> T:
-        if self.results is None:
-            self.results = list(self.collect())
+        if not self.results:
+            self.results = list(self._collect())
         return self.results[index]
 
     def __setitem__(self, index: int, value: T) -> None:
-        if self.results is None:
-            self.results = list(self.collect())
+        if not self.results:
+            self.results = list(self._collect())
         self.results[index] = value
 
     def where(self, *args: object, **kwargs: str) -> Query[T]:
@@ -193,14 +176,14 @@ class Query(Generic[T], ABC):
         if force:
             self.results = []
         self.results = self._collect()
-        return self.results or []
+        return self.results
 
     @abstractmethod
     def _collect(self) -> List[T]:
         raise NotImplementedError("Not implemented")
 
     def collect_one(self) -> T:
-        if self.results is None:
+        if not self.results:
             self.results = list(self.collect())
         if len(self.results) == 0:
             raise ValueError("No results found")
@@ -209,7 +192,7 @@ class Query(Generic[T], ABC):
         return self.results[0]
 
     def first(self) -> Optional[T]:
-        if self.results is None:
+        if not self.results:
             self.results = list(self.collect())
         if len(self.results) == 0:
             return None
