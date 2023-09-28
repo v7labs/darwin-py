@@ -333,8 +333,18 @@ class InstanceSegmentationDataset(LocalDataset):
             min_y: float = np.min([np.min(y_coord) for y_coord in y_coords])
             max_x: float = np.max([np.max(x_coord) for x_coord in x_coords])
             max_y: float = np.max([np.max(y_coord) for y_coord in y_coords])
-            w: float = max_x - min_x + 1
-            h: float = max_y - min_y + 1
+
+            # Clamp the coordinates to the image dimensions
+            min_x: float = max(0, min_x)
+            min_y: float = max(0, min_y)
+            max_x: float = min(target["width"] - 1, max_x)
+            max_y: float = min(target["height"] - 1, max_y)
+
+            assert min_x < max_x and min_y < max_y
+
+            # Convert to XYWH
+            w: float = max_x - (min_x + 1)
+            h: float = max_y - (min_y + 1)
             # Compute the area of the polygon
             # TODO fix with addictive/subtractive paths in complex polygons
             poly_area: float = np.sum([polygon_area(x_coord, y_coord) for x_coord, y_coord in zip(x_coords, y_coords)])

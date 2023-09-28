@@ -194,10 +194,34 @@ def detectron2_register_dataset(
     return catalog_name
 
 
-def clamp_bbox_to_image_size(annotations, width, height):
+def clamp_bbox_to_image_size(annotations, width, height, format="xywh"):
+    """
+    Clamps bounding boxes in annotations to the given image dimensions.
+    
+    :param annotations: Dictionary containing bounding box coordinates in 'boxes' key.
+    :param width: Width of the image.
+    :param height: Height of the image.
+    :param format: Format of the bounding boxes, either "xywh" or "xyxy".
+    :return: Annotations with clamped bounding boxes.
+    
+    The function modifies the input annotations dictionary to clamp the bounding box coordinates
+    based on the specified format, ensuring they lie within the image dimensions.
+    """
     boxes = annotations['boxes']
-    boxes[:, 0::2].clamp_(min=0, max=width)
-    boxes[:, 1::2].clamp_(min=0, max=height)
+    
+    if format == "xyxy":
+        boxes[:, 0::2].clamp_(min=0, max=width - 1)
+        boxes[:, 1::2].clamp_(min=0, max=height - 1)
+    
+    elif format == "xywh":
+        boxes[:, 0].clamp_(min=0, max=width - boxes[:, 2] - 1)
+        boxes[:, 1].clamp_(min=0, max=height - boxes[:, 3] - 1)
+        boxes[:, 2].clamp_(min=0, max=width - boxes[:, 0] - 1)
+        boxes[:, 3].clamp_(min=0, max=height - boxes[:, 1] - 1)
+        
+    else:
+        raise ValueError(f"Unsupported bounding box format: {format}")
+    
     annotations['boxes'] = boxes
-
     return annotations
+
