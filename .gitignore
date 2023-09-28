@@ -183,3 +183,4 @@ scripts/
 
 *test_results.xml
 version.txt
+!e2e_tests/data

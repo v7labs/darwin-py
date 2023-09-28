@@ -19,6 +19,7 @@ from darwin.utils import (
     SUPPORTED_VIDEO_EXTENSIONS,
     attempt_decode,
     is_unix_like_os,
+    parse_darwin_json,
 )
 
 # E.g.: {"partition" => {"class_name" => 123}}
@@ -277,41 +278,55 @@ def get_coco_format_record(
         box_mode = BoxMode.XYXY_ABS
     except ImportError:
         box_mode = 0
-    data = attempt_decode(annotation_path)
-    height, width = data["image"]["height"], data["image"]["width"]
-    annotations = data["annotations"]
+    data = parse_darwin_json(annotation_path)
 
     record: Dict[str, Any] = {}
     if image_path is not None:
         record["file_name"] = str(image_path)
     if image_id is not None:
         record["image_id"] = image_id
-    record["height"] = height
-    record["width"] = width
+    record["height"] = data.image_height
+    record["width"] = data.image_width
 
     objs = []
-    for obj in annotations:
-        px, py = [], []
-        if annotation_type not in obj:
-            continue
+    for obj in data.annotations:
+        if annotation_type != obj.annotation_class.annotation_type:
+            if annotation_type not in obj.data:  # Allows training object detection with bboxes
+                continue
 
         if classes:
-            category = classes.index(obj["name"])
+            category = classes.index(obj.annotation_class.name)
         else:
-            category = obj["name"]
+            category = obj.annotation_class.name
         new_obj = {"bbox_mode": box_mode, "category_id": category, "iscrowd": 0}
 
         if annotation_type == "polygon":
-            for point in obj["polygon"]["path"]:
-                px.append(point["x"])
-                py.append(point["y"])
-            poly = [(x, y) for x, y in zip(px, py)]
-            if len(poly) < 3:  # Discard polyhons with less than 3 points
-                continue
-            new_obj["segmentation"] = [list(itertools.chain.from_iterable(poly))]
-            new_obj["bbox"] = [np.min(px), np.min(py), np.max(px), np.max(py)]
+            # Support for complex polygons
+            if "paths" in obj.data:
+                paths = obj.data["paths"]
+            elif "path" in obj.data:
+                paths = [obj.data["path"]]
+            else:
+                raise ValueError("polygon path not found")
+            all_px, all_py = [], []
+            segmentation = []
+
+            for path in paths:
+                if len(path) < 3:  # Discard polygons with less than 3 points
+                    continue
+                px, py = [], []
+                for point in path:
+                    px.append(point["x"])
+                    py.append(point["y"])
+                poly = [(x, y) for x, y in zip(px, py)]
+                segmentation.append(list(itertools.chain.from_iterable(poly)))
+                all_px.extend(px)
+                all_py.extend(py)
+
+            new_obj["segmentation"] = segmentation
+            new_obj["bbox"] = [np.min(all_px), np.min(all_py), np.max(all_px), np.max(all_py)]
         elif annotation_type == "bounding_box":
-            bbox = obj["bounding_box"]
+            bbox = obj.data["bounding_box"]
             new_obj["bbox"] = [bbox["x"], bbox["y"], bbox["x"] + bbox["w"], bbox["y"] + bbox["h"]]
 
         objs.append(new_obj)
@@ -407,8 +422,8 @@ def get_annotations(
             stems: Iterator[str] = (e.rstrip("\n\r") for e in split_path.open())
         else:
             raise FileNotFoundError(
-                f"Could not find a dataset partition. ",
-                f"To split the dataset you can use 'split_dataset' from darwin.dataset.split_manager",
+                "Could not find a dataset partition. ",
+                "To split the dataset you can use 'split_dataset' from darwin.dataset.split_manager",
             )
     else:
         # If the partition is not specified, get all the annotations
@@ -554,9 +569,9 @@ def compute_max_density(annotations_dir: Path) -> int:
     max_density = 0
     for annotation_path in annotations_dir.glob("**/*.json"):
         annotation_density = 0
-        darwin_json = attempt_decode(annotation_path)
-        for annotation in darwin_json["annotations"]:
-            if "polygon" not in annotation and "complex_polygon" not in annotation:
+        darwin_json = parse_darwin_json(annotation_path)
+        for annotation in darwin_json.annotations:
+            if "path" not in annotation.data and "paths" not in annotation.data:
                 continue
             annotation_density += 1
         if annotation_density > max_density:
