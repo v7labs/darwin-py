@@ -50,7 +50,9 @@ class RandomHorizontalFlip(transforms.RandomHorizontalFlip):
     Allows for horizontal flipping of an image, randomly.
     """
 
-    def forward(self, image: torch.Tensor, target: Optional[TargetType] = None) -> Union[torch.Tensor, Tuple[torch.Tensor, TargetType]]:
+    def forward(
+        self, image: torch.Tensor, target: Optional[TargetType] = None
+    ) -> Union[torch.Tensor, Tuple[torch.Tensor, TargetType]]:
         """
         May or may not horizontally flip an image depending on a random factor.
 
@@ -93,7 +95,9 @@ class RandomVerticalFlip(transforms.RandomVerticalFlip):
     Allows for vertical flipping of an image, randomly.
     """
 
-    def forward(self, image: torch.Tensor, target: Optional[TargetType] = None) -> Union[torch.Tensor, Tuple[torch.Tensor, TargetType]]:
+    def forward(
+        self, image: torch.Tensor, target: Optional[TargetType] = None
+    ) -> Union[torch.Tensor, Tuple[torch.Tensor, TargetType]]:
         """
         May or may not vertically flip an image depending on a random factor.
 
@@ -135,7 +139,9 @@ class ColorJitter(transforms.ColorJitter):
     Jitters the colors of the given transformation.
     """
 
-    def __call__(self, image: PILImage.Image, target: Optional[TargetType] = None) -> Union[PILImage.Image, Tuple[PILImage.Image, TargetType]]:
+    def __call__(
+        self, image: PILImage.Image, target: Optional[TargetType] = None
+    ) -> Union[PILImage.Image, Tuple[PILImage.Image, TargetType]]:
         transform = self.get_params(self.brightness, self.contrast, self.saturation, self.hue)
         image = transform(image)
         if target is None:
@@ -148,7 +154,9 @@ class ToTensor(transforms.ToTensor):
     Converts given ``PILImage`` to a ``Tensor``.
     """
 
-    def __call__(self, image: PILImage.Image, target: Optional[TargetType] = None) -> Union[torch.Tensor, Tuple[torch.Tensor, TargetType]]:
+    def __call__(
+        self, image: PILImage.Image, target: Optional[TargetType] = None
+    ) -> Union[torch.Tensor, Tuple[torch.Tensor, TargetType]]:
         image_tensor: torch.Tensor = F.to_tensor(image)
         if target is None:
             return image_tensor
@@ -160,7 +168,9 @@ class ToPILImage(transforms.ToPILImage):
     Converts given ``Tensor`` to a ``PILImage``.
     """
 
-    def __call__(self, image: torch.Tensor, target: Optional[TargetType] = None) -> Union[PILImage.Image, Tuple[PILImage.Image, TargetType]]:
+    def __call__(
+        self, image: torch.Tensor, target: Optional[TargetType] = None
+    ) -> Union[PILImage.Image, Tuple[PILImage.Image, TargetType]]:
         pil_image: PILImage.Image = F.to_pil_image(image)
         if target is None:
             return pil_image
@@ -172,7 +182,9 @@ class Normalize(transforms.Normalize):
     Normalizes the given ``Tensor``.
     """
 
-    def __call__(self, tensor: torch.Tensor, target: Optional[TargetType] = None) -> Union[torch.Tensor, Tuple[torch.Tensor, TargetType]]:
+    def __call__(
+        self, tensor: torch.Tensor, target: Optional[TargetType] = None
+    ) -> Union[torch.Tensor, Tuple[torch.Tensor, TargetType]]:
         tensor = F.normalize(tensor, self.mean, self.std, self.inplace)
 
         if target is None:
@@ -198,8 +210,6 @@ class ConvertPolygonsToInstanceMasks(object):
         boxes = [obj["bbox"] for obj in annotations]
         # guard against no boxes via resizing
         boxes = torch.as_tensor(boxes, dtype=torch.float32).reshape(-1, 4)
-        boxes[:, 0::2].clamp_(min=0, max=w)
-        boxes[:, 1::2].clamp_(min=0, max=h)
 
         classes = [obj["category_id"] for obj in annotations]
         classes = torch.tensor(classes, dtype=torch.int64)

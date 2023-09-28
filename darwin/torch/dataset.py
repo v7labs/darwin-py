@@ -343,8 +343,9 @@ class InstanceSegmentationDataset(LocalDataset):
             assert min_x < max_x and min_y < max_y
 
             # Convert to XYWH
-            w: float = max_x - (min_x + 1)
-            h: float = max_y - (min_y + 1)
+            w: float = max_x - min_x
+            h: float = max_y - min_y
+
             # Compute the area of the polygon
             # TODO fix with addictive/subtractive paths in complex polygons
             poly_area: float = np.sum([polygon_area(x_coord, y_coord) for x_coord, y_coord in zip(x_coords, y_coords)])
@@ -400,14 +401,13 @@ class SemanticSegmentationDataset(LocalDataset):
     """
 
     def __init__(self, transform: Optional[Union[List[Callable], Callable]] = None, **kwargs):
-
         super().__init__(annotation_type="polygon", **kwargs)
         if not "__background__" in self.classes:
             self.classes.insert(0, "__background__")
             self.num_classes += 1
         if transform is not None and isinstance(transform, list):
             transform = Compose(transform)
- 
+
         self.transform: Optional[Callable] = transform
         self.convert_polygons = ConvertPolygonsToSemanticMask()
 
