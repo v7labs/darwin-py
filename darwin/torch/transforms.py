@@ -232,6 +232,14 @@ class ConvertPolygonsToInstanceMasks(object):
         if keypoints is not None:
             target["keypoints"] = keypoints
 
+        # Remove boxes with widht or height zero
+        keep = (boxes[:, 3] > 0) & (boxes[:, 2] > 0)
+        boxes = boxes[keep]
+        classes = classes[keep]
+        masks = masks[keep]
+        if keypoints is not None:
+            keypoints = keypoints[keep]
+
         # conversion to coco api
         area = torch.tensor([obj["area"] for obj in annotations])
         iscrowd = torch.tensor([obj.get("iscrowd", 0) for obj in annotations])
