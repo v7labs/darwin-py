@@ -123,24 +123,29 @@ class Query(Generic[T], ABC):
         self.client = client
         self.filters = filters or []
         self.results: Optional[List[T]] = None
+        self._changed_since_last: bool = True
 
     def filter(self, filter: QueryFilter) -> Query[T]:
         return self + filter
 
     def __add__(self, filter: QueryFilter) -> Query[T]:
+        self._changed_since_last = True
         return self.__class__(self.client, filters=[*self.filters, filter], meta_params=self.meta_params)
 
     def __sub__(self, filter: QueryFilter) -> Query[T]:
+        self._changed_since_last = True
         return self.__class__(
             self.client, filters=[f for f in self.filters if f != filter], meta_params=self.meta_params
         )
 
     def __iadd__(self, filter: QueryFilter) -> Query[T]:
         self.filters.append(filter)
+        self._changed_since_last = True
         return self
 
     def __isub__(self, filter: QueryFilter) -> Query[T]:
         self.filters = [f for f in self.filters if f != filter]
+        self._changed_since_last = True
         return self
 
     def __len__(self) -> int:
@@ -176,12 +181,14 @@ class Query(Generic[T], ABC):
         filters = QueryFilter._from_args(*args, **kwargs)
         for item in filters:
             self += item
+        self._changed_since_last = True
         return self
 
     def collect(self, force: bool = False) -> List[T]:
-        if force:
+        if force or self._changed_since_last:
             self.results = []
         self.results = self._collect()
+        self._changed_since_last = False
         return self.results
 
     @abstractmethod
