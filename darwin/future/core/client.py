@@ -10,7 +10,7 @@ from pydantic import BaseModel, root_validator, validator
 from requests.adapters import HTTPAdapter, Retry
 
 from darwin.future.core.types.common import JSONType, QueryString
-from darwin.future.exceptions.client import NotFound, Unauthorized
+from darwin.future.exceptions import NotFound, Unauthorized
 
 
 class TeamsConfig(BaseModel):

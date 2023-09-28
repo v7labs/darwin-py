@@ -7,8 +7,7 @@ from pydantic import ValidationError
 from requests import HTTPError
 
 from darwin.future.core.client import ClientCore, DarwinConfig, TeamsConfig
-from darwin.future.exceptions.base import DarwinException
-from darwin.future.exceptions.client import NotFound, Unauthorized
+from darwin.future.exceptions import DarwinException, NotFound, Unauthorized
 from darwin.future.tests.core.fixtures import *
 from darwin.future.tests.fixtures import *
 

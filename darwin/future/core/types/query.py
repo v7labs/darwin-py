@@ -15,7 +15,7 @@ from typing import (
 )
 
 from darwin.future.core.client import ClientCore
-from darwin.future.exceptions.query import (
+from darwin.future.exceptions import (
     InvalidQueryFilter,
     InvalidQueryModifier,
     MoreThanOneResultFound,

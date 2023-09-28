@@ -3,7 +3,8 @@ import responses
 from pydantic import ValidationError
 from requests import HTTPError
 
-from darwin.future.core.client import ClientCore, JSONType
+from darwin.future.core.client import ClientCore
+from darwin.future.core.types.common import JSONType
 from darwin.future.core.workflows import get_workflow
 from darwin.future.data_objects.workflow import WorkflowCore
 from darwin.future.tests.core.fixtures import *

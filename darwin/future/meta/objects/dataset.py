@@ -10,7 +10,7 @@ from darwin.future.core.client import ClientCore
 from darwin.future.core.datasets import create_dataset, get_dataset, remove_dataset
 from darwin.future.core.items import get_item_ids
 from darwin.future.data_objects.dataset import DatasetCore
-from darwin.future.exceptions.meta import MissingDataset
+from darwin.future.exceptions import MissingDataset
 from darwin.future.helpers.assertion import assert_is
 from darwin.future.meta.objects.base import MetaBase
 

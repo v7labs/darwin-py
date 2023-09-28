@@ -1,7 +1,8 @@
 from typing import List
 from uuid import UUID
 
-from darwin.future.core.client import ClientCore, JSONType
+from darwin.future.core.client import ClientCore
+from darwin.future.core.types.common import JSONType
 
 
 def move_items_to_stage(

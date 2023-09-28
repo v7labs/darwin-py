@@ -1,7 +1,7 @@
 from typing import Optional
 
 from darwin.future.core.client import ClientCore
-from darwin.future.exceptions.core.datasets import DatasetNotFound
+from darwin.future.exceptions import DatasetNotFound
 
 
 def remove_dataset(api_client: ClientCore, id: int, team_slug: Optional[str] = None) -> int:

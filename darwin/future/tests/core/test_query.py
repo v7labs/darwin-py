@@ -2,11 +2,10 @@ from typing import Any, List, Optional, Type
 
 import pytest
 
-from darwin import item
 from darwin.future.core.client import ClientCore
 from darwin.future.core.types import query as Query
 from darwin.future.data_objects.team import TeamCore
-from darwin.future.exceptions.query import InvalidQueryFilter, MoreThanOneResultFound
+from darwin.future.exceptions import InvalidQueryFilter, MoreThanOneResultFound
 from darwin.future.tests.core.fixtures import *
 
 
