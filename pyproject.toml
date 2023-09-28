@@ -107,7 +107,7 @@ dev = [
     "flake8-pyproject",
 ]
 test = ["responses", "pytest", "flake8-pyproject"]
-ml = ["torch", "torchvision", "scikit-learn"]
+ml = ["torch", "torchvision", "scikit-learn", "albumentations"]
 medical = ["nibabel", "connected-components-3d"]
 ocv = ["opencv-python-headless"]
 
