@@ -62,6 +62,7 @@ jobs:
           pip install wheel
           pip install --upgrade setuptools
           pip install --editable ".[test,ml,medical,dev,ocv]"
+          pip install albumentations
           pip install pytest 
       - name: Run Tests
         run: python -m pytest -W ignore::DeprecationWarning
