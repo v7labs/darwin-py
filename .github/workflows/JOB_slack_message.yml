@@ -9,6 +9,12 @@ on:
         description: 'The message to send'
         required: true
 
+      icon:
+        type: string
+        description: 'The icon to use'
+        required: false
+        default: ':snake:'
+
 jobs:
   slack-notify:
     name: Slack Notification
@@ -18,10 +24,10 @@ jobs:
         run: |
           PAYLOAD=$(cat <<EOF
           {
-            "channel": "#${{ env.SLACK_CHANNEL }}",
-            "username": "${{ env.SLACK_USERNAME }}",
+            "channel": "#${{ vars.SLACK_CHANNEL }}",
+            "username": "${{ vars.SLACK_USERNAME }}",
             "text": "${{ inputs.message }}",
-            "icon_emoji": "${{ env.SLACK_ICON }}"
+            "icon_emoji": "${{ inputs.icon || vars.SLACK_ICON }}"
           })
           EOF
           curl -X POST --data-urlencode "payload=$PAYLOAD" ${{ secrets.SLACK_WEBHOOK }}
