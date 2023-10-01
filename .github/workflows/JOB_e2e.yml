@@ -47,13 +47,24 @@ jobs:
     if: failure() && github.event_name == 'schedule'
     runs-on: ubuntu-latest
     steps:
+      - name: Notify Slack
+        uses: ./.github/workflows/JOB_slack_message.yml
+        with:
+          icon: ":warning:"
+          at_team: true
+          message: |
+            *Nightly E2E run failed*
+
+            :link:
+              - https://github.com/v7labs/darwin-py/actions/runs/${{ github.run_id }}
+            :warning: ${{ github.workflow }} failed
       - name: Send Slack Notification
         run: |
           PAYLOAD=$(cat <<EOF
           {
             "channel": "#${{ vars.SLACK_CHANNEL }}",
             "username": "${{ vars.SLACK_USERNAME }}",
-            "text": "Nightly E2E run failed <!subteam^S04T5MWDHJ6>: https://github.com/v7labs/darwin-py/actions/runs/${{ github.run_id }}",
+            "text": "",
             "icon_emoji": "${{ vars.SLACK_ICON }}"
           }
           EOF
