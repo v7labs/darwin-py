@@ -61,3 +61,45 @@ class ValidationError(DarwinException):
 
 class AssertionError(DarwinException):
     pass
+
+
+class NotFound(DarwinException):
+    pass
+
+
+class Unauthorized(DarwinException):
+    pass
+
+
+class UnrecognizableFileEncoding(DarwinException):
+    pass
+
+
+class MissingSlug(DarwinException):
+    pass
+
+
+class MissingDataset(DarwinException):
+    pass
+
+
+class ResultsNotFound(DarwinException):
+    pass
+
+
+class MoreThanOneResultFound(DarwinException):
+    pass
+
+
+class InvalidQueryModifier(DarwinException):
+    pass
+
+
+class InvalidQueryFilter(DarwinException):
+    pass
+
+
+class DatasetNotFound(DarwinException):
+    """Raised when the dataset endpoint returns a malformed response."""
+
+    ...

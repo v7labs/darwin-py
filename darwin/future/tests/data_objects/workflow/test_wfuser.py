@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from darwin.future.data_objects.workflow import WFUser
+from darwin.future.data_objects.workflow import WFUserCore
 
 test_data_path: Path = Path(__file__).parent / "data"
 validate_json = test_data_path / "user.json"
@@ -15,8 +15,8 @@ def test_file_exists() -> None:
 
 
 def test_WFUser_validates_from_valid_json() -> None:
-    parsed_user = WFUser.parse_file(validate_json)
+    parsed_user = WFUserCore.parse_file(validate_json)
 
-    assert isinstance(parsed_user, WFUser)
+    assert isinstance(parsed_user, WFUserCore)
     assert parsed_user.user_id == 100
     assert str(parsed_user.stage_id) == "0fa1ae43-fb46-44d7-bf85-b78e81d0d02f"
