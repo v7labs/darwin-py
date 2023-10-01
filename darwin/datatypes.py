@@ -959,6 +959,7 @@ def make_graph(
         AnnotationClass(class_name, "graph"), {"nodes": nodes, "edges": edges}, subs or [], slot_names=slot_names or []
     )
 
+
 def make_mask(
     class_name: str, subs: Optional[List[SubAnnotation]] = None, slot_names: Optional[List[str]] = None
 ) -> Annotation:
@@ -979,6 +980,7 @@ def make_mask(
     """
     return Annotation(AnnotationClass(class_name, "mask"), {}, subs or [], slot_names=slot_names or [])
 
+
 def make_raster_layer(
     class_name: str,
     mask_annotation_ids_mapping: Dict[str, str],
@@ -998,12 +1000,12 @@ def make_raster_layer(
     mask_annotation_ids_mapping : Dict[str, str]
         Mapping of mask annotations ids to unique small integers used in the dense_rle.
         Should be in following format:
-            .. code-block:: javascript
+        .. code-block:: javascript
 
-                {
-                    "91bb3c24-883a-433b-ae95-a6ee7845bea5": 1,
-                    "5a0ceba1-2e26-425e-8579-e6013ca415c5": 2
-                }
+            {
+                "91bb3c24-883a-433b-ae95-a6ee7845bea5": 1,
+                "5a0ceba1-2e26-425e-8579-e6013ca415c5": 2
+            }
 
     total_pixels : int
         Total number of pixels in a corresponding image.
@@ -1011,9 +1013,9 @@ def make_raster_layer(
     dense_rle : int
         Run length encoding of all masks in the raster layer.
         Should be in following format:
-            .. code-block:: javascript
+        .. code-block:: javascript
 
-                [0, 5, 1, 15, 2, 10]
+            [0, 5, 1, 15, 2, 10]
 
     subs : Optional[List[SubAnnotation]], default: None
         List of ``SubAnnotation``\\s for this ``Annotation``.
@@ -1024,7 +1026,14 @@ def make_raster_layer(
         A raster_layer ``Annotation``.
     """
     return Annotation(
-        AnnotationClass(class_name, "raster_layer"), {"mask_annotation_ids_mapping": mask_annotation_ids_mapping, "total_pixels": total_pixels, "dense_rle": dense_rle}, subs or [], slot_names=slot_names or []
+        AnnotationClass(class_name, "raster_layer"),
+        {
+            "mask_annotation_ids_mapping": mask_annotation_ids_mapping,
+            "total_pixels": total_pixels,
+            "dense_rle": dense_rle,
+        },
+        subs or [],
+        slot_names=slot_names or [],
     )
 
 
