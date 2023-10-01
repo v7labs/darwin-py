@@ -923,8 +923,8 @@ def convert_polygons_to_sequences(
         path: List[Union[int, float]] = []
         for point in polygon:
             # Clip coordinates to the image size
-            x = max(min(point["x"], width - 1) if width else point["x"], 0)
-            y = max(min(point["y"], height - 1) if height else point["y"], 0)
+            x = max(min(point["x"], width -1) if width else point["x"], 0)
+            y = max(min(point["y"], height -1) if height else point["y"], 0)
             if rounding:
                 path.append(round(x))
                 path.append(round(y))

@@ -1,13 +1,32 @@
 import random
+from pathlib import Path
 from typing import Any, Dict, Optional, Tuple, Union
 
+import numpy as np
 import torch
 import torchvision.transforms as transforms
 import torchvision.transforms.functional as F
 from PIL import Image as PILImage
 
-from darwin.torch.utils import convert_segmentation_to_mask, flatten_masks_by_category
+# Optional dependency
+try:
+    import albumentations as A
+    from albumentations import Compose
+except ImportError:
+    A = None
 
+from typing import TYPE_CHECKING, Type
+
+if TYPE_CHECKING:
+    from albumentations.pytorch import ToTensorV2
+
+    AType = Type[ToTensorV2]
+else:
+    AType = Type[None]
+    Compose = Type[None]
+
+
+from darwin.torch.utils import convert_segmentation_to_mask, flatten_masks_by_category
 
 TargetKey = Union["boxes", "labels", "mask", "masks", "image_id", "area", "iscrowd"]
 TargetType = Dict[TargetKey, torch.Tensor]
@@ -191,9 +210,6 @@ class ConvertPolygonsToInstanceMasks(object):
         boxes = [obj["bbox"] for obj in annotations]
         # guard against no boxes via resizing
         boxes = torch.as_tensor(boxes, dtype=torch.float32).reshape(-1, 4)
-        boxes[:, 2:] += boxes[:, :2]
-        boxes[:, 0::2].clamp_(min=0, max=w)
-        boxes[:, 1::2].clamp_(min=0, max=h)
 
         classes = [obj["category_id"] for obj in annotations]
         classes = torch.tensor(classes, dtype=torch.int64)
@@ -209,19 +225,20 @@ class ConvertPolygonsToInstanceMasks(object):
             if num_keypoints:
                 keypoints = keypoints.view(num_keypoints, -1, 3)
 
-        keep = (boxes[:, 3] > boxes[:, 1]) & (boxes[:, 2] > boxes[:, 0])
-        boxes = boxes[keep]
-        classes = classes[keep]
-        masks = masks[keep]
-        if keypoints is not None:
-            keypoints = keypoints[keep]
-
         target["boxes"] = boxes
         target["labels"] = classes
         target["masks"] = masks
         target["image_id"] = image_id
         if keypoints is not None:
             target["keypoints"] = keypoints
+
+        # Remove boxes with widht or height zero
+        keep = (boxes[:, 3] > 0) & (boxes[:, 2] > 0)
+        boxes = boxes[keep]
+        classes = classes[keep]
+        masks = masks[keep]
+        if keypoints is not None:
+            keypoints = keypoints[keep]
 
         # conversion to coco api
         area = torch.tensor([obj["area"] for obj in annotations])
@@ -278,3 +295,100 @@ class ConvertPolygonToMask(object):
             target = torch.zeros((h, w), dtype=torch.uint8)
         target = PILImage.fromarray(target.numpy())
         return image, target
+
+
+class AlbumentationsTransform:
+    """
+    Wrapper class for Albumentations augmentations.
+    """
+
+    def __init__(self, transform: Compose):
+        self._check_albumentaion_dependency()
+        self.transform = transform
+
+    @classmethod
+    def from_path(cls, config_path: str) -> "AlbumentationsTransform":
+        config_path = Path(config_path)
+        try:
+            transform = A.load(str(config_path))
+            return cls(transform)
+        except Exception as e:
+            raise ValueError(f"Invalid config path: {config_path}. Error: {e}")
+
+    @classmethod
+    def from_dict(cls, alb_dict: dict) -> "AlbumentationsTransform":
+        try:
+            transform = A.from_dict(alb_dict)
+            return cls(transform)
+        except Exception as e:
+            raise ValueError(f"Invalid albumentations dictionary. Error: {e}")
+
+    def __call__(self, image, annotation: dict = None) -> tuple:
+        np_image = np.array(image)
+        if annotation is None:
+            annotation = {}
+        albu_data = self._pre_process(np_image, annotation)
+        transformed_data = self.transform(**albu_data)
+        image, transformed_annotation = self._post_process(transformed_data, annotation)
+
+        return image, transformed_annotation
+
+    def _pre_process(self, image: np.ndarray, annotation: dict) -> dict:
+        """
+        Prepare image and annotation for albumentations transformation.
+        """
+        albumentation_dict = {"image": image}
+
+        boxes = annotation.get("boxes")
+        if boxes is not None:
+            albumentation_dict["bboxes"] = boxes.numpy().tolist()
+
+        labels = annotation.get("labels")
+        if labels is not None:
+            albumentation_dict["labels"] = labels.tolist()
+
+        masks = annotation.get("masks")
+        if masks is not None:
+            albumentation_dict["masks"] = masks.numpy()
+
+        return albumentation_dict
+
+    def _post_process(self, albumentation_output: dict, annotation: dict) -> tuple:
+        """
+        Process the output of albumentations transformation back to desired format.
+        """
+        output_annotation = {}
+        image = albumentation_output["image"]
+
+        bboxes = albumentation_output.get("bboxes")
+        if bboxes is not None:
+            output_annotation["boxes"] = torch.tensor(bboxes)
+            if "area" in annotation and "masks" not in albumentation_output:
+                output_annotation["area"] = output_annotation["boxes"][:, 2] * output_annotation["boxes"][:, 3]
+
+        labels = albumentation_output.get("labels")
+        if labels is not None:
+            output_annotation["labels"] = torch.tensor(labels)
+
+        masks = albumentation_output.get("masks")
+        if masks is not None:
+            if isinstance(masks[0], np.ndarray):
+                output_annotation["masks"] = torch.tensor(np.array(masks))
+            else:
+                output_annotation["masks"] = torch.stack(masks)
+            if "area" in annotation:
+                output_annotation["area"] = torch.sum(output_annotation["masks"], dim=[1, 2])
+
+        # Copy other metadata from original annotation
+        for key, value in annotation.items():
+            output_annotation.setdefault(key, value)
+
+        return image, output_annotation
+
+    def _check_albumentaion_dependency(self):
+        if A is None:
+            raise ImportError(
+                "The albumentations library is not installed. "
+                "To use this function, install it with pip install albumentations, "
+                "or install the ml extras of this package."
+            )

@@ -108,7 +108,7 @@ ruff = "^0.0.287"
 [tool.poetry.extras]
 dev = ["black", "isort", "mypy", "debugpy", "responses", "pytest", "ruff"]
 test = ["responses", "pytest", "ruff"]
-ml = ["torch", "torchvision", "scikit-learn"]
+ml = ["torch", "torchvision", "scikit-learn", "albumentations"]
 medical = ["nibabel", "connected-components-3d"]
 ocv = ["opencv-python-headless"]
 
