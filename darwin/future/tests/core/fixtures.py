@@ -4,11 +4,11 @@ from typing import List
 import orjson as json
 import pytest
 
-from darwin.future.core.client import Client, DarwinConfig
-from darwin.future.data_objects.dataset import Dataset
-from darwin.future.data_objects.team import Team, TeamMember
+from darwin.future.core.client import ClientCore, DarwinConfig
+from darwin.future.data_objects.dataset import DatasetCore
+from darwin.future.data_objects.team import TeamCore, TeamMemberCore
 from darwin.future.data_objects.team_member_role import TeamMemberRole
-from darwin.future.data_objects.workflow import WFType
+from darwin.future.data_objects.workflow import WFTypeCore
 
 
 @pytest.fixture
@@ -24,8 +24,8 @@ def base_config() -> DarwinConfig:
 
 
 @pytest.fixture
-def base_client(base_config: DarwinConfig) -> Client:
-    return Client(base_config)
+def base_client(base_config: DarwinConfig) -> ClientCore:
+    return ClientCore(base_config)
 
 
 @pytest.fixture
@@ -34,8 +34,8 @@ def base_team_json() -> dict:
 
 
 @pytest.fixture
-def base_team(base_team_json: dict) -> Team:
-    return Team.parse_obj(base_team_json)
+def base_team(base_team_json: dict) -> TeamCore:
+    return TeamCore.parse_obj(base_team_json)
 
 
 @pytest.fixture
@@ -52,8 +52,8 @@ def base_team_member_json() -> dict:
 
 
 @pytest.fixture
-def base_team_member(base_team_member_json: dict) -> TeamMember:
-    return TeamMember.parse_obj(base_team_member_json)
+def base_team_member(base_team_member_json: dict) -> TeamMemberCore:
+    return TeamMemberCore.parse_obj(base_team_member_json)
 
 
 @pytest.fixture
@@ -67,8 +67,8 @@ def base_team_members_json(base_team_member_json: dict) -> List[dict]:
 
 
 @pytest.fixture
-def team_members(base_team_members_json: List[dict]) -> List[TeamMember]:
-    return [TeamMember.parse_obj(item) for item in base_team_members_json]
+def team_members(base_team_members_json: List[dict]) -> List[TeamMemberCore]:
+    return [TeamMemberCore.parse_obj(item) for item in base_team_members_json]
 
 
 @pytest.fixture
@@ -93,12 +93,12 @@ def base_dataset_json_with_releases() -> dict:
 
 
 @pytest.fixture
-def base_dataset(base_dataset_json: dict) -> Dataset:
-    return Dataset.parse_obj(base_dataset_json)
+def base_dataset(base_dataset_json: dict) -> DatasetCore:
+    return DatasetCore.parse_obj(base_dataset_json)
 
 
-def base_dataset_with_releases(base_dataset_json_with_releases: dict) -> Dataset:
-    return Dataset.parse_obj(base_dataset_json_with_releases)
+def base_dataset_with_releases(base_dataset_json_with_releases: dict) -> DatasetCore:
+    return DatasetCore.parse_obj(base_dataset_json_with_releases)
 
 
 @pytest.fixture
