@@ -120,7 +120,7 @@ def parse_annotation(
     if iscrowd:
         logger.warn(
             f"Skipping annotation {annotation.get('id')} because it is a crowd"
-            "annotation, and this is not supported from Coco."
+            "annotation, and Darwin does not support import of crowd annotations."
         )
         return None
 
