@@ -11,6 +11,7 @@ on:
 
 jobs:
   format:
+    if: ${{ github.event.inputs.files != '' }}
     runs-on: ubuntu-latest
     steps:
     - name: Check out source repository
@@ -24,3 +25,10 @@ jobs:
     - name: Black check
       shell: bash
       run: bash ${{ github.workspace }}/deploy/format_lint.sh format ${{ inputs.files }}
+
+  not_format:
+    if: ${{ github.event.inputs.files == '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Do not format check
+        run: echo "No files to format"

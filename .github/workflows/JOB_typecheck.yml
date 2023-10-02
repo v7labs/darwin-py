@@ -11,6 +11,7 @@ on:
 
 jobs:
   typecheck:
+    if: ${{ github.event.inputs.files != '' }}
     runs-on: ubuntu-latest
     steps:
     - name: Check out source repository
@@ -30,3 +31,10 @@ jobs:
     - name: MyPy typecheck
       shell: bash
       run: bash ${{ github.workspace }}/deploy/format_lint.sh typecheck ${{ inputs.files }}
+
+  not_typecheck:
+    if: ${{ github.event.inputs.files == '' }}
+    runs-on: ubuntu-latest
+    steps:
+    - name: Do not typecheck
+      run: echo "No files to typecheck"
