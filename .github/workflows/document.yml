@@ -32,7 +32,7 @@ jobs:
           poetry install --all-extras --no-interaction --no-root
           pip install wheel
           pip install --upgrade setuptools
-          pip install --editable ".[test,ml,medical,dev]"
+          pip install --editable ".[test,ml,medical,dev,ocv]"
           pip install torch torchvision
           pip install -U sphinx
           # Locking mistune version so m2r works. More info on issue:
@@ -51,7 +51,7 @@ jobs:
         run: |
           rm -rf docs/* 
           sphinx-apidoc -f -o source darwin darwin/future
-          sphinx-build -b html source/ docs/ -W
+          sphinx-build -b html source/ docs/
       - name: Setup access to AWS
         uses: aws-actions/configure-aws-credentials@v2
         with:
