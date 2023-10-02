@@ -1,5 +1,6 @@
+from logging import getLogger
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Optional
+from typing import Dict, Iterator, List, Optional
 
 import deprecation
 import orjson as json
@@ -17,6 +18,9 @@ This function is going to be turned into private. This means that breaking
 changes in its interface and implementation are to be expected. We encourage using ``parse_annotation`` 
 instead of calling this low-level function directly.
 """
+
+
+logger = getLogger(__name__)
 
 
 def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
@@ -41,7 +45,7 @@ def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
     return list(parse_json(path, data))
 
 
-def parse_json(path: Path, data: Dict[str, Any]) -> Iterator[dt.AnnotationFile]:
+def parse_json(path: Path, data: Dict[str, dt.UnknownType]) -> Iterator[dt.AnnotationFile]:
     """
     Parses the given ``json`` structure into an ``Iterator[dt.AnnotationFile]``.
 
@@ -62,7 +66,7 @@ def parse_json(path: Path, data: Dict[str, Any]) -> Iterator[dt.AnnotationFile]:
     category_lookup_table = {category["id"]: category for category in data["categories"]}
     tag_categories = data.get("tag_categories") or []
     tag_category_lookup_table = {category["id"]: category for category in tag_categories}
-    image_annotations: Dict[str, Any] = {}
+    image_annotations: Dict[str, dt.UnknownType] = {}
 
     for image in data["images"]:
         image_id = image["id"]
@@ -91,15 +95,17 @@ def parse_json(path: Path, data: Dict[str, Any]) -> Iterator[dt.AnnotationFile]:
         yield dt.AnnotationFile(path, filename, annotation_classes, annotations, remote_path=remote_path)
 
 
-def parse_annotation(annotation: Dict[str, Any], category_lookup_table: Dict[str, Any]) -> Optional[dt.Annotation]:
+def parse_annotation(
+    annotation: Dict[str, dt.UnknownType], category_lookup_table: Dict[str, dt.UnknownType]
+) -> Optional[dt.Annotation]:
     """
     Parses the given ``json`` dictionary into a darwin ``Annotation`` if possible.
 
     Parameters
     ----------
-    annotation : Dict[str, Any]
+    annotation : Dict[str, dt.UnknownType]
         The ``json`` dictionary to parse.
-    category_lookup_table : Dict[str, Any]
+    category_lookup_table : Dict[str, dt.UnknownType]
         Dictionary with all the categories from the ``coco`` file.
 
     Returns
@@ -112,7 +118,10 @@ def parse_annotation(annotation: Dict[str, Any], category_lookup_table: Dict[str
     iscrowd = annotation.get("iscrowd") == 1
 
     if iscrowd:
-        print("Warning, unsupported RLE, skipping")
+        logger.warn(
+            f"Skipping annotation {annotation.get('id')} because it is a crowd"
+            "annotation, and this is not supported from Coco."
+        )
         return None
 
     if len(segmentation) == 0 and len(annotation["bbox"]) == 4:
@@ -122,7 +131,7 @@ def parse_annotation(annotation: Dict[str, Any], category_lookup_table: Dict[str
         x, y, w, h = map(int, annotation["bbox"][0])
         return dt.make_bounding_box(category["name"], x, y, w, h)
     elif isinstance(segmentation, dict):
-        print("warning, converting complex coco rle mask to polygon, could take some time")
+        logger.warn("warning, converting complex coco rle mask to polygon, could take some time")
         if isinstance(segmentation["counts"], list):
             mask = rle_decode(segmentation["counts"], segmentation["size"][::-1])
         else:
