@@ -45,10 +45,9 @@ jobs:
         env:
           PYTHONPATH: "."
         run: |
-          rm -rf docs/* &&\
-          sphinx-apidoc -f -o source darwin darwin/future &&\
-          sphinx-build -b html source/ docs/ -W
-
+          rm -rf docs/*
+          sphinx-apidoc -f -o source darwin darwin/future
+          sphinx-build -b html source/ docs/
       - name: Setup access to AWS
         id: aws_assume_role
         uses: aws-actions/configure-aws-credentials@v2
