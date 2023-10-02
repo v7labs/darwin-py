@@ -20,22 +20,23 @@ if [[ -z $FILES ]]; then
 fi
 
 # Install dependencies
+pipinstall() {
+    if ! pip install "$@" &> pip_log.txt; then
+        echo "Pip install failed"
+        cat pip_log.txt
+        rm pip_log.txt
+        exit 1
+    fi
+}
+
 if [ "$ACTION" == "format" ]; then
-    pip install black &> pip_log.txt
+    pipinstall black
     elif [ "$ACTION" == "lint" ]; then
-    pip install ruff &> pip_log.txt
+    pipinstall ruff
     elif [ "$ACTION" == "typecheck" ]; then
-    pip install mypy &> pip_log.txt
+    pipinstall mypy
 else
     echo "Action must be format, typecheck, or lint"
-    exit 1
-fi
-
-# Check if pip install failed
-if [ $? -ne 0 ]; then
-    echo "Pip install failed"
-    cat pip_log.txt
-    rm pip_log.txt
     exit 1
 fi
 
@@ -43,46 +44,47 @@ failed_files=""
 echo "** Checking files [$FILES] **"
 
 for file in $FILES ; do
-    echo "_________________________________________________________"
-    echo "Checking $file"
 
-    if [ -f $file ]; then
-        if [ "$ACTION" == "lint" ]; then
-            ruff check $FILES; rc=$?
-            echo "$rc"
-            if [ $rc -ne 0 ]; then
-                failed_files="$failed_files $file"
-                echo "❌"
-            else
-                echo "✅"
-            fi
-        fi
-
-        if [ "$ACTION" == "typecheck" ]; then
-            mypy $file
-            if [ $? -ne 0 ]; then
-                failed_files="$failed_files $file"
-                echo "❌"
-            else
-                echo "✅"
-            fi
-        fi
-
-        if [ "$ACTION" == "format" ]; then
-            black --check $file
-            if [ $? -ne 0 ]; then
-                failed_files="$failed_files $file"
-                echo "❌"
-            else
-                echo "✅"
-            fi
-        fi
-    else
-        echo "File $file does not exist"
+    if [[ ! -f $file ]]; then
+        echo
+        echo "📁 Skipping file $file, file doesn't exist.  Was probably removed in PR diff."
+        continue
     fi
 
-    echo "DEBUG"
-    echo "failed_files: $failed_files"
+    echo "_________________________________________________________"
+    echo
+    echo "Checking $file"
+
+
+    if [ "$ACTION" == "lint" ]; then
+
+        if ! ruff check "$file"; then
+            failed_files="$failed_files $file"
+            echo "❌"
+        else
+            echo "✅"
+        fi
+    fi
+
+    if [ "$ACTION" == "typecheck" ]; then
+
+        if ! mypy "$file"; then
+            failed_files="$failed_files $file"
+            echo "❌"
+        else
+            echo "✅"
+        fi
+    fi
+
+    if [ "$ACTION" == "format" ]; then
+
+        if ! black --check "$file"; then
+            failed_files="$failed_files $file"
+            echo "❌"
+        else
+            echo "✅"
+        fi
+    fi
 
     echo "_________________________________________________________"
 done
@@ -91,13 +93,13 @@ echo
 echo
 
 if [[ "$failed_files" != "" ]]; then
-    echo "Checks failed for $failed_formatting files 😢"
+    echo "Checks failed for $failed_files files 😢"
     echo "Failed files"
     for file in $failed_files ; do
         echo "- $file"
     done
     exit 1
 else
-    echo "Formatting passed for all files 🎉"
+    echo "$ACTION passed for all files 🎉"
 fi
 exit 0
