@@ -126,8 +126,8 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-.env
-.venv
+.env*
+.venv*
 env/
 venv/
 ENV/
@@ -180,3 +180,4 @@ scripts/
 
 !darwin/future/tests/data_objects/workflow/data
 !tests/darwin/dataset/data
+!e2e_tests/data

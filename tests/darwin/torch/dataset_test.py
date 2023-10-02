@@ -139,8 +139,9 @@ class TestGetDataset:
         assert image.size() == (3, 50, 50)
 
         label = {k: v.numpy().tolist() for k, v in label.items()}
+
         assert label == {
-            "boxes": [[4, 33, 17, 36]],
+            "boxes": [[4, 33, 17, 16]], # we need to account for xywh format and clamping
             "area": [612],
             "labels": [1],
             "image_id": [0],
@@ -159,7 +160,7 @@ class TestGetDataset:
 
         label = {k: v.numpy().tolist() for k, v in label.items()}
         assert label == {
-            "boxes": [[4, 33, 17, 36]],
+            "boxes": [[4, 33, 17, 16]], # we need to account for xywh format and clamping
             "area": [612],
             "labels": [1],
             "image_id": [0],
@@ -178,7 +179,7 @@ class TestGetDataset:
 
         label = {k: v.numpy().tolist() for k, v in label.items()}
         assert label == {
-            "boxes": [[1, 1, 39, 49]],
+            "boxes": [[1, 1, 39, 48]],
             "area": [1911],
             "labels": [1],
             "image_id": [0],
@@ -220,7 +221,7 @@ class TestGetDataset:
 
         label = {k: _maybe_tensor_to_list(v) for k, v in label.items()}
 
-        assert label["boxes"] == [[4.0, 33.0, 41.0, 50.0]]
+        assert label["boxes"] == [[4.0, 33.0, 36.0, 16.0]]
         assert label["area"] == [576.0]
         assert label["labels"] == [1]
         assert label["image_id"] == [0]
@@ -241,7 +242,7 @@ class TestGetDataset:
 
         label = {k: _maybe_tensor_to_list(v) for k, v in label.items()}
 
-        assert label["boxes"] == [[1.0, 1.0, 41.0, 50.0]]
+        assert label["boxes"] == [[1.0, 1.0, 39.0, 48.0]]
         assert label["area"] == [592.0]
         assert label["labels"] == [1]
         assert label["image_id"] == [0]

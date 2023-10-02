@@ -167,7 +167,7 @@ Dataset example-team/test:0.1 downloaded at /directory/choosen/at/authentication
 The framework is designed to be usable as a standalone python library.
 Usage can be inferred from looking at the operations performed in `darwin/cli_functions.py`.
 A minimal example to download a dataset is provided below and a more extensive one can be found in
-[darwin_demo.py]([./darwin_demo.py](https://github.com/v7labs/darwin-py/blob/master/darwin_demo.py).
+[darwin_demo.py](https://github.com/v7labs/darwin-py/blob/master/darwin_demo.py).
 
 ```python
 from darwin.client import Client

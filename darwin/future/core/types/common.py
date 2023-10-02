@@ -1,10 +1,12 @@
-from typing import Dict
+from typing import Any, Dict, List, Union
+
+import pydantic
+from pydantic import BaseModel
 
 from darwin.future.data_objects import validators as darwin_validators
-from pydantic import BaseModel
-import pydantic
-
 from darwin.future.data_objects.typing import UnknownType
+
+JSONType = Union[Dict[str, Any], List[Dict[str, Any]]]  # type: ignore
 
 
 class TeamSlug(str):

@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 import torch
 
-from darwin.torch.utils import flatten_masks_by_category
+from darwin.torch.utils import clamp_bbox_to_image_size, flatten_masks_by_category
 from tests.fixtures import *
 
 
@@ -68,3 +68,24 @@ class TestFlattenMasks:
         expected_counts = torch.as_tensor([7, 2], dtype=torch.uint8)
         assert torch.equal(unique, expected_unique)
         assert torch.equal(counts, expected_counts)
+
+class TestClampBboxToImageSize:
+    def test_clamp_bbox_xyxy(self):
+        annotations = {'boxes': torch.tensor([[5.0, 5.0, 15.0, 15.0], [-5.0, -5.0, 25.0, 25.0]])}
+        width = 20
+        height = 20
+        
+        clamped_annotations = clamp_bbox_to_image_size(annotations, width, height, format="xyxy")
+        expected_boxes = torch.tensor([[5.0, 5.0, 15.0, 15.0], [0.0, 0.0, 19.0, 19.0]])
+        
+        assert torch.equal(clamped_annotations['boxes'], expected_boxes)
+
+    def test_clamp_bbox_xywh(self):
+        annotations = {'boxes': torch.tensor([[5.0, 5.0, 15.0, 15.0], [-5.0, -5.0, 30.0, 30.0]])}
+        width = 20
+        height = 20
+        
+        clamped_annotations = clamp_bbox_to_image_size(annotations, width, height, format="xywh")
+        expected_boxes = torch.tensor([[5.0, 5.0, 14.0, 14.0], [0.0, 0.0, 19.0, 19.0]])
+        
+        assert torch.equal(clamped_annotations['boxes'], expected_boxes)
