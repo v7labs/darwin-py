@@ -26,9 +26,3 @@ jobs:
       shell: bash
       run: bash ${{ github.workspace }}/deploy/format_lint.sh lint ${{ inputs.files }}
 
-  not-linted:
-    if: github.event.inputs.files == ''
-    runs-on: ubuntu-latest
-    steps:
-      - name: Do not lint
-        run: echo "No files to lint"
