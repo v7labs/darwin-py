@@ -2,7 +2,7 @@
 
 ACTION=$1
 shift 1
-FILES=$@
+FILES=$*
 
 echo "Action: $ACTION"
 echo "Files: $FILES"
