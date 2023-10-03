@@ -21,11 +21,15 @@ jobs:
     name: Documentation
     uses: ./.github/workflows/JOB_generate_documentation.yml
 
-  reverse_commit_on_fails:
+  warn_on_fail:
     needs: [run_tests, documentation]
     if : ${{ failure() }}
-    name: Reverse commit on fails
-    uses: ./.github/workflows/JOB_reverse_commit_on_fails.yml
+    name: Slack message us on fail
+    uses: ./.github/workflows/JOB_slack_message.yml
+    with:
+      at_team: true
+      icon: ':warning:'
+      message: 'Master is failing after a push event, please review at ${{ github.event.repository.html_url }}/actions/runs/${{ github.run_id }}'
 
   success:
     needs: [run_tests, documentation]

@@ -102,7 +102,7 @@ jobs:
           POETRY_HTTP_BASIC_PYPI_USERNAME: ${{ secrets.TEST_PYPI_USERNAME }}
           POETRY_HTTP_BASIC_PYPI_PASSWORD: ${{ secrets.TEST_PYPI_PASSWORD }}
         run: |
-          # poetry publish
+          poetry publish
           echo "Publishing to test.pypi.org - Emulated"
 
   # Linear tickets update

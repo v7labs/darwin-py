@@ -29,7 +29,7 @@ if [ -z "$REMOTE" ]; then
 fi
 
 # Increment the version number one patch version
-"$WORKING_DIR/increase_version.sh --patch --force"
+"python3 $WORKING_DIR/increase_version.py --patch --force"
 if [ $? -ne 0 ]; then
     echo "ERROR: Failed to increase the version number."
     exit 1
