@@ -104,7 +104,7 @@ def download_all_images_from_annotations(
 
         if not force_replace:
             # Check the planned path for the image against the existing images
-            planned_image_path = images_path / Path(annotation.remote_path.lstrip('/')).resolve().absolute() / Path(annotation.filename)
+            planned_image_path = images_path / Path(annotation.remote_path.lstrip('/\\')).resolve().absolute() / Path(annotation.filename)
             if planned_image_path in existing_images:
                 continue
 
