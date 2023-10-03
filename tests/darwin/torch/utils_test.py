@@ -1,6 +1,7 @@
 from typing import List, Tuple
 
 import numpy as np
+import pytest
 import torch
 
 from darwin.torch.utils import clamp_bbox_to_image_size, flatten_masks_by_category
@@ -34,13 +35,13 @@ def multiple_overlap_masks() -> Tuple[torch.Tensor, List[int]]:
 
 
 class TestFlattenMasks:
-    def test_should_raise_with_incorrect_shaped_inputs(self, basic_masks_with_cats) -> None:
+    def test_should_raise_with_incorrect_shaped_inputs(self, basic_masks_with_cats: Tuple) -> None:
         masks, _ = basic_masks_with_cats
         cats = [0]
         with pytest.raises(AssertionError) as error:
             flattened = flatten_masks_by_category(masks, cats)
 
-    def test_should_correctly_set_overlap(self, basic_masks_with_cats) -> None:
+    def test_should_correctly_set_overlap(self, basic_masks_with_cats: Tuple) -> None:
         masks, cats = basic_masks_with_cats
         flattened: torch.Tensor = flatten_masks_by_category(masks, cats)
         assert flattened[0, 0] == 2
@@ -51,12 +52,12 @@ class TestFlattenMasks:
         assert torch.equal(unique, expected_unique)
         assert torch.equal(counts, expected_counts)
 
-    def test_should_handle_fully_masked_image(self, multiple_overlap_masks) -> None:
+    def test_should_handle_fully_masked_image(self, multiple_overlap_masks: Tuple) -> None:
         masks, cats = multiple_overlap_masks
         flattened: torch.Tensor = flatten_masks_by_category(masks, cats)
         assert 0 not in np.unique(flattened)
 
-    def test_should_handle_multiple_overlaps(self, multiple_overlap_masks) -> None:
+    def test_should_handle_multiple_overlaps(self, multiple_overlap_masks: Tuple) -> None:
         masks, cats = multiple_overlap_masks
         flattened: torch.Tensor = flatten_masks_by_category(masks, cats)
         unique, counts = flattened.unique(return_counts=True)

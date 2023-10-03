@@ -1,10 +1,11 @@
 import os
 import sys
 from pathlib import Path
-from typing import Iterable, List, Optional, Tuple
+from typing import Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
+from numpy.typing import ArrayLike
 from upolygon import draw_polygon
 
 from darwin.cli_functions import _error, _load_client
@@ -72,7 +73,7 @@ def convert_segmentation_to_mask(segmentations: List[Segment], height: int, widt
     return torch.stack(masks)
 
 
-def polygon_area(x: np.ndarray, y: np.ndarray) -> float:
+def polygon_area(x: ArrayLike, y: ArrayLike) -> float:
     """
     Returns the area of the input polygon, represented by two numpy arrays for x and y coordinates.
 

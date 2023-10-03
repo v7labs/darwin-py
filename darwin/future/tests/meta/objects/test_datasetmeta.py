@@ -1,4 +1,5 @@
 import string
+from typing import Generator
 from unittest.mock import Mock, patch
 
 from pytest import fixture, mark, raises
@@ -11,13 +12,13 @@ from darwin.future.tests.core.fixtures import *
 
 
 @fixture
-def _delete_by_slug_mock():  # type: ignore
+def _delete_by_slug_mock() -> Generator:
     with patch.object(Dataset, "_delete_by_slug") as mock:
         yield mock
 
 
 @fixture
-def _delete_by_id_mock():  # type: ignore
+def _delete_by_id_mock() -> Generator:
     with patch.object(Dataset, "_delete_by_id") as mock:
         yield mock
 
