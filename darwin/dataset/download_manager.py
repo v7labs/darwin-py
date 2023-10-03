@@ -94,7 +94,7 @@ def download_all_images_from_annotations(
 
     # Verify that there is not already image in the images folder
     unfiltered_files = images_path.rglob(f"*") if use_folders else images_path.glob(f"*")
-    existing_images = [image for image in unfiltered_files if is_image_extension_allowed(image.suffix)]
+    existing_images = {image for image in unfiltered_files if is_image_extension_allowed(image.suffix)}
 
     annotations_to_download_path = []
     for annotation_path in annotations_path.glob(f"*.{annotation_format}"):
@@ -116,6 +116,14 @@ def download_all_images_from_annotations(
             if len(slot.source_files) > 1:
                 force_slots = True
 
+    if remove_extra:
+        # Removes existing images for which there is not corresponding annotation
+        annotations_downloaded_stem = [a.stem for a in annotations_path.glob(f"*.{annotation_format}")]
+        for existing_image in existing_images:
+            if existing_image.stem not in annotations_downloaded_stem:
+                print(f"Removing {existing_image} as there is no corresponding annotation")
+                existing_image.unlink()
+    
     # Create the generator with the partial functions
     download_functions: List = []
     for annotation_path in annotations_to_download_path:
