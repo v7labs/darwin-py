@@ -26,7 +26,6 @@ jobs:
 
       - name: Reverse commit
         run: |
-          echo "Just testing atm"
           git reset --hard HEAD~1
           git push origin $BRANCH_NAME --force
 
