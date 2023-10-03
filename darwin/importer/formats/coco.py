@@ -119,7 +119,7 @@ def parse_annotation(
 
     if iscrowd:
         logger.warn(
-            f"Skipping annotation {annotation.get('id')} because it is a crowd"
+            f"Skipping annotation {annotation.get('id')} because it is a crowd "
             "annotation, and Darwin does not support import of crowd annotations."
         )
         return None
