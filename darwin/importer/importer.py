@@ -39,6 +39,8 @@ from darwin.exceptions import IncompatibleOptions, RequestEntitySizeExceeded
 from darwin.utils import flatten_list, secure_continue_request
 from darwin.version import __version__
 
+logger = getLogger(__name__)
+
 try:
     from mpire import WorkerPool
 
@@ -50,7 +52,7 @@ except ImportError:
 UNSUPPORTED_CLASSES = ["string", "graph"]
 
 # Classes that are defined on team level automatically and available in all datasets
-GLOBAL_CLASSES = ['__raster_layer__']
+GLOBAL_CLASSES = ["__raster_layer__"]
 
 DEPRECATION_MESSAGE = """
 
@@ -82,7 +84,7 @@ def build_main_annotations_lookup_table(annotation_classes: List[Dict[str, Unkno
         "table",
         "graph",
         "mask",
-        "raster_layer"
+        "raster_layer",
     ]
     lookup: Dict[str, Unknown] = {}
     for cls in annotation_classes:
@@ -339,12 +341,11 @@ def import_annotations(
             style="warning",
         )
 
-
     classes_in_dataset: dt.DictFreeForm = build_main_annotations_lookup_table(
-        [cls for cls in team_classes if cls["available"] or cls['name'] in GLOBAL_CLASSES]
+        [cls for cls in team_classes if cls["available"] or cls["name"] in GLOBAL_CLASSES]
     )
     classes_in_team: dt.DictFreeForm = build_main_annotations_lookup_table(
-        [cls for cls in team_classes if not cls["available"] and cls['name'] not in GLOBAL_CLASSES]
+        [cls for cls in team_classes if not cls["available"] and cls["name"] not in GLOBAL_CLASSES]
     )
     attributes = build_attribute_lookup(dataset)
 
@@ -459,7 +460,6 @@ def import_annotations(
 
     # Need to re parse the files since we didn't save the annotations in memory
     for local_path in set(local_file.path for local_file in local_files):
-
         imported_files: Union[List[dt.AnnotationFile], dt.AnnotationFile, None] = importer(local_path)
         if imported_files is None:
             parsed_files = []
@@ -485,9 +485,8 @@ def import_annotations(
         if files_to_track:
             _warn_unsupported_annotations(files_to_track)
             for parsed_file in track(files_to_track):
-
                 image_id, default_slot_name = remote_files[parsed_file.full_path]
-                # We need to check if name is not-None as Darwin JSON 1.0 
+                # We need to check if name is not-None as Darwin JSON 1.0
                 # defaults to name=None
                 if parsed_file.slots and parsed_file.slots[0].name:
                     default_slot_name = parsed_file.slots[0].name
@@ -579,7 +578,6 @@ def _handle_complex_polygon(annotation: dt.Annotation, data: dt.DictFreeForm) ->
 def _annotators_or_reviewers_to_payload(
     actors: List[dt.AnnotationAuthor], role: dt.AnnotationAuthorRole
 ) -> List[dt.DictFreeForm]:
-
     return [{"email": actor.email, "role": role.value} for actor in actors]
 
 
@@ -647,6 +645,16 @@ def _import_annotations(
     for annotation in annotations:
         annotation_class = annotation.annotation_class
         annotation_type = annotation_class.annotation_internal_type or annotation_class.annotation_type
+
+        if annotation_type not in remote_classes or annotation_class.name not in remote_classes[annotation_type]:
+            if annotation_type not in remote_classes:
+                logger.warning(
+                    f"Annotation type '{annotation_type}' is not in the remote classes, skipping import of annotation '{annotation_class.name}'"
+                )
+            else:
+                logger.warning(f"Annotation '{annotation_class.name}' is not in the remote classes, skipping import")
+            continue
+
         annotation_class_id: str = remote_classes[annotation_type][annotation_class.name]
 
         data = _get_annotation_data(annotation, annotation_class_id, attributes)
