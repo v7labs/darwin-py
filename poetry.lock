@@ -595,14 +595,16 @@ testing = ["argcomplete", "attrs (>=19.2.0)", "hypothesis (>=3.56)", "mock", "no
 
 [[package]]
 name = "pytest-rerunfailures"
-version = "5.0"
+version = "12.0"
 description = "pytest plugin to re-run tests to eliminate flaky failures"
 category = "main"
 optional = true
-python-versions = "*"
+python-versions = ">=3.7"
 
 [package.dependencies]
-pytest = ">=3.6"
+importlib-metadata = {version = ">=1", markers = "python_version < \"3.8\""}
+packaging = ">=17.1"
+pytest = ">=6.2"
 
 [[package]]
 name = "python-dotenv"
@@ -918,7 +920,7 @@ test = ["responses", "pytest", "flake8-pyproject"]
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.7.0,<3.11"
-content-hash = "ba2e590b16d0b5b4ead3732c5faccebacf057c638b3c51319688563d7f156c54"
+content-hash = "be5332c340212e3c9c201cdd187461bb73cb35c7e7de9310b1a8bc62c5cd6679"
 
 [metadata.files]
 argcomplete = [
@@ -1485,8 +1487,8 @@ pytest = [
     {file = "pytest-7.4.0.tar.gz", hash = "sha256:b4bf8c45bd59934ed84001ad51e11b4ee40d40a1229d2c79f9c592b0a3f6bd8a"},
 ]
 pytest-rerunfailures = [
-    {file = "pytest-rerunfailures-5.0.tar.gz", hash = "sha256:5601fcec1ae121a56c1b8b0f92e237aea9f701c3c274a8852c0a1dd7e04cfdf4"},
-    {file = "pytest_rerunfailures-5.0-py2.py3-none-any.whl", hash = "sha256:2ff8c6c1f490acafc6cc85ca1005420675680c52a5aada195ca71e48a1e1ceb7"},
+    {file = "pytest-rerunfailures-12.0.tar.gz", hash = "sha256:784f462fa87fe9bdf781d0027d856b47a4bfe6c12af108f6bd887057a917b48e"},
+    {file = "pytest_rerunfailures-12.0-py3-none-any.whl", hash = "sha256:9a1afd04e21b8177faf08a9bbbf44de7a0fe3fc29f8ddbe83b9684bd5f8f92a9"},
 ]
 python-dotenv = [
     {file = "python-dotenv-1.0.0.tar.gz", hash = "sha256:a8df96034aae6d2d50a4ebe8216326c61c3eb64836776504fcca410e5937a3ba"},
