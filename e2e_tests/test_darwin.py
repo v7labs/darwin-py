@@ -4,13 +4,12 @@ import re
 import tempfile
 import uuid
 from pathlib import Path
-from threading import local
 from time import sleep
 from typing import Generator
 
 import pytest
 
-from e2e_tests.helpers import SERVER_WAIT_TIME, assert_cli, run_cli_command
+from e2e_tests.helpers import assert_cli, run_cli_command
 from e2e_tests.objects import ConfigValues, E2EDataset, E2EItem
 from e2e_tests.setup_tests import api_call, create_random_image
 
