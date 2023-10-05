@@ -125,7 +125,7 @@ name = "exceptiongroup"
 version = "1.1.3"
 description = "Backport of PEP 654 (exception groups)"
 category = "main"
-optional = false
+optional = true
 python-versions = ">=3.7"
 
 [package.extras]
@@ -218,7 +218,7 @@ name = "iniconfig"
 version = "2.0.0"
 description = "brain-dead simple config-ini parsing"
 category = "main"
-optional = false
+optional = true
 python-versions = ">=3.7"
 
 [[package]]
@@ -513,7 +513,7 @@ name = "pluggy"
 version = "1.2.0"
 description = "plugin and hook calling mechanisms for python"
 category = "main"
-optional = false
+optional = true
 python-versions = ">=3.7"
 
 [package.dependencies]
@@ -578,7 +578,7 @@ name = "pytest"
 version = "7.4.0"
 description = "pytest: simple powerful testing with Python"
 category = "main"
-optional = false
+optional = true
 python-versions = ">=3.7"
 
 [package.dependencies]
@@ -595,16 +595,14 @@ testing = ["argcomplete", "attrs (>=19.2.0)", "hypothesis (>=3.56)", "mock", "no
 
 [[package]]
 name = "pytest-rerunfailures"
-version = "12.0"
+version = "5.0"
 description = "pytest plugin to re-run tests to eliminate flaky failures"
 category = "main"
-optional = false
-python-versions = ">=3.7"
+optional = true
+python-versions = "*"
 
 [package.dependencies]
-importlib-metadata = {version = ">=1", markers = "python_version < \"3.8\""}
-packaging = ">=17.1"
-pytest = ">=6.2"
+pytest = ">=3.6"
 
 [[package]]
 name = "python-dotenv"
@@ -755,7 +753,7 @@ name = "tomli"
 version = "2.0.1"
 description = "A lil' TOML parser"
 category = "main"
-optional = false
+optional = true
 python-versions = ">=3.7"
 
 [[package]]
@@ -911,7 +909,7 @@ docs = ["furo", "jaraco.packaging (>=9)", "jaraco.tidelift (>=1.4)", "rst.linker
 testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more-itertools", "pytest (>=6)", "pytest-black (>=0.3.7)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=1.3)", "pytest-flake8", "pytest-mypy (>=0.9.1)"]
 
 [extras]
-dev = ["black", "isort", "flake8", "mypy", "debugpy", "responses", "pytest", "flake8-pyproject"]
+dev = ["black", "isort", "flake8", "mypy", "debugpy", "responses", "pytest", "flake8-pyproject", "pytest-rerunfailures"]
 medical = ["nibabel", "connected-components-3d"]
 ml = ["torch", "torchvision", "scikit-learn"]
 ocv = ["opencv-python-headless"]
@@ -920,7 +918,7 @@ test = ["responses", "pytest", "flake8-pyproject"]
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.7.0,<3.11"
-content-hash = "0d60e69550d79043f56b55e14097757f0833ed16ea11932e21e571bb53722736"
+content-hash = "ba2e590b16d0b5b4ead3732c5faccebacf057c638b3c51319688563d7f156c54"
 
 [metadata.files]
 argcomplete = [
@@ -1487,8 +1485,8 @@ pytest = [
     {file = "pytest-7.4.0.tar.gz", hash = "sha256:b4bf8c45bd59934ed84001ad51e11b4ee40d40a1229d2c79f9c592b0a3f6bd8a"},
 ]
 pytest-rerunfailures = [
-    {file = "pytest-rerunfailures-12.0.tar.gz", hash = "sha256:784f462fa87fe9bdf781d0027d856b47a4bfe6c12af108f6bd887057a917b48e"},
-    {file = "pytest_rerunfailures-12.0-py3-none-any.whl", hash = "sha256:9a1afd04e21b8177faf08a9bbbf44de7a0fe3fc29f8ddbe83b9684bd5f8f92a9"},
+    {file = "pytest-rerunfailures-5.0.tar.gz", hash = "sha256:5601fcec1ae121a56c1b8b0f92e237aea9f701c3c274a8852c0a1dd7e04cfdf4"},
+    {file = "pytest_rerunfailures-5.0-py2.py3-none-any.whl", hash = "sha256:2ff8c6c1f490acafc6cc85ca1005420675680c52a5aada195ca71e48a1e1ceb7"},
 ]
 python-dotenv = [
     {file = "python-dotenv-1.0.0.tar.gz", hash = "sha256:a8df96034aae6d2d50a4ebe8216326c61c3eb64836776504fcca410e5937a3ba"},
