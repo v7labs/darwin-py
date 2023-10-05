@@ -36,7 +36,7 @@ jobs:
           pip install --editable ".[test,ml,medical,dev,ocv]"
           pip install pytest
       - name: Run Tests
-        run: python -m pytest e2e_tests -W ignore::DeprecationWarning
+        run: python -m pytest e2e_tests --reruns 3 --reruns-delay 10 -W ignore::DeprecationWarning
         env:
           E2E_API_KEY: ${{ secrets.E2E_API_KEY }}
           E2E_ENVIRONMENT: ${{ secrets.E2E_ENVIRONMENT }}
