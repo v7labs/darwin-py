@@ -95,23 +95,16 @@ class LocalDataset:
         stems = build_stems(release_path, annotations_dir, annotation_type, split, partition, split_type)
 
         # Find all the annotations and their corresponding images
-        for stem in stems:
-            annotation_path = annotations_dir / f"{stem}.json"
-            images = []
-            for ext in SUPPORTED_IMAGE_EXTENSIONS:
-                image_path = images_dir / f"{stem}{ext}"
-                if image_path.exists():
-                    images.append(image_path)
-                    continue
-                image_path = images_dir / f"{stem}{ext.upper()}"
-                if image_path.exists():
-                    images.append(image_path)
-            if len(images) < 1:
+        invalid_annotation_paths = []
+        for annotation_path in annotations_dir.glob("**/*.json"):
+            darwin_json = parse_darwin_json(annotation_path)
+            image_path = images_dir / Path(darwin_json.full_path.lstrip('/\\'))
+            if image_path.exists():
+                self.images_path.append(image_path)
+                self.annotations_path.append(annotation_path)
+                continue
+            else:
                 raise ValueError(f"Annotation ({annotation_path}) does not have a corresponding image")
-            if len(images) > 1:
-                raise ValueError(f"Image ({stem}) is present with multiple extensions. This is forbidden.")
-            self.images_path.append(images[0])
-            self.annotations_path.append(annotation_path)
 
         if len(self.images_path) == 0:
             raise ValueError(f"Could not find any {SUPPORTED_IMAGE_EXTENSIONS} file", f" in {images_dir}")
