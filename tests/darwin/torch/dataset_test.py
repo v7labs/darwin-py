@@ -77,6 +77,9 @@ class TestObjectDetectionDataset:
         print(root)
         ds = ObjectDetectionDataset(dataset_path=root, release_name="latest")
 
+        print(f"weights : {ds.measure_weights()}")
+        print(f"Classes : {ds.classes}")
+
         generic_dataset_test(ds, n=20, size=(50, 50))
         assert type(ds[0][1]) is dict
         img, target = ds[0]

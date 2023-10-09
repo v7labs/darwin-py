@@ -180,10 +180,12 @@ def get_classes(
         else:
             annotation_types_to_load = [annotation_type]
 
-    classes = []
+    classes = []  # Use a list to maintain order
     for atype in annotation_types_to_load:
         classes_file_path = release_path / f"lists/classes_{atype}.txt"
-        classes.extend(get_classes_from_file(classes_file_path))
+        for cls in get_classes_from_file(classes_file_path):
+            if cls not in classes:  # Only add if it's not already in the list
+                classes.append(cls)
 
     if remove_background and classes and classes[0] == "__background__":
         classes = classes[1:]
