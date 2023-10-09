@@ -74,6 +74,7 @@ class TestObjectDetectionDataset:
         self, team_slug: str, team_extracted_dataset_path: Path
     ) -> None:
         root = team_extracted_dataset_path / team_slug / "coco"
+        print(root)
         ds = ObjectDetectionDataset(dataset_path=root, release_name="latest")
 
         generic_dataset_test(ds, n=20, size=(50, 50))
