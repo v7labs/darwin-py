@@ -14,7 +14,13 @@ from typing import (
     overload,
 )
 
-from darwin.future.core.client import Client
+from darwin.future.core.client import ClientCore
+from darwin.future.exceptions import (
+    InvalidQueryFilter,
+    InvalidQueryModifier,
+    MoreThanOneResultFound,
+    ResultsNotFound,
+)
 from darwin.future.meta.objects.base import MetaBase
 from darwin.future.pydantic_base import DefaultDarwin
 
@@ -64,12 +70,12 @@ class QueryFilter(DefaultDarwin):
         elif self.modifier == Modifier.CONTAINS:
             return param in attr
         else:
-            raise ValueError(f"Unknown modifier {self.modifier}")
+            raise InvalidQueryModifier(f"Unknown modifier {self.modifier}")
 
     @classmethod
     def _from_dict(cls, d: Dict[str, Any]) -> QueryFilter:  # type: ignore
         if "name" not in d or "param" not in d:
-            raise ValueError(f"args must be a QueryFilter or a dict with 'name' and 'param' keys, got {d}")
+            raise InvalidQueryFilter(f"args must be a QueryFilter or a dict with 'name' and 'param' keys, got {d}")
         modifier = Modifier(d["modifier"]) if "modifier" in d else None
         return QueryFilter(name=d["name"], param=str(d["param"]), modifier=modifier)
 
@@ -89,7 +95,7 @@ class QueryFilter(DefaultDarwin):
         elif isinstance(arg, dict):
             return cls._from_dict(arg)
         else:
-            raise ValueError(f"args must be a QueryFilter or a dict with 'name' and 'param' keys, got {arg}")
+            raise InvalidQueryFilter(f"args must be a QueryFilter or a dict with 'name' and 'param' keys, got {arg}")
 
     @classmethod
     def _from_kwarg(cls, key: str, value: str) -> QueryFilter:
@@ -111,52 +117,40 @@ class Query(Generic[T], ABC):
     """
 
     def __init__(
-        self, client: Client, filters: Optional[List[QueryFilter]] = None, meta_params: Optional[Param] = None
+        self, client: ClientCore, filters: Optional[List[QueryFilter]] = None, meta_params: Optional[Param] = None
     ):
-        self.meta_params = meta_params
+        self.meta_params: dict = meta_params or dict()
         self.client = client
-        self.filters = filters
+        self.filters = filters or []
         self.results: Optional[List[T]] = None
+        self._changed_since_last: bool = True
 
     def filter(self, filter: QueryFilter) -> Query[T]:
         return self + filter
 
     def __add__(self, filter: QueryFilter) -> Query[T]:
-        assert filter is not None
-        assert isinstance(filter, QueryFilter)
-        if self.filters is None:
-            self.filters = []
+        self._changed_since_last = True
         return self.__class__(self.client, filters=[*self.filters, filter], meta_params=self.meta_params)
 
     def __sub__(self, filter: QueryFilter) -> Query[T]:
-        assert filter is not None
-        assert isinstance(filter, QueryFilter)
-        if self.filters is None:
-            return self
+        self._changed_since_last = True
         return self.__class__(
             self.client, filters=[f for f in self.filters if f != filter], meta_params=self.meta_params
         )
 
     def __iadd__(self, filter: QueryFilter) -> Query[T]:
-        assert filter is not None
-        assert isinstance(filter, QueryFilter)
-        if self.filters is None:
-            self.filters = [filter]
-            return self
         self.filters.append(filter)
+        self._changed_since_last = True
         return self
 
     def __isub__(self, filter: QueryFilter) -> Query[T]:
-        assert filter is not None
-        assert isinstance(filter, QueryFilter)
-        if self.filters is None:
-            return self
         self.filters = [f for f in self.filters if f != filter]
+        self._changed_since_last = True
         return self
 
     def __len__(self) -> int:
-        if self.results is None:
-            self.results = list(self.collect())
+        if not self.results:
+            self.results = list(self._collect())
         return len(self.results)
 
     def __iter__(self) -> Query[T]:
@@ -164,8 +158,8 @@ class Query(Generic[T], ABC):
         return self
 
     def __next__(self) -> T:
-        if self.results is None:
-            self.results = list(self.collect())
+        if not self.results:
+            self.results = list(self._collect())
         if self.n < len(self.results):
             result = self.results[self.n]
             self.n += 1
@@ -174,40 +168,48 @@ class Query(Generic[T], ABC):
             raise StopIteration
 
     def __getitem__(self, index: int) -> T:
-        if self.results is None:
-            self.results = list(self.collect())
+        if not self.results:
+            self.results = list(self._collect())
         return self.results[index]
 
     def __setitem__(self, index: int, value: T) -> None:
-        if self.results is None:
-            self.results = list(self.collect())
+        if not self.results:
+            self.results = list(self._collect())
         self.results[index] = value
 
     def where(self, *args: object, **kwargs: str) -> Query[T]:
         filters = QueryFilter._from_args(*args, **kwargs)
         for item in filters:
             self += item
+        self._changed_since_last = True
         return self
 
+    def collect(self, force: bool = False) -> List[T]:
+        if force or self._changed_since_last:
+            self.results = []
+        self.results = self._collect()
+        self._changed_since_last = False
+        return self.results
+
     @abstractmethod
-    def collect(self) -> List[T]:
+    def _collect(self) -> List[T]:
         raise NotImplementedError("Not implemented")
 
     def collect_one(self) -> T:
-        if self.results is None:
+        if not self.results:
             self.results = list(self.collect())
         if len(self.results) == 0:
-            raise ValueError("No results found")
+            raise ResultsNotFound("No results found")
         if len(self.results) > 1:
-            raise ValueError("More than one result found")
+            raise MoreThanOneResultFound("More than one result found")
         return self.results[0]
 
     def first(self) -> Optional[T]:
-        if self.results is None:
+        if not self.results:
             self.results = list(self.collect())
         if len(self.results) == 0:
             return None
         return self.results[0]
 
     def _generic_execute_filter(self, objects: List[T], filter: QueryFilter) -> List[T]:
-        return [m for m in objects if filter.filter_attr(getattr(m._item, filter.name))]
+        return [m for m in objects if filter.filter_attr(getattr(m._element, filter.name))]

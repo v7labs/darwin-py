@@ -3,7 +3,7 @@ import json as native_json
 from asyncore import loop
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Union
+from typing import Dict, Iterable, List, Optional, Tuple, Union
 
 from rich.console import Console
 
@@ -67,7 +67,7 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path) -> N
         write_output_volume_to_disk(output_volumes, image_id=image_id, output_dir=output_dir)
 
 
-def build_output_volumes(video_annotation: dt.AnnotationFile):
+def build_output_volumes(video_annotation: dt.AnnotationFile) -> Dict:
     """
     This is a function to create the output volumes based on the whole annotation file
 
@@ -85,6 +85,7 @@ def build_output_volumes(video_annotation: dt.AnnotationFile):
     class_map = {}
     class_count = 1
     for annotation in video_annotation.annotations:
+        assert isinstance(annotation, dt.VideoAnnotation)
         frames = annotation.frames
         for frame_idx in frames.keys():
             class_name = frames[frame_idx].annotation_class.name
@@ -95,6 +96,7 @@ def build_output_volumes(video_annotation: dt.AnnotationFile):
     output_volumes = {}
     for slot in video_annotation.slots:
         slot_metadata = slot.metadata
+        assert slot_metadata is not None
         series_instance_uid = slot_metadata.get("SeriesInstanceUID", "SeriesIntanceUIDNotProvided")
         # Builds output volumes per class
         volume_dims, pixdims, affine, original_affine = process_metadata(slot.metadata)
@@ -182,7 +184,7 @@ def check_for_error_and_return_imageid(video_annotation: dt.AnnotationFile, outp
 
 def populate_output_volumes(
     annotation: Union[dt.Annotation, dt.VideoAnnotation],
-    output_dir: str,
+    output_dir: Union[str, Path],
     slot_map: Dict,
     output_volumes: Dict,
     image_id: str,
@@ -270,9 +272,9 @@ def populate_output_volumes(
             )
 
 
-def write_output_volume_to_disk(output_volumes: Dict, image_id: str, output_dir: str):
+def write_output_volume_to_disk(output_volumes: Dict, image_id: str, output_dir: Union[str, Path]) -> None:
     # volumes are the values of this nested dict
-    def unnest_dict_to_list(d):
+    def unnest_dict_to_list(d: Dict) -> List:
         result = []
         for value in d.values():
             if isinstance(value, dict):
@@ -316,7 +318,7 @@ def get_view_idx(frame_idx, groups):
             return view_idx
 
 
-def get_view_idx_from_slot_name(slot_name, orientation):
+def get_view_idx_from_slot_name(slot_name: str, orientation: Union[str, None]) -> int:
     if orientation is None:
         orientation_dict = {"0.1": 0, "0.2": 1, "0.3": 2}
         return orientation_dict.get(slot_name, 0)
@@ -325,7 +327,7 @@ def get_view_idx_from_slot_name(slot_name, orientation):
         return orientation_dict.get(orientation, 0)
 
 
-def process_metadata(metadata):
+def process_metadata(metadata: Dict) -> Tuple:
     volume_dims = metadata.get("shape")
     pixdim = metadata.get("pixdim")
     affine = process_affine(metadata.get("affine"))
@@ -360,7 +362,7 @@ def process_affine(affine):
         return affine
 
 
-def create_error_message_json(error_message: str, output_dir: str, image_id: str):
+def create_error_message_json(error_message: str, output_dir: Union[str, Path], image_id: str) -> bool:
     output_path = Path(output_dir) / f"{image_id}_error.json"
     if not output_path.parent.exists():
         output_path.parent.mkdir(parents=True)
