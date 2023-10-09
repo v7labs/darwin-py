@@ -82,3 +82,7 @@ class TestAlbumentationsTransform:
         _, annotation = at(SAMPLE_IMAGE, SAMPLE_ANNOTATION)
         assert "iscrowd" in annotation
         assert annotation["iscrowd"] == SAMPLE_ANNOTATION["iscrowd"]
+
+
+if __name__ == "__main__":
+    pytest.run()
