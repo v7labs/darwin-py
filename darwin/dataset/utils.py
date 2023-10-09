@@ -131,6 +131,19 @@ def make_class_lists(release_path: Path) -> None:
                 f.write("\n".join(classes_names))
 
 
+def get_classes_from_file(path):
+    """Helper function to read class names from a file."""
+    if path.exists():
+        return path.read_text().splitlines()
+    return []
+
+
+def available_annotation_types(release_path):
+    """Returns a list of available annotation types based on the existing files."""
+    files = [p.name for p in release_path.glob("lists/classes_*.txt")]
+    return [f[len("classes_") : -len(".txt")] for f in files]
+
+
 def get_classes(
     dataset_path: PathLike,
     release_name: Optional[str] = None,
@@ -147,7 +160,7 @@ def get_classes(
     release_name : Optional[str], default: None
         Version of the dataset.
     annotation_type : str, default: "polygon"
-        The type of annotation classes [tag, polygon].
+        The type of annotation classes [tag, polygon, bounding_box].
     remove_background : bool, default: True
         Removes the background class (if exists) from the list of classes.
 
@@ -160,10 +173,24 @@ def get_classes(
     dataset_path = Path(dataset_path)
     release_path = get_release_path(dataset_path, release_name)
 
-    classes_path = release_path / f"lists/classes_{annotation_type}.txt"
-    classes = classes_path.read_text().splitlines()
-    if remove_background and classes[0] == "__background__":
+    # If annotation_type is a string and is 'bounding_box', also consider polygons
+    if isinstance(annotation_type, str):
+        if annotation_type == "bounding_box":
+            annotation_types_to_load = [annotation_type, "polygon"]
+        else:
+            annotation_types_to_load = [annotation_type]
+
+    classes = []
+    for atype in annotation_types_to_load:
+        classes_file_path = release_path / f"lists/classes_{atype}.txt"
+        classes.extend(get_classes_from_file(classes_file_path))
+
+    if remove_background and classes and classes[0] == "__background__":
         classes = classes[1:]
+
+    available_types = available_annotation_types(release_path)
+    assert len(classes) > 0, f"No classes found for {annotation_type}. Supported types are: {', '.join(available_types)}"
+
     return classes
 
 
@@ -627,9 +654,7 @@ def compute_distributions(
                 if annotation_file is None:
                     continue
 
-                annotation_class_names: List[str] = [
-                    annotation.annotation_class.name for annotation in annotation_file.annotations
-                ]
+                annotation_class_names: List[str] = [annotation.annotation_class.name for annotation in annotation_file.annotations]
 
                 class_distribution[partition] += Counter(set(annotation_class_names))
                 instance_distribution[partition] += Counter(annotation_class_names)
