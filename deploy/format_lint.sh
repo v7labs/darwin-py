@@ -44,20 +44,20 @@ failed_files=""
 echo "** Checking files [$FILES] **"
 
 for file in $FILES ; do
-
+    
     if [[ ! -f $file ]]; then
         echo
         echo "📁 Skipping file $file, file doesn't exist.  Was probably removed in PR diff."
         continue
     fi
-
+    
     echo "_________________________________________________________"
     echo
     echo "Checking $file"
-
-
+    
+    
     if [ "$ACTION" == "lint" ]; then
-
+        
         if ! ruff check "$file"; then
             failed_files="$failed_files $file"
             echo "❌"
@@ -65,9 +65,9 @@ for file in $FILES ; do
             echo "✅"
         fi
     fi
-
+    
     if [ "$ACTION" == "typecheck" ]; then
-
+        
         if ! mypy "$file"; then
             failed_files="$failed_files $file"
             echo "❌"
@@ -75,9 +75,9 @@ for file in $FILES ; do
             echo "✅"
         fi
     fi
-
+    
     if [ "$ACTION" == "format" ]; then
-
+        
         if ! black --check "$file"; then
             failed_files="$failed_files $file"
             echo "❌"
@@ -85,7 +85,7 @@ for file in $FILES ; do
             echo "✅"
         fi
     fi
-
+    
     echo "_________________________________________________________"
 done
 
