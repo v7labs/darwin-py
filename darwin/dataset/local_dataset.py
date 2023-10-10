@@ -93,9 +93,11 @@ class LocalDataset:
         self.num_classes = len(self.classes)
 
         stems = build_stems(release_path, annotations_dir, annotation_type, split, partition, split_type)
+        
 
         # Find all the annotations and their corresponding images
         for stem in stems:
+            print(f"stems - {stem}")
             annotation_path = annotations_dir / f"{stem}.json"
             images = []
             for ext in SUPPORTED_IMAGE_EXTENSIONS:

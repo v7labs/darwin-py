@@ -83,6 +83,9 @@ def extract_classes(annotations_path: Path, annotation_type: str) -> Tuple[Dict[
     """
 
     assert annotation_type in ["bounding_box", "polygon", "tag"]
+    supported_annotation_types = [annotation_type]
+    if annotation_type == "bounding_box":
+        supported_annotation_types.append("polygon")
 
     classes: Dict[str, Set[int]] = defaultdict(set)
     indices_to_classes: Dict[int, Set[str]] = defaultdict(set)
@@ -93,7 +96,7 @@ def extract_classes(annotations_path: Path, annotation_type: str) -> Tuple[Dict[
             continue
 
         for annotation in annotation_file.annotations:
-            if annotation.annotation_class.annotation_type != annotation_type:
+            if annotation.annotation_class.annotation_type not in supported_annotation_types:
                 continue
 
             class_name = annotation.annotation_class.name
