@@ -9,7 +9,7 @@ from typing import Generator
 
 import pytest
 
-from e2e_tests.helpers import SERVER_WAIT_TIME, assert_cli, run_cli_command
+from e2e_tests.helpers import assert_cli, run_cli_command
 from e2e_tests.objects import ConfigValues, E2EDataset, E2EItem
 from e2e_tests.setup_tests import api_call, create_random_image
 
@@ -150,6 +150,21 @@ def test_darwin_export(local_dataset_with_annotations: E2EDataset, config_values
     assert_cli(result, 0, in_stdout="No available releases, export one first", inverse=True)
     # Check that a release is there via inverse, the CLI will truncate outputs and pass/fail is not clear
     # if we check for release name
+
+
+def test_delete(local_dataset: E2EDataset) -> None:
+    """
+    Test deleting a dataset via the darwin cli, dataset created via fixture
+    """
+    assert local_dataset.id is not None
+    assert local_dataset.name is not None
+    result = run_cli_command(f"darwin dataset remove {local_dataset.name}", yes=True)
+    assert_cli(result, 0)
+    # Check that the dataset is gone, if so, remove from pytest object so it doesn't get deleted again
+    # and cause a failure on teardown
+    result = run_cli_command(f"darwin dataset files {local_dataset.name}")
+    assert_cli(result, 1, in_stdout="Error: No dataset with")
+    pytest.datasets.remove(local_dataset)  # type: ignore
 
 
 if __name__ == "__main__":
