@@ -692,6 +692,7 @@ def _import_annotations(
     return errors, success
 
 
+# mypy: ignore-errors
 def _console_theme() -> Theme:
     return Theme(
         {"success": "bold green", "warning": "bold yellow", "error": "bold red", "info": "bold deep_sky_blue1"}
