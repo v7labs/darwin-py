@@ -30,6 +30,15 @@ jobs:
     name: Slack Notification
     runs-on: ubuntu-latest
     steps:
+      - name: Debug
+        run: |
+          echo "Message: ${{ inputs.message }}"
+          echo "Icon: ${{ inputs.icon }}"
+          echo "At Team: ${{ inputs.at_team }}"
+          echo "Prefix: ${{ env.PREFIX }}"
+          length_of_hook=`wc -c < "${{ secrets.SLACK_WEBHOOK }}"`
+          echo "Length of hook: $length_of_hook"
+
       - name: Send Slack Notification
         run: |
           PAYLOAD=$(cat <<EOF
