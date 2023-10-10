@@ -1,0 +1,32 @@
+name: typecheck
+run-name: Static analysis and typecheck
+
+on:
+  workflow_call:
+    inputs:
+      files:
+        type: string
+        description: "Files to lint"
+        required: true
+
+jobs:
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out source repository
+      uses: actions/checkout@v3
+
+    - name: Set up Python environment
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.10"
+
+    - name: Install dependencies
+      shell: bash
+      run: |
+        pip install poetry
+        poetry install install --all-extras -vvv --no-root
+
+    - name: MyPy typecheck
+      shell: bash
+      run: bash ${{ github.workspace }}/deploy/format_lint.sh typecheck ${{ inputs.files }}

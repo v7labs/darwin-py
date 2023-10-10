@@ -1,0 +1,45 @@
+name: pull_request
+run-name: Pull Request
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+
+# Prevent running concurrently
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  get_changed_files:
+    name: Get changed files
+    uses: ./.github/workflows/JOB_get_changed_files.yml
+
+  format:
+    name: Check format of python
+    needs: get_changed_files
+    uses: ./.github/workflows/JOB_format.yml
+    with:
+      files: ${{ needs.get_changed_files.outputs.python_changed_files }}
+
+  lint:
+    name: Lint python
+    needs: get_changed_files
+    uses: ./.github/workflows/JOB_lint.yml
+    with:
+      files: ${{ needs.get_changed_files.outputs.python_changed_files }}
+
+  # TODO: See Issue IO-1666
+  # typecheck:
+  #   name: Analyse types in python
+  #   needs: get_changed_files
+  #   uses: ./.github/workflows/JOB_typecheck.yml
+  #   with:
+  #     files: ${{ needs.get_changed_files.outputs.python_changed_files }}
+
+  run_tests:
+    name: Run tests
+    uses: ./.github/workflows/JOB_tests.yml
+

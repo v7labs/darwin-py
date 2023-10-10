@@ -1,0 +1,26 @@
+name: format
+run-name: Format
+
+on:
+  workflow_call:
+    inputs:
+      files:
+        description: "Files to check formatting of"
+        required: true
+        type: string
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out source repository
+      uses: actions/checkout@v3
+
+    - name: Set up Python environment
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+
+    - name: Black check
+      shell: bash
+      run: bash ${{ github.workspace }}/deploy/format_lint.sh format ${{ inputs.files }}

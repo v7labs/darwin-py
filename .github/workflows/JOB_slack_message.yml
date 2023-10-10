@@ -1,0 +1,43 @@
+name: slack-notify
+run-name: Slack Notify
+
+on:
+  workflow_call:
+    inputs:
+      message:
+        type: string
+        description: 'The message to send'
+        required: true
+
+      icon:
+        type: string
+        description: 'The icon to use'
+        required: false
+        default: ':snake:'
+
+      at_team:
+        type: boolean
+        description: 'Whether to hail the developers in the message'
+        required: false
+        default: false
+
+env:
+  PREFIX: if(${{ inputs.at_team }}, '${{ vars.SLACK_TEAM_TAG}}', '')
+
+
+jobs:
+  slack-notify:
+    name: Slack Notification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Slack Notification
+        run: |
+          PAYLOAD=$(cat <<EOF
+          {
+            "channel": "#${{ vars.SLACK_CHANNEL }}",
+            "username": "${{ vars.SLACK_USERNAME }}",
+            "text": "${{ env.PREFIX }}${{ inputs.message }}",
+            "icon_emoji": "${{ inputs.icon || vars.SLACK_ICON }}"
+          })
+          EOF
+          curl -X POST --data-urlencode "payload=$PAYLOAD" ${{ secrets.SLACK_WEBHOOK }}

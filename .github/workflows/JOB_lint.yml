@@ -1,0 +1,26 @@
+name: lint
+run-name: Check linting
+
+on:
+  workflow_call:
+    inputs:
+      files:
+        type: string
+        description: "Files to lint"
+        required: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out source repository
+      uses: actions/checkout@v3
+
+    - name: Set up Python environment
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.10"
+
+    - name: flake8 Lint
+      shell: bash
+      run: bash ${{ github.workspace }}/deploy/format_lint.sh lint ${{ inputs.files }}
