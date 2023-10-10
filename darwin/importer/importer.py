@@ -11,7 +11,6 @@ from typing import (
     Iterable,
     List,
     Optional,
-    Sequence,
     Set,
     Tuple,
     Union,
@@ -26,7 +25,7 @@ from tqdm import tqdm
 
 if TYPE_CHECKING:
     from darwin.client import Client
-    from darwin.dataset import RemoteDataset
+    from darwin.dataset.remote_dataset import RemoteDataset
 
 import deprecation
 from rich.console import Console
@@ -36,7 +35,8 @@ from rich.theme import Theme
 import darwin.datatypes as dt
 from darwin.datatypes import PathLike
 from darwin.exceptions import IncompatibleOptions, RequestEntitySizeExceeded
-from darwin.utils import flatten_list, secure_continue_request
+from darwin.utils import secure_continue_request
+from darwin.utils.flatten_list import flatten_list
 from darwin.version import __version__
 
 logger = getLogger(__name__)
@@ -103,7 +103,7 @@ def build_main_annotations_lookup_table(annotation_classes: List[Dict[str, Unkno
     current_version=__version__,
     details=DEPRECATION_MESSAGE,
 )
-def find_and_parse(
+def find_and_parse(  # noqa: C901
     importer: Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]],
     file_paths: List[PathLike],
     console: Optional[Console] = None,
@@ -250,7 +250,7 @@ def _resolve_annotation_classes(
     return local_classes_not_in_dataset, local_classes_not_in_team
 
 
-def import_annotations(
+def import_annotations(  # noqa: C901
     dataset: "RemoteDataset",
     importer: Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]],
     file_paths: List[PathLike],
@@ -368,7 +368,7 @@ def import_annotations(
     console.print("Fetching remote file list...", style="info")
     # This call will only filter by filename; so can return a superset of matched files across different paths
     # There is logic in this function to then include paths to narrow down to the single correct matching file
-    remote_files: Dict[str, Tuple[int, str]] = dict()
+    remote_files: Dict[str, Tuple[int, str]] = {}
 
     # Try to fetch files in large chunks; in case the filenames are too large and exceed the url size
     # retry in smaller chunks
@@ -459,7 +459,7 @@ def import_annotations(
         )
 
     # Need to re parse the files since we didn't save the annotations in memory
-    for local_path in set(local_file.path for local_file in local_files):
+    for local_path in set(local_file.path for local_file in local_files):  # noqa: C401
         imported_files: Union[List[dt.AnnotationFile], dt.AnnotationFile, None] = importer(local_path)
         if imported_files is None:
             parsed_files = []
@@ -529,7 +529,7 @@ def _warn_unsupported_annotations(parsed_files: List[AnnotationFile]) -> None:
             if annotation.annotation_class.annotation_type in UNSUPPORTED_CLASSES:
                 skipped_annotations.append(annotation)
         if len(skipped_annotations) > 0:
-            types = set(map(lambda c: c.annotation_class.annotation_type, skipped_annotations))
+            types = set(map(lambda c: c.annotation_class.annotation_type, skipped_annotations))  # noqa: C417
             console.print(
                 f"Import of annotation class types '{', '.join(types)}' is not yet supported. Skipping {len(skipped_annotations)} "
                 + "annotations from '{parsed_file.full_path}'.\n",
