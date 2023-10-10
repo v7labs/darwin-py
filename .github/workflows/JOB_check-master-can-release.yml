@@ -1,0 +1,46 @@
+name: check-master-can-release
+run-name: check-master-can-release
+
+on:
+  workflow_call:
+
+jobs:
+  check-master-can-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check master is passing
+        uses: actions/github-script@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { data: { check_runs } } = await github.checks.listForRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.sha,
+              filter: 'latest',
+            });
+            const masterCheck = check_runs.find(({ name }) => name === 'master');
+            if (masterCheck.conclusion !== 'success') {
+              throw new Error('Master is not passing');
+            }
+
+      - name: Check there are commits in master since last release
+        uses: actions/github-script@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { data: { published_at } } = await github.repos.getLatestRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+            const lastRelease = new Date(published_at);
+            const { data: { commits } } = await github.repos.compareCommits({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              base: lastRelease.toISOString(),
+              head: 'master',
+            });
+            if (commits.length === 0) {
+              throw new Error('No commits in master since last release');
+            }
+

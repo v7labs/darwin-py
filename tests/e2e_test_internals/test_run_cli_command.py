@@ -1,4 +1,5 @@
 from collections import namedtuple
+from http import server
 from unittest import mock
 
 import pytest
@@ -9,19 +10,19 @@ from e2e_tests.helpers import run_cli_command
 
 def test_does_not_allow_directory_traversal() -> None:
     with pytest.raises(DarwinException) as excinfo:
-        run_cli_command("darwin --help; ls ..")
+        run_cli_command("darwin --help; ls ..", server_wait=0)
 
         assert excinfo.value == "Cannot pass directory traversal to 'run_cli_command'."
 
     with pytest.raises(DarwinException) as excinfo:
-        run_cli_command("darwin --help", working_directory="/usr/bin/../")
+        run_cli_command("darwin --help", working_directory="/usr/bin/../", server_wait=0)
         assert excinfo.value == "Cannot pass directory traversal to 'run_cli_command'."
 
 
 @mock.patch("e2e_tests.helpers.run")
 def test_passes_working_directory_to_run_cli_command(mock_subprocess_run: mock.Mock) -> None:
     mock_subprocess_run.reset_mock()
-    run_cli_command("darwin --help", "/usr/bin")
+    run_cli_command("darwin --help", "/usr/bin", server_wait=0)
 
     mock_subprocess_run.assert_called_once()
     assert mock_subprocess_run.call_args[0][0] == "darwin --help"
@@ -35,19 +36,19 @@ def test_passes_back_returncode_stdout_and_stderr(mock_subprocess_run: mock.Mock
 
     mock_subprocess_run.return_value = mocked_output
 
-    return_code, std_out, std_err = run_cli_command("darwin --help", "/usr/bin")
+    result = run_cli_command("darwin --help", "/usr/bin", server_wait=0)
 
     mock_subprocess_run.assert_called_once()
 
-    assert return_code == 137
-    assert std_out == "stdout"
-    assert std_err == "stderr"
+    assert result.return_code == 137
+    assert result.stdout == "stdout"
+    assert result.stderr == "stderr"
 
 
 @mock.patch("e2e_tests.helpers.run")
 def test_does_not_pass_working_directory_to_run_cli_command(mock_subprocess_run: mock.Mock) -> None:
     mock_subprocess_run.reset_mock()
-    run_cli_command("darwin --help")
+    run_cli_command("darwin --help", server_wait=0)
 
     mock_subprocess_run.assert_called_once()
     assert mock_subprocess_run.call_args[0][0] == "darwin --help"

@@ -11,7 +11,7 @@ darwin_py.egg-info/PKG-INFO
 
 *.png
 *.jpeg
-*.jpg 
+*.jpg
 *.bpm
 *.mov
 *.mp4
@@ -180,4 +180,7 @@ scripts/
 
 !darwin/future/tests/data_objects/workflow/data
 !tests/darwin/dataset/data
+
+*test_results.xml
+version.txt
 !e2e_tests/data
