@@ -38,6 +38,7 @@ jobs:
             "username": "${{ vars.SLACK_USERNAME }}",
             "text": "${{ env.PREFIX }}${{ inputs.message }}",
             "icon_emoji": "${{ inputs.icon || vars.SLACK_ICON }}"
-          })
+          }
           EOF
+          )
           curl -X POST --data-urlencode "payload=$PAYLOAD" ${{ secrets.SLACK_WEBHOOK }}
