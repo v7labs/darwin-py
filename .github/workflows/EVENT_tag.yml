@@ -25,7 +25,12 @@ jobs:
           ref: ${{ github.head_ref || github.ref }}
 
       - name: Create release
-        uses: ./.github/workflows/JOB_create_release.yml
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ env.GH_TOKEN }}
         with:
-          is_draft: true
+          tag_name: ${{ github.ref }}
+          release_name: ${{ github.ref }}
+          draft: true
+          prerelease: false
 
