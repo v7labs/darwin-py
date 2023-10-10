@@ -191,9 +191,7 @@ def build_attribute_lookup(dataset: "RemoteDataset") -> Dict[str, Unknown]:
     current_version=__version__,
     details=DEPRECATION_MESSAGE,
 )
-def get_remote_files(
-    dataset: "RemoteDataset", filenames: List[str], chunk_size: int = 100
-) -> Dict[str, Tuple[int, str]]:
+def get_remote_files(dataset: "RemoteDataset", filenames: List[str], chunk_size: int = 100) -> Dict[str, Tuple[int, str]]:
     """
     Fetches remote files from the datasets in chunks; by default 100 filenames at a time.
 
@@ -206,9 +204,7 @@ def get_remote_files(
     remote_files = {}
     for i in range(0, len(filenames), chunk_size):
         chunk = filenames[i : i + chunk_size]
-        for remote_file in dataset.fetch_remote_files(
-            {"types": "image,playback_video,video_frame", "filenames": chunk}
-        ):
+        for remote_file in dataset.fetch_remote_files({"types": "image,playback_video,video_frame", "filenames": chunk}):
             slot_name = _get_slot_name(remote_file)
             remote_files[remote_file.full_path] = (remote_file.id, slot_name)
     return remote_files
@@ -317,9 +313,7 @@ def import_annotations(  # noqa: C901
     console = Console(theme=_console_theme())
 
     if append and delete_for_empty:
-        raise IncompatibleOptions(
-            "The options 'append' and 'delete_for_empty' cannot be used together. Use only one of them."
-        )
+        raise IncompatibleOptions("The options 'append' and 'delete_for_empty' cannot be used together. Use only one of them.")
 
     cpu_limit, use_multi_cpu = _get_multi_cpu_settings(cpu_limit, cpu_count(), use_multi_cpu)
     if use_multi_cpu:
@@ -354,9 +348,7 @@ def import_annotations(  # noqa: C901
     local_files_missing_remotely = []
 
     # ! Other place we can use multiprocessing - hard to pass in the importer though
-    maybe_parsed_files: Optional[Iterable[dt.AnnotationFile]] = find_and_parse(
-        importer, file_paths, console, use_multi_cpu, cpu_limit
-    )
+    maybe_parsed_files: Optional[Iterable[dt.AnnotationFile]] = find_and_parse(importer, file_paths, console, use_multi_cpu, cpu_limit)
 
     if not maybe_parsed_files:
         raise ValueError("Not able to parse any files.")
@@ -404,9 +396,7 @@ def import_annotations(  # noqa: C901
     )
 
     console.print(f"{len(local_classes_not_in_team)} classes needs to be created.", style="info")
-    console.print(
-        f"{len(local_classes_not_in_dataset)} classes needs to be added to {dataset.identifier}", style="info"
-    )
+    console.print(f"{len(local_classes_not_in_dataset)} classes needs to be added to {dataset.identifier}", style="info")
 
     missing_skeletons: List[dt.AnnotationClass] = list(filter(_is_skeleton_class, local_classes_not_in_team))
     missing_skeleton_names: str = ", ".join(map(_get_skeleton_name, missing_skeletons))
@@ -427,9 +417,7 @@ def import_annotations(  # noqa: C901
         if class_prompt and not secure_continue_request():
             return
         for missing_class in local_classes_not_in_team:
-            dataset.create_annotation_class(
-                missing_class.name, missing_class.annotation_internal_type or missing_class.annotation_type
-            )
+            dataset.create_annotation_class(missing_class.name, missing_class.annotation_internal_type or missing_class.annotation_type)
     if local_classes_not_in_dataset:
         console.print(f"About to add the following classes to {dataset.identifier}", style="info")
         for cls in local_classes_not_in_dataset:
@@ -473,9 +461,7 @@ def import_annotations(  # noqa: C901
         parsed_files = [parsed_file for parsed_file in parsed_files if parsed_file.full_path not in missing_files]
 
         files_to_not_track = [
-            file_to_track
-            for file_to_track in parsed_files
-            if not file_to_track.annotations and (not delete_for_empty or dataset.version == 1)
+            file_to_track for file_to_track in parsed_files if not file_to_track.annotations and (not delete_for_empty or dataset.version == 1)
         ]
 
         for file in files_to_not_track:
@@ -545,9 +531,7 @@ def _get_skeleton_name(skeleton: dt.AnnotationClass) -> str:
     return skeleton.name
 
 
-def _handle_subs(
-    annotation: dt.Annotation, data: dt.DictFreeForm, annotation_class_id: str, attributes: Dict[str, dt.UnknownType]
-) -> dt.DictFreeForm:
+def _handle_subs(annotation: dt.Annotation, data: dt.DictFreeForm, annotation_class_id: str, attributes: Dict[str, dt.UnknownType]) -> dt.DictFreeForm:
     for sub in annotation.subs:
         if sub.annotation_type == "text":
             data["text"] = {"text": sub.data}
@@ -575,9 +559,7 @@ def _handle_complex_polygon(annotation: dt.Annotation, data: dt.DictFreeForm) ->
     return data
 
 
-def _annotators_or_reviewers_to_payload(
-    actors: List[dt.AnnotationAuthor], role: dt.AnnotationAuthorRole
-) -> List[dt.DictFreeForm]:
+def _annotators_or_reviewers_to_payload(actors: List[dt.AnnotationAuthor], role: dt.AnnotationAuthorRole) -> List[dt.DictFreeForm]:
     return [{"email": actor.email, "role": role.value} for actor in actors]
 
 
@@ -595,16 +577,12 @@ def _handle_annotators(annotation: dt.Annotation, import_annotators: bool) -> Li
     return []
 
 
-def _get_annotation_data(
-    annotation: dt.AnnotationLike, annotation_class_id: str, attributes: dt.DictFreeForm
-) -> dt.DictFreeForm:
+def _get_annotation_data(annotation: dt.AnnotationLike, annotation_class_id: str, attributes: dt.DictFreeForm) -> dt.DictFreeForm:
     annotation_class = annotation.annotation_class
     if isinstance(annotation, dt.VideoAnnotation):
         data = annotation.get_data(
             only_keyframes=True,
-            post_processing=lambda annotation, data: _handle_subs(
-                annotation, _handle_complex_polygon(annotation, data), annotation_class_id, attributes
-            ),
+            post_processing=lambda annotation, data: _handle_subs(annotation, _handle_complex_polygon(annotation, data), annotation_class_id, attributes),
         )
     else:
         data = {annotation_class.annotation_type: annotation.data}
@@ -648,9 +626,7 @@ def _import_annotations(
 
         if annotation_type not in remote_classes or annotation_class.name not in remote_classes[annotation_type]:
             if annotation_type not in remote_classes:
-                logger.warning(
-                    f"Annotation type '{annotation_type}' is not in the remote classes, skipping import of annotation '{annotation_class.name}'"
-                )
+                logger.warning(f"Annotation type '{annotation_type}' is not in the remote classes, skipping import of annotation '{annotation_class.name}'")
             else:
                 logger.warning(f"Annotation '{annotation_class.name}' is not in the remote classes, skipping import")
             continue
@@ -694,6 +670,4 @@ def _import_annotations(
 
 # mypy: ignore-errors
 def _console_theme() -> Theme:
-    return Theme(
-        {"success": "bold green", "warning": "bold yellow", "error": "bold red", "info": "bold deep_sky_blue1"}
-    )
+    return Theme({"success": "bold green", "warning": "bold yellow", "error": "bold red", "info": "bold deep_sky_blue1"})
