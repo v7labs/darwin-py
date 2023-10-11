@@ -70,6 +70,8 @@ jobs:
         run: |
           poetry install --no-interaction --no-root --all-extras -vvv
           poetry build
+          ls -la
+          ls -la dist
 
       - name: Add build to release
         uses: actions/upload-release-asset@v1
