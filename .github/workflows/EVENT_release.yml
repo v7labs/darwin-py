@@ -47,8 +47,9 @@ jobs:
     needs: validate_tag
     uses: ./.github/workflows/JOB_tests.yml
 
-  build:
-    needs: validate_tag
+  release:
+    needs: [run_tests]
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -65,28 +66,6 @@ jobs:
         uses: abatilo/actions-poetry@v2
         with:
           poetry-version: "1.3.1"
-
-      - name: Install dependencies
-        run: |
-          poetry install --no-interaction --no-root --all-extras -vvv
-          poetry build
-          ls -la
-          ls -la dist
-
-      # Ticketed to be added later
-      # - name: Add build to release
-      #   uses: actions/upload-release-asset@v1
-      #   with:
-      #     upload_url: ${{ github.event.release.upload_url }}
-      #     asset_path: dist
-      #     asset_name: ${{ env.release_id }}.tar.gz
-      #     asset_content_type: application/gzip
-
-  release:
-    needs: [run_tests, build]
-    if: startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
-    steps:
       - name: Publish on pypi.org
         env:
           POETRY_HTTP_BASIC_PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
@@ -96,10 +75,23 @@ jobs:
           echo "Publishing to pypi.org - Emulated"
 
   test_release:
-    needs: [run_tests, build]
+    needs: [run_tests]
     if: startsWith(github.ref, 'refs/tags/test-')
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.9"
+      - run: pip install pip --upgrade
+      - name: Setup Poetry
+        uses: abatilo/actions-poetry@v2
+        with:
+          poetry-version: "1.3.1"
       - name: Publish on test.pypi.org
         env:
           POETRY_HTTP_BASIC_PYPI_USERNAME: ${{ secrets.TEST_PYPI_USERNAME }}
