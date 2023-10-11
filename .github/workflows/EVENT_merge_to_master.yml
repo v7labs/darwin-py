@@ -20,6 +20,7 @@ jobs:
   documentation:
     name: Documentation
     uses: ./.github/workflows/JOB_generate_documentation.yml
+    secrets: inherit
 
   warn_on_fail:
     needs: [run_tests, documentation]
