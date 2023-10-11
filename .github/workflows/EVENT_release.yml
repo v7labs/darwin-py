@@ -73,13 +73,14 @@ jobs:
           ls -la
           ls -la dist
 
-      - name: Add build to release
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: dist
-          asset_name: ${{ env.release_id }}.tar.gz
-          asset_content_type: application/gzip
+      # Ticketed to be added later
+      # - name: Add build to release
+      #   uses: actions/upload-release-asset@v1
+      #   with:
+      #     upload_url: ${{ github.event.release.upload_url }}
+      #     asset_path: dist
+      #     asset_name: ${{ env.release_id }}.tar.gz
+      #     asset_content_type: application/gzip
 
   release:
     needs: [run_tests, build]
@@ -91,7 +92,7 @@ jobs:
           POETRY_HTTP_BASIC_PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
           POETRY_HTTP_BASIC_PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
         run: |
-          # poetry publish
+          poetry publish
           echo "Publishing to pypi.org - Emulated"
 
   test_release:
