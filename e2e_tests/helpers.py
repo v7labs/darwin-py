@@ -24,7 +24,7 @@ class CLIResult:
     stderr: str
 
 
-SERVER_WAIT_TIME = 5
+SERVER_WAIT_TIME = 10
 
 
 def run_cli_command(

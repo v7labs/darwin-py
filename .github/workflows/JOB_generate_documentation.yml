@@ -1,9 +1,11 @@
-name: Documentation
+name: generate-documentation
+run-name: Generate Documentation
 
 on:
-  push:
-    branches: ["master"]
-  workflow_dispatch:
+  workflow_call:
+    secrets:
+      DARWIN_PY_AWS_GITHUB_CICD_ROLE:
+        required: true
 
 permissions:
   id-token: write # This is required for requesting the JWT
@@ -14,49 +16,50 @@ env:
   AWS_SESSION_NAME: darwinPyDocumentation
 
 jobs:
-  generate-docs:
+  generate-documentation:
     runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: [3.8, 3.9, "3.10"]
     steps:
       - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.head_ref || github.ref }}
+
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
+
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install poetry
+          pip install poetry setuptools
           poetry install --all-extras --no-interaction --no-root
-          pip install wheel
-          pip install --upgrade setuptools
           pip install --editable ".[test,ml,medical,dev,ocv]"
-          pip install torch torchvision
-          pip install -U sphinx
-          # Locking mistune version so m2r works. More info on issue:
-          # https://github.com/miyakogi/m2r/issues/66
-          pip install mistune==0.8.4
-          pip install m2r
-          pip install sphinx_rtd_theme
+          pip install -U sphinx sphinx_rtd_theme m2r2
+
       - name: Parse README
         run: |
-          rm -f README.rst
-          m2r README.md
+          rm -f README.rst&&\
+          m2r2 README.md&&\
           mv README.rst source/
+
       - name: Generate new docs
         env:
           PYTHONPATH: "."
         run: |
-          rm -rf docs/* 
+          rm -rf docs/*
           sphinx-apidoc -f -o source darwin darwin/future
           sphinx-build -b html source/ docs/
       - name: Setup access to AWS
+        id: aws_assume_role
         uses: aws-actions/configure-aws-credentials@v2
         with:
           role-to-assume: ${{ secrets.DARWIN_PY_AWS_GITHUB_CICD_ROLE }}
           role-session-name: ${{ env.AWS_SESSION_NAME }}
           aws-region: ${{ env.AWS_REGION }}
+
+
       - name: Upload docs to S3
         run: aws s3 cp docs/ s3://darwin-py-sdk.v7labs.com/ --recursive
+
