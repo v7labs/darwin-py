@@ -106,35 +106,29 @@ jobs:
   notify_release:
     needs: [release, test_release]
     if: always() && contains(needs.*.result, 'success')
-    runs-on: ubuntu-latest
-    steps:
-      - name: Notify Slack
-        uses: ./.github/workflows/JOB_slack_message.yml
-        with:
-          icon: ":rocket:"
-          at_team: ${{ env.is_scheduled || !env.is_draft }}
-          secrets: inherit
-          message: |
-            :tada: *${{ env.release_tag }}* has been released!
-            :link:
-              - https://pypi.org/project/darwin-py
-              - ${{ github.event.release.html_url }}
+    uses: ./.github/workflows/JOB_slack_message.yml
+    secrets: inherit
+    with:
+      icon: ":rocket:"
+      at_team: true
+      message: |
+        :tada: *${{ inputs.release_tag || github.event.release.tag_name }}* has been released!
+        :link:
+          - https://pypi.org/project/darwin-py
+          - ${{ github.event.release.html_url }}
 
   notify_failed_release:
     needs: [release, test_release]
     if: always() && contains(needs.*.result, 'failure')
-    runs-on: ubuntu-latest
-    steps:
-      - name: Notify Slack
-        uses: ./.github/workflows/JOB_slack_message.yml
-        with:
-          secrets: inherit
-          icon: ":warning:"
-          at_team: true
-          message: |
-            :warning: *${{ env.release_tag }}* has failed to be released!
+    uses: ./.github/workflows/JOB_slack_message.yml
+    secrets: inherit
+    with:
+      icon: ":warning:"
+      at_team: true
+      message: |
+        :warning: *${{ inputs.release_tag || github.event.release.tag_name }}* Release has failed to be released!
 
-            *An error occurred performing release, and you may need to release manually.*
+        *An error occurred performing release, and you may need to release manually.*
 
-            :link:
-              - ${{ github.event.release.html_url }}
+        :link:
+          - ${{ github.event.release.html_url }}
