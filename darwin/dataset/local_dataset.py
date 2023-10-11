@@ -95,8 +95,7 @@ class LocalDataset:
         stems = build_stems(release_path, annotations_dir, annotation_type, split, partition, split_type)
 
         # Find all the annotations and their corresponding images
-        invalid_annotation_paths = []
-        for annotation_path in annotations_dir.glob("**/*.json"):
+        for annotation_path in sorted(annotations_dir.glob("**/*.json")):
             darwin_json = parse_darwin_json(annotation_path)
             image_path = images_dir / Path(darwin_json.full_path.lstrip('/\\'))
             if image_path.exists():
