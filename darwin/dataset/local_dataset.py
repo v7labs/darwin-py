@@ -97,7 +97,6 @@ class LocalDataset:
 
         # Find all the annotations and their corresponding images
         for stem in stems:
-            print(f"stems - {stem}")
             annotation_path = annotations_dir / f"{stem}.json"
             images = []
             for ext in SUPPORTED_IMAGE_EXTENSIONS:
