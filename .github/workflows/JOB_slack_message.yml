@@ -25,7 +25,6 @@ env:
   PREFIX: ${{ vars.SLACK_TEAM_TAG }}
   WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
 
-
 jobs:
   slack-notify:
     name: Slack Notification
@@ -36,7 +35,7 @@ jobs:
           echo "Message: ${{ inputs.message }}"
           echo "Icon: ${{ inputs.icon }}"
           echo "At Team: ${{ inputs.at_team }}"
-          echo "Prefix: ${{ env.PREFIX }}"CIC
+          echo "Prefix: ${{ env.PREFIX }}"
 
       - name: Send Slack Notification
         run: |
@@ -45,7 +44,7 @@ jobs:
             {
               "channel": "#${{ vars.SLACK_CHANNEL }}",
               "username": "${{ vars.SLACK_USERNAME }}",
-              "text": "<!here> ${{ env.PREFIX }}${{ inputs.message }}",
+              "text": "${{ inputs.message }}",
               "icon_emoji": "${{ inputs.icon || vars.SLACK_ICON }}"
             }
           EOF
@@ -61,4 +60,7 @@ jobs:
           EOF
           )
           fi
+          echo $PAYLOAD
+          echo $WEBHOOK
+          echo ${{ env.WEBHOOK }}}
           curl -X POST --data-urlencode "payload=$PAYLOAD" ${{ env.WEBHOOK }}
