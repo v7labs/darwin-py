@@ -96,7 +96,10 @@ jobs:
           POETRY_HTTP_BASIC_PYPI_USERNAME: ${{ secrets.TEST_PYPI_USERNAME }}
           POETRY_HTTP_BASIC_PYPI_PASSWORD: ${{ secrets.TEST_PYPI_PASSWORD }}
         run: |
-          poetry publish --build
+          poetry config repositories.test-pypi https://test.pypi.org/legacy/
+          poetry config http-basic.test-pypi ${{ secrets.TEST_PYPI_USERNAME }} ${{ secrets.TEST_PYPI_PASSWORD }}
+
+          poetry publish --build --repository test-pypi
 
   # Linear tickets update
 
