@@ -22,7 +22,8 @@ on:
         default: false
 
 env:
-  PREFIX: ${{ vars.SLACK_TEAM_TAG}}
+  PREFIX: ${{ vars.SLACK_TEAM_TAG }}
+  WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
 
 
 jobs:
@@ -60,4 +61,4 @@ jobs:
           EOF
           )
           fi
-          curl -X POST --data-urlencode "payload=$PAYLOAD" ${{ secrets.SLACK_WEBHOOK }}
+          curl -X POST --data-urlencode "payload=$PAYLOAD" ${{ env.WEBHOOK }}
