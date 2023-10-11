@@ -26,6 +26,7 @@ jobs:
     if : ${{ failure() }}
     name: Slack message us on fail
     uses: ./.github/workflows/JOB_slack_message.yml
+    secrets: inherit
     with:
       at_team: true
       icon: ':warning:'

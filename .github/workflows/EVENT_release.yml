@@ -117,6 +117,7 @@ jobs:
         with:
           icon: ":rocket:"
           at_team: ${{ env.is_scheduled || !env.is_draft }}
+          secrets: inherit
           message: |
             :tada: *${{ env.release_tag }}* has been released!
             :link:
@@ -131,6 +132,7 @@ jobs:
       - name: Notify Slack
         uses: ./.github/workflows/JOB_slack_message.yml
         with:
+          secrets: inherit
           icon: ":warning:"
           at_team: true
           message: |

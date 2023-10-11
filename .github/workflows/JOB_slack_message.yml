@@ -3,6 +3,9 @@ run-name: Slack Notify
 
 on:
   workflow_call:
+    secrets:
+      SLACK_WEBHOOK:
+        required: true
     inputs:
       message:
         type: string
@@ -23,19 +26,19 @@ on:
 
 env:
   PREFIX: ${{ vars.SLACK_TEAM_TAG }}
-  WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
 
 jobs:
   slack-notify:
     name: Slack Notification
     runs-on: ubuntu-latest
     steps:
-      - name: Debug
+      - name: Require secrets inherit
         run: |
-          echo "Message: ${{ inputs.message }}"
-          echo "Icon: ${{ inputs.icon }}"
-          echo "At Team: ${{ inputs.at_team }}"
-          echo "Prefix: ${{ env.PREFIX }}"
+          if [ -z "${{ secrets.SLACK_WEBHOOK }}" ]; then
+            echo "Missing secret: SLACK_WEBHOOK"
+            echo "You must call this reusable flow with secrets inherited."
+            exit 1
+          fi
 
       - name: Send Slack Notification
         run: |
@@ -60,7 +63,4 @@ jobs:
           EOF
           )
           fi
-          echo $PAYLOAD
-          echo $WEBHOOK
-          echo ${{ env.WEBHOOK }}}
-          curl -X POST --data-urlencode "payload=$PAYLOAD" ${{ env.WEBHOOK }}
+          curl -X POST --data-urlencode "payload=$PAYLOAD" ${{ secrets.SLACK_WEBHOOK }}

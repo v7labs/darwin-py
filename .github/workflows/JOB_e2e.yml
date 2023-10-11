@@ -50,6 +50,7 @@ jobs:
       - name: Notify Slack
         uses: ./.github/workflows/JOB_slack_message.yml
         with:
+          secrets: inherit
           icon: ":warning:"
           at_team: true
           message: |
@@ -58,6 +59,7 @@ jobs:
             :link:
               - https://github.com/v7labs/darwin-py/actions/runs/${{ github.run_id }}
             :warning: ${{ github.workflow }} failed
+
       - name: Send Slack Notification
         run: |
           PAYLOAD=$(cat <<EOF
