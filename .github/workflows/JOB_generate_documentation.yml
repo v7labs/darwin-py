@@ -3,6 +3,9 @@ run-name: Generate Documentation
 
 on:
   workflow_call:
+    secrets:
+      DARWIN_PY_AWS_GITHUB_CICD_ROLE:
+        required: true
 
 permissions:
   id-token: write # This is required for requesting the JWT
