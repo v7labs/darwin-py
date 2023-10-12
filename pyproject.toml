@@ -54,9 +54,6 @@ init_typed = true
 warn_required_dynamic_aliases = true
 warn_untyped_fields = true
 
-[tool.black]
-line-length = 88
-
 [tool.ruff]
 select = ["E", "F", "C"]
 ignore = ["E203", "E402"]
