@@ -51,12 +51,8 @@ class Dataset(MetaBase[DatasetCore]):
         assert self.meta_params["team_slug"] is not None and type(self.meta_params["team_slug"]) == str
         return get_item_ids(self.client, self.meta_params["team_slug"], str(self._element.id))
 
-    def get_dataset_by_id(self) -> DatasetCore:
-        # TODO: implement
-        raise NotImplementedError()
-
     @classmethod
-    def create_dataset(cls, client: ClientCore, slug: str) -> Tuple[Optional[List[Exception]], Optional[DatasetCore]]:
+    def create_dataset(cls, client: ClientCore, slug: str) -> DatasetCore:
         """
         Creates a new dataset for the given team
 
@@ -71,101 +67,25 @@ class Dataset(MetaBase[DatasetCore]):
             A tuple containing a list of exceptions and the dataset created
 
         """
-        exceptions = []
         dataset: Optional[DatasetCore] = None
-
-        try:
-            cls._validate_slug(slug)
-            dataset = create_dataset(client, slug)
-        except Exception as e:
-            exceptions.append(e)
-
-        return exceptions or None, dataset
+        cls._validate_slug(slug)
+        dataset = create_dataset(client, slug)
+        return dataset
 
     def update_dataset(self) -> DatasetCore:
         # TODO: implement in IO-1018
         raise NotImplementedError()
 
-    @classmethod
-    def delete_dataset(cls, client: ClientCore, dataset_id: Union[int, str]) -> Tuple[Optional[List[Exception]], int]:
+    def delete(self) -> int:
         """
-        Deletes a dataset by id or slug
-
-        Parameters
-        ----------
-        dataset_id: Union[int, str]
-            The id or slug of the dataset to delete
-
-        Returns
-        -------
-        Tuple[Optional[List[Exception]], int]
-            A tuple containing a list of exceptions and the number of datasets deleted
-        """
-        exceptions = []
-        dataset_deleted = -1
-
-        try:
-            if isinstance(dataset_id, str):
-                dataset_deleted = cls._delete_by_slug(client, dataset_id)
-            else:
-                dataset_deleted = cls._delete_by_id(client, dataset_id)
-
-        except Exception as e:
-            exceptions.append(e)
-
-        return exceptions or None, dataset_deleted
-
-    @staticmethod
-    def _delete_by_slug(client: ClientCore, slug: str) -> int:
-        """
-        (internal) Deletes a dataset by slug
-
-        Parameters
-        ----------
-        client: MetaClient
-            The client to use to make the request
-
-        slug: str
-            The slug of the dataset to delete
+        Deletes a current dataset
 
         Returns
         -------
         int
-            The dataset deleted
+            The id of dataset deleted
         """
-        assert_is(isinstance(client, ClientCore), "client must be a Core Client")
-        assert_is(isinstance(slug, str), "slug must be a string")
-
-        dataset = get_dataset(client, slug)
-        if dataset and dataset.id:
-            dataset_deleted = remove_dataset(client, dataset.id)
-        else:
-            raise MissingDataset(f"Dataset with slug {slug} not found")
-
-        return dataset_deleted
-
-    @staticmethod
-    def _delete_by_id(client: ClientCore, dataset_id: int) -> int:
-        """
-        (internal) Deletes a dataset by id
-
-        Parameters
-        ----------
-        client: Client
-            The client to use to make the request
-
-        dataset_id: int
-            The id of the dataset to delete
-
-        Returns
-        -------
-        int
-            The dataset deleted
-        """
-        assert_is(isinstance(client, ClientCore), "client must be a Client")
-        assert_is(isinstance(dataset_id, int), "dataset_id must be an integer")
-
-        dataset_deleted = remove_dataset(client, dataset_id)
+        dataset_deleted = remove_dataset(self.client, self.id)
         return dataset_deleted
 
     @staticmethod
