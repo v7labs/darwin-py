@@ -35,6 +35,7 @@ if [ "$ACTION" == "format" ]; then
     pipinstall ruff
     elif [ "$ACTION" == "typecheck" ]; then
     pipinstall mypy
+    pipinstall types-requests
 else
     echo "Action must be format, typecheck, or lint"
     exit 1
