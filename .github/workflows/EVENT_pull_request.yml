@@ -39,7 +39,7 @@ jobs:
   #     files: ${{ needs.get_changed_files.outputs.python_changed_files }}
 
   run_tests:
-    needs: [format, lint, typecheck]
+    needs: [format, lint]
     name: Run tests
     uses: ./.github/workflows/JOB_tests.yml
 
