@@ -11,7 +11,7 @@ def main(argv: List[str]) -> None:
     if file_extension.startswith("."):
         file_extension = file_extension[1:]
 
-    files_out = [file for file in files_in if file.endswith(f".{file_extension}")]
+    files_out = [file for file in files_in if file.endswith(f".{file_extension}") if "darwin/future" in file]
 
     print(" ".join(files_out))
 
