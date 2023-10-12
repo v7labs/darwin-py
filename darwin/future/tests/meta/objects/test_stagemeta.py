@@ -2,11 +2,8 @@ from typing import List
 from uuid import UUID
 
 import responses
-from pytest import fixture, mark, raises
-from responses import RequestsMock
-from sklearn import base
+from pytest import fixture
 
-from darwin.future.core.client import DarwinConfig
 from darwin.future.data_objects.workflow import WFStageCore, WFTypeCore
 from darwin.future.meta.client import Client
 from darwin.future.meta.objects.stage import Stage

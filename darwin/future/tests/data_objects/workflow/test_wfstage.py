@@ -1,5 +1,4 @@
 from json import loads
-from pathlib import Path
 from uuid import UUID
 
 import pytest

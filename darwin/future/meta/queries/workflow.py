@@ -3,7 +3,7 @@ from typing import List
 from uuid import UUID
 
 from darwin.exceptions import DarwinException
-from darwin.future.core.types.query import Param, Query, QueryFilter
+from darwin.future.core.types.query import Query, QueryFilter
 from darwin.future.core.workflows import list_workflows
 from darwin.future.data_objects.workflow import WFStageCore
 from darwin.future.helpers.exception_handler import handle_exception
@@ -81,7 +81,7 @@ class WorkflowQuery(Query[Workflow]):
             return [w for w in workflows if w._element is not None and str(w._element.dataset) in datasets_to_find_name]
 
         if filter.name == "has_stages":
-            stages_to_find = [s for s in filter.param.split(",")]
+            stages_to_find = list(filter.param.split(","))
             return [
                 w
                 for w in workflows

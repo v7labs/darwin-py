@@ -30,7 +30,7 @@ def test_team_member_only_passes_back_correct(base_client: ClientCore, base_team
         assert isinstance(members[0], TeamMember)
 
 
-@pytest.mark.parametrize("role", [role for role in TeamMemberRole])
+@pytest.mark.parametrize("role", list(TeamMemberRole))
 def test_team_member_filters_role(
     role: TeamMemberRole, base_client: ClientCore, base_team_members_json: List[dict]
 ) -> None:

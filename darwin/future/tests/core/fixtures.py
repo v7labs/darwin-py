@@ -8,7 +8,6 @@ from darwin.future.core.client import ClientCore, DarwinConfig
 from darwin.future.data_objects.dataset import DatasetCore
 from darwin.future.data_objects.team import TeamCore, TeamMemberCore
 from darwin.future.data_objects.team_member_role import TeamMemberRole
-from darwin.future.data_objects.workflow import WFTypeCore
 
 
 @pytest.fixture

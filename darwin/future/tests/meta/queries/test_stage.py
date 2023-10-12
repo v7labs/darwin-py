@@ -1,4 +1,3 @@
-from typing import List
 
 import pytest
 import responses
@@ -24,7 +23,7 @@ def base_workflow_meta(base_client: ClientCore, base_single_workflow_object: dic
 @pytest.fixture
 def multi_stage_workflow_object(base_single_workflow_object: dict) -> dict:
     stage = base_single_workflow_object["stages"][0]
-    types = [t for t in WFTypeCore.__members__.values()] * 3
+    types = list(WFTypeCore.__members__.values()) * 3
     stages = []
     for i, t in enumerate(types):
         temp = stage.copy()
@@ -65,7 +64,7 @@ def test_stage_filters_basic(
         assert stages[0]._element.name == "stage1"
 
 
-@pytest.mark.parametrize("wf_type", [t for t in WFTypeCore.__members__.values()])
+@pytest.mark.parametrize("wf_type", list(WFTypeCore.__members__.values()))
 def test_stage_filters_WFType(
     wf_type: WFTypeCore, filled_query: StageQuery, multi_stage_workflow_object: dict, base_workflow_meta: Workflow
 ) -> None:

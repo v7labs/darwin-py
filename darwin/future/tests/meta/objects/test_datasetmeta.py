@@ -1,8 +1,6 @@
 import string
-from typing import Generator
-from unittest.mock import Mock, patch
 
-from pytest import fixture, mark, raises
+from pytest import mark, raises
 from requests import HTTPError
 from responses import RequestsMock
 
@@ -28,7 +26,7 @@ def test_create_dataset_raises_HTTPError(base_config: DarwinConfig) -> None:
 
     with RequestsMock() as rsps, raises(HTTPError):
         rsps.add(rsps.POST, base_url, status=500)
-        dataset_created = Dataset.create_dataset(valid_client, valid_slug)
+        Dataset.create_dataset(valid_client, valid_slug)
 
 
 def test_create_dataset_returns_dataset_created_if_dataset_created(base_config: DarwinConfig) -> None:

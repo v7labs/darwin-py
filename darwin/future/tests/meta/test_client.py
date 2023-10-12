@@ -1,6 +1,4 @@
-import unittest
 
-import pytest
 import responses
 
 from darwin.future.core.client import DarwinConfig

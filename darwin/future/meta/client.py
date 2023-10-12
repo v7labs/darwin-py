@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 from requests.adapters import Retry
 
 from darwin.future.core.client import ClientCore, DarwinConfig
 from darwin.future.meta.objects.team import Team
-from darwin.future.meta.objects.workflow import Workflow
-from darwin.future.meta.queries.workflow import WorkflowQuery
 
 
 class Client(ClientCore):

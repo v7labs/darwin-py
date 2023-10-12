@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import List
 
 from darwin.future.core.team.get_team import get_team_members
-from darwin.future.core.types.query import Param, Query, QueryFilter
+from darwin.future.core.types.query import Query, QueryFilter
 from darwin.future.meta.objects.team_member import TeamMember
 
 

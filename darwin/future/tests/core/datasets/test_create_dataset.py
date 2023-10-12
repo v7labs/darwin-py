@@ -1,4 +1,3 @@
-from typing import Union
 
 import responses
 from pytest import raises

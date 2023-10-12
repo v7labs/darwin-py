@@ -9,9 +9,7 @@ from typing import (
     Generic,
     List,
     Optional,
-    Tuple,
     TypeVar,
-    overload,
 )
 
 from darwin.future.core.client import ClientCore
@@ -119,7 +117,7 @@ class Query(Generic[T], ABC):
     def __init__(
         self, client: ClientCore, filters: Optional[List[QueryFilter]] = None, meta_params: Optional[Param] = None
     ):
-        self.meta_params: dict = meta_params or dict()
+        self.meta_params: dict = meta_params or {}
         self.client = client
         self.filters = filters or []
         self.results: Optional[List[T]] = None

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Union, overload
+from typing import Callable, Dict, Optional, overload
 from urllib.parse import urlparse
 
 import requests

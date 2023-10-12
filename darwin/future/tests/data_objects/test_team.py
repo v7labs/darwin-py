@@ -1,4 +1,3 @@
-import unittest
 
 import pytest
 import responses
@@ -28,7 +27,7 @@ def test_get_team_fails_on_incorrect_input(base_client: ClientCore, base_team: T
         rsps.add(responses.GET, endpoint, json={})
 
         with pytest.raises(ValidationError):
-            team = get_team(base_client, slug)
+            get_team(base_client, slug)
 
 
 def test_get_team_members_returns_valid_list(base_client: ClientCore, base_team_member_json: dict) -> None:

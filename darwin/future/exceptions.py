@@ -1,4 +1,4 @@
-from typing import Any, List, Optional
+from typing import List, Optional
 
 from darwin.future.data_objects.typing import KeyValuePairDict, UnknownType
 

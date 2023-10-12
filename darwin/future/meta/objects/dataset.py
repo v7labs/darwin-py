@@ -1,16 +1,15 @@
 from __future__ import annotations
 
-from typing import List, Optional, Sequence, Tuple, Union
+from typing import List, Optional, Sequence, Union
 from uuid import UUID
 
 from darwin.cli_functions import upload_data
 from darwin.dataset.upload_manager import LocalFile
 from darwin.datatypes import PathLike
 from darwin.future.core.client import ClientCore
-from darwin.future.core.datasets import create_dataset, get_dataset, remove_dataset
+from darwin.future.core.datasets import create_dataset, remove_dataset
 from darwin.future.core.items import get_item_ids
 from darwin.future.data_objects.dataset import DatasetCore
-from darwin.future.exceptions import MissingDataset
 from darwin.future.helpers.assertion import assert_is
 from darwin.future.meta.objects.base import MetaBase
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import List
 
 from darwin.future.core.datasets import list_datasets
-from darwin.future.core.types.query import Param, Query, QueryFilter
+from darwin.future.core.types.query import Query, QueryFilter
 from darwin.future.meta.objects.dataset import Dataset
 
 

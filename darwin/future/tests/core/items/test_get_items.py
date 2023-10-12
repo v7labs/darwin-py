@@ -14,7 +14,7 @@ def test_get_item_ids(UUIDs: List[UUID], UUIDs_str: List[str], base_client: Clie
         rsps.add(
             rsps.GET,
             base_client.config.api_endpoint
-            + f"v2/teams/default-team/items/ids?not_statuses=archived,error&sort[id]=desc&dataset_ids=1337",
+            + "v2/teams/default-team/items/ids?not_statuses=archived,error&sort[id]=desc&dataset_ids=1337",
             json={"item_ids": UUIDs_str},
             status=200,
         )

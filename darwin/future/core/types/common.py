@@ -1,7 +1,5 @@
 from typing import Any, Dict, List, Union
 
-import pydantic
-from pydantic import BaseModel
 
 from darwin.future.data_objects import validators as darwin_validators
 from darwin.future.data_objects.typing import UnknownType

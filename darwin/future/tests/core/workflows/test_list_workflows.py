@@ -1,6 +1,5 @@
 from typing import List
 
-import pytest
 import responses
 from pydantic import ValidationError
 from requests import HTTPError
