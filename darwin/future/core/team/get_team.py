@@ -12,7 +12,9 @@ def get_team(client: ClientCore, team_slug: Optional[str] = None) -> TeamCore:
     return TeamCore.parse_obj(response)
 
 
-def get_team_members(client: ClientCore) -> Tuple[List[TeamMemberCore], List[Exception]]:
+def get_team_members(
+    client: ClientCore,
+) -> Tuple[List[TeamMemberCore], List[Exception]]:
     response = client.get("/memberships")
     members = []
     errors = []

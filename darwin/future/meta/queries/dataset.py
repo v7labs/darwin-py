@@ -23,7 +23,9 @@ class DatasetQuery(Query[Dataset]):
         if exceptions:
             # TODO: print and or raise exceptions, tbd how we want to handle this
             pass
-        datasets_meta = [Dataset(self.client, dataset, self.meta_params) for dataset in datasets]
+        datasets_meta = [
+            Dataset(self.client, dataset, self.meta_params) for dataset in datasets
+        ]
         if not self.filters:
             self.filters = []
 
@@ -32,7 +34,9 @@ class DatasetQuery(Query[Dataset]):
 
         return datasets_meta
 
-    def _execute_filters(self, datasets: List[Dataset], filter: QueryFilter) -> List[Dataset]:
+    def _execute_filters(
+        self, datasets: List[Dataset], filter: QueryFilter
+    ) -> List[Dataset]:
         """Executes filtering on the local list of datasets, applying special logic for role filtering
         otherwise calls the parent method for general filtering on the values of the datasets
 
@@ -47,6 +51,12 @@ class DatasetQuery(Query[Dataset]):
         """
 
         if filter.name == "releases":
-            return [d for d in datasets if d._element is not None and d._element.releases and filter.param in [str(r) for r in d._element.releases]]
+            return [
+                d
+                for d in datasets
+                if d._element is not None
+                and d._element.releases
+                and filter.param in [str(r) for r in d._element.releases]
+            ]
 
         return super()._generic_execute_filter(datasets, filter)

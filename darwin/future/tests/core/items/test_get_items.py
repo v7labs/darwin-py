@@ -9,11 +9,14 @@ from darwin.future.tests.core.fixtures import *
 from darwin.future.tests.core.items.fixtures import *
 
 
-def test_get_item_ids(UUIDs: List[UUID], UUIDs_str: List[str], base_client: ClientCore) -> None:
+def test_get_item_ids(
+    UUIDs: List[UUID], UUIDs_str: List[str], base_client: ClientCore
+) -> None:
     with responses.RequestsMock() as rsps:
         rsps.add(
             rsps.GET,
-            base_client.config.api_endpoint + "v2/teams/default-team/items/ids?not_statuses=archived,error&sort[id]=desc&dataset_ids=1337",
+            base_client.config.api_endpoint
+            + "v2/teams/default-team/items/ids?not_statuses=archived,error&sort[id]=desc&dataset_ids=1337",
             json={"item_ids": UUIDs_str},
             status=200,
         )
@@ -21,12 +24,15 @@ def test_get_item_ids(UUIDs: List[UUID], UUIDs_str: List[str], base_client: Clie
         assert item_ids == UUIDs
 
 
-def test_get_item_ids_stage(UUIDs: List[UUID], UUIDs_str: List[str], base_client: ClientCore) -> None:
+def test_get_item_ids_stage(
+    UUIDs: List[UUID], UUIDs_str: List[str], base_client: ClientCore
+) -> None:
     stage_id = str(uuid4())
     with responses.RequestsMock() as rsps:
         rsps.add(
             rsps.GET,
-            base_client.config.api_endpoint + f"v2/teams/default-team/items/ids?workflow_stage_ids={stage_id}&dataset_ids=1337",
+            base_client.config.api_endpoint
+            + f"v2/teams/default-team/items/ids?workflow_stage_ids={stage_id}&dataset_ids=1337",
             json={"item_ids": UUIDs_str},
             status=200,
         )

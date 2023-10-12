@@ -54,4 +54,6 @@ def test_sad_paths() -> None:
             working_dataset[key] = InvalidValueForTest()
             WFDatasetCore.parse_obj(working_dataset)
 
-        assert str(excinfo.value).startswith(f"1 validation error for WFDatasetCore\n{key}")
+        assert str(excinfo.value).startswith(
+            f"1 validation error for WFDatasetCore\n{key}"
+        )

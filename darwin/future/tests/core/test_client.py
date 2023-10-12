@@ -91,7 +91,9 @@ def test_client(base_client: ClientCore) -> None:
     "status_code, exception",
     [(401, Unauthorized), (404, NotFound)],
 )
-def test_client_raises_darwin(status_code: int, exception: DarwinException, base_client: ClientCore) -> None:
+def test_client_raises_darwin(
+    status_code: int, exception: DarwinException, base_client: ClientCore
+) -> None:
     endpoint = base_client.config.api_endpoint + "test_endpoint"
     with responses.RequestsMock() as rsps:
         rsps.add(responses.GET, endpoint, json={"test": "test"}, status=status_code)

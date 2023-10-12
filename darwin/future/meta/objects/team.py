@@ -60,7 +60,9 @@ class Team(MetaBase[TeamCore]):
         return f"TeamMeta(name='{self.name}', slug='{self.slug}', id='{self.id}' - {len(self._element.members if self._element.members else [])} members)"
 
     @classmethod
-    def delete_dataset(cls, client: ClientCore, dataset_id: Union[int, str]) -> Tuple[Optional[List[Exception]], int]:
+    def delete_dataset(
+        cls, client: ClientCore, dataset_id: Union[int, str]
+    ) -> Tuple[Optional[List[Exception]], int]:
         """
         Deletes a dataset by id or slug
 

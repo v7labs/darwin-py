@@ -13,11 +13,6 @@
     "editor.insertSpaces": true,
     "editor.tabSize": 2
   },
-  "python.formatting.blackPath": "black",
-  "python.formatting.provider": "none",
-  "python.formatting.blackArgs": [
-    "-l 120"
-  ],
   "python.linting.mypyEnabled": true,
   "isort.args": [
     "--profile",
@@ -26,5 +21,8 @@
   "python.analysis.autoImportCompletions": true,
   "python.testing.pytestEnabled": true,
   "python.linting.enabled": true,
-  "python.analysis.typeCheckingMode": "basic"
+  "python.analysis.typeCheckingMode": "basic",
+  "black-formatter.path": [
+    "poetry run python -m black"
+  ]
 }

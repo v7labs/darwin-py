@@ -33,12 +33,20 @@ def test_team() -> TeamCore:
     return TeamCore(name="test-team", slug="test-team", id=0)
 
 
-def test_query_instantiated(base_client: ClientCore, basic_filters: List[Query.QueryFilter], non_abc_query: Type[Query.Query]) -> None:
+def test_query_instantiated(
+    base_client: ClientCore,
+    basic_filters: List[Query.QueryFilter],
+    non_abc_query: Type[Query.Query],
+) -> None:
     q = non_abc_query(base_client, basic_filters)
     assert q.filters == basic_filters
 
 
-def test_query_filter_functionality(base_client: ClientCore, basic_filters: List[Query.QueryFilter], non_abc_query: Type[Query.Query]) -> None:
+def test_query_filter_functionality(
+    base_client: ClientCore,
+    basic_filters: List[Query.QueryFilter],
+    non_abc_query: Type[Query.Query],
+) -> None:
     q = non_abc_query(base_client)
     for f in basic_filters:
         q = q.filter(f)
@@ -94,7 +102,10 @@ def test_query_filter_filters(mod: Optional[str], param: Any, check: Any, expect
 
 def test_QF_from_asteriks() -> None:
     # Builds with dictionary args
-    QF = Query.QueryFilter._from_args({"name": "test", "param": "test"}, {"name": "test2", "param": "test2", "modifier": "!="})
+    QF = Query.QueryFilter._from_args(
+        {"name": "test", "param": "test"},
+        {"name": "test2", "param": "test2", "modifier": "!="},
+    )
     assert len(QF) == 2
     assert QF[0].name == "test"
     assert QF[0].param == "test"
@@ -127,7 +138,9 @@ def test_query_first(non_abc_query: Type[Query.Query], base_client: ClientCore) 
     assert first == 1
 
 
-def test_query_collect_one(non_abc_query: Type[Query.Query], base_client: ClientCore) -> None:
+def test_query_collect_one(
+    non_abc_query: Type[Query.Query], base_client: ClientCore
+) -> None:
     query = non_abc_query(base_client)
     query.results = [1, 2, 3]
     with pytest.raises(MoreThanOneResultFound):

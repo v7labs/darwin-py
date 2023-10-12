@@ -34,7 +34,9 @@ def test_list_workflows(base_client: ClientCore, base_workflows_object: str) -> 
 
 
 @responses.activate
-def test_list_workflows_with_team_slug(base_client: ClientCore, base_workflows_object: JSONType) -> None:
+def test_list_workflows_with_team_slug(
+    base_client: ClientCore, base_workflows_object: JSONType
+) -> None:
     # Mocking the response using responses library
     team_slug = "team-slug"
     response_data = base_workflows_object

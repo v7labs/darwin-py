@@ -26,7 +26,10 @@ class WorkflowQuery(Query[Workflow]):
         if exceptions:
             handle_exception(exceptions)
             raise DarwinException from exceptions[0]
-        workflows = [Workflow(self.client, workflow, self.meta_params) for workflow in workflows_core]
+        workflows = [
+            Workflow(self.client, workflow, self.meta_params)
+            for workflow in workflows_core
+        ]
         if not self.filters:
             return workflows
 
@@ -35,38 +38,76 @@ class WorkflowQuery(Query[Workflow]):
 
         return workflows
 
-    def _execute_filters(self, workflows: List[Workflow], filter: QueryFilter) -> List[Workflow]:
+    def _execute_filters(
+        self, workflows: List[Workflow], filter: QueryFilter
+    ) -> List[Workflow]:
         if filter.name == "id":
             id_to_find = UUID(filter.param)
             return [w for w in workflows if w.id == id_to_find]
 
         if filter.name == "inserted_at_start":
             start_date = datetime.fromisoformat(filter.param)
-            return [w for w in workflows if w._element is not None and self._date_compare(w._element.inserted_at, start_date)]
+            return [
+                w
+                for w in workflows
+                if w._element is not None
+                and self._date_compare(w._element.inserted_at, start_date)
+            ]
 
         if filter.name == "inserted_at_end":
             end_date = datetime.fromisoformat(filter.param)
-            return [w for w in workflows if w._element is not None and self._date_compare(end_date, w._element.inserted_at)]
+            return [
+                w
+                for w in workflows
+                if w._element is not None
+                and self._date_compare(end_date, w._element.inserted_at)
+            ]
 
         if filter.name == "updated_at_start":
             start_date = datetime.fromisoformat(filter.param)
-            return [w for w in workflows if w._element is not None and self._date_compare(w._element.updated_at, start_date)]
+            return [
+                w
+                for w in workflows
+                if w._element is not None
+                and self._date_compare(w._element.updated_at, start_date)
+            ]
 
         if filter.name == "updated_at_end":
             end_date = datetime.fromisoformat(filter.param)
-            return [w for w in workflows if w._element is not None and self._date_compare(end_date, w._element.updated_at)]
+            return [
+                w
+                for w in workflows
+                if w._element is not None
+                and self._date_compare(end_date, w._element.updated_at)
+            ]
 
         if filter.name == "dataset_id":
             datasets_to_find_id: List[int] = [int(s) for s in filter.param.split(",")]
-            return [w for w in workflows if w._element is not None and w._element.dataset is not None and int(w._element.dataset.id) in datasets_to_find_id]
+            return [
+                w
+                for w in workflows
+                if w._element is not None
+                and w._element.dataset is not None
+                and int(w._element.dataset.id) in datasets_to_find_id
+            ]
 
         if filter.name == "dataset_name":
             datasets_to_find_name: List[str] = [str(s) for s in filter.param.split(",")]
-            return [w for w in workflows if w._element is not None and str(w._element.dataset) in datasets_to_find_name]
+            return [
+                w
+                for w in workflows
+                if w._element is not None
+                and str(w._element.dataset) in datasets_to_find_name
+            ]
 
         if filter.name == "has_stages":
             stages_to_find = list(filter.param.split(","))
-            return [w for w in workflows if w._element is not None and self._stages_contains(w._element.stages, stages_to_find)]
+            return [
+                w
+                for w in workflows
+                if w._element is not None
+                and self._stages_contains(w._element.stages, stages_to_find)
+            ]
 
         return self._generic_execute_filter(workflows, filter)
 
@@ -75,6 +116,8 @@ class WorkflowQuery(Query[Workflow]):
         return date1.astimezone(timezone.utc) >= date2.astimezone(timezone.utc)
 
     @classmethod
-    def _stages_contains(cls, stages: List[WFStageCore], stages_to_find: List[str]) -> bool:
+    def _stages_contains(
+        cls, stages: List[WFStageCore], stages_to_find: List[str]
+    ) -> bool:
         stage_ids = [str(s.id) for s in stages]
         return any(stage_to_find in stage_ids for stage_to_find in stages_to_find)

@@ -52,7 +52,9 @@ class QueryFilter(DefaultDarwin):
 
     def filter_attr(self, attr: Any) -> bool:  # type: ignore
         caster: Callable[[str], Any] = type(attr)  # type: ignore
-        param = caster(self.param)  # attempt to cast the param to the type of the attribute
+        param = caster(
+            self.param
+        )  # attempt to cast the param to the type of the attribute
         if self.modifier is None:
             return attr == param
         elif self.modifier == Modifier.GREATER_EQUAL:
@@ -73,7 +75,9 @@ class QueryFilter(DefaultDarwin):
     @classmethod
     def _from_dict(cls, d: Dict[str, Any]) -> QueryFilter:  # type: ignore
         if "name" not in d or "param" not in d:
-            raise InvalidQueryFilter(f"args must be a QueryFilter or a dict with 'name' and 'param' keys, got {d}")
+            raise InvalidQueryFilter(
+                f"args must be a QueryFilter or a dict with 'name' and 'param' keys, got {d}"
+            )
         modifier = Modifier(d["modifier"]) if "modifier" in d else None
         return QueryFilter(name=d["name"], param=str(d["param"]), modifier=modifier)
 
@@ -93,7 +97,9 @@ class QueryFilter(DefaultDarwin):
         elif isinstance(arg, dict):
             return cls._from_dict(arg)
         else:
-            raise InvalidQueryFilter(f"args must be a QueryFilter or a dict with 'name' and 'param' keys, got {arg}")
+            raise InvalidQueryFilter(
+                f"args must be a QueryFilter or a dict with 'name' and 'param' keys, got {arg}"
+            )
 
     @classmethod
     def _from_kwarg(cls, key: str, value: str) -> QueryFilter:
@@ -114,7 +120,12 @@ class Query(Generic[T], ABC):
         _generic_execute_filter: Executes a filter on a list of objects
     """
 
-    def __init__(self, client: ClientCore, filters: Optional[List[QueryFilter]] = None, meta_params: Optional[Param] = None):
+    def __init__(
+        self,
+        client: ClientCore,
+        filters: Optional[List[QueryFilter]] = None,
+        meta_params: Optional[Param] = None,
+    ):
         self.meta_params: dict = meta_params or {}
         self.client = client
         self.filters = filters or []
@@ -126,11 +137,17 @@ class Query(Generic[T], ABC):
 
     def __add__(self, filter: QueryFilter) -> Query[T]:
         self._changed_since_last = True
-        return self.__class__(self.client, filters=[*self.filters, filter], meta_params=self.meta_params)
+        return self.__class__(
+            self.client, filters=[*self.filters, filter], meta_params=self.meta_params
+        )
 
     def __sub__(self, filter: QueryFilter) -> Query[T]:
         self._changed_since_last = True
-        return self.__class__(self.client, filters=[f for f in self.filters if f != filter], meta_params=self.meta_params)
+        return self.__class__(
+            self.client,
+            filters=[f for f in self.filters if f != filter],
+            meta_params=self.meta_params,
+        )
 
     def __iadd__(self, filter: QueryFilter) -> Query[T]:
         self.filters.append(filter)
@@ -206,4 +223,6 @@ class Query(Generic[T], ABC):
         return self.results[0]
 
     def _generic_execute_filter(self, objects: List[T], filter: QueryFilter) -> List[T]:
-        return [m for m in objects if filter.filter_attr(getattr(m._element, filter.name))]
+        return [
+            m for m in objects if filter.filter_attr(getattr(m._element, filter.name))
+        ]

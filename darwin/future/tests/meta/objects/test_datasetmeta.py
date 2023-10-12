@@ -29,7 +29,9 @@ def test_create_dataset_raises_HTTPError(base_config: DarwinConfig) -> None:
         Dataset.create_dataset(valid_client, valid_slug)
 
 
-def test_create_dataset_returns_dataset_created_if_dataset_created(base_config: DarwinConfig) -> None:
+def test_create_dataset_returns_dataset_created_if_dataset_created(
+    base_config: DarwinConfig,
+) -> None:
     valid_client = Client(base_config)
     valid_slug = "test_dataset"
 
@@ -57,9 +59,16 @@ def test_create_dataset_returns_dataset_created_if_dataset_created(base_config: 
 
 @mark.parametrize(
     "invalid_slug",
-    ["", " ", "test dataset", *[f"dataset_{c}" for c in string.punctuation if c not in ["-", "_", "."]]],
+    [
+        "",
+        " ",
+        "test dataset",
+        *[f"dataset_{c}" for c in string.punctuation if c not in ["-", "_", "."]],
+    ],
 )
-def test_validate_slugh_raises_exception_if_passed_invalid_inputs(invalid_slug: str) -> None:
+def test_validate_slugh_raises_exception_if_passed_invalid_inputs(
+    invalid_slug: str,
+) -> None:
     with raises(AssertionError):
         Dataset._validate_slug(invalid_slug)
 
@@ -76,7 +85,11 @@ def test_delete(base_meta_dataset: Dataset, base_config: DarwinConfig) -> None:
         rsps.add(
             rsps.PUT,
             base_url + f"/{base_meta_dataset.id}/archive",
-            json={"id": base_meta_dataset.id, "name": "Test Dataset", "slug": "test_dataset"},
+            json={
+                "id": base_meta_dataset.id,
+                "name": "Test Dataset",
+                "slug": "test_dataset",
+            },
             status=200,
         )
         dataset_deleted = base_meta_dataset.delete()

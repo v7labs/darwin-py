@@ -26,7 +26,12 @@ def _delete_by_id_mock() -> Generator:
         yield mock
 
 
-def test_team_meta_collects_members(base_meta_team: Team, base_client: ClientCore, base_team_member: TeamMemberCore, base_team_member_json: dict) -> None:
+def test_team_meta_collects_members(
+    base_meta_team: Team,
+    base_client: ClientCore,
+    base_team_member: TeamMemberCore,
+    base_team_member_json: dict,
+) -> None:
     with RequestsMock() as rsps:
         endpoint = base_client.config.api_endpoint + "memberships"
         rsps.add(rsps.GET, endpoint, json=[base_team_member_json])
@@ -36,7 +41,9 @@ def test_team_meta_collects_members(base_meta_team: Team, base_client: ClientCor
 
 
 # `delete_dataset` tests
-def test_delete_dataset_returns_exceptions_thrown(base_config: DarwinConfig, _delete_by_id_mock: Mock, _delete_by_slug_mock: Mock) -> None:
+def test_delete_dataset_returns_exceptions_thrown(
+    base_config: DarwinConfig, _delete_by_id_mock: Mock, _delete_by_slug_mock: Mock
+) -> None:
     _delete_by_slug_mock.side_effect = Exception("test exception")
 
     valid_client = Client(base_config)
@@ -51,7 +58,9 @@ def test_delete_dataset_returns_exceptions_thrown(base_config: DarwinConfig, _de
     assert _delete_by_id_mock.call_count == 0
 
 
-def test_delete_dataset_calls_delete_by_slug_as_appropriate(base_config: DarwinConfig, _delete_by_id_mock: Mock, _delete_by_slug_mock: Mock) -> None:
+def test_delete_dataset_calls_delete_by_slug_as_appropriate(
+    base_config: DarwinConfig, _delete_by_id_mock: Mock, _delete_by_slug_mock: Mock
+) -> None:
     valid_client = Client(base_config)
 
     exceptions, _ = Team.delete_dataset(valid_client, "test_dataset")
@@ -61,7 +70,9 @@ def test_delete_dataset_calls_delete_by_slug_as_appropriate(base_config: DarwinC
     assert _delete_by_id_mock.call_count == 0
 
 
-def test_delete_dataset_calls_delete_by_id_as_appropriate(base_config: DarwinConfig, _delete_by_id_mock: Mock, _delete_by_slug_mock: Mock) -> None:
+def test_delete_dataset_calls_delete_by_id_as_appropriate(
+    base_config: DarwinConfig, _delete_by_id_mock: Mock, _delete_by_slug_mock: Mock
+) -> None:
     valid_client = Client(base_config)
 
     exceptions, _ = Team.delete_dataset(valid_client, 1)
@@ -71,7 +82,9 @@ def test_delete_dataset_calls_delete_by_id_as_appropriate(base_config: DarwinCon
     assert _delete_by_id_mock.call_count == 1
 
 
-def test_delete_by_slug__returns_dataset_deleted_if_dataset_found(base_config: DarwinConfig) -> None:
+def test_delete_by_slug__returns_dataset_deleted_if_dataset_found(
+    base_config: DarwinConfig,
+) -> None:
     valid_client = Client(base_config)
     valid_slug = "test_dataset"
 
@@ -95,7 +108,9 @@ def test_delete_by_slug__returns_dataset_deleted_if_dataset_found(base_config: D
         assert dataset_deleted == 1
 
 
-def test_delete_by_id_returns_dataset_deleted_if_dataset_found(base_config: DarwinConfig) -> None:
+def test_delete_by_id_returns_dataset_deleted_if_dataset_found(
+    base_config: DarwinConfig,
+) -> None:
     valid_client = Client(base_config)
     valid_id = 1
 
@@ -114,7 +129,9 @@ def test_delete_by_id_returns_dataset_deleted_if_dataset_found(base_config: Darw
 
 
 # Test `_delete_by_id`
-def test_delete_by_id_raises_exception_if_not_passed_int_and_client(base_config: DarwinConfig) -> None:
+def test_delete_by_id_raises_exception_if_not_passed_int_and_client(
+    base_config: DarwinConfig,
+) -> None:
     valid_client = Client(base_config)
     valid_id = 1
     invalid_client = "client"
@@ -128,7 +145,9 @@ def test_delete_by_id_raises_exception_if_not_passed_int_and_client(base_config:
 
 
 # Test `_delete_by_slug`
-def test_delete_by_slug_raises_exception_if_not_passed_str_and_client(base_config: DarwinConfig) -> None:
+def test_delete_by_slug_raises_exception_if_not_passed_str_and_client(
+    base_config: DarwinConfig,
+) -> None:
     valid_client = Client(base_config)
     valid_slug = "test_dataset"
     invalid_client = "client"

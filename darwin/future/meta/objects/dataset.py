@@ -47,8 +47,12 @@ class Dataset(MetaBase[DatasetCore]):
             List[UUID]: A list of item ids
         """
         assert self._element.id is not None
-        assert self.meta_params["team_slug"] is not None and isinstance(self.meta_params["team_slug"], str)
-        return get_item_ids(self.client, self.meta_params["team_slug"], str(self._element.id))
+        assert self.meta_params["team_slug"] is not None and isinstance(
+            self.meta_params["team_slug"], str
+        )
+        return get_item_ids(
+            self.client, self.meta_params["team_slug"], str(self._element.id)
+        )
 
     @classmethod
     def create_dataset(cls, client: ClientCore, slug: str) -> DatasetCore:
@@ -106,7 +110,10 @@ class Dataset(MetaBase[DatasetCore]):
         assert_is(len(slug_copy) > 0, "slug must not be empty")
 
         VALID_SLUG_CHARS = "abcdefghijklmnopqrstuvwxyz0123456789-_"
-        assert_is(all(c in VALID_SLUG_CHARS for c in slug_copy), "slug must only contain valid characters")
+        assert_is(
+            all(c in VALID_SLUG_CHARS for c in slug_copy),
+            "slug must only contain valid characters",
+        )
 
     def upload_files(
         self,

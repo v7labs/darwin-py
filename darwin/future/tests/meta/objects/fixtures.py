@@ -25,12 +25,16 @@ def base_meta_team(base_client: ClientCore, base_team: TeamCore) -> Team:
 
 
 @fixture
-def base_meta_workflow(base_client: ClientCore, base_workflow: WorkflowCore) -> Workflow:
+def base_meta_workflow(
+    base_client: ClientCore, base_workflow: WorkflowCore
+) -> Workflow:
     return Workflow(base_client, base_workflow)
 
 
 @fixture
-def base_meta_stage(base_client: ClientCore, base_stage: WFStageCore, base_UUID: UUID) -> Stage:
+def base_meta_stage(
+    base_client: ClientCore, base_stage: WFStageCore, base_UUID: UUID
+) -> Stage:
     return Stage(base_client, base_stage)
 
 

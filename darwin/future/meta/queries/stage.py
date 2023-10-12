@@ -16,7 +16,9 @@ class StageQuery(Query[Stage]):
         meta_params = self.meta_params
         workflow, exceptions = get_workflow(self.client, str(workflow_id))
         assert workflow is not None
-        stages = [Stage(self.client, s, meta_params=meta_params) for s in workflow.stages]
+        stages = [
+            Stage(self.client, s, meta_params=meta_params) for s in workflow.stages
+        ]
         if not self.filters:
             self.filters = []
         for filter in self.filters:
@@ -35,5 +37,9 @@ class StageQuery(Query[Stage]):
         List[Stage]: Filtered subset of stages
         """
         if filter.name == "role":
-            return [s for s in stages if s._element is not None and filter.filter_attr(s._element.type.value)]
+            return [
+                s
+                for s in stages
+                if s._element is not None and filter.filter_attr(s._element.type.value)
+            ]
         return super()._generic_execute_filter(stages, filter)
