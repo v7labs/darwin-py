@@ -119,7 +119,5 @@ class Dataset(MetaBase[DatasetCore]):
         preserve_folders: bool = False,
         verbose: bool = False,
     ) -> Dataset:
-        upload_data(
-            self._element.name, files, files_to_exclude, fps, path, frames, extract_views, preserve_folders, verbose  # type: ignore
-        )
+        upload_data(self._element.name, files, files_to_exclude, fps, path, frames, extract_views, preserve_folders, verbose)  # type: ignore
         return self

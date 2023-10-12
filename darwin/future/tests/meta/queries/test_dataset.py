@@ -16,9 +16,7 @@ def test_dataset_collects_basic(base_client: ClientCore, base_datasets_json: dic
         assert all(isinstance(dataset, Dataset) for dataset in datasets)
 
 
-def test_datasetquery_only_passes_back_correctly_formed_objects(
-    base_client: ClientCore, base_dataset_json: dict
-) -> None:
+def test_datasetquery_only_passes_back_correctly_formed_objects(base_client: ClientCore, base_dataset_json: dict) -> None:
     query = DatasetQuery(base_client)
     with responses.RequestsMock() as rsps:
         endpoint = base_client.config.api_endpoint + "datasets"

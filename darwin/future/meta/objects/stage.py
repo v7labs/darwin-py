@@ -23,9 +23,7 @@ class Stage(MetaBase[WFStageCore]):
             _type_: _description_
         """
         assert self._element.id is not None
-        return get_item_ids_stage(
-            self.client, str(self.meta_params["team_slug"]), str(self.meta_params["dataset_id"]), self.id
-        )
+        return get_item_ids_stage(self.client, str(self.meta_params["team_slug"]), str(self.meta_params["dataset_id"]), self.id)
 
     def move_attached_files_to_stage(self, new_stage_id: UUID) -> Stage:
         assert self.meta_params["team_slug"] is not None and type(self.meta_params["team_slug"]) == str

@@ -1,4 +1,3 @@
-
 from darwin.future.data_objects.team import TeamMemberCore
 from darwin.future.data_objects.team_member_role import TeamMemberRole
 from darwin.future.meta.objects.base import MetaBase

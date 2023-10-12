@@ -126,9 +126,7 @@ def test_workflowquery_filters_dataset_id(base_client: ClientCore, base_filterab
 
 
 @responses.activate
-def test_workflowquery_filters_dataset_id_multiple_ids(
-    base_client: ClientCore, base_filterable_workflows: dict
-) -> None:
+def test_workflowquery_filters_dataset_id_multiple_ids(base_client: ClientCore, base_filterable_workflows: dict) -> None:
     endpoint = base_client.config.api_endpoint + workflows_query_endpoint(base_client.config.default_team)
     responses.add(responses.GET, endpoint, json=base_filterable_workflows)
 
@@ -163,9 +161,7 @@ def test_workflowquery_filters_dataset_name(base_client: ClientCore, base_filter
 
 
 @responses.activate
-def test_workflowquery_filters_dataset_name_mutliple_names(
-    base_client: ClientCore, base_filterable_workflows: dict
-) -> None:
+def test_workflowquery_filters_dataset_name_mutliple_names(base_client: ClientCore, base_filterable_workflows: dict) -> None:
     endpoint = base_client.config.api_endpoint + workflows_query_endpoint(base_client.config.default_team)
     responses.add(responses.GET, endpoint, json=base_filterable_workflows)
 

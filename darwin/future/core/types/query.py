@@ -114,9 +114,7 @@ class Query(Generic[T], ABC):
         _generic_execute_filter: Executes a filter on a list of objects
     """
 
-    def __init__(
-        self, client: ClientCore, filters: Optional[List[QueryFilter]] = None, meta_params: Optional[Param] = None
-    ):
+    def __init__(self, client: ClientCore, filters: Optional[List[QueryFilter]] = None, meta_params: Optional[Param] = None):
         self.meta_params: dict = meta_params or {}
         self.client = client
         self.filters = filters or []
@@ -132,9 +130,7 @@ class Query(Generic[T], ABC):
 
     def __sub__(self, filter: QueryFilter) -> Query[T]:
         self._changed_since_last = True
-        return self.__class__(
-            self.client, filters=[f for f in self.filters if f != filter], meta_params=self.meta_params
-        )
+        return self.__class__(self.client, filters=[f for f in self.filters if f != filter], meta_params=self.meta_params)
 
     def __iadd__(self, filter: QueryFilter) -> Query[T]:
         self.filters.append(filter)

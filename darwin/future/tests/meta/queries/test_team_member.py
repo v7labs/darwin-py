@@ -31,9 +31,7 @@ def test_team_member_only_passes_back_correct(base_client: ClientCore, base_team
 
 
 @pytest.mark.parametrize("role", list(TeamMemberRole))
-def test_team_member_filters_role(
-    role: TeamMemberRole, base_client: ClientCore, base_team_members_json: List[dict]
-) -> None:
+def test_team_member_filters_role(role: TeamMemberRole, base_client: ClientCore, base_team_members_json: List[dict]) -> None:
     with responses.RequestsMock() as rsps:
         # Test equal
         query = TeamMemberQuery(base_client).where({"name": "role", "param": role.value})

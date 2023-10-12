@@ -1,4 +1,3 @@
-
 import responses
 from pytest import raises
 from requests import HTTPError

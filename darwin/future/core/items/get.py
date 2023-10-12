@@ -33,9 +33,7 @@ def get_item_ids(api_client: ClientCore, team_slug: str, dataset_id: Union[str, 
     return uuids
 
 
-def get_item_ids_stage(
-    api_client: ClientCore, team_slug: str, dataset_id: Union[int, str], stage_id: Union[UUID, str]
-) -> List[UUID]:
+def get_item_ids_stage(api_client: ClientCore, team_slug: str, dataset_id: Union[int, str], stage_id: Union[UUID, str]) -> List[UUID]:
     """
     Returns a list of item ids for the stage
 

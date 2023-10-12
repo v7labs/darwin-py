@@ -26,9 +26,7 @@ def _delete_by_id_mock() -> Generator:
         yield mock
 
 
-def test_team_meta_collects_members(
-    base_meta_team: Team, base_client: ClientCore, base_team_member: TeamMemberCore, base_team_member_json: dict
-) -> None:
+def test_team_meta_collects_members(base_meta_team: Team, base_client: ClientCore, base_team_member: TeamMemberCore, base_team_member_json: dict) -> None:
     with RequestsMock() as rsps:
         endpoint = base_client.config.api_endpoint + "memberships"
         rsps.add(rsps.GET, endpoint, json=[base_team_member_json])
@@ -38,9 +36,7 @@ def test_team_meta_collects_members(
 
 
 # `delete_dataset` tests
-def test_delete_dataset_returns_exceptions_thrown(
-    base_config: DarwinConfig, _delete_by_id_mock: Mock, _delete_by_slug_mock: Mock
-) -> None:
+def test_delete_dataset_returns_exceptions_thrown(base_config: DarwinConfig, _delete_by_id_mock: Mock, _delete_by_slug_mock: Mock) -> None:
     _delete_by_slug_mock.side_effect = Exception("test exception")
 
     valid_client = Client(base_config)
@@ -55,9 +51,7 @@ def test_delete_dataset_returns_exceptions_thrown(
     assert _delete_by_id_mock.call_count == 0
 
 
-def test_delete_dataset_calls_delete_by_slug_as_appropriate(
-    base_config: DarwinConfig, _delete_by_id_mock: Mock, _delete_by_slug_mock: Mock
-) -> None:
+def test_delete_dataset_calls_delete_by_slug_as_appropriate(base_config: DarwinConfig, _delete_by_id_mock: Mock, _delete_by_slug_mock: Mock) -> None:
     valid_client = Client(base_config)
 
     exceptions, _ = Team.delete_dataset(valid_client, "test_dataset")
@@ -67,9 +61,7 @@ def test_delete_dataset_calls_delete_by_slug_as_appropriate(
     assert _delete_by_id_mock.call_count == 0
 
 
-def test_delete_dataset_calls_delete_by_id_as_appropriate(
-    base_config: DarwinConfig, _delete_by_id_mock: Mock, _delete_by_slug_mock: Mock
-) -> None:
+def test_delete_dataset_calls_delete_by_id_as_appropriate(base_config: DarwinConfig, _delete_by_id_mock: Mock, _delete_by_slug_mock: Mock) -> None:
     valid_client = Client(base_config)
 
     exceptions, _ = Team.delete_dataset(valid_client, 1)

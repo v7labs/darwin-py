@@ -36,6 +36,7 @@ if [ "$ACTION" == "format" ]; then
     elif [ "$ACTION" == "typecheck" ]; then
     pipinstall mypy
     pipinstall types-requests
+    pipinstall types-pyYAML
 else
     echo "Action must be format, typecheck, or lint"
     exit 1
