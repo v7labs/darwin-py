@@ -1,10 +1,10 @@
 from typing import Optional
 
-from darwin.future.core.client import Client
-from darwin.future.exceptions.core.datasets import DatasetNotFound
+from darwin.future.core.client import ClientCore
+from darwin.future.exceptions import DatasetNotFound
 
 
-def remove_dataset(api_client: Client, id: int, team_slug: Optional[str] = None) -> int:
+def remove_dataset(api_client: ClientCore, id: int, team_slug: Optional[str] = None) -> int:
     """
     Creates a new dataset for the given team
 
@@ -26,6 +26,7 @@ def remove_dataset(api_client: Client, id: int, team_slug: Optional[str] = None)
         f"/datasets/{id}/archive",
         {"team_slug": team_slug},
     )
+    assert isinstance(response, dict)
 
     if "id" not in response:
         raise DatasetNotFound(f"Dataset with id {id} not found")

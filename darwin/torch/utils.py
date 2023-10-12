@@ -1,10 +1,11 @@
 import os
 import sys
 from pathlib import Path
-from typing import Iterable, List, Optional, Tuple
+from typing import Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
+from numpy.typing import ArrayLike
 from upolygon import draw_polygon
 
 from darwin.cli_functions import _error, _load_client
@@ -72,7 +73,7 @@ def convert_segmentation_to_mask(segmentations: List[Segment], height: int, widt
     return torch.stack(masks)
 
 
-def polygon_area(x: np.ndarray, y: np.ndarray) -> float:
+def polygon_area(x: ArrayLike, y: ArrayLike) -> float:
     """
     Returns the area of the input polygon, represented by two numpy arrays for x and y coordinates.
 
@@ -192,3 +193,36 @@ def detectron2_register_dataset(
     if evaluator_type:
         MetadataCatalog.get(catalog_name).set(evaluator_type=evaluator_type)
     return catalog_name
+
+
+def clamp_bbox_to_image_size(annotations, img_width, img_height, format="xywh"):
+    """
+    Clamps bounding boxes in annotations to the given image dimensions.
+
+    :param annotations: Dictionary containing bounding box coordinates in 'boxes' key.
+    :param img_width: Width of the image.
+    :param img_height: Height of the image.
+    :param format: Format of the bounding boxes, either "xywh" or "xyxy".
+    :return: Annotations with clamped bounding boxes.
+
+    The function modifies the input annotations dictionary to clamp the bounding box coordinates
+    based on the specified format, ensuring they lie within the image dimensions.
+    """
+    boxes = annotations["boxes"]
+
+    if format == "xyxy":
+        boxes[:, 0::2].clamp_(min=0, max=img_width - 1)
+        boxes[:, 1::2].clamp_(min=0, max=img_height - 1)
+
+    elif format == "xywh":
+        # First, clamp the x and y coordinates
+        boxes[:, 0].clamp_(min=0, max=img_width - 1)
+        boxes[:, 1].clamp_(min=0, max=img_height - 1)
+        # Then, clamp the width and height
+        boxes[:, 2].clamp_(min=torch.tensor(0), max=img_width - boxes[:, 0] - 1)  # -1 since we images are zero-indexed
+        boxes[:, 3].clamp_(min=torch.tensor(0), max=img_height - boxes[:, 1] - 1)  # -1 since we images are zero-indexed
+    else:
+        raise ValueError(f"Unsupported bounding box format: {format}")
+
+    annotations["boxes"] = boxes
+    return annotations

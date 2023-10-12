@@ -20,7 +20,7 @@ Main functions are (but not limited to):
 - Upload/download data to/from remote datasets
 - Direct integration with PyTorch dataloaders
 
-Support tested for python 3.8.
+Support tested for python 3.8 - 3.10
 
 ##  🏁 Installation
 
@@ -34,6 +34,12 @@ If you wish to use the PyTorch bindings, then you can use the `ml` flag to insta
 
 ```
 pip install darwin-py[ml]
+```
+
+If you wish to use video frame extraction, then you can use the `ocv` flag to install all the additional requirements
+
+```
+pip install darwin-py[ocv]
 ```
 
 To run test, first install the `test` extra package
@@ -154,7 +160,7 @@ And to finally download a release.
 
 ```
 $ darwin dataset pull test:0.1
-Dataset example-team/test:0.1 downloaded at /directory/choosen/at/authentication/time.
+Dataset example-team/test:0.1 downloaded at /directory/choosen/at/authentication/time .
 ```
 
 ---
@@ -164,7 +170,9 @@ Dataset example-team/test:0.1 downloaded at /directory/choosen/at/authentication
 The framework is designed to be usable as a standalone python library.
 Usage can be inferred from looking at the operations performed in `darwin/cli_functions.py`.
 A minimal example to download a dataset is provided below and a more extensive one can be found in
+
 [./darwin_demo.py](https://github.com/v7labs/darwin-py/blob/master/darwin_demo.py).
+
 
 ```python
 from darwin.client import Client

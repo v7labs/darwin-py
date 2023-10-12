@@ -1,9 +1,19 @@
+import json
+from pathlib import Path
+from typing import List
+
 import pytest
+
+from darwin.future.data_objects.workflow import WFStageCore, WorkflowCore
+
+test_data_path: Path = Path(__file__).parent / "workflow" / "data"
+valid_stage_json = test_data_path / "stage.json"
+valid_workflow_json = test_data_path / "workflow.json"
 
 
 @pytest.fixture
 def basic_team() -> dict:
-    return {"slug": "test-team", "id": 0}
+    return {"slug": "test-team", "id": 0, "name": "test-team"}
 
 
 @pytest.fixture

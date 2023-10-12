@@ -1,5 +1,6 @@
 import shutil
 from pathlib import Path
+from typing import Generator
 from zipfile import ZipFile
 
 import pytest
@@ -93,7 +94,9 @@ def file_read_write_test(darwin_path: Path, annotations_path: Path, split_path: 
 
 
 @pytest.fixture
-def local_config_file(team_slug: str, team_slug_darwin_json_v2: str, darwin_datasets_path: Path):
+def local_config_file(
+    team_slug: str, team_slug_darwin_json_v2: str, darwin_datasets_path: Path
+) -> Generator[Config, None, None]:
     darwin_path = Path.home() / ".darwin"
     backup_darwin_path = Path.home() / ".darwin_backup"
     config_path = darwin_path / "config.yaml"

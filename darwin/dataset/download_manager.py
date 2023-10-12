@@ -6,18 +6,21 @@ import functools
 import time
 import urllib
 from pathlib import Path
-from typing import Any, Callable, Iterable, List, Optional, Tuple
+from tempfile import TemporaryDirectory
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
 import deprecation
 import numpy as np
 import orjson as json
 import requests
 from PIL import Image
+from requests.adapters import HTTPAdapter, Retry
 from rich.console import Console
 
 import darwin.datatypes as dt
 from darwin.dataset.utils import sanitize_filename
 from darwin.datatypes import AnnotationFile
+from darwin.exceptions import MissingDependency
 from darwin.utils import (
     attempt_decode,
     get_response_content,
@@ -233,13 +236,12 @@ def lazy_download_image_from_annotation(
         If the format of the annotation is not supported.
     """
 
-    console = Console()
-
     if annotation_format == "json":
         return _download_image_from_json_annotation(
             api_key, annotation_path, images_path, use_folders, video_frames, force_slots, ignore_slots
         )
     else:
+        console = Console()
         console.print("[bold red]Unsupported file format. Please use 'json'.")
         raise NotImplementedError
 
@@ -278,18 +280,33 @@ def _download_image_from_json_annotation(
     return []
 
 
-def _download_all_slots_from_json_annotation(annotation, api_key, parent_path, video_frames):
+def _download_all_slots_from_json_annotation(
+    annotation: dt.AnnotationFile, api_key: str, parent_path: Path, video_frames: bool
+) -> Iterable[Callable[[], None]]:
     generator = []
     for slot in annotation.slots:
+        if not slot.name:
+            raise ValueError("Slot name is required to download all slots")
         slot_path = parent_path / sanitize_filename(annotation.filename) / sanitize_filename(slot.name)
         slot_path.mkdir(exist_ok=True, parents=True)
 
         if video_frames and slot.type != "image":
             video_path: Path = slot_path / "sections"
             video_path.mkdir(exist_ok=True, parents=True)
-            for i, frame_url in enumerate(slot.frame_urls or []):
-                path = video_path / f"{i:07d}.png"
-                generator.append(functools.partial(_download_image, frame_url, path, api_key, slot))
+            if not slot.frame_urls:
+                segment_manifests = get_segment_manifests(slot, slot_path, api_key)
+                for index, manifest in enumerate(segment_manifests):
+                    if slot.segments is None:
+                        raise ValueError("No segments found")
+                    segment_url = slot.segments[index]["url"]
+                    path = video_path / f".{index:07d}.ts"
+                    generator.append(
+                        functools.partial(_download_and_extract_video_segment, segment_url, api_key, path, manifest)
+                    )
+            else:
+                for i, frame_url in enumerate(slot.frame_urls or []):
+                    path = video_path / f"{i:07d}.png"
+                    generator.append(functools.partial(_download_image, frame_url, path, api_key, slot))
         else:
             for upload in slot.source_files:
                 file_path = slot_path / sanitize_filename(upload["file_name"])
@@ -306,16 +323,29 @@ def _download_single_slot_from_json_annotation(
     annotation_path: Path,
     video_frames: bool,
     use_folders: bool = False,
-):
+) -> Iterable[Callable[[], None]]:
     slot = annotation.slots[0]
     generator = []
 
     if video_frames and slot.type != "image":
         video_path: Path = parent_path / annotation_path.stem
         video_path.mkdir(exist_ok=True, parents=True)
-        for i, frame_url in enumerate(slot.frame_urls or []):
-            path = video_path / f"{i:07d}.png"
-            generator.append(functools.partial(_download_image, frame_url, path, api_key, slot))
+
+        # Indicates it's a long video and uses the segment and manifest
+        if not slot.frame_urls:
+            segment_manifests = get_segment_manifests(slot, video_path, api_key)
+            for index, manifest in enumerate(segment_manifests):
+                if slot.segments is None:
+                    raise ValueError("No segments found")
+                segment_url = slot.segments[index]["url"]
+                path = video_path / f".{index:07d}.ts"
+                generator.append(
+                    functools.partial(_download_and_extract_video_segment, segment_url, api_key, path, manifest)
+                )
+        else:
+            for i, frame_url in enumerate(slot.frame_urls):
+                path = video_path / f"{i:07d}.png"
+                generator.append(functools.partial(_download_image, frame_url, path, api_key, slot))
     else:
         if len(slot.source_files) > 0:
             image = slot.source_files[0]
@@ -525,3 +555,128 @@ def _rg16_to_grayscale(path):
 
     new_image = Image.fromarray(np.uint8(image_2d_gray), mode="L")
     new_image.save(path)
+
+
+def _download_and_extract_video_segment(url: str, api_key: str, path: Path, manifest: dt.SegmentManifest) -> None:
+    _download_video_segment_file(url, api_key, path)
+    _extract_frames_from_segment(path, manifest)
+    path.unlink()
+
+
+def _extract_frames_from_segment(path: Path, manifest: dt.SegmentManifest) -> None:
+    # import cv2 here to avoid dependency on OpenCV when not needed if not installed as optional extra
+    try:
+        from cv2 import VideoCapture  # pylint: disable=import-outside-toplevel
+    except ImportError as e:
+        raise MissingDependency(
+            "Missing Dependency: OpenCV required for Video Extraction. Install with `pip install darwin-py\[ocv]`"
+        ) from e
+    cap = VideoCapture(str(path))
+
+    # Read and save frames. Iterates over every frame because frame seeking in OCV is not reliable or guaranteed.
+    frames_to_extract = dict([(item.frame, item.visible_frame) for item in manifest.items if item.visibility])
+    frame_index = 0
+    while cap.isOpened():
+        success, frame = cap.read()
+        if frame is None:
+            break
+        if not success:
+            raise ValueError(f"Failed to read frame {frame_index} from video segment {path}")
+        if frame_index in frames_to_extract:
+            visible_frame = frames_to_extract.pop(frame_index)
+            frame_path = path.parent / f"{visible_frame:07d}.png"
+            cv2.imwrite(str(frame_path), frame)
+            if not frames_to_extract:
+                break
+        frame_index += 1
+    cap.release()
+
+
+def _download_video_segment_file(url: str, api_key: str, path: Path) -> None:
+    with requests.Session() as session:
+        retries = Retry(total=5, backoff_factor=0.5, status_forcelist=[500, 502, 503, 504])
+        session.mount("https://", HTTPAdapter(max_retries=retries))
+        if "token" in url:
+            response = session.get(url)
+        else:
+            session.headers = {"Authorization": f"ApiKey {api_key}"}
+            response = session.get(url)
+    if not response.ok or (400 <= response.status_code <= 499):
+        raise Exception(
+            f"Request to ({url}) failed. Status code: {response.status_code}, content:\n{get_response_content(response)}."
+        )
+    # create new filename for segment with .
+    with open(str(path), "wb") as file:
+        for chunk in response:
+            file.write(chunk)
+
+
+def download_manifest_txts(urls: List[str], api_key: str, folder: Path) -> List[Path]:
+    paths = []
+    with requests.Session() as session:
+        retries = Retry(total=5, backoff_factor=0.5, status_forcelist=[500, 502, 503, 504])
+        session.mount("https://", HTTPAdapter(max_retries=retries))
+        for index, url in enumerate(urls):
+            if "token" in url:
+                response = session.get(url)
+            else:
+                session.headers = {"Authorization": f"ApiKey {api_key}"}
+                response = session.get(url)
+            if not response.ok or (400 <= response.status_code <= 499):
+                raise Exception(
+                    f"Request to ({url}) failed. Status code: {response.status_code}, content:\n{get_response_content(response)}."
+                )
+            if not response.content:
+                raise Exception(f"Manifest file ({url}) is empty.")
+            path = folder / f"manifest_{index + 1}.txt"
+            with open(str(path), "wb") as file:
+                file.write(response.content)
+            paths.append(path)
+    return paths
+
+
+def get_segment_manifests(slot: dt.Slot, parent_path: Path, api_key: str) -> List[dt.SegmentManifest]:
+    with TemporaryDirectory(dir=parent_path) as tmpdirname:
+        tmpdir = Path(tmpdirname)
+        if slot.frame_manifest is None:
+            raise ValueError("No frame manifest found")
+        frame_urls = [item["url"] for item in slot.frame_manifest]
+        manifest_paths = download_manifest_txts(frame_urls, api_key, tmpdir)
+        segment_manifests = _parse_manifests(manifest_paths, slot.name or "0")
+    return segment_manifests
+
+
+def _parse_manifests(paths: List[Path], slot: str) -> List[dt.SegmentManifest]:
+    all_manifests: Dict[int, List[dt.ManifestItem]] = {}
+    visible_frame_index = 0
+    for path in paths:
+        with open(path) as infile:
+            for line in infile:
+                frame, segment_str, visibility, timestamp = line.strip("\n").split(":")
+                segment_int = int(segment_str)
+                if segment_int not in all_manifests:
+                    all_manifests[segment_int] = []
+                if bool(int(visibility)):
+                    all_manifests[segment_int].append(
+                        dt.ManifestItem(int(frame), None, segment_int, True, float(timestamp), visible_frame_index)
+                    )
+                    visible_frame_index += 1
+                else:
+                    all_manifests[segment_int].append(
+                        dt.ManifestItem(int(frame), None, segment_int, False, float(timestamp), None)
+                    )
+    # Create a list of segments, sorted by segment number and all items sorted by frame number
+    segments = []
+    for segment_int, seg_manifests in all_manifests.items():
+        seg_manifests.sort(key=lambda x: x.frame)
+        segments.append(
+            dt.SegmentManifest(slot=slot, segment=segment_int, total_frames=len(seg_manifests), items=seg_manifests)
+        )
+
+    # Calculate the absolute frame number for each item, as manifests are per segment
+    absolute_frame = 0
+    for segment in segments:
+        for item in segment.items:
+            item.absolute_frame = absolute_frame
+            absolute_frame += 1
+    return segments

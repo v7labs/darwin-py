@@ -45,7 +45,7 @@ def main() -> None:
     except requests.exceptions.ConnectionError:
         f._error("Darwin seems unreachable, please try again in a minute or contact support.")
     except GracefulExit as e:
-        f.error(e.message)
+        f._error(e.message)
     except Exception:  # Catch unhandled exceptions
         console = Console()
         console.print("An unexpected error occurred, please contact support, and send them the file.")

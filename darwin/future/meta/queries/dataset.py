@@ -2,13 +2,12 @@ from __future__ import annotations
 
 from typing import List
 
-from darwin.future.core.datasets.list_datasets import list_datasets
+from darwin.future.core.datasets import list_datasets
 from darwin.future.core.types.query import Param, Query, QueryFilter
-from darwin.future.data_objects.dataset import Dataset
-from darwin.future.meta.objects.dataset import DatasetMeta
+from darwin.future.meta.objects.dataset import Dataset
 
 
-class DatasetQuery(Query[DatasetMeta, Dataset]):
+class DatasetQuery(Query[Dataset]):
     """
     DatasetQuery object with methods to manage filters, retrieve data, and execute
     filters
@@ -16,29 +15,22 @@ class DatasetQuery(Query[DatasetMeta, Dataset]):
     Methods
     -------
 
-    where: Adds a filter to the query
     collect: Executes the query and returns the filtered data
     """
 
-    def where(self, param: Param) -> DatasetQuery:
-        filter = QueryFilter.parse_obj(param)
-        query = self + filter
-
-        return DatasetQuery(self.client, query.filters)
-
-    def collect(self) -> DatasetMeta:
+    def _collect(self) -> List[Dataset]:
         datasets, exceptions = list_datasets(self.client)
         if exceptions:
             # TODO: print and or raise exceptions, tbd how we want to handle this
             pass
-
+        datasets_meta = [Dataset(self.client, dataset) for dataset in datasets]
         if not self.filters:
             self.filters = []
 
         for filter in self.filters:
-            datasets = self._execute_filters(datasets, filter)
-        meta = DatasetMeta(self.client, datasets)
-        return meta
+            datasets_meta = self._execute_filters(datasets_meta, filter)
+
+        return datasets_meta
 
     def _execute_filters(self, datasets: List[Dataset], filter: QueryFilter) -> List[Dataset]:
         """Executes filtering on the local list of datasets, applying special logic for role filtering
@@ -55,6 +47,12 @@ class DatasetQuery(Query[DatasetMeta, Dataset]):
         """
 
         if filter.name == "releases":
-            return [d for d in datasets if d.releases and filter.param in [str(r) for r in d.releases]]
+            return [
+                d
+                for d in datasets
+                if d._element is not None
+                and d._element.releases
+                and filter.param in [str(r) for r in d._element.releases]
+            ]
 
         return super()._generic_execute_filter(datasets, filter)

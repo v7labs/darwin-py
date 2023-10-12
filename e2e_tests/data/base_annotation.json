@@ -1,0 +1,67 @@
+{
+  "version": "2.0",
+  "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
+  "item": {
+    "name": "",
+    "path": "/"
+  },
+  "annotations": [
+    {
+      "bounding_box": {
+        "h": 1.0,
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0
+      },
+      "id": "007882ff-99c4-4c6f-b71b-79cfc147fef6",
+      "name": "test_bb"
+    },
+    {
+      "ellipse": {
+        "angle": 0.0,
+        "center": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "radius": {
+          "x": 1.0,
+          "y": 1.0
+        }
+      },
+      "id": "320a60f2-643b-4d74-a117-0ea2fdfe7a61",
+      "name": "test_ellipse"
+    },
+    {
+      "bounding_box": {
+        "h": 1.0,
+        "w": 1.0,
+        "x": 0.0,
+        "y": 0.0
+      },
+      "id": "012dcc6c-5b77-406b-8cd7-d9567c8b00b7",
+      "name": "test_poly",
+      "polygon": {
+        "paths": [
+          [
+            {
+              "x": 0.0,
+              "y": 0.0
+            },
+            {
+              "x": 1.0,
+              "y": 0.0
+            },
+            {
+              "x": 1.0,
+              "y": 1.0
+            },
+            {
+              "x": 0.0,
+              "y": 1.0
+            }
+          ]
+        ]
+      }
+    }
+  ]
+}

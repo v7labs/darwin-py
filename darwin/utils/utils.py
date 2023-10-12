@@ -289,7 +289,7 @@ def find_files(
 
     for f in files:
         path = Path(f)
-        if path.is_dir() == True:
+        if path.is_dir():
             found_files.extend(
                 [
                     path_object
@@ -415,7 +415,7 @@ def load_data_from_file(path: Path) -> Tuple[dict, dt.AnnotationFileVersion]:
     return data, version
 
 
-def parse_darwin_json(path: Path, count: Optional[int]) -> Optional[dt.AnnotationFile]:
+def parse_darwin_json(path: Path, count: Optional[int] = None) -> Optional[dt.AnnotationFile]:
     """
     Parses the given JSON file in v7's darwin proprietary format. Works for images, split frame
     videos (treated as images) and playback videos.
@@ -519,6 +519,8 @@ def _parse_darwin_slot(data: Dict[str, Any]) -> dt.Slot:
         frame_urls=data.get("frame_urls"),
         fps=data.get("fps"),
         metadata=data.get("metadata"),
+        segments=data.get("segments", []),
+        frame_manifest=data.get("frame_manifests"),
     )
 
 
@@ -660,6 +662,13 @@ def _parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotati
         main_annotation = dt.make_graph(
             name, annotation["graph"]["nodes"], annotation["graph"]["edges"], slot_names=slot_names
         )
+    elif "mask" in annotation:
+        main_annotation = dt.make_mask(name, slot_names=slot_names)
+    elif "raster_layer" in annotation:
+        raster_layer = annotation["raster_layer"]
+        main_annotation = dt.make_raster_layer(
+            name, raster_layer["mask_annotation_ids_mapping"], raster_layer["total_pixels"], raster_layer["dense_rle"], slot_names=slot_names
+        )
 
     if not main_annotation:
         print(f"[WARNING] Unsupported annotation type: '{annotation.keys()}'")
@@ -733,8 +742,8 @@ def _parse_darwin_raster_annotation(annotation: dict) -> Optional[dt.Annotation]
     raster_layer: Optional[dt.JSONFreeForm] = annotation.get("raster_layer")
     slot_names: Optional[List[str]] = parse_slot_names(annotation)
 
-    if not id or not name or not raster_layer or not slot_names:
-        raise ValueError("Raster annotation must have an 'id', 'name', 'slot_names' and 'raster_layer' field")
+    if not id or not name or not raster_layer:
+        raise ValueError("Raster annotation must have an 'id', 'name' and 'raster_layer' field")
 
     dense_rle, mask_annotation_ids_mapping, total_pixels = (
         raster_layer.get("dense_rle", None),
@@ -754,7 +763,7 @@ def _parse_darwin_raster_annotation(annotation: dict) -> Optional[dt.Annotation]
             "mask_annotation_ids_mapping": mask_annotation_ids_mapping,
             "total_pixels": total_pixels,
         },
-        slot_names=slot_names,
+        slot_names=slot_names or [],
         id=id,
     )
 
@@ -762,24 +771,21 @@ def _parse_darwin_raster_annotation(annotation: dict) -> Optional[dt.Annotation]
 
 
 def _parse_darwin_mask_annotation(annotation: dict) -> Optional[dt.Annotation]:
-    if not annotation.get("mask"):
-        raise ValueError("Mask annotation must have a 'mask' field")
-
     id: Optional[str] = annotation.get("id")
     name: Optional[str] = annotation.get("name")
     mask: Optional[dt.JSONFreeForm] = annotation.get("mask")
     slot_names: Optional[List[str]] = parse_slot_names(annotation)
 
-    if not id or not name or not mask or not slot_names:
-        raise ValueError("Mask annotation must have an 'id', 'name', 'slot_names' and 'mask' field")
+    if not id or not name or mask is None:
+        raise ValueError("Mask annotation must have an 'id', 'name' and 'mask' field")
 
-    if (not "sparse_rle" in mask) or (not mask["sparse_rle"]) == None:
-        raise ValueError("Mask annotation must have a 'sparse_rle' field containing a null value")
+    if ("sparse_rle" in mask) and (mask["sparse_rle"] is not None):
+        raise ValueError("Mask annotation field 'sparse_rle' must contain a null value")
 
     new_annotation = dt.Annotation(
         dt.AnnotationClass(name, "mask"),
         mask,
-        slot_names=slot_names,
+        slot_names=slot_names or [],
         id=id,
     )
 
@@ -917,8 +923,8 @@ def convert_polygons_to_sequences(
         path: List[Union[int, float]] = []
         for point in polygon:
             # Clip coordinates to the image size
-            x = max(min(point["x"], width - 1) if width else point["x"], 0)
-            y = max(min(point["y"], height - 1) if height else point["y"], 0)
+            x = max(min(point["x"], width -1) if width else point["x"], 0)
+            y = max(min(point["y"], height -1) if height else point["y"], 0)
             if rounding:
                 path.append(round(x))
                 path.append(round(y))
@@ -1092,7 +1098,7 @@ def chunk(items: List[Any], size: int) -> Iterator[Any]:
         A chunk of the of the given size.
     """
     for i in range(0, len(items), size):
-        yield items[i : i + size]
+        yield items[i:i + size]
 
 
 def is_unix_like_os() -> bool:

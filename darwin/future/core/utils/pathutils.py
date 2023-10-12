@@ -4,7 +4,7 @@ from typing import Any, Optional
 
 import yaml
 
-from darwin.future.exceptions.files import UnrecognizableFileEncoding
+from darwin.future.exceptions import UnrecognizableFileEncoding
 
 ENCODINGS = ["utf-8", "utf-16", "utf-32", "ascii"]
 

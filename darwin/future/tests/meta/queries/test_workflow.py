@@ -3,9 +3,10 @@ from datetime import datetime, timezone
 
 import responses
 
-from darwin.future.core.client import Client
+from darwin.future.core.client import ClientCore
 from darwin.future.core.types.query import Modifier
-from darwin.future.data_objects.workflow import Workflow
+from darwin.future.data_objects.workflow import WorkflowCore
+from darwin.future.meta.objects.workflow import Workflow
 from darwin.future.meta.queries.workflow import WorkflowQuery
 from darwin.future.tests.core.fixtures import *
 
@@ -19,19 +20,19 @@ def workflows_query_endpoint(team: str) -> str:
 
 
 @responses.activate
-def test_workflowquery_collects_basic(base_client: Client, base_filterable_workflows: dict) -> None:
+def test_workflowquery_collects_basic(base_client: ClientCore, base_filterable_workflows: dict) -> None:
     endpoint = base_client.config.api_endpoint + workflows_query_endpoint(base_client.config.default_team)
     responses.add(responses.GET, endpoint, json=base_filterable_workflows)
 
     query = WorkflowQuery(base_client, [])
-    workflows = query.collect()
+    workflows = query._collect()
 
     assert len(workflows) == 3
     assert all([isinstance(workflow, Workflow) for workflow in workflows])
 
 
 @responses.activate
-def test_workflowquery_filters_uuid(base_client: Client, base_filterable_workflows: dict) -> None:
+def test_workflowquery_filters_uuid(base_client: ClientCore, base_filterable_workflows: dict) -> None:
     endpoint = base_client.config.api_endpoint + workflows_query_endpoint(base_client.config.default_team)
     responses.add(responses.GET, endpoint, json=base_filterable_workflows)
 
@@ -41,14 +42,14 @@ def test_workflowquery_filters_uuid(base_client: Client, base_filterable_workflo
             "param": "6dca86a3-48fb-40cc-8594-88310f5f1fdf",
         }
     )
-    workflows = query.collect()
+    workflows = query._collect()
 
     assert len(workflows) == 1
     assert str(workflows[0].id) == WORKFLOW_1
 
 
 @responses.activate
-def test_workflowquery_filters_inserted_at(base_client: Client, base_filterable_workflows: dict) -> None:
+def test_workflowquery_filters_inserted_at(base_client: ClientCore, base_filterable_workflows: dict) -> None:
     endpoint = base_client.config.api_endpoint + workflows_query_endpoint(base_client.config.default_team)
     responses.add(responses.GET, endpoint, json=base_filterable_workflows)
 
@@ -70,7 +71,7 @@ def test_workflowquery_filters_inserted_at(base_client: Client, base_filterable_
             }
         )
     )
-    workflows = query.collect()
+    workflows = query._collect()
 
     assert len(workflows) == 2
     ids = [str(workflow.id) for workflow in workflows]
@@ -79,7 +80,7 @@ def test_workflowquery_filters_inserted_at(base_client: Client, base_filterable_
 
 
 @responses.activate
-def test_workflowquery_filters_updated_at(base_client: Client, base_filterable_workflows: dict) -> None:
+def test_workflowquery_filters_updated_at(base_client: ClientCore, base_filterable_workflows: dict) -> None:
     endpoint = base_client.config.api_endpoint + workflows_query_endpoint(base_client.config.default_team)
     responses.add(responses.GET, endpoint, json=base_filterable_workflows)
 
@@ -101,7 +102,7 @@ def test_workflowquery_filters_updated_at(base_client: Client, base_filterable_w
             }
         )
     )
-    workflows = query.collect()
+    workflows = query._collect()
 
     assert len(workflows) == 2
     ids = [str(workflow.id) for workflow in workflows]
@@ -110,7 +111,7 @@ def test_workflowquery_filters_updated_at(base_client: Client, base_filterable_w
 
 
 @responses.activate
-def test_workflowquery_filters_dataset_id(base_client: Client, base_filterable_workflows: dict) -> None:
+def test_workflowquery_filters_dataset_id(base_client: ClientCore, base_filterable_workflows: dict) -> None:
     endpoint = base_client.config.api_endpoint + workflows_query_endpoint(base_client.config.default_team)
     responses.add(responses.GET, endpoint, json=base_filterable_workflows)
 
@@ -120,14 +121,16 @@ def test_workflowquery_filters_dataset_id(base_client: Client, base_filterable_w
             "param": "1",
         }
     )
-    workflows = query.collect()
+    workflows = query._collect()
 
     assert len(workflows) == 1
     assert str(workflows[0].id) == WORKFLOW_1
 
 
 @responses.activate
-def test_workflowquery_filters_dataset_id_multiple_ids(base_client: Client, base_filterable_workflows: dict) -> None:
+def test_workflowquery_filters_dataset_id_multiple_ids(
+    base_client: ClientCore, base_filterable_workflows: dict
+) -> None:
     endpoint = base_client.config.api_endpoint + workflows_query_endpoint(base_client.config.default_team)
     responses.add(responses.GET, endpoint, json=base_filterable_workflows)
 
@@ -137,7 +140,7 @@ def test_workflowquery_filters_dataset_id_multiple_ids(base_client: Client, base
             "param": "1,2",
         }
     )
-    workflows = query.collect()
+    workflows = query._collect()
 
     assert len(workflows) == 2
     assert str(workflows[0].id) == WORKFLOW_1
@@ -145,7 +148,7 @@ def test_workflowquery_filters_dataset_id_multiple_ids(base_client: Client, base
 
 
 @responses.activate
-def test_workflowquery_filters_dataset_name(base_client: Client, base_filterable_workflows: dict) -> None:
+def test_workflowquery_filters_dataset_name(base_client: ClientCore, base_filterable_workflows: dict) -> None:
     endpoint = base_client.config.api_endpoint + workflows_query_endpoint(base_client.config.default_team)
     responses.add(responses.GET, endpoint, json=base_filterable_workflows)
 
@@ -155,7 +158,7 @@ def test_workflowquery_filters_dataset_name(base_client: Client, base_filterable
             "param": "test-dataset-1",
         }
     )
-    workflows = query.collect()
+    workflows = query._collect()
 
     assert len(workflows) == 1
     assert str(workflows[0].id) == WORKFLOW_1
@@ -163,7 +166,7 @@ def test_workflowquery_filters_dataset_name(base_client: Client, base_filterable
 
 @responses.activate
 def test_workflowquery_filters_dataset_name_mutliple_names(
-    base_client: Client, base_filterable_workflows: dict
+    base_client: ClientCore, base_filterable_workflows: dict
 ) -> None:
     endpoint = base_client.config.api_endpoint + workflows_query_endpoint(base_client.config.default_team)
     responses.add(responses.GET, endpoint, json=base_filterable_workflows)
@@ -174,7 +177,7 @@ def test_workflowquery_filters_dataset_name_mutliple_names(
             "param": "test-dataset-1,test-dataset-2",
         }
     )
-    workflows = query.collect()
+    workflows = query._collect()
 
     assert len(workflows) == 2
     assert str(workflows[0].id) == WORKFLOW_1
@@ -182,7 +185,7 @@ def test_workflowquery_filters_dataset_name_mutliple_names(
 
 
 @responses.activate
-def test_workflowquery_filters_stages(base_client: Client, base_filterable_workflows: dict) -> None:
+def test_workflowquery_filters_stages(base_client: ClientCore, base_filterable_workflows: dict) -> None:
     endpoint = base_client.config.api_endpoint + workflows_query_endpoint(base_client.config.default_team)
     responses.add(responses.GET, endpoint, json=base_filterable_workflows)
 
@@ -192,14 +195,14 @@ def test_workflowquery_filters_stages(base_client: Client, base_filterable_workf
             "param": "5445adcb-193d-4f76-adb0-0c6d5f5e4c04",
         }
     )
-    workflows = query.collect()
+    workflows = query._collect()
 
     assert len(workflows) == 1
     assert str(workflows[0].name) == "test-workflow-3"
 
 
 @responses.activate
-def test_workflowquery_filters_stages_multiple(base_client: Client, base_filterable_workflows: dict) -> None:
+def test_workflowquery_filters_stages_multiple(base_client: ClientCore, base_filterable_workflows: dict) -> None:
     endpoint = base_client.config.api_endpoint + workflows_query_endpoint(base_client.config.default_team)
     responses.add(responses.GET, endpoint, json=base_filterable_workflows)
 
@@ -209,7 +212,7 @@ def test_workflowquery_filters_stages_multiple(base_client: Client, base_filtera
             "param": "5445adcb-193d-4f76-adb0-0c6d5f5e4c04,53d2c997-6bb0-4766-803c-3c8d1fb21072",
         }
     )
-    workflows = query.collect()
+    workflows = query._collect()
 
     assert len(workflows) == 2
     workflow_names = [workflow.name for workflow in workflows]

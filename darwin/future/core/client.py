@@ -9,10 +9,8 @@ import yaml
 from pydantic import BaseModel, root_validator, validator
 from requests.adapters import HTTPAdapter, Retry
 
-from darwin.future.core.types.common import QueryString
-from darwin.future.exceptions.client import NotFound, Unauthorized
-
-JSONType = Union[Dict[str, Any], List[Dict[str, Any]]]  # type: ignore
+from darwin.future.core.types.common import JSONType, QueryString
+from darwin.future.exceptions import NotFound, Unauthorized
 
 
 class TeamsConfig(BaseModel):
@@ -125,7 +123,7 @@ class Result(BaseModel):
     ...
 
 
-class Client:
+class ClientCore:
     """Client Object to manage and make requests to the Darwin API
     Attributes
     ----------
@@ -155,7 +153,7 @@ class Client:
 
     @property
     def headers(self) -> Dict[str, str]:
-        http_headers: Dict[str, str] = {"Content-Type": "application/json"}
+        http_headers: Dict[str, str] = {"Content-Type": "application/json", "Accept": "application/json"}
         if self.config.api_key:
             http_headers["Authorization"] = f"ApiKey {self.config.api_key}"
         return http_headers
@@ -172,7 +170,7 @@ class Client:
         endpoint = self._sanitize_endpoint(endpoint)
         url = self.config.api_endpoint + endpoint
         if payload is not None:
-            response = method(url, payload)
+            response = method(url, json=payload)
         else:
             response = method(url)
 
