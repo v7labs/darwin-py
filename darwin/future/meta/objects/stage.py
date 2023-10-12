@@ -17,10 +17,10 @@ class Stage(MetaBase[WFStageCore]):
 
     @property
     def item_ids(self) -> List[UUID]:
-        """_summary_
+        """Item ids attached to the stage
 
         Returns:
-            _type_: _description_
+            _type_: List[UUID] - List of item ids
         """
         assert self._element.id is not None
         return get_item_ids_stage(
