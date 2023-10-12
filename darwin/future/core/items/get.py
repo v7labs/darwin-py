@@ -28,7 +28,7 @@ def get_item_ids(api_client: ClientCore, team_slug: str, dataset_id: Union[str, 
         f"/v2/teams/{team_slug}/items/ids",
         QueryString({"not_statuses": "archived,error", "sort[id]": "desc", "dataset_ids": str(dataset_id)}),
     )
-    assert type(response) == dict
+    assert isinstance(response, dict)
     uuids = [UUID(uuid) for uuid in response["item_ids"]]
     return uuids
 
