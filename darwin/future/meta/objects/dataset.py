@@ -47,7 +47,7 @@ class Dataset(MetaBase[DatasetCore]):
             List[UUID]: A list of item ids
         """
         assert self._element.id is not None
-        assert self.meta_params["team_slug"] is not None and type(self.meta_params["team_slug"]) == str
+        assert self.meta_params["team_slug"] is not None and isinstance(self.meta_params["team_slug"], str)
         return get_item_ids(self.client, self.meta_params["team_slug"], str(self._element.id))
 
     @classmethod
