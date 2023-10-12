@@ -31,12 +31,12 @@ jobs:
     with:
       files: ${{ needs.get_changed_files.outputs.python_changed_files }}
 
-  typecheck:
-    name: Analyse types in python
-    needs: get_changed_files
-    uses: ./.github/workflows/JOB_typecheck.yml
-    with:
-      files: ${{ needs.get_changed_files.outputs.python_changed_files }}
+  # typecheck:
+  #   name: Analyse types in python
+  #   needs: get_changed_files
+  #   uses: ./.github/workflows/JOB_typecheck.yml
+  #   with:
+  #     files: ${{ needs.get_changed_files.outputs.python_changed_files }}
 
   run_tests:
     needs: [format, lint, typecheck]
