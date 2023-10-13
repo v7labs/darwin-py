@@ -134,14 +134,14 @@ def make_class_lists(release_path: Path) -> None:
                 f.write("\n".join(classes_names))
 
 
-def get_classes_from_file(path):
+def get_classes_from_file(path: Path) -> List[str]:
     """Helper function to read class names from a file."""
     if path.exists():
         return path.read_text().splitlines()
     return []
 
 
-def available_annotation_types(release_path):
+def available_annotation_types(release_path: Path) -> List[str]:
     """Returns a list of available annotation types based on the existing files."""
     files = [p.name for p in release_path.glob("lists/classes_*.txt")]
     return [f[len("classes_") : -len(".txt")] for f in files]
