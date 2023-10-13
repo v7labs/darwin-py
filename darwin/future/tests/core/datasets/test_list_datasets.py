@@ -3,17 +3,15 @@ from typing import List
 import responses
 from requests.exceptions import HTTPError
 
-from darwin.future.core.client import Client
-from darwin.future.core.datasets.list_datasets import list_datasets
-from darwin.future.core.types import TeamSlug
-from darwin.future.core.types.common import QueryString
-from darwin.future.data_objects.dataset import Dataset
+from darwin.future.core.client import ClientCore
+from darwin.future.core.datasets import list_datasets
+from darwin.future.data_objects.dataset import DatasetCore
 from darwin.future.tests.core.fixtures import *
 
 from .fixtures import *
 
 
-def test_it_lists_datasets(base_client: Client, basic_list_of_datasets: List[Dataset]) -> None:
+def test_it_lists_datasets(base_client: ClientCore, basic_list_of_datasets: List[DatasetCore]) -> None:
     with responses.RequestsMock() as rsps:
         rsps.add(
             rsps.GET,
@@ -31,7 +29,7 @@ def test_it_lists_datasets(base_client: Client, basic_list_of_datasets: List[Dat
         assert datasets[0].slug == "1337"
 
 
-def test_it_returns_an_error_if_the_client_returns_an_http_error(base_client: Client) -> None:
+def test_it_returns_an_error_if_the_client_returns_an_http_error(base_client: ClientCore) -> None:
     with responses.RequestsMock() as rsps:
         rsps.add(
             rsps.GET,

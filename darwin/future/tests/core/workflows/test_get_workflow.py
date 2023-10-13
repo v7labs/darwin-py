@@ -3,14 +3,15 @@ import responses
 from pydantic import ValidationError
 from requests import HTTPError
 
-from darwin.future.core.client import Client, JSONType
-from darwin.future.core.workflows.get_workflow import get_workflow
-from darwin.future.data_objects.workflow import Workflow
+from darwin.future.core.client import ClientCore
+from darwin.future.core.types.common import JSONType
+from darwin.future.core.workflows import get_workflow
+from darwin.future.data_objects.workflow import WorkflowCore
 from darwin.future.tests.core.fixtures import *
 
 
 @responses.activate
-def test_get_workflow(base_client: Client, base_single_workflow_object: JSONType) -> None:
+def test_get_workflow(base_client: ClientCore, base_single_workflow_object: JSONType) -> None:
     # Mocking the response using responses library
     response_data = base_single_workflow_object
     workflow_id = "1"
@@ -25,12 +26,12 @@ def test_get_workflow(base_client: Client, base_single_workflow_object: JSONType
     workflow, exceptions = get_workflow(base_client, workflow_id)
 
     # Assertions
-    assert isinstance(workflow, Workflow)
+    assert isinstance(workflow, WorkflowCore)
     assert not exceptions
 
 
 @responses.activate
-def test_get_workflow_with_team_slug(base_client: Client, base_single_workflow_object: JSONType) -> None:
+def test_get_workflow_with_team_slug(base_client: ClientCore, base_single_workflow_object: JSONType) -> None:
     # Mocking the response using responses library
     team_slug = "team-slug"
     workflow_id = "1"
@@ -47,12 +48,12 @@ def test_get_workflow_with_team_slug(base_client: Client, base_single_workflow_o
     workflow, exceptions = get_workflow(base_client, workflow_id, team_slug)
 
     # Assertions
-    assert isinstance(workflow, Workflow)
+    assert isinstance(workflow, WorkflowCore)
     assert not exceptions
 
 
 @responses.activate
-def test_get_workflows_with_invalid_response(base_client: Client) -> None:
+def test_get_workflows_with_invalid_response(base_client: ClientCore) -> None:
     # Mocking the response using responses library
     # fmt: off
     NON_EXISTENT_ID = "1"
@@ -74,7 +75,7 @@ def test_get_workflows_with_invalid_response(base_client: Client) -> None:
 
 
 @responses.activate
-def test_get_workflows_with_error(base_client: Client) -> None:
+def test_get_workflows_with_error(base_client: ClientCore) -> None:
     # Mocking the response using responses library
     # fmt: off
     NON_EXISTENT_ID = "1"

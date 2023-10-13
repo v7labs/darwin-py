@@ -8,8 +8,8 @@ from torchvision.transforms.functional import to_tensor
 
 from darwin.cli_functions import _error, _load_client
 from darwin.client import Client
-from darwin.dataset import LocalDataset
 from darwin.dataset.identifier import DatasetIdentifier
+from darwin.dataset.local_dataset import LocalDataset
 from darwin.torch.transforms import (
     Compose,
     ConvertPolygonsToInstanceMasks,
@@ -99,7 +99,7 @@ class ClassificationDataset(LocalDataset):
         be composed via torchvision.
     """
 
-    def __init__(self, transform: Optional[Union[Callable, List]] = None, **kwargs):
+    def __init__(self, transform: Optional[Union[Callable, List]] = None, **kwargs) -> None:
         super().__init__(annotation_type="tag", **kwargs)
 
         if transform is not None and isinstance(transform, list):
