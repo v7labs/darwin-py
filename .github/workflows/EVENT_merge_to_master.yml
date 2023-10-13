@@ -1,0 +1,54 @@
+name: merge_to_master
+run-name: Merge to master
+
+on:
+  push:
+    branches:
+      - master
+  workflow_call:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  run_tests:
+    name: Run tests
+    uses: ./.github/workflows/JOB_tests.yml
+
+  documentation:
+    name: Documentation
+    uses: ./.github/workflows/JOB_generate_documentation.yml
+    secrets: inherit
+
+  warn_on_fail:
+    needs: [run_tests, documentation]
+    if : ${{ failure() }}
+    name: Slack message us on fail
+    uses: ./.github/workflows/JOB_slack_message.yml
+    secrets: inherit
+    with:
+      at_team: true
+      icon: ':warning:'
+      message: 'Master is failing after a push event, please review at ${{ github.event.repository.html_url }}/actions/runs/${{ github.run_id }}'
+
+  success:
+    needs: [run_tests, documentation]
+    if : ${{ success() }}
+    name: Success
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set branch status to success
+        uses: actions/github-script@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            github.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              state: 'success'
+            })
+
+

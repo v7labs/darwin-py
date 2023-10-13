@@ -911,7 +911,7 @@ class Client:
         Response
             ``request``'s Response object.
         """
-        response: Response = cast(Response, self._get_raw_from_full_url(url, stream=True))
+        response: Response = self._get_raw_from_full_url(url, stream=True)
         return response
 
     @classmethod
@@ -1299,5 +1299,4 @@ class Client:
         team = self.config.get_default_team()
         if not team:
             raise ValueError("No team was found.")
-
         return BackendV2(self, team.slug)

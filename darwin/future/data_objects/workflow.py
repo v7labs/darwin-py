@@ -9,7 +9,7 @@ from darwin.future.data_objects.typing import UnknownType
 from darwin.future.pydantic_base import DefaultDarwin
 
 
-class WFDataset(DefaultDarwin):
+class WFDatasetCore(DefaultDarwin):
     """
     A class to manage all the information around a dataset on the darwin platform,
     including validation
@@ -38,7 +38,7 @@ class WFDataset(DefaultDarwin):
         return self.name
 
 
-class WFEdge(DefaultDarwin):
+class WFEdgeCore(DefaultDarwin):
     """
     A workflow edge
 
@@ -64,7 +64,7 @@ class WFEdge(DefaultDarwin):
         return values
 
 
-class WFType(Enum):
+class WFTypeCore(Enum):
     """
     The type of workflow stage (Enum)
 
@@ -90,16 +90,16 @@ class WFType(Enum):
     UNKNOWN = "unknown"
 
     @classmethod
-    def _missing_(cls, value: str) -> "WFType":
-        return WFType.UNKNOWN
+    def _missing_(cls, value: object) -> "WFTypeCore":
+        return WFTypeCore.UNKNOWN
 
 
-class WFUser(DefaultDarwin):
+class WFUserCore(DefaultDarwin):
     stage_id: UUID
     user_id: int
 
 
-class WFStageConfig(DefaultDarwin):
+class WFStageConfigCore(DefaultDarwin):
     # ! NB: We may be able to remove many of these attributes
     url: Optional[str]
     x: Optional[int]
@@ -133,7 +133,7 @@ class WFStageConfig(DefaultDarwin):
     threshold: UnknownType
 
 
-class WFStage(DefaultDarwin):
+class WFStageCore(DefaultDarwin):
     """
     A workflow stage
 
@@ -151,13 +151,13 @@ class WFStage(DefaultDarwin):
     id: UUID
     name: str
 
-    type: WFType
+    type: WFTypeCore
 
-    assignable_users: List[WFUser]
-    edges: List[WFEdge]
+    assignable_users: List[WFUserCore]
+    edges: List[WFEdgeCore]
 
 
-class Workflow(DefaultDarwin):
+class WorkflowCore(DefaultDarwin):
     """
     A class to manage all the information around a workflow on the darwin platform,
     including validation
@@ -184,11 +184,11 @@ class Workflow(DefaultDarwin):
     inserted_at: datetime
     updated_at: datetime
 
-    dataset: Optional[WFDataset]
-    stages: List[WFStage]
+    dataset: Optional[WFDatasetCore]
+    stages: List[WFStageCore]
 
     thumbnails: List[str]
 
 
 class WorkflowListValidator(DefaultDarwin):
-    list: List[Workflow]
+    list: List[WorkflowCore]

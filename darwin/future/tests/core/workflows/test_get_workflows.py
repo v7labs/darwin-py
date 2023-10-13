@@ -5,14 +5,15 @@ import responses
 from pydantic import ValidationError
 from requests import HTTPError
 
-from darwin.future.core.client import Client, JSONType
-from darwin.future.core.workflows.get_workflows import get_workflows
-from darwin.future.data_objects.workflow import Workflow
+from darwin.future.core.client import ClientCore
+from darwin.future.core.types.common import JSONType
+from darwin.future.core.workflows import get_workflows
+from darwin.future.data_objects.workflow import WorkflowCore
 from darwin.future.tests.core.fixtures import *
 
 
 @responses.activate
-def test_get_workflows(base_client: Client, base_workflows_object: str) -> None:
+def test_get_workflows(base_client: ClientCore, base_workflows_object: str) -> None:
     # Mocking the response using responses library
     response_data = base_workflows_object
     responses.add(
@@ -28,11 +29,11 @@ def test_get_workflows(base_client: Client, base_workflows_object: str) -> None:
     # Assertions
     assert isinstance(workflows, List)
     assert len(workflows) == 3
-    assert all(isinstance(workflow, Workflow) for workflow in workflows)
+    assert all(isinstance(workflow, WorkflowCore) for workflow in workflows)
 
 
 @responses.activate
-def test_get_workflows_with_team_slug(base_client: Client, base_workflows_object: JSONType) -> None:
+def test_get_workflows_with_team_slug(base_client: ClientCore, base_workflows_object: JSONType) -> None:
     # Mocking the response using responses library
     team_slug = "team-slug"
     response_data = base_workflows_object
@@ -49,11 +50,11 @@ def test_get_workflows_with_team_slug(base_client: Client, base_workflows_object
     # Assertions
     assert isinstance(workflows, List)
     assert len(workflows) == len(response_data)
-    assert all(isinstance(workflow, Workflow) for workflow in workflows)
+    assert all(isinstance(workflow, WorkflowCore) for workflow in workflows)
 
 
 @responses.activate
-def test_get_workflows_with_invalid_response(base_client: Client) -> None:
+def test_get_workflows_with_invalid_response(base_client: ClientCore) -> None:
     # Mocking the response using responses library
     responses.add(
         responses.GET,
@@ -68,7 +69,7 @@ def test_get_workflows_with_invalid_response(base_client: Client) -> None:
 
 
 @responses.activate
-def test_get_workflows_with_error(base_client: Client) -> None:
+def test_get_workflows_with_error(base_client: ClientCore) -> None:
     # Mocking the response using responses library
     responses.add(
         responses.GET,

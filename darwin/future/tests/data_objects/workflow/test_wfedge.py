@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from darwin.future.data_objects.workflow import WFEdge
+from darwin.future.data_objects.workflow import WFEdgeCore
 
 test_data_path: Path = Path(__file__).parent / "data"
 validate_json = test_data_path / "edge.json"
@@ -15,6 +15,6 @@ def test_file_exists() -> None:
 
 
 def test_WFEdge_validates_from_valid_json() -> None:
-    parsed_edge = WFEdge.parse_file(validate_json)
+    parsed_edge = WFEdgeCore.parse_file(validate_json)
 
-    assert isinstance(parsed_edge, WFEdge)
+    assert isinstance(parsed_edge, WFEdgeCore)

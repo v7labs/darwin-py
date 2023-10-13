@@ -3,14 +3,14 @@ import unittest
 import pytest
 from pydantic import BaseModel, ValidationError
 
-from darwin.future.data_objects.dataset import Dataset
-from darwin.future.data_objects.release import Release
-from darwin.future.data_objects.team import Team
+from darwin.future.data_objects.dataset import DatasetCore
+from darwin.future.data_objects.release import ReleaseCore
+from darwin.future.data_objects.team import TeamCore
 from darwin.future.tests.data_objects.fixtures import *
 
 
 def test_integrated_parsing_works_with_raw(basic_combined: dict) -> None:
-    team = Team.parse_obj(basic_combined)
+    team = TeamCore.parse_obj(basic_combined)
     assert team.slug == "test-team"
     assert team.datasets is not None
     assert team.datasets[0].name == "test-dataset"
@@ -20,10 +20,10 @@ def test_integrated_parsing_works_with_raw(basic_combined: dict) -> None:
 
 def test_broken_obj_raises(broken_combined: dict) -> None:
     with pytest.raises(ValidationError) as e_info:
-        broken = Team.parse_obj(broken_combined)
+        broken = TeamCore.parse_obj(broken_combined)
 
 
-@pytest.mark.parametrize("test_object", [Team, Dataset, Release])
+@pytest.mark.parametrize("test_object", [TeamCore, DatasetCore, ReleaseCore])
 def test_empty_obj_raises(test_object: BaseModel) -> None:
     with pytest.raises(ValidationError) as e_info:
         broken = test_object.parse_obj({})

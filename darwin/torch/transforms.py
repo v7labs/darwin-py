@@ -1,12 +1,14 @@
 import random
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, Literal, Optional, Tuple, Union
 
 import numpy as np
 import torch
 import torchvision.transforms as transforms
 import torchvision.transforms.functional as F
 from PIL import Image as PILImage
+
+from darwin.torch.utils import convert_segmentation_to_mask, flatten_masks_by_category
 
 # Optional dependency
 try:
@@ -25,10 +27,9 @@ else:
     AType = Type[None]
     Compose = Type[None]
 
+TargetKey = Literal["boxes", "labels", "mask", "masks", "image_id", "area", "iscrowd"]
 
-from darwin.torch.utils import convert_segmentation_to_mask, flatten_masks_by_category
 
-TargetKey = Union["boxes", "labels", "mask", "masks", "image_id", "area", "iscrowd"]
 TargetType = Dict[TargetKey, torch.Tensor]
 
 
