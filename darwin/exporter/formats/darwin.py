@@ -55,8 +55,7 @@ def build_image_annotation(annotation_file: dt.AnnotationFile) -> Dict[str, Any]
         }
 
         if (
-            annotation.annotation_class.annotation_type == "complex_polygon"
-            or annotation.annotation_class.annotation_type == "polygon"
+            annotation.annotation_class.annotation_type == "complex_polygon" or annotation.annotation_class.annotation_type == "polygon"
         ) and "bounding_box" in annotation.data:
             payload["bounding_box"] = annotation.data["bounding_box"]
 
