@@ -66,9 +66,7 @@ class TestAlbumentationsTransform:
         transformations = EXAMPLE_TRANSFORM
         at = AlbumentationsTransform(transformations)
         with pytest.raises(ValueError):
-            _, annotation = at(
-                SAMPLE_IMAGE, SAMPLE_ANNOTATION_OOB
-            )  # Expecting the ValueError due to out of bounds
+            _, annotation = at(SAMPLE_IMAGE, SAMPLE_ANNOTATION_OOB)  # Expecting the ValueError due to out of bounds
 
     def test_transform_with_masks(self):
         transformations = EXAMPLE_TRANSFORM
@@ -89,9 +87,7 @@ class TestAlbumentationsTransform:
         _, annotation = at(SAMPLE_IMAGE, SAMPLE_ANNOTATION)
         area = annotation["boxes"][0, 2] * annotation["boxes"][0, 3]
 
-        assert torch.isclose(
-            annotation["area"], area.unsqueeze(0), atol=1e-5
-        )  # Using isclose for floating point comparison
+        assert torch.isclose(annotation["area"], area.unsqueeze(0), atol=1e-5)  # Using isclose for floating point comparison
 
     def test_iscrowd_unchanged(self):
         transformations = EXAMPLE_TRANSFORM
