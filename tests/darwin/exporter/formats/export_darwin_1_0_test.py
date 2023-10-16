@@ -221,3 +221,64 @@ class TestBuildJson:
             ],
             "dataset": "None",
         }
+
+    def test_bounding_box(self):
+        bounding_box_data = {"x": 100, "y": 150, "w": 50, "h": 30}
+        annotation_class = dt.AnnotationClass(name="bbox_test", annotation_type="bounding_box")
+        annotation = dt.Annotation(annotation_class=annotation_class, data=bounding_box_data, subs=[])
+
+        annotation_file = dt.AnnotationFile(
+            path=Path("test.json"),
+            filename="test.json",
+            annotation_classes=[annotation_class],
+            annotations=[annotation],
+            image_height=1080,
+            image_width=1920,
+            image_url="https://darwin.v7labs.com/image.jpg",
+        )
+
+        assert _build_json(annotation_file) == {
+            "image": {
+                "seq": None,
+                "width": 1920,
+                "height": 1080,
+                "filename": "test.json",
+                "original_filename": "test.json",
+                "url": "https://darwin.v7labs.com/image.jpg",
+                "thumbnail_url": None,
+                "path": None,
+                "workview_url": None,
+            },
+            "annotations": [{"bounding_box": bounding_box_data, "name": "bbox_test", "slot_names": []}],
+            "dataset": "None",
+        }
+
+    def test_tags(self):
+        tag_data = "sample_tag"
+        annotation_class = dt.AnnotationClass(name="tag_test", annotation_type="tag")
+        annotation = dt.Annotation(annotation_class=annotation_class, data=tag_data, subs=[])
+
+        annotation_file = dt.AnnotationFile(
+            path=Path("test.json"),
+            filename="test.json",
+            annotation_classes=[annotation_class],
+            annotations=[annotation],
+            image_height=1080,
+            image_width=1920,
+            image_url="https://darwin.v7labs.com/image.jpg",
+        )
+        assert _build_json(annotation_file) == {
+            "image": {
+                "seq": None,
+                "width": 1920,
+                "height": 1080,
+                "filename": "test.json",
+                "original_filename": "test.json",
+                "url": "https://darwin.v7labs.com/image.jpg",
+                "thumbnail_url": None,
+                "path": None,
+                "workview_url": None,
+            },
+            "annotations": [{"tag": {}, "name": "tag_test", "slot_names": []}],
+            "dataset": "None",
+        }
