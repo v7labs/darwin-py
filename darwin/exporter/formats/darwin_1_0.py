@@ -166,10 +166,7 @@ def _build_image_annotation(annotation: Annotation, skip_slots: bool = False) ->
 
 def _build_legacy_annotation_data(annotation_class: AnnotationClass, data: DictFreeForm) -> DictFreeForm:
     v1_data = {}
-    polygon_annotation_mappings = {
-        "complex_polygon": "paths",
-        "polygon": "path"
-    }
+    polygon_annotation_mappings = {"complex_polygon": "paths", "polygon": "path"}
 
     if annotation_class.annotation_type in polygon_annotation_mappings:
         key = polygon_annotation_mappings[annotation_class.annotation_type]
@@ -193,5 +190,3 @@ def _build_metadata(annotation_file: AnnotationFile) -> DictFreeForm:
         return {"metadata": annotation_file.slots[0].metadata}
     else:
         return {}
-
-
