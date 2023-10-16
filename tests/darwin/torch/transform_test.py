@@ -21,10 +21,19 @@ SAMPLE_ANNOTATION_OOB = {
     "iscrowd": torch.tensor([0]),
 }
 
-SAMPLE_ANNOTATION_WITH_MASKS = {**SAMPLE_ANNOTATION, "masks": torch.ones((1, 100, 100))}
+SAMPLE_ANNOTATION_WITH_MASKS = {
+    **SAMPLE_ANNOTATION,
+    "masks": torch.ones((1, 100, 100)),
+}
 
-EXAMPLE_TRANSFORM = Compose([HorizontalFlip(p=1)], bbox_params=BboxParams(format="coco", label_fields=["labels"]))
-EXAMPLE_TRANSFORM_RESIZE = Compose([Resize(50, 50)], bbox_params=BboxParams(format="coco", label_fields=["labels"]))
+EXAMPLE_TRANSFORM = Compose(
+    [HorizontalFlip(p=1)],
+    bbox_params=BboxParams(format="coco", label_fields=["labels"]),
+)
+EXAMPLE_TRANSFORM_RESIZE = Compose(
+    [Resize(50, 50)],
+    bbox_params=BboxParams(format="coco", label_fields=["labels"]),
+)
 
 
 class TestAlbumentationsTransform:
@@ -57,7 +66,9 @@ class TestAlbumentationsTransform:
         transformations = EXAMPLE_TRANSFORM
         at = AlbumentationsTransform(transformations)
         with pytest.raises(ValueError):
-            _, annotation = at(SAMPLE_IMAGE, SAMPLE_ANNOTATION_OOB)  # Expecting the ValueError due to out of bounds
+            _, annotation = at(
+                SAMPLE_IMAGE, SAMPLE_ANNOTATION_OOB
+            )  # Expecting the ValueError due to out of bounds
 
     def test_transform_with_masks(self):
         transformations = EXAMPLE_TRANSFORM
