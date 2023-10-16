@@ -38,7 +38,9 @@ def _export_file(annotation_file: AnnotationFile, _: int, output_dir: Path) -> N
         filename = annotation_file.path.parts[-1]
         output_file_path = (output_dir / filename).with_suffix(".json")
     except Exception as e:
-        raise ExportException_CouldNotAssembleOutputPath(f"Could not export file {annotation_file.path} to {output_dir}") from e
+        raise ExportException_CouldNotAssembleOutputPath(
+            f"Could not export file {annotation_file.path} to {output_dir}"
+        ) from e
 
     try:
         output: DictFreeForm = _build_json(annotation_file)
@@ -47,7 +49,9 @@ def _export_file(annotation_file: AnnotationFile, _: int, output_dir: Path) -> N
 
     try:
         with open(output_file_path, "w") as f:
-            op = json.dumps(output, option=json.OPT_INDENT_2 | json.OPT_SERIALIZE_NUMPY | json.OPT_NON_STR_KEYS).decode("utf-8")
+            op = json.dumps(output, option=json.OPT_INDENT_2 | json.OPT_SERIALIZE_NUMPY | json.OPT_NON_STR_KEYS).decode(
+                "utf-8"
+            )
             f.write(op)
     except Exception as e:
         raise ExportException_CouldNotWriteFile(f"Could not write output for {annotation_file.path}") from e

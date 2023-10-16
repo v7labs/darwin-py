@@ -14,7 +14,7 @@
     "editor.tabSize": 2
   },
   "python.formatting.blackPath": "black",
-  "python.formatting.provider": "black"
+  "python.formatting.provider": "black",
   "python.formatting.blackArgs": [
     "-l 120"
   ],
