@@ -47,6 +47,7 @@ def build_image_annotation(annotation_file: dt.AnnotationFile) -> Dict[str, Any]
             }
     """
     annotations: List[Dict[str, Any]] = []
+    print(annotations)
     for annotation in annotation_file.annotations:
         payload = {
             annotation.annotation_class.annotation_type: _build_annotation_data(annotation),

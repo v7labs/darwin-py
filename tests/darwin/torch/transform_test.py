@@ -8,7 +8,12 @@ from darwin.torch.transforms import AlbumentationsTransform
 
 # Sample data
 SAMPLE_IMAGE = Image.new("RGB", (100, 100))
-SAMPLE_ANNOTATION = {"boxes": torch.tensor([[25, 25, 75, 75]]), "labels": torch.tensor([1]), "area": torch.tensor([2500.0]), "iscrowd": torch.tensor([0])}
+SAMPLE_ANNOTATION = {
+    "boxes": torch.tensor([[25, 25, 75, 75]]),
+    "labels": torch.tensor([1]),
+    "area": torch.tensor([2500.0]),
+    "iscrowd": torch.tensor([0]),
+}
 
 SAMPLE_ANNOTATION_OOB = {
     "boxes": torch.tensor([[25, 25, 105, 105]]),  # Out of bounds
@@ -74,7 +79,9 @@ class TestAlbumentationsTransform:
         _, annotation = at(SAMPLE_IMAGE, SAMPLE_ANNOTATION)
         area = annotation["boxes"][0, 2] * annotation["boxes"][0, 3]
 
-        assert torch.isclose(annotation["area"], area.unsqueeze(0), atol=1e-5)  # Using isclose for floating point comparison
+        assert torch.isclose(
+            annotation["area"], area.unsqueeze(0), atol=1e-5
+        )  # Using isclose for floating point comparison
 
     def test_iscrowd_unchanged(self):
         transformations = EXAMPLE_TRANSFORM
