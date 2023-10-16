@@ -13,7 +13,7 @@ ItemFrameRate = Union[NumberLike, Literal["native"]]
 def validate_no_slashes(v: UnknownType) -> str:
     assert isinstance(v, str), "Must be a string"
     assert len(v) > 0, "cannot be empty"
-    assert r"^[^/].*$".find(v) != -1, "cannot start with a slash"
+    assert r"^[^/].*$".find(v) == -1, "cannot start with a slash"
 
     return v
 
