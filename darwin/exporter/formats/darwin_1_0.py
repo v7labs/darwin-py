@@ -176,7 +176,7 @@ def _build_legacy_annotation_data(annotation_class: AnnotationClass, data: DictF
         v1_data["tag"] = {}
 
     elif annotation_class.annotation_type == "bounding_box":
-        v1_data["bounding_box"] = data
+        v1_data[annotation_class.annotation_type] = data
 
     if "bounding_box" in data and annotation_class.annotation_type != "bounding_box":
         # Poygons and complex polygons usually have attached bounding_box annotations
