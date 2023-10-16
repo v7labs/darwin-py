@@ -1,4 +1,5 @@
 import asyncio
+from pathlib import Path
 from typing import Coroutine, List
 from unittest.mock import MagicMock, patch
 
@@ -8,7 +9,6 @@ import responses
 import darwin.future.core.items.uploads as uploads
 from darwin.future.core.client import ClientCore
 from darwin.future.data_objects.item import Item
-from darwin.future.meta.objects import base
 from darwin.future.tests.core.fixtures import *  # noqa: F401,F403
 
 from .fixtures import *  # noqa: F401,F403

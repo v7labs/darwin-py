@@ -1,12 +1,10 @@
 import asyncio
-from concurrent.futures import Future
 from pathlib import Path
-from typing import Coroutine, Dict, List, Tuple, Union
-from urllib import response
+from typing import Dict, List, Tuple, Union
 
 from darwin.future.core.client import ClientCore
 from darwin.future.core.types.common import JSONType
-from darwin.future.data_objects.item import Item, ItemSlot
+from darwin.future.data_objects.item import Item
 from darwin.future.exceptions import DarwinException
 
 """
@@ -42,16 +40,18 @@ from darwin.future.exceptions import DarwinException
     ]
 """
 
-def _build_slots(slots: List[ItemSlot]) -> List[Dict]:
+
+async def _build_slots(item: Item) -> List[Dict]:
     # TODO: implememnt me
     return NotImplemented
 
 
-def _build_layout(layout: Dict) -> Dict:
+async def _build_layout(item: Item) -> Dict:
     # TODO: implement me
     return NotImplemented
 
-def _build_payload_items(items_and_paths: List[Tuple[Item, Path]]) -> List[Dict]:
+
+async def _build_payload_items(items_and_paths: List[Tuple[Item, Path]]) -> List[Dict]:
     """
     Builds the payload for the items to be registered for upload
 
@@ -79,10 +79,10 @@ def _build_payload_items(items_and_paths: List[Tuple[Item, Path]]) -> List[Dict]
         # TODO: Handle layout
 
         if getattr(item, "slots", None):
-            base_item["slots"] = _build_slots(item)
+            base_item["slots"] = await _build_slots(item)
 
         if getattr(item, "layout", None):
-        base_item["layout"] = _build_layout(item) #! FIXME: Type bug here
+            base_item["layout"] = await _build_layout(item)
 
         return_list.append(base_item)
 
@@ -121,11 +121,9 @@ async def async_register_upload(
 
     if isinstance(items_and_paths, tuple):
         items_and_paths = [items_and_paths]
-        assert all(
-            (isinstance(item, Item) and isinstance(path, Path)) for item, path in items_and_paths
-        ), "items must be a list of Items"
+        assert all((isinstance(item, Item) and isinstance(path, Path)) for item, path in items_and_paths), "items must be a list of Items"
 
-    payload_items = _build_payload_items(items_and_paths)
+    payload_items = await _build_payload_items(items_and_paths)
 
     options = {
         "force_tiling": force_tiling,
@@ -159,7 +157,7 @@ async def async_register_and_create_signed_upload_url(
     force_tiling: bool = False,
     handle_as_slices: bool = False,
     ignore_dicom_layout: bool = False,
-) -> Coroutine[Future, None, JSONType]:
+) -> JSONType:
     # TODO: test me
     register = (
         await async_register_upload(
@@ -177,10 +175,11 @@ async def async_register_and_create_signed_upload_url(
     if "errors" in register or not download_id:
         raise DarwinException(f"Failed to register upload in {__name__}")
 
+    # FIXME: Type bug here
     return async_create_signed_upload_url(api_client, team_slug, download_id)
 
 
-async def async_confirm_upload(api_client: ClientCore, team_slug: str, upload_id: str) -> JSONType
+async def async_confirm_upload(api_client: ClientCore, team_slug: str, upload_id: str) -> JSONType:
     return api_client.post(f"/api/v2/teams/{team_slug}/items/uploads/{upload_id}/confirm", data={})
 
 
@@ -207,24 +206,9 @@ def create_signed_upload_url(
     return asyncio.run(async_create_signed_upload_url(api_client, upload_id, team_slug))
 
 
-def register_and_create_signed_upload_url(
-    api_client: ClientCore,
-    team_slug: str,
-    dataset_slug: str,
-    item: Item,
-    path: Path
-) -> None:
-    #TODO: test me
-    return asyncio.run(
-        # ! FIXME: Type bug here
-        async_register_and_create_signed_upload_url(
-            api_client,
-            team_slug,
-            dataset_slug,
-            item,
-            path
-        )
-    )
+def register_and_create_signed_upload_url(api_client: ClientCore, team_slug: str, dataset_slug: str, item: Item, path: Path) -> JSONType:
+    # TODO: test me
+    return asyncio.run(async_register_and_create_signed_upload_url(api_client, team_slug, dataset_slug, item, path))
 
 
 def confirm_upload(api_client: ClientCore, team_slug: str, upload_id: str) -> JSONType:
