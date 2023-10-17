@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import Any, Dict, Generator, Iterator, List, Optional, Set, Tuple, Union
 
 import numpy as np
-import orjson as json
 from PIL import Image as PILImage
 from rich.live import Live
 from rich.progress import ProgressBar, track
@@ -349,7 +348,7 @@ def get_coco_format_record(
                 for point in path:
                     px.append(point["x"])
                     py.append(point["y"])
-                poly = [(x, y) for x, y in zip(px, py)]
+                poly = list(zip(px, py))
                 segmentation.append(list(itertools.chain.from_iterable(poly)))
                 all_px.extend(px)
                 all_py.extend(py)
