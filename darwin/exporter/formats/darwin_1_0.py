@@ -165,12 +165,24 @@ def _build_image_annotation(annotation: Annotation, skip_slots: bool = False) ->
 
 
 def _build_legacy_annotation_data(annotation_class: AnnotationClass, data: DictFreeForm) -> DictFreeForm:
-    if annotation_class.annotation_type == "complex_polygon":
-        data["path"] = data["paths"]
-        del data["paths"]
-        return {"complex_polygon": data}
-    else:
-        return {annotation_class.annotation_type: data}
+    v1_data = {}
+    polygon_annotation_mappings = {"complex_polygon": "paths", "polygon": "path"}
+
+    if annotation_class.annotation_type in polygon_annotation_mappings:
+        key = polygon_annotation_mappings[annotation_class.annotation_type]
+        v1_data[annotation_class.annotation_type] = {"path": data.get(key)}
+
+    elif annotation_class.annotation_type == "tag":
+        v1_data["tag"] = {}
+
+    elif annotation_class.annotation_type == "bounding_box":
+        v1_data[annotation_class.annotation_type] = data
+
+    if "bounding_box" in data and annotation_class.annotation_type != "bounding_box":
+        # Poygons and complex polygons usually have attached bounding_box annotations
+        v1_data["bounding_box"] = data["bounding_box"]
+
+    return v1_data
 
 
 def _build_metadata(annotation_file: AnnotationFile) -> DictFreeForm:
