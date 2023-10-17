@@ -63,20 +63,6 @@ class LocalDataset:
         split_type: str = "random",
         release_name: Optional[str] = None,
     ):
-        assert dataset_path is not None
-        release_path = get_release_path(dataset_path, release_name)
-        annotations_dir = release_path / "annotations"
-        assert annotations_dir.exists()
-        images_dir = dataset_path / "images"
-        assert images_dir.exists()
-
-        if partition not in ["train", "val", "test", None]:
-            raise ValueError("partition should be either 'train', 'val', or 'test'")
-        if split_type not in ["random", "stratified"]:
-            raise ValueError("split_type should be either 'random', 'stratified'")
-        if annotation_type not in ["tag", "polygon", "bounding_box"]:
-            raise ValueError("annotation_type should be either 'tag', 'bounding_box', or 'polygon'")
-
         self.dataset_path = dataset_path
         self.annotation_type = annotation_type
         self.images_path: List[Path] = []
@@ -85,30 +71,42 @@ class LocalDataset:
         self.original_images_path: Optional[List[Path]] = None
         self.original_annotations_path: Optional[List[Path]] = None
 
-        annotation_types = [self.annotation_type]
+        release_path, annotations_dir, images_dir = self._initial_setup(dataset_path, release_name)
+        self._validate_inputs(partition, split_type, annotation_type)
+        # Get the list of classes
 
+        self.num_classes = len(self.classes)
+        annotation_types = [self.annotation_type]
         # We fetch bounding_boxes annotations from selected polygons as well
         if self.annotation_type == "bounding_boxes":
             annotation_types.append("polygon")
-
-        # Get the list of classes
         self.classes = get_classes(self.dataset_path, release_name, annotation_type=annotation_types, remove_background=True)
-        self.num_classes = len(self.classes)
 
+        self._setup_annotations_and_images(release_path, annotations_dir, images_dir, annotation_type, split, partition, split_type)
+
+        if len(self.images_path) == 0:
+            raise ValueError(f"Could not find any {SUPPORTED_IMAGE_EXTENSIONS} file", f" in {images_dir}")
+
+        assert len(self.images_path) == len(self.annotations_path)
+
+    def _validate_inputs(self, partition, split_type, annotation_type):
+        if partition not in ["train", "val", "test", None]:
+            raise ValueError("partition should be either 'train', 'val', or 'test'")
+        if split_type not in ["random", "stratified"]:
+            raise ValueError("split_type should be either 'random', 'stratified'")
+        if annotation_type not in ["tag", "polygon", "bounding_box"]:
+            raise ValueError("annotation_type should be either 'tag', 'bounding_box', or 'polygon'")
+
+    def _setup_annotations_and_images(self, release_path, annotations_dir, images_dir, annotation_type, split, partition, split_type):
         stems = build_stems(release_path, annotations_dir, annotation_type, split, partition, split_type)
-
-        # Find all the annotations and their corresponding images
         for stem in stems:
             annotation_path = annotations_dir / f"{stem}.json"
-            images = []
-            for ext in SUPPORTED_IMAGE_EXTENSIONS:
-                image_path = images_dir / f"{stem}{ext}"
-                if image_path.exists():
-                    images.append(image_path)
-                    continue
-                image_path = images_dir / f"{stem}{ext.upper()}"
-                if image_path.exists():
-                    images.append(image_path)
+            images = [
+                image_path
+                for ext in SUPPORTED_IMAGE_EXTENSIONS
+                for image_path in [images_dir / f"{stem}{ext}", images_dir / f"{stem}{ext.upper()}"]
+                if image_path.exists()
+            ]
             if len(images) < 1:
                 raise ValueError(f"Annotation ({annotation_path}) does not have a corresponding image")
             if len(images) > 1:
@@ -116,10 +114,14 @@ class LocalDataset:
             self.images_path.append(images[0])
             self.annotations_path.append(annotation_path)
 
-        if len(self.images_path) == 0:
-            raise ValueError(f"Could not find any {SUPPORTED_IMAGE_EXTENSIONS} file", f" in {images_dir}")
-
-        assert len(self.images_path) == len(self.annotations_path)
+    def _initial_setup(self, dataset_path, release_name):
+        assert dataset_path is not None
+        release_path = get_release_path(dataset_path, release_name)
+        annotations_dir = release_path / "annotations"
+        assert annotations_dir.exists()
+        images_dir = dataset_path / "images"
+        assert images_dir.exists()
+        return release_path, annotations_dir, images_dir
 
     def get_img_info(self, index: int) -> Dict[str, Any]:
         """
