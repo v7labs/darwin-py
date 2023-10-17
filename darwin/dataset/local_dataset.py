@@ -86,8 +86,14 @@ class LocalDataset:
         self.original_images_path: Optional[List[Path]] = None
         self.original_annotations_path: Optional[List[Path]] = None
 
+        annotation_types = [self.annotation_type]
+
+        # We fetch bounding_boxes annotations from selected polygons as well
+        if self.annotation_type == "bounding_boxes":
+            annotation_types.append("polygon")
+
         # Get the list of classes
-        self.classes = get_classes(self.dataset_path, release_name, annotation_type=self.annotation_type, remove_background=True)
+        self.classes = get_classes(self.dataset_path, release_name, annotation_type=annotation_types, remove_background=True)
         self.num_classes = len(self.classes)
 
         stems = build_stems(release_path, annotations_dir, annotation_type, split, partition, split_type)

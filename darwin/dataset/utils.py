@@ -150,7 +150,7 @@ def available_annotation_types(release_path: Path) -> List[str]:
 def get_classes(
     dataset_path: PathLike,
     release_name: Optional[str] = None,
-    annotation_type: str = "polygon",
+    annotation_type: Union[str, List[str]] = "polygon",
     remove_background: bool = True,
 ) -> List[str]:
     """
@@ -175,23 +175,22 @@ def get_classes(
     assert dataset_path is not None
     dataset_path = Path(dataset_path)
     release_path = get_release_path(dataset_path, release_name)
-
-    # If annotation_type is a string and is 'bounding_box', also consider polygons
     if isinstance(annotation_type, str):
-        if annotation_type == "bounding_box":
-            annotation_types_to_load = [annotation_type, "polygon"]
-        else:
-            annotation_types_to_load = [annotation_type]
+        annotation_types_to_load = [annotation_type]
+    else:
+        annotation_types_to_load = annotation_type
 
     classes = []  # Use a list to maintain order
     for atype in annotation_types_to_load:
         classes_file_path = release_path / f"lists/classes_{atype}.txt"
-        for cls in get_classes_from_file(classes_file_path):
+
+        class_per_annotations = get_classes_from_file(classes_file_path)
+        if remove_background and class_per_annotations and class_per_annotations[0] == "__background__":
+            class_per_annotations = class_per_annotations[1:]
+
+        for cls in class_per_annotations:
             if cls not in classes:  # Only add if it's not already in the list
                 classes.append(cls)
-
-    if remove_background and classes and classes[0] == "__background__":
-        classes = classes[1:]
 
     available_types = available_annotation_types(release_path)
     assert len(classes) > 0, f"No classes found for {annotation_type}. Supported types are: {', '.join(available_types)}"
