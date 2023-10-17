@@ -15,9 +15,6 @@
   },
   "python.formatting.blackPath": "black",
   "python.formatting.provider": "black",
-  "python.formatting.blackArgs": [
-    "-l 120"
-  ],
   "python.linting.mypyEnabled": true,
   "isort.args": [
     "--profile",
