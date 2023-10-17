@@ -1,6 +1,5 @@
 from pathlib import Path
 
-import pytest
 
 import darwin.datatypes as dt
 from darwin.exporter.formats.darwin_1_0 import _build_json
