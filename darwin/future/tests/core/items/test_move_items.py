@@ -1,5 +1,5 @@
 from typing import Dict, List
-from uuid import UUID, uuid4
+from uuid import UUID
 
 import pytest
 import responses
@@ -37,5 +37,9 @@ def test_move_items(
             json={"success": UUIDs_str},
             status=200,
         )
-        item_ids = move_items_to_stage(base_client, "default-team", workflow_id, 1337, stage_id, UUIDs)
-        assert rsps.assert_call_count(base_client.config.api_endpoint + "v2/teams/default-team/items/stage", 1)
+        move_items_to_stage(
+            base_client, "default-team", workflow_id, 1337, stage_id, UUIDs
+        )
+        assert rsps.assert_call_count(
+            base_client.config.api_endpoint + "v2/teams/default-team/items/stage", 1
+        )

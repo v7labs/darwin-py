@@ -1,5 +1,3 @@
-import unittest
-
 import pytest
 from pydantic import BaseModel, ValidationError
 
@@ -19,11 +17,11 @@ def test_integrated_parsing_works_with_raw(basic_combined: dict) -> None:
 
 
 def test_broken_obj_raises(broken_combined: dict) -> None:
-    with pytest.raises(ValidationError) as e_info:
-        broken = TeamCore.parse_obj(broken_combined)
+    with pytest.raises(ValidationError):
+        TeamCore.parse_obj(broken_combined)
 
 
 @pytest.mark.parametrize("test_object", [TeamCore, DatasetCore, ReleaseCore])
 def test_empty_obj_raises(test_object: BaseModel) -> None:
-    with pytest.raises(ValidationError) as e_info:
-        broken = test_object.parse_obj({})
+    with pytest.raises(ValidationError):
+        test_object.parse_obj({})

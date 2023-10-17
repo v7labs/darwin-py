@@ -1,6 +1,6 @@
 import shutil
 from pathlib import Path
-from typing import Dict, Generator, List
+from typing import Dict
 from unittest.mock import MagicMock, patch
 
 import orjson as json
@@ -10,7 +10,6 @@ from darwin.dataset.utils import (
     compute_distributions,
     exhaust_generator,
     extract_classes,
-    get_annotations,
     get_release_path,
     sanitize_filename,
 )
@@ -105,26 +104,34 @@ class TestExtractClasses:
 
     def test_extract_multiple_annotation_types(self, annotations_path: Path):
         # Provided payloads
-        _create_annotation_file(annotations_path, "0.json", {
-            "annotations": [
-                {"name": "class_1", "polygon": {"path": []}},
-                {"name": "class_2", "bounding_box": {"x": 0, "y": 0, "w": 100, "h": 100}},
-                {"name": "class_3", "polygon": {"path": []}},
-                {"name": "class_4", "tag": {}},
-                {"name": "class_1", "polygon": {"path": []}},
-            ],
-            "image": {"filename": "0.jpg"},
-        })
-        _create_annotation_file(annotations_path, "1.json", {
-            "annotations": [
-                {"name": "class_5", "polygon": {"path": []}},
-                {"name": "class_6", "bounding_box": {"x": 0, "y": 0, "w": 100, "h": 100}},
-                {"name": "class_1", "polygon": {"path": []}},
-                {"name": "class_4", "tag": {}},
-                {"name": "class_1", "polygon": {"path": []}},
-            ],
-            "image": {"filename": "1.jpg"},
-        })
+        _create_annotation_file(
+            annotations_path,
+            "0.json",
+            {
+                "annotations": [
+                    {"name": "class_1", "polygon": {"path": []}},
+                    {"name": "class_2", "bounding_box": {"x": 0, "y": 0, "w": 100, "h": 100}},
+                    {"name": "class_3", "polygon": {"path": []}},
+                    {"name": "class_4", "tag": {}},
+                    {"name": "class_1", "polygon": {"path": []}},
+                ],
+                "image": {"filename": "0.jpg"},
+            },
+        )
+        _create_annotation_file(
+            annotations_path,
+            "1.json",
+            {
+                "annotations": [
+                    {"name": "class_5", "polygon": {"path": []}},
+                    {"name": "class_6", "bounding_box": {"x": 0, "y": 0, "w": 100, "h": 100}},
+                    {"name": "class_1", "polygon": {"path": []}},
+                    {"name": "class_4", "tag": {}},
+                    {"name": "class_1", "polygon": {"path": []}},
+                ],
+                "image": {"filename": "1.jpg"},
+            },
+        )
 
         # Extracting classes for both bounding_box and polygon annotations
         class_dict, index_dict = extract_classes(annotations_path, ["polygon", "bounding_box"])
@@ -223,6 +230,7 @@ class TestExhaustGenerator:
         assert len(successes) == 1
         assert isinstance(errors[0], Exception)
         assert errors[0].args[0] == "Test"
+
 
 '''
 class TestGetAnnotations:

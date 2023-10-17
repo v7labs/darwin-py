@@ -5,7 +5,9 @@ from darwin.future.core.client import ClientCore
 from darwin.future.core.types.common import QueryString
 
 
-def get_item_ids(api_client: ClientCore, team_slug: str, dataset_id: Union[str, int]) -> List[UUID]:
+def get_item_ids(
+    api_client: ClientCore, team_slug: str, dataset_id: Union[str, int]
+) -> List[UUID]:
     """
     Returns a list of item ids for the dataset
 
@@ -26,15 +28,24 @@ def get_item_ids(api_client: ClientCore, team_slug: str, dataset_id: Union[str, 
 
     response = api_client.get(
         f"/v2/teams/{team_slug}/items/ids",
-        QueryString({"not_statuses": "archived,error", "sort[id]": "desc", "dataset_ids": str(dataset_id)}),
+        QueryString(
+            {
+                "not_statuses": "archived,error",
+                "sort[id]": "desc",
+                "dataset_ids": str(dataset_id),
+            }
+        ),
     )
-    assert type(response) == dict
+    assert isinstance(response, dict)
     uuids = [UUID(uuid) for uuid in response["item_ids"]]
     return uuids
 
 
 def get_item_ids_stage(
-    api_client: ClientCore, team_slug: str, dataset_id: Union[int, str], stage_id: Union[UUID, str]
+    api_client: ClientCore,
+    team_slug: str,
+    dataset_id: Union[int, str],
+    stage_id: Union[UUID, str],
 ) -> List[UUID]:
     """
     Returns a list of item ids for the stage
@@ -57,8 +68,10 @@ def get_item_ids_stage(
     """
     response = api_client.get(
         f"/v2/teams/{team_slug}/items/ids",
-        QueryString({"workflow_stage_ids": str(stage_id), "dataset_ids": str(dataset_id)}),
+        QueryString(
+            {"workflow_stage_ids": str(stage_id), "dataset_ids": str(dataset_id)}
+        ),
     )
-    assert type(response) == dict
+    assert isinstance(response, dict)
     uuids = [UUID(uuid) for uuid in response["item_ids"]]
     return uuids

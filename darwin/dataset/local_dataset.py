@@ -75,7 +75,6 @@ class LocalDataset:
         self._validate_inputs(partition, split_type, annotation_type)
         # Get the list of classes
 
-        
         annotation_types = [self.annotation_type]
         # We fetch bounding_boxes annotations from selected polygons as well
         if self.annotation_type == "bounding_boxes":

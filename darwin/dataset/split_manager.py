@@ -230,8 +230,6 @@ def _stratified_split(
         return
 
     for stratified_type in stratified_types:
-
-
         if stratified_type == "bounding_box":
             class_annotation_types = [stratified_type, "polygon"]
         else:

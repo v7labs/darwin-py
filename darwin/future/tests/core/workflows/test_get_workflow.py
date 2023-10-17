@@ -1,4 +1,3 @@
-import pytest
 import responses
 from pydantic import ValidationError
 from requests import HTTPError
@@ -11,7 +10,9 @@ from darwin.future.tests.core.fixtures import *
 
 
 @responses.activate
-def test_get_workflow(base_client: ClientCore, base_single_workflow_object: JSONType) -> None:
+def test_get_workflow(
+    base_client: ClientCore, base_single_workflow_object: JSONType
+) -> None:
     # Mocking the response using responses library
     response_data = base_single_workflow_object
     workflow_id = "1"
@@ -31,7 +32,9 @@ def test_get_workflow(base_client: ClientCore, base_single_workflow_object: JSON
 
 
 @responses.activate
-def test_get_workflow_with_team_slug(base_client: ClientCore, base_single_workflow_object: JSONType) -> None:
+def test_get_workflow_with_team_slug(
+    base_client: ClientCore, base_single_workflow_object: JSONType
+) -> None:
     # Mocking the response using responses library
     team_slug = "team-slug"
     workflow_id = "1"
