@@ -79,7 +79,7 @@ class LocalDataset:
 
         annotation_types = [self.annotation_type]
         # We fetch bounding_boxes annotations from selected polygons as well
-        if self.annotation_type == "bounding_boxes":
+        if self.annotation_type == "bounding_box":
             annotation_types.append("polygon")
         self.classes = get_classes(
             self.dataset_path,
