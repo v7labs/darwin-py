@@ -15,7 +15,7 @@ from darwin.torch.dataset import (
     SemanticSegmentationDataset,
     get_dataset,
 )
-from tests.fixtures import *
+from tests.fixtures import *  # noqa: F403
 
 
 def generic_dataset_test(ds, n, size):
