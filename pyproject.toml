@@ -57,16 +57,15 @@ warn_untyped_fields = true
 [tool.ruff]
 select = ["E", "F", "C"]
 ignore = ["E203", "E402"]
-line-length = 160
+line-length = 88
 
 [tool.ruff.per-file-ignores]
 "__init__.py" = ["E402", "F401"]
-"path/to/file.py" = ["E402"]
-"**/{tests,docs,tools}/*" = ["E402"]
-"darwin/future/tests/*" = ["F403"]
+"**/{tests,docs,tools}/*" = ["E402", "F403"]
+
 
 [tool.flake8]
-max-line-length = 160
+max-line-length = 88
 ignore = ["E203", "W503", "E402"]
 
 [tool.poetry.dependencies]
