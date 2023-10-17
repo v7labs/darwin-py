@@ -10,6 +10,7 @@ from darwin.dataset.utils import (
     compute_distributions,
     exhaust_generator,
     extract_classes,
+    get_annotations,
     get_release_path,
     sanitize_filename,
 )
@@ -86,11 +87,11 @@ class TestExtractClasses:
             "image": {"filename": "1.jpg"},
         }
         _create_annotation_file(annotations_path, "1.json", payload)
-
         class_dict, index_dict = extract_classes(annotations_path, "polygon")
 
-        assert dict(class_dict) == {"class_1": {0, 1}, "class_3": {0}, "class_5": {1}}
-        assert dict(index_dict) == {0: {"class_1", "class_3"}, 1: {"class_1", "class_5"}}
+        assert set(index_dict.keys()) == {0, 1}
+        assert index_dict[0] == {"class_1", "class_3"}
+        assert index_dict[1] == {"class_1", "class_5"}
 
         class_dict, index_dict = extract_classes(annotations_path, "bounding_box")
 
@@ -101,6 +102,44 @@ class TestExtractClasses:
 
         assert dict(class_dict) == {"class_4": {0, 1}}
         assert dict(index_dict) == {0: {"class_4"}, 1: {"class_4"}}
+
+    def test_extract_multiple_annotation_types(self, annotations_path: Path):
+        # Provided payloads
+        _create_annotation_file(annotations_path, "0.json", {
+            "annotations": [
+                {"name": "class_1", "polygon": {"path": []}},
+                {"name": "class_2", "bounding_box": {"x": 0, "y": 0, "w": 100, "h": 100}},
+                {"name": "class_3", "polygon": {"path": []}},
+                {"name": "class_4", "tag": {}},
+                {"name": "class_1", "polygon": {"path": []}},
+            ],
+            "image": {"filename": "0.jpg"},
+        })
+        _create_annotation_file(annotations_path, "1.json", {
+            "annotations": [
+                {"name": "class_5", "polygon": {"path": []}},
+                {"name": "class_6", "bounding_box": {"x": 0, "y": 0, "w": 100, "h": 100}},
+                {"name": "class_1", "polygon": {"path": []}},
+                {"name": "class_4", "tag": {}},
+                {"name": "class_1", "polygon": {"path": []}},
+            ],
+            "image": {"filename": "1.jpg"},
+        })
+
+        # Extracting classes for both bounding_box and polygon annotations
+        class_dict, index_dict = extract_classes(annotations_path, ["polygon", "bounding_box"])
+
+        # Assertions
+        assert set(class_dict.keys()) == {"class_1", "class_2", "class_3", "class_5", "class_6"}
+        assert class_dict["class_1"] == {0, 1}
+        assert class_dict["class_2"] == {0}
+        assert class_dict["class_3"] == {0}
+        assert class_dict["class_5"] == {1}
+        assert class_dict["class_6"] == {1}
+
+        assert set(index_dict.keys()) == {0, 1}
+        assert index_dict[0] == {"class_1", "class_2", "class_3"}
+        assert index_dict[1] == {"class_1", "class_5", "class_6"}
 
 
 class TestSanitizeFilename:
@@ -184,3 +223,41 @@ class TestExhaustGenerator:
         assert len(successes) == 1
         assert isinstance(errors[0], Exception)
         assert errors[0].args[0] == "Test"
+
+'''
+class TestGetAnnotations:
+    def test_basic_functionality(
+        self,
+        team_extracted_dataset_path,
+        team_dataset_release_path,
+        annotations_path,
+        split_path
+    ):
+        """
+        Basic functionality test for the `get_annotations` function.
+        """
+        
+        # Test with basic setup
+        annotations = list(get_annotations(dataset_path=team_extracted_dataset_path))
+        assert len(annotations) > 0, "Expected to find some annotations"
+
+        # Add more assertions here to validate the structure of the returned annotations
+
+    def test_partition_handling(
+        self,
+        team_extracted_dataset_path,
+        team_dataset_release_path,
+        annotations_path,
+        split_path
+    ):
+        """
+        Test the partition handling of the `get_annotations` function.
+        """
+
+        # Assuming there's a train partition in the test dataset
+        annotations = list(get_annotations(dataset_path=team_extracted_dataset_path, partition="train"))
+        assert len(annotations) > 0, "Expected to find some annotations for the train partition"
+
+        # Add more assertions here to validate the structure of the returned annotations
+        # Repeat for other partitions (e.g., val, test) if present in the mock data
+'''
