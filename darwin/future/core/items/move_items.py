@@ -6,7 +6,12 @@ from darwin.future.core.types.common import JSONType
 
 
 def move_items_to_stage(
-    api_client: ClientCore, team_slug: str, workflow_id: UUID, dataset_id: int, stage_id: UUID, item_ids: List[UUID]
+    api_client: ClientCore,
+    team_slug: str,
+    workflow_id: UUID,
+    dataset_id: int,
+    stage_id: UUID,
+    item_ids: List[UUID],
 ) -> JSONType:
     """
     Moves a list of items to a stage

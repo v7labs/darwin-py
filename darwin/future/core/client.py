@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Union, overload
+from typing import Callable, Dict, Optional, overload
 from urllib.parse import urlparse
 
 import requests
@@ -41,7 +41,10 @@ class DarwinConfig(BaseModel):
         if not v.endswith("/"):
             v += "/"
         check = urlparse(v)
-        assert check.scheme in {"http", "https"}, "base_url must start with http or https"
+        assert check.scheme in {
+            "http",
+            "https",
+        }, "base_url must start with http or https"
         assert check.netloc, "base_url must contain a domain"
         return v
 
@@ -136,7 +139,9 @@ class ClientCore:
         self.config = config
         self.session = requests.Session()
         if not retries:
-            retries = Retry(total=3, backoff_factor=0.2, status_forcelist=[500, 502, 503, 504])
+            retries = Retry(
+                total=3, backoff_factor=0.2, status_forcelist=[500, 502, 503, 504]
+            )
         self._setup_session(retries)
         self._mappings = {
             "get": self.session.get,
@@ -153,20 +158,32 @@ class ClientCore:
 
     @property
     def headers(self) -> Dict[str, str]:
-        http_headers: Dict[str, str] = {"Content-Type": "application/json", "Accept": "application/json"}
+        http_headers: Dict[str, str] = {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        }
         if self.config.api_key:
             http_headers["Authorization"] = f"ApiKey {self.config.api_key}"
         return http_headers
 
     @overload
-    def _generic_call(self, method: Callable[[str], requests.Response], endpoint: str) -> dict:
+    def _generic_call(
+        self, method: Callable[[str], requests.Response], endpoint: str
+    ) -> dict:
         ...
 
     @overload
-    def _generic_call(self, method: Callable[[str, dict], requests.Response], endpoint: str, payload: dict) -> dict:
+    def _generic_call(
+        self,
+        method: Callable[[str, dict], requests.Response],
+        endpoint: str,
+        payload: dict,
+    ) -> dict:
         ...
 
-    def _generic_call(self, method: Callable, endpoint: str, payload: Optional[dict] = None) -> JSONType:
+    def _generic_call(
+        self, method: Callable, endpoint: str, payload: Optional[dict] = None
+    ) -> JSONType:
         endpoint = self._sanitize_endpoint(endpoint)
         url = self.config.api_endpoint + endpoint
         if payload is not None:
@@ -179,15 +196,21 @@ class ClientCore:
 
         return response.json()
 
-    def _contain_qs_and_endpoint(self, endpoint: str, query_string: Optional[QueryString] = None) -> str:
+    def _contain_qs_and_endpoint(
+        self, endpoint: str, query_string: Optional[QueryString] = None
+    ) -> str:
         if not query_string:
             return endpoint
 
         assert "?" not in endpoint
         return endpoint + str(query_string)
 
-    def get(self, endpoint: str, query_string: Optional[QueryString] = None) -> JSONType:
-        return self._generic_call(self.session.get, self._contain_qs_and_endpoint(endpoint, query_string))
+    def get(
+        self, endpoint: str, query_string: Optional[QueryString] = None
+    ) -> JSONType:
+        return self._generic_call(
+            self.session.get, self._contain_qs_and_endpoint(endpoint, query_string)
+        )
 
     def put(self, endpoint: str, data: dict) -> JSONType:
         return self._generic_call(self.session.put, endpoint, data)
@@ -195,8 +218,12 @@ class ClientCore:
     def post(self, endpoint: str, data: dict) -> JSONType:
         return self._generic_call(self.session.post, endpoint, data)
 
-    def delete(self, endpoint: str, query_string: Optional[QueryString] = None) -> JSONType:
-        return self._generic_call(self.session.delete, self._contain_qs_and_endpoint(endpoint, query_string))
+    def delete(
+        self, endpoint: str, query_string: Optional[QueryString] = None
+    ) -> JSONType:
+        return self._generic_call(
+            self.session.delete, self._contain_qs_and_endpoint(endpoint, query_string)
+        )
 
     def patch(self, endpoint: str, data: dict) -> JSONType:
         return self._generic_call(self.session.patch, endpoint, data)

@@ -1,4 +1,3 @@
-import unittest
 from pathlib import Path
 
 import pytest
@@ -6,7 +5,7 @@ import responses
 from pydantic import ValidationError
 from requests import HTTPError
 
-from darwin.future.core.client import ClientCore, DarwinConfig, TeamsConfig
+from darwin.future.core.client import ClientCore, DarwinConfig
 from darwin.future.exceptions import DarwinException, NotFound, Unauthorized
 from darwin.future.tests.core.fixtures import *
 from darwin.future.tests.fixtures import *
@@ -35,7 +34,7 @@ def test_config_base_url(base_config: DarwinConfig) -> None:
 @pytest.mark.parametrize("base_url", ["test_url.com", "ftp://test_url.com", ""])
 def test_invalid_config_url_validation(base_url: str, tmp_path: Path) -> None:
     with pytest.raises(ValidationError):
-        config = DarwinConfig(
+        DarwinConfig(
             api_key="test_key",
             datasets_dir=tmp_path,
             api_endpoint="http://test_url.com/api/",
@@ -92,7 +91,9 @@ def test_client(base_client: ClientCore) -> None:
     "status_code, exception",
     [(401, Unauthorized), (404, NotFound)],
 )
-def test_client_raises_darwin(status_code: int, exception: DarwinException, base_client: ClientCore) -> None:
+def test_client_raises_darwin(
+    status_code: int, exception: DarwinException, base_client: ClientCore
+) -> None:
     endpoint = base_client.config.api_endpoint + "test_endpoint"
     with responses.RequestsMock() as rsps:
         rsps.add(responses.GET, endpoint, json={"test": "test"}, status=status_code)

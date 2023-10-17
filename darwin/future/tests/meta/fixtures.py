@@ -1,4 +1,4 @@
-from pytest import fixture, raises
+from pytest import fixture
 
 from darwin.future.core.client import DarwinConfig
 from darwin.future.meta.client import Client

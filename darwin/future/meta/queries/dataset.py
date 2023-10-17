@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import List
 
 from darwin.future.core.datasets import list_datasets
-from darwin.future.core.types.query import Param, Query, QueryFilter
+from darwin.future.core.types.query import Query, QueryFilter
 from darwin.future.meta.objects.dataset import Dataset
 
 
@@ -23,7 +23,9 @@ class DatasetQuery(Query[Dataset]):
         if exceptions:
             # TODO: print and or raise exceptions, tbd how we want to handle this
             pass
-        datasets_meta = [Dataset(self.client, dataset) for dataset in datasets]
+        datasets_meta = [
+            Dataset(self.client, dataset, self.meta_params) for dataset in datasets
+        ]
         if not self.filters:
             self.filters = []
 
@@ -32,7 +34,9 @@ class DatasetQuery(Query[Dataset]):
 
         return datasets_meta
 
-    def _execute_filters(self, datasets: List[Dataset], filter: QueryFilter) -> List[Dataset]:
+    def _execute_filters(
+        self, datasets: List[Dataset], filter: QueryFilter
+    ) -> List[Dataset]:
         """Executes filtering on the local list of datasets, applying special logic for role filtering
         otherwise calls the parent method for general filtering on the values of the datasets
 
