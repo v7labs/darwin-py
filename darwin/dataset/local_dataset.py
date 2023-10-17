@@ -75,13 +75,13 @@ class LocalDataset:
         self._validate_inputs(partition, split_type, annotation_type)
         # Get the list of classes
 
-        self.num_classes = len(self.classes)
+        
         annotation_types = [self.annotation_type]
         # We fetch bounding_boxes annotations from selected polygons as well
         if self.annotation_type == "bounding_boxes":
             annotation_types.append("polygon")
         self.classes = get_classes(self.dataset_path, release_name, annotation_type=annotation_types, remove_background=True)
-
+        self.num_classes = len(self.classes)
         self._setup_annotations_and_images(release_path, annotations_dir, images_dir, annotation_type, split, partition, split_type)
 
         if len(self.images_path) == 0:
