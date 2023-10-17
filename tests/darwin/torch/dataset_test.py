@@ -28,14 +28,18 @@ def generic_dataset_test(ds, n, size):
 
 
 class TestClassificationDataset:
-    def test_should_correctly_create_a_single_label_dataset(self, team_slug: str, team_extracted_dataset_path: Path) -> None:
+    def test_should_correctly_create_a_single_label_dataset(
+        self, team_slug: str, team_extracted_dataset_path: Path
+    ) -> None:
         root = team_extracted_dataset_path / team_slug / "sl"
         ds = ClassificationDataset(dataset_path=root, release_name="latest")
 
         generic_dataset_test(ds, n=20, size=(50, 50))
         assert not ds.is_multi_label
 
-    def test_should_correctly_create_a_multi_label_dataset(self, team_slug: str, team_extracted_dataset_path: Path) -> None:
+    def test_should_correctly_create_a_multi_label_dataset(
+        self, team_slug: str, team_extracted_dataset_path: Path
+    ) -> None:
         root = team_extracted_dataset_path / team_slug / "ml"
         ds = ClassificationDataset(dataset_path=root, release_name="latest")
 
@@ -44,7 +48,9 @@ class TestClassificationDataset:
 
 
 class TestInstanceSegmentationDataset:
-    def test_should_correctly_create_a_instance_seg_dataset(self, team_slug: str, team_extracted_dataset_path: Path) -> None:
+    def test_should_correctly_create_a_instance_seg_dataset(
+        self, team_slug: str, team_extracted_dataset_path: Path
+    ) -> None:
         root = team_extracted_dataset_path / team_slug / "coco"
         ds = InstanceSegmentationDataset(dataset_path=root, release_name="latest")
 
@@ -53,7 +59,9 @@ class TestInstanceSegmentationDataset:
 
 
 class TestSemanticSegmentationDataset:
-    def test_should_correctly_create_a_semantic_seg_dataset(self, team_slug: str, team_extracted_dataset_path: Path) -> None:
+    def test_should_correctly_create_a_semantic_seg_dataset(
+        self, team_slug: str, team_extracted_dataset_path: Path
+    ) -> None:
         root = team_extracted_dataset_path / team_slug / "coco"
         ds = SemanticSegmentationDataset(dataset_path=root, release_name="latest")
 
@@ -62,7 +70,9 @@ class TestSemanticSegmentationDataset:
 
 
 class TestObjectDetectionDataset:
-    def test_should_correctly_create_a_object_detection_dataset(self, team_slug: str, team_extracted_dataset_path: Path) -> None:
+    def test_should_correctly_create_a_object_detection_dataset(
+        self, team_slug: str, team_extracted_dataset_path: Path
+    ) -> None:
         root = team_extracted_dataset_path / team_slug / "coco"
         ds = ObjectDetectionDataset(dataset_path=root, release_name="latest")
 
@@ -85,17 +95,26 @@ def v1_or_v2_slug(request):
 
 
 class TestGetDataset:
-    def test_exits_when_dataset_not_supported(self, v1_or_v2_slug: str, local_config_file: Config) -> None:
+    def test_exits_when_dataset_not_supported(
+        self, v1_or_v2_slug: str, local_config_file: Config
+    ) -> None:
         with patch.object(sys, "exit") as exception:
             get_dataset(f"{v1_or_v2_slug}/test", "unknown")
             exception.assert_called_once_with(1)
 
-    def test_exits_when_dataset_does_not_exist_locally(self, v1_or_v2_slug: str, local_config_file: Config) -> None:
+    def test_exits_when_dataset_does_not_exist_locally(
+        self, v1_or_v2_slug: str, local_config_file: Config
+    ) -> None:
         with patch.object(sys, "exit") as exception:
             get_dataset(f"{v1_or_v2_slug}/test", "classification")
             exception.assert_called_once_with(1)
 
-    def test_loads_classification_dataset(self, v1_or_v2_slug: str, local_config_file: Config, team_extracted_dataset_path: Path) -> None:
+    def test_loads_classification_dataset(
+        self,
+        v1_or_v2_slug: str,
+        local_config_file: Config,
+        team_extracted_dataset_path: Path,
+    ) -> None:
         dataset = get_dataset(f"{v1_or_v2_slug}/sl", "classification")
         assert isinstance(dataset, ClassificationDataset)
         assert len(dataset) == 20
@@ -104,7 +123,12 @@ class TestGetDataset:
         assert image.size() == (3, 50, 50)
         assert label.item() == 0
 
-    def test_loads_multi_label_classification_dataset(self, v1_or_v2_slug: str, local_config_file: Config, team_extracted_dataset_path: Path) -> None:
+    def test_loads_multi_label_classification_dataset(
+        self,
+        v1_or_v2_slug: str,
+        local_config_file: Config,
+        team_extracted_dataset_path: Path,
+    ) -> None:
         dataset = get_dataset(f"{v1_or_v2_slug}/ml", "classification")
         assert isinstance(dataset, ClassificationDataset)
         assert len(dataset) == 20
@@ -115,7 +139,10 @@ class TestGetDataset:
         assert _maybe_tensor_to_list(label) == [1, 0, 1]
 
     def test_loads_object_detection_dataset_from_bounding_box_annotations(
-        self, v1_or_v2_slug: str, local_config_file: Config, team_extracted_dataset_path: Path
+        self,
+        v1_or_v2_slug: str,
+        local_config_file: Config,
+        team_extracted_dataset_path: Path,
     ) -> None:
         dataset = get_dataset(f"{v1_or_v2_slug}/bb", "object-detection")
         assert isinstance(dataset, ObjectDetectionDataset)
@@ -127,7 +154,9 @@ class TestGetDataset:
         label = {k: v.numpy().tolist() for k, v in label.items()}
 
         assert label == {
-            "boxes": [[4, 33, 17, 16]],  # we need to account for xywh format and clamping
+            "boxes": [
+                [4, 33, 17, 16]
+            ],  # we need to account for xywh format and clamping
             "area": [612],
             "labels": [1],
             "image_id": [0],
@@ -135,7 +164,10 @@ class TestGetDataset:
         }
 
     def test_loads_object_detection_dataset_from_polygon_annotations(
-        self, v1_or_v2_slug: str, local_config_file: Config, team_extracted_dataset_path: Path
+        self,
+        v1_or_v2_slug: str,
+        local_config_file: Config,
+        team_extracted_dataset_path: Path,
     ) -> None:
         dataset = get_dataset(f"{v1_or_v2_slug}/coco", "object-detection")
         assert isinstance(dataset, ObjectDetectionDataset)
@@ -146,7 +178,9 @@ class TestGetDataset:
 
         label = {k: v.numpy().tolist() for k, v in label.items()}
         assert label == {
-            "boxes": [[4, 33, 17, 16]],  # we need to account for xywh format and clamping
+            "boxes": [
+                [4, 33, 17, 16]
+            ],  # we need to account for xywh format and clamping
             "area": [612],
             "labels": [1],
             "image_id": [0],
@@ -154,7 +188,10 @@ class TestGetDataset:
         }
 
     def test_loads_object_detection_dataset_from_complex_polygon_annotations(
-        self, v1_or_v2_slug: str, local_config_file: Config, team_extracted_dataset_path: Path
+        self,
+        v1_or_v2_slug: str,
+        local_config_file: Config,
+        team_extracted_dataset_path: Path,
     ) -> None:
         dataset = get_dataset(f"{v1_or_v2_slug}/complex_polygons", "object-detection")
         assert isinstance(dataset, ObjectDetectionDataset)
@@ -173,7 +210,10 @@ class TestGetDataset:
         }
 
     def test_loads_instance_segmentation_dataset_from_bounding_box_annotations(
-        self, v1_or_v2_slug: str, local_config_file: Config, team_extracted_dataset_path: Path
+        self,
+        v1_or_v2_slug: str,
+        local_config_file: Config,
+        team_extracted_dataset_path: Path,
     ) -> None:
         # You can load an instance segmentation dataset from an export that only has bounding boxes.
         # But it will ignore all the annotations, so you'll end up with 0 annotations.
@@ -196,7 +236,10 @@ class TestGetDataset:
         assert label["width"] == 50
 
     def test_loads_instance_segmentation_dataset_from_polygon_annotations(
-        self, v1_or_v2_slug: str, local_config_file: Config, team_extracted_dataset_path: Path
+        self,
+        v1_or_v2_slug: str,
+        local_config_file: Config,
+        team_extracted_dataset_path: Path,
     ) -> None:
         dataset = get_dataset(f"{v1_or_v2_slug}/coco", "instance-segmentation")
         assert isinstance(dataset, InstanceSegmentationDataset)
@@ -217,9 +260,14 @@ class TestGetDataset:
         assert label["width"] == 50
 
     def test_loads_instance_segmentation_dataset_from_complex_polygon_annotations(
-        self, v1_or_v2_slug: str, local_config_file: Config, team_extracted_dataset_path: Path
+        self,
+        v1_or_v2_slug: str,
+        local_config_file: Config,
+        team_extracted_dataset_path: Path,
     ) -> None:
-        dataset = get_dataset(f"{v1_or_v2_slug}/complex_polygons", "instance-segmentation")
+        dataset = get_dataset(
+            f"{v1_or_v2_slug}/complex_polygons", "instance-segmentation"
+        )
         assert isinstance(dataset, InstanceSegmentationDataset)
         assert len(dataset) == 1
 
@@ -238,7 +286,10 @@ class TestGetDataset:
         assert label["width"] == 50
 
     def test_loads_semantic_segmentation_dataset_from_polygon_annotations(
-        self, v1_or_v2_slug: str, local_config_file: Config, team_extracted_dataset_path: Path
+        self,
+        v1_or_v2_slug: str,
+        local_config_file: Config,
+        team_extracted_dataset_path: Path,
     ) -> None:
         dataset = get_dataset(f"{v1_or_v2_slug}/coco", "semantic-segmentation")
         assert isinstance(dataset, SemanticSegmentationDataset)

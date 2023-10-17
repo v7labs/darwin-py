@@ -17,7 +17,9 @@ from tests.fixtures import *
 
 
 def open_resource_file():
-    resource_file = Path("tests") / "darwin" / "dataset" / "resources" / "stratified_polygon_train"
+    resource_file = (
+        Path("tests") / "darwin" / "dataset" / "resources" / "stratified_polygon_train"
+    )
     return resource_file.open()
 
 
@@ -31,7 +33,12 @@ def parsed_annotation_file():
             {"name": "class_2", "polygon": {"path": []}},
             {"name": "class_3", "polygon": {"path": []}},
         ],
-        "image": {"filename": "test.jpg", "height": 1080, "url": "https://darwin.v7labs.com/test.jpg", "width": 1920},
+        "image": {
+            "filename": "test.jpg",
+            "height": 1080,
+            "url": "https://darwin.v7labs.com/test.jpg",
+            "width": 1920,
+        },
     }
 
 
@@ -66,7 +73,10 @@ class TestExtractClasses:
         payload = {
             "annotations": [
                 {"name": "class_1", "polygon": {"path": []}},
-                {"name": "class_2", "bounding_box": {"x": 0, "y": 0, "w": 100, "h": 100}},
+                {
+                    "name": "class_2",
+                    "bounding_box": {"x": 0, "y": 0, "w": 100, "h": 100},
+                },
                 {"name": "class_3", "polygon": {"path": []}},
                 {"name": "class_4", "tag": {}},
                 {"name": "class_1", "polygon": {"path": []}},
@@ -78,7 +88,10 @@ class TestExtractClasses:
         payload = {
             "annotations": [
                 {"name": "class_5", "polygon": {"path": []}},
-                {"name": "class_6", "bounding_box": {"x": 0, "y": 0, "w": 100, "h": 100}},
+                {
+                    "name": "class_6",
+                    "bounding_box": {"x": 0, "y": 0, "w": 100, "h": 100},
+                },
                 {"name": "class_1", "polygon": {"path": []}},
                 {"name": "class_4", "tag": {}},
                 {"name": "class_1", "polygon": {"path": []}},
@@ -110,7 +123,10 @@ class TestExtractClasses:
             {
                 "annotations": [
                     {"name": "class_1", "polygon": {"path": []}},
-                    {"name": "class_2", "bounding_box": {"x": 0, "y": 0, "w": 100, "h": 100}},
+                    {
+                        "name": "class_2",
+                        "bounding_box": {"x": 0, "y": 0, "w": 100, "h": 100},
+                    },
                     {"name": "class_3", "polygon": {"path": []}},
                     {"name": "class_4", "tag": {}},
                     {"name": "class_1", "polygon": {"path": []}},
@@ -124,7 +140,10 @@ class TestExtractClasses:
             {
                 "annotations": [
                     {"name": "class_5", "polygon": {"path": []}},
-                    {"name": "class_6", "bounding_box": {"x": 0, "y": 0, "w": 100, "h": 100}},
+                    {
+                        "name": "class_6",
+                        "bounding_box": {"x": 0, "y": 0, "w": 100, "h": 100},
+                    },
                     {"name": "class_1", "polygon": {"path": []}},
                     {"name": "class_4", "tag": {}},
                     {"name": "class_1", "polygon": {"path": []}},
@@ -134,10 +153,18 @@ class TestExtractClasses:
         )
 
         # Extracting classes for both bounding_box and polygon annotations
-        class_dict, index_dict = extract_classes(annotations_path, ["polygon", "bounding_box"])
+        class_dict, index_dict = extract_classes(
+            annotations_path, ["polygon", "bounding_box"]
+        )
 
         # Assertions
-        assert set(class_dict.keys()) == {"class_1", "class_2", "class_3", "class_5", "class_6"}
+        assert set(class_dict.keys()) == {
+            "class_1",
+            "class_2",
+            "class_3",
+            "class_5",
+            "class_6",
+        }
         assert class_dict["class_1"] == {0, 1}
         assert class_dict["class_2"] == {0}
         assert class_dict["class_3"] == {0}
@@ -154,23 +181,53 @@ class TestSanitizeFilename:
         assert sanitize_filename("test.jpg") == "test.jpg"
 
     def test_special_characters_are_replaced_with_underscores(self):
-        assert sanitize_filename("2020-06-18T08<50<13.14815Z.json") == "2020-06-18T08_50_13.14815Z.json"
-        assert sanitize_filename("2020-06-18T08>50>13.14815Z.json") == "2020-06-18T08_50_13.14815Z.json"
-        assert sanitize_filename('2020-06-18T08"50"13.14815Z.json') == "2020-06-18T08_50_13.14815Z.json"
-        assert sanitize_filename("2020-06-18T08/50/13.14815Z.json") == "2020-06-18T08_50_13.14815Z.json"
-        assert sanitize_filename("2020-06-18T08\\50\\13.14815Z.json") == "2020-06-18T08_50_13.14815Z.json"
-        assert sanitize_filename("2020-06-18T08|50|13.14815Z.json") == "2020-06-18T08_50_13.14815Z.json"
-        assert sanitize_filename("2020-06-18T08?50?13.14815Z.json") == "2020-06-18T08_50_13.14815Z.json"
-        assert sanitize_filename("2020-06-18T08*50*13.14815Z.json") == "2020-06-18T08_50_13.14815Z.json"
+        assert (
+            sanitize_filename("2020-06-18T08<50<13.14815Z.json")
+            == "2020-06-18T08_50_13.14815Z.json"
+        )
+        assert (
+            sanitize_filename("2020-06-18T08>50>13.14815Z.json")
+            == "2020-06-18T08_50_13.14815Z.json"
+        )
+        assert (
+            sanitize_filename('2020-06-18T08"50"13.14815Z.json')
+            == "2020-06-18T08_50_13.14815Z.json"
+        )
+        assert (
+            sanitize_filename("2020-06-18T08/50/13.14815Z.json")
+            == "2020-06-18T08_50_13.14815Z.json"
+        )
+        assert (
+            sanitize_filename("2020-06-18T08\\50\\13.14815Z.json")
+            == "2020-06-18T08_50_13.14815Z.json"
+        )
+        assert (
+            sanitize_filename("2020-06-18T08|50|13.14815Z.json")
+            == "2020-06-18T08_50_13.14815Z.json"
+        )
+        assert (
+            sanitize_filename("2020-06-18T08?50?13.14815Z.json")
+            == "2020-06-18T08_50_13.14815Z.json"
+        )
+        assert (
+            sanitize_filename("2020-06-18T08*50*13.14815Z.json")
+            == "2020-06-18T08_50_13.14815Z.json"
+        )
 
     @patch("platform.system", return_value="Windows")
     def test_replace_columns_on_windows(self, mock: MagicMock):
-        assert sanitize_filename("2020-06-18T08:50:13.14815Z.json") == "2020-06-18T08_50_13.14815Z.json"
+        assert (
+            sanitize_filename("2020-06-18T08:50:13.14815Z.json")
+            == "2020-06-18T08_50_13.14815Z.json"
+        )
         mock.assert_called_once()
 
     @patch("platform.system", return_value="Linux")
     def test_avoid_replacing_columns_on_non_windows(self, mock: MagicMock):
-        assert sanitize_filename("2020-06-18T08:50:13.14815Z.json") == "2020-06-18T08:50:13.14815Z.json"
+        assert (
+            sanitize_filename("2020-06-18T08:50:13.14815Z.json")
+            == "2020-06-18T08:50:13.14815Z.json"
+        )
         mock.assert_called_once()
 
 
@@ -181,7 +238,9 @@ def _create_annotation_file(annotation_path: Path, filename: str, payload: Dict)
 
 
 class TestGetReleasePath:
-    def test_defaults_to_latest_version_if_no_version_provided(self, team_dataset_path: Path):
+    def test_defaults_to_latest_version_if_no_version_provided(
+        self, team_dataset_path: Path
+    ):
         latest_release_path = team_dataset_path / "releases" / "latest"
         latest_release_path.mkdir(parents=True)
         assert get_release_path(team_dataset_path) == latest_release_path
