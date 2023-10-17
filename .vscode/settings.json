@@ -14,10 +14,7 @@
     "editor.tabSize": 2
   },
   "python.formatting.blackPath": "black",
-  "python.formatting.provider": "none",
-  "python.formatting.blackArgs": [
-    "-l 120"
-  ],
+  "python.formatting.provider": "black",
   "python.linting.mypyEnabled": true,
   "isort.args": [
     "--profile",
