@@ -18,21 +18,42 @@ def validate_no_slashes(v: UnknownType) -> str:
     return v
 
 
+class ItemLayoutV1(DefaultDarwin):
+    # GraphotateWeb.Schemas.DatasetsV2.Common.ItemLayoutV1
+
+    # Required fields
+    slots: List[str] = Field(...)
+    type: Literal["grid", "horizontal", "vertical", "simple"] = Field(...)
+    version: Literal[1] = Field(...)
+
+
+class ItemLayoutV2(DefaultDarwin):
+    # GraphotateWeb.Schemas.DatasetsV2.Common.ItemLayoutV2
+
+    # Required fields
+    slots: List[str] = Field(...)
+    type: Literal["grid", "horizontal", "vertical", "simple"] = Field(...)
+    version: Literal[2] = Field(...)
+
+    # Optional fields
+    layout_shape: List[int] = Field(...)
+
+
 class ItemSlot(DefaultDarwin):
     # GraphotateWeb.Schemas.DatasetsV2.ItemRegistration.ExistingSlot
 
     # Required fields
-    slot_name: str = Field(..., alias="slotName")
-    storage_key: str = Field(..., alias="storageKey")
+    slot_name: str = Field(...)
+    file_name: str = Field(...)
+    storage_key: str = Field(...)
 
     # Optional fields
-    as_frames: Optional[bool] = Field(None, alias="asFrames")
-    extract_views: Optional[bool] = Field(None, alias="extractViews")
-    file_name: str = Field(..., alias="fileName")
-    fps: Optional[ItemFrameRate] = Field(None, alias="fps")
-    metadata: Optional[Dict[str, UnknownType]] = Field({}, alias="metadata")
-    tags: Optional[Union[List[str], Dict[str, str]]] = Field(None, alias="tags")
-    type: Literal["image", "video", "pdf", "dicom"] = Field(..., alias="type")
+    as_frames: Optional[bool] = Field(default=False)
+    extract_views: Optional[bool] = Field(default=False)
+    fps: Optional[ItemFrameRate] = Field(...)
+    metadata: Optional[Dict[str, UnknownType]] = Field({})
+    tags: Optional[Union[List[str], Dict[str, str]]] = Field([])
+    type: Literal["image", "video", "pdf", "dicom"] = Field(...)
 
     @validator("slot_name")
     def validate_slot_name(cls, v: UnknownType) -> str:
@@ -40,7 +61,7 @@ class ItemSlot(DefaultDarwin):
         assert len(v) > 0, "slot_name cannot be empty"
         return v
 
-    @validator("storage_key")
+    @validator("file_name")
     def validate_storage_key(cls, v: UnknownType) -> str:
         return validate_no_slashes(v)
 
@@ -55,9 +76,16 @@ class ItemSlot(DefaultDarwin):
 
 
 class Item(DefaultDarwin):
+    # GraphotateWeb.Schemas.DatasetsV2.ItemRegistration.NewItem
+
+    # Required fields
     name: str
+    slots: List[ItemSlot] = Field(default=[])
+
+    # Optional fields
     path: str
-    slots: List[ItemSlot]
+    tags: Optional[Union[List[str], Dict[str, str]]] = Field([])
+    layout: Optional[Union[ItemLayoutV1, ItemLayoutV2]] = Field(...)
 
     @validator("name")
     def validate_name(cls, v: UnknownType) -> str:
