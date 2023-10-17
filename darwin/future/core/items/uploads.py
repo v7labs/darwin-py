@@ -4,8 +4,7 @@ from typing import Dict, List, Tuple, Union
 
 from darwin.future.core.client import ClientCore
 from darwin.future.core.types.common import JSONType
-from darwin.future.data_objects.item import Item, ItemSlot
-from darwin.future.data_objects.pydantic_base import DefaultDarwin
+from darwin.future.data_objects.item import Item
 from darwin.future.data_objects.typing import UnknownType
 from darwin.future.exceptions import DarwinException
 
@@ -131,9 +130,7 @@ async def async_register_upload(
 
     if isinstance(items_and_paths, tuple):
         items_and_paths = [items_and_paths]
-        assert all(
-            (isinstance(item, Item) and isinstance(path, Path)) for item, path in items_and_paths
-        ), "items must be a list of Items"
+        assert all((isinstance(item, Item) and isinstance(path, Path)) for item, path in items_and_paths), "items must be a list of Items"
 
     payload_items = await _build_payload_items(items_and_paths)
 
@@ -285,11 +282,7 @@ def register_upload(
         Whether to ignore the dicom layout
     """
     # TODO: test me
-    response = asyncio.run(
-        async_register_upload(
-            api_client, team_slug, dataset_slug, items_and_paths, force_tiling, handle_as_slices, ignore_dicom_layout
-        )
-    )
+    response = asyncio.run(async_register_upload(api_client, team_slug, dataset_slug, items_and_paths, force_tiling, handle_as_slices, ignore_dicom_layout))
     return response
 
 
@@ -347,9 +340,7 @@ def register_and_create_signed_upload_url(
     """
     # TODO: test me
     return asyncio.run(
-        async_register_and_create_signed_upload_url(
-            api_client, team_slug, dataset_slug, items_and_paths, force_tiling, handle_as_slices, ignore_dicom_layout
-        )
+        async_register_and_create_signed_upload_url(api_client, team_slug, dataset_slug, items_and_paths, force_tiling, handle_as_slices, ignore_dicom_layout)
     )
 
 
