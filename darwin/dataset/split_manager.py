@@ -294,8 +294,8 @@ def _stratify_samples(
     # Extract entries whose support set is 1 (it would make sklearn crash) and append the to train later
     unique_labels, count = np.unique(labels, return_counts=True)
     single_files = []
-    for l in unique_labels[count == 1]:
-        index = np.where(labels == l)[0][0]
+    for label in unique_labels[count == 1]:
+        index = np.where(labels == label)[0][0]
         single_files.append(file_indices[index])
         labels = np.delete(labels, index)
         file_indices = np.delete(file_indices, index)

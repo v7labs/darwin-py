@@ -3,7 +3,6 @@ from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 import numpy as np
-import orjson as json
 from PIL import Image as PILImage
 
 from darwin.dataset.utils import get_classes, get_release_path, load_pil_image

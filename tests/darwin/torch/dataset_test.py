@@ -49,7 +49,7 @@ class TestInstanceSegmentationDataset:
         ds = InstanceSegmentationDataset(dataset_path=root, release_name="latest")
 
         generic_dataset_test(ds, n=20, size=(50, 50))
-        assert type(ds[0][1]) is dict
+        assert isinstance(ds[0][1], dict)
 
 
 class TestSemanticSegmentationDataset:
@@ -58,7 +58,7 @@ class TestSemanticSegmentationDataset:
         ds = SemanticSegmentationDataset(dataset_path=root, release_name="latest")
 
         generic_dataset_test(ds, n=20, size=(50, 50))
-        assert type(ds[0][1]) is dict
+        assert isinstance(ds[0][1], dict)
 
 
 class TestObjectDetectionDataset:
@@ -67,7 +67,7 @@ class TestObjectDetectionDataset:
         ds = ObjectDetectionDataset(dataset_path=root, release_name="latest")
 
         generic_dataset_test(ds, n=20, size=(50, 50))
-        assert type(ds[0][1]) is dict
+        assert isinstance(ds[0][1], dict)
         img, target = ds[0]
 
         for bbox in target["boxes"]:
@@ -251,7 +251,7 @@ class TestGetDataset:
         label = {k: _maybe_tensor_to_list(v) for k, v in label.items()}
 
         assert label["image_id"] == [0]
-        assert type(label["mask"][0]) == list
+        assert isinstance(label["mask"][0], list)
         assert label["height"] == 50
         assert label["width"] == 50
 
