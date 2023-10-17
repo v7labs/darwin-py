@@ -87,13 +87,10 @@ class LocalDataset:
         self.original_annotations_path: Optional[List[Path]] = None
 
         # Get the list of classes
-        self.classes = get_classes(
-            self.dataset_path, release_name, annotation_type=self.annotation_type, remove_background=True
-        )
+        self.classes = get_classes(self.dataset_path, release_name, annotation_type=self.annotation_type, remove_background=True)
         self.num_classes = len(self.classes)
 
         stems = build_stems(release_path, annotations_dir, annotation_type, split, partition, split_type)
-        
 
         # Find all the annotations and their corresponding images
         for stem in stems:
@@ -261,9 +258,7 @@ class LocalDataset:
 
         # Filter out unused classes and annotations of a different type
         if self.classes is not None:
-            annotations = [
-                a for a in annotations if a.annotation_class.name in self.classes and self.annotation_type_supported(a)
-            ]
+            annotations = [a for a in annotations if a.annotation_class.name in self.classes and self.annotation_type_supported(a)]
         return {
             "image_id": index,
             "image_path": str(self.images_path[index]),
@@ -278,9 +273,7 @@ class LocalDataset:
             return annotation_type == "tag"
         elif self.annotation_type == "bounding_box":
             is_bounding_box = annotation_type == "bounding_box"
-            is_supported_polygon = (
-                annotation_type in ["polygon", "complex_polygon"] and "bounding_box" in annotation.data
-            )
+            is_supported_polygon = annotation_type in ["polygon", "complex_polygon"] and "bounding_box" in annotation.data
             return is_bounding_box or is_supported_polygon
         elif self.annotation_type == "polygon":
             return annotation_type in ["polygon", "complex_polygon"]
@@ -446,7 +439,4 @@ def build_stems(
     if split_path.is_file():
         return (e.strip("\n\r") for e in split_path.open())
 
-    raise FileNotFoundError(
-        "could not find a dataset partition. "
-        "Split the dataset using `split_dataset()` from `darwin.dataset.split_manager`"
-    )
+    raise FileNotFoundError("could not find a dataset partition. " "Split the dataset using `split_dataset()` from `darwin.dataset.split_manager`")

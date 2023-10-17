@@ -28,18 +28,14 @@ def generic_dataset_test(ds, n, size):
 
 
 class TestClassificationDataset:
-    def test_should_correctly_create_a_single_label_dataset(
-        self, team_slug: str, team_extracted_dataset_path: Path
-    ) -> None:
+    def test_should_correctly_create_a_single_label_dataset(self, team_slug: str, team_extracted_dataset_path: Path) -> None:
         root = team_extracted_dataset_path / team_slug / "sl"
         ds = ClassificationDataset(dataset_path=root, release_name="latest")
 
         generic_dataset_test(ds, n=20, size=(50, 50))
         assert not ds.is_multi_label
 
-    def test_should_correctly_create_a_multi_label_dataset(
-        self, team_slug: str, team_extracted_dataset_path: Path
-    ) -> None:
+    def test_should_correctly_create_a_multi_label_dataset(self, team_slug: str, team_extracted_dataset_path: Path) -> None:
         root = team_extracted_dataset_path / team_slug / "ml"
         ds = ClassificationDataset(dataset_path=root, release_name="latest")
 
@@ -48,9 +44,7 @@ class TestClassificationDataset:
 
 
 class TestInstanceSegmentationDataset:
-    def test_should_correctly_create_a_instance_seg_dataset(
-        self, team_slug: str, team_extracted_dataset_path: Path
-    ) -> None:
+    def test_should_correctly_create_a_instance_seg_dataset(self, team_slug: str, team_extracted_dataset_path: Path) -> None:
         root = team_extracted_dataset_path / team_slug / "coco"
         ds = InstanceSegmentationDataset(dataset_path=root, release_name="latest")
 
@@ -59,9 +53,7 @@ class TestInstanceSegmentationDataset:
 
 
 class TestSemanticSegmentationDataset:
-    def test_should_correctly_create_a_semantic_seg_dataset(
-        self, team_slug: str, team_extracted_dataset_path: Path
-    ) -> None:
+    def test_should_correctly_create_a_semantic_seg_dataset(self, team_slug: str, team_extracted_dataset_path: Path) -> None:
         root = team_extracted_dataset_path / team_slug / "coco"
         ds = SemanticSegmentationDataset(dataset_path=root, release_name="latest")
 
@@ -70,15 +62,9 @@ class TestSemanticSegmentationDataset:
 
 
 class TestObjectDetectionDataset:
-    def test_should_correctly_create_a_object_detection_dataset(
-        self, team_slug: str, team_extracted_dataset_path: Path
-    ) -> None:
+    def test_should_correctly_create_a_object_detection_dataset(self, team_slug: str, team_extracted_dataset_path: Path) -> None:
         root = team_extracted_dataset_path / team_slug / "coco"
-        print(root)
         ds = ObjectDetectionDataset(dataset_path=root, release_name="latest")
-
-        print(f"weights : {ds.measure_weights()}")
-        print(f"Classes : {ds.classes}")
 
         generic_dataset_test(ds, n=20, size=(50, 50))
         assert type(ds[0][1]) is dict
@@ -109,9 +95,7 @@ class TestGetDataset:
             get_dataset(f"{v1_or_v2_slug}/test", "classification")
             exception.assert_called_once_with(1)
 
-    def test_loads_classification_dataset(
-        self, v1_or_v2_slug: str, local_config_file: Config, team_extracted_dataset_path: Path
-    ) -> None:
+    def test_loads_classification_dataset(self, v1_or_v2_slug: str, local_config_file: Config, team_extracted_dataset_path: Path) -> None:
         dataset = get_dataset(f"{v1_or_v2_slug}/sl", "classification")
         assert isinstance(dataset, ClassificationDataset)
         assert len(dataset) == 20
@@ -120,9 +104,7 @@ class TestGetDataset:
         assert image.size() == (3, 50, 50)
         assert label.item() == 0
 
-    def test_loads_multi_label_classification_dataset(
-        self, v1_or_v2_slug: str, local_config_file: Config, team_extracted_dataset_path: Path
-    ) -> None:
+    def test_loads_multi_label_classification_dataset(self, v1_or_v2_slug: str, local_config_file: Config, team_extracted_dataset_path: Path) -> None:
         dataset = get_dataset(f"{v1_or_v2_slug}/ml", "classification")
         assert isinstance(dataset, ClassificationDataset)
         assert len(dataset) == 20
@@ -145,7 +127,7 @@ class TestGetDataset:
         label = {k: v.numpy().tolist() for k, v in label.items()}
 
         assert label == {
-            "boxes": [[4, 33, 17, 16]], # we need to account for xywh format and clamping
+            "boxes": [[4, 33, 17, 16]],  # we need to account for xywh format and clamping
             "area": [612],
             "labels": [1],
             "image_id": [0],
@@ -164,7 +146,7 @@ class TestGetDataset:
 
         label = {k: v.numpy().tolist() for k, v in label.items()}
         assert label == {
-            "boxes": [[4, 33, 17, 16]], # we need to account for xywh format and clamping
+            "boxes": [[4, 33, 17, 16]],  # we need to account for xywh format and clamping
             "area": [612],
             "labels": [1],
             "image_id": [0],

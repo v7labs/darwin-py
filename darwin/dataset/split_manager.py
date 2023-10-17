@@ -119,9 +119,7 @@ def split_dataset(
     try:
         import sklearn  # noqa
     except ImportError:
-        raise ImportError(
-            "Darwin requires scikit-learn to split a dataset. Install it using: pip install scikit-learn"
-        ) from None
+        raise ImportError("Darwin requires scikit-learn to split a dataset. Install it using: pip install scikit-learn") from None
 
     _validate_split(val_percentage, test_percentage)
 
@@ -410,14 +408,11 @@ def _validate_split(val_percentage: float, test_percentage: float) -> None:
         raise ValueError(f"Invalid test percentage ({test_percentage}). Must be a float x, where 0 < x < 1.")
     if val_percentage + test_percentage >= 1:
         raise ValueError(
-            f"Invalid combination of validation ({val_percentage}) and test ({test_percentage}) percentages. "
-            f"Their sum must be a value x, where x < 1."
+            f"Invalid combination of validation ({val_percentage}) and test ({test_percentage}) percentages. " f"Their sum must be a value x, where x < 1."
         )
 
 
-def _build_split(
-    split_path: Path, stratified_types: List[str], partitions: List[str] = ["train", "val", "test"]
-) -> Split:
+def _build_split(split_path: Path, stratified_types: List[str], partitions: List[str] = ["train", "val", "test"]) -> Split:
     split = Split()
 
     split.random = {partition: split_path / f"random_{partition}.txt" for partition in partitions}
@@ -426,8 +421,6 @@ def _build_split(
 
     stratified_dict: Dict[str, Dict[str, Path]] = {}
     for stratified_type in stratified_types:
-        stratified_dict[stratified_type] = {
-            partition: split_path / f"stratified_{stratified_type}_{partition}.txt" for partition in partitions
-        }
+        stratified_dict[stratified_type] = {partition: split_path / f"stratified_{stratified_type}_{partition}.txt" for partition in partitions}
     split.stratified = stratified_dict
     return split
