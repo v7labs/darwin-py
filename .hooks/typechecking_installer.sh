@@ -22,7 +22,7 @@ HOOK_SCRIPT="#!/bin/bash
 FILES=\$(git diff --diff-filter=MA --name-only master | grep 'darwin/future/.*\.py$')
 RED='\033[0;31m'
 GREEN='\033[0;32m'
-echo Pre-Commit Hook: Typecheck
+echo Typechecking Hook
 echo ----------------------------------------
 echo checking \$FILES
 # Run the linters on each changed file
