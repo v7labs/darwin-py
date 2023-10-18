@@ -20,7 +20,7 @@
 HOOK_SCRIPT="#!/bin/bash
 # Get the list of changed Python files in the darwin/future folder
 FILES=\$(git diff --name-only HEAD | grep 'darwin/future/.*\.py$')
-
+echo checking \$FILES
 # Run the linters on each changed file
 for FILE in \$FILES
 do
@@ -74,12 +74,10 @@ do
 done
 
 # Create the hook file
-echo "$HOOK_SCRIPT" > "$PRE_COMMIT_HOOK_FILE"
-echo "$HOOK_SCRIPT" > "$POST_COMMIT_HOOK_FILE"
+echo "$HOOK_SCRIPT" > "$DEFAULT_HOOK_FILE"
 
 # Make the hook file executable
-chmod +x "$PRE_COMMIT_HOOK_FILE"
-chmod +x "$POST_COMMIT_HOOK_FILE"
+chmod +x "$DEFAULT_HOOK_FILE"
 
 # # Install the hook file
 # if [ -f "$DEFAULT_HOOK_FILE" ]; then
