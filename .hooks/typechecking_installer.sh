@@ -20,28 +20,42 @@
 HOOK_SCRIPT="#!/bin/bash
 # Get the list of changed Python files in the darwin/future folder
 FILES=\$(git diff --diff-filter=MA --name-only master | grep 'darwin/future/.*\.py$')
+RED='\033[0;31m'
+GREEN='\033[0;32m'
 echo Pre-Commit Hook: Typecheck
 echo ----------------------------------------
 echo checking \$FILES
 # Run the linters on each changed file
 echo Running Black
 echo ----------------------------------------
-for FILE in \$FILES
-do
-    black \$FILE
-done
+BLACK_FAILED=0
+black --check \$FILES || BLACK_FAILED=1
+
 echo Running Ruff
 echo ----------------------------------------
-for FILE in \$FILES
-do
-    ruff \$FILE
-done
+RUFF_FAILED=0
+ruff check \$FILES || RUFF_FAILED=1
+
 echo Running Mypy
 echo ----------------------------------------
-for FILE in \$FILES
-do
-    mypy \$FILE
-done
+MYPY_FAILED=0
+mypy \$FILES || MYPY_FAILED=1
+
+# Check if any linter failed
+echo Summary
+echo ----------------------------------------
+if [ \$BLACK_FAILED -eq 1 ]; then
+    echo \"${RED}Black failed.\"
+fi
+if [ \$RUFF_FAILED -eq 1 ]; then
+    echo \"${RED}Ruff failed.\"
+fi
+if [ \$MYPY_FAILED -eq 1 ]; then
+    echo \"${RED}Mypy failed.\"
+fi
+if [ \$BLACK_FAILED -eq 0 ] && [ \$RUFF_FAILED -eq 0 ] && [ \$MYPY_FAILED -eq 0 ]; then
+    echo \"${GREEN}All linters passed.\"
+fi
 "
 
 # Define the hook name
