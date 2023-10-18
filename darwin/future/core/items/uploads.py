@@ -61,8 +61,25 @@ async def _build_slots(item: Item) -> List[Dict]:
 
 
 async def _build_layout(item: Item) -> Dict:
-    # TODO: implement me - START HERE
-    return NotImplemented
+    if not item.layout:
+        return {}
+
+    if item.layout.version == 1:
+        return {
+            "slots": item.layout.slots,
+            "type": item.layout.type,
+            "version": item.layout.version,
+        }
+
+    if item.layout.version == 2:
+        return {
+            "slots": item.layout.slots,
+            "type": item.layout.type,
+            "version": item.layout.version,
+            "layout_shape": item.layout.layout_shape,
+        }
+
+    raise DarwinException(f"Invalid layout version {item.layout.version}")
 
 
 async def _build_payload_items(items_and_paths: List[Tuple[Item, Path]]) -> List[Dict]:
@@ -130,7 +147,9 @@ async def async_register_upload(
 
     if isinstance(items_and_paths, tuple):
         items_and_paths = [items_and_paths]
-        assert all((isinstance(item, Item) and isinstance(path, Path)) for item, path in items_and_paths), "items must be a list of Items"
+        assert all(
+            (isinstance(item, Item) and isinstance(path, Path)) for item, path in items_and_paths
+        ), "items must be a list of Items"
 
     payload_items = await _build_payload_items(items_and_paths)
 
@@ -282,7 +301,11 @@ def register_upload(
         Whether to ignore the dicom layout
     """
     # TODO: test me
-    response = asyncio.run(async_register_upload(api_client, team_slug, dataset_slug, items_and_paths, force_tiling, handle_as_slices, ignore_dicom_layout))
+    response = asyncio.run(
+        async_register_upload(
+            api_client, team_slug, dataset_slug, items_and_paths, force_tiling, handle_as_slices, ignore_dicom_layout
+        )
+    )
     return response
 
 
@@ -340,7 +363,9 @@ def register_and_create_signed_upload_url(
     """
     # TODO: test me
     return asyncio.run(
-        async_register_and_create_signed_upload_url(api_client, team_slug, dataset_slug, items_and_paths, force_tiling, handle_as_slices, ignore_dicom_layout)
+        async_register_and_create_signed_upload_url(
+            api_client, team_slug, dataset_slug, items_and_paths, force_tiling, handle_as_slices, ignore_dicom_layout
+        )
     )
 
 

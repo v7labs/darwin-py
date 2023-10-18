@@ -50,7 +50,7 @@ class ItemSlot(DefaultDarwin):
     # Optional fields
     as_frames: Optional[bool] = Field(default=False)
     extract_views: Optional[bool] = Field(default=False)
-    fps: Optional[ItemFrameRate] = Field(...)
+    fps: Optional[ItemFrameRate] = Field(0)
     metadata: Optional[Dict[str, UnknownType]] = Field({})
     tags: Optional[Union[List[str], Dict[str, str]]] = Field([])
     type: Literal["image", "video", "pdf", "dicom"] = Field(...)
@@ -83,9 +83,9 @@ class Item(DefaultDarwin):
     slots: List[ItemSlot] = Field(default=[])
 
     # Optional fields
-    path: str
-    tags: Optional[Union[List[str], Dict[str, str]]] = Field([])
-    layout: Optional[Union[ItemLayoutV1, ItemLayoutV2]] = Field(...)
+    path: Optional[str] = None
+    tags: Optional[Union[List[str], Dict[str, str]]] = []
+    layout: Optional[Union[ItemLayoutV1, ItemLayoutV2]] = None
 
     @validator("name")
     def validate_name(cls, v: UnknownType) -> str:

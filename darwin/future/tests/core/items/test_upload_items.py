@@ -1,6 +1,6 @@
 import asyncio
 from pathlib import Path
-from typing import Coroutine, List
+from typing import Coroutine, Dict, List
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -12,6 +12,25 @@ from darwin.future.data_objects.item import Item
 from darwin.future.tests.core.fixtures import *  # noqa: F401,F403
 
 from .fixtures import *  # noqa: F401,F403
+
+
+class TestBuildSlots:
+    items: List[Item] = [
+        Item(
+            name="item with no slots",
+            slots=[],
+        )
+    ]
+    expectations: List[List[Dict]] = [[]]
+
+    # Sanity check
+    assert len(items) == len(expectations)
+
+    items_and_expectations = zip(items, expectations)
+
+    @pytest.mark.parametrize("item,expected", *items_and_expectations)
+    def test_build_slots(self, item: Item, expected: List[Dict]) -> None:
+        assert uploads._build_slots(item) == expected
 
 
 class TestRegisterUpload:
