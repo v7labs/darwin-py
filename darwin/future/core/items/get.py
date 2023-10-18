@@ -1,15 +1,16 @@
-from typing import List, Optional, Union
+from typing import List, Union
 from uuid import UUID
 
 from pydantic import parse_obj_as
 
 from darwin.future.core.client import ClientCore
 from darwin.future.core.types.common import QueryString
-from darwin.future.core.types.query import Query
 from darwin.future.data_objects.item import Folder, Item
 
 
-def get_item_ids(api_client: ClientCore, team_slug: str, dataset_id: Union[str, int]) -> List[UUID]:
+def get_item_ids(
+    api_client: ClientCore, team_slug: str, dataset_id: Union[str, int]
+) -> List[UUID]:
     """
     Returns a list of item ids for the dataset
 
@@ -70,7 +71,9 @@ def get_item_ids_stage(
     """
     response = api_client.get(
         f"/v2/teams/{team_slug}/items/ids",
-        QueryString({"workflow_stage_ids": str(stage_id), "dataset_ids": str(dataset_id)}),
+        QueryString(
+            {"workflow_stage_ids": str(stage_id), "dataset_ids": str(dataset_id)}
+        ),
     )
     assert isinstance(response, dict)
     uuids = [UUID(uuid) for uuid in response["item_ids"]]

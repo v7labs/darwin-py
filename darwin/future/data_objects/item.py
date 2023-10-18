@@ -4,7 +4,6 @@ from uuid import UUID
 
 from pydantic import Field, validator
 
-from darwin import dataset
 from darwin.datatypes import NumberLike
 from darwin.future.data_objects.pydantic_base import DefaultDarwin
 from darwin.future.data_objects.typing import UnknownType

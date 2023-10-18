@@ -18,8 +18,12 @@ class TeamSlug(str):
 
     @classmethod
     def validate(cls, v: str) -> "TeamSlug":
-        assert len(v) < cls.max_length, f"maximum length for team slug is {cls.max_length}"
-        assert len(v) > cls.min_length, f"minimum length for team slug is {cls.min_length}"
+        assert (
+            len(v) < cls.max_length
+        ), f"maximum length for team slug is {cls.max_length}"
+        assert (
+            len(v) > cls.min_length
+        ), f"minimum length for team slug is {cls.min_length}"
         if not isinstance(v, str):
             raise TypeError("string required")
         modified_value = darwin_validators.parse_name(v)
