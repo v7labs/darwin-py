@@ -225,25 +225,36 @@ def exhaust_generator(
     worker_count: Optional[int] = None,
 ) -> Tuple[List[Dict[str, Any]], List[Exception]]:
     """
-    Exhausts the generator passed as parameter. Can be done multi threaded if desired.
 
+    Exhausts the generator passed as parameter. Can be done multi threaded if desired.
+    Creates and returns a coco record from the given annotation.
+    
+    Uses ``BoxMode.XYXY_ABS`` from ``detectron2.structures`` if available, defaults to ``box_mode = 0``
+    otherwise.
     Parameters
     ----------
-    progress : Generator
-        Generator to exhaust.
-    count : int
-        Size of the generator.
-    multi_threaded : bool
-        Flag for multi-threaded enabled operations.
-    worker_count : Optional[int]
-        Number of workers to use if multi_threaded=True. By default CPU count is used.
-
+    annotation_path : Path
+        ``Path`` to the annotation file.
+    annotation_type : str = "polygon"
+        Type of the annotation we want to retrieve.
+    image_path : Optional[Path], default: None
+        ``Path`` to the image the annotation refers to.
+    image_id : Optional[Union[str, int]], default: None
+        Id of the image the annotation refers to.
+    classes : Optional[List[str]], default: None
+        Classes of the annotation.
     Returns
     -------
-    List[Dict[str, Any]
-        List of responses from the generator execution.
-    List[Exception]
-        List of exceptions raised during the execution of the generator.
+    Dict[str, Any]
+        A coco record with the following keys:
+        .. code-block:: python
+            {
+                "height": 100,
+                "width": 100,
+                "file_name": "a file name",
+                "image_id": 1,
+                "annotations": [ ... ]
+            }
     """
     successes = []
     errors = []
