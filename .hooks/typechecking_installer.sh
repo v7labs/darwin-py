@@ -45,16 +45,16 @@ mypy \$FILES || MYPY_FAILED=1
 echo Summary
 echo ----------------------------------------
 if [ \$BLACK_FAILED -eq 1 ]; then
-    echo -e \"${RED}Black failed.\"
+    echo -e \"\${RED}Black failed.\"
 fi
 if [ \$RUFF_FAILED -eq 1 ]; then
-    echo -e \"${RED}Ruff failed.\"
+    echo -e \"\${RED}Ruff failed.\"
 fi
 if [ \$MYPY_FAILED -eq 1 ]; then
-    echo -e \"${RED}Mypy failed.\"
+    echo -e \"\${RED}Mypy failed.\"
 fi
 if [ \$BLACK_FAILED -eq 0 ] && [ \$RUFF_FAILED -eq 0 ] && [ \$MYPY_FAILED -eq 0 ]; then
-    echo -e \"${GREEN}All checks passed.\"
+    echo -e \"\${GREEN}All checks passed.\"
 fi
 "
 
