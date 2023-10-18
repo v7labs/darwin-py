@@ -81,4 +81,7 @@ def happy_get_client() -> ClientCore:
 
 @fixture
 def sad_client_pydantic() -> ClientCore:
-    return MagicMock(ClientCore, side_effect=ValidationError(["error1", "error2", "error3"], model=BaseModel))
+    return MagicMock(
+        ClientCore,
+        side_effect=ValidationError(["error1", "error2", "error3"], model=BaseModel),
+    )

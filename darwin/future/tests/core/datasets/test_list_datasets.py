@@ -11,7 +11,9 @@ from darwin.future.tests.core.fixtures import *
 from .fixtures import *
 
 
-def test_it_lists_datasets(base_client: ClientCore, basic_list_of_datasets: List[DatasetCore]) -> None:
+def test_it_lists_datasets(
+    base_client: ClientCore, basic_list_of_datasets: List[DatasetCore]
+) -> None:
     with responses.RequestsMock() as rsps:
         rsps.add(
             rsps.GET,
@@ -29,7 +31,9 @@ def test_it_lists_datasets(base_client: ClientCore, basic_list_of_datasets: List
         assert datasets[0].slug == "1337"
 
 
-def test_it_returns_an_error_if_the_client_returns_an_http_error(base_client: ClientCore) -> None:
+def test_it_returns_an_error_if_the_client_returns_an_http_error(
+    base_client: ClientCore,
+) -> None:
     with responses.RequestsMock() as rsps:
         rsps.add(
             rsps.GET,

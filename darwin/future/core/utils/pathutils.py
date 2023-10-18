@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import Any, Optional
+from typing import Optional
 
 import yaml
 
@@ -29,7 +29,9 @@ def attempt_open(path: Path) -> dict:
                 return open_json(path, encoding)
         except Exception:
             pass
-    raise UnrecognizableFileEncoding(f"Unable to load file {path} with any encodings: {ENCODINGS}")
+    raise UnrecognizableFileEncoding(
+        f"Unable to load file {path} with any encodings: {ENCODINGS}"
+    )
 
 
 def open_yaml(path: Path, encoding: Optional[str] = None) -> dict:

@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Union
+from typing import Iterable, List, Union
 
 import orjson as json
 
@@ -34,14 +34,11 @@ def export(annotation_files: Iterable[AnnotationFile], output_dir: Path) -> None
 
 
 def _export_file(annotation_file: AnnotationFile, _: int, output_dir: Path) -> None:
-
     try:
         filename = annotation_file.path.parts[-1]
         output_file_path = (output_dir / filename).with_suffix(".json")
     except Exception as e:
-        raise ExportException_CouldNotAssembleOutputPath(
-            f"Could not export file {annotation_file.path} to {output_dir}"
-        ) from e
+        raise ExportException_CouldNotAssembleOutputPath(f"Could not export file {annotation_file.path} to {output_dir}") from e
 
     try:
         output: DictFreeForm = _build_json(annotation_file)
@@ -50,9 +47,7 @@ def _export_file(annotation_file: AnnotationFile, _: int, output_dir: Path) -> N
 
     try:
         with open(output_file_path, "w") as f:
-            op = json.dumps(output, option=json.OPT_INDENT_2 | json.OPT_SERIALIZE_NUMPY | json.OPT_NON_STR_KEYS).decode(
-                "utf-8"
-            )
+            op = json.dumps(output, option=json.OPT_INDENT_2 | json.OPT_SERIALIZE_NUMPY | json.OPT_NON_STR_KEYS).decode("utf-8")
             f.write(op)
     except Exception as e:
         raise ExportException_CouldNotWriteFile(f"Could not write output for {annotation_file.path}") from e
@@ -170,12 +165,24 @@ def _build_image_annotation(annotation: Annotation, skip_slots: bool = False) ->
 
 
 def _build_legacy_annotation_data(annotation_class: AnnotationClass, data: DictFreeForm) -> DictFreeForm:
-    if annotation_class.annotation_type == "complex_polygon":
-        data["path"] = data["paths"]
-        del data["paths"]
-        return {"complex_polygon": data}
-    else:
-        return {annotation_class.annotation_type: data}
+    v1_data = {}
+    polygon_annotation_mappings = {"complex_polygon": "paths", "polygon": "path"}
+
+    if annotation_class.annotation_type in polygon_annotation_mappings:
+        key = polygon_annotation_mappings[annotation_class.annotation_type]
+        v1_data[annotation_class.annotation_type] = {"path": data.get(key)}
+
+    elif annotation_class.annotation_type == "tag":
+        v1_data["tag"] = {}
+
+    elif annotation_class.annotation_type == "bounding_box":
+        v1_data[annotation_class.annotation_type] = data
+
+    if "bounding_box" in data and annotation_class.annotation_type != "bounding_box":
+        # Poygons and complex polygons usually have attached bounding_box annotations
+        v1_data["bounding_box"] = data["bounding_box"]
+
+    return v1_data
 
 
 def _build_metadata(annotation_file: AnnotationFile) -> DictFreeForm:
