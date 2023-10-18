@@ -18,8 +18,8 @@
 
 # Define the hook script
 HOOK_SCRIPT="#!/bin/bash
-# Get the list of changed Python files
-FILES=\$(git diff --name-only HEAD | grep '\.py$')
+# Get the list of changed Python files in the darwin/future folder
+FILES=\$(git diff --name-only HEAD | grep 'darwin/future/.*\.py$')
 
 # Run the linters on each changed file
 for FILE in \$FILES
@@ -41,8 +41,8 @@ PRE_COMMIT_FILE="$HOOK_DIR/pre-commit"
 POST_COMMIT_FILE="$HOOK_DIR/post-commit"
 
 # Define the hook file names with the hook name
-PRE_COMMIT_HOOK_FILE="$HOOK_DIR/pre-commit-$HOOK_NAME"
-POST_COMMIT_HOOK_FILE="$HOOK_DIR/post-commit-$HOOK_NAME"
+PRE_COMMIT_HOOK_FILE="$HOOK_DIR/pre-commit"
+POST_COMMIT_HOOK_FILE="$HOOK_DIR/post-commit"
 
 # Define the default hook file name
 DEFAULT_HOOK_FILE="$POST_COMMIT_FILE"
@@ -81,8 +81,8 @@ echo "$HOOK_SCRIPT" > "$POST_COMMIT_HOOK_FILE"
 chmod +x "$PRE_COMMIT_HOOK_FILE"
 chmod +x "$POST_COMMIT_HOOK_FILE"
 
-# Install the hook file
-if [ -f "$DEFAULT_HOOK_FILE" ]; then
-    mv "$DEFAULT_HOOK_FILE" "$HOOK_DIR/$DEFAULT_HOOK_TYPE-$(date +%s)-$HOOK_NAME"
-fi
-ln -s "$PRE_COMMIT_HOOK_FILE" "$DEFAULT_HOOK_FILE"
+# # Install the hook file
+# if [ -f "$DEFAULT_HOOK_FILE" ]; then
+#     mv "$DEFAULT_HOOK_FILE" "$HOOK_DIR/$DEFAULT_HOOK_TYPE-$(date +%s)-$HOOK_NAME"
+# fi
+# ln -s "$PRE_COMMIT_HOOK_FILE" "$DEFAULT_HOOK_FILE"
