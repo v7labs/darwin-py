@@ -37,22 +37,22 @@ async def _build_slots(item: Item) -> List[Dict]:
             "storage_key": slot.storage_key,
         }
 
-        if slot.as_frames:
+        if slot.as_frames is not None:
             slot_dict["as_frames"] = slot.as_frames
 
-        if slot.extract_views:
+        if slot.extract_views is not None:
             slot_dict["extract_views"] = slot.extract_views
 
-        if slot.fps:
+        if slot.fps != 0:
             slot_dict["fps"] = slot.fps
 
-        if slot.metadata:
+        if slot.metadata is not None:
             slot_dict["metadata"] = slot.metadata
 
-        if slot.tags:
+        if slot.tags is not None:
             slot_dict["tags"] = slot.tags
 
-        if slot.type:
+        if slot.type is not None:
             slot_dict["type"] = slot.type
 
         slots_to_return.append(slot_dict)

@@ -1,7 +1,8 @@
 # @see: GraphotateWeb.Schemas.DatasetsV2.ItemRegistration.ExistingItem
+from pathlib import Path
 from typing import Dict, List, Literal, Optional, Union
 
-from pydantic import Field, validator
+from pydantic import root_validator, validator
 
 from darwin.datatypes import NumberLike
 from darwin.future.data_objects.pydantic_base import DefaultDarwin
@@ -22,38 +23,38 @@ class ItemLayoutV1(DefaultDarwin):
     # GraphotateWeb.Schemas.DatasetsV2.Common.ItemLayoutV1
 
     # Required fields
-    slots: List[str] = Field(...)
-    type: Literal["grid", "horizontal", "vertical", "simple"] = Field(...)
-    version: Literal[1] = Field(...)
+    slots: List[str]
+    type: Literal["grid", "horizontal", "vertical", "simple"]
+    version: Literal[1]
 
 
 class ItemLayoutV2(DefaultDarwin):
     # GraphotateWeb.Schemas.DatasetsV2.Common.ItemLayoutV2
 
     # Required fields
-    slots: List[str] = Field(...)
-    type: Literal["grid", "horizontal", "vertical", "simple"] = Field(...)
-    version: Literal[2] = Field(...)
+    slots: List[str]
+    type: Literal["grid", "horizontal", "vertical", "simple"]
+    version: Literal[2]
 
     # Optional fields
-    layout_shape: List[int] = Field(...)
+    layout_shape: Optional[List[int]] = None
 
 
 class ItemSlot(DefaultDarwin):
     # GraphotateWeb.Schemas.DatasetsV2.ItemRegistration.ExistingSlot
 
     # Required fields
-    slot_name: str = Field(...)
-    file_name: str = Field(...)
-    storage_key: str = Field(...)
+    slot_name: str
+    file_name: str
+    storage_key: str
 
     # Optional fields
-    as_frames: Optional[bool] = Field(default=False)
-    extract_views: Optional[bool] = Field(default=False)
-    fps: Optional[ItemFrameRate] = Field(0)
-    metadata: Optional[Dict[str, UnknownType]] = Field({})
-    tags: Optional[Union[List[str], Dict[str, str]]] = Field([])
-    type: Literal["image", "video", "pdf", "dicom"] = Field(...)
+    as_frames: Optional[bool] = None
+    extract_views: Optional[bool] = None
+    fps: Optional[Union[int, float, Literal["native"]]] = 0
+    metadata: Optional[Dict[str, UnknownType]] = None
+    tags: Optional[Union[List[str], Dict[str, str]]] = None
+    type: Optional[Literal["image", "video", "pdf", "dicom"]] = None
 
     @validator("slot_name")
     def validate_slot_name(cls, v: UnknownType) -> str:
@@ -74,13 +75,38 @@ class ItemSlot(DefaultDarwin):
             assert v == "native", "fps must be 'native' or a number greater than 0"
         return v
 
+    class Config:
+        smart_union = True
+
+    @root_validator
+    def infer_type(cls, values: Dict[str, UnknownType]) -> Dict[str, UnknownType]:
+        file_name = values.get("file_name")
+
+        if file_name is not None:
+            suffix = Path(file_name).suffix.lower()
+
+            # TODO - Review types
+            if suffix in (".jpg", ".jpeg", ".png", ".bmp", ".gif"):
+                values["type"] = "image"
+            elif suffix == ".pdf":
+                values["type"] = "pdf"
+            elif suffix in [".dcm", ".nii", ".nii.gz"]:
+                values["type"] = "dicom"
+            elif suffix in (".mp4", ".avi", ".mov", ".wmv", ".mkv"):
+                values["type"] = "video"
+
+            if values["type"] is None:
+                values["type"] = "image"
+
+        return values
+
 
 class Item(DefaultDarwin):
     # GraphotateWeb.Schemas.DatasetsV2.ItemRegistration.NewItem
 
     # Required fields
     name: str
-    slots: List[ItemSlot] = Field(default=[])
+    slots: List[ItemSlot] = []
 
     # Optional fields
     path: Optional[str] = None
