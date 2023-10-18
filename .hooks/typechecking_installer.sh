@@ -24,10 +24,22 @@ echo Pre-Commit Hook: Typecheck
 echo ----------------------------------------
 echo checking \$FILES
 # Run the linters on each changed file
+echo Running Black
+echo ----------------------------------------
 for FILE in \$FILES
 do
     black \$FILE
+done
+echo Running Ruff
+echo ----------------------------------------
+for FILE in \$FILES
+do
     ruff \$FILE
+done
+echo Running Mypy
+echo ----------------------------------------
+for FILE in \$FILES
+do
     mypy \$FILE
 done
 "
