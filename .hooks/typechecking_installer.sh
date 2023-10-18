@@ -20,6 +20,9 @@
 HOOK_SCRIPT="#!/bin/bash
 # Get the list of changed Python files in the darwin/future folder
 FILES=\$(git diff --diff-filter=MA --name-only master | grep 'darwin/future/.*\.py$')
+if [ -z \"\$FILES\" ]; then
+    exit 0
+fi
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 echo Typechecking Hook
@@ -106,9 +109,3 @@ echo "$HOOK_SCRIPT" > "$DEFAULT_HOOK_FILE"
 
 # Make the hook file executable
 chmod +x "$DEFAULT_HOOK_FILE"
-
-# # Install the hook file
-# if [ -f "$DEFAULT_HOOK_FILE" ]; then
-#     mv "$DEFAULT_HOOK_FILE" "$HOOK_DIR/$DEFAULT_HOOK_TYPE-$(date +%s)-$HOOK_NAME"
-# fi
-# ln -s "$PRE_COMMIT_HOOK_FILE" "$DEFAULT_HOOK_FILE"
