@@ -5,7 +5,7 @@
 
 # sh
 # This will install the linters and set up the pre-commit hook to run them on each changed Python file.
-# -o, --post-commit, -p, --pre-commit, default -p
+# -o, --post-commit, -p, --pre-commit, default -o post commit install
 
 # Requirements
 # This script requires the following tools to be installed:
