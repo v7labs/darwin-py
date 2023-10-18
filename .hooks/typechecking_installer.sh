@@ -19,7 +19,9 @@
 # Define the hook script
 HOOK_SCRIPT="#!/bin/bash
 # Get the list of changed Python files in the darwin/future folder
-FILES=\$(git diff --name-only HEAD | grep 'darwin/future/.*\.py$')
+FILES=\$(git diff --diff-filter=MA --name-only master | grep 'darwin/future/.*\.py$')
+echo Pre-Commit Hook: Typecheck
+echo ----------------------------------------
 echo checking \$FILES
 # Run the linters on each changed file
 for FILE in \$FILES
