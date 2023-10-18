@@ -31,7 +31,7 @@ def move_items_to_stage(
 
     Returns
     -------
-    None
+    JSONType
     """
 
     return api_client.post(
