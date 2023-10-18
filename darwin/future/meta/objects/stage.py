@@ -57,18 +57,16 @@ class Stage(MetaBase[WFStageCore]):
     def name(self) -> str:
         """Stage name."""
         return self._element.name
-    
+
     @property
     def type(self) -> str:
         """Stage type."""
         return self._element.type.value
-    
+
     @property
     def edges(self) -> List[List[UUID]]:
         """Edge ID, source stage ID, target stage ID."""
         edges = []
         for edge in self._element.edges:
-            edges.append(
-                [edge.id, edge.source_stage_id, edge.target_stage_id]
-            )
+            edges.append([edge.id, edge.source_stage_id, edge.target_stage_id])
         return edges
