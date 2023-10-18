@@ -54,7 +54,7 @@ if [ \$MYPY_FAILED -eq 1 ]; then
     echo -e \"${RED}Mypy failed.\"
 fi
 if [ \$BLACK_FAILED -eq 0 ] && [ \$RUFF_FAILED -eq 0 ] && [ \$MYPY_FAILED -eq 0 ]; then
-    echo -e \"${GREEN}All linters passed.\"
+    echo -e \"${GREEN}All checks passed.\"
 fi
 "
 
