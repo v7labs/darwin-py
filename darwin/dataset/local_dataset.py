@@ -7,7 +7,12 @@ import orjson as json
 from PIL import Image as PILImage
 
 from darwin.dataset.utils import get_classes, get_release_path, load_pil_image
-from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS, parse_darwin_json
+from darwin.utils import (
+    SUPPORTED_IMAGE_EXTENSIONS,
+    get_image_path_from_stream,
+    parse_darwin_json,
+    stream_darwin_json,
+)
 
 
 class LocalDataset:
@@ -96,8 +101,8 @@ class LocalDataset:
 
         # Find all the annotations and their corresponding images
         for annotation_path in sorted(annotations_dir.glob("**/*.json")):
-            darwin_json = parse_darwin_json(annotation_path)
-            image_path = images_dir / Path(darwin_json.full_path.lstrip('/\\'))
+            darwin_json = stream_darwin_json(annotation_path)
+            image_path = get_image_path_from_stream(darwin_json, images_dir)
             if image_path.exists():
                 self.images_path.append(image_path)
                 self.annotations_path.append(annotation_path)

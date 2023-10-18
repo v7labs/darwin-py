@@ -18,9 +18,11 @@ from darwin.utils import (
     SUPPORTED_EXTENSIONS,
     SUPPORTED_VIDEO_EXTENSIONS,
     attempt_decode,
+    get_image_path_from_stream,
     is_unix_like_os,
     parse_darwin_json,
 )
+from darwin.utils.utils import stream_darwin_json
 
 # E.g.: {"partition" => {"class_name" => 123}}
 AnnotationDistribution = Dict[str, Counter]
@@ -435,8 +437,8 @@ def get_annotations(
     # Find all the annotations and their corresponding images
     invalid_annotation_paths = []
     for annotation_path in annotations_dir.glob("**/*.json"):
-        darwin_json = parse_darwin_json(annotation_path)
-        image_path = images_dir / Path(darwin_json.full_path.lstrip('/\\'))
+        darwin_json = stream_darwin_json(annotation_path)
+        image_path = get_image_path_from_stream(darwin_json, images_dir)
         if image_path.exists():
             images_paths.append(image_path)
             annotations_paths.append(annotation_path)
