@@ -434,19 +434,29 @@ def get_annotations(
 
     # Find all the annotations and their corresponding images
     invalid_annotation_paths = []
-    for annotation_path in annotations_dir.glob("**/*.json"):
-        darwin_json = parse_darwin_json(annotation_path)
-        image_path = images_dir / Path(darwin_json.full_path.lstrip('/\\'))
-        if image_path.exists():
-            images_paths.append(image_path)
-            annotations_paths.append(annotation_path)
-            continue
-        else:
-            if ignore_inconsistent_examples:
-                invalid_annotation_paths.append(annotation_path)
+    for stem in stems:
+        annotation_path = annotations_dir / f"{stem}.json"
+        images = []
+        for ext in SUPPORTED_EXTENSIONS:
+            image_path = images_dir / f"{stem}{ext}"
+            if image_path.exists():
+                images.append(image_path)
                 continue
-            else:
-                raise ValueError(f"Annotation ({annotation_path}) does not have a corresponding image")
+            image_path = images_dir / f"{stem}{ext.upper()}"
+            if image_path.exists():
+                images.append(image_path)
+
+        image_count = len(images)
+        if image_count != 1 and ignore_inconsistent_examples:
+            invalid_annotation_paths.append(annotation_path)
+            continue
+        elif image_count < 1:
+            raise ValueError(f"Annotation ({annotation_path}) does not have a corresponding image")
+        elif image_count > 1:
+            raise ValueError(f"Image ({stem}) is present with multiple extensions. This is forbidden.")
+
+        images_paths.append(images[0])
+        annotations_paths.append(annotation_path)
 
     print(f"Found {len(invalid_annotation_paths)} invalid annotations")
     for p in invalid_annotation_paths:
