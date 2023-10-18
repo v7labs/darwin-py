@@ -1,7 +1,6 @@
 from typing import List, Optional, Tuple
 
 from darwin.future.core.client import ClientCore
-from darwin.future.core.types.common import JSONType
 from darwin.future.data_objects.team import TeamCore, TeamMemberCore
 
 
@@ -13,7 +12,9 @@ def get_team(client: ClientCore, team_slug: Optional[str] = None) -> TeamCore:
     return TeamCore.parse_obj(response)
 
 
-def get_team_members(client: ClientCore) -> Tuple[List[TeamMemberCore], List[Exception]]:
+def get_team_members(
+    client: ClientCore,
+) -> Tuple[List[TeamMemberCore], List[Exception]]:
     response = client.get("/memberships")
     members = []
     errors = []

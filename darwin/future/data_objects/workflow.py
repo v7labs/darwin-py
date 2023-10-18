@@ -59,7 +59,9 @@ class WFEdgeCore(DefaultDarwin):
     @root_validator(pre=True)
     def _one_or_both_must_exist(cls, values: dict) -> dict:
         if not values["source_stage_id"] and not values["target_stage_id"]:
-            raise ValueError("One or both of source_stage_id and target_stage_id must be defined")
+            raise ValueError(
+                "One or both of source_stage_id and target_stage_id must be defined"
+            )
 
         return values
 

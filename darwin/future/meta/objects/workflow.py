@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from enum import auto
-from pathlib import Path
 from typing import List, Optional, Sequence, Union
 from uuid import UUID
 
@@ -61,9 +59,7 @@ class Workflow(MetaBase[WorkflowCore]):
         auto_push: bool = True,
     ) -> Workflow:
         assert self._element.dataset is not None
-        upload_data(
-            self.datasets[0].name, files, files_to_exclude, fps, path, frames, extract_views, preserve_folders, verbose  # type: ignore
-        )
+        upload_data(self.datasets[0].name, files, files_to_exclude, fps, path, frames, extract_views, preserve_folders, verbose)  # type: ignore
         if auto_push:
             self.push_from_dataset_stage()
         return self

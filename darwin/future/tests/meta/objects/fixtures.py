@@ -1,12 +1,13 @@
 from typing import List
 from uuid import UUID
 
-from pytest import fixture, raises
+from pytest import fixture
 
 from darwin.future.core.client import ClientCore
+from darwin.future.data_objects.dataset import DatasetCore
 from darwin.future.data_objects.team import TeamCore
 from darwin.future.data_objects.workflow import WFStageCore, WorkflowCore
-from darwin.future.meta.objects import stage
+from darwin.future.meta.objects.dataset import Dataset
 from darwin.future.meta.objects.stage import Stage
 from darwin.future.meta.objects.team import Team
 from darwin.future.meta.objects.workflow import Workflow
@@ -24,15 +25,24 @@ def base_meta_team(base_client: ClientCore, base_team: TeamCore) -> Team:
 
 
 @fixture
-def base_meta_workflow(base_client: ClientCore, base_workflow: WorkflowCore) -> Workflow:
+def base_meta_workflow(
+    base_client: ClientCore, base_workflow: WorkflowCore
+) -> Workflow:
     return Workflow(base_client, base_workflow)
 
 
 @fixture
-def base_meta_stage(base_client: ClientCore, base_stage: WFStageCore, base_UUID: UUID) -> Stage:
+def base_meta_stage(
+    base_client: ClientCore, base_stage: WFStageCore, base_UUID: UUID
+) -> Stage:
     return Stage(base_client, base_stage)
 
 
 @fixture
 def base_meta_stage_list(base_meta_stage: Stage, base_UUID: UUID) -> List[Stage]:
     return [base_meta_stage]
+
+
+@fixture
+def base_meta_dataset(base_client: ClientCore, base_dataset: DatasetCore) -> Dataset:
+    return Dataset(base_client, base_dataset, meta_params={"team_slug": "test_team"})

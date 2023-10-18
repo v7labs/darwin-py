@@ -10,7 +10,7 @@ def test_querystring_happy_path() -> None:
     query_string_2 = QueryString({"foo": "bar", "baz": "qux"})
     assert str(query_string_2) == "?foo=bar&baz=qux"
 
-    query_string_3 = QueryString(dict())
+    query_string_3 = QueryString({})
     assert str(query_string_3) == "?"
 
     assert query_string.value == {"foo": "bar"}

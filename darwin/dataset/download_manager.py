@@ -94,7 +94,7 @@ def download_all_images_from_annotations(
 
     # Verify that there is not already image in the images folder
     unfiltered_files = images_path.rglob(f"*") if use_folders else images_path.glob(f"*")
-    existing_images = {image.stem: image for image in unfiltered_files if is_image_extension_allowed(image.suffix)}
+    existing_images = {image for image in unfiltered_files if is_image_extension_allowed(image.suffix)}
 
     annotations_to_download_path = []
     for annotation_path in annotations_path.glob(f"*.{annotation_format}"):
@@ -103,11 +103,11 @@ def download_all_images_from_annotations(
             continue
 
         if not force_replace:
-            # Check collisions on image filename and json filename on the system
-            if annotation.filename in existing_images:
+            # Check the planned path for the image against the existing images
+            planned_image_path = images_path / Path(annotation.remote_path.lstrip('/\\')).resolve().absolute() / Path(annotation.filename)
+            if planned_image_path in existing_images:
                 continue
-            if sanitize_filename(annotation_path.stem) in existing_images:
-                continue
+
         annotations_to_download_path.append(annotation_path)
         if len(annotation.slots) > 1:
             force_slots = True
@@ -119,10 +119,11 @@ def download_all_images_from_annotations(
     if remove_extra:
         # Removes existing images for which there is not corresponding annotation
         annotations_downloaded_stem = [a.stem for a in annotations_path.glob(f"*.{annotation_format}")]
-        for existing_image in existing_images.values():
+        for existing_image in existing_images:
             if existing_image.stem not in annotations_downloaded_stem:
                 print(f"Removing {existing_image} as there is no corresponding annotation")
                 existing_image.unlink()
+    
     # Create the generator with the partial functions
     download_functions: List = []
     for annotation_path in annotations_to_download_path:

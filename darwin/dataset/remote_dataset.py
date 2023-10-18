@@ -353,7 +353,8 @@ class RemoteDataset(ABC):
             for error in errors:
                 self.console.print(f"\t - {error}")
 
-            downloaded_file_count = len([f for f in self.local_images_path.rglob("*") if f.is_file()])
+            downloaded_file_count = len([f for f in self.local_images_path.rglob("*") if f.is_file() and not f.name.startswith('.')])
+
             console.print(f"Total file count after download completed {str(downloaded_file_count)}.")
 
             return None, count
