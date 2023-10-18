@@ -26,23 +26,23 @@ echo Pre-Commit Hook: Typecheck
 echo ----------------------------------------
 echo checking \$FILES
 # Run the linters on each changed file
-echo Running Black
+echo -e '\nRunning Black'
 echo ----------------------------------------
 BLACK_FAILED=0
 black --check \$FILES || BLACK_FAILED=1
 
-echo Running Ruff
+echo -e '\nRunning Ruff'
 echo ----------------------------------------
 RUFF_FAILED=0
 ruff check \$FILES || RUFF_FAILED=1
 
-echo Running Mypy
+echo -e '\nRunning Mypy'
 echo ----------------------------------------
 MYPY_FAILED=0
 mypy \$FILES || MYPY_FAILED=1
 
 # Check if any linter failed
-echo \nSummary
+echo Summary
 echo ----------------------------------------
 if [ \$BLACK_FAILED -eq 1 ]; then
     echo -e \"${RED}Black failed.\"
