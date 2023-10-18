@@ -147,8 +147,8 @@ def split_dataset(
     split_id = f"{train_size}_{val_size}_{test_size}"
 
     assert train_size > 0, f"Found {train_size} train examples, we need at least 1"
-    assert val_size > 0, f"Found {val_size} train examples, we need at least 1"
-    assert test_size > 0, f"Found {test_size} train examples, we need at least 1"
+    assert val_size > 0, f"Found {val_size} validation examples, we need at least 1"
+    assert test_size > 0, f"Found {test_size} test examples, we need at least 1"
 
     # Compute split id, a combination of val precentage, test percentage and split seed
     # The split id is used to create a folder with the same name in the "lists" folder
