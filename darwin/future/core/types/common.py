@@ -1,6 +1,5 @@
 from typing import Any, Dict, List, Union
 
-
 from darwin.future.data_objects import validators as darwin_validators
 from darwin.future.data_objects.typing import UnknownType
 
@@ -19,12 +18,8 @@ class TeamSlug(str):
 
     @classmethod
     def validate(cls, v: str) -> "TeamSlug":
-        assert (
-            len(v) < cls.max_length
-        ), f"maximum length for team slug is {cls.max_length}"
-        assert (
-            len(v) > cls.min_length
-        ), f"minimum length for team slug is {cls.min_length}"
+        assert len(v) < cls.max_length, f"maximum length for team slug is {cls.max_length}"
+        assert len(v) > cls.min_length, f"minimum length for team slug is {cls.min_length}"
         if not isinstance(v, str):
             raise TypeError("string required")
         modified_value = darwin_validators.parse_name(v)
@@ -39,7 +34,7 @@ class QueryString:
 
     value: Dict[str, str]
 
-    def dict_check(cls, value: UnknownType) -> Dict[str, str]:
+    def dict_check(self, value: UnknownType) -> Dict[str, str]:
         assert isinstance(value, dict)
         assert all(isinstance(k, str) and isinstance(v, str) for k, v in value.items())
         return value

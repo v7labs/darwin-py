@@ -4,6 +4,7 @@ from uuid import UUID
 
 from pydantic import Field, validator
 
+from darwin import dataset
 from darwin.datatypes import NumberLike
 from darwin.future.data_objects.pydantic_base import DefaultDarwin
 from darwin.future.data_objects.typing import UnknownType
@@ -69,3 +70,10 @@ class Item(DefaultDarwin):
     @validator("name")
     def validate_name(cls, v: UnknownType) -> str:
         return validate_no_slashes(v)
+
+
+class Folder(DefaultDarwin):
+    dataset_id: int
+    filtered_item_count: int
+    path: str
+    unfiltered_item_count: int
