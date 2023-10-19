@@ -45,8 +45,7 @@ def test_item_ids(
     with responses.RequestsMock() as rsps:
         rsps.add(
             rsps.GET,
-            base_meta_client.config.api_endpoint
-            + "v2/teams/default-team/items/ids"
+            base_meta_client.config.api_endpoint + "v2/teams/default-team/items/ids"
             f"?workflow_stage_ids={str(stage_meta.id)}&dataset_ids=1337",
             json={"item_ids": UUIDs_str},
             status=200,
@@ -61,8 +60,7 @@ def test_move_attached_files_to_stage(
     with responses.RequestsMock() as rsps:
         rsps.add(
             rsps.GET,
-            base_meta_client.config.api_endpoint
-            + "v2/teams/default-team/items/ids?"
+            base_meta_client.config.api_endpoint + "v2/teams/default-team/items/ids?"
             f"workflow_stage_ids={str(stage_meta.id)}&dataset_ids=1337",
             json={"item_ids": UUIDs_str},
             status=200,
@@ -79,8 +77,7 @@ def test_move_attached_files_to_stage(
             1,
         )
         assert rsps.assert_call_count(
-            base_meta_client.config.api_endpoint
-            + "v2/teams/default-team/items/ids"
+            base_meta_client.config.api_endpoint + "v2/teams/default-team/items/ids"
             f"?workflow_stage_ids={str(stage_meta.id)}&dataset_ids=1337",
             1,
         )
