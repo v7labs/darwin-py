@@ -66,7 +66,6 @@ class Stage(MetaBase[WFStageCore]):
     @property
     def edges(self) -> List[List[UUID]]:
         """Edge ID, source stage ID, target stage ID."""
-        assert self._element.edges is not None
         return [
             [edge.id, edge.source_stage_id, edge.target_stage_id]
             for edge in self._element.edges
