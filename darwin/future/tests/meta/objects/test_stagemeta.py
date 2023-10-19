@@ -124,7 +124,7 @@ def test_get_stage_edges(stage_meta):
         ),
         {
             "team_slug": "default-team",
-            "dataset_id": 1337,
+            "dataset_id": 000000,
             "workflow_id": UUID("00000000-0000-0000-0000-000000000000"),
         },
     )
