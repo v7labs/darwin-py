@@ -1,9 +1,7 @@
 # @see: GraphotateWeb.Schemas.DatasetsV2.ItemRegistration.ExistingItem
-from pathlib import Path
 from typing import Dict, List, Literal, Optional, Union
 
 from pydantic import root_validator, validator
-from torch import isin
 
 from darwin.datatypes import NumberLike
 from darwin.future.data_objects.pydantic_base import DefaultDarwin
