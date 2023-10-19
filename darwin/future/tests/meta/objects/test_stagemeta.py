@@ -4,7 +4,7 @@ from uuid import UUID
 import responses
 from pytest import fixture
 
-from darwin.future.data_objects.workflow import WFStageCore, WFTypeCore
+from darwin.future.data_objects.workflow import WFEdgeCore, WFStageCore, WFTypeCore
 from darwin.future.meta.client import Client
 from darwin.future.meta.objects.stage import Stage
 from darwin.future.tests.core.fixtures import *
@@ -46,7 +46,8 @@ def test_item_ids(
         rsps.add(
             rsps.GET,
             base_meta_client.config.api_endpoint
-            + f"v2/teams/default-team/items/ids?workflow_stage_ids={str(stage_meta.id)}&dataset_ids=1337",
+            + f"v2/teams/default-team/items/ids?workflow_stage_ids={str(stage_meta.id)}"
+            "&dataset_ids=1337",
             json={"item_ids": UUIDs_str},
             status=200,
         )
@@ -61,7 +62,8 @@ def test_move_attached_files_to_stage(
         rsps.add(
             rsps.GET,
             base_meta_client.config.api_endpoint
-            + f"v2/teams/default-team/items/ids?workflow_stage_ids={str(stage_meta.id)}&dataset_ids=1337",
+            + f"v2/teams/default-team/items/ids?workflow_stage_ids={str(stage_meta.id)}"
+            "&dataset_ids=1337",
             json={"item_ids": UUIDs_str},
             status=200,
         )
@@ -78,6 +80,54 @@ def test_move_attached_files_to_stage(
         )
         assert rsps.assert_call_count(
             base_meta_client.config.api_endpoint
-            + f"v2/teams/default-team/items/ids?workflow_stage_ids={str(stage_meta.id)}&dataset_ids=1337",
+            + f"v2/teams/default-team/items/ids?workflow_stage_ids={str(stage_meta.id)}"
+            "&dataset_ids=1337",
             1,
         )
+
+
+def test_get_stage_id(stage_meta):
+    assert stage_meta.id == UUID("00000000-0000-0000-0000-000000000000")
+
+
+def test_get_stage_name(stage_meta):
+    assert stage_meta.name == "test-stage"
+
+
+def test_get_stage_type(stage_meta):
+    assert stage_meta.type == "annotate"
+
+
+def test_get_stage_edges(stage_meta):
+    edges = [
+        WFEdgeCore(
+            name="edge_1",
+            id=UUID("00000000-0000-0000-0000-000000000000"),
+            source_stage_id=UUID("00000000-0000-0000-0000-000000000000"),
+            target_stage_id=UUID("00000000-0000-0000-0000-000000000000"),
+        ),
+        WFEdgeCore(
+            name="edge_2",
+            id=UUID("00000000-0000-0000-0000-000000000000"),
+            source_stage_id=UUID("00000000-0000-0000-0000-000000000000"),
+            target_stage_id=UUID("00000000-0000-0000-0000-000000000000"),
+        ),
+    ]
+    test_stage = Stage(
+        stage_meta.client,
+        WFStageCore(
+            id=UUID("00000000-0000-0000-0000-000000000000"),
+            name="test-stage",
+            type=WFTypeCore.ANNOTATE,
+            assignable_users=[],
+            edges=edges,
+        ),
+        {
+            "team_slug": "default-team",
+            "dataset_id": 000000,
+            "workflow_id": UUID("00000000-0000-0000-0000-000000000000"),
+        },
+    )
+    assert len(test_stage.edges) == 2
+    assert len(test_stage.edges[0]) == 3
+    assert test_stage.edges[0][0] == UUID("00000000-0000-0000-0000-000000000000")
