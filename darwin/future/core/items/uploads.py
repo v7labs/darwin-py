@@ -143,7 +143,10 @@ async def async_register_upload(
 
     if isinstance(items_and_paths, tuple):
         items_and_paths = [items_and_paths]
-        assert all((isinstance(item, Item) and isinstance(path, Path)) for item, path in items_and_paths), "items must be a list of Items"
+        assert all(
+            (isinstance(item, Item) and isinstance(path, Path))
+            for item, path in items_and_paths
+        ), "items must be a list of Items"
 
     payload_items = await _build_payload_items(items_and_paths)
 
@@ -184,7 +187,9 @@ async def async_create_signed_upload_url(
     JSONType
         The response from the API
     """
-    return api_client.post(f"/v2/teams/{team_slug}/items/uploads/{upload_id}/sign", data={})
+    return api_client.post(
+        f"/v2/teams/{team_slug}/items/uploads/{upload_id}/sign", data={}
+    )
 
 
 async def async_register_and_create_signed_upload_url(
@@ -238,12 +243,16 @@ async def async_register_and_create_signed_upload_url(
     if "errors" in register or not download_id:
         raise DarwinException(f"Failed to register upload in {__name__}")
 
-    signed_info = await async_create_signed_upload_url(api_client, team_slug, download_id)
+    signed_info = await async_create_signed_upload_url(
+        api_client, team_slug, download_id
+    )
 
     return signed_info
 
 
-async def async_confirm_upload(api_client: ClientCore, team_slug: str, upload_id: str) -> JSONType:
+async def async_confirm_upload(
+    api_client: ClientCore, team_slug: str, upload_id: str
+) -> JSONType:
     """
     Asynchronously confirm an upload/uploads was successful by ID
 
@@ -261,7 +270,9 @@ async def async_confirm_upload(api_client: ClientCore, team_slug: str, upload_id
     JSONType
         The response from the API
     """
-    return api_client.post(f"/v2/teams/{team_slug}/items/uploads/{upload_id}/confirm", data={})
+    return api_client.post(
+        f"/v2/teams/{team_slug}/items/uploads/{upload_id}/confirm", data={}
+    )
 
 
 def register_upload(
@@ -294,7 +305,17 @@ def register_upload(
         Whether to ignore the dicom layout
     """
 
-    response = asyncio.run(async_register_upload(api_client, team_slug, dataset_slug, items_and_paths, force_tiling, handle_as_slices, ignore_dicom_layout))
+    response = asyncio.run(
+        async_register_upload(
+            api_client,
+            team_slug,
+            dataset_slug,
+            items_and_paths,
+            force_tiling,
+            handle_as_slices,
+            ignore_dicom_layout,
+        )
+    )
     return response
 
 
@@ -352,7 +373,15 @@ def register_and_create_signed_upload_url(
     """
 
     return asyncio.run(
-        async_register_and_create_signed_upload_url(api_client, team_slug, dataset_slug, items_and_paths, force_tiling, handle_as_slices, ignore_dicom_layout)
+        async_register_and_create_signed_upload_url(
+            api_client,
+            team_slug,
+            dataset_slug,
+            items_and_paths,
+            force_tiling,
+            handle_as_slices,
+            ignore_dicom_layout,
+        )
     )
 
 

@@ -44,7 +44,9 @@ expectations_list = [
 
 
 class TestValidateNoSlashes:
-    @pytest.mark.parametrize("string", [("validname"), ("valid/name"), ("valid/name/still")])
+    @pytest.mark.parametrize(
+        "string", [("validname"), ("valid/name"), ("valid/name/still")]
+    )
     def test_happy_paths(self, string: str) -> None:
         assert validate_no_slashes(string) == string
 
@@ -55,7 +57,9 @@ class TestValidateNoSlashes:
 
 
 class TestSlotNameValidator:
-    @pytest.mark.parametrize("string", [("validname"), ("valid/name"), ("valid/name/still")])
+    @pytest.mark.parametrize(
+        "string", [("validname"), ("valid/name"), ("valid/name/still")]
+    )
     def test_happy_paths(self, string: str) -> None:
         assert ItemSlot.validate_slot_name(string) == string
 

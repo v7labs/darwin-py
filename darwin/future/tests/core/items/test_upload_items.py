@@ -349,7 +349,9 @@ class TestBuildSlots:
         )
     )
 
-    @pytest.mark.parametrize("item,expected", [(item, expected) for item, expected in items_and_expectations])
+    @pytest.mark.parametrize(
+        "item,expected", [(item, expected) for item, expected in items_and_expectations]
+    )
     def test_build_slots(self, item: Item, expected: List[Dict]) -> None:
         result = asyncio.run(uploads._build_slots(item))
         assert result == expected
@@ -362,7 +364,9 @@ class TestBuildLayout:
             (
                 Item(
                     name="test_item",
-                    layout=ItemLayoutV1(version=1, type="grid", slots=["slot1", "slot2"]),
+                    layout=ItemLayoutV1(
+                        version=1, type="grid", slots=["slot1", "slot2"]
+                    ),
                 ),
                 {
                     "slots": ["slot1", "slot2"],
@@ -448,7 +452,9 @@ class TestBuildPayloadItems:
             )
         ],
     )
-    def test_build_payload_items(self, items_and_paths: List[Tuple[Item, Path]], expected: List[Dict]) -> None:
+    def test_build_payload_items(
+        self, items_and_paths: List[Tuple[Item, Path]], expected: List[Dict]
+    ) -> None:
         result = asyncio.run(uploads._build_payload_items(items_and_paths))
         assert result == expected
 
@@ -524,7 +530,9 @@ class TestRegisterUpload(SetupTests):
         ]
         mock_build_payload_items.return_value = items
 
-        responses.add(responses.POST, f"{default_url}/register_upload", json={"status": "success"})
+        responses.add(
+            responses.POST, f"{default_url}/register_upload", json={"status": "success"}
+        )
         asyncio.run(
             uploads.async_register_upload(
                 api_client=base_client,
@@ -543,11 +551,17 @@ class TestRegisterUpload(SetupTests):
         assert received_call == {
             "dataset_slug": "my-dataset",
             "items": items,
-            "options": {"force_tiling": True, "handle_as_slices": True, "ignore_dicom_layout": True},
+            "options": {
+                "force_tiling": True,
+                "handle_as_slices": True,
+                "ignore_dicom_layout": True,
+            },
         }, "The request body should be empty"
 
     @patch.object(uploads, "_build_payload_items")
-    def test_async_register_upload_raises(self, mock_build_payload_items: MagicMock, base_client: ClientCore) -> None:
+    def test_async_register_upload_raises(
+        self, mock_build_payload_items: MagicMock, base_client: ClientCore
+    ) -> None:
         with pytest.raises(DarwinException) as exc:
             mock_build_payload_items.side_effect = DarwinException("Error1")
 
@@ -585,7 +599,9 @@ class TestRegisterUpload(SetupTests):
 
 
 class TestCreateSignedUploadUrl(SetupTests):
-    def test_async_create_signed_upload_url(self, default_url: str, base_config: DarwinConfig) -> None:
+    def test_async_create_signed_upload_url(
+        self, default_url: str, base_config: DarwinConfig
+    ) -> None:
         with responses.RequestsMock() as rsps:
             # Mock the API response
             expected_response = {"upload_url": "https://signed.url"}
@@ -597,7 +613,9 @@ class TestCreateSignedUploadUrl(SetupTests):
 
             # Call the function with mocked arguments
             api_client = ClientCore(base_config)
-            actual_response = asyncio.run(uploads.async_create_signed_upload_url(api_client, "1", "my-team"))
+            actual_response = asyncio.run(
+                uploads.async_create_signed_upload_url(api_client, "1", "my-team")
+            )
 
             # Check that the response matches the expected response
             if not actual_response:
@@ -605,12 +623,16 @@ class TestCreateSignedUploadUrl(SetupTests):
 
             assert actual_response == expected_response
 
-    def test_async_create_signed_upload_url_raises(self, base_client: ClientCore) -> None:
+    def test_async_create_signed_upload_url_raises(
+        self, base_client: ClientCore
+    ) -> None:
         base_client.post = MagicMock()  # type: ignore
         base_client.post.side_effect = DarwinException("Error")
 
         with pytest.raises(DarwinException):
-            asyncio.run(uploads.async_create_signed_upload_url(base_client, "1", "my-team"))
+            asyncio.run(
+                uploads.async_create_signed_upload_url(base_client, "1", "my-team")
+            )
 
 
 class TestRegisterAndCreateSignedUploadUrl:
@@ -691,7 +713,9 @@ class TestRegisterAndCreateSignedUploadUrl:
 
 class TestConfirmUpload(SetupTests):
     @responses.activate
-    def test_async_confirm_upload(self, base_client: ClientCore, default_url: str) -> None:
+    def test_async_confirm_upload(
+        self, base_client: ClientCore, default_url: str
+    ) -> None:
         # Call the function with mocked arguments
         responses.add(
             "POST",
@@ -732,7 +756,9 @@ class TestSynchronousMethods:
 
     @pytest.fixture
     def mock_async_register_and_create_signed_upload_url(self) -> Generator:
-        with patch.object(uploads, "async_register_and_create_signed_upload_url") as mock:
+        with patch.object(
+            uploads, "async_register_and_create_signed_upload_url"
+        ) as mock:
             yield mock
 
     @pytest.fixture
@@ -763,7 +789,9 @@ class TestSynchronousMethods:
         mock_async_register_and_create_signed_upload_url: MagicMock,
         base_client: ClientCore,
     ) -> None:
-        uploads.register_and_create_signed_upload_url(base_client, "team", "dataset", [(Mock(), Mock())])
+        uploads.register_and_create_signed_upload_url(
+            base_client, "team", "dataset", [(Mock(), Mock())]
+        )
 
         mock_async_register_and_create_signed_upload_url.assert_called_once()
 
