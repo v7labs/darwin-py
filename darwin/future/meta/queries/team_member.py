@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import List
 
 from darwin.future.core.team.get_team import get_team_members
-from darwin.future.core.types.query import Param, Query, QueryFilter
+from darwin.future.core.types.query import Query, QueryFilter
 from darwin.future.meta.objects.team_member import TeamMember
 
 
@@ -27,7 +27,9 @@ class TeamMemberQuery(Query[TeamMember]):
 
         return members_meta
 
-    def _execute_filter(self, members: List[TeamMember], filter: QueryFilter) -> List[TeamMember]:
+    def _execute_filter(
+        self, members: List[TeamMember], filter: QueryFilter
+    ) -> List[TeamMember]:
         """Executes filtering on the local list of members, applying special logic for role filtering
         otherwise calls the parent method for general filtering on the values of the members
 
@@ -41,6 +43,10 @@ class TeamMemberQuery(Query[TeamMember]):
         List[TeamMember]: Filtered subset of members
         """
         if filter.name == "role":
-            return [m for m in members if m._element is not None and filter.filter_attr(m._element.role.value)]
+            return [
+                m
+                for m in members
+                if m._element is not None and filter.filter_attr(m._element.role.value)
+            ]
         else:
             return super()._generic_execute_filter(members, filter)

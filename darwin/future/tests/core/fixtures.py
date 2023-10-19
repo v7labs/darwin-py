@@ -8,7 +8,6 @@ from darwin.future.core.client import ClientCore, DarwinConfig
 from darwin.future.data_objects.dataset import DatasetCore
 from darwin.future.data_objects.team import TeamCore, TeamMemberCore
 from darwin.future.data_objects.team_member_role import TeamMemberRole
-from darwin.future.data_objects.workflow import WFTypeCore
 
 
 @pytest.fixture
@@ -128,7 +127,9 @@ def base_datasets_json_with_releases(base_dataset_json: dict) -> List[dict]:
         dataset["id"] = id
         dataset["slug"] = f"{dataset['slug']}-{id}"
         dataset["name"] = f"{dataset['name']} {id}"
-        dataset["releases"] = [{"name": "release2"}] if id % 2 == 0 else [{"name": "release1"}]
+        dataset["releases"] = (
+            [{"name": "release2"}] if id % 2 == 0 else [{"name": "release1"}]
+        )
 
         return dataset
 

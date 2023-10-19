@@ -17,20 +17,29 @@ class Stage(MetaBase[WFStageCore]):
 
     @property
     def item_ids(self) -> List[UUID]:
-        """_summary_
+        """Item ids attached to the stage
 
         Returns:
-            _type_: _description_
+            List[UUID]: List of item ids
         """
         assert self._element.id is not None
         return get_item_ids_stage(
-            self.client, str(self.meta_params["team_slug"]), str(self.meta_params["dataset_id"]), self.id
+            self.client,
+            str(self.meta_params["team_slug"]),
+            str(self.meta_params["dataset_id"]),
+            self.id,
         )
 
     def move_attached_files_to_stage(self, new_stage_id: UUID) -> Stage:
-        assert self.meta_params["team_slug"] is not None and type(self.meta_params["team_slug"]) == str
-        assert self.meta_params["workflow_id"] is not None and type(self.meta_params["workflow_id"]) == UUID
-        assert self.meta_params["dataset_id"] is not None and type(self.meta_params["dataset_id"]) == int
+        assert self.meta_params["team_slug"] is not None and isinstance(
+            self.meta_params["team_slug"], str
+        )
+        assert self.meta_params["workflow_id"] is not None and isinstance(
+            self.meta_params["workflow_id"], UUID
+        )
+        assert self.meta_params["dataset_id"] is not None and isinstance(
+            self.meta_params["dataset_id"], int
+        )
         slug, w_id, d_id = (
             self.meta_params["team_slug"],
             self.meta_params["workflow_id"],
@@ -41,4 +50,23 @@ class Stage(MetaBase[WFStageCore]):
 
     @property
     def id(self) -> UUID:
+        """Stage ID."""
         return self._element.id
+
+    @property
+    def name(self) -> str:
+        """Stage name."""
+        return self._element.name
+
+    @property
+    def type(self) -> str:
+        """Stage type."""
+        return self._element.type.value
+
+    @property
+    def edges(self) -> List[List[UUID]]:
+        """Edge ID, source stage ID, target stage ID."""
+        return [
+            [edge.id, edge.source_stage_id, edge.target_stage_id]
+            for edge in self._element.edges
+        ]
