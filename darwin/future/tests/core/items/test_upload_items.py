@@ -1,6 +1,6 @@
 import asyncio
 from pathlib import Path
-from typing import Coroutine, Dict, Generator, List, Tuple
+from typing import Dict, Generator, List, Tuple
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -459,64 +459,128 @@ class SetupTests:
 
 
 class TestRegisterUpload(SetupTests):
-    @responses.activate()
+    team_slug = "my-team"
+    dataset_slug = "my-dataset"
+
+    @pytest.fixture
+    def items_and_paths(self) -> List[Tuple[Item, Path]]:
+        return [
+            (
+                Item(
+                    name="test_item",
+                    slots=[
+                        ItemSlot(
+                            slot_name="slot_name_with_string_list",
+                            file_name="file_name",
+                            storage_key="storage_key",
+                            tags=["tag1", "tag2"],
+                        ),
+                        ItemSlot(
+                            slot_name="slot_name_with_kv_pairs",
+                            file_name="file_name",
+                            storage_key="storage_key",
+                            tags={"key": "value"},
+                        ),
+                    ],
+                ),
+                Path("test_path"),
+            )
+        ]
+
+    @responses.activate
     @patch.object(uploads, "_build_payload_items")
-    def test_async_register_uploads_accepts_tuple_or_list_of_tuples(
+    def test_async_register_upload_happy_path(
         self,
         mock_build_payload_items: MagicMock,
         base_client: ClientCore,
         default_url: str,
+        items_and_paths: List[Tuple[Item, Path]],
     ) -> None:
-        mock_build_payload_items.return_value = []
-
-        item = Item(name="name", path="path", slots=[])
-
-        item_and_path = (item, Path("path"))
-        items_and_paths = [item_and_path]
-
-        responses.add(
-            "post",
-            f"{default_url}/register_upload",
-            status=200,
-            json={
-                "dataset_slug": "dataset_slug",
-                "items": [],
-                "options": {"force_tiling": False, "handle_as_slices": False, "ignore_dicom_layout": False},
-            },
-        )
-
-        responses.add(
-            "post",
-            f"{default_url}/register_upload",
-            status=200,
-            json={
-                "dataset_slug": "dataset_slug",
-                "items": [],
-                "options": {"force_tiling": False, "handle_as_slices": False, "ignore_dicom_layout": False},
-            },
-        )
-
-        tasks: List[Coroutine] = [
-            uploads.async_register_upload(
-                base_client,
-                "team_slug",
-                "dataset_slug",
-                items_and_paths,
-            ),
-            uploads.async_register_upload(
-                base_client,
-                "team_slug",
-                "dataset_slug",
-                item_and_path,
-            ),
+        items = [
+            {
+                "name": "test_item",
+                "path:": "test_path",
+                "tags": [],
+                "slots": [
+                    {
+                        "slot_name": "slot_name_with_string_list",
+                        "file_name": "file_name",
+                        "storage_key": "storage_key",
+                        "tags": ["tag1", "tag2"],
+                        "fps": 0,
+                        "type": "image",
+                    },
+                    {
+                        "slot_name": "slot_name_with_kv_pairs",
+                        "file_name": "file_name",
+                        "storage_key": "storage_key",
+                        "tags": {"key": "value"},
+                        "fps": 0,
+                        "type": "image",
+                    },
+                ],
+            }
         ]
-        try:
-            outputs = asyncio.run(tasks[0]), asyncio.run(tasks[1])
-        except Exception as e:
-            print(e)
-            pytest.fail()
+        mock_build_payload_items.return_value = items
 
-        print(outputs)
+        responses.add(responses.POST, f"{default_url}/register_upload", json={"status": "success"})
+        asyncio.run(
+            uploads.async_register_upload(
+                api_client=base_client,
+                team_slug=self.team_slug,
+                dataset_slug=self.dataset_slug,
+                items_and_paths=items_and_paths,
+                force_tiling=True,
+                handle_as_slices=True,
+                ignore_dicom_layout=True,
+            )
+        )
+
+        assert responses.calls[0].request.url == f"{default_url}/register_upload"  # type: ignore
+        received_call = json.loads(responses.calls[0].request.body.decode("utf-8"))  # type: ignore
+
+        assert received_call == {
+            "dataset_slug": "my-dataset",
+            "items": items,
+            "options": {"force_tiling": True, "handle_as_slices": True, "ignore_dicom_layout": True},
+        }, "The request body should be empty"
+
+    @patch.object(uploads, "_build_payload_items")
+    def test_async_register_upload_raises(self, mock_build_payload_items: MagicMock, base_client: ClientCore) -> None:
+        with pytest.raises(DarwinException) as exc:
+            mock_build_payload_items.side_effect = DarwinException("Error1")
+
+            asyncio.run(
+                uploads.async_register_upload(
+                    api_client=base_client,
+                    team_slug=self.team_slug,
+                    dataset_slug=self.dataset_slug,
+                    items_and_paths=[],
+                    force_tiling=True,
+                    handle_as_slices=True,
+                    ignore_dicom_layout=True,
+                )
+            )
+
+            assert str(exc) == "Error1", "Failed to raise on failed payload build"
+
+        with pytest.raises(DarwinException) as exc:
+            base_client.post = MagicMock()  # type: ignore
+            base_client.post.side_effect = DarwinException("Error2")
+
+            asyncio.run(
+                uploads.async_register_upload(
+                    api_client=base_client,
+                    team_slug=self.team_slug,
+                    dataset_slug=self.dataset_slug,
+                    items_and_paths=[],
+                    force_tiling=True,
+                    handle_as_slices=True,
+                    ignore_dicom_layout=True,
+                )
+            )
+
+            assert str(exc) == "Error2", "Failed to raise on failed API call"
 
 
 class TestCreateSignedUploadUrl(SetupTests):
@@ -539,6 +603,13 @@ class TestCreateSignedUploadUrl(SetupTests):
                 pytest.fail("Response was None")
 
             assert actual_response == expected_response
+
+    def test_async_create_signed_upload_url_raises(self, base_client: ClientCore) -> None:
+        base_client.post = MagicMock()
+        base_client.post.side_effect = DarwinException("Error")
+
+        with pytest.raises(DarwinException):
+            asyncio.run(uploads.async_create_signed_upload_url(base_client, "1", "my-team"))
 
 
 class TestRegisterAndCreateSignedUploadUrl:

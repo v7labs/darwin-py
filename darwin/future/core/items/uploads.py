@@ -161,7 +161,7 @@ async def async_register_upload(
         "options": options,
     }
 
-    return api_client.post(f"/api/v2/teams/{team_slug}/items/register_upload", payload)
+    return api_client.post(f"/v2/teams/{team_slug}/items/register_upload", payload)
 
 
 async def async_create_signed_upload_url(
@@ -186,8 +186,7 @@ async def async_create_signed_upload_url(
     JSONType
         The response from the API
     """
-    # TODO: Test me
-    return api_client.post(f"/api/v2/teams/{team_slug}/items/uploads/{upload_id}/sign", data={})
+    return api_client.post(f"/v2/teams/{team_slug}/items/uploads/{upload_id}/sign", data={})
 
 
 async def async_register_and_create_signed_upload_url(
