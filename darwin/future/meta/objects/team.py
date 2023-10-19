@@ -56,9 +56,6 @@ class Team(MetaBase[TeamCore]):
     def workflows(self) -> WorkflowQuery:
         return WorkflowQuery(self.client, meta_params={"team_slug": self.slug})
 
-    def __str__(self) -> str:
-        return f"TeamMeta(name='{self.name}', slug='{self.slug}', id='{self.id}' - {len(self._element.members if self._element.members else [])} members)"
-
     @classmethod
     def delete_dataset(
         cls, client: ClientCore, dataset_id: Union[int, str]
