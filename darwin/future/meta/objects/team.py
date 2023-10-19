@@ -14,17 +14,21 @@ from darwin.future.meta.queries.workflow import WorkflowQuery
 
 
 class Team(MetaBase[TeamCore]):
-    """Team Meta object. Facilitates the creation of Query objects, lazy loading of sub fields like members
-    unlike other MetaBase objects, does not extend the __next__ function because it is not iterable. This is because
-    Team is linked to api key and only one team can be returned, but stores a list of teams for consistency. This
-    does mean however that to access the underlying team object, you must access the first element of the list
+    """
+    Team Meta object. Facilitates the creation of Query objects, lazy loading of sub
+    fields like members unlike other MetaBase objects, does not extend the __next__
+    function because it is not iterable. This is because Team is linked to api key and
+    only one team can be returned, but stores a list of teams for consistency. This
+    does mean however that to access the underlying team object, you must access the
+    first element of the list
     team = client.team[0]
 
     Args:
-        MetaBase (Team): Generic MetaBase object expanded by Team core object return type
+        MetaBase (Team): Generic MetaBase object expanded by Team core object return
+            type
 
     Returns:
-        _type_: TeamMeta
+        Team: Team object
     """
 
     def __init__(self, client: ClientCore, team: Optional[TeamCore] = None) -> None:
@@ -57,7 +61,10 @@ class Team(MetaBase[TeamCore]):
         return WorkflowQuery(self.client, meta_params={"team_slug": self.slug})
 
     def __str__(self) -> str:
-        return f"TeamMeta(name='{self.name}', slug='{self.slug}', id='{self.id}' - {len(self._element.members if self._element.members else [])} members)"
+        return (
+            f"TeamMeta(name='{self.name}', slug='{self.slug}', id='{self.id}' -"
+            f" {len(self._element.members if self._element.members else [])} members)"
+        )
 
     @classmethod
     def delete_dataset(

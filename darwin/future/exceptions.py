@@ -7,12 +7,14 @@ class DarwinException(Exception):
     """
     Generic Darwin exception.
 
-    Used to differentiate from errors that originate in our code, and those that originate in
-    third-party libraries.
+    Used to differentiate from errors that originate in our code, and those that
+    originate in third-party libraries.
 
-    Extends `Exception` and adds a `parent_exception` field to store the original exception.
+    Extends `Exception` and adds a `parent_exception` field to store the original
+    exception.
 
-    Also has a `combined_exceptions` field to store a list of exceptions that were combined into
+    Also has a `combined_exceptions` field to store a list of exceptions that were
+    combined into
     """
 
     parent_exception: Optional[Exception] = None

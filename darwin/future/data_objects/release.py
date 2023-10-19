@@ -7,7 +7,10 @@ from darwin.future.pydantic_base import DefaultDarwin
 
 
 class ReleaseCore(DefaultDarwin):
-    """A class to manage all the information around a release on the darwin platform, including validation
+    """
+    A class to manage all the information around a release on the darwin platform
+    including validation
+
     Attributes
     ----------
     name : str
