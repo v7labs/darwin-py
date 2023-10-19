@@ -50,4 +50,25 @@ class Stage(MetaBase[WFStageCore]):
 
     @property
     def id(self) -> UUID:
+        """Stage ID."""
         return self._element.id
+
+    @property
+    def name(self) -> str:
+        """Stage name."""
+        return self._element.name
+
+    @property
+    def type(self) -> str:
+        """Stage type."""
+        return self._element.type.value
+
+    @property
+    def edges(self) -> List[List[UUID]]:
+        """Edge ID, source stage ID, target stage ID."""
+        assert self._element.edges is not None
+        return [
+            [edge.id, edge.source_stage_id, edge.target_stage_id]
+            for edge in self._element.edges
+            if edge.source_stage_id and edge.target_stage_id
+        ]
