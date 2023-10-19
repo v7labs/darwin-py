@@ -981,8 +981,8 @@ test = ["responses", "pytest"]
 
 [metadata]
 lock-version = "1.1"
-python-versions = ">=3.8.0,<=3.11"
-content-hash = "da88bb8585c7030fbf2646359c8b0facc91091d38a9c05d6a9fe658e96b75a37"
+python-versions = ">=3.8.0,<3.12"
+content-hash = "0542358f9c3751f95b47ff7cb2712b6a39d6d5ccc18feba008ff37a0054a5657"
 
 [metadata.files]
 albumentations = [
