@@ -28,8 +28,8 @@ class ItemSlot(DefaultDarwin):
 
     # Optional fields
     storage_key: Optional[str]
-    as_frames: Optional[bool] = Field(None, alias="asFrames")
-    extract_views: Optional[bool] = Field(None, alias="extractViews")
+    as_frames: Optional[bool]
+    extract_views: Optional[bool]
     fps: Optional[ItemFrameRate] = Field(None, alias="fps")
     metadata: Optional[Dict[str, UnknownType]] = Field({}, alias="metadata")
     tags: Optional[Union[List[str], Dict[str, str]]] = Field(None, alias="tags")
