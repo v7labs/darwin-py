@@ -2,15 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Generic,
-    List,
-    Optional,
-    TypeVar,
-)
+from typing import Any, Callable, Dict, Generic, List, Optional, TypeVar
 
 from darwin.future.core.client import ClientCore
 from darwin.future.exceptions import (
