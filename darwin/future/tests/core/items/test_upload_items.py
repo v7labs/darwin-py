@@ -197,20 +197,19 @@ class TestBuildSlots:
                 name="name_with_simple_slot",
                 slots=[
                     ItemSlot(
-                        slot_name="slot_name",
+                        slot_name="slot_name25",
                         file_name="file_name",
                         storage_key="storage_key",
                         fps=25,  # Testing int
                     ),
                     ItemSlot(
-                        slot_name="slot_name",
+                        slot_name="slot_name29.997",
                         file_name="file_name",
                         storage_key="storage_key",
-                        # FIXME: this should pass through as a float but doesn't
-                        fps=float(29.997),  # Testing float
+                        fps=29.997,  # Testing float
                     ),
                     ItemSlot(
-                        slot_name="slot_name",
+                        slot_name="slot_namenative",
                         file_name="file_name",
                         storage_key="storage_key",
                         fps="native",  # Testing literal

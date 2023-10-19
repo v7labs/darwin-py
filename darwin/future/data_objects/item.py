@@ -69,8 +69,6 @@ class ItemSlot(DefaultDarwin):
     @validator("fps")
     def validate_fps(cls, v: UnknownType) -> ItemFrameRate:
         assert isinstance(v, (int, float, str)), "fps must be a number or 'native'"
-        if isinstance(v, (int, float)):
-            assert v > 0, "fps must be greater than 0"
         if isinstance(v, str):
             assert v == "native", "fps must be 'native' or a number greater than 0"
         return v
