@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Dict, List, Literal, Optional, Union
 
 from pydantic import root_validator, validator
+from torch import isin
 
 from darwin.datatypes import NumberLike
 from darwin.future.data_objects.pydantic_base import DefaultDarwin
@@ -14,7 +15,7 @@ ItemFrameRate = Union[NumberLike, Literal["native"]]
 def validate_no_slashes(v: UnknownType) -> str:
     assert isinstance(v, str), "Must be a string"
     assert len(v) > 0, "cannot be empty"
-    assert r"^[^/].*$".find(v) == -1, "cannot start with a slash"
+    assert not v.startswith("/"), "cannot start with a slash"
 
     return v
 
@@ -71,6 +72,8 @@ class ItemSlot(DefaultDarwin):
         assert isinstance(v, (int, float, str)), "fps must be a number or 'native'"
         if isinstance(v, str):
             assert v == "native", "fps must be 'native' or a number greater than 0"
+        elif isinstance(v, (int, float)):
+            assert v >= 0, "fps must be 'native' or a number greater than or equal to 0"
         return v
 
     class Config:
@@ -81,20 +84,18 @@ class ItemSlot(DefaultDarwin):
         file_name = values.get("file_name")
 
         if file_name is not None:
-            suffix = Path(file_name).suffix.lower()
-
             # TODO - Review types
-            if suffix in (".jpg", ".jpeg", ".png", ".bmp", ".gif"):
+            if file_name.endswith((".jpg", ".jpeg", ".png", ".bmp", ".gif")):
                 values["type"] = "image"
-            elif suffix == ".pdf":
+            elif file_name.endswith(".pdf"):
                 values["type"] = "pdf"
-            elif suffix in [".dcm", ".nii", ".nii.gz"]:
+            elif file_name.endswith((".dcm", ".nii", ".nii.gz")):
                 values["type"] = "dicom"
-            elif suffix in (".mp4", ".avi", ".mov", ".wmv", ".mkv"):
+            elif file_name.endswith((".mp4", ".avi", ".mov", ".wmv", ".mkv")):
                 values["type"] = "video"
 
-            if values["type"] is None:
-                values["type"] = "image"
+        if "type" not in values or values["type"] is None:
+            values["type"] = "image"
 
         return values
 
