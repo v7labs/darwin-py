@@ -1,14 +1,15 @@
 import asyncio
 from pathlib import Path
 from typing import Coroutine, Dict, List, Tuple
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 import responses
 
 import darwin.future.core.items.uploads as uploads
 from darwin.future.core.client import ClientCore
-from darwin.future.data_objects.item import Item, ItemSlot
+from darwin.future.data_objects.item import Item, ItemLayoutV1, ItemLayoutV2, ItemSlot
+from darwin.future.exceptions import DarwinException
 from darwin.future.tests.core.fixtures import *  # noqa: F401,F403
 
 from .fixtures import *  # noqa: F401,F403
@@ -306,17 +307,158 @@ class TestBuildSlots:
         )
     )
 
+    # Test with `tags` optional field
+    items_and_expectations.append(
+        (
+            Item(
+                name="name_testing_tags",
+                slots=[
+                    ItemSlot(
+                        slot_name="slot_name_with_string_list",
+                        file_name="file_name",
+                        storage_key="storage_key",
+                        tags=["tag1", "tag2"],
+                    ),
+                    ItemSlot(
+                        slot_name="slot_name_with_kv_pairs",
+                        file_name="file_name",
+                        storage_key="storage_key",
+                        tags={"key": "value"},
+                    ),
+                ],
+            ),
+            [
+                {
+                    "slot_name": "slot_name_with_string_list",
+                    "file_name": "file_name",
+                    "storage_key": "storage_key",
+                    "tags": ["tag1", "tag2"],
+                    "fps": 0,
+                    "type": "image",
+                },
+                {
+                    "slot_name": "slot_name_with_kv_pairs",
+                    "file_name": "file_name",
+                    "storage_key": "storage_key",
+                    "tags": {"key": "value"},
+                    "fps": 0,
+                    "type": "image",
+                },
+            ],
+        )
+    )
+
     @pytest.mark.parametrize("item,expected", [(item, expected) for item, expected in items_and_expectations])
     def test_build_slots(self, item: Item, expected: List[Dict]) -> None:
         result = asyncio.run(uploads._build_slots(item))
         assert result == expected
 
 
-class TestRegisterUpload:
+class TestBuildLayout:
+    @pytest.mark.parametrize(
+        "item, expected",
+        [
+            (
+                Item(
+                    name="test_item",
+                    layout=ItemLayoutV1(version=1, type="grid", slots=["slot1", "slot2"]),
+                ),
+                {
+                    "slots": ["slot1", "slot2"],
+                    "type": "grid",
+                    "version": 1,
+                },
+            ),
+            (
+                Item(
+                    name="test_item",
+                    layout=ItemLayoutV2(
+                        version=2,
+                        type="grid",
+                        slots=["slot1", "slot2"],
+                        layout_shape=[3, 4],
+                    ),
+                ),
+                {
+                    "slots": ["slot1", "slot2"],
+                    "type": "grid",
+                    "version": 2,
+                    "layout_shape": [3, 4],
+                },
+            ),
+        ],
+    )
+    def test_build_layout(self, item: Item, expected: Dict) -> None:
+        assert asyncio.run(uploads._build_layout(item)) == expected
+
+
+class TestBuildPayloadItems:
+    @pytest.mark.parametrize(
+        "items_and_paths, expected",
+        [
+            (
+                [
+                    (
+                        Item(
+                            name="test_item",
+                            slots=[
+                                ItemSlot(
+                                    slot_name="slot_name_with_string_list",
+                                    file_name="file_name",
+                                    storage_key="storage_key",
+                                    tags=["tag1", "tag2"],
+                                ),
+                                ItemSlot(
+                                    slot_name="slot_name_with_kv_pairs",
+                                    file_name="file_name",
+                                    storage_key="storage_key",
+                                    tags={"key": "value"},
+                                ),
+                            ],
+                        ),
+                        Path("test_path"),
+                    )
+                ],
+                [
+                    {
+                        "name": "test_item",
+                        "path:": "test_path",
+                        "tags": [],
+                        "slots": [
+                            {
+                                "slot_name": "slot_name_with_string_list",
+                                "file_name": "file_name",
+                                "storage_key": "storage_key",
+                                "tags": ["tag1", "tag2"],
+                                "fps": 0,
+                                "type": "image",
+                            },
+                            {
+                                "slot_name": "slot_name_with_kv_pairs",
+                                "file_name": "file_name",
+                                "storage_key": "storage_key",
+                                "tags": {"key": "value"},
+                                "fps": 0,
+                                "type": "image",
+                            },
+                        ],
+                    }
+                ],
+            )
+        ],
+    )
+    def test_build_payload_items(self, items_and_paths: List[Tuple[Item, Path]], expected: List[Dict]) -> None:
+        result = asyncio.run(uploads._build_payload_items(items_and_paths))
+        assert result == expected
+
+
+class SetupTests:
     @pytest.fixture
     def default_url(self, base_client: ClientCore) -> str:
-        return f"{base_client.config.base_url}api/v2/teams/{base_client.config.default_team}/items"
+        return f"{base_client.config.base_url}api/v2/teams/my-team/items"
 
+
+class TestRegisterUpload(SetupTests):
     @responses.activate()
     @patch.object(uploads, "_build_payload_items")
     def test_async_register_uploads_accepts_tuple_or_list_of_tuples(
@@ -377,12 +519,81 @@ class TestRegisterUpload:
         print(outputs)
 
 
-class TestCreateSignedUploadUrl:
-    ...
+class TestCreateSignedUploadUrl(SetupTests):
+    def test_async_create_signed_upload_url(self, default_url: str, base_config: DarwinConfig) -> None:
+        with responses.RequestsMock() as rsps:
+            # Mock the API response
+            expected_response = {"upload_url": "https://signed.url"}
+            rsps.add(
+                rsps.POST,
+                f"{default_url}/uploads/1/sign",
+                json=expected_response,
+            )
+
+            # Call the function with mocked arguments
+            api_client = ClientCore(base_config)
+            actual_response = asyncio.run(uploads.async_create_signed_upload_url(api_client, "1", "my-team"))
+
+            # Check that the response matches the expected response
+            if not actual_response:
+                pytest.fail("Response was None")
+
+            assert actual_response == expected_response
 
 
 class TestRegisterAndCreateSignedUploadUrl:
-    ...
+    @pytest.fixture
+    def mock_async_register_upload(self):
+        with patch.object(uploads, "async_register_upload") as mock:
+            yield mock
+
+    @pytest.fixture
+    def mock_async_create_signed_upload_url(self):
+        with patch.object(uploads, "async_create_signed_upload_url") as mock:
+            yield mock
+
+    def test_async_register_and_create_signed_upload_url(
+        mock_async_register_upload: MagicMock,
+        mock_async_create_signed_upload_url: MagicMock,
+    ):
+        # Set up mock responses
+        mock_register_response = {"id": "123"}  # TODO Check me
+        mock_signed_url_response = {"upload_url": "https://signed.url"}
+
+        # Set up mock API client
+        mock_api_client = MagicMock()
+
+        # Call the function with mocked arguments
+        actual_response = asyncio.run(
+            uploads.async_register_and_create_signed_upload_url(
+                mock_api_client,
+                "my-team",
+                "my-dataset",
+                [(Mock(), Mock())],
+                force_tiling=False,
+                handle_as_slices=False,
+                ignore_dicom_layout=False,
+            )
+        )
+
+        # Check that the function called the correct sub-functions with the correct arguments
+        mock_async_register_upload.assert_called_once_with(
+            mock_api_client,
+            "my-team",
+            "my-dataset",
+            [(Mock(), Mock())],
+            force_tiling=False,
+            handle_as_slices=False,
+            ignore_dicom_layout=False,
+        )
+        mock_async_create_signed_upload_url.assert_called_once_with(
+            mock_api_client,
+            "my-team",
+            "123",
+        )
+
+        # Check that the response matches the expected response
+        assert actual_response == mock_signed_url_response
 
 
 class TestConfirmUpload:

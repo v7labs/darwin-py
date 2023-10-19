@@ -91,7 +91,7 @@ async def _build_payload_items(items_and_paths: List[Tuple[Item, Path]]) -> List
     List[Dict]
         The payload for the items to be registered for upload
     """
-    # TODO: test me
+
     return_list = []
     for item, path in items_and_paths:
         base_item = {
