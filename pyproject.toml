@@ -69,6 +69,9 @@ line-length = 88
 max-line-length = 88
 ignore = ["E203", "W503", "E402"]
 
+[tool.black]
+line-length = 88
+
 [tool.poetry.dependencies]
 python = ">=3.7.0,<3.11"
 argcomplete = "^2.0.0"
