@@ -100,7 +100,7 @@ def test_delete(base_meta_dataset: Dataset, base_config: DarwinConfig) -> None:
 def test_dataset_str_method(base_meta_dataset: Dataset) -> None:
     assert (
         base_meta_dataset.__str__()
-        == f"Dataset\n\
+        == "Dataset\n\
 - Name: test dataset\n\
 - Dataset Slug: test-dataset\n\
 - Dataset ID: 1\n\

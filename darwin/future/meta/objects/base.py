@@ -37,11 +37,12 @@ class MetaBase(Generic[R]):
 - User ID: {self._element.user_id}"
 
         elif class_name == "Dataset":
+            releases = self._element.releases
             return f"Dataset\n\
 - Name: {self._element.name}\n\
 - Dataset Slug: {self._element.slug}\n\
 - Dataset ID: {self._element.id}\n\
-- Dataset Releases: {self._element.releases if self._element.releases else 'No releases'}"
+- Dataset Releases: {releases if releases else 'No releases'}"
 
         elif class_name == "Workflow":
             return f"Workflow\n\
