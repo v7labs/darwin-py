@@ -3,11 +3,12 @@ from pathlib import Path
 from typing import Dict, Generator, List, Tuple
 from unittest.mock import MagicMock, Mock, patch
 
+import orjson as json
 import pytest
 import responses
 
 import darwin.future.core.items.uploads as uploads
-from darwin.future.core.client import ClientCore
+from darwin.future.core.client import ClientCore, DarwinConfig
 from darwin.future.data_objects.item import Item, ItemLayoutV1, ItemLayoutV2, ItemSlot
 from darwin.future.exceptions import DarwinException
 from darwin.future.tests.core.fixtures import *  # noqa: F401,F403
@@ -605,7 +606,7 @@ class TestCreateSignedUploadUrl(SetupTests):
             assert actual_response == expected_response
 
     def test_async_create_signed_upload_url_raises(self, base_client: ClientCore) -> None:
-        base_client.post = MagicMock()
+        base_client.post = MagicMock()  # type: ignore
         base_client.post.side_effect = DarwinException("Error")
 
         with pytest.raises(DarwinException):
