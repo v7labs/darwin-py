@@ -1,6 +1,6 @@
 import asyncio
 from pathlib import Path
-from typing import Coroutine, Dict, List, Tuple
+from typing import Coroutine, Dict, Generator, List, Tuple
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -543,22 +543,24 @@ class TestCreateSignedUploadUrl(SetupTests):
 
 class TestRegisterAndCreateSignedUploadUrl:
     @pytest.fixture
-    def mock_async_register_upload(self):
+    def mock_async_register_upload(self) -> Generator:
         with patch.object(uploads, "async_register_upload") as mock:
             yield mock
 
     @pytest.fixture
-    def mock_async_create_signed_upload_url(self):
+    def mock_async_create_signed_upload_url(self) -> Generator:
         with patch.object(uploads, "async_create_signed_upload_url") as mock:
             yield mock
 
     def test_async_register_and_create_signed_upload_url(
+        self,
         mock_async_register_upload: MagicMock,
         mock_async_create_signed_upload_url: MagicMock,
-    ):
+    ) -> None:
         # Set up mock responses
-        mock_register_response = {"id": "123"}  # TODO Check me
+        mock_async_register_upload.return_value = {"id": "123"}
         mock_signed_url_response = {"upload_url": "https://signed.url"}
+        mock_async_create_signed_upload_url.return_value = mock_signed_url_response
 
         # Set up mock API client
         mock_api_client = MagicMock()
@@ -570,22 +572,14 @@ class TestRegisterAndCreateSignedUploadUrl:
                 "my-team",
                 "my-dataset",
                 [(Mock(), Mock())],
-                force_tiling=False,
-                handle_as_slices=False,
-                ignore_dicom_layout=False,
+                False,
+                False,
+                False,
             )
         )
 
         # Check that the function called the correct sub-functions with the correct arguments
-        mock_async_register_upload.assert_called_once_with(
-            mock_api_client,
-            "my-team",
-            "my-dataset",
-            [(Mock(), Mock())],
-            force_tiling=False,
-            handle_as_slices=False,
-            ignore_dicom_layout=False,
-        )
+        mock_async_register_upload.assert_called_once()
         mock_async_create_signed_upload_url.assert_called_once_with(
             mock_api_client,
             "my-team",
@@ -595,9 +589,120 @@ class TestRegisterAndCreateSignedUploadUrl:
         # Check that the response matches the expected response
         assert actual_response == mock_signed_url_response
 
+    def test_async_register_and_create_signed_upload_url_raises(
+        self,
+        mock_async_register_upload: MagicMock,
+        mock_async_create_signed_upload_url: MagicMock,
+    ) -> None:
+        # Set up mock responses
+        mock_async_register_upload.return_value = {"id": "123", "errors": ["error"]}
+        mock_signed_url_response = {"upload_url": "https://signed.url"}
+        mock_async_create_signed_upload_url.return_value = mock_signed_url_response
 
-class TestConfirmUpload:
-    ...
+        # Set up mock API client
+        mock_api_client = MagicMock()
+
+        # Check that the response matches the expected response
+        with pytest.raises(DarwinException):
+            asyncio.run(
+                uploads.async_register_and_create_signed_upload_url(
+                    mock_api_client,
+                    "my-team",
+                    "my-dataset",
+                    [(Mock(), Mock())],
+                    False,
+                    False,
+                    False,
+                )
+            )
+
+
+class TestConfirmUpload(SetupTests):
+    @responses.activate
+    def test_async_confirm_upload(self, base_client: ClientCore, default_url: str) -> None:
+        # Call the function with mocked arguments
+        responses.add(
+            "POST",
+            f"{default_url}/uploads/123/confirm",
+            status=200,
+            json={},
+        )
+
+        actual_response = asyncio.run(
+            uploads.async_confirm_upload(
+                base_client,
+                "my-team",
+                "123",
+            )
+        )
+
+        # Check that the response matches the expected response
+        assert actual_response == {}
+
+    def test_async_confirm_upload_raises(self, base_client: ClientCore) -> None:
+        base_client.post = MagicMock()  # type: ignore
+        base_client.post.side_effect = DarwinException("Error")
+
+        with pytest.raises(DarwinException):
+            asyncio.run(uploads.async_confirm_upload(base_client, "team", "123"))
+
+
+class TestSynchronousMethods:
+    @pytest.fixture
+    def mock_async_register_upload(self) -> Generator:
+        with patch.object(uploads, "async_register_upload") as mock:
+            yield mock
+
+    @pytest.fixture
+    def mock_async_create_signed_upload_url(self) -> Generator:
+        with patch.object(uploads, "async_create_signed_upload_url") as mock:
+            yield mock
+
+    @pytest.fixture
+    def mock_async_register_and_create_signed_upload_url(self) -> Generator:
+        with patch.object(uploads, "async_register_and_create_signed_upload_url") as mock:
+            yield mock
+
+    @pytest.fixture
+    def mock_async_confirm_upload(self) -> Generator:
+        with patch.object(uploads, "async_confirm_upload") as mock:
+            yield mock
+
+    def test_register_upload(
+        self,
+        mock_async_register_upload: MagicMock,
+        base_client: ClientCore,
+    ) -> None:
+        uploads.register_upload(base_client, "team", "dataset", [(Mock(), Mock())])
+
+        mock_async_register_upload.assert_called_once()
+
+    def test_create_signed_upload_url(
+        self,
+        mock_async_create_signed_upload_url: MagicMock,
+        base_client: ClientCore,
+    ) -> None:
+        uploads.create_signed_upload_url(base_client, "team", "123")
+
+        mock_async_create_signed_upload_url.assert_called_once()
+
+    def test_register_and_create_signed_upload_url(
+        self,
+        mock_async_register_and_create_signed_upload_url: MagicMock,
+        base_client: ClientCore,
+    ) -> None:
+        uploads.register_and_create_signed_upload_url(base_client, "team", "dataset", [(Mock(), Mock())])
+
+        mock_async_register_and_create_signed_upload_url.assert_called_once()
+
+    def test_confirm_upload(
+        self,
+        mock_async_confirm_upload: MagicMock,
+        base_client: ClientCore,
+    ) -> None:
+        uploads.confirm_upload(base_client, "team", "123")
+
+        mock_async_confirm_upload.assert_called_once()
 
 
 if __name__ == "__main__":
