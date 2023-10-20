@@ -31,7 +31,7 @@ class ItemLayout(DefaultDarwin):
     layout_shape: Optional[List[int]] = None
 
     @validator("layout_shape", always=True)
-    def layout_validator(cls, value: UnknownType, values: Dict):
+    def layout_validator(cls, value: UnknownType, values: Dict) -> Dict:
         if not value and values.get("version") == 2:
             raise ValueError("layout_shape must be specified for version 2 layouts")
 
@@ -61,7 +61,7 @@ class ItemSlot(DefaultDarwin):
         return v
 
     @classmethod
-    def validate_fps(cls, values):
+    def validate_fps(cls, values: dict):
         value = values.get("fps")
 
         if value is None:
@@ -77,7 +77,8 @@ class ItemSlot(DefaultDarwin):
                 assert value == 0, "fps must be 0 for images"
             else:
                 assert value >= 0, "fps must be greater than or equal to 0 for videos"
-        return value
+
+        return values
 
     @classmethod
     def infer_type(cls, values: Dict[str, UnknownType]) -> Dict[str, UnknownType]:
@@ -100,9 +101,11 @@ class ItemSlot(DefaultDarwin):
         smart_union = True
 
     @root_validator
-    def root(cls, v, values):
+    def root(cls, v: UnknownType, values: Dict) -> Dict:
         values = cls.infer_type(values)
         values = cls.validate_fps(values)
+
+        return values
 
 
 class Item(DefaultDarwin):
