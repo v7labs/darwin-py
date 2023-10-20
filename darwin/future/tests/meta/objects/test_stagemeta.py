@@ -129,8 +129,14 @@ def test_get_stage_edges(stage_meta):
         },
     )
     assert len(test_stage.edges) == 2
-    assert len(test_stage.edges[0]) == 3
-    assert test_stage.edges[0][0] == UUID("00000000-0000-0000-0000-000000000000")
+    assert test_stage.edges[0].name == "edge_1"
+    assert test_stage.edges[0].id == UUID("00000000-0000-0000-0000-000000000000")
+    assert test_stage.edges[0].source_stage_id == UUID(
+        "00000000-0000-0000-0000-000000000000"
+    )
+    assert test_stage.edges[0].target_stage_id == UUID(
+        "00000000-0000-0000-0000-000000000000"
+    )
 
 
 def test_stage_str_method(stage_meta: Stage) -> None:
