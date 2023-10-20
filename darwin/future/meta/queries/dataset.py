@@ -37,8 +37,10 @@ class DatasetQuery(Query[Dataset]):
     def _execute_filters(
         self, datasets: List[Dataset], filter: QueryFilter
     ) -> List[Dataset]:
-        """Executes filtering on the local list of datasets, applying special logic for role filtering
-        otherwise calls the parent method for general filtering on the values of the datasets
+        """
+        Executes filtering on the local list of datasets, applying special logic for
+        role filtering otherwise calls the parent method for general filtering on the
+        values of the datasets
 
         Parameters
         ----------

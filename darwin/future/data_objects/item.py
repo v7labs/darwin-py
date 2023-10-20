@@ -49,7 +49,7 @@ class ItemSlot(DefaultDarwin):
     storage_key: Optional[str] = None
     as_frames: Optional[bool] = None
     extract_views: Optional[bool] = None
-    fps: Optional[Union[int, float, Literal["native"]]] = None
+    fps: Optional[ItemFrameRate] = None
     metadata: Optional[Dict[str, UnknownType]] = None
     tags: Optional[Union[List[str], Dict[str, str]]] = None
     type: Optional[Literal["image", "video", "pdf", "dicom"]] = None
@@ -123,3 +123,10 @@ class Item(DefaultDarwin):
     @validator("name")
     def validate_name(cls, v: UnknownType) -> str:
         return validate_no_slashes(v)
+
+
+class Folder(DefaultDarwin):
+    dataset_id: int
+    filtered_item_count: int
+    path: str
+    unfiltered_item_count: int

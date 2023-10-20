@@ -15,10 +15,13 @@ from darwin.future.meta.objects.base import MetaBase
 
 
 class Dataset(MetaBase[DatasetCore]):
-    """Dataset Meta object. Facilitates the creation of Query objects, lazy loading of sub fields
+    """
+    Dataset Meta object. Facilitates the creation of Query objects, lazy loading of
+    sub fields
 
     Args:
-        MetaBase (Dataset): Generic MetaBase object expanded by Dataset core object return type
+        MetaBase (Dataset): Generic MetaBase object expanded by Dataset core object
+            return type
 
     Returns:
         _type_: DatasetMeta
@@ -126,5 +129,15 @@ class Dataset(MetaBase[DatasetCore]):
         preserve_folders: bool = False,
         verbose: bool = False,
     ) -> Dataset:
-        upload_data(self._element.name, files, files_to_exclude, fps, path, frames, extract_views, preserve_folders, verbose)  # type: ignore
+        upload_data(
+            self._element.name,
+            files,  # type: ignore
+            files_to_exclude,
+            fps,
+            path,
+            frames,
+            extract_views,
+            preserve_folders,
+            verbose,
+        )
         return self

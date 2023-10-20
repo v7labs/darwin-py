@@ -46,5 +46,6 @@ def test_it_returns_an_error_if_the_client_returns_an_http_error(
 
         assert len(errors) == 1
         assert isinstance(error := errors[0], HTTPError)
+        assert error.response is not None
         assert error.response.status_code == 400
         assert not response

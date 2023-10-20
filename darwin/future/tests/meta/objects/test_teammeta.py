@@ -179,3 +179,18 @@ def test_create_dataset(base_meta_team: Team, base_config: DarwinConfig) -> None
         assert dataset_created.id == 1
         assert dataset_created.name == valid_name
         assert dataset_created.slug == valid_slug
+
+
+def test_team_str_method(base_meta_team: Team) -> None:
+    assert (
+        str(base_meta_team)
+        == "Team\n\
+- Team Name: test-team\n\
+- Team Slug: test-team\n\
+- Team ID: 0\n\
+- 0 member(s)"
+    )
+
+
+def test_team_repr_method(base_meta_team: Team) -> None:
+    assert repr(base_meta_team) == str(base_meta_team._element)

@@ -8,7 +8,9 @@ from darwin.future.meta.objects.team_member import TeamMember
 
 
 class TeamMemberQuery(Query[TeamMember]):
-    """TeamMemberQuery object with methods to manage filters, retrieve data, and execute filters
+    """
+    TeamMemberQuery object with methods to manage filters, retrieve data,
+    and execute filters
     Methods:
     collect: Executes the query and returns the filtered data
     _execute_filter: Executes a filter on a list of objects
@@ -30,8 +32,10 @@ class TeamMemberQuery(Query[TeamMember]):
     def _execute_filter(
         self, members: List[TeamMember], filter: QueryFilter
     ) -> List[TeamMember]:
-        """Executes filtering on the local list of members, applying special logic for role filtering
-        otherwise calls the parent method for general filtering on the values of the members
+        """
+        Executes filtering on the local list of members, applying special logic for
+        role filtering otherwise calls the parent method for general filtering on the
+        values of the members
 
         Parameters
         ----------
