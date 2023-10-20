@@ -1,4 +1,4 @@
-from typing import List, Literal, Tuple
+from typing import List, Literal, Optional, Tuple
 
 import pytest
 
@@ -7,8 +7,8 @@ from darwin.future.data_objects.typing import UnknownType
 
 
 def generate_extension_expectations(
-    extension: str, expectation: Literal["image", "video", "pdf", "dicom"]
-) -> List[Tuple[str, Literal["image", "video", "pdf", "dicom"]]]:
+    extension: str, expectation: Optional[Literal["image", "video", "pdf", "dicom"]]
+) -> List[Tuple[str, Optional[Literal["image", "video", "pdf", "dicom"]]]]:
     """
     Generate a list of tuples of the form (file_name, expectation) where
     """
@@ -16,6 +16,7 @@ def generate_extension_expectations(
         (f"file.{extension}", expectation),
         (f"file.with.dots.{extension}", expectation),
         (f"/file/with/slashes.{extension}", expectation),
+        (f"file/with/slashes.{extension}", expectation),
     ]
 
 
@@ -39,13 +40,13 @@ expectations_list = [
     *generate_extension_expectations("wmv", "video"),
     *generate_extension_expectations("mkv", "video"),
     # Unsupported
-    *generate_extension_expectations("unsupported", "image"),
+    *generate_extension_expectations("unsupported", None),
 ]
 
 
 class TestValidateNoSlashes:
     @pytest.mark.parametrize(
-        "string", [("validname"), ("valid/name"), ("valid/name/still")]
+        "string", [("validname"), ("valid-name"), ("valid_name_still")]
     )
     def test_happy_paths(self, string: str) -> None:
         assert validate_no_slashes(string) == string
@@ -70,19 +71,22 @@ class TestSlotNameValidator:
 
 
 class TestFpsValidator:
+    def test_sets_value_if_absent(self) -> None:
+        assert ItemSlot.validate_fps({}) == {"fps": 0}
+
     @pytest.mark.parametrize("fps", [(0), (1), (1.0), ("native")])
     def test_happy_paths(self, fps: UnknownType) -> None:
-        assert ItemSlot.validate_fps(fps) == fps
+        assert ItemSlot.validate_fps({"fps": fps}) == {"fps": fps}
 
     @pytest.mark.parametrize("fps", [(-1), ("invalid")])
     def test_sad_paths(self, fps: UnknownType) -> None:
         with pytest.raises(AssertionError):
-            ItemSlot.validate_fps(fps)
+            ItemSlot.validate_fps({"fps": fps})
 
 
 class TestRootValidator:
     @pytest.mark.parametrize("file_name, expectation", expectations_list)
     def test_happy_paths(self, file_name: str, expectation: str) -> None:
         assert (
-            ItemSlot.infer_type({"file_name": file_name})["type"] == expectation
+            ItemSlot.infer_type({"file_name": file_name}).get("type") == expectation
         ), f"Failed for {file_name}, got {expectation}"

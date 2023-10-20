@@ -1,12 +1,16 @@
 import asyncio
+from logging import getLogger
 from pathlib import Path
 from typing import Dict, List, Tuple, Union
 
+from pydantic import parse_obj_as
+
 from darwin.future.core.client import ClientCore
-from darwin.future.core.types.common import JSONType
 from darwin.future.data_objects.item import Item
 from darwin.future.data_objects.typing import UnknownType
 from darwin.future.exceptions import DarwinException
+
+logger = getLogger(__name__)
 
 
 async def _build_slots(item: Item) -> List[Dict]:
@@ -23,7 +27,6 @@ async def _build_slots(item: Item) -> List[Dict]:
     List[Dict]
         The built slots
     """
-    # ! testme
 
     if not item.slots:
         return []
@@ -119,7 +122,7 @@ async def async_register_upload(
     force_tiling: bool = False,
     handle_as_slices: bool = False,
     ignore_dicom_layout: bool = False,
-) -> JSONType:
+) -> Item:
     """
     Registers an upload for a dataset that can then be used to upload files to Darwin
 
@@ -162,14 +165,24 @@ async def async_register_upload(
         "options": options,
     }
 
-    return api_client.post(f"/v2/teams/{team_slug}/items/register_upload", payload)
+    try:
+        response = api_client.post(
+            f"/v2/teams/{team_slug}/items/register_upload", payload
+        )
+    except Exception as exc:
+        logger.error(f"Failed to register upload in {__name__}", exc_info=exc)
+        raise DarwinException(f"Failed to register upload in {__name__}") from exc
+
+    assert isinstance(response, dict), "Unexpected return type from register upload"
+
+    return parse_obj_as(Item, response)
 
 
 async def async_create_signed_upload_url(
     api_client: ClientCore,
     upload_id: str,
     team_slug: str,
-) -> JSONType:
+) -> str:
     """
     Asynchronously create a signed upload URL for an upload or uploads
 
@@ -187,9 +200,43 @@ async def async_create_signed_upload_url(
     JSONType
         The response from the API
     """
-    return api_client.post(
-        f"/v2/teams/{team_slug}/items/uploads/{upload_id}/sign", data={}
-    )
+    try:
+        response = api_client.post(
+            f"/v2/teams/{team_slug}/items/uploads/{upload_id}/sign", data={}
+        )
+    except Exception as exc:
+        logger.error(f"Failed to create signed upload url in {__name__}", exc_info=exc)
+        raise DarwinException(
+            f"Failed to create signed upload url in {__name__}"
+        ) from exc
+
+    assert isinstance(
+        response, dict
+    ), "Unexpected return type from create signed upload url"
+
+    if not response:
+        logger.error(
+            f"Failed to create signed upload url in {__name__}, got no response"
+        )
+        raise DarwinException(
+            f"Failed to create signed upload url in {__name__}, got no response"
+        )
+
+    if "errors" in response:
+        logger.error(
+            f"Failed to create signed upload url in {__name__}, got errors: {response['errors']}"
+        )
+        raise DarwinException(f"Failed to create signed upload url in {__name__}")
+
+    if "upload_url" not in response:
+        logger.error(
+            f"Failed to create signed upload url in {__name__}, got no upload_url"
+        )
+        raise DarwinException(
+            f"Failed to create signed upload url in {__name__}, got no upload_url"
+        )
+
+    return response["upload_url"]
 
 
 async def async_register_and_create_signed_upload_url(
@@ -200,7 +247,7 @@ async def async_register_and_create_signed_upload_url(
     force_tiling: bool = False,
     handle_as_slices: bool = False,
     ignore_dicom_layout: bool = False,
-) -> JSONType:
+) -> str:
     """
     Asynchronously register and create a signed upload URL for an upload or uploads
 
@@ -223,8 +270,8 @@ async def async_register_and_create_signed_upload_url(
 
     Returns
     -------
-    JSONType
-        The response from the API
+    str
+        The signed upload URL
     """
 
     register = await async_register_upload(
@@ -252,7 +299,7 @@ async def async_register_and_create_signed_upload_url(
 
 async def async_confirm_upload(
     api_client: ClientCore, team_slug: str, upload_id: str
-) -> JSONType:
+) -> None:
     """
     Asynchronously confirm an upload/uploads was successful by ID
 
@@ -270,9 +317,28 @@ async def async_confirm_upload(
     JSONType
         The response from the API
     """
-    return api_client.post(
-        f"/v2/teams/{team_slug}/items/uploads/{upload_id}/confirm", data={}
-    )
+
+    try:
+        response = api_client.post(
+            f"/v2/teams/{team_slug}/items/uploads/{upload_id}/confirm", data={}
+        )
+    except Exception as exc:
+        logger.error(f"Failed to confirm upload in {__name__}", exc_info=exc)
+        raise DarwinException(f"Failed to confirm upload in {__name__}") from exc
+
+    assert isinstance(response, dict), "Unexpected return type from confirm upload"
+
+    if not response:
+        logger.error(f"Failed to confirm upload in {__name__}, got no response")
+        raise DarwinException(
+            f"Failed to confirm upload in {__name__}, got no response"
+        )
+
+    if "errors" in response:
+        logger.error(
+            f"Failed to confirm upload in {__name__}, got errors: {response['errors']}"
+        )
+        raise DarwinException(f"Failed to confirm upload in {__name__}")
 
 
 def register_upload(
@@ -283,7 +349,7 @@ def register_upload(
     force_tiling: bool = False,
     handle_as_slices: bool = False,
     ignore_dicom_layout: bool = False,
-) -> JSONType:
+) -> Item:
     """
     Asynchronously register an upload/uploads for a dataset that can then be used to upload files to Darwin
 
@@ -323,7 +389,7 @@ def create_signed_upload_url(
     api_client: ClientCore,
     upload_id: str,
     team_slug: str,
-) -> JSONType:
+) -> str:
     """
     Create a signed upload URL for an upload or uploads
 
@@ -353,7 +419,7 @@ def register_and_create_signed_upload_url(
     force_tiling: bool = False,
     handle_as_slices: bool = False,
     ignore_dicom_layout: bool = False,
-) -> JSONType:
+) -> str:
     """
     Register and create a signed upload URL for an upload or uploads
 
@@ -385,7 +451,7 @@ def register_and_create_signed_upload_url(
     )
 
 
-def confirm_upload(api_client: ClientCore, team_slug: str, upload_id: str) -> JSONType:
+def confirm_upload(api_client: ClientCore, team_slug: str, upload_id: str) -> None:
     """
     Confirm an upload/uploads was successful by ID
 
@@ -400,8 +466,12 @@ def confirm_upload(api_client: ClientCore, team_slug: str, upload_id: str) -> JS
 
     Returns
     -------
-    JSONType
-        The response from the API
+        None
+
+    Raises
+    ------
+    DarwinException
+        If the upload could not be confirmed
     """
 
     response = asyncio.run(async_confirm_upload(api_client, team_slug, upload_id))

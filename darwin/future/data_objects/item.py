@@ -13,30 +13,29 @@ ItemFrameRate = Union[NumberLike, Literal["native"]]
 def validate_no_slashes(v: UnknownType) -> str:
     assert isinstance(v, str), "Must be a string"
     assert len(v) > 0, "cannot be empty"
-    assert not v.startswith("/"), "cannot start with a slash"
+    assert "/" not in v, "cannot contain slashes"
+    assert " " not in v, "cannot contain spaces"
 
     return v
 
 
-class ItemLayoutV1(DefaultDarwin):
+class ItemLayout(DefaultDarwin):
     # GraphotateWeb.Schemas.DatasetsV2.Common.ItemLayoutV1
 
     # Required fields
     slots: List[str]
     type: Literal["grid", "horizontal", "vertical", "simple"]
-    version: Literal[1]
+    version: Literal[1, 2]
 
-
-class ItemLayoutV2(DefaultDarwin):
-    # GraphotateWeb.Schemas.DatasetsV2.Common.ItemLayoutV2
-
-    # Required fields
-    slots: List[str]
-    type: Literal["grid", "horizontal", "vertical", "simple"]
-    version: Literal[2]
-
-    # Optional fields
+    # Required only in version 2
     layout_shape: Optional[List[int]] = None
+
+    @validator("layout_shape", always=True)
+    def layout_validator(cls, value: UnknownType, values: Dict):
+        if not value and values.get("version") == 2:
+            raise ValueError("layout_shape must be specified for version 2 layouts")
+
+        return value
 
 
 class ItemSlot(DefaultDarwin):
@@ -45,12 +44,12 @@ class ItemSlot(DefaultDarwin):
     # Required fields
     slot_name: str
     file_name: str
-    storage_key: str
 
     # Optional fields
+    storage_key: Optional[str] = None
     as_frames: Optional[bool] = None
     extract_views: Optional[bool] = None
-    fps: Optional[Union[int, float, Literal["native"]]] = 0
+    fps: Optional[Union[int, float, Literal["native"]]] = None
     metadata: Optional[Dict[str, UnknownType]] = None
     tags: Optional[Union[List[str], Dict[str, str]]] = None
     type: Optional[Literal["image", "video", "pdf", "dicom"]] = None
@@ -61,23 +60,26 @@ class ItemSlot(DefaultDarwin):
         assert len(v) > 0, "slot_name cannot be empty"
         return v
 
-    @validator("file_name")
-    def validate_storage_key(cls, v: UnknownType) -> str:
-        return validate_no_slashes(v)
+    @classmethod
+    def validate_fps(cls, values):
+        value = values.get("fps")
 
-    @validator("fps")
-    def validate_fps(cls, v: UnknownType) -> ItemFrameRate:
-        assert isinstance(v, (int, float, str)), "fps must be a number or 'native'"
-        if isinstance(v, str):
-            assert v == "native", "fps must be 'native' or a number greater than 0"
-        elif isinstance(v, (int, float)):
-            assert v >= 0, "fps must be 'native' or a number greater than or equal to 0"
-        return v
+        if value is None:
+            values["fps"] = 0
+            return values
 
-    class Config:
-        smart_union = True
+        assert isinstance(value, (int, float, str)), "fps must be a number or 'native'"
+        if isinstance(value, str):
+            assert value == "native", "fps must be 'native' or a number greater than 0"
+        elif isinstance(value, (int, float)):
+            type = values.get("type")
+            if type == "image":
+                assert value == 0, "fps must be 0 for images"
+            else:
+                assert value >= 0, "fps must be greater than or equal to 0 for videos"
+        return value
 
-    @root_validator
+    @classmethod
     def infer_type(cls, values: Dict[str, UnknownType]) -> Dict[str, UnknownType]:
         file_name = values.get("file_name")
 
@@ -92,10 +94,15 @@ class ItemSlot(DefaultDarwin):
             elif file_name.endswith((".mp4", ".avi", ".mov", ".wmv", ".mkv")):
                 values["type"] = "video"
 
-        if "type" not in values or values["type"] is None:
-            values["type"] = "image"
-
         return values
+
+    class Config:
+        smart_union = True
+
+    @root_validator
+    def root(cls, v, values):
+        values = cls.infer_type(values)
+        values = cls.validate_fps(values)
 
 
 class Item(DefaultDarwin):
@@ -104,11 +111,14 @@ class Item(DefaultDarwin):
     # Required fields
     name: str
     slots: List[ItemSlot] = []
+    path: str = "/"
+    dataset_id: int
+    processing_status: str
 
     # Optional fields
-    path: Optional[str] = None
+    priority: Optional[int] = None
     tags: Optional[Union[List[str], Dict[str, str]]] = []
-    layout: Optional[Union[ItemLayoutV1, ItemLayoutV2]] = None
+    layout: Optional[ItemLayout] = None
 
     @validator("name")
     def validate_name(cls, v: UnknownType) -> str:

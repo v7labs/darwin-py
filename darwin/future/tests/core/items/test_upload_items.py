@@ -9,7 +9,7 @@ import responses
 
 import darwin.future.core.items.uploads as uploads
 from darwin.future.core.client import ClientCore, DarwinConfig
-from darwin.future.data_objects.item import Item, ItemLayoutV1, ItemLayoutV2, ItemSlot
+from darwin.future.data_objects.item import Item, ItemLayout, ItemSlot
 from darwin.future.exceptions import DarwinException
 from darwin.future.tests.core.fixtures import *  # noqa: F401,F403
 
@@ -22,7 +22,17 @@ class TestBuildSlots:
     items_and_expectations: List[Tuple[Item, BUILD_SLOT_RETURN_TYPE]] = []
 
     # Test empty slots
-    items_and_expectations.append((Item(name="name_with_no_slots", slots=[]), []))
+    items_and_expectations.append(
+        (
+            Item(
+                name="name_with_no_slots",
+                slots=[],
+                dataset_id=1,
+                processing_status="processing",
+            ),
+            [],
+        )
+    )
 
     # Test Simple slot with no non-required fields
     items_and_expectations.append(
@@ -36,6 +46,8 @@ class TestBuildSlots:
                         storage_key="storage_key",
                     )
                 ],
+                dataset_id=1,
+                processing_status="processing",
             ),
             [
                 {
@@ -54,6 +66,8 @@ class TestBuildSlots:
         (
             Item(
                 name="name_with_multiple_slots",
+                dataset_id=1,
+                processing_status="processing",
                 slots=[
                     ItemSlot(
                         slot_name="slot_name1",
@@ -91,6 +105,8 @@ class TestBuildSlots:
         (
             Item(
                 name="name_testing_as_frames",
+                dataset_id=1,
+                processing_status="processing",
                 slots=[
                     ItemSlot(
                         slot_name="slot_name1",
@@ -144,6 +160,8 @@ class TestBuildSlots:
         (
             Item(
                 name="name_testing_extract_views",
+                dataset_id=1,
+                processing_status="processing",
                 slots=[
                     ItemSlot(
                         slot_name="slot_name1",
@@ -197,6 +215,8 @@ class TestBuildSlots:
         (
             Item(
                 name="name_with_simple_slot",
+                dataset_id=1,
+                processing_status="processing",
                 slots=[
                     ItemSlot(
                         slot_name="slot_name25",
@@ -261,6 +281,8 @@ class TestBuildSlots:
         (
             Item(
                 name="name_with_simple_slot",
+                dataset_id=1,
+                processing_status="processing",
                 slots=[
                     ItemSlot(
                         slot_name="slot_name",
@@ -313,6 +335,8 @@ class TestBuildSlots:
         (
             Item(
                 name="name_testing_tags",
+                dataset_id=1,
+                processing_status="processing",
                 slots=[
                     ItemSlot(
                         slot_name="slot_name_with_string_list",
@@ -362,7 +386,9 @@ class TestBuildLayout:
             (
                 Item(
                     name="test_item",
-                    layout=ItemLayoutV1(version=1, type="grid", slots=["slot1", "slot2"]),
+                    layout=ItemLayout(version=1, type="grid", slots=["slot1", "slot2"]),
+                    dataset_id=1,
+                    processing_status="processing",
                 ),
                 {
                     "slots": ["slot1", "slot2"],
@@ -373,7 +399,9 @@ class TestBuildLayout:
             (
                 Item(
                     name="test_item",
-                    layout=ItemLayoutV2(
+                    dataset_id=1,
+                    processing_status="processing",
+                    layout=ItemLayout(
                         version=2,
                         type="grid",
                         slots=["slot1", "slot2"],
@@ -402,6 +430,8 @@ class TestBuildPayloadItems:
                     (
                         Item(
                             name="test_item",
+                            dataset_id=1,
+                            processing_status="processing",
                             slots=[
                                 ItemSlot(
                                     slot_name="slot_name_with_string_list",
@@ -469,6 +499,8 @@ class TestRegisterUpload(SetupTests):
             (
                 Item(
                     name="test_item",
+                    dataset_id=1,
+                    processing_status="processing",
                     slots=[
                         ItemSlot(
                             slot_name="slot_name_with_string_list",
