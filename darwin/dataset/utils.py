@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import Any, Dict, Generator, Iterator, List, Optional, Set, Tuple, Union
 
 import numpy as np
-import orjson as json
 from PIL import Image as PILImage
 from rich.live import Live
 from rich.progress import ProgressBar, track
@@ -62,16 +61,18 @@ def get_release_path(dataset_path: Path, release_name: Optional[str] = None) -> 
     return release_path
 
 
-def extract_classes(annotations_path: Path, annotation_type: str) -> Tuple[Dict[str, Set[int]], Dict[int, Set[str]]]:
+def extract_classes(
+    annotations_path: Path, annotation_type: Union[str, List[str]]
+) -> Tuple[Dict[str, Set[int]], Dict[int, Set[str]]]:
     """
-    Given a the GT as json files extracts all classes and an maps images index to classes.
+    Given the GT as json files extracts all classes and maps images index to classes.
 
     Parameters
     ----------
     annotations_files : Path
         Path to the json files with the GT information of each image.
-    annotation_type : str
-        Type of annotation to use to extract the Gt information.
+    annotation_type : Union[str, List[str]]
+        Type(s) of annotation to use to extract the GT information.
 
     Returns
     -------
@@ -82,7 +83,13 @@ def extract_classes(annotations_path: Path, annotation_type: str) -> Tuple[Dict[
         contained in that image.
     """
 
-    assert annotation_type in ["bounding_box", "polygon", "tag"]
+    if isinstance(annotation_type, str):
+        annotation_types_to_load = [annotation_type]
+    else:
+        annotation_types_to_load = annotation_type
+
+    for atype in annotation_types_to_load:
+        assert atype in ["bounding_box", "polygon", "tag"]
 
     classes: Dict[str, Set[int]] = defaultdict(set)
     indices_to_classes: Dict[int, Set[str]] = defaultdict(set)
@@ -93,7 +100,10 @@ def extract_classes(annotations_path: Path, annotation_type: str) -> Tuple[Dict[
             continue
 
         for annotation in annotation_file.annotations:
-            if annotation.annotation_class.annotation_type != annotation_type:
+            if (
+                annotation.annotation_class.annotation_type
+                not in annotation_types_to_load
+            ):
                 continue
 
             class_name = annotation.annotation_class.name
@@ -131,10 +141,23 @@ def make_class_lists(release_path: Path) -> None:
                 f.write("\n".join(classes_names))
 
 
+def get_classes_from_file(path: Path) -> List[str]:
+    """Helper function to read class names from a file."""
+    if path.exists():
+        return path.read_text().splitlines()
+    return []
+
+
+def available_annotation_types(release_path: Path) -> List[str]:
+    """Returns a list of available annotation types based on the existing files."""
+    files = [p.name for p in release_path.glob("lists/classes_*.txt")]
+    return [f[len("classes_") : -len(".txt")] for f in files]
+
+
 def get_classes(
     dataset_path: PathLike,
     release_name: Optional[str] = None,
-    annotation_type: str = "polygon",
+    annotation_type: Union[str, List[str]] = "polygon",
     remove_background: bool = True,
 ) -> List[str]:
     """
@@ -147,7 +170,7 @@ def get_classes(
     release_name : Optional[str], default: None
         Version of the dataset.
     annotation_type : str, default: "polygon"
-        The type of annotation classes [tag, polygon].
+        The type of annotation classes [tag, polygon, bounding_box].
     remove_background : bool, default: True
         Removes the background class (if exists) from the list of classes.
 
@@ -159,11 +182,32 @@ def get_classes(
     assert dataset_path is not None
     dataset_path = Path(dataset_path)
     release_path = get_release_path(dataset_path, release_name)
+    if isinstance(annotation_type, str):
+        annotation_types_to_load = [annotation_type]
+    else:
+        annotation_types_to_load = annotation_type
 
-    classes_path = release_path / f"lists/classes_{annotation_type}.txt"
-    classes = classes_path.read_text().splitlines()
-    if remove_background and classes[0] == "__background__":
-        classes = classes[1:]
+    classes = []  # Use a list to maintain order
+    for atype in annotation_types_to_load:
+        classes_file_path = release_path / f"lists/classes_{atype}.txt"
+
+        class_per_annotations = get_classes_from_file(classes_file_path)
+        if (
+            remove_background
+            and class_per_annotations
+            and class_per_annotations[0] == "__background__"
+        ):
+            class_per_annotations = class_per_annotations[1:]
+
+        for cls in class_per_annotations:
+            if cls not in classes:  # Only add if it's not already in the list
+                classes.append(cls)
+
+    available_types = available_annotation_types(release_path)
+    assert (
+        len(classes) > 0
+    ), f"No classes found for {annotation_type}. Supported types are: {', '.join(available_types)}"
+
     return classes
 
 
@@ -175,28 +219,42 @@ def _f(x: Any) -> Any:
 
 
 def exhaust_generator(
-    progress: Generator, count: int, multi_threaded: bool, worker_count: Optional[int] = None
+    progress: Generator,
+    count: int,
+    multi_threaded: bool,
+    worker_count: Optional[int] = None,
 ) -> Tuple[List[Dict[str, Any]], List[Exception]]:
     """
-    Exhausts the generator passed as parameter. Can be done multi threaded if desired.
 
+    Exhausts the generator passed as parameter. Can be done multi threaded if desired.
+    Creates and returns a coco record from the given annotation.
+    
+    Uses ``BoxMode.XYXY_ABS`` from ``detectron2.structures`` if available, defaults to ``box_mode = 0``
+    otherwise.
     Parameters
     ----------
-    progress : Generator
-        Generator to exhaust.
-    count : int
-        Size of the generator.
-    multi_threaded : bool
-        Flag for multi-threaded enabled operations.
-    worker_count : Optional[int]
-        Number of workers to use if multi_threaded=True. By default CPU count is used.
-
+    annotation_path : Path
+        ``Path`` to the annotation file.
+    annotation_type : str = "polygon"
+        Type of the annotation we want to retrieve.
+    image_path : Optional[Path], default: None
+        ``Path`` to the image the annotation refers to.
+    image_id : Optional[Union[str, int]], default: None
+        Id of the image the annotation refers to.
+    classes : Optional[List[str]], default: None
+        Classes of the annotation.
     Returns
     -------
-    List[Dict[str, Any]
-        List of responses from the generator execution.
-    List[Exception]
-        List of exceptions raised during the execution of the generator.
+    Dict[str, Any]
+        A coco record with the following keys:
+        .. code-block:: python
+            {
+                "height": 100,
+                "width": 100,
+                "file_name": "a file name",
+                "image_id": 1,
+                "annotations": [ ... ]
+            }
     """
     successes = []
     errors = []
@@ -238,46 +296,15 @@ def get_coco_format_record(
     image_id: Optional[Union[str, int]] = None,
     classes: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
-    """
-    Creates and returns a coco record from the given annotation.
-    Uses ``BoxMode.XYXY_ABS`` from ``detectron2.structures`` if available, defaults to ``box_mode = 0``
-    otherwise.
-
-    Parameters
-    ----------
-    annotation_path : Path
-        ``Path`` to the annotation file.
-    annotation_type : str = "polygon"
-        Type of the annotation we want to retrieve.
-    image_path : Optional[Path], default: None
-        ``Path`` to the image the annotation refers to.
-    image_id : Optional[Union[str, int]], default: None
-        Id of the image the annotation refers to.
-    classes : Optional[List[str]], default: None
-        Classes of the annotation.
-
-    Returns
-    -------
-    Dict[str, Any]
-        A coco record with the following keys:
-
-        .. code-block:: python
-
-            {
-                "height": 100,
-                "width": 100,
-                "file_name": "a file name",
-                "image_id": 1,
-                "annotations": [ ... ]
-            }
-    """
     assert annotation_type in ["tag", "polygon", "bounding_box"]
+
     try:
         from detectron2.structures import BoxMode
 
         box_mode = BoxMode.XYXY_ABS
     except ImportError:
         box_mode = 0
+
     data = parse_darwin_json(annotation_path)
 
     record: Dict[str, Any] = {}
@@ -285,53 +312,79 @@ def get_coco_format_record(
         record["file_name"] = str(image_path)
     if image_id is not None:
         record["image_id"] = image_id
+
     record["height"] = data.image_height
     record["width"] = data.image_width
 
     objs = []
     for obj in data.annotations:
         if annotation_type != obj.annotation_class.annotation_type:
-            if annotation_type not in obj.data:  # Allows training object detection with bboxes
+            if (
+                annotation_type not in obj.data
+            ):  # Allows training object detection with bboxes
                 continue
 
-        if classes:
-            category = classes.index(obj.annotation_class.name)
-        else:
-            category = obj.annotation_class.name
-        new_obj = {"bbox_mode": box_mode, "category_id": category, "iscrowd": 0}
-
         if annotation_type == "polygon":
-            # Support for complex polygons
-            if "paths" in obj.data:
-                paths = obj.data["paths"]
-            elif "path" in obj.data:
-                paths = [obj.data["path"]]
-            else:
-                raise ValueError("polygon path not found")
-            all_px, all_py = [], []
-            segmentation = []
-
-            for path in paths:
-                if len(path) < 3:  # Discard polygons with less than 3 points
-                    continue
-                px, py = [], []
-                for point in path:
-                    px.append(point["x"])
-                    py.append(point["y"])
-                poly = [(x, y) for x, y in zip(px, py)]
-                segmentation.append(list(itertools.chain.from_iterable(poly)))
-                all_px.extend(px)
-                all_py.extend(py)
-
-            new_obj["segmentation"] = segmentation
-            new_obj["bbox"] = [np.min(all_px), np.min(all_py), np.max(all_px), np.max(all_py)]
+            new_obj = create_polygon_object(obj, box_mode, classes)
         elif annotation_type == "bounding_box":
-            bbox = obj.data["bounding_box"]
-            new_obj["bbox"] = [bbox["x"], bbox["y"], bbox["x"] + bbox["w"], bbox["y"] + bbox["h"]]
+            new_obj = create_bbox_object(obj, box_mode, classes)
+        else:
+            continue
 
         objs.append(new_obj)
+
     record["annotations"] = objs
     return record
+
+
+def create_polygon_object(obj, box_mode, classes=None):
+    if "paths" in obj.data:
+        paths = obj.data["paths"]
+    elif "path" in obj.data:
+        paths = [obj.data["path"]]
+    else:
+        raise ValueError("polygon path not found")
+
+    all_px, all_py = [], []
+    segmentation = []
+
+    for path in paths:
+        if len(path) < 3:
+            continue
+        px, py = [], []
+        for point in path:
+            px.append(point["x"])
+            py.append(point["y"])
+        poly = list(zip(px, py))
+        segmentation.append(list(itertools.chain.from_iterable(poly)))
+        all_px.extend(px)
+        all_py.extend(py)
+
+    new_obj = {
+        "segmentation": segmentation,
+        "bbox": [np.min(all_px), np.min(all_py), np.max(all_px), np.max(all_py)],
+        "bbox_mode": box_mode,
+        "category_id": classes.index(obj.annotation_class.name)
+        if classes
+        else obj.annotation_class.name,
+        "iscrowd": 0,
+    }
+
+    return new_obj
+
+
+def create_bbox_object(obj, box_mode, classes=None):
+    bbox = obj.data["bounding_box"]
+    new_obj = {
+        "bbox": [bbox["x"], bbox["y"], bbox["x"] + bbox["w"], bbox["y"] + bbox["h"]],
+        "bbox_mode": box_mode,
+        "category_id": classes.index(obj.annotation_class.name)
+        if classes
+        else obj.annotation_class.name,
+        "iscrowd": 0,
+    }
+
+    return new_obj
 
 
 def get_annotations(
@@ -389,50 +442,132 @@ def get_annotations(
     dataset_path = Path(dataset_path)
 
     release_path: Path = get_release_path(dataset_path, release_name)
-
     annotations_dir = release_path / "annotations"
     assert annotations_dir.exists()
     images_dir = dataset_path / "images"
     assert images_dir.exists()
 
+    _validate_inputs(partition, split_type, annotation_type)
+
+    classes = get_classes(
+        dataset_path,
+        release_name,
+        annotation_type=annotation_type,
+        remove_background=True,
+    )
+
+    if partition:
+        stems = _get_stems_from_split(
+            release_path, split, split_type, annotation_type, partition
+        )
+    else:
+        stems = (e.stem for e in annotations_dir.glob("**/*.json"))
+
+    (
+        images_paths,
+        annotations_paths,
+        invalid_annotation_paths,
+    ) = _map_annotations_to_images(
+        stems, annotations_dir, images_dir, ignore_inconsistent_examples
+    )
+
+    print(f"Found {len(invalid_annotation_paths)} invalid annotations")
+    for p in invalid_annotation_paths:
+        print(p)
+
+    if len(images_paths) == 0:
+        raise ValueError(
+            f"Could not find any {SUPPORTED_EXTENSIONS} file"
+            f" in {dataset_path / 'images'}"
+        )
+
+    assert len(images_paths) == len(annotations_paths)
+
+    yield from _load_and_format_annotations(
+        images_paths, annotations_paths, annotation_format, annotation_type, classes
+    )
+
+
+def _validate_inputs(partition, split_type, annotation_type):
+    """
+    Validates the input parameters for partition, split_type, and annotation_type.
+
+    Args:
+        partition (str, None): Dataset partition. Should be 'train', 'val', 'test' or None.
+        split_type (str, None): Type of dataset split. Can be 'random', 'stratified' or None.
+        annotation_type (str): Type of annotations. Can be 'tag', 'polygon', or 'bounding_box'.
+
+    Raises:
+        ValueError: If the input parameters do not match the expected values.
+    """
     if partition not in ["train", "val", "test", None]:
         raise ValueError("partition should be either 'train', 'val', 'test', or None")
     if split_type not in ["random", "stratified", None]:
         raise ValueError("split_type should be either 'random', 'stratified', or None")
     if annotation_type not in ["tag", "polygon", "bounding_box"]:
-        raise ValueError("annotation_type should be either 'tag', 'bounding_box', or 'polygon'")
+        raise ValueError(
+            "annotation_type should be either 'tag', 'bounding_box', or 'polygon'"
+        )
 
-    # Get the list of classes
-    classes = get_classes(dataset_path, release_name, annotation_type=annotation_type, remove_background=True)
-    # Get the list of stems
-    if partition:
-        # Get the split
-        if split_type is None:
-            split_file = f"{partition}.txt"
-        elif split_type == "random":
-            split_file = f"{split_type}_{partition}.txt"
-        elif split_type == "stratified":
-            split_file = f"{split_type}_{annotation_type}_{partition}.txt"
-        else:
-            raise ValueError(f"Invalid split_type ({split_type})")
 
-        split_path: Path = release_path / "lists" / str(split) / split_file
+def _get_stems_from_split(release_path, split, split_type, annotation_type, partition):
+    """
+    Determines the file stems based on the dataset split and other parameters.
 
-        if split_path.is_file():
-            stems: Iterator[str] = (e.rstrip("\n\r") for e in split_path.open())
-        else:
-            raise FileNotFoundError(
-                "Could not find a dataset partition. ",
-                "To split the dataset you can use 'split_dataset' from darwin.dataset.split_manager",
-            )
+    Args:
+        release_path (Path): Path to the dataset release.
+        split (str): Dataset split identifier.
+        split_type (str, None): Type of dataset split. Can be 'random', 'stratified' or None.
+        annotation_type (str): Type of annotations. Can be 'tag', 'polygon', or 'bounding_box'.
+        partition (str, None): Dataset partition. Should be 'train', 'val', 'test' or None.
+
+    Returns:
+        Generator[str]: File stems for the dataset.
+
+    Raises:
+        ValueError: If the split_type is invalid.
+        FileNotFoundError: If the dataset partition file is not found.
+    """
+    if split_type is None:
+        split_file = f"{partition}.txt"
+    elif split_type == "random":
+        split_file = f"{split_type}_{partition}.txt"
+    elif split_type == "stratified":
+        split_file = f"{split_type}_{annotation_type}_{partition}.txt"
     else:
-        # If the partition is not specified, get all the annotations
-        stems = (e.stem for e in annotations_dir.glob("**/*.json"))
+        raise ValueError(f"Invalid split_type ({split_type})")
 
+    split_path: Path = release_path / "lists" / str(split) / split_file
+
+    if split_path.is_file():
+        return (e.rstrip("\n\r") for e in split_path.open())
+    else:
+        raise FileNotFoundError(
+            "Could not find a dataset partition. ",
+            "To split the dataset you can use 'split_dataset' from darwin.dataset.split_manager",
+        )
+
+
+def _map_annotations_to_images(
+    stems, annotations_dir, images_dir, ignore_inconsistent_examples
+):
+    """
+    Maps annotations to their corresponding images based on the file stems.
+
+    Args:
+        stems (List[str]): List of file stems.
+        annotations_dir (Path): Directory containing annotation files.
+        images_dir (Path): Directory containing image files.
+        ignore_inconsistent_examples (bool): Flag to determine if inconsistent examples should be ignored.
+
+    Returns:
+        Tuple[List[Path], List[Path], List[Path]]: Lists of paths for images, annotations, and invalid annotations respectively.
+
+    Raises:
+        ValueError: If there are inconsistencies with the annotations and images.
+    """
     images_paths = []
     annotations_paths = []
-
-    # Find all the annotations and their corresponding images
     invalid_annotation_paths = []
     for stem in stems:
         annotation_path = annotations_dir / f"{stem}.json"
@@ -451,28 +586,48 @@ def get_annotations(
             invalid_annotation_paths.append(annotation_path)
             continue
         elif image_count < 1:
-            raise ValueError(f"Annotation ({annotation_path}) does not have a corresponding image")
+            raise ValueError(
+                f"Annotation ({annotation_path}) does not have a corresponding image"
+            )
         elif image_count > 1:
-            raise ValueError(f"Image ({stem}) is present with multiple extensions. This is forbidden.")
+            raise ValueError(
+                f"Image ({stem}) is present with multiple extensions. This is forbidden."
+            )
 
         images_paths.append(images[0])
         annotations_paths.append(annotation_path)
 
-    print(f"Found {len(invalid_annotation_paths)} invalid annotations")
-    for p in invalid_annotation_paths:
-        print(p)
+    return images_paths, annotations_paths, invalid_annotation_paths
 
-    if len(images_paths) == 0:
-        raise ValueError(f"Could not find any {SUPPORTED_EXTENSIONS} file" f" in {dataset_path / 'images'}")
 
-    assert len(images_paths) == len(annotations_paths)
+def _load_and_format_annotations(
+    images_paths, annotations_paths, annotation_format, annotation_type, classes
+):
+    """
+    Loads and formats annotations based on the specified format and type.
 
-    # Load and re-format all the annotations
+    Args:
+        images_paths (List[Path]): List of paths to image files.
+        annotations_paths (List[Path]): List of paths to annotation files.
+        annotation_format (str): Desired output format for annotations. Can be 'coco' or 'darwin'.
+        annotation_type (str): Type of annotations. Can be 'tag', 'polygon', or 'bounding_box'.
+        classes (List[str]): List of class names.
+
+    Yields:
+        Dict: Formatted annotation record.
+
+    Notes:
+        - If the annotation format is 'coco', video annotations cannot be loaded and will be skipped.
+    """
     if annotation_format == "coco":
         images_ids = list(range(len(images_paths)))
-        for annotation_path, image_path, image_id in zip(annotations_paths, images_paths, images_ids):
+        for annotation_path, image_path, image_id in zip(
+            annotations_paths, images_paths, images_ids
+        ):
             if image_path.suffix.lower() in SUPPORTED_VIDEO_EXTENSIONS:
-                print(f"[WARNING] Cannot load video annotation into COCO format. Skipping {image_path}")
+                print(
+                    f"[WARNING] Cannot load video annotation into COCO format. Skipping {image_path}"
+                )
                 continue
             yield get_coco_format_record(
                 annotation_path=annotation_path,
@@ -610,25 +765,34 @@ def compute_distributions(
         - instance_distribution: count of all instances of a given class exist for each partition
     """
 
-    class_distribution: AnnotationDistribution = {partition: Counter() for partition in partitions}
-    instance_distribution: AnnotationDistribution = {partition: Counter() for partition in partitions}
+    class_distribution: AnnotationDistribution = {
+        partition: Counter() for partition in partitions
+    }
+    instance_distribution: AnnotationDistribution = {
+        partition: Counter() for partition in partitions
+    }
 
     for partition in partitions:
         for annotation_type in annotation_types:
-            split_file: Path = split_path / f"stratified_{annotation_type}_{partition}.txt"
+            split_file: Path = (
+                split_path / f"stratified_{annotation_type}_{partition}.txt"
+            )
             if not split_file.exists():
                 split_file = split_path / f"random_{partition}.txt"
             stems: List[str] = [e.rstrip("\n\r") for e in split_file.open()]
 
             for stem in stems:
                 annotation_path: Path = annotations_dir / f"{stem}.json"
-                annotation_file: Optional[dt.AnnotationFile] = parse_path(annotation_path)
+                annotation_file: Optional[dt.AnnotationFile] = parse_path(
+                    annotation_path
+                )
 
                 if annotation_file is None:
                     continue
 
                 annotation_class_names: List[str] = [
-                    annotation.annotation_class.name for annotation in annotation_file.annotations
+                    annotation.annotation_class.name
+                    for annotation in annotation_file.annotations
                 ]
 
                 class_distribution[partition] += Counter(set(annotation_class_names))
