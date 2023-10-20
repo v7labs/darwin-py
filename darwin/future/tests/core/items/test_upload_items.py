@@ -2,6 +2,7 @@ import asyncio
 from pathlib import Path
 from typing import Dict, Generator, List, Tuple
 from unittest.mock import MagicMock, Mock, patch
+from uuid import UUID
 
 import orjson as json
 import pytest
@@ -26,6 +27,7 @@ class TestBuildSlots:
         (
             Item(
                 name="name_with_no_slots",
+                id=UUID("00000000-0000-0000-0000-000000000000"),
                 slots=[],
                 dataset_id=1,
                 processing_status="processing",
@@ -39,6 +41,7 @@ class TestBuildSlots:
         (
             Item(
                 name="name_with_simple_slot",
+                id=UUID("00000000-0000-0000-0000-000000000000"),
                 slots=[
                     ItemSlot(
                         slot_name="slot_name_simple",
@@ -54,7 +57,6 @@ class TestBuildSlots:
                     "slot_name": "slot_name_simple",
                     "file_name": "file_name",
                     "storage_key": "storage_key",
-                    "type": "image",
                     "fps": 0,
                 }
             ],
@@ -66,6 +68,7 @@ class TestBuildSlots:
         (
             Item(
                 name="name_with_multiple_slots",
+                id=UUID("00000000-0000-0000-0000-000000000000"),
                 dataset_id=1,
                 processing_status="processing",
                 slots=[
@@ -86,14 +89,12 @@ class TestBuildSlots:
                     "slot_name": "slot_name1",
                     "file_name": "file_name1",
                     "storage_key": "storage_key1",
-                    "type": "image",
                     "fps": 0,
                 },
                 {
                     "slot_name": "slot_name2",
                     "file_name": "file_name2",
                     "storage_key": "storage_key2",
-                    "type": "image",
                     "fps": 0,
                 },
             ],
@@ -105,6 +106,7 @@ class TestBuildSlots:
         (
             Item(
                 name="name_testing_as_frames",
+                id=UUID("00000000-0000-0000-0000-000000000000"),
                 dataset_id=1,
                 processing_status="processing",
                 slots=[
@@ -133,7 +135,6 @@ class TestBuildSlots:
                     "file_name": "file_name",
                     "storage_key": "storage_key",
                     "fps": 0,
-                    "type": "image",
                     "as_frames": True,
                 },
                 {
@@ -141,7 +142,6 @@ class TestBuildSlots:
                     "file_name": "file_name",
                     "storage_key": "storage_key",
                     "fps": 0,
-                    "type": "image",
                     "as_frames": False,
                 },
                 {
@@ -149,7 +149,6 @@ class TestBuildSlots:
                     "file_name": "file_name",
                     "storage_key": "storage_key",
                     "fps": 0,
-                    "type": "image",
                 },
             ],
         )
@@ -160,6 +159,7 @@ class TestBuildSlots:
         (
             Item(
                 name="name_testing_extract_views",
+                id=UUID("00000000-0000-0000-0000-000000000000"),
                 dataset_id=1,
                 processing_status="processing",
                 slots=[
@@ -188,7 +188,6 @@ class TestBuildSlots:
                     "file_name": "file_name",
                     "storage_key": "storage_key",
                     "fps": 0,
-                    "type": "image",
                     "extract_views": True,
                 },
                 {
@@ -196,7 +195,6 @@ class TestBuildSlots:
                     "file_name": "file_name",
                     "storage_key": "storage_key",
                     "fps": 0,
-                    "type": "image",
                     "extract_views": False,
                 },
                 {
@@ -204,7 +202,6 @@ class TestBuildSlots:
                     "file_name": "file_name",
                     "storage_key": "storage_key",
                     "fps": 0,
-                    "type": "image",
                 },
             ],
         )
@@ -215,6 +212,7 @@ class TestBuildSlots:
         (
             Item(
                 name="name_with_simple_slot",
+                id=UUID("00000000-0000-0000-0000-000000000000"),
                 dataset_id=1,
                 processing_status="processing",
                 slots=[
@@ -248,28 +246,24 @@ class TestBuildSlots:
                     "slot_name": "slot_name25",
                     "file_name": "file_name",
                     "storage_key": "storage_key",
-                    "type": "image",
                     "fps": 25,
                 },
                 {
                     "slot_name": "slot_name29.997",
                     "file_name": "file_name",
                     "storage_key": "storage_key",
-                    "type": "image",
                     "fps": 29.997,
                 },
                 {
                     "slot_name": "slot_namenative",
                     "file_name": "file_name",
                     "storage_key": "storage_key",
-                    "type": "image",
                     "fps": "native",
                 },
                 {
                     "slot_name": "slot_name",
                     "file_name": "file_name",
                     "storage_key": "storage_key",
-                    "type": "image",
                     "fps": 0,
                 },
             ],
@@ -281,6 +275,7 @@ class TestBuildSlots:
         (
             Item(
                 name="name_with_simple_slot",
+                id=UUID("00000000-0000-0000-0000-000000000000"),
                 dataset_id=1,
                 processing_status="processing",
                 slots=[
@@ -309,7 +304,6 @@ class TestBuildSlots:
                     "file_name": "file_name",
                     "storage_key": "storage_key",
                     "fps": 0,
-                    "type": "image",
                     "metadata": {"key": "value"},
                 },
                 {
@@ -317,14 +311,12 @@ class TestBuildSlots:
                     "file_name": "file_name",
                     "storage_key": "storage_key",
                     "fps": 0,
-                    "type": "image",
                 },
                 {
                     "slot_name": "slot_name",
                     "file_name": "file_name",
                     "storage_key": "storage_key",
                     "fps": 0,
-                    "type": "image",
                 },
             ],
         )
@@ -335,6 +327,7 @@ class TestBuildSlots:
         (
             Item(
                 name="name_testing_tags",
+                id=UUID("00000000-0000-0000-0000-000000000000"),
                 dataset_id=1,
                 processing_status="processing",
                 slots=[
@@ -359,7 +352,6 @@ class TestBuildSlots:
                     "storage_key": "storage_key",
                     "tags": ["tag1", "tag2"],
                     "fps": 0,
-                    "type": "image",
                 },
                 {
                     "slot_name": "slot_name_with_kv_pairs",
@@ -367,7 +359,6 @@ class TestBuildSlots:
                     "storage_key": "storage_key",
                     "tags": {"key": "value"},
                     "fps": 0,
-                    "type": "image",
                 },
             ],
         )
@@ -386,6 +377,7 @@ class TestBuildLayout:
             (
                 Item(
                     name="test_item",
+                    id=UUID("00000000-0000-0000-0000-000000000000"),
                     layout=ItemLayout(version=1, type="grid", slots=["slot1", "slot2"]),
                     dataset_id=1,
                     processing_status="processing",
@@ -399,6 +391,7 @@ class TestBuildLayout:
             (
                 Item(
                     name="test_item",
+                    id=UUID("00000000-0000-0000-0000-000000000000"),
                     dataset_id=1,
                     processing_status="processing",
                     layout=ItemLayout(
@@ -430,6 +423,7 @@ class TestBuildPayloadItems:
                     (
                         Item(
                             name="test_item",
+                            id=UUID("00000000-0000-0000-0000-000000000000"),
                             dataset_id=1,
                             processing_status="processing",
                             slots=[
@@ -453,6 +447,9 @@ class TestBuildPayloadItems:
                 [
                     {
                         "name": "test_item",
+                        "id": "00000000-0000-0000-0000-000000000000",
+                        "dataset_id": 1,
+                        "processing_status": "processing",
                         "path:": "test_path",
                         "tags": [],
                         "slots": [
@@ -462,7 +459,6 @@ class TestBuildPayloadItems:
                                 "storage_key": "storage_key",
                                 "tags": ["tag1", "tag2"],
                                 "fps": 0,
-                                "type": "image",
                             },
                             {
                                 "slot_name": "slot_name_with_kv_pairs",
@@ -470,7 +466,6 @@ class TestBuildPayloadItems:
                                 "storage_key": "storage_key",
                                 "tags": {"key": "value"},
                                 "fps": 0,
-                                "type": "image",
                             },
                         ],
                     }
@@ -499,6 +494,7 @@ class TestRegisterUpload(SetupTests):
             (
                 Item(
                     name="test_item",
+                    id=UUID("00000000-0000-0000-0000-000000000000"),
                     dataset_id=1,
                     processing_status="processing",
                     slots=[

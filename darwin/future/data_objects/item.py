@@ -1,5 +1,6 @@
 # @see: GraphotateWeb.Schemas.DatasetsV2.ItemRegistration.ExistingItem
 from typing import Dict, List, Literal, Optional, Union
+from uuid import UUID
 
 from pydantic import root_validator, validator
 
@@ -44,12 +45,12 @@ class ItemSlot(DefaultDarwin):
     # Required fields
     slot_name: str
     file_name: str
+    fps: Optional[ItemFrameRate] = None
 
     # Optional fields
     storage_key: Optional[str] = None
     as_frames: Optional[bool] = None
     extract_views: Optional[bool] = None
-    fps: Optional[ItemFrameRate] = None
     metadata: Optional[Dict[str, UnknownType]] = None
     tags: Optional[Union[List[str], Dict[str, str]]] = None
     type: Optional[Literal["image", "video", "pdf", "dicom"]] = None
@@ -101,7 +102,7 @@ class ItemSlot(DefaultDarwin):
         smart_union = True
 
     @root_validator
-    def root(cls, v: UnknownType, values: Dict) -> Dict:
+    def root(cls, values: Dict) -> Dict:
         values = cls.infer_type(values)
         values = cls.validate_fps(values)
 
@@ -113,12 +114,14 @@ class Item(DefaultDarwin):
 
     # Required fields
     name: str
+    id: UUID
     slots: List[ItemSlot] = []
     path: str = "/"
     dataset_id: int
     processing_status: str
 
     # Optional fields
+    archived: Optional[bool] = False
     priority: Optional[int] = None
     tags: Optional[Union[List[str], Dict[str, str]]] = []
     layout: Optional[ItemLayout] = None

@@ -36,10 +36,11 @@ async def _build_slots(item: Item) -> List[Dict]:
         slot_dict: Dict[str, UnknownType] = {
             "slot_name": slot.slot_name,
             "file_name": slot.file_name,
-            "storage_key": slot.storage_key,
             "fps": slot.fps,
-            "type": slot.type,
         }
+
+        if slot.storage_key is not None:
+            slot_dict["storage_key"] = slot.storage_key
 
         if slot.as_frames is not None:
             slot_dict["as_frames"] = slot.as_frames
@@ -52,6 +53,9 @@ async def _build_slots(item: Item) -> List[Dict]:
 
         if slot.tags is not None:
             slot_dict["tags"] = slot.tags
+
+        if slot.type is not None:
+            slot_dict["type"] = slot.type
 
         slots_to_return.append(slot_dict)
 
@@ -98,12 +102,21 @@ async def _build_payload_items(items_and_paths: List[Tuple[Item, Path]]) -> List
     for item, path in items_and_paths:
         base_item = {
             "name": getattr(item, "name"),
+            "id": getattr(item, "id"),
+            "slots": await _build_slots(item),
+            "dataset_id": getattr(item, "dataset_id"),
             "path:": str(path),
-            "tags": getattr(item, "tags", []),
+            "processing_status": getattr(item, "processing_status"),
         }
 
-        if getattr(item, "slots", None):
-            base_item["slots"] = await _build_slots(item)
+        if getattr(item, "archived", None):
+            base_item["archived"] = item.archived
+
+        if getattr(item, "priority", None):
+            base_item["priority"] = item.priority
+
+        if getattr(item, "tags", None):
+            base_item["tags"] = item.tags
 
         if getattr(item, "layout", None):
             base_item["layout"] = await _build_layout(item)
