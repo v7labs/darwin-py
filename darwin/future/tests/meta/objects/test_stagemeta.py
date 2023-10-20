@@ -86,19 +86,19 @@ def test_move_attached_files_to_stage(
         )
 
 
-def test_get_stage_id(stage_meta):
+def test_get_stage_id(stage_meta: Stage) -> None:
     assert stage_meta.id == UUID("00000000-0000-0000-0000-000000000000")
 
 
-def test_get_stage_name(stage_meta):
+def test_get_stage_name(stage_meta: Stage) -> None:
     assert stage_meta.name == "test-stage"
 
 
-def test_get_stage_type(stage_meta):
+def test_get_stage_type(stage_meta: Stage) -> None:
     assert stage_meta.type == "annotate"
 
 
-def test_get_stage_edges(stage_meta):
+def test_get_stage_edges(stage_meta: Stage) -> None:
     edges = [
         WFEdgeCore(
             name="edge_1",

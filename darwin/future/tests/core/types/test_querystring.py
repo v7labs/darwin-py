@@ -1,8 +1,10 @@
-from darwin.future.core.types.common import QueryString
 from pytest import raises
 
+from darwin.future.core.types.common import QueryString
 
-# happy and sad path tests for QueryString - should validate a dict of strings, and return a query string on str()
+
+# happy and sad path tests for QueryString
+# should validate a dict of strings, and return a query string on str()
 def test_querystring_happy_path() -> None:
     query_string = QueryString({"foo": "bar"})
     assert str(query_string) == "?foo=bar"

@@ -32,7 +32,9 @@ TeamMemberList = List[TeamMemberCore]
 
 
 class TeamCore(DefaultDarwin):
-    """A class to manage all the information around a Team on the darwin platform, including validation
+    """
+    A class to manage all the information around a Team on the darwin platform
+    including validation
 
     Attributes
     ----------

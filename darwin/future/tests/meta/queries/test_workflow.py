@@ -239,11 +239,11 @@ def test_workflowquery_filters_stages_multiple(
         base_client.config.default_team
     )
     responses.add(responses.GET, endpoint, json=base_filterable_workflows)
-
+    param = "5445adcb-193d-4f76-adb0-0c6d5f5e4c04,53d2c997-6bb0-4766-803c-3c8d1fb21072"
     query = WorkflowQuery(base_client, []).where(
         {
             "name": "has_stages",
-            "param": "5445adcb-193d-4f76-adb0-0c6d5f5e4c04,53d2c997-6bb0-4766-803c-3c8d1fb21072",
+            "param": param,
         }
     )
     workflows = query._collect()

@@ -90,7 +90,9 @@ def test_query_filter_functionality(
         ("!=", 1, 2, True),
     ],
 )
-def test_query_filter_filters(mod: Optional[str], param: Any, check: Any, expected: bool) -> None:  # type: ignore
+def test_query_filter_filters(  # type: ignore
+    mod: Optional[str], param: Any, check: Any, expected: bool
+) -> None:
     # test str
     if mod:
         modifier = Query.Modifier(mod)

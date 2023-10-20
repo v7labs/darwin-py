@@ -1,6 +1,5 @@
 from typing import Any, Dict, List, Union
 
-
 from darwin.future.data_objects import validators as darwin_validators
 from darwin.future.data_objects.typing import UnknownType
 
@@ -39,7 +38,7 @@ class QueryString:
 
     value: Dict[str, str]
 
-    def dict_check(cls, value: UnknownType) -> Dict[str, str]:
+    def dict_check(self, value: UnknownType) -> Dict[str, str]:
         assert isinstance(value, dict)
         assert all(isinstance(k, str) and isinstance(v, str) for k, v in value.items())
         return value

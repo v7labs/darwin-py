@@ -68,8 +68,8 @@ class QueryFilter(DefaultDarwin):
     def _from_dict(cls, d: Dict[str, Any]) -> QueryFilter:  # type: ignore
         if "name" not in d or "param" not in d:
             raise InvalidQueryFilter(
-                f"args must be a QueryFilter or a dict with 'name' and 'param' keys, "
-                f"got {d}"
+                "args must be a QueryFilter or a dict with 'name' and 'param' keys,"
+                f" got {d}"
             )
         modifier = Modifier(d["modifier"]) if "modifier" in d else None
         return QueryFilter(name=d["name"], param=str(d["param"]), modifier=modifier)
@@ -91,8 +91,8 @@ class QueryFilter(DefaultDarwin):
             return cls._from_dict(arg)
         else:
             raise InvalidQueryFilter(
-                f"args must be a QueryFilter or a dict with 'name' and 'param' keys, "
-                f"got {arg}"
+                "args must be a QueryFilter or a dict with 'name' and 'param' keys,"
+                f" got {arg}"
             )
 
     @classmethod
