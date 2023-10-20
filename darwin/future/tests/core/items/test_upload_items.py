@@ -349,7 +349,7 @@ class TestBuildSlots:
         )
     )
 
-    @pytest.mark.parametrize("item,expected", [(item, expected) for item, expected in items_and_expectations])
+    @pytest.mark.parametrize("item,expected", items_and_expectations)
     def test_build_slots(self, item: Item, expected: List[Dict]) -> None:
         result = asyncio.run(uploads._build_slots(item))
         assert result == expected
