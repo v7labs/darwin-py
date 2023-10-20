@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pprint
 from typing import Dict, Generic, Optional, TypeVar
 
 from darwin.future.core.client import ClientCore
@@ -58,7 +59,7 @@ class MetaBase(Generic[R]):
 - Stage ID: {self._element.id}"
 
         else:
-            raise Exception(f"Class name {class_name} not found in __str__ method")
+            return f"Class type '{class_name}' not found in __str__ method:\n{pprint.pformat(self)}"
 
     def __repr__(self) -> str:
         return str(self._element)
