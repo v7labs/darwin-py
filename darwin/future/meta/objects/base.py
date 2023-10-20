@@ -59,7 +59,8 @@ class MetaBase(Generic[R]):
 - Stage ID: {self._element.id}"
 
         else:
-            return f"Class type '{class_name}' not found in __str__ method:\n{pprint.pformat(self)}"
+            return f"Class type '{class_name}' not found in __str__ method:\
+\n{pprint.pformat(self)}"
 
     def __repr__(self) -> str:
         return str(self._element)
