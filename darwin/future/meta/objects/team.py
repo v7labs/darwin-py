@@ -60,7 +60,6 @@ class Team(MetaBase[TeamCore]):
     def workflows(self) -> WorkflowQuery:
         return WorkflowQuery(self.client, meta_params={"team_slug": self.slug})
 
-
     @classmethod
     def delete_dataset(
         cls, client: ClientCore, dataset_id: Union[int, str]
