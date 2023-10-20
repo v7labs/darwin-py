@@ -137,3 +137,17 @@ def test_get_stage_edges(stage_meta):
     assert test_stage.edges[0].target_stage_id == UUID(
         "00000000-0000-0000-0000-000000000000"
     )
+
+
+def test_stage_str_method(stage_meta: Stage) -> None:
+    assert (
+        str(stage_meta)
+        == "Stage\n\
+- Stage Name: test-stage\n\
+- Stage Type: annotate\n\
+- Stage ID: 00000000-0000-0000-0000-000000000000"
+    )
+
+
+def test_stage_repr_method(stage_meta: Stage) -> None:
+    assert repr(stage_meta) == str(stage_meta._element)
