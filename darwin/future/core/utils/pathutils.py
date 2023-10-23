@@ -10,10 +10,6 @@ ENCODINGS = ["utf-8", "utf-16", "utf-32", "ascii"]
 
 
 def attempt_open(path: Path) -> dict:
-    # TODO: Refactor this to be some sort of map method. Mypy doesn't like generic callables
-    # and will need to be typed
-    # reader: yaml.safe_load if path.suffix.lower() == ".yaml" else json.loads
-    # map_reader = {".yaml": yaml.safe_load, ".json": json.loads}
     try:
         if "yaml" in path.suffix.lower():
             return open_yaml(path)

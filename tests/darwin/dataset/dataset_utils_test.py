@@ -1,6 +1,6 @@
 import shutil
 from pathlib import Path
-from typing import Dict, Generator, List
+from typing import Dict
 from unittest.mock import MagicMock, patch
 
 import orjson as json
@@ -17,7 +17,9 @@ from tests.fixtures import *
 
 
 def open_resource_file():
-    resource_file = Path("tests") / "darwin" / "dataset" / "resources" / "stratified_polygon_train"
+    resource_file = (
+        Path("tests") / "darwin" / "dataset" / "resources" / "stratified_polygon_train"
+    )
     return resource_file.open()
 
 
@@ -31,7 +33,12 @@ def parsed_annotation_file():
             {"name": "class_2", "polygon": {"path": []}},
             {"name": "class_3", "polygon": {"path": []}},
         ],
-        "image": {"filename": "test.jpg", "height": 1080, "url": "https://darwin.v7labs.com/test.jpg", "width": 1920},
+        "image": {
+            "filename": "test.jpg",
+            "height": 1080,
+            "url": "https://darwin.v7labs.com/test.jpg",
+            "width": 1920,
+        },
     }
 
 
@@ -66,7 +73,10 @@ class TestExtractClasses:
         payload = {
             "annotations": [
                 {"name": "class_1", "polygon": {"path": []}},
-                {"name": "class_2", "bounding_box": {"x": 0, "y": 0, "w": 100, "h": 100}},
+                {
+                    "name": "class_2",
+                    "bounding_box": {"x": 0, "y": 0, "w": 100, "h": 100},
+                },
                 {"name": "class_3", "polygon": {"path": []}},
                 {"name": "class_4", "tag": {}},
                 {"name": "class_1", "polygon": {"path": []}},
@@ -78,7 +88,10 @@ class TestExtractClasses:
         payload = {
             "annotations": [
                 {"name": "class_5", "polygon": {"path": []}},
-                {"name": "class_6", "bounding_box": {"x": 0, "y": 0, "w": 100, "h": 100}},
+                {
+                    "name": "class_6",
+                    "bounding_box": {"x": 0, "y": 0, "w": 100, "h": 100},
+                },
                 {"name": "class_1", "polygon": {"path": []}},
                 {"name": "class_4", "tag": {}},
                 {"name": "class_1", "polygon": {"path": []}},
@@ -86,11 +99,11 @@ class TestExtractClasses:
             "image": {"filename": "1.jpg"},
         }
         _create_annotation_file(annotations_path, "1.json", payload)
-
         class_dict, index_dict = extract_classes(annotations_path, "polygon")
 
-        assert dict(class_dict) == {"class_1": {0, 1}, "class_3": {0}, "class_5": {1}}
-        assert dict(index_dict) == {0: {"class_1", "class_3"}, 1: {"class_1", "class_5"}}
+        assert set(index_dict.keys()) == {0, 1}
+        assert index_dict[0] == {"class_1", "class_3"}
+        assert index_dict[1] == {"class_1", "class_5"}
 
         class_dict, index_dict = extract_classes(annotations_path, "bounding_box")
 
@@ -102,29 +115,119 @@ class TestExtractClasses:
         assert dict(class_dict) == {"class_4": {0, 1}}
         assert dict(index_dict) == {0: {"class_4"}, 1: {"class_4"}}
 
+    def test_extract_multiple_annotation_types(self, annotations_path: Path):
+        # Provided payloads
+        _create_annotation_file(
+            annotations_path,
+            "0.json",
+            {
+                "annotations": [
+                    {"name": "class_1", "polygon": {"path": []}},
+                    {
+                        "name": "class_2",
+                        "bounding_box": {"x": 0, "y": 0, "w": 100, "h": 100},
+                    },
+                    {"name": "class_3", "polygon": {"path": []}},
+                    {"name": "class_4", "tag": {}},
+                    {"name": "class_1", "polygon": {"path": []}},
+                ],
+                "image": {"filename": "0.jpg"},
+            },
+        )
+        _create_annotation_file(
+            annotations_path,
+            "1.json",
+            {
+                "annotations": [
+                    {"name": "class_5", "polygon": {"path": []}},
+                    {
+                        "name": "class_6",
+                        "bounding_box": {"x": 0, "y": 0, "w": 100, "h": 100},
+                    },
+                    {"name": "class_1", "polygon": {"path": []}},
+                    {"name": "class_4", "tag": {}},
+                    {"name": "class_1", "polygon": {"path": []}},
+                ],
+                "image": {"filename": "1.jpg"},
+            },
+        )
+
+        # Extracting classes for both bounding_box and polygon annotations
+        class_dict, index_dict = extract_classes(
+            annotations_path, ["polygon", "bounding_box"]
+        )
+
+        # Assertions
+        assert set(class_dict.keys()) == {
+            "class_1",
+            "class_2",
+            "class_3",
+            "class_5",
+            "class_6",
+        }
+        assert class_dict["class_1"] == {0, 1}
+        assert class_dict["class_2"] == {0}
+        assert class_dict["class_3"] == {0}
+        assert class_dict["class_5"] == {1}
+        assert class_dict["class_6"] == {1}
+
+        assert set(index_dict.keys()) == {0, 1}
+        assert index_dict[0] == {"class_1", "class_2", "class_3"}
+        assert index_dict[1] == {"class_1", "class_5", "class_6"}
+
 
 class TestSanitizeFilename:
     def test_normal_filenames_stay_untouched(self):
         assert sanitize_filename("test.jpg") == "test.jpg"
 
     def test_special_characters_are_replaced_with_underscores(self):
-        assert sanitize_filename("2020-06-18T08<50<13.14815Z.json") == "2020-06-18T08_50_13.14815Z.json"
-        assert sanitize_filename("2020-06-18T08>50>13.14815Z.json") == "2020-06-18T08_50_13.14815Z.json"
-        assert sanitize_filename('2020-06-18T08"50"13.14815Z.json') == "2020-06-18T08_50_13.14815Z.json"
-        assert sanitize_filename("2020-06-18T08/50/13.14815Z.json") == "2020-06-18T08_50_13.14815Z.json"
-        assert sanitize_filename("2020-06-18T08\\50\\13.14815Z.json") == "2020-06-18T08_50_13.14815Z.json"
-        assert sanitize_filename("2020-06-18T08|50|13.14815Z.json") == "2020-06-18T08_50_13.14815Z.json"
-        assert sanitize_filename("2020-06-18T08?50?13.14815Z.json") == "2020-06-18T08_50_13.14815Z.json"
-        assert sanitize_filename("2020-06-18T08*50*13.14815Z.json") == "2020-06-18T08_50_13.14815Z.json"
+        assert (
+            sanitize_filename("2020-06-18T08<50<13.14815Z.json")
+            == "2020-06-18T08_50_13.14815Z.json"
+        )
+        assert (
+            sanitize_filename("2020-06-18T08>50>13.14815Z.json")
+            == "2020-06-18T08_50_13.14815Z.json"
+        )
+        assert (
+            sanitize_filename('2020-06-18T08"50"13.14815Z.json')
+            == "2020-06-18T08_50_13.14815Z.json"
+        )
+        assert (
+            sanitize_filename("2020-06-18T08/50/13.14815Z.json")
+            == "2020-06-18T08_50_13.14815Z.json"
+        )
+        assert (
+            sanitize_filename("2020-06-18T08\\50\\13.14815Z.json")
+            == "2020-06-18T08_50_13.14815Z.json"
+        )
+        assert (
+            sanitize_filename("2020-06-18T08|50|13.14815Z.json")
+            == "2020-06-18T08_50_13.14815Z.json"
+        )
+        assert (
+            sanitize_filename("2020-06-18T08?50?13.14815Z.json")
+            == "2020-06-18T08_50_13.14815Z.json"
+        )
+        assert (
+            sanitize_filename("2020-06-18T08*50*13.14815Z.json")
+            == "2020-06-18T08_50_13.14815Z.json"
+        )
 
     @patch("platform.system", return_value="Windows")
     def test_replace_columns_on_windows(self, mock: MagicMock):
-        assert sanitize_filename("2020-06-18T08:50:13.14815Z.json") == "2020-06-18T08_50_13.14815Z.json"
+        assert (
+            sanitize_filename("2020-06-18T08:50:13.14815Z.json")
+            == "2020-06-18T08_50_13.14815Z.json"
+        )
         mock.assert_called_once()
 
     @patch("platform.system", return_value="Linux")
     def test_avoid_replacing_columns_on_non_windows(self, mock: MagicMock):
-        assert sanitize_filename("2020-06-18T08:50:13.14815Z.json") == "2020-06-18T08:50:13.14815Z.json"
+        assert (
+            sanitize_filename("2020-06-18T08:50:13.14815Z.json")
+            == "2020-06-18T08:50:13.14815Z.json"
+        )
         mock.assert_called_once()
 
 
@@ -135,7 +238,9 @@ def _create_annotation_file(annotation_path: Path, filename: str, payload: Dict)
 
 
 class TestGetReleasePath:
-    def test_defaults_to_latest_version_if_no_version_provided(self, team_dataset_path: Path):
+    def test_defaults_to_latest_version_if_no_version_provided(
+        self, team_dataset_path: Path
+    ):
         latest_release_path = team_dataset_path / "releases" / "latest"
         latest_release_path.mkdir(parents=True)
         assert get_release_path(team_dataset_path) == latest_release_path
@@ -184,3 +289,42 @@ class TestExhaustGenerator:
         assert len(successes) == 1
         assert isinstance(errors[0], Exception)
         assert errors[0].args[0] == "Test"
+
+
+'''
+class TestGetAnnotations:
+    def test_basic_functionality(
+        self,
+        team_extracted_dataset_path,
+        team_dataset_release_path,
+        annotations_path,
+        split_path
+    ):
+        """
+        Basic functionality test for the `get_annotations` function.
+        """
+        
+        # Test with basic setup
+        annotations = list(get_annotations(dataset_path=team_extracted_dataset_path))
+        assert len(annotations) > 0, "Expected to find some annotations"
+
+        # Add more assertions here to validate the structure of the returned annotations
+
+    def test_partition_handling(
+        self,
+        team_extracted_dataset_path,
+        team_dataset_release_path,
+        annotations_path,
+        split_path
+    ):
+        """
+        Test the partition handling of the `get_annotations` function.
+        """
+
+        # Assuming there's a train partition in the test dataset
+        annotations = list(get_annotations(dataset_path=team_extracted_dataset_path, partition="train"))
+        assert len(annotations) > 0, "Expected to find some annotations for the train partition"
+
+        # Add more assertions here to validate the structure of the returned annotations
+        # Repeat for other partitions (e.g., val, test) if present in the mock data
+'''

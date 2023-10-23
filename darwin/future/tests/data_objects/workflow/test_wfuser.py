@@ -1,6 +1,5 @@
 from pathlib import Path
 
-
 from darwin.future.data_objects.workflow import WFUserCore
 
 test_data_path: Path = Path(__file__).parent / "data"

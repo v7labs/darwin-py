@@ -4,7 +4,7 @@ from typing import List
 from uuid import UUID
 
 from darwin.future.core.items import get_item_ids_stage, move_items_to_stage
-from darwin.future.data_objects.workflow import WFStageCore
+from darwin.future.data_objects.workflow import WFEdgeCore, WFStageCore
 from darwin.future.meta.objects.base import MetaBase
 
 
@@ -50,4 +50,20 @@ class Stage(MetaBase[WFStageCore]):
 
     @property
     def id(self) -> UUID:
+        """Stage ID."""
         return self._element.id
+
+    @property
+    def name(self) -> str:
+        """Stage name."""
+        return self._element.name
+
+    @property
+    def type(self) -> str:
+        """Stage type."""
+        return self._element.type.value
+
+    @property
+    def edges(self) -> List[WFEdgeCore]:
+        """Edge ID, source stage ID, target stage ID."""
+        return list(self._element.edges)
