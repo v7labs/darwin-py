@@ -332,7 +332,7 @@ class AlbumentationsTransform:
         transformed_data = self.transform(**albu_data)
         image, transformed_annotation = self._post_process(transformed_data, annotation)
 
-        if list(albu_data.keys()) == ["image"]:
+        if len(annotation) < 1:
             return image
 
         return image, transformed_annotation
