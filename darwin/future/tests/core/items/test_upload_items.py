@@ -450,8 +450,7 @@ class TestBuildPayloadItems:
                         "id": "00000000-0000-0000-0000-000000000000",
                         "dataset_id": 1,
                         "processing_status": "processing",
-                        "path:": "test_path",
-                        "tags": [],
+                        "path": "test_path",
                         "slots": [
                             {
                                 "slot_name": "slot_name_with_string_list",
@@ -475,7 +474,9 @@ class TestBuildPayloadItems:
     )
     def test_build_payload_items(self, items_and_paths: List[Tuple[Item, Path]], expected: List[Dict]) -> None:
         result = asyncio.run(uploads._build_payload_items(items_and_paths))
-        assert result == expected
+        result_with_uuid_as_str = [{**item, "id": str(item["id"])} for item in result]
+
+        assert result_with_uuid_as_str == expected
 
 
 class SetupTests:
@@ -528,7 +529,7 @@ class TestRegisterUpload(SetupTests):
         items = [
             {
                 "name": "test_item",
-                "path:": "test_path",
+                "path": "test_path",
                 "tags": [],
                 "slots": [
                     {
@@ -635,7 +636,7 @@ class TestCreateSignedUploadUrl(SetupTests):
             if not actual_response:
                 pytest.fail("Response was None")
 
-            assert actual_response == expected_response
+            assert actual_response == expected_response["upload_url"]
 
     def test_async_create_signed_upload_url_raises(self, base_client: ClientCore) -> None:
         base_client.post = MagicMock()  # type: ignore
@@ -740,8 +741,28 @@ class TestConfirmUpload(SetupTests):
             )
         )
 
-        # Check that the response matches the expected response
-        assert actual_response == {}
+        assert actual_response is None  # Function doesn't return anything on success
+
+    @responses.activate
+    def test_async_confirm_upload_raises_on_returned_errors(self, base_client: ClientCore, default_url: str) -> None:
+        # Call the function with mocked arguments
+        responses.add(
+            "POST",
+            f"{default_url}/uploads/123/confirm",
+            status=200,  # API will not normally return this on success, but we're not test API
+            json={"errors": ["error1", "error2"]},
+        )
+
+        with pytest.raises(DarwinException) as exc:
+            asyncio.run(
+                uploads.async_confirm_upload(
+                    base_client,
+                    "my-team",
+                    "123",
+                )
+            )
+
+        assert "Failed to confirm upload in darwin.future.core.items.uploads: ['error1', 'error2']" in str(exc)
 
     def test_async_confirm_upload_raises(self, base_client: ClientCore) -> None:
         base_client.post = MagicMock()  # type: ignore

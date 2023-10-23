@@ -105,7 +105,7 @@ async def _build_payload_items(items_and_paths: List[Tuple[Item, Path]]) -> List
             "id": getattr(item, "id"),
             "slots": await _build_slots(item),
             "dataset_id": getattr(item, "dataset_id"),
-            "path:": str(path),
+            "path": str(path),
             "processing_status": getattr(item, "processing_status"),
         }
 
@@ -313,13 +313,9 @@ async def async_confirm_upload(api_client: ClientCore, team_slug: str, upload_id
 
     assert isinstance(response, dict), "Unexpected return type from confirm upload"
 
-    if not response:
-        logger.error(f"Failed to confirm upload in {__name__}, got no response")
-        raise DarwinException(f"Failed to confirm upload in {__name__}, got no response")
-
     if "errors" in response:
         logger.error(f"Failed to confirm upload in {__name__}, got errors: {response['errors']}")
-        raise DarwinException(f"Failed to confirm upload in {__name__}")
+        raise DarwinException(f"Failed to confirm upload in {__name__}: {str(response['errors'])}")
 
 
 def register_upload(
