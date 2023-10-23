@@ -54,6 +54,7 @@ EXAMPLE_TRANSFORM_RESIZE = Compose(
     bbox_params=BboxParams(format="coco", label_fields=["labels"]),
 )
 
+
 class TestAlbumentationsTransform:
     def test_init(self):
         transformations = EXAMPLE_BOX_TRANSFORM
@@ -84,7 +85,9 @@ class TestAlbumentationsTransform:
         transformations = EXAMPLE_BOX_TRANSFORM
         at = AlbumentationsTransform(transformations)
         with pytest.raises(ValueError):
-            _, annotation = at(SAMPLE_IMAGE, SAMPLE_ANNOTATION_OOB)  # Expecting the ValueError due to out of bounds
+            _, annotation = at(
+                SAMPLE_IMAGE, SAMPLE_ANNOTATION_OOB
+            )  # Expecting the ValueError due to out of bounds
 
     def test_transform_with_masks(self):
         transformations = EXAMPLE_BOX_TRANSFORM
@@ -105,7 +108,9 @@ class TestAlbumentationsTransform:
         _, annotation = at(SAMPLE_IMAGE, SAMPLE_ANNOTATION)
         area = annotation["boxes"][0, 2] * annotation["boxes"][0, 3]
 
-        assert torch.isclose(annotation["area"], area.unsqueeze(0), atol=1e-5)  # Using isclose for floating point comparison
+        assert torch.isclose(
+            annotation["area"], area.unsqueeze(0), atol=1e-5
+        )  # Using isclose for floating point comparison
 
     def test_iscrowd_unchanged(self):
         transformations = EXAMPLE_BOX_TRANSFORM
@@ -117,13 +122,12 @@ class TestAlbumentationsTransform:
     def test_image_only(self):
         transformations = EXAMPLE_IMAGE_TRANSFORM
         at = AlbumentationsTransform(transformations)
-        
+
         image = at(SAMPLE_IMAGE)
         assert image is not None
         assert not isinstance(image, Tuple)
         print(type(image))
         assert isinstance(image, np.ndarray)
-
 
     def test_bbox_with_empty_annotation(self):
         transformations = EXAMPLE_BOX_TRANSFORM
@@ -142,7 +146,7 @@ class TestAlbumentationsTransform:
         for key in SAMPLE_EMPTY_ANNOTATION_WITH_MASKS:
             assert key in annotation.keys()
             assert len(annotation[key]) == 0
-        
+
 
 if __name__ == "__main__":
     pytest.run()
