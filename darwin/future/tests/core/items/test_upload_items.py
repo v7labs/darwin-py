@@ -2,7 +2,6 @@ import asyncio
 from pathlib import Path
 from typing import Dict, Generator, List, Tuple
 from unittest.mock import MagicMock, Mock, patch
-from uuid import UUID
 
 import orjson as json
 import pytest
@@ -10,7 +9,7 @@ import responses
 
 import darwin.future.core.items.uploads as uploads
 from darwin.future.core.client import ClientCore, DarwinConfig
-from darwin.future.data_objects.item import Item, ItemLayout, ItemSlot
+from darwin.future.data_objects.item import ItemLayout, ItemSlot, UploadItem
 from darwin.future.exceptions import DarwinException
 from darwin.future.tests.core.fixtures import *  # noqa: F401,F403
 
@@ -20,18 +19,12 @@ from .fixtures import *  # noqa: F401,F403
 class TestBuildSlots:
     BUILD_SLOT_RETURN_TYPE = List[Dict]
 
-    items_and_expectations: List[Tuple[Item, BUILD_SLOT_RETURN_TYPE]] = []
+    items_and_expectations: List[Tuple[UploadItem, BUILD_SLOT_RETURN_TYPE]] = []
 
     # Test empty slots
     items_and_expectations.append(
         (
-            Item(
-                name="name_with_no_slots",
-                id=UUID("00000000-0000-0000-0000-000000000000"),
-                slots=[],
-                dataset_id=1,
-                processing_status="processing",
-            ),
+            UploadItem(name="name_with_no_slots", slots=[]),
             [],
         )
     )
@@ -39,9 +32,8 @@ class TestBuildSlots:
     # Test Simple slot with no non-required fields
     items_and_expectations.append(
         (
-            Item(
+            UploadItem(
                 name="name_with_simple_slot",
-                id=UUID("00000000-0000-0000-0000-000000000000"),
                 slots=[
                     ItemSlot(
                         slot_name="slot_name_simple",
@@ -49,8 +41,6 @@ class TestBuildSlots:
                         storage_key="storage_key",
                     )
                 ],
-                dataset_id=1,
-                processing_status="processing",
             ),
             [
                 {
@@ -66,11 +56,8 @@ class TestBuildSlots:
     # Test with multiple slots
     items_and_expectations.append(
         (
-            Item(
+            UploadItem(
                 name="name_with_multiple_slots",
-                id=UUID("00000000-0000-0000-0000-000000000000"),
-                dataset_id=1,
-                processing_status="processing",
                 slots=[
                     ItemSlot(
                         slot_name="slot_name1",
@@ -104,11 +91,8 @@ class TestBuildSlots:
     # Test with `as_frames` optional field
     items_and_expectations.append(
         (
-            Item(
+            UploadItem(
                 name="name_testing_as_frames",
-                id=UUID("00000000-0000-0000-0000-000000000000"),
-                dataset_id=1,
-                processing_status="processing",
                 slots=[
                     ItemSlot(
                         slot_name="slot_name1",
@@ -157,11 +141,8 @@ class TestBuildSlots:
     # Test with `extract_views` optional field
     items_and_expectations.append(
         (
-            Item(
+            UploadItem(
                 name="name_testing_extract_views",
-                id=UUID("00000000-0000-0000-0000-000000000000"),
-                dataset_id=1,
-                processing_status="processing",
                 slots=[
                     ItemSlot(
                         slot_name="slot_name1",
@@ -210,11 +191,8 @@ class TestBuildSlots:
     # Test with `fps` semi-optional field - field defaults to 0 if not provided
     items_and_expectations.append(
         (
-            Item(
+            UploadItem(
                 name="name_with_simple_slot",
-                id=UUID("00000000-0000-0000-0000-000000000000"),
-                dataset_id=1,
-                processing_status="processing",
                 slots=[
                     ItemSlot(
                         slot_name="slot_name25",
@@ -273,11 +251,8 @@ class TestBuildSlots:
     # Test with `metadata` optional field
     items_and_expectations.append(
         (
-            Item(
+            UploadItem(
                 name="name_with_simple_slot",
-                id=UUID("00000000-0000-0000-0000-000000000000"),
-                dataset_id=1,
-                processing_status="processing",
                 slots=[
                     ItemSlot(
                         slot_name="slot_name",
@@ -325,11 +300,8 @@ class TestBuildSlots:
     # Test with `tags` optional field
     items_and_expectations.append(
         (
-            Item(
+            UploadItem(
                 name="name_testing_tags",
-                id=UUID("00000000-0000-0000-0000-000000000000"),
-                dataset_id=1,
-                processing_status="processing",
                 slots=[
                     ItemSlot(
                         slot_name="slot_name_with_string_list",
@@ -365,7 +337,7 @@ class TestBuildSlots:
     )
 
     @pytest.mark.parametrize("item,expected", items_and_expectations)
-    def test_build_slots(self, item: Item, expected: List[Dict]) -> None:
+    def test_build_slots(self, item: UploadItem, expected: List[Dict]) -> None:
         result = asyncio.run(uploads._build_slots(item))
         assert result == expected
 
@@ -375,12 +347,9 @@ class TestBuildLayout:
         "item, expected",
         [
             (
-                Item(
+                UploadItem(
                     name="test_item",
-                    id=UUID("00000000-0000-0000-0000-000000000000"),
                     layout=ItemLayout(version=1, type="grid", slots=["slot1", "slot2"]),
-                    dataset_id=1,
-                    processing_status="processing",
                 ),
                 {
                     "slots": ["slot1", "slot2"],
@@ -389,11 +358,8 @@ class TestBuildLayout:
                 },
             ),
             (
-                Item(
+                UploadItem(
                     name="test_item",
-                    id=UUID("00000000-0000-0000-0000-000000000000"),
-                    dataset_id=1,
-                    processing_status="processing",
                     layout=ItemLayout(
                         version=2,
                         type="grid",
@@ -410,7 +376,7 @@ class TestBuildLayout:
             ),
         ],
     )
-    def test_build_layout(self, item: Item, expected: Dict) -> None:
+    def test_build_layout(self, item: UploadItem, expected: Dict) -> None:
         assert asyncio.run(uploads._build_layout(item)) == expected
 
 
@@ -421,11 +387,8 @@ class TestBuildPayloadItems:
             (
                 [
                     (
-                        Item(
+                        UploadItem(
                             name="test_item",
-                            id=UUID("00000000-0000-0000-0000-000000000000"),
-                            dataset_id=1,
-                            processing_status="processing",
                             slots=[
                                 ItemSlot(
                                     slot_name="slot_name_with_string_list",
@@ -447,9 +410,6 @@ class TestBuildPayloadItems:
                 [
                     {
                         "name": "test_item",
-                        "id": "00000000-0000-0000-0000-000000000000",
-                        "dataset_id": 1,
-                        "processing_status": "processing",
                         "path": "test_path",
                         "slots": [
                             {
@@ -473,12 +433,11 @@ class TestBuildPayloadItems:
         ],
     )
     def test_build_payload_items(
-        self, items_and_paths: List[Tuple[Item, Path]], expected: List[Dict]
+        self, items_and_paths: List[Tuple[UploadItem, Path]], expected: List[Dict]
     ) -> None:
         result = asyncio.run(uploads._build_payload_items(items_and_paths))
-        result_with_uuid_as_str = [{**item, "id": str(item["id"])} for item in result]
 
-        assert result_with_uuid_as_str == expected
+        assert result == expected
 
 
 class SetupTests:
@@ -492,14 +451,11 @@ class TestRegisterUpload(SetupTests):
     dataset_slug = "my-dataset"
 
     @pytest.fixture
-    def items_and_paths(self) -> List[Tuple[Item, Path]]:
+    def items_and_paths(self) -> List[Tuple[UploadItem, Path]]:
         return [
             (
-                Item(
+                UploadItem(
                     name="test_item",
-                    id=UUID("00000000-0000-0000-0000-000000000000"),
-                    dataset_id=1,
-                    processing_status="processing",
                     slots=[
                         ItemSlot(
                             slot_name="slot_name_with_string_list",
@@ -526,7 +482,7 @@ class TestRegisterUpload(SetupTests):
         mock_build_payload_items: MagicMock,
         base_client: ClientCore,
         default_url: str,
-        items_and_paths: List[Tuple[Item, Path]],
+        items_and_paths: List[Tuple[UploadItem, Path]],
     ) -> None:
         items = [
             {

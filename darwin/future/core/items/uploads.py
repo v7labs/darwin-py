@@ -4,20 +4,20 @@ from pathlib import Path
 from typing import Dict, List, Tuple, Union
 
 from darwin.future.core.client import ClientCore
-from darwin.future.data_objects.item import Item
+from darwin.future.data_objects.item import UploadItem
 from darwin.future.data_objects.typing import UnknownType
 from darwin.future.exceptions import DarwinException
 
 logger = getLogger(__name__)
 
 
-async def _build_slots(item: Item) -> List[Dict]:
+async def _build_slots(item: UploadItem) -> List[Dict]:
     """
     (internal) Builds the slots for an item
 
     Parameters
     ----------
-    item: Item
+    item: UploadItem
         The item to build slots for
 
     Returns
@@ -61,7 +61,7 @@ async def _build_slots(item: Item) -> List[Dict]:
     return slots_to_return
 
 
-async def _build_layout(item: Item) -> Dict:
+async def _build_layout(item: UploadItem) -> Dict:
     if not item.layout:
         return {}
 
@@ -83,13 +83,15 @@ async def _build_layout(item: Item) -> Dict:
     raise DarwinException(f"Invalid layout version {item.layout.version}")
 
 
-async def _build_payload_items(items_and_paths: List[Tuple[Item, Path]]) -> List[Dict]:
+async def _build_payload_items(
+    items_and_paths: List[Tuple[UploadItem, Path]]
+) -> List[Dict]:
     """
     Builds the payload for the items to be registered for upload
 
     Parameters
     ----------
-    items_and_paths: List[Tuple[Item, Path]]
+    items_and_paths: List[Tuple[UploadItem, Path]]
 
     Returns
     -------
@@ -101,18 +103,9 @@ async def _build_payload_items(items_and_paths: List[Tuple[Item, Path]]) -> List
     for item, path in items_and_paths:
         base_item = {
             "name": getattr(item, "name"),
-            "id": getattr(item, "id"),
             "slots": await _build_slots(item),
-            "dataset_id": getattr(item, "dataset_id"),
             "path": str(path),
-            "processing_status": getattr(item, "processing_status"),
         }
-
-        if getattr(item, "archived", None):
-            base_item["archived"] = item.archived
-
-        if getattr(item, "priority", None):
-            base_item["priority"] = item.priority
 
         if getattr(item, "tags", None):
             base_item["tags"] = item.tags
@@ -129,7 +122,7 @@ async def async_register_upload(
     api_client: ClientCore,
     team_slug: str,
     dataset_slug: str,
-    items_and_paths: Union[Tuple[Item, Path], List[Tuple[Item, Path]]],
+    items_and_paths: Union[Tuple[UploadItem, Path], List[Tuple[UploadItem, Path]]],
     force_tiling: bool = False,
     handle_as_slices: bool = False,
     ignore_dicom_layout: bool = False,
@@ -145,7 +138,7 @@ async def async_register_upload(
         The slug of the team to register the upload for
     dataset_slug: str
         The slug of the dataset to register the upload for
-    items_and_paths: Union[Tuple[Item, Path], List[Tuple[Item, Path]]]
+    items_and_paths: Union[Tuple[UploadItem, Path], List[Tuple[UploadItem, Path]]]
         A list of tuples of Items and Paths to register for upload
     force_tiling: bool
         Whether to force tiling for the upload
@@ -158,7 +151,7 @@ async def async_register_upload(
     if isinstance(items_and_paths, tuple):
         items_and_paths = [items_and_paths]
         assert all(
-            (isinstance(item, Item) and isinstance(path, Path))
+            (isinstance(item, UploadItem) and isinstance(path, Path))
             for item, path in items_and_paths
         ), "items must be a list of Items"
 
@@ -254,7 +247,7 @@ async def async_register_and_create_signed_upload_url(
     api_client: ClientCore,
     team_slug: str,
     dataset_slug: str,
-    items_and_paths: Union[Tuple[Item, Path], List[Tuple[Item, Path]]],
+    items_and_paths: Union[Tuple[UploadItem, Path], List[Tuple[UploadItem, Path]]],
     force_tiling: bool = False,
     handle_as_slices: bool = False,
     ignore_dicom_layout: bool = False,
@@ -350,7 +343,7 @@ def register_upload(
     api_client: ClientCore,
     team_slug: str,
     dataset_slug: str,
-    items_and_paths: Union[Tuple[Item, Path], List[Tuple[Item, Path]]],
+    items_and_paths: Union[Tuple[UploadItem, Path], List[Tuple[UploadItem, Path]]],
     force_tiling: bool = False,
     handle_as_slices: bool = False,
     ignore_dicom_layout: bool = False,
@@ -420,7 +413,7 @@ def register_and_create_signed_upload_url(
     api_client: ClientCore,
     team_slug: str,
     dataset_slug: str,
-    items_and_paths: Union[List[Tuple[Item, Path]], Tuple[Item, Path]],
+    items_and_paths: Union[List[Tuple[UploadItem, Path]], Tuple[UploadItem, Path]],
     force_tiling: bool = False,
     handle_as_slices: bool = False,
     ignore_dicom_layout: bool = False,

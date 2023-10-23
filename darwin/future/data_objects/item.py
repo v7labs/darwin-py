@@ -109,6 +109,24 @@ class ItemSlot(DefaultDarwin):
         return values
 
 
+class UploadItem(DefaultDarwin):
+    # GraphotateWeb.Schemas.DatasetsV2.ItemRegistration.NewItem
+
+    # Required fields
+    name: str
+    slots: List[ItemSlot] = []
+
+    # Optional fields
+    description: Optional[str] = None
+    path: str = "/"
+    tags: Optional[Union[List[str], Dict[str, str]]] = []
+    layout: Optional[ItemLayout] = None
+
+    @validator("name")
+    def validate_name(cls, v: UnknownType) -> str:
+        return validate_no_slashes(v)
+
+
 class Item(DefaultDarwin):
     # GraphotateWeb.Schemas.DatasetsV2.ItemRegistration.NewItem
 
