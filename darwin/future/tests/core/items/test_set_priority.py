@@ -7,7 +7,7 @@ from darwin.future.core.client import ClientCore
 from darwin.future.core.items.set_priority import set_item_priority
 
 
-def test_set_item_priority():
+def test_set_item_priority() -> None:
     # Create a mock API client
     api_client = Mock(spec=ClientCore)
 
@@ -40,7 +40,7 @@ def test_set_item_priority():
     assert response == expected_response
 
 
-def test_set_item_priority_with_filters():
+def test_set_item_priority_with_filters() -> None:
     # Create a mock API client
     api_client = Mock(spec=ClientCore)
 
@@ -77,7 +77,7 @@ def test_set_item_priority_with_filters():
     assert response == expected_response
 
 
-def test_set_item_priority_with_error_response():
+def test_set_item_priority_with_error_response() -> None:
     # Create a mock API client
     api_client = Mock(spec=ClientCore)
 
