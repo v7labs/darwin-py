@@ -143,7 +143,9 @@ class ColorJitter(transforms.ColorJitter):
     def __call__(
         self, image: PILImage.Image, target: Optional[TargetType] = None
     ) -> Union[PILImage.Image, Tuple[PILImage.Image, TargetType]]:
-        transform = self.get_params(self.brightness, self.contrast, self.saturation, self.hue)
+        transform = self.get_params(
+            self.brightness, self.contrast, self.saturation, self.hue
+        )
         image = transform(image)
         if target is None:
             return image
@@ -198,7 +200,9 @@ class ConvertPolygonsToInstanceMasks(object):
     Converts given polygon to an ``InstanceMask``.
     """
 
-    def __call__(self, image: PILImage.Image, target: TargetType) -> Tuple[PILImage.Image, TargetType]:
+    def __call__(
+        self, image: PILImage.Image, target: TargetType
+    ) -> Tuple[PILImage.Image, TargetType]:
         w, h = image.size
 
         image_id = target["image_id"]
@@ -255,7 +259,9 @@ class ConvertPolygonsToSemanticMask(object):
     Converts given polygon to an ``SemanticMask``.
     """
 
-    def __call__(self, image: PILImage.Image, target: TargetType) -> Tuple[PILImage.Image, TargetType]:
+    def __call__(
+        self, image: PILImage.Image, target: TargetType
+    ) -> Tuple[PILImage.Image, TargetType]:
         w, h = image.size
         image_id = target["image_id"]
         image_id = torch.tensor([image_id])
@@ -282,7 +288,9 @@ class ConvertPolygonToMask(object):
     Converts given polygon to a ``Mask``.
     """
 
-    def __call__(self, image: PILImage.Image, annotation: Dict[str, Any]) -> Tuple[PILImage.Image, PILImage.Image]:
+    def __call__(
+        self, image: PILImage.Image, annotation: Dict[str, Any]
+    ) -> Tuple[PILImage.Image, PILImage.Image]:
         w, h = image.size
         segmentations = [obj["segmentation"] for obj in annotation]
         cats = [obj["category_id"] for obj in annotation]
@@ -327,10 +335,18 @@ class AlbumentationsTransform:
     def __call__(self, image, annotation: dict = None) -> tuple:
         np_image = np.array(image)
         if annotation is None:
-            annotation = {}
-        albu_data = self._pre_process(np_image, annotation)
+            annotation_dict = {}
+        else:
+            annotation_dict = annotation
+
+        albu_data = self._pre_process(np_image, annotation_dict)
         transformed_data = self.transform(**albu_data)
-        image, transformed_annotation = self._post_process(transformed_data, annotation)
+        image, transformed_annotation = self._post_process(
+            transformed_data, annotation_dict
+        )
+
+        if annotation is None:
+            return image
 
         return image, transformed_annotation
 
@@ -349,7 +365,10 @@ class AlbumentationsTransform:
             albumentation_dict["labels"] = labels.tolist()
 
         masks = annotation.get("masks")
-        if masks is not None:
+        if (
+            masks is not None and masks.numel() > 0
+        ):  # using numel() to check if tensor is non-empty
+            print("WE GOT MASKS")
             albumentation_dict["masks"] = masks.numpy()
 
         return albumentation_dict
@@ -364,8 +383,6 @@ class AlbumentationsTransform:
         bboxes = albumentation_output.get("bboxes")
         if bboxes is not None:
             output_annotation["boxes"] = torch.tensor(bboxes)
-            if "area" in annotation and "masks" not in albumentation_output:
-                output_annotation["area"] = output_annotation["boxes"][:, 2] * output_annotation["boxes"][:, 3]
 
         labels = albumentation_output.get("labels")
         if labels is not None:
@@ -377,8 +394,20 @@ class AlbumentationsTransform:
                 output_annotation["masks"] = torch.tensor(np.array(masks))
             else:
                 output_annotation["masks"] = torch.stack(masks)
-            if "area" in annotation:
-                output_annotation["area"] = torch.sum(output_annotation["masks"], dim=[1, 2])
+        elif "masks" in annotation:
+            output_annotation["masks"] = torch.tensor([])
+
+        if "area" in annotation:
+            if "masks" in output_annotation and output_annotation["masks"].numel() > 0:
+                output_annotation["area"] = torch.sum(
+                    output_annotation["masks"], dim=[1, 2]
+                )
+            elif "boxes" in output_annotation and len(output_annotation["boxes"]) > 0:
+                output_annotation["area"] = (
+                    output_annotation["boxes"][:, 2] * output_annotation["boxes"][:, 3]
+                )
+            else:
+                output_annotation["area"] = torch.tensor([])
 
         # Copy other metadata from original annotation
         for key, value in annotation.items():
