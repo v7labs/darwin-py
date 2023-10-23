@@ -341,7 +341,9 @@ class AlbumentationsTransform:
 
         albu_data = self._pre_process(np_image, annotation_dict)
         transformed_data = self.transform(**albu_data)
-        image, transformed_annotation = self._post_process(transformed_data, annotation_dict)
+        image, transformed_annotation = self._post_process(
+            transformed_data, annotation_dict
+        )
 
         if annotation is None:
             return image
@@ -363,7 +365,9 @@ class AlbumentationsTransform:
             albumentation_dict["labels"] = labels.tolist()
 
         masks = annotation.get("masks")
-        if masks is not None and masks.numel() > 0:  # using numel() to check if tensor is non-empty
+        if (
+            masks is not None and masks.numel() > 0
+        ):  # using numel() to check if tensor is non-empty
             print("WE GOT MASKS")
             albumentation_dict["masks"] = masks.numpy()
 
@@ -395,9 +399,13 @@ class AlbumentationsTransform:
 
         if "area" in annotation:
             if "masks" in output_annotation and output_annotation["masks"].numel() > 0:
-                output_annotation["area"] = torch.sum(output_annotation["masks"], dim=[1, 2])
+                output_annotation["area"] = torch.sum(
+                    output_annotation["masks"], dim=[1, 2]
+                )
             elif "boxes" in output_annotation and len(output_annotation["boxes"]) > 0:
-                output_annotation["area"] = output_annotation["boxes"][:, 2] * output_annotation["boxes"][:, 3]
+                output_annotation["area"] = (
+                    output_annotation["boxes"][:, 2] * output_annotation["boxes"][:, 3]
+                )
             else:
                 output_annotation["area"] = torch.tensor([])
 
