@@ -332,6 +332,9 @@ class AlbumentationsTransform:
         transformed_data = self.transform(**albu_data)
         image, transformed_annotation = self._post_process(transformed_data, annotation)
 
+        if list(albu_data.keys()) == ["image"]:
+            return image
+
         return image, transformed_annotation
 
     def _pre_process(self, image: np.ndarray, annotation: dict) -> dict:

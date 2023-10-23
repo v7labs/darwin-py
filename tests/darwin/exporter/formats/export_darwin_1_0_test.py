@@ -1,6 +1,5 @@
 from pathlib import Path
 
-
 import darwin.datatypes as dt
 from darwin.exporter.formats.darwin_1_0 import _build_json
 
@@ -56,9 +55,15 @@ class TestBuildJson:
             {"x": 531.6440000000002, "y": 428.4196},
             {"x": 529.8140000000002, "y": 426.5896},
         ]
-
+        bounding_box = {"x": 557.66,
+            "y": 428.98,
+            "w": 160.76,
+            "h": 315.3
+            }
         annotation_class = dt.AnnotationClass(name="test", annotation_type="polygon")
-        annotation = dt.Annotation(annotation_class=annotation_class, data={"path": polygon_path}, subs=[])
+        annotation = dt.Annotation(annotation_class=annotation_class, data={"path": polygon_path, "bounding_box":bounding_box}, subs=[])
+
+
 
         annotation_file = dt.AnnotationFile(
             path=Path("test.json"),
