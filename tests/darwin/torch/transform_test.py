@@ -132,7 +132,7 @@ class TestAlbumentationsTransform:
     def test_bbox_with_empty_annotation(self):
         transformations = EXAMPLE_BOX_TRANSFORM
         at = AlbumentationsTransform(transformations)
-        image, annotation = at(SAMPLE_IMAGE, SAMPLE_EMPTY_ANNOTATION)
+        _, annotation = at(SAMPLE_IMAGE, SAMPLE_EMPTY_ANNOTATION)
 
         for key in SAMPLE_EMPTY_ANNOTATION:
             assert key in annotation.keys()
@@ -141,7 +141,7 @@ class TestAlbumentationsTransform:
     def test_mask_with_empty_annotation(self):
         transformations = EXAMPLE_BOX_TRANSFORM
         at = AlbumentationsTransform(transformations)
-        image, annotation = at(SAMPLE_IMAGE, SAMPLE_EMPTY_ANNOTATION_WITH_MASKS)
+        _, annotation = at(SAMPLE_IMAGE, SAMPLE_EMPTY_ANNOTATION_WITH_MASKS)
 
         for key in SAMPLE_EMPTY_ANNOTATION_WITH_MASKS:
             assert key in annotation.keys()

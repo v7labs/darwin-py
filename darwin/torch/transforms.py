@@ -364,6 +364,7 @@ class AlbumentationsTransform:
 
         masks = annotation.get("masks")
         if masks is not None and masks.numel() > 0:  # using numel() to check if tensor is non-empty
+            print("WE GOT MASKS")
             albumentation_dict["masks"] = masks.numpy()
 
         return albumentation_dict
@@ -379,15 +380,6 @@ class AlbumentationsTransform:
         if bboxes is not None:
             output_annotation["boxes"] = torch.tensor(bboxes)
 
-            if "area" in annotation and "masks" not in albumentation_output:
-
-                if len(bboxes) > 0:
-                    output_annotation["area"] = (
-                        output_annotation["boxes"][:, 2] * output_annotation["boxes"][:, 3]
-                    )
-                else:
-                    output_annotation["area"] = []
-
         labels = albumentation_output.get("labels")
         if labels is not None:
             output_annotation["labels"] = torch.tensor(labels)
@@ -398,13 +390,15 @@ class AlbumentationsTransform:
                 output_annotation["masks"] = torch.tensor(np.array(masks))
             else:
                 output_annotation["masks"] = torch.stack(masks)
-            if "area" in annotation:
-                output_annotation["area"] = torch.sum(
-                    output_annotation["masks"], dim=[1, 2]
-                )
         elif "masks" in annotation:
             output_annotation["masks"] = torch.tensor([])
-            if "area" in annotation:
+
+        if "area" in annotation:
+            if "masks" in output_annotation and output_annotation["masks"].numel() > 0:
+                output_annotation["area"] = torch.sum(output_annotation["masks"], dim=[1, 2])
+            elif "boxes" in output_annotation and len(output_annotation["boxes"]) > 0:
+                output_annotation["area"] = output_annotation["boxes"][:, 2] * output_annotation["boxes"][:, 3]
+            else:
                 output_annotation["area"] = torch.tensor([])
 
         # Copy other metadata from original annotation
