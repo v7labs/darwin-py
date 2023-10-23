@@ -184,8 +184,8 @@ async def async_register_upload(
 
 async def async_create_signed_upload_url(
     api_client: ClientCore,
-    upload_id: str,
     team_slug: str,
+    upload_id: str,
 ) -> str:
     """
     Asynchronously create a signed upload URL for an upload or uploads
@@ -205,8 +205,8 @@ async def async_create_signed_upload_url(
         The response from the API
     """
     try:
-        response = api_client.post(
-            f"/v2/teams/{team_slug}/items/uploads/{upload_id}/sign", data={}
+        response = api_client.get(
+            f"/v2/teams/{team_slug}/items/uploads/{upload_id}/sign"
         )
     except Exception as exc:
         logger.error(f"Failed to create signed upload url in {__name__}", exc_info=exc)
@@ -251,7 +251,7 @@ async def async_register_and_create_signed_upload_url(
     force_tiling: bool = False,
     handle_as_slices: bool = False,
     ignore_dicom_layout: bool = False,
-) -> str:
+) -> List[Tuple[str, str]]:
     """
     Asynchronously register and create a signed upload URL for an upload or uploads
 
@@ -274,8 +274,8 @@ async def async_register_and_create_signed_upload_url(
 
     Returns
     -------
-    str
-        The signed upload URL
+    List[Tuple[str, str]]
+        List of tuples of signed upload urls and upload ids
     """
 
     register = await async_register_upload(
@@ -288,15 +288,34 @@ async def async_register_and_create_signed_upload_url(
         ignore_dicom_layout,
     )
 
-    download_id = register["id"]
-    if "errors" in register or not download_id:
+    if "errors" in register:
         raise DarwinException(f"Failed to register upload in {__name__}")
 
-    signed_info = await async_create_signed_upload_url(
-        api_client, team_slug, download_id
-    )
+    if (
+        "blocked_items" in register
+        and isinstance(register["blocked_items"], list)
+        and len(register["blocked_items"]) > 0
+    ):
+        raise DarwinException(
+            f"Failed to register upload in {__name__}, got blocked items: {register['blocked_items']}"
+        )
 
-    return signed_info
+    assert "items" in register, "Unexpected return type from register upload"
+    assert "blocked_items" in register, "Unexpected return type from register upload"
+
+    uploaded_items = register["items"]
+
+    upload_ids = []
+    for item in uploaded_items:
+        if "slots" in item:
+            for slot in item["slots"]:
+                if "upload_id" in slot:
+                    upload_ids.append(slot["upload_id"])
+
+    return [
+        (await async_create_signed_upload_url(api_client, team_slug, id), id)
+        for id in upload_ids
+    ]
 
 
 async def async_confirm_upload(
@@ -417,7 +436,7 @@ def register_and_create_signed_upload_url(
     force_tiling: bool = False,
     handle_as_slices: bool = False,
     ignore_dicom_layout: bool = False,
-) -> str:
+) -> List[Tuple[str, str]]:
     """
     Register and create a signed upload URL for an upload or uploads
 

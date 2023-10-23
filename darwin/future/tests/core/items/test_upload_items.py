@@ -587,7 +587,7 @@ class TestCreateSignedUploadUrl(SetupTests):
             # Mock the API response
             expected_response = {"upload_url": "https://signed.url"}
             rsps.add(
-                rsps.POST,
+                rsps.GET,
                 f"{default_url}/uploads/1/sign",
                 json=expected_response,
             )
@@ -595,7 +595,7 @@ class TestCreateSignedUploadUrl(SetupTests):
             # Call the function with mocked arguments
             api_client = ClientCore(base_config)
             actual_response = asyncio.run(
-                uploads.async_create_signed_upload_url(api_client, "1", "my-team")
+                uploads.async_create_signed_upload_url(api_client, "my-team", "1")
             )
 
             # Check that the response matches the expected response
@@ -633,8 +633,11 @@ class TestRegisterAndCreateSignedUploadUrl:
         mock_async_create_signed_upload_url: MagicMock,
     ) -> None:
         # Set up mock responses
-        mock_async_register_upload.return_value = {"id": "123"}
-        mock_signed_url_response = {"upload_url": "https://signed.url"}
+        mock_async_register_upload.return_value = {
+            "blocked_items": [],
+            "items": [{"id": "123", "slots": [{"upload_id": "321"}]}],
+        }
+        mock_signed_url_response = "https://signed.url"
         mock_async_create_signed_upload_url.return_value = mock_signed_url_response
 
         # Set up mock API client
@@ -658,11 +661,11 @@ class TestRegisterAndCreateSignedUploadUrl:
         mock_async_create_signed_upload_url.assert_called_once_with(
             mock_api_client,
             "my-team",
-            "123",
+            "321",
         )
 
         # Check that the response matches the expected response
-        assert actual_response == mock_signed_url_response
+        assert actual_response == [("https://signed.url", "321")]
 
     def test_async_register_and_create_signed_upload_url_raises(
         self,
