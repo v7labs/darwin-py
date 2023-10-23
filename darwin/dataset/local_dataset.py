@@ -121,6 +121,16 @@ class LocalDataset:
                 "annotation_type should be either 'tag', 'bounding_box', or 'polygon'"
             )
 
+    def _setup_annotations_and_images(
+        self,
+        release_path,
+        annotations_dir,
+        images_dir,
+        annotation_type,
+        split,
+        partition,
+        split_type,
+    ):
         # Find all the annotations and their corresponding images
         for annotation_path in sorted(annotations_dir.glob("**/*.json")):
             darwin_json = stream_darwin_json(annotation_path)
@@ -130,7 +140,9 @@ class LocalDataset:
                 self.annotations_path.append(annotation_path)
                 continue
             else:
-                raise ValueError(f"Annotation ({annotation_path}) does not have a corresponding image")
+                raise ValueError(
+                    f"Annotation ({annotation_path}) does not have a corresponding image"
+                )
 
     def _initial_setup(self, dataset_path, release_name):
         assert dataset_path is not None
