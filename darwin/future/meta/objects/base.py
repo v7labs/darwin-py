@@ -14,12 +14,12 @@ class MetaBase(Generic[R]):
     A base class for metadata objects. This should only ever be inherited from in meta objects.
     stores metadata parameters used to access the api that are related to the Meta Objects
     but potentially not required for the core object. For example, a dataset object needs
-    the team slug to access the api which get's passed down from the team object. 
+    the team slug to access the api which get's passed down from the team object.
 
     Attributes:
         _element (R): The element R to which the object is related.
         client (ClientCore): The client used to execute the query.
-        meta_params (Dict[str, object]): A dictionary of metadata parameters. This is 
+        meta_params (Dict[str, object]): A dictionary of metadata parameters. This is
             used in conjuction with the Query object to execute related api calls.
 
     Methods:
@@ -33,6 +33,7 @@ class MetaBase(Generic[R]):
         class Team(MetaBase[TeamCore]):
             ...
     """
+
     _element: R
     client: ClientCore
 

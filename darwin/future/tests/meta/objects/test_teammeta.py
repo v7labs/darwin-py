@@ -50,7 +50,6 @@ def test_delete_dataset_returns_exceptions_thrown(
     with raises(Exception):
         _ = Team.delete_dataset(valid_client, "test_dataset")
 
-
     assert _delete_by_slug_mock.call_count == 1
     assert _delete_by_id_mock.call_count == 0
 

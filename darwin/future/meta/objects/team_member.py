@@ -30,25 +30,30 @@ class TeamMember(MetaBase[TeamMemberCore]):
         team_member = client.team.members
             .where(first_name='John', last_name='Doe')
             .collect_one()
-            
+
         role = team_member.role
     """
+
     @property
     def role(self) -> TeamMemberRole:
         return self._element.role
+
     @property
     def first_name(self) -> str:
         return self._element.first_name
+
     @property
     def last_name(self) -> str:
         return self._element.last_name
+
     @property
     def email(self) -> str:
         return self._element.email
+
     @property
     def user_id(self) -> int:
         return self._element.user_id
-    
+
     def __str__(self) -> str:
         return f"Team Member\n\
 - Name: {self.first_name} {self.last_name}\n\

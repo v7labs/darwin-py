@@ -34,10 +34,11 @@ class Client(ClientCore):
 
         # Create a new client object with a DarwinConfig from an API key
         client = Client.from_api_key(api_key="my_api_key", datasets_dir="path/to/datasets/dir")
-        
+
         # Access the team via chaining
         team = client.team # returns a Team object which can be chained further
     """
+
     def __init__(self, config: DarwinConfig, retries: Optional[Retry] = None) -> None:
         self._team: Optional[Team] = None
         super().__init__(config, retries=retries)

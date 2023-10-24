@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple, Union
+from typing import Optional, Union
 
 from darwin.future.core.client import ClientCore
 from darwin.future.core.datasets import get_dataset, remove_dataset
@@ -34,9 +34,9 @@ class Team(MetaBase[TeamCore]):
         name (str): The name of the team.
         slug (str): The slug of the team.
         id (int): The id of the team.
-        members (List[TeamMember]): A list of team members associated with the team.
-        datasets (List[Dataset]): A list of datasets associated with the team.
-        workflows (List[Workflow]): A list of workflows associated with the team.
+        members (TeamMemberQuery): A query of team members associated with the team.
+        datasets (DatasetQuery): A query of datasets associated with the team.
+        workflows (WorkflowQuery): A query of workflows associated with the team.
 
     Methods:
         create_dataset(slug: str) -> Dataset:
@@ -96,9 +96,7 @@ class Team(MetaBase[TeamCore]):
         return WorkflowQuery(self.client, meta_params={"team_slug": self.slug})
 
     @classmethod
-    def delete_dataset(
-        cls, client: ClientCore, dataset_id: Union[int, str]
-    ) -> int:
+    def delete_dataset(cls, client: ClientCore, dataset_id: Union[int, str]) -> int:
         """
         Deletes a dataset by id or slug
 
