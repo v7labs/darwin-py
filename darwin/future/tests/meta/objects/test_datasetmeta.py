@@ -109,4 +109,4 @@ def test_dataset_str_method(base_meta_dataset: Dataset) -> None:
 
 
 def test_dataset_repr_method(base_meta_dataset: Dataset) -> None:
-    assert base_meta_dataset.__repr__() == str(base_meta_dataset._element)
+    assert base_meta_dataset.__repr__() == str(base_meta_dataset)

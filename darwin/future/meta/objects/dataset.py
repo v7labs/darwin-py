@@ -141,3 +141,11 @@ class Dataset(MetaBase[DatasetCore]):
             verbose,
         )
         return self
+
+    def __str__(self) -> str:
+        releases = self._element.releases
+        return f"Dataset\n\
+- Name: {self._element.name}\n\
+- Dataset Slug: {self._element.slug}\n\
+- Dataset ID: {self._element.id}\n\
+- Dataset Releases: {releases if releases else 'No releases'}"

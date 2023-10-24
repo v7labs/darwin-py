@@ -73,3 +73,10 @@ class Workflow(MetaBase[WorkflowCore]):
         if auto_push:
             self.push_from_dataset_stage()
         return self
+
+    def __str__(self) -> str:
+        return f"Workflow\n\
+- Workflow Name: {self._element.name}\n\
+- Workflow ID: {self._element.id}\n\
+- Connected Dataset ID: {self.datasets[0].id}\n\
+- Conneted Dataset Name: {self.datasets[0].name}"

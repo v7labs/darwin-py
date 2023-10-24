@@ -150,4 +150,4 @@ def test_stage_str_method(stage_meta: Stage) -> None:
 
 
 def test_stage_repr_method(stage_meta: Stage) -> None:
-    assert repr(stage_meta) == str(stage_meta._element)
+    assert repr(stage_meta) == str(stage_meta)

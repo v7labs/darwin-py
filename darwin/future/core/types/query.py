@@ -106,12 +106,43 @@ class QueryFilter(DefaultDarwin):
 
 
 class Query(Generic[T], ABC):
-    """Basic Query object with methods to manage filters
+    """
+    A basic Query object with methods to manage filters. This is an abstract class not
+    meant to be used directly. Use a subclass instead, like DatasetQuery.
+    This class will lazy load results and cache them internally, and allows for filtering
+    of the objects locally by default. To execute the query, call the collect() method,
+    or iterate over the query object.
+
+    Attributes:
+        meta_params (dict): A dictionary of metadata parameters.
+        client (ClientCore): The client used to execute the query.
+        filters (List[QueryFilter]): A list of QueryFilter objects used to filter the query results.
+        results (List[T]): A list of query results, cached internally for iterable access.
+        _changed_since_last (bool): A boolean indicating whether the query has changed since the last execution.
+
     Methods:
-        filter: adds a filter to the query object, returns a new query object
-        where: Applies a filter on the query object, returns a new query object
-        collect: Executes the query on the client and returns the results
-        _generic_execute_filter: Executes a filter on a list of objects
+        filter(name: str, param: str, modifier: Optional[Modifier] = None) -> Query[T]:
+            Adds a filter to the query object and returns a new query object.
+        where(name: str, param: str, modifier: Optional[Modifier] = None) -> Query[T]:
+            Applies a filter on the query object and returns a new query object.
+        first() -> Optional[T]:
+            Returns the first result of the query. Raises an exception if no results are found.
+        collect() -> List[T]:
+            Executes the query on the client and returns the results. Raises an exception if no results are found.
+        _generic_execute_filter(objects: List[T], filter_: QueryFilter) -> List[T]:
+            Executes a filter on a list of objects. Locally by default, but can be overwritten by subclasses.
+
+    Examples:
+        # Create a query object
+        # DatasetQuery is linked to the object it returns, Dataset, and is iterable
+        # overwrite the _collect() method to execute insantiate this object
+        Class DatasetQuery(Query[Dataset]):
+            ...
+
+        # Intended usage via chaining
+        # where client.team.datasets returns a DatasetQuery object and can be chained
+        # further with multiple where calls before collecting
+        datasets = client.team.datasets.where(...).where(...).collect()
     """
 
     def __init__(
@@ -209,11 +240,11 @@ class Query(Generic[T], ABC):
             raise MoreThanOneResultFound("More than one result found")
         return self.results[0]
 
-    def first(self) -> Optional[T]:
+    def first(self) -> T:
         if not self.results:
             self.results = list(self.collect())
         if len(self.results) == 0:
-            return None
+            raise ResultsNotFound("No results found")
         return self.results[0]
 
     def _generic_execute_filter(self, objects: List[T], filter: QueryFilter) -> List[T]:

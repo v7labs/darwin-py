@@ -147,3 +147,10 @@ class Team(MetaBase[TeamCore]):
     def create_dataset(self, slug: str) -> Dataset:
         core = Dataset.create_dataset(self.client, slug)
         return Dataset(self.client, core, meta_params={"team_slug": self.slug})
+
+    def __str__(self) -> str:
+        return f"Team\n\
+- Team Name: {self._element.name}\n\
+- Team Slug: {self._element.slug}\n\
+- Team ID: {self._element.id}\n\
+- {len(self._element.members if self._element.members else [])} member(s)"

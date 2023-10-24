@@ -67,3 +67,9 @@ class Stage(MetaBase[WFStageCore]):
     def edges(self) -> List[WFEdgeCore]:
         """Edge ID, source stage ID, target stage ID."""
         return list(self._element.edges)
+
+    def __str__(self) -> str:
+        return f"Stage\n\
+- Stage Name: {self._element.name}\n\
+- Stage Type: {self._element.type.value}\n\
+- Stage ID: {self._element.id}"

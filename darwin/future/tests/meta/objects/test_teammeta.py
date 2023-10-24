@@ -193,4 +193,4 @@ def test_team_str_method(base_meta_team: Team) -> None:
 
 
 def test_team_repr_method(base_meta_team: Team) -> None:
-    assert repr(base_meta_team) == str(base_meta_team._element)
+    assert repr(base_meta_team) == str(base_meta_team)
