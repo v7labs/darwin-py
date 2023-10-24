@@ -45,6 +45,7 @@ class Workflow(MetaBase[WorkflowCore]):
         # Get the datasets associated with the workflow
         datasets = workflow.datasets
     """
+
     @property
     def stages(self) -> StageQuery:
         meta_params = self.meta_params.copy()
