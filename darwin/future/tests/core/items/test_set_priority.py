@@ -3,7 +3,6 @@ from uuid import UUID
 
 import pytest
 import responses
-from sklearn import base
 
 from darwin.exceptions import DarwinException
 from darwin.future.core.client import ClientCore
