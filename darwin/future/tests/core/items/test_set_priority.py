@@ -12,7 +12,7 @@ from darwin.future.tests.core.fixtures import *
 
 @responses.activate
 def test_set_item_priority(base_client) -> None:
-    mock_response = responses.add(
+    responses.add(
         responses.POST,
         base_client.config.api_endpoint + "v2/teams/test-team/items/priority",
         json={"affected_item_count": 0},
