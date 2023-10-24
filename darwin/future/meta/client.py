@@ -10,6 +10,34 @@ from darwin.future.meta.objects.team import Team
 
 
 class Client(ClientCore):
+    """
+    The Darwin Client object. Provides access to Darwin's API.
+
+    Args:
+        ClientCore (Client): Generic ClientCore object expanded by DarwinConfig object
+            return type
+
+    Returns:
+        _type_: Client
+
+    Attributes:
+        _team (Optional[Team]): The team associated with the client.
+
+    Methods:
+        local(cls) -> Client: Creates a new client object with a local DarwinConfig.
+        from_api_key(cls, api_key: str, datasets_dir: Optional[Path] = None) -> Client:
+            Creates a new client object with a DarwinConfig from an API key.
+
+    Example Usage:
+        # Create a new client object with a local DarwinConfig
+        client = Client.local()
+
+        # Create a new client object with a DarwinConfig from an API key
+        client = Client.from_api_key(api_key="my_api_key", datasets_dir="path/to/datasets/dir")
+        
+        # Access the team via chaining
+        team = client.team # returns a Team object which can be chained further
+    """
     def __init__(self, config: DarwinConfig, retries: Optional[Retry] = None) -> None:
         self._team: Optional[Team] = None
         super().__init__(config, retries=retries)

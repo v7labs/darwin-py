@@ -29,6 +29,41 @@ class Team(MetaBase[TeamCore]):
 
     Returns:
         Team: Team object
+
+    Attributes:
+        name (str): The name of the team.
+        slug (str): The slug of the team.
+        id (int): The id of the team.
+        members (List[TeamMember]): A list of team members associated with the team.
+        datasets (List[Dataset]): A list of datasets associated with the team.
+        workflows (List[Workflow]): A list of workflows associated with the team.
+
+    Methods:
+        create_dataset(slug: str) -> Dataset:
+            Creates a new dataset with the given name and slug.
+        delete_dataset(client: Client, id: int) -> None:
+            Removes the dataset with the given slug.
+
+
+    Example Usage:
+        # Get the team object
+        client = Client.local()
+        team = client.team[0]
+
+        # Get a dataset object associated with the team
+        dataset = team.datasets.where(name="my_dataset_name").collect_one()
+
+        # Create a new dataset associated with the team
+        new_dataset = team.create_dataset(name="new_dataset", slug="new_dataset_slug")
+
+        # Remove a dataset associated with the team
+        team.remove_dataset(slug="my_dataset_slug")
+
+        # Get a workflow object associated with the team
+        workflow = team.workflows.where(name="my_workflow_name").collect_one()
+
+        # Get a team member object associated with the team
+        team_member = team.members.where(email="...")
     """
 
     def __init__(self, client: ClientCore, team: Optional[TeamCore] = None) -> None:
@@ -63,7 +98,7 @@ class Team(MetaBase[TeamCore]):
     @classmethod
     def delete_dataset(
         cls, client: ClientCore, dataset_id: Union[int, str]
-    ) -> Tuple[Optional[List[Exception]], int]:
+    ) -> int:
         """
         Deletes a dataset by id or slug
 
@@ -77,19 +112,12 @@ class Team(MetaBase[TeamCore]):
         Tuple[Optional[List[Exception]], int]
             A tuple containing a list of exceptions and the number of datasets deleted
         """
-        exceptions = []
-        dataset_deleted = -1
+        if isinstance(dataset_id, str):
+            dataset_deleted = cls._delete_dataset_by_slug(client, dataset_id)
+        else:
+            dataset_deleted = cls._delete_dataset_by_id(client, dataset_id)
 
-        try:
-            if isinstance(dataset_id, str):
-                dataset_deleted = cls._delete_dataset_by_slug(client, dataset_id)
-            else:
-                dataset_deleted = cls._delete_dataset_by_id(client, dataset_id)
-
-        except Exception as e:
-            exceptions.append(e)
-
-        return exceptions or None, dataset_deleted
+        return dataset_deleted
 
     @staticmethod
     def _delete_dataset_by_slug(client: ClientCore, slug: str) -> int:

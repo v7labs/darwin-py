@@ -9,10 +9,36 @@ from darwin.future.meta.objects.base import MetaBase
 
 
 class Stage(MetaBase[WFStageCore]):
-    """_summary_
+    """
+    Stage Meta object. Facilitates the creation of Query objects, lazy loading of
+    sub fields
 
     Args:
-        MetaBase (_type_): _description_
+        MetaBase (Stage): Generic MetaBase object expanded by WFStageCore object
+            return type
+
+    Returns:
+        _type_: Stage
+
+    Attributes:
+        name (str): The name of the stage.
+        slug (str): The slug of the stage.
+        id (UUID): The id of the stage.
+        item_ids (List[UUID]): A list of item ids attached to the stage.
+        edges (List[WFEdgeCore]): A list of edges attached to the stage.
+
+    Methods:
+        move_attached_files_to_stage(new_stage_id: UUID) -> Stage:
+            Moves all attached files to a new stage.
+
+    Example Usage:
+        # Get the item ids attached to the stage
+        stage = client.team.workflows.where(name='test').stages[0]
+        item_ids = stage.item_ids
+
+        # Move all attached files to a new stage
+        new_stage = stage.edges[1]
+        stage.move_attached_files_to_stage(new_stage_id=new_stage.id)
     """
 
     @property
