@@ -56,7 +56,7 @@ warn_untyped_fields = true
 
 [tool.ruff]
 select = ["E", "F", "C"]
-ignore = ["E203", "E402"]
+ignore = ["E203", "E402", "E501"]
 line-length = 88
 
 [tool.ruff.per-file-ignores]
