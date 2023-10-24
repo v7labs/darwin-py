@@ -35,7 +35,11 @@ def test_set_item_priority_with_filters() -> None:
 
     expected_payload = {
         "priority": 10,
-        "filters": {"dataset_ids": [123], "item_ids": ["00000000-0000-0000-0000-000000000000"], "status": "open"},
+        "filters": {
+            "dataset_ids": [123],
+            "item_ids": ["00000000-0000-0000-0000-000000000000"],
+            "status": "open",
+        },
     }
 
     # Define the expected endpoint
