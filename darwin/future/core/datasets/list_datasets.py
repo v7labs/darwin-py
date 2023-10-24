@@ -1,12 +1,14 @@
 from typing import List, Tuple
 
-from pydantic import parse_obj_as
+from pydantic import ValidationError, parse_obj_as
 
 from darwin.future.core.client import ClientCore
 from darwin.future.data_objects.dataset import DatasetCore
 
 
-def list_datasets(api_client: ClientCore) -> Tuple[List[DatasetCore], List[Exception]]:
+def list_datasets(
+    api_client: ClientCore,
+) -> Tuple[List[DatasetCore], List[ValidationError]]:
     """
     Returns a list of datasets for the given team
 
@@ -19,16 +21,19 @@ def list_datasets(api_client: ClientCore) -> Tuple[List[DatasetCore], List[Excep
 
     Returns
     -------
-    Tuple[DatasetList, List[Exception]]
+    List[DatasetList]:
+        A list of datasets
+    List[ValidationError]
+        A list of Validation errors on failed objects
     """
     datasets: List[DatasetCore] = []
-    errors: List[Exception] = []
+    errors: List[ValidationError] = []
 
+    response = api_client.get("/datasets")
     try:
-        response = api_client.get("/datasets")
         for item in response:
             datasets.append(parse_obj_as(DatasetCore, item))
-    except Exception as e:
+    except ValidationError as e:
         errors.append(e)
 
     return datasets, errors

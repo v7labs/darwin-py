@@ -1,5 +1,7 @@
 from typing import List, Optional, Tuple
 
+from pydantic import ValidationError
+
 from darwin.future.core.client import ClientCore
 from darwin.future.data_objects.team import TeamCore, TeamMemberCore
 
@@ -27,7 +29,7 @@ def get_team(client: ClientCore, team_slug: Optional[str] = None) -> TeamCore:
 
 def get_team_members(
     client: ClientCore,
-) -> Tuple[List[TeamMemberCore], List[Exception]]:
+) -> Tuple[List[TeamMemberCore], List[ValidationError]]:
     """
     Returns a tuple containing a list of TeamMemberCore objects and a list of exceptions
     that occurred while parsing the response.
@@ -36,9 +38,10 @@ def get_team_members(
         client (ClientCore): The client to use for the request.
 
     Returns:
-        Tuple[List[TeamMemberCore], List[Exception]]: A tuple containing a list of
-            TeamMemberCore objects and a list of exceptions that occurred while parsing
-            the response.
+        List[TeamMemberCore]:
+            List of TeamMembers
+        List[ValidationError]:
+            List of ValidationError on failed objects
 
     Raises:
         HTTPError: If the response status code is not in the 200-299 range.
@@ -49,6 +52,6 @@ def get_team_members(
     for item in response:
         try:
             members.append(TeamMemberCore.parse_obj(item))
-        except Exception as e:
+        except ValidationError as e:
             errors.append(e)
-    return (members, errors)
+    return members, errors

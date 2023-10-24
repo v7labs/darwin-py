@@ -16,10 +16,13 @@ def remove_dataset(
         The client to use to make the request
     id : int
         The name of the dataset to create
+    team_slug : str
+        The slug of the team to create the dataset in
 
     Returns
     -------
-    JSONType
+    int
+        The dataset deleted id
     """
     if not team_slug:
         team_slug = api_client.config.default_team

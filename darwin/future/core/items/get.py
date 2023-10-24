@@ -100,8 +100,8 @@ def get_item(
 
     Returns
     -------
-    dict
-        The item
+    Item
+        An item object
     """
     response = api_client.get(f"/v2/teams/{team_slug}/items/{item_id}", params)
     assert isinstance(response, dict)
@@ -130,7 +130,7 @@ def list_items(
     List[Item]
         A list of items
     List[ValidationError]
-        A list of validation errors
+        A list of ValidationError on failed objects
     """
     assert "dataset_ids" in params.value, "dataset_ids must be provided"
     response = api_client.get(f"/v2/teams/{team_slug}/items", params)
@@ -168,7 +168,7 @@ def list_folders(
     List[Folder]
         The folders
     List[ValidationError]
-        A list of validation errors
+        A list of ValidationError on failed objects
     """
     assert "dataset_ids" in params.value, "dataset_ids must be provided"
     response = api_client.get(f"/v2/teams/{team_slug}/items/folders", params)
@@ -177,7 +177,6 @@ def list_folders(
     exceptions: List[ValidationError] = []
     folders: List[Folder] = []
     for item in response["folders"]:
-        assert isinstance(item, dict)
         try:
             folders.append(parse_obj_as(Folder, item))
         except ValidationError as e:
