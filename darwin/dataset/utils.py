@@ -17,9 +17,11 @@ from darwin.utils import (
     SUPPORTED_EXTENSIONS,
     SUPPORTED_VIDEO_EXTENSIONS,
     attempt_decode,
+    get_image_path_from_stream,
     is_unix_like_os,
     parse_darwin_json,
 )
+from darwin.utils.utils import stream_darwin_json
 
 # E.g.: {"partition" => {"class_name" => 123}}
 AnnotationDistribution = Dict[str, Counter]
@@ -569,33 +571,19 @@ def _map_annotations_to_images(
     images_paths = []
     annotations_paths = []
     invalid_annotation_paths = []
-    for stem in stems:
-        annotation_path = annotations_dir / f"{stem}.json"
-        images = []
-        for ext in SUPPORTED_EXTENSIONS:
-            image_path = images_dir / f"{stem}{ext}"
-            if image_path.exists():
-                images.append(image_path)
-                continue
-            image_path = images_dir / f"{stem}{ext.upper()}"
-            if image_path.exists():
-                images.append(image_path)
-
-        image_count = len(images)
-        if image_count != 1 and ignore_inconsistent_examples:
-            invalid_annotation_paths.append(annotation_path)
+    for annotation_path in annotations_dir.glob("**/*.json"):
+        darwin_json = stream_darwin_json(annotation_path)
+        image_path = get_image_path_from_stream(darwin_json, images_dir)
+        if image_path.exists():
+            images_paths.append(image_path)
+            annotations_paths.append(annotation_path)
             continue
-        elif image_count < 1:
-            raise ValueError(
-                f"Annotation ({annotation_path}) does not have a corresponding image"
-            )
-        elif image_count > 1:
-            raise ValueError(
-                f"Image ({stem}) is present with multiple extensions. This is forbidden."
-            )
-
-        images_paths.append(images[0])
-        annotations_paths.append(annotation_path)
+        else:
+            if ignore_inconsistent_examples:
+                invalid_annotation_paths.append(annotation_path)
+                continue
+            else:
+                raise ValueError(f"Annotation ({annotation_path}) does not have a corresponding image")
 
     return images_paths, annotations_paths, invalid_annotation_paths
 

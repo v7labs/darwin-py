@@ -6,7 +6,12 @@ import numpy as np
 from PIL import Image as PILImage
 
 from darwin.dataset.utils import get_classes, get_release_path, load_pil_image
-from darwin.utils import SUPPORTED_IMAGE_EXTENSIONS, parse_darwin_json
+from darwin.utils import (
+    SUPPORTED_IMAGE_EXTENSIONS,
+    get_image_path_from_stream,
+    parse_darwin_json,
+    stream_darwin_json,
+)
 
 
 class LocalDataset:
@@ -126,30 +131,18 @@ class LocalDataset:
         partition,
         split_type,
     ):
-        stems = build_stems(
-            release_path, annotations_dir, annotation_type, split, partition, split_type
-        )
-        for stem in stems:
-            annotation_path = annotations_dir / f"{stem}.json"
-            images = []
-            for ext in SUPPORTED_IMAGE_EXTENSIONS:
-                image_path = images_dir / f"{stem}{ext}"
-                if image_path.exists():
-                    images.append(image_path)
-                    continue
-                image_path = images_dir / f"{stem}{ext.upper()}"
-                if image_path.exists():
-                    images.append(image_path)
-            if len(images) < 1:
+        # Find all the annotations and their corresponding images
+        for annotation_path in sorted(annotations_dir.glob("**/*.json")):
+            darwin_json = stream_darwin_json(annotation_path)
+            image_path = get_image_path_from_stream(darwin_json, images_dir)
+            if image_path.exists():
+                self.images_path.append(image_path)
+                self.annotations_path.append(annotation_path)
+                continue
+            else:
                 raise ValueError(
                     f"Annotation ({annotation_path}) does not have a corresponding image"
                 )
-            if len(images) > 1:
-                raise ValueError(
-                    f"Image ({stem}) is present with multiple extensions. This is forbidden."
-                )
-            self.images_path.append(images[0])
-            self.annotations_path.append(annotation_path)
 
     def _initial_setup(self, dataset_path, release_name):
         assert dataset_path is not None

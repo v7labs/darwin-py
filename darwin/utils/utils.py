@@ -20,9 +20,11 @@ from typing import (
 )
 
 import deprecation
+import json_stream
 import numpy as np
 import orjson as json
 import requests
+from json_stream.base import PersistentStreamingJSONObject
 from jsonschema import exceptions, validators
 from requests import Response, request
 from rich.progress import ProgressType, track
@@ -454,6 +456,45 @@ def parse_darwin_json(path: Path, count: Optional[int] = None) -> Optional[dt.An
         else:
             return _parse_darwin_image(path, data, count)
 
+def stream_darwin_json(path: Path) -> PersistentStreamingJSONObject:
+    """
+    Returns a Darwin JSON file as a persistent stream. This allows for parsing large files without
+    loading them entirely into memory.
+
+    Parameters
+    ----------
+    path : Path
+        Path to the file to parse.
+
+    Returns
+    -------
+    PersistentStreamingJSONObject
+        A stream of the JSON file.
+    """
+
+    with path.open() as infile:
+        return json_stream.load(infile, persistent=True)
+    
+def get_image_path_from_stream(darwin_json: PersistentStreamingJSONObject, images_dir: Path) -> Path:
+    """
+    Returns the path to the image file associated with the given darwin json file (V1 or V2).
+
+    Parameters
+    ----------
+    darwin_json : PersistentStreamingJSONObject
+        A stream of the JSON file.
+    images_dir : Path
+        Path to the directory containing the images.
+
+    Returns
+    -------
+    Path
+        Path to the image file.
+    """
+    try:
+        return images_dir / (Path(darwin_json['item']['path'].lstrip('/\\'))) / Path(darwin_json['item']['name'])
+    except KeyError:
+        return images_dir / (Path(darwin_json['image']['path'].lstrip('/\\'))) / Path(darwin_json['image']['filename'])
 
 def _parse_darwin_v2(path: Path, data: Dict[str, Any]) -> dt.AnnotationFile:
     item = data["item"]
