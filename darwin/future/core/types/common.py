@@ -26,6 +26,7 @@ class TeamSlug(str):
     __repr__() -> str
         Returns a string representation of the TeamSlug object.
     """
+
     min_length = 1
     max_length = 256
 

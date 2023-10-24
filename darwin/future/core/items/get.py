@@ -1,7 +1,7 @@
-from typing import List, Union
+from typing import List, Tuple, Union
 from uuid import UUID
 
-from pydantic import parse_obj_as
+from pydantic import ValidationError, parse_obj_as
 
 from darwin.future.core.client import ClientCore
 from darwin.future.core.types.common import QueryString
@@ -112,7 +112,7 @@ def list_items(
     api_client: ClientCore,
     team_slug: str,
     params: QueryString,
-) -> List[Item]:
+) -> Tuple[List[Item], List[ValidationError]]:
     """
     Returns a list of items for the dataset
 
@@ -129,18 +129,28 @@ def list_items(
     -------
     List[Item]
         A list of items
+    List[ValidationError]
+        A list of validation errors
     """
     assert "dataset_ids" in params.value, "dataset_ids must be provided"
     response = api_client.get(f"/v2/teams/{team_slug}/items", params)
     assert isinstance(response, dict)
-    return parse_obj_as(List[Item], response["items"])
+    items: List[Item] = []
+    exceptions: List[ValidationError] = []
+    for item in response["items"]:
+        assert isinstance(item, dict)
+        try:
+            items.append(parse_obj_as(Item, item))
+        except ValidationError as e:
+            exceptions.append(e)
+    return items, exceptions
 
 
 def list_folders(
     api_client: ClientCore,
     team_slug: str,
     params: QueryString,
-) -> List[Folder]:
+) -> Tuple[List[Folder], List[ValidationError]]:
     """
     Returns a list of folders for the team and dataset
 
@@ -157,9 +167,19 @@ def list_folders(
     -------
     List[Folder]
         The folders
+    List[ValidationError]
+        A list of validation errors
     """
     assert "dataset_ids" in params.value, "dataset_ids must be provided"
     response = api_client.get(f"/v2/teams/{team_slug}/items/folders", params)
     assert isinstance(response, dict)
     assert "folders" in response
-    return parse_obj_as(List[Folder], response["folders"])
+    exceptions: List[ValidationError] = []
+    folders: List[Folder] = []
+    for item in response["folders"]:
+        assert isinstance(item, dict)
+        try:
+            folders.append(parse_obj_as(Folder, item))
+        except ValidationError as e:
+            exceptions.append(e)
+    return folders, exceptions

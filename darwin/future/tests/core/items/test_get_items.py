@@ -2,6 +2,7 @@ from typing import List
 from uuid import UUID, uuid4
 
 import responses
+from pydantic import ValidationError
 
 from darwin.future.core.client import ClientCore
 from darwin.future.core.items import get_item_ids, get_item_ids_stage
@@ -69,11 +70,32 @@ def test_list_items(
             json={"items": base_items_json},
             status=200,
         )
-        items = list_items(
+        items, _ = list_items(
             base_client, "default-team", QueryString({"dataset_ids": "1337"})
         )
         for item, comparator in zip(items, base_items):
             assert item == comparator
+
+
+def test_list_items_breaks(
+    base_items_json: List[dict], base_client: ClientCore
+) -> None:
+    malformed = base_items_json.copy()
+    del malformed[0]["name"]
+    del malformed[0]["dataset_id"]
+    with responses.RequestsMock() as rsps:
+        rsps.add(
+            rsps.GET,
+            base_client.config.api_endpoint
+            + "v2/teams/default-team/items?dataset_ids=1337",
+            json={"items": base_items_json},
+            status=200,
+        )
+        items, exceptions = list_items(
+            base_client, "default-team", QueryString({"dataset_ids": "1337"})
+        )
+        assert len(exceptions) == 1
+        assert isinstance(exceptions[0], ValidationError)
 
 
 def test_list_folders(
@@ -87,8 +109,28 @@ def test_list_folders(
             json={"folders": base_folders_json},
             status=200,
         )
-        folders = list_folders(
+        folders, _ = list_folders(
             base_client, "default-team", QueryString({"dataset_ids": "1337"})
         )
         for folder, comparator in zip(folders, base_folders):
             assert folder == comparator
+
+
+def test_list_folders_breaks(
+    base_folders_json: List[dict], base_client: ClientCore
+) -> None:
+    malformed = base_folders_json.copy()
+    del malformed[0]["dataset_id"]
+    with responses.RequestsMock() as rsps:
+        rsps.add(
+            rsps.GET,
+            base_client.config.api_endpoint
+            + "v2/teams/default-team/items/folders?dataset_ids=1337",
+            json={"folders": malformed},
+            status=200,
+        )
+        folders, exceptions = list_folders(
+            base_client, "default-team", QueryString({"dataset_ids": "1337"})
+        )
+        assert len(exceptions) == 1
+        assert isinstance(exceptions[0], ValidationError)

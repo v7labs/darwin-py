@@ -29,7 +29,7 @@ def test_get_workflow(
 
     # Assertions
     assert isinstance(workflow, WorkflowCore)
-    
+
 
 @responses.activate
 def test_get_workflow_with_team_slug(
@@ -52,6 +52,7 @@ def test_get_workflow_with_team_slug(
 
     # Assertions
     assert isinstance(workflow, WorkflowCore)
+
 
 @responses.activate
 def test_get_workflows_with_invalid_response(base_client: ClientCore) -> None:
