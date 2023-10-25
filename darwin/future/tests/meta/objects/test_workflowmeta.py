@@ -1,13 +1,16 @@
 import asyncio
-from pathlib import Path
+import platform
+from pathlib import Path, PosixPath, WindowsPath
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
+from darwin.dataset.upload_manager import LocalFile
 from darwin.future.meta.objects.workflow import Workflow
 
 
 class TestWorkflowMeta:
+    # TODO Test upload_files_async
     class TestUploadFiles:
         @patch.object(Workflow, "upload_files_async")
         def test_upload_files(self, mock_upload_files_async: Mock):
@@ -97,3 +100,20 @@ class TestWorkflowMeta:
 
             assert str(root_path) == "upload"
             assert str(absolute_path) == str(Path.cwd() / "upload")
+
+    class TestConvertFilelikesToPaths:
+        def test_converts_list_of_paths(self):
+            paths = asyncio.run(Workflow._convert_filelikes_to_paths(["tmp/upload/1", LocalFile("tmp/upload/2")]))
+
+            # x-platform tolerant tests
+            if platform.architecture == "Windows":
+                assert paths == [WindowsPath("tmp/upload/1"), WindowsPath("tmp/upload/2")]
+            else:
+                assert paths == [PosixPath("tmp/upload/1"), PosixPath("tmp/upload/2")]
+
+        def test_raises_on_invalid_input(self):
+            with pytest.raises(TypeError):
+                asyncio.run(Workflow._convert_filelikes_to_paths([1, 2, 3]))  # type: ignore
+
+    class TestGetFilesToUpload:
+        ...
