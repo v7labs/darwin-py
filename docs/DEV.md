@@ -12,14 +12,6 @@ If the command `pyenv` isn't recognized, it hasn't installed to your shell envir
 ## Poetry
 Poetry manages project level dependencies and local python versions. Install instructions [here](https://python-poetry.org/docs/). Make sure to follow the printed instructions and add the path to your shell environment, if running the command `poetry --version` after installation doesn't work, it means your path hasn't been updated
 
-Set 2 config settings for poetry once you have it setup and recognized as a command
-1. Set poetry to use the local version of python, to be used in conjuction with pyenv later
-
-    - `poetry config virtualenvs.prefer-active-python true`
-
-2. Tell poetry to create a local folder copy of python inside .venv directory when it's called to manage a project
-
-    - `poetry config virtualenvs.in-project true` 
 ## New Folder Setup
 To Start from scratch and get a development/QA environemnt setup. This process means you will have a fresh python version with only the dependencies required by darwin-py that is uncorrupted by other packages installed on the system python
 - clone darwin py repo
