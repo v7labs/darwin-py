@@ -1,5 +1,6 @@
 import responses
 from pydantic import ValidationError
+from pytest import raises
 from requests import HTTPError
 
 from darwin.future.core.client import ClientCore
@@ -24,11 +25,10 @@ def test_get_workflow(
     )
 
     # Call the function being tested
-    workflow, exceptions = get_workflow(base_client, workflow_id)
+    workflow = get_workflow(base_client, workflow_id)
 
     # Assertions
     assert isinstance(workflow, WorkflowCore)
-    assert not exceptions
 
 
 @responses.activate
@@ -48,11 +48,10 @@ def test_get_workflow_with_team_slug(
     )
 
     # Call the function being tested
-    workflow, exceptions = get_workflow(base_client, workflow_id, team_slug)
+    workflow = get_workflow(base_client, workflow_id, team_slug)
 
     # Assertions
     assert isinstance(workflow, WorkflowCore)
-    assert not exceptions
 
 
 @responses.activate
@@ -69,12 +68,8 @@ def test_get_workflows_with_invalid_response(base_client: ClientCore) -> None:
     # fmt: on
 
     # Call the function being tested
-    workflow, exceptions = get_workflow(base_client, NON_EXISTENT_ID)
-
-    assert not workflow
-    assert exceptions
-    assert len(exceptions) == 1
-    assert isinstance(exceptions[0], ValidationError)
+    with raises(ValidationError):
+        get_workflow(base_client, NON_EXISTENT_ID)
 
 
 @responses.activate
@@ -89,10 +84,5 @@ def test_get_workflows_with_error(base_client: ClientCore) -> None:
         status=400
     )
     # fmt: on
-
-    workflow, exceptions = get_workflow(base_client, NON_EXISTENT_ID)
-
-    assert not workflow
-    assert exceptions
-    assert len(exceptions) == 1
-    assert isinstance(exceptions[0], HTTPError)
+    with raises(HTTPError):
+        get_workflow(base_client, NON_EXISTENT_ID)

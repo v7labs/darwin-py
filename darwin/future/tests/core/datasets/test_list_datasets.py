@@ -1,5 +1,6 @@
 from typing import List
 
+import pytest
 import responses
 from requests.exceptions import HTTPError
 
@@ -41,11 +42,7 @@ def test_it_returns_an_error_if_the_client_returns_an_http_error(
             json={},
             status=400,
         )
+        with pytest.raises(HTTPError) as execinfo:
+            list_datasets(base_client)
 
-        response, errors = list_datasets(base_client)
-
-        assert len(errors) == 1
-        assert isinstance(error := errors[0], HTTPError)
-        assert error.response is not None
-        assert error.response.status_code == 400
-        assert not response
+        assert execinfo.value.response.status_code == 400  # type: ignore

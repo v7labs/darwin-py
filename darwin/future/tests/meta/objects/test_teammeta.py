@@ -47,12 +47,8 @@ def test_delete_dataset_returns_exceptions_thrown(
     _delete_by_slug_mock.side_effect = Exception("test exception")
 
     valid_client = Client(base_config)
-
-    exceptions, dataset_deleted = Team.delete_dataset(valid_client, "test_dataset")
-
-    assert exceptions is not None
-    assert str(exceptions[0]) == "test exception"
-    assert dataset_deleted == -1
+    with raises(Exception):
+        _ = Team.delete_dataset(valid_client, "test_dataset")
 
     assert _delete_by_slug_mock.call_count == 1
     assert _delete_by_id_mock.call_count == 0
@@ -63,9 +59,8 @@ def test_delete_dataset_calls_delete_by_slug_as_appropriate(
 ) -> None:
     valid_client = Client(base_config)
 
-    exceptions, _ = Team.delete_dataset(valid_client, "test_dataset")
+    _ = Team.delete_dataset(valid_client, "test_dataset")
 
-    assert exceptions is None
     assert _delete_by_slug_mock.call_count == 1
     assert _delete_by_id_mock.call_count == 0
 
@@ -75,9 +70,8 @@ def test_delete_dataset_calls_delete_by_id_as_appropriate(
 ) -> None:
     valid_client = Client(base_config)
 
-    exceptions, _ = Team.delete_dataset(valid_client, 1)
+    _ = Team.delete_dataset(valid_client, 1)
 
-    assert exceptions is None
     assert _delete_by_slug_mock.call_count == 0
     assert _delete_by_id_mock.call_count == 1
 
@@ -193,4 +187,4 @@ def test_team_str_method(base_meta_team: Team) -> None:
 
 
 def test_team_repr_method(base_meta_team: Team) -> None:
-    assert repr(base_meta_team) == str(base_meta_team._element)
+    assert repr(base_meta_team) == str(base_meta_team)

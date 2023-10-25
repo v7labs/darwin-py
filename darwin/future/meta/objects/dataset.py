@@ -16,15 +16,34 @@ from darwin.future.meta.objects.base import MetaBase
 
 class Dataset(MetaBase[DatasetCore]):
     """
-    Dataset Meta object. Facilitates the creation of Query objects, lazy loading of
-    sub fields
+    Dataset Meta object. Facilitates the management of a dataset, querying of items,
+    uploading data, and other dataset related operations.
 
     Args:
-        MetaBase (Dataset): Generic MetaBase object expanded by Dataset core object
-            return type
+        MetaBase (Dataset): Generic MetaBase object that manages a DatasetCore object
 
     Returns:
         _type_: DatasetMeta
+
+    Attributes:
+        name (str): The name of the dataset.
+        slug (str): The slug of the dataset.
+        id (int): The id of the dataset.
+        item_ids (List[UUID]): A list of item ids for the dataset.
+
+    Example Usage:
+        # Create a new dataset
+        dataset = Dataset.create(client, slug="my_dataset_slug")
+
+        # Upload data to the dataset
+        local_file = LocalFile("path/to/local/file")
+        upload_data(dataset, [local_file])
+
+        # Get the item ids for the dataset
+        item_ids = dataset.item_ids
+
+        # Remove the dataset
+        dataset.remove()
     """
 
     @property
@@ -141,3 +160,11 @@ class Dataset(MetaBase[DatasetCore]):
             verbose,
         )
         return self
+
+    def __str__(self) -> str:
+        releases = self._element.releases
+        return f"Dataset\n\
+- Name: {self._element.name}\n\
+- Dataset Slug: {self._element.slug}\n\
+- Dataset ID: {self._element.id}\n\
+- Dataset Releases: {releases if releases else 'No releases'}"
