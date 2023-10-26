@@ -59,7 +59,26 @@ class TestWorkflowMeta:
 
     class TestGetItemPath:
         class TestWithoutPreserveFolders:
-            def test_plain_without_preserve_folders(self) -> None:
+            @pytest.mark.parametrize(
+                "imposed_path, preserve_folders, expectation",
+                [
+                    ("/", False, "/"),
+                    ("/test", False, "/test"),
+                    ("test", False, "/test"),
+                    ("test/", False, "/test"),
+                    ("test/test2", False, "/test/test2"),
+                    ("test/test2/", False, "/test/test2"),
+                    ("/", True, "/"),
+                    ("/test", True, "/test"),
+                    ("test", True, "/test"),
+                    ("test/", True, "/test"),
+                    ("test/test2", True, "/test/test2"),
+                    ("test/test2/", True, "/test/test2"),
+                ],
+            )
+            def test_with_no_internal_folder_structure(
+                self, imposed_path: str, preserve_folders: bool, expectation: str
+            ) -> None:
                 with TemporaryDirectory() as tmpdir:
                     open(tmpdir + "/file1.jpg", "w").close()
 
@@ -81,9 +100,17 @@ class TestWorkflowMeta:
                     ("test/", False, "/test"),
                     ("test/test2", False, "/test/test2"),
                     ("test/test2/", False, "/test/test2"),
+                    ("/", True, "/folder1"),
+                    ("/test", True, "/test/folder1"),
+                    ("test", True, "/test/folder1"),
+                    ("test/", True, "/test/folder1"),
+                    ("test/test2", True, "/test/test2/folder1"),
+                    ("test/test2/", True, "/test/test2/folder1"),
                 ],
             )
-            def test_foldered(self, imposed_path: str, preserve_folders: bool, expectation: str) -> None:
+            def test_with_internal_folder_structure(
+                self, imposed_path: str, preserve_folders: bool, expectation: str
+            ) -> None:
                 with TemporaryDirectory() as tmpdir:
                     tmpdir_inner_path = Path(tmpdir) / "folder1"
                     tmpdir_inner_path.mkdir(parents=True, exist_ok=True)
