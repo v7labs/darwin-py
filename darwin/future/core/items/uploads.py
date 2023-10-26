@@ -319,14 +319,24 @@ async def async_register_and_create_signed_upload_url(
     ]
 
 
-async def upload_files(
+async def async_upload_files(
     api_client: ClientCore, url: str, file: Path
 ) -> aiohttp.ClientResponse:
+    """
+    Upload files to a signed url
+
+    Parameters
+    ----------
+    api_client: ClientCore
+        The client to use for the request
+    url: str
+        The signed url to upload to
+    file: Path
+        The file to upload
+    """
     async with aiohttp.ClientSession() as session:
         async with session.post(url, data={"file": file}) as resp:
             return resp
-
-
 
 
 async def async_confirm_upload(

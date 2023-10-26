@@ -21,6 +21,10 @@ classifiers = [
 include = "darwin"
 
 
+
+[tool.poetry.group.dev.dependencies]
+aioresponses = "^0.7.4"
+
 [tool.isort]
 profile = "black"
 

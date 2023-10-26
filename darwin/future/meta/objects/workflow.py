@@ -7,7 +7,7 @@ from pathlib import Path, PosixPath
 from typing import AsyncGenerator, List, Optional, Sequence, Tuple, Union
 from uuid import UUID
 
-import httpx
+import requests
 
 from darwin.dataset.upload_manager import LocalFile
 from darwin.datatypes import PathLike
@@ -461,7 +461,5 @@ class Workflow(MetaBase[WorkflowCore]):
         """
         # TODO: Initial naive implementation, needs to be improved
 
-        with httpx.AsyncClient() as client:
-
-        files = {"file": open(file, "rb")}
-        return requests.post(url, files=files)
+        # Use new function
+        ...
