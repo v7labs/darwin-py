@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import pprint
 from typing import Dict, Generic, Optional, TypeVar
 
 from darwin.future.core.client import ClientCore
@@ -11,6 +10,30 @@ Param = Dict[str, object]
 
 
 class MetaBase(Generic[R]):
+    """
+    A base class for metadata objects. This should only ever be inherited from in meta objects.
+    stores metadata parameters used to access the api that are related to the Meta Objects
+    but potentially not required for the core object. For example, a dataset object needs
+    the team slug to access the api which get's passed down from the team object.
+
+    Attributes:
+        _element (R): The element R to which the object is related.
+        client (ClientCore): The client used to execute the query.
+        meta_params (Dict[str, object]): A dictionary of metadata parameters. This is
+            used in conjuction with the Query object to execute related api calls.
+
+    Methods:
+        __init__(client: ClientCore, element: R, meta_params: Optional[Param] = None) -> None:
+            Initializes a new MetaBase object.
+        __repr__() -> str:
+            Returns a string representation of the object.
+
+    Examples:
+        # Create a MetaBase type that manages a TeamCore object from the API
+        class Team(MetaBase[TeamCore]):
+            ...
+    """
+
     _element: R
     client: ClientCore
 
@@ -21,46 +44,5 @@ class MetaBase(Generic[R]):
         self._element = element
         self.meta_params = meta_params or {}
 
-    def __str__(self) -> str:
-        class_name = self.__class__.__name__
-        if class_name == "Team":
-            return f"Team\n\
-- Team Name: {self._element.name}\n\
-- Team Slug: {self._element.slug}\n\
-- Team ID: {self._element.id}\n\
-- {len(self._element.members if self._element.members else [])} member(s)"
-
-        elif class_name == "TeamMember":
-            return f"Team Member\n\
-- Name: {self._element.first_name} {self._element.last_name}\n\
-- Role: {self._element.role.value}\n\
-- Email: {self._element.email}\n\
-- User ID: {self._element.user_id}"
-
-        elif class_name == "Dataset":
-            releases = self._element.releases
-            return f"Dataset\n\
-- Name: {self._element.name}\n\
-- Dataset Slug: {self._element.slug}\n\
-- Dataset ID: {self._element.id}\n\
-- Dataset Releases: {releases if releases else 'No releases'}"
-
-        elif class_name == "Workflow":
-            return f"Workflow\n\
-- Workflow Name: {self._element.name}\n\
-- Workflow ID: {self._element.id}\n\
-- Connected Dataset ID: {self._element.dataset.id}\n\
-- Conneted Dataset Name: {self._element.dataset.name}"
-
-        elif class_name == "Stage":
-            return f"Stage\n\
-- Stage Name: {self._element.name}\n\
-- Stage Type: {self._element.type.value}\n\
-- Stage ID: {self._element.id}"
-
-        else:
-            return f"Class type '{class_name}' not found in __str__ method:\
-\n{pprint.pformat(self)}"
-
     def __repr__(self) -> str:
-        return str(self._element)
+        return str(self)

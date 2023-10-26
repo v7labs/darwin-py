@@ -14,7 +14,7 @@ class StageQuery(Query[Stage]):
             raise ValueError("Must specify workflow_id to query stages")
         workflow_id: UUID = self.meta_params["workflow_id"]
         meta_params = self.meta_params
-        workflow, exceptions = get_workflow(self.client, str(workflow_id))
+        workflow = get_workflow(self.client, str(workflow_id))
         assert workflow is not None
         stages = [
             Stage(self.client, s, meta_params=meta_params) for s in workflow.stages
