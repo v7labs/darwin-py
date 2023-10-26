@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from enum import Enum, auto
-from pathlib import Path
+from pathlib import Path, PosixPath
 from typing import AsyncGenerator, List, Optional, Sequence, Tuple, Union
 from uuid import UUID
 
@@ -152,7 +152,7 @@ class Workflow(MetaBase[WorkflowCore]):
         if files_to_exclude is not None:
             file_paths = [f for f in file_paths if f not in files_to_exclude]
 
-        root_path, root_paths_absolute = await self._derive_root_path(file_paths)
+        root_path, root_paths_absolute = self._derive_root_path(file_paths)
 
         upload_items = await self._prepare_upload_items(
             path or "/", root_path, file_paths, as_frames, fps, extract_views, preserve_folders
@@ -237,7 +237,7 @@ class Workflow(MetaBase[WorkflowCore]):
     async def _prepare_upload_items(
         cls,
         imposed_path: str,
-        path: Path,
+        root_path: Path,
         file_paths: List[Path],
         as_frames: bool,
         fps: int,
@@ -250,11 +250,17 @@ class Workflow(MetaBase[WorkflowCore]):
         Arguments
         ---------
         imposed_path: str
-            The path to impose on the files
+            The path to impose on the files on the server
+            e.g. a file at ./this/path/1.jpg with imposed path of /location
+            will go to /location/1.jpg, or /location/this/path/1.jpg if
+            preserve_folders is True
         path: Path
-            The path to the (relative) lowest root of the files
+            The path to the (relative) lowest root of the files.
+            - Must be a folder path
+            - Must be a parent of all files
         file_paths: List[Path]
-            The files to upload
+            The actual files to upload.  These must be absolute, existing objects
+            on the local filesystem
         as_frames: bool
             Whether to upload video files as frames
         fps: int
@@ -270,31 +276,90 @@ class Workflow(MetaBase[WorkflowCore]):
             The files as UploadItems
 
         """
-        # TODO: asserts
-
-        if imposed_path is not None:
-            # TODO: Handle imposition of path
-            ...
+        assert root_path.is_dir(), "root_path must be a directory"
+        assert all(
+            file.is_absolute() and file.is_file() and file.exists() for file in file_paths
+        ), "file_paths must be absolute paths"
 
         return [
             UploadItem(
-                name=f.name,
-                path=str(f.relative_to(path)) if not preserve_folders else str(f),
+                name=file.name,
+                path=cls._get_item_path(file, root_path, imposed_path, preserve_folders),
                 slots=[
                     ItemSlot(
-                        slot_name=str(i),
-                        file_name=f.name,
+                        slot_name=str(index),
+                        file_name=file.name,
                         as_frames=as_frames,
                         fps=fps,
                         extract_views=extract_views,
                     )
                 ],
             )
-            for i, f in enumerate(file_paths)
+            for index, file in enumerate(file_paths)
         ]
 
     @classmethod
-    async def _derive_root_path(cls, paths: List[Path]) -> Tuple[Path, Path]:
+    def _get_item_path(cls, file: Path, root_path: Path, imposed_path: str, preserve_folders: bool) -> str:
+        """
+        (internal) Returns the parent path a file should be stored at on the server
+
+        ex. file = /this/path/1.jpg
+            root_path = /this
+            imposed_path = /location
+            preserve_folders = True
+            returns /location/path/
+
+        ex. file = /this/path/1.jpg
+            root_path = /this
+            imposed_path = /location
+            preserve_folders = False
+            returns /
+
+        Arguments
+        ---------
+        file: Path
+            The file to upload
+        root_path: Path
+            The path to the (relative) lowest root of the files.
+            - Must be a folder path
+            - Must be a parent of all files
+        imposed_path: str
+            The path to impose on the files on the server
+            e.g. a file at ./this/path/1.jpg with imposed path of /location
+            will go to /location/1.jpg, or /location/this/path/1.jpg if
+            preserve_folders is True
+        preserve_folders: bool
+            Whether to preserve the folder structure when uploading
+
+        Returns
+        -------
+        str
+            The path to the file on the server
+        """
+        try:
+            PosixPath(imposed_path).resolve()
+        except Exception as exc:
+            raise ValueError("imposed_path must be a valid PosixPath") from exc
+
+        assert root_path.is_dir(), "root_path must be a directory"
+        assert (
+            file.is_absolute() and file.is_file() and file.exists()
+        ), "file must be an absolute path to an existing file"
+
+        relative_path = file.relative_to(root_path)
+        path = Path(imposed_path) / relative_path if preserve_folders else Path(imposed_path)
+
+        return_path = str(path)
+        if return_path == ".":
+            return "/"
+
+        if not return_path.startswith("/"):
+            return_path = "/" + return_path
+
+        return return_path
+
+    @classmethod
+    def _derive_root_path(cls, paths: List[Path]) -> Tuple[Path, Path]:
         """
         Finds the lowest common path in a set of paths
 
@@ -308,6 +373,7 @@ class Workflow(MetaBase[WorkflowCore]):
         Tuple[Path, Path]
             The lowest common path to the current working directory, both as a relative path, and an absolute path
         """
+        assert all(isinstance(path, Path) for path in paths), "paths must be a list of Path objects"
 
         root_path = paths[0]
 

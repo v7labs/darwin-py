@@ -1,6 +1,6 @@
-import asyncio
 import platform
 from pathlib import Path, PosixPath, WindowsPath
+from tempfile import TemporaryDirectory
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -57,53 +57,96 @@ class TestWorkflowMeta:
     class TestUploadFilesAsync:
         ...
 
+    class TestGetItemPath:
+        class TestWithoutPreserveFolders:
+            def test_plain_without_preserve_folders(self) -> None:
+                with TemporaryDirectory() as tmpdir:
+                    open(tmpdir + "/file1.jpg", "w").close()
+
+                    path: str = Workflow._get_item_path(
+                        Path(tmpdir + "/file1.jpg"),
+                        Path(tmpdir),
+                        "/",
+                        False,
+                    )
+
+                    assert path == "/"
+
+            @pytest.mark.parametrize(
+                "imposed_path, preserve_folders, expectation",
+                [
+                    ("/", False, "/"),
+                    ("/test", False, "/test"),
+                    ("test", False, "/test"),
+                    ("test/", False, "/test"),
+                    ("test/test2", False, "/test/test2"),
+                    ("test/test2/", False, "/test/test2"),
+                ],
+            )
+            def test_foldered(self, imposed_path: str, preserve_folders: bool, expectation: str) -> None:
+                with TemporaryDirectory() as tmpdir:
+                    tmpdir_inner_path = Path(tmpdir) / "folder1"
+                    tmpdir_inner_path.mkdir(parents=True, exist_ok=True)
+                    file_path = Path(tmpdir_inner_path) / "file1.jpg"
+                    file_path.open("w").close()
+
+                    path: str = Workflow._get_item_path(
+                        file_path,
+                        Path(tmpdir),
+                        imposed_path,
+                        preserve_folders,
+                    )
+
+                    assert path == expectation
+
     class TestDeriveRootPath:
         def test_derive_root_path(self):
-            root_path, absolute_path = asyncio.run(
-                Workflow._derive_root_path(
-                    [
-                        Path("tmp/upload/1/2/3/4/5/6/7/8/9/10/11/12/13/14/15"),
-                        Path("tmp/upload/1/2/3/4/5/6/7/8/9/10/11/12/13/14"),
-                        Path("tmp/upload/1/2/3/4/5/6/7/8/9/10/11/12/13"),
-                        Path("tmp/upload/1/2/3/4/5/6/7/8/9/10/11/12"),
-                        Path("tmp/upload/1/2/3/4/5/6/7/8/9/10/11"),
-                        Path("tmp/upload/1/2/3/4/5/6/7/8/9/10"),
-                        Path("tmp/upload/1/2/3/4/5/6/7/8/9"),
-                        Path("tmp/upload"),
-                        Path("tmp/upload/1/2/3/4/5/6/7/8"),
-                        Path("tmp/upload/1/2/3/4/5/6/7"),
-                        Path("tmp/upload/1/2/3/4/5/6"),
-                        Path("tmp/upload/1/2/3/4/5"),
-                        Path("tmp/upload/1/2/3/4"),
-                        Path("tmp/upload/1/2/3"),
-                        Path("tmp/upload/1/2"),
-                        Path("tmp/upload/1"),
-                        Path("/tmp/upload/1/2/3/4/5/6/7/8/9/10/11/12/13/14/15"),
-                        Path("/tmp/upload/1/2/3/4/5/6/7/8/9/10/11/12/13/14"),
-                        Path("/tmp/upload/1/2/3/4/5/6/7/8/9/10/11/12/13"),
-                        Path("/tmp/upload/1/2/3/4/5/6/7/8/9/10/11/12"),
-                        Path("/tmp/upload/1/2/3/4/5/6/7/8/9/10/11"),
-                        Path("/tmp/upload/1/2/3/4/5/6/7/8/9/10"),
-                        Path("/tmp/upload/1/2/3/4/5/6/7/8/9"),
-                        Path("/tmp/upload"),
-                        Path("/tmp/upload/1/2/3/4/5/6/7/8"),
-                        Path("/tmp/upload/1/2/3/4/5/6/7"),
-                        Path("/tmp/upload/1/2/3/4/5/6"),
-                        Path("/tmp/upload/1/2/3/4/5"),
-                        Path("/tmp/upload/1/2/3/4"),
-                        Path("/tmp/upload/1/2/3"),
-                        Path("/tmp/upload/1/2"),
-                        Path("/tmp/upload/1"),
-                    ]
-                )
+            root_path, absolute_path = Workflow._derive_root_path(
+                [
+                    Path("tmp/upload/1/2/3/4/5/6/7/8/9/10/11/12/13/14/15"),
+                    Path("tmp/upload/1/2/3/4/5/6/7/8/9/10/11/12/13/14"),
+                    Path("tmp/upload/1/2/3/4/5/6/7/8/9/10/11/12/13"),
+                    Path("tmp/upload/1/2/3/4/5/6/7/8/9/10/11/12"),
+                    Path("tmp/upload/1/2/3/4/5/6/7/8/9/10/11"),
+                    Path("tmp/upload/1/2/3/4/5/6/7/8/9/10"),
+                    Path("tmp/upload/1/2/3/4/5/6/7/8/9"),
+                    Path("tmp/upload"),
+                    Path("tmp/upload/1/2/3/4/5/6/7/8"),
+                    Path("tmp/upload/1/2/3/4/5/6/7"),
+                    Path("tmp/upload/1/2/3/4/5/6"),
+                    Path("tmp/upload/1/2/3/4/5"),
+                    Path("tmp/upload/1/2/3/4"),
+                    Path("tmp/upload/1/2/3"),
+                    Path("tmp/upload/1/2"),
+                    Path("tmp/upload/1"),
+                    Path("/tmp/upload/1/2/3/4/5/6/7/8/9/10/11/12/13/14/15"),
+                    Path("/tmp/upload/1/2/3/4/5/6/7/8/9/10/11/12/13/14"),
+                    Path("/tmp/upload/1/2/3/4/5/6/7/8/9/10/11/12/13"),
+                    Path("/tmp/upload/1/2/3/4/5/6/7/8/9/10/11/12"),
+                    Path("/tmp/upload/1/2/3/4/5/6/7/8/9/10/11"),
+                    Path("/tmp/upload/1/2/3/4/5/6/7/8/9/10"),
+                    Path("/tmp/upload/1/2/3/4/5/6/7/8/9"),
+                    Path("/tmp/upload"),
+                    Path("/tmp/upload/1/2/3/4/5/6/7/8"),
+                    Path("/tmp/upload/1/2/3/4/5/6/7"),
+                    Path("/tmp/upload/1/2/3/4/5/6"),
+                    Path("/tmp/upload/1/2/3/4/5"),
+                    Path("/tmp/upload/1/2/3/4"),
+                    Path("/tmp/upload/1/2/3"),
+                    Path("/tmp/upload/1/2"),
+                    Path("/tmp/upload/1"),
+                ]
             )
 
             assert str(root_path) == "upload"
             assert str(absolute_path) == str(Path.cwd() / "upload")
 
+        def test_derive_root_path_raises(self):
+            ...
+
     class TestConvertFilelikesToPaths:
         def test_converts_list_of_paths(self):
-            paths = asyncio.run(Workflow._convert_filelikes_to_paths(["tmp/upload/1", LocalFile("tmp/upload/2")]))
+            paths = Workflow._convert_filelikes_to_paths(["tmp/upload/1", LocalFile("tmp/upload/2")])
 
             # x-platform tolerant tests
             if platform.architecture == "Windows":
@@ -113,7 +156,7 @@ class TestWorkflowMeta:
 
         def test_raises_on_invalid_input(self):
             with pytest.raises(TypeError):
-                asyncio.run(Workflow._convert_filelikes_to_paths([1, 2, 3]))  # type: ignore
+                Workflow._convert_filelikes_to_paths([1, 2, 3])  # type: ignore
 
     class TestGetFilesToUpload:
         ...
