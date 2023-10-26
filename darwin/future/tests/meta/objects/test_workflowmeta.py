@@ -10,7 +10,7 @@ from darwin.future.meta.objects.workflow import Workflow
 
 
 class TestWorkflowMeta:
-    # TODO Test upload_files_async
+
     class TestUploadFiles:
         @patch.object(Workflow, "upload_files_async")
         def test_upload_files(self, mock_upload_files_async: Mock):
@@ -54,6 +54,8 @@ class TestWorkflowMeta:
                     True,
                 )
 
+
+    # TODO Test upload_files_async
     class TestUploadFilesAsync:
         ...
 

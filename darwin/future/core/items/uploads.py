@@ -1,4 +1,5 @@
 import asyncio
+import aiohttp
 from logging import getLogger
 from pathlib import Path
 from typing import Dict, List, Tuple, Union
@@ -316,6 +317,16 @@ async def async_register_and_create_signed_upload_url(
         (await async_create_signed_upload_url(api_client, team_slug, id), id)
         for id in upload_ids
     ]
+
+
+async def upload_files(
+    api_client: ClientCore, url: str, file: Path
+) -> aiohttp.ClientResponse:
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, data={"file": file}) as resp:
+            return resp
+
+
 
 
 async def async_confirm_upload(
