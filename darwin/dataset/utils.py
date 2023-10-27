@@ -230,7 +230,7 @@ def exhaust_generator(
 
     Exhausts the generator passed as parameter. Can be done multi threaded if desired.
     Creates and returns a coco record from the given annotation.
-    
+
     Uses ``BoxMode.XYXY_ABS`` from ``detectron2.structures`` if available, defaults to ``box_mode = 0``
     otherwise.
     Parameters
@@ -571,9 +571,10 @@ def _map_annotations_to_images(
     images_paths = []
     annotations_paths = []
     invalid_annotation_paths = []
+    with_folders = any([item.is_dir() for item in images_dir.iterdir()])
     for annotation_path in annotations_dir.glob("**/*.json"):
         darwin_json = stream_darwin_json(annotation_path)
-        image_path = get_image_path_from_stream(darwin_json, images_dir)
+        image_path = get_image_path_from_stream(darwin_json, images_dir, with_folders)
         if image_path.exists():
             images_paths.append(image_path)
             annotations_paths.append(annotation_path)
@@ -583,7 +584,9 @@ def _map_annotations_to_images(
                 invalid_annotation_paths.append(annotation_path)
                 continue
             else:
-                raise ValueError(f"Annotation ({annotation_path}) does not have a corresponding image")
+                raise ValueError(
+                    f"Annotation ({annotation_path}) does not have a corresponding image"
+                )
 
     return images_paths, annotations_paths, invalid_annotation_paths
 

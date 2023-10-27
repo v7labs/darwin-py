@@ -132,9 +132,12 @@ class LocalDataset:
         split_type,
     ):
         # Find all the annotations and their corresponding images
+        with_folders = any([item.is_dir() for item in images_dir.iterdir()])
         for annotation_path in sorted(annotations_dir.glob("**/*.json")):
             darwin_json = stream_darwin_json(annotation_path)
-            image_path = get_image_path_from_stream(darwin_json, images_dir)
+            image_path = get_image_path_from_stream(
+                darwin_json, images_dir, with_folders
+            )
             if image_path.exists():
                 self.images_path.append(image_path)
                 self.annotations_path.append(annotation_path)
