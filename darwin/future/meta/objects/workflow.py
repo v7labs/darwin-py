@@ -131,6 +131,32 @@ class Workflow(MetaBase[WorkflowCore]):
         preserve_folders: bool = False,
         auto_push: bool = True,
     ) -> List[AsyncGenerator[FileToStatus, None]]:
+        """
+        Uploads files to a dataset and optionally starts the workflow synchronously
+
+        Arguments
+        ---------
+        files: Sequence[Union[PathLike, LocalFile]]
+            The files to upload
+        files_to_exclude: Optional[List[PathLike]]
+            Files to exclude from the upload
+        fps: int
+            Frames per second for video files
+        path: Optional[str]
+            Path to upload the files to
+        as_frames: bool
+            Whether to upload video files as frames
+        extract_views: bool
+            Whether to extract views from video files
+        preserve_folders: bool
+            Whether to preserve the folder structure when uploading
+        auto_push: bool
+            Whether to automatically push the files to the next stage
+
+        Returns
+        -------
+        List[FilesToStatus]
+        """
         return asyncio.run(
             self.upload_files_async(
                 files,
