@@ -69,6 +69,35 @@ class Split:
         """
         return self.random is not None or self.stratified is not None
 
+    def has_stratified(self, stratified_type) -> bool:
+        """
+        Returns whether or not this split instance has a stratified split.
+
+        Returns
+        -------
+        bool
+            ``True`` if this instance has a stratified split, ``False`` otherwise.
+        """
+        return self.stratified is not None and stratified_type in self.stratified
+
+    def get_path(self, split, stratified_type: Optional[str] = None, split_type: Optional[str] = None) -> str:
+        """
+        """
+        if split not in ["train", "val", "test"]:
+            raise AttributeError(f"unknown split {split}. Split should be either 'train', 'val' or 'test'.")
+
+        if split_type is None and stratified_type is not None and self.has_stratified(stratified_type):
+            split_type = "stratified"
+        else:
+            split_type = "random"
+
+        if split_type == "random":
+            return self.random[split] if self.random is not None else None
+        if split_type == "stratified":
+            if stratified_type is None:
+                raise AttributeError("stratified_type can't be None for split_type=stratified")
+            return self.stratified[stratified_type][split]
+
 
 def split_dataset(
     dataset_path: PathLike,
