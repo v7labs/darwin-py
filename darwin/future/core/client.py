@@ -219,10 +219,15 @@ class ClientCore:
         return self._generic_call(self.session.post, endpoint, data)
 
     def delete(
-        self, endpoint: str, query_string: Optional[QueryString] = None
+        self,
+        endpoint: str,
+        query_string: Optional[QueryString] = None,
+        data: Optional[dict] = None,
     ) -> JSONType:
         return self._generic_call(
-            self.session.delete, self._contain_qs_and_endpoint(endpoint, query_string)
+            self.session.delete,
+            self._contain_qs_and_endpoint(endpoint, query_string),
+            data if data is not None else {},
         )
 
     def patch(self, endpoint: str, data: dict) -> JSONType:
