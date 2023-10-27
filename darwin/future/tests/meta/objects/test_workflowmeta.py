@@ -10,7 +10,6 @@ from darwin.future.meta.objects.workflow import Workflow
 
 
 class TestWorkflowMeta:
-
     class TestUploadFiles:
         @patch.object(Workflow, "upload_files_async")
         def test_upload_files(self, mock_upload_files_async: Mock):
@@ -54,7 +53,6 @@ class TestWorkflowMeta:
                     True,
                 )
 
-
     # TODO Test upload_files_async
     class TestUploadFilesAsync:
         ...
@@ -96,6 +94,8 @@ class TestWorkflowMeta:
             @pytest.mark.parametrize(
                 "imposed_path, preserve_folders, expectation",
                 [
+                    # Seems like a lot of these, but together they cover scenarios that
+                    # _do_ fail in very specific groups if the function is wrong
                     ("/", False, "/"),
                     ("/test", False, "/test"),
                     ("test", False, "/test"),

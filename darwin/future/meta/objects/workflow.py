@@ -387,7 +387,7 @@ class Workflow(MetaBase[WorkflowCore]):
             file.is_absolute() and file.is_file() and file.exists()
         ), "file must be an absolute path to an existing file"
 
-        relative_path = file.relative_to(root_path)
+        relative_path = file.relative_to(root_path).parent
         path = Path(imposed_path) / relative_path if preserve_folders else Path(imposed_path)
 
         return_path = str(path)
