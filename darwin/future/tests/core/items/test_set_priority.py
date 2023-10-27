@@ -15,18 +15,18 @@ def test_set_item_priority(base_client) -> None:
     responses.add(
         responses.POST,
         base_client.config.api_endpoint + "v2/teams/test-team/items/priority",
-        json={"affected_item_count": 0},
+        json={"affected_item_count": 1},
     )
 
     response = set_item_priority(
         base_client,
         "test-team",
         123,
-        UUID("00000000-0000-0000-0000-000000000000"),
+        [UUID("00000000-0000-0000-0000-000000000000")],
         999,
     )
 
-    assert response == {"affected_item_count": 0}
+    assert response == {"affected_item_count": 1}
 
 
 def test_set_item_priority_with_filters() -> None:
@@ -55,7 +55,7 @@ def test_set_item_priority_with_filters() -> None:
         base_client,
         "test-team",
         123,
-        UUID("00000000-0000-0000-0000-000000000000"),
+        [UUID("00000000-0000-0000-0000-000000000000")],
         priority=10,
         filters={"status": "open"},
     )
@@ -83,6 +83,6 @@ def test_set_item_priority_with_error_response() -> None:
             api_client=api_client,
             team_slug="test-team",
             dataset_id=123,
-            item_id=UUID("00000000-0000-0000-0000-000000000000"),
+            item_ids=[UUID("00000000-0000-0000-0000-000000000000")],
             priority=10,
         )

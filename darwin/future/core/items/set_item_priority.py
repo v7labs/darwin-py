@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, List
 from uuid import UUID
 
 from darwin.future.core.client import ClientCore
@@ -10,12 +10,12 @@ def set_item_priority(
     api_client: ClientCore,
     team_slug: str,
     dataset_id: int,
-    item_id: UUID,
+    item_ids: List[UUID],
     priority: int,
     filters: Dict[str, UnknownType] = {},
 ) -> JSONType:
     """
-    Sets the priority of an item
+    Sets the priority of a list of items
 
     Parameters
     ----------
@@ -23,6 +23,10 @@ def set_item_priority(
         The client to use for the request
     team_slug: str
         The slug of the team to set the priority for
+    dataset_id: int
+        The dataset to set the priority for
+    item_ids: List[UUID]
+        The item ids to set the priority for
     priority: int
         The priority to set
 
@@ -33,7 +37,7 @@ def set_item_priority(
     payload = {
         "priority": priority,
         "filters": {
-            "item_ids": [str(item_id)],
+            "item_ids": [str(item_id) for item_id in item_ids],
             "dataset_ids": [dataset_id],
             **filters,
         },
