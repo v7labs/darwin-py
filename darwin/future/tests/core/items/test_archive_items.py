@@ -16,7 +16,7 @@ def test_archive_items_including_filters(base_client: ClientCore) -> None:
     responses.add(
         responses.POST,
         base_client.config.api_endpoint + "v2/teams/test-team/items/archive",
-        json={"affected_item_count": 0},
+        json={"affected_item_count": 2},
     )
 
     # Call the function
@@ -35,10 +35,10 @@ def test_archive_items_including_filters(base_client: ClientCore) -> None:
     )
 
     # Check that the response mathces what we expect
-    assert response == {"affected_item_count": 0}
+    assert response == {"affected_item_count": 2}
 
 
-def test_archive_items_with_error_response(base_client: ClientCore) -> None:
+def test_archive_items_with_error_response() -> None:
     api_client = Mock(spec=ClientCore)
     api_client.post.side_effect = DarwinException("Something went wrong")
 
