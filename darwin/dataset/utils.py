@@ -17,6 +17,7 @@ from darwin.utils import (
     SUPPORTED_EXTENSIONS,
     SUPPORTED_VIDEO_EXTENSIONS,
     attempt_decode,
+    get_darwin_json_version,
     get_image_path_from_stream,
     is_unix_like_os,
     parse_darwin_json,
@@ -568,13 +569,20 @@ def _map_annotations_to_images(
     Raises:
         ValueError: If there are inconsistencies with the annotations and images.
     """
+
     images_paths = []
     annotations_paths = []
     invalid_annotation_paths = []
+
+    # Determine if the release is V1 or V2 JSON
+    json_version = get_darwin_json_version(annotations_dir)
+
     with_folders = any([item.is_dir() for item in images_dir.iterdir()])
     for annotation_path in annotations_dir.glob("**/*.json"):
         darwin_json = stream_darwin_json(annotation_path)
-        image_path = get_image_path_from_stream(darwin_json, images_dir, with_folders)
+        image_path = get_image_path_from_stream(
+            darwin_json, images_dir, with_folders, json_version
+        )
         if image_path.exists():
             images_paths.append(image_path)
             annotations_paths.append(annotation_path)
