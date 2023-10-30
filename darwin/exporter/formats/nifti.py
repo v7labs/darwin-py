@@ -331,10 +331,7 @@ def write_output_volume_to_disk(
                 img_ornt, orig_ornt
             )  # Get transform from RAS to current affine
             img = img.as_reoriented(from_canonical)
-        output_path = (
-            Path(output_dir)
-            / f"{image_id}_{volume.series_instance_uid}_{volume.class_name}.nii.gz"
-        )
+        output_path = Path(output_dir) / f"{image_id}_{volume.class_name}.nii.gz"
         if not output_path.parent.exists():
             output_path.parent.mkdir(parents=True)
         nib.save(img=img, filename=output_path)
