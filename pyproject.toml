@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "darwin-py"
-version = "0.8.46"
+version = "0.8.47"
 description = "Library and command line interface for darwin.v7labs.com"
 homepage = "https://docs.v7labs.com/reference/getting-started-2"
 documentation = "https://darwin-py-sdk.v7labs.com/index.html"
@@ -19,7 +19,6 @@ classifiers = [
 ]
 [[tool.poetry.packages]]
 include = "darwin"
-
 
 [tool.isort]
 profile = "black"
@@ -59,11 +58,6 @@ select = ["E", "F", "C"]
 ignore = ["E203", "E402", "E501"]
 line-length = 88
 
-[tool.ruff.per-file-ignores]
-"__init__.py" = ["E402", "F401"]
-"**/{tests,docs,tools}/*" = ["E402", "F403"]
-
-
 [tool.flake8]
 max-line-length = 88
 ignore = ["E203", "W503", "E402"]
@@ -78,7 +72,6 @@ humanize = "^4.4.0"
 pillow = "^9.4.0"
 requests = "^2.28.1"
 rich = "^13.0.1"
-dataclasses = { markers = "python_version < \"3.7\"", version = "^0.8" }
 upolygon = "0.1.10"
 jsonschema = ">=4.0.0"
 deprecation = "^2.1.0"
@@ -86,28 +79,11 @@ pydantic = "^1.10.4"
 orjson = "^3.8.5"
 numpy = "*"
 toml = "^0.10.2"
-nibabel = { version = "^5.0.0", python = ">=3.8.1", optional = true }
-connected-components-3d = { version = "^3.10.3", optional = true }
-scikit-learn = { version = "^1.2.0", python = ">=3.8.1,<3.11", optional = true }
-albumentations = { version = "^1.3.1", python = ">=3.8", optional = true }
-torch = { version = "^1.13.1", optional = true }
-torchvision = { version = "^0.14.1", optional = true }
-black = { version = "^22.12.0", optional = true }
-isort = { version = "^5.11.4", optional = true }
-mypy = { version = "^1.5", optional = true, python = ">=3.8" }
-responses = { version = "^0.22.0", optional = true }
-pytest = { version = "^7.2.1", optional = true }
-debugpy = { version = "^1.6.5", optional = true }
 types-requests = "^2.28.11.8"
-mpire = { version = "^2.7.0" }
 tqdm = "^4.64.1"
 types-pyyaml = "^6.0.12.9"
-python-dotenv = { version = "^1.0.0", python = ">3.8" }
-opencv-python-headless = { version = "^4.8.0.76", optional = true }
 pyyaml = "^6.0.1"
-pytest-rerunfailures = { version = "^12.0", optional = true }
 json-stream = "^2.3.2"
-ruff = { version = "^0.0.292", optional = true }
 
 
 [tool.poetry.extras]
@@ -122,6 +98,7 @@ dev = [
     "flake8-pyproject",
     "pytest-rerunfailures",
     "ruff",
+    "validate-pyproject",
 ]
 test = ["responses", "pytest", "flake8-pyproject"]
 ml = ["torch", "torchvision", "scikit-learn", "albumentations"]
@@ -130,3 +107,86 @@ ocv = ["opencv-python-headless"]
 
 [tool.poetry.scripts]
 darwin = "darwin.cli:main"
+
+[tool.ruff.per-file-ignores]
+"__init__.py" = ["E402", "F401"]
+"**/{tests,docs,tools}/*" = ["E402", "F403"]
+
+[tool.poetry.dependencies.dataclasses]
+markers = "python_version < \"3.7\""
+version = "^0.8"
+
+[tool.poetry.dependencies.nibabel]
+version = "^5.0.0"
+python = ">=3.8.1"
+optional = true
+
+[tool.poetry.dependencies.connected-components-3d]
+version = "^3.10.3"
+optional = true
+
+[tool.poetry.dependencies.scikit-learn]
+version = "^1.2.0"
+python = ">=3.8.1,<3.11"
+optional = true
+
+[tool.poetry.dependencies.albumentations]
+version = "^1.3.1"
+python = ">=3.8"
+optional = true
+
+[tool.poetry.dependencies.torch]
+version = "^1.13.1"
+optional = true
+
+[tool.poetry.dependencies.torchvision]
+version = "^0.14.1"
+optional = true
+
+[tool.poetry.dependencies.black]
+version = "^22.12.0"
+optional = true
+
+[tool.poetry.dependencies.isort]
+version = "^5.11.4"
+optional = true
+
+[tool.poetry.dependencies.mypy]
+version = "^1.5"
+optional = true
+python = ">=3.8"
+
+[tool.poetry.dependencies.responses]
+version = "^0.22.0"
+optional = true
+
+[tool.poetry.dependencies.pytest]
+version = "^7.2.1"
+optional = true
+
+[tool.poetry.dependencies.debugpy]
+version = "^1.6.5"
+optional = true
+
+[tool.poetry.dependencies.mpire]
+version = "^2.7.0"
+
+[tool.poetry.dependencies.python-dotenv]
+version = "^1.0.0"
+python = ">3.8"
+
+[tool.poetry.dependencies.opencv-python-headless]
+version = "^4.8.0.76"
+optional = true
+
+[tool.poetry.dependencies.pytest-rerunfailures]
+version = "^12.0"
+optional = true
+
+[tool.poetry.dependencies.ruff]
+version = "^0.0.292"
+optional = true
+
+[tool.poetry.dependencies.validate-pyproject]
+version = "^0.15"
+optional = true
