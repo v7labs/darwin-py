@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Union
 
+from darwin.future.core.types.query import Query, QueryFilter
 from darwin.future.data_objects import validators as darwin_validators
 from darwin.future.data_objects.typing import UnknownType
 
@@ -74,6 +75,9 @@ class QueryString:
     """
 
     value: Dict[str, str]
+
+    def from_filter(self, filter: QueryFilter) -> QueryString:
+        return QueryString({filter.name: filter.param}) 
 
     def dict_check(self, value: UnknownType) -> Dict[str, str]:
         assert isinstance(value, dict)

@@ -29,8 +29,9 @@ class Modifier(Enum):
 
 
 class QueryFilter(DefaultDarwin):
-    """Basic query filter with a name and a parameter
-
+    """
+    Basic query filter with a name and a parameter
+    Modifiers are for client side filtering only, and are not passed to the API
     Attributes
     ----------
     name: str
@@ -104,6 +105,7 @@ class QueryFilter(DefaultDarwin):
             modifier = None
         return QueryFilter(name=key, param=value, modifier=modifier)
 
+    
 
 class Query(Generic[T], ABC):
     """
