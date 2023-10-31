@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List
+from typing import Dict, List
 from uuid import UUID
 
 from darwin.future.core.types.query import Query, QueryFilter
@@ -9,7 +9,7 @@ from darwin.future.meta.objects.stage import Stage
 
 
 class StageQuery(Query[Stage]):
-    def _collect(self) -> List[Stage]:
+    def _collect(self) -> Dict[int, Stage]:
         if "workflow_id" not in self.meta_params:
             raise ValueError("Must specify workflow_id to query stages")
         workflow_id: UUID = self.meta_params["workflow_id"]
@@ -23,7 +23,7 @@ class StageQuery(Query[Stage]):
             self.filters = []
         for filter in self.filters:
             stages = self._execute_filter(stages, filter)
-        return stages
+        return dict(enumerate(stages))
 
     def _execute_filter(self, stages: List[Stage], filter: QueryFilter) -> List[Stage]:
         """Executes filtering on the local list of stages

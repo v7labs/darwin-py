@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import List
+from typing import Dict, List
 from uuid import UUID
 
 from darwin.exceptions import DarwinException
@@ -21,7 +21,7 @@ class WorkflowQuery(Query[Workflow]):
     collect: Executes the query and returns the filtered data
     """
 
-    def _collect(self) -> List[Workflow]:
+    def _collect(self) -> Dict[int, Workflow]:
         workflows_core, exceptions = list_workflows(self.client)
         if exceptions:
             handle_exception(exceptions)
@@ -31,12 +31,12 @@ class WorkflowQuery(Query[Workflow]):
             for workflow in workflows_core
         ]
         if not self.filters:
-            return workflows
-
+            self.filters = []
+        
         for filter in self.filters:
             workflows = self._execute_filters(workflows, filter)
 
-        return workflows
+        return dict(enumerate(workflows))
 
     def _execute_filters(
         self, workflows: List[Workflow], filter: QueryFilter

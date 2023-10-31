@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List
+from typing import Dict, List
 
 from darwin.future.core.team.get_team import get_team_members
 from darwin.future.core.types.query import Query, QueryFilter
@@ -16,7 +16,7 @@ class TeamMemberQuery(Query[TeamMember]):
     _execute_filter: Executes a filter on a list of objects
     """
 
-    def _collect(self) -> List[TeamMember]:
+    def _collect(self) -> Dict[int, TeamMember]:
         members, exceptions = get_team_members(self.client)
         members_meta = [TeamMember(self.client, member) for member in members]
         if exceptions:
@@ -27,7 +27,7 @@ class TeamMemberQuery(Query[TeamMember]):
         for filter in self.filters:
             members_meta = self._execute_filter(members_meta, filter)
 
-        return members_meta
+        return dict(enumerate(members_meta))
 
     def _execute_filter(
         self, members: List[TeamMember], filter: QueryFilter

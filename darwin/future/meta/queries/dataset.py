@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List
+from typing import Dict, List
 
 from darwin.future.core.datasets import list_datasets
 from darwin.future.core.types.query import Query, QueryFilter
@@ -18,7 +18,7 @@ class DatasetQuery(Query[Dataset]):
     collect: Executes the query and returns the filtered data
     """
 
-    def _collect(self) -> List[Dataset]:
+    def _collect(self) -> Dict[int, Dataset]:
         datasets, exceptions = list_datasets(self.client)
         if exceptions:
             # TODO: print and or raise exceptions, tbd how we want to handle this
@@ -32,7 +32,7 @@ class DatasetQuery(Query[Dataset]):
         for filter in self.filters:
             datasets_meta = self._execute_filters(datasets_meta, filter)
 
-        return datasets_meta
+        return dict(enumerate(datasets_meta))
 
     def _execute_filters(
         self, datasets: List[Dataset], filter: QueryFilter

@@ -154,7 +154,7 @@ class Query(Generic[T], ABC):
         self.meta_params: dict = meta_params or {}
         self.client = client
         self.filters = filters or []
-        self.results: Optional[List[T]] = None
+        self.results: dict[int, T] = {}
         self._changed_since_last: bool = True
 
     def filter(self, filter: QueryFilter) -> Query[T]:
@@ -186,8 +186,8 @@ class Query(Generic[T], ABC):
 
     def __len__(self) -> int:
         if not self.results:
-            self.results = list(self._collect())
-        return len(self.results)
+            self.results = {**self.results, **self._collect()}
+        return len(self.results.keys())
 
     def __iter__(self) -> Query[T]:
         self.n = 0
@@ -195,7 +195,7 @@ class Query(Generic[T], ABC):
 
     def __next__(self) -> T:
         if not self.results:
-            self.results = list(self._collect())
+            self.results = {**self.results, **self._collect()}
         if self.n < len(self.results):
             result = self.results[self.n]
             self.n += 1
@@ -205,12 +205,12 @@ class Query(Generic[T], ABC):
 
     def __getitem__(self, index: int) -> T:
         if not self.results:
-            self.results = list(self._collect())
+            self.results = {**self.results, **self._collect()}
         return self.results[index]
 
     def __setitem__(self, index: int, value: T) -> None:
         if not self.results:
-            self.results = list(self._collect())
+            self.results = {**self.results, **self._collect()}
         self.results[index] = value
 
     def where(self, *args: object, **kwargs: str) -> Query[T]:
@@ -222,18 +222,21 @@ class Query(Generic[T], ABC):
 
     def collect(self, force: bool = False) -> List[T]:
         if force or self._changed_since_last:
-            self.results = []
+            self.results = {}
         self.results = self._collect()
         self._changed_since_last = False
-        return self.results
-
+        return self._unwrap(self.results)
+    
+    def _unwrap(self, results: Dict[int, T]) -> List[T]:
+        return list(results.values())
+        
     @abstractmethod
-    def _collect(self) -> List[T]:
+    def _collect(self) -> Dict[int, T]:
         raise NotImplementedError("Not implemented")
 
     def collect_one(self) -> T:
         if not self.results:
-            self.results = list(self.collect())
+            self.results = {**self.results, **self._collect()}
         if len(self.results) == 0:
             raise ResultsNotFound("No results found")
         if len(self.results) > 1:
@@ -242,7 +245,7 @@ class Query(Generic[T], ABC):
 
     def first(self) -> T:
         if not self.results:
-            self.results = list(self.collect())
+            self.results = {**self.results, **self._collect()}
         if len(self.results) == 0:
             raise ResultsNotFound("No results found")
         return self.results[0]

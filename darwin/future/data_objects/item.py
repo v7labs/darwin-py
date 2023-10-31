@@ -62,7 +62,7 @@ class ItemSlot(DefaultDarwin):
         return v
 
     @classmethod
-    def validate_fps(cls, values: dict):
+    def validate_fps(cls, values: dict) -> dict:
         value = values.get("fps")
 
         if value is None:
