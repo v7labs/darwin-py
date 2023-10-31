@@ -149,7 +149,7 @@ def check_for_error_and_return_imageid(
         suffixes = filename.suffixes
     if len(suffixes) == 2:
         if suffixes[0] == ".nii" and suffixes[1] == ".gz":
-            image_id = str(filename).strip("".join(suffixes))
+            image_id = str(filename).rstrip("".join(suffixes))
         else:
             return create_error_message_json(
                 "Two suffixes found but not ending in .nii.gz",
