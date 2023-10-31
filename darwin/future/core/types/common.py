@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Any, Dict, List, Union
 
 from darwin.future.data_objects import validators as darwin_validators
@@ -83,3 +85,6 @@ class QueryString:
 
     def __str__(self) -> str:
         return "?" + "&".join(f"{k}={v}" for k, v in self.value.items())
+    
+    def __add__(self, other: QueryString) -> QueryString:
+        return QueryString({**self.value, **other.value})
