@@ -107,7 +107,7 @@ class QueryFilter(DefaultDarwin):
         return QueryFilter(name=key, param=value, modifier=modifier)
 
     def to_dict(self, ignore_modifier: bool = True) -> Dict[str, str]:
-        d = {"name": self.name, "param": self.param}
+        d = {self.name: self.param}
         if self.modifier is not None and not ignore_modifier:
             d["modifier"] = self.modifier.value
         return d
@@ -170,9 +170,8 @@ class Query(Generic[T], ABC):
 
     def __add__(self, filter: QueryFilter) -> Query[T]:
         self._changed_since_last = True
-        return self.__class__(
-            self.client, filters=[*self.filters, filter], meta_params=self.meta_params
-        )
+        self.filters.append(filter)
+        return self
 
     def __sub__(self, filter: QueryFilter) -> Query[T]:
         self._changed_since_last = True
@@ -274,14 +273,31 @@ class PaginatedQuery(Query[T]):
         page: Page | None = None,
     ):
         super().__init__(client, filters, meta_params)
-        self.page = page or Page.default()
+        self.page = page or Page()
         self.completed = False
 
     def collect(self, force: bool = False) -> List[T]:
         if force or self._changed_since_last:
-            self.page = Page.default()
+            self.page = Page()
             self.completed = False
-        return super().collect(force)
+        if self.completed:
+            return self._unwrap(self.results)
+        new_results = self._collect()
+        self.results = {**self.results, **new_results}
+        if len(new_results) < self.page.size or len(new_results) == 0:
+            self.completed = True
+        else:
+            self.page.increment()
+        return self._unwrap(self.results)
+
+    def collect_all(self, force: bool = False) -> List[T]:
+        if force:
+            self.page = Page()
+            self.completed = False
+            self.results = {}
+        while not self.completed:
+            self.collect()
+        return self._unwrap(self.results)
 
     def __getitem__(self, index: int) -> T:
         if index not in self.results:

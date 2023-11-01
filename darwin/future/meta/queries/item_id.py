@@ -1,23 +1,18 @@
 from functools import reduce
-from typing import Dict, List, Optional
+from typing import Dict
 
-from darwin.future.core.client import ClientCore
 from darwin.future.core.items.get import get_item_ids
 from darwin.future.core.types.common import QueryString
-from darwin.future.core.types.query import PaginatedQuery, Param, QueryFilter
-from darwin.future.data_objects.page import Page
+from darwin.future.core.types.query import PaginatedQuery
 from darwin.future.meta.objects.v7_id import V7ID
 
 
 class ItemIDQuery(PaginatedQuery[V7ID]):
-
     def _collect(self) -> Dict[int, V7ID]:
         if "team_slug" not in self.meta_params:
             raise ValueError("Must specify team_slug to query item ids")
         if "dataset_id" not in self.meta_params:
             raise ValueError("Must specify dataset_id to query item ids")
-        assert self.page.offset is not None
-        assert self.page.size is not None
         team_slug: str = self.meta_params["team_slug"]
         dataset_id: int = self.meta_params["dataset_id"]
         params: QueryString = reduce(
@@ -30,10 +25,8 @@ class ItemIDQuery(PaginatedQuery[V7ID]):
         uuids = get_item_ids(self.client, team_slug, dataset_id, params)
 
         results = {
-            x: V7ID(self.client, uuids[i], self.meta_params)
-            for i, x in enumerate(
-                range(self.page.offset, self.page.offset + self.page.size)
-            )
+            i + self.page.offset: V7ID(self.client, uuid, self.meta_params)
+            for i, uuid in enumerate(uuids)
         }
         if len(results) < self.page.size:
             self.completed = True

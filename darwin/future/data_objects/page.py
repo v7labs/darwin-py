@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from math import floor
-from typing import Optional
 
 from pydantic import NonNegativeInt, PositiveInt
 
@@ -16,13 +15,8 @@ def must_be_positive(v: int) -> int:
 
 
 class Page(DefaultDarwin):
-    offset: Optional[NonNegativeInt] = None
-    size: Optional[PositiveInt] = None
-    count: Optional[NonNegativeInt] = None
-
-    @classmethod
-    def default(cls) -> Page:
-        return Page(offset=0, size=500, count=0)
+    offset: NonNegativeInt = 0
+    size: PositiveInt = 500
 
     def get_required_page(self, item_index: int) -> Page:
         """
@@ -47,12 +41,6 @@ class Page(DefaultDarwin):
         Returns:
             QueryString: Outgoing query string
         """
-        if self.offset is None and self.size is None:
-            return QueryString({})
-        elif self.offset is None:
-            raise ValueError("Offset must be specified if size is specified")
-        elif self.size is None:
-            raise ValueError("Size must be specified if offset is specified")
         qs_dict = {"page[offset]": str(self.offset), "page[size]": str(self.size)}
         return QueryString(qs_dict)
 
@@ -60,9 +48,4 @@ class Page(DefaultDarwin):
         """
         Increment the page offset by the page size
         """
-        if self.offset is None or self.size is None:
-            self.offset = 0
-            self.size = 500  # Default for darwin api
-            return
-        assert self.size is not None, "Size must be specified if offset is specified"
         self.offset += self.size
