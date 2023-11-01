@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Dict, Generic, Optional, TypeVar
 
 from darwin.future.core.client import ClientCore
-from darwin.future.pydantic_base import DefaultDarwin
 
 R = TypeVar("R")
 Param = Dict[str, object]

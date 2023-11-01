@@ -5,6 +5,7 @@ from enum import Enum
 from typing import Any, Callable, Dict, Generic, List, Optional, TypeVar
 
 from darwin.future.core.client import ClientCore
+from darwin.future.data_objects.page import Page
 from darwin.future.exceptions import (
     InvalidQueryFilter,
     InvalidQueryModifier,
@@ -105,7 +106,12 @@ class QueryFilter(DefaultDarwin):
             modifier = None
         return QueryFilter(name=key, param=value, modifier=modifier)
 
-    
+    def to_dict(self, ignore_modifier: bool = True) -> Dict[str, str]:
+        d = {"name": self.name, "param": self.param}
+        if self.modifier is not None and not ignore_modifier:
+            d["modifier"] = self.modifier.value
+        return d
+
 
 class Query(Generic[T], ABC):
     """
@@ -225,13 +231,13 @@ class Query(Generic[T], ABC):
     def collect(self, force: bool = False) -> List[T]:
         if force or self._changed_since_last:
             self.results = {}
-        self.results = self._collect()
+        self.results = {**self.results, **self._collect()}
         self._changed_since_last = False
         return self._unwrap(self.results)
-    
+
     def _unwrap(self, results: Dict[int, T]) -> List[T]:
         return list(results.values())
-        
+
     @abstractmethod
     def _collect(self) -> Dict[int, T]:
         raise NotImplementedError("Not implemented")
@@ -250,9 +256,24 @@ class Query(Generic[T], ABC):
             self.results = {**self.results, **self._collect()}
         if len(self.results) == 0:
             raise ResultsNotFound("No results found")
+        
         return self.results[0]
 
     def _generic_execute_filter(self, objects: List[T], filter: QueryFilter) -> List[T]:
         return [
             m for m in objects if filter.filter_attr(getattr(m._element, filter.name))
         ]
+
+
+class PaginatedQuery(Query[T]):
+    def __init__(self, client: ClientCore, filters: List[QueryFilter] | None = None, meta_params: Param | None = None):
+        super().__init__(client, filters, meta_params)
+        self.page = Page.default()
+        self.completed = False
+        
+    def collect(self, force: bool = False) -> List[T]:
+        if force or self._changed_since_last:
+            self.page = Page.default()
+            self.completed = False
+        return super().collect(force)
+    pass

@@ -1,6 +1,5 @@
 from functools import reduce
 from typing import Dict, List, Optional
-from uuid import UUID
 
 from darwin.future.core.client import ClientCore
 from darwin.future.core.items.get import get_item_ids
@@ -20,9 +19,9 @@ class ItemIDQuery(Query[V7ID]):
     ):
         super().__init__(client, filters, meta_params)
         self.page = page
-        
+        self.completed = False
 
-    def _collect(self) -> Dict[int, UUID]:
+    def _collect(self) -> Dict[int, V7ID]:
         if "team_slug" not in self.meta_params:
             raise ValueError("Must specify team_slug to query item ids")
         if "dataset_id" not in self.meta_params:
@@ -31,10 +30,23 @@ class ItemIDQuery(Query[V7ID]):
         assert self.page.size is not None
         team_slug: str = self.meta_params["team_slug"]
         dataset_id: int = self.meta_params["dataset_id"]
-        params: QueryString = reduce(lambda s1, s2: s1 + s2, [self.page.to_query_string(), *self.filters])
+        params: QueryString = reduce(
+            lambda s1, s2: s1 + s2,
+            [
+                self.page.to_query_string(),
+                *[QueryString(f.to_dict()) for f in self.filters],
+            ],
+        )
         uuids = get_item_ids(self.client, team_slug, dataset_id, params)
-        
-        results = {x: uuids[i] for i, x in enumerate(range(self.page.offset, self.page.offset + self.page.size))}
-        self.page.increment()
+
+        results = {
+            x: V7ID(self.client, uuids[i], self.meta_params)
+            for i, x in enumerate(
+                range(self.page.offset, self.page.offset + self.page.size)
+            )
+        }
+        if len(results) < self.page.size:
+            self.completed = True
+        else:
+            self.page.increment()
         return results
-    

@@ -32,7 +32,7 @@ class WorkflowQuery(Query[Workflow]):
         ]
         if not self.filters:
             self.filters = []
-        
+
         for filter in self.filters:
             workflows = self._execute_filters(workflows, filter)
 

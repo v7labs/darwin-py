@@ -9,7 +9,10 @@ from darwin.future.data_objects.item import Folder, Item
 
 
 def get_item_ids(
-    api_client: ClientCore, team_slug: str, dataset_id: Union[str, int], params: QueryString = QueryString({})
+    api_client: ClientCore,
+    team_slug: str,
+    dataset_id: Union[str, int],
+    params: QueryString = QueryString({}),
 ) -> List[UUID]:
     """
     Returns a list of item ids for the dataset
@@ -34,7 +37,8 @@ def get_item_ids(
             {
                 "dataset_ids": str(dataset_id),
             }
-        ) + params,
+        )
+        + params,
     )
     assert isinstance(response, dict)
     uuids = [UUID(uuid) for uuid in response["item_ids"]]

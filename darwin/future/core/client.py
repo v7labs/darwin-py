@@ -227,7 +227,7 @@ class ClientCore:
         return self._generic_call(
             self.session.delete,
             self._contain_qs_and_endpoint(endpoint, query_string),
-            data if data is not None else {},
+            data,
         )
 
     def patch(self, endpoint: str, data: dict) -> JSONType:
