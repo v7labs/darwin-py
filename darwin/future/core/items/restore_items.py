@@ -14,7 +14,7 @@ def restore_list_of_items(
     filters: Dict[str, UnknownType] = {},
 ) -> JSONType:
     """
-    Archive specified items
+    Restore specified items
 
     Parameters
     ----------
