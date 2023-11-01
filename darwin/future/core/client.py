@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Callable, Dict, Optional, overload
+from typing import Callable, Dict, Optional
 from urllib.parse import urlparse
 
 import requests
@@ -165,21 +165,6 @@ class ClientCore:
         if self.config.api_key:
             http_headers["Authorization"] = f"ApiKey {self.config.api_key}"
         return http_headers
-
-    @overload
-    def _generic_call(
-        self, method: Callable[[str], requests.Response], endpoint: str
-    ) -> dict:
-        ...
-
-    @overload
-    def _generic_call(
-        self,
-        method: Callable[[str, dict], requests.Response],
-        endpoint: str,
-        payload: dict,
-    ) -> dict:
-        ...
 
     def _generic_call(
         self, method: Callable, endpoint: str, payload: Optional[dict] = None

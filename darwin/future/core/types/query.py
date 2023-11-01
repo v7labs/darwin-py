@@ -256,7 +256,7 @@ class Query(Generic[T], ABC):
             self.results = {**self.results, **self._collect()}
         if len(self.results) == 0:
             raise ResultsNotFound("No results found")
-        
+
         return self.results[0]
 
     def _generic_execute_filter(self, objects: List[T], filter: QueryFilter) -> List[T]:
@@ -266,14 +266,27 @@ class Query(Generic[T], ABC):
 
 
 class PaginatedQuery(Query[T]):
-    def __init__(self, client: ClientCore, filters: List[QueryFilter] | None = None, meta_params: Param | None = None):
+    def __init__(
+        self,
+        client: ClientCore,
+        filters: List[QueryFilter] | None = None,
+        meta_params: Param | None = None,
+        page: Page | None = None,
+    ):
         super().__init__(client, filters, meta_params)
-        self.page = Page.default()
+        self.page = page or Page.default()
         self.completed = False
-        
+
     def collect(self, force: bool = False) -> List[T]:
         if force or self._changed_since_last:
             self.page = Page.default()
             self.completed = False
         return super().collect(force)
-    pass
+
+    def __getitem__(self, index: int) -> T:
+        if index not in self.results:
+            temp_page = self.page
+            self.page = self.page.get_required_page(index)
+            self.collect()
+            self.page = temp_page
+        return super().__getitem__(index)

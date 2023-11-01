@@ -1,22 +1,42 @@
 from __future__ import annotations
 
+from math import floor
 from typing import Optional
-from uuid import UUID
+
+from pydantic import NonNegativeInt, PositiveInt
 
 from darwin.future.core.types.common import QueryString
 from darwin.future.data_objects.pydantic_base import DefaultDarwin
 
 
+def must_be_positive(v: int) -> int:
+    if v is not None and v < 0:
+        raise ValueError("Value must be positive")
+    return v
+
+
 class Page(DefaultDarwin):
-    offset: Optional[int] = None
-    size: Optional[int] = None
-    count: Optional[int] = None
-    next: Optional[UUID] = None
-    previous: Optional[UUID] = None
+    offset: Optional[NonNegativeInt] = None
+    size: Optional[PositiveInt] = None
+    count: Optional[NonNegativeInt] = None
 
     @classmethod
     def default(cls) -> Page:
-        return Page(offset=0, size=500, count=0, next=None, previous=None)
+        return Page(offset=0, size=500, count=0)
+
+    def get_required_page(self, item_index: int) -> Page:
+        """
+        Get the page that contains the item at the specified index
+
+        Args:
+            item_index (int): The index of the item
+
+        Returns:
+            Page: The page that contains the item
+        """
+        assert self.size is not None
+        required_offset = floor(item_index / self.size)
+        return Page(offset=required_offset, size=self.size)
 
     def to_query_string(self) -> QueryString:
         """

@@ -4,22 +4,12 @@ from typing import Dict, List, Optional
 from darwin.future.core.client import ClientCore
 from darwin.future.core.items.get import get_item_ids
 from darwin.future.core.types.common import QueryString
-from darwin.future.core.types.query import Param, Query, QueryFilter
+from darwin.future.core.types.query import PaginatedQuery, Param, QueryFilter
 from darwin.future.data_objects.page import Page
 from darwin.future.meta.objects.v7_id import V7ID
 
 
-class ItemIDQuery(Query[V7ID]):
-    def __init__(
-        self,
-        client: ClientCore,
-        filters: Optional[List[QueryFilter]] = None,
-        meta_params: Optional[Param] = None,
-        page: Page = Page.default(),
-    ):
-        super().__init__(client, filters, meta_params)
-        self.page = page
-        self.completed = False
+class ItemIDQuery(PaginatedQuery[V7ID]):
 
     def _collect(self) -> Dict[int, V7ID]:
         if "team_slug" not in self.meta_params:
