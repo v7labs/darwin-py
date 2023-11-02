@@ -319,5 +319,5 @@ class PaginatedQuery(Query[T]):
 
     def __len__(self) -> int:
         if not self.completed:
-            raise QueryNotCompletedError
+            self.collect_all()
         return len(self.results.keys())

@@ -85,7 +85,8 @@ def test_pagination_collects_all(
         assert raw_ids == list_of_uuids
         assert base_ItemIDQuery.page.offset == 10
         assert base_ItemIDQuery.completed == True
-        
+
+
 def test_iterable_collects_all(
     base_client: ClientCore, base_ItemIDQuery: ItemIDQuery, list_of_uuids: List[UUID]
 ) -> None:
@@ -143,20 +144,49 @@ def test_iterable_collects_all(
         ids = base_ItemIDQuery
         for i, item in enumerate(ids):
             if i < 5:
-                assert item.id in list_of_uuids[:5] 
+                assert item.id in list_of_uuids[:5]
                 assert len(rsps.calls) == 1
             elif i < 10:
                 assert item.id in list_of_uuids[:10]
                 assert len(rsps.calls) == 2
-        
+
         assert len(rsps.calls) == 3
         assert base_ItemIDQuery.page.offset == 10
         assert base_ItemIDQuery.completed == True
         assert len(ids) == 10
 
-def test_raises_on_len_if_not_complete(base_ItemIDQuery: ItemIDQuery) -> None:
-    with pytest.raises(QueryNotCompletedError):
-        len(base_ItemIDQuery)
+
+def test_can_become_iterable(
+    base_client: ClientCore, base_ItemIDQuery: ItemIDQuery, list_of_uuids: List[UUID]
+) -> None:
+    base_ItemIDQuery.page = Page(size=20)
+    team_slug = base_ItemIDQuery.meta_params["team_slug"]
+    dataset_id = base_ItemIDQuery.meta_params["dataset_id"]
+    str_ids = [str(uuid) for uuid in list_of_uuids]
+    with responses.RequestsMock() as rsps:
+        endpoint = (
+            base_client.config.api_endpoint + f"v2/teams/{team_slug}/items/list_ids"
+        )
+        rsps.add(
+            responses.GET,
+            endpoint,
+            match=[
+                query_param_matcher(
+                    {
+                        "page[offset]": "0",
+                        "page[size]": "20",
+                        "dataset_ids": str(dataset_id),
+                    }
+                )
+            ],
+            json={"item_ids": [str(uuid) for uuid in str_ids]},
+        )
+
+        ids = list(base_ItemIDQuery)
+        ids_raw = [x.id for x in ids]
+        assert len(rsps.calls) == 1
+        assert ids_raw == list_of_uuids
+        
 
 
 def test_get_specific_index_collects_correct_page(
