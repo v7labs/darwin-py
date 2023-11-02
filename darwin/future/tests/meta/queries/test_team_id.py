@@ -6,7 +6,6 @@ from sklearn import base
 
 from darwin.future.core.client import ClientCore
 from darwin.future.data_objects.page import Page
-from darwin.future.exceptions import QueryNotCompletedError
 from darwin.future.meta.objects.v7_id import V7ID
 from darwin.future.meta.queries.item_id import ItemIDQuery
 from darwin.future.tests.core.fixtures import *
@@ -186,7 +185,6 @@ def test_can_become_iterable(
         ids_raw = [x.id for x in ids]
         assert len(rsps.calls) == 1
         assert ids_raw == list_of_uuids
-        
 
 
 def test_get_specific_index_collects_correct_page(

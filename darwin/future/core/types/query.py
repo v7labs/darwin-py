@@ -10,7 +10,6 @@ from darwin.future.exceptions import (
     InvalidQueryFilter,
     InvalidQueryModifier,
     MoreThanOneResultFound,
-    QueryNotCompletedError,
     ResultsNotFound,
 )
 from darwin.future.meta.objects.base import MetaBase
