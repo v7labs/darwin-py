@@ -10,6 +10,7 @@ from darwin.future.exceptions import (
     InvalidQueryFilter,
     InvalidQueryModifier,
     MoreThanOneResultFound,
+    QueryNotCompletedError,
     ResultsNotFound,
 )
 from darwin.future.meta.objects.base import MetaBase
@@ -315,3 +316,8 @@ class PaginatedQuery(Query[T]):
         result = self.results[self.n]
         self.n += 1
         return result
+
+    def __len__(self) -> int:
+        if not self.completed:
+            raise QueryNotCompletedError
+        return len(self.results.keys())

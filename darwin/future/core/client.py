@@ -135,7 +135,11 @@ class ClientCore:
     team: Team, team to make requests to
     """
 
-    def __init__(self, config: DarwinConfig, retries: Optional[Retry] = None) -> None:
+    def __init__(
+        self,
+        config: DarwinConfig = DarwinConfig.local(),
+        retries: Optional[Retry] = None,
+    ) -> None:
         self.config = config
         self.session = requests.Session()
         if not retries:

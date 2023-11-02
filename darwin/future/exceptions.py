@@ -83,6 +83,11 @@ class DarwinException(Exception):
         return super().__repr__()
 
 
+class QueryNotCompletedError(DarwinException):
+    def __str__(self) -> str:
+        return "This query has not been completely collected and thus it's length is ambigious, to force completion run `.collect_all()` or otherwise collect all results"
+
+
 class ValidationError(DarwinException):
     pass
 

@@ -17,7 +17,8 @@ class StageQuery(Query[Stage]):
         workflow = get_workflow(self.client, str(workflow_id))
         assert workflow is not None
         stages = [
-            Stage(self.client, s, meta_params=meta_params) for s in workflow.stages
+            Stage(client=self.client, element=s, meta_params=meta_params)
+            for s in workflow.stages
         ]
         if not self.filters:
             self.filters = []

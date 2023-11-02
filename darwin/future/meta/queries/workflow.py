@@ -27,7 +27,7 @@ class WorkflowQuery(Query[Workflow]):
             handle_exception(exceptions)
             raise DarwinException from exceptions[0]
         workflows = [
-            Workflow(self.client, workflow, self.meta_params)
+            Workflow(client=self.client, element=workflow, meta_params=self.meta_params)
             for workflow in workflows_core
         ]
         if not self.filters:

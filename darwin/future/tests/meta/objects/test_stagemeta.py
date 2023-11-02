@@ -34,9 +34,13 @@ def stage_meta(
     base_meta_client: Client, base_WFStage: WFStageCore, workflow_id: UUID
 ) -> Stage:
     return Stage(
-        base_meta_client,
-        base_WFStage,
-        {"team_slug": "default-team", "dataset_id": 1337, "workflow_id": workflow_id},
+        client=base_meta_client,
+        element=base_WFStage,
+        meta_params={
+            "team_slug": "default-team",
+            "dataset_id": 1337,
+            "workflow_id": workflow_id,
+        },
     )
 
 
@@ -123,15 +127,15 @@ def test_get_stage_edges(stage_meta: Stage) -> None:
         ),
     ]
     test_stage = Stage(
-        stage_meta.client,
-        WFStageCore(
+        client=stage_meta.client,
+        element=WFStageCore(
             id=UUID("00000000-0000-0000-0000-000000000000"),
             name="test-stage",
             type=WFTypeCore.ANNOTATE,
             assignable_users=[],
             edges=edges,
         ),
-        {
+        meta_params={
             "team_slug": "default-team",
             "dataset_id": 000000,
             "workflow_id": UUID("00000000-0000-0000-0000-000000000000"),

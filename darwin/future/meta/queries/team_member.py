@@ -18,7 +18,9 @@ class TeamMemberQuery(Query[TeamMember]):
 
     def _collect(self) -> Dict[int, TeamMember]:
         members, exceptions = get_team_members(self.client)
-        members_meta = [TeamMember(self.client, member) for member in members]
+        members_meta = [
+            TeamMember(client=self.client, element=member) for member in members
+        ]
         if exceptions:
             # TODO: print and or raise exceptions, tbd how we want to handle this
             pass

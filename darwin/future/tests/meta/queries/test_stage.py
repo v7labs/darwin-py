@@ -20,7 +20,9 @@ def filled_query(base_client: ClientCore, base_workflow_meta: Workflow) -> Stage
 def base_workflow_meta(
     base_client: ClientCore, base_single_workflow_object: dict
 ) -> Workflow:
-    return Workflow(base_client, WorkflowCore.parse_obj(base_single_workflow_object))
+    return Workflow(
+        client=base_client, element=WorkflowCore.parse_obj(base_single_workflow_object)
+    )
 
 
 @pytest.fixture

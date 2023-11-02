@@ -68,7 +68,7 @@ class Team(MetaBase[TeamCore]):
 
     def __init__(self, client: ClientCore, team: Optional[TeamCore] = None) -> None:
         team = team or get_team(client)
-        super().__init__(client, team)
+        super().__init__(client=client, element=team)
 
     @property
     def name(self) -> str:
@@ -172,7 +172,9 @@ class Team(MetaBase[TeamCore]):
 
     def create_dataset(self, slug: str) -> Dataset:
         core = Dataset.create_dataset(self.client, slug)
-        return Dataset(self.client, core, meta_params={"team_slug": self.slug})
+        return Dataset(
+            client=self.client, element=core, meta_params={"team_slug": self.slug}
+        )
 
     def __str__(self) -> str:
         return f"Team\n\

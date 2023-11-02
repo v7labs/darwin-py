@@ -24,7 +24,8 @@ class DatasetQuery(Query[Dataset]):
             # TODO: print and or raise exceptions, tbd how we want to handle this
             pass
         datasets_meta = [
-            Dataset(self.client, dataset, self.meta_params) for dataset in datasets
+            Dataset(client=self.client, element=dataset, meta_params=self.meta_params)
+            for dataset in datasets
         ]
         if not self.filters:
             self.filters = []

@@ -32,7 +32,10 @@ class ItemIDQuery(PaginatedQuery[V7ID]):
         uuids = get_item_ids(self.client, team_slug, dataset_ids, params)
 
         results = {
-            i + self.page.offset: V7ID(self.client, uuid, self.meta_params)
+            i
+            + self.page.offset: V7ID(
+                client=self.client, element=uuid, meta_params=self.meta_params
+            )
             for i, uuid in enumerate(uuids)
         }
         return results
