@@ -23,7 +23,7 @@ def test_increment() -> None:
 
 
 @pytest.mark.parametrize(
-    "size, index, expected_offset", [(10, 0, 0), (10, 9, 0), (10, 10, 1)]
+    "size, index, expected_offset", [(10, 0, 0), (10, 9, 0), (10, 10, 10), (10, 11, 10)]
 )
 def test_get_required_page(size: int, index: int, expected_offset: int) -> None:
     page = Page(size=size, offset=0)

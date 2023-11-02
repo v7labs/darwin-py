@@ -2,9 +2,11 @@ from uuid import UUID, uuid4
 
 import responses
 from responses.matchers import query_param_matcher
+from sklearn import base
 
 from darwin.future.core.client import ClientCore
 from darwin.future.data_objects.page import Page
+from darwin.future.exceptions import QueryNotCompletedError
 from darwin.future.meta.objects.v7_id import V7ID
 from darwin.future.meta.queries.item_id import ItemIDQuery
 from darwin.future.tests.core.fixtures import *
@@ -81,3 +83,105 @@ def test_pagination_collects_all(
         assert len(rsps.calls) == 3
         assert len(ids) == 10
         assert raw_ids == list_of_uuids
+        assert base_ItemIDQuery.page.offset == 10
+        assert base_ItemIDQuery.completed == True
+        
+def test_iterable_collects_all(
+    base_client: ClientCore, base_ItemIDQuery: ItemIDQuery, list_of_uuids: List[UUID]
+) -> None:
+    base_ItemIDQuery.page = Page(size=5)
+    team_slug = base_ItemIDQuery.meta_params["team_slug"]
+    dataset_id = base_ItemIDQuery.meta_params["dataset_id"]
+    str_ids = [str(uuid) for uuid in list_of_uuids]
+    with responses.RequestsMock() as rsps:
+        endpoint = (
+            base_client.config.api_endpoint + f"v2/teams/{team_slug}/items/list_ids"
+        )
+        rsps.add(
+            responses.GET,
+            endpoint,
+            match=[
+                query_param_matcher(
+                    {
+                        "page[offset]": "0",
+                        "page[size]": "5",
+                        "dataset_ids": str(dataset_id),
+                    }
+                )
+            ],
+            json={"item_ids": [str(uuid) for uuid in str_ids[:5]]},
+        )
+        rsps.add(
+            responses.GET,
+            endpoint,
+            match=[
+                query_param_matcher(
+                    {
+                        "page[offset]": "5",
+                        "page[size]": "5",
+                        "dataset_ids": str(dataset_id),
+                    }
+                )
+            ],
+            json={"item_ids": [str(uuid) for uuid in str_ids[5:]]},
+        )
+        rsps.add(
+            responses.GET,
+            endpoint,
+            match=[
+                query_param_matcher(
+                    {
+                        "page[offset]": "10",
+                        "page[size]": "5",
+                        "dataset_ids": str(dataset_id),
+                    }
+                )
+            ],
+            json={"item_ids": []},
+        )
+
+        ids = base_ItemIDQuery
+        for i, item in enumerate(ids):
+            if i < 5:
+                assert item.id in list_of_uuids[:5] 
+                assert len(rsps.calls) == 1
+            elif i < 10:
+                assert item.id in list_of_uuids[:10]
+                assert len(rsps.calls) == 2
+        
+        assert len(rsps.calls) == 3
+        assert base_ItemIDQuery.page.offset == 10
+        assert base_ItemIDQuery.completed == True
+        assert len(ids) == 10
+
+def test_raises_on_len_if_not_complete(base_ItemIDQuery: ItemIDQuery) -> None:
+    with pytest.raises(QueryNotCompletedError):
+        len(base_ItemIDQuery)
+
+
+def test_get_specific_index_collects_correct_page(
+    base_client: ClientCore, base_ItemIDQuery: ItemIDQuery, list_of_uuids: List[UUID]
+) -> None:
+    base_ItemIDQuery.page = Page(size=5)
+    team_slug = base_ItemIDQuery.meta_params["team_slug"]
+    dataset_id = base_ItemIDQuery.meta_params["dataset_id"]
+    str_ids = [str(uuid) for uuid in list_of_uuids]
+    with responses.RequestsMock() as rsps:
+        endpoint = (
+            base_client.config.api_endpoint + f"v2/teams/{team_slug}/items/list_ids"
+        )
+        rsps.add(
+            responses.GET,
+            endpoint,
+            match=[
+                query_param_matcher(
+                    {
+                        "page[offset]": "5",
+                        "page[size]": "5",
+                        "dataset_ids": str(dataset_id),
+                    }
+                )
+            ],
+            json={"item_ids": [str(uuid) for uuid in str_ids[5:]]},
+        )
+        id = base_ItemIDQuery[7]

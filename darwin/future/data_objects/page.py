@@ -29,7 +29,7 @@ class Page(DefaultDarwin):
             Page: The page that contains the item
         """
         assert self.size is not None
-        required_offset = floor(item_index / self.size)
+        required_offset = floor(item_index / self.size) * self.size
         return Page(offset=required_offset, size=self.size)
 
     def to_query_string(self) -> QueryString:
