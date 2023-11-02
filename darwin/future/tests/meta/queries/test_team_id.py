@@ -1,12 +1,12 @@
+from typing import List
 from uuid import UUID, uuid4
 
+import pytest
 import responses
 from responses.matchers import query_param_matcher
-from sklearn import base
 
 from darwin.future.core.client import ClientCore
 from darwin.future.data_objects.page import Page
-from darwin.future.meta.objects.v7_id import V7ID
 from darwin.future.meta.queries.item_id import ItemIDQuery
 from darwin.future.tests.core.fixtures import *
 
@@ -83,7 +83,7 @@ def test_pagination_collects_all(
         assert len(ids) == 10
         assert raw_ids == list_of_uuids
         assert base_ItemIDQuery.page.offset == 10
-        assert base_ItemIDQuery.completed == True
+        assert base_ItemIDQuery.completed is True
 
 
 def test_iterable_collects_all(
@@ -151,7 +151,7 @@ def test_iterable_collects_all(
 
         assert len(rsps.calls) == 3
         assert base_ItemIDQuery.page.offset == 10
-        assert base_ItemIDQuery.completed == True
+        assert base_ItemIDQuery.completed is True
         assert len(ids) == 10
 
 
@@ -212,4 +212,4 @@ def test_get_specific_index_collects_correct_page(
             ],
             json={"item_ids": [str(uuid) for uuid in str_ids[5:]]},
         )
-        id = base_ItemIDQuery[7]
+        base_ItemIDQuery[7]
