@@ -137,7 +137,7 @@ class ClientCore:
 
     def __init__(
         self,
-        config: DarwinConfig = DarwinConfig.local(),
+        config: DarwinConfig,
         retries: Optional[Retry] = None,
     ) -> None:
         self.config = config

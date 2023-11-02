@@ -39,7 +39,7 @@ class MetaBase(Generic[R]):
     def __init__(
         self,
         element: R,
-        client: ClientCore = ClientCore(),
+        client: ClientCore,
         meta_params: Optional[Param] = None,
     ) -> None:
         self.client = client
