@@ -71,7 +71,8 @@ class Dataset(MetaBase[DatasetCore]):
         assert self.meta_params["team_slug"] is not None and isinstance(
             self.meta_params["team_slug"], str
         )
-        return ItemIDQuery(self.client, meta_params=self.meta_params)
+        meta_params = {"dataset_ids": self.id, **self.meta_params}
+        return ItemIDQuery(self.client, meta_params=meta_params)
 
     @classmethod
     def create_dataset(cls, client: ClientCore, slug: str) -> DatasetCore:

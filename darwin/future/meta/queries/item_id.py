@@ -11,10 +11,17 @@ class ItemIDQuery(PaginatedQuery[V7ID]):
     def _collect(self) -> Dict[int, V7ID]:
         if "team_slug" not in self.meta_params:
             raise ValueError("Must specify team_slug to query item ids")
-        if "dataset_id" not in self.meta_params:
+        if (
+            "dataset_ids" not in self.meta_params
+            and "dataset_id" not in self.meta_params
+        ):
             raise ValueError("Must specify dataset_id to query item ids")
         team_slug: str = self.meta_params["team_slug"]
-        dataset_id: int = self.meta_params["dataset_id"]
+        dataset_ids: int = (
+            self.meta_params["dataset_ids"]
+            if "dataset_ids" in self.meta_params
+            else self.meta_params["dataset_id"]
+        )
         params: QueryString = reduce(
             lambda s1, s2: s1 + s2,
             [
@@ -22,14 +29,10 @@ class ItemIDQuery(PaginatedQuery[V7ID]):
                 *[QueryString(f.to_dict()) for f in self.filters],
             ],
         )
-        uuids = get_item_ids(self.client, team_slug, dataset_id, params)
+        uuids = get_item_ids(self.client, team_slug, dataset_ids, params)
 
         results = {
             i + self.page.offset: V7ID(self.client, uuid, self.meta_params)
             for i, uuid in enumerate(uuids)
         }
-        if len(results) < self.page.size:
-            self.completed = True
-        else:
-            self.page.increment()
         return results

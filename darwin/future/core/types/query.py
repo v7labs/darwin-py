@@ -163,7 +163,7 @@ class Query(Generic[T], ABC):
         self.client = client
         self.filters = filters or []
         self.results: dict[int, T] = {}
-        self._changed_since_last: bool = True
+        self._changed_since_last: bool = False
 
     def filter(self, filter: QueryFilter) -> Query[T]:
         return self + filter
@@ -202,7 +202,7 @@ class Query(Generic[T], ABC):
 
     def __next__(self) -> T:
         if not self.results:
-            self.results = {**self.results, **self._collect()}
+            self.collect()
         if self.n < len(self.results):
             result = self.results[self.n]
             self.n += 1
@@ -306,3 +306,12 @@ class PaginatedQuery(Query[T]):
             self.collect()
             self.page = temp_page
         return super().__getitem__(index)
+
+    def __next__(self) -> T:
+        if not self.completed and self.n not in self.results:
+            self.collect()
+        if self.completed and self.n not in self.results:
+            raise StopIteration
+        result = self.results[self.n]
+        self.n += 1
+        return result
