@@ -11,7 +11,7 @@ from darwin.future.tests.core.fixtures import *
 
 
 @responses.activate
-def test_set_item_priority(base_client) -> None:
+def test_set_item_priority(base_client: ClientCore) -> None:
     responses.add(
         responses.POST,
         base_client.config.api_endpoint + "v2/teams/test-team/items/priority",

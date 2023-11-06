@@ -30,7 +30,7 @@ def test_workflowquery_collects_basic(
     workflows = query._collect()
 
     assert len(workflows) == 3
-    assert all(isinstance(workflow, Workflow) for workflow in workflows)
+    assert all(isinstance(workflow, Workflow) for workflow in workflows.values())
 
 
 @responses.activate
@@ -84,7 +84,7 @@ def test_workflowquery_filters_inserted_at(
     workflows = query._collect()
 
     assert len(workflows) == 2
-    ids = [str(workflow.id) for workflow in workflows]
+    ids = [str(workflow.id) for workflow in workflows.values()]
     assert WORKFLOW_1 in ids
     assert WORKFLOW_2 in ids
 
@@ -119,7 +119,7 @@ def test_workflowquery_filters_updated_at(
     workflows = query._collect()
 
     assert len(workflows) == 2
-    ids = [str(workflow.id) for workflow in workflows]
+    ids = [str(workflow.id) for workflow in workflows.values()]
     assert WORKFLOW_1 in ids
     assert WORKFLOW_2 in ids
 
@@ -249,7 +249,7 @@ def test_workflowquery_filters_stages_multiple(
     workflows = query._collect()
 
     assert len(workflows) == 2
-    workflow_names = [workflow.name for workflow in workflows]
+    workflow_names = [workflow.name for workflow in workflows.values()]
 
     assert "test-workflow-3" in workflow_names
     assert "test-workflow-1" in workflow_names

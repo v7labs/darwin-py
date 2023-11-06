@@ -19,8 +19,8 @@ def test_get_item_ids(
     with responses.RequestsMock() as rsps:
         rsps.add(
             rsps.GET,
-            base_client.config.api_endpoint + "v2/teams/default-team/items/ids"
-            "?not_statuses=archived,error&sort[id]=desc&dataset_ids=1337",
+            base_client.config.api_endpoint + "v2/teams/default-team/items/list_ids"
+            "?dataset_ids=1337",
             json={"item_ids": UUIDs_str},
             status=200,
         )

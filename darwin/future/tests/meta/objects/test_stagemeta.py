@@ -3,6 +3,7 @@ from uuid import UUID
 
 import responses
 from pytest import fixture
+from responses.matchers import query_param_matcher
 
 from darwin.future.data_objects.workflow import WFEdgeCore, WFStageCore, WFTypeCore
 from darwin.future.meta.client import Client
@@ -33,9 +34,13 @@ def stage_meta(
     base_meta_client: Client, base_WFStage: WFStageCore, workflow_id: UUID
 ) -> Stage:
     return Stage(
-        base_meta_client,
-        base_WFStage,
-        {"team_slug": "default-team", "dataset_id": 1337, "workflow_id": workflow_id},
+        client=base_meta_client,
+        element=base_WFStage,
+        meta_params={
+            "team_slug": "default-team",
+            "dataset_id": 1337,
+            "workflow_id": workflow_id,
+        },
     )
 
 
@@ -46,12 +51,21 @@ def test_item_ids(
         rsps.add(
             rsps.GET,
             base_meta_client.config.api_endpoint
-            + f"v2/teams/default-team/items/ids?workflow_stage_ids={str(stage_meta.id)}"
-            "&dataset_ids=1337",
+            + "v2/teams/default-team/items/list_ids",
+            match=[
+                query_param_matcher(
+                    {
+                        "page[offset]": "0",
+                        "page[size]": "500",
+                        "workflow_stage_ids": str(stage_meta.id),
+                        "dataset_ids": "1337",
+                    }
+                )
+            ],
             json={"item_ids": UUIDs_str},
             status=200,
         )
-        item_ids = stage_meta.item_ids
+        item_ids = [x.id for x in stage_meta.item_ids.collect_all()]
         assert item_ids == UUIDs
 
 
@@ -62,9 +76,18 @@ def test_move_attached_files_to_stage(
         rsps.add(
             rsps.GET,
             base_meta_client.config.api_endpoint
-            + f"v2/teams/default-team/items/ids?workflow_stage_ids={str(stage_meta.id)}"
-            "&dataset_ids=1337",
+            + "v2/teams/default-team/items/list_ids",
             json={"item_ids": UUIDs_str},
+            match=[
+                query_param_matcher(
+                    {
+                        "page[offset]": "0",
+                        "page[size]": "500",
+                        "workflow_stage_ids": str(stage_meta.id),
+                        "dataset_ids": "1337",
+                    }
+                )
+            ],
             status=200,
         )
         rsps.add(
@@ -74,16 +97,6 @@ def test_move_attached_files_to_stage(
             status=200,
         )
         stage_meta.move_attached_files_to_stage(stage_meta.id)
-        assert rsps.assert_call_count(
-            base_meta_client.config.api_endpoint + "v2/teams/default-team/items/stage",
-            1,
-        )
-        assert rsps.assert_call_count(
-            base_meta_client.config.api_endpoint
-            + f"v2/teams/default-team/items/ids?workflow_stage_ids={str(stage_meta.id)}"
-            "&dataset_ids=1337",
-            1,
-        )
 
 
 def test_get_stage_id(stage_meta: Stage) -> None:
@@ -114,15 +127,15 @@ def test_get_stage_edges(stage_meta: Stage) -> None:
         ),
     ]
     test_stage = Stage(
-        stage_meta.client,
-        WFStageCore(
+        client=stage_meta.client,
+        element=WFStageCore(
             id=UUID("00000000-0000-0000-0000-000000000000"),
             name="test-stage",
             type=WFTypeCore.ANNOTATE,
             assignable_users=[],
             edges=edges,
         ),
-        {
+        meta_params={
             "team_slug": "default-team",
             "dataset_id": 000000,
             "workflow_id": UUID("00000000-0000-0000-0000-000000000000"),

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Callable, Dict, Optional, overload
+from typing import Callable, Dict, Optional
 from urllib.parse import urlparse
 
 import requests
@@ -135,7 +135,11 @@ class ClientCore:
     team: Team, team to make requests to
     """
 
-    def __init__(self, config: DarwinConfig, retries: Optional[Retry] = None) -> None:
+    def __init__(
+        self,
+        config: DarwinConfig,
+        retries: Optional[Retry] = None,
+    ) -> None:
         self.config = config
         self.session = requests.Session()
         if not retries:
@@ -165,21 +169,6 @@ class ClientCore:
         if self.config.api_key:
             http_headers["Authorization"] = f"ApiKey {self.config.api_key}"
         return http_headers
-
-    @overload
-    def _generic_call(
-        self, method: Callable[[str], requests.Response], endpoint: str
-    ) -> dict:
-        ...
-
-    @overload
-    def _generic_call(
-        self,
-        method: Callable[[str, dict], requests.Response],
-        endpoint: str,
-        payload: dict,
-    ) -> dict:
-        ...
 
     def _generic_call(
         self, method: Callable, endpoint: str, payload: Optional[dict] = None
@@ -227,7 +216,7 @@ class ClientCore:
         return self._generic_call(
             self.session.delete,
             self._contain_qs_and_endpoint(endpoint, query_string),
-            data if data is not None else {},
+            data,
         )
 
     def patch(self, endpoint: str, data: dict) -> JSONType:

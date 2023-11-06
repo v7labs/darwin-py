@@ -57,7 +57,7 @@ def test_team_member_filters_role(
         rsps.add(responses.GET, endpoint, json=base_team_members_json)
         members = query._collect()
         assert len(members) == len(TeamMemberRole) - 1
-        for member in members:
+        for member in members.values():
             assert member._element.role != role
 
 
