@@ -194,7 +194,7 @@ class Query(Generic[T], ABC):
     def __len__(self) -> int:
         if not self.results:
             self.results = {**self.results, **self._collect()}
-        return len(self.results.keys())
+        return len(self.results)
 
     def __iter__(self) -> Query[T]:
         self.n = 0
@@ -319,4 +319,4 @@ class PaginatedQuery(Query[T]):
     def __len__(self) -> int:
         if not self.completed:
             self.collect_all()
-        return len(self.results.keys())
+        return len(self.results)
