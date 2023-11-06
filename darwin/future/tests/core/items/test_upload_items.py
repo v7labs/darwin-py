@@ -691,7 +691,7 @@ class TestUploadFiles(SetupTests):
         with aioresponses() as mocked:
             mocked.post("url", status=200, body='{"file": "test"}')
 
-            response: ClientResponse = asyncio.run(uploads.async_upload_files(base_client, "url", file))
+            response: ClientResponse = asyncio.run(uploads.async_upload_file(base_client, "url", file))
 
             assert response.status == 200
             assert '{"file": "test"}' in str(response.content._buffer)
@@ -702,7 +702,7 @@ class TestUploadFiles(SetupTests):
             mock.side_effect = DarwinException("Error")
 
             with pytest.raises(DarwinException):
-                asyncio.run(uploads.async_upload_files(base_client, "url", tmp_path / "file1.txt"))
+                asyncio.run(uploads.async_upload_file(base_client, "url", tmp_path / "file1.txt"))
 
 
 class TestConfirmUpload(SetupTests):

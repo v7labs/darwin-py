@@ -7,13 +7,16 @@ from pathlib import Path, PosixPath
 from typing import AsyncGenerator, List, Optional, Sequence, Tuple, Union
 from uuid import UUID
 
+import aiohttp
 import requests
 
 from darwin.dataset.upload_manager import LocalFile
 from darwin.datatypes import PathLike
+from darwin.exceptions import DarwinException
 from darwin.future.core.client import ClientCore
 from darwin.future.core.items.uploads import (
     async_register_and_create_signed_upload_url,
+    async_upload_file,
     confirm_upload,
 )
 from darwin.future.core.team.get_team import get_team
@@ -34,6 +37,9 @@ class FileToStatus:
     file: Path
     upload_id: str
     status: UploadStatus
+
+    # TODO: Add __str__ and __repr__
+    # Use __str__ dunder to call `self.status` generator and render the status
 
 
 class UploadStatus(Enum):
@@ -175,7 +181,7 @@ class Workflow(MetaBase[WorkflowCore]):
         files: Sequence[Union[PathLike, LocalFile]],
         files_to_exclude: Optional[List[PathLike]] = None,
         fps: int = 1,
-        path: Optional[str] = None,  # TODO: Apply this to files
+        path: Optional[str] = None,
         as_frames: bool = False,
         extract_views: bool = False,
         preserve_folders: bool = False,
@@ -276,7 +282,7 @@ class Workflow(MetaBase[WorkflowCore]):
 
         # Perform the upload
         response = await self._upload_file_to_signed_url(upload_url, file)
-        if response.status_code != 200:
+        if response.status != 200:
             file_status.status = UploadStatus.FAILED
             while True:
                 yield file_status
@@ -440,7 +446,10 @@ class Workflow(MetaBase[WorkflowCore]):
         Tuple[Path, Path]
             The lowest common path to the current working directory, both as a relative path, and an absolute path
         """
-        assert all(isinstance(path, Path) for path in paths), "paths must be a list of Path objects"
+        try:
+            assert all(isinstance(path, Path) for path in paths), "paths must be a list of Path objects"
+        except AssertionError as exc:
+            raise ValueError("paths must be a list of Path objects") from exc
 
         root_path = paths[0]
 
@@ -473,8 +482,7 @@ class Workflow(MetaBase[WorkflowCore]):
 
         return [convert_to_path(f) for f in files]
 
-    @classmethod
-    async def _upload_file_to_signed_url(cls, url: str, file: Path) -> requests.Response:
+    async def _upload_file_to_signed_url(self, url: str, file: Path) -> aiohttp.ClientResponse:
         """
         Uploads a file to a signed URL
 
@@ -485,7 +493,9 @@ class Workflow(MetaBase[WorkflowCore]):
         file: PathLike
             The file to upload
         """
-        # TODO: Initial naive implementation, needs to be improved
+        upload = await async_upload_file(self.client, url, file)
 
-        # Use new function
-        ...
+        if not upload.ok:
+            raise DarwinException(f"Failed to upload file {file} to {url}", upload)
+
+        return upload
