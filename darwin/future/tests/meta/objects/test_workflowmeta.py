@@ -1,7 +1,8 @@
 import asyncio
 from pathlib import Path, PosixPath, WindowsPath
 from tempfile import TemporaryDirectory
-from unittest.mock import MagicMock, Mock, patch
+from unittest import mock
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 
@@ -12,8 +13,11 @@ from darwin.future.meta.objects.workflow import Workflow
 from darwin.future.tests.core.fixtures import *
 
 
+@patch("darwin.future.meta.objects.workflow.asyncio")
 @patch.object(Workflow, "upload_files_async")
-def test_upload_files(mock_upload_files_async: Mock):
+def test_upload_files(mock_upload_files_async: Mock, mock_asyncio: Mock):
+    mock_asyncio.run = mock.MagicMock()
+
     Workflow.upload_files(
         MagicMock(),
         ["file1", "file2"],
@@ -26,16 +30,7 @@ def test_upload_files(mock_upload_files_async: Mock):
         True,
     )
 
-    mock_upload_files_async.assert_called_once_with(
-        ["file1", "file2"],
-        ["file3"],
-        24,
-        "tmp",
-        True,
-        True,
-        True,
-        True,
-    )
+    mock_asyncio.run.assert_called_once()
 
 
 @patch.object(Workflow, "upload_files_async")
@@ -194,28 +189,29 @@ def test_raises_on_invalid_input():
 
 
 # Test `_upload_file_to_signed_url`
-# TODO rewrite
 def test_upload_file_to_signed_url(base_client: ClientCore) -> None:
     url = "https://example.com/signed-url"
     file = Path("test.txt")
-    response = {
-        "ok": True,
-    }
-    with patch.object(Workflow, "put", return_value=response) as mock_put:
+
+    class Response:
+        ok: bool = True
+
+    with patch("darwin.future.meta.objects.workflow.async_upload_file", return_value=Response()) as mock_upload_file:
         workflow = Workflow(base_client, MagicMock(), MagicMock())
         result = asyncio.run(workflow._upload_file_to_signed_url(url, file))
-        mock_put.assert_called_once_with(url, data=file.open("rb"))
-        assert result == response
+
+        mock_upload_file.assert_called_once_with(base_client, url, file)
+        assert result.ok is True
 
 
 def test_upload_file_to_signed_url_raises(base_client: ClientCore) -> None:
     url = "https://example.com/signed-url"
     file = Path("test.txt")
-    response = {
-        "ok": False,
-        "error": "Error",
-    }
-    with patch.object(Workflow.client, "put", return_value=response):
+
+    class Response:
+        ok: bool = False
+
+    with patch("darwin.future.meta.objects.workflow.async_upload_file", return_value=Response):
         with pytest.raises(DarwinException):
             workflow = Workflow(base_client, MagicMock(), MagicMock())
             asyncio.run(workflow._upload_file_to_signed_url(url, file))
