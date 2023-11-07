@@ -12,6 +12,19 @@ def set_item_layout(
     layout: ItemLayout,
     params: JSONType,
 ) -> JSONType:
+    """
+    Set the layout of a dataset and filtered items via params.
+
+    Args:
+        client (ClientCore): The Darwin Core client.
+        team_slug (str): The team slug.
+        dataset_ids (int | list[int]): The dataset ids.
+        layout (ItemLayout): The layout.
+        params (JSONType): The parameters.
+
+    Returns:
+        JSONType: The response data.
+    """
     assert (
         params
     ), "No parameters provided, please provide at least one non-dataset id filter"
