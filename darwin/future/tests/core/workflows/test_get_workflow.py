@@ -1,12 +1,12 @@
 import responses
 from pydantic import ValidationError
 from pytest import raises
-from requests import HTTPError
 
 from darwin.future.core.client import ClientCore
 from darwin.future.core.types.common import JSONType
 from darwin.future.core.workflows import get_workflow
 from darwin.future.data_objects.workflow import WorkflowCore
+from darwin.future.exceptions import BadRequest
 from darwin.future.tests.core.fixtures import *
 
 
@@ -84,5 +84,5 @@ def test_get_workflows_with_error(base_client: ClientCore) -> None:
         status=400
     )
     # fmt: on
-    with raises(HTTPError):
+    with raises(BadRequest):
         get_workflow(base_client, NON_EXISTENT_ID)
