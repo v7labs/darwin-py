@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import time
 from typing import List
 from uuid import UUID
 
-from darwin.future.core.items import move_items_to_stage
+from darwin.future.core.items import get_item, move_items_to_stage
 from darwin.future.core.types.query import QueryFilter
 from darwin.future.data_objects.workflow import WFEdgeCore, WFStageCore
 from darwin.future.meta.objects.base import MetaBase
@@ -59,7 +60,11 @@ class Stage(MetaBase[WFStageCore]):
             ],
         )
 
-    def move_attached_files_to_stage(self, new_stage_id: UUID) -> Stage:
+    def move_attached_files_to_stage(self, new_stage_id: UUID, wait: bool = True) -> Stage:
+        """
+        Args:
+            wait (bool, optional): Waits for Item 'processing_status' to complete. Defaults to True.
+        """
         assert self.meta_params["team_slug"] is not None and isinstance(
             self.meta_params["team_slug"], str
         )
@@ -75,6 +80,18 @@ class Stage(MetaBase[WFStageCore]):
             self.meta_params["dataset_id"],
         )
         ids = [x.id for x in self.item_ids.collect_all()]
+
+        if wait:
+            while True:
+                for _id in ids:
+                    if get_item(self.client, slug, _id).processing_status != "complete":
+                        # wait for 0.5 seconds before checking again
+                        time.sleep(0.5)
+                        break
+                else:
+                    # All items are complete, break the while loop
+                    break
+
         move_items_to_stage(self.client, slug, w_id, d_id, new_stage_id, ids)
         return self
 

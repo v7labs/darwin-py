@@ -8,7 +8,7 @@ from darwin.dataset.upload_manager import LocalFile
 from darwin.datatypes import PathLike
 from darwin.future.data_objects.workflow import WFDatasetCore, WFTypeCore, WorkflowCore
 from darwin.future.meta.objects.base import MetaBase
-from darwin.future.meta.queries.stage import StageQuery
+from darwin.future.meta.queries.stage import Stage, StageQuery
 
 
 class Workflow(MetaBase[WorkflowCore]):
@@ -55,6 +55,12 @@ class Workflow(MetaBase[WorkflowCore]):
             meta_params["dataset_name"] = self.datasets[0].name
         return StageQuery(self.client, meta_params=meta_params)
 
+    def _get_dataset_stage(self) -> Stage | None:
+        # stages are not in right order - finding the dataset stage
+        for stage in self.stages:
+            if stage.type == "dataset":
+                return stage
+
     @property
     def datasets(self) -> List[WFDatasetCore]:
         if self._element.dataset is None:
@@ -69,15 +75,19 @@ class Workflow(MetaBase[WorkflowCore]):
     def name(self) -> str:
         return self._element.name
 
-    def push_from_dataset_stage(self) -> Workflow:
+    def push_from_dataset_stage(self, wait: bool = True) -> Workflow:
         assert self._element.dataset is not None
         stages = self.stages
-        ds_stage = stages[0]
         assert len(stages) > 1
+
+        ds_stage = self._get_dataset_stage()
+        assert ds_stage
+
         assert ds_stage._element.type == WFTypeCore.DATASET
         next_stage = ds_stage._element.edges[0].target_stage_id
         assert next_stage is not None
-        ds_stage.move_attached_files_to_stage(next_stage)
+
+        ds_stage.move_attached_files_to_stage(next_stage, wait)
         return self
 
     def upload_files(
@@ -91,6 +101,7 @@ class Workflow(MetaBase[WorkflowCore]):
         preserve_folders: bool = False,
         verbose: bool = False,
         auto_push: bool = True,
+        wait: bool = True,
     ) -> Workflow:
         assert self._element.dataset is not None
         upload_data(
@@ -105,7 +116,7 @@ class Workflow(MetaBase[WorkflowCore]):
             verbose,
         )
         if auto_push:
-            self.push_from_dataset_stage()
+            self.push_from_dataset_stage(wait=wait)
         return self
 
     def __str__(self) -> str:
