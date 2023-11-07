@@ -20,13 +20,13 @@ def test_set_item_layout_returns_blank_object(
     responses.add(
         responses.POST,
         f"{base_client.config.api_endpoint}v2/teams/{team_slug}/items/layout",
-        json={},
+        json={"affected_item_count": 2},
         status=200,
     )
 
     response = set_item_layout(base_client, team_slug, dataset_ids, base_layout, params)
 
-    assert response == {}
+    assert response == {"affected_item_count": 2}
 
 
 @responses.activate
