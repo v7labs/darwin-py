@@ -13,7 +13,7 @@ def test_dataset_collects_basic(
     with responses.RequestsMock() as rsps:
         endpoint = base_client.config.api_endpoint + "datasets"
         rsps.add(responses.GET, endpoint, json=base_datasets_json)
-        datasets = query._collect()
+        datasets = query._collect().values()
         assert len(datasets) == 2
         assert all(isinstance(dataset, Dataset) for dataset in datasets)
 

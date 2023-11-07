@@ -95,6 +95,10 @@ class NotFound(DarwinException):
     pass
 
 
+class UnprocessibleEntity(DarwinException):
+    pass
+
+
 class Unauthorized(DarwinException):
     pass
 

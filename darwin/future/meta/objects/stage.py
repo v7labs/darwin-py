@@ -3,9 +3,11 @@ from __future__ import annotations
 from typing import List
 from uuid import UUID
 
-from darwin.future.core.items import get_item_ids_stage, move_items_to_stage
+from darwin.future.core.items import move_items_to_stage
+from darwin.future.core.types.query import QueryFilter
 from darwin.future.data_objects.workflow import WFEdgeCore, WFStageCore
 from darwin.future.meta.objects.base import MetaBase
+from darwin.future.meta.queries.item_id import ItemIDQuery
 
 
 class Stage(MetaBase[WFStageCore]):
@@ -42,18 +44,19 @@ class Stage(MetaBase[WFStageCore]):
     """
 
     @property
-    def item_ids(self) -> List[UUID]:
+    def item_ids(self) -> ItemIDQuery:
         """Item ids attached to the stage
 
         Returns:
             List[UUID]: List of item ids
         """
         assert self._element.id is not None
-        return get_item_ids_stage(
+        return ItemIDQuery(
             self.client,
-            str(self.meta_params["team_slug"]),
-            str(self.meta_params["dataset_id"]),
-            self.id,
+            meta_params=self.meta_params,
+            filters=[
+                QueryFilter(name="workflow_stage_ids", param=str(self._element.id))
+            ],
         )
 
     def move_attached_files_to_stage(self, new_stage_id: UUID) -> Stage:
@@ -71,7 +74,8 @@ class Stage(MetaBase[WFStageCore]):
             self.meta_params["workflow_id"],
             self.meta_params["dataset_id"],
         )
-        move_items_to_stage(self.client, slug, w_id, d_id, new_stage_id, self.item_ids)
+        ids = [x.id for x in self.item_ids.collect_all()]
+        move_items_to_stage(self.client, slug, w_id, d_id, new_stage_id, ids)
         return self
 
     @property

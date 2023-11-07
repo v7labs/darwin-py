@@ -5,6 +5,7 @@ from enum import Enum
 from typing import Any, Callable, Dict, Generic, List, Optional, TypeVar
 
 from darwin.future.core.client import ClientCore
+from darwin.future.data_objects.page import Page
 from darwin.future.exceptions import (
     InvalidQueryFilter,
     InvalidQueryModifier,
@@ -29,8 +30,9 @@ class Modifier(Enum):
 
 
 class QueryFilter(DefaultDarwin):
-    """Basic query filter with a name and a parameter
-
+    """
+    Basic query filter with a name and a parameter
+    Modifiers are for client side filtering only, and are not passed to the API
     Attributes
     ----------
     name: str
@@ -104,6 +106,12 @@ class QueryFilter(DefaultDarwin):
             modifier = None
         return QueryFilter(name=key, param=value, modifier=modifier)
 
+    def to_dict(self, ignore_modifier: bool = True) -> Dict[str, str]:
+        d = {self.name: self.param}
+        if self.modifier is not None and not ignore_modifier:
+            d["modifier"] = self.modifier.value
+        return d
+
 
 class Query(Generic[T], ABC):
     """
@@ -154,17 +162,16 @@ class Query(Generic[T], ABC):
         self.meta_params: dict = meta_params or {}
         self.client = client
         self.filters = filters or []
-        self.results: Optional[List[T]] = None
-        self._changed_since_last: bool = True
+        self.results: dict[int, T] = {}
+        self._changed_since_last: bool = False
 
     def filter(self, filter: QueryFilter) -> Query[T]:
         return self + filter
 
     def __add__(self, filter: QueryFilter) -> Query[T]:
         self._changed_since_last = True
-        return self.__class__(
-            self.client, filters=[*self.filters, filter], meta_params=self.meta_params
-        )
+        self.filters.append(filter)
+        return self
 
     def __sub__(self, filter: QueryFilter) -> Query[T]:
         self._changed_since_last = True
@@ -186,7 +193,7 @@ class Query(Generic[T], ABC):
 
     def __len__(self) -> int:
         if not self.results:
-            self.results = list(self._collect())
+            self.results = {**self.results, **self._collect()}
         return len(self.results)
 
     def __iter__(self) -> Query[T]:
@@ -195,7 +202,7 @@ class Query(Generic[T], ABC):
 
     def __next__(self) -> T:
         if not self.results:
-            self.results = list(self._collect())
+            self.collect()
         if self.n < len(self.results):
             result = self.results[self.n]
             self.n += 1
@@ -205,12 +212,12 @@ class Query(Generic[T], ABC):
 
     def __getitem__(self, index: int) -> T:
         if not self.results:
-            self.results = list(self._collect())
+            self.results = {**self.results, **self._collect()}
         return self.results[index]
 
     def __setitem__(self, index: int, value: T) -> None:
         if not self.results:
-            self.results = list(self._collect())
+            self.results = {**self.results, **self._collect()}
         self.results[index] = value
 
     def where(self, *args: object, **kwargs: str) -> Query[T]:
@@ -222,18 +229,21 @@ class Query(Generic[T], ABC):
 
     def collect(self, force: bool = False) -> List[T]:
         if force or self._changed_since_last:
-            self.results = []
-        self.results = self._collect()
+            self.results = {}
+        self.results = {**self.results, **self._collect()}
         self._changed_since_last = False
-        return self.results
+        return self._unwrap(self.results)
+
+    def _unwrap(self, results: Dict[int, T]) -> List[T]:
+        return list(results.values())
 
     @abstractmethod
-    def _collect(self) -> List[T]:
+    def _collect(self) -> Dict[int, T]:
         raise NotImplementedError("Not implemented")
 
     def collect_one(self) -> T:
         if not self.results:
-            self.results = list(self.collect())
+            self.results = {**self.results, **self._collect()}
         if len(self.results) == 0:
             raise ResultsNotFound("No results found")
         if len(self.results) > 1:
@@ -242,12 +252,71 @@ class Query(Generic[T], ABC):
 
     def first(self) -> T:
         if not self.results:
-            self.results = list(self.collect())
+            self.results = {**self.results, **self._collect()}
         if len(self.results) == 0:
             raise ResultsNotFound("No results found")
+
         return self.results[0]
 
     def _generic_execute_filter(self, objects: List[T], filter: QueryFilter) -> List[T]:
         return [
             m for m in objects if filter.filter_attr(getattr(m._element, filter.name))
         ]
+
+
+class PaginatedQuery(Query[T]):
+    def __init__(
+        self,
+        client: ClientCore,
+        filters: List[QueryFilter] | None = None,
+        meta_params: Param | None = None,
+        page: Page | None = None,
+    ):
+        super().__init__(client, filters, meta_params)
+        self.page = page or Page()
+        self.completed = False
+
+    def collect(self, force: bool = False) -> List[T]:
+        if force or self._changed_since_last:
+            self.page = Page()
+            self.completed = False
+        if self.completed:
+            return self._unwrap(self.results)
+        new_results = self._collect()
+        self.results = {**self.results, **new_results}
+        if len(new_results) < self.page.size or len(new_results) == 0:
+            self.completed = True
+        else:
+            self.page.increment()
+        return self._unwrap(self.results)
+
+    def collect_all(self, force: bool = False) -> List[T]:
+        if force:
+            self.page = Page()
+            self.completed = False
+            self.results = {}
+        while not self.completed:
+            self.collect()
+        return self._unwrap(self.results)
+
+    def __getitem__(self, index: int) -> T:
+        if index not in self.results:
+            temp_page = self.page
+            self.page = self.page.get_required_page(index)
+            self.collect()
+            self.page = temp_page
+        return super().__getitem__(index)
+
+    def __next__(self) -> T:
+        if not self.completed and self.n not in self.results:
+            self.collect()
+        if self.completed and self.n not in self.results:
+            raise StopIteration
+        result = self.results[self.n]
+        self.n += 1
+        return result
+
+    def __len__(self) -> int:
+        if not self.completed:
+            self.collect_all()
+        return len(self.results)
