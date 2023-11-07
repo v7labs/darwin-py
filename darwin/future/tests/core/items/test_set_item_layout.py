@@ -1,11 +1,13 @@
+from typing import Dict
+
 import pytest
 import responses
 from requests import HTTPError
 
 from darwin.future.core.client import ClientCore
 from darwin.future.core.items.set_item_layout import set_item_layout
-from darwin.future.core.types.common import JSONType
 from darwin.future.data_objects.item import ItemLayout
+from darwin.future.data_objects.typing import UnknownType
 from darwin.future.tests.core.fixtures import *
 from darwin.future.tests.core.items.fixtures import *
 
@@ -35,7 +37,7 @@ def test_set_item_layout_raises_on_incorrect_parameters(
 ) -> None:
     team_slug = "my_team"
     dataset_ids = [1, 2, 3]
-    params: JSONType = {}
+    params: Dict[str, UnknownType] = {}
 
     with pytest.raises(AssertionError):
         set_item_layout(base_client, team_slug, dataset_ids, base_layout, params)
