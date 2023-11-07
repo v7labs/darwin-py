@@ -60,7 +60,9 @@ class Stage(MetaBase[WFStageCore]):
             ],
         )
 
-    def move_attached_files_to_stage(self, new_stage_id: UUID, wait: bool = True) -> Stage:
+    def move_attached_files_to_stage(
+        self, new_stage_id: UUID, wait: bool = True
+    ) -> Stage:
         """
         Args:
             wait (bool, optional): Waits for Item 'processing_status' to complete. Defaults to True.
