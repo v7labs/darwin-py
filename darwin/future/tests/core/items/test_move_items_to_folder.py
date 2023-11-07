@@ -11,7 +11,9 @@ from darwin.future.tests.core.fixtures import *
 
 
 @responses.activate
-def move_list_of_items_to_folder_including_filters(base_client: ClientCore) -> None:
+def test_move_list_of_items_to_folder_including_filters(
+    base_client: ClientCore,
+) -> None:
     # Define the expected response
     responses.add(
         responses.POST,
