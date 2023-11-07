@@ -776,6 +776,11 @@ class TestSynchronousMethods:
         with patch.object(uploads, "async_confirm_upload") as mock:
             yield mock
 
+    @pytest.fixture
+    def mock_async_upload_file(self) -> Generator:
+        with patch.object(uploads, "async_upload_file") as mock:
+            yield mock
+
     def test_register_upload(
         self,
         mock_async_register_upload: MagicMock,
@@ -802,6 +807,15 @@ class TestSynchronousMethods:
         uploads.register_and_create_signed_upload_url(base_client, "team", "dataset", [(Mock(), Mock())])
 
         mock_async_register_and_create_signed_upload_url.assert_called_once()
+
+    def test_upload_file(
+        self,
+        mock_async_upload_file: MagicMock,
+        base_client: ClientCore,
+    ) -> None:
+        uploads.upload_file(base_client, "url", Path("file"))
+
+        mock_async_upload_file.assert_called_once()
 
     def test_confirm_upload(
         self,

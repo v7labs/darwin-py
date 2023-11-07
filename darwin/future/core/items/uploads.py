@@ -456,6 +456,22 @@ def register_and_create_signed_upload_url(
     )
 
 
+def upload_file(api_client: ClientCore, url: str, file: Path) -> aiohttp.ClientResponse:
+    """
+    Upload files to a signed url
+
+    Parameters
+    ----------
+    api_client: ClientCore
+        The client to use for the request
+    url: str
+        The signed url to upload to
+    file: Path
+        The file to upload
+    """
+    return asyncio.run(async_upload_file(api_client, url, file))
+
+
 def confirm_upload(api_client: ClientCore, team_slug: str, upload_id: str) -> None:
     """
     Confirm an upload/uploads was successful by ID
