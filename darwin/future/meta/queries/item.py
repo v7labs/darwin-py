@@ -1,6 +1,8 @@
+from functools import reduce
 from typing import Dict
 
 from darwin.future.core.items.get import list_items
+from darwin.future.core.types.common import QueryString
 from darwin.future.core.types.query import PaginatedQuery
 from darwin.future.meta.objects.item import Item
 
@@ -20,8 +22,9 @@ class ItemQuery(PaginatedQuery[Item]):
             else self.meta_params["dataset_id"]
         )
         team_slug = self.meta_params["team_slug"]
+        params: QueryString = reduce(lambda s1, s2: s1 + s2, [self.page.to_query_string(), *[QueryString(f.to_dict()) for f in self.filters]])
         items_core, errors = list_items(
-            self.client, team_slug, dataset_ids, self.page.to_query_string()
+            self.client, team_slug, dataset_ids, params
         )
         offset = self.page.offset
         items = {
