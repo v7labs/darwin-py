@@ -8,7 +8,6 @@ from darwin.future.meta.objects.base import MetaBase
 
 
 class Item(MetaBase[ItemCore]):
-
     @property
     def name(self) -> str:
         return self._element.name

@@ -136,7 +136,11 @@ def list_items(
     List[ValidationError]
         A list of ValidationError on failed objects
     """
-    dataset_ids = dataset_ids if isinstance(dataset_ids, list) or dataset_ids == "all" else [dataset_ids]
+    dataset_ids = (
+        dataset_ids
+        if isinstance(dataset_ids, list) or dataset_ids == "all"
+        else [dataset_ids]
+    )
     params = params + QueryString({"dataset_ids": dataset_ids})
     response = api_client.get(f"/v2/teams/{team_slug}/items", params)
     assert isinstance(response, dict)
