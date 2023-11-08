@@ -98,7 +98,9 @@ class Team(MetaBase[TeamCore]):
 
     @property
     def items(self) -> ItemQuery:
-        return ItemQuery(self.client, meta_params={"team_slug": self.slug, "dataset_ids": "all"})
+        return ItemQuery(
+            self.client, meta_params={"team_slug": self.slug, "dataset_ids": "all"}
+        )
 
     @classmethod
     def delete_dataset(cls, client: ClientCore, dataset_id: Union[int, str]) -> int:

@@ -1,4 +1,3 @@
-from pytest import raises
 
 from darwin.future.core.types.common import QueryString
 

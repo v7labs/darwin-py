@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Any, Dict, List, Mapping, Protocol, Union
 
 from darwin.future.data_objects import validators as darwin_validators
-from darwin.future.data_objects.typing import UnknownType
 
 JSONType = Union[Dict[str, Any], List[Dict[str, Any]]]  # type: ignore
 
