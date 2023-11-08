@@ -1,13 +1,16 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Mapping, Protocol, Union
 
 from darwin.future.data_objects import validators as darwin_validators
 from darwin.future.data_objects.typing import UnknownType
 
 JSONType = Union[Dict[str, Any], List[Dict[str, Any]]]  # type: ignore
 
-
+class Implements_str(Protocol):
+    def __str__(self) -> str:
+        ...
+Stringable = Union[str, Implements_str]
 class TeamSlug(str):
     """
     Represents a team slug, which is a string identifier for a team.
@@ -73,18 +76,29 @@ class QueryString:
         Returns a string representation of the QueryString object, in the format "?key1=value1&key2=value2".
     """
 
-    value: Dict[str, str]
+    value: dict[str, list[str] | str]
 
-    def dict_check(self, value: UnknownType) -> Dict[str, str]:
-        assert isinstance(value, dict)
-        assert all(isinstance(k, str) and isinstance(v, str) for k, v in value.items())
-        return value
+    def dict_check(self, value: Mapping[str, list[Stringable] | Stringable]) -> dict[str, list[str] | str]:
+        mapped: dict[str, list[str] | str] = {}
+        for k, v in value.items():
+            if isinstance(v, list):
+                mapped[k] = [str(x) for x in v]
+            else:
+                mapped[k] = str(v)
+        return mapped
 
-    def __init__(self, value: Dict[str, str]) -> None:
+    def __init__(self, value: Mapping[str, list[Stringable] | Stringable]) -> None:
         self.value = self.dict_check(value)
 
     def __str__(self) -> str:
-        return "?" + "&".join(f"{k}={v}" for k, v in self.value.items())
+        output: str = "?" if self.value else ""
+        for k, v in self.value.items():
+            if isinstance(v, list):
+                for x in v:
+                    output += f"{k}={x}&"
+            else:
+                output += f"{k}={v}&"
+        return output[:-1] # remove trailing &
 
     def __add__(self, other: QueryString) -> QueryString:
         return QueryString({**self.value, **other.value})
