@@ -23,7 +23,7 @@ def test_delete_items_including_filters(base_client: ClientCore) -> None:
     response = delete_list_of_items(
         api_client=base_client,
         team_slug="test-team",
-        dataset_id=000000,
+        dataset_ids=000000,
         item_ids=[
             UUID("00000000-0000-0000-0000-000000000000"),
             UUID("00000000-0000-0000-0000-000000000000"),
@@ -46,7 +46,7 @@ def test_delete_items_with_error_response() -> None:
         delete_list_of_items(
             api_client=api_client,
             team_slug="test-team",
-            dataset_id=000000,
+            dataset_ids=000000,
             item_ids=[
                 UUID("00000000-0000-0000-0000-000000000000"),
                 UUID("00000000-0000-0000-0000-000000000000"),

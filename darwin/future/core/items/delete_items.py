@@ -1,4 +1,6 @@
-from typing import Dict, List
+from __future__ import annotations
+
+from typing import Dict, List, Literal
 from uuid import UUID
 
 from darwin.future.core.client import ClientCore
@@ -9,7 +11,7 @@ from darwin.future.data_objects.typing import UnknownType
 def delete_list_of_items(
     api_client: ClientCore,
     team_slug: str,
-    dataset_id: int,
+    dataset_ids: int | list[int] | Literal["all"],
     item_ids: List[UUID],
     filters: Dict[str, UnknownType] = {},
 ) -> JSONType:
@@ -35,7 +37,7 @@ def delete_list_of_items(
     """
     payload = {
         "filters": {
-            "dataset_ids": [dataset_id],
+            "dataset_ids": dataset_ids,
             "item_ids": [str(item_id) for item_id in item_ids],
             **filters,
         }

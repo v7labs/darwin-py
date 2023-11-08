@@ -1,4 +1,3 @@
-
 from darwin.future.core.types.common import QueryString
 
 
