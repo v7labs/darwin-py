@@ -7,10 +7,15 @@ from darwin.future.data_objects.typing import UnknownType
 
 JSONType = Union[Dict[str, Any], List[Dict[str, Any]]]  # type: ignore
 
+
 class Implements_str(Protocol):
     def __str__(self) -> str:
         ...
+
+
 Stringable = Union[str, Implements_str]
+
+
 class TeamSlug(str):
     """
     Represents a team slug, which is a string identifier for a team.
@@ -78,7 +83,9 @@ class QueryString:
 
     value: dict[str, list[str] | str]
 
-    def dict_check(self, value: Mapping[str, list[Stringable] | Stringable]) -> dict[str, list[str] | str]:
+    def dict_check(
+        self, value: Mapping[str, list[Stringable] | Stringable]
+    ) -> dict[str, list[str] | str]:
         mapped: dict[str, list[str] | str] = {}
         for k, v in value.items():
             if isinstance(v, list):
@@ -98,7 +105,7 @@ class QueryString:
                     output += f"{k}={x}&"
             else:
                 output += f"{k}={v}&"
-        return output[:-1] # remove trailing &
+        return output[:-1]  # remove trailing &
 
     def __add__(self, other: QueryString) -> QueryString:
         return QueryString({**self.value, **other.value})

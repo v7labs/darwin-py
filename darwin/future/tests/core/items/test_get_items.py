@@ -70,9 +70,7 @@ def test_list_items(
             json={"items": base_items_json},
             status=200,
         )
-        items, _ = list_items(
-            base_client, "default-team", dataset_ids=[1337]
-        )
+        items, _ = list_items(base_client, "default-team", dataset_ids=[1337])
         for item, comparator in zip(items, base_items):
             assert item == comparator
 
@@ -91,9 +89,7 @@ def test_list_items_breaks(
             json={"items": base_items_json},
             status=200,
         )
-        items, exceptions = list_items(
-            base_client, "default-team", dataset_ids=[1337]
-        )
+        items, exceptions = list_items(base_client, "default-team", dataset_ids=[1337])
         assert len(exceptions) == 1
         assert isinstance(exceptions[0], ValidationError)
 

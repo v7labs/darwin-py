@@ -23,11 +23,13 @@ def test_querystring_coerces_list() -> None:
     query_string = QueryString({"foo": ["bar", "baz"]})
     assert str(query_string) == "?foo=bar&foo=baz"
     assert query_string.value == {"foo": ["bar", "baz"]}
-    
+
+
 def test_querystring_coerces_stringable() -> None:
     class Stringable:
         def __str__(self) -> str:
             return "bar"
+
     query_string = QueryString({"foo": Stringable()})
     assert str(query_string) == "?foo=bar"
     assert query_string.value == {"foo": "bar"}

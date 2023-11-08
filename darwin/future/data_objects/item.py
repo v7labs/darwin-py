@@ -127,7 +127,7 @@ class UploadItem(DefaultDarwin):
         return validate_no_slashes(v)
 
 
-class Item(DefaultDarwin):
+class ItemCore(DefaultDarwin):
     # GraphotateWeb.Schemas.DatasetsV2.ItemRegistration.NewItem
 
     # Required fields

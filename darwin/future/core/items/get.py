@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Tuple, Union
+from typing import List, Literal, Tuple, Union
 from uuid import UUID
 
 from pydantic import ValidationError, parse_obj_as
@@ -114,7 +114,7 @@ def get_item(
 def list_items(
     api_client: ClientCore,
     team_slug: str,
-    dataset_ids: int | list[int],
+    dataset_ids: int | list[int] | Literal["all"],
     params: QueryString = QueryString({}),
 ) -> Tuple[List[ItemCore], List[ValidationError]]:
     """
@@ -136,7 +136,7 @@ def list_items(
     List[ValidationError]
         A list of ValidationError on failed objects
     """
-    dataset_ids = dataset_ids if isinstance(dataset_ids, list) else [dataset_ids]
+    dataset_ids = dataset_ids if isinstance(dataset_ids, list) or dataset_ids == "all" else [dataset_ids]
     params = params + QueryString({"dataset_ids": dataset_ids})
     response = api_client.get(f"/v2/teams/{team_slug}/items", params)
     assert isinstance(response, dict)
