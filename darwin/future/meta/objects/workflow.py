@@ -62,7 +62,7 @@ class Workflow(MetaBase[WorkflowCore]):
             if stage.type == "dataset":
                 return stage
 
-        raise MissingDataset(f"Workflow has no dataset stage")
+        raise MissingDataset("Workflow has no dataset stage")
 
     @property
     def datasets(self) -> List[WFDatasetCore]:
