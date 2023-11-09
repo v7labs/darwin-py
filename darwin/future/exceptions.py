@@ -46,9 +46,7 @@ class DarwinException(Exception):
         return instance
 
     @classmethod
-    def from_multiple_exceptions(
-        cls, exceptions: Sequence[Exception]
-    ) -> DarwinException:
+    def from_multiple_exceptions(cls, exceptions: Sequence[Exception]) -> DarwinException:
         """
         Creates a new exception from a list of exceptions.
 
@@ -133,5 +131,17 @@ class InvalidQueryFilter(DarwinException):
 
 class DatasetNotFound(DarwinException):
     """Raised when the dataset endpoint returns a malformed response."""
+
+    ...
+
+
+class UploadPending(DarwinException):
+    """Raised when a dataset is still in the process of being uploaded."""
+
+    ...
+
+
+class UploadFailed(DarwinException):
+    """Raised when a dataset upload fails."""
 
     ...

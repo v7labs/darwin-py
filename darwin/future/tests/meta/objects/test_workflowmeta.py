@@ -1,8 +1,10 @@
 import asyncio
+from contextlib import contextmanager
 from pathlib import Path, PosixPath, WindowsPath
 from tempfile import TemporaryDirectory
+from typing import Generator
 from unittest import mock
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
@@ -13,9 +15,10 @@ from darwin.future.meta.objects.workflow import Workflow
 from darwin.future.tests.core.fixtures import *
 
 
+# Test `upload_files`
 @patch("darwin.future.meta.objects.workflow.asyncio")
 @patch.object(Workflow, "upload_files_async")
-def test_upload_files(mock_upload_files_async: Mock, mock_asyncio: Mock):
+def test_upload_files(_: Mock, mock_asyncio: Mock):
     mock_asyncio.run = mock.MagicMock()
 
     Workflow.upload_files(
@@ -51,9 +54,104 @@ def test_upload_files_raises(mock_upload_files_async: Mock):
         )
 
 
-# TODO Test upload_files_async
-def test_upload_files_async():
-    ...
+# Test upload_files_async
+from typing import Optional
+
+
+class ContextReturn:
+    mock_convert_filelikes_to_paths: Optional[Mock]
+    mock_derive_root_path: Optional[Mock]
+    mock_prepare_upload_items: Optional[Mock]
+    mock_upload_updateable: Optional[Mock]
+    mock_async_register_and_create_signed_upload_url: Optional[Mock]
+
+    def __init__(
+        self,
+        mock_convert_filelikes_to_paths: Optional[Mock] = None,
+        mock_derive_root_path: Optional[Mock] = None,
+        mock_prepare_upload_items: Optional[Mock] = None,
+        mock_upload_updateable: Optional[Mock] = None,
+        mock_async_register_and_create_signed_upload_url: Optional[Mock] = None,
+    ):
+        self.mock_convert_filelikes_to_paths = mock_convert_filelikes_to_paths
+        self.mock_derive_root_path = mock_derive_root_path
+        self.mock_prepare_upload_items = mock_prepare_upload_items
+        self.mock_upload_updateable = mock_upload_updateable
+        self.mock_async_register_and_create_signed_upload_url = mock_async_register_and_create_signed_upload_url
+
+
+@contextmanager
+def upload_function_test_context(workflow: Workflow) -> Generator[ContextReturn, None, None]:
+    with patch.object(workflow, "_convert_filelikes_to_paths") as mock_convert_filelikes_to_paths, patch.object(
+        workflow, "_derive_root_path"
+    ) as mock_derive_root_path, patch.object(
+        workflow, "_prepare_upload_items"
+    ) as mock_prepare_upload_items, patch.object(
+        workflow, "_upload_updateable"
+    ) as mock_upload_updateable, patch(
+        "darwin.future.meta.objects.workflow.async_register_and_create_signed_upload_url"
+    ) as mock_async_register_and_create_signed_upload_url:
+        yield ContextReturn(
+            mock_convert_filelikes_to_paths,
+            mock_derive_root_path,
+            mock_prepare_upload_items,
+            mock_upload_updateable,
+            mock_async_register_and_create_signed_upload_url,
+        )
+
+        return None
+
+
+def test_upload_files_async_raises_if_no_dataset(base_client: ClientCore) -> None:
+    workflow = Workflow(MagicMock(), base_client, MagicMock())
+    workflow._element.dataset = None
+
+    with pytest.raises(AssertionError):
+        asyncio.run(
+            workflow.upload_files_async(
+                ["file1", "file2"],
+                ["file3"],
+                24,
+                "tmp",
+                False,
+                False,
+                False,
+                False,
+            )
+        )
+
+
+def test_upload_files_integrates_methods(base_client: ClientCore) -> None:
+    workflow = Workflow(MagicMock(), base_client, MagicMock())
+
+    with upload_function_test_context(workflow) as context:
+        asyncio.run(
+            workflow.upload_files_async(
+                ["file1", "file2"],
+                ["file3"],
+                24,
+                "tmp",
+                False,
+                False,
+                False,
+                False,
+            )
+        )
+
+        assert context.mock_async_register_and_create_signed_upload_url is not None
+        context.mock_async_register_and_create_signed_upload_url.assert_called_once()
+
+        assert context.mock_convert_filelikes_to_paths is not None
+        context.mock_convert_filelikes_to_paths.assert_called_once()
+
+        assert context.mock_derive_root_path is not None
+        context.mock_derive_root_path.assert_called_once()
+
+        assert context.mock_prepare_upload_items is not None
+        context.mock_prepare_upload_items.assert_called_once()
+
+        assert context.mock_upload_updateable is not None
+        context.mock_upload_updateable.assert_called_once()
 
 
 # Test `_get_item_path`
@@ -173,6 +271,7 @@ def test_derive_root_path_raises():
         Workflow._derive_root_path([1, 2, 3])  # type: ignore
 
 
+# Test `_convert_filelikes_to_paths`
 def test_converts_list_of_paths():
     paths = asyncio.run(Workflow._convert_filelikes_to_paths(["tmp/upload/1", LocalFile("tmp/upload/2")]))
 
@@ -197,10 +296,10 @@ def test_upload_file_to_signed_url(base_client: ClientCore) -> None:
         ok: bool = True
 
     with patch("darwin.future.meta.objects.workflow.async_upload_file", return_value=Response()) as mock_upload_file:
-        workflow = Workflow(base_client, MagicMock(), MagicMock())
+        workflow = Workflow(MagicMock(), MagicMock(), MagicMock())
         result = asyncio.run(workflow._upload_file_to_signed_url(url, file))
 
-        mock_upload_file.assert_called_once_with(base_client, url, file)
+        mock_upload_file.assert_called_once_with(workflow.client, url, file)
         assert result.ok is True
 
 

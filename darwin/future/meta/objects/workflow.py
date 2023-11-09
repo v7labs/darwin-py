@@ -2,26 +2,25 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 from enum import Enum, auto
 from pathlib import Path, PosixPath
-from typing import AsyncGenerator, List, Optional, Sequence, Tuple, Union
+from typing import Callable, Generator, List, Literal, Optional, Sequence, Tuple, Union
 from uuid import UUID
 
 import aiohttp
-import requests
 
 from darwin.dataset.upload_manager import LocalFile
 from darwin.datatypes import PathLike
 from darwin.future.core.client import ClientCore
 from darwin.future.core.items.uploads import (
+    async_confirm_upload,
     async_register_and_create_signed_upload_url,
     async_upload_file,
-    confirm_upload,
 )
-from darwin.future.core.team.get_team import get_team
 from darwin.future.data_objects.item import ItemSlot, UploadItem
 from darwin.future.data_objects.workflow import WFDatasetCore, WFTypeCore, WorkflowCore
-from darwin.future.exceptions import DarwinException
+from darwin.future.exceptions import DarwinException, UploadFailed, UploadPending
 from darwin.future.meta.objects.base import MetaBase
 from darwin.future.meta.queries.stage import StageQuery
 
@@ -38,8 +37,11 @@ class FileToStatus:
     upload_id: str
     status: UploadStatus
 
-    # TODO: Add __str__ and __repr__
-    # Use __str__ dunder to call `self.status` generator and render the status
+    def __str__(self) -> str:
+        return f"[{str(self.file)}] Status: {self.status.name}"
+
+    def __repr__(self) -> str:
+        return str(self)
 
 
 class UploadStatus(Enum):
@@ -136,7 +138,8 @@ class Workflow(MetaBase[WorkflowCore]):
         extract_views: bool = False,
         preserve_folders: bool = False,
         auto_push: bool = True,
-    ) -> List[AsyncGenerator[FileToStatus, None]]:
+        callback: Optional[Callable[[List[FileToStatus]], None]] = None,
+    ) -> Tuple[List[Generator[FileToStatus, None, None]], Literal[None]]:
         """
         Uploads files to a dataset and optionally starts the workflow synchronously
 
@@ -161,20 +164,17 @@ class Workflow(MetaBase[WorkflowCore]):
 
         Returns
         -------
-        List[FilesToStatus]
+        List[AsyncGenerator[FileToStatus, None]]
         """
-        return asyncio.run(
+        loop = asyncio.get_event_loop()
+
+        output, _ = loop.run_until_complete(
             self.upload_files_async(
-                files,
-                files_to_exclude,
-                fps,
-                path,
-                as_frames,
-                extract_views,
-                preserve_folders,
-                auto_push,
+                files, files_to_exclude, fps, path, as_frames, extract_views, preserve_folders, auto_push, callback
             )
         )
+
+        return output, None
 
     async def upload_files_async(
         self,
@@ -186,7 +186,8 @@ class Workflow(MetaBase[WorkflowCore]):
         extract_views: bool = False,
         preserve_folders: bool = False,
         auto_push: bool = True,  # TODO: Work out how to do this
-    ) -> List[AsyncGenerator[FileToStatus, None]]:
+        callback: Optional[Callable[[List[FileToStatus]], None]] = None,
+    ) -> Tuple[List[Generator[FileToStatus, None, None]], Optional[asyncio.Task]]:
         """
         Uploads files to a dataset and optionally starts the workflow
 
@@ -217,9 +218,9 @@ class Workflow(MetaBase[WorkflowCore]):
 
         assert self._element.dataset is not None
 
-        core_client = ClientCore(self.client.config)
         wf_dataset: WFDatasetCore = self._element.dataset
-        wf_team = get_team(core_client, str(self._element.team_id))  # TODO: This may or may not work, test it
+        team_slug = str(self.meta_params.get("team_slug"))  # TODO: Dogfood this works
+        assert team_slug is not None
 
         file_paths = await self._convert_filelikes_to_paths(files)
         if files_to_exclude is not None:
@@ -238,25 +239,71 @@ class Workflow(MetaBase[WorkflowCore]):
         # This is one API call, so we can't create a multiple output for it
         upload_urls, upload_ids = await async_register_and_create_signed_upload_url(
             ClientCore(self.client.config),
-            wf_team.slug,
+            team_slug,
             wf_dataset.name,
             items_and_paths,
         )
 
         assert len(upload_urls) == len(items_and_paths), "Upload info and items and paths should be the same length"
 
-        return [
-            self._upload_updateable(upload_url, upload_id, file.absolute())
+        updateables = [
+            self._upload_updateable(team_slug, upload_url, upload_id, file.absolute(), auto_push)()
             for upload_url, upload_id, file in zip(upload_urls, upload_ids, file_paths)
         ]
 
-        # if auto_push:
-        #     self.push_from_dataset_stage()
-        # return self
+        # Non blocking poller to push to next stage on completion of all.
+        if auto_push:
+            loop = asyncio.get_event_loop()
+            task = loop.create_task(self._upload_on_complete_actions(updateables, auto_push, callback))
 
-    async def _upload_updateable(
-        self, upload_url: str, upload_id: str, file: Path
-    ) -> AsyncGenerator[FileToStatus, None]:
+            return updateables, task
+
+        return updateables, None
+
+    async def _upload_on_complete_actions(
+        self,
+        items: List[Generator[FileToStatus, None, None]],
+        auto_push: bool,
+        callback: Optional[Callable[[List[FileToStatus]], None]] = None,
+    ) -> None:
+        """
+        (internal) Polls the upload status of a list of files and performs actions on completion
+
+        Arguments
+        ---------
+        items: List[Generator[FileToStatus, None, None]]
+            The files to poll
+        auto_push: bool
+            Whether to automatically push the files to the next stage
+        callback: Optional[Callable[[List[FileToStatus]], None]]
+            A callback to run on completion
+
+        Returns
+        -------
+        None
+        """
+        MAX_ITERATIONS = 100
+        iteration_count = 0
+
+        if not auto_push and not callback:
+            return
+
+        while True and iteration_count <= MAX_ITERATIONS:
+            if all(next(item).status == UploadStatus.UPLOADED for item in items):
+                if auto_push:
+                    self.push_from_dataset_stage()
+
+                if callback:
+                    outputs = [next(item) for item in items]
+                    callback(outputs)
+
+                break
+            iteration_count += 1
+            await asyncio.sleep(1)
+
+    def _upload_updateable(  # noqa: C901
+        self, team_slug: str, upload_url: str, upload_id: str, file: Path, auto_push: bool
+    ) -> Callable[..., Generator[FileToStatus, None, None]]:
         """
         Uploads a file to a signed URL
 
@@ -272,39 +319,53 @@ class Workflow(MetaBase[WorkflowCore]):
         Generator
             A generator that will update the upload status
         """
-        file_status = FileToStatus(file, upload_id, UploadStatus.PENDING)
 
-        # If file doesn't exist, we can never upload it, so always return FILE_DOES_NOT_EXIST
-        if not file.exists():
-            file_status.status = UploadStatus.FILE_DOES_NOT_EXIST
-            while True:
-                yield file_status
+        def updateable() -> Generator[FileToStatus, None, None]:  # noqa: C901
+            loop = asyncio.get_event_loop()
+            file_status = FileToStatus(file, upload_id, UploadStatus.PENDING)
 
-        # Perform the upload
-        response = await self._upload_file_to_signed_url(upload_url, file)
-        if response.status != 200:
-            file_status.status = UploadStatus.FAILED
-            while True:
-                yield file_status
+            # If file doesn't exist, we can never upload it, so always return FILE_DOES_NOT_EXIST
+            if not file.exists():
+                file_status.status = UploadStatus.FILE_DOES_NOT_EXIST
+                while True:
+                    yield file_status
 
-        # Status not UPLOADED until we have run the confirm_upload
-        yield file_status
+            # Perform the upload
+            response = loop.run_until_complete(self._upload_file_to_signed_url(upload_url, file))
+            if response.status != 200:
+                file_status.status = UploadStatus.FAILED
+                while True:
+                    yield file_status
 
-        try:
-            client = ClientCore(self.client.config)
-            confirm_upload(
-                client,
-                self.client.config.default_team,  # TODO Figure this out,
-                upload_id,
-            )
-        except requests.exceptions.HTTPError as exc:
-            if exc.response and exc.response.status_code == 404:
-                file_status.status = UploadStatus.PENDING
-            else:
-                raise exc
+            start_time = time.time()
+            THREE_MINUTES = 60 * 3
+            while time.time() - start_time < THREE_MINUTES:
+                try:
+                    client = ClientCore(self.client.config)
+                    loop.run_until_complete(
+                        async_confirm_upload(
+                            client,
+                            team_slug,
+                            upload_id,
+                        )
+                    )
+                except UploadPending:
+                    continue
+                except UploadFailed:
+                    file_status.status = UploadStatus.FAILED
+                    break
+                else:
+                    file_status.status = UploadStatus.FAILED
+                    break
 
-        file_status.status = UploadStatus.UPLOADED
-        yield file_status
+            if file_status.status == UploadStatus.FAILED:
+                while True:
+                    yield file_status
+
+            file_status.status = UploadStatus.UPLOADED
+            yield file_status
+
+        return updateable
 
     @classmethod
     async def _prepare_upload_items(

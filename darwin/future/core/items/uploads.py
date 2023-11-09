@@ -8,7 +8,7 @@ import aiohttp
 from darwin.future.core.client import ClientCore
 from darwin.future.data_objects.item import UploadItem
 from darwin.future.data_objects.typing import UnknownType
-from darwin.future.exceptions import DarwinException
+from darwin.future.exceptions import DarwinException, UploadFailed, UploadPending
 
 logger = getLogger(__name__)
 
@@ -337,13 +337,13 @@ async def async_confirm_upload(api_client: ClientCore, team_slug: str, upload_id
         response = api_client.post(f"/v2/teams/{team_slug}/items/uploads/{upload_id}/confirm", data={})
     except Exception as exc:
         logger.error(f"Failed to confirm upload in {__name__}", exc_info=exc)
-        raise DarwinException(f"Failed to confirm upload in {__name__}") from exc
+        raise UploadPending(f"Failed to confirm upload in {__name__}") from exc
 
     assert isinstance(response, dict), "Unexpected return type from confirm upload"
 
     if "errors" in response:
         logger.error(f"Failed to confirm upload in {__name__}, got errors: {response['errors']}")
-        raise DarwinException(f"Failed to confirm upload in {__name__}: {str(response['errors'])}")
+        raise UploadFailed(f"Failed to confirm upload in {__name__}: {str(response['errors'])}")
 
 
 def register_upload(
