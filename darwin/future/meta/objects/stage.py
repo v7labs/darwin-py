@@ -7,6 +7,7 @@ from uuid import UUID
 from darwin.future.core.items import get_item, move_items_to_stage
 from darwin.future.core.types.query import QueryFilter
 from darwin.future.data_objects.workflow import WFEdgeCore, WFStageCore
+from darwin.future.exceptions import MaxRetriesError
 from darwin.future.meta.objects.base import MetaBase
 from darwin.future.meta.queries.item_id import ItemIDQuery
 
@@ -83,16 +84,28 @@ class Stage(MetaBase[WFStageCore]):
         )
         ids = [x.id for x in self.item_ids.collect_all()]
 
+        def all_items_complete(item_ids: list[UUID]) -> bool:
+            for item_id in item_ids:
+                if get_item(self.client, slug, item_id).processing_status != "complete":
+                    return False
+            return True
+
         if wait:
-            while True:
-                for _id in ids:
-                    if get_item(self.client, slug, _id).processing_status != "complete":
-                        # wait for 0.5 seconds before checking again
-                        time.sleep(0.5)
-                        break
-                else:
-                    # All items are complete, break the while loop
+            max_attempts = 5
+            wait_time = 0.5  # seconds
+
+            # Try to check if all items are complete for a maximum number of attempts
+            for attempt in range(1, max_attempts + 1):
+                complete = all_items_complete(item_ids=ids)
+                if complete:
                     break
+                else:
+                    # The wait time increases with each attempt
+                    time.sleep(wait_time * attempt)
+            else:
+                raise MaxRetriesError(
+                    "Max retry attempts to check for Item(s) to complete processing"
+                )
 
         move_items_to_stage(self.client, slug, w_id, d_id, new_stage_id, ids)
         return self
