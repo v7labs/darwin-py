@@ -1,11 +1,11 @@
 import responses
 from pydantic import ValidationError
 from pytest import raises
-from requests import HTTPError
 
 from darwin.future.core.client import ClientCore
 from darwin.future.core.datasets import get_dataset
 from darwin.future.data_objects.dataset import DatasetCore
+from darwin.future.exceptions import BadRequest
 from darwin.future.tests.core.fixtures import *
 
 from .fixtures import *
@@ -34,7 +34,7 @@ def test_it_raises_an_error_on_http_error(base_client: ClientCore) -> None:
             json={},
             status=400,
         )
-        with raises(HTTPError):
+        with raises(BadRequest):
             get_dataset(base_client, "test-dataset")
             get_dataset(base_client, "test-dataset")
 
