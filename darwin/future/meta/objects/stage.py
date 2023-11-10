@@ -74,8 +74,10 @@ class Stage(MetaBase[WFStageCore]):
             self.meta_params["workflow_id"],
             self.meta_params["dataset_id"],
         )
-        ids = [x.id for x in self.item_ids.collect_all()]
-        move_items_to_stage(self.client, slug, w_id, d_id, new_stage_id, ids)
+        ids = [str(x.id) for x in self.item_ids.collect_all()]
+        move_items_to_stage(
+            self.client, slug, w_id, d_id, new_stage_id, {"item_ids": ids}
+        )
         return self
 
     @property
