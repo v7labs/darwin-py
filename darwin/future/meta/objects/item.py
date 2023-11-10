@@ -12,7 +12,7 @@ class Item(MetaBase[ItemCore]):
     def delete(self) -> None:
         team_slug, dataset_id = (
             self.meta_params["team_slug"],
-            self.meta_params["dataset_id"],
+            self.meta_params["dataset_id"] if "dataset_id" in self.meta_params else self.meta_params["dataset_ids"],
         )
         assert isinstance(team_slug, str)
         assert isinstance(dataset_id, (int, list, str))

@@ -15,7 +15,7 @@ def validate_no_slashes(v: UnknownType) -> str:
     assert isinstance(v, str), "Must be a string"
     assert len(v) > 0, "cannot be empty"
     assert "/" not in v, "cannot contain slashes"
-    assert " " not in v, "cannot contain spaces"
+    # assert " " not in v, "cannot contain spaces"
 
     return v
 
@@ -75,7 +75,7 @@ class ItemSlot(DefaultDarwin):
         elif isinstance(value, (int, float)):
             type = values.get("type")
             if type == "image":
-                assert value == 0, "fps must be 0 for images"
+                assert value == 0 or value == 1.0, "fps must be '0' or '1.0' for images"
             else:
                 assert value >= 0, "fps must be greater than or equal to 0 for videos"
 
