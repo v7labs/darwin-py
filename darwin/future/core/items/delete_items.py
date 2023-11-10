@@ -37,7 +37,9 @@ def delete_list_of_items(
     """
     payload = {
         "filters": {
-            "dataset_ids": dataset_ids if isinstance(dataset_ids, list) else [dataset_ids],
+            "dataset_ids": [str(item) for item in dataset_ids]
+            if isinstance(dataset_ids, list)
+            else [str(dataset_ids)],
             "item_ids": [str(item_id) for item_id in item_ids],
             **filters,
         }
