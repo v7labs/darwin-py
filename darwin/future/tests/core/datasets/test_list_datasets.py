@@ -2,11 +2,11 @@ from typing import List
 
 import pytest
 import responses
-from requests.exceptions import HTTPError
 
 from darwin.future.core.client import ClientCore
 from darwin.future.core.datasets import list_datasets
 from darwin.future.data_objects.dataset import DatasetCore
+from darwin.future.exceptions import BadRequest
 from darwin.future.tests.core.fixtures import *
 
 from .fixtures import *
@@ -42,7 +42,7 @@ def test_it_returns_an_error_if_the_client_returns_an_http_error(
             json={},
             status=400,
         )
-        with pytest.raises(HTTPError) as execinfo:
+        with pytest.raises(BadRequest) as execinfo:
             list_datasets(base_client)
 
-        assert execinfo.value.response.status_code == 400  # type: ignore
+        assert execinfo.value.args[0].status_code == 400 

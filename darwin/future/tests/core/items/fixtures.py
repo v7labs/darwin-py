@@ -3,7 +3,14 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from darwin.future.data_objects.item import Folder, Item
+from darwin.future.data_objects.item import Folder, Item, ItemLayout
+
+
+@pytest.fixture
+def base_layout() -> ItemLayout:
+    return ItemLayout(
+        slots=["slot1", "slot2"], type="grid", layout_shape=[2, 1], version=2
+    )
 
 
 @pytest.fixture
