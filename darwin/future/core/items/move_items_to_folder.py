@@ -45,6 +45,7 @@ def move_list_of_items_to_folder(
             else [dataset_ids],
             **filters,
         }
+        "path": path,
     }
 
     return client.post(f"/v2/teams/{team_slug}/items/path", data=payload)
