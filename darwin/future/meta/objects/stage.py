@@ -127,7 +127,7 @@ class Stage(MetaBase[WFStageCore]):
             self.check_all_items_complete(
                 slug=slug,
                 item_ids=ids,
-                max_attempts=wait_max_attempts,
+                wait_max_attempts=wait_max_attempts,
                 wait_time=wait_time,
             )
 

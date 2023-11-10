@@ -145,7 +145,9 @@ def test_move_attached_files_to_stage_wait(
                 },
                 status=200,
             )
-        stage_meta.move_attached_files_to_stage(stage_meta.id, wait=True)
+        stage_meta.move_attached_files_to_stage(
+            stage_meta.id, wait=True, wait_max_attempts=5, wait_time=0.5
+        )
 
 
 def test_get_stage_id(stage_meta: Stage) -> None:
