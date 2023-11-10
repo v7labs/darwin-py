@@ -27,7 +27,7 @@ def move_items_to_stage(
         The slug of the team to move items for.
     workflow_id: UUID
         The id of the workflow to move items for.
-    dataset_ids: (int | List[int])
+    dataset_ids: int | List[int]
         The ID(s) of the dataset(s) containing the items.
     stage_id: UUID
         The id of the workflow to move items for.
