@@ -78,7 +78,9 @@ class Workflow(MetaBase[WorkflowCore]):
     def name(self) -> str:
         return self._element.name
 
-    def push_from_dataset_stage(self, wait: bool = True) -> Workflow:
+    def push_from_dataset_stage(
+        self, wait: bool = True, wait_max_attempts: int = 5, wait_time: float = 0.5
+    ) -> Workflow:
         assert self._element.dataset is not None
         stages = self.stages
         assert len(stages) > 1
@@ -87,7 +89,9 @@ class Workflow(MetaBase[WorkflowCore]):
         assert ds_stage._element.type == WFTypeCore.DATASET
         next_stage = ds_stage._element.edges[0].target_stage_id
         assert next_stage is not None
-        ds_stage.move_attached_files_to_stage(next_stage, wait)
+        ds_stage.move_attached_files_to_stage(
+            next_stage, wait, wait_max_attempts, wait_time
+        )
 
         return self
 
@@ -103,6 +107,8 @@ class Workflow(MetaBase[WorkflowCore]):
         verbose: bool = False,
         auto_push: bool = True,
         wait: bool = True,
+        wait_max_attempts: int = 5,
+        wait_time: float = 0.5,
     ) -> Workflow:
         assert self._element.dataset is not None
         upload_data(
@@ -117,7 +123,9 @@ class Workflow(MetaBase[WorkflowCore]):
             verbose,
         )
         if auto_push:
-            self.push_from_dataset_stage(wait=wait)
+            self.push_from_dataset_stage(
+                wait=wait, wait_max_attempts=wait_max_attempts, wait_time=wait_time
+            )
         return self
 
     def __str__(self) -> str:

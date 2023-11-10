@@ -61,8 +61,47 @@ class Stage(MetaBase[WFStageCore]):
             ],
         )
 
+    def check_all_items_complete(
+        self,
+        slug: str,
+        item_ids: list[UUID],
+        wait_max_attempts: int = 5,
+        wait_time: float = 0.5,
+    ) -> bool:
+        """
+        Checks if all items are complete. If not, waits and tries again. Raises error if max attempts reached.
+
+        Args:
+            slug (str): Team slug
+            item_ids (list[UUID]): List of item ids
+            max_attempts (int, optional): Max number of attempts. Defaults to 5.
+            wait_time (float, optional): Wait time between attempts. Defaults to 0.5.
+        """
+        completed = []
+        for attempt in range(1, wait_max_attempts + 1):
+            # check if all items are complete
+            for item_id in item_ids:
+                if get_item(self.client, slug, item_id).processing_status != "complete":
+                    # if not complete, wait and try again with the in-complete items
+                    time.sleep(wait_time * attempt)
+                    item_ids = [i for i in item_ids if i not in completed]
+                    break
+                completed.append(item_id)
+            else:
+                # if all items are complete, return.
+                return True
+        else:
+            # if max attempts reached, raise error
+            raise MaxRetriesError(
+                f"Max attempts reached. {len(completed)} items completed out of {len(item_ids)} items."
+            )
+
     def move_attached_files_to_stage(
-        self, new_stage_id: UUID, wait: bool = True
+        self,
+        new_stage_id: UUID,
+        wait: bool = True,
+        wait_max_attempts: int = 5,
+        wait_time: float = 0.5,
     ) -> Stage:
         """
         Args:
@@ -84,28 +123,13 @@ class Stage(MetaBase[WFStageCore]):
         )
         ids = [x.id for x in self.item_ids.collect_all()]
 
-        def all_items_complete(item_ids: list[UUID]) -> bool:
-            for item_id in item_ids:
-                if get_item(self.client, slug, item_id).processing_status != "complete":
-                    return False
-            return True
-
         if wait:
-            max_attempts = 5
-            wait_time = 0.5  # seconds
-
-            # Try to check if all items are complete for a maximum number of attempts
-            for attempt in range(1, max_attempts + 1):
-                complete = all_items_complete(item_ids=ids)
-                if complete:
-                    break
-                else:
-                    # The wait time increases with each attempt
-                    time.sleep(wait_time * attempt)
-            else:
-                raise MaxRetriesError(
-                    "Max retry attempts to check for Item(s) to complete processing"
-                )
+            self.check_all_items_complete(
+                slug=slug,
+                item_ids=ids,
+                max_attempts=wait_max_attempts,
+                wait_time=wait_time,
+            )
 
         move_items_to_stage(self.client, slug, w_id, d_id, new_stage_id, ids)
         return self
