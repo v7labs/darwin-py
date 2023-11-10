@@ -22,7 +22,7 @@ def archive_list_of_items(
         The client to use for the request.
     team_slug: str
         The slug of the team containing the items.
-    dataset_ids: (int | List[int])
+    dataset_ids: int | List[int]
         The ID(s) of the dataset(s) containing the items.
     filters: Dict[str, UnknownType]
         Filter parameters.
