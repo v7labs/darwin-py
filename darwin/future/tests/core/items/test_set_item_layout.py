@@ -2,7 +2,6 @@ from typing import Dict
 
 import pytest
 import responses
-from requests import HTTPError
 
 from darwin.future.core.client import ClientCore
 from darwin.future.core.items.set_item_layout import set_item_layout
