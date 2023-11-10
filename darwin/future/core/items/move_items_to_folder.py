@@ -23,7 +23,7 @@ def move_list_of_items_to_folder(
         The client to use for the request.
     team_slug: str
         The slug of the team containing the items.
-    dataset_ids: (int | List[int])
+    dataset_ids: int | List[int]
         The ID(s) of the dataset(s) containing the items.
     path: str
         The path to the folder to move the items to.
