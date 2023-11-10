@@ -7,6 +7,7 @@ from darwin.future.core.items import move_items_to_stage
 from darwin.future.core.types.query import QueryFilter
 from darwin.future.data_objects.workflow import WFEdgeCore, WFStageCore
 from darwin.future.meta.objects.base import MetaBase
+from darwin.future.meta.queries.item import ItemQuery
 from darwin.future.meta.queries.item_id import ItemIDQuery
 
 
@@ -42,6 +43,22 @@ class Stage(MetaBase[WFStageCore]):
         new_stage = stage.edges[1]
         stage.move_attached_files_to_stage(new_stage_id=new_stage.id)
     """
+
+    @property
+    def items(self) -> ItemQuery:
+        """Item ids attached to the stage
+
+        Returns:
+            List[Item]: List of item ids
+        """
+        assert self._element.id is not None
+        return ItemQuery(
+            self.client,
+            meta_params=self.meta_params,
+            filters=[
+                QueryFilter(name="workflow_stage_ids", param=str(self._element.id))
+            ],
+        )
 
     @property
     def item_ids(self) -> ItemIDQuery:
