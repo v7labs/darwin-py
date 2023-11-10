@@ -69,14 +69,19 @@ class Stage(MetaBase[WFStageCore]):
         assert self.meta_params["dataset_id"] is not None and isinstance(
             self.meta_params["dataset_id"], int
         )
-        slug, w_id, d_id = (
+        team_slug, workflow_id, dataset_id = (
             self.meta_params["team_slug"],
             self.meta_params["workflow_id"],
             self.meta_params["dataset_id"],
         )
         ids = [str(x.id) for x in self.item_ids.collect_all()]
         move_items_to_stage(
-            self.client, slug, w_id, d_id, new_stage_id, {"item_ids": ids}
+            self.client,
+            team_slug,
+            workflow_id,
+            dataset_id,
+            new_stage_id,
+            {"item_ids": ids}
         )
         return self
 
