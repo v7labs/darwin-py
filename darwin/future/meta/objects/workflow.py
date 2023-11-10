@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import asyncio
+import copy
 import logging
 import time
+from concurrent.futures import ThreadPoolExecutor
 from enum import Enum, auto
 from pathlib import Path, PosixPath
+from threading import Thread
 from typing import Callable, Generator, List, Literal, Optional, Sequence, Tuple, Union
 from uuid import UUID
 
@@ -187,7 +190,7 @@ class Workflow(MetaBase[WorkflowCore]):
         preserve_folders: bool = False,
         auto_push: bool = True,  # TODO: Work out how to do this
         callback: Optional[Callable[[List[FileToStatus]], None]] = None,
-    ) -> Tuple[List[Generator[FileToStatus, None, None]], Optional[asyncio.Task]]:
+    ) -> Tuple[List[Generator[FileToStatus, None, None]], Optional[asyncio.Future]]:
         """
         Uploads files to a dataset and optionally starts the workflow
 
@@ -253,9 +256,7 @@ class Workflow(MetaBase[WorkflowCore]):
 
         # Non blocking poller to push to next stage on completion of all.
         if auto_push:
-            loop = asyncio.get_event_loop()
-            task = loop.create_task(self._upload_on_complete_actions(updateables, auto_push, callback))
-
+            task = asyncio.create_task(self._upload_on_complete_actions(updateables, auto_push, callback))
             return updateables, task
 
         return updateables, None
@@ -301,7 +302,7 @@ class Workflow(MetaBase[WorkflowCore]):
             iteration_count += 1
             await asyncio.sleep(1)
 
-    def _upload_updateable(  # noqa: C901
+    def _upload_updateable(
         self, team_slug: str, upload_url: str, upload_id: str, file: Path, auto_push: bool
     ) -> Callable[..., Generator[FileToStatus, None, None]]:
         """
@@ -319,8 +320,10 @@ class Workflow(MetaBase[WorkflowCore]):
         Generator
             A generator that will update the upload status
         """
+        # Partials need to use a method from self without sharing reference in memory
+        cached_self = copy.deepcopy(self)
 
-        def updateable() -> Generator[FileToStatus, None, None]:  # noqa: C901
+        def updateable() -> Generator[FileToStatus, None, None]:
             loop = asyncio.get_event_loop()
             file_status = FileToStatus(file, upload_id, UploadStatus.PENDING)
 
@@ -337,26 +340,7 @@ class Workflow(MetaBase[WorkflowCore]):
                 while True:
                     yield file_status
 
-            start_time = time.time()
-            THREE_MINUTES = 60 * 3
-            while time.time() - start_time < THREE_MINUTES:
-                try:
-                    client = ClientCore(self.client.config)
-                    loop.run_until_complete(
-                        async_confirm_upload(
-                            client,
-                            team_slug,
-                            upload_id,
-                        )
-                    )
-                except UploadPending:
-                    continue
-                except UploadFailed:
-                    file_status.status = UploadStatus.FAILED
-                    break
-                else:
-                    file_status.status = UploadStatus.FAILED
-                    break
+            file_status.status = cached_self._updateable_wait(cached_self, loop, team_slug, upload_id, file_status)
 
             if file_status.status == UploadStatus.FAILED:
                 while True:
@@ -366,6 +350,42 @@ class Workflow(MetaBase[WorkflowCore]):
             yield file_status
 
         return updateable
+
+    @classmethod
+    def _updateable_wait(
+        cls,
+        self: Workflow,
+        loop: asyncio.AbstractEventLoop,
+        team_slug: str,
+        upload_id: str,
+        file_status: FileToStatus,
+    ) -> UploadStatus:
+        start_time = loop.time()
+        THREE_MINUTES = 60 * 3
+
+        while loop.time() - start_time < THREE_MINUTES:
+            try:
+                client = ClientCore(self.client.config)
+                loop.run_until_complete(
+                    async_confirm_upload(
+                        client,
+                        team_slug,
+                        upload_id,
+                    )
+                )
+            except UploadPending:
+                continue
+            except UploadFailed:
+                file_status.status = UploadStatus.FAILED
+                break
+            except Exception as exc:
+                logger.error(f"Error while uploading file {file_status.file} to {upload_id}", exc_info=exc)
+                file_status.status = UploadStatus.FAILED
+                break
+            else:
+                loop.run_until_complete(asyncio.sleep(0.3))
+
+        return file_status.status
 
     @classmethod
     async def _prepare_upload_items(
