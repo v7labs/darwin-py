@@ -8,6 +8,7 @@ from darwin.future.core.client import ClientCore
 from darwin.future.core.items.set_item_layout import set_item_layout
 from darwin.future.data_objects.item import ItemLayout
 from darwin.future.data_objects.typing import UnknownType
+from darwin.future.exceptions import BadRequest
 from darwin.future.tests.core.fixtures import *
 from darwin.future.tests.core.items.fixtures import *
 
@@ -58,7 +59,7 @@ def test_set_item_layout_raises_on_4xx_status_code(
         status=400,
     )
 
-    with pytest.raises(HTTPError):
+    with pytest.raises(BadRequest):
         set_item_layout(base_client, team_slug, dataset_ids, base_layout, params)
 
 
