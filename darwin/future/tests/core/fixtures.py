@@ -1,11 +1,13 @@
 from pathlib import Path
 from typing import List
+from uuid import uuid4
 
 import orjson as json
 import pytest
 
 from darwin.future.core.client import ClientCore, DarwinConfig
 from darwin.future.data_objects.dataset import DatasetCore
+from darwin.future.data_objects.item import ItemCore, ItemLayout, ItemSlot
 from darwin.future.data_objects.team import TeamCore, TeamMemberCore
 from darwin.future.data_objects.team_member_role import TeamMemberRole
 
@@ -23,6 +25,35 @@ def base_config() -> DarwinConfig:
 
 
 @pytest.fixture
+def items_json(item_core_list: List[ItemCore]) -> List[dict]:
+    items: List[dict] = []
+    for item in item_core_list:
+        temp = dict(item)
+        temp["id"] = str(temp["id"])
+        temp["slots"] = [dict(slot) for slot in temp["slots"]]
+        temp["layout"] = dict(temp["layout"])
+        items.append(temp)
+    return items
+
+
+@pytest.fixture
+def item_core_list() -> List[ItemCore]:
+    items = []
+    for i in range(5):
+        slot = ItemSlot(slot_name=f"slot_{i}", file_name=f"file_{i}.jpg")
+        layout = ItemLayout(slots=[f"slot_{i}"], type="grid", version=1)
+        item = ItemCore(
+            name=f"item_{i}",
+            id=uuid4(),
+            slots=[slot],
+            dataset_id=i,
+            processing_status="processed",
+            layout=layout,
+        )
+        items.append(item)
+    return items
+
+@pytest.fixture
 def base_client(base_config: DarwinConfig) -> ClientCore:
     return ClientCore(base_config)
 
@@ -36,6 +67,34 @@ def base_team_json() -> dict:
 def base_team(base_team_json: dict) -> TeamCore:
     return TeamCore.parse_obj(base_team_json)
 
+
+@pytest.fixture
+def base_item_json() -> dict:
+    return {
+            "name": "test-item",
+            "id": "123e4567-e89b-12d3-a456-426655440000",
+            "slots": [
+                {
+                    "slot_name": "slot1",
+                    "file_name": "file1.jpg",
+                    "fps": 30
+                },
+                {
+                    "slot_name": "slot2",
+                    "file_name": "file2.jpg",
+                    "fps": 24
+                }
+            ],
+            "path": "/",
+            "archived": False,
+            "priority": None,
+            "tags": [],
+            "layout": None
+        }
+    
+@pytest.fixture
+def base_item(base_item_json: dict) -> ItemCore:
+    return ItemCore.parse_obj(base_item_json)
 
 @pytest.fixture
 def base_team_member_json() -> dict:
