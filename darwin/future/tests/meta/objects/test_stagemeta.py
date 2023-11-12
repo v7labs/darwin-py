@@ -168,7 +168,6 @@ def test_stage_repr_method(stage_meta: Stage) -> None:
     assert repr(stage_meta) == str(stage_meta)
 
 
-
 def test_has_item_properties(stage_meta: Stage) -> None:
     assert isinstance(stage_meta.items, ItemQuery)
     assert isinstance(stage_meta.item_ids, ItemIDQuery)
@@ -176,4 +175,3 @@ def test_has_item_properties(stage_meta: Stage) -> None:
     assert isinstance(stage_meta.name, str)
     assert isinstance(stage_meta.type, str)
     assert isinstance(stage_meta.edges, list)
-    

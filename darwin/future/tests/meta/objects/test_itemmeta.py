@@ -1,6 +1,5 @@
 from uuid import UUID
 
-import pytest
 import responses
 from responses import json_params_matcher
 
@@ -21,18 +20,16 @@ def test_item_properties(item: Item) -> None:
     assert isinstance(item.archived, (bool, type(None)))
     assert isinstance(item.priority, (int, type(None)))
     assert isinstance(item.tags, (list, dict, type(None)))
-    assert isinstance(item.layout, (ItemLayout, type(None)))    
+    assert isinstance(item.layout, (ItemLayout, type(None)))
 
-    
+
 def test_delete(item: Item) -> None:
     with responses.RequestsMock() as rsps:
         team_slug = item.meta_params["team_slug"]
         dataset_id = item.meta_params["dataset_id"]
         rsps.add(
             rsps.DELETE,
-            
-            item.client.config.api_endpoint
-            + f"v2/teams/{team_slug}/items",
+            item.client.config.api_endpoint + f"v2/teams/{team_slug}/items",
             status=200,
             match=[
                 json_params_matcher(
@@ -47,4 +44,3 @@ def test_delete(item: Item) -> None:
             json={},
         )
         item.delete()
-                

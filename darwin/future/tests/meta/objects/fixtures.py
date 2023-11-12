@@ -27,6 +27,7 @@ def items(base_client: ClientCore, item_core_list: List[ItemCore]) -> List[Item]
         for item in item_core_list
     ]
 
+
 @fixture
 def item(items: List[Item]) -> Item:
     return items[0]

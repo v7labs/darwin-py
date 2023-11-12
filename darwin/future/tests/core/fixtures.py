@@ -53,6 +53,7 @@ def item_core_list() -> List[ItemCore]:
         items.append(item)
     return items
 
+
 @pytest.fixture
 def base_client(base_config: DarwinConfig) -> ClientCore:
     return ClientCore(base_config)
@@ -71,30 +72,24 @@ def base_team(base_team_json: dict) -> TeamCore:
 @pytest.fixture
 def base_item_json() -> dict:
     return {
-            "name": "test-item",
-            "id": "123e4567-e89b-12d3-a456-426655440000",
-            "slots": [
-                {
-                    "slot_name": "slot1",
-                    "file_name": "file1.jpg",
-                    "fps": 30
-                },
-                {
-                    "slot_name": "slot2",
-                    "file_name": "file2.jpg",
-                    "fps": 24
-                }
-            ],
-            "path": "/",
-            "archived": False,
-            "priority": None,
-            "tags": [],
-            "layout": None
-        }
-    
+        "name": "test-item",
+        "id": "123e4567-e89b-12d3-a456-426655440000",
+        "slots": [
+            {"slot_name": "slot1", "file_name": "file1.jpg", "fps": 30},
+            {"slot_name": "slot2", "file_name": "file2.jpg", "fps": 24},
+        ],
+        "path": "/",
+        "archived": False,
+        "priority": None,
+        "tags": [],
+        "layout": None,
+    }
+
+
 @pytest.fixture
 def base_item(base_item_json: dict) -> ItemCore:
     return ItemCore.parse_obj(base_item_json)
+
 
 @pytest.fixture
 def base_team_member_json() -> dict:

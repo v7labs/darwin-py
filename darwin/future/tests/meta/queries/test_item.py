@@ -1,5 +1,4 @@
 from typing import List
-from uuid import uuid4
 
 import pytest
 import responses
@@ -38,7 +37,10 @@ def test_item_query_collect(item_query: ItemQuery, items_json: List[dict]) -> No
             assert items[i].name == f"item_{i}"
             assert items[i].name == f"item_{i}"
 
-def test_delete(item_query: ItemQuery, items_json: List[dict], items: List[Item]) -> None:
+
+def test_delete(
+    item_query: ItemQuery, items_json: List[dict], items: List[Item]
+) -> None:
     with responses.RequestsMock() as rsps:
         rsps.add(
             rsps.GET,
@@ -54,9 +56,7 @@ def test_delete(item_query: ItemQuery, items_json: List[dict], items: List[Item]
         dataset_id = items[0].meta_params["dataset_id"]
         rsps.add(
             rsps.DELETE,
-            
-            items[0].client.config.api_endpoint
-            + f"v2/teams/{team_slug}/items",
+            items[0].client.config.api_endpoint + f"v2/teams/{team_slug}/items",
             status=200,
             match=[
                 json_params_matcher(
