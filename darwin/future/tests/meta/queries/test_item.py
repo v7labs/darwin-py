@@ -35,7 +35,6 @@ def test_item_query_collect(item_query: ItemQuery, items_json: List[dict]) -> No
         assert len(items) == 5
         for i in range(5):
             assert items[i].name == f"item_{i}"
-            assert items[i].name == f"item_{i}"
 
 
 def test_delete(
