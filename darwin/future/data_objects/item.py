@@ -15,7 +15,6 @@ def validate_no_slashes(v: UnknownType) -> str:
     assert isinstance(v, str), "Must be a string"
     assert len(v) > 0, "cannot be empty"
     assert "/" not in v, "cannot contain slashes"
-    # assert " " not in v, "cannot contain spaces"
 
     return v
 
