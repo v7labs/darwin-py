@@ -70,3 +70,40 @@ def test_delete(
             json={},
         )
         item_query.delete()
+
+
+def test_move_tofolderS(
+    item_query: ItemQuery, items_json: List[dict], items: List[Item]
+) -> None:
+    with responses.RequestsMock() as rsps:
+        rsps.add(
+            rsps.GET,
+            item_query.client.config.api_endpoint + "v2/teams/test/items",
+            match=[
+                query_param_matcher(
+                    {"page[offset]": "0", "page[size]": "500", "dataset_ids": "1"}
+                )
+            ],
+            json={"items": items_json, "errors": []},
+        )
+        team_slug = items[0].meta_params["team_slug"]
+        dataset_id = items[0].meta_params["dataset_id"]
+        path = "/new_folder"
+        rsps.add(
+            rsps.POST,
+            items[0].client.config.api_endpoint + f"v2/teams/{team_slug}/items/path",
+            status=200,
+            match=[
+                json_params_matcher(
+                    {
+                        "filters": {
+                            "item_ids": [str(item.id) for item in items],
+                            "dataset_ids": [dataset_id],
+                        },
+                        "path": path,
+                    }
+                )
+            ],
+            json={},
+        )
+        item_query.move_to_folder(path)
