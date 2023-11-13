@@ -1,11 +1,12 @@
 from typing import List
 
+import pytest
 import responses
-from requests.exceptions import HTTPError
 
 from darwin.future.core.client import ClientCore
 from darwin.future.core.datasets import list_datasets
 from darwin.future.data_objects.dataset import DatasetCore
+from darwin.future.exceptions import BadRequest
 from darwin.future.tests.core.fixtures import *
 
 from .fixtures import *
@@ -41,10 +42,7 @@ def test_it_returns_an_error_if_the_client_returns_an_http_error(
             json={},
             status=400,
         )
+        with pytest.raises(BadRequest) as execinfo:
+            list_datasets(base_client)
 
-        response, errors = list_datasets(base_client)
-
-        assert len(errors) == 1
-        assert isinstance(error := errors[0], HTTPError)
-        assert error.response.status_code == 400
-        assert not response
+        assert execinfo.value.args[0].status_code == 400 

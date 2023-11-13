@@ -1,5 +1,6 @@
-from typing import Any, Dict, List, Union
+from __future__ import annotations
 
+from typing import Any, Dict, List, Union
 
 from darwin.future.data_objects import validators as darwin_validators
 from darwin.future.data_objects.typing import UnknownType
@@ -8,7 +9,25 @@ JSONType = Union[Dict[str, Any], List[Dict[str, Any]]]  # type: ignore
 
 
 class TeamSlug(str):
-    """Team slug type"""
+    """
+    Represents a team slug, which is a string identifier for a team.
+
+    Attributes:
+    -----------
+    min_length : int
+        The minimum length of a valid team slug.
+    max_length : int
+        The maximum length of a valid team slug.
+
+    Methods:
+    --------
+    __get_validators__() -> generator
+        Returns a generator that yields the validator function for this model.
+    validate(v: str) -> TeamSlug
+        Validates the input string and returns a new TeamSlug object.
+    __repr__() -> str
+        Returns a string representation of the TeamSlug object.
+    """
 
     min_length = 1
     max_length = 256
@@ -35,11 +54,28 @@ class TeamSlug(str):
 
 
 class QueryString:
-    """Query string type"""
+    """
+    Represents a query string, which is a dictionary of string key-value pairs.
+
+    Attributes:
+    -----------
+    value : Dict[str, str]
+        The dictionary of key-value pairs that make up the query string.
+
+    Methods:
+    --------
+    dict_check(value: Any) -> Dict[str, str]
+        Validates that the input value is a dictionary of string key-value pairs.
+        Returns the validated dictionary.
+    __init__(value: Dict[str, str]) -> None
+        Initializes a new QueryString object with the given dictionary of key-value pairs.
+    __str__() -> str
+        Returns a string representation of the QueryString object, in the format "?key1=value1&key2=value2".
+    """
 
     value: Dict[str, str]
 
-    def dict_check(cls, value: UnknownType) -> Dict[str, str]:
+    def dict_check(self, value: UnknownType) -> Dict[str, str]:
         assert isinstance(value, dict)
         assert all(isinstance(k, str) and isinstance(v, str) for k, v in value.items())
         return value
@@ -49,3 +85,6 @@ class QueryString:
 
     def __str__(self) -> str:
         return "?" + "&".join(f"{k}={v}" for k, v in self.value.items())
+
+    def __add__(self, other: QueryString) -> QueryString:
+        return QueryString({**self.value, **other.value})

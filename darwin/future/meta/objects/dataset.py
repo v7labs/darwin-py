@@ -1,27 +1,48 @@
 from __future__ import annotations
 
 from typing import List, Optional, Sequence, Union
-from uuid import UUID
 
 from darwin.cli_functions import upload_data
 from darwin.dataset.upload_manager import LocalFile
 from darwin.datatypes import PathLike
 from darwin.future.core.client import ClientCore
 from darwin.future.core.datasets import create_dataset, remove_dataset
-from darwin.future.core.items import get_item_ids
 from darwin.future.data_objects.dataset import DatasetCore
 from darwin.future.helpers.assertion import assert_is
 from darwin.future.meta.objects.base import MetaBase
+from darwin.future.meta.queries.item_id import ItemIDQuery
 
 
 class Dataset(MetaBase[DatasetCore]):
-    """Dataset Meta object. Facilitates the creation of Query objects, lazy loading of sub fields
+    """
+    Dataset Meta object. Facilitates the management of a dataset, querying of items,
+    uploading data, and other dataset related operations.
 
     Args:
-        MetaBase (Dataset): Generic MetaBase object expanded by Dataset core object return type
+        MetaBase (Dataset): Generic MetaBase object that manages a DatasetCore object
 
     Returns:
         _type_: DatasetMeta
+
+    Attributes:
+        name (str): The name of the dataset.
+        slug (str): The slug of the dataset.
+        id (int): The id of the dataset.
+        item_ids (List[UUID]): A list of item ids for the dataset.
+
+    Example Usage:
+        # Create a new dataset
+        dataset = Dataset.create(client, slug="my_dataset_slug")
+
+        # Upload data to the dataset
+        local_file = LocalFile("path/to/local/file")
+        upload_data(dataset, [local_file])
+
+        # Get the item ids for the dataset
+        item_ids = dataset.item_ids
+
+        # Remove the dataset
+        dataset.remove()
     """
 
     @property
@@ -40,7 +61,7 @@ class Dataset(MetaBase[DatasetCore]):
         return self._element.id
 
     @property
-    def item_ids(self) -> List[UUID]:
+    def item_ids(self) -> ItemIDQuery:
         """Returns a list of item ids for the dataset
 
         Returns:
@@ -50,9 +71,8 @@ class Dataset(MetaBase[DatasetCore]):
         assert self.meta_params["team_slug"] is not None and isinstance(
             self.meta_params["team_slug"], str
         )
-        return get_item_ids(
-            self.client, self.meta_params["team_slug"], str(self._element.id)
-        )
+        meta_params = {"dataset_ids": self.id, **self.meta_params}
+        return ItemIDQuery(self.client, meta_params=meta_params)
 
     @classmethod
     def create_dataset(cls, client: ClientCore, slug: str) -> DatasetCore:
@@ -126,5 +146,23 @@ class Dataset(MetaBase[DatasetCore]):
         preserve_folders: bool = False,
         verbose: bool = False,
     ) -> Dataset:
-        upload_data(self._element.name, files, files_to_exclude, fps, path, frames, extract_views, preserve_folders, verbose)  # type: ignore
+        upload_data(
+            self._element.name,
+            files,  # type: ignore
+            files_to_exclude,
+            fps,
+            path,
+            frames,
+            extract_views,
+            preserve_folders,
+            verbose,
+        )
         return self
+
+    def __str__(self) -> str:
+        releases = self._element.releases
+        return f"Dataset\n\
+- Name: {self._element.name}\n\
+- Dataset Slug: {self._element.slug}\n\
+- Dataset ID: {self._element.id}\n\
+- Dataset Releases: {releases if releases else 'No releases'}"

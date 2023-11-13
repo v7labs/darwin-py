@@ -95,3 +95,18 @@ def test_delete(base_meta_dataset: Dataset, base_config: DarwinConfig) -> None:
         dataset_deleted = base_meta_dataset.delete()
 
         assert dataset_deleted == 1
+
+
+def test_dataset_str_method(base_meta_dataset: Dataset) -> None:
+    assert (
+        base_meta_dataset.__str__()
+        == "Dataset\n\
+- Name: test dataset\n\
+- Dataset Slug: test-dataset\n\
+- Dataset ID: 1\n\
+- Dataset Releases: No releases"
+    )
+
+
+def test_dataset_repr_method(base_meta_dataset: Dataset) -> None:
+    assert base_meta_dataset.__repr__() == str(base_meta_dataset)

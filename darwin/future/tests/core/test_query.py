@@ -90,7 +90,9 @@ def test_query_filter_functionality(
         ("!=", 1, 2, True),
     ],
 )
-def test_query_filter_filters(mod: Optional[str], param: Any, check: Any, expected: bool) -> None:  # type: ignore
+def test_query_filter_filters(  # type: ignore
+    mod: Optional[str], param: Any, check: Any, expected: bool
+) -> None:
     # test str
     if mod:
         modifier = Query.Modifier(mod)
@@ -133,7 +135,7 @@ def test_QF_from_asteriks() -> None:
 
 def test_query_first(non_abc_query: Type[Query.Query], base_client: ClientCore) -> None:
     query = non_abc_query(base_client)
-    query.results = [1, 2, 3]
+    query.results = {0: 1, 1: 2, 2: 3}
     first = query.first()
     assert first == 1
 
@@ -142,9 +144,9 @@ def test_query_collect_one(
     non_abc_query: Type[Query.Query], base_client: ClientCore
 ) -> None:
     query = non_abc_query(base_client)
-    query.results = [1, 2, 3]
+    query.results = {0: 1, 1: 2, 2: 3}
     with pytest.raises(MoreThanOneResultFound):
         query.collect_one()
 
-    query.results = [1]
+    query.results = {0: 1}
     assert query.collect_one() == 1

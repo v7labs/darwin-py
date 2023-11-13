@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple
+from typing import Optional
 
 from pydantic import parse_obj_as
 
@@ -8,16 +8,35 @@ from darwin.future.data_objects.workflow import WorkflowCore
 
 def get_workflow(
     client: ClientCore, workflow_id: str, team_slug: Optional[str] = None
-) -> Tuple[Optional[WorkflowCore], List[Exception]]:
-    workflow: Optional[WorkflowCore] = None
-    exceptions: List[Exception] = []
+) -> WorkflowCore:
+    """
+    Retrieves a workflow by ID from the Darwin API.
 
-    try:
-        team_slug = team_slug or client.config.default_team
-        response = client.get(f"/v2/teams/{team_slug}/workflows/{workflow_id}")
+    Parameters:
+    -----------
+    client : ClientCore
+        The Darwin API client to use for the request.
+    workflow_id : str
+        The ID of the workflow to retrieve.
+    team_slug : Optional[str]
+        The slug of the team that owns the workflow. If not provided, the default team from the client's configuration
+        will be used.
 
-        workflow = parse_obj_as(WorkflowCore, response)
-    except Exception as e:
-        exceptions.append(e)
+    Returns:
+    --------
+    WorkflowCore
+        The retrieved workflow, as a WorkflowCore object.
 
-    return workflow, exceptions
+    Raises:
+    -------
+    HTTPError
+        If the API returns an error response.
+    ValidationError
+        If the API response does not match the expected schema.
+    """
+    team_slug = team_slug or client.config.default_team
+    response = client.get(f"/v2/teams/{team_slug}/workflows/{workflow_id}")
+
+    workflow = parse_obj_as(WorkflowCore, response)
+
+    return workflow

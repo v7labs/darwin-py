@@ -1,9 +1,9 @@
 import responses
 from pytest import raises
-from requests import HTTPError
 
 from darwin.future.core.client import ClientCore
 from darwin.future.core.datasets import remove_dataset
+from darwin.future.exceptions import BadRequest
 from darwin.future.tests.core.fixtures import *
 
 from .fixtures import *
@@ -26,7 +26,7 @@ def test_it_deletes_a_dataset(base_client: ClientCore) -> None:
 
 
 def test_it_throws_http_errors_returned_by_the_client(base_client: ClientCore) -> None:
-    with raises(HTTPError):
+    with raises(BadRequest):
         with responses.RequestsMock() as rsps:
             rsps.add(
                 rsps.PUT,

@@ -12,6 +12,40 @@ from darwin.future.meta.queries.stage import StageQuery
 
 
 class Workflow(MetaBase[WorkflowCore]):
+    """
+    Workflow Meta object. Facilitates the creation of Query objects, lazy loading of
+    sub fields
+
+    Args:
+        MetaBase (Workflow): Generic MetaBase object expanded by Workflow core object
+            return type
+
+    Returns:
+        _type_: Workflow
+
+    Attributes:
+        name (str): The name of the workflow.
+        id (UUID): The id of the workflow
+        datasets (List[Dataset]): A list of datasets associated with the workflow.
+        stages (StageQuery): Queries stages associated with the workflow.
+
+    Methods:
+        push_from_dataset_stage() -> Workflow:
+            moves all items associated with the dataset stage to the next connected stage
+        upload_files(...): -> Workflow:
+            Uploads files to the dataset stage of the workflow
+
+    Example Usage:
+        # Get the workflow object
+        workflow = client.team.workflows.where(name='test').collect_one()
+
+        # Get the stages associated with the workflow
+        stages = workflow.stages
+
+        # Get the datasets associated with the workflow
+        datasets = workflow.datasets
+    """
+
     @property
     def stages(self) -> StageQuery:
         meta_params = self.meta_params.copy()
@@ -59,7 +93,24 @@ class Workflow(MetaBase[WorkflowCore]):
         auto_push: bool = True,
     ) -> Workflow:
         assert self._element.dataset is not None
-        upload_data(self.datasets[0].name, files, files_to_exclude, fps, path, frames, extract_views, preserve_folders, verbose)  # type: ignore
+        upload_data(
+            self.datasets[0].name,
+            files,  # type: ignore
+            files_to_exclude,
+            fps,
+            path,
+            frames,
+            extract_views,
+            preserve_folders,
+            verbose,
+        )
         if auto_push:
             self.push_from_dataset_stage()
         return self
+
+    def __str__(self) -> str:
+        return f"Workflow\n\
+- Workflow Name: {self._element.name}\n\
+- Workflow ID: {self._element.id}\n\
+- Connected Dataset ID: {self.datasets[0].id}\n\
+- Conneted Dataset Name: {self.datasets[0].name}"

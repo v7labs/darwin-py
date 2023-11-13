@@ -50,12 +50,15 @@ def build_image_annotation(annotation_file: dt.AnnotationFile) -> Dict[str, Any]
     print(annotations)
     for annotation in annotation_file.annotations:
         payload = {
-            annotation.annotation_class.annotation_type: _build_annotation_data(annotation),
+            annotation.annotation_class.annotation_type: _build_annotation_data(
+                annotation
+            ),
             "name": annotation.annotation_class.name,
         }
 
         if (
-            annotation.annotation_class.annotation_type == "complex_polygon" or annotation.annotation_class.annotation_type == "polygon"
+            annotation.annotation_class.annotation_type == "complex_polygon"
+            or annotation.annotation_class.annotation_type == "polygon"
         ) and "bounding_box" in annotation.data:
             payload["bounding_box"] = annotation.data["bounding_box"]
 
@@ -83,7 +86,9 @@ def build_annotation_data(annotation: dt.Annotation) -> Dict[str, Any]:
         return {"path": annotation.data["paths"]}
 
     if annotation.annotation_class.annotation_type == "polygon":
-        return dict(filter(lambda item: item[0] != "bounding_box", annotation.data.items()))
+        return dict(
+            filter(lambda item: item[0] != "bounding_box", annotation.data.items())
+        )
 
     return dict(annotation.data)
 
@@ -93,6 +98,8 @@ def _build_annotation_data(annotation: dt.Annotation) -> Dict[str, Any]:
         return {"path": annotation.data["paths"]}
 
     if annotation.annotation_class.annotation_type == "polygon":
-        return dict(filter(lambda item: item[0] != "bounding_box", annotation.data.items()))
+        return dict(
+            filter(lambda item: item[0] != "bounding_box", annotation.data.items())
+        )
 
     return dict(annotation.data)

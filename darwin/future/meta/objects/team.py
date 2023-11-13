@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple, Union
+from typing import Optional, Union
 
 from darwin.future.core.client import ClientCore
 from darwin.future.core.datasets import get_dataset, remove_dataset
@@ -14,22 +14,61 @@ from darwin.future.meta.queries.workflow import WorkflowQuery
 
 
 class Team(MetaBase[TeamCore]):
-    """Team Meta object. Facilitates the creation of Query objects, lazy loading of sub fields like members
-    unlike other MetaBase objects, does not extend the __next__ function because it is not iterable. This is because
-    Team is linked to api key and only one team can be returned, but stores a list of teams for consistency. This
-    does mean however that to access the underlying team object, you must access the first element of the list
+    """
+    Team Meta object. Facilitates the creation of Query objects, lazy loading of sub
+    fields like members unlike other MetaBase objects, does not extend the __next__
+    function because it is not iterable. This is because Team is linked to api key and
+    only one team can be returned, but stores a list of teams for consistency. This
+    does mean however that to access the underlying team object, you must access the
+    first element of the list
     team = client.team[0]
 
     Args:
-        MetaBase (Team): Generic MetaBase object expanded by Team core object return type
+        MetaBase (Team): Generic MetaBase object expanded by Team core object return
+            type
 
     Returns:
-        _type_: TeamMeta
+        Team: Team object
+
+    Attributes:
+        name (str): The name of the team.
+        slug (str): The slug of the team.
+        id (int): The id of the team.
+        members (TeamMemberQuery): A query of team members associated with the team.
+        datasets (DatasetQuery): A query of datasets associated with the team.
+        workflows (WorkflowQuery): A query of workflows associated with the team.
+
+    Methods:
+        create_dataset(slug: str) -> Dataset:
+            Creates a new dataset with the given name and slug.
+        delete_dataset(client: Client, id: int) -> None:
+            Removes the dataset with the given slug.
+
+
+    Example Usage:
+        # Get the team object
+        client = Client.local()
+        team = client.team[0]
+
+        # Get a dataset object associated with the team
+        dataset = team.datasets.where(name="my_dataset_name").collect_one()
+
+        # Create a new dataset associated with the team
+        new_dataset = team.create_dataset(name="new_dataset", slug="new_dataset_slug")
+
+        # Remove a dataset associated with the team
+        team.remove_dataset(slug="my_dataset_slug")
+
+        # Get a workflow object associated with the team
+        workflow = team.workflows.where(name="my_workflow_name").collect_one()
+
+        # Get a team member object associated with the team
+        team_member = team.members.where(email="...")
     """
 
     def __init__(self, client: ClientCore, team: Optional[TeamCore] = None) -> None:
         team = team or get_team(client)
-        super().__init__(client, team)
+        super().__init__(client=client, element=team)
 
     @property
     def name(self) -> str:
@@ -56,13 +95,8 @@ class Team(MetaBase[TeamCore]):
     def workflows(self) -> WorkflowQuery:
         return WorkflowQuery(self.client, meta_params={"team_slug": self.slug})
 
-    def __str__(self) -> str:
-        return f"TeamMeta(name='{self.name}', slug='{self.slug}', id='{self.id}' - {len(self._element.members if self._element.members else [])} members)"
-
     @classmethod
-    def delete_dataset(
-        cls, client: ClientCore, dataset_id: Union[int, str]
-    ) -> Tuple[Optional[List[Exception]], int]:
+    def delete_dataset(cls, client: ClientCore, dataset_id: Union[int, str]) -> int:
         """
         Deletes a dataset by id or slug
 
@@ -76,19 +110,12 @@ class Team(MetaBase[TeamCore]):
         Tuple[Optional[List[Exception]], int]
             A tuple containing a list of exceptions and the number of datasets deleted
         """
-        exceptions = []
-        dataset_deleted = -1
+        if isinstance(dataset_id, str):
+            dataset_deleted = cls._delete_dataset_by_slug(client, dataset_id)
+        else:
+            dataset_deleted = cls._delete_dataset_by_id(client, dataset_id)
 
-        try:
-            if isinstance(dataset_id, str):
-                dataset_deleted = cls._delete_dataset_by_slug(client, dataset_id)
-            else:
-                dataset_deleted = cls._delete_dataset_by_id(client, dataset_id)
-
-        except Exception as e:
-            exceptions.append(e)
-
-        return exceptions or None, dataset_deleted
+        return dataset_deleted
 
     @staticmethod
     def _delete_dataset_by_slug(client: ClientCore, slug: str) -> int:
@@ -145,4 +172,13 @@ class Team(MetaBase[TeamCore]):
 
     def create_dataset(self, slug: str) -> Dataset:
         core = Dataset.create_dataset(self.client, slug)
-        return Dataset(self.client, core, meta_params={"team_slug": self.slug})
+        return Dataset(
+            client=self.client, element=core, meta_params={"team_slug": self.slug}
+        )
+
+    def __str__(self) -> str:
+        return f"Team\n\
+- Team Name: {self._element.name}\n\
+- Team Slug: {self._element.slug}\n\
+- Team ID: {self._element.id}\n\
+- {len(self._element.members if self._element.members else [])} member(s)"

@@ -2,7 +2,6 @@ from pathlib import Path
 
 import pytest
 
-
 test_data_path: Path = Path(__file__).parent / "workflow" / "data"
 valid_stage_json = test_data_path / "stage.json"
 valid_workflow_json = test_data_path / "workflow.json"

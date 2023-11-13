@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Callable, Dict, Optional, overload
+from typing import Callable, Dict, Optional
 from urllib.parse import urlparse
 
 import requests
@@ -10,7 +10,12 @@ from pydantic import BaseModel, root_validator, validator
 from requests.adapters import HTTPAdapter, Retry
 
 from darwin.future.core.types.common import JSONType, QueryString
-from darwin.future.exceptions import NotFound, Unauthorized
+from darwin.future.exceptions import (
+    BadRequest,
+    NotFound,
+    Unauthorized,
+    UnprocessibleEntity,
+)
 
 
 class TeamsConfig(BaseModel):
@@ -135,7 +140,11 @@ class ClientCore:
     team: Team, team to make requests to
     """
 
-    def __init__(self, config: DarwinConfig, retries: Optional[Retry] = None) -> None:
+    def __init__(
+        self,
+        config: DarwinConfig,
+        retries: Optional[Retry] = None,
+    ) -> None:
         self.config = config
         self.session = requests.Session()
         if not retries:
@@ -165,21 +174,6 @@ class ClientCore:
         if self.config.api_key:
             http_headers["Authorization"] = f"ApiKey {self.config.api_key}"
         return http_headers
-
-    @overload
-    def _generic_call(
-        self, method: Callable[[str], requests.Response], endpoint: str
-    ) -> dict:
-        ...
-
-    @overload
-    def _generic_call(
-        self,
-        method: Callable[[str, dict], requests.Response],
-        endpoint: str,
-        payload: dict,
-    ) -> dict:
-        ...
 
     def _generic_call(
         self, method: Callable, endpoint: str, payload: Optional[dict] = None
@@ -219,10 +213,15 @@ class ClientCore:
         return self._generic_call(self.session.post, endpoint, data)
 
     def delete(
-        self, endpoint: str, query_string: Optional[QueryString] = None
+        self,
+        endpoint: str,
+        query_string: Optional[QueryString] = None,
+        data: Optional[dict] = None,
     ) -> JSONType:
         return self._generic_call(
-            self.session.delete, self._contain_qs_and_endpoint(endpoint, query_string)
+            self.session.delete,
+            self._contain_qs_and_endpoint(endpoint, query_string),
+            data,
         )
 
     def patch(self, endpoint: str, data: dict) -> JSONType:
@@ -241,7 +240,11 @@ def raise_for_darwin_exception(response: requests.Response) -> None:
     """
     if response.status_code == 200:
         return
+    if response.status_code == 400:
+        raise BadRequest(response)
     if response.status_code == 401:
         raise Unauthorized(response)
     if response.status_code == 404:
         raise NotFound(response)
+    if response.status_code == 422:
+        raise UnprocessibleEntity(response)

@@ -21,21 +21,21 @@ def base_UUID() -> UUID:
 
 @fixture
 def base_meta_team(base_client: ClientCore, base_team: TeamCore) -> Team:
-    return Team(base_client, base_team)
+    return Team(client=base_client, team=base_team)
 
 
 @fixture
 def base_meta_workflow(
     base_client: ClientCore, base_workflow: WorkflowCore
 ) -> Workflow:
-    return Workflow(base_client, base_workflow)
+    return Workflow(client=base_client, element=base_workflow)
 
 
 @fixture
 def base_meta_stage(
     base_client: ClientCore, base_stage: WFStageCore, base_UUID: UUID
 ) -> Stage:
-    return Stage(base_client, base_stage)
+    return Stage(client=base_client, element=base_stage)
 
 
 @fixture
@@ -45,4 +45,6 @@ def base_meta_stage_list(base_meta_stage: Stage, base_UUID: UUID) -> List[Stage]
 
 @fixture
 def base_meta_dataset(base_client: ClientCore, base_dataset: DatasetCore) -> Dataset:
-    return Dataset(base_client, base_dataset, meta_params={"team_slug": "test_team"})
+    return Dataset(
+        client=base_client, element=base_dataset, meta_params={"team_slug": "test_team"}
+    )

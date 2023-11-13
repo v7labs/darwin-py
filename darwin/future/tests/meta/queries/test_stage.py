@@ -20,7 +20,9 @@ def filled_query(base_client: ClientCore, base_workflow_meta: Workflow) -> Stage
 def base_workflow_meta(
     base_client: ClientCore, base_single_workflow_object: dict
 ) -> Workflow:
-    return Workflow(base_client, WorkflowCore.parse_obj(base_single_workflow_object))
+    return Workflow(
+        client=base_client, element=WorkflowCore.parse_obj(base_single_workflow_object)
+    )
 
 
 @pytest.fixture
@@ -94,5 +96,5 @@ def test_stage_filters_WFType(
         stages = filled_query.where({"name": "type", "param": wf_type.value})._collect()
         assert len(stages) == 3
         assert isinstance(stages[0], Stage)
-        for stage in stages:
+        for key, stage in stages.items():
             assert stage._element.type == wf_type

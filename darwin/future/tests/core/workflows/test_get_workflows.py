@@ -3,12 +3,12 @@ from typing import List
 import pytest
 import responses
 from pydantic import ValidationError
-from requests import HTTPError
 
 from darwin.future.core.client import ClientCore
 from darwin.future.core.types.common import JSONType
 from darwin.future.core.workflows import get_workflows
 from darwin.future.data_objects.workflow import WorkflowCore
+from darwin.future.exceptions import BadRequest
 from darwin.future.tests.core.fixtures import *
 
 
@@ -81,5 +81,5 @@ def test_get_workflows_with_error(base_client: ClientCore) -> None:
     )
 
     # Call the function being tested
-    with pytest.raises(HTTPError):
+    with pytest.raises(BadRequest):
         get_workflows(base_client)
