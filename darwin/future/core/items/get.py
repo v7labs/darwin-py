@@ -1,11 +1,13 @@
-from typing import List, Tuple, Union
+from __future__ import annotations
+
+from typing import List, Literal, Tuple, Union
 from uuid import UUID
 
 from pydantic import ValidationError, parse_obj_as
 
 from darwin.future.core.client import ClientCore
 from darwin.future.core.types.common import QueryString
-from darwin.future.data_objects.item import Folder, Item
+from darwin.future.data_objects.item import Folder, ItemCore
 
 
 def get_item_ids(
@@ -86,7 +88,7 @@ def get_item(
     team_slug: str,
     item_id: Union[UUID, str],
     params: QueryString = QueryString({}),
-) -> Item:
+) -> ItemCore:
     """
     Returns an item
 
@@ -106,14 +108,15 @@ def get_item(
     """
     response = api_client.get(f"/v2/teams/{team_slug}/items/{item_id}", params)
     assert isinstance(response, dict)
-    return parse_obj_as(Item, response)
+    return parse_obj_as(ItemCore, response)
 
 
 def list_items(
     api_client: ClientCore,
     team_slug: str,
-    params: QueryString,
-) -> Tuple[List[Item], List[ValidationError]]:
+    dataset_ids: int | list[int] | Literal["all"],
+    params: QueryString = QueryString({}),
+) -> Tuple[List[ItemCore], List[ValidationError]]:
     """
     Returns a list of items for the dataset
 
@@ -133,15 +136,20 @@ def list_items(
     List[ValidationError]
         A list of ValidationError on failed objects
     """
-    assert "dataset_ids" in params.value, "dataset_ids must be provided"
+    dataset_ids = (
+        dataset_ids
+        if isinstance(dataset_ids, list) or dataset_ids == "all"
+        else [dataset_ids]
+    )
+    params = params + QueryString({"dataset_ids": dataset_ids})
     response = api_client.get(f"/v2/teams/{team_slug}/items", params)
     assert isinstance(response, dict)
-    items: List[Item] = []
+    items: List[ItemCore] = []
     exceptions: List[ValidationError] = []
     for item in response["items"]:
         assert isinstance(item, dict)
         try:
-            items.append(parse_obj_as(Item, item))
+            items.append(parse_obj_as(ItemCore, item))
         except ValidationError as e:
             exceptions.append(e)
     return items, exceptions
