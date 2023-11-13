@@ -72,7 +72,7 @@ def test_delete(
         item_query.delete()
 
 
-def test_move_tofolderS(
+def test_move_to_folders(
     item_query: ItemQuery, items_json: List[dict], items: List[Item]
 ) -> None:
     with responses.RequestsMock() as rsps:
