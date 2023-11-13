@@ -62,7 +62,7 @@ def test_delete(
                     {
                         "filters": {
                             "item_ids": [str(item.id) for item in items],
-                            "dataset_ids": [str(dataset_id)],
+                            "dataset_ids": [dataset_id],
                         }
                     }
                 )

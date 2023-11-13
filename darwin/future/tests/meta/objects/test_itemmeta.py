@@ -36,7 +36,7 @@ def test_delete(item: Item) -> None:
                     {
                         "filters": {
                             "item_ids": [str(item.id)],
-                            "dataset_ids": [str(dataset_id)],
+                            "dataset_ids": [dataset_id],
                         }
                     }
                 )

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict, List, Literal, Optional, Union, cast
+from typing import Dict, List, Optional, Union, cast
 from uuid import UUID
 
 from darwin.future.core.items.delete_items import delete_list_of_items
@@ -49,13 +49,9 @@ class Item(MetaBase[ItemCore]):
             else self.meta_params["dataset_ids"],
         )
         assert isinstance(team_slug, str)
-        assert isinstance(dataset_id, (int, list, str))
-        if isinstance(dataset_id, list):
-            dataset_id = cast(List[int], dataset_id)
-        if isinstance(dataset_id, str):
-            assert dataset_id == "all"
-            dataset_id = cast(Literal["all"], dataset_id)
-        delete_list_of_items(self.client, team_slug, dataset_id, [self.id])
+        dataset_id = cast(Union[int, List[int]], dataset_id)
+        filters = {"item_ids": [str(self.id)]}
+        delete_list_of_items(self.client, team_slug, dataset_id, filters)
 
     @property
     def name(self) -> str:
