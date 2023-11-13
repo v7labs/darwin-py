@@ -44,3 +44,26 @@ def test_delete(item: Item) -> None:
             json={},
         )
         item.delete()
+
+
+def test_restore(item: Item) -> None:
+    with responses.RequestsMock() as rsps:
+        team_slug = item.meta_params["team_slug"]
+        dataset_id = item.meta_params["dataset_id"]
+        rsps.add(
+            rsps.POST,
+            item.client.config.api_endpoint + f"v2/teams/{team_slug}/items/restore",
+            status=200,
+            match=[
+                json_params_matcher(
+                    {
+                        "filters": {
+                            "item_ids": [str(item.id)],
+                            "dataset_ids": [dataset_id],
+                        }
+                    }
+                )
+            ],
+            json={},
+        )
+        item.restore()
