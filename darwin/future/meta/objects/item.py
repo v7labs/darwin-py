@@ -9,6 +9,38 @@ from darwin.future.meta.objects.base import MetaBase
 
 
 class Item(MetaBase[ItemCore]):
+    """
+    Represents an item in a Darwin dataset.
+
+    Args:
+        MetaBase (Stage): Generic MetaBase object expanded by ItemCore object
+            return type
+
+    Attributes:
+        name (str): The name of the item.
+        id (UUID): The unique identifier of the item.
+        slots (List[ItemSlot]): A list of slots associated with the item.
+        path (str): The path of the item.
+        dataset_id (int): The ID of the dataset the item belongs to.
+        processing_status (str): The processing status of the item.
+        archived (Optional[bool]): Whether the item is archived or not.
+        priority (Optional[int]): The priority of the item.
+        tags (Optional[Union[List[str], Dict[str, str]]]): The tags associated with the item.
+        layout (Optional[ItemLayout]): The layout of the item.
+
+    Methods:
+        delete(self) -> None:
+            Deletes the item from the Darwin dataset.
+
+    Example usage:
+        # Get the item object
+        items = workflow.items.where(name='test').collect() # gets first page of items
+
+        # Delete the items
+        [item.delete() for item in items] # will collect all pages of items and delete individually
+
+    """
+
     def delete(self) -> None:
         team_slug, dataset_id = (
             self.meta_params["team_slug"],
