@@ -47,7 +47,6 @@ def test_move_list_of_items_to_folder_raises_on_incorrect_parameters(
 ) -> None:
     dataset_ids = [1, 2, 3]
     team_slug = "test-team"
-    filters = {}
     path = "/test/path"
 
     with pytest.raises(AssertionError):
@@ -56,7 +55,6 @@ def test_move_list_of_items_to_folder_raises_on_incorrect_parameters(
             team_slug=team_slug,
             dataset_ids=dataset_ids,
             path=path,
-            filters=filters,
         )
 
 

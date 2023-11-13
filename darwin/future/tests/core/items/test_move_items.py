@@ -49,7 +49,6 @@ def test_move_items_to_stage_raises_on_incorrect_parameters(
 ) -> None:
     dataset_ids = [1, 2, 3]
     team_slug = "test-team"
-    filters = {}
     workflow_id = UUID("00000000-0000-0000-0000-000000000000")
     stage_id = UUID("00000000-0000-0000-0000-000000000000")
 
@@ -60,7 +59,6 @@ def test_move_items_to_stage_raises_on_incorrect_parameters(
             workflow_id=workflow_id,
             dataset_ids=dataset_ids,
             stage_id=stage_id,
-            filters=filters,
         )
 
 
