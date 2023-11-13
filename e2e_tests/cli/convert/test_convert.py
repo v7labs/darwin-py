@@ -1,5 +1,6 @@
 from os.path import dirname
 from pathlib import Path
+from pprint import pprint
 from typing import Tuple
 
 import pytest
@@ -29,11 +30,15 @@ class TestYOLOv8SegmentedCli:
                 if not result[0]:
                     return result
             else:
+                if file.name.startswith("."):
+                    # Ignore hidden files
+                    continue
+
                 # Compare files
-                with open(file, "r") as f:
+                with file.open("r") as f:
                     content = f.read()
 
-                with open(expected_path / file.name, "r") as f:
+                with Path(expected_path / file.name).open() as f:
                     expected_content = f.read()
 
                 if content != expected_content:
@@ -43,7 +48,7 @@ class TestYOLOv8SegmentedCli:
 
     @pytest.mark.parametrize(
         "format, input_path, expectation_path",
-        [("yolo-segmented", data_path / "yolov8/from", data_path / "yolov8/to")],
+        [("yolo_segmented", data_path / "yolov8/from", data_path / "yolov8/to")],
     )
     def test_darwin_convert(self, format: str, input_path: Path, expectation_path: Path, tmp_path: Path) -> None:
         """
@@ -57,9 +62,9 @@ class TestYOLOv8SegmentedCli:
             input_path.is_dir() and expectation_path.is_dir()
         ), f"Input path {input_path.absolute()} or expectation path {expectation_path.absolute()} is not a directory"
 
-        result = run_cli_command(f"darwin dataset convert {str(input_path)} {format} -o {str(tmp_path)}")
-        assert_cli(result, 0)
+        result = run_cli_command(f"darwin convert {format} {str(input_path)} {str(tmp_path)}")
 
+        assert_cli(result, 0)
         assert self.compare_directories(expectation_path, tmp_path)[0]
 
 
