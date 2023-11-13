@@ -1,45 +1,95 @@
-from typing import Dict, List
 from uuid import UUID
 
 import pytest
 import responses
 
 from darwin.future.core.client import ClientCore
-from darwin.future.core.items import move_items_to_stage
+from darwin.future.core.items.move_items import move_items_to_stage
+from darwin.future.exceptions import BadRequest
 from darwin.future.tests.core.fixtures import *
-from darwin.future.tests.core.items.fixtures import *
 
 
-@pytest.fixture
-def move_payload(UUIDs_str: List[str], stage_id: UUID, workflow_id: UUID) -> Dict:
-    return {
-        "filters": {
-            "dataset_ids": [1337],
-            "item_ids": UUIDs_str,
-        },
-        "stage_id": str(stage_id),
-        "workflow_id": str(workflow_id),
+@responses.activate
+def test_move_items_to_stage_including_filters(base_client: ClientCore) -> None:
+    dataset_ids = [1, 2, 3]
+    team_slug = "test-team"
+    filters = {
+        "not_statuses": ["uploading", "annotate"],
+        "not_assignees": [123, 456, 789],
+        "item_ids": [
+            ("00000000-0000-0000-0000-000000000000"),
+            ("00000000-0000-0000-0000-000000000000"),
+        ],
     }
+    workflow_id = UUID("00000000-0000-0000-0000-000000000000")
+    stage_id = UUID("00000000-0000-0000-0000-000000000000")
+
+    responses.add(
+        responses.POST,
+        base_client.config.api_endpoint + "v2/teams/test-team/items/stage",
+        json={"affected_item_count": 2},
+        status=200,
+    )
+
+    response = move_items_to_stage(
+        client=base_client,
+        team_slug=team_slug,
+        workflow_id=workflow_id,
+        dataset_ids=dataset_ids,
+        stage_id=stage_id,
+        filters=filters,
+    )
+
+    assert response == {"affected_item_count": 2}
 
 
-def test_move_items(
+@responses.activate
+def test_move_items_to_stage_raises_on_incorrect_parameters(
     base_client: ClientCore,
-    move_payload: Dict,
-    stage_id: UUID,
-    workflow_id: UUID,
-    UUIDs_str: List[str],
-    UUIDs: List[UUID],
 ) -> None:
-    with responses.RequestsMock() as rsps:
-        rsps.add(
-            rsps.POST,
-            base_client.config.api_endpoint + "v2/teams/default-team/items/stage",
-            json={"success": UUIDs_str},
-            status=200,
-        )
+    dataset_ids = [1, 2, 3]
+    team_slug = "test-team"
+    workflow_id = UUID("00000000-0000-0000-0000-000000000000")
+    stage_id = UUID("00000000-0000-0000-0000-000000000000")
+
+    with pytest.raises(AssertionError):
         move_items_to_stage(
-            base_client, "default-team", workflow_id, 1337, stage_id, UUIDs
+            client=base_client,
+            team_slug=team_slug,
+            workflow_id=workflow_id,
+            dataset_ids=dataset_ids,
+            stage_id=stage_id,
         )
-        assert rsps.assert_call_count(
-            base_client.config.api_endpoint + "v2/teams/default-team/items/stage", 1
+
+
+@responses.activate
+def test_move_items_to_stage_with_error_response(base_client: ClientCore) -> None:
+    dataset_ids = [1, 2, 3]
+    team_slug = "test-team"
+    filters = {
+        "not_statuses": ["uploading", "annotate"],
+        "not_assignees": [123, 456, 789],
+        "item_ids": [
+            ("00000000-0000-0000-0000-000000000000"),
+            ("00000000-0000-0000-0000-000000000000"),
+        ],
+    }
+    workflow_id = UUID("00000000-0000-0000-0000-000000000000")
+    stage_id = UUID("00000000-0000-0000-0000-000000000000")
+
+    responses.add(
+        responses.POST,
+        base_client.config.api_endpoint + "v2/teams/test-team/items/stage",
+        json={"error": "Bad Request"},
+        status=400,
+    )
+
+    with pytest.raises(BadRequest):
+        move_items_to_stage(
+            client=base_client,
+            team_slug=team_slug,
+            workflow_id=workflow_id,
+            dataset_ids=dataset_ids,
+            stage_id=stage_id,
+            filters=filters,
         )

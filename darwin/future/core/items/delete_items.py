@@ -9,7 +9,7 @@ from darwin.future.data_objects.typing import UnknownType
 
 
 def delete_list_of_items(
-    api_client: ClientCore,
+    client: ClientCore,
     team_slug: str,
     dataset_ids: int | list[int] | Literal["all"],
     item_ids: List[UUID],
@@ -21,19 +21,18 @@ def delete_list_of_items(
     Parameters
     ----------
     client: Client
-        The client to use for the request
+        The client to use for the request.
     team_slug: str
-        The slug of the team containing the items
-    dataset_id: int
-        The ID of the dataset containing the items
-    item_ids: List[UUID]
-        The IDs of the items to be deleted
+        The slug of the team containing the items.
+    dataset_ids: int | List[int]
+        The ID(s) of the dataset(s) containing the items.
     filters: Dict[str, UnknownType]
-        Dataset filter parameters
+        Filter parameters
 
     Returns
     -------
     JSONType
+        The response data.
     """
     payload = {
         "filters": {
@@ -44,5 +43,4 @@ def delete_list_of_items(
             **filters,
         }
     }
-
-    return api_client.delete(f"/v2/teams/{team_slug}/items", data=payload)
+    return client.delete(f"/v2/teams/{team_slug}/items", data=payload)
