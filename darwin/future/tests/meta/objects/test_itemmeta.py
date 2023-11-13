@@ -97,3 +97,54 @@ def test_move_to_folder_raises_on_incorrect_parameters(item: Item) -> None:
         )
         with pytest.raises(BadRequest):
             item.move_to_folder(path)
+
+
+def test_set_priority(item: Item) -> None:
+    with responses.RequestsMock() as rsps:
+        team_slug = item.meta_params["team_slug"]
+        dataset_id = item.meta_params["dataset_id"]
+        priority = 10
+        rsps.add(
+            rsps.POST,
+            item.client.config.api_endpoint + f"v2/teams/{team_slug}/items/priority",
+            status=200,
+            match=[
+                json_params_matcher(
+                    {
+                        "filters": {
+                            "item_ids": [str(item.id)],
+                            "dataset_ids": [dataset_id],
+                        },
+                        "priority": priority,
+                    }
+                )
+            ],
+            json={},
+        )
+        item.set_priority(priority)
+
+
+def test_set_priority_raises_on_incorrect_parameters(item: Item) -> None:
+    with responses.RequestsMock() as rsps:
+        team_slug = item.meta_params["team_slug"]
+        dataset_id = item.meta_params["dataset_id"]
+        priority = "10"
+        rsps.add(
+            rsps.POST,
+            item.client.config.api_endpoint + f"v2/teams/{team_slug}/items/priority",
+            status=400,
+            match=[
+                json_params_matcher(
+                    {
+                        "filters": {
+                            "item_ids": [str(item.id)],
+                            "dataset_ids": [dataset_id],
+                        },
+                        "priority": priority,
+                    }
+                )
+            ],
+            json={},
+        )
+        with pytest.raises(BadRequest):
+            item.set_priority(priority)
