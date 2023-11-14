@@ -6,6 +6,7 @@ import platform
 from argparse import ArgumentParser, Namespace
 from datetime import datetime
 from json import dumps
+from pathlib import Path
 
 import requests.exceptions
 from rich.console import Console
@@ -13,6 +14,7 @@ from rich.console import Console
 import darwin.cli_functions as f
 from darwin import __version__
 from darwin.exceptions import GracefulExit, InvalidTeam, Unauthenticated, Unauthorized
+from darwin.future.core import datasets
 from darwin.options import Options
 
 
@@ -60,7 +62,9 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
 
     # Authenticate user
     if args.command == "authenticate":
-        api_key = os.getenv("DARWIN_API_KEY")
+        api_key = os.getenv("DARWIN_API_KEY") or args.api_key
+        default_team = os.getenv("DARWIN_TEAM") or args.default_team
+        datasets_dir = os.getenv("DARWIN_DATASETS_DIR") or args.datasets_dir
         if api_key:
             print("Using API key from DARWIN_API_KEY")
         else:
@@ -69,7 +73,10 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
             if api_key == "":
                 print("API Key needed, generate one for your team: https://darwin.v7labs.com/?settings=api-keys")
                 return
-        f.authenticate(api_key)
+        if datasets_dir is not None:
+            print("Using datasets directory from DARWIN_DATASETS_DIR")
+            datasets_dir = Path(datasets_dir).resolve()
+        f.authenticate(api_key, default_team, datasets_dir)
         print("Authentication succeeded.")
     # Select / List team
     elif args.command == "team":
