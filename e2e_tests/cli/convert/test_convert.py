@@ -1,6 +1,5 @@
 from os.path import dirname
 from pathlib import Path
-from pprint import pprint
 from typing import Tuple
 
 import pytest
@@ -8,7 +7,7 @@ import pytest
 from e2e_tests.helpers import assert_cli, run_cli_command
 
 
-class TestYOLOv8SegmentedCli:
+class TestExportCli:
     this_file_path = Path(dirname(__file__)).absolute()
     data_path = (this_file_path / ".." / ".." / "data").resolve()
 
