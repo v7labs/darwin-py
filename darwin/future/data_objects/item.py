@@ -1,11 +1,13 @@
 # @see: GraphotateWeb.Schemas.DatasetsV2.ItemRegistration.ExistingItem
-from os import PathLike
+from distutils.command import upload
+from enum import Enum
+from pathlib import Path
 from typing import Callable, Dict, List, Literal, Optional, Sequence, Union
 from uuid import UUID
 
 from pydantic import root_validator, validator
 
-from darwin.datatypes import NumberLike
+from darwin.future.data_objects import NumberLike
 from darwin.future.data_objects.pydantic_base import DefaultDarwin
 from darwin.future.data_objects.typing import UnknownType
 
@@ -187,13 +189,34 @@ class ItemCreate(DefaultDarwin):
     """
 
     # Required
-    files: Sequence[PathLike]
+    files: Sequence[Path]
 
     # Optional
-    files_to_exclude: Optional[Sequence[PathLike]] = None
+    files_to_exclude: Optional[Sequence[Path]] = None
     path: Optional[str] = "/"
 
     fps: Optional[NumberLike] = None
     as_frames: Optional[bool] = False
     extract_views: Optional[bool] = False
     preserve_folders: Optional[bool] = False
+
+
+class ItemUploadStatus(Enum):
+    PENDING = "pending"
+    UPLOADING = "uploading"
+    UPLOADED = "uploaded"
+    PROCESSING = "processing"
+    PROCESSED = "processed"
+    FAILED = "failed"
+
+
+class ItemUpload(DefaultDarwin):
+    id: UUID
+    url: str
+    status: ItemUploadStatus
+
+    # TODO: members necessary for building an Item object
+
+
+LoadedCallbackType = Callable[[List[ItemUpload]], None]
+CompleteCallbackType = Callable[[List[ItemUpload]], None]
