@@ -103,6 +103,7 @@ class LocalDataset:
             partition,
             split_type,
         )
+
         if len(self.images_path) == 0:
             raise ValueError(
                 f"Could not find any {SUPPORTED_IMAGE_EXTENSIONS} file",
@@ -141,7 +142,7 @@ class LocalDataset:
                 continue
             else:
                 raise ValueError(
-                    f"Annotation ({annotation_path}) does not have a corresponding image, image path : {image_path}"
+                    f"Annotation ({annotation_path}) does not have a corresponding image"
                 )
 
     def _initial_setup(self, dataset_path, release_name):
