@@ -69,6 +69,8 @@ class ItemQuery(PaginatedQuery[Item]):
             and "dataset_id" not in self.meta_params
         ):
             raise ValueError("Must specify dataset_ids to query items")
+        if not path:
+            raise ValueError("Must specify path to move items to")
         dataset_ids = (
             self.meta_params["dataset_ids"]
             if "dataset_ids" in self.meta_params

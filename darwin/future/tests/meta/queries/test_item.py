@@ -5,6 +5,7 @@ import responses
 from responses.matchers import json_params_matcher, query_param_matcher
 
 from darwin.future.core.client import ClientCore
+from darwin.future.exceptions import BadRequest
 from darwin.future.meta.objects.item import Item
 from darwin.future.meta.queries.item import ItemQuery
 from darwin.future.tests.core.fixtures import *

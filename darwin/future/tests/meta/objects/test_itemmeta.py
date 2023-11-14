@@ -1,9 +1,11 @@
 from uuid import UUID
 
+import pytest
 import responses
 from responses import json_params_matcher
 
 from darwin.future.data_objects.item import ItemLayout, ItemSlot
+from darwin.future.exceptions import BadRequest
 from darwin.future.meta.objects.item import Item
 from darwin.future.tests.meta.objects.fixtures import *
 
@@ -45,7 +47,7 @@ def test_delete(item: Item) -> None:
         )
         item.delete()
 
-
+        
 def test_restore(item: Item) -> None:
     with responses.RequestsMock() as rsps:
         team_slug = item.meta_params["team_slug"]
