@@ -22,6 +22,7 @@ def build_image_annotation(annotation_file: dt.AnnotationFile) -> Dict[str, Any]
     ----------
     annotation_file: AnnotationFile
         File with the image annotations to extract.
+        For schema, see: https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json
 
     Returns
     -------
@@ -105,7 +106,7 @@ def _build_item_data(annotation_file: dt.AnnotationFile) -> Dict[str, Any]:
 
     Parameters
     ----------
-    annotation_file: AnnotationFile
+    annotation_file: dt.AnnotationFile
         The AnnotationFile object containing annotation data.
 
     Returns
