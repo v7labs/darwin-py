@@ -106,6 +106,7 @@ def test_restore(
             json={},
         )
         item_query.restore()
+<<<<<<< HEAD
 
 
 def test_move_to_folder(
@@ -181,3 +182,5 @@ def test_move_to_folder_raises_on_incorrect_parameters(
         )
         with pytest.raises(BadRequest):
             item_query.move_to_folder(path)
+=======
+>>>>>>> ca73356d39135338ef89ca016c46a216cc4f1a8d
