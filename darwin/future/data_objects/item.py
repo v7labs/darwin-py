@@ -1,5 +1,6 @@
 # @see: GraphotateWeb.Schemas.DatasetsV2.ItemRegistration.ExistingItem
-from typing import Dict, List, Literal, Optional, Union
+from os import PathLike
+from typing import Callable, Dict, List, Literal, Optional, Sequence, Union
 from uuid import UUID
 
 from pydantic import root_validator, validator
@@ -156,4 +157,43 @@ class Folder(DefaultDarwin):
 
 
 class ItemCreate(DefaultDarwin):
-    ...  # TODO
+    """
+    ItemCreate
+
+    Payload used to create a new item in a dataset.
+
+    Properties
+    ----------
+    files : Sequence[PathLike]
+        The files to upload.
+
+    files_to_exclude : Optional[Sequence[PathLike]]
+        Files to exclude from the upload.
+
+    path : Optional[str]
+        The path to upload the files to on the Darwin servers.
+
+    fps : Optional[NumberLike]
+        The framerate to upload the files at.
+
+    as_frames : Optional[bool]
+        Whether to upload the files as frames.
+
+    extract_views : Optional[bool]
+        Whether to extract views from the files.
+
+    preserve_folders : Optional[bool]
+        Whether to preserve the folder structure of the files.
+    """
+
+    # Required
+    files: Sequence[PathLike]
+
+    # Optional
+    files_to_exclude: Optional[Sequence[PathLike]] = None
+    path: Optional[str] = "/"
+
+    fps: Optional[NumberLike] = None
+    as_frames: Optional[bool] = False
+    extract_views: Optional[bool] = False
+    preserve_folders: Optional[bool] = False
