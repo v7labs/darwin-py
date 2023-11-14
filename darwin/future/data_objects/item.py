@@ -153,3 +153,7 @@ class Folder(DefaultDarwin):
     filtered_item_count: int
     path: str
     unfiltered_item_count: int
+
+
+class ItemCreate(DefaultDarwin):
+    ...  # TODO
