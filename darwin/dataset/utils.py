@@ -477,10 +477,7 @@ def get_annotations(
     for p in invalid_annotation_paths:
         print(p)
 
-    print(stems)
-    print(f"Image path : {images_paths}")
     if len(images_paths) == 0:
-        print(f"Image path : {images_paths}")
         raise ValueError(
             f"Could not find any {SUPPORTED_EXTENSIONS} file"
             f" in {dataset_path / 'images'}"
