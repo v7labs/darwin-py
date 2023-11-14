@@ -9,6 +9,7 @@ from darwin.future.core.types.query import QueryFilter
 from darwin.future.data_objects.workflow import WFEdgeCore, WFStageCore
 from darwin.future.exceptions import MaxRetriesError
 from darwin.future.meta.objects.base import MetaBase
+from darwin.future.meta.queries.item import ItemQuery
 from darwin.future.meta.queries.item_id import ItemIDQuery
 
 
@@ -46,6 +47,22 @@ class Stage(MetaBase[WFStageCore]):
     """
 
     @property
+    def items(self) -> ItemQuery:
+        """Item ids attached to the stage
+
+        Returns:
+            List[Item]: List of item ids
+        """
+        assert self._element.id is not None
+        return ItemQuery(
+            self.client,
+            meta_params=self.meta_params,
+            filters=[
+                QueryFilter(name="workflow_stage_ids", param=str(self._element.id))
+            ],
+        )
+
+    @property
     def item_ids(self) -> ItemIDQuery:
         """Item ids attached to the stage
 
@@ -64,7 +81,7 @@ class Stage(MetaBase[WFStageCore]):
     def check_all_items_complete(
         self,
         slug: str,
-        item_ids: list[UUID],
+        item_ids: list[str],
         wait_max_attempts: int = 5,
         wait_time: float = 0.5,
     ) -> bool:
@@ -73,7 +90,7 @@ class Stage(MetaBase[WFStageCore]):
 
         Args:
             slug (str): Team slug
-            item_ids (list[UUID]): List of item ids
+            item_ids (list[str]): List of item ids
             max_attempts (int, optional): Max number of attempts. Defaults to 5.
             wait_time (float, optional): Wait time between attempts. Defaults to 0.5.
         """
@@ -114,22 +131,29 @@ class Stage(MetaBase[WFStageCore]):
         assert self.meta_params["dataset_id"] is not None and isinstance(
             self.meta_params["dataset_id"], int
         )
-        slug, w_id, d_id = (
+        team_slug, workflow_id, dataset_id = (
             self.meta_params["team_slug"],
             self.meta_params["workflow_id"],
             self.meta_params["dataset_id"],
         )
-        ids = [x.id for x in self.item_ids.collect_all()]
+        ids = [str(x.id) for x in self.item_ids.collect_all()]
 
         if wait:
             self.check_all_items_complete(
-                slug=slug,
+                slug=team_slug,
                 item_ids=ids,
                 wait_max_attempts=wait_max_attempts,
                 wait_time=wait_time,
             )
 
-        move_items_to_stage(self.client, slug, w_id, d_id, new_stage_id, ids)
+        move_items_to_stage(
+            self.client,
+            team_slug,
+            workflow_id,
+            dataset_id,
+            new_stage_id,
+            {"item_ids": ids},
+        )
         return self
 
     @property

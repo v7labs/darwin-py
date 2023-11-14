@@ -1,36 +1,32 @@
 from __future__ import annotations
 
 from typing import Dict, List
-from uuid import UUID
 
 from darwin.future.core.client import ClientCore
 from darwin.future.core.types.common import JSONType
 from darwin.future.data_objects.typing import UnknownType
 
 
-def move_items_to_stage(
+def move_list_of_items_to_folder(
     client: ClientCore,
     team_slug: str,
-    workflow_id: UUID,
     dataset_ids: int | List[int],
-    stage_id: UUID,
+    path: str,
     filters: Dict[str, UnknownType] = {},
 ) -> JSONType:
     """
-    Moves a list of items to a stage
+    Move specified items to a folder
 
     Parameters
     ----------
     client: Client
         The client to use for the request.
     team_slug: str
-        The slug of the team to move items for.
-    workflow_id: UUID
-        The id of the workflow to move items for.
+        The slug of the team containing the items.
     dataset_ids: int | List[int]
         The ID(s) of the dataset(s) containing the items.
-    stage_id: UUID
-        The id of the workflow to move items for.
+    path: str
+        The path to the folder to move the items to.
     filters: Dict[str, UnknownType]
         Filter parameters.
 
@@ -48,9 +44,7 @@ def move_items_to_stage(
             if isinstance(dataset_ids, list)
             else [dataset_ids],
             **filters,
-        },
-        "stage_id": str(stage_id),
-        "workflow_id": str(workflow_id),
+        }
     }
 
-    return client.post(f"/v2/teams/{team_slug}/items/stage", data=payload)
+    return client.post(f"/v2/teams/{team_slug}/items/path", data=payload)

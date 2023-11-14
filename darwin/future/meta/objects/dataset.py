@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import List, Optional, Sequence, Union
 
+
 from darwin.cli_functions import upload_data
 from darwin.dataset.upload_manager import LocalFile
 from darwin.datatypes import PathLike
@@ -10,6 +11,7 @@ from darwin.future.core.datasets import create_dataset, remove_dataset
 from darwin.future.data_objects.dataset import DatasetCore
 from darwin.future.helpers.assertion import assert_is
 from darwin.future.meta.objects.base import MetaBase
+from darwin.future.meta.queries.item import ItemQuery
 from darwin.future.meta.queries.item_id import ItemIDQuery
 
 
@@ -73,6 +75,11 @@ class Dataset(MetaBase[DatasetCore]):
         )
         meta_params = {"dataset_ids": self.id, **self.meta_params}
         return ItemIDQuery(self.client, meta_params=meta_params)
+
+    @property
+    def items(self) -> ItemQuery:
+        meta_params = {"dataset_ids": self.id, **self.meta_params}
+        return ItemQuery(self.client, meta_params=meta_params)
 
     @classmethod
     def create_dataset(cls, client: ClientCore, slug: str) -> DatasetCore:

@@ -2,12 +2,12 @@ from typing import List
 
 import responses
 from pydantic import ValidationError
-from requests import HTTPError
 
 from darwin.future.core.client import ClientCore
 from darwin.future.core.types.common import JSONType
 from darwin.future.core.workflows import list_workflows
 from darwin.future.data_objects.workflow import WorkflowCore
+from darwin.future.exceptions import BadRequest
 from darwin.future.tests.core.fixtures import *
 
 
@@ -93,6 +93,6 @@ def test_list_workflows_with_error(base_client: ClientCore) -> None:
 
     assert isinstance(exceptions, List)
     assert len(exceptions) == 1
-    assert isinstance(exceptions[0], HTTPError)
+    assert isinstance(exceptions[0], BadRequest)
 
     assert not workflows

@@ -10,7 +10,12 @@ from pydantic import BaseModel, root_validator, validator
 from requests.adapters import HTTPAdapter, Retry
 
 from darwin.future.core.types.common import JSONType, QueryString
-from darwin.future.exceptions import NotFound, Unauthorized, UnprocessibleEntity
+from darwin.future.exceptions import (
+    BadRequest,
+    NotFound,
+    Unauthorized,
+    UnprocessibleEntity,
+)
 
 
 class TeamsConfig(BaseModel):
@@ -235,6 +240,8 @@ def raise_for_darwin_exception(response: requests.Response) -> None:
     """
     if response.status_code == 200:
         return
+    if response.status_code == 400:
+        raise BadRequest(response)
     if response.status_code == 401:
         raise Unauthorized(response)
     if response.status_code == 404:

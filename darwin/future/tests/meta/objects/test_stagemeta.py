@@ -8,6 +8,8 @@ from responses.matchers import query_param_matcher
 from darwin.future.data_objects.workflow import WFEdgeCore, WFStageCore, WFTypeCore
 from darwin.future.meta.client import Client
 from darwin.future.meta.objects.stage import Stage
+from darwin.future.meta.queries.item import ItemQuery
+from darwin.future.meta.queries.item_id import ItemIDQuery
 from darwin.future.tests.core.fixtures import *
 from darwin.future.tests.core.items.fixtures import *
 from darwin.future.tests.meta.fixtures import *
@@ -215,3 +217,12 @@ def test_stage_str_method(stage_meta: Stage) -> None:
 
 def test_stage_repr_method(stage_meta: Stage) -> None:
     assert repr(stage_meta) == str(stage_meta)
+
+
+def test_has_item_properties(stage_meta: Stage) -> None:
+    assert isinstance(stage_meta.items, ItemQuery)
+    assert isinstance(stage_meta.item_ids, ItemIDQuery)
+    assert isinstance(stage_meta.id, UUID)
+    assert isinstance(stage_meta.name, str)
+    assert isinstance(stage_meta.type, str)
+    assert isinstance(stage_meta.edges, list)
