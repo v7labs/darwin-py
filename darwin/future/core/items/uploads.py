@@ -3,10 +3,12 @@ from logging import getLogger
 from pathlib import Path
 from typing import Dict, List, Tuple, Union
 
+import aiohttp
+
 from darwin.future.core.client import ClientCore
 from darwin.future.data_objects.item import UploadItem
 from darwin.future.data_objects.typing import UnknownType
-from darwin.future.exceptions import DarwinException
+from darwin.future.exceptions import DarwinException, UploadFailed, UploadPending
 
 logger = getLogger(__name__)
 
@@ -83,9 +85,7 @@ async def _build_layout(item: UploadItem) -> Dict:
     raise DarwinException(f"Invalid layout version {item.layout.version}")
 
 
-async def _build_payload_items(
-    items_and_paths: List[Tuple[UploadItem, Path]]
-) -> List[Dict]:
+async def _build_payload_items(items_and_paths: List[Tuple[UploadItem, Path]]) -> List[Dict]:
     """
     Builds the payload for the items to be registered for upload
 
@@ -151,8 +151,7 @@ async def async_register_upload(
     if isinstance(items_and_paths, tuple):
         items_and_paths = [items_and_paths]
         assert all(
-            (isinstance(item, UploadItem) and isinstance(path, Path))
-            for item, path in items_and_paths
+            (isinstance(item, UploadItem) and isinstance(path, Path)) for item, path in items_and_paths
         ), "items must be a list of Items"
 
     payload_items = await _build_payload_items(items_and_paths)
@@ -170,9 +169,7 @@ async def async_register_upload(
     }
 
     try:
-        response = api_client.post(
-            f"/v2/teams/{team_slug}/items/register_upload", payload
-        )
+        response = api_client.post(f"/v2/teams/{team_slug}/items/register_upload", payload)
     except Exception as exc:
         logger.error(f"Failed to register upload in {__name__}", exc_info=exc)
         raise DarwinException(f"Failed to register upload in {__name__}") from exc
@@ -205,40 +202,24 @@ async def async_create_signed_upload_url(
         The response from the API
     """
     try:
-        response = api_client.get(
-            f"/v2/teams/{team_slug}/items/uploads/{upload_id}/sign"
-        )
+        response = api_client.get(f"/v2/teams/{team_slug}/items/uploads/{upload_id}/sign")
     except Exception as exc:
         logger.error(f"Failed to create signed upload url in {__name__}", exc_info=exc)
-        raise DarwinException(
-            f"Failed to create signed upload url in {__name__}"
-        ) from exc
+        raise DarwinException(f"Failed to create signed upload url in {__name__}") from exc
 
-    assert isinstance(
-        response, dict
-    ), "Unexpected return type from create signed upload url"
+    assert isinstance(response, dict), "Unexpected return type from create signed upload url"
 
     if not response:
-        logger.error(
-            f"Failed to create signed upload url in {__name__}, got no response"
-        )
-        raise DarwinException(
-            f"Failed to create signed upload url in {__name__}, got no response"
-        )
+        logger.error(f"Failed to create signed upload url in {__name__}, got no response")
+        raise DarwinException(f"Failed to create signed upload url in {__name__}, got no response")
 
     if "errors" in response:
-        logger.error(
-            f"Failed to create signed upload url in {__name__}, got errors: {response['errors']}"
-        )
+        logger.error(f"Failed to create signed upload url in {__name__}, got errors: {response['errors']}")
         raise DarwinException(f"Failed to create signed upload url in {__name__}")
 
     if "upload_url" not in response:
-        logger.error(
-            f"Failed to create signed upload url in {__name__}, got no upload_url"
-        )
-        raise DarwinException(
-            f"Failed to create signed upload url in {__name__}, got no upload_url"
-        )
+        logger.error(f"Failed to create signed upload url in {__name__}, got no upload_url")
+        raise DarwinException(f"Failed to create signed upload url in {__name__}, got no upload_url")
 
     return response["upload_url"]
 
@@ -312,15 +293,28 @@ async def async_register_and_create_signed_upload_url(
                 if "upload_id" in slot:
                     upload_ids.append(slot["upload_id"])
 
-    return [
-        (await async_create_signed_upload_url(api_client, team_slug, id), id)
-        for id in upload_ids
-    ]
+    return [(await async_create_signed_upload_url(api_client, team_slug, id), id) for id in upload_ids]
 
 
-async def async_confirm_upload(
-    api_client: ClientCore, team_slug: str, upload_id: str
-) -> None:
+async def async_upload_file(api_client: ClientCore, url: str, file: Path) -> aiohttp.ClientResponse:
+    """
+    Upload files to a signed url
+
+    Parameters
+    ----------
+    api_client: ClientCore
+        The client to use for the request
+    url: str
+        The signed url to upload to
+    file: Path
+        The file to upload
+    """
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, data={"file": file}) as resp:
+            return resp
+
+
+async def async_confirm_upload(api_client: ClientCore, team_slug: str, upload_id: str) -> None:
     """
     Asynchronously confirm an upload/uploads was successful by ID
 
@@ -340,22 +334,16 @@ async def async_confirm_upload(
     """
 
     try:
-        response = api_client.post(
-            f"/v2/teams/{team_slug}/items/uploads/{upload_id}/confirm", data={}
-        )
+        response = api_client.post(f"/v2/teams/{team_slug}/items/uploads/{upload_id}/confirm", data={})
     except Exception as exc:
         logger.error(f"Failed to confirm upload in {__name__}", exc_info=exc)
-        raise DarwinException(f"Failed to confirm upload in {__name__}") from exc
+        raise UploadPending(f"Failed to confirm upload in {__name__}") from exc
 
     assert isinstance(response, dict), "Unexpected return type from confirm upload"
 
     if "errors" in response:
-        logger.error(
-            f"Failed to confirm upload in {__name__}, got errors: {response['errors']}"
-        )
-        raise DarwinException(
-            f"Failed to confirm upload in {__name__}: {str(response['errors'])}"
-        )
+        logger.error(f"Failed to confirm upload in {__name__}, got errors: {response['errors']}")
+        raise UploadFailed(f"Failed to confirm upload in {__name__}: {str(response['errors'])}")
 
 
 def register_upload(
@@ -466,6 +454,22 @@ def register_and_create_signed_upload_url(
             ignore_dicom_layout,
         )
     )
+
+
+def upload_file(api_client: ClientCore, url: str, file: Path) -> aiohttp.ClientResponse:
+    """
+    Upload files to a signed url
+
+    Parameters
+    ----------
+    api_client: ClientCore
+        The client to use for the request
+    url: str
+        The signed url to upload to
+    file: Path
+        The file to upload
+    """
+    return asyncio.run(async_upload_file(api_client, url, file))
 
 
 def confirm_upload(api_client: ClientCore, team_slug: str, upload_id: str) -> None:

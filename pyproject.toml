@@ -84,7 +84,7 @@ tqdm = "^4.64.1"
 types-pyyaml = "^6.0.12.9"
 pyyaml = "^6.0.1"
 json-stream = "^2.3.2"
-
+aiohttp = { extras = ["speedups"], version = "^3.8.6" }
 
 [tool.poetry.extras]
 dev = [
@@ -99,8 +99,9 @@ dev = [
     "pytest-rerunfailures",
     "ruff",
     "validate-pyproject",
+    "aioresponses",
 ]
-test = ["responses", "pytest", "flake8-pyproject"]
+test = ["responses", "pytest", "flake8-pyproject", "aioresponses"]
 ml = ["torch", "torchvision", "scikit-learn", "albumentations"]
 medical = ["nibabel", "connected-components-3d"]
 ocv = ["opencv-python-headless"]
