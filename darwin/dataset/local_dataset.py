@@ -103,7 +103,6 @@ class LocalDataset:
             partition,
             split_type,
         )
-        print(self.images_path)
         if len(self.images_path) == 0:
             raise ValueError(
                 f"Could not find any {SUPPORTED_IMAGE_EXTENSIONS} file",

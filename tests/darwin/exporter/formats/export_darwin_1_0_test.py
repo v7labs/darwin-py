@@ -60,14 +60,14 @@ class TestBuildJson:
             {"x": 531.6440000000002, "y": 428.4196},
             {"x": 529.8140000000002, "y": 426.5896},
         ]
-        bounding_box = {"x": 557.66,
-            "y": 428.98,
-            "w": 160.76,
-            "h": 315.3
-            }
-        
+        bounding_box = {"x": 557.66, "y": 428.98, "w": 160.76, "h": 315.3}
+
         annotation_class = dt.AnnotationClass(name="test", annotation_type="polygon")
-        annotation = dt.Annotation(annotation_class=annotation_class, data={"path": polygon_path, "bounding_box":bounding_box}, subs=[])
+        annotation = dt.Annotation(
+            annotation_class=annotation_class,
+            data={"path": polygon_path, "bounding_box": bounding_box},
+            subs=[],
+        )
 
         annotation_file = dt.AnnotationFile(
             path=Path("test.json"),
@@ -92,7 +92,12 @@ class TestBuildJson:
                 "workview_url": None,
             },
             "annotations": [
-                {"polygon": {"path": polygon_path}, "name": "test", "slot_names": [], "bounding_box": bounding_box}
+                {
+                    "polygon": {"path": polygon_path},
+                    "name": "test",
+                    "slot_names": [],
+                    "bounding_box": bounding_box,
+                }
             ],
             "dataset": "None",
         }

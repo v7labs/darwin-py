@@ -36,14 +36,15 @@ def build_image_annotation(annotation_file: dt.AnnotationFile) -> Dict[str, Any]
         annotations_list.append(annotation_data)
 
     slots_data = _build_slots_data(annotation_file.slots)
+    item =_build_item_data(annotation_file)
+    item['slots'] = slots_data
 
     return {
         "version": "2.0",
         "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
-        "item": _build_item_data(annotation_file),
+        "item": item,
         "annotations": annotations_list
     }
-
 
 
 @deprecation.deprecated(
@@ -148,13 +149,13 @@ def _build_item_data(annotation_file: dt.AnnotationFile) -> Dict[str, Any]:
         "path": annotation_file.remote_path or "/",
         "source_info": {
             "dataset": {
-                "name": annotation_file.dataset_name or "Unknown",
-                "slug": annotation_file.dataset_name.lower().replace(" ", "-") if annotation_file.dataset_name else "unknown",
+                "name": annotation_file.dataset_name,
+                "slug": annotation_file.dataset_name.lower().replace(" ", "-") if annotation_file.dataset_name else None
             },
             "item_id": annotation_file.item_id or "unknown-item-id",
             "team": {
-                "name": "Unknown Team",  # Replace with actual team name
-                "slug": annotation_file.dataset_name  # Replace with actual team slug
+                "name": None, # TODO Replace with actual team name
+                "slug": None  # TODO Replace with actual team slug
             },
             "workview_url": annotation_file.workview_url
         }

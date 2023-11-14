@@ -894,7 +894,6 @@ def split_video_annotation(annotation: dt.AnnotationFile) -> List[dt.AnnotationF
                 slots=annotation.slots,
             )
         )
-    print(frame_annotations[0].version)
     return frame_annotations
 
 
