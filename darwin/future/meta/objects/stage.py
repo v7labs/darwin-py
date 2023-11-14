@@ -77,23 +77,21 @@ class Stage(MetaBase[WFStageCore]):
             max_attempts (int, optional): Max number of attempts. Defaults to 5.
             wait_time (float, optional): Wait time between attempts. Defaults to 0.5.
         """
-        completed = []
         for attempt in range(1, wait_max_attempts + 1):
             # check if all items are complete
-            for item_id in item_ids:
+            for item_id in item_ids[:]:
                 if get_item(self.client, slug, item_id).processing_status != "complete":
-                    # if not complete, wait and try again with the in-complete items
-                    time.sleep(wait_time * attempt)
-                    item_ids = [i for i in item_ids if i not in completed]
                     break
-                completed.append(item_id)
+                item_ids.remove(item_id)
             else:
                 # if all items are complete, return.
                 return True
+            # if not complete, wait
+            time.sleep(wait_time * attempt)
         else:
             # if max attempts reached, raise error
             raise MaxRetriesError(
-                f"Max attempts reached. {len(completed)} items completed out of {len(item_ids)} items."
+                f"Max attempts reached. {len(item_ids)} items pending completion check."
             )
 
     def move_attached_files_to_stage(
