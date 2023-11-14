@@ -153,7 +153,9 @@ class RemoteDataset(ABC):
         annotations_path: Path = release_dir / "annotations"
 
         for count, annotation_file in enumerate(annotations_path.glob("*.json")):
-            darwin_annotation: Optional[AnnotationFile] = parse_darwin_json(annotation_file, count)
+            darwin_annotation: Optional[AnnotationFile] = parse_darwin_json(
+                annotation_file, count
+            )
             if not darwin_annotation or not darwin_annotation.is_video:
                 continue
 
@@ -259,14 +261,20 @@ class RemoteDataset(ABC):
                 if subset_filter_annotations_function is not None:
                     subset_filter_annotations_function(tmp_dir)
                     if subset_folder_name is None:
-                        subset_folder_name = datetime.now().strftime("%m/%d/%Y_%H:%M:%S")
-                annotations_dir: Path = release_dir / (subset_folder_name or "") / "annotations"
+                        subset_folder_name = datetime.now().strftime(
+                            "%m/%d/%Y_%H:%M:%S"
+                        )
+                annotations_dir: Path = (
+                    release_dir / (subset_folder_name or "") / "annotations"
+                )
                 # Remove existing annotations if necessary
                 if annotations_dir.exists():
                     try:
                         shutil.rmtree(annotations_dir)
                     except PermissionError:
-                        print(f"Could not remove dataset in {annotations_dir}. Permission denied.")
+                        print(
+                            f"Could not remove dataset in {annotations_dir}. Permission denied."
+                        )
                 annotations_dir.mkdir(parents=True, exist_ok=False)
                 stems: dict = {}
 
@@ -277,7 +285,9 @@ class RemoteDataset(ABC):
                     if annotation is None:
                         continue
 
-                    if video_frames and any([not slot.frame_urls for slot in annotation.slots]):
+                    if video_frames and any(
+                        [not slot.frame_urls for slot in annotation.slots]
+                    ):
                         # will raise if not installed via pip install darwin-py[ocv]
                         try:
                             from cv2 import (
@@ -294,7 +304,9 @@ class RemoteDataset(ABC):
                     else:
                         stems[filename] = 1
 
-                    destination_name = annotations_dir / f"{filename}{annotation_path.suffix}"
+                    destination_name = (
+                        annotations_dir / f"{filename}{annotation_path.suffix}"
+                    )
                     shutil.move(str(annotation_path), str(destination_name))
 
         # Extract the list of classes and create the text files
@@ -309,7 +321,9 @@ class RemoteDataset(ABC):
                 target_link: Path = self.local_releases_path / release_dir.name
                 latest_dir.symlink_to(target_link)
             except OSError:
-                self.console.log(f"Could not mark release {release.name} as latest. Continuing...")
+                self.console.log(
+                    f"Could not mark release {release.name} as latest. Continuing..."
+                )
 
         if only_annotations:
             # No images will be downloaded
@@ -344,18 +358,33 @@ class RemoteDataset(ABC):
             if env_max_workers and int(env_max_workers) > 0:
                 max_workers = int(env_max_workers)
 
-            console.print(f"Going to download {str(count)} files to {self.local_images_path.as_posix()} .")
+            console.print(
+                f"Going to download {str(count)} files to {self.local_images_path.as_posix()} ."
+            )
             successes, errors = exhaust_generator(
-                progress=progress(), count=count, multi_threaded=multi_threaded, worker_count=max_workers
+                progress=progress(),
+                count=count,
+                multi_threaded=multi_threaded,
+                worker_count=max_workers,
             )
             if errors:
-                self.console.print(f"Encountered errors downloading {len(errors)} files")
+                self.console.print(
+                    f"Encountered errors downloading {len(errors)} files"
+                )
             for error in errors:
                 self.console.print(f"\t - {error}")
 
-            downloaded_file_count = len([f for f in self.local_images_path.rglob("*") if f.is_file() and not f.name.startswith('.')])
+            downloaded_file_count = len(
+                [
+                    f
+                    for f in self.local_images_path.rglob("*")
+                    if f.is_file() and not f.name.startswith(".")
+                ]
+            )
 
-            console.print(f"Total file count after download completed {str(downloaded_file_count)}.")
+            console.print(
+                f"Total file count after download completed {str(downloaded_file_count)}."
+            )
 
             return None, count
         else:
@@ -367,7 +396,9 @@ class RemoteDataset(ABC):
 
     @abstractmethod
     def fetch_remote_files(
-        self, filters: Optional[Dict[str, Union[str, List[str]]]] = None, sort: Optional[Union[str, ItemSorter]] = None
+        self,
+        filters: Optional[Dict[str, Union[str, List[str]]]] = None,
+        sort: Optional[Union[str, ItemSorter]] = None,
     ) -> Iterator[DatasetItem]:
         """
         Fetch and lists all files on the remote dataset.
@@ -476,7 +507,9 @@ class RemoteDataset(ABC):
 
         return None
 
-    def create_annotation_class(self, name: str, type: str, subtypes: List[str] = []) -> Dict[str, Any]:
+    def create_annotation_class(
+        self, name: str, type: str, subtypes: List[str] = []
+    ) -> Dict[str, Any]:
         """
         Creates an annotation class for this ``RemoteDataset``.
 
@@ -502,9 +535,13 @@ class RemoteDataset(ABC):
 
         type_ids: List[int] = []
         for annotation_type in [type] + subtypes:
-            type_id: Optional[int] = self.fetch_annotation_type_id_for_name(annotation_type)
+            type_id: Optional[int] = self.fetch_annotation_type_id_for_name(
+                annotation_type
+            )
             if not type_id and self.annotation_types is not None:
-                list_of_annotation_types = ", ".join([type["name"] for type in self.annotation_types])
+                list_of_annotation_types = ", ".join(
+                    [type["name"] for type in self.annotation_types]
+                )
                 raise ValueError(
                     f"Unknown annotation type: '{annotation_type}', valid values: {list_of_annotation_types}"
                 )
@@ -514,7 +551,9 @@ class RemoteDataset(ABC):
 
         return self.client.create_annotation_class(self.dataset_id, type_ids, name)
 
-    def add_annotation_class(self, annotation_class: Union[AnnotationClass, int]) -> Optional[Dict[str, Any]]:
+    def add_annotation_class(
+        self, annotation_class: Union[AnnotationClass, int]
+    ) -> Optional[Dict[str, Any]]:
         """
         Adds an annotation class to this ``RemoteDataset``.
 
@@ -541,13 +580,19 @@ class RemoteDataset(ABC):
         if isinstance(annotation_class, int):
             match = [cls for cls in all_classes if cls["id"] == annotation_class]
             if not match:
-                raise ValueError(f"Annotation class id: `{annotation_class}` does not exist in Team.")
+                raise ValueError(
+                    f"Annotation class id: `{annotation_class}` does not exist in Team."
+                )
         else:
-            annotation_class_type = annotation_class.annotation_internal_type or annotation_class.annotation_type
+            annotation_class_type = (
+                annotation_class.annotation_internal_type
+                or annotation_class.annotation_type
+            )
             match = [
                 cls
                 for cls in all_classes
-                if cls["name"] == annotation_class.name and annotation_class_type in cls["annotation_types"]
+                if cls["name"] == annotation_class.name
+                and annotation_class_type in cls["annotation_types"]
             ]
             if not match:
                 # We do not expect to reach here; as pervious logic divides annotation classes in imports
@@ -586,7 +631,9 @@ class RemoteDataset(ABC):
 
         classes_to_return = []
         for cls in all_classes:
-            belongs_to_current_dataset = any([dataset["id"] == self.dataset_id for dataset in cls["datasets"]])
+            belongs_to_current_dataset = any(
+                [dataset["id"] == self.dataset_id for dataset in cls["datasets"]]
+            )
             cls["available"] = belongs_to_current_dataset
             if team_wide or belongs_to_current_dataset:
                 classes_to_return.append(cls)
@@ -740,7 +787,9 @@ class RemoteDataset(ABC):
             make_default_split=make_default_split,
         )
 
-    def classes(self, annotation_type: str, release_name: Optional[str] = None) -> List[str]:
+    def classes(
+        self, annotation_type: str, release_name: Optional[str] = None
+    ) -> List[str]:
         """
         Returns the list of ``class_type`` classes.
 
@@ -762,7 +811,9 @@ class RemoteDataset(ABC):
             release = self.get_release("latest")
             release_name = release.name
 
-        return get_classes(self.local_path, release_name=release_name, annotation_type=annotation_type)
+        return get_classes(
+            self.local_path, release_name=release_name, annotation_type=annotation_type
+        )
 
     def annotations(
         self,
@@ -829,7 +880,9 @@ class RemoteDataset(ABC):
         """
 
     @abstractmethod
-    def post_comment(self, item: DatasetItem, text: str, x: float, y: float, w: float, h: float) -> None:
+    def post_comment(
+        self, item: DatasetItem, text: str, x: float, y: float, w: float, h: float
+    ) -> None:
         """
         Adds a comment to an item in this dataset. The comment will be added with a bounding box.
         Creates the workflow for said item if necessary.
@@ -895,5 +948,7 @@ class RemoteDataset(ABC):
         """The ``DatasetIdentifier`` of this ``RemoteDataset``."""
         return DatasetIdentifier(team_slug=self.team, dataset_slug=self.slug)
 
-    def _build_image_annotation(self, annotation_file: AnnotationFile) -> Dict[str, Any]:
+    def _build_image_annotation(
+        self, annotation_file: AnnotationFile
+    ) -> Dict[str, Any]:
         return build_image_annotation(annotation_file)
