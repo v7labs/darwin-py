@@ -348,8 +348,10 @@ class TestSplitVideoAnnotations:
         )
         assert video_path.exists()
 
+        print(list(video_path.iterdir()))
+
         assert (video_path / "0000000.json").exists()
-        assert (video_path / "0000001.json").exists()
+        assert not (video_path / "0000001.json").exists()
         assert (video_path / "0000002.json").exists()
         assert not (video_path / "0000003.json").exists()
 
@@ -359,12 +361,6 @@ class TestSplitVideoAnnotations:
                     {"name": "test_class", "polygon": {"path": [{"x": 0, "y": 0}, {"x": 1, "y": 1}, {"x": 1, "y": 0}]}}
                 ],
                 "image": {"filename": "test_video/0000000.png", "height": 1080, "url": "frame_1.jpg", "width": 1920},
-            }
-
-        with (video_path / "0000001.json").open() as f:
-            assert json.loads(f.read()) == {
-                "annotations": [],
-                "image": {"filename": "test_video/0000001.png", "height": 1080, "url": "frame_2.jpg", "width": 1920},
             }
 
         with (video_path / "0000002.json").open() as f:

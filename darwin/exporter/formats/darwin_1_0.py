@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Iterable, List, Union
+from typing import Any, Dict, Iterable, List, Union
 
 import orjson as json
 
@@ -190,3 +190,74 @@ def _build_metadata(annotation_file: AnnotationFile) -> DictFreeForm:
         return {"metadata": annotation_file.slots[0].metadata}
     else:
         return {}
+
+
+def build_image_annotation(annotation_file: AnnotationFile) -> Dict[str, Any]:
+    """
+    Builds and returns a dictionary with the annotations present in the given file.
+
+    Parameters
+    ----------
+    annotation_file: dt.AnnotationFile
+        File with the image annotations to extract.
+
+    Returns
+    -------
+    Dict[str, Any]
+        A dictionary with the annotation from the given file. Has the following structure:
+
+        .. code-block:: python
+
+            {
+                "annotations": [
+                    {
+                        "annotation_type": { ... }, # annotation_data
+                        "name": "annotation class name",
+                        "bounding_box": { ... } # Optional parameter, only present if the file has a bounding box as well
+                    }
+                ],
+                "image": {
+                    "filename": "a_file_name.json",
+                    "height": 1000,
+                    "width": 2000,
+                    "url": "https://www.darwin.v7labs.com/..."
+                }
+            }
+    """
+    annotations: List[Dict[str, Any]] = []
+    for annotation in annotation_file.annotations:
+        payload = {
+            annotation.annotation_class.annotation_type: _build_annotation_data(
+                annotation
+            ),
+            "name": annotation.annotation_class.name,
+        }
+
+        if (
+            annotation.annotation_class.annotation_type == "complex_polygon"
+            or annotation.annotation_class.annotation_type == "polygon"
+        ) and "bounding_box" in annotation.data:
+            payload["bounding_box"] = annotation.data["bounding_box"]
+
+        annotations.append(payload)
+
+    return {
+        "annotations": annotations,
+        "image": {
+            "filename": annotation_file.filename,
+            "height": annotation_file.image_height,
+            "width": annotation_file.image_width,
+            "url": annotation_file.image_url,
+        },
+    }
+
+def _build_annotation_data(annotation: Annotation) -> Dict[str, Any]:
+    if annotation.annotation_class.annotation_type == "complex_polygon":
+        return {"path": annotation.data["paths"]}
+
+    if annotation.annotation_class.annotation_type == "polygon":
+        return dict(
+            filter(lambda item: item[0] != "bounding_box", annotation.data.items())
+        )
+
+    return dict(annotation.data)

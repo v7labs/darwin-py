@@ -22,8 +22,9 @@ from darwin.dataset.upload_manager import (
     UploadHandlerV2,
 )
 from darwin.dataset.utils import is_relative_to
-from darwin.datatypes import ItemId, PathLike
+from darwin.datatypes import AnnotationFile, ItemId, PathLike
 from darwin.exceptions import NotFound, UnknownExportVersion
+from darwin.exporter.formats.darwin import build_image_annotation
 from darwin.item import DatasetItem
 from darwin.item_sorter import ItemSorter
 from darwin.utils import find_files, urljoin
@@ -478,3 +479,6 @@ class RemoteDatasetV2(RemoteDataset):
         workflow_id = workflow_ids[0]
         workflow = self.client.api_v2.get_workflow(workflow_id, team_slug=self.team)
         return (workflow_id, [stage for stage in workflow["stages"] if stage["type"] == stage_type])
+
+    def _build_image_annotation(self, annotation_file: AnnotationFile) -> Dict[str, Any]:
+        return build_image_annotation(annotation_file)

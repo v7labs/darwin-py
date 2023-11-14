@@ -159,7 +159,7 @@ class RemoteDataset(ABC):
 
             frame_annotations = split_video_annotation(darwin_annotation)
             for frame_annotation in frame_annotations:
-                annotation = build_image_annotation(frame_annotation)
+                annotation = self._build_image_annotation(frame_annotation)
 
                 video_frame_annotations_path = annotations_path / annotation_file.stem
                 video_frame_annotations_path.mkdir(exist_ok=True, parents=True)
@@ -894,3 +894,6 @@ class RemoteDataset(ABC):
     def identifier(self) -> DatasetIdentifier:
         """The ``DatasetIdentifier`` of this ``RemoteDataset``."""
         return DatasetIdentifier(team_slug=self.team, dataset_slug=self.slug)
+
+    def _build_image_annotation(self, annotation_file: AnnotationFile) -> Dict[str, Any]:
+        return build_image_annotation(annotation_file)
