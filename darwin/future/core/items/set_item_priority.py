@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 from typing import Dict, List
-from uuid import UUID
 
 from darwin.future.core.client import ClientCore
 from darwin.future.core.types.common import JSONType
@@ -7,10 +8,9 @@ from darwin.future.data_objects.typing import UnknownType
 
 
 def set_item_priority(
-    api_client: ClientCore,
+    client: ClientCore,
     team_slug: str,
-    dataset_id: int,
-    item_ids: List[UUID],
+    dataset_ids: int | List[int],
     priority: int,
     filters: Dict[str, UnknownType] = {},
 ) -> JSONType:
@@ -20,30 +20,33 @@ def set_item_priority(
     Parameters
     ----------
     client: Client
-        The client to use for the request
+        The client to use for the request.
     team_slug: str
-        The slug of the team to set the priority for
-    dataset_id: int
-        The dataset to set the priority for
-    item_ids: List[UUID]
-        The item ids to set the priority for
+        The slug of the team containing the items.
+    dataset_id: int | List[int]
+        The ID(s) of the dataset(s) containing the items.
     priority: int
-        The priority to set
+        The priority to set.
 
     Returns
     -------
     JSONType
+        The response data.
     """
+    assert (
+        filters
+    ), "No parameters provided, please provide at least one non-dataset id filter"
     payload = {
-        "priority": priority,
         "filters": {
-            "item_ids": [str(item_id) for item_id in item_ids],
-            "dataset_ids": [dataset_id],
+            "dataset_ids": dataset_ids
+            if isinstance(dataset_ids, list)
+            else [dataset_ids],
             **filters,
         },
+        "priority": priority,
     }
 
-    return api_client.post(
-        endpoint=f"/v2/teams/{team_slug}/items/priority",
+    return client.post(
+        f"/v2/teams/{team_slug}/items/priority",
         data=payload,
     )

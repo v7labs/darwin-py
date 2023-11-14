@@ -3,7 +3,7 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from darwin.future.data_objects.item import Folder, Item, ItemLayout
+from darwin.future.data_objects.item import Folder, ItemCore, ItemLayout
 
 
 @pytest.fixture
@@ -14,9 +14,9 @@ def base_layout() -> ItemLayout:
 
 
 @pytest.fixture
-def base_items() -> List[Item]:
+def base_items() -> List[ItemCore]:
     return [
-        Item(
+        ItemCore(
             name=f"test_{i}",
             path="test_path",
             dataset_id=1,
@@ -43,7 +43,7 @@ def base_folders() -> List[Folder]:
 
 
 @pytest.fixture
-def base_items_json(base_items: List[Item]) -> List[dict]:
+def base_items_json(base_items: List[ItemCore]) -> List[dict]:
     items = [item.dict() for item in base_items]
     # json library doesn't support UUIDs so need to be str'd
     for item in items:

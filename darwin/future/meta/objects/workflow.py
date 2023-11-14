@@ -21,10 +21,12 @@ from darwin.future.core.items.uploads import (
     async_register_and_create_signed_upload_url,
     async_upload_file,
 )
+from darwin.future.core.types.query import QueryFilter
 from darwin.future.data_objects.item import ItemSlot, UploadItem
 from darwin.future.data_objects.workflow import WFDatasetCore, WFTypeCore, WorkflowCore
 from darwin.future.exceptions import DarwinException, UploadFailed, UploadPending
 from darwin.future.meta.objects.base import MetaBase
+from darwin.future.meta.queries.item import ItemQuery
 from darwin.future.meta.queries.stage import StageQuery
 
 logger = logging.getLogger(__name__)
@@ -89,6 +91,14 @@ class Workflow(MetaBase[WorkflowCore]):
         # Get the datasets associated with the workflow
         datasets = workflow.datasets
     """
+
+    @property
+    def items(self) -> ItemQuery:
+        return ItemQuery(
+            self.client,
+            meta_params=self.meta_params,
+            filters=[QueryFilter(name="workflow_id", param=str(self.id))],
+        )
 
     @property
     def stages(self) -> StageQuery:
