@@ -872,6 +872,10 @@ def split_video_annotation(annotation: dt.AnnotationFile) -> List[dt.AnnotationF
         annotations = [
             a.frames[i] for a in annotation.annotations if isinstance(a, dt.VideoAnnotation) and i in a.frames
         ]
+
+        if len(annotations) < 1:
+            continue
+
         annotation_classes: Set[dt.AnnotationClass] = set([annotation.annotation_class for annotation in annotations])
         filename: str = f"{Path(annotation.filename).stem}/{i:07d}.png"
         frame_annotations.append(
@@ -890,6 +894,7 @@ def split_video_annotation(annotation: dt.AnnotationFile) -> List[dt.AnnotationF
                 slots=annotation.slots,
             )
         )
+    print(frame_annotations[0].version)
     return frame_annotations
 
 
