@@ -1,21 +1,11 @@
 from __future__ import annotations
 
-import asyncio
 from typing import Dict, List, Optional, Union, cast
 from uuid import UUID
 
-from darwin.future.core.datasets.get_dataset import get_dataset
 from darwin.future.core.items.delete_items import delete_list_of_items
 from darwin.future.core.items.move_items_to_folder import move_list_of_items_to_folder
-from darwin.future.data_objects.item import (
-    CompleteCallbackType,
-    ItemCore,
-    ItemCreate,
-    ItemLayout,
-    ItemSlot,
-    LoadedCallbackType,
-)
-from darwin.future.meta.meta_uploader import combined_uploader
+from darwin.future.data_objects.item import ItemCore, ItemLayout, ItemSlot
 from darwin.future.meta.objects.base import MetaBase
 
 
@@ -71,74 +61,6 @@ class Item(MetaBase[ItemCore]):
         dataset_id = cast(Union[int, List[int]], dataset_id)
         filters = {"item_ids": [str(self.id)]}
         move_list_of_items_to_folder(self.client, team_slug, dataset_id, path, filters)
-
-    def new(
-        self,
-        item_payload: ItemCreate,
-        use_folders=False,
-        force_slots=False,
-        callback_when_loaded=LoadedCallbackType,
-        callback_when_complete=CompleteCallbackType,
-    ) -> Item | List[Item]:
-        """
-        Synchronously creates a new item/items in a Darwin dataset.
-
-        @TODO: Add docstring
-        """
-        loop = asyncio.get_event_loop()
-
-        return loop.run_until_complete(
-            self.new_async(
-                item_payload=item_payload,
-                use_folders=use_folders,
-                force_slots=force_slots,
-                callback_when_loaded=callback_when_loaded,
-                callback_when_complete=callback_when_complete,
-            )
-        )
-
-    async def new_async(
-        self,
-        item_payload: ItemCreate,
-        use_folders=False,
-        force_slots=False,
-        callback_when_loaded=LoadedCallbackType,
-        callback_when_complete=LoadedCallbackType,
-    ) -> Item | List[Item]:
-        """
-        Asynchronously creates a new item/items in a Darwin dataset.
-        @TODO: Add docstring
-        """
-        dataset_id = self.meta_params.get("dataset_id")
-        team_slug = self.meta_params.get("team_slug")
-        assert isinstance(team_slug, str), "Must specify team_slug to query items"
-        assert dataset_id, "Must specify dataset_id to create items"
-
-        dataset_id = cast(int, dataset_id)
-        dataset = get_dataset(self.client, str(dataset_id))
-
-        upload_items = await combined_uploader(
-            client=self.client,
-            dataset=dataset,
-            item_payload=item_payload,
-            use_folders=use_folders,
-            force_slots=force_slots,
-            callback_when_loaded=callback_when_loaded,
-            callback_when_complete=callback_when_complete,
-        )
-
-        return [
-            Item(
-                client=self.client,
-                element=ItemCore(
-                    # TODO: Add ItemCore object
-                ),
-                meta_params=self.meta_params,
-            )
-            for item in upload_items
-        ]
-
-        # Create items from ItemUpload objects
 
     @property
     def name(self) -> str:

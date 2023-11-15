@@ -1,13 +1,19 @@
+import asyncio
 from functools import reduce
-from typing import Dict
+import logging
+from typing import Dict, List, cast
+from darwin.future.core.datasets.get_dataset import get_dataset
 
 from darwin.future.core.items.delete_items import delete_list_of_items
 from darwin.future.core.items.get import list_items
 from darwin.future.core.items.move_items_to_folder import move_list_of_items_to_folder
 from darwin.future.core.types.common import QueryString
 from darwin.future.core.types.query import PaginatedQuery
-from darwin.future.data_objects.item import ItemCreate
+from darwin.future.data_objects.item import CompleteCallbackType, ItemCore, ItemCreate, LoadedCallbackType
+from darwin.future.meta.meta_uploader import combined_uploader
 from darwin.future.meta.objects.item import Item
+
+logger = logging.getLogger(__name__)
 
 
 class ItemQuery(PaginatedQuery[Item]):
@@ -67,14 +73,101 @@ class ItemQuery(PaginatedQuery[Item]):
 
     def new(
         self,
+        item_payload: ItemCreate,
         use_folders=False,
         force_slots=False,
-    ) -> None:
-        raise NotImplementedError
+        callback_when_loaded=LoadedCallbackType,
+        callback_when_complete=CompleteCallbackType,
+    ) -> Item | List[Item]:
+        """
+        Synchronously creates a new item/items in a Darwin dataset.
+
+        Parameters
+        ----------
+        item_payload : ItemCreate
+            The item payload to create the item with.
+        use_folders : bool
+            Whether to use folders (preserve the folder structure of paths) or not.
+        force_slots : bool (Not yet implemented)
+            Whether to force slots or not.
+        callback_when_loaded : LoadedCallbackType
+            Callback to run when the item or items is/are loaded.
+        callback_when_complete : CompleteCallbackType
+            Callback to run when the item or items is/are complete.
+
+        Returns
+        """
+        loop = asyncio.get_event_loop()
+
+        return loop.run_until_complete(
+            self.new_async(
+                item_payload=item_payload,
+                use_folders=use_folders,
+                force_slots=force_slots,
+                callback_when_loaded=callback_when_loaded,
+                callback_when_complete=callback_when_complete,
+            )
+        )
 
     async def new_async(
         self,
+        item_payload: ItemCreate,
         use_folders=False,
         force_slots=False,
-    ) -> None:
-        raise NotImplementedError
+        callback_when_loaded=LoadedCallbackType,
+        callback_when_complete=LoadedCallbackType,
+    ) -> Item | List[Item]:
+        """
+        Asynchronously creates a new item/items in a Darwin dataset.
+
+        Parameters
+        ----------
+        item_payload : ItemCreate
+            The item payload to create the item with.
+        use_folders : bool
+            Whether to use folders (preserve the folder structure of paths) or not.
+        force_slots : bool (Not yet implemented)
+            Whether to force slots or not.
+        callback_when_loaded : LoadedCallbackType
+            Callback to run when the item or items is/are loaded.
+        callback_when_complete : CompleteCallbackType
+            Callback to run when the item or items is/are complete.
+
+        Returns
+        -------
+        Item | List[Item]
+            The item or items created.
+        """
+        if force_slots:
+            logger.warn("force_slots is not yet implemented, but is present in the function signature for future use.")
+
+        dataset_id = self.meta_params.get("dataset_id")
+        team_slug = self.meta_params.get("team_slug")
+
+        assert isinstance(team_slug, str), "Must specify team_slug to query items"
+        assert dataset_id, "Must specify dataset_id to create items"
+
+        dataset_id = cast(int, dataset_id)
+        dataset = get_dataset(self.client, str(dataset_id))
+
+        upload_items = await combined_uploader(
+            client=self.client,
+            dataset=dataset,
+            item_payload=item_payload,
+            use_folders=use_folders,
+            force_slots=force_slots,
+            callback_when_loaded=callback_when_loaded,
+            callback_when_complete=callback_when_complete,
+        )
+
+        return [
+            Item(
+                client=self.client,
+                element=ItemCore(
+                    id=
+                    # TODO: Add ItemCore object
+                ),
+                meta_params=self.meta_params,
+            )
+            for upload_item in upload_items
+        ]
