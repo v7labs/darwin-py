@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path, PosixPath
-from typing import Callable, List, Sequence, Tuple, Union
+from typing import List, Sequence, Tuple, Union
 
 import aiohttp
 
@@ -9,16 +9,10 @@ from darwin.dataset.upload_manager import LocalFile
 from darwin.datatypes import PathLike
 from darwin.future.core.client import ClientCore
 from darwin.future.core.items.uploads import async_upload_file
-from darwin.future.data_objects.dataset import DatasetCore
-from darwin.future.data_objects.item import (
-    CompleteCallbackType,
-    ItemCreate,
-    ItemSlot,
-    ItemUpload,
-    LoadedCallbackType,
-)
+from darwin.future.data_objects.item import ItemCreate, ItemSlot
 from darwin.future.exceptions import DarwinException
-from darwin.future.meta.client import Client
+from darwin.future.meta.objects.dataset import Dataset
+from darwin.future.meta.objects.item import Item
 
 
 class UploadItem:
@@ -228,14 +222,24 @@ async def _upload_file_to_signed_url(self, url: str, file: Path) -> aiohttp.Clie
 
 async def combined_uploader(
     client: ClientCore,
-    dataset: DatasetCore,
+    dataset: Dataset,
     item_payload: ItemCreate,
-    use_folders=False,
-    force_slots=False,
-    callback_when_loaded=LoadedCallbackType,
-    callback_when_complete=CompleteCallbackType,
-) -> List[ItemUpload]:
+) -> List[Item]:
+    """
+    (internal) Uploads a list of files to a dataset
+
+    Parameters
+    ----------
+    client : Client
+        The client to use to make the request
+    dataset : Dataset
+        The dataset to upload the files to
+    item_payload : ItemCreate
+        The item payload to create the item with.
+    use_folders : bool
+    """
     # 1. Derive paths
+
     # 2. Prepare upload items
     # 3. Register and create signed upload url
     # 4. Create list of ItemUploads

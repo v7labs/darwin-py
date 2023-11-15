@@ -1,5 +1,4 @@
 # @see: GraphotateWeb.Schemas.DatasetsV2.ItemRegistration.ExistingItem
-from distutils.command import upload
 from enum import Enum
 from pathlib import Path
 from typing import Callable, Dict, List, Literal, Optional, Sequence, Union
@@ -158,6 +157,23 @@ class Folder(DefaultDarwin):
     unfiltered_item_count: int
 
 
+class ItemUploadStatus(Enum):
+    PENDING = "pending"
+    UPLOADING = "uploading"
+    UPLOADED = "uploaded"
+    PROCESSING = "processing"
+    PROCESSED = "processed"
+    FAILED = "failed"
+
+
+class ItemUpload(DefaultDarwin):
+    id: UUID
+    url: str
+    status: ItemUploadStatus
+
+    # TODO: members necessary for building an Item object
+
+
 class ItemCreate(DefaultDarwin):
     """
     ItemCreate
@@ -199,24 +215,7 @@ class ItemCreate(DefaultDarwin):
     as_frames: Optional[bool] = False
     extract_views: Optional[bool] = False
     preserve_folders: Optional[bool] = False
+    force_slots: Optional[bool] = False
 
-
-class ItemUploadStatus(Enum):
-    PENDING = "pending"
-    UPLOADING = "uploading"
-    UPLOADED = "uploaded"
-    PROCESSING = "processing"
-    PROCESSED = "processed"
-    FAILED = "failed"
-
-
-class ItemUpload(DefaultDarwin):
-    id: UUID
-    url: str
-    status: ItemUploadStatus
-
-    # TODO: members necessary for building an Item object
-
-
-LoadedCallbackType = Callable[[List[ItemUpload]], None]
-CompleteCallbackType = Callable[[List[ItemUpload]], None]
+    callback_when_loaded: Optional[Callable[[List[ItemUpload]], None]] = None
+    callback_when_complete: Optional[Callable[[List[ItemUpload]], None]] = None
