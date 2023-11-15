@@ -9,7 +9,6 @@ import orjson as json
 from upolygon import draw_polygon, rle_encode
 
 import darwin.datatypes as dt
-from darwin.exporter.formats.numpy_encoder import NumpyEncoder
 from darwin.utils import convert_polygons_to_sequences
 from darwin.version import __version__
 

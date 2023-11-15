@@ -97,9 +97,9 @@ def parse_json(
     for image_id in image_annotations.keys():
         image = image_lookup_table[int(image_id)]
         annotations = list(filter(None, image_annotations[image_id]))
-        annotation_classes = set(
-            [annotation.annotation_class for annotation in annotations]
-        )
+        annotation_classes = {
+            annotation.annotation_class for annotation in annotations
+        }
         remote_path, filename = deconstruct_full_path(image["file_name"])
         yield dt.AnnotationFile(
             path, filename, annotation_classes, annotations, remote_path=remote_path

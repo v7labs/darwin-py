@@ -2,9 +2,8 @@ import colorsys
 import math
 import os
 from csv import writer as csv_writer
-from functools import reduce
 from pathlib import Path
-from typing import Dict, Iterable, List, Literal, Optional, Set, Tuple, get_args
+from typing import Dict, Iterable, List, Optional, Set, Tuple, get_args
 
 import numpy as np
 
@@ -17,7 +16,7 @@ from upolygon import draw_polygon
 
 import darwin.datatypes as dt
 from darwin.exceptions import DarwinException
-from darwin.utils import convert_polygons_to_sequences, ispolygon
+from darwin.utils import convert_polygons_to_sequences
 
 
 def get_palette(mode: dt.MaskTypes.Mode, categories: List[str]) -> dt.MaskTypes.Palette:
@@ -37,7 +36,7 @@ def get_palette(mode: dt.MaskTypes.Mode, categories: List[str]) -> dt.MaskTypes.
         A dict of categories and their corresponding palette value.
     """
 
-    if not mode in get_args(dt.MaskTypes.Mode):
+    if mode not in get_args(dt.MaskTypes.Mode):
         raise ValueError(f"Unknown mode {mode}.") from DarwinException
 
     if not isinstance(categories, list) or not categories:
@@ -68,7 +67,7 @@ def get_palette(mode: dt.MaskTypes.Mode, categories: List[str]) -> dt.MaskTypes.
 
     if not palette:
         raise ValueError(
-            f"Failed to generate a palette.", mode, categories
+            "Failed to generate a palette.", mode, categories
         ) from DarwinException
 
     return palette
@@ -101,14 +100,10 @@ def get_rgb_colours(
         (x / num_categories, SATURATION_OF_COLOUR, VALUE_OF_COLOUR)
         for x in range(num_categories - 1)
     ]
-    rgb_colour_list: dt.MaskTypes.RgbColorList = list(
-        map(lambda x: [int(e * 255) for e in colorsys.hsv_to_rgb(*x)], hsv_colours)
-    )
+    rgb_colour_list: dt.MaskTypes.RgbColorList = [[int(e * 255) for e in colorsys.hsv_to_rgb(*x)] for x in hsv_colours]
     # Now we add BG class with [0 0 0] RGB value
     rgb_colour_list.insert(0, [0, 0, 0])
-    palette_rgb: dt.MaskTypes.RgbPalette = {
-        c: rgb for c, rgb in zip(categories, rgb_colour_list)
-    }
+    palette_rgb: dt.MaskTypes.RgbPalette = dict(zip(categories, rgb_colour_list))
     rgb_colours: dt.MaskTypes.RgbColors = [c for e in rgb_colour_list for c in e]
 
     return rgb_colours, palette_rgb
@@ -195,7 +190,7 @@ def colours_in_rle(
                 f"Could not find mask with uuid {uuid} in mask lookup table."
             )
 
-        if not mask.name in colours:
+        if mask.name not in colours:
             colours[mask.name] = colour_value
 
     return colours  # Returns same item as the outset, technically not needed, but best practice.
@@ -235,7 +230,7 @@ def get_or_generate_colour(cat_name: str, colours: dt.MaskTypes.ColoursDict) -> 
     -------
     int - the integer for the colour name.  These will later be reassigned to a wider spread across the colour spectrum.
     """
-    if not cat_name in colours:
+    if cat_name not in colours:
         colours[cat_name] = len(colours) + 1
 
     return colours[cat_name]
@@ -293,7 +288,7 @@ def render_polygons(
     for a in filtered_annotations:
         try:
             cat = a.annotation_class.name
-            if not cat in categories:
+            if cat not in categories:
                 categories.append(cat)
 
             if a.annotation_class.annotation_type == "polygon":
@@ -368,7 +363,7 @@ def render_raster(
     mask_annotations: List[dt.AnnotationMask] = []
     raster_layer: Optional[dt.RasterLayer] = None
 
-    mask_lookup: Dict[str, dt.AnnotationMask] = dict()
+    mask_lookup: Dict[str, dt.AnnotationMask] = {}
 
     for a in annotations:
         if isinstance(a, dt.VideoAnnotation):
@@ -390,11 +385,11 @@ def render_raster(
 
             mask_annotations.append(new_mask)
 
-            if not new_mask.id in mask_lookup:
+            if new_mask.id not in mask_lookup:
                 mask_lookup[new_mask.id] = new_mask
 
             # Add the category to the list of categories
-            if not new_mask.name in categories:
+            if new_mask.name not in categories:
                 categories.append(new_mask.name)
 
         if a.annotation_class.annotation_type == "raster_layer" and (rl := data):
@@ -415,11 +410,11 @@ def render_raster(
             raster_layer = new_rl
 
     if not raster_layer:
-        errors.append(ValueError(f"Annotation has no raster layer"))
+        errors.append(ValueError("Annotation has no raster layer"))
         return errors, mask, categories, colours
 
     if not mask_annotations:
-        errors.append(ValueError(f"Annotation has no masks"))
+        errors.append(ValueError("Annotation has no masks"))
         return errors, mask, categories, colours
 
     try:
@@ -447,19 +442,17 @@ def export(
     if len(all_classes_sets) > 0:
         all_classes: Set[dt.AnnotationClass] = set.union(*all_classes_sets)
         categories: List[str] = ["__background__"] + sorted(
-            list(
-                set(
-                    [c.name for c in all_classes if c.annotation_type in accepted_types]
-                )
-            ),
+            {
+                    c.name for c in all_classes if c.annotation_type in accepted_types
+                }, 
             key=lambda x: x.lower(),
         )
         palette = get_palette(mode, categories)
     else:
         categories = ["__background__"]
-        palette = dict()
+        palette = {}
 
-    colours: dt.MaskTypes.ColoursDict = dict()
+    colours: dt.MaskTypes.ColoursDict = {}
 
     for annotation_file in annotation_files:
         image_rel_path = os.path.splitext(annotation_file.full_path)[0].lstrip("/")

@@ -2,7 +2,6 @@ from functools import partial, reduce
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Set, cast
 
-import orjson as json
 from jsonschema import validate
 
 from darwin.datatypes import (

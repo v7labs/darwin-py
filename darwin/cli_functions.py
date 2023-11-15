@@ -8,7 +8,7 @@ import traceback
 from glob import glob
 from itertools import tee
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, NoReturn, Optional, Set, Union
+from typing import Dict, Iterator, List, NoReturn, Optional, Set, Union
 
 import humanize
 from rich.console import Console
@@ -1065,7 +1065,7 @@ def delete_files(
             console.print("Cancelled.")
             return
 
-        found_filenames: Set[str] = set([item.filename for item in items_2])
+        found_filenames: Set[str] = {item.filename for item in items_2}
         not_found_filenames: Set[str] = set(files) - found_filenames
         for filename in not_found_filenames:
             console.print(f"File not found: {filename}", style="warning")

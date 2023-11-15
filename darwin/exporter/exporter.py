@@ -60,7 +60,7 @@ def export_annotations(
     output_directory : PathLike
         Where the parsed files will be placed after the operation is complete.
     """
-    print(f"Converting annotations...")
+    print("Converting annotations...")
     exporter(
         darwin_to_dt_gen(file_paths, split_sequences=split_sequences),
         Path(output_directory),

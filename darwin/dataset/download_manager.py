@@ -94,7 +94,7 @@ def download_all_images_from_annotations(
 
     # Verify that there is not already image in the images folder
     unfiltered_files = (
-        images_path.rglob(f"*") if use_folders else images_path.glob(f"*")
+        images_path.rglob("*") if use_folders else images_path.glob("*")
     )
     existing_images = {
         image for image in unfiltered_files if is_image_extension_allowed(image.suffix)
@@ -666,9 +666,9 @@ def _extract_frames_from_segment(path: Path, manifest: dt.SegmentManifest) -> No
     cap = VideoCapture(str(path))
 
     # Read and save frames. Iterates over every frame because frame seeking in OCV is not reliable or guaranteed.
-    frames_to_extract = dict(
-        [(item.frame, item.visible_frame) for item in manifest.items if item.visibility]
-    )
+    frames_to_extract = {
+        item.frame: item.visible_frame for item in manifest.items if item.visibility
+    }
     frame_index = 0
     while cap.isOpened():
         success, frame = cap.read()

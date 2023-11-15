@@ -58,24 +58,21 @@ class TestParsePath(DataLoopTestCase):
     @patch(
         "darwin.importer.formats.dataloop._remove_leading_slash",
     )
-    @patch("darwin.importer.formats.dataloop.json.loads")
-    @patch("darwin.importer.formats.dataloop.Path.open")
+    @patch("darwin.importer.formats.dataloop.attempt_decode")
     @patch("darwin.importer.formats.dataloop._parse_annotation")
     def test_opens_annotations_file_and_parses(
         self,
         _parse_annotation_mock: MagicMock,
-        path_open_mock: MagicMock,
-        json_load_mock: MagicMock,
+        attempt_decode_mock: MagicMock,
         mock_remove_leading_slash: MagicMock,
     ):
-        json_load_mock.return_value = self.DARWIN_PARSED_DATA
+        attempt_decode_mock.return_value = self.DARWIN_PARSED_DATA
         test_path = "foo.json"
 
         parse_path(Path(test_path))
 
         self.assertEqual(_parse_annotation_mock.call_count, 3)
-        path_open_mock.assert_called_once()
-        json_load_mock.assert_called_once()
+        attempt_decode_mock.assert_called_once()
         mock_remove_leading_slash.assert_called_once()
 
 
