@@ -28,7 +28,10 @@ SERVER_WAIT_TIME = 10
 
 
 def run_cli_command(
-    command: str, working_directory: Optional[str] = None, yes: bool = False, server_wait: int = SERVER_WAIT_TIME
+    command: str,
+    working_directory: Optional[str] = None,
+    yes: bool = False,
+    server_wait: int = SERVER_WAIT_TIME,
 ) -> CLIResult:
     """
     Run a CLI command and return the return code, stdout, and stderr.
@@ -68,9 +71,17 @@ def run_cli_command(
         )
     sleep(server_wait)  # wait for server to catch up
     try:
-        return CLIResult(result.returncode, result.stdout.decode("utf-8"), result.stderr.decode("utf-8"))
+        return CLIResult(
+            result.returncode,
+            result.stdout.decode("utf-8"),
+            result.stderr.decode("utf-8"),
+        )
     except UnicodeDecodeError:
-        return CLIResult(result.returncode, result.stdout.decode("cp437"), result.stderr.decode("cp437"))
+        return CLIResult(
+            result.returncode,
+            result.stdout.decode("cp437"),
+            result.stderr.decode("cp437"),
+        )
 
 
 def format_cli_output(result: CLIResult) -> str:

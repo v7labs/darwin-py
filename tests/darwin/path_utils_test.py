@@ -12,8 +12,14 @@ def test_path_construction():
     assert "/file.name" == (PurePosixPath("/") / "/file.name").as_posix()
     # note; this is not in /one path
     assert "/file.name" == (PurePosixPath("/one") / "/file.name").as_posix()
-    assert "/one/two/file.name" == (PurePosixPath("/") / "one/two/" / "file.name").as_posix()
-    assert "/one/two/file.name" == (PurePosixPath("/") / "/one/two/" / "file.name").as_posix()
+    assert (
+        "/one/two/file.name"
+        == (PurePosixPath("/") / "one/two/" / "file.name").as_posix()
+    )
+    assert (
+        "/one/two/file.name"
+        == (PurePosixPath("/") / "/one/two/" / "file.name").as_posix()
+    )
 
     assert "onlyfile.name" == construct_full_path(None, "onlyfile.name")
     assert "/file.name" == construct_full_path("/", "file.name")

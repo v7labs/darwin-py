@@ -54,7 +54,9 @@ def test_parse_manifests(manifest_paths: List[Path]) -> None:
     assert segment_manifests[3].items[1].visibility == True
 
 
-def test_get_segment_manifests(manifest_paths: List[Path], slot_w_manifests: Slot) -> None:
+def test_get_segment_manifests(
+    manifest_paths: List[Path], slot_w_manifests: Slot
+) -> None:
     parent_path = Path("tests/darwin/dataset/data/manifest_examples")
     files = [open(path, "r").read() for path in manifest_paths]
     with responses.RequestsMock() as rsps:

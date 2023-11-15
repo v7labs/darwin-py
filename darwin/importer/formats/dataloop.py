@@ -30,8 +30,12 @@ def parse_path(path: Path) -> Optional[dt.AnnotationFile]:
     if path.suffix != ".json":
         return None
     data = attempt_decode(path)
-    annotations: List[dt.Annotation] = list(filter(None, map(_parse_annotation, data["annotations"])))
-    annotation_classes: Set[dt.AnnotationClass] = set([annotation.annotation_class for annotation in annotations])
+    annotations: List[dt.Annotation] = list(
+        filter(None, map(_parse_annotation, data["annotations"]))
+    )
+    annotation_classes: Set[dt.AnnotationClass] = set(
+        [annotation.annotation_class for annotation in annotations]
+    )
     return dt.AnnotationFile(
         path,
         _remove_leading_slash(data["filename"]),

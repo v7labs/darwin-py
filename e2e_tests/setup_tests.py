@@ -14,7 +14,12 @@ from e2e_tests.exceptions import E2EException
 from e2e_tests.objects import ConfigValues, E2EDataset, E2EItem
 
 
-def api_call(verb: Literal["get", "post", "put", "delete"], url: str, payload: Optional[dict], api_key: str) -> requests.Response:
+def api_call(
+    verb: Literal["get", "post", "put", "delete"],
+    url: str,
+    payload: Optional[dict],
+    api_key: str,
+) -> requests.Response:
     """
     Make an API call to the server
     (Written independently of the client library to avoid relying on tested items)
@@ -44,7 +49,9 @@ def api_call(verb: Literal["get", "post", "put", "delete"], url: str, payload: O
     return response
 
 
-def generate_random_string(length: int = 6, alphabet: str = (string.ascii_lowercase + string.digits)) -> str:
+def generate_random_string(
+    length: int = 6, alphabet: str = (string.ascii_lowercase + string.digits)
+) -> str:
     """
     A random-enough to avoid collision on test runs prefix generator
 
@@ -82,7 +89,9 @@ def create_dataset(prefix: str, config: ConfigValues) -> E2EDataset:
     url = f"{host}/api/datasets"
 
     if not url.startswith("http"):
-        raise E2EException(f"Invalid server URL {host} - need to specify protocol in var E2E_ENVIRONMENT")
+        raise E2EException(
+            f"Invalid server URL {host} - need to specify protocol in var E2E_ENVIRONMENT"
+        )
 
     try:
         response = api_call("post", url, {"name": name}, api_key)
@@ -97,13 +106,17 @@ def create_dataset(prefix: str, config: ConfigValues) -> E2EDataset:
                 # fmt: on
             )
 
-        raise E2EException(f"Failed to create dataset {name} - {response.status_code} - {response.text}")
+        raise E2EException(
+            f"Failed to create dataset {name} - {response.status_code} - {response.text}"
+        )
     except Exception as e:
         print(f"Failed to create dataset {name} - {e}")
         pytest.exit("Test run failed in test setup stage")
 
 
-def create_item(dataset_slug: str, prefix: str, image: Path, config: ConfigValues) -> E2EItem:
+def create_item(
+    dataset_slug: str, prefix: str, image: Path, config: ConfigValues
+) -> E2EItem:
     """
     Creates a randomised new item, and return its minimal info for reference
 
@@ -168,7 +181,9 @@ def create_item(dataset_slug: str, prefix: str, image: Path, config: ConfigValue
                 annotations=[],
             )
 
-        raise E2EException(f"Failed to create item {name} - {response.status_code} - {response.text}")
+        raise E2EException(
+            f"Failed to create item {name} - {response.status_code} - {response.text}"
+        )
 
     except E2EException as e:
         print(f"Failed to create item {name} - {e}")
@@ -179,7 +194,13 @@ def create_item(dataset_slug: str, prefix: str, image: Path, config: ConfigValue
         pytest.exit("Test run failed in test setup stage")
 
 
-def create_random_image(prefix: str, directory: Path, height: int = 100, width: int = 100, fixed_name: bool=False) -> Path:
+def create_random_image(
+    prefix: str,
+    directory: Path,
+    height: int = 100,
+    width: int = 100,
+    fixed_name: bool = False,
+) -> Path:
     """
     Create a random image file in the given directory
 
@@ -275,8 +296,9 @@ def teardown_tests(config: ConfigValues, datasets: List[E2EDataset]) -> None:
         response = api_call("put", url, {}, api_key)
 
         if not response.ok:
-            failures.append(f"Failed to delete dataset {dataset.name} - {response.status_code} - {response.text}")
-
+            failures.append(
+                f"Failed to delete dataset {dataset.name} - {response.status_code} - {response.text}"
+            )
 
     # Teardown workflows as they need to be disconnected before datasets can be deleted
     url = f"{host}/api/v2/teams/{team_slug}/workflows"
@@ -286,25 +308,26 @@ def teardown_tests(config: ConfigValues, datasets: List[E2EDataset]) -> None:
         for item in items:
             if not item["dataset"]:
                 continue
-            if not item['dataset']['name'].startswith("test_dataset_"):
+            if not item["dataset"]["name"].startswith("test_dataset_"):
                 continue
-            new_item = {
-                "name": item['name'],
-                "stages": item['stages']
-            }
-            for stage in new_item['stages']:
-                if stage['type'] == 'dataset':
+            new_item = {"name": item["name"], "stages": item["stages"]}
+            for stage in new_item["stages"]:
+                if stage["type"] == "dataset":
                     stage["config"]["dataset_id"] = None
             url = f"{host}/api/v2/teams/{team_slug}/workflows/{item['id']}"
             response = api_call("put", url, new_item, api_key)
             if not response.ok:
-                failures.append(f"Failed to delete workflow {item['name']} - {response.status_code} - {response.text}")
-                
+                failures.append(
+                    f"Failed to delete workflow {item['name']} - {response.status_code} - {response.text}"
+                )
+
             # Now Delete the workflow once dataset is disconnected
             response = api_call("delete", url, None, api_key)
             if not response.ok:
-                failures.append(f"Failed to delete workflow {item['name']} - {response.status_code} - {response.text}")
-                
+                failures.append(
+                    f"Failed to delete workflow {item['name']} - {response.status_code} - {response.text}"
+                )
+
     # teardown any other datasets of specific format
     url = f"{host}/api/datasets"
     response = api_call("get", url, {}, api_key)
@@ -316,8 +339,10 @@ def teardown_tests(config: ConfigValues, datasets: List[E2EDataset]) -> None:
             url = f"{host}/api/datasets/{item['id']}/archive"
             response = api_call("put", url, None, api_key)
             if not response.ok:
-                failures.append(f"Failed to delete dataset {item['name']} - {response.status_code} - {response.text}")
-    
+                failures.append(
+                    f"Failed to delete dataset {item['name']} - {response.status_code} - {response.text}"
+                )
+
     if failures:
         for item in failures:
             print(item)

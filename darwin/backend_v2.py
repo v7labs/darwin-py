@@ -24,9 +24,12 @@ class BackendV2:
 
     @inject_default_team_slug
     def register_data(
-        self, dataset_slug: str, payload: Dict[str, Any], *, team_slug: Optional[str] = None
+        self,
+        dataset_slug: str,
+        payload: Dict[str, Any],
+        *,
+        team_slug: Optional[str] = None,
     ) -> Dict[str, Any]:
-
         payload["dataset_slug"] = dataset_slug
         response = self._client._post(
             endpoint=f"v2/teams/{team_slug}/items/register_upload",
@@ -36,11 +39,17 @@ class BackendV2:
         return response
 
     @inject_default_team_slug
-    def sign_upload(self, dataset_slug: str, upload_id: str, *, team_slug: Optional[str] = None) -> Dict[str, Any]:
-        return self._client._get(f"v2/teams/{team_slug}/items/uploads/{upload_id}/sign", team_slug=team_slug)
+    def sign_upload(
+        self, dataset_slug: str, upload_id: str, *, team_slug: Optional[str] = None
+    ) -> Dict[str, Any]:
+        return self._client._get(
+            f"v2/teams/{team_slug}/items/uploads/{upload_id}/sign", team_slug=team_slug
+        )
 
     @inject_default_team_slug
-    def confirm_upload(self, dataset_slug: str, upload_id: str, *, team_slug: Optional[str] = None) -> Dict[str, Any]:
+    def confirm_upload(
+        self, dataset_slug: str, upload_id: str, *, team_slug: Optional[str] = None
+    ) -> Dict[str, Any]:
         return self._client._post(
             f"v2/teams/{team_slug}/items/uploads/{upload_id}/confirm",
             payload={},
@@ -49,7 +58,11 @@ class BackendV2:
 
     @inject_default_team_slug
     def fetch_items(
-        self, dataset_id: int, cursor: Union[Dict[str, Any], List[Tuple[str, Any]]], *, team_slug: Optional[str] = None
+        self,
+        dataset_id: int,
+        cursor: Union[Dict[str, Any], List[Tuple[str, Any]]],
+        *,
+        team_slug: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Fetch the remote items from the given dataset.
@@ -75,10 +88,14 @@ class BackendV2:
 
         cursor.append(("dataset_ids[]", dataset_id))
 
-        return self._client._get(f"/v2/teams/{team_slug}/items?{parse.urlencode(cursor, True)}", team_slug)
+        return self._client._get(
+            f"/v2/teams/{team_slug}/items?{parse.urlencode(cursor, True)}", team_slug
+        )
 
     @inject_default_team_slug
-    def archive_items(self, payload: Dict[str, Any], *, team_slug: Optional[str] = None) -> None:
+    def archive_items(
+        self, payload: Dict[str, Any], *, team_slug: Optional[str] = None
+    ) -> None:
         """
         Archives the item from the given dataset.
 
@@ -92,7 +109,9 @@ class BackendV2:
         self._client._post(f"v2/teams/{team_slug}/items/archive", payload, team_slug)
 
     @inject_default_team_slug
-    def restore_archived_items(self, payload: Dict[str, Any], *, team_slug: Optional[str] = None) -> None:
+    def restore_archived_items(
+        self, payload: Dict[str, Any], *, team_slug: Optional[str] = None
+    ) -> None:
         """
         Restores the archived item from the given dataset.
 
@@ -107,7 +126,12 @@ class BackendV2:
 
     @inject_default_team_slug
     def move_to_stage(
-        self, filters: Dict[str, Any], stage_id: str, workflow_id: str, *, team_slug: Optional[str] = None
+        self,
+        filters: Dict[str, Any],
+        stage_id: str,
+        workflow_id: str,
+        *,
+        team_slug: Optional[str] = None,
     ) -> None:
         """
         Moves the given items to the specified stage
@@ -125,16 +149,22 @@ class BackendV2:
         self._client._post_raw(f"v2/teams/{team_slug}/items/stage", payload, team_slug)
 
     @inject_default_team_slug
-    def get_dataset(self, id: str, *, team_slug: Optional[str] = None) -> Dict[str, Any]:
+    def get_dataset(
+        self, id: str, *, team_slug: Optional[str] = None
+    ) -> Dict[str, Any]:
         return self._client._get(f"datasets/{id}", team_slug)
 
     @inject_default_team_slug
-    def get_workflow(self, id: str, *, team_slug: Optional[str] = None) -> Dict[str, Any]:
+    def get_workflow(
+        self, id: str, *, team_slug: Optional[str] = None
+    ) -> Dict[str, Any]:
         return self._client._get(f"v2/teams/{team_slug}/workflows/{id}", team_slug)
 
     @inject_default_team_slug
     def delete_items(self, filters, *, team_slug: Optional[str] = None):
-        self._client._delete(f"v2/teams/{team_slug}/items", {"filters": filters}, team_slug)
+        self._client._delete(
+            f"v2/teams/{team_slug}/items", {"filters": filters}, team_slug
+        )
 
     @inject_default_team_slug
     def export_dataset(
@@ -159,27 +189,39 @@ class BackendV2:
             payload["format"] = format
 
         if annotation_class_ids:
-            payload["annotation_filters"] = {"annotation_class_ids": list(map(int, annotation_class_ids))}
+            payload["annotation_filters"] = {
+                "annotation_class_ids": list(map(int, annotation_class_ids))
+            }
         if filters is not None:
             # Backend assumes default filters only if those are completely missing.
             payload["filters"] = filters
 
-        return self._client._post(f"v2/teams/{team_slug}/datasets/{dataset_slug}/exports", payload, team_slug)
+        return self._client._post(
+            f"v2/teams/{team_slug}/datasets/{dataset_slug}/exports", payload, team_slug
+        )
 
     def get_exports(self, dataset_slug, *, team_slug: Optional[str] = None):
-        return self._client._get(f"v2/teams/{team_slug}/datasets/{dataset_slug}/exports", team_slug)
+        return self._client._get(
+            f"v2/teams/{team_slug}/datasets/{dataset_slug}/exports", team_slug
+        )
 
     @inject_default_team_slug
-    def post_comment(self, item_id, text, x, y, w, h, slot_name, team_slug: Optional[str] = None):
+    def post_comment(
+        self, item_id, text, x, y, w, h, slot_name, team_slug: Optional[str] = None
+    ):
         payload = {
             "bounding_box": {"h": h, "w": w, "x": x, "y": y},
             "comments": [{"body": text}],
             "slot_name": slot_name,
         }
-        return self._client._post(f"v2/teams/{team_slug}/items/{item_id}/comment_threads", payload, team_slug)
+        return self._client._post(
+            f"v2/teams/{team_slug}/items/{item_id}/comment_threads", payload, team_slug
+        )
 
     @inject_default_team_slug
-    def import_annotation(self, item_id: ItemId, payload: Dict[str, Any], team_slug: Optional[str] = None) -> None:
+    def import_annotation(
+        self, item_id: ItemId, payload: Dict[str, Any], team_slug: Optional[str] = None
+    ) -> None:
         """
         Imports the annotation for the item with the given id.
 
@@ -192,4 +234,6 @@ class BackendV2:
             `{"annotations": serialized_annotations, "overwrite": "false"}`
         """
 
-        return self._client._post_raw(f"v2/teams/{team_slug}/items/{item_id}/import", payload=payload)
+        return self._client._post_raw(
+            f"v2/teams/{team_slug}/items/{item_id}/import", payload=payload
+        )

@@ -41,10 +41,14 @@ def test_empty_annotation_file_v2():
 def test_complete_annotation_file_v2():
     annotation_class = AnnotationClass(name="test", annotation_type="polygon")
     annotation = Annotation(
+<<<<<<< HEAD
         id="12345",
         annotation_class=annotation_class, 
         data={"paths": [[]]}, 
         subs=[]
+=======
+        annotation_class=annotation_class, data={"path": []}, subs=[]
+>>>>>>> origin
     )
 
     annotation_file = AnnotationFile(
@@ -55,6 +59,7 @@ def test_complete_annotation_file_v2():
         dataset_name="Test Dataset"
     )
 
+<<<<<<< HEAD
     expected_output = {
         "version": "2.0",
         "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
@@ -70,6 +75,16 @@ def test_complete_annotation_file_v2():
             "slots": []  # Include an empty slots list as per Darwin v2 format
         },
         "annotations": [_build_v2_annotation_data(annotation)]
+=======
+    assert build_image_annotation(annotation_file) == {
+        "annotations": [{"name": "test", "polygon": {"path": []}}],
+        "image": {
+            "filename": "test.json",
+            "height": 1080,
+            "url": "https://darwin.v7labs.com/image.jpg",
+            "width": 1920,
+        },
+>>>>>>> origin
     }
 
     assert build_image_annotation(annotation_file) == expected_output
