@@ -11,7 +11,7 @@ from darwin.future.core.items.get import list_items
 from darwin.future.core.items.move_items_to_folder import move_list_of_items_to_folder
 from darwin.future.core.types.common import QueryString
 from darwin.future.core.types.query import PaginatedQuery
-from darwin.future.data_objects.item import ItemCore, ItemCreate
+from darwin.future.data_objects.item import ItemCreate
 from darwin.future.meta.meta_uploader import combined_uploader
 from darwin.future.meta.objects.dataset import Dataset
 from darwin.future.meta.objects.item import Item
@@ -78,7 +78,7 @@ class ItemQuery(PaginatedQuery[Item]):
     def new(
         self,
         item_payload: ItemCreate,
-        dataset: Dataset,
+        dataset: int,
     ) -> Item | List[Item]:
         ...
 
@@ -92,7 +92,7 @@ class ItemQuery(PaginatedQuery[Item]):
     def new(
         self,
         item_payload: ItemCreate,
-        dataset: Dataset | None = None,
+        dataset: int | None = None,
     ) -> Item | List[Item]:
         """
         Synchronously creates a new item/items in a Darwin dataset.
@@ -124,7 +124,7 @@ class ItemQuery(PaginatedQuery[Item]):
     async def new_async(
         self,
         item_payload: ItemCreate,
-        dataset: Dataset,
+        dataset: int,
     ) -> Item | List[Item]:
         ...
 
@@ -138,7 +138,7 @@ class ItemQuery(PaginatedQuery[Item]):
     async def new_async(
         self,
         item_payload: ItemCreate,
-        dataset: Dataset | None = None,
+        dataset: int | None = None,
     ) -> Item | List[Item]:
         """
         Asynchronously creates a new item/items in a Darwin dataset.
@@ -176,18 +176,13 @@ class ItemQuery(PaginatedQuery[Item]):
         if not isinstance(team_slug, str):
             raise ValueError("Must have team_slug to query items")
 
-        if is_called_from_dataset:
-            dataset_core = get_dataset(self.client, str(dataset_id))
-            dataset = Dataset(
-                client=self.client,
-                element=dataset_core,
-                meta_params=self.meta_params,
-            )
+        if not is_called_from_dataset:
+            dataset_id = dataset
 
-        assert isinstance(dataset, Dataset), "Dataset must be a Dataset object"
+        assert isinstance(dataset_id, int)
 
         return await combined_uploader(
             client=self.client,
-            dataset=dataset,
+            dataset_id=dataset_id,
             item_payload=item_payload,
         )

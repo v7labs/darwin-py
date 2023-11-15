@@ -11,7 +11,6 @@ from darwin.future.core.client import ClientCore
 from darwin.future.core.items.uploads import async_upload_file
 from darwin.future.data_objects.item import ItemCreate, ItemSlot
 from darwin.future.exceptions import DarwinException
-from darwin.future.meta.objects.dataset import Dataset
 from darwin.future.meta.objects.item import Item
 
 
@@ -222,7 +221,7 @@ async def _upload_file_to_signed_url(self, url: str, file: Path) -> aiohttp.Clie
 
 async def combined_uploader(
     client: ClientCore,
-    dataset: Dataset,
+    dataset_id: int,
     item_payload: ItemCreate,
 ) -> List[Item]:
     """
