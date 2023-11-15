@@ -417,6 +417,17 @@ class TestSplitVideoAnnotations:
                 },
             }
 
+        with (video_path / "0000001.json").open() as f:
+            assert json.loads(f.read()) == {
+                "annotations": [],
+                "image": {
+                    "filename": "test_video/0000001.png",
+                    "height": 1080,
+                    "url": "frame_2.jpg",
+                    "width": 1920,
+                },
+            }
+
         with (video_path / "0000002.json").open() as f:
             assert json.loads(f.read()) == {
                 "annotations": [
