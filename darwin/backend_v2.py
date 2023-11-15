@@ -1,6 +1,7 @@
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 from urllib import parse
 
+from darwin.client import Client
 from darwin.datatypes import ItemId
 
 
@@ -18,7 +19,7 @@ def inject_default_team_slug(method: Callable) -> Callable:
 
 
 class BackendV2:
-    def __init__(self, client: "Client", default_team):
+    def __init__(self, client: Client, default_team):
         self._client = client
         self._default_team = default_team
 

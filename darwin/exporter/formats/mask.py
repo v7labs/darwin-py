@@ -100,7 +100,9 @@ def get_rgb_colours(
         (x / num_categories, SATURATION_OF_COLOUR, VALUE_OF_COLOUR)
         for x in range(num_categories - 1)
     ]
-    rgb_colour_list: dt.MaskTypes.RgbColorList = [[int(e * 255) for e in colorsys.hsv_to_rgb(*x)] for x in hsv_colours]
+    rgb_colour_list: dt.MaskTypes.RgbColorList = [
+        [int(e * 255) for e in colorsys.hsv_to_rgb(*x)] for x in hsv_colours
+    ]
     # Now we add BG class with [0 0 0] RGB value
     rgb_colour_list.insert(0, [0, 0, 0])
     palette_rgb: dt.MaskTypes.RgbPalette = dict(zip(categories, rgb_colour_list))
@@ -442,9 +444,7 @@ def export(
     if len(all_classes_sets) > 0:
         all_classes: Set[dt.AnnotationClass] = set.union(*all_classes_sets)
         categories: List[str] = ["__background__"] + sorted(
-            {
-                    c.name for c in all_classes if c.annotation_type in accepted_types
-                }, 
+            {c.name for c in all_classes if c.annotation_type in accepted_types},
             key=lambda x: x.lower(),
         )
         palette = get_palette(mode, categories)

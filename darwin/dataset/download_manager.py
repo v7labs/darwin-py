@@ -93,9 +93,7 @@ def download_all_images_from_annotations(
         raise ValueError(f"Annotation format {annotation_format} not supported")
 
     # Verify that there is not already image in the images folder
-    unfiltered_files = (
-        images_path.rglob("*") if use_folders else images_path.glob("*")
-    )
+    unfiltered_files = images_path.rglob("*") if use_folders else images_path.glob("*")
     existing_images = {
         image for image in unfiltered_files if is_image_extension_allowed(image.suffix)
     }

@@ -345,8 +345,10 @@ class RemoteDatasetV1(RemoteDataset):
         items : Iterator[DatasetItem]
             The ``DatasetItem``\\s to be completed.
         """
+
         def wf_template_id_mapper(item):
             return item.current_workflow["workflow_template_id"]
+
         input_items: List[DatasetItem] = list(items)
 
         # We split into items with and without workflow

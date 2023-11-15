@@ -129,7 +129,7 @@ def _parse_nifti(
             video_annotations += _video_annotations
     annotation_classes = {
         dt.AnnotationClass(class_name, "polygon", "polygon")
-            for class_name in class_map.values()
+        for class_name in class_map.values()
     }
     return dt.AnnotationFile(
         path=json_path,
