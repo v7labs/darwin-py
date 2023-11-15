@@ -124,7 +124,7 @@ def _build_item_data(annotation_file: dt.AnnotationFile) -> Dict[str, Any]:
                 if annotation_file.dataset_name
                 else None,
             },
-            "item_id": annotation_file.item_id or "unknown-item-id",
+            "item_id": annotation_file.item_id,
             "team": {
                 "name": None,  # TODO Replace with actual team name
                 "slug": None,  # TODO Replace with actual team slug
