@@ -99,7 +99,10 @@ class UploadStage(DocEnum):
 
     REQUEST_SIGNATURE = 0, "First stage, when authentication is being performed."
     UPLOAD_TO_S3 = 1, "Second stage, when the file is being uploaded to S3."
-    CONFIRM_UPLOAD_COMPLETE = 2, "Final stage, when we confirm the file was correctly uploaded."
+    CONFIRM_UPLOAD_COMPLETE = (
+        2,
+        "Final stage, when we confirm the file was correctly uploaded.",
+    )
     OTHER = 3, "If the stage of the upload process is unknown."
 
 
@@ -159,7 +162,10 @@ class LocalFile:
         self.data["path"] = args.get("path") or "/"
 
     def serialize(self):
-        return {"files": [{"file_name": self.data["filename"], "slot_name": "0"}], "name": self.data["filename"]}
+        return {
+            "files": [{"file_name": self.data["filename"], "slot_name": "0"}],
+            "name": self.data["filename"],
+        }
 
     def serialize_v2(self):
         optional_properties = ["tags", "fps", "as_frames", "extract_views"]
@@ -208,7 +214,9 @@ class FileMonitor(object):
         Total size of the IO.
     """
 
-    def __init__(self, io: BinaryIO, file_size: int, callback: Callable[["FileMonitor"], None]):
+    def __init__(
+        self, io: BinaryIO, file_size: int, callback: Callable[["FileMonitor"], None]
+    ):
         self.io: BinaryIO = io
         self.callback: Callable[["FileMonitor"], None] = callback
 
@@ -272,7 +280,9 @@ class UploadHandler(ABC):
         self.dataset: RemoteDataset = dataset
         self.errors: List[UploadRequestError] = []
         self.local_files: List[LocalFile] = local_files
-        self._progress: Optional[Iterator[Callable[[Optional[ByteReadCallback]], None]]] = None
+        self._progress: Optional[
+            Iterator[Callable[[Optional[ByteReadCallback]], None]]
+        ] = None
 
         self.blocked_items, self.pending_items = self._request_upload()
 
@@ -320,7 +330,9 @@ class UploadHandler(ABC):
         """Current level of upload progress."""
         return self._progress
 
-    def prepare_upload(self) -> Optional[Iterator[Callable[[Optional[ByteReadCallback]], None]]]:
+    def prepare_upload(
+        self,
+    ) -> Optional[Iterator[Callable[[Optional[ByteReadCallback]], None]]]:
         self._progress = self._upload_files()
         return self._progress
 
@@ -345,7 +357,10 @@ class UploadHandler(ABC):
                 file_upload_callback(file_name, file_total_bytes, file_bytes_sent)
 
             if progress_callback:
-                if file_total_bytes == file_bytes_sent and file_name not in file_complete:
+                if (
+                    file_total_bytes == file_bytes_sent
+                    and file_name not in file_complete
+                ):
                     file_complete.add(file_name)
                     progress_callback(self.pending_count, 1)
 
@@ -358,8 +373,12 @@ class UploadHandler(ABC):
                 )
 
         if multi_threaded and self.progress:
-            with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-                future_to_progress = {executor.submit(f, callback) for f in self.progress}
+            with concurrent.futures.ThreadPoolExecutor(
+                max_workers=max_workers
+            ) as executor:
+                future_to_progress = {
+                    executor.submit(f, callback) for f in self.progress
+                }
                 for future in concurrent.futures.as_completed(future_to_progress):
                     try:
                         future.result()
@@ -379,7 +398,10 @@ class UploadHandler(ABC):
 
     @abstractmethod
     def _upload_file(
-        self, dataset_item_id: int, file_path: Path, byte_read_callback: Optional[ByteReadCallback]
+        self,
+        dataset_item_id: int,
+        file_path: Path,
+        byte_read_callback: Optional[ByteReadCallback],
     ) -> None:
         pass
 
@@ -397,32 +419,49 @@ class UploadHandlerV1(UploadHandler):
             dataset_slug: str = self.dataset_identifier.dataset_slug
             team_slug: Optional[str] = self.dataset_identifier.team_slug
 
-            data: Dict[str, Any] = self.client.upload_data(dataset_slug, upload_payload, team_slug)
+            data: Dict[str, Any] = self.client.upload_data(
+                dataset_slug, upload_payload, team_slug
+            )
 
-            blocked_items.extend([ItemPayload(**item) for item in data["blocked_items"]])
+            blocked_items.extend(
+                [ItemPayload(**item) for item in data["blocked_items"]]
+            )
             items.extend([ItemPayload(**item) for item in data["items"]])
         return blocked_items, items
 
     def _upload_files(self) -> Iterator[Callable[[Optional[ByteReadCallback]], None]]:
-        def upload_function(dataset_item_id, local_path) -> Callable[[Optional[ByteReadCallback]], None]:
-            return lambda byte_read_callback=None: self._upload_file(dataset_item_id, local_path, byte_read_callback)
+        def upload_function(
+            dataset_item_id, local_path
+        ) -> Callable[[Optional[ByteReadCallback]], None]:
+            return lambda byte_read_callback=None: self._upload_file(
+                dataset_item_id, local_path, byte_read_callback
+            )
 
         file_lookup = {file.full_path: file for file in self.local_files}
         for item in self.pending_items:
             file = file_lookup.get(item.full_path)
             if not file:
-                raise ValueError(f"Cannot match {item.full_path} from payload with files to upload")
+                raise ValueError(
+                    f"Cannot match {item.full_path} from payload with files to upload"
+                )
             yield upload_function(item.dataset_item_id, file.local_path)
 
     def _upload_file(
-        self, dataset_item_id: int, file_path: Path, byte_read_callback: Optional[ByteReadCallback]
+        self,
+        dataset_item_id: int,
+        file_path: Path,
+        byte_read_callback: Optional[ByteReadCallback],
     ) -> None:
         try:
             self._do_upload_file(dataset_item_id, file_path, byte_read_callback)
         except UploadRequestError as e:
             self.errors.append(e)
         except Exception as e:
-            self.errors.append(UploadRequestError(file_path=file_path, stage=UploadStage.OTHER, error=e))
+            self.errors.append(
+                UploadRequestError(
+                    file_path=file_path, stage=UploadStage.OTHER, error=e
+                )
+            )
 
     def _do_upload_file(
         self,
@@ -433,9 +472,13 @@ class UploadHandlerV1(UploadHandler):
         team_slug: Optional[str] = self.dataset_identifier.team_slug
 
         try:
-            sign_response: Dict[str, Any] = self.client.sign_upload(dataset_item_id, team_slug)
+            sign_response: Dict[str, Any] = self.client.sign_upload(
+                dataset_item_id, team_slug
+            )
         except Exception as e:
-            raise UploadRequestError(file_path=file_path, stage=UploadStage.REQUEST_SIGNATURE, error=e)
+            raise UploadRequestError(
+                file_path=file_path, stage=UploadStage.REQUEST_SIGNATURE, error=e
+            )
 
         upload_url = sign_response["upload_url"]
 
@@ -463,12 +506,16 @@ class UploadHandlerV1(UploadHandler):
 
             upload_response.raise_for_status()
         except Exception as e:
-            raise UploadRequestError(file_path=file_path, stage=UploadStage.UPLOAD_TO_S3, error=e)
+            raise UploadRequestError(
+                file_path=file_path, stage=UploadStage.UPLOAD_TO_S3, error=e
+            )
 
         try:
             self.client.confirm_upload(dataset_item_id, team_slug)
         except Exception as e:
-            raise UploadRequestError(file_path=file_path, stage=UploadStage.CONFIRM_UPLOAD_COMPLETE, error=e)
+            raise UploadRequestError(
+                file_path=file_path, stage=UploadStage.CONFIRM_UPLOAD_COMPLETE, error=e
+            )
 
 
 class UploadHandlerV2(UploadHandler):
@@ -484,14 +531,20 @@ class UploadHandlerV2(UploadHandler):
             dataset_slug: str = self.dataset_identifier.dataset_slug
             team_slug: Optional[str] = self.dataset_identifier.team_slug
 
-            data: Dict[str, Any] = self.client.api_v2.register_data(dataset_slug, upload_payload, team_slug=team_slug)
+            data: Dict[str, Any] = self.client.api_v2.register_data(
+                dataset_slug, upload_payload, team_slug=team_slug
+            )
 
-            blocked_items.extend([ItemPayload.parse_v2(item) for item in data["blocked_items"]])
+            blocked_items.extend(
+                [ItemPayload.parse_v2(item) for item in data["blocked_items"]]
+            )
             items.extend([ItemPayload.parse_v2(item) for item in data["items"]])
         return blocked_items, items
 
     def _upload_files(self) -> Iterator[Callable[[Optional[ByteReadCallback]], None]]:
-        def upload_function(dataset_slug, local_path, upload_id) -> Callable[[Optional[ByteReadCallback]], None]:
+        def upload_function(
+            dataset_slug, local_path, upload_id
+        ) -> Callable[[Optional[ByteReadCallback]], None]:
             return lambda byte_read_callback=None: self._upload_file(
                 dataset_slug, local_path, upload_id, byte_read_callback
             )
@@ -503,18 +556,30 @@ class UploadHandlerV2(UploadHandler):
             upload_id = item.slots[0]["upload_id"]
             file = file_lookup.get(item.full_path)
             if not file:
-                raise ValueError(f"Cannot match {item.full_path} from payload with files to upload")
-            yield upload_function(self.dataset.identifier.dataset_slug, file.local_path, upload_id)
+                raise ValueError(
+                    f"Cannot match {item.full_path} from payload with files to upload"
+                )
+            yield upload_function(
+                self.dataset.identifier.dataset_slug, file.local_path, upload_id
+            )
 
     def _upload_file(
-        self, dataset_slug: str, file_path: Path, upload_id: str, byte_read_callback: Optional[ByteReadCallback]
+        self,
+        dataset_slug: str,
+        file_path: Path,
+        upload_id: str,
+        byte_read_callback: Optional[ByteReadCallback],
     ) -> None:
         try:
             self._do_upload_file(dataset_slug, file_path, upload_id, byte_read_callback)
         except UploadRequestError as e:
             self.errors.append(e)
         except Exception as e:
-            self.errors.append(UploadRequestError(file_path=file_path, stage=UploadStage.OTHER, error=e))
+            self.errors.append(
+                UploadRequestError(
+                    file_path=file_path, stage=UploadStage.OTHER, error=e
+                )
+            )
 
     def _do_upload_file(
         self,
@@ -526,9 +591,13 @@ class UploadHandlerV2(UploadHandler):
         team_slug: Optional[str] = self.dataset_identifier.team_slug
 
         try:
-            sign_response: Dict[str, Any] = self.client.api_v2.sign_upload(dataset_slug, upload_id, team_slug=team_slug)
+            sign_response: Dict[str, Any] = self.client.api_v2.sign_upload(
+                dataset_slug, upload_id, team_slug=team_slug
+            )
         except Exception as e:
-            raise UploadRequestError(file_path=file_path, stage=UploadStage.REQUEST_SIGNATURE, error=e)
+            raise UploadRequestError(
+                file_path=file_path, stage=UploadStage.REQUEST_SIGNATURE, error=e
+            )
 
         upload_url = sign_response["upload_url"]
 
@@ -556,12 +625,18 @@ class UploadHandlerV2(UploadHandler):
 
             upload_response.raise_for_status()
         except Exception as e:
-            raise UploadRequestError(file_path=file_path, stage=UploadStage.UPLOAD_TO_S3, error=e)
+            raise UploadRequestError(
+                file_path=file_path, stage=UploadStage.UPLOAD_TO_S3, error=e
+            )
 
         try:
-            self.client.api_v2.confirm_upload(dataset_slug, upload_id, team_slug=team_slug)
+            self.client.api_v2.confirm_upload(
+                dataset_slug, upload_id, team_slug=team_slug
+            )
         except Exception as e:
-            raise UploadRequestError(file_path=file_path, stage=UploadStage.CONFIRM_UPLOAD_COMPLETE, error=e)
+            raise UploadRequestError(
+                file_path=file_path, stage=UploadStage.CONFIRM_UPLOAD_COMPLETE, error=e
+            )
 
 
 DEFAULT_UPLOAD_CHUNK_SIZE: int = 500

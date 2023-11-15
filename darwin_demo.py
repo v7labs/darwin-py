@@ -47,7 +47,9 @@ def run_demo(
     else:
         client = Client.local(team_slug=team_slug)
     # Create a dataset identifier
-    dataset_identifier = DatasetIdentifier(dataset_slug=dataset_slug, team_slug=team_slug)
+    dataset_identifier = DatasetIdentifier(
+        dataset_slug=dataset_slug, team_slug=team_slug
+    )
     # Get an object representing the remote dataset
     ds = client.get_remote_dataset(dataset_identifier=dataset_identifier)
     # Download the dataset on the local file system
@@ -68,12 +70,32 @@ if __name__ == "__main__":
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description="This script can be used to download a dataset from Darwin",
     )
-    parser.add_argument("--datasets-dir", help="Path to where the dataset will be downloaded", default=None, type=Path)
-    parser.add_argument("--dataset-slug", help="Dataset slug (see Darwin documentation)", default=None, type=str)
-    parser.add_argument("--team-slug", help="Team slug (see Darwin documentation)", default=None, type=str)
-    parser.add_argument("--api-key", help="API key to authenticate the client", default=None, type=str)
     parser.add_argument(
-        "--config-path", help="Path to the configuration file to authenticate the client", default=None, type=Path
+        "--datasets-dir",
+        help="Path to where the dataset will be downloaded",
+        default=None,
+        type=Path,
+    )
+    parser.add_argument(
+        "--dataset-slug",
+        help="Dataset slug (see Darwin documentation)",
+        default=None,
+        type=str,
+    )
+    parser.add_argument(
+        "--team-slug",
+        help="Team slug (see Darwin documentation)",
+        default=None,
+        type=str,
+    )
+    parser.add_argument(
+        "--api-key", help="API key to authenticate the client", default=None, type=str
+    )
+    parser.add_argument(
+        "--config-path",
+        help="Path to the configuration file to authenticate the client",
+        default=None,
+        type=Path,
     )
     args = parser.parse_args()
 

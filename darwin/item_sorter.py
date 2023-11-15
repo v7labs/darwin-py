@@ -38,7 +38,9 @@ class SortDirection(DocEnum):
         if cls._is_descending(normalized_direction):
             return cls.DESCENDING
 
-        raise ValueError(f"Invalid direction '{direction}', use 'asc' or 'ascending', 'desc' or 'descending'.")
+        raise ValueError(
+            f"Invalid direction '{direction}', use 'asc' or 'ascending', 'desc' or 'descending'."
+        )
 
     @staticmethod
     def _is_ascending(direction: str) -> bool:
@@ -117,7 +119,13 @@ class ItemSorter:
 
     @staticmethod
     def _has_valid_field(sort: str) -> bool:
-        return sort in ["inserted_at", "updated_at", "file_size", "filename", "priority"]
+        return sort in [
+            "inserted_at",
+            "updated_at",
+            "file_size",
+            "filename",
+            "priority",
+        ]
 
     def __str__(self):
         return f"{self.field}:{self.direction.value}"

@@ -5,7 +5,9 @@ from darwin.datatypes import AnnotationFile, ExportParser, PathLike
 from darwin.utils import parse_darwin_json, split_video_annotation
 
 
-def darwin_to_dt_gen(file_paths: List[PathLike], split_sequences: bool) -> Iterator[AnnotationFile]:
+def darwin_to_dt_gen(
+    file_paths: List[PathLike], split_sequences: bool
+) -> Iterator[AnnotationFile]:
     """
     Parses the given paths recursively and into an ``Iterator`` of ``AnnotationFile``\\s.
 

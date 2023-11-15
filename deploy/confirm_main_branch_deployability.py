@@ -11,7 +11,9 @@ from typing import List, Tuple
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler(sys.stdout))
-logger.setLevel(logging.DEBUG) if environ.get("DEBUG") else logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG) if environ.get("DEBUG") else logger.setLevel(
+    logging.INFO
+)
 
 
 # Set up default constants
@@ -85,10 +87,15 @@ def _get_most_recent_release_tag() -> str:
     """
 
     output, error = _run_command("gh", "release", "list", "--limit", "1")
-    assert error == 0, _exit("Failed to get last release tag", ExitCodes.GETTING_LAST_RELEASE_TAG_THREW_EXITCODE)
+    assert error == 0, _exit(
+        "Failed to get last release tag",
+        ExitCodes.GETTING_LAST_RELEASE_TAG_THREW_EXITCODE,
+    )
 
     release_tag = str(output).split()[0]
-    assert release_tag, _exit("No release tag found", ExitCodes.COULD_NOT_PARSE_LAST_RELEASE_TAG)
+    assert release_tag, _exit(
+        "No release tag found", ExitCodes.COULD_NOT_PARSE_LAST_RELEASE_TAG
+    )
 
     return release_tag
 
@@ -97,20 +104,31 @@ def _get_most_recent_release_timestamp(release_tag: str) -> Tuple[str, datetime]
     """
     Gets the last release timestamp from the repo
     """
-    output, error = _run_command("gh", "release", "view", release_tag, "--json", "name,publishedAt")
-    assert error == 0, _exit("Failed to get last release timestamp", ExitCodes.GETTING_RELEASE_METADATA_THREW_EXITCODE)
+    output, error = _run_command(
+        "gh", "release", "view", release_tag, "--json", "name,publishedAt"
+    )
+    assert error == 0, _exit(
+        "Failed to get last release timestamp",
+        ExitCodes.GETTING_RELEASE_METADATA_THREW_EXITCODE,
+    )
 
     json_output = {}
     try:
         json_output = json.loads(output)
     except json.JSONDecodeError:
-        _exit("Could not parse release metadata", ExitCodes.COULD_NOT_PARSE_RELEASE_METADATA)
+        _exit(
+            "Could not parse release metadata",
+            ExitCodes.COULD_NOT_PARSE_RELEASE_METADATA,
+        )
 
     assert "name" in json_output and "publishedAt" in json_output, _exit(
-        "Expected release name and timestamp in metadata", ExitCodes.UNEXPECTED_STRUCTURE_TO_RELEASE_METADATA
+        "Expected release name and timestamp in metadata",
+        ExitCodes.UNEXPECTED_STRUCTURE_TO_RELEASE_METADATA,
     )
 
-    return json_output["name"], datetime.fromisoformat(json_output["publishedAt"].replace("Z", "+00:00"))
+    return json_output["name"], datetime.fromisoformat(
+        json_output["publishedAt"].replace("Z", "+00:00")
+    )
 
 
 def _get_changes_since_last_release(last_release_timestamp: datetime) -> List[str]:
@@ -120,16 +138,25 @@ def _get_changes_since_last_release(last_release_timestamp: datetime) -> List[st
     SECONDS_IN_A_DAY = 86400
     seconds_since_last_release: int = int(
         (
-            datetime.utcnow().astimezone(timezone.utc) - last_release_timestamp.astimezone(timezone.utc)
+            datetime.utcnow().astimezone(timezone.utc)
+            - last_release_timestamp.astimezone(timezone.utc)
         ).total_seconds()  # Whose idea was it to create timedelta.seconds _and_ datetime.total_seconds
     )
-    gitref_to_compare = "{}@{{{} seconds ago}}".format(DEFAULT_BRANCH, seconds_since_last_release)
+    gitref_to_compare = "{}@{{{} seconds ago}}".format(
+        DEFAULT_BRANCH, seconds_since_last_release
+    )
 
-    print(f"It's been {seconds_since_last_release} seconds since the last release, about {int(seconds_since_last_release / SECONDS_IN_A_DAY)} days ago")
+    print(
+        f"It's been {seconds_since_last_release} seconds since the last release, about {int(seconds_since_last_release / SECONDS_IN_A_DAY)} days ago"
+    )
     printl(f"Getting changes since {gitref_to_compare}")
 
-    output, error = _run_command("git", "diff", DEFAULT_BRANCH, gitref_to_compare, "--name-only")
-    assert error == 0, _exit("Failed to get changes since last release", ExitCodes.GIT_DIFF_THREW_EXITCODE)
+    output, error = _run_command(
+        "git", "diff", DEFAULT_BRANCH, gitref_to_compare, "--name-only"
+    )
+    assert error == 0, _exit(
+        "Failed to get changes since last release", ExitCodes.GIT_DIFF_THREW_EXITCODE
+    )
 
     files_changed = output.split("\n")
 
@@ -144,7 +171,9 @@ def main() -> None:
     last_release_tag = _get_most_recent_release_tag()
 
     printl("Getting last release timestamp")
-    last_release_tag, last_release_timestamp = _get_most_recent_release_timestamp(last_release_tag)
+    last_release_tag, last_release_timestamp = _get_most_recent_release_timestamp(
+        last_release_tag
+    )
 
     printl(f"Last release timestamp: {last_release_timestamp}")
     printl(f"Last release tag: {last_release_tag}")

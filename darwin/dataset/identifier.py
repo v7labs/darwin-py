@@ -31,7 +31,12 @@ class DatasetIdentifier:
         The version of the identifier.
     """
 
-    def __init__(self, dataset_slug: str, team_slug: Optional[str] = None, version: Optional[str] = None):
+    def __init__(
+        self,
+        dataset_slug: str,
+        team_slug: Optional[str] = None,
+        version: Optional[str] = None,
+    ):
         self.dataset_slug = dataset_slug
         self.team_slug = team_slug
         self.version = version
@@ -96,4 +101,7 @@ def _parse(slug: str) -> Tuple[Optional[str], str, Optional[str]]:
 def _is_slug_valid(slug: str) -> bool:
     slug_format = "[\\_a-zA-Z0-9.-]+"
     version_format = "[\\_a-zA-Z0-9.:-]+"
-    return re.fullmatch(rf"({slug_format}/)?{slug_format}(:{version_format})?", slug) is not None
+    return (
+        re.fullmatch(rf"({slug_format}/)?{slug_format}(:{version_format})?", slug)
+        is not None
+    )

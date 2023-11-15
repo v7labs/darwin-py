@@ -18,7 +18,9 @@ class TestParsePath:
         path = Path("path/to/file.xml")
         assert parse_path(path) is None
 
-    def test_it_parses_slot_names_properly_if_present_for_sequences(self, file_path: Path):
+    def test_it_parses_slot_names_properly_if_present_for_sequences(
+        self, file_path: Path
+    ):
         json: str = """
         {
          "dataset": "test",
@@ -130,7 +132,9 @@ class TestParsePath:
         for annotation in annotation_file.annotations:
             assert annotation.slot_names == ["my_slot"]
 
-    def test_it_skips_slot_names_when_no_slot_names_for_sequences(self, file_path: Path):
+    def test_it_skips_slot_names_when_no_slot_names_for_sequences(
+        self, file_path: Path
+    ):
         json: str = """
         {
          "dataset": "test",

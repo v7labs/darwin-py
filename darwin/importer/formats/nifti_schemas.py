@@ -1,4 +1,8 @@
-class_map = {"type": "object", "patternProperties": {"^([0-9]+)+$": {"type": "string"}}, "additionalProperties": False}
+class_map = {
+    "type": "object",
+    "patternProperties": {"^([0-9]+)+$": {"type": "string"}},
+    "additionalProperties": False,
+}
 
 nifti_image_label_pair = {
     "type": "object",

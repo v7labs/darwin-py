@@ -41,8 +41,10 @@ class E2EDataset:
     slug: str
     items: List[E2EItem]
     directory: Optional[str] = None
-    
-    def __init__(self, id: int, name: str, slug: Optional[str], directory: Optional[str]=None) -> None:
+
+    def __init__(
+        self, id: int, name: str, slug: Optional[str], directory: Optional[str] = None
+    ) -> None:
         self.id = id
         self.name = name
         self.slug = slug or name.lower().replace(" ", "_")
