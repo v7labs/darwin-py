@@ -1,28 +1,27 @@
 from __future__ import annotations
 
 from pathlib import Path, PosixPath
-from typing import List, Sequence, Set, Tuple, Union
+from typing import List, Sequence, Set, Tuple, cast
+from uuid import UUID
 
 import aiohttp
 
-from darwin.dataset.upload_manager import LocalFile
-from darwin.datatypes import PathLike
 from darwin.future.core.client import ClientCore
-from darwin.future.core.items.uploads import async_upload_file
-from darwin.future.data_objects.item import ItemCreate, ItemSlot
-from darwin.future.exceptions import DarwinException
+from darwin.future.core.datasets import get_dataset
+from darwin.future.core.items.uploads import (
+    async_confirm_upload,
+    async_register_and_create_signed_upload_url,
+    async_upload_file,
+)
+from darwin.future.data_objects.item import (
+    ItemCreate,
+    ItemSlot,
+    ItemUpload,
+    ItemUploadStatus,
+    UploadItem,
+)
+from darwin.future.exceptions import DarwinException, UploadPending
 from darwin.future.meta.objects.item import Item
-
-
-class UploadItem:
-    def __init__(self, name: str, path: str, slots: List[ItemSlot]):
-        self.name = name
-        self.path = path
-        self.slots = slots
-
-    name: str
-    path: str
-    slots: List[ItemSlot]
 
 
 def _get_item_path(file: Path, root_path: Path, imposed_path: str, preserve_folders: bool) -> str:
@@ -227,6 +226,7 @@ async def _create_list_of_all_files(files_to_upload: Sequence[Path], files_to_ex
 
 async def combined_uploader(
     client: ClientCore,
+    team_slug: str,
     dataset_id: int,
     item_payload: ItemCreate,
 ) -> List[Item]:
@@ -243,96 +243,106 @@ async def combined_uploader(
         The item payload to create the item with.
     use_folders : bool
     """
-    files_to_upload = item_payload.files
-    files_to_exclude = item_payload.files_to_exclude
-    imposed_path = item_payload.path
 
-    files_to_upload = await _create_list_of_all_files(files_to_upload, files_to_exclude)
-    # 1. Derive paths
+    dataset = get_dataset(client, str(dataset_id))
+
+    files_to_upload = await _create_list_of_all_files(item_payload.files, item_payload.files_to_exclude or [])
+    root_path, root_paths_absolute = _derive_root_path(files_to_upload)
 
     # 2. Prepare upload items
+    upload_items = await _prepare_upload_items(
+        item_payload.path or "/",
+        root_path,
+        files_to_upload,
+        item_payload.as_frames or False,
+        cast(int, item_payload.fps),
+        item_payload.extract_views or False,
+        item_payload.preserve_folders or False,
+    )
+
+    item_uploads = [
+        ItemUpload(
+            upload_item=upload_item,
+            status=ItemUploadStatus.PENDING,
+        )
+        for upload_item in upload_items
+    ]
+
+    if item_payload.callback_when_loading:
+        item_payload.callback_when_loading(item_uploads)
+
     # 3. Register and create signed upload url
-    # 4. Create list of ItemUploads
+    items_and_paths: List[Tuple[UploadItem, Path]] = (
+        list(zip(upload_items, [root_paths_absolute]))
+        if item_payload.preserve_folders
+        else list(zip(upload_items, [Path("/")]))
+    )
+    upload_urls, upload_ids = await async_register_and_create_signed_upload_url(
+        client,
+        team_slug,
+        dataset.name,
+        items_and_paths,
+    )
+
+    # TODO Extract this into a function
+    def apply_info(
+        item_upload: ItemUpload, upload_url: str, upload_id: str, upload_item: UploadItem, path: Path
+    ) -> ItemUpload:
+        item_upload.id = UUID(upload_id)
+        item_upload.url = upload_url
+        item_upload.upload_item = upload_item
+        item_upload.path = path
+        return item_upload
+
+    [
+        apply_info(item_upload, upload_url, upload_id, upload_item, path)
+        for upload_url, upload_id, (upload_item, path), item_upload in zip(
+            upload_urls, upload_ids, items_and_paths, item_uploads
+        )
+    ]
+
     # 5. Upload files
-    # 6. Update ItemUploads
+    # TODO Extract this into a function
+    for item_upload in item_uploads:
+        item_upload.status = ItemUploadStatus.UPLOADING
+        try:
+            assert item_upload.path is not None
+            assert item_upload.url is not None
+        except AssertionError as exc:
+            raise DarwinException("ItemUpload must have a path and url") from exc
+
+        await _upload_file_to_signed_url(client, item_upload.url, item_upload.path)
+        item_upload.status = ItemUploadStatus.UPLOADED
+
+    if item_payload.callback_when_loading:
+        item_payload.callback_when_loading(item_uploads)
+
     # 7. Confirm upload
-    # 8. Update ItemUploads
-    # 9. Send results to callback
+    # TODO Extract this into a function
+    MAX_RETRIES = 10
+    retry_count = 0
+    while any(item.status == ItemUploadStatus.PENDING for item in item_uploads):
+        for item in item_uploads:
+            try:
+                await async_confirm_upload(client, team_slug, str(item.id))
+            except UploadPending as exc:
+                item.status = ItemUploadStatus.PENDING
+                raise exc
+            else:
+                item.status = ItemUploadStatus.PROCESSING
+        if retry_count >= MAX_RETRIES:
+            raise DarwinException("Upload timed out")
+        retry_count += 1
+
+    if item_payload.callback_when_loaded:
+        item_payload.callback_when_loaded(item_uploads)
+
+    # Do other stuff
+
     # 10. Await completion polling
     # 11. Send results to callback
-    # 9. Return ItemUploads
+    # 13. Retrieve items
+    # 14. Return items
 
+    # ? Handle blocked items
     ...
-
-
-# async def upload_files_async(
-#     team_slug: str,
-#     dataset: WFDatasetCore,
-#     files: Sequence[PathLike],
-#     files_to_exclude: Optional[List[PathLike]] = None,
-#     fps: int = 1,
-#     path: Optional[str] = None,
-#     as_frames: bool = False,
-#     extract_views: bool = False,
-#     preserve_folders: bool = False,
-# ) -> None:
-#     """
-#     Uploads files to a dataset and optionally starts the workflow
-
-#     Arguments
-#     ---------
-#     files: Sequence[Union[PathLike, LocalFile]]
-#         The files to upload
-#     files_to_exclude: Optional[List[PathLike]]
-#         Files to exclude from the upload
-#     fps: int
-#         Frames per second for video files
-#     path: Optional[str]
-#         Path to upload the files to
-#     as_frames: bool
-#         Whether to upload video files as frames
-#     extract_views: bool
-#         Whether to extract views from video files
-#     preserve_folders: bool
-#         Whether to preserve the folder structure when uploading
-#     auto_push: bool
-#         Whether to automatically push the files to the next stage
-
-#     Returns
-#     -------
-#     List[FilesToStatus]
-#         A list of files and their upload status
-#     """
-#     assert team_slug is not None
-#     assert dataset.name is not None
-
-#     file_paths = await _convert_filelikes_to_paths(files)
-#     if files_to_exclude is not None:
-#         file_paths = [f for f in file_paths if f not in files_to_exclude]
-
-#     root_path, root_paths_absolute = _derive_root_path(file_paths)
-
-#     upload_items = await _prepare_upload_items(
-#         path or "/", root_path, file_paths, as_frames, fps, extract_views, preserve_folders
-#     )
-
-#     items_and_paths: List[Tuple[UploadItem, Path]] = (
-#         list(zip(upload_items, [root_paths_absolute])) if preserve_folders else list(zip(upload_items, [Path("/")]))
-#     )
-
-#     # This is one API call, so we can't create a multiple output for it
-#     upload_urls, upload_ids = await async_register_and_create_signed_upload_url(
-#         ClientCore(self.client.config),
-#         team_slug,
-#         dataset.name,
-#         items_and_paths,
-#     )
-
-#     assert len(upload_urls) == len(items_and_paths), "Upload info and items and paths should be the same length"
-
-#     updateables = [
-#         self._upload_updateable(team_slug, upload_url, upload_id, file.absolute(), auto_push)()
-#         for upload_url, upload_id, file in zip(upload_urls, upload_ids, file_paths)
-#     ]
-
-#     return updateables, None

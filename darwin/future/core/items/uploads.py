@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 from logging import getLogger
 from pathlib import Path
@@ -228,7 +230,7 @@ async def async_register_and_create_signed_upload_url(
     api_client: ClientCore,
     team_slug: str,
     dataset_slug: str,
-    items_and_paths: Union[Tuple[UploadItem, Path], List[Tuple[UploadItem, Path]]],
+    items_and_paths: List[Tuple[UploadItem, Path]],
     force_tiling: bool = False,
     handle_as_slices: bool = False,
     ignore_dicom_layout: bool = False,
@@ -326,6 +328,8 @@ async def async_confirm_upload(api_client: ClientCore, team_slug: str, upload_id
         The slug of the team to confirm the upload for
     upload_id: str
         The ID of the upload to confirm
+    raise_errors: bool
+        Whether to raise errors, if false, an errors dict will be returned
 
     Returns
     -------
@@ -343,7 +347,9 @@ async def async_confirm_upload(api_client: ClientCore, team_slug: str, upload_id
 
     if "errors" in response:
         logger.error(f"Failed to confirm upload in {__name__}, got errors: {response['errors']}")
-        raise UploadFailed(f"Failed to confirm upload in {__name__}: {str(response['errors'])}")
+        exc = UploadFailed(f"Failed to confirm upload in {__name__}: {str(response['errors'])}")
+        exc.errors = response["errors"]
+        raise exc
 
 
 def register_upload(
@@ -420,7 +426,7 @@ def register_and_create_signed_upload_url(
     api_client: ClientCore,
     team_slug: str,
     dataset_slug: str,
-    items_and_paths: Union[List[Tuple[UploadItem, Path]], Tuple[UploadItem, Path]],
+    items_and_paths: List[Tuple[UploadItem, Path]],
     force_tiling: bool = False,
     handle_as_slices: bool = False,
     ignore_dicom_layout: bool = False,

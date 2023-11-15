@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional, Sequence
-
+from typing import Dict, Optional, Sequence
 
 from darwin.future.data_objects.typing import KeyValuePairDict, UnknownType
 
@@ -149,4 +148,4 @@ class UploadPending(DarwinException):
 class UploadFailed(DarwinException):
     """Raised when a dataset upload fails."""
 
-    ...
+    errors: Optional[Dict[str, UnknownType]] = None

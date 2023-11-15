@@ -160,6 +160,7 @@ class Folder(DefaultDarwin):
 class ItemUploadStatus(Enum):
     PENDING = "pending"
     UPLOADING = "uploading"
+    BLOCKED = "blocked"
     UPLOADED = "uploaded"
     PROCESSING = "processing"
     PROCESSED = "processed"
@@ -167,9 +168,11 @@ class ItemUploadStatus(Enum):
 
 
 class ItemUpload(DefaultDarwin):
-    id: UUID
-    url: str
+    id: Optional[UUID] = None
+    url: Optional[str] = None
     status: ItemUploadStatus
+    upload_item: Optional[UploadItem] = None
+    path: Optional[Path] = None
 
 
 class ItemCreate(DefaultDarwin):
@@ -215,5 +218,6 @@ class ItemCreate(DefaultDarwin):
     preserve_folders: Optional[bool] = False
     force_slots: Optional[bool] = False
 
+    callback_when_loading: Optional[Callable[[List[ItemUpload]], None]] = None
     callback_when_loaded: Optional[Callable[[List[ItemUpload]], None]] = None
     callback_when_complete: Optional[Callable[[List[ItemUpload]], None]] = None

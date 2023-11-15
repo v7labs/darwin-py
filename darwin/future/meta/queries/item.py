@@ -180,6 +180,7 @@ class ItemQuery(PaginatedQuery[Item]):
         assert isinstance(dataset_id, int)
 
         return await combined_uploader(
+            team_slug=team_slug,
             client=self.client,
             dataset_id=dataset_id,
             item_payload=item_payload,
