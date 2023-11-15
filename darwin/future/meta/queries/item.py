@@ -5,7 +5,6 @@ import logging
 from functools import reduce
 from typing import Dict, List, overload
 
-from darwin.future.core.datasets.get_dataset import get_dataset
 from darwin.future.core.items.delete_items import delete_list_of_items
 from darwin.future.core.items.get import list_items
 from darwin.future.core.items.move_items_to_folder import move_list_of_items_to_folder
@@ -13,7 +12,6 @@ from darwin.future.core.types.common import QueryString
 from darwin.future.core.types.query import PaginatedQuery
 from darwin.future.data_objects.item import ItemCreate
 from darwin.future.meta.meta_uploader import combined_uploader
-from darwin.future.meta.objects.dataset import Dataset
 from darwin.future.meta.objects.item import Item
 
 logger = logging.getLogger(__name__)
