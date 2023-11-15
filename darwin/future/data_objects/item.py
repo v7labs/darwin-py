@@ -171,8 +171,6 @@ class ItemUpload(DefaultDarwin):
     url: str
     status: ItemUploadStatus
 
-    # TODO: members necessary for building an Item object
-
 
 class ItemCreate(DefaultDarwin):
     """

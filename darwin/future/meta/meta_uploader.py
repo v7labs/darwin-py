@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path, PosixPath
-from typing import List, Sequence, Tuple, Union
+from typing import List, Sequence, Set, Tuple, Union
 
 import aiohttp
 
@@ -176,30 +176,6 @@ def _derive_root_path(paths: List[Path]) -> Tuple[Path, Path]:
     return Path(root_path.stem), Path(root_path.stem).resolve()
 
 
-# ? Needed?
-async def _convert_filelikes_to_paths(files: Sequence[Path]) -> List[Path]:
-    """
-    Converts a list of files to a list of paths
-
-    Arguments
-    ---------
-    files: Sequence[Union[PathLike, LocalFile]]
-        The files to convert
-
-    Returns
-    -------
-    List[Path]
-        The files as paths
-    """
-
-    def convert_to_path(file: Union[PathLike, LocalFile]) -> Path:
-        if isinstance(file, LocalFile):
-            return Path(file.local_path)
-        return Path(file)
-
-    return [convert_to_path(f) for f in files]
-
-
 async def _upload_file_to_signed_url(self, url: str, file: Path) -> aiohttp.ClientResponse:
     """
     Uploads a file to a signed URL
@@ -217,6 +193,36 @@ async def _upload_file_to_signed_url(self, url: str, file: Path) -> aiohttp.Clie
         raise DarwinException(f"Failed to upload file {file} to {url}", upload)
 
     return upload
+
+
+async def _create_list_of_all_files(files_to_upload: Sequence[Path], files_to_exclude: Sequence[Path]) -> List[Path]:
+    """
+    (internal) Creates a flat list of all files to upload from a list of files or file paths and a
+    list of files or file paths to exclude
+
+    Arguments
+    ---------
+    files_to_upload: Sequence[Path]
+        The files to upload
+    files_to_exclude: Sequence[Path]
+        The files to exclude from the upload
+
+    Returns
+    -------
+    List[Path]
+        The list of files to upload
+    """
+    master_files_to_upload: Set[Path] = set()
+
+    for file in files_to_upload:
+        files = file.glob("**/*") if file.is_dir() else [file]
+        master_files_to_upload.update(files)
+
+    for file in files_to_exclude:
+        files = file.glob("**/*") if file.is_dir() else [file]
+        master_files_to_upload.difference_update(files)
+
+    return list(master_files_to_upload)
 
 
 async def combined_uploader(
@@ -237,6 +243,11 @@ async def combined_uploader(
         The item payload to create the item with.
     use_folders : bool
     """
+    files_to_upload = item_payload.files
+    files_to_exclude = item_payload.files_to_exclude
+    imposed_path = item_payload.path
+
+    files_to_upload = await _create_list_of_all_files(files_to_upload, files_to_exclude)
     # 1. Derive paths
 
     # 2. Prepare upload items
@@ -325,133 +336,3 @@ async def combined_uploader(
 #     ]
 
 #     return updateables, None
-
-
-# REGION: Probably to delete
-# async def _upload_on_complete_actions(
-#     self,
-#     items: List[Generator[FileToStatus, None, None]],
-#     auto_push: bool,
-#     callback: Optional[Callable[[List[FileToStatus]], None]] = None,
-# ) -> None:
-#     """
-#     (internal) Polls the upload status of a list of files and performs actions on completion
-
-#     Arguments
-#     ---------
-#     items: List[Generator[FileToStatus, None, None]]
-#         The files to poll
-#     auto_push: bool
-#         Whether to automatically push the files to the next stage
-#     callback: Optional[Callable[[List[FileToStatus]], None]]
-#         A callback to run on completion
-
-#     Returns
-#     -------
-#     None
-#     """
-#     MAX_ITERATIONS = 100
-#     iteration_count = 0
-
-#     if not auto_push and not callback:
-#         return
-
-#     while True and iteration_count <= MAX_ITERATIONS:
-#         if all(next(item).status == UploadStatus.UPLOADED for item in items):
-#             if auto_push:
-#                 self.push_from_dataset_stage()
-
-#             if callback:
-#                 outputs = [next(item) for item in items]
-#                 callback(outputs)
-
-#             break
-#         iteration_count += 1
-#         await asyncio.sleep(1)
-
-
-# def _upload_updateable(
-#     self, team_slug: str, upload_url: str, upload_id: str, file: Path, auto_push: bool
-# ) -> Callable[..., Generator[FileToStatus, None, None]]:
-#     """
-#     Uploads a file to a signed URL
-
-#     Arguments
-#     ---------
-#     url: str
-#         The signed URL to upload to
-#     file: PathLike
-#         The file to upload
-
-#     Returns
-#     -------
-#     Generator
-#         A generator that will update the upload status
-#     """
-#     # Partials need to use a method from self without sharing reference in memory
-#     cached_self = copy.deepcopy(self)
-
-#     def updateable() -> Generator[FileToStatus, None, None]:
-#         loop = asyncio.get_event_loop()
-#         file_status = FileToStatus(file, upload_id, UploadStatus.PENDING)
-
-#         # If file doesn't exist, we can never upload it, so always return FILE_DOES_NOT_EXIST
-#         if not file.exists():
-#             file_status.status = UploadStatus.FILE_DOES_NOT_EXIST
-#             while True:
-#                 yield file_status
-
-#         # Perform the upload
-#         response = loop.run_until_complete(self._upload_file_to_signed_url(upload_url, file))
-#         if response.status != 200:
-#             file_status.status = UploadStatus.FAILED
-#             while True:
-#                 yield file_status
-
-#         file_status.status = cached_self._updateable_wait(cached_self, loop, team_slug, upload_id, file_status)
-
-#         if file_status.status == UploadStatus.FAILED:
-#             while True:
-#                 yield file_status
-
-#         file_status.status = UploadStatus.UPLOADED
-#         yield file_status
-
-#     return updateable
-
-# @classmethod
-# def _updateable_wait(
-#     cls,
-#     self: Workflow,
-#     loop: asyncio.AbstractEventLoop,
-#     team_slug: str,
-#     upload_id: str,
-#     file_status: FileToStatus,
-# ) -> UploadStatus:
-#     start_time = loop.time()
-#     THREE_MINUTES = 60 * 3
-
-#     while loop.time() - start_time < THREE_MINUTES:
-#         try:
-#             client = ClientCore(self.client.config)
-#             loop.run_until_complete(
-#                 async_confirm_upload(
-#                     client,
-#                     team_slug,
-#                     upload_id,
-#                 )
-#             )
-#         except UploadPending:
-#             continue
-#         except UploadFailed:
-#             file_status.status = UploadStatus.FAILED
-#             break
-#         except Exception as exc:
-#             logger.error(f"Error while uploading file {file_status.file} to {upload_id}", exc_info=exc)
-#             file_status.status = UploadStatus.FAILED
-#             break
-#         else:
-#             loop.run_until_complete(asyncio.sleep(0.3))
-
-#     return file_status.status
-# ENDREGION: Probably to delete
