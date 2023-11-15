@@ -1006,9 +1006,6 @@ def split_video_annotation(annotation: dt.AnnotationFile) -> List[dt.AnnotationF
             if isinstance(a, dt.VideoAnnotation) and i in a.frames
         ]
 
-        if len(annotations) < 1:
-            continue
-
         annotation_classes: Set[dt.AnnotationClass] = set(
             [annotation.annotation_class for annotation in annotations]
         )
