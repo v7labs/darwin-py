@@ -49,7 +49,9 @@ def release_name() -> str:
 
 
 @pytest.fixture
-def team_dataset_path(darwin_datasets_path: Path, team_slug: str, dataset_name: str) -> Path:
+def team_dataset_path(
+    darwin_datasets_path: Path, team_slug: str, dataset_name: str
+) -> Path:
     return darwin_datasets_path / team_slug / dataset_name
 
 
@@ -114,7 +116,9 @@ def local_config_file(
     config.put(["teams", team_slug, "datasets_dir"], str(darwin_datasets_path))
 
     config.put(["teams", team_slug_darwin_json_v2, "api_key"], "mock_api_key")
-    config.put(["teams", team_slug_darwin_json_v2, "datasets_dir"], str(darwin_datasets_path))
+    config.put(
+        ["teams", team_slug_darwin_json_v2, "datasets_dir"], str(darwin_datasets_path)
+    )
 
     # Useful if the test needs to reuse attrs
     yield config

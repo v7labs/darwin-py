@@ -49,11 +49,15 @@ class TestExportCli:
         "format, input_path, expectation_path",
         [("yolo_segmented", data_path / "yolov8/from", data_path / "yolov8/to")],
     )
-    def test_darwin_convert(self, format: str, input_path: Path, expectation_path: Path, tmp_path: Path) -> None:
+    def test_darwin_convert(
+        self, format: str, input_path: Path, expectation_path: Path, tmp_path: Path
+    ) -> None:
         """
         Test converting a file format to another format
         """
-        assert input_path is not None and expectation_path is not None, "Input or expectation path is None"
+        assert (
+            input_path is not None and expectation_path is not None
+        ), "Input or expectation path is None"
         assert (
             input_path.exists() and expectation_path.exists()
         ), f"Input path {input_path.absolute()} or expectation path {expectation_path.absolute()} does not exist"
@@ -61,7 +65,9 @@ class TestExportCli:
             input_path.is_dir() and expectation_path.is_dir()
         ), f"Input path {input_path.absolute()} or expectation path {expectation_path.absolute()} is not a directory"
 
-        result = run_cli_command(f"darwin convert {format} {str(input_path)} {str(tmp_path)}")
+        result = run_cli_command(
+            f"darwin convert {format} {str(input_path)} {str(tmp_path)}"
+        )
 
         assert_cli(result, 0)
         assert self.compare_directories(expectation_path, tmp_path)[0]
