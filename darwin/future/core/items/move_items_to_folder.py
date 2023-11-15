@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 from typing import Dict, List
-from uuid import UUID
 
 from darwin.future.core.client import ClientCore
 from darwin.future.core.types.common import JSONType
@@ -7,10 +8,9 @@ from darwin.future.data_objects.typing import UnknownType
 
 
 def move_list_of_items_to_folder(
-    api_client: ClientCore,
+    client: ClientCore,
     team_slug: str,
-    dataset_id: int,
-    item_ids: List[UUID],
+    dataset_ids: int | List[int],
     path: str,
     filters: Dict[str, UnknownType] = {},
 ) -> JSONType:
@@ -20,29 +20,32 @@ def move_list_of_items_to_folder(
     Parameters
     ----------
     client: Client
-        The client to use for the request
+        The client to use for the request.
     team_slug: str
-        The slug of the team containing the items
-    dataset_id: int
-        The ID of the dataset containing the items
-    item_ids: List[UUID]
-        The IDs of the items to be moved
+        The slug of the team containing the items.
+    dataset_ids: int | List[int]
+        The ID(s) of the dataset(s) containing the items.
     path: str
-        The path to the folder to move the items to
+        The path to the folder to move the items to.
     filters: Dict[str, UnknownType]
-        Dataset filter parameters
+        Filter parameters.
 
     Returns
     -------
     JSONType
+        The response data.
     """
+    assert (
+        filters
+    ), "No parameters provided, please provide at least one non-dataset id filter"
     payload = {
         "filters": {
-            "dataset_ids": [dataset_id],
-            "item_ids": [str(item_id) for item_id in item_ids],
+            "dataset_ids": dataset_ids
+            if isinstance(dataset_ids, list)
+            else [dataset_ids],
             **filters,
         },
         "path": path,
     }
 
-    return api_client.post(f"/v2/teams/{team_slug}/items/path", data=payload)
+    return client.post(f"/v2/teams/{team_slug}/items/path", data=payload)
