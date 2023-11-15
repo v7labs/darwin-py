@@ -46,7 +46,9 @@ class DarwinException(Exception):
         return instance
 
     @classmethod
-    def from_multiple_exceptions(cls, exceptions: Sequence[Exception]) -> DarwinException:
+    def from_multiple_exceptions(
+        cls, exceptions: Sequence[Exception]
+    ) -> DarwinException:
         """
         Creates a new exception from a list of exceptions.
 

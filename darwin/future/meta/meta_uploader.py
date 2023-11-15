@@ -24,7 +24,9 @@ from darwin.future.exceptions import DarwinException, UploadPending
 from darwin.future.meta.objects.item import Item
 
 
-def _get_item_path(file: Path, root_path: Path, imposed_path: str, preserve_folders: bool) -> str:
+def _get_item_path(
+    file: Path, root_path: Path, imposed_path: str, preserve_folders: bool
+) -> str:
     """
     (internal) Returns the parent path a file should be stored at on the server
 
@@ -68,10 +70,14 @@ def _get_item_path(file: Path, root_path: Path, imposed_path: str, preserve_fold
         raise ValueError("imposed_path must be a valid PosixPath") from exc
 
     assert root_path.is_dir(), "root_path must be a directory"
-    assert file.is_absolute() and file.is_file() and file.exists(), "file must be an absolute path to an existing file"
+    assert (
+        file.is_absolute() and file.is_file() and file.exists()
+    ), "file must be an absolute path to an existing file"
 
     relative_path = file.relative_to(root_path).parent
-    path = Path(imposed_path) / relative_path if preserve_folders else Path(imposed_path)
+    path = (
+        Path(imposed_path) / relative_path if preserve_folders else Path(imposed_path)
+    )
 
     return_path = str(path)
     if return_path == ".":
@@ -162,7 +168,9 @@ def _derive_root_path(paths: List[Path]) -> Tuple[Path, Path]:
         The lowest common path to the current working directory, both as a relative path, and an absolute path
     """
     try:
-        assert all(isinstance(path, Path) for path in paths), "paths must be a list of Path objects"
+        assert all(
+            isinstance(path, Path) for path in paths
+        ), "paths must be a list of Path objects"
     except AssertionError as exc:
         raise ValueError("paths must be a list of Path objects") from exc
 
@@ -175,7 +183,9 @@ def _derive_root_path(paths: List[Path]) -> Tuple[Path, Path]:
     return Path(root_path.stem), Path(root_path.stem).resolve()
 
 
-async def _upload_file_to_signed_url(self, url: str, file: Path) -> aiohttp.ClientResponse:
+async def _upload_file_to_signed_url(
+    self, url: str, file: Path
+) -> aiohttp.ClientResponse:
     """
     Uploads a file to a signed URL
 
@@ -194,7 +204,9 @@ async def _upload_file_to_signed_url(self, url: str, file: Path) -> aiohttp.Clie
     return upload
 
 
-async def _create_list_of_all_files(files_to_upload: Sequence[Path], files_to_exclude: Sequence[Path]) -> List[Path]:
+async def _create_list_of_all_files(
+    files_to_upload: Sequence[Path], files_to_exclude: Sequence[Path]
+) -> List[Path]:
     """
     (internal) Creates a flat list of all files to upload from a list of files or file paths and a
     list of files or file paths to exclude
@@ -246,7 +258,9 @@ async def combined_uploader(
 
     dataset = get_dataset(client, str(dataset_id))
 
-    files_to_upload = await _create_list_of_all_files(item_payload.files, item_payload.files_to_exclude or [])
+    files_to_upload = await _create_list_of_all_files(
+        item_payload.files, item_payload.files_to_exclude or []
+    )
     root_path, root_paths_absolute = _derive_root_path(files_to_upload)
 
     # 2. Prepare upload items
@@ -286,7 +300,11 @@ async def combined_uploader(
 
     # TODO Extract this into a function
     def apply_info(
-        item_upload: ItemUpload, upload_url: str, upload_id: str, upload_item: UploadItem, path: Path
+        item_upload: ItemUpload,
+        upload_url: str,
+        upload_id: str,
+        upload_item: UploadItem,
+        path: Path,
     ) -> ItemUpload:
         item_upload.id = UUID(upload_id)
         item_upload.url = upload_url

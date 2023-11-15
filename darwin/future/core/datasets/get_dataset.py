@@ -33,7 +33,9 @@ def get_dataset(api_client: ClientCore, dataset_id: str) -> DatasetCore:
     return parse_obj_as(DatasetCore, response)
 
 
-def get_dataset_by_slug(api_client: ClientCore, team_slug: str, dataset_slug: str) -> DatasetCore:
+def get_dataset_by_slug(
+    api_client: ClientCore, team_slug: str, dataset_slug: str
+) -> DatasetCore:
     """
     Returns a list of datasets for the given team
 
@@ -58,6 +60,8 @@ def get_dataset_by_slug(api_client: ClientCore, team_slug: str, dataset_slug: st
         Any errors that occurred while parsing the response
     """
 
-    response = api_client.get(f"/{team_slug}/datasets", QueryString({"slug": dataset_slug}))
+    response = api_client.get(
+        f"/{team_slug}/datasets", QueryString({"slug": dataset_slug})
+    )
 
     return parse_obj_as(DatasetCore, response)

@@ -62,7 +62,10 @@ class DarwinException(Exception):
 
     @classmethod
     def from_multiple_exceptions(
-        cls, exceptions: List[Exception], echo: bool = False, console: Optional[Console] = None
+        cls,
+        exceptions: List[Exception],
+        echo: bool = False,
+        console: Optional[Console] = None,
     ) -> "DarwinException":
         """
         Creates a new exception from a list of exceptions.
@@ -297,7 +300,10 @@ class UnknownAnnotationFileSchema(Exception):
     """
 
     def __init__(
-        self, file_path: Path, supported_versions: List[AnnotationFileVersion], detected_version: AnnotationFileVersion
+        self,
+        file_path: Path,
+        supported_versions: List[AnnotationFileVersion],
+        detected_version: AnnotationFileVersion,
     ):
         """
         Parameters
@@ -360,7 +366,9 @@ class UnsupportedImportAnnotationType(Exception):
         annotation_type: str
             The unsupported annotation type.
         """
-        super().__init__(f"Unsupported annotation type {annotation_type} for {import_type} import")
+        super().__init__(
+            f"Unsupported annotation type {annotation_type} for {import_type} import"
+        )
         self.import_type = import_type
         self.annotation_type = annotation_type
 

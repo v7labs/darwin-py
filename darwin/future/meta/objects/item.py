@@ -45,7 +45,9 @@ class Item(MetaBase[ItemCore]):
     def delete(self) -> None:
         team_slug, dataset_id = (
             self.meta_params["team_slug"],
-            self.meta_params["dataset_id"] if "dataset_id" in self.meta_params else self.meta_params["dataset_ids"],
+            self.meta_params["dataset_id"]
+            if "dataset_id" in self.meta_params
+            else self.meta_params["dataset_ids"],
         )
         assert isinstance(team_slug, str)
         dataset_id = cast(Union[int, List[int]], dataset_id)
@@ -55,7 +57,9 @@ class Item(MetaBase[ItemCore]):
     def move_to_folder(self, path: str) -> None:
         team_slug, dataset_id = (
             self.meta_params["team_slug"],
-            self.meta_params["dataset_id"] if "dataset_id" in self.meta_params else self.meta_params["dataset_ids"],
+            self.meta_params["dataset_id"]
+            if "dataset_id" in self.meta_params
+            else self.meta_params["dataset_ids"],
         )
         assert isinstance(team_slug, str)
         dataset_id = cast(Union[int, List[int]], dataset_id)
