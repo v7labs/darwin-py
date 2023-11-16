@@ -84,7 +84,7 @@ class ItemQuery(PaginatedQuery[Item]):
         ids = [item.id for item in self]
         filters = {"item_ids": [str(item) for item in ids]}
         move_list_of_items_to_folder(self.client, team_slug, dataset_ids, path, filters)
-       
+
     def set_priority(self, priority: int) -> None:
         if "team_slug" not in self.meta_params:
             raise ValueError("Must specify team_slug to query items")

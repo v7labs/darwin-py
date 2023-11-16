@@ -68,7 +68,7 @@ class Item(MetaBase[ItemCore]):
         dataset_id = cast(Union[int, List[int]], dataset_id)
         filters = {"item_ids": [str(self.id)]}
         move_list_of_items_to_folder(self.client, team_slug, dataset_id, path, filters)
-        
+
     def set_priority(self, priority: int) -> None:
         team_slug, dataset_id = (
             self.meta_params["team_slug"],

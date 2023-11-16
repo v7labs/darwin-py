@@ -38,7 +38,6 @@ def test_item_query_collect(item_query: ItemQuery, items_json: List[dict]) -> No
             assert items[i].name == f"item_{i}"
 
 
-
 def test_delete(
     item_query: ItemQuery, items_json: List[dict], items: List[Item]
 ) -> None:
@@ -148,7 +147,7 @@ def test_move_to_folder_raises_on_incorrect_parameters(
         with pytest.raises(BadRequest):
             item_query.move_to_folder(path)
 
-            
+
 def test_set_priority(
     item_query: ItemQuery, items_json: List[dict], items: List[Item]
 ) -> None:
@@ -224,7 +223,7 @@ def test_set_priority_raises_on_incorrect_parameters(
         )
         with pytest.raises(BadRequest):
             item_query.set_priority(priority)
-            
+
 
 def test_restore(
     item_query: ItemQuery, items_json: List[dict], items: List[Item]
