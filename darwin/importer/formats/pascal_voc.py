@@ -52,10 +52,16 @@ def parse_path(path: Path) -> Optional[dt.AnnotationFile]:
 
     filename = _find_text_value(root, "filename")
 
-    annotations: List[dt.Annotation] = list(filter(None, map(_parse_annotation, root.findall("object"))))
-    annotation_classes = set([annotation.annotation_class for annotation in annotations])
+    annotations: List[dt.Annotation] = list(
+        filter(None, map(_parse_annotation, root.findall("object")))
+    )
+    annotation_classes = set(
+        [annotation.annotation_class for annotation in annotations]
+    )
 
-    return dt.AnnotationFile(path, filename, annotation_classes, annotations, remote_path="/")
+    return dt.AnnotationFile(
+        path, filename, annotation_classes, annotations, remote_path="/"
+    )
 
 
 def _parse_annotation(annotation_object: ET.Element) -> dt.Annotation:

@@ -38,19 +38,30 @@ def _export_file(annotation_file: AnnotationFile, _: int, output_dir: Path) -> N
         filename = annotation_file.path.parts[-1]
         output_file_path = (output_dir / filename).with_suffix(".json")
     except Exception as e:
-        raise ExportException_CouldNotAssembleOutputPath(f"Could not export file {annotation_file.path} to {output_dir}") from e
+        raise ExportException_CouldNotAssembleOutputPath(
+            f"Could not export file {annotation_file.path} to {output_dir}"
+        ) from e
 
     try:
         output: DictFreeForm = _build_json(annotation_file)
     except Exception as e:
-        raise ExportException_CouldNotBuildOutput(f"Could not build output for {annotation_file.path}") from e
+        raise ExportException_CouldNotBuildOutput(
+            f"Could not build output for {annotation_file.path}"
+        ) from e
 
     try:
         with open(output_file_path, "w") as f:
-            op = json.dumps(output, option=json.OPT_INDENT_2 | json.OPT_SERIALIZE_NUMPY | json.OPT_NON_STR_KEYS).decode("utf-8")
+            op = json.dumps(
+                output,
+                option=json.OPT_INDENT_2
+                | json.OPT_SERIALIZE_NUMPY
+                | json.OPT_NON_STR_KEYS,
+            ).decode("utf-8")
             f.write(op)
     except Exception as e:
-        raise ExportException_CouldNotWriteFile(f"Could not write output for {annotation_file.path}") from e
+        raise ExportException_CouldNotWriteFile(
+            f"Could not write output for {annotation_file.path}"
+        ) from e
 
 
 def _build_json(annotation_file: AnnotationFile) -> DictFreeForm:
@@ -125,11 +136,17 @@ def _build_sub_annotation(sub: SubAnnotation) -> DictFreeForm:
 def _build_authorship(annotation: Union[VideoAnnotation, Annotation]) -> DictFreeForm:
     annotators = {}
     if annotation.annotators:
-        annotators = {"annotators": [_build_author(annotator) for annotator in annotation.annotators]}
+        annotators = {
+            "annotators": [
+                _build_author(annotator) for annotator in annotation.annotators
+            ]
+        }
 
     reviewers = {}
     if annotation.reviewers:
-        reviewers = {"annotators": [_build_author(reviewer) for reviewer in annotation.reviewers]}
+        reviewers = {
+            "annotators": [_build_author(reviewer) for reviewer in annotation.reviewers]
+        }
 
     return {**annotators, **reviewers}
 
@@ -138,7 +155,9 @@ def _build_video_annotation(annotation: VideoAnnotation) -> DictFreeForm:
     return {
         **annotation.get_data(
             only_keyframes=False,
-            post_processing=lambda annotation, _: _build_image_annotation(annotation, skip_slots=True),
+            post_processing=lambda annotation, _: _build_image_annotation(
+                annotation, skip_slots=True
+            ),
         ),
         "name": annotation.annotation_class.name,
         "slot_names": annotation.slot_names,
@@ -146,7 +165,9 @@ def _build_video_annotation(annotation: VideoAnnotation) -> DictFreeForm:
     }
 
 
-def _build_image_annotation(annotation: Annotation, skip_slots: bool = False) -> DictFreeForm:
+def _build_image_annotation(
+    annotation: Annotation, skip_slots: bool = False
+) -> DictFreeForm:
     json_subs = {}
     for sub in annotation.subs:
         json_subs.update(_build_sub_annotation(sub))
@@ -164,7 +185,9 @@ def _build_image_annotation(annotation: Annotation, skip_slots: bool = False) ->
         return {**base_json, "slot_names": annotation.slot_names}
 
 
-def _build_legacy_annotation_data(annotation_class: AnnotationClass, data: DictFreeForm) -> DictFreeForm:
+def _build_legacy_annotation_data(
+    annotation_class: AnnotationClass, data: DictFreeForm
+) -> DictFreeForm:
     v1_data = {}
     polygon_annotation_mappings = {"complex_polygon": "paths", "polygon": "path"}
 

@@ -44,7 +44,9 @@ class TestExport:
 
 class TestBuildXml:
     def test_xml_has_bounding_boxes_of_polygons(self):
-        annotation_class = AnnotationClass(name="car", annotation_type="polygon", annotation_internal_type=None)
+        annotation_class = AnnotationClass(
+            name="car", annotation_type="polygon", annotation_internal_type=None
+        )
         annotation = Annotation(
             annotation_class=annotation_class,
             data={
@@ -80,11 +82,21 @@ class TestBuildXml:
 
     def test_xml_has_bounding_boxes_of_complex_polygons(self):
         annotation_class = AnnotationClass(
-            name="rubber", annotation_type="complex_polygon", annotation_internal_type="polygon"
+            name="rubber",
+            annotation_type="complex_polygon",
+            annotation_internal_type="polygon",
         )
         annotation = Annotation(
             annotation_class=annotation_class,
-            data={"paths": [{...}], "bounding_box": {"x": 1174.28, "y": 2379.17, "w": 824.9000000000001, "h": 843.52}},
+            data={
+                "paths": [{...}],
+                "bounding_box": {
+                    "x": 1174.28,
+                    "y": 2379.17,
+                    "w": 824.9000000000001,
+                    "h": 843.52,
+                },
+            },
             subs=[],
         )
 
@@ -114,7 +126,9 @@ class TestBuildXml:
         assert_xml_element_text(bndbox, "ymax", "3223")
 
     def test_xml_has_bounding_boxes(self):
-        annotation_class = AnnotationClass(name="tire", annotation_type="bounding_box", annotation_internal_type=None)
+        annotation_class = AnnotationClass(
+            name="tire", annotation_type="bounding_box", annotation_internal_type=None
+        )
         annotation = Annotation(
             annotation_class=annotation_class,
             data={"x": 574.88, "y": 427.0, "w": 137.04, "h": 190.66},

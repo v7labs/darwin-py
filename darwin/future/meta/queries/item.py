@@ -4,6 +4,8 @@ from typing import Dict
 from darwin.future.core.items.archive_items import archive_list_of_items
 from darwin.future.core.items.delete_items import delete_list_of_items
 from darwin.future.core.items.get import list_items
+from darwin.future.core.items.move_items_to_folder import move_list_of_items_to_folder
+from darwin.future.core.items.restore_items import restore_list_of_items
 from darwin.future.core.types.common import QueryString
 from darwin.future.core.types.query import PaginatedQuery
 from darwin.future.meta.objects.item import Item
@@ -41,7 +43,7 @@ class ItemQuery(PaginatedQuery[Item]):
             for i, item in enumerate(items_core)
         }
         return items
-
+      
     def delete(self) -> None:
         if "team_slug" not in self.meta_params:
             raise ValueError("Must specify team_slug to query items")
@@ -61,6 +63,46 @@ class ItemQuery(PaginatedQuery[Item]):
         filters = {"item_ids": [str(item) for item in ids]}
         delete_list_of_items(self.client, team_slug, dataset_ids, filters)
 
+    def move_to_folder(self, path) -> None:
+        if "team_slug" not in self.meta_params:
+            raise ValueError("Must specify team_slug to query items")
+        if (
+            "dataset_ids" not in self.meta_params
+            and "dataset_id" not in self.meta_params
+        ):
+            raise ValueError("Must specify dataset_ids to query items")
+        if not path:
+            raise ValueError("Must specify path to move items to")
+        dataset_ids = (
+            self.meta_params["dataset_ids"]
+            if "dataset_ids" in self.meta_params
+            else self.meta_params["dataset_id"]
+        )
+        team_slug = self.meta_params["team_slug"]
+        self.collect_all()
+        ids = [item.id for item in self]
+        filters = {"item_ids": [str(item) for item in ids]}
+        move_list_of_items_to_folder(self.client, team_slug, dataset_ids, path, filters)
+
+    def restore(self) -> None:
+        if "team_slug" not in self.meta_params:
+            raise ValueError("Must specify team_slug to query items")
+        if (
+            "dataset_ids" not in self.meta_params
+            and "dataset_id" not in self.meta_params
+        ):
+            raise ValueError("Must specify dataset_ids to query items")
+        dataset_ids = (
+            self.meta_params["dataset_ids"]
+            if "dataset_ids" in self.meta_params
+            else self.meta_params["dataset_id"]
+        )
+        team_slug = self.meta_params["team_slug"]
+        self.collect_all()
+        ids = [item.id for item in self]
+        filters = {"item_ids": [str(item) for item in ids]}
+        restore_list_of_items(self.client, team_slug, dataset_ids, filters)
+        
     def archive(self) -> None:
         if "team_slug" not in self.meta_params:
             raise ValueError("Must specify team_slug to query items")
@@ -79,3 +121,4 @@ class ItemQuery(PaginatedQuery[Item]):
         ids = [item.id for item in self]
         filters = {"item_ids": [str(item) for item in ids]}
         archive_list_of_items(self.client, team_slug, dataset_ids, filters)
+

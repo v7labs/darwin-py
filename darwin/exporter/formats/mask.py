@@ -53,9 +53,13 @@ def get_palette(mode: dt.MaskTypes.Mode, categories: List[str]) -> dt.MaskTypes.
         if num_categories > 254:
             raise ValueError("maximum number of classes supported: 254.")
         elif num_categories == 1:
-            raise ValueError("only having the '__background__' class is not allowed. Please add more classes.")
+            raise ValueError(
+                "only having the '__background__' class is not allowed. Please add more classes."
+            )
 
-        palette = {c: int(i * 255 / (num_categories - 1)) for i, c in enumerate(categories)}
+        palette = {
+            c: int(i * 255 / (num_categories - 1)) for i, c in enumerate(categories)
+        }
 
     if mode == "rgb":
         if num_categories > 360:
@@ -63,12 +67,16 @@ def get_palette(mode: dt.MaskTypes.Mode, categories: List[str]) -> dt.MaskTypes.
         palette = {c: i for i, c in enumerate(categories)}
 
     if not palette:
-        raise ValueError(f"Failed to generate a palette.", mode, categories) from DarwinException
+        raise ValueError(
+            f"Failed to generate a palette.", mode, categories
+        ) from DarwinException
 
     return palette
 
 
-def get_rgb_colours(categories: dt.MaskTypes.CategoryList) -> Tuple[dt.MaskTypes.RgbColors, dt.MaskTypes.RgbPalette]:
+def get_rgb_colours(
+    categories: dt.MaskTypes.CategoryList,
+) -> Tuple[dt.MaskTypes.RgbColors, dt.MaskTypes.RgbPalette]:
     """
     Returns a list of RGB colours and a dict of categories and their corresponding RGB palette value.
 
@@ -90,14 +98,17 @@ def get_rgb_colours(categories: dt.MaskTypes.CategoryList) -> Tuple[dt.MaskTypes
     SATURATION_OF_COLOUR: float = 0.8
     VALUE_OF_COLOUR: float = 1.0
     hsv_colours: dt.MaskTypes.HsvColors = [
-        (x / num_categories, SATURATION_OF_COLOUR, VALUE_OF_COLOUR) for x in range(num_categories - 1)
+        (x / num_categories, SATURATION_OF_COLOUR, VALUE_OF_COLOUR)
+        for x in range(num_categories - 1)
     ]
     rgb_colour_list: dt.MaskTypes.RgbColorList = list(
         map(lambda x: [int(e * 255) for e in colorsys.hsv_to_rgb(*x)], hsv_colours)
     )
     # Now we add BG class with [0 0 0] RGB value
     rgb_colour_list.insert(0, [0, 0, 0])
-    palette_rgb: dt.MaskTypes.RgbPalette = {c: rgb for c, rgb in zip(categories, rgb_colour_list)}
+    palette_rgb: dt.MaskTypes.RgbPalette = {
+        c: rgb for c, rgb in zip(categories, rgb_colour_list)
+    }
     rgb_colours: dt.MaskTypes.RgbColors = [c for e in rgb_colour_list for c in e]
 
     return rgb_colours, palette_rgb
@@ -117,12 +128,16 @@ def get_render_mode(annotations: List[dt.AnnotationLike]) -> dt.MaskTypes.TypeOf
     TypeOfRenderType
         A string reading either "raster" or "polygon".
     """
-    non_video_annotations: List[dt.Annotation] = [a for a in annotations if not isinstance(a, dt.VideoAnnotation)]
+    non_video_annotations: List[dt.Annotation] = [
+        a for a in annotations if not isinstance(a, dt.VideoAnnotation)
+    ]
 
     if not non_video_annotations:
         return "polygon"
 
-    list_of_types: List[str] = [a.annotation_class.annotation_type for a in non_video_annotations]
+    list_of_types: List[str] = [
+        a.annotation_class.annotation_type for a in non_video_annotations
+    ]
     types: Set[str] = set(list_of_types)
 
     is_raster_mask = ("mask" in types) and ("raster_layer" in types)
@@ -131,7 +146,9 @@ def get_render_mode(annotations: List[dt.AnnotationLike]) -> dt.MaskTypes.TypeOf
     raster_layer_count = len([a for a in types if a == "raster_layer"])
 
     if is_raster_mask and is_polygon:
-        raise ValueError("Cannot have both raster and polygon annotations in the same file")
+        raise ValueError(
+            "Cannot have both raster and polygon annotations in the same file"
+        )
 
     if is_raster_mask and raster_layer_count > 1:
         raise ValueError("Cannot have more than one raster layer in the same file")
@@ -142,7 +159,10 @@ def get_render_mode(annotations: List[dt.AnnotationLike]) -> dt.MaskTypes.TypeOf
     if is_polygon:
         return "polygon"
 
-    raise ValueError("No renderable annotations found in file, found types: " + ",".join(list_of_types))
+    raise ValueError(
+        "No renderable annotations found in file, found types: "
+        + ",".join(list_of_types)
+    )
 
 
 def colours_in_rle(
@@ -171,7 +191,9 @@ def colours_in_rle(
         mask: Optional[dt.AnnotationMask] = mask_lookup.get(uuid)
 
         if mask is None:
-            raise ValueError(f"Could not find mask with uuid {uuid} in mask lookup table.")
+            raise ValueError(
+                f"Could not find mask with uuid {uuid} in mask lookup table."
+            )
 
         if not mask.name in colours:
             colours[mask.name] = colour_value
@@ -255,7 +277,9 @@ def render_polygons(
 
     errors: List[Exception] = []
 
-    filtered_annotations: List[dt.Annotation] = [a for a in annotations if not isinstance(a, dt.VideoAnnotation)]
+    filtered_annotations: List[dt.Annotation] = [
+        a for a in annotations if not isinstance(a, dt.VideoAnnotation)
+    ]
     beyond_window = annotations_exceed_window(filtered_annotations, height, width)
     if beyond_window:
         # If the annotations exceed the window, we need to offset the mask to fit them all in.
@@ -277,14 +301,20 @@ def render_polygons(
             elif a.annotation_class.annotation_type == "complex_polygon":
                 polygon = a.data["paths"]
             else:
-                raise ValueError(f"Unknown annotation type {a.annotation_class.annotation_type}")
+                raise ValueError(
+                    f"Unknown annotation type {a.annotation_class.annotation_type}"
+                )
 
             if beyond_window:
                 # Offset the polygon by the minimum x and y values to shift it to new frame of reference
                 polygon_off = offset_polygon(polygon, offset_x, offset_y)
-                sequence = convert_polygons_to_sequences(polygon_off, height=new_height, width=new_width)
+                sequence = convert_polygons_to_sequences(
+                    polygon_off, height=new_height, width=new_width
+                )
             else:
-                sequence = convert_polygons_to_sequences(polygon, height=height, width=width)
+                sequence = convert_polygons_to_sequences(
+                    polygon, height=height, width=width
+                )
             colour_to_draw = categories.index(cat)
             mask = draw_polygon(mask, sequence, colour_to_draw)
 
@@ -369,7 +399,9 @@ def render_raster(
 
         if a.annotation_class.annotation_type == "raster_layer" and (rl := data):
             if raster_layer:
-                errors.append(ValueError(f"Annotation {a.id} has more than one raster layer"))
+                errors.append(
+                    ValueError(f"Annotation {a.id} has more than one raster layer")
+                )
                 break
 
             new_rl = dt.RasterLayer(
@@ -400,16 +432,27 @@ def render_raster(
     return errors, mask, categories, colours
 
 
-def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path, mode: dt.MaskTypes.Mode) -> None:
+def export(
+    annotation_files: Iterable[dt.AnnotationFile],
+    output_dir: Path,
+    mode: dt.MaskTypes.Mode,
+) -> None:
     masks_dir: Path = output_dir / "masks"
     masks_dir.mkdir(exist_ok=True, parents=True)
     annotation_files = list(annotation_files)
     accepted_types = ["polygon", "complex_polygon", "raster_layer", "mask"]
-    all_classes_sets: List[Set[dt.AnnotationClass]] = [a.annotation_classes for a in annotation_files]
+    all_classes_sets: List[Set[dt.AnnotationClass]] = [
+        a.annotation_classes for a in annotation_files
+    ]
     if len(all_classes_sets) > 0:
         all_classes: Set[dt.AnnotationClass] = set.union(*all_classes_sets)
         categories: List[str] = ["__background__"] + sorted(
-            list(set([c.name for c in all_classes if c.annotation_type in accepted_types])), key=lambda x: x.lower()
+            list(
+                set(
+                    [c.name for c in all_classes if c.annotation_type in accepted_types]
+                )
+            ),
+            key=lambda x: x.lower(),
         )
         palette = get_palette(mode, categories)
     else:
@@ -426,11 +469,15 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path, mode
         height = annotation_file.image_height
         width = annotation_file.image_width
         if height is None or width is None:
-            raise ValueError(f"Annotation file {annotation_file.filename} references an image with no height or width")
+            raise ValueError(
+                f"Annotation file {annotation_file.filename} references an image with no height or width"
+            )
 
         mask: NDArray = np.zeros((height, width)).astype(np.uint8)
         annotations: List[dt.AnnotationLike] = [
-            a for a in annotation_file.annotations if a.annotation_class.annotation_type in accepted_types
+            a
+            for a in annotation_file.annotations
+            if a.annotation_class.annotation_type in accepted_types
         ]
 
         render_type = get_render_mode(annotations)
@@ -455,7 +502,9 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path, mode
             raise DarwinException.from_multiple_exceptions(errors)
 
         # Map to palette
-        mask = np.array(mask, dtype=np.uint8)  # Final double check that type is using correct dtype
+        mask = np.array(
+            mask, dtype=np.uint8
+        )  # Final double check that type is using correct dtype
 
         if mode == "rgb":
             rgb_colours, palette_rgb = get_rgb_colours(categories)
@@ -482,7 +531,9 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path, mode
                 writer.writerow([class_key, f"{palette[class_key]}"])
 
 
-def annotations_exceed_window(annotations: List[dt.Annotation], height: int, width: int) -> bool:
+def annotations_exceed_window(
+    annotations: List[dt.Annotation], height: int, width: int
+) -> bool:
     """Check if any annotations exceed the image window
 
     Args:
@@ -508,7 +559,9 @@ def annotations_exceed_window(annotations: List[dt.Annotation], height: int, wid
     return False
 
 
-def get_extents(annotations: List[dt.Annotation], height: int = 0, width: int = 0) -> Tuple[int, int, int, int]:
+def get_extents(
+    annotations: List[dt.Annotation], height: int = 0, width: int = 0
+) -> Tuple[int, int, int, int]:
     """Create a bounding box around all annotations in discrete pixel space
 
     Args:

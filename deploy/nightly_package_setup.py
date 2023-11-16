@@ -37,7 +37,9 @@ def main() -> None:
 
     path_to_pyproject.write_text(linesep.join(lines_to_write))
 
-    print(f"Set build to a nightly in pyproject.toml - darwin-nightly@{epoch_timestring}")
+    print(
+        f"Set build to a nightly in pyproject.toml - darwin-nightly@{epoch_timestring}"
+    )
 
 
 if __name__ == "__main__":

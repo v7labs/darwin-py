@@ -15,7 +15,9 @@ from tests.fixtures import *  # noqa: F401, F403
 
 
 @pytest.fixture
-def darwin_client(darwin_config_path: Path, darwin_datasets_path: Path, team_slug: str) -> Client:
+def darwin_client(
+    darwin_config_path: Path, darwin_datasets_path: Path, team_slug: str
+) -> Client:
     config = Config(darwin_config_path)
     config.put(["global", "api_endpoint"], "http://localhost/api")
     config.put(["global", "base_url"], "http://localhost")
@@ -49,7 +51,9 @@ class TestListRemoteDatasets:
             },
         ]
 
-        responses.add(responses.GET, darwin_client.url + endpoint, json=json_response, status=200)
+        responses.add(
+            responses.GET, darwin_client.url + endpoint, json=json_response, status=200
+        )
 
         remote_datasets = list(darwin_client.list_remote_datasets(team_slug))
 
@@ -108,7 +112,9 @@ class TestListRemoteDatasets:
             },
         ]
 
-        responses.add(responses.GET, darwin_client.url + endpoint, json=json_response, status=200)
+        responses.add(
+            responses.GET, darwin_client.url + endpoint, json=json_response, status=200
+        )
 
         remote_datasets = list(darwin_client.list_remote_datasets(team_slug))
 
@@ -133,7 +139,9 @@ class TestGetRemoteDataset:
             }
         ]
 
-        responses.add(responses.GET, darwin_client.url + endpoint, json=json_response, status=200)
+        responses.add(
+            responses.GET, darwin_client.url + endpoint, json=json_response, status=200
+        )
 
         with pytest.raises(NotFound):
             darwin_client.get_remote_dataset("v7/dataset-slug-2")
@@ -152,7 +160,9 @@ class TestGetRemoteDataset:
             }
         ]
 
-        responses.add(responses.GET, darwin_client.url + endpoint, json=json_response, status=200)
+        responses.add(
+            responses.GET, darwin_client.url + endpoint, json=json_response, status=200
+        )
 
         actual_dataset = darwin_client.get_remote_dataset("v7/dataset-slug-1")
         for version in [RemoteDatasetV1, RemoteDatasetV2]:
@@ -182,7 +192,9 @@ class TestCreateDataset:
             "progress": 0,
         }
 
-        responses.add(responses.POST, darwin_client.url + endpoint, json=json_response, status=200)
+        responses.add(
+            responses.POST, darwin_client.url + endpoint, json=json_response, status=200
+        )
 
         actual_dataset = darwin_client.create_dataset("my-dataset", "v7")
         expected_dataset = RemoteDatasetV1(
@@ -218,16 +230,22 @@ class TestFetchRemoteFiles:
     @responses.activate
     def test_returns_remote_files(self, darwin_client: Client) -> None:
         dataset_id = 1
-        endpoint: str = f"/datasets/{dataset_id}/items?page%5Bsize%5D=500&page%5Bfrom%5D=0"
+        endpoint: str = (
+            f"/datasets/{dataset_id}/items?page%5Bsize%5D=500&page%5Bfrom%5D=0"
+        )
         responses.add(responses.POST, darwin_client.url + endpoint, json={}, status=200)
 
-        darwin_client.fetch_remote_files(dataset_id, {"page[size]": 500, "page[from]": 0}, {}, "v7")
+        darwin_client.fetch_remote_files(
+            dataset_id, {"page[size]": 500, "page[from]": 0}, {}, "v7"
+        )
 
 
 @pytest.mark.usefixtures("file_read_write_test")
 class TestFetchRemoteClasses:
     @responses.activate
-    def test_returns_remote_classes(self, team_slug: str, darwin_client: Client) -> None:
+    def test_returns_remote_classes(
+        self, team_slug: str, darwin_client: Client
+    ) -> None:
         endpoint: str = f"/teams/{team_slug}/annotation_classes?include_tags=true"
         response: JSONFreeForm = {
             "annotation_classes": [
@@ -248,7 +266,9 @@ class TestFetchRemoteClasses:
             ]
         }
 
-        responses.add(responses.GET, darwin_client.url + endpoint, json=response, status=200)
+        responses.add(
+            responses.GET, darwin_client.url + endpoint, json=response, status=200
+        )
 
         result: List[JSONFreeForm] = darwin_client.fetch_remote_classes(team_slug)
         annotation_class: JSONFreeForm = result[0]
@@ -263,14 +283,18 @@ class TestFetchRemoteClasses:
 @pytest.mark.usefixtures("file_read_write_test")
 class TestGetTeamFeatures:
     @responses.activate
-    def test_returns_list_of_features(self, team_slug: str, darwin_client: Client) -> None:
+    def test_returns_list_of_features(
+        self, team_slug: str, darwin_client: Client
+    ) -> None:
         endpoint: str = f"/teams/{team_slug}/features"
         json_response = [
             {"enabled": False, "name": "WORKFLOW_V2"},
             {"enabled": True, "name": "BLIND_STAGE"},
         ]
 
-        responses.add(responses.GET, darwin_client.url + endpoint, json=json_response, status=200)
+        responses.add(
+            responses.GET, darwin_client.url + endpoint, json=json_response, status=200
+        )
 
         assert darwin_client.get_team_features(team_slug) == [
             Feature(name="WORKFLOW_V2", enabled=False),
@@ -286,7 +310,9 @@ class TestInstantiateItem:
         endpoint: str = f"/dataset_items/{item_id}/workflow"
         json_response: JSONFreeForm = {}
 
-        responses.add(responses.POST, darwin_client.url + endpoint, json=json_response, status=200)
+        responses.add(
+            responses.POST, darwin_client.url + endpoint, json=json_response, status=200
+        )
 
         with pytest.raises(ValueError) as exception:
             darwin_client.instantiate_item(item_id)
@@ -300,7 +326,9 @@ class TestInstantiateItem:
         endpoint: str = f"/dataset_items/{item_id}/workflow"
         json_response: JSONFreeForm = {"current_workflow_id": workflow_id}
 
-        responses.add(responses.POST, darwin_client.url + endpoint, json=json_response, status=200)
+        responses.add(
+            responses.POST, darwin_client.url + endpoint, json=json_response, status=200
+        )
         assert darwin_client.instantiate_item(item_id) == workflow_id
 
 
@@ -312,12 +340,17 @@ class TestWorkflowComment:
         endpoint: str = f"/workflows/{workflow_id}/workflow_comment_threads"
         json_response: JSONFreeForm = {}
 
-        responses.add(responses.POST, darwin_client.url + endpoint, json=json_response, status=200)
+        responses.add(
+            responses.POST, darwin_client.url + endpoint, json=json_response, status=200
+        )
 
         with pytest.raises(ValueError) as exception:
             darwin_client.post_workflow_comment(workflow_id, "My comment.")
 
-        assert str(exception.value) == f"Unable to retrieve comment id for workflow: {workflow_id}."
+        assert (
+            str(exception.value)
+            == f"Unable to retrieve comment id for workflow: {workflow_id}."
+        )
 
     @responses.activate
     def test_returns_comment_id(self, darwin_client: Client) -> None:
@@ -326,8 +359,13 @@ class TestWorkflowComment:
         endpoint: str = f"/workflows/{workflow_id}/workflow_comment_threads"
         json_response: JSONFreeForm = {"id": comment_id}
 
-        responses.add(responses.POST, darwin_client.url + endpoint, json=json_response, status=200)
-        assert darwin_client.post_workflow_comment(workflow_id, "My comment.") == comment_id
+        responses.add(
+            responses.POST, darwin_client.url + endpoint, json=json_response, status=200
+        )
+        assert (
+            darwin_client.post_workflow_comment(workflow_id, "My comment.")
+            == comment_id
+        )
 
 
 def assert_dataset(dataset_1: RemoteDataset, dataset_2: RemoteDataset) -> None:

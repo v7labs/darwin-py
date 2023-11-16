@@ -28,11 +28,15 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path) -> N
     masks_dir.mkdir(parents=True, exist_ok=True)
     with open(output_dir / "instance_mask_annotations.csv", "w") as f:
         f.write("image_id,mask_id,class_name\n")
-        for annotation_file in get_progress_bar(list(annotation_files), "Processing annotations"):
+        for annotation_file in get_progress_bar(
+            list(annotation_files), "Processing annotations"
+        ):
             image_id = os.path.splitext(annotation_file.filename)[0]
             height = annotation_file.image_height
             width = annotation_file.image_width
-            annotations = [a for a in annotation_file.annotations if ispolygon(a.annotation_class)]
+            annotations = [
+                a for a in annotation_file.annotations if ispolygon(a.annotation_class)
+            ]
             for i, annotation in enumerate(annotations):
                 cat = annotation.annotation_class.name
                 if annotation.annotation_class.annotation_type == "polygon":
@@ -41,7 +45,9 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path) -> N
                     polygon = annotation.data["paths"]
                 else:
                     continue
-                mask = convert_polygons_to_mask(polygon, height=height, width=width, value=255)
+                mask = convert_polygons_to_mask(
+                    polygon, height=height, width=width, value=255
+                )
                 mask = Image.fromarray(mask.astype(np.uint8))
                 mask_id = f"{image_id}_{i:05}"
                 outfile = masks_dir / f"{mask_id}.png"
