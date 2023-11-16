@@ -9,6 +9,7 @@ from pydantic import root_validator, validator
 from darwin.future.data_objects import NumberLike
 from darwin.future.data_objects.pydantic_base import DefaultDarwin
 from darwin.future.data_objects.typing import UnknownType
+from darwin.future.meta.objects.item import Item
 
 ItemFrameRate = Union[NumberLike, Literal["native"]]
 
@@ -55,6 +56,7 @@ class ItemSlot(DefaultDarwin):
     metadata: Optional[Dict[str, UnknownType]] = None
     tags: Optional[Union[List[str], Dict[str, str]]] = None
     type: Optional[Literal["image", "video", "pdf", "dicom"]] = None
+    upload_id: Optional[UUID] = None
 
     @validator("slot_name")
     def validate_slot_name(cls, v: UnknownType) -> str:
@@ -173,6 +175,7 @@ class ItemUpload(DefaultDarwin):
     status: ItemUploadStatus
     upload_item: Optional[UploadItem] = None
     path: Optional[Path] = None
+    item: Optional[Item] = None
 
 
 class ItemCreate(DefaultDarwin):

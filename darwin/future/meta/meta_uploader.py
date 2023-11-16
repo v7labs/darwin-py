@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from pathlib import Path, PosixPath
-from typing import List, Sequence, Set, Tuple, cast
+from typing import List, Optional, Sequence, Set, Tuple, cast
 from uuid import UUID
 
 import aiohttp
 
+from darwin import item
 from darwin.future.core.client import ClientCore
 from darwin.future.core.datasets import get_dataset
 from darwin.future.core.items.uploads import (
@@ -14,6 +15,7 @@ from darwin.future.core.items.uploads import (
     async_upload_file,
 )
 from darwin.future.data_objects.item import (
+    ItemCore,
     ItemCreate,
     ItemSlot,
     ItemUpload,
@@ -24,9 +26,7 @@ from darwin.future.exceptions import DarwinException, UploadPending
 from darwin.future.meta.objects.item import Item
 
 
-def _get_item_path(
-    file: Path, root_path: Path, imposed_path: str, preserve_folders: bool
-) -> str:
+def _get_item_path(file: Path, root_path: Path, imposed_path: str, preserve_folders: bool) -> str:
     """
     (internal) Returns the parent path a file should be stored at on the server
 
@@ -70,14 +70,10 @@ def _get_item_path(
         raise ValueError("imposed_path must be a valid PosixPath") from exc
 
     assert root_path.is_dir(), "root_path must be a directory"
-    assert (
-        file.is_absolute() and file.is_file() and file.exists()
-    ), "file must be an absolute path to an existing file"
+    assert file.is_absolute() and file.is_file() and file.exists(), "file must be an absolute path to an existing file"
 
     relative_path = file.relative_to(root_path).parent
-    path = (
-        Path(imposed_path) / relative_path if preserve_folders else Path(imposed_path)
-    )
+    path = Path(imposed_path) / relative_path if preserve_folders else Path(imposed_path)
 
     return_path = str(path)
     if return_path == ".":
@@ -168,9 +164,7 @@ def _derive_root_path(paths: List[Path]) -> Tuple[Path, Path]:
         The lowest common path to the current working directory, both as a relative path, and an absolute path
     """
     try:
-        assert all(
-            isinstance(path, Path) for path in paths
-        ), "paths must be a list of Path objects"
+        assert all(isinstance(path, Path) for path in paths), "paths must be a list of Path objects"
     except AssertionError as exc:
         raise ValueError("paths must be a list of Path objects") from exc
 
@@ -183,9 +177,7 @@ def _derive_root_path(paths: List[Path]) -> Tuple[Path, Path]:
     return Path(root_path.stem), Path(root_path.stem).resolve()
 
 
-async def _upload_file_to_signed_url(
-    self, url: str, file: Path
-) -> aiohttp.ClientResponse:
+async def _upload_file_to_signed_url(self, url: str, file: Path) -> aiohttp.ClientResponse:
     """
     Uploads a file to a signed URL
 
@@ -204,9 +196,8 @@ async def _upload_file_to_signed_url(
     return upload
 
 
-async def _create_list_of_all_files(
-    files_to_upload: Sequence[Path], files_to_exclude: Sequence[Path]
-) -> List[Path]:
+# TODO: Test this
+async def _create_list_of_all_files(files_to_upload: Sequence[Path], files_to_exclude: Sequence[Path]) -> List[Path]:
     """
     (internal) Creates a flat list of all files to upload from a list of files or file paths and a
     list of files or file paths to exclude
@@ -236,6 +227,195 @@ async def _create_list_of_all_files(
     return list(master_files_to_upload)
 
 
+# TODO: Test this
+def _initialise_item_uploads(upload_items: List[UploadItem]) -> List[ItemUpload]:
+    """
+    (internal) Initialises a list of ItemUploads
+
+    Arguments
+    ---------
+    upload_items: List[UploadItem]
+        The upload items to initialise
+
+    Returns
+    -------
+    List[ItemUpload]
+        The initialised ItemUploads
+    """
+    return [
+        ItemUpload(
+            upload_item=upload_item,
+            status=ItemUploadStatus.PENDING,
+        )
+        for upload_item in upload_items
+    ]
+
+
+# TODO: Test this
+def _initialise_items_and_paths(
+    upload_items: List[UploadItem], root_path_absolute: Path, item_payload: ItemCreate
+) -> List[Tuple[UploadItem, Path]]:
+    """
+    (internal) Initialises a list of ItemUploads
+
+    Arguments
+    ---------
+    upload_items: List[UploadItem]
+        The upload items to initialise
+
+    Returns
+    -------
+    List[ItemUpload]
+        The initialised ItemUploads
+    """
+    return (
+        list(zip(upload_items, [root_path_absolute]))
+        if item_payload.preserve_folders
+        else list(zip(upload_items, [Path("/")]))
+    )
+
+
+def _update_item_upload(
+    item_upload: ItemUpload,
+    status: Optional[ItemUploadStatus] = None,
+    upload_url: Optional[str] = None,
+    upload_id: Optional[str | UUID] = None,
+    upload_item: Optional[UploadItem] = None,
+    path: Optional[Path] = None,
+) -> ItemUpload:
+    """
+    (internal) Updates an ItemUpload
+
+    Arguments
+    ---------
+    item_upload: ItemUpload
+        The ItemUpload to update
+    status: Optional[ItemUploadStatus]
+        The status to update the ItemUpload to
+    upload_url: Optional[str]
+        The upload URL to update the ItemUpload to
+    upload_id: Optional[str | UUID]
+        The upload ID to update the ItemUpload to
+    upload_item: Optional[UploadItem]
+        The UploadItem to update the ItemUpload to
+    path: Optional[Path]
+        The path to update the ItemUpload to
+
+    Returns
+    -------
+    ItemUpload
+        The updated ItemUpload
+    """
+    if status is not None:
+        item_upload.status = status
+
+    if upload_url is not None:
+        item_upload.url = upload_url
+
+    if upload_id is not None:
+        if isinstance(upload_id, str):
+            item_upload.id = UUID(upload_id)
+        else:
+            item_upload.id = upload_id
+
+    if upload_item is not None:
+        item_upload.upload_item = upload_item
+
+    if path is not None:
+        item_upload.path = path
+
+
+# TODO: Test this
+def _item_dict_to_item(client: ClientCore, item_dict: dict) -> Item:
+    """
+    (internal) Converts an item dict to an item
+
+    Arguments
+    ---------
+    item_dict: dict
+        The item dict to convert
+
+    Returns
+    -------
+    Item
+        The converted item
+    """
+    item_core = ItemCore(
+        # Key accesses for required members
+        name=item_dict["name"],
+        id=item_dict["id"],
+        slots=item_dict["slots"],
+        path=item_dict["path"],
+        dataset_id=item_dict["dataset_id"],
+        processing_status=item_dict["processing_status"],
+        # `get` accesses for optional members
+        archived=item_dict.get("archived"),
+        priority=item_dict.get("priority"),
+        tags=item_dict.get("tags"),
+        layout=item_dict.get("layout"),
+    )
+    return Item(
+        element=item_core,
+        client=client,
+    )
+
+
+def _items_dicts_to_items(client: ClientCore, items_dicts: List[dict]) -> List[Item]:
+    """
+    (internal) Converts a list of item dicts to a list of items
+
+    Arguments
+    ---------
+    items_dicts: List[dict]
+        The item dicts to convert
+
+    Returns
+    -------
+    List[Item]
+        The converted items
+    """
+    return [_item_dict_to_item(client, item_dict) for item_dict in items_dicts]
+
+
+# TODO: Test this
+def _handle_items_and_blocked_items(
+    client: ClientCore, item_uploads: List[ItemUpload], items_dicts: List, blocked_items_dicts: List
+) -> Tuple[List[Item], List[Item]]:
+    return _items_dicts_to_items(client, items_dicts), _items_dicts_to_items(client, blocked_items_dicts)
+
+
+async def _handle_uploads(client: ClientCore, item_uploads: List[ItemUpload]) -> None:
+    for item_upload in item_uploads:
+        item_upload.status = ItemUploadStatus.UPLOADING
+        try:
+            assert item_upload.path is not None
+            assert item_upload.url is not None
+        except AssertionError as exc:
+            raise DarwinException("ItemUpload must have a path and url") from exc
+
+        await _upload_file_to_signed_url(client, item_upload.url, item_upload.path)
+        item_upload.status = ItemUploadStatus.UPLOADED
+
+
+async def _confirm_uploads(client: ClientCore, team_slug: str, item_uploads: List[ItemUpload]) -> None:
+    MAX_RETRIES = 10
+    retry_count = 0
+    while any(item.status == ItemUploadStatus.PENDING for item in item_uploads):
+        for item in item_uploads:
+            try:
+                await async_confirm_upload(client, team_slug, str(item.id))
+            except UploadPending as exc:
+                item.status = ItemUploadStatus.PENDING
+                raise exc
+            else:
+                item.status = ItemUploadStatus.PROCESSING
+
+        if retry_count >= MAX_RETRIES:
+            raise DarwinException("Upload timed out")
+
+        retry_count += 1
+
+
 async def combined_uploader(
     client: ClientCore,
     team_slug: str,
@@ -258,9 +438,7 @@ async def combined_uploader(
 
     dataset = get_dataset(client, str(dataset_id))
 
-    files_to_upload = await _create_list_of_all_files(
-        item_payload.files, item_payload.files_to_exclude or []
-    )
+    files_to_upload = await _create_list_of_all_files(item_payload.files, item_payload.files_to_exclude or [])
     root_path, root_paths_absolute = _derive_root_path(files_to_upload)
 
     # 2. Prepare upload items
@@ -274,83 +452,45 @@ async def combined_uploader(
         item_payload.preserve_folders or False,
     )
 
-    item_uploads = [
-        ItemUpload(
-            upload_item=upload_item,
-            status=ItemUploadStatus.PENDING,
-        )
-        for upload_item in upload_items
-    ]
+    item_uploads = _initialise_item_uploads(upload_items)
 
     if item_payload.callback_when_loading:
         item_payload.callback_when_loading(item_uploads)
 
     # 3. Register and create signed upload url
-    items_and_paths: List[Tuple[UploadItem, Path]] = (
-        list(zip(upload_items, [root_paths_absolute]))
-        if item_payload.preserve_folders
-        else list(zip(upload_items, [Path("/")]))
-    )
-    upload_urls, upload_ids = await async_register_and_create_signed_upload_url(
+    items_and_paths = _initialise_items_and_paths(upload_items, root_paths_absolute, item_payload)
+    upload_urls, upload_ids, items_dicts, blocked_items_dicts = await async_register_and_create_signed_upload_url(
         client,
         team_slug,
         dataset.name,
         items_and_paths,
     )
 
-    # TODO Extract this into a function
-    def apply_info(
-        item_upload: ItemUpload,
-        upload_url: str,
-        upload_id: str,
-        upload_item: UploadItem,
-        path: Path,
-    ) -> ItemUpload:
-        item_upload.id = UUID(upload_id)
-        item_upload.url = upload_url
-        item_upload.upload_item = upload_item
-        item_upload.path = path
-        return item_upload
+    items, blocked_items = _handle_items_and_blocked_items(item_uploads, items, blocked_items)
 
     [
-        apply_info(item_upload, upload_url, upload_id, upload_item, path)
-        for upload_url, upload_id, (upload_item, path), item_upload in zip(
-            upload_urls, upload_ids, items_and_paths, item_uploads
+        (
+            _update_item_upload(
+                item_upload,
+                upload_url=upload_url,
+                upload_id=upload_id,
+                upload_item=upload_item,
+                path=path,
+            )
+            for upload_url, upload_id, (upload_item, path), item_upload in zip(
+                upload_urls, upload_ids, items_and_paths, item_uploads
+            )
         )
     ]
 
     # 5. Upload files
-    # TODO Extract this into a function
-    for item_upload in item_uploads:
-        item_upload.status = ItemUploadStatus.UPLOADING
-        try:
-            assert item_upload.path is not None
-            assert item_upload.url is not None
-        except AssertionError as exc:
-            raise DarwinException("ItemUpload must have a path and url") from exc
-
-        await _upload_file_to_signed_url(client, item_upload.url, item_upload.path)
-        item_upload.status = ItemUploadStatus.UPLOADED
+    await _handle_uploads(client, item_uploads)
 
     if item_payload.callback_when_loading:
         item_payload.callback_when_loading(item_uploads)
 
     # 7. Confirm upload
-    # TODO Extract this into a function
-    MAX_RETRIES = 10
-    retry_count = 0
-    while any(item.status == ItemUploadStatus.PENDING for item in item_uploads):
-        for item in item_uploads:
-            try:
-                await async_confirm_upload(client, team_slug, str(item.id))
-            except UploadPending as exc:
-                item.status = ItemUploadStatus.PENDING
-                raise exc
-            else:
-                item.status = ItemUploadStatus.PROCESSING
-        if retry_count >= MAX_RETRIES:
-            raise DarwinException("Upload timed out")
-        retry_count += 1
+    await _confirm_uploads(client, team_slug, item_uploads)
 
     if item_payload.callback_when_loaded:
         item_payload.callback_when_loaded(item_uploads)
@@ -359,8 +499,8 @@ async def combined_uploader(
 
     # 10. Await completion polling
     # 11. Send results to callback
-    # 13. Retrieve items
-    # 14. Return items
+
+    items_to_return = [Item() for item in zip(items, item_uploads)]
 
     # ? Handle blocked items
     ...
