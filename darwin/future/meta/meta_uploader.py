@@ -1,12 +1,12 @@
 from __future__ import annotations
 
+from collections import namedtuple
 from pathlib import Path, PosixPath
 from typing import List, Optional, Sequence, Set, Tuple, cast
 from uuid import UUID
 
 import aiohttp
 
-from darwin import item
 from darwin.future.core.client import ClientCore
 from darwin.future.core.datasets import get_dataset
 from darwin.future.core.items.uploads import (
@@ -282,6 +282,7 @@ def _update_item_upload(
     upload_id: Optional[str | UUID] = None,
     upload_item: Optional[UploadItem] = None,
     path: Optional[Path] = None,
+    item: Optional[Item] = None,
 ) -> ItemUpload:
     """
     (internal) Updates an ItemUpload
@@ -300,6 +301,8 @@ def _update_item_upload(
         The UploadItem to update the ItemUpload to
     path: Optional[Path]
         The path to update the ItemUpload to
+    item: Optional[Item]
+        The Item to update the ItemUpload to
 
     Returns
     -------
@@ -323,6 +326,11 @@ def _update_item_upload(
 
     if path is not None:
         item_upload.path = path
+
+    if item is not None:
+        item_upload.item = item
+
+    return item_upload
 
 
 # TODO: Test this
@@ -378,7 +386,7 @@ def _items_dicts_to_items(client: ClientCore, items_dicts: List[dict]) -> List[I
 
 
 # TODO: Test this
-def _handle_items_and_blocked_items(
+def _initial_items_and_blocked_items(
     client: ClientCore, item_uploads: List[ItemUpload], items_dicts: List, blocked_items_dicts: List
 ) -> Tuple[List[Item], List[Item]]:
     return _items_dicts_to_items(client, items_dicts), _items_dicts_to_items(client, blocked_items_dicts)
@@ -416,14 +424,18 @@ async def _confirm_uploads(client: ClientCore, team_slug: str, item_uploads: Lis
         retry_count += 1
 
 
+CombinedUploaderResult = namedtuple("CombinedUploaderResult", ["item_uploads", "items", "blocked_items"])
+
+
+# TODO: Test this
 async def combined_uploader(
     client: ClientCore,
     team_slug: str,
     dataset_id: int,
     item_payload: ItemCreate,
-) -> List[Item]:
+) -> CombinedUploaderResult:
     """
-    (internal) Uploads a list of files to a dataset
+    Uploads a list of files to a dataset
 
     Parameters
     ----------
@@ -433,7 +445,12 @@ async def combined_uploader(
         The dataset to upload the files to
     item_payload : ItemCreate
         The item payload to create the item with.
-    use_folders : bool
+
+    Returns
+    -------
+    List[ItemUpload]
+        The uploaded items
+
     """
 
     dataset = get_dataset(client, str(dataset_id))
@@ -466,7 +483,7 @@ async def combined_uploader(
         items_and_paths,
     )
 
-    items, blocked_items = _handle_items_and_blocked_items(item_uploads, items, blocked_items)
+    items, blocked_items = _initial_items_and_blocked_items(client, item_uploads, items_dicts, blocked_items_dicts)
 
     [
         (
@@ -476,31 +493,24 @@ async def combined_uploader(
                 upload_id=upload_id,
                 upload_item=upload_item,
                 path=path,
+                item=item,
             )
-            for upload_url, upload_id, (upload_item, path), item_upload in zip(
-                upload_urls, upload_ids, items_and_paths, item_uploads
+            for upload_url, upload_id, (upload_item, path), item, item_upload in zip(
+                upload_urls, upload_ids, items_and_paths, items, item_uploads
             )
         )
     ]
 
-    # 5. Upload files
     await _handle_uploads(client, item_uploads)
 
     if item_payload.callback_when_loading:
         item_payload.callback_when_loading(item_uploads)
 
-    # 7. Confirm upload
     await _confirm_uploads(client, team_slug, item_uploads)
 
     if item_payload.callback_when_loaded:
         item_payload.callback_when_loaded(item_uploads)
 
-    # Do other stuff
-
-    # 10. Await completion polling
-    # 11. Send results to callback
-
-    items_to_return = [Item() for item in zip(items, item_uploads)]
+    return CombinedUploaderResult(item_uploads, items, blocked_items)
 
     # ? Handle blocked items
-    ...

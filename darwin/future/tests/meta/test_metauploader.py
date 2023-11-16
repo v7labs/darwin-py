@@ -1,38 +1,57 @@
-# import asyncio
-# from contextlib import contextmanager
-# from pathlib import Path, PosixPath, WindowsPath
-# from tempfile import TemporaryDirectory
-# from typing import Generator
-# from unittest import mock
-# from unittest.mock import MagicMock, Mock, patch
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
-# import pytest
+import pytest
 
-# from darwin.dataset.upload_manager import LocalFile
-# from darwin.future.core.client import ClientCore
-# from darwin.future.exceptions import DarwinException
-# from darwin.future.meta.objects.workflow import Workflow
-# from darwin.future.tests.core.fixtures import *
+from darwin.future.meta.meta_uploader import (
+    _confirm_uploads,
+    _create_list_of_all_files,
+    _derive_root_path,
+    _get_item_path,
+    _handle_uploads,
+    _initial_items_and_blocked_items,
+    _initialise_item_uploads,
+    _initialise_items_and_paths,
+    _item_dict_to_item,
+    _items_dicts_to_items,
+    _prepare_upload_items,
+    _update_item_upload,
+    _upload_file_to_signed_url,
+    combined_uploader,
+)
 
-# # Test `upload_files`
-# # @patch("darwin.future.meta.objects.workflow.asyncio")
-# # @patch.object(Workflow, "upload_files_async")
-# # def test_upload_files(_: Mock, mock_asyncio: Mock):
-# #     mock_asyncio.run = mock.MagicMock()
 
-# #     Workflow.upload_files(
-# #         MagicMock(),
-# #         ["file1", "file2"],
-# #         ["file3"],
-# #         24,
-# #         "tmp",
-# #         True,
-# #         True,
-# #         True,
-# #         True,
-# #     )
+class TestGetItemPath:
+    @pytest.mark.parametrize(
+        "imposed_path, preserve_folders, expectation",
+        [
+            ("/", False, "/"),
+            ("/test", False, "/test"),
+            ("test", False, "/test"),
+            ("test/", False, "/test"),
+            ("test/test2", False, "/test/test2"),
+            ("test/test2/", False, "/test/test2"),
+            ("/", True, "/"),
+            ("/test", True, "/test"),
+            ("test", True, "/test"),
+            ("test/", True, "/test"),
+            ("test/test2", True, "/test/test2"),
+            ("test/test2/", True, "/test/test2"),
+        ],
+    )
+    def test_with_no_internal_folder_structure(imposed_path: str, preserve_folders: bool, expectation: str) -> None:
+        with TemporaryDirectory() as tmpdir:
+            file_path = Path(tmpdir) / "file1.jpg"
+            open(file_path, "w").close()
 
-# #     mock_asyncio.run.assert_called_once()
+            path: str = _get_item_path(
+                file_path,
+                Path(tmpdir),
+                imposed_path,
+                preserve_folders,
+            )
+
+            assert path == expectation
 
 
 # @patch.object(Workflow, "upload_files_async")
@@ -151,39 +170,6 @@
 
 #         assert context.mock_upload_updateable is not None
 #         context.mock_upload_updateable.assert_called_once()
-
-
-# # Test `_get_item_path`
-# @pytest.mark.parametrize(
-#     "imposed_path, preserve_folders, expectation",
-#     [
-#         ("/", False, "/"),
-#         ("/test", False, "/test"),
-#         ("test", False, "/test"),
-#         ("test/", False, "/test"),
-#         ("test/test2", False, "/test/test2"),
-#         ("test/test2/", False, "/test/test2"),
-#         ("/", True, "/"),
-#         ("/test", True, "/test"),
-#         ("test", True, "/test"),
-#         ("test/", True, "/test"),
-#         ("test/test2", True, "/test/test2"),
-#         ("test/test2/", True, "/test/test2"),
-#     ],
-# )
-# def test_with_no_internal_folder_structure(imposed_path: str, preserve_folders: bool, expectation: str) -> None:
-#     with TemporaryDirectory() as tmpdir:
-#         file_path = Path(tmpdir) / "file1.jpg"
-#         open(file_path, "w").close()
-
-#         path: str = Workflow._get_item_path(
-#             file_path,
-#             Path(tmpdir),
-#             imposed_path,
-#             preserve_folders,
-#         )
-
-#         assert path == expectation
 
 
 # @pytest.mark.parametrize(
