@@ -25,7 +25,7 @@ def test_empty_annotation_file_v2():
             "path": "/",
             "source_info": {
                 "dataset": {"name": "Test Dataset", "slug": "test-dataset"},
-                "item_id": "unknown-item-id",
+                "item_id": None,
                 "team": {"name": None, "slug": None},
                 "workview_url": None,
             },
@@ -59,7 +59,7 @@ def test_complete_annotation_file_v2():
             "path": "/",
             "source_info": {
                 "dataset": {"name": "Test Dataset", "slug": "test-dataset"},
-                "item_id": "unknown-item-id",
+                "item_id": None,
                 "team": {"name": None, "slug": None},
                 "workview_url": None,
             },
@@ -115,7 +115,7 @@ def test_complete_annotation_file_with_bounding_box_and_tag_v2():
             "path": "/",
             "source_info": {
                 "dataset": {"name": "Test Dataset", "slug": "test-dataset"},
-                "item_id": "unknown-item-id",
+                "item_id": None,
                 "team": {"name": None, "slug": None},
                 "workview_url": None,
             },
