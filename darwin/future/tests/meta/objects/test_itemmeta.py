@@ -46,6 +46,12 @@ def test_delete(item: Item) -> None:
         item.delete()
 
 
+def test_delete_with_bad_team_slug(item: Item) -> None:
+    with pytest.raises(AssertionError):
+        item.meta_params["team_slug"] = 123
+        item.delete()
+
+
 def test_archive(item: Item) -> None:
     with responses.RequestsMock() as rsps:
         team_slug = item.meta_params["team_slug"]
@@ -66,4 +72,10 @@ def test_archive(item: Item) -> None:
             ],
             json={},
         )
+        item.archive()
+
+
+def test_archive_with_bad_team_slug(item: Item) -> None:
+    with pytest.raises(AssertionError):
+        item.meta_params["team_slug"] = 123
         item.archive()
