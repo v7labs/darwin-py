@@ -3,7 +3,6 @@ from typing import Any, Dict, Iterable
 from xml.etree.ElementTree import Element, SubElement, tostring
 
 import deprecation
-import orjson as json
 
 import darwin.datatypes as dt
 from darwin.utils import attempt_decode

@@ -5,7 +5,6 @@ import deprecation
 import orjson as json
 
 import darwin.datatypes as dt
-from darwin.exporter.formats.numpy_encoder import NumpyEncoder
 from darwin.version import __version__
 
 DEPRECATION_MESSAGE = """

@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-from email.policy import default
 from enum import Enum, auto
 from pathlib import Path
 from typing import (

@@ -1,11 +1,10 @@
 from collections import namedtuple
 from enum import Enum, auto
 from logging import getLogger
-from multiprocessing.pool import CLOSE
 from pathlib import Path
 from typing import Iterable, List
 
-from darwin.datatypes import Annotation, AnnotationFile, JSONType, VideoAnnotation
+from darwin.datatypes import Annotation, AnnotationFile, VideoAnnotation
 from darwin.exceptions import DarwinException
 from darwin.exporter.formats.helpers.yolo_class_builder import (
     ClassIndex,
@@ -208,7 +207,7 @@ def _handle_polygon(
         )
         return False
 
-    except Exception as exc:
+    except Exception:
         logger.error(
             f"An unexpected error occured while exporting annotation at index {annotation_index}."
         )

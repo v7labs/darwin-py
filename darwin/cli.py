@@ -2,10 +2,7 @@ __all__ = ["main"]
 
 import getpass
 import os
-import platform
 from argparse import ArgumentParser, Namespace
-from datetime import datetime
-from json import dumps
 
 import requests.exceptions
 from rich.console import Console

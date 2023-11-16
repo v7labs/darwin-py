@@ -286,7 +286,7 @@ class RemoteDataset(ABC):
                         continue
 
                     if video_frames and any(
-                        [not slot.frame_urls for slot in annotation.slots]
+                        not slot.frame_urls for slot in annotation.slots
                     ):
                         # will raise if not installed via pip install darwin-py[ocv]
                         try:
@@ -632,7 +632,7 @@ class RemoteDataset(ABC):
         classes_to_return = []
         for cls in all_classes:
             belongs_to_current_dataset = any(
-                [dataset["id"] == self.dataset_id for dataset in cls["datasets"]]
+                dataset["id"] == self.dataset_id for dataset in cls["datasets"]
             )
             cls["available"] = belongs_to_current_dataset
             if team_wide or belongs_to_current_dataset:
