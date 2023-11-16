@@ -39,7 +39,9 @@ class TestGetItemPath:
             ("test/test2/", True, "/test/test2"),
         ],
     )
-    def test_with_no_internal_folder_structure(imposed_path: str, preserve_folders: bool, expectation: str) -> None:
+    def test_with_no_internal_folder_structure(
+        self, imposed_path: str, preserve_folders: bool, expectation: str
+    ) -> None:
         with TemporaryDirectory() as tmpdir:
             file_path = Path(tmpdir) / "file1.jpg"
             open(file_path, "w").close()
