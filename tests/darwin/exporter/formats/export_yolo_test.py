@@ -48,7 +48,10 @@ class TestExport:
 
         yolo_lines = (folder_path / "annotation_test.txt").read_text().split("\n")
         assert yolo_lines[0] == "0 {} {} {} {}".format(
-            (bbox["x"] + bbox["w"] / 2) / 1920, (bbox["y"] + bbox["h"] / 2) / 1080, bbox["w"] / 1920, bbox["h"] / 1080
+            (bbox["x"] + bbox["w"] / 2) / 1920,
+            (bbox["y"] + bbox["h"] / 2) / 1080,
+            bbox["w"] / 1920,
+            bbox["h"] / 1080,
         )
 
         yolo_classes = (folder_path / "darknet.labels").read_text().split("\n")

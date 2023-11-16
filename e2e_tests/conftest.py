@@ -14,7 +14,9 @@ from e2e_tests.setup_tests import setup_tests, teardown_tests
 
 
 def pytest_configure(config: pytest.Config) -> None:
-    config.addinivalue_line("addopts", "--ignore=../tests/, ../future --capture=tee-sys")
+    config.addinivalue_line(
+        "addopts", "--ignore=../tests/, ../future --capture=tee-sys"
+    )
 
 
 def pytest_sessionstart(session: pytest.Session) -> None:
@@ -43,7 +45,9 @@ def pytest_sessionstart(session: pytest.Session) -> None:
     session.config.cache.set("api_key", api_key)
     session.config.cache.set("team_slug", team_slug)
 
-    datasets = setup_tests(ConfigValues(server=server, api_key=api_key, team_slug=team_slug))
+    datasets = setup_tests(
+        ConfigValues(server=server, api_key=api_key, team_slug=team_slug)
+    )
     # pytest.datasets = datasets
     setattr(pytest, "datasets", datasets)
     # Set the environment variables for running CLI arguments

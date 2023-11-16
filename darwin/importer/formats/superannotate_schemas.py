@@ -72,7 +72,12 @@ polygon = {
     "title": "Polygon",
     "default": {"type": "polygon", "points": [1, 2, 3, 4], "classId": 1},
     "examples": [
-        {"type": "polygon", "points": [1, 2, 3, 4], "classId": 1, "attributes": [{"id": 1, "groupId": 2}]},
+        {
+            "type": "polygon",
+            "points": [1, 2, 3, 4],
+            "classId": 1,
+            "attributes": [{"id": 1, "groupId": 2}],
+        },
         {"type": "polygon", "points": [], "classId": 1, "attributes": []},
     ],
     "type": "object",
@@ -91,7 +96,12 @@ polyline = {
     "title": "Polyline",
     "default": {"type": "polyline", "points": [1, 2, 3, 4], "classId": 1},
     "examples": [
-        {"type": "polyline", "points": [1, 2, 3, 4], "classId": 1, "attributes": [{"id": 1, "groupId": 2}]},
+        {
+            "type": "polyline",
+            "points": [1, 2, 3, 4],
+            "classId": 1,
+            "attributes": [{"id": 1, "groupId": 2}],
+        },
         {"type": "polyline", "points": [], "classId": 1, "attributes": []},
     ],
     "type": "object",
@@ -214,7 +224,13 @@ point = {
     "default": {"type": "point", "x": 1.2, "y": 2.5, "classId": 1, "attributes": []},
     "examples": [
         {"type": "point", "x": 1.2, "y": 2.5, "classId": 1, "attributes": []},
-        {"type": "point", "x": 0, "y": 1, "classId": 2, "attributes": [{"id": 1, "groupId": 2}]},
+        {
+            "type": "point",
+            "x": 0,
+            "y": 1,
+            "classId": 2,
+            "attributes": [{"id": 1, "groupId": 2}],
+        },
     ],
     "type": "object",
     "properties": {
@@ -236,7 +252,11 @@ superannotate_export = {
             "type": "array",
             "items": {"oneOf": [point, ellipse, cuboid, polygon, bbox, polyline]},
         },
-        "metadata": {"type": "object", "required": ["name"], "properties": {"name": {"type": "string"}}},
+        "metadata": {
+            "type": "object",
+            "required": ["name"],
+            "properties": {"name": {"type": "string"}},
+        },
         "tags": {"type": "array", "items": {"type": "string"}},
     },
 }
@@ -258,7 +278,10 @@ attribute_groups = {
                 "itmes": {
                     "type": "object",
                     "required": ["id", "name"],
-                    "properties": {"id": {"type": "integer"}, "name": {"type": "string"}},
+                    "properties": {
+                        "id": {"type": "integer"},
+                        "name": {"type": "string"},
+                    },
                 },
             },
         },
@@ -270,6 +293,10 @@ classes_export = {
     "items": {
         "type": "object",
         "required": ["name", "id", "attribute_groups"],
-        "properties": {"name": {"type": "string"}, "id": {"type": "integer"}, "attribute_groups": attribute_groups},
+        "properties": {
+            "name": {"type": "string"},
+            "id": {"type": "integer"},
+            "attribute_groups": attribute_groups,
+        },
     },
 }

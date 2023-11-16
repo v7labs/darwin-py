@@ -16,4 +16,6 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path) -> N
     output_dir : Path
         The folder where the new semantic mask files will be.
     """
-    return export_mask(annotation_files=annotation_files, output_dir=output_dir, mode="rgb")
+    return export_mask(
+        annotation_files=annotation_files, output_dir=output_dir, mode="rgb"
+    )

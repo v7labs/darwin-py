@@ -44,7 +44,9 @@ def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
     return list(parse_json(path, data))
 
 
-def parse_json(path: Path, data: Dict[str, dt.UnknownType]) -> Iterator[dt.AnnotationFile]:
+def parse_json(
+    path: Path, data: Dict[str, dt.UnknownType]
+) -> Iterator[dt.AnnotationFile]:
     """
     Parses the given ``json`` structure into an ``Iterator[dt.AnnotationFile]``.
 
@@ -62,9 +64,13 @@ def parse_json(path: Path, data: Dict[str, dt.UnknownType]) -> Iterator[dt.Annot
     """
     annotations = data["annotations"]
     image_lookup_table = {image["id"]: image for image in data["images"]}
-    category_lookup_table = {category["id"]: category for category in data["categories"]}
+    category_lookup_table = {
+        category["id"]: category for category in data["categories"]
+    }
     tag_categories = data.get("tag_categories") or []
-    tag_category_lookup_table = {category["id"]: category for category in tag_categories}
+    tag_category_lookup_table = {
+        category["id"]: category for category in tag_categories
+    }
     image_annotations: Dict[str, dt.UnknownType] = {}
 
     for image in data["images"]:
@@ -84,18 +90,25 @@ def parse_json(path: Path, data: Dict[str, dt.UnknownType]) -> Iterator[dt.Annot
         annotation["segmentation"]
         if image_id not in image_annotations:
             image_annotations[image_id] = []
-        image_annotations[image_id].append(parse_annotation(annotation, category_lookup_table))
+        image_annotations[image_id].append(
+            parse_annotation(annotation, category_lookup_table)
+        )
 
     for image_id in image_annotations.keys():
         image = image_lookup_table[int(image_id)]
         annotations = list(filter(None, image_annotations[image_id]))
-        annotation_classes = set([annotation.annotation_class for annotation in annotations])
+        annotation_classes = set(
+            [annotation.annotation_class for annotation in annotations]
+        )
         remote_path, filename = deconstruct_full_path(image["file_name"])
-        yield dt.AnnotationFile(path, filename, annotation_classes, annotations, remote_path=remote_path)
+        yield dt.AnnotationFile(
+            path, filename, annotation_classes, annotations, remote_path=remote_path
+        )
 
 
 def parse_annotation(
-    annotation: Dict[str, dt.UnknownType], category_lookup_table: Dict[str, dt.UnknownType]
+    annotation: Dict[str, dt.UnknownType],
+    category_lookup_table: Dict[str, dt.UnknownType],
 ) -> Optional[dt.Annotation]:
     """
     Parses the given ``json`` dictionary into a darwin ``Annotation`` if possible.
@@ -126,11 +139,17 @@ def parse_annotation(
     if len(segmentation) == 0 and len(annotation["bbox"]) == 4:
         x, y, w, h = map(int, annotation["bbox"])
         return dt.make_bounding_box(category["name"], x, y, w, h)
-    elif len(segmentation) == 0 and len(annotation["bbox"]) == 1 and len(annotation["bbox"][0]) == 4:
+    elif (
+        len(segmentation) == 0
+        and len(annotation["bbox"]) == 1
+        and len(annotation["bbox"][0]) == 4
+    ):
         x, y, w, h = map(int, annotation["bbox"][0])
         return dt.make_bounding_box(category["name"], x, y, w, h)
     elif isinstance(segmentation, dict):
-        logger.warn("warning, converting complex coco rle mask to polygon, could take some time")
+        logger.warn(
+            "warning, converting complex coco rle mask to polygon, could take some time"
+        )
         if isinstance(segmentation["counts"], list):
             mask = rle_decode(segmentation["counts"], segmentation["size"][::-1])
         else:
@@ -155,7 +174,9 @@ def parse_annotation(
         return dt.make_complex_polygon(category["name"], paths)
     elif isinstance(segmentation, list):
         path = []
-        points = iter(segmentation[0] if isinstance(segmentation[0], list) else segmentation)
+        points = iter(
+            segmentation[0] if isinstance(segmentation[0], list) else segmentation
+        )
         while True:
             try:
                 x, y = next(points), next(points)

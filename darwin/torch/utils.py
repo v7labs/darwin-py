@@ -45,7 +45,9 @@ def flatten_masks_by_category(masks: torch.Tensor, cats: List[int]) -> torch.Ten
     return torch.as_tensor(mapped, dtype=masks.dtype)
 
 
-def convert_segmentation_to_mask(segmentations: List[Segment], height: int, width: int) -> torch.Tensor:
+def convert_segmentation_to_mask(
+    segmentations: List[Segment], height: int, width: int
+) -> torch.Tensor:
     """
     Converts a polygon represented as a sequence of coordinates into a mask.
 
@@ -172,7 +174,9 @@ def detectron2_register_dataset(
     if partition:
         catalog_name += f"_{partition}"
 
-    classes = get_classes(dataset_path=dataset_path, release_name=release_name, annotation_type="polygon")
+    classes = get_classes(
+        dataset_path=dataset_path, release_name=release_name, annotation_type="polygon"
+    )
 
     DatasetCatalog.register(
         catalog_name,
@@ -219,8 +223,12 @@ def clamp_bbox_to_image_size(annotations, img_width, img_height, format="xywh"):
         boxes[:, 0].clamp_(min=0, max=img_width - 1)
         boxes[:, 1].clamp_(min=0, max=img_height - 1)
         # Then, clamp the width and height
-        boxes[:, 2].clamp_(min=torch.tensor(0), max=img_width - boxes[:, 0] - 1)  # -1 since we images are zero-indexed
-        boxes[:, 3].clamp_(min=torch.tensor(0), max=img_height - boxes[:, 1] - 1)  # -1 since we images are zero-indexed
+        boxes[:, 2].clamp_(
+            min=torch.tensor(0), max=img_width - boxes[:, 0] - 1
+        )  # -1 since we images are zero-indexed
+        boxes[:, 3].clamp_(
+            min=torch.tensor(0), max=img_height - boxes[:, 1] - 1
+        )  # -1 since we images are zero-indexed
     else:
         raise ValueError(f"Unsupported bounding box format: {format}")
 

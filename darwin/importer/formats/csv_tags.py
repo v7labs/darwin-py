@@ -32,7 +32,17 @@ def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
             if filename == "":
                 continue
             annotations = [dt.make_tag(tag) for tag in tags if len(tag) > 0]
-            annotation_classes = set([annotation.annotation_class for annotation in annotations])
+            annotation_classes = set(
+                [annotation.annotation_class for annotation in annotations]
+            )
             remote_path, filename = deconstruct_full_path(filename)
-            files.append(dt.AnnotationFile(path, filename, annotation_classes, annotations, remote_path=remote_path))
+            files.append(
+                dt.AnnotationFile(
+                    path,
+                    filename,
+                    annotation_classes,
+                    annotations,
+                    remote_path=remote_path,
+                )
+            )
     return files

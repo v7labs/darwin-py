@@ -68,7 +68,11 @@ def build_xml(annotation_files: List[dt.AnnotationFile]) -> Element:
     current_version=__version__,
     details=DEPRECATION_MESSAGE,
 )
-def build_images(root: Element, annotation_files: List[dt.AnnotationFile], label_lookup: Dict[str, int]) -> None:
+def build_images(
+    root: Element,
+    annotation_files: List[dt.AnnotationFile],
+    label_lookup: Dict[str, int],
+) -> None:
     for id, annotation_file in enumerate(annotation_files, 1):
         image = SubElement(root, "image")
         image.attrib["id"] = str(id)
@@ -112,9 +116,13 @@ def build_attributes(box: Element, annotation: dt.Annotation) -> None:
         attribute = add_subelement_text(box, "attribute", annotation_text.data)
         attribute.attrib["name"] = "__text"
 
-    annotation_instance_id: Optional[dt.SubAnnotation] = annotation.get_sub("instance_id")
+    annotation_instance_id: Optional[dt.SubAnnotation] = annotation.get_sub(
+        "instance_id"
+    )
     if annotation_instance_id:
-        attribute = add_subelement_text(box, "attribute", str(annotation_instance_id.data))
+        attribute = add_subelement_text(
+            box, "attribute", str(annotation_instance_id.data)
+        )
         attribute.attrib["name"] = "__instance_id"
 
     annotation_attributes: Optional[dt.SubAnnotation] = annotation.get_sub("attributes")
@@ -130,9 +138,15 @@ def build_attributes(box: Element, annotation: dt.Annotation) -> None:
     current_version=__version__,
     details=DEPRECATION_MESSAGE,
 )
-def build_meta(root: Element, annotation_files: List[dt.AnnotationFile], label_lookup: Dict[str, int]) -> None:
+def build_meta(
+    root: Element,
+    annotation_files: List[dt.AnnotationFile],
+    label_lookup: Dict[str, int],
+) -> None:
     meta: Element = SubElement(root, "meta")
-    add_subelement_text(meta, "dumped", str(datetime.datetime.now(tz=datetime.timezone.utc)))
+    add_subelement_text(
+        meta, "dumped", str(datetime.datetime.now(tz=datetime.timezone.utc))
+    )
 
     task: Element = SubElement(meta, "task")
     add_subelement_text(task, "id", 1)
@@ -142,8 +156,12 @@ def build_meta(root: Element, annotation_files: List[dt.AnnotationFile], label_l
     add_subelement_text(task, "overlapp", 0)
     add_subelement_text(task, "bugtracker", None)
     add_subelement_text(task, "flipped", False)
-    add_subelement_text(task, "created", str(datetime.datetime.now(tz=datetime.timezone.utc)))
-    add_subelement_text(task, "updated", str(datetime.datetime.now(tz=datetime.timezone.utc)))
+    add_subelement_text(
+        task, "created", str(datetime.datetime.now(tz=datetime.timezone.utc))
+    )
+    add_subelement_text(
+        task, "updated", str(datetime.datetime.now(tz=datetime.timezone.utc))
+    )
 
     labels: Element = SubElement(task, "labels")
     build_labels(labels, label_lookup)
@@ -162,7 +180,9 @@ def build_meta(root: Element, annotation_files: List[dt.AnnotationFile], label_l
     current_version=__version__,
     details=DEPRECATION_MESSAGE,
 )
-def build_segments(segments: Element, annotation_files: List[dt.AnnotationFile]) -> None:
+def build_segments(
+    segments: Element, annotation_files: List[dt.AnnotationFile]
+) -> None:
     segment: Element = SubElement(segments, "segment")
     add_subelement_text(segment, "id", 1)
     add_subelement_text(segment, "start", 1)
@@ -193,7 +213,10 @@ def build_label_lookup(annotation_files: List[dt.AnnotationFile]) -> Dict[str, i
     labels: Dict[str, int] = {}
     for annotation_file in annotation_files:
         for annotation_class in annotation_file.annotation_classes:
-            if annotation_class.name not in labels and annotation_class.annotation_type == "bounding_box":
+            if (
+                annotation_class.name not in labels
+                and annotation_class.annotation_type == "bounding_box"
+            ):
                 labels[annotation_class.name] = len(labels)
     return labels
 
@@ -213,7 +236,11 @@ def _build_xml(annotation_files: List[dt.AnnotationFile]) -> Element:
     return root
 
 
-def _build_images(root: Element, annotation_files: List[dt.AnnotationFile], label_lookup: Dict[str, int]) -> None:
+def _build_images(
+    root: Element,
+    annotation_files: List[dt.AnnotationFile],
+    label_lookup: Dict[str, int],
+) -> None:
     for id, annotation_file in enumerate(annotation_files, 1):
         image = SubElement(root, "image")
         image.attrib["id"] = str(id)
@@ -245,9 +272,13 @@ def _build_attributes(box: Element, annotation: dt.Annotation) -> None:
         attribute = _add_subelement_text(box, "attribute", annotation_text.data)
         attribute.attrib["name"] = "__text"
 
-    annotation_instance_id: Optional[dt.SubAnnotation] = annotation.get_sub("instance_id")
+    annotation_instance_id: Optional[dt.SubAnnotation] = annotation.get_sub(
+        "instance_id"
+    )
     if annotation_instance_id:
-        attribute = _add_subelement_text(box, "attribute", str(annotation_instance_id.data))
+        attribute = _add_subelement_text(
+            box, "attribute", str(annotation_instance_id.data)
+        )
         attribute.attrib["name"] = "__instance_id"
 
     annotation_attributes: Optional[dt.SubAnnotation] = annotation.get_sub("attributes")
@@ -257,9 +288,15 @@ def _build_attributes(box: Element, annotation: dt.Annotation) -> None:
             attribute.attrib["name"] = attrib
 
 
-def _build_meta(root: Element, annotation_files: List[dt.AnnotationFile], label_lookup: Dict[str, int]) -> None:
+def _build_meta(
+    root: Element,
+    annotation_files: List[dt.AnnotationFile],
+    label_lookup: Dict[str, int],
+) -> None:
     meta: Element = SubElement(root, "meta")
-    _add_subelement_text(meta, "dumped", str(datetime.datetime.now(tz=datetime.timezone.utc)))
+    _add_subelement_text(
+        meta, "dumped", str(datetime.datetime.now(tz=datetime.timezone.utc))
+    )
 
     task: Element = SubElement(meta, "task")
     _add_subelement_text(task, "id", 1)
@@ -269,8 +306,12 @@ def _build_meta(root: Element, annotation_files: List[dt.AnnotationFile], label_
     _add_subelement_text(task, "overlapp", 0)
     _add_subelement_text(task, "bugtracker", None)
     _add_subelement_text(task, "flipped", False)
-    _add_subelement_text(task, "created", str(datetime.datetime.now(tz=datetime.timezone.utc)))
-    _add_subelement_text(task, "updated", str(datetime.datetime.now(tz=datetime.timezone.utc)))
+    _add_subelement_text(
+        task, "created", str(datetime.datetime.now(tz=datetime.timezone.utc))
+    )
+    _add_subelement_text(
+        task, "updated", str(datetime.datetime.now(tz=datetime.timezone.utc))
+    )
 
     labels: Element = SubElement(task, "labels")
     _build_labels(labels, label_lookup)
@@ -283,7 +324,9 @@ def _build_meta(root: Element, annotation_files: List[dt.AnnotationFile], label_
     _add_subelement_text(owner, "email", "user@example.com")
 
 
-def _build_segments(segments: Element, annotation_files: List[dt.AnnotationFile]) -> None:
+def _build_segments(
+    segments: Element, annotation_files: List[dt.AnnotationFile]
+) -> None:
     segment: Element = SubElement(segments, "segment")
     _add_subelement_text(segment, "id", 1)
     _add_subelement_text(segment, "start", 1)
@@ -302,6 +345,9 @@ def _build_label_lookup(annotation_files: List[dt.AnnotationFile]) -> Dict[str, 
     labels: Dict[str, int] = {}
     for annotation_file in annotation_files:
         for annotation_class in annotation_file.annotation_classes:
-            if annotation_class.name not in labels and annotation_class.annotation_type == "bounding_box":
+            if (
+                annotation_class.name not in labels
+                and annotation_class.annotation_type == "bounding_box"
+            ):
                 labels[annotation_class.name] = len(labels)
     return labels
