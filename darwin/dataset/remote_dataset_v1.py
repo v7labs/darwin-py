@@ -1,6 +1,5 @@
 import itertools
 from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, Sequence, Union
-from xml.dom import ValidationErr
 
 from requests.models import Response
 
@@ -346,9 +345,10 @@ class RemoteDatasetV1(RemoteDataset):
         items : Iterator[DatasetItem]
             The ``DatasetItem``\\s to be completed.
         """
-        wf_template_id_mapper = lambda item: item.current_workflow[
-            "workflow_template_id"
-        ]
+
+        def wf_template_id_mapper(item):
+            return item.current_workflow["workflow_template_id"]
+
         input_items: List[DatasetItem] = list(items)
 
         # We split into items with and without workflow

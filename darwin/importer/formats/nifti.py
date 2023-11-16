@@ -1,11 +1,9 @@
 import sys
 import warnings
-import zipfile
 from collections import OrderedDict, defaultdict
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple, Union
 
-import orjson as json
 from rich.console import Console
 
 from darwin.utils import attempt_decode
@@ -27,7 +25,6 @@ from upolygon import find_contours
 
 import darwin.datatypes as dt
 from darwin.importer.formats.nifti_schemas import nifti_import_schema
-from darwin.version import __version__
 
 
 def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
@@ -56,7 +53,7 @@ def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
     data = attempt_decode(path)
     try:
         validate(data, schema=nifti_import_schema)
-    except Exception as e:
+    except Exception:
         console.print(
             "Skipping file: {} (invalid json file, see schema for details)".format(
                 path
@@ -96,7 +93,6 @@ def _parse_nifti(
 ) -> dt.AnnotationFile:
     img, pixdims = process_nifti(nib.load(nifti_path))
 
-    shape = img.shape
     processed_class_map = process_class_map(class_map)
     video_annotations = []
     if mode == "instances":  # For each instance produce a video annotation
@@ -131,12 +127,10 @@ def _parse_nifti(
             if _video_annotations is None:
                 continue
             video_annotations += _video_annotations
-    annotation_classes = set(
-        [
-            dt.AnnotationClass(class_name, "polygon", "polygon")
-            for class_name in class_map.values()
-        ]
-    )
+    annotation_classes = {
+        dt.AnnotationClass(class_name, "polygon", "polygon")
+        for class_name in class_map.values()
+    }
     return dt.AnnotationFile(
         path=json_path,
         filename=str(filename),
@@ -376,7 +370,7 @@ def process_nifti(
     if isinstance(input_data, nib.nifti1.Nifti1Image):
         img = correct_nifti_header_if_necessary(input_data)
         img = nib.funcs.as_closest_canonical(img)
-        axcodes = nib.orientations.aff2axcodes(img.affine)
+        nib.orientations.aff2axcodes(img.affine)
         # TODO: Future feature to pass custom ornt could go here.
         ornt = [[0.0, -1.0], [1.0, -1.0], [1.0, -1.0]]
         data_array = nib.orientations.apply_orientation(img.get_fdata(), ornt)

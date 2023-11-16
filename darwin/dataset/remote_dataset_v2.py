@@ -430,7 +430,7 @@ class RemoteDatasetV2(RemoteDataset):
             format = "darwin_json_2"
         elif str_version == "1.0":
             format = "json"
-        elif version == None:
+        elif version is None:
             format = None
         else:
             raise UnknownExportVersion(version)
