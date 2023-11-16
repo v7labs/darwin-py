@@ -85,6 +85,7 @@ types-pyyaml = "^6.0.12.9"
 pyyaml = "^6.0.1"
 json-stream = "^2.3.2"
 aiohttp = { extras = ["speedups"], version = "^3.8.6" }
+pytest-asyncio = "^0.21.1"
 
 [tool.poetry.extras]
 dev = [

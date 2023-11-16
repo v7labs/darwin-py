@@ -1,8 +1,13 @@
+import re
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from typing import List
+from unittest.mock import Mock, patch
 
 import pytest
+from cv2 import fastNlMeansDenoisingMulti
 
+from darwin.future.data_objects.item import ItemSlot, UploadItem
 from darwin.future.meta.meta_uploader import (
     _confirm_uploads,
     _create_list_of_all_files,
@@ -19,6 +24,33 @@ from darwin.future.meta.meta_uploader import (
     _upload_file_to_signed_url,
     combined_uploader,
 )
+
+
+@pytest.fixture
+def mock_file(tmp_path: Path) -> Path:
+    file = tmp_path / "file1.jpg"
+    file.touch()
+    return file
+
+
+@pytest.fixture
+def mock_dir(tmp_path: Path) -> Path:
+    dir = tmp_path / "dir1"
+    dir.mkdir()
+    return dir
+
+
+@pytest.fixture
+def mock_files(tmp_path: Path) -> List[Path]:
+    files = [
+        tmp_path / "file1.jpg",
+        tmp_path / "file2.jpg",
+        tmp_path / "file3.jpg",
+    ]
+    for file in files:
+        file.touch()
+
+    return files
 
 
 class TestGetItemPath:
@@ -54,6 +86,110 @@ class TestGetItemPath:
             )
 
             assert path == expectation
+
+
+class TestPrepareUploadItems:
+    @pytest.mark.asyncio
+    @patch("darwin.future.meta.meta_uploader._get_item_path", return_value="/")
+    @patch.object(Path, "is_dir")
+    @patch.object(Path, "is_file")
+    @patch.object(Path, "is_absolute")
+    async def test_happy_path(
+        self,
+        is_absolute: Mock,
+        is_file: Mock,
+        is_dir: Mock,
+        get_item_path: Mock,
+        mock_dir: Path,
+        mock_files: List[Path],
+    ) -> None:
+        is_dir.return_value = True
+        is_file.return_value = True
+        is_absolute.return_value = True
+
+        result = await _prepare_upload_items(
+            "/",
+            mock_dir,
+            mock_files,
+            False,
+            False,
+            False,
+            False,
+        )
+
+        assert result == [
+            UploadItem(
+                name="file1.jpg",
+                path="/",
+                slots=[ItemSlot(slot_name="1", file_name="file1.jpg", as_frames=False, fps=False, extract_views=False)],
+                tags=[],
+                description=None,
+                layout=None,
+            ),
+            UploadItem(
+                name="file2.jpg",
+                path="/",
+                slots=[ItemSlot(slot_name="1", file_name="file2.jpg", as_frames=False, fps=False, extract_views=False)],
+                tags=[],
+                description=None,
+                layout=None,
+            ),
+            UploadItem(
+                name="file3.jpg",
+                path="/",
+                slots=[ItemSlot(slot_name="1", file_name="file3.jpg", as_frames=False, fps=False, extract_views=False)],
+                tags=[],
+                description=None,
+                layout=None,
+            ),
+        ]
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "exists_return, is_dir_return, is_file_return, is_absolute_return, expectation",
+        [
+            (False, True, True, True, "root_path must be a directory"),
+            (True, False, True, True, "file_paths must be absolute paths"),
+            (True, True, False, True, "file_paths must be absolute paths"),
+            (True, True, True, False, "file_paths must be absolute paths"),
+        ],
+    )
+    @patch.object(Path, "exists")
+    @patch.object(Path, "is_dir")
+    @patch.object(Path, "is_file")
+    @patch.object(Path, "is_absolute")
+    async def test_asserts(
+        self,
+        is_absolute: Mock,
+        is_file: Mock,
+        is_dir: Mock,
+        exists: Mock,
+        exists_return: bool,
+        is_dir_return: bool,
+        is_file_return: bool,
+        is_absolute_return: bool,
+        expectation: str,
+        mock_file: Path,
+        mock_dir: Path,
+        mock_files: List[Path],
+    ) -> None:
+        exists.return_value = exists_return
+        is_dir.return_value = is_dir_return
+        is_file.return_value = is_file_return
+        is_absolute.return_value = is_absolute_return
+
+        with pytest.raises(AssertionError) as e:
+            await _prepare_upload_items(
+                "/",
+                mock_dir,
+                mock_files,
+                False,
+                False,
+                False,
+                False,
+            )
+
+            assert expectation in str(e.value)
 
 
 # @patch.object(Workflow, "upload_files_async")
