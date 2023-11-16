@@ -54,6 +54,8 @@ def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
         annotation_classes = set(
             [annotation.annotation_class for annotation in annotations]
         )
+        remote_path = "/" + "/".join(filename.split("/")[:-1])
+        filename = filename.split("/")[-1]
         files.append(
             dt.AnnotationFile(
                 path,
@@ -61,7 +63,7 @@ def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
                 annotation_classes,
                 annotations,
                 is_video=True,
-                remote_path="/",
+                remote_path=remote_path,
             )
         )
     return files
