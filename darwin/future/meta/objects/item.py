@@ -79,7 +79,7 @@ class Item(MetaBase[ItemCore]):
         dataset_id = cast(Union[int, List[int]], dataset_id)
         filters = {"item_ids": [str(self.id)]}
         restore_list_of_items(self.client, team_slug, dataset_id, filters)
-        
+
     def archive(self) -> None:
         team_slug, dataset_id = (
             self.meta_params["team_slug"],

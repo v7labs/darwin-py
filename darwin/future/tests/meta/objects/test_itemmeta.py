@@ -46,8 +46,8 @@ def test_delete(item: Item) -> None:
             json={},
         )
         item.delete()
-        
-        
+
+
 def test_delete_with_bad_team_slug(item: Item) -> None:
     with pytest.raises(AssertionError):
         item.meta_params["team_slug"] = 123
@@ -103,8 +103,8 @@ def test_move_to_folder_raises_on_incorrect_parameters(item: Item) -> None:
         )
         with pytest.raises(BadRequest):
             item.move_to_folder(path)
-            
-          
+
+
 def test_move_to_folder_with_bad_team_slug(item: Item) -> None:
     with pytest.raises(AssertionError):
         path = "/new_folder"
@@ -133,13 +133,13 @@ def test_restore(item: Item) -> None:
             json={},
         )
         item.restore()
-        
-        
+
+
 def test_restore_with_bad_team_slug(item: Item) -> None:
     with pytest.raises(AssertionError):
         item.meta_params["team_slug"] = 123
         item.restore()
-        
+
 
 def test_archive(item: Item) -> None:
     with responses.RequestsMock() as rsps:

@@ -37,7 +37,7 @@ def test_item_query_collect(item_query: ItemQuery, items_json: List[dict]) -> No
         for i in range(5):
             assert items[i].name == f"item_{i}"
 
-            
+
 def test_delete(
     item_query: ItemQuery, items_json: List[dict], items: List[Item]
 ) -> None:

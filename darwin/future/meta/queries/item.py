@@ -43,7 +43,7 @@ class ItemQuery(PaginatedQuery[Item]):
             for i, item in enumerate(items_core)
         }
         return items
-      
+
     def delete(self) -> None:
         if "team_slug" not in self.meta_params:
             raise ValueError("Must specify team_slug to query items")
@@ -102,7 +102,7 @@ class ItemQuery(PaginatedQuery[Item]):
         ids = [item.id for item in self]
         filters = {"item_ids": [str(item) for item in ids]}
         restore_list_of_items(self.client, team_slug, dataset_ids, filters)
-        
+
     def archive(self) -> None:
         if "team_slug" not in self.meta_params:
             raise ValueError("Must specify team_slug to query items")
@@ -121,4 +121,3 @@ class ItemQuery(PaginatedQuery[Item]):
         ids = [item.id for item in self]
         filters = {"item_ids": [str(item) for item in ids]}
         archive_list_of_items(self.client, team_slug, dataset_ids, filters)
-
