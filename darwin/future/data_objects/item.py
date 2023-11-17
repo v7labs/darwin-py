@@ -177,12 +177,13 @@ class ItemUpload(DefaultDarwin):
     item: Optional[UnknownType] = None
 
     @validator("item")
-    def validate_item(cls, value) -> None:
+    def validate_item(cls, value) -> Optional[ItemCore]:
         if value is None:
-            return
+            return value
 
         assert hasattr(value, "name"), "item must have a name attribute"
-        assert value.name == "ItemCore", "item must be an ItemCore object"
+        assert type(value) == ItemCore, "item must be an ItemCore object"
+        return value
 
 
 class ItemCreate(DefaultDarwin):

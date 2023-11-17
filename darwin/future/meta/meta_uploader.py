@@ -275,7 +275,6 @@ def _initialise_items_and_paths(
     )
 
 
-# TODO: Test this
 def _update_item_upload(
     item_upload: ItemUpload,
     status: Optional[ItemUploadStatus] = None,
@@ -283,7 +282,7 @@ def _update_item_upload(
     upload_id: Optional[str | UUID] = None,
     upload_item: Optional[UploadItem] = None,
     path: Optional[Path] = None,
-    item: Optional[Item] = None,
+    item: Optional[ItemCore] = None,
 ) -> ItemUpload:
     """
     (internal) Updates an ItemUpload
@@ -334,7 +333,6 @@ def _update_item_upload(
     return item_upload
 
 
-# TODO: Test this
 def _item_dict_to_item(client: ClientCore, item_dict: dict) -> Item:
     """
     (internal) Converts an item dict to an item
@@ -387,7 +385,7 @@ def _items_dicts_to_items(client: ClientCore, items_dicts: List[dict]) -> List[I
 
 
 # TODO: Test this
-def _initial_items_and_blocked_items(
+def _initialise_items_and_blocked_items(  # ? Params
     client: ClientCore, item_uploads: List[ItemUpload], items_dicts: List, blocked_items_dicts: List
 ) -> Tuple[List[Item], List[Item]]:
     return _items_dicts_to_items(client, items_dicts), _items_dicts_to_items(client, blocked_items_dicts)
@@ -402,7 +400,7 @@ async def _handle_uploads(client: ClientCore, item_uploads: List[ItemUpload]) ->
         except AssertionError as exc:
             raise DarwinException("ItemUpload must have a path and url") from exc
 
-        await _upload_file_to_signed_url(client, item_upload.url, item_upload.path)
+        await _upload_file_to_signed_url(item_upload.url, item_upload.path)
         item_upload.status = ItemUploadStatus.UPLOADED
 
 
@@ -459,7 +457,6 @@ async def combined_uploader(
     files_to_upload = await _create_list_of_all_files(item_payload.files, item_payload.files_to_exclude or [])
     root_path, root_paths_absolute = _derive_root_path(files_to_upload)
 
-    # 2. Prepare upload items
     upload_items = await _prepare_upload_items(
         item_payload.path or "/",
         root_path,
@@ -475,7 +472,6 @@ async def combined_uploader(
     if item_payload.callback_when_loading:
         item_payload.callback_when_loading(item_uploads)
 
-    # 3. Register and create signed upload url
     items_and_paths = _initialise_items_and_paths(upload_items, root_paths_absolute, item_payload)
     upload_urls, upload_ids, items_dicts, blocked_items_dicts = await async_register_and_create_signed_upload_url(
         client,
@@ -484,7 +480,7 @@ async def combined_uploader(
         items_and_paths,
     )
 
-    items, blocked_items = _initial_items_and_blocked_items(client, item_uploads, items_dicts, blocked_items_dicts)
+    items, blocked_items = _initialise_items_and_blocked_items(client, item_uploads, items_dicts, blocked_items_dicts)
 
     [
         (
@@ -494,7 +490,7 @@ async def combined_uploader(
                 upload_id=upload_id,
                 upload_item=upload_item,
                 path=path,
-                item=item,
+                item=item._element,
             )
             for upload_url, upload_id, (upload_item, path), item, item_upload in zip(
                 upload_urls, upload_ids, items_and_paths, items, item_uploads
@@ -511,6 +507,8 @@ async def combined_uploader(
 
     if item_payload.callback_when_loaded:
         item_payload.callback_when_loaded(item_uploads)
+
+    # ? Callback ?
 
     return CombinedUploaderResult(item_uploads, items, blocked_items)
 

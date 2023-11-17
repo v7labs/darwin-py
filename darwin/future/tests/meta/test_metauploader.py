@@ -1,8 +1,8 @@
-import re
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import List
-from unittest.mock import Mock, patch
+from typing import Dict, List, Optional, Tuple
+from unittest.mock import MagicMock, Mock, call, patch
+from uuid import UUID, uuid4
 
 import pytest
 
@@ -14,6 +14,7 @@ from darwin.future.data_objects.item import (
     ItemUploadStatus,
     UploadItem,
 )
+from darwin.future.data_objects.typing import UnknownType
 from darwin.future.exceptions import DarwinException
 from darwin.future.meta.meta_uploader import (
     _confirm_uploads,
@@ -21,8 +22,8 @@ from darwin.future.meta.meta_uploader import (
     _derive_root_path,
     _get_item_path,
     _handle_uploads,
-    _initial_items_and_blocked_items,
     _initialise_item_uploads,
+    _initialise_items_and_blocked_items,
     _initialise_items_and_paths,
     _item_dict_to_item,
     _items_dicts_to_items,
@@ -31,6 +32,7 @@ from darwin.future.meta.meta_uploader import (
     _upload_file_to_signed_url,
     combined_uploader,
 )
+from darwin.future.meta.objects.item import Item
 from darwin.future.tests.fixtures import *
 from darwin.future.tests.meta.fixtures import *
 
@@ -442,35 +444,185 @@ class TestInitialiseItemsAndPaths:
             (
                 UploadItem(
                     name="file1.txt",
-                    path="/",
+                    path="/path/to/file1.txt",
                     description="file1 description",
                     tags=["tag1", "tag2"],
                     layout=None,
                     slots=[],
                 ),
-                Path("/tmp/example/test/path"),
+                Path("/"),
             ),
             (
                 UploadItem(
                     name="file2.txt",
-                    path="/",
+                    path="/path/to/file2.txt",
                     description="file2 description",
                     tags=["tag1", "tag2"],
                     layout=None,
                     slots=[],
                 ),
-                Path("/tmp/example/test/path"),
+                Path("/"),
             ),
             (
                 UploadItem(
                     name="file3.txt",
-                    path="/",
+                    path="/path/to/file3.txt",
                     description="file3 description",
                     tags=["tag1", "tag2"],
                     layout=None,
                     slots=[],
                 ),
-                Path("/tmp/example/test/path"),
+                Path("/"),
             ),
         ]
         assert _initialise_items_and_paths(upload_items, root_path_absolute, item_payload) == expected_output
+
+
+class TestUpdateItemUpload:
+    @pytest.fixture
+    def item_upload(self) -> ItemUpload:
+        return ItemUpload(
+            upload_item=UploadItem(
+                name="file1.txt",
+                path="/path/to/file1.txt",
+                description="file1 description",
+                tags=["tag1", "tag2"],
+                layout=None,
+                slots=[],
+            ),
+            status=ItemUploadStatus.PENDING,
+        )
+
+    def test_returns_same_item(self, item_upload: ItemUpload) -> None:
+        # Ensures that item is not copied to check PBR functionality
+        assert id(_update_item_upload(item_upload)) == id(item_upload)
+
+    def test_updates_status(self, item_upload: ItemUpload) -> None:
+        assert _update_item_upload(item_upload, ItemUploadStatus.UPLOADING).status == ItemUploadStatus.UPLOADING
+
+    def test_updates_upload_url(self, item_upload: ItemUpload) -> None:
+        assert _update_item_upload(item_upload, upload_url="https://example.com").url == "https://example.com"
+
+    def test_updates_upload_id(self, item_upload: ItemUpload) -> None:
+        uuid1 = uuid4()
+        uuid2 = uuid4()
+        assert _update_item_upload(item_upload, upload_id=str(uuid1)).id == uuid1
+        assert _update_item_upload(item_upload, upload_id=uuid2).id == uuid2
+
+    def test_updates_path(self, item_upload: ItemUpload) -> None:
+        assert _update_item_upload(item_upload, path=Path("/new/path")).path == Path("/new/path")
+
+    def test_updates_item(self, item_upload: ItemUpload) -> None:
+        item = ItemCore(
+            name="file1.txt",
+            id=uuid4(),
+            slots=[],
+            path="/path/to/file1.txt",
+            dataset_id=1,
+            processing_status="pending",
+        )
+
+        assert item_upload.item != item
+        _update_item_upload(item_upload, item=item)
+        assert item_upload.item == item
+
+
+class TestItemDictToItem:
+    IAD_RETURN_TYPE = Tuple[Item, Dict["str", UnknownType], Mock]
+
+    @pytest.fixture
+    def item_and_dict(self) -> IAD_RETURN_TYPE:
+        client = MagicMock(spec=ClientCore)
+        item_dict = {
+            "name": "file1.txt",
+            "id": "00000000-0000-0000-0000-000000000000",
+            "slots": [],
+            "path": "/path/to/file1.txt",
+            "dataset_id": 1,
+            "processing_status": "pending",
+        }
+
+        return Item(ItemCore.parse_obj(item_dict), client), item_dict, client
+
+    def assert_optional_fields(
+        self, item_property: Optional[UnknownType], item_dict_property: Optional[UnknownType]
+    ) -> None:
+        if not item_dict_property:
+            return
+        assert item_property == item_dict_property
+
+    def compare_item_and_dict(self, item: Item, item_dict: Dict[str, UnknownType], client: ClientCore) -> None:
+        item_element = item._element
+
+        assert item_element.name == item_dict["name"]
+        assert item_element.id == UUID(item_dict["id"])
+        assert item_element.path == item_dict["path"]
+        assert item_element.dataset_id == item_dict["dataset_id"]
+        assert item_element.processing_status == item_dict["processing_status"]
+
+        self.assert_optional_fields(item_element.archived, item_dict.get("archived"))
+        self.assert_optional_fields(item_element.priority, item_dict.get("priority"))
+        self.assert_optional_fields(item_element.tags, item_dict.get("tags"))
+        self.assert_optional_fields(item_element.layout, item_dict.get("layout"))
+
+        assert item.client == client
+
+    def test_sets_all_required_fields(self, item_and_dict: IAD_RETURN_TYPE) -> None:
+        _, item_dict, client = item_and_dict
+        new_item = _item_dict_to_item(client, item_dict)
+
+        self.compare_item_and_dict(new_item, item_dict, client)
+
+    def test_sets_archived(self, item_and_dict: IAD_RETURN_TYPE) -> None:
+        _, item_dict, client = item_and_dict
+        item_dict["archived"] = True
+        new_item = _item_dict_to_item(client, item_dict)
+
+        self.compare_item_and_dict(new_item, item_dict, client)
+
+    def test_sets_priority(self, item_and_dict: IAD_RETURN_TYPE) -> None:
+        _, item_dict, client = item_and_dict
+        item_dict["priority"] = 1
+        new_item = _item_dict_to_item(client, item_dict)
+
+        self.compare_item_and_dict(new_item, item_dict, client)
+
+    def test_sets_tags(self, item_and_dict: IAD_RETURN_TYPE) -> None:
+        _, item_dict, client = item_and_dict
+        item_dict["tags"] = ["tag1", "tag2"]
+        new_item = _item_dict_to_item(client, item_dict)
+
+        self.compare_item_and_dict(new_item, item_dict, client)
+
+    def test_sets_layout(self, item_and_dict: IAD_RETURN_TYPE) -> None:
+        _, item_dict, client = item_and_dict
+        item_dict["layout"] = ItemLayout(slots=["1"], type="grid", version=1, layout_shape=[1, 2, 3])
+        new_item = _item_dict_to_item(client, item_dict)
+
+        self.compare_item_and_dict(new_item, item_dict, client)
+
+
+class TestItemsDictsToItems:
+    def test_items_dicts_to_items(self) -> None:
+        client = MagicMock(spec=ClientCore)
+        item_dicts = [
+            {
+                "name": "file1.txt",
+            },
+            {
+                "name": "file2.txt",
+            },
+            {
+                "name": "file3.txt",
+            },
+        ]
+        with patch("darwin.future.meta.meta_uploader._item_dict_to_item") as mock_item_dict_to_item:
+            _items_dicts_to_items(client, item_dicts)
+
+            mock_item_dict_to_item.assert_has_calls(
+                [
+                    call(client, item_dicts[0]),
+                    call(client, item_dicts[1]),
+                    call(client, item_dicts[2]),
+                ]
+            )
