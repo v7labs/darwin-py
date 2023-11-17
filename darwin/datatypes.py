@@ -570,12 +570,12 @@ def make_polygon(
     """
 
     if darwin_v1:
-        polygon_data = ({"path": point_path})
+        polygon_data = {"path": point_path}
     else:
         # Lets handle darwin V2 datasets
         if not isinstance(point_path[0], list):
             point_path = [point_path]
-        polygon_data = ({"paths": point_path})
+        polygon_data = {"paths": point_path}
 
     return Annotation(
         AnnotationClass(class_name, "polygon"),
