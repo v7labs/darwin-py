@@ -891,14 +891,14 @@ def assert_bbox(annotation: Annotation, x: float, y: float, h: float, w: float) 
 
 
 def assert_polygon(annotation: Annotation, points: List[Point]) -> None:
-   actual_points = annotation.data.get("paths")
-   assert actual_points
+    actual_points = annotation.data.get("paths")
+    assert actual_points
 
-   # Drawin v2 uses a list of lists for paths [][]
-   if len(actual_points) == 1:
-       actual_points = actual_points[0]
+    # Drawin v2 uses a list of lists for paths [][]
+    if len(actual_points) == 1:
+        actual_points = actual_points[0]
 
-   assert actual_points == points
+    assert actual_points == points
 
 
 def assert_point(annotation: Annotation, point: Point) -> None:

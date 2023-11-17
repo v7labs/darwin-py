@@ -573,7 +573,7 @@ def _build_annotation(
                 ],
                 None,
                 annotation.subs,
-                darwin_v1=True
+                darwin_v1=True,
             ),
             categories,
         )

@@ -344,7 +344,7 @@ class TestParsePath:
         assert "'y' is a required property" in str(error.value)
 
     def test_it_imports_polygon_images(self, file_path: Path):
-      json: str = """
+        json: str = """
          [
             {
                "Label":{
@@ -365,36 +365,36 @@ class TestParsePath:
          ]
       """
 
-      file_path.write_text(json)
+        file_path.write_text(json)
 
-      annotation_files: Optional[List[AnnotationFile]] = parse_path(file_path)
-      assert annotation_files is not None
+        annotation_files: Optional[List[AnnotationFile]] = parse_path(file_path)
+        assert annotation_files is not None
 
-      annotation_file: AnnotationFile = annotation_files.pop()
-      assert annotation_file.path == file_path
-      assert annotation_file.filename == "demo-image-7.jpg"
-      assert annotation_file.annotation_classes
-      assert annotation_file.remote_path == "/"
+        annotation_file: AnnotationFile = annotation_files.pop()
+        assert annotation_file.path == file_path
+        assert annotation_file.filename == "demo-image-7.jpg"
+        assert annotation_file.annotation_classes
+        assert annotation_file.remote_path == "/"
 
-      assert annotation_file.annotations
+        assert annotation_file.annotations
 
-      polygon_annotation: Annotation = cast(
-         Annotation, annotation_file.annotations.pop()
-      )
+        polygon_annotation: Annotation = cast(
+            Annotation, annotation_file.annotations.pop()
+        )
 
-      print(polygon_annotation)
+        print(polygon_annotation)
 
-      assert_polygon(
-         polygon_annotation,
-         [
-               {"x": 3665.814, "y": 351.628},
-               {"x": 3762.93, "y": 810.419},
-               {"x": 3042.93, "y": 914.233},
-         ],
-      )
+        assert_polygon(
+            polygon_annotation,
+            [
+                {"x": 3665.814, "y": 351.628},
+                {"x": 3762.93, "y": 810.419},
+                {"x": 3042.93, "y": 914.233},
+            ],
+        )
 
-      annotation_class = polygon_annotation.annotation_class
-      assert_annotation_class(annotation_class, "Fish", "polygon")
+        annotation_class = polygon_annotation.annotation_class
+        assert_annotation_class(annotation_class, "Fish", "polygon")
 
     def test_it_imports_point_images(self, file_path: Path):
         json: str = """
@@ -732,12 +732,12 @@ def assert_bbox(annotation: Annotation, x: float, y: float, h: float, w: float) 
 
 
 def assert_polygon(annotation: Annotation, points: List[Point]) -> None:
-   actual_points = annotation.data.get("paths")
-   #Assumes Darwin v2 format
-   if len(actual_points) == 1:
-      actual_points = actual_points[0]
-   assert actual_points
-   assert actual_points == points
+    actual_points = annotation.data.get("paths")
+    # Assumes Darwin v2 format
+    if len(actual_points) == 1:
+        actual_points = actual_points[0]
+    assert actual_points
+    assert actual_points == points
 
 
 def assert_point(annotation: Annotation, point: Point) -> None:
