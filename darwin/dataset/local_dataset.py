@@ -67,6 +67,7 @@ class LocalDataset:
         split: str = "default",
         split_type: str = "random",
         release_name: Optional[str] = None,
+        keep_empty_annotations=False,
     ):
         self.dataset_path = dataset_path
         self.annotation_type = annotation_type
@@ -75,6 +76,7 @@ class LocalDataset:
         self.original_classes = None
         self.original_images_path: Optional[List[Path]] = None
         self.original_annotations_path: Optional[List[Path]] = None
+        self.keep_empty_annotations = keep_empty_annotations
 
         release_path, annotations_dir, images_dir = self._initial_setup(
             dataset_path, release_name
@@ -101,6 +103,7 @@ class LocalDataset:
             split,
             partition,
             split_type,
+            keep_empty_annotations,
         )
 
         if len(self.images_path) == 0:
@@ -130,12 +133,16 @@ class LocalDataset:
         split,
         partition,
         split_type,
+        keep_empty_annotations=False,
     ):
         # Find all the annotations and their corresponding images
         for annotation_path in sorted(annotations_dir.glob("**/*.json")):
             darwin_json = stream_darwin_json(annotation_path)
             image_path = get_image_path_from_stream(darwin_json, images_dir)
             if image_path.exists():
+                if not keep_empty_annotations:
+                    if len(darwin_json['annotations']) < 1:
+                        continue
                 self.images_path.append(image_path)
                 self.annotations_path.append(annotation_path)
                 continue

@@ -568,7 +568,7 @@ def make_polygon(
     """
     return Annotation(
         AnnotationClass(class_name, "polygon"),
-        _maybe_add_bounding_box_data({"path": point_path}, bounding_box),
+        _maybe_add_bounding_box_data({"paths": point_path}, bounding_box),
         subs or [],
         slot_names=slot_names or [],
     )

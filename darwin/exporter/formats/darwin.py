@@ -48,19 +48,22 @@ def build_image_annotation(annotation_file: dt.AnnotationFile) -> Dict[str, Any]
 
 
 def _build_v2_annotation_data(annotation: dt.Annotation) -> Dict[str, Any]:
+    
     annotation_data = {"id": annotation.id, "name": annotation.annotation_class.name}
-
     if annotation.annotation_class.annotation_type == "bounding_box":
         annotation_data["bounding_box"] = _build_bounding_box_data(annotation.data)
     elif annotation.annotation_class.annotation_type == "tag":
         annotation_data["tag"] = {}
     elif annotation.annotation_class.annotation_type == "polygon":
-        annotation_data["polygon"] = _build_polygon_data(annotation.data)
+        polygon_data = _build_polygon_data(annotation.data)
+        annotation_data["polygon"] = polygon_data
+        annotation_data["bounding_box"] = _build_bounding_box_data(annotation.data)
 
     return annotation_data
 
 
 def _build_bounding_box_data(data: Dict[str, Any]) -> Dict[str, Any]:
+    data = data["bounding_box"]
     return {
         "h": data.get("h"),
         "w": data.get("w"),
@@ -85,19 +88,8 @@ def _build_polygon_data(
     Dict[str, List[List[Dict[str, float]]]]
         The polygon data in the format required for Darwin v2 annotations.
     """
-    # Assuming the data contains a 'paths' key that is a list of lists of points,
-    # where each point is a dictionary with 'x' and 'y' keys.
-    paths = data.get("paths", [])
-    v2_paths = []
 
-    for path in paths:
-        v2_path = []
-        for point in path:
-            v2_point = {"x": point.get("x"), "y": point.get("y")}
-            v2_path.append(v2_point)
-        v2_paths.append(v2_path)
-
-    return {"paths": v2_paths}
+    return {"paths": data.get("paths", [])}
 
 
 def _build_item_data(annotation_file: dt.AnnotationFile) -> Dict[str, Any]:

@@ -1,9 +1,9 @@
 """
 Contains several unrelated utility functions used across the SDK.
 """
-
 import platform
 import re
+from dataclasses import asdict
 from pathlib import Path
 from typing import (
     TYPE_CHECKING,
@@ -532,12 +532,14 @@ def _parse_darwin_v2(path: Path, data: Dict[str, Any]) -> dt.AnnotationFile:
     slots: List[dt.Slot] = list(
         filter(None, map(_parse_darwin_slot, item.get("slots", [])))
     )
+
     annotations: List[Union[dt.Annotation, dt.VideoAnnotation]] = _data_to_annotations(
         data
     )
-    annotation_classes: Set[dt.AnnotationClass] = set(
-        [annotation.annotation_class for annotation in annotations]
-    )
+
+    annotation_classes: Set[dt.AnnotationClass] = {
+        annotation.annotation_class for annotation in annotations
+    }
 
     if len(slots) == 0:
         annotation_file = dt.AnnotationFile(
@@ -658,9 +660,9 @@ def _parse_darwin_video(
     annotations: List[Union[dt.Annotation, dt.VideoAnnotation]] = _data_to_annotations(
         data
     )
-    annotation_classes: Set[dt.AnnotationClass] = set(
-        [annotation.annotation_class for annotation in annotations]
-    )
+    annotation_classes: Set[dt.AnnotationClass] = {
+        annotation.annotation_class for annotation in annotations
+    }
 
     if "width" not in data["image"] or "height" not in data["image"]:
         raise OutdatedDarwinJSONFormat(
@@ -715,7 +717,7 @@ def _parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotati
         "polygon" in annotation
         and "paths" in annotation["polygon"]
         and len(annotation["polygon"]["paths"]) > 1
-    ):
+    ):  
         bounding_box = annotation.get("bounding_box")
         paths = annotation["polygon"]["paths"]
         main_annotation = dt.make_complex_polygon(

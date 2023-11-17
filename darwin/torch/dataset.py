@@ -634,12 +634,18 @@ class ObjectDetectionDataset(LocalDataset):
 
             targets.append(ann)
         # following https://pytorch.org/tutorials/intermediate/torchvision_tutorial.html
-        stacked_targets = {
-            "boxes": torch.stack([v["bbox"] for v in targets]),
-            "area": torch.stack([v["area"] for v in targets]),
-            "labels": torch.stack([v["label"] for v in targets]),
-            "image_id": torch.tensor([index]),
-        }
+
+        try:
+
+            stacked_targets = {
+                "boxes": torch.stack([v["bbox"] for v in targets]),
+                "area": torch.stack([v["area"] for v in targets]),
+                "labels": torch.stack([v["label"] for v in targets]),
+                "image_id": torch.tensor([index]),
+            }
+        except Exception as e:
+            print(target)
+            raise e
 
         stacked_targets["iscrowd"] = torch.zeros_like(stacked_targets["labels"])
 
