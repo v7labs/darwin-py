@@ -54,6 +54,7 @@ def test_image_annotation_nifti_import_single_slot(team_slug: str):
                     "r",
                 )
             )
+
             assert (
                 output_json_string["annotations"][0]["frames"]
                 == expected_json_string["annotations"][0]["frames"]
