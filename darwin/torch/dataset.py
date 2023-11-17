@@ -636,7 +636,6 @@ class ObjectDetectionDataset(LocalDataset):
         # following https://pytorch.org/tutorials/intermediate/torchvision_tutorial.html
 
         try:
-
             stacked_targets = {
                 "boxes": torch.stack([v["bbox"] for v in targets]),
                 "area": torch.stack([v["area"] for v in targets]),

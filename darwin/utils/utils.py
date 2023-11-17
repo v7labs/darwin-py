@@ -717,7 +717,7 @@ def _parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotati
         "polygon" in annotation
         and "paths" in annotation["polygon"]
         and len(annotation["polygon"]["paths"]) > 1
-    ):  
+    ):
         bounding_box = annotation.get("bounding_box")
         paths = annotation["polygon"]["paths"]
         main_annotation = dt.make_complex_polygon(

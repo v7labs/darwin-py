@@ -48,7 +48,6 @@ def build_image_annotation(annotation_file: dt.AnnotationFile) -> Dict[str, Any]
 
 
 def _build_v2_annotation_data(annotation: dt.Annotation) -> Dict[str, Any]:
-    
     annotation_data = {"id": annotation.id, "name": annotation.annotation_class.name}
     if annotation.annotation_class.annotation_type == "bounding_box":
         annotation_data["bounding_box"] = _build_bounding_box_data(annotation.data)
