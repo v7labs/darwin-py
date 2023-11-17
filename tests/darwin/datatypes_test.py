@@ -7,7 +7,7 @@ class TestMakePolygon:
     def test_it_returns_annotation_with_default_params(self):
         class_name: str = "class_name"
         points: List[Point] = [{"x": 1, "y": 2}, {"x": 3, "y": 4}, {"x": 1, "y": 2}]
-        annotation = make_polygon(class_name, points)
+        annotation = make_polygon(class_name, points, darwin_v1=True)
 
         assert_annotation_class(annotation, class_name, "polygon")
 
@@ -18,9 +18,10 @@ class TestMakePolygon:
         class_name: str = "class_name"
         points: List[Point] = [{"x": 1, "y": 2}, {"x": 3, "y": 4}, {"x": 1, "y": 2}]
         bbox: Dict[str, float] = {"x": 1, "y": 2, "w": 2, "h": 2}
-        annotation = make_polygon(class_name, points, bbox)
+        annotation = make_polygon(class_name, points, bounding_box=bbox, darwin_v1=True)
 
         assert_annotation_class(annotation, class_name, "polygon")
+        print(annotation)
 
         path = annotation.data.get("path")
         assert path == points
