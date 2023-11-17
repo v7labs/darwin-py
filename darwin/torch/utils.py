@@ -1,7 +1,7 @@
 import os
 import sys
 from pathlib import Path
-from typing import Iterable, List, Optional, Tuple, Union
+from typing import Iterable, List, Optional, Tuple
 
 import numpy as np
 import torch
@@ -31,7 +31,7 @@ def flatten_masks_by_category(masks: torch.Tensor, cats: List[int]) -> torch.Ten
     assert isinstance(masks, torch.Tensor)
     assert isinstance(cats, List)
     assert masks.shape[0] == len(cats)
-    order_of_polygons = [i for i in range(1, len(cats) + 1)]
+    order_of_polygons = list(range(1, len(cats) + 1))
     polygon_mapping = {order: cat for cat, order in zip(cats, order_of_polygons)}
     BACKGROUND: int = 0
     polygon_mapping[BACKGROUND] = 0

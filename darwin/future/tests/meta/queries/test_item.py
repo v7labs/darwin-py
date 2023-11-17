@@ -148,6 +148,83 @@ def test_move_to_folder_raises_on_incorrect_parameters(
             item_query.move_to_folder(path)
 
 
+def test_set_priority(
+    item_query: ItemQuery, items_json: List[dict], items: List[Item]
+) -> None:
+    with responses.RequestsMock() as rsps:
+        rsps.add(
+            rsps.GET,
+            item_query.client.config.api_endpoint + "v2/teams/test/items",
+            match=[
+                query_param_matcher(
+                    {"page[offset]": "0", "page[size]": "500", "dataset_ids": "1"}
+                )
+            ],
+            json={"items": items_json, "errors": []},
+        )
+        team_slug = items[0].meta_params["team_slug"]
+        dataset_id = items[0].meta_params["dataset_id"]
+        priority = 10
+        rsps.add(
+            rsps.POST,
+            items[0].client.config.api_endpoint
+            + f"v2/teams/{team_slug}/items/priority",
+            status=200,
+            match=[
+                json_params_matcher(
+                    {
+                        "filters": {
+                            "item_ids": [str(item.id) for item in items],
+                            "dataset_ids": [dataset_id],
+                        },
+                        "priority": priority,
+                    }
+                )
+            ],
+            json={},
+        )
+        item_query.set_priority(priority)
+
+
+def test_set_priority_raises_on_incorrect_parameters(
+    item_query: ItemQuery, items_json: List[dict], items: List[Item]
+) -> None:
+    with responses.RequestsMock() as rsps:
+        rsps.add(
+            rsps.GET,
+            item_query.client.config.api_endpoint + "v2/teams/test/items",
+            match=[
+                query_param_matcher(
+                    {"page[offset]": "0", "page[size]": "500", "dataset_ids": "1"}
+                )
+            ],
+            json={"items": items_json, "errors": []},
+        )
+        team_slug = items[0].meta_params["team_slug"]
+        dataset_id = items[0].meta_params["dataset_id"]
+        priority = "10"
+        rsps.add(
+            rsps.POST,
+            items[0].client.config.api_endpoint
+            + f"v2/teams/{team_slug}/items/priority",
+            status=400,
+            match=[
+                json_params_matcher(
+                    {
+                        "filters": {
+                            "item_ids": [str(item.id) for item in items],
+                            "dataset_ids": [dataset_id],
+                        },
+                        "priority": priority,
+                    }
+                )
+            ],
+            json={},
+        )
+        with pytest.raises(BadRequest):
+            item_query.set_priority(priority)
+
+
 def test_restore(
     item_query: ItemQuery, items_json: List[dict], items: List[Item]
 ) -> None:

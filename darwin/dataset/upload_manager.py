@@ -76,7 +76,7 @@ class ItemPayload:
     @staticmethod
     def parse_v2(payload):
         if len(payload["slots"]) > 1:
-            raise NotImplemented("multiple files support not yet implemented")
+            raise NotImplementedError("multiple files support not yet implemented")
         slot = payload["slots"][0]
         return ItemPayload(
             dataset_item_id=payload.get("id", None),
@@ -552,7 +552,7 @@ class UploadHandlerV2(UploadHandler):
         file_lookup = {file.full_path: file for file in self.local_files}
         for item in self.pending_items:
             if len(item.slots) != 1:
-                raise NotImplemented("Multi file upload is not supported")
+                raise NotImplementedError("Multi file upload is not supported")
             upload_id = item.slots[0]["upload_id"]
             file = file_lookup.get(item.full_path)
             if not file:

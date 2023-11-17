@@ -1,6 +1,5 @@
 import ast
 import json as native_json
-from asyncore import loop
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple, Union
@@ -19,11 +18,9 @@ except ImportError:
     console.print(import_fail_string)
     exit()
 import numpy as np
-import orjson as json
-from PIL import Image
 
 import darwin.datatypes as dt
-from darwin.utils import convert_polygons_to_mask, get_progress_bar
+from darwin.utils import convert_polygons_to_mask
 
 
 @dataclass
@@ -141,7 +138,6 @@ def check_for_error_and_return_imageid(
 
     """
 
-    output_volumes = None
     filename = Path(video_annotation.filename)
     try:
         suffixes = filename.suffixes[-2:]
@@ -277,7 +273,7 @@ def populate_output_volumes(
             )
         else:
             continue
-        class_name = frames[frame_idx].annotation_class.name
+        frames[frame_idx].annotation_class.name
         im_mask = convert_polygons_to_mask(polygons, height=height, width=width)
         volume = output_volumes[series_instance_uid]
         if view_idx == 0:

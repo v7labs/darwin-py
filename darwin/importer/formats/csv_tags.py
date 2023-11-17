@@ -28,13 +28,13 @@ def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
     with path.open() as f:
         reader = csv.reader(f)
         for row in reader:
-            filename, *tags = map(lambda s: s.strip(), row)
+            filename, *tags = (s.strip() for s in row)
             if filename == "":
                 continue
             annotations = [dt.make_tag(tag) for tag in tags if len(tag) > 0]
-            annotation_classes = set(
-                [annotation.annotation_class for annotation in annotations]
-            )
+            annotation_classes = {
+                annotation.annotation_class for annotation in annotations
+            }
             remote_path, filename = deconstruct_full_path(filename)
             files.append(
                 dt.AnnotationFile(

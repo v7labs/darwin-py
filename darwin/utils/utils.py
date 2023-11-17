@@ -25,18 +25,16 @@ import numpy as np
 import orjson as json
 import requests
 from json_stream.base import PersistentStreamingJSONObject
-from jsonschema import exceptions, validators
-from requests import Response, request
+from jsonschema import validators
+from requests import Response
 from rich.progress import ProgressType, track
 from upolygon import draw_polygon
 
 import darwin.datatypes as dt
 from darwin.config import Config
 from darwin.exceptions import (
-    AnnotationFileValidationError,
     MissingSchema,
     OutdatedDarwinJSONFormat,
-    UnknownAnnotationFileSchema,
     UnrecognizableFileEncoding,
     UnsupportedFileType,
 )
@@ -89,7 +87,7 @@ def is_extension_allowed_by_filename(filename: str) -> bool:
     bool
         Whether or not the given extension of the filename is allowed.
     """
-    return any([filename.lower().endswith(ext) for ext in SUPPORTED_EXTENSIONS])
+    return any(filename.lower().endswith(ext) for ext in SUPPORTED_EXTENSIONS)
 
 
 @deprecation.deprecated(deprecated_in="0.8.4", current_version=__version__)
@@ -126,7 +124,7 @@ def is_image_extension_allowed_by_filename(filename: str) -> bool:
     bool
         Whether or not the given extension is allowed.
     """
-    return any([filename.lower().endswith(ext) for ext in SUPPORTED_IMAGE_EXTENSIONS])
+    return any(filename.lower().endswith(ext) for ext in SUPPORTED_IMAGE_EXTENSIONS)
 
 
 @deprecation.deprecated(deprecated_in="0.8.4", current_version=__version__)
@@ -161,7 +159,7 @@ def is_video_extension_allowed_by_filename(extension: str) -> bool:
     bool
         Whether or not the given extension is allowed.
     """
-    return any([extension.lower().endswith(ext) for ext in SUPPORTED_VIDEO_EXTENSIONS])
+    return any(extension.lower().endswith(ext) for ext in SUPPORTED_VIDEO_EXTENSIONS)
 
 
 @deprecation.deprecated(deprecated_in="0.8.4", current_version=__version__)
@@ -535,9 +533,9 @@ def _parse_darwin_v2(path: Path, data: Dict[str, Any]) -> dt.AnnotationFile:
     annotations: List[Union[dt.Annotation, dt.VideoAnnotation]] = _data_to_annotations(
         data
     )
-    annotation_classes: Set[dt.AnnotationClass] = set(
-        [annotation.annotation_class for annotation in annotations]
-    )
+    annotation_classes: Set[dt.AnnotationClass] = {
+        annotation.annotation_class for annotation in annotations
+    }
 
     if len(slots) == 0:
         annotation_file = dt.AnnotationFile(
@@ -613,9 +611,9 @@ def _parse_darwin_image(
     annotations: List[Union[dt.Annotation, dt.VideoAnnotation]] = _data_to_annotations(
         data
     )
-    annotation_classes: Set[dt.AnnotationClass] = set(
-        [annotation.annotation_class for annotation in annotations]
-    )
+    annotation_classes: Set[dt.AnnotationClass] = {
+        annotation.annotation_class for annotation in annotations
+    }
 
     slot = dt.Slot(
         name=None,
@@ -658,9 +656,9 @@ def _parse_darwin_video(
     annotations: List[Union[dt.Annotation, dt.VideoAnnotation]] = _data_to_annotations(
         data
     )
-    annotation_classes: Set[dt.AnnotationClass] = set(
-        [annotation.annotation_class for annotation in annotations]
-    )
+    annotation_classes: Set[dt.AnnotationClass] = {
+        annotation.annotation_class for annotation in annotations
+    }
 
     if "width" not in data["image"] or "height" not in data["image"]:
         raise OutdatedDarwinJSONFormat(
@@ -1005,9 +1003,9 @@ def split_video_annotation(annotation: dt.AnnotationFile) -> List[dt.AnnotationF
             for a in annotation.annotations
             if isinstance(a, dt.VideoAnnotation) and i in a.frames
         ]
-        annotation_classes: Set[dt.AnnotationClass] = set(
-            [annotation.annotation_class for annotation in annotations]
-        )
+        annotation_classes: Set[dt.AnnotationClass] = {
+            annotation.annotation_class for annotation in annotations
+        }
         filename: str = f"{Path(annotation.filename).stem}/{i:07d}.png"
         frame_annotations.append(
             dt.AnnotationFile(

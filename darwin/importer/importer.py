@@ -603,9 +603,9 @@ def _warn_unsupported_annotations(parsed_files: List[AnnotationFile]) -> None:
             if annotation.annotation_class.annotation_type in UNSUPPORTED_CLASSES:
                 skipped_annotations.append(annotation)
         if len(skipped_annotations) > 0:
-            types = set(
-                map(lambda c: c.annotation_class.annotation_type, skipped_annotations)
-            )  # noqa: C417
+            types = {
+                c.annotation_class.annotation_type for c in skipped_annotations
+            }  # noqa: C417
             console.print(
                 f"Import of annotation class types '{', '.join(types)}' is not yet supported. Skipping {len(skipped_annotations)} "
                 + "annotations from '{parsed_file.full_path}'.\n",

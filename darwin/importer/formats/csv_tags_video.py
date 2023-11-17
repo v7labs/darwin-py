@@ -30,7 +30,7 @@ def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
         reader = csv.reader(f)
         for row in reader:
             try:
-                filename, tag, start_frame, end_frame = map(lambda s: s.strip(), row)
+                filename, tag, start_frame, end_frame = (s.strip() for s in row)
             except ValueError:
                 continue
             if filename == "":
