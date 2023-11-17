@@ -746,7 +746,11 @@ def _parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotati
             )
         else:
             main_annotation = dt.make_polygon(
-                name, annotation["polygon"]["path"], bounding_box, slot_names=slot_names
+                name,
+                annotation["polygon"]["path"],
+                bounding_box,
+                slot_names=slot_names,
+                darwin_v1=True,
             )
     # Darwin JSON 1.0 representation of complex polygons
     elif "complex_polygon" in annotation:
@@ -1088,6 +1092,7 @@ def convert_polygons_to_sequences(
         raise ValueError("No polygons provided")
     # If there is a single polygon composing the instance then this is
     # transformed to polygons = [[{x: x1, y:y1}, ..., {x: xn, y:yn}]]
+
     list_polygons: List[dt.Polygon] = []
     if isinstance(polygons[0], list):
         list_polygons = cast(List[dt.Polygon], polygons)

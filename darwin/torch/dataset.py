@@ -6,6 +6,7 @@ from PIL import Image as PILImage
 from torch.functional import Tensor
 from torchvision.transforms.functional import to_tensor
 
+import darwin
 from darwin.cli_functions import _error, _load_client
 from darwin.client import Client
 from darwin.dataset.identifier import DatasetIdentifier
@@ -328,6 +329,11 @@ class InstanceSegmentationDataset(LocalDataset):
         for annotation in target["annotations"]:
             annotation_type: str = annotation.annotation_class.annotation_type
             path_key = "paths" if annotation_type == "complex_polygon" else "path"
+
+            # Darwin V2 only has paths (TODO it might be more robust fixes)
+            if "paths" in annotation.data:
+                path_key = "paths"
+
             if path_key not in annotation.data:
                 print(
                     f"Warning: missing polygon in annotation {self.annotations_path[index]}"
@@ -489,7 +495,6 @@ class SemanticSegmentationDataset(LocalDataset):
                 paths = obj.data["paths"]
             else:
                 paths = [obj.data["path"]]
-
             for path in paths:
                 sequences = convert_polygons_to_sequences(
                     path,
