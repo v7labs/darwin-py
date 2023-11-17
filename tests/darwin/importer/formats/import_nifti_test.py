@@ -16,13 +16,14 @@ from darwin.importer.formats.nifti import parse_path
 from tests.fixtures import *
 
 
-def test_image_annotation_nifti_import_single_slot(team_slug: str):
+def test_image_annotation_nifti_import_single_slot(team_slug_darwin_json_v2: str):
+    print(team_slug_darwin_json_v2)
     with tempfile.TemporaryDirectory() as tmpdir:
         with ZipFile("tests/data.zip") as zfile:
             zfile.extractall(tmpdir)
             label_path = (
                 Path(tmpdir)
-                / team_slug
+                / team_slug_darwin_json_v2
                 / "nifti"
                 / "releases"
                 / "latest"
@@ -48,26 +49,30 @@ def test_image_annotation_nifti_import_single_slot(team_slug: str):
             output_json_string = json.loads(
                 serialise_annotation_file(annotation_file, as_dict=False)
             )
+
             expected_json_string = json.load(
                 open(
-                    Path(tmpdir) / team_slug / "nifti" / "vol0_annotation_file.json",
+                    Path(tmpdir) / team_slug_darwin_json_v2 / "nifti" / "vol0_annotation_file.json",
                     "r",
                 )
             )
 
+            expected_output_frames = expected_json_string['annotations'][0]['frames']
+      
             assert (
                 output_json_string["annotations"][0]["frames"]
-                == expected_json_string["annotations"][0]["frames"]
+                == expected_output_frames
             )
 
 
-def test_image_annotation_nifti_import_multi_slot(team_slug: str):
+def test_image_annotation_nifti_import_multi_slot(team_slug_darwin_json_v2: str):
+    print(team_slug_darwin_json_v2)
     with tempfile.TemporaryDirectory() as tmpdir:
         with ZipFile("tests/data.zip") as zfile:
             zfile.extractall(tmpdir)
             label_path = (
                 Path(tmpdir)
-                / team_slug
+                / team_slug_darwin_json_v2
                 / "nifti"
                 / "releases"
                 / "latest"
@@ -98,7 +103,7 @@ def test_image_annotation_nifti_import_multi_slot(team_slug: str):
             expected_json_string = json.load(
                 open(
                     Path(tmpdir)
-                    / team_slug
+                    / team_slug_darwin_json_v2
                     / "nifti"
                     / "vol0_annotation_file_multi_slot.json",
                     "r",
