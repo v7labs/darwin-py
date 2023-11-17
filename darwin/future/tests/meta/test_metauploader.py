@@ -5,9 +5,16 @@ from typing import List
 from unittest.mock import Mock, patch
 
 import pytest
-from cv2 import fastNlMeansDenoisingMulti
 
-from darwin.future.data_objects.item import ItemSlot, UploadItem
+from darwin.future.core.client import ClientCore
+from darwin.future.data_objects.item import (
+    ItemCreate,
+    ItemSlot,
+    ItemUpload,
+    ItemUploadStatus,
+    UploadItem,
+)
+from darwin.future.exceptions import DarwinException
 from darwin.future.meta.meta_uploader import (
     _confirm_uploads,
     _create_list_of_all_files,
@@ -24,6 +31,8 @@ from darwin.future.meta.meta_uploader import (
     _upload_file_to_signed_url,
     combined_uploader,
 )
+from darwin.future.tests.fixtures import *
+from darwin.future.tests.meta.fixtures import *
 
 
 @pytest.fixture
@@ -87,6 +96,41 @@ class TestGetItemPath:
 
             assert path == expectation
 
+    @pytest.mark.parametrize(
+        "imposed_path, preserve_folders, expectation",
+        [
+            # Seems like a lot of these, but together they cover scenarios that
+            # _do_ fail in very specific groups if the function is wrong
+            ("/", False, "/"),
+            ("/test", False, "/test"),
+            ("test", False, "/test"),
+            ("test/", False, "/test"),
+            ("test/test2", False, "/test/test2"),
+            ("test/test2/", False, "/test/test2"),
+            ("/", True, "/folder1"),
+            ("/test", True, "/test/folder1"),
+            ("test", True, "/test/folder1"),
+            ("test/", True, "/test/folder1"),
+            ("test/test2", True, "/test/test2/folder1"),
+            ("test/test2/", True, "/test/test2/folder1"),
+        ],
+    )
+    def test_with_internal_folder_structure(self, imposed_path: str, preserve_folders: bool, expectation: str) -> None:
+        with TemporaryDirectory() as tmpdir:
+            tmpdir_inner_path = Path(tmpdir) / "folder1"
+            tmpdir_inner_path.mkdir(parents=True, exist_ok=True)
+            file_path = Path(tmpdir_inner_path) / "file1.jpg"
+            file_path.open("w").close()
+
+            path: str = _get_item_path(
+                file_path,
+                Path(tmpdir),
+                imposed_path,
+                preserve_folders,
+            )
+
+            assert path == expectation
+
 
 class TestPrepareUploadItems:
     @pytest.mark.asyncio
@@ -99,7 +143,7 @@ class TestPrepareUploadItems:
         is_absolute: Mock,
         is_file: Mock,
         is_dir: Mock,
-        get_item_path: Mock,
+        _: Mock,
         mock_dir: Path,
         mock_files: List[Path],
     ) -> None:
@@ -117,32 +161,30 @@ class TestPrepareUploadItems:
             False,
         )
 
-        assert result == [
-            UploadItem(
-                name="file1.jpg",
-                path="/",
-                slots=[ItemSlot(slot_name="1", file_name="file1.jpg", as_frames=False, fps=False, extract_views=False)],
-                tags=[],
-                description=None,
-                layout=None,
-            ),
-            UploadItem(
-                name="file2.jpg",
-                path="/",
-                slots=[ItemSlot(slot_name="1", file_name="file2.jpg", as_frames=False, fps=False, extract_views=False)],
-                tags=[],
-                description=None,
-                layout=None,
-            ),
-            UploadItem(
-                name="file3.jpg",
-                path="/",
-                slots=[ItemSlot(slot_name="1", file_name="file3.jpg", as_frames=False, fps=False, extract_views=False)],
-                tags=[],
-                description=None,
-                layout=None,
-            ),
-        ]
+        assert all(r.name == f"file{i+1}.jpg" for i, r in enumerate(result))
+        assert all(r.path == "/" for r in result)
+
+        assert result[0].slots[0].slot_name == "1"
+        assert result[0].slots[0].file_name == "file1.jpg"
+        assert result[0].slots[0].as_frames is False
+        assert result[0].slots[0].fps is False
+        assert result[0].slots[0].extract_views is False
+
+        assert result[1].slots[0].slot_name == "2"
+        assert result[1].slots[0].file_name == "file2.jpg"
+        assert result[1].slots[0].as_frames is False
+        assert result[1].slots[0].fps is False
+        assert result[1].slots[0].extract_views is False
+
+        assert result[2].slots[0].slot_name == "3"
+        assert result[2].slots[0].file_name == "file3.jpg"
+        assert result[2].slots[0].as_frames is False
+        assert result[2].slots[0].fps is False
+        assert result[2].slots[0].extract_views is False
+
+        assert all(r.tags == [] for r in result)
+        assert all(r.description is None for r in result)
+        assert all(r.layout is None for r in result)
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -192,248 +234,243 @@ class TestPrepareUploadItems:
             assert expectation in str(e.value)
 
 
-# @patch.object(Workflow, "upload_files_async")
-# def test_upload_files_raises(mock_upload_files_async: Mock):
-#     mock_upload_files_async.side_effect = Exception("Error")
+class TestDeriveRootPath:
+    def test_derive_root_path(self):
+        root_path, absolute_path = _derive_root_path(
+            [
+                Path("tmp/upload/1/2/3/4/5/6/7/8/9/10/11/12/13/14/15"),
+                Path("tmp/upload/1/2/3/4/5/6/7/8/9/10/11/12/13/14"),
+                Path("tmp/upload/1/2/3/4/5/6/7/8/9/10/11/12/13"),
+                Path("tmp/upload/1/2/3/4/5/6/7/8/9/10/11/12"),
+                Path("tmp/upload/1/2/3/4/5/6/7/8/9/10/11"),
+                Path("tmp/upload/1/2/3/4/5/6/7/8/9/10"),
+                Path("tmp/upload/1/2/3/4/5/6/7/8/9"),
+                Path("tmp/upload"),
+                Path("tmp/upload/1/2/3/4/5/6/7/8"),
+                Path("tmp/upload/1/2/3/4/5/6/7"),
+                Path("tmp/upload/1/2/3/4/5/6"),
+                Path("tmp/upload/1/2/3/4/5"),
+                Path("tmp/upload/1/2/3/4"),
+                Path("tmp/upload/1/2/3"),
+                Path("tmp/upload/1/2"),
+                Path("tmp/upload/1"),
+                Path("/tmp/upload/1/2/3/4/5/6/7/8/9/10/11/12/13/14/15"),
+                Path("/tmp/upload/1/2/3/4/5/6/7/8/9/10/11/12/13/14"),
+                Path("/tmp/upload/1/2/3/4/5/6/7/8/9/10/11/12/13"),
+                Path("/tmp/upload/1/2/3/4/5/6/7/8/9/10/11/12"),
+                Path("/tmp/upload/1/2/3/4/5/6/7/8/9/10/11"),
+                Path("/tmp/upload/1/2/3/4/5/6/7/8/9/10"),
+                Path("/tmp/upload/1/2/3/4/5/6/7/8/9"),
+                Path("/tmp/upload"),
+                Path("/tmp/upload/1/2/3/4/5/6/7/8"),
+                Path("/tmp/upload/1/2/3/4/5/6/7"),
+                Path("/tmp/upload/1/2/3/4/5/6"),
+                Path("/tmp/upload/1/2/3/4/5"),
+                Path("/tmp/upload/1/2/3/4"),
+                Path("/tmp/upload/1/2/3"),
+                Path("/tmp/upload/1/2"),
+                Path("/tmp/upload/1"),
+            ]
+        )
 
-#     with pytest.raises(Exception):
-#         Workflow.upload_files(
-#             MagicMock(),
-#             ["file1", "file2"],
-#             ["file3"],
-#             24,
-#             "tmp",
-#             True,
-#             True,
-#             True,
-#             True,
-#         )
+        assert str(root_path) == "upload"
+        assert str(absolute_path) == str(Path.cwd() / "upload")
 
-
-# # Test upload_files_async
-# from typing import Optional
-
-
-# class ContextReturn:
-#     mock_convert_filelikes_to_paths: Optional[Mock]
-#     mock_derive_root_path: Optional[Mock]
-#     mock_prepare_upload_items: Optional[Mock]
-#     mock_upload_updateable: Optional[Mock]
-#     mock_async_register_and_create_signed_upload_url: Optional[Mock]
-
-#     def __init__(
-#         self,
-#         mock_convert_filelikes_to_paths: Optional[Mock] = None,
-#         mock_derive_root_path: Optional[Mock] = None,
-#         mock_prepare_upload_items: Optional[Mock] = None,
-#         mock_upload_updateable: Optional[Mock] = None,
-#         mock_async_register_and_create_signed_upload_url: Optional[Mock] = None,
-#     ):
-#         self.mock_convert_filelikes_to_paths = mock_convert_filelikes_to_paths
-#         self.mock_derive_root_path = mock_derive_root_path
-#         self.mock_prepare_upload_items = mock_prepare_upload_items
-#         self.mock_upload_updateable = mock_upload_updateable
-#         self.mock_async_register_and_create_signed_upload_url = mock_async_register_and_create_signed_upload_url
-
-
-# @contextmanager
-# def upload_function_test_context(workflow: Workflow) -> Generator[ContextReturn, None, None]:
-#     with patch.object(workflow, "_convert_filelikes_to_paths") as mock_convert_filelikes_to_paths, patch.object(
-#         workflow, "_derive_root_path"
-#     ) as mock_derive_root_path, patch.object(
-#         workflow, "_prepare_upload_items"
-#     ) as mock_prepare_upload_items, patch.object(
-#         workflow, "_upload_updateable"
-#     ) as mock_upload_updateable, patch(
-#         "darwin.future.meta.objects.workflow.async_register_and_create_signed_upload_url"
-#     ) as mock_async_register_and_create_signed_upload_url:
-#         yield ContextReturn(
-#             mock_convert_filelikes_to_paths,
-#             mock_derive_root_path,
-#             mock_prepare_upload_items,
-#             mock_upload_updateable,
-#             mock_async_register_and_create_signed_upload_url,
-#         )
-
-#         return None
+    def test_derive_root_path_raises(self):
+        with pytest.raises(ValueError):
+            _derive_root_path([1, 2, 3])  # type: ignore
 
 
-# def test_upload_files_async_raises_if_no_dataset(base_client: ClientCore) -> None:
-#     workflow = Workflow(MagicMock(), base_client, MagicMock())
-#     workflow._element.dataset = None
+class TestUploadFileToSignedUrl:
+    @pytest.mark.asyncio
+    async def test_upload_file_to_signed_url(self) -> None:
+        url = "https://example.com/signed-url"
+        file = Path("test.txt")
 
-#     with pytest.raises(AssertionError):
-#         asyncio.run(
-#             workflow.upload_files_async(
-#                 ["file1", "file2"],
-#                 ["file3"],
-#                 24,
-#                 "tmp",
-#                 False,
-#                 False,
-#                 False,
-#                 False,
-#             )
-#         )
+        class Response:
+            ok: bool = True
 
+        with patch("darwin.future.meta.meta_uploader.async_upload_file", return_value=Response()) as mock_upload_file:
+            result = await _upload_file_to_signed_url(url, file)
 
-# def test_upload_files_integrates_methods(base_client: ClientCore) -> None:
-#     workflow = Workflow(MagicMock(), base_client, MagicMock())
+            mock_upload_file.assert_called_once_with(url, file)
+            assert result.ok is True
 
-#     with upload_function_test_context(workflow) as context:
-#         asyncio.run(
-#             workflow.upload_files_async(
-#                 ["file1", "file2"],
-#                 ["file3"],
-#                 24,
-#                 "tmp",
-#                 False,
-#                 False,
-#                 False,
-#                 False,
-#             )
-#         )
+    @pytest.mark.asyncio
+    async def test_upload_file_to_signed_url_raises(self) -> None:
+        url = "https://example.com/signed-url"
+        file = Path("test.txt")
 
-#         assert context.mock_async_register_and_create_signed_upload_url is not None
-#         context.mock_async_register_and_create_signed_upload_url.assert_called_once()
+        class Response:
+            ok: bool = False
 
-#         assert context.mock_convert_filelikes_to_paths is not None
-#         context.mock_convert_filelikes_to_paths.assert_called_once()
-
-#         assert context.mock_derive_root_path is not None
-#         context.mock_derive_root_path.assert_called_once()
-
-#         assert context.mock_prepare_upload_items is not None
-#         context.mock_prepare_upload_items.assert_called_once()
-
-#         assert context.mock_upload_updateable is not None
-#         context.mock_upload_updateable.assert_called_once()
+        with patch("darwin.future.meta.meta_uploader.async_upload_file", return_value=Response):
+            with pytest.raises(DarwinException):
+                await _upload_file_to_signed_url(url, file)
 
 
-# @pytest.mark.parametrize(
-#     "imposed_path, preserve_folders, expectation",
-#     [
-#         # Seems like a lot of these, but together they cover scenarios that
-#         # _do_ fail in very specific groups if the function is wrong
-#         ("/", False, "/"),
-#         ("/test", False, "/test"),
-#         ("test", False, "/test"),
-#         ("test/", False, "/test"),
-#         ("test/test2", False, "/test/test2"),
-#         ("test/test2/", False, "/test/test2"),
-#         ("/", True, "/folder1"),
-#         ("/test", True, "/test/folder1"),
-#         ("test", True, "/test/folder1"),
-#         ("test/", True, "/test/folder1"),
-#         ("test/test2", True, "/test/test2/folder1"),
-#         ("test/test2/", True, "/test/test2/folder1"),
-#     ],
-# )
-# def test_with_internal_folder_structure(imposed_path: str, preserve_folders: bool, expectation: str) -> None:
-#     with TemporaryDirectory() as tmpdir:
-#         tmpdir_inner_path = Path(tmpdir) / "folder1"
-#         tmpdir_inner_path.mkdir(parents=True, exist_ok=True)
-#         file_path = Path(tmpdir_inner_path) / "file1.jpg"
-#         file_path.open("w").close()
-
-#         path: str = Workflow._get_item_path(
-#             file_path,
-#             Path(tmpdir),
-#             imposed_path,
-#             preserve_folders,
-#         )
-
-#         assert path == expectation
+class TestCreateListOfAllFiles:
+    ...  # TODO
 
 
-# # Test `_derive_root_path`
-# def test_derive_root_path():
-#     root_path, absolute_path = Workflow._derive_root_path(
-#         [
-#             Path("tmp/upload/1/2/3/4/5/6/7/8/9/10/11/12/13/14/15"),
-#             Path("tmp/upload/1/2/3/4/5/6/7/8/9/10/11/12/13/14"),
-#             Path("tmp/upload/1/2/3/4/5/6/7/8/9/10/11/12/13"),
-#             Path("tmp/upload/1/2/3/4/5/6/7/8/9/10/11/12"),
-#             Path("tmp/upload/1/2/3/4/5/6/7/8/9/10/11"),
-#             Path("tmp/upload/1/2/3/4/5/6/7/8/9/10"),
-#             Path("tmp/upload/1/2/3/4/5/6/7/8/9"),
-#             Path("tmp/upload"),
-#             Path("tmp/upload/1/2/3/4/5/6/7/8"),
-#             Path("tmp/upload/1/2/3/4/5/6/7"),
-#             Path("tmp/upload/1/2/3/4/5/6"),
-#             Path("tmp/upload/1/2/3/4/5"),
-#             Path("tmp/upload/1/2/3/4"),
-#             Path("tmp/upload/1/2/3"),
-#             Path("tmp/upload/1/2"),
-#             Path("tmp/upload/1"),
-#             Path("/tmp/upload/1/2/3/4/5/6/7/8/9/10/11/12/13/14/15"),
-#             Path("/tmp/upload/1/2/3/4/5/6/7/8/9/10/11/12/13/14"),
-#             Path("/tmp/upload/1/2/3/4/5/6/7/8/9/10/11/12/13"),
-#             Path("/tmp/upload/1/2/3/4/5/6/7/8/9/10/11/12"),
-#             Path("/tmp/upload/1/2/3/4/5/6/7/8/9/10/11"),
-#             Path("/tmp/upload/1/2/3/4/5/6/7/8/9/10"),
-#             Path("/tmp/upload/1/2/3/4/5/6/7/8/9"),
-#             Path("/tmp/upload"),
-#             Path("/tmp/upload/1/2/3/4/5/6/7/8"),
-#             Path("/tmp/upload/1/2/3/4/5/6/7"),
-#             Path("/tmp/upload/1/2/3/4/5/6"),
-#             Path("/tmp/upload/1/2/3/4/5"),
-#             Path("/tmp/upload/1/2/3/4"),
-#             Path("/tmp/upload/1/2/3"),
-#             Path("/tmp/upload/1/2"),
-#             Path("/tmp/upload/1"),
-#         ]
-#     )
-
-#     assert str(root_path) == "upload"
-#     assert str(absolute_path) == str(Path.cwd() / "upload")
+class TestInitialiseItemUploads:
+    def test_initialise_item_uploads(self):
+        upload_items = [
+            UploadItem(name="file1.txt", path="/path/to/file1.txt"),
+            UploadItem(name="file2.txt", path="/path/to/file2.txt"),
+            UploadItem(name="file3.txt", path="/path/to/file3.txt"),
+        ]
+        expected = [
+            ItemUpload(upload_item=upload_items[0], status=ItemUploadStatus.PENDING),
+            ItemUpload(upload_item=upload_items[1], status=ItemUploadStatus.PENDING),
+            ItemUpload(upload_item=upload_items[2], status=ItemUploadStatus.PENDING),
+        ]
+        assert _initialise_item_uploads(upload_items) == expected
 
 
-# def test_derive_root_path_raises():
-#     with pytest.raises(ValueError):
-#         Workflow._derive_root_path([1, 2, 3])  # type: ignore
+class TestInitialiseItemsAndPaths:
+    def test_with_preserve_paths(self):
+        upload_items = [
+            UploadItem(
+                name="file1.txt",
+                path="/path/to/file1.txt",
+                description="file1 description",
+                tags=["tag1", "tag2"],
+                layout=None,
+                slots=[],
+            ),
+            UploadItem(
+                name="file2.txt",
+                path="/path/to/file2.txt",
+                description="file2 description",
+                tags=["tag1", "tag2"],
+                layout=None,
+                slots=[],
+            ),
+            UploadItem(
+                name="file3.txt",
+                path="/path/to/file3.txt",
+                description="file3 description",
+                tags=["tag1", "tag2"],
+                layout=None,
+                slots=[],
+            ),
+        ]
+        root_path_absolute = Path("/tmp/example/test/path")
+        item_payload = ItemCreate(
+            files=[
+                Path("/path/to/file1.txt"),
+                Path("/path/to/file2.txt"),
+                Path("/path/to/file3.txt"),
+            ],
+            preserve_folders=True,
+        )
+        expected_output = [
+            (
+                UploadItem(
+                    name="file1.txt",
+                    path="/path/to/file1.txt",
+                    description="file1 description",
+                    tags=["tag1", "tag2"],
+                    layout=None,
+                    slots=[],
+                ),
+                Path("/tmp/example/test/path"),
+            ),
+            (
+                UploadItem(
+                    name="file2.txt",
+                    path="/path/to/file2.txt",
+                    description="file2 description",
+                    tags=["tag1", "tag2"],
+                    layout=None,
+                    slots=[],
+                ),
+                Path("/tmp/example/test/path"),
+            ),
+            (
+                UploadItem(
+                    name="file3.txt",
+                    path="/path/to/file3.txt",
+                    description="file3 description",
+                    tags=["tag1", "tag2"],
+                    layout=None,
+                    slots=[],
+                ),
+                Path("/tmp/example/test/path"),
+            ),
+        ]
+        assert _initialise_items_and_paths(upload_items, root_path_absolute, item_payload) == expected_output
 
-
-# # Test `_convert_filelikes_to_paths`
-# def test_converts_list_of_paths():
-#     paths = asyncio.run(Workflow._convert_filelikes_to_paths(["tmp/upload/1", LocalFile("tmp/upload/2")]))
-
-#     # x-platform tolerant tests
-#     assert all(isinstance(path, (PosixPath, WindowsPath)) for path in paths)
-#     assert len(paths) == 2
-#     assert paths[0] == Path("tmp/upload/1")
-#     assert paths[1] == Path("tmp/upload/2")
-
-
-# def test_raises_on_invalid_input():
-#     with pytest.raises(TypeError):
-#         asyncio.run(Workflow._convert_filelikes_to_paths([1, 2, 3]))  # type: ignore
-
-
-# # Test `_upload_file_to_signed_url`
-# def test_upload_file_to_signed_url(base_client: ClientCore) -> None:
-#     url = "https://example.com/signed-url"
-#     file = Path("test.txt")
-
-#     class Response:
-#         ok: bool = True
-
-#     with patch("darwin.future.meta.objects.workflow.async_upload_file", return_value=Response()) as mock_upload_file:
-#         workflow = Workflow(MagicMock(), MagicMock(), MagicMock())
-#         result = asyncio.run(workflow._upload_file_to_signed_url(url, file))
-
-#         mock_upload_file.assert_called_once_with(workflow.client, url, file)
-#         assert result.ok is True
-
-
-# def test_upload_file_to_signed_url_raises(base_client: ClientCore) -> None:
-#     url = "https://example.com/signed-url"
-#     file = Path("test.txt")
-
-#     class Response:
-#         ok: bool = False
-
-#     with patch("darwin.future.meta.objects.workflow.async_upload_file", return_value=Response):
-#         with pytest.raises(DarwinException):
-#             workflow = Workflow(base_client, MagicMock(), MagicMock())
-#             asyncio.run(workflow._upload_file_to_signed_url(url, file))
+    def test_without_preserve_folders(self):
+        upload_items = [
+            UploadItem(
+                name="file1.txt",
+                path="/path/to/file1.txt",
+                description="file1 description",
+                tags=["tag1", "tag2"],
+                layout=None,
+                slots=[],
+            ),
+            UploadItem(
+                name="file2.txt",
+                path="/path/to/file2.txt",
+                description="file2 description",
+                tags=["tag1", "tag2"],
+                layout=None,
+                slots=[],
+            ),
+            UploadItem(
+                name="file3.txt",
+                path="/path/to/file3.txt",
+                description="file3 description",
+                tags=["tag1", "tag2"],
+                layout=None,
+                slots=[],
+            ),
+        ]
+        root_path_absolute = Path("/tmp/example/test/path")
+        item_payload = ItemCreate(
+            files=[
+                Path("/path/to/file1.txt"),
+                Path("/path/to/file2.txt"),
+                Path("/path/to/file3.txt"),
+            ],
+            preserve_folders=False,
+        )
+        expected_output = [
+            (
+                UploadItem(
+                    name="file1.txt",
+                    path="/",
+                    description="file1 description",
+                    tags=["tag1", "tag2"],
+                    layout=None,
+                    slots=[],
+                ),
+                Path("/tmp/example/test/path"),
+            ),
+            (
+                UploadItem(
+                    name="file2.txt",
+                    path="/",
+                    description="file2 description",
+                    tags=["tag1", "tag2"],
+                    layout=None,
+                    slots=[],
+                ),
+                Path("/tmp/example/test/path"),
+            ),
+            (
+                UploadItem(
+                    name="file3.txt",
+                    path="/",
+                    description="file3 description",
+                    tags=["tag1", "tag2"],
+                    layout=None,
+                    slots=[],
+                ),
+                Path("/tmp/example/test/path"),
+            ),
+        ]
+        assert _initialise_items_and_paths(upload_items, root_path_absolute, item_payload) == expected_output

@@ -306,7 +306,7 @@ async def async_register_and_create_signed_upload_url(
     return upload_urls, upload_ids, upload_items, blocked_items
 
 
-async def async_upload_file(api_client: ClientCore, url: str, file: Path) -> aiohttp.ClientResponse:
+async def async_upload_file(url: str, file: Path) -> aiohttp.ClientResponse:
     """
     Upload files to a signed url
 
@@ -483,7 +483,7 @@ def upload_file(api_client: ClientCore, url: str, file: Path) -> aiohttp.ClientR
     file: Path
         The file to upload
     """
-    return asyncio.run(async_upload_file(api_client, url, file))
+    return asyncio.run(async_upload_file(url, file))
 
 
 def confirm_upload(api_client: ClientCore, team_slug: str, upload_id: str) -> None:

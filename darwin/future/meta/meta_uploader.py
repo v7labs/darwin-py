@@ -131,22 +131,24 @@ async def _prepare_upload_items(
         file.is_absolute() and file.is_file() and file.exists() for file in file_paths
     ), "file_paths must be absolute paths"
 
-    return [
+    result = [
         UploadItem(
-            name=file.name,
-            path=_get_item_path(file, root_path, imposed_path, preserve_folders),
+            name=file_path.name,
+            path=_get_item_path(file_path, root_path, imposed_path, preserve_folders),
             slots=[
                 ItemSlot(
-                    slot_name=str(index),
-                    file_name=file.name,
+                    slot_name=str(index + 1),
+                    file_name=file_path.name,
                     as_frames=as_frames,
                     fps=fps,
                     extract_views=extract_views,
                 )
             ],
         )
-        for index, file in enumerate(file_paths)
+        for index, file_path in enumerate(file_paths)
     ]
+
+    return result
 
 
 def _derive_root_path(paths: List[Path]) -> Tuple[Path, Path]:
@@ -177,7 +179,7 @@ def _derive_root_path(paths: List[Path]) -> Tuple[Path, Path]:
     return Path(root_path.stem), Path(root_path.stem).resolve()
 
 
-async def _upload_file_to_signed_url(self, url: str, file: Path) -> aiohttp.ClientResponse:
+async def _upload_file_to_signed_url(url: str, file: Path) -> aiohttp.ClientResponse:
     """
     Uploads a file to a signed URL
 
@@ -188,7 +190,7 @@ async def _upload_file_to_signed_url(self, url: str, file: Path) -> aiohttp.Clie
     file: PathLike
         The file to upload
     """
-    upload = await async_upload_file(self.client, url, file)
+    upload = await async_upload_file(url, file)
 
     if not upload.ok:
         raise DarwinException(f"Failed to upload file {file} to {url}", upload)
@@ -227,7 +229,6 @@ async def _create_list_of_all_files(files_to_upload: Sequence[Path], files_to_ex
     return list(master_files_to_upload)
 
 
-# TODO: Test this
 def _initialise_item_uploads(upload_items: List[UploadItem]) -> List[ItemUpload]:
     """
     (internal) Initialises a list of ItemUploads
@@ -251,7 +252,6 @@ def _initialise_item_uploads(upload_items: List[UploadItem]) -> List[ItemUpload]
     ]
 
 
-# TODO: Test this
 def _initialise_items_and_paths(
     upload_items: List[UploadItem], root_path_absolute: Path, item_payload: ItemCreate
 ) -> List[Tuple[UploadItem, Path]]:
@@ -269,12 +269,13 @@ def _initialise_items_and_paths(
         The initialised ItemUploads
     """
     return (
-        list(zip(upload_items, [root_path_absolute]))
+        list(zip(upload_items, [root_path_absolute] * len(upload_items)))
         if item_payload.preserve_folders
-        else list(zip(upload_items, [Path("/")]))
+        else list(zip(upload_items, [Path("/")] * len(upload_items)))
     )
 
 
+# TODO: Test this
 def _update_item_upload(
     item_upload: ItemUpload,
     status: Optional[ItemUploadStatus] = None,
