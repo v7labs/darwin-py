@@ -1,7 +1,6 @@
 import multiprocessing as mp
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional, Tuple
-from xmlrpc.client import Boolean
 
 import numpy as np
 from PIL import Image as PILImage
@@ -68,7 +67,7 @@ class LocalDataset:
         split: str = "default",
         split_type: str = "random",
         release_name: Optional[str] = None,
-        keep_empty_annotations: Boolean = False,
+        keep_empty_annotations: bool = False,
     ):
         self.dataset_path = dataset_path
         self.annotation_type = annotation_type
@@ -134,7 +133,7 @@ class LocalDataset:
         split,
         partition,
         split_type,
-        keep_empty_annotations=False,
+        keep_empty_annotations: bool = False,
     ):
         # Find all the annotations and their corresponding images
         for annotation_path in sorted(annotations_dir.glob("**/*.json")):

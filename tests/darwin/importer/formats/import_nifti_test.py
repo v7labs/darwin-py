@@ -52,16 +52,18 @@ def test_image_annotation_nifti_import_single_slot(team_slug_darwin_json_v2: str
 
             expected_json_string = json.load(
                 open(
-                    Path(tmpdir) / team_slug_darwin_json_v2 / "nifti" / "vol0_annotation_file.json",
+                    Path(tmpdir)
+                    / team_slug_darwin_json_v2
+                    / "nifti"
+                    / "vol0_annotation_file.json",
                     "r",
                 )
             )
 
-            expected_output_frames = expected_json_string['annotations'][0]['frames']
-      
+            expected_output_frames = expected_json_string["annotations"][0]["frames"]
+
             assert (
-                output_json_string["annotations"][0]["frames"]
-                == expected_output_frames
+                output_json_string["annotations"][0]["frames"] == expected_output_frames
             )
 
 

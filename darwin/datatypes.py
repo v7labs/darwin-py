@@ -14,7 +14,6 @@ from typing import (
     Tuple,
     Union,
 )
-from xmlrpc.client import Boolean
 
 try:
     from numpy.typing import NDArray
@@ -538,7 +537,7 @@ def make_polygon(
     bounding_box: Optional[Dict] = None,
     subs: Optional[List[SubAnnotation]] = None,
     slot_names: Optional[List[str]] = None,
-    darwin_v1: Boolean = False,
+    darwin_v1: bool = False,
 ) -> Annotation:
     """
     Creates and returns a polygon annotation.
