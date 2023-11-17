@@ -62,7 +62,8 @@ def _build_v2_annotation_data(annotation: dt.Annotation) -> Dict[str, Any]:
 
 
 def _build_bounding_box_data(data: Dict[str, Any]) -> Dict[str, Any]:
-    data = data["bounding_box"]
+    if "bounding_box" in data:
+        data = data["bounding_box"]
     return {
         "h": data.get("h"),
         "w": data.get("w"),
