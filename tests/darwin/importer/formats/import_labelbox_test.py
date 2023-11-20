@@ -382,8 +382,6 @@ class TestParsePath:
             Annotation, annotation_file.annotations.pop()
         )
 
-        print(polygon_annotation)
-
         assert_polygon(
             polygon_annotation,
             [
