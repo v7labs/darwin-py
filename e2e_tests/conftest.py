@@ -9,7 +9,7 @@ import pytest
 
 from darwin.future.data_objects.typing import UnknownType
 from e2e_tests.exceptions import E2EEnvironmentVariableNotSet
-from e2e_tests.objects import ConfigValues
+from e2e_tests.objects import ConfigValues, E2EDataset
 from e2e_tests.setup_tests import setup_tests, teardown_tests
 
 
