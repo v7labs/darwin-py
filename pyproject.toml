@@ -83,8 +83,8 @@ pyyaml = "^6.0.1"
 json-stream = "^2.3.2"
 
 [tool.poetry.extras]
-dev = [ "black", "isort", "flake8", "mypy", "debugpy", "responses", "pytest", "flake8-pyproject", "pytest-rerunfailures", "ruff", "validate-pyproject", "aioresponses", "pytest-async"]
-test = [ "aioresponses", "pytest-async", "responses", "pytest", "flake8-pyproject",]
+dev = [ "black", "isort", "flake8", "mypy", "debugpy", "responses", "pytest", "flake8-pyproject", "pytest-rerunfailures", "ruff", "validate-pyproject",]
+test = [ "responses", "pytest", "flake8-pyproject",]
 ml = [ "torch", "torchvision", "scikit-learn", "albumentations",]
 medical = [ "nibabel", "connected-components-3d",]
 ocv = [ "opencv-python-headless",]
