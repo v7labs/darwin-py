@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, Mock, call, patch
 from uuid import UUID, uuid4
 
 import pytest
+from torch import Value
 
 from darwin import item
 from darwin.future.core.client import ClientCore
@@ -314,7 +315,74 @@ class TestUploadFileToSignedUrl:
 
 
 class TestCreateListOfAllFiles:
-    ...  # TODO
+    @pytest.mark.asyncio
+    async def test_create_list_of_all_files(self, tmp_path: Path):
+        tmp_path.joinpath("file1.txt").touch()
+        tmp_path.joinpath("file2.txt").touch()
+        tmp_path.joinpath("file3.txt").touch()
+        tmp_path.joinpath("file4.txt").touch()
+        tmp_path.joinpath("file5.txt").touch()
+        tmp_path.joinpath("file6.txt").touch()
+        tmp_path.joinpath("file7.txt").touch()
+        tmp_path.joinpath("file8.txt").touch()
+        tmp_path.joinpath("file9.txt").touch()
+        tmp_path.joinpath("file10.txt").touch()
+        tmp_path.joinpath("file11.txt").touch()
+        tmp_path.joinpath("file12.txt").touch()
+        tmp_path.joinpath("file13.txt").touch()
+        tmp_path.joinpath("file14.txt").touch()
+        tmp_path.joinpath("file15.txt").touch()
+        tmp_path.joinpath("file16.txt").touch()
+        tmp_path.joinpath("file17.txt").touch()
+        tmp_path.joinpath("file18.txt").touch()
+        tmp_path.joinpath("file19.txt").touch()
+        tmp_path.joinpath("file20.txt").touch()
+
+        files = await _create_list_of_all_files([tmp_path], [])
+
+        assert len(files) == 20
+        assert all(isinstance(file, Path) for file in files)
+        assert all(file.is_file() for file in files)
+
+        file_names = [file.name for file in files]
+        expected_file_names = [f"file{i+1}.txt" for i in range(20)]
+
+        assert sorted(file_names) == sorted(expected_file_names)
+
+    @pytest.mark.asyncio
+    async def test_create_list_of_all_files_with_blocked_files(self, tmp_path: Path):
+        tmp_path.joinpath("file1.txt").touch()
+        tmp_path.joinpath("file2.txt").touch()
+        tmp_path.joinpath("file3.txt").touch()
+        tmp_path.joinpath("file4.txt").touch()
+        tmp_path.joinpath("file5.txt").touch()
+        tmp_path.joinpath("file6.txt").touch()
+        tmp_path.joinpath("file7.txt").touch()
+        tmp_path.joinpath("file8.txt").touch()
+        tmp_path.joinpath("file9.txt").touch()
+        tmp_path.joinpath("file10.txt").touch()
+
+        blocked_files = [
+            tmp_path / "file1.txt",
+            tmp_path / "file2.txt",
+            tmp_path / "file3.txt",
+            tmp_path / "file4.txt",
+            tmp_path / "file5.txt",
+        ]
+
+        files = await _create_list_of_all_files([tmp_path], blocked_files)
+
+        assert len(files) == 5
+        assert all(isinstance(file, Path) for file in files)
+        assert all(file.is_file() for file in files)
+
+        file_names = [file.name for file in files]
+        expected_file_names = [f"file{i+6}.txt" for i in range(5)]
+
+        assert sorted(file_names) == sorted(expected_file_names)
+
+    # TODO: Multiple directories
+    # TODO: multiple path inputs
 
 
 class TestInitialiseItemUploads:
@@ -687,50 +755,101 @@ class TestHandleUploads:
         )
 
     @pytest.fixture
-    def item(self) -> Item:
-        return Item(
-            ItemCore(
-                name="file1.txt",
-                id=uuid4(),
-                slots=[],
-                path="/path/to/file1.txt",
-                dataset_id=1,
-                processing_status="pending",
+    def item_uploads(self) -> List[ItemUpload]:
+        return [
+            ItemUpload(
+                upload_item=UploadItem(
+                    name="file1.txt",
+                    path="/path/to/file1.txt",
+                    description="file1 description",
+                    tags=["tag1", "tag2"],
+                    layout=None,
+                    slots=[],
+                ),
+                status=ItemUploadStatus.PENDING,
             ),
-            MagicMock(spec=ClientCore),
-        )
-
-    @pytest.fixture
-    def item_upload_with_item(self, item_upload: ItemUpload, item: Item) -> ItemUpload:
-        item_upload.item = item
-        return item_upload
-
-    @pytest.fixture
-    def item_upload_with_upload_url(self, item_upload: ItemUpload) -> ItemUpload:
-        item_upload.url = "https://example.com"
-        return item_upload
-
-    @pytest.fixture
-    def item_upload_with_upload_id(self, item_upload: ItemUpload) -> ItemUpload:
-        item_upload.id = uuid4()
-        return item_upload
-
-    @pytest.fixture
-    def item_upload_with_path(self, item_upload: ItemUpload) -> ItemUpload:
-        item_upload.path = Path("/new/path")
-        return item_upload
-
-    @pytest.fixture
-    def item_upload_with_item_upload(self, item_upload: ItemUpload) -> ItemUpload:
-        item_upload.item_upload = MagicMock()
-        return item_upload
+            ItemUpload(
+                upload_item=UploadItem(
+                    name="file2.txt",
+                    path="/path/to/file2.txt",
+                    description="file2 description",
+                    tags=["tag1", "tag2"],
+                    layout=None,
+                    slots=[],
+                ),
+                status=ItemUploadStatus.PENDING,
+            ),
+            ItemUpload(
+                upload_item=UploadItem(
+                    name="file3.txt",
+                    path="/path/to/file3.txt",
+                    description="file3 description",
+                    tags=["tag1", "tag2"],
+                    layout=None,
+                    slots=[],
+                ),
+                status=ItemUploadStatus.PENDING,
+            ),
+        ]
 
     @pytest.mark.asyncio
-    async def test_calls_update_item_upload(self, item_upload: ItemUpload) -> None:
-        with patch("darwin.future.meta.meta_uploader._update_item_upload") as mock_update_item_upload:
-            await _handle_uploads([item_upload])
+    @patch("darwin.future.meta.meta_uploader._upload_file_to_signed_url")
+    async def test_sets_status_to_uploading(self, item_uploads):
+        await _handle_uploads(item_uploads)
+        assert all(item_upload.status == ItemUploadStatus.UPLOADING for item_upload in item_uploads)
 
-            mock_update_item_upload.assert_called_once_with(item_upload, ItemUploadStatus.UPLOADING)
+    @pytest.mark.asyncio
+    @patch("darwin.future.meta.meta_uploader._upload_file_to_signed_url")
+    async def test_raises_if_url_is_not_set(self, _, item_uploads: List[ItemUpload]):
+        for item_upload in item_uploads:
+            item_upload.url = None
+
+        try:
+            await _handle_uploads(item_uploads)
+        except DarwinException as exc:
+            assert exc.args[0] == "ItemUpload must have a path and url"
+            # Below output will be FAILED, PENDING, PENDING because the first item will fail fast, halting the function
+            assert item_uploads[0].status == ItemUploadStatus.FAILED
+            assert all(item_upload.status == ItemUploadStatus.PENDING for item_upload in item_uploads[1:])
+        else:
+            pytest.fail("Expected ValueError for no url")
+
+    @pytest.mark.asyncio
+    @patch("darwin.future.meta.meta_uploader._upload_file_to_signed_url")
+    async def test_raises_if_path_is_not_set(self, _, item_uploads: List[ItemUpload]):
+        for item_upload in item_uploads:
+            item_upload.url = None
+
+        try:
+            await _handle_uploads(item_uploads)
+        except DarwinException as exc:
+            assert exc.args[0] == "ItemUpload must have a path and url"
+            # Below output will be FAILED, PENDING, PENDING because the first item will fail fast, halting the function
+            assert item_uploads[0].status == ItemUploadStatus.FAILED
+            assert all(item_upload.status == ItemUploadStatus.PENDING for item_upload in item_uploads[1:])
+        else:
+            pytest.fail("Expected ValueError for no url")
+
+    @pytest.mark.asyncio
+    @patch("darwin.future.meta.meta_uploader._upload_file_to_signed_url")
+    async def test_raises_if_upload_fails(self, mock_upload_file_to_signed_url, item_uploads: List[ItemUpload]):
+        mock_upload_file_to_signed_url.side_effect = DarwinException("test")
+
+        with pytest.raises(DarwinException) as exc:
+            await _handle_uploads(item_uploads)
+
+            assert exc.value.message == "test"  # type: ignore
+
+    @pytest.mark.asyncio
+    @patch("darwin.future.meta.meta_uploader._upload_file_to_signed_url")
+    async def test_happy_path(self, _, item_uploads: List[ItemUpload]):
+        for item in item_uploads:
+            item.url = "https://example.com"
+            item.path = Path("/path/to/file.txt")
+
+        await _handle_uploads(item_uploads)
+
+        assert all(item_upload.status == ItemUploadStatus.UPLOADED for item_upload in item_uploads)
 
 
 class TestConfirmUploads:

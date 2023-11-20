@@ -398,6 +398,7 @@ async def _handle_uploads(item_uploads: List[ItemUpload]) -> None:
             assert item_upload.path is not None
             assert item_upload.url is not None
         except AssertionError as exc:
+            item_upload.status = ItemUploadStatus.FAILED
             raise DarwinException("ItemUpload must have a path and url") from exc
 
         await _upload_file_to_signed_url(item_upload.url, item_upload.path)
@@ -419,7 +420,6 @@ async def _confirm_uploads(client: ClientCore, team_slug: str, item_uploads: Lis
             else:
                 # FIXME
                 item.status = ItemUploadStatus.PROCESSING  # THIS ONLY WORKS FOR FIRST ITEM
-                return
 
         if retry_count >= MAX_RETRIES:
             raise DarwinException("Upload timed out")
