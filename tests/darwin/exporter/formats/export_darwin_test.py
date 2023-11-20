@@ -2,7 +2,6 @@ from pathlib import Path
 
 from darwin.datatypes import Annotation, AnnotationClass, AnnotationFile
 from darwin.exporter.formats.darwin import (
-    _build_item_data,
     _build_v2_annotation_data,
     build_image_annotation,
 )

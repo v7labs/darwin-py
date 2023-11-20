@@ -3,7 +3,6 @@ Contains several unrelated utility functions used across the SDK.
 """
 import platform
 import re
-from dataclasses import asdict
 from pathlib import Path
 from typing import (
     TYPE_CHECKING,

@@ -6,7 +6,6 @@ from PIL import Image as PILImage
 from torch.functional import Tensor
 from torchvision.transforms.functional import to_tensor
 
-import darwin
 from darwin.cli_functions import _error, _load_client
 from darwin.client import Client
 from darwin.dataset.identifier import DatasetIdentifier
