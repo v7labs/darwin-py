@@ -6,16 +6,18 @@ from uuid import UUID, uuid4
 
 import pytest
 
+from darwin import item
 from darwin.future.core.client import ClientCore
 from darwin.future.data_objects.item import (
+    ItemCore,
     ItemCreate,
-    ItemSlot,
+    ItemLayout,
     ItemUpload,
     ItemUploadStatus,
     UploadItem,
 )
 from darwin.future.data_objects.typing import UnknownType
-from darwin.future.exceptions import DarwinException
+from darwin.future.exceptions import DarwinException, UploadPending
 from darwin.future.meta.meta_uploader import (
     _confirm_uploads,
     _create_list_of_all_files,
@@ -626,3 +628,192 @@ class TestItemsDictsToItems:
                     call(client, item_dicts[2]),
                 ]
             )
+
+
+class TestInitialiseItemsAndBlockedItems:
+    def test_calls_items_dicts_to_items_with_items(self):
+        client = MagicMock(spec=ClientCore)
+        item_dicts = [
+            {
+                "name": "file1.txt",
+            },
+            {
+                "name": "file2.txt",
+            },
+            {
+                "name": "file3.txt",
+            },
+        ]
+        blocked_item_dicts = [
+            {
+                "name": "file4.txt",
+            },
+            {
+                "name": "file5.txt",
+            },
+            {
+                "name": "file6.txt",
+            },
+        ]
+        with patch("darwin.future.meta.meta_uploader._items_dicts_to_items") as mock_items_dicts_to_items:
+            _initialise_items_and_blocked_items(client, item_dicts, blocked_item_dicts)
+
+            assert mock_items_dicts_to_items.call_args_list == [
+                call(client, item_dicts),
+                call(client, blocked_item_dicts),
+            ]
+
+    def test_raises_if_sub_function_raises(self):
+        with patch("darwin.future.meta.meta_uploader._items_dicts_to_items") as mock_items_dicts_to_items:
+            mock_items_dicts_to_items.side_effect = ValueError("test")
+            with pytest.raises(ValueError) as exc:
+                _initialise_items_and_blocked_items(MagicMock, [], [])
+                assert exc.value.message == "test"  # type: ignore
+
+
+class TestHandleUploads:
+    @pytest.fixture
+    def item_upload(self) -> ItemUpload:
+        return ItemUpload(
+            upload_item=UploadItem(
+                name="file1.txt",
+                path="/path/to/file1.txt",
+                description="file1 description",
+                tags=["tag1", "tag2"],
+                layout=None,
+                slots=[],
+            ),
+            status=ItemUploadStatus.PENDING,
+        )
+
+    @pytest.fixture
+    def item(self) -> Item:
+        return Item(
+            ItemCore(
+                name="file1.txt",
+                id=uuid4(),
+                slots=[],
+                path="/path/to/file1.txt",
+                dataset_id=1,
+                processing_status="pending",
+            ),
+            MagicMock(spec=ClientCore),
+        )
+
+    @pytest.fixture
+    def item_upload_with_item(self, item_upload: ItemUpload, item: Item) -> ItemUpload:
+        item_upload.item = item
+        return item_upload
+
+    @pytest.fixture
+    def item_upload_with_upload_url(self, item_upload: ItemUpload) -> ItemUpload:
+        item_upload.url = "https://example.com"
+        return item_upload
+
+    @pytest.fixture
+    def item_upload_with_upload_id(self, item_upload: ItemUpload) -> ItemUpload:
+        item_upload.id = uuid4()
+        return item_upload
+
+    @pytest.fixture
+    def item_upload_with_path(self, item_upload: ItemUpload) -> ItemUpload:
+        item_upload.path = Path("/new/path")
+        return item_upload
+
+    @pytest.fixture
+    def item_upload_with_item_upload(self, item_upload: ItemUpload) -> ItemUpload:
+        item_upload.item_upload = MagicMock()
+        return item_upload
+
+    @pytest.mark.asyncio
+    async def test_calls_update_item_upload(self, item_upload: ItemUpload) -> None:
+        with patch("darwin.future.meta.meta_uploader._update_item_upload") as mock_update_item_upload:
+            await _handle_uploads([item_upload])
+
+            mock_update_item_upload.assert_called_once_with(item_upload, ItemUploadStatus.UPLOADING)
+
+
+class TestConfirmUploads:
+    @pytest.fixture
+    def item_uploads(self) -> List[ItemUpload]:
+        return [
+            ItemUpload(
+                upload_item=UploadItem(
+                    name="file1.txt",
+                    path="/path/to/file1.txt",
+                    description="file1 description",
+                    tags=["tag1", "tag2"],
+                    layout=None,
+                    slots=[],
+                ),
+                status=ItemUploadStatus.PENDING,
+            ),
+            ItemUpload(
+                upload_item=UploadItem(
+                    name="file2.txt",
+                    path="/path/to/file2.txt",
+                    description="file2 description",
+                    tags=["tag1", "tag2"],
+                    layout=None,
+                    slots=[],
+                ),
+                status=ItemUploadStatus.PENDING,
+            ),
+            ItemUpload(
+                upload_item=UploadItem(
+                    name="file3.txt",
+                    path="/path/to/file3.txt",
+                    description="file3 description",
+                    tags=["tag1", "tag2"],
+                    layout=None,
+                    slots=[],
+                ),
+                status=ItemUploadStatus.PENDING,
+            ),
+        ]
+
+    @pytest.mark.asyncio
+    @patch("darwin.future.meta.meta_uploader.asyncio.sleep")
+    @patch("darwin.future.meta.meta_uploader.async_confirm_upload")
+    async def test_runs_a_max_of_ten_times(self, mock_async_confirm_upload, _, item_uploads: List[ItemUpload]) -> None:
+        mock_async_confirm_upload.side_effect = UploadPending("This is a test UploadPending")
+
+        with pytest.raises(DarwinException) as exc:
+            number_of_runs = 0
+            while number_of_runs < 500:  # For safety
+                try:
+                    number_of_runs += 1
+                    await _confirm_uploads(MagicMock(), "team_slug", item_uploads)
+                except UploadPending:
+                    continue
+                else:
+                    break
+
+            assert exc.value.message == "Upload timed out"  # type: ignore
+            assert number_of_runs == 10 * len(item_uploads)
+
+            assert all(item_upload.status == ItemUploadStatus.PENDING for item_upload in item_uploads)
+
+    @pytest.mark.asyncio
+    @patch("darwin.future.meta.meta_uploader.asyncio.sleep")
+    @patch("darwin.future.meta.meta_uploader.async_confirm_upload")
+    async def test_does_not_call_api_when_status_is_already_not_pending(
+        self, mock_async_confirm_upload, _, item_uploads
+    ) -> None:
+        new_item_uploads = item_uploads.copy()
+        for item_upload in new_item_uploads:
+            item_upload.status = ItemUploadStatus.UPLOADING
+
+        await _confirm_uploads(MagicMock(), "team_slug", new_item_uploads)
+
+        mock_async_confirm_upload.assert_not_called()
+
+    @pytest.mark.asyncio
+    @patch("darwin.future.meta.meta_uploader.asyncio.sleep")
+    @patch("darwin.future.meta.meta_uploader.async_confirm_upload")
+    async def test_sets_status_to_processing_if_no_longer_pending(
+        self, mock_async_confirm_upload, _, item_uploads
+    ) -> None:
+        await _confirm_uploads(MagicMock(), "team_slug", item_uploads)
+
+        assert all(item_upload.status == ItemUploadStatus.PROCESSING for item_upload in item_uploads)

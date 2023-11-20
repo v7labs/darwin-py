@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from collections import namedtuple
 from pathlib import Path, PosixPath
 from typing import List, Optional, Sequence, Set, Tuple, cast
@@ -384,14 +385,13 @@ def _items_dicts_to_items(client: ClientCore, items_dicts: List[dict]) -> List[I
     return [_item_dict_to_item(client, item_dict) for item_dict in items_dicts]
 
 
-# TODO: Test this
-def _initialise_items_and_blocked_items(  # ? Params
-    client: ClientCore, item_uploads: List[ItemUpload], items_dicts: List, blocked_items_dicts: List
+def _initialise_items_and_blocked_items(
+    client: ClientCore, items_dicts: List, blocked_items_dicts: List
 ) -> Tuple[List[Item], List[Item]]:
     return _items_dicts_to_items(client, items_dicts), _items_dicts_to_items(client, blocked_items_dicts)
 
 
-async def _handle_uploads(client: ClientCore, item_uploads: List[ItemUpload]) -> None:
+async def _handle_uploads(item_uploads: List[ItemUpload]) -> None:
     for item_upload in item_uploads:
         item_upload.status = ItemUploadStatus.UPLOADING
         try:
@@ -410,17 +410,22 @@ async def _confirm_uploads(client: ClientCore, team_slug: str, item_uploads: Lis
     while any(item.status == ItemUploadStatus.PENDING for item in item_uploads):
         for item in item_uploads:
             try:
-                await async_confirm_upload(client, team_slug, str(item.id))
-            except UploadPending as exc:
+                if item.status == ItemUploadStatus.PENDING:
+                    await async_confirm_upload(client, team_slug, str(item.id))
+                else:
+                    raise UploadPending
+            except UploadPending:
                 item.status = ItemUploadStatus.PENDING
-                raise exc
             else:
-                item.status = ItemUploadStatus.PROCESSING
+                # FIXME
+                item.status = ItemUploadStatus.PROCESSING  # THIS ONLY WORKS FOR FIRST ITEM
+                return
 
         if retry_count >= MAX_RETRIES:
             raise DarwinException("Upload timed out")
 
         retry_count += 1
+        await asyncio.sleep(0.2)
 
 
 CombinedUploaderResult = namedtuple("CombinedUploaderResult", ["item_uploads", "items", "blocked_items"])
@@ -480,7 +485,7 @@ async def combined_uploader(
         items_and_paths,
     )
 
-    items, blocked_items = _initialise_items_and_blocked_items(client, item_uploads, items_dicts, blocked_items_dicts)
+    items, blocked_items = _initialise_items_and_blocked_items(client, items_dicts, blocked_items_dicts)
 
     [
         (
@@ -498,7 +503,7 @@ async def combined_uploader(
         )
     ]
 
-    await _handle_uploads(client, item_uploads)
+    await _handle_uploads(item_uploads)
 
     if item_payload.callback_when_loading:
         item_payload.callback_when_loading(item_uploads)
