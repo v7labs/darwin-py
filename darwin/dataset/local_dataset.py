@@ -140,8 +140,7 @@ class LocalDataset:
             darwin_json = stream_darwin_json(annotation_path)
             image_path = get_image_path_from_stream(darwin_json, images_dir)
             if image_path.exists():
-                if not keep_empty_annotations:
-                    if len(darwin_json["annotations"]) < 1:
+                if not keep_empty_annotations and len(darwin_json["annotations"]) < 1:
                         continue
                 self.images_path.append(image_path)
                 self.annotations_path.append(annotation_path)
