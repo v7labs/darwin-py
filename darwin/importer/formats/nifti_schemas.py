@@ -11,6 +11,7 @@ nifti_image_label_pair = {
         "label": {"type": "string"},
         "class_map": class_map,
         "mode": {"type": "string", "enum": ["video", "instances"]},
+        "import_format": {"type": "string", "enum": ["polygon", "mask"]},
         "is_mpr": {"type": "boolean"},
         "slot_names": {"type": "array", "items": {"type": "string"}},
     },
