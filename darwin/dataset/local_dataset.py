@@ -148,7 +148,7 @@ class LocalDataset:
         for annotation_path in sorted(annotations_dir.glob("**/*.json")):
             darwin_json = stream_darwin_json(annotation_path)
             image_path = get_image_path_from_stream(
-                darwin_json, images_dir, with_folders, json_version
+                darwin_json, images_dir, with_folders, json_version, annotation_path
             )
             if image_path.exists():
                 self.images_path.append(image_path)

@@ -581,7 +581,7 @@ def _map_annotations_to_images(
     for annotation_path in annotations_dir.glob("**/*.json"):
         darwin_json = stream_darwin_json(annotation_path)
         image_path = get_image_path_from_stream(
-            darwin_json, images_dir, with_folders, json_version
+            darwin_json, images_dir, with_folders, json_version, annotation_path
         )
         if image_path.exists():
             images_paths.append(image_path)

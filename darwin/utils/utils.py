@@ -497,6 +497,7 @@ def get_image_path_from_stream(
     images_dir: Path,
     with_folders: bool,
     json_version: str,
+    annotation_path: Path,
 ) -> Path:
     """
     Returns the path to the image file associated with the given darwin json file.
@@ -518,29 +519,32 @@ def get_image_path_from_stream(
     Path
         Path to the image file.
     """
-    if json_version == "2.0":
-        if not with_folders:
-            return images_dir / Path(darwin_json["item"]["name"])
+    try:
+        if json_version == "2.0":
+            if not with_folders:
+                return images_dir / Path(darwin_json["item"]["name"])
+            else:
+                return (
+                    images_dir
+                    / (Path(darwin_json["item"]["path"].lstrip("/\\")))
+                    / Path(darwin_json["item"]["name"])
+                )
         else:
-            return (
-                images_dir
-                / (Path(darwin_json["item"]["path"].lstrip("/\\")))
-                / Path(darwin_json["item"]["name"])
-            )
-    else:
-        if not with_folders:
-            try:
+            if not with_folders:
                 return images_dir / Path(darwin_json["image"]["filename"])
-            except Exception:
-                pass
+            else:
+                return (
+                    images_dir
+                    / (Path(darwin_json["image"]["path"].lstrip("/\\")))
+                    / Path(darwin_json["image"]["filename"])
+                )
+    except OSError as e:
+        # Load in the JSON as normal
+        darwin_json = parse_darwin_json(path=annotation_path)
+        if not with_folders:
+            return images_dir / Path(darwin_json.filename)
         else:
-            return (
-                images_dir
-                / (Path(darwin_json["image"]["path"].lstrip("/\\")))
-                / Path(darwin_json["image"]["filename"])
-            )
-
-        # WIP: Implementing this with regex instead of streaming
+            return images_dir / Path(darwin_json.full_path.lstrip("/\\"))
 
 
 def get_darwin_json_version(annotations_dir: Path) -> str:
