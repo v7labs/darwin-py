@@ -4,7 +4,6 @@ from darwin.datatypes import Point, make_complex_polygon, make_polygon
 
 
 class TestMakePolygon:
-
     def test_it_returns_annotation_with_default_params_darwin_v2(self):
         class_name: str = "class_name"
         points: List[Point] = [{"x": 1, "y": 2}, {"x": 3, "y": 4}, {"x": 1, "y": 2}]

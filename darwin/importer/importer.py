@@ -654,25 +654,30 @@ def _handle_subs(
 
     return data
 
-def _to_complex_polygon(paths : list[str]):
+
+def _to_complex_polygon(paths: list[str]) -> Dict[str, Any]:
     return {
-            "path": paths[0],
-            "additional_paths": paths[1:],
-        }     
+        "path": paths[0],
+        "additional_paths": paths[1:],
+    }
+
 
 def _handle_polygon(
     annotation: dt.Annotation, data: dt.DictFreeForm
-    ) -> dt.DictFreeForm:
-    
+) -> dt.DictFreeForm:
+    print(f"data: {data}")
+    print(f"type : {type(data)}")
     polygon = data.get("polygon")
 
     if polygon is not None:
-        if "paths" in polygon and len(polygon['paths']) == 1:
-            data['path'] = annotation.data['paths'][0]
-            del data['paths']
-    
+        if "paths" in polygon and len(polygon["paths"]) == 1:
+            data["polygon"]["path"] = annotation.data["paths"][0]
+            del data["paths"]
+
     data = _handle_complex_polygon(annotation, data)
-    
+
+    print(f"data out : {data}")
+
     return data
 
 
@@ -682,8 +687,13 @@ def _handle_complex_polygon(
     if "complex_polygon" in data:
         del data["complex_polygon"]
         data["polygon"] = _to_complex_polygon(annotation.data["paths"])
-    elif "polygon" in data and "paths" in data['polygon'] and len(data['paths']['polygon']) > 1:        
-        data["polygon"] = _to_complex_polygon(annotation.data["paths"])   
+    elif (
+        "polygon" in data
+        and "paths" in data["polygon"]
+        and len(data["paths"]["polygon"]) > 1
+    ):
+        data["polygon"] = _to_complex_polygon(annotation.data["paths"])
+    print(f"complex data : {data}")
     return data
 
 
@@ -714,25 +724,10 @@ def _handle_annotators(
             )
     return []
 
-def _convert_to_darwin_export_format(data):
-
-    polygon = data.get('polygon')
-    if polygon is not None:
-        paths = polygon['paths']
-        if paths is not None:
-            # Darwin v1 polygon format
-            if len(paths) == 1:
-                data = _handle_complex_polygon(data)
-            else:
-                del data['paths']
-                data['polygon']['path'] = paths
- 
-    return data
 
 def _get_annotation_data(
     annotation: dt.AnnotationLike, annotation_class_id: str, attributes: dt.DictFreeForm
 ) -> dt.DictFreeForm:
-    
     # Todo Convert to import Darwin format
     annotation_class = annotation.annotation_class
     if isinstance(annotation, dt.VideoAnnotation):
@@ -749,8 +744,6 @@ def _get_annotation_data(
         data = {annotation_class.annotation_type: annotation.data}
         data = _handle_polygon(annotation, data)
         data = _handle_subs(annotation, data, annotation_class_id, attributes)
-
-    data = _convert_to_darwin_export_format(data)
 
     return data
 
