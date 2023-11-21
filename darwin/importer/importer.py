@@ -16,6 +16,7 @@ from typing import (
     Union,
 )
 
+import darwin.datatypes as dt
 from darwin.datatypes import AnnotationFile
 from darwin.item import DatasetItem
 
@@ -653,16 +654,36 @@ def _handle_subs(
 
     return data
 
+def _to_complex_polygon(paths : list[str]):
+    return {
+            "path": paths[0],
+            "additional_paths": paths[1:],
+        }     
+
+def _handle_polygon(
+    annotation: dt.Annotation, data: dt.DictFreeForm
+    ) -> dt.DictFreeForm:
+    
+    polygon = data.get("polygon")
+
+    if polygon is not None:
+        if "paths" in polygon and len(polygon['paths']) == 1:
+            data['path'] = annotation.data['paths'][0]
+            del data['paths']
+    
+    data = _handle_complex_polygon(annotation, data)
+    
+    return data
+
 
 def _handle_complex_polygon(
     annotation: dt.Annotation, data: dt.DictFreeForm
 ) -> dt.DictFreeForm:
     if "complex_polygon" in data:
         del data["complex_polygon"]
-        data["polygon"] = {
-            "path": annotation.data["paths"][0],
-            "additional_paths": annotation.data["paths"][1:],
-        }
+        data["polygon"] = _to_complex_polygon(annotation.data["paths"])
+    elif "polygon" in data and "paths" in data['polygon'] and len(data['paths']['polygon']) > 1:        
+        data["polygon"] = _to_complex_polygon(annotation.data["paths"])   
     return data
 
 
@@ -693,25 +714,43 @@ def _handle_annotators(
             )
     return []
 
+def _convert_to_darwin_export_format(data):
+
+    polygon = data.get('polygon')
+    if polygon is not None:
+        paths = polygon['paths']
+        if paths is not None:
+            # Darwin v1 polygon format
+            if len(paths) == 1:
+                data = _handle_complex_polygon(data)
+            else:
+                del data['paths']
+                data['polygon']['path'] = paths
+ 
+    return data
 
 def _get_annotation_data(
     annotation: dt.AnnotationLike, annotation_class_id: str, attributes: dt.DictFreeForm
 ) -> dt.DictFreeForm:
+    
+    # Todo Convert to import Darwin format
     annotation_class = annotation.annotation_class
     if isinstance(annotation, dt.VideoAnnotation):
         data = annotation.get_data(
             only_keyframes=True,
             post_processing=lambda annotation, data: _handle_subs(
                 annotation,
-                _handle_complex_polygon(annotation, data),
+                _handle_polygon(annotation, data),
                 annotation_class_id,
                 attributes,
             ),
         )
     else:
         data = {annotation_class.annotation_type: annotation.data}
-        data = _handle_complex_polygon(annotation, data)
+        data = _handle_polygon(annotation, data)
         data = _handle_subs(annotation, data, annotation_class_id, attributes)
+
+    data = _convert_to_darwin_export_format(data)
 
     return data
 
