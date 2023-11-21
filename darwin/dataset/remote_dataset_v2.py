@@ -109,12 +109,21 @@ class RemoteDatasetV2(RemoteDataset):
             Returns a sorted list of available ``Release``\\s with the most recent first.
         """
         try:
-            releases_json: List[Dict[str, Any]] = self.client.api_v2.get_exports(self.slug, team_slug=self.team)
+            releases_json: List[Dict[str, Any]] = self.client.api_v2.get_exports(
+                self.slug, team_slug=self.team
+            )
         except NotFound:
             return []
 
-        releases = [Release.parse_json(self.slug, self.team, payload) for payload in releases_json]
-        return sorted(filter(lambda x: x.available, releases), key=lambda x: x.version, reverse=True)
+        releases = [
+            Release.parse_json(self.slug, self.team, payload)
+            for payload in releases_json
+        ]
+        return sorted(
+            filter(lambda x: x.available, releases),
+            key=lambda x: x.version,
+            reverse=True,
+        )
 
     def push(
         self,
@@ -181,25 +190,43 @@ class RemoteDatasetV2(RemoteDataset):
         if files_to_upload is None:
             raise ValueError("No files or directory specified.")
 
-        uploading_files = [item for item in files_to_upload if isinstance(item, LocalFile)]
-        search_files = [item for item in files_to_upload if not isinstance(item, LocalFile)]
+        uploading_files = [
+            item for item in files_to_upload if isinstance(item, LocalFile)
+        ]
+        search_files = [
+            item for item in files_to_upload if not isinstance(item, LocalFile)
+        ]
 
-        generic_parameters_specified = path is not None or fps != 0 or as_frames is not False
+        generic_parameters_specified = (
+            path is not None or fps != 0 or as_frames is not False
+        )
         if uploading_files and generic_parameters_specified:
             raise ValueError("Cannot specify a path when uploading a LocalFile object.")
 
         for found_file in find_files(search_files, files_to_exclude=files_to_exclude):
             local_path = path
             if preserve_folders:
-                source_files = [source_file for source_file in search_files if is_relative_to(found_file, source_file)]
+                source_files = [
+                    source_file
+                    for source_file in search_files
+                    if is_relative_to(found_file, source_file)
+                ]
                 if source_files:
                     local_path = str(found_file.relative_to(source_files[0]).parent)
             uploading_files.append(
-                LocalFile(found_file, fps=fps, as_frames=as_frames, extract_views=extract_views, path=local_path)
+                LocalFile(
+                    found_file,
+                    fps=fps,
+                    as_frames=as_frames,
+                    extract_views=extract_views,
+                    path=local_path,
+                )
             )
 
         if not uploading_files:
-            raise ValueError("No files to upload, check your path, exclusion filters and resume flag")
+            raise ValueError(
+                "No files to upload, check your path, exclusion filters and resume flag"
+            )
 
         handler = UploadHandlerV2(self, uploading_files)
         if blocking:
@@ -215,7 +242,9 @@ class RemoteDatasetV2(RemoteDataset):
         return handler
 
     def fetch_remote_files(
-        self, filters: Optional[Dict[str, Union[str, List[str]]]] = None, sort: Optional[Union[str, ItemSorter]] = None
+        self,
+        filters: Optional[Dict[str, Union[str, List[str]]]] = None,
+        sort: Optional[Union[str, ItemSorter]] = None,
     ) -> Iterator[DatasetItem]:
         """
         Fetch and lists all files on the remote dataset.
@@ -256,8 +285,13 @@ class RemoteDatasetV2(RemoteDataset):
         cursor = {"page[size]": 500, "include_workflow_data": "true"}
         while True:
             query = post_filters + list(post_sort.items()) + list(cursor.items())
-            response = self.client.api_v2.fetch_items(self.dataset_id, query, team_slug=self.team)
-            yield from [DatasetItem.parse(item, dataset_slug=self.slug) for item in response["items"]]
+            response = self.client.api_v2.fetch_items(
+                self.dataset_id, query, team_slug=self.team
+            )
+            yield from [
+                DatasetItem.parse(item, dataset_slug=self.slug)
+                for item in response["items"]
+            ]
 
             if response["page"]["next"]:
                 cursor["page[from]"] = response["page"]["next"]
@@ -274,7 +308,10 @@ class RemoteDatasetV2(RemoteDataset):
             The ``DatasetItem``\\s to be archived.
         """
         payload: Dict[str, Any] = {
-            "filters": {"item_ids": [item.id for item in items], "dataset_ids": [self.dataset_id]}
+            "filters": {
+                "item_ids": [item.id for item in items],
+                "dataset_ids": [self.dataset_id],
+            }
         }
         self.client.api_v2.archive_items(payload, team_slug=self.team)
 
@@ -288,7 +325,10 @@ class RemoteDatasetV2(RemoteDataset):
             The ``DatasetItem``\\s to be restored.
         """
         payload: Dict[str, Any] = {
-            "filters": {"item_ids": [item.id for item in items], "dataset_ids": [self.dataset_id]}
+            "filters": {
+                "item_ids": [item.id for item in items],
+                "dataset_ids": [self.dataset_id],
+            }
         }
         self.client.api_v2.restore_archived_items(payload, team_slug=self.team)
 
@@ -355,7 +395,8 @@ class RemoteDatasetV2(RemoteDataset):
             The ``DatasetItem``\\s to be deleted.
         """
         self.client.api_v2.delete_items(
-            {"dataset_ids": [self.dataset_id], "item_ids": [item.id for item in items]}, team_slug=self.team
+            {"dataset_ids": [self.dataset_id], "item_ids": [item.id for item in items]},
+            team_slug=self.team,
         )
 
     def export(
@@ -389,13 +430,17 @@ class RemoteDatasetV2(RemoteDataset):
             format = "darwin_json_2"
         elif str_version == "1.0":
             format = "json"
-        elif version == None:
+        elif version is None:
             format = None
         else:
             raise UnknownExportVersion(version)
-        
-        filters = None if not annotation_class_ids else {"annotation_class_ids": list(map(int, annotation_class_ids))}
-        
+
+        filters = (
+            None
+            if not annotation_class_ids
+            else {"annotation_class_ids": list(map(int, annotation_class_ids))}
+        )
+
         self.client.api_v2.export_dataset(
             format=format,
             name=name,
@@ -421,7 +466,9 @@ class RemoteDatasetV2(RemoteDataset):
         str
             A CSV report.
         """
-        response: Response = self.client.get_report(self.dataset_id, granularity, self.team)
+        response: Response = self.client.get_report(
+            self.dataset_id, granularity, self.team
+        )
         return response.text
 
     def workview_url_for_item(self, item: DatasetItem) -> str:
@@ -438,10 +485,19 @@ class RemoteDatasetV2(RemoteDataset):
         str
             The url.
         """
-        return urljoin(self.client.base_url, f"/workview?dataset={self.dataset_id}&item={item.id}")
+        return urljoin(
+            self.client.base_url, f"/workview?dataset={self.dataset_id}&item={item.id}"
+        )
 
     def post_comment(
-        self, item: DatasetItem, text: str, x: float, y: float, w: float, h: float, slot_name: Optional[str] = None
+        self,
+        item: DatasetItem,
+        text: str,
+        x: float,
+        y: float,
+        w: float,
+        h: float,
+        slot_name: Optional[str] = None,
     ):
         """
         Adds a comment to an item in this dataset,
@@ -449,10 +505,14 @@ class RemoteDatasetV2(RemoteDataset):
         """
         if not slot_name:
             if len(item.slots) != 1:
-                raise ValueError(f"Unable to infer slot for '{item.id}', has multiple slots: {','.join(item.slots)}")
+                raise ValueError(
+                    f"Unable to infer slot for '{item.id}', has multiple slots: {','.join(item.slots)}"
+                )
             slot_name = item.slots[0]["slot_name"]
 
-        self.client.api_v2.post_comment(item.id, text, x, y, w, h, slot_name, team_slug=self.team)
+        self.client.api_v2.post_comment(
+            item.id, text, x, y, w, h, slot_name, team_slug=self.team
+        )
 
     def import_annotation(self, item_id: ItemId, payload: Dict[str, Any]) -> None:
         """
@@ -467,7 +527,9 @@ class RemoteDatasetV2(RemoteDataset):
             `{"annotations": serialized_annotations, "overwrite": "false"}`
         """
 
-        self.client.api_v2.import_annotation(item_id, payload=payload, team_slug=self.team)
+        self.client.api_v2.import_annotation(
+            item_id, payload=payload, team_slug=self.team
+        )
 
     def _fetch_stages(self, stage_type):
         detailed_dataset = self.client.api_v2.get_dataset(self.dataset_id)
@@ -477,4 +539,7 @@ class RemoteDatasetV2(RemoteDataset):
         # currently we can only be part of one workflow
         workflow_id = workflow_ids[0]
         workflow = self.client.api_v2.get_workflow(workflow_id, team_slug=self.team)
-        return (workflow_id, [stage for stage in workflow["stages"] if stage["type"] == stage_type])
+        return (
+            workflow_id,
+            [stage for stage in workflow["stages"] if stage["type"] == stage_type],
+        )

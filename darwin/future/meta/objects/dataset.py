@@ -1,17 +1,18 @@
 from __future__ import annotations
 
 from typing import List, Optional, Sequence, Union
-from uuid import UUID
+
 
 from darwin.cli_functions import upload_data
 from darwin.dataset.upload_manager import LocalFile
 from darwin.datatypes import PathLike
 from darwin.future.core.client import ClientCore
 from darwin.future.core.datasets import create_dataset, remove_dataset
-from darwin.future.core.items import get_item_ids
 from darwin.future.data_objects.dataset import DatasetCore
 from darwin.future.helpers.assertion import assert_is
 from darwin.future.meta.objects.base import MetaBase
+from darwin.future.meta.queries.item import ItemQuery
+from darwin.future.meta.queries.item_id import ItemIDQuery
 
 
 class Dataset(MetaBase[DatasetCore]):
@@ -62,7 +63,7 @@ class Dataset(MetaBase[DatasetCore]):
         return self._element.id
 
     @property
-    def item_ids(self) -> List[UUID]:
+    def item_ids(self) -> ItemIDQuery:
         """Returns a list of item ids for the dataset
 
         Returns:
@@ -72,9 +73,13 @@ class Dataset(MetaBase[DatasetCore]):
         assert self.meta_params["team_slug"] is not None and isinstance(
             self.meta_params["team_slug"], str
         )
-        return get_item_ids(
-            self.client, self.meta_params["team_slug"], str(self._element.id)
-        )
+        meta_params = {"dataset_ids": self.id, **self.meta_params}
+        return ItemIDQuery(self.client, meta_params=meta_params)
+
+    @property
+    def items(self) -> ItemQuery:
+        meta_params = {"dataset_ids": self.id, **self.meta_params}
+        return ItemQuery(self.client, meta_params=meta_params)
 
     @classmethod
     def create_dataset(cls, client: ClientCore, slug: str) -> DatasetCore:

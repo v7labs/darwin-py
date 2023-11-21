@@ -8,7 +8,7 @@ from darwin.future.core.client import ClientCore
 from darwin.future.core.items import get_item_ids, get_item_ids_stage
 from darwin.future.core.items.get import get_item, list_folders, list_items
 from darwin.future.core.types.common import QueryString
-from darwin.future.data_objects.item import Folder, Item
+from darwin.future.data_objects.item import Folder, ItemCore
 from darwin.future.tests.core.fixtures import *
 from darwin.future.tests.core.items.fixtures import *
 
@@ -19,8 +19,8 @@ def test_get_item_ids(
     with responses.RequestsMock() as rsps:
         rsps.add(
             rsps.GET,
-            base_client.config.api_endpoint + "v2/teams/default-team/items/ids"
-            "?not_statuses=archived,error&sort[id]=desc&dataset_ids=1337",
+            base_client.config.api_endpoint + "v2/teams/default-team/items/list_ids"
+            "?dataset_ids=1337",
             json={"item_ids": UUIDs_str},
             status=200,
         )
@@ -45,7 +45,7 @@ def test_get_item_ids_stage(
 
 
 def test_get_item(
-    base_items_json: List[dict], base_items: List[Item], base_client: ClientCore
+    base_items_json: List[dict], base_items: List[ItemCore], base_client: ClientCore
 ) -> None:
     uuid = str(base_items[0].id)
     with responses.RequestsMock() as rsps:
@@ -60,7 +60,7 @@ def test_get_item(
 
 
 def test_list_items(
-    base_items_json: List[dict], base_items: List[Item], base_client: ClientCore
+    base_items_json: List[dict], base_items: List[ItemCore], base_client: ClientCore
 ) -> None:
     with responses.RequestsMock() as rsps:
         rsps.add(
@@ -70,9 +70,7 @@ def test_list_items(
             json={"items": base_items_json},
             status=200,
         )
-        items, _ = list_items(
-            base_client, "default-team", QueryString({"dataset_ids": "1337"})
-        )
+        items, _ = list_items(base_client, "default-team", dataset_ids=[1337])
         for item, comparator in zip(items, base_items):
             assert item == comparator
 
@@ -91,9 +89,7 @@ def test_list_items_breaks(
             json={"items": base_items_json},
             status=200,
         )
-        items, exceptions = list_items(
-            base_client, "default-team", QueryString({"dataset_ids": "1337"})
-        )
+        items, exceptions = list_items(base_client, "default-team", dataset_ids=[1337])
         assert len(exceptions) == 1
         assert isinstance(exceptions[0], ValidationError)
 

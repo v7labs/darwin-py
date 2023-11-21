@@ -32,7 +32,9 @@ class TestParsePath:
 
         assert str(info.value) == "Could not find filename element in annotation file"
 
-    def test_raises_value_error_if_filename_tag_has_empty_text(self, annotation_path: Path):
+    def test_raises_value_error_if_filename_tag_has_empty_text(
+        self, annotation_path: Path
+    ):
         annotation_path.write_text("<root><filename> </filename></root>")
 
         with pytest.raises(ValueError) as info:
@@ -48,7 +50,9 @@ class TestParsePath:
 
         assert str(info.value) == "filename element does not have a text value"
 
-    def test_returns_annotation_file_with_empty_annotations_otherwise(self, annotation_path: Path):
+    def test_returns_annotation_file_with_empty_annotations_otherwise(
+        self, annotation_path: Path
+    ):
         annotation_path.write_text("<root><filename>image.jpg</filename></root>")
 
         annotation_file = parse_path(annotation_path)
@@ -61,7 +65,9 @@ class TestParsePath:
         assert annotation_file.remote_path == "/"
 
     def test_raises_if_name_tag_not_found_in_object(self, annotation_path: Path):
-        annotation_path.write_text("<root><filename>image.jpg</filename><object></object></root>")
+        annotation_path.write_text(
+            "<root><filename>image.jpg</filename><object></object></root>"
+        )
 
         with pytest.raises(ValueError) as info:
             parse_path(annotation_path)
@@ -69,7 +75,9 @@ class TestParsePath:
         assert str(info.value) == "Could not find name element in annotation file"
 
     def test_raises_if_bndbox_tag_not_found_in_object(self, annotation_path: Path):
-        annotation_path.write_text("<root><filename>image.jpg</filename><object><name>Class</name></object></root>")
+        annotation_path.write_text(
+            "<root><filename>image.jpg</filename><object><name>Class</name></object></root>"
+        )
 
         with pytest.raises(ValueError) as info:
             parse_path(annotation_path)
@@ -116,7 +124,9 @@ class TestParsePath:
 
         assert str(info.value) == "Could not find ymax element in annotation file"
 
-    def test_returns_annotation_file_with_correct_annotations_otherwise(self, annotation_path: Path):
+    def test_returns_annotation_file_with_correct_annotations_otherwise(
+        self, annotation_path: Path
+    ):
         annotation_path.write_text(
             "<root><filename>image.jpg</filename><object><name>Class</name><bndbox><xmin>10</xmin><xmax>10</xmax><ymin>10</ymin><ymax>10</ymax></bndbox></object></root>"
         )
@@ -138,7 +148,9 @@ class TestParsePath:
 
         assert annotation_file.remote_path == "/"
 
-    def test_returns_annotation_file_with_correct_annotations_with_float_values(self, annotation_path: Path):
+    def test_returns_annotation_file_with_correct_annotations_with_float_values(
+        self, annotation_path: Path
+    ):
         annotation_path.write_text(
             "<root><filename>image.jpg</filename><object><name>Class</name><bndbox><xmin>10.0</xmin><xmax>10.0</xmax><ymin>10.0</ymin><ymax>10.0</ymax></bndbox></object></root>"
         )

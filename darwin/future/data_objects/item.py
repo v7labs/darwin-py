@@ -15,7 +15,6 @@ def validate_no_slashes(v: UnknownType) -> str:
     assert isinstance(v, str), "Must be a string"
     assert len(v) > 0, "cannot be empty"
     assert "/" not in v, "cannot contain slashes"
-    assert " " not in v, "cannot contain spaces"
 
     return v
 
@@ -62,7 +61,7 @@ class ItemSlot(DefaultDarwin):
         return v
 
     @classmethod
-    def validate_fps(cls, values: dict):
+    def validate_fps(cls, values: dict) -> dict:
         value = values.get("fps")
 
         if value is None:
@@ -75,7 +74,7 @@ class ItemSlot(DefaultDarwin):
         elif isinstance(value, (int, float)):
             type = values.get("type")
             if type == "image":
-                assert value == 0, "fps must be 0 for images"
+                assert value == 0 or value == 1.0, "fps must be '0' or '1.0' for images"
             else:
                 assert value >= 0, "fps must be greater than or equal to 0 for videos"
 
@@ -127,7 +126,7 @@ class UploadItem(DefaultDarwin):
         return validate_no_slashes(v)
 
 
-class Item(DefaultDarwin):
+class ItemCore(DefaultDarwin):
     # GraphotateWeb.Schemas.DatasetsV2.ItemRegistration.NewItem
 
     # Required fields

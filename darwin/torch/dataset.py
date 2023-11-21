@@ -99,7 +99,9 @@ class ClassificationDataset(LocalDataset):
         be composed via torchvision.
     """
 
-    def __init__(self, transform: Optional[Union[Callable, List]] = None, **kwargs) -> None:
+    def __init__(
+        self, transform: Optional[Union[Callable, List]] = None, **kwargs
+    ) -> None:
         super().__init__(annotation_type="tag", **kwargs)
 
         if transform is not None and isinstance(transform, list):
@@ -152,7 +154,11 @@ class ClassificationDataset(LocalDataset):
 
         data = self.parse_json(index)
         annotations = data.pop("annotations")
-        tags = [a.annotation_class.name for a in annotations if a.annotation_class.annotation_type == "tag"]
+        tags = [
+            a.annotation_class.name
+            for a in annotations
+            if a.annotation_class.annotation_type == "tag"
+        ]
 
         if not self.is_multi_label:
             # Binary or multiclass must have a label per image
@@ -176,7 +182,11 @@ class ClassificationDataset(LocalDataset):
         for idx in range(len(self)):
             target = self.parse_json(idx)
             annotations = target.pop("annotations")
-            tags = [a.annotation_class.name for a in annotations if a.annotation_class.annotation_type == "tag"]
+            tags = [
+                a.annotation_class.name
+                for a in annotations
+                if a.annotation_class.annotation_type == "tag"
+            ]
 
             if len(tags) > 1:
                 self.is_multi_label = True
@@ -319,7 +329,9 @@ class InstanceSegmentationDataset(LocalDataset):
             annotation_type: str = annotation.annotation_class.annotation_type
             path_key = "paths" if annotation_type == "complex_polygon" else "path"
             if path_key not in annotation.data:
-                print(f"Warning: missing polygon in annotation {self.annotations_path[index]}")
+                print(
+                    f"Warning: missing polygon in annotation {self.annotations_path[index]}"
+                )
             # Extract the sequences of coordinates from the polygon annotation
             sequences = convert_polygons_to_sequences(
                 annotation.data[path_key],
@@ -348,7 +360,12 @@ class InstanceSegmentationDataset(LocalDataset):
 
             # Compute the area of the polygon
             # TODO fix with addictive/subtractive paths in complex polygons
-            poly_area: float = np.sum([polygon_area(x_coord, y_coord) for x_coord, y_coord in zip(x_coords, y_coords)])
+            poly_area: float = np.sum(
+                [
+                    polygon_area(x_coord, y_coord)
+                    for x_coord, y_coord in zip(x_coords, y_coords)
+                ]
+            )
 
             # Create and append the new entry for this annotation
             annotations.append(
@@ -400,9 +417,11 @@ class SemanticSegmentationDataset(LocalDataset):
         Object used to convert polygons to semantic masks.
     """
 
-    def __init__(self, transform: Optional[Union[List[Callable], Callable]] = None, **kwargs):
+    def __init__(
+        self, transform: Optional[Union[List[Callable], Callable]] = None, **kwargs
+    ):
         super().__init__(annotation_type="polygon", **kwargs)
-        if not "__background__" in self.classes:
+        if "__background__" not in self.classes:
             self.classes.insert(0, "__background__")
             self.num_classes += 1
         if transform is not None and isinstance(transform, list):

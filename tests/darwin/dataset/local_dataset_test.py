@@ -16,7 +16,11 @@ class TestBuildStems:
         (annotations_path / "2" / "2.json").mkdir(parents=True)
         (annotations_path / "test" / "3" / "3.json").mkdir(parents=True)
 
-        stems = list(build_stems(team_dataset_release_path, annotations_path, "tag", split_path.name))
+        stems = list(
+            build_stems(
+                team_dataset_release_path, annotations_path, "tag", split_path.name
+            )
+        )
 
         assert "1" in stems
         assert "2/2" in stems or "2\\2" in stems
@@ -26,15 +30,34 @@ class TestBuildStems:
         self, team_dataset_release_path: Path, annotations_path: Path, split_path: Path
     ):
         with pytest.raises(ValueError) as e:
-            build_stems(team_dataset_release_path, annotations_path, "tag", split_path.name, "train", "unknown")
+            build_stems(
+                team_dataset_release_path,
+                annotations_path,
+                "tag",
+                split_path.name,
+                "train",
+                "unknown",
+            )
 
         assert str(e.value) == 'Unknown split type "unknown"'
 
-    def test_stems_ending_with_spaces(self, team_dataset_release_path: Path, annotations_path: Path, split_path: Path):
-        resource_file = Path("tests") / "darwin" / "dataset" / "resources" / "random_train"
+    def test_stems_ending_with_spaces(
+        self, team_dataset_release_path: Path, annotations_path: Path, split_path: Path
+    ):
+        resource_file = (
+            Path("tests") / "darwin" / "dataset" / "resources" / "random_train"
+        )
         copyfile(resource_file, split_path / "random_train.txt")
 
-        stems = list(build_stems(team_dataset_release_path, annotations_path, "tag", split_path.name, "train"))
+        stems = list(
+            build_stems(
+                team_dataset_release_path,
+                annotations_path,
+                "tag",
+                split_path.name,
+                "train",
+            )
+        )
 
         assert "one" in stems
         assert "two " in stems
@@ -44,7 +67,13 @@ class TestBuildStems:
         self, team_dataset_release_path: Path, annotations_path: Path, split_path: Path
     ):
         with pytest.raises(FileNotFoundError) as e:
-            build_stems(team_dataset_release_path, annotations_path, "tag", split_path.name, "train")
+            build_stems(
+                team_dataset_release_path,
+                annotations_path,
+                "tag",
+                split_path.name,
+                "train",
+            )
 
         assert (
             str(e.value)

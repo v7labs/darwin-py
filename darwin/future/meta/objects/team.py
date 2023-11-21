@@ -9,6 +9,7 @@ from darwin.future.helpers.assertion import assert_is
 from darwin.future.meta.objects.base import MetaBase
 from darwin.future.meta.objects.dataset import Dataset
 from darwin.future.meta.queries.dataset import DatasetQuery
+from darwin.future.meta.queries.item import ItemQuery
 from darwin.future.meta.queries.team_member import TeamMemberQuery
 from darwin.future.meta.queries.workflow import WorkflowQuery
 
@@ -68,7 +69,7 @@ class Team(MetaBase[TeamCore]):
 
     def __init__(self, client: ClientCore, team: Optional[TeamCore] = None) -> None:
         team = team or get_team(client)
-        super().__init__(client, team)
+        super().__init__(client=client, element=team)
 
     @property
     def name(self) -> str:
@@ -94,6 +95,12 @@ class Team(MetaBase[TeamCore]):
     @property
     def workflows(self) -> WorkflowQuery:
         return WorkflowQuery(self.client, meta_params={"team_slug": self.slug})
+
+    @property
+    def items(self) -> ItemQuery:
+        return ItemQuery(
+            self.client, meta_params={"team_slug": self.slug, "dataset_ids": "all"}
+        )
 
     @classmethod
     def delete_dataset(cls, client: ClientCore, dataset_id: Union[int, str]) -> int:
@@ -172,7 +179,9 @@ class Team(MetaBase[TeamCore]):
 
     def create_dataset(self, slug: str) -> Dataset:
         core = Dataset.create_dataset(self.client, slug)
-        return Dataset(self.client, core, meta_params={"team_slug": self.slug})
+        return Dataset(
+            client=self.client, element=core, meta_params={"team_slug": self.slug}
+        )
 
     def __str__(self) -> str:
         return f"Team\n\

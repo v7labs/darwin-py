@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Optional, Sequence
 
+
 from darwin.future.data_objects.typing import KeyValuePairDict, UnknownType
 
 
@@ -107,6 +108,10 @@ class UnrecognizableFileEncoding(DarwinException):
     pass
 
 
+class BadRequest(DarwinException):
+    pass
+
+
 class MissingSlug(DarwinException):
     pass
 
@@ -133,5 +138,11 @@ class InvalidQueryFilter(DarwinException):
 
 class DatasetNotFound(DarwinException):
     """Raised when the dataset endpoint returns a malformed response."""
+
+    ...
+
+
+class MaxRetriesError(DarwinException):
+    """Raised when a certain API call is re-tried for {x} number of times."""
 
     ...

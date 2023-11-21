@@ -2,10 +2,7 @@ __all__ = ["main"]
 
 import getpass
 import os
-import platform
 from argparse import ArgumentParser, Namespace
-from datetime import datetime
-from json import dumps
 
 import requests.exceptions
 from rich.console import Console
@@ -41,14 +38,20 @@ def main() -> None:
     except Unauthenticated:
         f._error("You need to specify a valid API key to do that action.")
     except InvalidTeam:
-        f._error("The team specified is not in the configuration, please authenticate first.")
+        f._error(
+            "The team specified is not in the configuration, please authenticate first."
+        )
     except requests.exceptions.ConnectionError:
-        f._error("Darwin seems unreachable, please try again in a minute or contact support.")
+        f._error(
+            "Darwin seems unreachable, please try again in a minute or contact support."
+        )
     except GracefulExit as e:
         f._error(e.message)
     except Exception:  # Catch unhandled exceptions
         console = Console()
-        console.print("An unexpected error occurred, please contact support, and send them the file.")
+        console.print(
+            "An unexpected error occurred, please contact support, and send them the file."
+        )
         console.print_exception()
 
         exit(255)
@@ -67,7 +70,9 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
             api_key = getpass.getpass(prompt="API key: ", stream=None)
             api_key = api_key.strip()
             if api_key == "":
-                print("API Key needed, generate one for your team: https://darwin.v7labs.com/?settings=api-keys")
+                print(
+                    "API Key needed, generate one for your team: https://darwin.v7labs.com/?settings=api-keys"
+                )
                 return
         f.authenticate(api_key)
         print("Authentication succeeded.")
@@ -121,10 +126,17 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
             f.dataset_report(args.dataset, args.granularity or "day", args.pretty)
         elif args.action == "export":
             f.export_dataset(
-                args.dataset, args.include_url_token, args.name, args.class_ids, args.include_authorship, args.version
+                args.dataset,
+                args.include_url_token,
+                args.name,
+                args.class_ids,
+                args.include_authorship,
+                args.version,
             )
         elif args.action == "files":
-            f.list_files(args.dataset, args.status, args.path, args.only_filenames, args.sort_by)
+            f.list_files(
+                args.dataset, args.status, args.path, args.only_filenames, args.sort_by
+            )
         elif args.action == "releases":
             f.dataset_list_releases(args.dataset)
         elif args.action == "pull":
@@ -170,7 +182,12 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
             )
     # Annotation schema validation
     elif args.command == "validate":
-        f.validate_schemas(location=args.location, pattern=args.pattern, silent=args.silent, output=args.output)
+        f.validate_schemas(
+            location=args.location,
+            pattern=args.pattern,
+            silent=args.silent,
+            output=args.output,
+        )
 
 
 if __name__ == "__main__":
