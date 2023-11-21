@@ -92,7 +92,7 @@ def _parse_nifti(
     mode: str,
     slot_names: List[str],
     is_mpr: bool,
-    import_format: str,
+    import_format: str = "polygon",
 ) -> dt.AnnotationFile:
     img, pixdims = process_nifti(nib.load(nifti_path))
 
@@ -132,10 +132,17 @@ def _parse_nifti(
             if _video_annotations is None:
                 continue
             video_annotations += _video_annotations
-    annotation_classes = {
-        dt.AnnotationClass(class_name, "polygon", "polygon")
-        for class_name in class_map.values()
-    }
+    if import_format == "polygon":
+        annotation_classes = {
+            dt.AnnotationClass(class_name, "polygon", "polygon")
+            for class_name in class_map.values()
+        }
+    elif import_format == "mask":
+        annotation_classes = {
+            dt.AnnotationClass(class_name, "mask", "mask")
+            for class_name in class_map.values()
+        }
+
     return dt.AnnotationFile(
         path=json_path,
         filename=str(filename),
@@ -170,7 +177,7 @@ def get_video_annotation(
             slot_names,
             view_idx=2,
             pixdims=pixdims,
-            import_format="polygon",
+            import_format=import_format,
         )
     elif is_mpr and len(slot_names) == 3:
         video_annotations = []
@@ -201,6 +208,7 @@ def nifti_to_video_annotation(
 ):
     frame_annotations = OrderedDict()
     mask_annotations = OrderedDict()
+    mask_annotation_id = str(uuid.uuid4())
     for i in range(volume.shape[view_idx]):
         if view_idx == 2:
             slice_mask = volume[:, :, i].astype(np.uint8)
@@ -215,13 +223,15 @@ def nifti_to_video_annotation(
         if class_mask.sum() == 0:
             continue
         if import_format == "mask":
-            mask_annotations[i] = dt.make_mask(class_name, class_mask, pixdims=_pixdims)
-            mask_annotations[i].id = uuid.uuid4()
+            mask_annotations[i] = dt.make_mask(
+                class_name, subs=None, slot_names=slot_names
+            )
+            mask_annotations[i].id = mask_annotation_id
             dense_rle = convert_to_dense_rle(class_mask)
             raster_annotation = dt.make_raster_layer(
-                class_name=class_name,
+                class_name="__raster_layer__",
                 mask_annotation_ids_mapping={mask_annotations[i].id: 1},
-                total_pixels=np.sum(class_mask),
+                total_pixels=class_mask.size,
                 dense_rle=dense_rle,
                 slot_names=slot_names,
             )
@@ -247,7 +257,7 @@ def nifti_to_video_annotation(
         interpolated=False,
         slot_names=slot_names,
     )
-    annotations = [video_annotation]
+    annotations = []
     if import_format == "mask":
         raster_video_annotation = dt.make_video_annotation(
             mask_annotations,
@@ -256,7 +266,10 @@ def nifti_to_video_annotation(
             interpolated=False,
             slot_names=slot_names,
         )
+        raster_video_annotation.id = mask_annotation_id
         annotations += [raster_video_annotation]
+    annotations += [video_annotation]
+
     return annotations
 
 
@@ -423,12 +436,12 @@ def process_nifti(
 
 def convert_to_dense_rle(raster):
     dense_rle, prev_val, cnt = [], None, 0
-    for val in raster.flat:
+    for val in raster.T.flat:
         if val == prev_val:
             cnt += 1
         else:
             if prev_val is not None:
-                dense_rle.extend([prev_val, cnt])
+                dense_rle.extend([int(prev_val), int(cnt)])
             prev_val, cnt = val, 1
-    dense_rle.extend([prev_val, cnt])
+    dense_rle.extend([int(prev_val), int(cnt)])
     return dense_rle
