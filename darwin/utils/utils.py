@@ -540,6 +540,8 @@ def get_image_path_from_stream(
                 / Path(darwin_json["image"]["filename"])
             )
 
+        # WIP: Implementing this with regex instead of streaming
+
 
 def get_darwin_json_version(annotations_dir: Path) -> str:
     """
@@ -570,15 +572,9 @@ def _parse_darwin_v2(path: Path, data: Dict[str, Any]) -> dt.AnnotationFile:
     annotations: List[Union[dt.Annotation, dt.VideoAnnotation]] = _data_to_annotations(
         data
     )
-<<<<<<< HEAD
     annotation_classes: Set[dt.AnnotationClass] = set(
         [annotation.annotation_class for annotation in annotations]
     )
-=======
-    annotation_classes: Set[dt.AnnotationClass] = {
-        annotation.annotation_class for annotation in annotations
-    }
->>>>>>> master
 
     if len(slots) == 0:
         annotation_file = dt.AnnotationFile(
@@ -654,15 +650,9 @@ def _parse_darwin_image(
     annotations: List[Union[dt.Annotation, dt.VideoAnnotation]] = _data_to_annotations(
         data
     )
-<<<<<<< HEAD
     annotation_classes: Set[dt.AnnotationClass] = set(
         [annotation.annotation_class for annotation in annotations]
     )
-=======
-    annotation_classes: Set[dt.AnnotationClass] = {
-        annotation.annotation_class for annotation in annotations
-    }
->>>>>>> master
 
     slot = dt.Slot(
         name=None,
@@ -705,15 +695,9 @@ def _parse_darwin_video(
     annotations: List[Union[dt.Annotation, dt.VideoAnnotation]] = _data_to_annotations(
         data
     )
-<<<<<<< HEAD
     annotation_classes: Set[dt.AnnotationClass] = set(
         [annotation.annotation_class for annotation in annotations]
     )
-=======
-    annotation_classes: Set[dt.AnnotationClass] = {
-        annotation.annotation_class for annotation in annotations
-    }
->>>>>>> master
 
     if "width" not in data["image"] or "height" not in data["image"]:
         raise OutdatedDarwinJSONFormat(
@@ -1058,15 +1042,9 @@ def split_video_annotation(annotation: dt.AnnotationFile) -> List[dt.AnnotationF
             for a in annotation.annotations
             if isinstance(a, dt.VideoAnnotation) and i in a.frames
         ]
-<<<<<<< HEAD
         annotation_classes: Set[dt.AnnotationClass] = set(
             [annotation.annotation_class for annotation in annotations]
         )
-=======
-        annotation_classes: Set[dt.AnnotationClass] = {
-            annotation.annotation_class for annotation in annotations
-        }
->>>>>>> master
         filename: str = f"{Path(annotation.filename).stem}/{i:07d}.png"
         frame_annotations.append(
             dt.AnnotationFile(
