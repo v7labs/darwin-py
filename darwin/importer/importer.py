@@ -665,8 +665,6 @@ def _to_complex_polygon(paths: list[str]) -> Dict[str, Any]:
 def _handle_polygon(
     annotation: dt.Annotation, data: dt.DictFreeForm
 ) -> dt.DictFreeForm:
-    print(f"data: {data}")
-    print(f"type : {type(data)}")
     polygon = data.get("polygon")
 
     if polygon is not None:
@@ -675,9 +673,6 @@ def _handle_polygon(
             del data["paths"]
 
     data = _handle_complex_polygon(annotation, data)
-
-    print(f"data out : {data}")
-
     return data
 
 
