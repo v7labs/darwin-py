@@ -15,7 +15,7 @@ class TestParsePathVideo:
         yield path
         path.unlink()
 
-    def test_it_returns_none_if_file_extension_is_not_csv(self, file_path: Path):
+    def test_it_returns_none_if_file_extension_is_not_csv(self):
         path = Path("path/to/file.xml")
         assert parse_path(path) is None
 
