@@ -203,9 +203,7 @@ def get_mask_video_annotations(volume, processed_class_map, slot_names):
     We write a single raster layer for the volume but K mask annotations, where K is the number of classes.
     """
     frame_annotations = OrderedDict()
-    all_mask_annotations = {
-        class_name: OrderedDict() for class_name in processed_class_map.keys()
-    }
+    all_mask_annotations = defaultdict(lambda: OrderedDict())
     # This is a dictionary of class_names to generated mask_annotation_ids
     mask_annotation_ids = {
         class_name: str(uuid.uuid4()) for class_name in processed_class_map.keys()
