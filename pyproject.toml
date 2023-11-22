@@ -164,7 +164,7 @@ version = "^7.2.1"
 optional = true
 
 [tool.poetry.dependencies.debugpy]
-version = "^1.6.5"
+version = "1.6.7"
 optional = true
 
 [tool.poetry.dependencies.mpire]
