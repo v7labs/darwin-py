@@ -20,4 +20,8 @@
   "python.analysis.autoImportCompletions": true,
   "python.testing.pytestEnabled": true,
   "python.analysis.typeCheckingMode": "basic",
+  "python.testing.pytestArgs": [
+    "e2e_tests"
+  ],
+  "python.testing.unittestEnabled": false,
 }
