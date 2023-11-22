@@ -8,6 +8,7 @@ from uuid import UUID, uuid4
 import pytest
 
 from darwin.future.core.client import ClientCore
+from darwin.future.data_objects.dataset import DatasetCore
 from darwin.future.data_objects.item import (
     ItemCore,
     ItemCreate,
@@ -38,7 +39,6 @@ from darwin.future.meta.objects.item import Item
 from darwin.future.tests.core.fixtures import *
 from darwin.future.tests.fixtures import *
 from darwin.future.tests.meta.fixtures import *
-from tests.darwin.dataset.upload_manager_test import dataset_identifier
 
 
 @pytest.fixture
