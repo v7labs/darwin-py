@@ -136,14 +136,22 @@ def parse_annotation(
 
     if len(segmentation) == 0 and len(annotation["bbox"]) == 4:
         x, y, w, h = map(int, annotation["bbox"])
-        return dt.make_bounding_box(category["name"], x, y, w, h)
+        if 'extra' in annotation and 'instance_id' in annotation['extra']:
+            track_id = int(annotation["extra"]["instance_id"])
+            return dt.make_bounding_box(category["name"], x, y, w, h, subs=[dt.make_instance_id(track_id)])
+        else:
+            dt.make_bounding_box(category["name"], x, y, w, h)
     elif (
         len(segmentation) == 0
         and len(annotation["bbox"]) == 1
         and len(annotation["bbox"][0]) == 4
     ):
         x, y, w, h = map(int, annotation["bbox"][0])
-        return dt.make_bounding_box(category["name"], x, y, w, h)
+        if 'extra' in annotation and 'instance_id' in annotation['extra']:
+            track_id = int(annotation["extra"]["instance_id"])
+            return dt.make_bounding_box(category["name"], x, y, w, h, subs=[dt.make_instance_id(track_id)])
+        else:
+            dt.make_bounding_box(category["name"], x, y, w, h)
     elif isinstance(segmentation, dict):
         logger.warn(
             "warning, converting complex coco rle mask to polygon, could take some time"
