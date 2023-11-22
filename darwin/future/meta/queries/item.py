@@ -17,6 +17,7 @@ class ItemQuery(PaginatedQuery[Item]):
     def _collect(self) -> Dict[int, Item]:
         if "team_slug" not in self.meta_params:
             raise ValueError("Must specify team_slug to query items")
+
         if (
             "dataset_ids" not in self.meta_params
             and "dataset_id" not in self.meta_params
@@ -49,6 +50,7 @@ class ItemQuery(PaginatedQuery[Item]):
     def delete(self) -> None:
         if "team_slug" not in self.meta_params:
             raise ValueError("Must specify team_slug to query items")
+
         if (
             "dataset_ids" not in self.meta_params
             and "dataset_id" not in self.meta_params
@@ -68,11 +70,13 @@ class ItemQuery(PaginatedQuery[Item]):
     def move_to_folder(self, path) -> None:
         if "team_slug" not in self.meta_params:
             raise ValueError("Must specify team_slug to query items")
+
         if (
             "dataset_ids" not in self.meta_params
             and "dataset_id" not in self.meta_params
         ):
             raise ValueError("Must specify dataset_ids to query items")
+
         if not path:
             raise ValueError("Must specify path to move items to")
         dataset_ids = (
@@ -89,11 +93,13 @@ class ItemQuery(PaginatedQuery[Item]):
     def set_priority(self, priority: int) -> None:
         if "team_slug" not in self.meta_params:
             raise ValueError("Must specify team_slug to query items")
+
         if (
             "dataset_ids" not in self.meta_params
             and "dataset_id" not in self.meta_params
         ):
             raise ValueError("Must specify dataset_ids to query items")
+
         if not priority:
             raise ValueError("Must specify priority to set items to")
         dataset_ids = (
@@ -110,6 +116,7 @@ class ItemQuery(PaginatedQuery[Item]):
     def restore(self) -> None:
         if "team_slug" not in self.meta_params:
             raise ValueError("Must specify team_slug to query items")
+
         if (
             "dataset_ids" not in self.meta_params
             and "dataset_id" not in self.meta_params
@@ -129,6 +136,7 @@ class ItemQuery(PaginatedQuery[Item]):
     def archive(self) -> None:
         if "team_slug" not in self.meta_params:
             raise ValueError("Must specify team_slug to query items")
+
         if (
             "dataset_ids" not in self.meta_params
             and "dataset_id" not in self.meta_params
@@ -148,11 +156,13 @@ class ItemQuery(PaginatedQuery[Item]):
     def set_layout(self, layout: ItemLayout) -> None:
         if "team_slug" not in self.meta_params:
             raise ValueError("Must specify team_slug to query items")
+
         if (
             "dataset_ids" not in self.meta_params
             and "dataset_id" not in self.meta_params
         ):
             raise ValueError("Must specify dataset_ids to query items")
+
         if not layout:
             raise ValueError("Must specify layout to set items to")
         assert isinstance(layout, ItemLayout)

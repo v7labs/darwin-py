@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Dict
 
+from pydantic import ValidationError
+
 from darwin.future.core.client import ClientCore
 from darwin.future.core.types.common import JSONType
 from darwin.future.data_objects.item import ItemLayout
@@ -32,7 +34,7 @@ def set_item_layout(
     if not isinstance(layout, ItemLayout):
         try:
             layout = ItemLayout(**layout)
-        except ValueError:
+        except (ValueError, ValidationError):
             raise BadRequest("Invalid layout provided")
 
     assert (
