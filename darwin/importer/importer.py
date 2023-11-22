@@ -610,7 +610,7 @@ def _handle_complex_polygon(annotation: dt.Annotation, data: dt.DictFreeForm) ->
     if "complex_polygon" in data:
         del data["complex_polygon"]
         data["polygon"] = _to_complex_polygon(annotation.data["paths"])
-    elif "polygon" in data and "paths" in data["polygon"] and len(data["polygon"]["polygon"]) > 1:
+    elif "polygon" in data and "paths" in data["polygon"] and len(data["polygon"]["paths"]) > 1:
         data["polygon"] = _to_complex_polygon(annotation.data["paths"])
     return data
 
