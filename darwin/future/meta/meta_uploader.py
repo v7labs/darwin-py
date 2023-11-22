@@ -221,11 +221,11 @@ async def _create_list_of_all_files(files_to_upload: Sequence[Path], files_to_ex
 
     for file in files_to_upload:
         files = file.glob("**/*") if file.is_dir() else [file]
-        master_files_to_upload.update(files)
+        master_files_to_upload.update([file for file in files if file.is_file()])
 
     for file in files_to_exclude:
         files = file.glob("**/*") if file.is_dir() else [file]
-        master_files_to_upload.difference_update(files)
+        master_files_to_upload.difference_update([file for file in files if file.is_file()])
 
     return list(master_files_to_upload)
 
@@ -431,7 +431,6 @@ async def _confirm_uploads(client: ClientCore, team_slug: str, item_uploads: Lis
 CombinedUploaderResult = namedtuple("CombinedUploaderResult", ["item_uploads", "items", "blocked_items"])
 
 
-# TODO: Test this
 async def combined_uploader(
     client: ClientCore,
     team_slug: str,
@@ -513,8 +512,8 @@ async def combined_uploader(
     if item_payload.callback_when_loaded:
         item_payload.callback_when_loaded(item_uploads)
 
-    # ? Callback ?
+    if item_payload.callback_when_complete:
+        # Wait for processing to complete
+        item_payload.callback_when_complete(item_uploads)
 
     return CombinedUploaderResult(item_uploads, items, blocked_items)
-
-    # ? Handle blocked items

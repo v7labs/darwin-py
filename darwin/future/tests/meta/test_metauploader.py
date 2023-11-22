@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Dict, List, Optional, Tuple
@@ -5,9 +6,7 @@ from unittest.mock import MagicMock, Mock, call, patch
 from uuid import UUID, uuid4
 
 import pytest
-from torch import Value
 
-from darwin import item
 from darwin.future.core.client import ClientCore
 from darwin.future.data_objects.item import (
     ItemCore,
@@ -36,8 +35,10 @@ from darwin.future.meta.meta_uploader import (
     combined_uploader,
 )
 from darwin.future.meta.objects.item import Item
+from darwin.future.tests.core.fixtures import *
 from darwin.future.tests.fixtures import *
 from darwin.future.tests.meta.fixtures import *
+from tests.darwin.dataset.upload_manager_test import dataset_identifier
 
 
 @pytest.fixture
@@ -65,6 +66,96 @@ def mock_files(tmp_path: Path) -> List[Path]:
         file.touch()
 
     return files
+
+
+@pytest.fixture
+def mock_upload_items() -> List[UploadItem]:
+    return [
+        UploadItem(
+            name="file1.txt",
+            path="/path/to/file1.txt",
+            description="file1 description",
+            tags=["tag1", "tag2"],
+            layout=None,
+            slots=[],
+        ),
+        UploadItem(
+            name="file2.txt",
+            path="/path/to/file2.txt",
+            description="file2 description",
+            tags=["tag1", "tag2"],
+            layout=None,
+            slots=[],
+        ),
+        UploadItem(
+            name="file3.txt",
+            path="/path/to/file3.txt",
+            description="file3 description",
+            tags=["tag1", "tag2"],
+            layout=None,
+            slots=[],
+        ),
+    ]
+
+
+@pytest.fixture
+def upload_ids() -> List[str]:
+    return [
+        "00000000-0000-0000-0000-000000000000",
+        "00000000-0000-0000-0000-000000000001",
+    ]
+
+
+@pytest.fixture
+def upload_urls() -> List[str]:
+    return [
+        "https://example.com/upload1",
+        "https://example.com/upload2",
+    ]
+
+
+@pytest.fixture
+def item_dicts() -> List[Dict[str, UnknownType]]:
+    return [
+        {
+            "name": "file1.jpg",
+            "id": "00000000-0000-0000-0000-000000000000",
+            "slots": [],
+            "path": "/path/to/file1.jpg",
+            "dataset_id": 1,
+            "processing_status": "pending",
+        },
+        {
+            "name": "file2.jpg",
+            "id": "00000000-0000-0000-0000-000000000001",
+            "slots": [],
+            "path": "/path/to/file2.jpg",
+            "dataset_id": 1,
+            "processing_status": "pending",
+        },
+    ]
+
+
+@pytest.fixture
+def blocked_item_dicts() -> List[Dict[str, UnknownType]]:
+    return [
+        {
+            "name": "file3.jpg",
+            "id": "00000000-0000-0000-0000-000000000002",
+            "slots": [],
+            "path": "/path/to/file3.jpg",
+            "dataset_id": 1,
+            "processing_status": "pending",
+        },
+        {
+            "name": "file4.jpg",
+            "id": "00000000-0000-0000-0000-000000000003",
+            "slots": [],
+            "path": "/path/to/file4.jpg",
+            "dataset_id": 1,
+            "processing_status": "pending",
+        },
+    ]
 
 
 class TestGetItemPath:
@@ -381,8 +472,48 @@ class TestCreateListOfAllFiles:
 
         assert sorted(file_names) == sorted(expected_file_names)
 
-    # TODO: Multiple directories
-    # TODO: multiple path inputs
+    @pytest.mark.asyncio
+    async def test_create_list_of_all_files_with_multiple_directories(self, tmp_path: Path):
+        tmp_path.joinpath("file1.txt").touch()
+        tmp_path.joinpath("file2.txt").touch()
+        tmp_path.joinpath("file3.txt").touch()
+        tmp_path.joinpath("file4.txt").touch()
+        tmp_path.joinpath("file5.txt").touch()
+        tmp_path.joinpath("file6.txt").touch()
+        tmp_path.joinpath("file7.txt").touch()
+        tmp_path.joinpath("file8.txt").touch()
+        tmp_path.joinpath("file9.txt").touch()
+        tmp_path.joinpath("file10.txt").touch()
+
+        tmp_path.joinpath("dir1").mkdir()
+        tmp_path.joinpath("dir1").joinpath("file1.txt").touch()
+        tmp_path.joinpath("dir1").joinpath("file2.txt").touch()
+        tmp_path.joinpath("dir1").joinpath("file3.txt").touch()
+        tmp_path.joinpath("dir1").joinpath("file4.txt").touch()
+        tmp_path.joinpath("dir1").joinpath("file5.txt").touch()
+        tmp_path.joinpath("dir1").joinpath("file6.txt").touch()
+        tmp_path.joinpath("dir1").joinpath("file7.txt").touch()
+        tmp_path.joinpath("dir1").joinpath("file8.txt").touch()
+        tmp_path.joinpath("dir1").joinpath("file9.txt").touch()
+        tmp_path.joinpath("dir1").joinpath("file10.txt").touch()
+
+        tmp_path.joinpath("dir2").mkdir()
+        tmp_path.joinpath("dir2").joinpath("file1.txt").touch()
+        tmp_path.joinpath("dir2").joinpath("file2.txt").touch()
+        tmp_path.joinpath("dir2").joinpath("file3.txt").touch()
+        tmp_path.joinpath("dir2").joinpath("file4.txt").touch()
+        tmp_path.joinpath("dir2").joinpath("file5.txt").touch()
+        tmp_path.joinpath("dir2").joinpath("file6.txt").touch()
+        tmp_path.joinpath("dir2").joinpath("file7.txt").touch()
+        tmp_path.joinpath("dir2").joinpath("file8.txt").touch()
+        tmp_path.joinpath("dir2").joinpath("file9.txt").touch()
+        tmp_path.joinpath("dir2").joinpath("file10.txt").touch()
+
+        files = await _create_list_of_all_files([tmp_path], [])
+
+        assert len(files) == 30
+        assert all(isinstance(file, Path) for file in files)
+        assert all(file.is_file() for file in files)
 
 
 class TestInitialiseItemUploads:
@@ -936,3 +1067,144 @@ class TestConfirmUploads:
         await _confirm_uploads(MagicMock(), "team_slug", item_uploads)
 
         assert all(item_upload.status == ItemUploadStatus.PROCESSING for item_upload in item_uploads)
+
+
+class TestCombinedUploader:
+    @contextmanager
+    def patch_context(
+        self,
+        base_dataset: DatasetCore,
+        mock_upload_items: List[UploadItem],
+        upload_ids,
+        upload_urls,
+        item_dicts,
+        blocked_item_dicts,
+    ):
+        def get_patch(name: str):
+            return patch(f"darwin.future.meta.meta_uploader.{name}")
+
+        with get_patch("get_dataset") as mock_get_dataset, get_patch(
+            "_create_list_of_all_files"
+        ) as mock_create_list_of_all_files, get_patch("_derive_root_path") as mock_derive_root_path, get_patch(
+            "_prepare_upload_items"
+        ) as mock_prepare_upload_items, get_patch(
+            "_initialise_item_uploads"
+        ) as mock_initialise_item_uploads, get_patch(
+            "_initialise_items_and_paths"
+        ) as mock_initialise_items_and_paths, get_patch(
+            "async_register_and_create_signed_upload_url"
+        ) as mock_async_register_and_create_signed_upload_url, get_patch(
+            "_handle_uploads"
+        ) as mock__handle_uploads, get_patch(
+            "_confirm_uploads"
+        ) as mock_confirm_uploads:
+            mock_get_dataset.return_value = base_dataset
+            mock_create_list_of_all_files.return_value = [Path("/path/to/file1.jpg"), Path("/path/to/file2.jpg")]
+            mock_derive_root_path.return_value = Path("/"), Path("/")
+            mock_prepare_upload_items.return_value = mock_upload_items
+            mock_initialise_item_uploads.return_value = [
+                ItemUpload(upload_item=upload_item, status=ItemUploadStatus.PENDING)
+                for upload_item in mock_upload_items
+            ]
+            mock_initialise_items_and_paths.return_value = [
+                (upload_item, Path("/")) for upload_item in mock_upload_items
+            ]
+            mock_async_register_and_create_signed_upload_url.return_value = (
+                upload_ids,
+                upload_urls,
+                item_dicts,
+                blocked_item_dicts,
+            )
+            mock__handle_uploads.return_value = None
+            mock_confirm_uploads.return_value = None
+
+            yield (
+                mock_get_dataset,
+                mock_create_list_of_all_files,
+                mock_derive_root_path,
+                mock_prepare_upload_items,
+                mock_initialise_item_uploads,
+                mock_initialise_items_and_paths,
+                mock_async_register_and_create_signed_upload_url,
+                mock__handle_uploads,
+                mock_confirm_uploads,
+            )
+
+    @pytest.fixture
+    def item_create(self) -> ItemCreate:
+        return ItemCreate(
+            files=[Path("/path/to/file1.jpg"), Path("/path/to/file2.jpg")],
+            callback_when_complete=MagicMock(),
+            callback_when_loaded=MagicMock(),
+            callback_when_loading=MagicMock(),
+        )
+
+    @pytest.mark.asyncio
+    async def test_happy_path(
+        self,
+        base_dataset: DatasetCore,
+        mock_upload_items: List[UploadItem],
+        upload_ids,
+        upload_urls,
+        item_dicts,
+        blocked_item_dicts,
+        item_create,
+    ):
+        with self.patch_context(
+            base_dataset, mock_upload_items, upload_ids, upload_urls, item_dicts, blocked_item_dicts
+        ) as (
+            mock_get_dataset,
+            mock_create_list_of_all_files,
+            mock_derive_root_path,
+            mock_prepare_upload_items,
+            mock_initialise_item_uploads,
+            mock_initialise_items_and_paths,
+            mock_async_register_and_create_signed_upload_url,
+            mock__handle_uploads,
+            mock_confirm_uploads,
+        ):
+            client = MagicMock()
+
+            await combined_uploader(client, "team_slug", 1, item_create)
+
+    @pytest.mark.asyncio
+    async def test_raises_if_functions_raise(
+        self,
+        base_dataset: DatasetCore,
+        mock_upload_items: List[UploadItem],
+        upload_ids,
+        upload_urls,
+        item_dicts,
+        blocked_item_dicts,
+        item_create,
+    ):
+        with self.patch_context(
+            base_dataset, mock_upload_items, upload_ids, upload_urls, item_dicts, blocked_item_dicts
+        ) as (
+            mock_get_dataset,
+            mock_create_list_of_all_files,
+            mock_derive_root_path,
+            mock_prepare_upload_items,
+            mock_initialise_item_uploads,
+            mock_initialise_items_and_paths,
+            mock_async_register_and_create_signed_upload_url,
+            mock__handle_uploads,
+            mock_confirm_uploads,
+        ):
+            client = MagicMock()
+            mocks = [
+                mock_get_dataset,
+                mock_create_list_of_all_files,
+                mock_derive_root_path,
+                mock_prepare_upload_items,
+                mock_initialise_item_uploads,
+                mock_initialise_items_and_paths,
+                mock_async_register_and_create_signed_upload_url,
+                mock__handle_uploads,
+                mock_confirm_uploads,
+            ]
+            for mock in mocks:
+                mock.side_effect = DarwinException("test")
+            with pytest.raises(DarwinException) as exc:
+                await combined_uploader(client, "team_slug", 1, item_create)
+                assert exc.value.message == "test"  # type: ignore
