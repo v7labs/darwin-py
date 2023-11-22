@@ -585,7 +585,7 @@ def _parse_darwin_v2(path: Path, data: Dict[str, Any]) -> dt.AnnotationFile:
             frame_urls=slot.frame_urls,
             remote_path=item["path"],
             slots=slots,
-            frame_count=slot.frame_count
+            frame_count=slot.frame_count,
         )
 
     return annotation_file
@@ -998,8 +998,11 @@ def split_video_annotation(annotation: dt.AnnotationFile) -> List[dt.AnnotationF
 
     if not annotation.frame_count and not annotation.frame_urls:
         raise AttributeError("This Annotation has no frames")
-    
-    urls = annotation.frame_urls if annotation.frame_urls else [None] * (annotation.frame_count or 1)
+    urls = (
+        annotation.frame_urls
+        if annotation.frame_urls
+        else [None] * (annotation.frame_count or 1)
+    )
     frame_annotations = []
     for i, frame_url in enumerate(urls):
         annotations = [
