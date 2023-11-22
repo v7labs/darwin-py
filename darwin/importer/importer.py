@@ -655,7 +655,7 @@ def _handle_subs(
     return data
 
 
-def _to_complex_polygon(paths: list[str]) -> Dict[str, Any]:
+def _to_complex_polygon(paths: List[str]) -> Dict[str, Any]:
     return {
         "path": paths[0],
         "additional_paths": paths[1:],
