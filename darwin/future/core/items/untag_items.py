@@ -12,7 +12,6 @@ def untag_items(
     tag_id: str,
     filters: dict[str, UnknownType],
 ) -> JSONType:
-    ...
     """
     Adds tag annotation to all items slots matched by filters.
 

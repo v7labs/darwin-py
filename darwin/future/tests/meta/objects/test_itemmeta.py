@@ -226,3 +226,53 @@ def test_archive_with_bad_team_slug(item: Item) -> None:
     with pytest.raises(AssertionError):
         item.meta_params["team_slug"] = 123
         item.archive()
+
+
+def test_tag(item: Item) -> None:
+    with responses.RequestsMock() as rsps:
+        team_slug = item.meta_params["team_slug"]
+        dataset_id = item.meta_params["dataset_id"]
+        tag_id = "123456"
+        rsps.add(
+            rsps.POST,
+            item.client.config.api_endpoint + f"v2/teams/{team_slug}/items/slots/tags",
+            status=200,
+            match=[
+                json_params_matcher(
+                    {
+                        "filters": {
+                            "item_ids": [str(item.id)],
+                            "dataset_ids": [dataset_id],
+                        },
+                        "annotation_class_id": tag_id,
+                    }
+                )
+            ],
+            json={},
+        )
+        item.tag(tag_id)
+
+
+def test_untag(item: Item) -> None:
+    with responses.RequestsMock() as rsps:
+        team_slug = item.meta_params["team_slug"]
+        dataset_id = item.meta_params["dataset_id"]
+        tag_id = "123456"
+        rsps.add(
+            rsps.DELETE,
+            item.client.config.api_endpoint + f"v2/teams/{team_slug}/items/slots/tags",
+            status=200,
+            match=[
+                json_params_matcher(
+                    {
+                        "filters": {
+                            "item_ids": [str(item.id)],
+                            "dataset_ids": [dataset_id],
+                        },
+                        "annotation_class_id": tag_id,
+                    }
+                )
+            ],
+            json={},
+        )
+        item.untag(tag_id)

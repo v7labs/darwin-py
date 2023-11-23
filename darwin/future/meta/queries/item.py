@@ -181,8 +181,5 @@ class ItemQuery(PaginatedQuery[Item]):
         team_slug = self.meta_params["team_slug"]
         self.collect_all()
         ids = [item.id for item in self]
-        filters = {
-            "item_ids": [str(item) for item in ids],
-            "dataset_ids": dataset_ids,
-        }
+        filters = {"item_ids": [str(item) for item in ids]}
         untag_items(self.client, team_slug, dataset_ids, tag_id, filters)
