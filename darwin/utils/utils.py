@@ -996,10 +996,12 @@ def split_video_annotation(annotation: dt.AnnotationFile) -> List[dt.AnnotationF
     if not annotation.is_video:
         raise AttributeError("This is not a video annotation")
 
+    # changes here from annotation.frame_urls to annotation.frame_count with frame_urls as backup
+    # due to addition of long videos feature, where frame_urls is no longer available.
+    # frame_count should be available for both, however existing annotations will not have this
     if not annotation.frame_count and not annotation.frame_urls:
         raise AttributeError("This Annotation has no frames")
     urls = annotation.frame_urls or [None] * (annotation.frame_count or 1)
-    )
     frame_annotations = []
     for i, frame_url in enumerate(urls):
         annotations = [
