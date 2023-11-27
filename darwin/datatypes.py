@@ -24,9 +24,7 @@ from darwin.path_utils import construct_full_path
 
 # Utility types
 
-NumberLike = Union[
-    int, float
-]  # Used for functions that can take either an int or a float
+NumberLike = Union[int, float]  # Used for functions that can take either an int or a float
 # Used for functions that _genuinely_ don't know what type they're dealing with, such as those that test if something is of a certain type.
 UnknownType = Any  # type:ignore
 
@@ -50,6 +48,8 @@ Node = Dict[str, UnknownType]
 EllipseData = Dict[str, Union[float, Point]]
 CuboidData = Dict[str, Dict[str, float]]
 Segment = List[int]
+PolygonPath = List[Dict[str, float]]
+PolygonPaths = List[Path]
 
 DarwinVersionNumber = Tuple[int, int, int]
 
@@ -270,9 +270,7 @@ class VideoAnnotation:
     def get_data(
         self,
         only_keyframes: bool = True,
-        post_processing: Optional[
-            Callable[[Annotation, UnknownType], UnknownType]
-        ] = None,
+        post_processing: Optional[Callable[[Annotation, UnknownType], UnknownType]] = None,
     ) -> Dict:
         """
         Return the post-processed frames and the additional information from this
@@ -306,9 +304,7 @@ class VideoAnnotation:
         """
         if not post_processing:
 
-            def post_processing(
-                annotation: Annotation, data: UnknownType
-            ) -> UnknownType:
+            def post_processing(annotation: Annotation, data: UnknownType) -> UnknownType:
                 return data  # type: ignore
 
         output = {
@@ -526,9 +522,7 @@ def make_tag(
     Annotation
         A tag ``Annotation``.
     """
-    return Annotation(
-        AnnotationClass(class_name, "tag"), {}, subs or [], slot_names=slot_names or []
-    )
+    return Annotation(AnnotationClass(class_name, "tag"), {}, subs or [], slot_names=slot_names or [])
 
 
 def make_polygon(
@@ -1026,9 +1020,7 @@ def make_mask(
     Annotation
         A mask ``Annotation``.
     """
-    return Annotation(
-        AnnotationClass(class_name, "mask"), {}, subs or [], slot_names=slot_names or []
-    )
+    return Annotation(AnnotationClass(class_name, "mask"), {}, subs or [], slot_names=slot_names or [])
 
 
 def make_raster_layer(
@@ -1226,9 +1218,7 @@ def make_video_annotation(
     )
 
 
-def _maybe_add_bounding_box_data(
-    data: Dict[str, UnknownType], bounding_box: Optional[Dict]
-) -> Dict[str, UnknownType]:
+def _maybe_add_bounding_box_data(data: Dict[str, UnknownType], bounding_box: Optional[Dict]) -> Dict[str, UnknownType]:
     if bounding_box:
         data["bounding_box"] = {
             "x": bounding_box["x"],

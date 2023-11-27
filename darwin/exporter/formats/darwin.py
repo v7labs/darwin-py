@@ -3,6 +3,7 @@ from typing import Any, Dict, List
 import deprecation
 
 import darwin.datatypes as dt
+from darwin.datatypes import PolygonPath, PolygonPaths
 from darwin.version import __version__
 
 DEPRECATION_MESSAGE = """
@@ -71,9 +72,7 @@ def _build_bounding_box_data(data: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def _build_polygon_data(
-    data: Dict[str, Any]
-) -> Dict[str, List[List[Dict[str, float]]]]:
+def _build_polygon_data(data: Dict[str, Any]) -> Dict[str, PolygonPaths]:
     """
     Builds the polygon data for Darwin v2 format.
 
@@ -165,9 +164,7 @@ def build_annotation_data(annotation: dt.Annotation) -> Dict[str, Any]:
         return {"path": annotation.data["paths"]}
 
     if annotation.annotation_class.annotation_type == "polygon":
-        return dict(
-            filter(lambda item: item[0] != "bounding_box", annotation.data.items())
-        )
+        return dict(filter(lambda item: item[0] != "bounding_box", annotation.data.items()))
 
     return dict(annotation.data)
 
@@ -177,8 +174,6 @@ def _build_annotation_data(annotation: dt.Annotation) -> Dict[str, Any]:
         return {"path": annotation.data["paths"]}
 
     if annotation.annotation_class.annotation_type == "polygon":
-        return dict(
-            filter(lambda item: item[0] != "bounding_box", annotation.data.items())
-        )
+        return dict(filter(lambda item: item[0] != "bounding_box", annotation.data.items()))
 
     return dict(annotation.data)
