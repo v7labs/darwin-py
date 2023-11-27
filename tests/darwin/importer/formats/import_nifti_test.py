@@ -16,19 +16,12 @@ from darwin.importer.formats.nifti import parse_path
 from tests.fixtures import *
 
 
-def test_image_annotation_nifti_import_single_slot(team_slug_darwin_json_v2: str):
-    print(team_slug_darwin_json_v2)
+def test_image_annotation_nifti_import_single_slot(team_slug: str):
     with tempfile.TemporaryDirectory() as tmpdir:
         with ZipFile("tests/data.zip") as zfile:
             zfile.extractall(tmpdir)
             label_path = (
-                Path(tmpdir)
-                / team_slug_darwin_json_v2
-                / "nifti"
-                / "releases"
-                / "latest"
-                / "annotations"
-                / "vol0_brain.nii.gz"
+                Path(tmpdir) / team_slug / "nifti" / "releases" / "latest" / "annotations" / "vol0_brain.nii.gz"
             )
             input_dict = {
                 "data": [
@@ -41,45 +34,25 @@ def test_image_annotation_nifti_import_single_slot(team_slug_darwin_json_v2: str
                 ]
             }
             upload_json = Path(tmpdir) / "annotations.json"
-            upload_json.write_text(
-                json.dumps(input_dict, indent=4, sort_keys=True, default=str)
-            )
+            upload_json.write_text(json.dumps(input_dict, indent=4, sort_keys=True, default=str))
             annotation_files = parse_path(path=upload_json)
             annotation_file = annotation_files[0]
-            output_json_string = json.loads(
-                serialise_annotation_file(annotation_file, as_dict=False)
-            )
-
+            output_json_string = json.loads(serialise_annotation_file(annotation_file, as_dict=False))
             expected_json_string = json.load(
                 open(
-                    Path(tmpdir)
-                    / team_slug_darwin_json_v2
-                    / "nifti"
-                    / "vol0_annotation_file.json",
+                    Path(tmpdir) / team_slug / "nifti" / "vol0_annotation_file.json",
                     "r",
                 )
             )
-
-            expected_output_frames = expected_json_string["annotations"][0]["frames"]
-
-            assert (
-                output_json_string["annotations"][0]["frames"] == expected_output_frames
-            )
+            assert output_json_string["annotations"][0]["frames"] == expected_json_string["annotations"][0]["frames"]
 
 
-def test_image_annotation_nifti_import_multi_slot(team_slug_darwin_json_v2: str):
-    print(team_slug_darwin_json_v2)
+def test_image_annotation_nifti_import_multi_slot(team_slug: str):
     with tempfile.TemporaryDirectory() as tmpdir:
         with ZipFile("tests/data.zip") as zfile:
             zfile.extractall(tmpdir)
             label_path = (
-                Path(tmpdir)
-                / team_slug_darwin_json_v2
-                / "nifti"
-                / "releases"
-                / "latest"
-                / "annotations"
-                / "vol0_brain.nii.gz"
+                Path(tmpdir) / team_slug / "nifti" / "releases" / "latest" / "annotations" / "vol0_brain.nii.gz"
             )
             input_dict = {
                 "data": [
@@ -94,27 +67,17 @@ def test_image_annotation_nifti_import_multi_slot(team_slug_darwin_json_v2: str)
                 ]
             }
             upload_json = Path(tmpdir) / "annotations.json"
-            upload_json.write_text(
-                json.dumps(input_dict, indent=4, sort_keys=True, default=str)
-            )
+            upload_json.write_text(json.dumps(input_dict, indent=4, sort_keys=True, default=str))
             annotation_files = parse_path(path=upload_json)
             annotation_file = annotation_files[0]
-            output_json_string = json.loads(
-                serialise_annotation_file(annotation_file, as_dict=False)
-            )
+            output_json_string = json.loads(serialise_annotation_file(annotation_file, as_dict=False))
             expected_json_string = json.load(
                 open(
-                    Path(tmpdir)
-                    / team_slug_darwin_json_v2
-                    / "nifti"
-                    / "vol0_annotation_file_multi_slot.json",
+                    Path(tmpdir) / team_slug / "nifti" / "vol0_annotation_file_multi_slot.json",
                     "r",
                 )
             )
-            assert (
-                output_json_string["annotations"][0]["frames"]
-                == expected_json_string["annotations"][0]["frames"]
-            )
+            assert output_json_string["annotations"][0]["frames"] == expected_json_string["annotations"][0]["frames"]
 
 
 def test_image_annotation_nifti_import_incorrect_number_slot(team_slug: str):
@@ -122,13 +85,7 @@ def test_image_annotation_nifti_import_incorrect_number_slot(team_slug: str):
         with ZipFile("tests/data.zip") as zfile:
             zfile.extractall(tmpdir)
             label_path = (
-                Path(tmpdir)
-                / team_slug
-                / "nifti"
-                / "releases"
-                / "latest"
-                / "annotations"
-                / "vol0_brain.nii.gz"
+                Path(tmpdir) / team_slug / "nifti" / "releases" / "latest" / "annotations" / "vol0_brain.nii.gz"
             )
             input_dict = {
                 "data": [
@@ -143,16 +100,12 @@ def test_image_annotation_nifti_import_incorrect_number_slot(team_slug: str):
                 ]
             }
             upload_json = Path(tmpdir) / "annotations.json"
-            upload_json.write_text(
-                json.dumps(input_dict, indent=4, sort_keys=True, default=str)
-            )
+            upload_json.write_text(json.dumps(input_dict, indent=4, sort_keys=True, default=str))
             with pytest.raises(Exception):
-                parse_path(path=upload_json)
+                annotation_files = parse_path(path=upload_json)
 
 
-def serialise_annotation_file(
-    annotation_file: AnnotationFile, as_dict
-) -> Union[str, dict]:
+def serialise_annotation_file(annotation_file: AnnotationFile, as_dict) -> Union[str, dict]:
     """
     Serialises an ``AnnotationFile`` into a string.
 
@@ -170,12 +123,9 @@ def serialise_annotation_file(
         "path": str(annotation_file.path),
         "filename": annotation_file.filename,
         "annotation_classes": [
-            serialise_annotation_class(ac, as_dict=True)
-            for ac in annotation_file.annotation_classes
+            serialise_annotation_class(ac, as_dict=True) for ac in annotation_file.annotation_classes
         ],
-        "annotations": [
-            serialise_annotation(a, as_dict=True) for a in annotation_file.annotations
-        ],
+        "annotations": [serialise_annotation(a, as_dict=True) for a in annotation_file.annotations],
         "is_video": annotation_file.is_video,
         "image_width": annotation_file.image_width,
         "image_height": annotation_file.image_height,
@@ -194,9 +144,7 @@ def serialise_annotation_file(
     return output_dict if as_dict else json_string
 
 
-def serialise_annotation(
-    annotation: Union[Annotation, VideoAnnotation], as_dict
-) -> Union[str, dict]:
+def serialise_annotation(annotation: Union[Annotation, VideoAnnotation], as_dict) -> Union[str, dict]:
     if isinstance(annotation, VideoAnnotation):
         return serialise_video_annotation(annotation, as_dict=as_dict)
     elif isinstance(annotation, Annotation):
@@ -220,9 +168,7 @@ def serialise_general_annotation(annotation: Annotation, as_dict) -> Union[str, 
     return output_dict if as_dict else json_string
 
 
-def serialise_video_annotation(
-    video_annotation: VideoAnnotation, as_dict: bool = True
-) -> Union[str, dict]:
+def serialise_video_annotation(video_annotation: VideoAnnotation, as_dict: bool = True) -> Union[str, dict]:
     data = video_annotation.get_data()
     output_dict = {
         "annotation_class": video_annotation.annotation_class.name,
@@ -237,9 +183,7 @@ def serialise_video_annotation(
     return output_dict if as_dict else json_string
 
 
-def serialise_annotation_class(
-    annotation_class: AnnotationClass, as_dict: bool = True
-) -> Union[str, dict]:
+def serialise_annotation_class(annotation_class: AnnotationClass, as_dict: bool = True) -> Union[str, dict]:
     output_dict = {
         "name": annotation_class.name,
         "annotation_type": annotation_class.annotation_type,
@@ -249,9 +193,7 @@ def serialise_annotation_class(
     return output_dict if as_dict else json_string
 
 
-def serialise_sub_annotation(
-    sub_annotation: SubAnnotation, as_dict: bool = True
-) -> Union[str, dict]:
+def serialise_sub_annotation(sub_annotation: SubAnnotation, as_dict: bool = True) -> Union[str, dict]:
     output_dict = {
         "type": sub_annotation.annotation_type,
         "data": sub_annotation.data,
@@ -266,9 +208,7 @@ def serialise_sub_annotation(
 
 
 if __name__ == "__main__":
-    args = argparse.ArgumentParser(
-        description="Update the serialisation of AnnotationFile with the current version."
-    )
+    args = argparse.ArgumentParser(description="Update the serialisation of AnnotationFile with the current version.")
     input_json_string: str = """
     {
         "data": [
@@ -293,11 +233,7 @@ if __name__ == "__main__":
         annotation_file = annotation_files[0]
         output_json_string = serialise_annotation_file(annotation_file, as_dict=False)
         with open(
-            Path("tests")
-            / "v7"
-            / "v7-darwin-json-v1"
-            / "nifti"
-            / "vol0_annotation_file_multi_slot.json",
+            Path("tests") / "v7" / "v7-darwin-json-v1" / "nifti" / "vol0_annotation_file_multi_slot.json",
             "w",
         ) as f:
             f.write(output_json_string)

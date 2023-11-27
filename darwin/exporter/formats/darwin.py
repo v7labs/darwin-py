@@ -3,7 +3,8 @@ from typing import Any, Dict, List
 import deprecation
 
 import darwin.datatypes as dt
-from darwin.datatypes import PolygonPath, PolygonPaths
+
+# from darwin.datatypes import PolygonPath, PolygonPaths
 from darwin.version import __version__
 
 DEPRECATION_MESSAGE = """
@@ -50,14 +51,19 @@ def build_image_annotation(annotation_file: dt.AnnotationFile) -> Dict[str, Any]
 
 def _build_v2_annotation_data(annotation: dt.Annotation) -> Dict[str, Any]:
     annotation_data = {"id": annotation.id, "name": annotation.annotation_class.name}
+
     if annotation.annotation_class.annotation_type == "bounding_box":
         annotation_data["bounding_box"] = _build_bounding_box_data(annotation.data)
     elif annotation.annotation_class.annotation_type == "tag":
         annotation_data["tag"] = {}
-    elif annotation.annotation_class.annotation_type == "polygon":
+    elif (
+        annotation.annotation_class.annotation_type == "polygon"
+        or annotation.annotation_class.annotation_type == "complex_polygon"
+    ):
         polygon_data = _build_polygon_data(annotation.data)
         annotation_data["polygon"] = polygon_data
         annotation_data["bounding_box"] = _build_bounding_box_data(annotation.data)
+
     return annotation_data
 
 
@@ -72,9 +78,9 @@ def _build_bounding_box_data(data: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def _build_polygon_data(data: Dict[str, Any]) -> Dict[str, PolygonPaths]:
+def _build_polygon_data(data: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Builds the polygon data for Darwin v2 format.
+    Builds the polygon data for Darwin V2 format from Darwin internal format (looks like V1).
 
     Parameters
     ----------
@@ -87,7 +93,11 @@ def _build_polygon_data(data: Dict[str, Any]) -> Dict[str, PolygonPaths]:
         The polygon data in the format required for Darwin v2 annotations.
     """
 
-    return {"paths": data.get("paths", [])}
+    # Complex polygon
+    if "paths" in data:
+        return {"paths": data["paths"]}
+    else:
+        return {"paths": [data["path"]]}
 
 
 def _build_item_data(annotation_file: dt.AnnotationFile) -> Dict[str, Any]:

@@ -48,8 +48,6 @@ Node = Dict[str, UnknownType]
 EllipseData = Dict[str, Union[float, Point]]
 CuboidData = Dict[str, Dict[str, float]]
 Segment = List[int]
-PolygonPath = List[Dict[str, float]]
-PolygonPaths = List[Path]
 
 DarwinVersionNumber = Tuple[int, int, int]
 
@@ -531,7 +529,6 @@ def make_polygon(
     bounding_box: Optional[Dict] = None,
     subs: Optional[List[SubAnnotation]] = None,
     slot_names: Optional[List[str]] = None,
-    darwin_v1: bool = False,
 ) -> Annotation:
     """
     Creates and returns a polygon annotation.
@@ -560,18 +557,9 @@ def make_polygon(
     Annotation
         A polygon ``Annotation``.
     """
-
-    if darwin_v1:
-        polygon_data = {"path": point_path}
-    else:
-        # Lets handle darwin V2 datasets
-        if not isinstance(point_path[0], list):
-            point_path = [point_path]
-        polygon_data = {"paths": point_path}
-
     return Annotation(
         AnnotationClass(class_name, "polygon"),
-        _maybe_add_bounding_box_data(polygon_data, bounding_box),
+        _maybe_add_bounding_box_data({"path": point_path}, bounding_box),
         subs or [],
         slot_names=slot_names or [],
     )

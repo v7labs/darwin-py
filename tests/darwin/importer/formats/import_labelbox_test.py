@@ -277,9 +277,7 @@ class TestParsePath:
         assert annotation_file.remote_path == "/"
 
         assert annotation_file.annotations
-        bbox_annotation: Annotation = cast(
-            Annotation, annotation_file.annotations.pop()
-        )
+        bbox_annotation: Annotation = cast(Annotation, annotation_file.annotations.pop())
         assert_bbox(bbox_annotation, 145, 3558, 623, 449)
 
         annotation_class = bbox_annotation.annotation_class
@@ -345,25 +343,25 @@ class TestParsePath:
 
     def test_it_imports_polygon_images(self, file_path: Path):
         json: str = """
-         [
-            {
-               "Label":{
-                  "objects":[
-                     {
-                        "title":"Fish",
-                        "polygon": [
-                           {"x": 3665.814, "y": 351.628},
-                           {"x": 3762.93, "y": 810.419},
-                           {"x": 3042.93, "y": 914.233}
-                        ]
-                     }
-                  ],
-                  "classifications": []
-               },
-               "External ID": "demo-image-7.jpg"
-            }
-         ]
-      """
+            [
+               {
+                  "Label":{
+                     "objects":[
+                        {
+                           "title":"Fish",
+                           "polygon": [
+                              {"x": 3665.814, "y": 351.628},
+                              {"x": 3762.93, "y": 810.419},
+                              {"x": 3042.93, "y": 914.233}
+                           ]
+                        }
+                     ],
+                     "classifications": []
+                  },
+                  "External ID": "demo-image-7.jpg"
+               }
+            ]
+        """
 
         file_path.write_text(json)
 
@@ -378,10 +376,7 @@ class TestParsePath:
 
         assert annotation_file.annotations
 
-        polygon_annotation: Annotation = cast(
-            Annotation, annotation_file.annotations.pop()
-        )
-
+        polygon_annotation: Annotation = cast(Annotation, annotation_file.annotations.pop())
         assert_polygon(
             polygon_annotation,
             [
@@ -425,9 +420,7 @@ class TestParsePath:
 
         assert annotation_file.annotations
 
-        point_annotation: Annotation = cast(
-            Annotation, annotation_file.annotations.pop()
-        )
+        point_annotation: Annotation = cast(Annotation, annotation_file.annotations.pop())
         assert_point(point_annotation, {"x": 342.93, "y": 914.233})
 
         annotation_class = point_annotation.annotation_class
@@ -468,9 +461,7 @@ class TestParsePath:
 
         assert annotation_file.annotations
 
-        line_annotation: Annotation = cast(
-            Annotation, annotation_file.annotations.pop()
-        )
+        line_annotation: Annotation = cast(Annotation, annotation_file.annotations.pop())
         assert_line(
             line_annotation,
             [
@@ -613,9 +604,7 @@ class TestParsePath:
 
         tag_annotation: Annotation = cast(Annotation, annotation_file.annotations[1])
         tag_annotation_class = tag_annotation.annotation_class
-        assert_annotation_class(
-            tag_annotation_class, "r_c_or_l_side_radiograph:right", "tag"
-        )
+        assert_annotation_class(tag_annotation_class, "r_c_or_l_side_radiograph:right", "tag")
 
     def test_it_imports_classification_from_checklist(self, file_path: Path):
         json: str = """
@@ -659,15 +648,11 @@ class TestParsePath:
 
         tag_annotation_1: Annotation = cast(Annotation, annotation_file.annotations[1])
         tag_annotation_class_1 = tag_annotation_1.annotation_class
-        assert_annotation_class(
-            tag_annotation_class_1, "r_c_or_l_side_radiograph:right", "tag"
-        )
+        assert_annotation_class(tag_annotation_class_1, "r_c_or_l_side_radiograph:right", "tag")
 
         tag_annotation_2: Annotation = cast(Annotation, annotation_file.annotations[2])
         tag_annotation_class_2 = tag_annotation_2.annotation_class
-        assert_annotation_class(
-            tag_annotation_class_2, "r_c_or_l_side_radiograph:left", "tag"
-        )
+        assert_annotation_class(tag_annotation_class_2, "r_c_or_l_side_radiograph:left", "tag")
 
     def test_it_imports_classification_from_free_text(self, file_path: Path):
         json: str = """
@@ -710,9 +695,7 @@ class TestParsePath:
         assert_annotation_class(point_annotation_class, "Shark", "keypoint")
 
         tag_annotation: Annotation = cast(Annotation, annotation_file.annotations[1])
-        assert_annotation_class(
-            tag_annotation.annotation_class, "r_c_or_l_side_radiograph", "tag"
-        )
+        assert_annotation_class(tag_annotation.annotation_class, "r_c_or_l_side_radiograph", "tag")
         assert_subannotations(
             tag_annotation.subs,
             [SubAnnotation(annotation_type="text", data="righ side")],
@@ -730,10 +713,7 @@ def assert_bbox(annotation: Annotation, x: float, y: float, h: float, w: float) 
 
 
 def assert_polygon(annotation: Annotation, points: List[Point]) -> None:
-    actual_points = annotation.data.get("paths")
-    # Assumes Darwin v2 format
-    if len(actual_points) == 1:
-        actual_points = actual_points[0]
+    actual_points = annotation.data.get("path")
     assert actual_points
     assert actual_points == points
 
@@ -763,9 +743,7 @@ def assert_annotation_class(
     assert annotation_class.annotation_internal_type == internal_type
 
 
-def assert_subannotations(
-    actual_subs: List[SubAnnotation], expected_subs: List[SubAnnotation]
-) -> None:
+def assert_subannotations(actual_subs: List[SubAnnotation], expected_subs: List[SubAnnotation]) -> None:
     assert actual_subs
     for actual_sub in actual_subs:
         for expected_sub in expected_subs:

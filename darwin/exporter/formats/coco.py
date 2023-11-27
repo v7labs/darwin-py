@@ -443,7 +443,6 @@ def _build_annotation(
     categories: Dict[str, int],
 ) -> Optional[Dict[str, Any]]:
     annotation_type = annotation.annotation_class.annotation_type
-
     if annotation_type == "polygon":
         sequences = convert_polygons_to_sequences(annotation.data["path"], rounding=False)
         x_coords = [s[0::2] for s in sequences]
@@ -506,7 +505,6 @@ def _build_annotation(
         return _build_annotation(
             annotation_file,
             annotation_id,
-            # TODO Investigate if this should be updated to Darwin v2 or not.
             dt.make_polygon(
                 annotation.annotation_class.name,
                 [
@@ -517,7 +515,6 @@ def _build_annotation(
                 ],
                 None,
                 annotation.subs,
-                darwin_v1=True,
             ),
             categories,
         )

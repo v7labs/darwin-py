@@ -16,7 +16,6 @@ from typing import (
     Union,
 )
 
-import darwin.datatypes as dt
 from darwin.datatypes import AnnotationFile
 from darwin.item import DatasetItem
 
@@ -389,25 +388,16 @@ def import_annotations(  # noqa: C901
         else:
             local_files.append(parsed_file)
 
-    console.print(
-        f"{len(local_files) + len(local_files_missing_remotely)} annotation file(s) found.",
-        style="info",
-    )
+    console.print(f"{len(local_files) + len(local_files_missing_remotely)} annotation file(s) found.", style="info")
     if local_files_missing_remotely:
-        console.print(
-            f"{len(local_files_missing_remotely)} file(s) are missing from the dataset",
-            style="warning",
-        )
+        console.print(f"{len(local_files_missing_remotely)} file(s) are missing from the dataset", style="warning")
         for local_file in local_files_missing_remotely:
             console.print(f"\t{local_file.path}: '{local_file.full_path}'", style="warning")
 
         if class_prompt and not secure_continue_request():
             return
 
-    (
-        local_classes_not_in_dataset,
-        local_classes_not_in_team,
-    ) = _resolve_annotation_classes(
+    local_classes_not_in_dataset, local_classes_not_in_team = _resolve_annotation_classes(
         [annotation_class for file in local_files for annotation_class in file.annotation_classes],
         classes_in_dataset,
         classes_in_team,
@@ -415,8 +405,7 @@ def import_annotations(  # noqa: C901
 
     console.print(f"{len(local_classes_not_in_team)} classes needs to be created.", style="info")
     console.print(
-        f"{len(local_classes_not_in_dataset)} classes needs to be added to {dataset.identifier}",
-        style="info",
+        f"{len(local_classes_not_in_dataset)} classes needs to be added to {dataset.identifier}", style="info"
     )
 
     missing_skeletons: List[dt.AnnotationClass] = list(filter(_is_skeleton_class, local_classes_not_in_team))
@@ -439,8 +428,7 @@ def import_annotations(  # noqa: C901
             return
         for missing_class in local_classes_not_in_team:
             dataset.create_annotation_class(
-                missing_class.name,
-                missing_class.annotation_internal_type or missing_class.annotation_type,
+                missing_class.name, missing_class.annotation_internal_type or missing_class.annotation_type
             )
     if local_classes_not_in_dataset:
         console.print(f"About to add the following classes to {dataset.identifier}", style="info")
@@ -491,10 +479,7 @@ def import_annotations(  # noqa: C901
         ]
 
         for file in files_to_not_track:
-            console.print(
-                f"{file.filename} has no annotations. Skipping upload...",
-                style="warning",
-            )
+            console.print(f"{file.filename} has no annotations. Skipping upload...", style="warning")
 
         files_to_track = [file for file in parsed_files if file not in files_to_not_track]
         if files_to_track:
@@ -544,7 +529,7 @@ def _warn_unsupported_annotations(parsed_files: List[AnnotationFile]) -> None:
             if annotation.annotation_class.annotation_type in UNSUPPORTED_CLASSES:
                 skipped_annotations.append(annotation)
         if len(skipped_annotations) > 0:
-            types = {c.annotation_class.annotation_type for c in skipped_annotations}  # noqa: C417
+            types = set(map(lambda c: c.annotation_class.annotation_type, skipped_annotations))  # noqa: C417
             console.print(
                 f"Import of annotation class types '{', '.join(types)}' is not yet supported. Skipping {len(skipped_annotations)} "
                 + "annotations from '{parsed_file.full_path}'.\n",
@@ -561,10 +546,7 @@ def _get_skeleton_name(skeleton: dt.AnnotationClass) -> str:
 
 
 def _handle_subs(
-    annotation: dt.Annotation,
-    data: dt.DictFreeForm,
-    annotation_class_id: str,
-    attributes: Dict[str, dt.UnknownType],
+    annotation: dt.Annotation, data: dt.DictFreeForm, annotation_class_id: str, attributes: Dict[str, dt.UnknownType]
 ) -> dt.DictFreeForm:
     for sub in annotation.subs:
         if sub.annotation_type == "text":
@@ -586,32 +568,10 @@ def _handle_subs(
     return data
 
 
-def _to_complex_polygon(paths: List[str]) -> Dict[str, Any]:
-    return {
-        "path": paths[0],
-        "additional_paths": paths[1:],
-    }
-
-
-def _handle_polygon(annotation: dt.Annotation, data: dt.DictFreeForm) -> dt.DictFreeForm:
-    polygon = data.get("polygon")
-
-    if polygon is not None:
-        if "paths" in polygon and len(polygon["paths"]) == 1:
-            data["polygon"]["path"] = annotation.data["paths"][0]
-            if "paths" in data:
-                del data["paths"]
-
-    data = _handle_complex_polygon(annotation, data)
-    return data
-
-
 def _handle_complex_polygon(annotation: dt.Annotation, data: dt.DictFreeForm) -> dt.DictFreeForm:
     if "complex_polygon" in data:
         del data["complex_polygon"]
-        data["polygon"] = _to_complex_polygon(annotation.data["paths"])
-    elif "polygon" in data and "paths" in data["polygon"] and len(data["polygon"]["paths"]) > 1:
-        data["polygon"] = _to_complex_polygon(annotation.data["paths"])
+        data["polygon"] = {"path": annotation.data["paths"][0], "additional_paths": annotation.data["paths"][1:]}
     return data
 
 
@@ -643,16 +603,14 @@ def _get_annotation_data(
         data = annotation.get_data(
             only_keyframes=True,
             post_processing=lambda annotation, data: _handle_subs(
-                annotation,
-                _handle_polygon(annotation, data),
-                annotation_class_id,
-                attributes,
+                annotation, _handle_complex_polygon(annotation, data), annotation_class_id, attributes
             ),
         )
     else:
         data = {annotation_class.annotation_type: annotation.data}
-        data = _handle_polygon(annotation, data)
+        data = _handle_complex_polygon(annotation, data)
         data = _handle_subs(annotation, data, annotation_class_id, attributes)
+
     return data
 
 
@@ -737,10 +695,5 @@ def _import_annotations(
 # mypy: ignore-errors
 def _console_theme() -> Theme:
     return Theme(
-        {
-            "success": "bold green",
-            "warning": "bold yellow",
-            "error": "bold red",
-            "info": "bold deep_sky_blue1",
-        }
+        {"success": "bold green", "warning": "bold yellow", "error": "bold red", "info": "bold deep_sky_blue1"}
     )
