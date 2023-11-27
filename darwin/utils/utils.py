@@ -615,6 +615,7 @@ def _parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotati
         main_annotation = dt.make_polygon(name, paths[0], bounding_box, slot_names=slot_names)
     # Darwin JSON 1.0 representation of complex and simple polygons
     elif "polygon" in annotation:
+        print(f"Polygon {annotation}")
         bounding_box = annotation.get("bounding_box")
         if "additional_paths" in annotation["polygon"]:
             paths = [annotation["polygon"]["path"]] + annotation["polygon"]["additional_paths"]
@@ -667,7 +668,11 @@ def _parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotati
     elif "raster_layer" in annotation:
         raster_layer = annotation["raster_layer"]
         main_annotation = dt.make_raster_layer(
-            name, raster_layer["mask_annotation_ids_mapping"], raster_layer["total_pixels"], raster_layer["dense_rle"], slot_names=slot_names
+            name,
+            raster_layer["mask_annotation_ids_mapping"],
+            raster_layer["total_pixels"],
+            raster_layer["dense_rle"],
+            slot_names=slot_names,
         )
 
     if not main_annotation:
@@ -923,8 +928,8 @@ def convert_polygons_to_sequences(
         path: List[Union[int, float]] = []
         for point in polygon:
             # Clip coordinates to the image size
-            x = max(min(point["x"], width -1) if width else point["x"], 0)
-            y = max(min(point["y"], height -1) if height else point["y"], 0)
+            x = max(min(point["x"], width - 1) if width else point["x"], 0)
+            y = max(min(point["y"], height - 1) if height else point["y"], 0)
             if rounding:
                 path.append(round(x))
                 path.append(round(y))
@@ -1098,7 +1103,7 @@ def chunk(items: List[Any], size: int) -> Iterator[Any]:
         A chunk of the of the given size.
     """
     for i in range(0, len(items), size):
-        yield items[i:i + size]
+        yield items[i : i + size]
 
 
 def is_unix_like_os() -> bool:
