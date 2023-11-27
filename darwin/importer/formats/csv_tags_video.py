@@ -54,7 +54,10 @@ def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
         annotation_classes = set(
             [annotation.annotation_class for annotation in annotations]
         )
-        remote_path = "/" + "/".join(filename.split("/")[:-1])
+        split_filename = filename.split("/")
+        remote_path = "/".join(split_filename[:-1])
+        if not remote_path.startswith("/"):
+            remote_path = "/" + remote_path
         filename = filename.split("/")[-1]
         files.append(
             dt.AnnotationFile(
