@@ -182,7 +182,3 @@ class NotContainsMatcher(BaseMatcher):
     name: Literal['not_contains'] = 'not_contains'
     value: str
     
-
-test = AnnotationClassFilter(any_of=[1,2,3]) & AnnotationClassFilter(any_of=[4,5,6]) & AnnotationClassFilter(any_of=[7,8,9])
-
-print(test)
