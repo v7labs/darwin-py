@@ -53,7 +53,9 @@ class TestParsePath:
 
         assert "Folder must contain a 'classes.json'" in str(error.value)
 
-    def test_returns_empty_file_if_there_are_no_annotations(self, annotations_file_path: Path, classes_file_path: Path):
+    def test_returns_empty_file_if_there_are_no_annotations(
+        self, annotations_file_path: Path, classes_file_path: Path
+    ):
         annotations_json: str = """
          {
             "instances": [],
@@ -76,7 +78,9 @@ class TestParsePath:
             remote_path="/",
         )
 
-    def test_raises_if_annotation_has_no_type(self, annotations_file_path: Path, classes_file_path: Path):
+    def test_raises_if_annotation_has_no_type(
+        self, annotations_file_path: Path, classes_file_path: Path
+    ):
         annotations_json: str = """
           {
              "instances": [
@@ -100,7 +104,9 @@ class TestParsePath:
 
             assert "'type' is a required property" in str(error.value)
 
-    def test_raises_if_annotation_has_no_class_id(self, annotations_file_path: Path, classes_file_path: Path):
+    def test_raises_if_annotation_has_no_class_id(
+        self, annotations_file_path: Path, classes_file_path: Path
+    ):
         annotations_json: str = """
           {
              "instances": [
@@ -125,7 +131,9 @@ class TestParsePath:
 
             assert "'classId' is a required property" in str(error.value)
 
-    def test_raises_if_metadata_is_missing(self, annotations_file_path: Path, classes_file_path: Path):
+    def test_raises_if_metadata_is_missing(
+        self, annotations_file_path: Path, classes_file_path: Path
+    ):
         annotations_json: str = """
           {
              "instances": [
@@ -147,7 +155,9 @@ class TestParsePath:
 
             assert "'metadata' is a required property" in str(error.value)
 
-    def test_raises_if_metadata_is_missing_name(self, annotations_file_path: Path, classes_file_path: Path):
+    def test_raises_if_metadata_is_missing_name(
+        self, annotations_file_path: Path, classes_file_path: Path
+    ):
         annotations_json: str = """
           {
              "instances": [
@@ -169,7 +179,9 @@ class TestParsePath:
 
             assert "'name' is a required property" in str(error.value)
 
-    def test_raises_if_point_has_missing_coordinate(self, annotations_file_path: Path, classes_file_path: Path):
+    def test_raises_if_point_has_missing_coordinate(
+        self, annotations_file_path: Path, classes_file_path: Path
+    ):
         annotations_json: str = """
           {
              "instances": [
@@ -194,7 +206,9 @@ class TestParsePath:
         error_str = str(error.value)
         assert all(["point" in error_str, "ellipse" in error_str])
 
-    def test_imports_point_vectors(self, annotations_file_path: Path, classes_file_path: Path):
+    def test_imports_point_vectors(
+        self, annotations_file_path: Path, classes_file_path: Path
+    ):
         annotations_json: str = """
        {
           "instances": [
@@ -222,13 +236,17 @@ class TestParsePath:
 
         assert annotation_file.annotations
 
-        point_annotation: Annotation = cast(Annotation, annotation_file.annotations.pop())
+        point_annotation: Annotation = cast(
+            Annotation, annotation_file.annotations.pop()
+        )
         assert_point(point_annotation, {"x": 1.93, "y": 0.233})
 
         annotation_class = point_annotation.annotation_class
         assert_annotation_class(annotation_class, "Person-point", "keypoint")
 
-    def test_raises_if_ellipse_has_missing_coordinate(self, annotations_file_path: Path, classes_file_path: Path):
+    def test_raises_if_ellipse_has_missing_coordinate(
+        self, annotations_file_path: Path, classes_file_path: Path
+    ):
         annotations_json: str = """
           {
              "instances": [
@@ -248,7 +266,9 @@ class TestParsePath:
         error_str = str(error.value)
         assert all(["ellipse" in error_str, "point" in error_str])
 
-    def test_imports_ellipse_vectors(self, annotations_file_path: Path, classes_file_path: Path):
+    def test_imports_ellipse_vectors(
+        self, annotations_file_path: Path, classes_file_path: Path
+    ):
         annotations_json: str = """
          {
             "instances": [
@@ -285,7 +305,9 @@ class TestParsePath:
 
         assert annotation_file.annotations
 
-        ellipse_annotation: Annotation = cast(Annotation, annotation_file.annotations.pop())
+        ellipse_annotation: Annotation = cast(
+            Annotation, annotation_file.annotations.pop()
+        )
         assert_ellipse(
             ellipse_annotation,
             {
@@ -298,7 +320,9 @@ class TestParsePath:
         annotation_class = ellipse_annotation.annotation_class
         assert_annotation_class(annotation_class, "Person-ellipse", "ellipse")
 
-    def test_raises_if_cuboid_has_missing_point(self, annotations_file_path: Path, classes_file_path: Path):
+    def test_raises_if_cuboid_has_missing_point(
+        self, annotations_file_path: Path, classes_file_path: Path
+    ):
         annotations_json: str = """
           {
              "instances": [
@@ -325,7 +349,9 @@ class TestParsePath:
         error_str = str(error.value)
         assert all(["cuboid" in error_str, "point" in error_str])
 
-    def test_imports_cuboid_vectors(self, annotations_file_path: Path, classes_file_path: Path):
+    def test_imports_cuboid_vectors(
+        self, annotations_file_path: Path, classes_file_path: Path
+    ):
         annotations_json: str = """
          {
             "instances": [
@@ -363,7 +389,9 @@ class TestParsePath:
 
         assert annotation_file.annotations
 
-        cuboid_annotation: Annotation = cast(Annotation, annotation_file.annotations.pop())
+        cuboid_annotation: Annotation = cast(
+            Annotation, annotation_file.annotations.pop()
+        )
         assert_cuboid(
             cuboid_annotation,
             {
@@ -375,7 +403,9 @@ class TestParsePath:
         annotation_class = cuboid_annotation.annotation_class
         assert_annotation_class(annotation_class, "Person-cuboid", "cuboid")
 
-    def test_raises_if_polygon_has_missing_points(self, annotations_file_path: Path, classes_file_path: Path):
+    def test_raises_if_polygon_has_missing_points(
+        self, annotations_file_path: Path, classes_file_path: Path
+    ):
         annotations_json: str = """
           {
             "instances": [
@@ -400,7 +430,9 @@ class TestParsePath:
         error_str = str(error.value)
         assert all(["polygon" in error_str, "point" in error_str])
 
-    def test_imports_polygon_vectors(self, annotations_file_path: Path, classes_file_path: Path):
+    def test_imports_polygon_vectors(
+        self, annotations_file_path: Path, classes_file_path: Path
+    ):
         annotations_json: str = """
          {
             "instances": [
@@ -433,7 +465,9 @@ class TestParsePath:
 
         assert annotation_file.annotations
 
-        polygon_annotation: Annotation = cast(Annotation, annotation_file.annotations.pop())
+        polygon_annotation: Annotation = cast(
+            Annotation, annotation_file.annotations.pop()
+        )
         assert_polygon(
             polygon_annotation,
             [
@@ -446,7 +480,9 @@ class TestParsePath:
         annotation_class = polygon_annotation.annotation_class
         assert_annotation_class(annotation_class, "Person-polygon", "polygon")
 
-    def test_raises_if_polyline_has_missing_points(self, annotations_file_path: Path, classes_file_path: Path):
+    def test_raises_if_polyline_has_missing_points(
+        self, annotations_file_path: Path, classes_file_path: Path
+    ):
         annotations_json: str = """
           {
             "instances": [
@@ -471,7 +507,9 @@ class TestParsePath:
         error_str = str(error.value)
         assert all(["polyline" in error_str, "point" in error_str])
 
-    def test_imports_polyline_vectors(self, annotations_file_path: Path, classes_file_path: Path):
+    def test_imports_polyline_vectors(
+        self, annotations_file_path: Path, classes_file_path: Path
+    ):
         annotations_json: str = """
          {
             "instances": [
@@ -504,7 +542,9 @@ class TestParsePath:
 
         assert annotation_file.annotations
 
-        line_annotation: Annotation = cast(Annotation, annotation_file.annotations.pop())
+        line_annotation: Annotation = cast(
+            Annotation, annotation_file.annotations.pop()
+        )
         assert_line(
             line_annotation,
             [
@@ -517,7 +557,9 @@ class TestParsePath:
         annotation_class = line_annotation.annotation_class
         assert_annotation_class(annotation_class, "Person-polyline", "line")
 
-    def test_raises_if_bbox_has_missing_points(self, annotations_file_path: Path, classes_file_path: Path):
+    def test_raises_if_bbox_has_missing_points(
+        self, annotations_file_path: Path, classes_file_path: Path
+    ):
         annotations_json: str = """
           {
             "instances": [
@@ -541,7 +583,9 @@ class TestParsePath:
         error_str = str(error.value)
         assert all(["bbox" in error_str, "point" in error_str])
 
-    def test_imports_bbox_vectors(self, annotations_file_path: Path, classes_file_path: Path):
+    def test_imports_bbox_vectors(
+        self, annotations_file_path: Path, classes_file_path: Path
+    ):
         annotations_json: str = """
          {
             "instances": [
@@ -574,13 +618,17 @@ class TestParsePath:
 
         assert annotation_file.annotations
 
-        bbox_annotation: Annotation = cast(Annotation, annotation_file.annotations.pop())
+        bbox_annotation: Annotation = cast(
+            Annotation, annotation_file.annotations.pop()
+        )
         assert_bbox(bbox_annotation, 1642.9, 516.5, 217.5, 277.1)
 
         annotation_class = bbox_annotation.annotation_class
         assert_annotation_class(annotation_class, "Person-bbox", "bounding_box")
 
-    def test_raises_if_an_attributes_is_missing(self, annotations_file_path: Path, classes_file_path: Path):
+    def test_raises_if_an_attributes_is_missing(
+        self, annotations_file_path: Path, classes_file_path: Path
+    ):
         annotations_json: str = """
          {
             "instances": [
@@ -621,7 +669,9 @@ class TestParsePath:
         error_str = str(error.value)
         assert all(["type" in error_str, "bbox" in error_str])
 
-    def test_raises_if_an_attribute_from_a_group_is_missing(self, annotations_file_path: Path, classes_file_path: Path):
+    def test_raises_if_an_attribute_from_a_group_is_missing(
+        self, annotations_file_path: Path, classes_file_path: Path
+    ):
         annotations_json: str = """
          {
             "instances": [
@@ -660,9 +710,13 @@ class TestParsePath:
         with pytest.raises(ValueError) as error:
             parse_path(annotations_file_path)
 
-        assert "No attribute data found for {'id': 2, 'groupId': 1}." in str(error.value)
+        assert "No attribute data found for {'id': 2, 'groupId': 1}." in str(
+            error.value
+        )
 
-    def test_imports_attributes(self, annotations_file_path: Path, classes_file_path: Path):
+    def test_imports_attributes(
+        self, annotations_file_path: Path, classes_file_path: Path
+    ):
         annotations_json: str = """
          {
             "instances": [
@@ -717,7 +771,9 @@ class TestParsePath:
 
         assert annotation_file.annotations
 
-        bbox_annotation: Annotation = cast(Annotation, annotation_file.annotations.pop())
+        bbox_annotation: Annotation = cast(
+            Annotation, annotation_file.annotations.pop()
+        )
         assert_bbox(bbox_annotation, 1642.9, 516.5, 217.5, 277.1)
 
         annotation_class = bbox_annotation.annotation_class
@@ -728,7 +784,9 @@ class TestParsePath:
             [SubAnnotation("attributes", ["Sex:Female", "Emotion:Smiling"])],
         )
 
-    def test_raises_if_tags_is_missing(self, annotations_file_path: Path, classes_file_path: Path):
+    def test_raises_if_tags_is_missing(
+        self, annotations_file_path: Path, classes_file_path: Path
+    ):
         annotations_json: str = """
          {
             "instances": [
@@ -882,7 +940,9 @@ def assert_annotation_class(
     assert annotation_class.annotation_internal_type == internal_type
 
 
-def assert_subannotations(actual_subs: List[SubAnnotation], expected_subs: List[SubAnnotation]) -> None:
+def assert_subannotations(
+    actual_subs: List[SubAnnotation], expected_subs: List[SubAnnotation]
+) -> None:
     assert actual_subs
     for actual_sub in actual_subs:
         for expected_sub in expected_subs:
