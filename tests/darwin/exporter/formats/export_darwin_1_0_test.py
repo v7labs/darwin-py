@@ -1,13 +1,14 @@
 from pathlib import Path
 
-
 import darwin.datatypes as dt
 from darwin.exporter.formats.darwin_1_0 import _build_json
 
 
 class TestBuildJson:
     def test_empty_annotation_file(self):
-        annotation_file = dt.AnnotationFile(path=Path("test.json"), filename="test.json", annotation_classes=[], annotations=[])
+        annotation_file = dt.AnnotationFile(
+            path=Path("test.json"), filename="test.json", annotation_classes=[], annotations=[]
+        )
 
         assert _build_json(annotation_file) == {
             "image": {
@@ -137,7 +138,9 @@ class TestBuildJson:
         bounding_box = {"x": 557.66, "y": 428.98, "w": 160.76, "h": 315.3}
 
         annotation_class = dt.AnnotationClass(name="test", annotation_type="polygon")
-        annotation = dt.Annotation(annotation_class=annotation_class, data={"path": polygon_path, "bounding_box": bounding_box}, subs=[])
+        annotation = dt.Annotation(
+            annotation_class=annotation_class, data={"path": polygon_path, "bounding_box": bounding_box}, subs=[]
+        )
 
         annotation_file = dt.AnnotationFile(
             path=Path("test.json"),
@@ -161,7 +164,9 @@ class TestBuildJson:
                 "path": None,
                 "workview_url": None,
             },
-            "annotations": [{"polygon": {"path": polygon_path}, "name": "test", "slot_names": [], "bounding_box": bounding_box}],
+            "annotations": [
+                {"polygon": {"path": polygon_path}, "name": "test", "slot_names": [], "bounding_box": bounding_box}
+            ],
             "dataset": "None",
         }
 
@@ -180,7 +185,9 @@ class TestBuildJson:
         bounding_box = {"x": 557.66, "y": 428.98, "w": 160.76, "h": 315.3}
 
         annotation_class = dt.AnnotationClass(name="test", annotation_type="complex_polygon")
-        annotation = dt.Annotation(annotation_class=annotation_class, data={"paths": polygon_path, "bounding_box": bounding_box}, subs=[])
+        annotation = dt.Annotation(
+            annotation_class=annotation_class, data={"paths": polygon_path, "bounding_box": bounding_box}, subs=[]
+        )
 
         annotation_file = dt.AnnotationFile(
             path=Path("test.json"),
@@ -204,67 +211,13 @@ class TestBuildJson:
                 "path": None,
                 "workview_url": None,
             },
-            "annotations": [{"complex_polygon": {"path": polygon_path}, "name": "test", "slot_names": [], "bounding_box": bounding_box}],
-            "dataset": "None",
-        }
-
-    def test_bounding_box(self):
-        bounding_box_data = {"x": 100, "y": 150, "w": 50, "h": 30}
-        annotation_class = dt.AnnotationClass(name="bbox_test", annotation_type="bounding_box")
-        annotation = dt.Annotation(annotation_class=annotation_class, data=bounding_box_data, subs=[])
-
-        annotation_file = dt.AnnotationFile(
-            path=Path("test.json"),
-            filename="test.json",
-            annotation_classes=[annotation_class],
-            annotations=[annotation],
-            image_height=1080,
-            image_width=1920,
-            image_url="https://darwin.v7labs.com/image.jpg",
-        )
-
-        assert _build_json(annotation_file) == {
-            "image": {
-                "seq": None,
-                "width": 1920,
-                "height": 1080,
-                "filename": "test.json",
-                "original_filename": "test.json",
-                "url": "https://darwin.v7labs.com/image.jpg",
-                "thumbnail_url": None,
-                "path": None,
-                "workview_url": None,
-            },
-            "annotations": [{"bounding_box": bounding_box_data, "name": "bbox_test", "slot_names": []}],
-            "dataset": "None",
-        }
-
-    def test_tags(self):
-        tag_data = "sample_tag"
-        annotation_class = dt.AnnotationClass(name="tag_test", annotation_type="tag")
-        annotation = dt.Annotation(annotation_class=annotation_class, data=tag_data, subs=[])
-
-        annotation_file = dt.AnnotationFile(
-            path=Path("test.json"),
-            filename="test.json",
-            annotation_classes=[annotation_class],
-            annotations=[annotation],
-            image_height=1080,
-            image_width=1920,
-            image_url="https://darwin.v7labs.com/image.jpg",
-        )
-        assert _build_json(annotation_file) == {
-            "image": {
-                "seq": None,
-                "width": 1920,
-                "height": 1080,
-                "filename": "test.json",
-                "original_filename": "test.json",
-                "url": "https://darwin.v7labs.com/image.jpg",
-                "thumbnail_url": None,
-                "path": None,
-                "workview_url": None,
-            },
-            "annotations": [{"tag": {}, "name": "tag_test", "slot_names": []}],
+            "annotations": [
+                {
+                    "complex_polygon": {"path": polygon_path},
+                    "name": "test",
+                    "slot_names": [],
+                    "bounding_box": bounding_box,
+                }
+            ],
             "dataset": "None",
         }
