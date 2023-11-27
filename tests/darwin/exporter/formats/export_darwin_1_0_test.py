@@ -7,10 +7,7 @@ from darwin.exporter.formats.darwin_1_0 import _build_json
 class TestBuildJson:
     def test_empty_annotation_file(self):
         annotation_file = dt.AnnotationFile(
-            path=Path("test.json"),
-            filename="test.json",
-            annotation_classes=[],
-            annotations=[],
+            path=Path("test.json"), filename="test.json", annotation_classes=[], annotations=[]
         )
 
         assert _build_json(annotation_file) == {
@@ -358,9 +355,13 @@ class TestBuildJson:
 
         annotation_class = dt.AnnotationClass(name="test", annotation_type="polygon")
         annotation = dt.Annotation(
+<<<<<<< .merge_file_o0MlJA
             annotation_class=annotation_class,
             data={"path": polygon_path, "bounding_box": bounding_box},
             subs=[],
+=======
+            annotation_class=annotation_class, data={"path": polygon_path, "bounding_box": bounding_box}, subs=[]
+>>>>>>> .merge_file_SwKf10
         )
 
         annotation_file = dt.AnnotationFile(
@@ -386,12 +387,16 @@ class TestBuildJson:
                 "workview_url": None,
             },
             "annotations": [
+<<<<<<< .merge_file_o0MlJA
                 {
                     "polygon": {"path": polygon_path},
                     "name": "test",
                     "slot_names": [],
                     "bounding_box": bounding_box,
                 }
+=======
+                {"polygon": {"path": polygon_path}, "name": "test", "slot_names": [], "bounding_box": bounding_box}
+>>>>>>> .merge_file_SwKf10
             ],
             "dataset": "None",
         }
@@ -418,6 +423,7 @@ class TestBuildJson:
 
         bounding_box = {"x": 557.66, "y": 428.98, "w": 160.76, "h": 315.3}
 
+<<<<<<< .merge_file_o0MlJA
         annotation_class = dt.AnnotationClass(
             name="test", annotation_type="complex_polygon"
         )
@@ -425,6 +431,11 @@ class TestBuildJson:
             annotation_class=annotation_class,
             data={"paths": polygon_path, "bounding_box": bounding_box},
             subs=[],
+=======
+        annotation_class = dt.AnnotationClass(name="test", annotation_type="complex_polygon")
+        annotation = dt.Annotation(
+            annotation_class=annotation_class, data={"paths": polygon_path, "bounding_box": bounding_box}, subs=[]
+>>>>>>> .merge_file_SwKf10
         )
 
         annotation_file = dt.AnnotationFile(

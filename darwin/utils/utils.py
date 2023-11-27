@@ -732,6 +732,7 @@ def _parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotati
         )
     # Darwin JSON 1.0 representation of complex and simple polygons
     elif "polygon" in annotation:
+        print(f"Polygon {annotation}")
         bounding_box = annotation.get("bounding_box")
         if "additional_paths" in annotation["polygon"]:
             paths = [annotation["polygon"]["path"]] + annotation["polygon"][

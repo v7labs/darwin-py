@@ -1,19 +1,22 @@
 [build-system]
-requires = [ "poetry-core",]
+requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "darwin-py"
-version = "0.8.49"
+version = "0.8.50"
 description = "Library and command line interface for darwin.v7labs.com"
 homepage = "https://docs.v7labs.com/reference/getting-started-2"
 documentation = "https://darwin-py-sdk.v7labs.com/index.html"
 repository = "https://github.com/v7labs/darwin-py"
-authors = [ "V7 <info@v7labs.com>",]
+authors = ["V7 <info@v7labs.com>"]
 readme = "README.md"
 license = "MIT"
 keywords = []
-classifiers = [ "Programming Language :: Python :: 3", "License :: OSI Approved :: MIT License",]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+]
 [[tool.poetry.packages]]
 include = "darwin"
 
@@ -21,7 +24,7 @@ include = "darwin"
 profile = "black"
 
 [tool.mypy]
-plugins = [ "pydantic.mypy",]
+plugins = ["pydantic.mypy"]
 follow_imports = "silent"
 warn_redundant_casts = true
 warn_unused_ignores = true
@@ -51,13 +54,13 @@ warn_required_dynamic_aliases = true
 warn_untyped_fields = true
 
 [tool.ruff]
-select = [ "E", "F", "C",]
-ignore = [ "E203", "E402", "E501",]
+select = ["E", "F", "C"]
+ignore = ["E203", "E402", "E501"]
 line-length = 88
 
 [tool.flake8]
 max-line-length = 88
-ignore = [ "E203", "W503", "E402",]
+ignore = ["E203", "W503", "E402"]
 
 [tool.black]
 line-length = 88
@@ -83,18 +86,30 @@ pyyaml = "^6.0.1"
 json-stream = "^2.3.2"
 
 [tool.poetry.extras]
-dev = [ "black", "isort", "flake8", "mypy", "debugpy", "responses", "pytest", "flake8-pyproject", "pytest-rerunfailures", "ruff", "validate-pyproject",]
-test = [ "responses", "pytest", "flake8-pyproject",]
-ml = [ "torch", "torchvision", "scikit-learn", "albumentations",]
-medical = [ "nibabel", "connected-components-3d",]
-ocv = [ "opencv-python-headless",]
+dev = [
+    "black",
+    "isort",
+    "flake8",
+    "mypy",
+    "debugpy",
+    "responses",
+    "pytest",
+    "flake8-pyproject",
+    "pytest-rerunfailures",
+    "ruff",
+    "validate-pyproject",
+]
+test = ["responses", "pytest", "flake8-pyproject"]
+ml = ["torch", "torchvision", "scikit-learn", "albumentations"]
+medical = ["nibabel", "connected-components-3d"]
+ocv = ["opencv-python-headless"]
 
 [tool.poetry.scripts]
 darwin = "darwin.cli:main"
 
 [tool.ruff.per-file-ignores]
-"__init__.py" = [ "E402", "F401",]
-"**/{tests,docs,tools}/*" = [ "E402", "F403",]
+"__init__.py" = ["E402", "F401"]
+"**/{tests,docs,tools}/*" = ["E402", "F403"]
 
 [tool.poetry.dependencies.dataclasses]
 markers = "python_version < \"3.7\""
@@ -149,7 +164,7 @@ version = "^7.2.1"
 optional = true
 
 [tool.poetry.dependencies.debugpy]
-version = "^1.6.5"
+version = "1.6.7"
 optional = true
 
 [tool.poetry.dependencies.mpire]

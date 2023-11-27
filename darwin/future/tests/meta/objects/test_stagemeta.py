@@ -98,7 +98,58 @@ def test_move_attached_files_to_stage(
             json={"success": UUIDs_str},
             status=200,
         )
-        stage_meta.move_attached_files_to_stage(stage_meta.id)
+        stage_meta.move_attached_files_to_stage(stage_meta.id, wait=False)
+
+
+def test_move_attached_files_to_stage_wait(
+    base_meta_client: Client, stage_meta: Stage, UUIDs_str: List[str], UUIDs: List[UUID]
+) -> None:
+    with responses.RequestsMock() as rsps:
+        rsps.add(
+            rsps.GET,
+            base_meta_client.config.api_endpoint
+            + "v2/teams/default-team/items/list_ids",
+            json={"item_ids": UUIDs_str},
+            match=[
+                query_param_matcher(
+                    {
+                        "page[offset]": "0",
+                        "page[size]": "500",
+                        "workflow_stage_ids": str(stage_meta.id),
+                        "dataset_ids": "1337",
+                    }
+                )
+            ],
+            status=200,
+        )
+        rsps.add(
+            rsps.POST,
+            base_meta_client.config.api_endpoint + "v2/teams/default-team/items/stage",
+            json={"success": UUIDs_str},
+            status=200,
+        )
+        for uuid in stage_meta.item_ids.collect_all():
+            rsps.add(
+                rsps.GET,
+                base_meta_client.config.api_endpoint
+                + f"v2/teams/default-team/items/{uuid}",
+                json={
+                    "archived": False,
+                    "dataset_id": 1337,
+                    "id": "00000000-0000-0000-0000-000000000000",
+                    "layout": None,
+                    "name": "test_0",
+                    "path": "test_path",
+                    "priority": 0,
+                    "processing_status": "complete",
+                    "slots": [],
+                    "tags": [],
+                },
+                status=200,
+            )
+        stage_meta.move_attached_files_to_stage(
+            stage_meta.id, wait=True, wait_max_attempts=5, wait_time=0.5
+        )
 
 
 def test_get_stage_id(stage_meta: Stage) -> None:
