@@ -571,7 +571,7 @@ def _parse_darwin_v2(path: Path, data: Dict[str, Any]) -> dt.AnnotationFile:
             .get("name", None),
             annotation_classes=annotation_classes,
             annotations=annotations,
-            is_video=slot.frame_urls is not None,
+            is_video=slot.frame_urls is not None or slot.frame_manifest is not None,
             image_width=slot.width,
             image_height=slot.height,
             image_url=None
@@ -583,6 +583,7 @@ def _parse_darwin_v2(path: Path, data: Dict[str, Any]) -> dt.AnnotationFile:
             frame_urls=slot.frame_urls,
             remote_path=item["path"],
             slots=slots,
+            frame_count=slot.frame_count,
         )
 
     return annotation_file
@@ -992,13 +993,16 @@ def split_video_annotation(annotation: dt.AnnotationFile) -> List[dt.AnnotationF
         no ``frame_url`` attribute.
     """
     if not annotation.is_video:
-        raise AttributeError("this is not a video annotation")
+        raise AttributeError("This is not a video annotation")
 
-    if not annotation.frame_urls:
-        raise AttributeError("This Annotation has no frame urls")
-
+    # changes here from annotation.frame_urls to annotation.frame_count with frame_urls as backup
+    # due to addition of long videos feature, where frame_urls is no longer available.
+    # frame_count should be available for both, however existing annotations will not have this
+    if not annotation.frame_count and not annotation.frame_urls:
+        raise AttributeError("This Annotation has no frames")
+    urls = annotation.frame_urls or [None] * (annotation.frame_count or 1)
     frame_annotations = []
-    for i, frame_url in enumerate(annotation.frame_urls):
+    for i, frame_url in enumerate(urls):
         annotations = [
             a.frames[i]
             for a in annotation.annotations
