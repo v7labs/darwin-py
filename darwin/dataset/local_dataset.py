@@ -134,9 +134,9 @@ class LocalDataset:
     ):
         # Find all the annotations and their corresponding images
         for annotation_path in sorted(annotations_dir.glob("**/*.json")):
-            # darwin_json = stream_darwin_json(annotation_path)
-            with annotation_path.open() as file:
-                darwin_json = json.load(file)
+            darwin_json = stream_darwin_json(annotation_path)
+            # with annotation_path.open() as file:
+            #    darwin_json = json.load(file)
 
             image_path = get_image_path_from_stream(darwin_json, images_dir)
             if image_path.exists():
