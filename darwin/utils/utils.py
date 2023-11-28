@@ -24,7 +24,7 @@ import json_stream
 import numpy as np
 import orjson as json
 import requests
-from json_stream.base import PersistentStreamingJSONObject
+from json_stream.base import PersistentStreamingJSONList, PersistentStreamingJSONObject
 from jsonschema import validators
 from requests import Response
 from rich.progress import ProgressType, track
@@ -490,6 +490,17 @@ def stream_darwin_json(path: Path) -> PersistentStreamingJSONObject:
 
     with path.open() as infile:
         return json_stream.load(infile, persistent=True)
+
+
+def is_stream_list_empty(json_list: PersistentStreamingJSONList) -> bool:
+
+    try:
+        json_list[0]
+    except IndexError:
+        return True
+    
+    return False
+
 
 
 def get_image_path_from_stream(

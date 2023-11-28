@@ -10,6 +10,7 @@ from darwin.dataset.utils import get_classes, get_release_path, load_pil_image
 from darwin.utils import (
     SUPPORTED_IMAGE_EXTENSIONS,
     get_image_path_from_stream,
+    is_stream_list_empty,
     parse_darwin_json,
     stream_darwin_json,
 )
@@ -135,12 +136,10 @@ class LocalDataset:
         # Find all the annotations and their corresponding images
         for annotation_path in sorted(annotations_dir.glob("**/*.json")):
             darwin_json = stream_darwin_json(annotation_path)
-            # with annotation_path.open() as file:
-            #    darwin_json = json.load(file)
 
             image_path = get_image_path_from_stream(darwin_json, images_dir)
             if image_path.exists():
-                if not keep_empty_annotations and len(darwin_json["annotations"]) < 1:
+                if not keep_empty_annotations and is_stream_list_empty(darwin_json["annotations"]):
                     continue
                 self.images_path.append(image_path)
                 self.annotations_path.append(annotation_path)
