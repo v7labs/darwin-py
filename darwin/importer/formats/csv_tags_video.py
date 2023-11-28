@@ -52,7 +52,7 @@ def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
     for filename in file_annotation_map:
         annotations = file_annotation_map[filename]
         annotation_classes = set(
-            [annotation.annotation_class for annotation in annotations]
+            annotation.annotation_class for annotation in annotations
         )
         filename_path = Path(filename)
         remote_path = str(filename_path.parent)
