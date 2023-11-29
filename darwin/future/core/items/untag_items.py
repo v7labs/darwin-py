@@ -13,7 +13,7 @@ def untag_items(
     filters: dict[str, UnknownType],
 ) -> JSONType:
     """
-    Adds tag annotation to all items slots matched by filters.
+    Untags items slots matched by filters.
 
     Args:
         client (ClientCore): The Darwin Core client.
