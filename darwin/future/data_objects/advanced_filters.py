@@ -17,34 +17,11 @@ WorkflowStatusType = Literal["new", "annotate", "review", "complete"]
 class GroupFilter(BaseModel, ABC):
     conjuction: Literal['and', 'or'] = 'and'
     filters: List[GroupFilter | SubjectFilter]
-    
-    def __add__(self, other: SubjectFilter) -> GroupFilter:
-        self.filters.append(other)
-        return self
 
-    def __iadd__(self, other: SubjectFilter) -> GroupFilter:
-        self.filters.append(other)
-        return self
-    
-    def __or__(self, other: SubjectFilter) -> GroupFilter:
-        return GroupFilter(conjuction='or', filters=[self, other])
-    
-    def __and__(self, other: SubjectFilter) -> GroupFilter:
-        return GroupFilter(conjuction='and', filters=[self, other])
-    
 
 class SubjectFilter(BaseModel, ABC):
     subject: str
     matcher: BaseMatcher
-    
-    def __add__(self, other: SubjectFilter) -> GroupFilter:
-        return GroupFilter(conjuction='and', filters=[self, other])
-    
-    def __or__(self, other: SubjectFilter) -> GroupFilter:
-        return GroupFilter(conjuction='or', filters=[self, other])
-    
-    def __and__(self, other: SubjectFilter) -> GroupFilter:
-        return GroupFilter(conjuction='and', filters=[self, other])
     
 class BaseMatcher(BaseModel, ABC):
     name: str
