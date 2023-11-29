@@ -170,3 +170,9 @@ class Item(MetaBase[ItemCore]):
     @property
     def layout(self) -> Optional[ItemLayout]:
         return self._element.layout
+
+    def __str__(self) -> str:
+        return f"Item\n\
+- Item Name: {self._element.name}\n\
+- Item Processing Status: {self._element.processing_status}\n\
+- Item ID: {self._element.id}"
