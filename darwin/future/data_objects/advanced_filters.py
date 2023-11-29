@@ -103,7 +103,7 @@ class AnyOfMatcher(BaseMatcher, Generic[T]):
     values: List[T]
     
     @validator('values')
-    def validate_any_of(cls, value):
+    def validate_any_of(cls, value: List[T]) -> List[T]:
         if len(value) < 2:
             raise ValueError("Must provide at least two values for 'any_of' matcher.")
         return value
@@ -113,7 +113,7 @@ class AllOfMatcher(BaseMatcher, Generic[T]):
     values: List[T]
     
     @validator('values')
-    def validate_all_of(cls, value):
+    def validate_all_of(cls, value: List[T]) -> List[T]:
         if len(value) < 1:
             raise ValueError("Must provide at least a value for 'all_of' matcher.")
         return value
@@ -123,7 +123,7 @@ class NoneOfMatcher(BaseMatcher, Generic[T]):
     values: List[T]
     
     @validator('values')
-    def validate_none_of(cls, value):
+    def validate_none_of(cls, value: List[T]) -> List[T]:
         if len(value) < 1:
             raise ValueError("Must provide at least a value for 'none_of' matcher.")
         return value
@@ -138,7 +138,7 @@ class DateRangeMatcher(BaseModel):
     end: Optional[datetime]
 
     @validator('start', 'end')
-    def validate_date_range(cls, value, values):
+    def validate_date_range(cls, value: Optional[datetime], values: dict) -> Optional[datetime]:
         if not values.get('start') and not values.get('end'):
             raise ValueError("At least one of 'start' or 'end' must be provided.")
         return value
