@@ -19,6 +19,7 @@ def tag_items(
         client (ClientCore): The Darwin Core client.
         team_slug (str): The team slug.
         dataset_ids (int | list[int]): The dataset ids.
+        tag_id (str): The tag id.
         filters Dict[str, UnknownType]: The parameters of the filter.
 
     Returns:
