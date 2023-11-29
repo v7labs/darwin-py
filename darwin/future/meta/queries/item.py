@@ -154,6 +154,8 @@ class ItemQuery(PaginatedQuery[Item]):
             and "dataset_id" not in self.meta_params
         ):
             raise ValueError("Must specify dataset_ids to query items")
+        if not tag_id:
+            raise ValueError("Must specify tag_id to tag items with")
         dataset_ids = (
             self.meta_params["dataset_ids"]
             if "dataset_ids" in self.meta_params
