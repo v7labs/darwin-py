@@ -11,6 +11,7 @@ from darwin.future.core.items.tag_items import tag_items
 from darwin.future.core.items.untag_items import untag_items
 from darwin.future.core.types.common import QueryString
 from darwin.future.core.types.query import PaginatedQuery
+from darwin.future.exceptions import BadRequest
 from darwin.future.meta.objects.item import Item
 
 
@@ -146,7 +147,7 @@ class ItemQuery(PaginatedQuery[Item]):
         filters = {"item_ids": [str(item) for item in ids]}
         archive_list_of_items(self.client, team_slug, dataset_ids, filters)
 
-    def tag(self, tag_id: str) -> None:
+    def tag(self, tag_id: int) -> None:
         if "team_slug" not in self.meta_params:
             raise ValueError("Must specify team_slug to query items")
         if (
@@ -156,6 +157,8 @@ class ItemQuery(PaginatedQuery[Item]):
             raise ValueError("Must specify dataset_ids to query items")
         if not tag_id:
             raise ValueError("Must specify tag_id to tag items with")
+        if not isinstance(tag_id, int):
+            raise BadRequest(f"tag_id must be an integer, got {type(tag_id)}")
         dataset_ids = (
             self.meta_params["dataset_ids"]
             if "dataset_ids" in self.meta_params
@@ -167,7 +170,7 @@ class ItemQuery(PaginatedQuery[Item]):
         filters = {"item_ids": [str(item) for item in ids]}
         tag_items(self.client, team_slug, dataset_ids, tag_id, filters)
 
-    def untag(self, tag_id: str) -> None:
+    def untag(self, tag_id: int) -> None:
         if "team_slug" not in self.meta_params:
             raise ValueError("Must specify team_slug to query items")
         if (
@@ -177,6 +180,8 @@ class ItemQuery(PaginatedQuery[Item]):
             raise ValueError("Must specify dataset_ids to query items")
         if not tag_id:
             raise ValueError("Must specify tag_id to untag items with")
+        if not isinstance(tag_id, int):
+            raise BadRequest(f"tag_id must be an integer, got {type(tag_id)}")
         dataset_ids = (
             self.meta_params["dataset_ids"]
             if "dataset_ids" in self.meta_params

@@ -232,7 +232,7 @@ def test_tag(item: Item) -> None:
     with responses.RequestsMock() as rsps:
         team_slug = item.meta_params["team_slug"]
         dataset_id = item.meta_params["dataset_id"]
-        tag_id = "123456"
+        tag_id = 123456
         rsps.add(
             rsps.POST,
             item.client.config.api_endpoint + f"v2/teams/{team_slug}/items/slots/tags",
@@ -253,11 +253,20 @@ def test_tag(item: Item) -> None:
         item.tag(tag_id)
 
 
+def test_tag_bad_input(item: Item) -> None:
+    with responses.RequestsMock():
+        tag_id = "123456"
+        with pytest.raises(BadRequest) as excinfo:
+            item.tag(tag_id)
+        (msg,) = excinfo.value.args
+        assert msg == "tag_id must be an integer, got <class 'str'>"
+
+
 def test_untag(item: Item) -> None:
     with responses.RequestsMock() as rsps:
         team_slug = item.meta_params["team_slug"]
         dataset_id = item.meta_params["dataset_id"]
-        tag_id = "123456"
+        tag_id = 123456
         rsps.add(
             rsps.DELETE,
             item.client.config.api_endpoint + f"v2/teams/{team_slug}/items/slots/tags",
@@ -276,3 +285,12 @@ def test_untag(item: Item) -> None:
             json={},
         )
         item.untag(tag_id)
+
+
+def test_untag_bad_input(item: Item) -> None:
+    with responses.RequestsMock():
+        tag_id = "123456"
+        with pytest.raises(BadRequest) as excinfo:
+            item.untag(tag_id)
+        (msg,) = excinfo.value.args
+        assert msg == "tag_id must be an integer, got <class 'str'>"

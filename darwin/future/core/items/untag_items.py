@@ -9,7 +9,7 @@ def untag_items(
     client: ClientCore,
     team_slug: str,
     dataset_ids: int | list[int],
-    tag_id: str,
+    tag_id: int,
     filters: dict[str, UnknownType],
 ) -> JSONType:
     """
@@ -19,8 +19,8 @@ def untag_items(
         client (ClientCore): The Darwin Core client.
         team_slug (str): The team slug.
         dataset_ids (int | list[int]): The dataset ids.
-        tag_id (str): The tag id.
-        
+        tag_id (int): The tag id.
+
         filters Dict[str, UnknownType]: The parameters of the filter.
 
     Returns:
