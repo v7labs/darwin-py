@@ -137,8 +137,7 @@ def check_for_error_and_return_imageid(
     image_id : str
 
     """
-
-    filename = Path(video_annotation.filename)
+    filename = Path(video_annotation.slots[0].source_files[0]["file_name"])
     try:
         suffixes = filename.suffixes[-2:]
     except IndexError:
