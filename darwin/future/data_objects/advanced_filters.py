@@ -14,16 +14,37 @@ ProcessingStatusType = Literal["cancelled", "error", "uploading", "uploading_con
 WorkflowStatusType = Literal["new", "annotate", "review", "complete"]
 
 
-class BaseGroupFilter(BaseModel, ABC):
+class BaseGroupFilter(BaseModel):
     conjuction: Literal['and', 'or'] = 'and'
     filters: List[BaseGroupFilter | BaseSubjectFilter]
 
+    def __and__(self, other: BaseGroupFilter | BaseSubjectFilter) -> BaseGroupFilter:
+        if isinstance(other, BaseGroupFilter):
+            if self.conjuction == 'and' and other.conjuction == 'and':
+                return BaseGroupFilter(conjuction='and', filters=[*self.filters, *other.filters])
+            return BaseGroupFilter(conjuction='and', filters=[self, other])
+        if isinstance(other, BaseSubjectFilter):
+            return BaseGroupFilter(conjuction='and', filters=[*self.filters, other])
 
-class BaseSubjectFilter(BaseModel, ABC):
+    def __or__(self, other: BaseGroupFilter | BaseSubjectFilter) -> BaseGroupFilter:
+        if isinstance(other, BaseGroupFilter):
+            if self.conjuction == 'or' and other.conjuction == 'or':
+                return BaseGroupFilter(conjuction='or', filters=[*self.filters, *other.filters])
+            return BaseGroupFilter(conjuction='or', filters=[self, other])
+        if isinstance(other, BaseSubjectFilter):
+            return BaseGroupFilter(conjuction='or', filters=[*self.filters, other])
+
+class BaseSubjectFilter(BaseModel):
     subject: str
     matcher: BaseMatcher
     
-class BaseMatcher(BaseModel, ABC):
+    def __and__(self, other: BaseSubjectFilter) -> BaseGroupFilter:
+        return BaseGroupFilter(conjuction='and', filters=[self, other])
+    
+    def __or__(self, other: BaseSubjectFilter) -> BaseGroupFilter:
+        return BaseGroupFilter(conjuction='or', filters=[self, other])
+    
+class BaseMatcher(BaseModel):
     name: str
     
 # Subject Filters
