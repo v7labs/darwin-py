@@ -144,7 +144,7 @@ class LocalDataset:
                 self.annotations_path.append(annotation_path)
                 continue
             else:
-                raise ValueError(f"Annotation ({annotation_path}) does not have a corresponding image")
+                raise ValueError(f"Annotation ({annotation_path}) does not have a corresponding image {image_path}")
 
     def _initial_setup(self, dataset_path, release_name):
         assert dataset_path is not None
