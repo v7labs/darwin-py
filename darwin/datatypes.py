@@ -452,6 +452,9 @@ class AnnotationFile:
     # The darwin ID of the item that these annotations belong to.
     item_id: Optional[str] = None
 
+    # The Frame Count if this is a video annotation
+    frame_count: Optional[int] = None
+
     @property
     def full_path(self) -> str:
         """
