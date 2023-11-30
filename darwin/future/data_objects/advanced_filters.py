@@ -17,7 +17,7 @@ WorkflowStatusType = Literal["new", "annotate", "review", "complete"]
 
 
 class BaseMatcher(BaseModel):
-    pass
+    name: str
 
 
 class AnyOf(BaseMatcher, GenericModel, Generic[T]):
@@ -98,10 +98,10 @@ class SubjectFilter(BaseModel):
     matcher: BaseMatcher
 
     def __and__(self, other: SubjectFilter) -> GroupFilter:
-        return GroupFilter(conjuction="and", filters=[self, other])
+        return GroupFilter(conjunction="and", filters=[self, other])
 
     def __or__(self, other: SubjectFilter) -> GroupFilter:
-        return GroupFilter(conjuction="or", filters=[self, other])
+        return GroupFilter(conjunction="or", filters=[self, other])
 
 
 # Subject Filters
@@ -338,7 +338,7 @@ class WorkflowStage(SubjectFilter):
 
 
 class GroupFilter(BaseModel):
-    conjuction: Literal["and", "or"] = "and"
+    conjunction: Literal["and", "or"] = "and"
     filters: List[Union[GroupFilter, SubjectFilter]]
 
     @validator("filters")
@@ -351,24 +351,24 @@ class GroupFilter(BaseModel):
 
     def __and__(self, other: GroupFilter | SubjectFilter) -> GroupFilter:
         if isinstance(other, GroupFilter):
-            if self.conjuction == "and" and other.conjuction == "and":
+            if self.conjunction == "and" and other.conjunction == "and":
                 return GroupFilter(
-                    conjuction="and", filters=[*self.filters, *other.filters]
+                    conjunction="and", filters=[*self.filters, *other.filters]
                 )
-            return GroupFilter(conjuction="and", filters=[self, other])
+            return GroupFilter(conjunction="and", filters=[self, other])
         if isinstance(other, SubjectFilter):
-            if self.conjuction == "and":
-                return GroupFilter(conjuction="and", filters=[*self.filters, other])
-            return GroupFilter(conjuction="and", filters=[*self.filters, other])
+            if self.conjunction == "and":
+                return GroupFilter(conjunction="and", filters=[*self.filters, other])
+            return GroupFilter(conjunction="and", filters=[self, other])
 
     def __or__(self, other: GroupFilter | SubjectFilter) -> GroupFilter:
         if isinstance(other, GroupFilter):
-            if self.conjuction == "or" and other.conjuction == "or":
+            if self.conjunction == "or" and other.conjunction == "or":
                 return GroupFilter(
-                    conjuction="or", filters=[*self.filters, *other.filters]
+                    conjunction="or", filters=[*self.filters, *other.filters]
                 )
-            return GroupFilter(conjuction="or", filters=[self, other])
+            return GroupFilter(conjunction="or", filters=[self, other])
         if isinstance(other, SubjectFilter):
-            if self.conjuction == "or":
-                return GroupFilter(conjuction="or", filters=[*self.filters, other])
-            return GroupFilter(conjuction="or", filters=[self, other])
+            if self.conjunction == "or":
+                return GroupFilter(conjunction="or", filters=[*self.filters, other])
+            return GroupFilter(conjunction="or", filters=[self, other])
