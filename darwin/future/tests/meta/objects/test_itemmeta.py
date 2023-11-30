@@ -294,3 +294,30 @@ def test_untag_bad_input(item: Item) -> None:
             item.untag(tag_id)
         (msg,) = excinfo.value.args
         assert msg == "tag_id must be an integer, got <class 'str'>"
+
+
+def test_set_stage(item: Item) -> None:
+    with responses.RequestsMock() as rsps:
+        team_slug = item.meta_params["team_slug"]
+        dataset_id = item.meta_params["dataset_id"]
+        stage_id = "123456"
+        workflow_id = "123456"
+        rsps.add(
+            rsps.POST,
+            item.client.config.api_endpoint + f"v2/teams/{team_slug}/items/stage",
+            status=200,
+            match=[
+                json_params_matcher(
+                    {
+                        "filters": {
+                            "item_ids": [str(item.id)],
+                            "dataset_ids": [dataset_id],
+                        },
+                        "stage_id": stage_id,
+                        "workflow_id": workflow_id,
+                    }
+                )
+            ],
+            json={},
+        )
+        item.set_stage(stage_id, workflow_id)

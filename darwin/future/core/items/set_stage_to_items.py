@@ -26,7 +26,7 @@ def set_stage_to_items(
     Returns:
         JSONType: The response data.
     """
-    assert filters, "No parameters provided, please provide at least one filter"
+    assert filters, "No parameters provided, please provide at least one non-dataset id filter"
     payload = {
         "filters": {
             "dataset_ids": dataset_ids

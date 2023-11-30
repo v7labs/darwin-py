@@ -10,6 +10,7 @@ from darwin.future.data_objects.dataset import DatasetCore
 from darwin.future.data_objects.item import ItemCore, ItemLayout, ItemSlot
 from darwin.future.data_objects.team import TeamCore, TeamMemberCore
 from darwin.future.data_objects.team_member_role import TeamMemberRole
+from darwin.future.data_objects.workflow import WorkflowCore
 
 
 @pytest.fixture
@@ -89,6 +90,11 @@ def base_item_json() -> dict:
 @pytest.fixture
 def base_item(base_item_json: dict) -> ItemCore:
     return ItemCore.parse_obj(base_item_json)
+
+
+@pytest.fixture
+def base_workflow(base_single_workflow_object: dict) -> WorkflowCore:
+    return WorkflowCore.parse_obj(base_single_workflow_object)
 
 
 @pytest.fixture
