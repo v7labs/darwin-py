@@ -163,8 +163,6 @@ class ItemQuery(PaginatedQuery[Item]):
         ):
             raise ValueError("Must specify dataset_ids to query items")
 
-        if not layout:
-            raise ValueError("Must specify layout to set items to")
         assert isinstance(layout, ItemLayout)
         dataset_ids = (
             self.meta_params["dataset_ids"]
