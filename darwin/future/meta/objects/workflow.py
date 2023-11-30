@@ -51,11 +51,9 @@ class Workflow(MetaBase[WorkflowCore]):
 
     @property
     def items(self) -> ItemQuery:
-        return ItemQuery(
-            self.client,
-            meta_params=self.meta_params,
-            filters=[QueryFilter(name="workflow_id", param=str(self.id))],
-        )
+        meta_params = self.meta_params.copy()
+        meta_params["dataset_ids"] = str(self.datasets[0].id)
+        return ItemQuery(self.client, meta_params=meta_params)
 
     @property
     def stages(self) -> StageQuery:

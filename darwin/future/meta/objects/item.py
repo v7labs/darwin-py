@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Union, cast
+from typing import Dict, List, Optional, Protocol, Union, cast
 from uuid import UUID
 
 from darwin.future.core.items.archive_items import archive_list_of_items
@@ -8,11 +8,18 @@ from darwin.future.core.items.delete_items import delete_list_of_items
 from darwin.future.core.items.move_items_to_folder import move_list_of_items_to_folder
 from darwin.future.core.items.restore_items import restore_list_of_items
 from darwin.future.core.items.set_item_priority import set_item_priority
+from darwin.future.core.items.set_stage_to_items import set_stage_to_items
 from darwin.future.core.items.tag_items import tag_items
 from darwin.future.core.items.untag_items import untag_items
 from darwin.future.data_objects.item import ItemCore, ItemLayout, ItemSlot
+from darwin.future.data_objects.workflow import WFStageCore
 from darwin.future.exceptions import BadRequest
 from darwin.future.meta.objects.base import MetaBase
+
+
+class hasStage(Protocol):
+    # Using Protocol to avoid circular imports between item.py and stage.py
+    _element: WFStageCore
 
 
 class Item(MetaBase[ItemCore]):
@@ -135,6 +142,31 @@ class Item(MetaBase[ItemCore]):
         dataset_id = cast(Union[int, List[int]], dataset_id)
         filters = {"item_ids": [str(self.id)]}
         untag_items(self.client, team_slug, dataset_id, tag_id, filters)
+
+    def set_stage(self, stage_or_stage_id: hasStage | str, workflow_id: str) -> None:
+        if not stage_or_stage_id:
+            raise ValueError(
+                "Must specify stage (either Stage object or stage_id string) to set items to"
+            )
+
+        team_slug, dataset_id = (
+            self.meta_params["team_slug"],
+            self.meta_params["dataset_id"]
+            if "dataset_id" in self.meta_params
+            else self.meta_params["dataset_ids"],
+        )
+        assert isinstance(team_slug, str)
+        assert isinstance(workflow_id, str)
+
+        # get stage_id from stage_or_stage_i
+        if isinstance(stage_or_stage_id, str):
+            stage_id = stage_or_stage_id
+        else:
+            stage_id = str(stage_or_stage_id._element.id)
+
+        dataset_id = cast(Union[int, List[int]], dataset_id)
+        filters = {"item_ids": [str(self.id)]}
+        set_stage_to_items(self.client, team_slug, dataset_id, stage_id, workflow_id, filters)
 
     @property
     def name(self) -> str:
