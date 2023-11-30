@@ -597,7 +597,6 @@ class ObjectDetectionDataset(LocalDataset):
         """
         target = self.parse_json(index)
         annotations = target.pop("annotations")
-        print(f"annotations : {annotations}")
 
         targets = []
         for annotation in annotations:
