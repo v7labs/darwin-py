@@ -8,9 +8,13 @@ from darwin.future.core.items.move_items_to_folder import move_list_of_items_to_
 from darwin.future.core.items.restore_items import restore_list_of_items
 from darwin.future.core.items.set_item_layout import set_item_layout
 from darwin.future.core.items.set_item_priority import set_item_priority
+from darwin.future.core.items.tag_items import tag_items
+from darwin.future.core.items.untag_items import untag_items
 from darwin.future.core.types.common import QueryString
 from darwin.future.core.types.query import PaginatedQuery
-from darwin.future.meta.objects.item import Item, ItemLayout
+from darwin.future.data_objects.item import ItemLayout
+from darwin.future.exceptions import BadRequest
+from darwin.future.meta.objects.item import Item
 
 
 class ItemQuery(PaginatedQuery[Item]):
@@ -174,3 +178,49 @@ class ItemQuery(PaginatedQuery[Item]):
         ids = [item.id for item in self]
         filters = {"item_ids": [str(item) for item in ids]}
         set_item_layout(self.client, team_slug, dataset_ids, layout, filters)
+
+    def tag(self, tag_id: int) -> None:
+        if "team_slug" not in self.meta_params:
+            raise ValueError("Must specify team_slug to query items")
+        if (
+            "dataset_ids" not in self.meta_params
+            and "dataset_id" not in self.meta_params
+        ):
+            raise ValueError("Must specify dataset_ids to query items")
+        if not tag_id:
+            raise ValueError("Must specify tag_id to tag items with")
+        if not isinstance(tag_id, int):
+            raise BadRequest(f"tag_id must be an integer, got {type(tag_id)}")
+        dataset_ids = (
+            self.meta_params["dataset_ids"]
+            if "dataset_ids" in self.meta_params
+            else self.meta_params["dataset_id"]
+        )
+        team_slug = self.meta_params["team_slug"]
+        self.collect_all()
+        ids = [item.id for item in self]
+        filters = {"item_ids": [str(item) for item in ids]}
+        tag_items(self.client, team_slug, dataset_ids, tag_id, filters)
+
+    def untag(self, tag_id: int) -> None:
+        if "team_slug" not in self.meta_params:
+            raise ValueError("Must specify team_slug to query items")
+        if (
+            "dataset_ids" not in self.meta_params
+            and "dataset_id" not in self.meta_params
+        ):
+            raise ValueError("Must specify dataset_ids to query items")
+        if not tag_id:
+            raise ValueError("Must specify tag_id to untag items with")
+        if not isinstance(tag_id, int):
+            raise BadRequest(f"tag_id must be an integer, got {type(tag_id)}")
+        dataset_ids = (
+            self.meta_params["dataset_ids"]
+            if "dataset_ids" in self.meta_params
+            else self.meta_params["dataset_id"]
+        )
+        team_slug = self.meta_params["team_slug"]
+        self.collect_all()
+        ids = [item.id for item in self]
+        filters = {"item_ids": [str(item) for item in ids]}
+        untag_items(self.client, team_slug, dataset_ids, tag_id, filters)

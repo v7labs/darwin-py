@@ -137,6 +137,40 @@ def check_for_error_and_return_imageid(
     image_id : str
 
     """
+    # check if all item slots have the correct file-extension
+    for slot in video_annotation.slots:
+        for source_file in slot.source_files:
+            filename = Path(source_file["file_name"])
+
+            try:
+                suffixes = filename.suffixes[-2:]
+            except IndexError:
+                suffixes = filename.suffixes
+            if len(suffixes) == 2:
+                if suffixes[0] == ".nii" and suffixes[1] == ".gz":
+                    image_id = str(filename).rstrip("".join(suffixes))
+                else:
+                    return create_error_message_json(
+                        "Two suffixes found but not ending in .nii.gz",
+                        output_dir,
+                        str(filename),
+                    )
+            elif len(suffixes) == 1:
+                if suffixes[0] == ".nii" or suffixes[0] == ".dcm":
+                    image_id = filename.stem
+                else:
+                    return create_error_message_json(
+                        "Misconfigured filename, not ending in .nii or .dcm. Are you sure this is medical data?",
+                        output_dir,
+                        str(filename),
+                    )
+            else:
+                return create_error_message_json(
+                    "You are trying to export to nifti. Filename should contain either .nii, .nii.gz or .dcm extension."
+                    "Are you sure this is medical data?",
+                    output_dir,
+                    str(filename),
+                )
 
     filename = Path(video_annotation.filename)
     try:
@@ -144,29 +178,15 @@ def check_for_error_and_return_imageid(
     except IndexError:
         suffixes = filename.suffixes
     if len(suffixes) == 2:
-        if suffixes[0] == ".nii" and suffixes[1] == ".gz":
-            image_id = str(filename).rstrip("".join(suffixes))
-        else:
-            return create_error_message_json(
-                "Two suffixes found but not ending in .nii.gz",
-                output_dir,
-                str(filename),
-            )
+        image_id = str(filename).rstrip("".join(suffixes))
     elif len(suffixes) == 1:
-        if suffixes[0] == ".nii" or suffixes[0] == ".dcm":
-            image_id = filename.stem
-        else:
-            return create_error_message_json(
-                "Misconfigured filename, not ending in .nii or .dcm. Are you sure this is medical data?",
-                output_dir,
-                str(filename),
-            )
+        image_id = str(filename.stem)
     else:
+        image_id = str(filename)
+
+    if video_annotation is None:
         return create_error_message_json(
-            "You are trying to export to nifti. Filename should contain either .nii, .nii.gz or .dcm extension."
-            "Are you sure this is medical data?",
-            output_dir,
-            str(filename),
+            "video_annotation not found", output_dir, image_id
         )
     if video_annotation is None:
         return create_error_message_json(
