@@ -18,7 +18,7 @@ from darwin.future.meta.objects.base import MetaBase
 
 
 class hasStage(Protocol):
-    # Using Protocol to avoid circular imports between item.py and stage.py
+    # Using Protocol to avoid circular imports between item.py and stage.py
     _element: WFStageCore
 
 
@@ -143,12 +143,21 @@ class Item(MetaBase[ItemCore]):
         filters = {"item_ids": [str(self.id)]}
         untag_items(self.client, team_slug, dataset_id, tag_id, filters)
 
-    def set_stage(self, stage_or_stage_id: hasStage | str, workflow_id: str) -> None:
+    def set_stage(
+        self, stage_or_stage_id: hasStage | str, workflow_id: str | None = None
+    ) -> None:
         if not stage_or_stage_id:
             raise ValueError(
                 "Must specify stage (either Stage object or stage_id string) to set items to"
             )
-
+        if not workflow_id:
+            # if workflow_id is not specified, get it from the meta_params
+            # this will be present in the case of a workflow object
+            if "workflow_id" in self.meta_params:
+                workflow_id = str(self.meta_params["workflow_id"])
+            else:
+                raise ValueError("Must specify workflow_id to set items to")
+        assert isinstance(workflow_id, str)
         team_slug, dataset_id = (
             self.meta_params["team_slug"],
             self.meta_params["dataset_id"]
@@ -156,9 +165,8 @@ class Item(MetaBase[ItemCore]):
             else self.meta_params["dataset_ids"],
         )
         assert isinstance(team_slug, str)
-        assert isinstance(workflow_id, str)
 
-        # get stage_id from stage_or_stage_i
+        # get stage_id from stage_or_stage_id
         if isinstance(stage_or_stage_id, str):
             stage_id = stage_or_stage_id
         else:
@@ -166,7 +174,9 @@ class Item(MetaBase[ItemCore]):
 
         dataset_id = cast(Union[int, List[int]], dataset_id)
         filters = {"item_ids": [str(self.id)]}
-        set_stage_to_items(self.client, team_slug, dataset_id, stage_id, workflow_id, filters)
+        set_stage_to_items(
+            self.client, team_slug, dataset_id, stage_id, workflow_id, filters
+        )
 
     @property
     def name(self) -> str:

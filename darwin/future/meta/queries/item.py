@@ -20,7 +20,7 @@ from darwin.future.meta.objects.item import Item
 
 
 class hasStage(Protocol):
-    # Using Protocol to avoid circular imports between item.py and stage.py
+    # Using Protocol to avoid circular imports between item.py and stage.py
     _element: WFStageCore
 
 
@@ -202,7 +202,9 @@ class ItemQuery(PaginatedQuery[Item]):
         filters = {"item_ids": [str(item) for item in ids]}
         untag_items(self.client, team_slug, dataset_ids, tag_id, filters)
 
-    def set_stage(self, stage_or_stage_id: hasStage | str, workflow_id: str) -> None:
+    def set_stage(
+        self, stage_or_stage_id: hasStage | str, workflow_id: str | None = None
+    ) -> None:
         if not stage_or_stage_id:
             raise ValueError(
                 "Must specify stage (either Stage object or stage_id string) to set items to"
@@ -216,7 +218,13 @@ class ItemQuery(PaginatedQuery[Item]):
         ):
             raise ValueError("Must specify dataset_ids to query items")
         if not workflow_id:
-            raise ValueError("Must specify workflow_id to set stage for items")
+            # if workflow_id is not specified, get it from the meta_params
+            # this will be present in the case of a workflow object
+            if "workflow_id" in self.meta_params:
+                workflow_id = str(self.meta_params["workflow_id"])
+            else:
+                raise ValueError("Must specify workflow_id to set items to")
+        assert isinstance(workflow_id, str)
         if not stage_or_stage_id:
             raise ValueError("Must specify stage to set stage for items")
 
@@ -236,4 +244,6 @@ class ItemQuery(PaginatedQuery[Item]):
         ids = [item.id for item in self]
         filters = {"item_ids": [str(item) for item in ids]}
 
-        set_stage_to_items(self.client, team_slug, dataset_ids, stage_id, workflow_id, filters)
+        set_stage_to_items(
+            self.client, team_slug, dataset_ids, stage_id, workflow_id, filters
+        )

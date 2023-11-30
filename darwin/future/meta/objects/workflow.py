@@ -6,7 +6,6 @@ from uuid import UUID
 from darwin.cli_functions import upload_data
 from darwin.dataset.upload_manager import LocalFile
 from darwin.datatypes import PathLike
-from darwin.future.core.types.query import QueryFilter
 from darwin.future.data_objects.workflow import WFDatasetCore, WFTypeCore, WorkflowCore
 from darwin.future.exceptions import MissingDataset
 from darwin.future.meta.objects.base import MetaBase
@@ -53,6 +52,7 @@ class Workflow(MetaBase[WorkflowCore]):
     def items(self) -> ItemQuery:
         meta_params = self.meta_params.copy()
         meta_params["dataset_ids"] = str(self.datasets[0].id)
+        meta_params["workflow_id"] = str(self.id)
         return ItemQuery(self.client, meta_params=meta_params)
 
     @property
