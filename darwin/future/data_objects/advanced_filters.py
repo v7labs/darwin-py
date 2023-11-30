@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Generic, List, Literal, Optional, TypeVar
+from email.headerregistry import Group
+from typing import Generic, List, Literal, Optional, TypeVar, Union
 
 from pydantic import BaseModel, root_validator, validator
 
@@ -15,7 +16,7 @@ WorkflowStatusType = Literal["new", "annotate", "review", "complete"]
 
 class GroupFilter(BaseModel):
     conjuction: Literal['and', 'or'] = 'and'
-    filters: List[GroupFilter | SubjectFilter]
+    filters: List[Union[GroupFilter, "SubjectFilter"]]
 
     @validator('filters')
     def validate_filters(cls, value: List[GroupFilter | SubjectFilter]) -> List[GroupFilter | SubjectFilter]:
@@ -339,3 +340,4 @@ class NotContains(BaseMatcher):
     name: Literal['not_contains'] = 'not_contains'
     value: str
     
+GroupFilter.update_forward_refs(SubjectFilter=SubjectFilter)
