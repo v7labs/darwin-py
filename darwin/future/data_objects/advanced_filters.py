@@ -16,6 +16,12 @@ ProcessingStatusType = Literal[
 WorkflowStatusType = Literal["new", "annotate", "review", "complete"]
 
 
+def validate_at_least_one(value: list[T]) -> list[T]:
+    if len(value) < 1:
+        raise ValueError("Must provide at least one value.")
+    return list(set(value))
+
+
 class BaseMatcher(BaseModel):
     name: str
 
@@ -24,33 +30,21 @@ class AnyOf(BaseMatcher, GenericModel, Generic[T]):
     name: Literal["any_of"] = "any_of"
     values: List[T]
 
-    @validator("values")
-    def validate_any_of(cls, value: List[T]) -> List[T]:
-        if len(value) < 2:
-            raise ValueError("Must provide at least two values for 'any_of' matcher.")
-        return value
+    _normalize_values = validator("values", allow_reuse=True)(validate_at_least_one)
 
 
 class AllOf(BaseMatcher, GenericModel, Generic[T]):
     name: Literal["all_of"] = "all_of"
     values: List[T]
 
-    @validator("values")
-    def validate_all_of(cls, value: List[T]) -> List[T]:
-        if len(value) < 1:
-            raise ValueError("Must provide at least a value for 'all_of' matcher.")
-        return value
+    _normalize_values = validator("values", allow_reuse=True)(validate_at_least_one)
 
 
 class NoneOf(BaseMatcher, GenericModel, Generic[T]):
     name: Literal["none_of"] = "none_of"
     values: List[T]
 
-    @validator("values")
-    def validate_none_of(cls, value: List[T]) -> List[T]:
-        if len(value) < 1:
-            raise ValueError("Must provide at least a value for 'none_of' matcher.")
-        return value
+    _normalize_values = validator("values", allow_reuse=True)(validate_at_least_one)
 
 
 class Equals(BaseMatcher, GenericModel, Generic[T]):
