@@ -8,7 +8,10 @@ from darwin.future.core.items.delete_items import delete_list_of_items
 from darwin.future.core.items.move_items_to_folder import move_list_of_items_to_folder
 from darwin.future.core.items.restore_items import restore_list_of_items
 from darwin.future.core.items.set_item_priority import set_item_priority
+from darwin.future.core.items.tag_items import tag_items
+from darwin.future.core.items.untag_items import untag_items
 from darwin.future.data_objects.item import ItemCore, ItemLayout, ItemSlot
+from darwin.future.exceptions import BadRequest
 from darwin.future.meta.objects.base import MetaBase
 
 
@@ -104,6 +107,34 @@ class Item(MetaBase[ItemCore]):
         dataset_id = cast(Union[int, List[int]], dataset_id)
         filters = {"item_ids": [str(self.id)]}
         archive_list_of_items(self.client, team_slug, dataset_id, filters)
+
+    def tag(self, tag_id: int) -> None:
+        team_slug, dataset_id = (
+            self.meta_params["team_slug"],
+            self.meta_params["dataset_id"]
+            if "dataset_id" in self.meta_params
+            else self.meta_params["dataset_ids"],
+        )
+        assert isinstance(team_slug, str)
+        if not isinstance(tag_id, int):
+            raise BadRequest(f"tag_id must be an integer, got {type(tag_id)}")
+        dataset_id = cast(Union[int, List[int]], dataset_id)
+        filters = {"item_ids": [str(self.id)]}
+        tag_items(self.client, team_slug, dataset_id, tag_id, filters)
+
+    def untag(self, tag_id: int) -> None:
+        team_slug, dataset_id = (
+            self.meta_params["team_slug"],
+            self.meta_params["dataset_id"]
+            if "dataset_id" in self.meta_params
+            else self.meta_params["dataset_ids"],
+        )
+        assert isinstance(team_slug, str)
+        if not isinstance(tag_id, int):
+            raise BadRequest(f"tag_id must be an integer, got {type(tag_id)}")
+        dataset_id = cast(Union[int, List[int]], dataset_id)
+        filters = {"item_ids": [str(self.id)]}
+        untag_items(self.client, team_slug, dataset_id, tag_id, filters)
 
     @property
     def name(self) -> str:
