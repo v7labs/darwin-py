@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from datetime import datetime
-from email.headerregistry import Group
 from typing import Generic, List, Literal, Optional, TypeVar, Union
 
 from pydantic import BaseModel, root_validator, validator
+from pydantic.generics import GenericModel
 
 T = TypeVar("T")
 
@@ -14,54 +14,88 @@ ProcessingStatusType = Literal["cancelled", "error", "uploading", "uploading_con
 WorkflowStatusType = Literal["new", "annotate", "review", "complete"]
 
 
-class GroupFilter(BaseModel):
-    conjuction: Literal['and', 'or'] = 'and'
-    filters: List[Union[GroupFilter, "SubjectFilter"]]
+class BaseMatcher(BaseModel):
+    pass
 
-    @validator('filters')
-    def validate_filters(cls, value: List[GroupFilter | SubjectFilter]) -> List[GroupFilter | SubjectFilter]:
+class AnyOf(BaseMatcher, GenericModel, Generic[T]):
+    name: Literal['any_of'] = 'any_of'
+    values: List[T]
+    
+    @validator('values')
+    def validate_any_of(cls, value: List[T]) -> List[T]:
+        if len(value) < 2:
+            raise ValueError("Must provide at least two values for 'any_of' matcher.")
+        return value
+    
+class AllOf(BaseMatcher, GenericModel, Generic[T]):
+    name: Literal['all_of'] = 'all_of'
+    values: List[T]
+    
+    @validator('values')
+    def validate_all_of(cls, value: List[T]) -> List[T]:
         if len(value) < 1:
-            raise ValueError("Must provide at least one filter.")
+            raise ValueError("Must provide at least a value for 'all_of' matcher.")
+        return value
+    
+class NoneOf(BaseMatcher, GenericModel, Generic[T]):
+    name: Literal['none_of'] = 'none_of'
+    values: List[T]
+    
+    @validator('values')
+    def validate_none_of(cls, value: List[T]) -> List[T]:
+        if len(value) < 1:
+            raise ValueError("Must provide at least a value for 'none_of' matcher.")
         return value
 
-    # def __and__(self, other: GroupFilter | SubjectFilter) -> GroupFilter:
-    #     if isinstance(other, GroupFilter):
-    #         if self.conjuction == 'and' and other.conjuction == 'and':
-    #             return GroupFilter(conjuction='and', filters=[*self.filters, *other.filters])
-    #         return GroupFilter(conjuction='and', filters=[self, other])
-    #     if isinstance(other, SubjectFilter):
-    #         if self.conjuction == 'and':
-    #             return GroupFilter(conjuction='and', filters=[*self.filters, other])
-    #         return GroupFilter(conjuction='and', filters=[*self.filters, other])
+class Equals(BaseMatcher, GenericModel, Generic[T]):
+    name: Literal['equals'] = 'equals'
+    value: T
+    
+class DateRange(BaseMatcher):
+    name: str = 'date_range'
+    start: Optional[datetime] = None
+    end: Optional[datetime] = None
 
-    # def __or__(self, other: GroupFilter | SubjectFilter) -> GroupFilter:
-    #     if isinstance(other, GroupFilter):
-    #         if self.conjuction == 'or' and other.conjuction == 'or':
-    #             return GroupFilter(conjuction='or', filters=[*self.filters, *other.filters])
-    #         return GroupFilter(conjuction='or', filters=[self, other])
-    #     if isinstance(other, SubjectFilter):
-    #         if self.conjuction == 'or':
-    #             return GroupFilter(conjuction='or', filters=[*self.filters, other])
-    #         return GroupFilter(conjuction='or', filters=[self, other])
+    @root_validator(pre=True)
+    def validate_date_range(cls, values: dict) -> dict:
+        if not values.get('start') and not values.get('end'):
+            raise ValueError("At least one of 'start' or 'end' must be provided.")
+        if values.get('start') and values.get('end'):
+            if values['start'] > values['end']:
+                raise ValueError("'start' must be before 'end'.")
+        return values
+    
+class Prefix(BaseMatcher):
+    name: Literal['prefix'] = 'prefix'
+    value: str
 
+class Suffix(BaseMatcher):
+    name: Literal['suffix'] = 'suffix'
+    value: str
+
+class Contains(BaseMatcher):
+    name: Literal['contains'] = 'contains'
+    value: str
+
+class NotContains(BaseMatcher):
+    name: Literal['not_contains'] = 'not_contains'
+    value: str
+    
 class SubjectFilter(BaseModel):
     subject: str
     matcher: BaseMatcher
     
-    def __and__(self, other: SubjectFilter) -> GroupFilter:
-        return GroupFilter(conjuction='and', filters=[self, other])
+    # def __and__(self, other: SubjectFilter) -> GroupFilter:
+    #     return GroupFilter(conjuction='and', filters=[self, other])
     
-    def __or__(self, other: SubjectFilter) -> GroupFilter:
-        return GroupFilter(conjuction='or', filters=[self, other])
+    # def __or__(self, other: SubjectFilter) -> GroupFilter:
+    #     return GroupFilter(conjuction='or', filters=[self, other])
 
 
-class BaseMatcher(BaseModel):
-    name: str
-    
 # Subject Filters
 class AnnotationClass(SubjectFilter):
     subject: Literal['annotation_class'] = 'annotation_class'
-    matcher: AnyOf[int] | AllOf[int] | NoneOf[int]
+    matcher: Union[AnyOf[int], AllOf[int], NoneOf[int]]
     
     @classmethod
     def any_of(cls, values: list[int]) -> AnnotationClass:
@@ -83,7 +117,7 @@ class Archived(SubjectFilter):
 
 class Assignee(SubjectFilter):
     subject: Literal['assignee'] = 'assignee'
-    matcher: AnyOf[int] | AllOf[int] | NoneOf[int]
+    matcher: Union[AnyOf[int], AllOf[int], NoneOf[int]]
     
     @classmethod
     def any_of(cls, values: list[int]) -> Assignee:
@@ -115,7 +149,7 @@ class CreatedAt(SubjectFilter):
     
 class CurrentAssignee(SubjectFilter):
     subject: Literal['current_assignee'] = 'current_assignee'
-    matcher: AnyOf[int] | NoneOf[int]
+    matcher: Union[AnyOf[int], NoneOf[int]]
     
     @classmethod
     def any_of(cls, values: list[int]) -> CurrentAssignee:
@@ -127,7 +161,7 @@ class CurrentAssignee(SubjectFilter):
 
 class FileType(SubjectFilter):
     subject: Literal['file_type'] = 'file_type'
-    matcher: AnyOf[AcceptedFileTypes] | AllOf[AcceptedFileTypes] | NoneOf[AcceptedFileTypes]
+    matcher: Union[AnyOf[AcceptedFileTypes], AllOf[AcceptedFileTypes], NoneOf[AcceptedFileTypes]]
     
     @classmethod
     def any_of(cls, values: list[AcceptedFileTypes]) -> FileType:
@@ -144,7 +178,7 @@ class FileType(SubjectFilter):
 
 class FolderPath(SubjectFilter):
     subject: Literal['folder_path'] = 'folder_path'
-    matcher: AnyOf[str] | NoneOf[str] | Prefix | Suffix
+    matcher: Union[AnyOf[str], NoneOf[str], Prefix, Suffix]
     
     @classmethod
     def any_of(cls, values: list[str]) -> FolderPath:
@@ -165,7 +199,7 @@ class FolderPath(SubjectFilter):
     
 class ID(SubjectFilter):
     subject: Literal['id'] = 'id'
-    matcher: AnyOf[str] | NoneOf[str]
+    matcher: Union[AnyOf[str], NoneOf[str]]
     
     @classmethod
     def any_of(cls, values: list[str]) -> ID:
@@ -178,7 +212,7 @@ class ID(SubjectFilter):
 
 class Issue(SubjectFilter):
     subject: Literal['issue'] = 'issue'
-    matcher: AnyOf[IssueType] | NoneOf[IssueType]
+    matcher: Union[AnyOf[IssueType], NoneOf[IssueType]]
     
     @classmethod
     def any_of(cls, values: list[IssueType]) -> Issue:
@@ -191,7 +225,7 @@ class Issue(SubjectFilter):
 
 class ItemName(SubjectFilter):
     subject: Literal['item_name'] = 'item_name'
-    matcher: AnyOf[str] | NoneOf[str] | Prefix | Suffix | Contains | NotContains
+    matcher: Union[AnyOf[str], NoneOf[str], Prefix, Suffix, Contains, NotContains]
     
     @classmethod
     def any_of(cls, values: list[str]) -> ItemName:
@@ -220,7 +254,7 @@ class ItemName(SubjectFilter):
 
 class ProcessingStatus(SubjectFilter):
     subject: Literal['processing_status'] = 'processing_status'
-    matcher: AnyOf[ProcessingStatusType] | NoneOf[ProcessingStatusType]
+    matcher: Union[AnyOf[ProcessingStatusType], NoneOf[ProcessingStatusType]]
     
     @classmethod
     def any_of(cls, values: list[ProcessingStatusType]) -> ProcessingStatus:
@@ -251,7 +285,7 @@ class UpdatedAt(SubjectFilter):
     
 class WorkflowStatus(SubjectFilter):
     subject: Literal['workflow_status'] = 'workflow_status'
-    matcher: AnyOf[WorkflowStatusType] | NoneOf[WorkflowStatusType]
+    matcher: Union[AnyOf[WorkflowStatusType], NoneOf[WorkflowStatusType]]
     
     @classmethod
     def any_of(cls, values: list[WorkflowStatusType]) -> WorkflowStatus:
@@ -264,7 +298,7 @@ class WorkflowStatus(SubjectFilter):
     
 class WorkflowStage(SubjectFilter):
     subject: Literal['workflow_stage'] = 'workflow_stage'
-    matcher: AnyOf[str] | NoneOf[str]
+    matcher: Union[AnyOf[str], NoneOf[str]]
     
     @classmethod
     def any_of(cls, values: list[str]) -> WorkflowStage:
@@ -275,69 +309,39 @@ class WorkflowStage(SubjectFilter):
         return WorkflowStage(subject='workflow_stage', matcher=NoneOf(values=values))
     
 
-# Matchers
-class AnyOf(BaseMatcher, Generic[T]):
-    name: Literal['any_of'] = 'any_of'
-    values: List[T]
-    
-    @validator('values')
-    def validate_any_of(cls, value: List[T]) -> List[T]:
-        if len(value) < 2:
-            raise ValueError("Must provide at least two values for 'any_of' matcher.")
-        return value
-    
-class AllOf(BaseMatcher, Generic[T]):
-    name: Literal['all_of'] = 'all_of'
-    values: List[T]
-    
-    @validator('values')
-    def validate_all_of(cls, value: List[T]) -> List[T]:
+
+
+class GroupFilter(BaseModel):
+    conjuction: Literal['and', 'or'] = 'and'
+    filters: List[Union[GroupFilter, SubjectFilter]]
+
+    @validator('filters')
+    def validate_filters(cls, value: List[GroupFilter | SubjectFilter]) -> List[GroupFilter | SubjectFilter]:
         if len(value) < 1:
-            raise ValueError("Must provide at least a value for 'all_of' matcher.")
-        return value
-    
-class NoneOf(BaseMatcher, Generic[T]):
-    name: Literal['none_of'] = 'none_of'
-    values: List[T]
-    
-    @validator('values')
-    def validate_none_of(cls, value: List[T]) -> List[T]:
-        if len(value) < 1:
-            raise ValueError("Must provide at least a value for 'none_of' matcher.")
+            raise ValueError("Must provide at least one filter.")
         return value
 
-class Equals(BaseMatcher, Generic[T]):
-    name: Literal['equals'] = 'equals'
-    value: T
-    
-class DateRange(BaseModel):
-    name: str = 'date_range'
-    start: Optional[datetime] = None
-    end: Optional[datetime] = None
+    # def __and__(self, other: GroupFilter | SubjectFilter) -> GroupFilter:
+    #     if isinstance(other, GroupFilter):
+    #         if self.conjuction == 'and' and other.conjuction == 'and':
+    #             return GroupFilter(conjuction='and', filters=[*self.filters, *other.filters])
+    #         return GroupFilter(conjuction='and', filters=[self, other])
+    #     if isinstance(other, SubjectFilter):
+    #         if self.conjuction == 'and':
+    #             return GroupFilter(conjuction='and', filters=[*self.filters, other])
+    #         return GroupFilter(conjuction='and', filters=[*self.filters, other])
 
-    @root_validator(pre=True)
-    def validate_date_range(cls, values: dict) -> dict:
-        if not values.get('start') and not values.get('end'):
-            raise ValueError("At least one of 'start' or 'end' must be provided.")
-        if values.get('start') and values.get('end'):
-            if values['start'] > values['end']:
-                raise ValueError("'start' must be before 'end'.")
-        return values
-    
-class Prefix(BaseMatcher):
-    name: Literal['prefix'] = 'prefix'
-    value: str
+    # def __or__(self, other: GroupFilter | SubjectFilter) -> GroupFilter:
+    #     if isinstance(other, GroupFilter):
+    #         if self.conjuction == 'or' and other.conjuction == 'or':
+    #             return GroupFilter(conjuction='or', filters=[*self.filters, *other.filters])
+    #         return GroupFilter(conjuction='or', filters=[self, other])
+    #     if isinstance(other, SubjectFilter):
+    #         if self.conjuction == 'or':
+    #             return GroupFilter(conjuction='or', filters=[*self.filters, other])
+    #         return GroupFilter(conjuction='or', filters=[self, other])
 
-class Suffix(BaseMatcher):
-    name: Literal['suffix'] = 'suffix'
-    value: str
 
-class Contains(BaseMatcher):
-    name: Literal['contains'] = 'contains'
-    value: str
 
-class NotContains(BaseMatcher):
-    name: Literal['not_contains'] = 'not_contains'
-    value: str
-    
-GroupFilter.update_forward_refs(SubjectFilter=SubjectFilter)
+
+# GroupFilter.update_forward_refs(SubjectFilter=SubjectFilter)
