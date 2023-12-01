@@ -6,13 +6,13 @@ from pydantic import ValidationError
 
 from darwin.future.data_objects import advanced_filters as AF
 
-FileTypesParameters: List[Tuple[AF.AcceptedFileTypes]] = [
-    (x) for x in get_args(AF.AcceptedFileTypes)
-]
+FileTypesParameters: List[Tuple[AF.AcceptedFileTypes]] = list(get_args(AF.AcceptedFileTypes))
 
-IssueTypes: List[Tuple[AF.IssueType]] = [(x) for x in get_args(AF.IssueType)]
-ProcessingStatusTypes: List[Tuple[AF.ProcessingStatusType]] = [(x) for x in get_args(AF.ProcessingStatusType)]
-WorkflowStatusTypes: List[Tuple[AF.WorkflowStatusType]] = [(x) for x in get_args(AF.WorkflowStatusType)]
+IssueTypes: List[Tuple[AF.IssueType]] = list(get_args(AF.IssueType))
+ProcessingStatusTypes: List[Tuple[AF.ProcessingStatusType]] = list(get_args(AF.ProcessingStatusType))
+WorkflowStatusTypes: List[Tuple[AF.WorkflowStatusType]] = list(get_args(AF.WorkflowStatusType))
+
+
 def test_date_validator() -> None:
     with pytest.raises(ValidationError):
         AF.DateRange()  # needs at least one date
@@ -144,9 +144,10 @@ def test_file_type(file_type: AF.AcceptedFileTypes) -> None:
         matcher=AF.AnyOf(values=[file_type])
     )
 
+
 def test_file_type_breaks() -> None:
     with pytest.raises(ValidationError):
-        AF.FileType.any_of(["not a valid filetype"]) # type: ignore
+        AF.FileType.any_of(["not a valid filetype"])  # type: ignore
 
 
 def test_folder_path() -> None:
@@ -159,7 +160,8 @@ def test_folder_path() -> None:
     assert AF.FolderPath.any_of(["test"]) == AF.FolderPath(
         matcher=AF.AnyOf(values=["test"])
     )
-    
+
+
 def test_id() -> None:
     assert AF.ID.any_of(["test"]) == AF.ID(matcher=AF.AnyOf(values=["test"]))
     assert AF.ID.none_of(["test"]) == AF.ID(matcher=AF.NoneOf(values=["test"]))
@@ -167,30 +169,51 @@ def test_id() -> None:
 
 @pytest.mark.parametrize("issue_type", IssueTypes)
 def test_issue(issue_type: AF.IssueType) -> None:
-    assert AF.Issue.any_of([issue_type]) == AF.Issue(matcher=AF.AnyOf(values=[issue_type]))
-    assert AF.Issue.none_of([issue_type]) == AF.Issue(matcher=AF.NoneOf(values=[issue_type]))
-    
+    assert AF.Issue.any_of([issue_type]) == AF.Issue(
+        matcher=AF.AnyOf(values=[issue_type])
+    )
+    assert AF.Issue.none_of([issue_type]) == AF.Issue(
+        matcher=AF.NoneOf(values=[issue_type])
+    )
+
+
 def test_issue_breaks() -> None:
     with pytest.raises(ValidationError):
-        AF.Issue.any_of(["not a valid issue type"]) # type: ignore
-        
+        AF.Issue.any_of(["not a valid issue type"])  # type: ignore
+
+
 def test_item_name() -> None:
-    assert AF.ItemName.any_of(["test"]) == AF.ItemName(matcher=AF.AnyOf(values=["test"]))
-    assert AF.ItemName.none_of(["test"]) == AF.ItemName(matcher=AF.NoneOf(values=["test"]))
+    assert AF.ItemName.any_of(["test"]) == AF.ItemName(
+        matcher=AF.AnyOf(values=["test"])
+    )
+    assert AF.ItemName.none_of(["test"]) == AF.ItemName(
+        matcher=AF.NoneOf(values=["test"])
+    )
     assert AF.ItemName.prefix("test") == AF.ItemName(matcher=AF.Prefix(value="test"))
     assert AF.ItemName.suffix("test") == AF.ItemName(matcher=AF.Suffix(value="test"))
-    assert AF.ItemName.contains("test") == AF.ItemName(matcher=AF.Contains(value="test"))
-    assert AF.ItemName.not_contains("test") == AF.ItemName(matcher=AF.NotContains(value="test"))
+    assert AF.ItemName.contains("test") == AF.ItemName(
+        matcher=AF.Contains(value="test")
+    )
+    assert AF.ItemName.not_contains("test") == AF.ItemName(
+        matcher=AF.NotContains(value="test")
+    )
+
 
 @pytest.mark.parametrize("processing_status", ProcessingStatusTypes)
 def test_processing_status(processing_status: AF.ProcessingStatusType) -> None:
-    assert AF.ProcessingStatus.any_of([processing_status]) == AF.ProcessingStatus(matcher=AF.AnyOf(values=[processing_status]))
-    assert AF.ProcessingStatus.none_of([processing_status]) == AF.ProcessingStatus(matcher=AF.NoneOf(values=[processing_status]))
+    assert AF.ProcessingStatus.any_of([processing_status]) == AF.ProcessingStatus(
+        matcher=AF.AnyOf(values=[processing_status])
+    )
+    assert AF.ProcessingStatus.none_of([processing_status]) == AF.ProcessingStatus(
+        matcher=AF.NoneOf(values=[processing_status])
+    )
+
 
 def test_processing_status_breaks() -> None:
     with pytest.raises(ValidationError):
-        AF.ProcessingStatus.any_of(["not a valid processing status"]) # type: ignore
-        
+        AF.ProcessingStatus.any_of(["not a valid processing status"])  # type: ignore
+
+
 def test_updated_at() -> None:
     before = datetime.now()
     after = datetime.now()
@@ -205,24 +228,33 @@ def test_updated_at() -> None:
     # Check raises if time is not in order
     with pytest.raises(ValidationError):
         AF.UpdatedAt.between(after, before)
-        
 
-@pytest.mark.parametrize("workflow_status", WorkflowStatusTypes)     
+
+@pytest.mark.parametrize("workflow_status", WorkflowStatusTypes)
 def test_workflow_status(workflow_status: AF.WorkflowStatusType) -> None:
-    assert AF.WorkflowStatus.any_of([workflow_status]) == AF.WorkflowStatus(matcher=AF.AnyOf(values=[workflow_status]))
-    assert AF.WorkflowStatus.none_of([workflow_status]) == AF.WorkflowStatus(matcher=AF.NoneOf(values=[workflow_status]))
-    
+    assert AF.WorkflowStatus.any_of([workflow_status]) == AF.WorkflowStatus(
+        matcher=AF.AnyOf(values=[workflow_status])
+    )
+    assert AF.WorkflowStatus.none_of([workflow_status]) == AF.WorkflowStatus(
+        matcher=AF.NoneOf(values=[workflow_status])
+    )
+
+
 def test_workflow_status_breaks() -> None:
     with pytest.raises(ValidationError):
-        AF.WorkflowStatus.any_of(["not a valid workflow status"]) # type: ignore
-        
+        AF.WorkflowStatus.any_of(["not a valid workflow status"])  # type: ignore
+
 
 def test_workflow_stage() -> None:
-    assert AF.WorkflowStage.any_of(["test"]) == AF.WorkflowStage(matcher=AF.AnyOf(values=["test"]))
-    assert AF.WorkflowStage.none_of(["test"]) == AF.WorkflowStage(matcher=AF.NoneOf(values=["test"]))
-    
-    
+    assert AF.WorkflowStage.any_of(["test"]) == AF.WorkflowStage(
+        matcher=AF.AnyOf(values=["test"])
+    )
+    assert AF.WorkflowStage.none_of(["test"]) == AF.WorkflowStage(
+        matcher=AF.NoneOf(values=["test"])
+    )
+
+
 def test_GF_validators() -> None:
     with pytest.raises(ValidationError):
-        AF.GroupFilter(filters=[]) # needs at least two filters
+        AF.GroupFilter(filters=[])  # needs at least two filters
         AF.GroupFilter(filters=[AF.AnnotationClass.all_of([1, 2])])
