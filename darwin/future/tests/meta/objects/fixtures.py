@@ -58,6 +58,7 @@ def workflow(base_client: ClientCore, base_workflow: WorkflowCore) -> Workflow:
         meta_params={"team_slug": "test", "dataset_id": 1, "workflow_id": 1},
     )
 
+
 @fixture
 def base_meta_stage(
     base_client: ClientCore, base_stage: WFStageCore, base_UUID: UUID
