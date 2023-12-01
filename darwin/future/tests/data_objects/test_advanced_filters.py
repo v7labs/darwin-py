@@ -220,3 +220,9 @@ def test_workflow_status_breaks() -> None:
 def test_workflow_stage() -> None:
     assert AF.WorkflowStage.any_of(["test"]) == AF.WorkflowStage(matcher=AF.AnyOf(values=["test"]))
     assert AF.WorkflowStage.none_of(["test"]) == AF.WorkflowStage(matcher=AF.NoneOf(values=["test"]))
+    
+    
+def test_GF_validators() -> None:
+    with pytest.raises(ValidationError):
+        AF.GroupFilter(filters=[]) # needs at least two filters
+        AF.GroupFilter(filters=[AF.AnnotationClass.all_of([1, 2])])

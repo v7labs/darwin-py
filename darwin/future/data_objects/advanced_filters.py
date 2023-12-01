@@ -339,8 +339,8 @@ class GroupFilter(BaseModel):
     def validate_filters(
         cls, value: List[GroupFilter | SubjectFilter]
     ) -> List[GroupFilter | SubjectFilter]:
-        if len(value) < 1:
-            raise ValueError("Must provide at least one filter.")
+        if len(value) < 2:
+            raise ValueError("Must provide at least two filters.")
         return value
 
     def __and__(self, other: GroupFilter | SubjectFilter) -> GroupFilter:
