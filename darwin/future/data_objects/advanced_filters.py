@@ -53,7 +53,7 @@ class Equals(BaseMatcher, GenericModel, Generic[T]):
 
 
 class DateRange(BaseMatcher):
-    name: str = "date_range"
+    name: Literal['date_range'] = "date_range"
     start: Optional[datetime] = None
     end: Optional[datetime] = None
 
