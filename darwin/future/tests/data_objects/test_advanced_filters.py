@@ -6,11 +6,17 @@ from pydantic import ValidationError
 
 from darwin.future.data_objects import advanced_filters as AF
 
-FileTypesParameters: List[Tuple[AF.AcceptedFileTypes]] = list(get_args(AF.AcceptedFileTypes))
+FileTypesParameters: List[Tuple[AF.AcceptedFileTypes]] = list(
+    get_args(AF.AcceptedFileTypes)
+)
 
 IssueTypes: List[Tuple[AF.IssueType]] = list(get_args(AF.IssueType))
-ProcessingStatusTypes: List[Tuple[AF.ProcessingStatusType]] = list(get_args(AF.ProcessingStatusType))
-WorkflowStatusTypes: List[Tuple[AF.WorkflowStatusType]] = list(get_args(AF.WorkflowStatusType))
+ProcessingStatusTypes: List[Tuple[AF.ProcessingStatusType]] = list(
+    get_args(AF.ProcessingStatusType)
+)
+WorkflowStatusTypes: List[Tuple[AF.WorkflowStatusType]] = list(
+    get_args(AF.WorkflowStatusType)
+)
 
 
 def test_date_validator() -> None:
