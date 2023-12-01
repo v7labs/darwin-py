@@ -58,7 +58,7 @@ def test_group_validator() -> None:
         AF.GroupFilter(filters=[])  # needs at least one filter
 
     # Test instantiates
-    AF.GroupFilter(filters=[AF.AnnotationClass.all_of([1, 2])])
+    AF.GroupFilter(filters=[AF.AnnotationClass.all_of([1, 2]), AF.Assignee.any_of([1])])
 
 
 def test_bitwise_syntax() -> None:
