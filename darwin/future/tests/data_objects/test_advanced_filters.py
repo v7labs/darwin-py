@@ -114,8 +114,8 @@ def test_assignee() -> None:
 
 
 def test_created_at() -> None:
-    before = datetime.now()
     after = datetime.now()
+    before = after - timedelta(days=1)
     assert AF.CreatedAt.between(before, after) == AF.CreatedAt(
         matcher=AF.DateRange(start=before, end=after)
     )
@@ -221,8 +221,8 @@ def test_processing_status_breaks() -> None:
 
 
 def test_updated_at() -> None:
-    before = datetime.now()
     after = datetime.now()
+    before = after - timedelta(days=1)
     assert AF.UpdatedAt.between(before, after) == AF.UpdatedAt(
         matcher=AF.DateRange(start=before, end=after)
     )
