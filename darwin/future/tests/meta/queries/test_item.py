@@ -5,6 +5,7 @@ import responses
 from responses.matchers import json_params_matcher, query_param_matcher
 
 from darwin.future.core.client import ClientCore
+from darwin.future.data_objects.item import ItemLayout
 from darwin.future.exceptions import BadRequest
 from darwin.future.meta.objects.item import Item
 from darwin.future.meta.queries.item import ItemQuery
@@ -293,6 +294,54 @@ def test_archive(
             json={},
         )
         item_query.archive()
+
+
+def test_set_layout(
+    item_query: ItemQuery, items_json: List[dict], items: List[Item]
+) -> None:
+    with responses.RequestsMock() as rsps:
+        rsps.add(
+            rsps.GET,
+            item_query.client.config.api_endpoint + "v2/teams/test/items",
+            match=[
+                query_param_matcher(
+                    {"page[offset]": "0", "page[size]": "500", "dataset_ids": "1"}
+                )
+            ],
+            json={"items": items_json, "errors": []},
+        )
+        team_slug = items[0].meta_params["team_slug"]
+        dataset_id = items[0].meta_params["dataset_id"]
+        layout = ItemLayout(version=1, type="grid", slots=["slot1", "slot2"])
+        rsps.add(
+            rsps.POST,
+            items[0].client.config.api_endpoint + f"v2/teams/{team_slug}/items/layout",
+            status=200,
+            match=[
+                json_params_matcher(
+                    {
+                        "filters": {
+                            "item_ids": [str(item.id) for item in items],
+                            "dataset_ids": [dataset_id],
+                        },
+                        "layout": dict(layout),
+                    }
+                )
+            ],
+            json={},
+        )
+        item_query.set_layout(layout)
+
+
+def test_set_layout_raises_on_incorrect_parameters(
+    item_query: ItemQuery, items_json: List[dict], items: List[Item]
+) -> None:
+    with responses.RequestsMock():
+        items[0].meta_params["team_slug"]
+        items[0].meta_params["dataset_id"]
+        layout = "invalid_layout"
+        with pytest.raises(AssertionError):
+            item_query.set_layout(layout)
 
 
 def test_tag(item_query: ItemQuery, items_json: List[dict], items: List[Item]) -> None:

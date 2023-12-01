@@ -228,6 +228,47 @@ def test_archive_with_bad_team_slug(item: Item) -> None:
         item.archive()
 
 
+def test_set_layout(item: Item) -> None:
+    with responses.RequestsMock() as rsps:
+        team_slug = item.meta_params["team_slug"]
+        dataset_id = item.meta_params["dataset_id"]
+        layout = ItemLayout(version=1, type="grid", slots=["slot1", "slot2"])
+        rsps.add(
+            rsps.POST,
+            item.client.config.api_endpoint + f"v2/teams/{team_slug}/items/layout",
+            status=200,
+            match=[
+                json_params_matcher(
+                    {
+                        "filters": {
+                            "item_ids": [str(item.id)],
+                            "dataset_ids": [dataset_id],
+                        },
+                        "layout": layout,
+                    }
+                )
+            ],
+            json={},
+        )
+        item.set_layout(layout)
+
+
+def test_set_layout_raises_on_incorrect_parameters(item: Item) -> None:
+    with responses.RequestsMock():
+        item.meta_params["team_slug"]
+        item.meta_params["dataset_id"]
+        layout = "invalid_layout"
+        with pytest.raises(AssertionError):
+            item.set_layout(layout)
+
+
+def test_set_layout_with_bad_team_slug(item: Item) -> None:
+    with pytest.raises(AssertionError):
+        layout = ItemLayout(version=1, type="grid", slots=["slot1", "slot2"])
+        item.meta_params["team_slug"] = 123
+        item.set_layout(layout)
+
+
 def test_tag(item: Item) -> None:
     with responses.RequestsMock() as rsps:
         team_slug = item.meta_params["team_slug"]
