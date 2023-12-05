@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from pathlib import Path
@@ -213,6 +215,8 @@ class Annotation:
     # The darwin ID of this annotation.
     id: Optional[str] = None
 
+    properties: Optional[List[Property]] = None
+
     def get_sub(self, annotation_type: str) -> Optional[SubAnnotation]:
         """
         Returns the first SubAnnotation that matches the given type.
@@ -266,6 +270,8 @@ class VideoAnnotation:
 
     # The darwin ID of this annotation.
     id: Optional[str] = None
+
+    properties: Optional[List[Property]] = None
 
     def get_data(
         self,
@@ -387,6 +393,25 @@ class AnnotationFileVersion:
 
 
 @dataclass
+class Property:
+    """
+    Represents a property of an annotation file.
+    """
+
+    # Name of the property
+    name: str
+
+    # Type of the property
+    type: str
+
+    # Whether the property is required or not
+    required: bool
+
+    # Property options
+    options: list[dict[str, str]]
+
+
+@dataclass
 class AnnotationFile:
     """
     Represents a file containing annotations. Mostly useful when trying to import or export
@@ -454,6 +479,8 @@ class AnnotationFile:
 
     # The Frame Count if this is a video annotation
     frame_count: Optional[int] = None
+
+    properties: Optional[List[Property]] = None
 
     @property
     def full_path(self) -> str:
