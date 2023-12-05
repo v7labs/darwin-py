@@ -47,7 +47,8 @@ class TestExportCli:
 
     @pytest.mark.parametrize(
         "format, input_path, expectation_path",
-        [("yolo_segmented", data_path / "yolov8/from", data_path / "yolov8/to")],
+        [("yolo_segmented", data_path / "yolov8/from", data_path / "yolov8/to"),
+         ("coco", data_path / "coco/from", data_path / "coco/to")],
     )
     def test_darwin_convert(
         self, format: str, input_path: Path, expectation_path: Path, tmp_path: Path
