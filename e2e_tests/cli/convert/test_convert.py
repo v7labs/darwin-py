@@ -15,7 +15,7 @@ class TestExportCli:
     def config(self) -> None:
         assert self.data_path.exists(), "Data path does not exist, tests cannot run"
 
-    def compare_directories(self, path: Path, expected_path: Path) -> Tuple[bool, str]:
+    def compare_directories(self, path: Path, expected_path: Path) -> None:
         """
         Compare two directories recursively
         """
@@ -25,9 +25,7 @@ class TestExportCli:
         for file in path.iterdir():
             if file.is_dir():
                 # Recursively compare directories
-                result = self.compare_directories(file, expected_path / file.name)
-                if not result[0]:
-                    return result
+                self.compare_directories(file, expected_path / file.name)
             else:
                 if file.name.startswith("."):
                     # Ignore hidden files
@@ -41,9 +39,13 @@ class TestExportCli:
                     expected_content = f.read()
 
                 if content != expected_content:
-                    return (False, f"File {file} does not match expected file")
+                    print(f"Expected file: {expected_path / file.name}")
+                    print(f"Expected Content: \n{expected_content}")
+                    print("---------------------")
+                    print(f"Actual file: {file}")
+                    print(f"Actual Content: \n{content}")
+                    assert False, f"File {file} does not match expected file"
 
-        return (True, "")
 
     @pytest.mark.parametrize(
         "format, input_path, expectation_path",
@@ -71,7 +73,7 @@ class TestExportCli:
         )
 
         assert_cli(result, 0)
-        assert self.compare_directories(expectation_path, tmp_path)[0]
+        self.compare_directories(expectation_path, tmp_path)
 
 
 if __name__ == "__main__":
