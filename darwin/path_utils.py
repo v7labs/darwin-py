@@ -67,7 +67,10 @@ def parse_manifest(path: Path) -> dict:
 
 
 def is_properties_enabled(
-    export_dir_path: Path, dir: str = ".v7", filename: str = "manifest.json"
+    export_dir_path: Path,
+    dir: str = ".v7",
+    filename: str = "manifest.json",
+    annotations_dir: str = "annotations",
 ) -> bool:
     """
     Returns whether the given export directory has properties enabled.
@@ -84,6 +87,11 @@ def is_properties_enabled(
     """
     path = export_dir_path / dir
     if not path.exists():
+        annotations_path = export_dir_path / annotations_dir
+        for annotation_path in annotations_path.rglob("*"):
+            with open(annotation_path) as f:
+                if '"properties"' in f.read():
+                    return True
         return False
 
     manifest_path = path / filename

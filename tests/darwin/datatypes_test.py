@@ -109,11 +109,11 @@ def test_split_paths_by_manifest(filename, properties_n, is_properties_enabled):
     manifest_path = Path(__file__).parent / f"data/{filename}"
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        tmpdir_v7 = Path(tmpdir) / ".v7"
+        tmpdir = Path(tmpdir)
+        tmpdir_v7 = tmpdir / ".v7"
         tmpdir_v7.mkdir(exist_ok=True)
         shutil.copy(manifest_path, tmpdir_v7)
 
-        tmpdir = Path(tmpdir)
         _path, properties = split_paths_by_manifest(tmpdir, filename=filename)
 
         is_path_file = _path.is_file()
