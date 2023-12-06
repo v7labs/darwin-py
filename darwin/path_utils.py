@@ -46,30 +46,30 @@ def deconstruct_full_path(filename: str) -> Tuple[str, str]:
     return str(posix_path.parent), posix_path.name
 
 
-def parse_manifest(path: Path) -> dict:
+def parse_metadata(path: Path) -> dict:
     """
-    Parses the given manifest and returns a list of all the properties in it.
+    Returns the parsed metadata file.
 
     Parameters
     ----------
-    path : str
-        The path to the manifest.
+    path : Path
+        The path to the metadata file.
 
     Returns
     -------
-    list[Property]
-        A list of all the properties in the given manifest.
+    dict
+        The parsed metadata file.
     """
     with open(path) as f:
-        manifest = json.load(f)
+        metadata = json.load(f)
 
-    return manifest
+    return metadata
 
 
 def is_properties_enabled(
     export_dir_path: Path,
     dir: str = ".v7",
-    filename: str = "manifest.json",
+    filename: str = "metadata.json",
     annotations_dir: str = "annotations",
 ) -> bool:
     """
@@ -94,6 +94,6 @@ def is_properties_enabled(
                     return True
         return False
 
-    manifest_path = path / filename
-    manifest_classes = parse_manifest(manifest_path).get("classes", [])
-    return any(_cls.get("properties") for _cls in manifest_classes)
+    metadata_path = path / filename
+    metadata_classes = parse_metadata(metadata_path).get("classes", [])
+    return any(_cls.get("properties") for _cls in metadata_classes)

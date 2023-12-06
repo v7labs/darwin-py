@@ -22,7 +22,7 @@ try:
 except ImportError:
     NDArray = Any  # type:ignore
 
-from darwin.path_utils import construct_full_path, is_properties_enabled, parse_manifest
+from darwin.path_utils import construct_full_path, is_properties_enabled, parse_metadata
 
 # Utility types
 
@@ -407,55 +407,75 @@ class Property:
     options: list[dict[str, str]]
 
 
-def parse_properties(manifest: dict[str, Any]) -> list[Property]:
+@dataclass
+class PropertyClass:
+    name: str
+    type: str
+    description: Optional[str]
+    color: Optional[str] = None
+    sub_types: Optional[list[str]] = None
+    properties: Optional[list[Property]] = None
+
+
+def parse_property_classes(metadata: dict[str, Any]) -> list[PropertyClass]:
     """
-    Parses the given manifest and returns a list of all the properties in it.
+    Parses the metadata file and returns a list of PropertyClass objects.
 
     Parameters
     ----------
-    properties : list[dict]
-        The properties to parse.
+    metadata : dict[str, Any]
+        The metadata file.
 
     Returns
     -------
-    list[Property]
-        A list of all the properties in the given manifest.
+    list[PropertyClass]
+        A list of PropertyClass objects.
     """
-    assert "classes" in manifest, "Manifest does not contain classes"
+    assert "classes" in metadata, "Metadata does not contain classes"
 
-    properties = []
-    for m_cls in manifest["classes"]:
-        for property in m_cls["properties"]:
-            properties.append(Property(**property))
+    classes = []
+    for metadata_cls in metadata["classes"]:
+        assert (
+            "properties" in metadata_cls
+        ), "Metadata class does not contain properties"
+        classes.append(
+            PropertyClass(
+                name=metadata_cls["name"],
+                type=metadata_cls["type"],
+                description=metadata_cls.get("description"),
+                color=metadata_cls.get("color"),
+                sub_types=metadata_cls.get("sub_types"),
+                properties=[Property(**p) for p in metadata_cls["properties"]],
+            )
+        )
 
-    return properties
+    return classes
 
 
-def split_paths_by_manifest(
-    path, dir: str = ".v7", filename: str = "manifest.json"
-) -> tuple[Path, Optional[list[Property]]]:
+def split_paths_by_metadata(
+    path, dir: str = ".v7", filename: str = "metadata.json"
+) -> tuple[Path, Optional[list[PropertyClass]]]:
     """
-    Returns the path to the manifest and the properties of the given path.
+    Splits the given path into two: the path to the metadata file and the path to the properties
 
     Parameters
     ----------
     path : Path
-        The path to the manifest file, if exists. otherwise the path to the export dir itself.
+        The path to the export directory.
 
     Returns
     -------
-    tuple[Path, Optional[list[Property]]]
-        A tuple where the first element is the path to the manifest and the second is the list of
-        properties of the given path.
+    tuple[Path, Optional[list[PropertyClass]]]
+        A tuple containing the path to the metadata file and the list of property classes.
     """
     if not is_properties_enabled(path, dir, filename):
         return path, None
 
-    manifest_path = path / dir / filename
-    manifest = parse_manifest(manifest_path)
-    properties = parse_properties(manifest)
+    metadata_path = path / dir / filename
+    metadata = parse_metadata(metadata_path)
+    property_classes = parse_property_classes(metadata)
 
-    return manifest_path, properties
+    return metadata_path, property_classes
 
 
 @dataclass

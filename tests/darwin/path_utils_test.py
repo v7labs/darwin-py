@@ -8,7 +8,7 @@ from darwin.path_utils import (
     construct_full_path,
     deconstruct_full_path,
     is_properties_enabled,
-    parse_manifest,
+    parse_metadata,
 )
 
 
@@ -45,13 +45,13 @@ def test_path_deconstruction():
     assert ("/", "test.png") == deconstruct_full_path("/test.png")
 
 
-def test_parse_manifest():
-    manifest_path = Path(__file__).parent / "data/manifest.json"
-    manifest = parse_manifest(manifest_path)
+def test_parse_metadata():
+    metadata_path = Path(__file__).parent / "data/metadata.json"
+    metadata = parse_metadata(metadata_path)
 
-    # check that the manifest is parsed correctly
-    assert len(manifest["classes"]) == 1
-    assert len(manifest["classes"][0]["properties"]) == 2
+    # check that the metadata is parsed correctly
+    assert len(metadata["classes"]) == 1
+    assert len(metadata["classes"][0]["properties"]) == 2
 
 
 @pytest.mark.parametrize(
@@ -76,17 +76,17 @@ def test_is_properties_enabled(filename, expected_bool):
 @pytest.mark.parametrize(
     ("filename", "expected_bool"),
     (
-        ("manifest.json", True),
-        ("manifest_nested_properties.json", True),
-        ("manifest_empty_properties.json", False),
+        ("metadata.json", True),
+        ("metadata_nested_properties.json", True),
+        ("metadata_empty_properties.json", False),
     ),
 )
 def test_is_properties_enabled_v7(filename, expected_bool):
-    manifest_path = Path(__file__).parent / f"data/{filename}"
+    metadata_path = Path(__file__).parent / f"data/{filename}"
     with tempfile.TemporaryDirectory() as tmpdir:
         tmpdir = Path(tmpdir)
         tmpdir_v7 = tmpdir / ".v7"
         tmpdir_v7.mkdir(exist_ok=True)
-        shutil.copy(manifest_path, tmpdir_v7)
+        shutil.copy(metadata_path, tmpdir_v7)
 
         assert is_properties_enabled(tmpdir, filename=filename) == expected_bool
