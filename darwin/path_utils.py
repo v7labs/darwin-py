@@ -84,7 +84,6 @@ def is_properties_enabled(
     """
     path = export_dir_path / dir
     if not path.exists():
-        breakpoint()
         return False
 
     manifest_path = path / filename
