@@ -49,8 +49,19 @@ class TestExportCli:
 
     @pytest.mark.parametrize(
         "format, input_path, expectation_path",
-        [("yolo_segmented", data_path / "yolov8/from", data_path / "yolov8/to"),
-         pytest.param("coco", data_path / "coco/from", data_path / "coco/to", marks=pytest.mark.skipif(sys.platform == "win32", reason="File paths are different on Windows, leading to test failure"))],
+        [
+            ("yolo_segmented", data_path / "yolov8/from", data_path / "yolov8/to"),
+            ("yolo", data_path / "yolo/from", data_path / "yolo/to"),
+            pytest.param(
+                "coco",
+                data_path / "coco/from",
+                data_path / "coco/to",
+                marks=pytest.mark.skipif(
+                    sys.platform == "win32",
+                    reason="File paths are different on Windows, leading to test failure",
+                ),
+            ),
+        ],
     )
     def test_darwin_convert(
         self, format: str, input_path: Path, expectation_path: Path, tmp_path: Path
