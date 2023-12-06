@@ -1,8 +1,6 @@
-import datetime
 import sys
 from os.path import dirname
 from pathlib import Path
-from tempfile import mkdtemp
 
 import orjson as json
 import pytest
