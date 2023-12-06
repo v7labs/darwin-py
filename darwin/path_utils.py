@@ -2,10 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path, PurePosixPath
-from typing import TYPE_CHECKING, Optional, Tuple
-
-if TYPE_CHECKING:
-    from darwin.datatypes import Property
+from typing import Optional, Tuple
 
 
 def construct_full_path(remote_path: Optional[str], filename: str) -> str:
@@ -49,7 +46,7 @@ def deconstruct_full_path(filename: str) -> Tuple[str, str]:
     return str(posix_path.parent), posix_path.name
 
 
-def parse_manifest(path: Path) -> list[Property]:
+def parse_manifest(path: Path) -> dict:
     """
     Parses the given manifest and returns a list of all the properties in it.
 
@@ -66,47 +63,30 @@ def parse_manifest(path: Path) -> list[Property]:
     with open(path) as f:
         manifest = json.load(f)
 
-    properties = []
-    for m_cls in manifest.get("classes"):
-        for property in m_cls["properties"]:
-            properties.append(Property(**property))
-
-    return properties
+    return manifest
 
 
-def is_properties_enabled(path: Path) -> bool:
+def is_properties_enabled(
+    export_dir_path: Path, dir: str = ".v7", filename: str = "manifest.json"
+) -> bool:
     """
-    Returns whether the properties feature is enabled in the given manifest.
+    Returns whether the given export directory has properties enabled.
 
     Parameters
     ----------
-    manifest : list[dict]
-        The manifest to check.
+    export_dir_path : Path
+        The path to the export directory.
 
     Returns
     -------
     bool
-        Whether the properties feature is enabled in the given manifest.
+        Whether the given export directory has properties enabled.
     """
-    return bool(parse_manifest(path))
+    path = export_dir_path / dir
+    if not path.exists():
+        breakpoint()
+        return False
 
-
-def split_paths_by_manifest(path: Path) -> tuple[Path, list[Property] | Path]:
-    """
-    Returns a tuple with the given path and the properties of the manifest of the given path.
-
-    Parameters
-    ----------
-    path : Path
-        The path to split.
-
-    Returns
-    -------
-    tuple[Path, Optional[list[Property]]]
-        A tuple with the given path and the properties of the manifest of the given path.
-    """
-    properties = parse_manifest(path)
-    if not properties:
-        return path, path
-
-    return path, properties
+    manifest_path = path / filename
+    manifest_classes = parse_manifest(manifest_path).get("classes", [])
+    return any(_cls.get("properties") for _cls in manifest_classes)

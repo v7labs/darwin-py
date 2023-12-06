@@ -22,7 +22,7 @@ try:
 except ImportError:
     NDArray = Any  # type:ignore
 
-from darwin.path_utils import construct_full_path
+from darwin.path_utils import construct_full_path, is_properties_enabled, parse_manifest
 
 # Utility types
 
@@ -409,6 +409,57 @@ class Property:
 
     # Property options
     options: list[dict[str, str]]
+
+
+def parse_properties(manifest: dict[str, Any]) -> list[Property]:
+    """
+    Parses the given manifest and returns a list of all the properties in it.
+
+    Parameters
+    ----------
+    properties : list[dict]
+        The properties to parse.
+
+    Returns
+    -------
+    list[Property]
+        A list of all the properties in the given manifest.
+    """
+    assert "classes" in manifest, "Manifest does not contain classes"
+
+    properties = []
+    for m_cls in manifest["classes"]:
+        for property in m_cls["properties"]:
+            properties.append(Property(**property))
+
+    return properties
+
+
+def split_paths_by_manifest(
+    path, dir: str = ".v7", filename: str = "manifest.json"
+) -> tuple[Path, Optional[list[Property]]]:
+    """
+    Returns the path to the manifest and the properties of the given path.
+
+    Parameters
+    ----------
+    path : Path
+        The path to the manifest file, if exists. otherwise the path to the export dir itself.
+
+    Returns
+    -------
+    tuple[Path, Optional[list[Property]]]
+        A tuple where the first element is the path to the manifest and the second is the list of
+        properties of the given path.
+    """
+    if not is_properties_enabled(path, dir, filename):
+        return path, None
+
+    manifest_path = path / dir / filename
+    manifest = parse_manifest(manifest_path)
+    properties = parse_properties(manifest)
+
+    return manifest_path, properties
 
 
 @dataclass

@@ -1,6 +1,6 @@
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 
-from darwin.path_utils import construct_full_path, deconstruct_full_path
+from darwin.path_utils import construct_full_path, deconstruct_full_path, parse_manifest
 
 
 def test_path_construction():
@@ -34,3 +34,12 @@ def test_path_deconstruction():
     assert ("/a/b", "test.png") == deconstruct_full_path("/a/b/test.png")
     assert ("/", "test.png") == deconstruct_full_path("test.png")
     assert ("/", "test.png") == deconstruct_full_path("/test.png")
+
+
+def test_parse_manifest():
+    manifest_path = Path(__file__).parent / "data/manifest.json"
+    manifest = parse_manifest(manifest_path)
+
+    # check that the manifest is parsed correctly
+    assert len(manifest["classes"]) == 1
+    assert len(manifest["classes"][0]["properties"]) == 2
