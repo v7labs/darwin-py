@@ -215,8 +215,6 @@ class Annotation:
     # The darwin ID of this annotation.
     id: Optional[str] = None
 
-    properties: Optional[List[Property]] = None
-
     def get_sub(self, annotation_type: str) -> Optional[SubAnnotation]:
         """
         Returns the first SubAnnotation that matches the given type.
@@ -270,8 +268,6 @@ class VideoAnnotation:
 
     # The darwin ID of this annotation.
     id: Optional[str] = None
-
-    properties: Optional[List[Property]] = None
 
     def get_data(
         self,
@@ -530,8 +526,6 @@ class AnnotationFile:
 
     # The Frame Count if this is a video annotation
     frame_count: Optional[int] = None
-
-    properties: Optional[List[Property]] = None
 
     @property
     def full_path(self) -> str:
