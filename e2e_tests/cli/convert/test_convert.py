@@ -1,7 +1,8 @@
+import sys
 from os.path import dirname
 from pathlib import Path
-from typing import Tuple
 
+import orjson as json
 import pytest
 
 from e2e_tests.helpers import assert_cli, run_cli_command
@@ -15,7 +16,7 @@ class TestExportCli:
     def config(self) -> None:
         assert self.data_path.exists(), "Data path does not exist, tests cannot run"
 
-    def compare_directories(self, path: Path, expected_path: Path) -> Tuple[bool, str]:
+    def compare_directories(self, path: Path, expected_path: Path) -> None:
         """
         Compare two directories recursively
         """
@@ -25,9 +26,7 @@ class TestExportCli:
         for file in path.iterdir():
             if file.is_dir():
                 # Recursively compare directories
-                result = self.compare_directories(file, expected_path / file.name)
-                if not result[0]:
-                    return result
+                self.compare_directories(file, expected_path / file.name)
             else:
                 if file.name.startswith("."):
                     # Ignore hidden files
@@ -41,15 +40,27 @@ class TestExportCli:
                     expected_content = f.read()
 
                 if content != expected_content:
-                    return (False, f"File {file} does not match expected file")
-
-        return (True, "")
+                    print(f"Expected file: {expected_path / file.name}")
+                    print(f"Expected Content: \n{expected_content}")
+                    print("---------------------")
+                    print(f"Actual file: {file}")
+                    print(f"Actual Content: \n{content}")
+                    assert False, f"File {file} does not match expected file"
 
     @pytest.mark.parametrize(
         "format, input_path, expectation_path",
         [
             ("yolo_segmented", data_path / "yolov8/from", data_path / "yolov8/to"),
             ("yolo", data_path / "yolo/from", data_path / "yolo/to"),
+            pytest.param(
+                "coco",
+                data_path / "coco/from",
+                data_path / "coco/to",
+                marks=pytest.mark.skipif(
+                    sys.platform == "win32",
+                    reason="File paths are different on Windows, leading to test failure",
+                ),
+            ),
         ],
     )
     def test_darwin_convert(
@@ -71,10 +82,28 @@ class TestExportCli:
         result = run_cli_command(
             f"darwin convert {format} {str(input_path)} {str(tmp_path)}"
         )
-
+        if format == "coco":
+            self.patch_coco(tmp_path / "output.json")
         assert_cli(result, 0)
-        assert self.compare_directories(expectation_path, tmp_path)[0]
+        self.compare_directories(expectation_path, tmp_path)
 
+
+    def patch_coco(self, path: Path) -> None:
+        """
+        Patch coco file to match the expected output, includes changes to year and date_created,
+        wrapped in try except so that format errors are still caught later with correct error messages
+        """
+        try:
+            with open(path, "r") as f:
+                contents = f.read()
+                temp = json.loads(contents)
+                temp["info"]["year"] = 2023
+                temp["info"]["date_created"] = "2023/12/05"
+            with open(path, "w") as f:
+                op = json.dumps(temp, option=json.OPT_INDENT_2 | json.OPT_SERIALIZE_NUMPY).decode("utf-8")
+                f.write(op)
+        except Exception:
+            print(f"Error patching {path}")
 
 if __name__ == "__main__":
     pytest.main(["-vv", "-s", __file__])
