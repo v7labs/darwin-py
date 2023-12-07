@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import List, Literal, Optional, Union
 
-from pydantic import AnyUrl, BaseModel, validator
+from pydantic import BaseModel, validator
 
 
 class Point(BaseModel):
@@ -20,6 +20,12 @@ class AnnotationBase(BaseModel):
     name: str
     properties: Optional[dict] = None
     slot_names: Optional[List[str]] = None
+
+    @validator('id', always=True)
+    def id_is_UUID(cls, v: str) -> str:
+        assert len(v) == 36
+        assert '-' in v 
+        return v
 
 class BoundingBox(BaseModel):
     h: float
@@ -61,13 +67,18 @@ class FrameAnnotation(AnnotationBase):
     ranges: List[int]
 
 
-AllowedAnnotation = Union[BoundingBoxAnnotation, EllipseAnnotation, PolygonAnnotation]
+AllowedAnnotation = Union[PolygonAnnotation, BoundingBoxAnnotation, EllipseAnnotation, FrameAnnotation]
 
 class DarwinV2(BaseModel):
     version: Literal["2.0"] = "2.0"
-    schema_ref: AnyUrl
+    schema_ref: str
     item: dict
     annotations: List[AllowedAnnotation]
+    
+    @validator('schema_ref', always=True)
+    def validate_schema_ref(cls, v: str) -> str:
+        assert v.startswith("http")
+        return v
 
 
 class Item(BaseModel):
