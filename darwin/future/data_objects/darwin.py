@@ -47,15 +47,16 @@ class PolygonAnnotation(AnnotationBase):
     polygon: Polygon
     bounding_box: Optional[BoundingBox] = None
     
-    @validator('bounding_box', pre=False)
+    @validator('bounding_box', pre=False, always=True)
     def validate_bounding_box(cls, v: Optional[BoundingBox], values: dict) -> BoundingBox:
         if v is None:
             h, w, x, y = 0.0, 0.0, 0.0, 0.0
-            for point in values['polygon']['paths']:
-                h = max(h, point["y"])
-                w = max(w, point["x"])
-                x = min(x, point["x"])
-                y = min(y, point["y"])
+            for polygon_path in values['polygon'].paths:
+                for point in polygon_path:
+                    h = max(h, point.y)
+                    w = max(w, point.x)
+                    x = min(x, point.x)
+                    y = min(y, point.y)
             v = BoundingBox(h=h, w=w, x=x, y=y)
         return v
 
