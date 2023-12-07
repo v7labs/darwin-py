@@ -9,9 +9,6 @@ class Point(BaseModel):
     x: float
     y: float
 
-# class PolygonPaths(BaseModel):
-#     points: List[PolygonPath]
-
 PolygonPath = List[Point]
 
 class Polygon(BaseModel):
