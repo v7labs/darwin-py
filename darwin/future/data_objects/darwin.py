@@ -52,10 +52,10 @@ class PolygonAnnotation(AnnotationBase):
         if v is None:
             h, w, x, y = 0.0, 0.0, 0.0, 0.0
             for point in values['polygon']['paths']:
-                h = max(h, point.y)
-                w = max(w, point.x)
-                x = min(x, point.x)
-                y = min(y, point.y)
+                h = max(h, point["y"])
+                w = max(w, point["x"])
+                x = min(x, point["x"])
+                y = min(y, point["y"])
             v = BoundingBox(h=h, w=w, x=x, y=y)
         return v
 
@@ -68,6 +68,10 @@ class FrameAnnotation(AnnotationBase):
 
 AllowedAnnotation = Union[PolygonAnnotation, BoundingBoxAnnotation, EllipseAnnotation, FrameAnnotation]
 
+class Item(BaseModel):
+    name: str
+    path: str
+
 class DarwinV2(BaseModel):
     version: Literal["2.0"] = "2.0"
     schema_ref: str
@@ -79,9 +83,5 @@ class DarwinV2(BaseModel):
         assert v.startswith("http")
         return v
 
-
-class Item(BaseModel):
-    name: str
-    path: str
     
 
