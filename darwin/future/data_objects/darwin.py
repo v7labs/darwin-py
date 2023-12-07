@@ -9,8 +9,10 @@ class Point(BaseModel):
     x: float
     y: float
 
-class PolygonPath(BaseModel):
-    points: List[Point]
+# class PolygonPaths(BaseModel):
+#     points: List[PolygonPath]
+
+PolygonPath = List[Point]
 
 class Polygon(BaseModel):
     paths: List[PolygonPath]
@@ -22,7 +24,7 @@ class AnnotationBase(BaseModel):
     slot_names: Optional[List[str]] = None
 
     @validator('id', always=True)
-    def id_is_UUID(cls, v: str) -> str:
+    def validate_id_is_UUID(cls, v: str) -> str:
         assert len(v) == 36
         assert '-' in v 
         return v
@@ -48,7 +50,7 @@ class PolygonAnnotation(AnnotationBase):
     polygon: Polygon
     bounding_box: Optional[BoundingBox] = None
     
-    @validator('bounding_box', always=True)
+    @validator('bounding_box', pre=False)
     def validate_bounding_box(cls, v: Optional[BoundingBox], values: dict) -> BoundingBox:
         if v is None:
             h, w, x, y = 0.0, 0.0, 0.0, 0.0

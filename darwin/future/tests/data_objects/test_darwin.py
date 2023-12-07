@@ -50,3 +50,5 @@ def test_polygon_bbx_vaidator(raw_json: dict):
     assert without_bb_annotation.bounding_box is not None
     assert with_bb_annotation.bounding_box is not None
     assert without_bb_annotation == with_bb_annotation
+    bounds_annotation = raw_json['annotations'][0]
+    BoundingBoxAnnotation.parse_obj(bounds_annotation)
