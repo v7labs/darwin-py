@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import List, Literal, Optional, Union
 
+from numpy import isin
 from pydantic import BaseModel, validator
 
 
@@ -51,8 +52,11 @@ class PolygonAnnotation(AnnotationBase):
     def validate_bounding_box(cls, v: Optional[BoundingBox], values: dict) -> BoundingBox:
         if v is None:
             h, w, x, y = 0.0, 0.0, 0.0, 0.0
+            assert 'polygon' in values
+            assert isinstance(values['polygon'], Polygon)
             for polygon_path in values['polygon'].paths:
                 for point in polygon_path:
+                    assert isinstance(point, Point)
                     h = max(h, point.y)
                     w = max(w, point.x)
                     x = min(x, point.x)
