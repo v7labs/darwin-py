@@ -39,8 +39,7 @@ def test_polygon_annotation(raw_json: dict):
     polygon_annotation = raw_json["annotations"][2]
     PolygonAnnotation.parse_obj(polygon_annotation)
 
-
-def test_polygon_bbx_vaidator(raw_json: dict):
+def test_polygon_bbx_validator(raw_json: dict):
     polygon_annotation = raw_json["annotations"][2]
     without_bbx = polygon_annotation.copy()
     del without_bbx["bounding_box"]
