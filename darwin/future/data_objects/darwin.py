@@ -10,6 +10,12 @@ from darwin.future.data_objects.properties import SelectedProperty
 class Point(BaseModel):
     x: float
     y: float
+    
+    def __add__(self, other: Point) -> Point:
+        return Point(x=self.x + other.x, y=self.y + other.y)
+    
+    def __sub__(self, other: Point) -> Point:
+        return Point(x=self.x - other.x, y=self.y - other.y)
 
 
 PolygonPath = List[Point]
@@ -17,6 +23,24 @@ PolygonPath = List[Point]
 
 class Polygon(BaseModel):
     paths: List[PolygonPath]
+    
+    def bounding_box(self) -> BoundingBox:
+        h, w, x, y = 0.0, 0.0, 0.0, 0.0
+        for polygon_path in self.paths:
+            for point in polygon_path:
+                h = max(h, point.y)
+                w = max(w, point.x)
+                x = min(x, point.x)
+                y = min(y, point.y)
+        return BoundingBox(h=h, w=w, x=x, y=y)
+    
+    @property
+    def is_complex(self) -> bool:
+        return len(self.paths) > 1
+    
+    @property
+    def center(self) -> Point:
+        return self.bounding_box().center
 
 
 class AnnotationBase(BaseModel):
@@ -37,6 +61,10 @@ class BoundingBox(BaseModel):
     w: float
     x: float
     y: float
+    
+    @property
+    def center(self) -> Point:
+        return Point(x=self.x + self.w / 2, y=self.y + self.h / 2)
 
 
 class BoundingBoxAnnotation(AnnotationBase):
@@ -62,17 +90,9 @@ class PolygonAnnotation(AnnotationBase):
         cls, v: Optional[BoundingBox], values: dict
     ) -> BoundingBox:
         if v is None:
-            h, w, x, y = 0.0, 0.0, 0.0, 0.0
             assert "polygon" in values
             assert isinstance(values["polygon"], Polygon)
-            for polygon_path in values["polygon"].paths:
-                for point in polygon_path:
-                    assert isinstance(point, Point)
-                    h = max(h, point.y)
-                    w = max(w, point.x)
-                    x = min(x, point.x)
-                    y = min(y, point.y)
-            v = BoundingBox(h=h, w=w, x=x, y=y)
+            v = values["polygon"].bounding_box()
         return v
 
 

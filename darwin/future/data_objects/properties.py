@@ -28,10 +28,9 @@ class PropertyOption(DefaultDarwin):
     type: str
 
     @validator("color")
-    def validate_rgba(cls, v: str) -> Optional[str]:
-        if v is not None:
-            if not v.startswith("rgba"):
-                raise ValueError("Color must be in rgba format")
+    def validate_rgba(cls, v: str) -> str:
+        if not v.startswith("rgba"):
+            raise ValueError("Color must be in rgba format")
         return v
 
 
@@ -73,7 +72,7 @@ class MetaDataClass(DefaultDarwin):
     color: Optional[str]
     sub_types: Optional[List[str]]
     properties: List[FullProperty]
-    
+
     @classmethod
     def from_path(cls, path: Path) -> List[MetaDataClass]:
         if not path.exists():
@@ -88,7 +87,7 @@ class MetaDataClass(DefaultDarwin):
         with open(path, "r") as f:
             data = json.load(f)
         return [cls(**d) for d in data["classes"]]
-        
+
 
 class SelectedProperty(DefaultDarwin):
     """
@@ -100,6 +99,7 @@ class SelectedProperty(DefaultDarwin):
         type (str): Type of the property
         value (str): Value of the property
     """
+
     frame_index: int
     name: str
     type: str
