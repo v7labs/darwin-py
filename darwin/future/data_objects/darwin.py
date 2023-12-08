@@ -4,27 +4,33 @@ from typing import List, Literal, Optional, Union
 
 from pydantic import BaseModel, validator
 
+from darwin.future.data_objects.properties import SelectedProperty
+
 
 class Point(BaseModel):
     x: float
     y: float
 
+
 PolygonPath = List[Point]
+
 
 class Polygon(BaseModel):
     paths: List[PolygonPath]
 
+
 class AnnotationBase(BaseModel):
     id: str
     name: str
-    properties: Optional[dict] = None
+    properties: Optional[SelectedProperty] = None
     slot_names: Optional[List[str]] = None
 
-    @validator('id', always=True)
+    @validator("id", always=True)
     def validate_id_is_UUID(cls, v: str) -> str:
         assert len(v) == 36
-        assert '-' in v 
+        assert "-" in v
         return v
+
 
 class BoundingBox(BaseModel):
     h: float
@@ -32,28 +38,34 @@ class BoundingBox(BaseModel):
     x: float
     y: float
 
+
 class BoundingBoxAnnotation(AnnotationBase):
     bounding_box: BoundingBox
+
 
 class Ellipse(BaseModel):
     center: Point
     radius: Point
     angle: float
 
+
 class EllipseAnnotation(AnnotationBase):
     ellipse: Ellipse
+
 
 class PolygonAnnotation(AnnotationBase):
     polygon: Polygon
     bounding_box: Optional[BoundingBox] = None
-    
-    @validator('bounding_box', pre=False, always=True)
-    def validate_bounding_box(cls, v: Optional[BoundingBox], values: dict) -> BoundingBox:
+
+    @validator("bounding_box", pre=False, always=True)
+    def validate_bounding_box(
+        cls, v: Optional[BoundingBox], values: dict
+    ) -> BoundingBox:
         if v is None:
             h, w, x, y = 0.0, 0.0, 0.0, 0.0
-            assert 'polygon' in values
-            assert isinstance(values['polygon'], Polygon)
-            for polygon_path in values['polygon'].paths:
+            assert "polygon" in values
+            assert isinstance(values["polygon"], Polygon)
+            for polygon_path in values["polygon"].paths:
                 for point in polygon_path:
                     assert isinstance(point, Point)
                     h = max(h, point.y)
@@ -63,6 +75,7 @@ class PolygonAnnotation(AnnotationBase):
             v = BoundingBox(h=h, w=w, x=x, y=y)
         return v
 
+
 class FrameAnnotation(AnnotationBase):
     frames: List
     interpolated: bool
@@ -70,22 +83,23 @@ class FrameAnnotation(AnnotationBase):
     ranges: List[int]
 
 
-AllowedAnnotation = Union[PolygonAnnotation, BoundingBoxAnnotation, EllipseAnnotation, FrameAnnotation]
+AllowedAnnotation = Union[
+    PolygonAnnotation, BoundingBoxAnnotation, EllipseAnnotation, FrameAnnotation
+]
+
 
 class Item(BaseModel):
     name: str
     path: str
+
 
 class DarwinV2(BaseModel):
     version: Literal["2.0"] = "2.0"
     schema_ref: str
     item: dict
     annotations: List[AllowedAnnotation]
-    
-    @validator('schema_ref', always=True)
+
+    @validator("schema_ref", always=True)
     def validate_schema_ref(cls, v: str) -> str:
         assert v.startswith("http")
         return v
-
-    
-
