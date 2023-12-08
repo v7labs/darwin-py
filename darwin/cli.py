@@ -11,7 +11,6 @@ from rich.console import Console
 import darwin.cli_functions as f
 from darwin import __version__
 from darwin.exceptions import GracefulExit, InvalidTeam, Unauthenticated, Unauthorized
-from darwin.future.core import datasets
 from darwin.options import Options
 
 
