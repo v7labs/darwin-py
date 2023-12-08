@@ -10,10 +10,10 @@ from darwin.future.data_objects.properties import SelectedProperty
 class Point(BaseModel):
     x: float
     y: float
-    
+
     def __add__(self, other: Point) -> Point:
         return Point(x=self.x + other.x, y=self.y + other.y)
-    
+
     def __sub__(self, other: Point) -> Point:
         return Point(x=self.x - other.x, y=self.y - other.y)
 
@@ -23,7 +23,7 @@ PolygonPath = List[Point]
 
 class Polygon(BaseModel):
     paths: List[PolygonPath]
-    
+
     def bounding_box(self) -> BoundingBox:
         h, w, x, y = 0.0, 0.0, 0.0, 0.0
         for polygon_path in self.paths:
@@ -33,11 +33,11 @@ class Polygon(BaseModel):
                 x = min(x, point.x)
                 y = min(y, point.y)
         return BoundingBox(h=h, w=w, x=x, y=y)
-    
+
     @property
     def is_complex(self) -> bool:
         return len(self.paths) > 1
-    
+
     @property
     def center(self) -> Point:
         return self.bounding_box().center
@@ -61,7 +61,7 @@ class BoundingBox(BaseModel):
     w: float
     x: float
     y: float
-    
+
     @property
     def center(self) -> Point:
         return Point(x=self.x + self.w / 2, y=self.y + self.h / 2)
