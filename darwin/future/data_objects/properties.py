@@ -1,4 +1,8 @@
-from re import sub
+from __future__ import annotations
+
+import json
+import os
+from pathlib import Path
 from typing import List, Optional
 
 from pydantic import validator
@@ -9,48 +13,51 @@ from darwin.future.data_objects.pydantic_base import DefaultDarwin
 class PropertyOption(DefaultDarwin):
     """
     Describes a single option for a property
-    
+
     Attributes:
         value (str): Value of the option
         color (Optional[str]): Color of the option
         type (Optional[str]): Type of the option
-        
+
     Validators:
         color (validator): Validates that the color is in rgba format
     """
-    
+
     value: str
     color: str
     type: str
-    
+
     @validator("color")
     def validate_rgba(cls, v: str) -> Optional[str]:
         if v is not None:
             if not v.startswith("rgba"):
                 raise ValueError("Color must be in rgba format")
         return v
-    
+
+
 class FullProperty(DefaultDarwin):
     """
     Describes the property and all of the potential options that are associated with it
-    
+
     Attributes:
         name (str): Name of the property
         type (str): Type of the property
         required (bool): If the property is required
         options (List[PropertyOption]): List of all options for the property
     """
+
     name: str
     type: str
     required: bool
     options: List[PropertyOption]
 
-class PropertyClass(DefaultDarwin): 
-    """ 
+
+class MetaDataClass(DefaultDarwin):
+    """
     Metadata.json -> property mapping. Contains all properties for a class contained
     in the metadata.json file. Along with all options for each property that is associated
-    with the class. 
-    
+    with the class.
+
     Attributes:
         name (str): Name of the class
         type (str): Type of the class
@@ -59,6 +66,7 @@ class PropertyClass(DefaultDarwin):
         sub_types (Optional[List[str]]): Sub types of the class
         properties (List[FullProperty]): List of all properties for the class with all options
     """
+
     name: str
     type: str
     description: Optional[str]
@@ -66,11 +74,26 @@ class PropertyClass(DefaultDarwin):
     sub_types: Optional[List[str]]
     properties: List[FullProperty]
     
-    
-class AnnotationProperty(DefaultDarwin):
-    """ 
+    @classmethod
+    def from_path(cls, path: Path) -> List[MetaDataClass]:
+        if not path.exists():
+            raise FileNotFoundError(f"File {path} does not exist")
+        if os.path.isdir(path):
+            if os.path.exists(path / ".v7" / "metadata.json"):
+                path = path / ".v7" / "metadata.json"
+            else:
+                raise FileNotFoundError(f"File metadata.json does not exist in path")
+        if path.suffix != ".json":
+            raise ValueError(f"File {path} must be a json file")
+        with open(path, "r") as f:
+            data = json.load(f)
+        return [cls(**d) for d in data["classes"]]
+        
+
+class SelectedProperty(DefaultDarwin):
+    """
     Selected property for an annotation found inside a darwin annotation
-    
+
     Attributes:
         frame_index (int): Frame index of the annotation
         name (str): Name of the property
