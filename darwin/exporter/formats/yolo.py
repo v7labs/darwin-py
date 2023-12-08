@@ -39,7 +39,9 @@ def _build_txt(annotation_file: dt.AnnotationFile, class_index: ClassIndex) -> s
         annotation_type = annotation.annotation_class.annotation_type
 
         if isinstance(annotation, dt.VideoAnnotation):
-            raise ValueError("YOLO format does not support video annotations for export or conversion.")
+            raise ValueError(
+                "YOLO format does not support video annotations for export or conversion."
+            )
 
         if annotation_type == "bounding_box":
             data = annotation.data

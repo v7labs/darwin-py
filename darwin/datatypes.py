@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-from email.policy import default
 from enum import Enum, auto
 from pathlib import Path
 from typing import (
@@ -25,7 +24,9 @@ from darwin.path_utils import construct_full_path
 
 # Utility types
 
-NumberLike = Union[int, float]  # Used for functions that can take either an int or a float
+NumberLike = Union[
+    int, float
+]  # Used for functions that can take either an int or a float
 # Used for functions that _genuinely_ don't know what type they're dealing with, such as those that test if something is of a certain type.
 UnknownType = Any  # type:ignore
 
@@ -269,7 +270,9 @@ class VideoAnnotation:
     def get_data(
         self,
         only_keyframes: bool = True,
-        post_processing: Optional[Callable[[Annotation, UnknownType], UnknownType]] = None,
+        post_processing: Optional[
+            Callable[[Annotation, UnknownType], UnknownType]
+        ] = None,
     ) -> Dict:
         """
         Return the post-processed frames and the additional information from this
@@ -303,7 +306,9 @@ class VideoAnnotation:
         """
         if not post_processing:
 
-            def post_processing(annotation: Annotation, data: UnknownType) -> UnknownType:
+            def post_processing(
+                annotation: Annotation, data: UnknownType
+            ) -> UnknownType:
                 return data  # type: ignore
 
         output = {
@@ -447,6 +452,9 @@ class AnnotationFile:
     # The darwin ID of the item that these annotations belong to.
     item_id: Optional[str] = None
 
+    # The Frame Count if this is a video annotation
+    frame_count: Optional[int] = None
+
     @property
     def full_path(self) -> str:
         """
@@ -502,7 +510,9 @@ def make_bounding_box(
 
 
 def make_tag(
-    class_name: str, subs: Optional[List[SubAnnotation]] = None, slot_names: Optional[List[str]] = None
+    class_name: str,
+    subs: Optional[List[SubAnnotation]] = None,
+    slot_names: Optional[List[str]] = None,
 ) -> Annotation:
     """
     Creates and returns a tag annotation.
@@ -519,7 +529,9 @@ def make_tag(
     Annotation
         A tag ``Annotation``.
     """
-    return Annotation(AnnotationClass(class_name, "tag"), {}, subs or [], slot_names=slot_names or [])
+    return Annotation(
+        AnnotationClass(class_name, "tag"), {}, subs or [], slot_names=slot_names or []
+    )
 
 
 def make_polygon(
@@ -643,7 +655,10 @@ def make_keypoint(
         A point ``Annotation``.
     """
     return Annotation(
-        AnnotationClass(class_name, "keypoint"), {"x": x, "y": y}, subs or [], slot_names=slot_names or []
+        AnnotationClass(class_name, "keypoint"),
+        {"x": x, "y": y},
+        subs or [],
+        slot_names=slot_names or [],
     )
 
 
@@ -678,7 +693,12 @@ def make_line(
     Annotation
         A line ``Annotation``.
     """
-    return Annotation(AnnotationClass(class_name, "line"), {"path": path}, subs or [], slot_names=slot_names or [])
+    return Annotation(
+        AnnotationClass(class_name, "line"),
+        {"path": path},
+        subs or [],
+        slot_names=slot_names or [],
+    )
 
 
 def make_skeleton(
@@ -715,7 +735,10 @@ def make_skeleton(
         A skeleton ``Annotation``.
     """
     return Annotation(
-        AnnotationClass(class_name, "skeleton"), {"nodes": nodes}, subs or [], slot_names=slot_names or []
+        AnnotationClass(class_name, "skeleton"),
+        {"nodes": nodes},
+        subs or [],
+        slot_names=slot_names or [],
     )
 
 
@@ -764,7 +787,12 @@ def make_ellipse(
     Annotation
         An ellipse ``Annotation``.
     """
-    return Annotation(AnnotationClass(class_name, "ellipse"), parameters, subs or [], slot_names=slot_names or [])
+    return Annotation(
+        AnnotationClass(class_name, "ellipse"),
+        parameters,
+        subs or [],
+        slot_names=slot_names or [],
+    )
 
 
 def make_cuboid(
@@ -804,7 +832,12 @@ def make_cuboid(
     Annotation
         A cuboid ``Annotation``.
     """
-    return Annotation(AnnotationClass(class_name, "cuboid"), cuboid, subs or [], slot_names=slot_names or [])
+    return Annotation(
+        AnnotationClass(class_name, "cuboid"),
+        cuboid,
+        subs or [],
+        slot_names=slot_names or [],
+    )
 
 
 def make_table(
@@ -902,7 +935,10 @@ def make_string(
         A string ``Annotation``.
     """
     return Annotation(
-        AnnotationClass(class_name, "string"), {"sources": sources}, subs or [], slot_names=slot_names or []
+        AnnotationClass(class_name, "string"),
+        {"sources": sources},
+        subs or [],
+        slot_names=slot_names or [],
     )
 
 
@@ -956,12 +992,17 @@ def make_graph(
         A graph ``Annotation``.
     """
     return Annotation(
-        AnnotationClass(class_name, "graph"), {"nodes": nodes, "edges": edges}, subs or [], slot_names=slot_names or []
+        AnnotationClass(class_name, "graph"),
+        {"nodes": nodes, "edges": edges},
+        subs or [],
+        slot_names=slot_names or [],
     )
 
 
 def make_mask(
-    class_name: str, subs: Optional[List[SubAnnotation]] = None, slot_names: Optional[List[str]] = None
+    class_name: str,
+    subs: Optional[List[SubAnnotation]] = None,
+    slot_names: Optional[List[str]] = None,
 ) -> Annotation:
     """
     Creates and returns a mask annotation.
@@ -978,7 +1019,9 @@ def make_mask(
     Annotation
         A mask ``Annotation``.
     """
-    return Annotation(AnnotationClass(class_name, "mask"), {}, subs or [], slot_names=slot_names or [])
+    return Annotation(
+        AnnotationClass(class_name, "mask"), {}, subs or [], slot_names=slot_names or []
+    )
 
 
 def make_raster_layer(
@@ -1167,11 +1210,18 @@ def make_video_annotation(
         raise ValueError("invalid argument to make_video_annotation")
 
     return VideoAnnotation(
-        first_annotation.annotation_class, frames, keyframes, segments, interpolated, slot_names=slot_names or []
+        first_annotation.annotation_class,
+        frames,
+        keyframes,
+        segments,
+        interpolated,
+        slot_names=slot_names or [],
     )
 
 
-def _maybe_add_bounding_box_data(data: Dict[str, UnknownType], bounding_box: Optional[Dict]) -> Dict[str, UnknownType]:
+def _maybe_add_bounding_box_data(
+    data: Dict[str, UnknownType], bounding_box: Optional[Dict]
+) -> Dict[str, UnknownType]:
     if bounding_box:
         data["bounding_box"] = {
             "x": bounding_box["x"],

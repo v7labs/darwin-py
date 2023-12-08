@@ -30,7 +30,10 @@ polygon = {
     "description": "Schema of a Polygon",
     "title": "Polygon",
     "default": [{"x": 1.2, "y": 2.5}, {"x": 2.5, "y": 3.6}, {"x": 1.2, "y": 2.5}],
-    "examples": [[{"x": 1.2, "y": 2.5}, {"x": 2.5, "y": 3.6}, {"x": 1.2, "y": 2.5}], []],
+    "examples": [
+        [{"x": 1.2, "y": 2.5}, {"x": 2.5, "y": 3.6}, {"x": 1.2, "y": 2.5}],
+        [],
+    ],
     "type": "array",
     "items": point,
 }
@@ -40,7 +43,10 @@ polyline = {
     "description": "Schema of a Polyline",
     "title": "Polyline",
     "default": [{"x": 1.2, "y": 2.5}, {"x": 2.5, "y": 3.6}, {"x": 1.2, "y": 2.5}],
-    "examples": [[{"x": 1.2, "y": 2.5}, {"x": 2.5, "y": 3.6}, {"x": 1.2, "y": 2.5}], []],
+    "examples": [
+        [{"x": 1.2, "y": 2.5}, {"x": 2.5, "y": 3.6}, {"x": 1.2, "y": 2.5}],
+        [],
+    ],
     "type": "array",
     "items": point,
 }
@@ -52,8 +58,18 @@ label_object = {
     "default": {"title": "Banana", "point": {"x": 3665.814, "y": 351.628}},
     "examples": [
         {"title": "Banana", "point": {"x": 3665.814, "y": 351.628}},
-        {"title": "Orange", "bbox": {"top": 1.2, "left": 2.5, "height": 10, "width": 20}},
-        {"title": "Apple", "polygon": [{"x": 1.2, "y": 2.5}, {"x": 2.5, "y": 3.6}, {"x": 1.2, "y": 2.5}]},
+        {
+            "title": "Orange",
+            "bbox": {"top": 1.2, "left": 2.5, "height": 10, "width": 20},
+        },
+        {
+            "title": "Apple",
+            "polygon": [
+                {"x": 1.2, "y": 2.5},
+                {"x": 2.5, "y": 3.6},
+                {"x": 1.2, "y": 2.5},
+            ],
+        },
     ],
     "type": "object",
     "required": ["title"],
@@ -93,7 +109,10 @@ label_classification = {
     "default": {"value": "a_question", "answer": {"value": "an_answer"}},
     "examples": [
         {"value": "a_question", "answer": {"value": "an_answer"}},
-        {"value": "a_question", "answers": [{"value": "an_answer_1"}, {"value": "an_answer_2"}]},
+        {
+            "value": "a_question",
+            "answers": [{"value": "an_answer_1"}, {"value": "an_answer_2"}],
+        },
     ],
     "type": "object",
     "required": ["value"],
@@ -101,9 +120,21 @@ label_classification = {
     "oneOf": [
         {
             "required": ["answer"],
-            "properties": {"answer": {"oneOf": [classification_answer_free_text, classification_answer_obj]}},
+            "properties": {
+                "answer": {
+                    "oneOf": [
+                        classification_answer_free_text,
+                        classification_answer_obj,
+                    ]
+                }
+            },
         },
-        {"required": ["answers"], "properties": {"answers": {"type": "array", "items": classification_answer_obj}}},
+        {
+            "required": ["answers"],
+            "properties": {
+                "answers": {"type": "array", "items": classification_answer_obj}
+            },
+        },
     ],
 }
 

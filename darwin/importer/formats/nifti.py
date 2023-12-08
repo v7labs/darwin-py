@@ -1,11 +1,9 @@
 import sys
 import warnings
-import zipfile
 from collections import OrderedDict, defaultdict
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple, Union
 
-import orjson as json
 from rich.console import Console
 
 from darwin.utils import attempt_decode
@@ -27,7 +25,6 @@ from upolygon import find_contours
 
 import darwin.datatypes as dt
 from darwin.importer.formats.nifti_schemas import nifti_import_schema
-from darwin.version import __version__
 
 
 def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
@@ -49,17 +46,26 @@ def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
     if not isinstance(path, Path):
         path = Path(path)
     if path.suffix != ".json":
-        console.print("Skipping file: {} (not a json file)".format(path), style="bold yellow")
+        console.print(
+            "Skipping file: {} (not a json file)".format(path), style="bold yellow"
+        )
         return None
     data = attempt_decode(path)
     try:
         validate(data, schema=nifti_import_schema)
-    except Exception as e:
-        console.print("Skipping file: {} (invalid json file, see schema for details)".format(path), style="bold yellow")
+    except Exception:
+        console.print(
+            "Skipping file: {} (invalid json file, see schema for details)".format(
+                path
+            ),
+            style="bold yellow",
+        )
         return None
     nifti_annotations = data.get("data")
     if nifti_annotations is None or nifti_annotations == []:
-        console.print("Skipping file: {} (no data found)".format(path), style="bold yellow")
+        console.print(
+            "Skipping file: {} (no data found)".format(path), style="bold yellow"
+        )
         return None
     annotation_files = []
     for nifti_annotation in nifti_annotations:
@@ -85,10 +91,8 @@ def _parse_nifti(
     slot_names: List[str],
     is_mpr: bool,
 ) -> dt.AnnotationFile:
-
     img, pixdims = process_nifti(nib.load(nifti_path))
 
-    shape = img.shape
     processed_class_map = process_class_map(class_map)
     video_annotations = []
     if mode == "instances":  # For each instance produce a video annotation
@@ -113,14 +117,20 @@ def _parse_nifti(
             if class_name == "background":
                 continue
             _video_annotations = get_video_annotation(
-                img, class_idxs=class_idxs, class_name=class_name, slot_names=slot_names, is_mpr=is_mpr, pixdims=pixdims
+                img,
+                class_idxs=class_idxs,
+                class_name=class_name,
+                slot_names=slot_names,
+                is_mpr=is_mpr,
+                pixdims=pixdims,
             )
             if _video_annotations is None:
                 continue
             video_annotations += _video_annotations
-    annotation_classes = set(
-        [dt.AnnotationClass(class_name, "polygon", "polygon") for class_name in class_map.values()]
-    )
+    annotation_classes = {
+        dt.AnnotationClass(class_name, "polygon", "polygon")
+        for class_name in class_map.values()
+    }
     return dt.AnnotationFile(
         path=json_path,
         filename=str(filename),
@@ -128,7 +138,11 @@ def _parse_nifti(
         annotation_classes=annotation_classes,
         annotations=video_annotations,
         slots=[
-            dt.Slot(name=slot_name, type="dicom", source_files=[{"url": None, "file_name": str(filename)}])
+            dt.Slot(
+                name=slot_name,
+                type="dicom",
+                source_files=[{"url": None, "file_name": str(filename)}],
+            )
             for slot_name in slot_names
         ],
     )
@@ -142,14 +156,20 @@ def get_video_annotation(
     is_mpr: bool,
     pixdims: Tuple[float],
 ) -> Optional[List[dt.VideoAnnotation]]:
-
     if not is_mpr:
-        return nifti_to_video_annotation(volume, class_name, class_idxs, slot_names, view_idx=2, pixdims=pixdims)
+        return nifti_to_video_annotation(
+            volume, class_name, class_idxs, slot_names, view_idx=2, pixdims=pixdims
+        )
     elif is_mpr and len(slot_names) == 3:
         video_annotations = []
         for view_idx, slot_name in enumerate(slot_names):
             _video_annotations = nifti_to_video_annotation(
-                volume, class_name, class_idxs, [slot_name], view_idx=view_idx, pixdims=pixdims
+                volume,
+                class_name,
+                class_idxs,
+                [slot_name],
+                view_idx=view_idx,
+                pixdims=pixdims,
             )
             video_annotations += _video_annotations
         return video_annotations
@@ -157,7 +177,9 @@ def get_video_annotation(
         raise Exception("If is_mpr is True, slot_names must be of length 3")
 
 
-def nifti_to_video_annotation(volume, class_name, class_idxs, slot_names, view_idx=2, pixdims=(1, 1, 1)):
+def nifti_to_video_annotation(
+    volume, class_name, class_idxs, slot_names, view_idx=2, pixdims=(1, 1, 1)
+):
     frame_annotations = OrderedDict()
     for i in range(volume.shape[view_idx]):
         if view_idx == 2:
@@ -172,7 +194,9 @@ def nifti_to_video_annotation(volume, class_name, class_idxs, slot_names, view_i
         class_mask = np.isin(slice_mask, class_idxs).astype(np.uint8).copy()
         if class_mask.sum() == 0:
             continue
-        polygon = mask_to_polygon(mask=class_mask, class_name=class_name, pixdims=_pixdims)
+        polygon = mask_to_polygon(
+            mask=class_mask, class_name=class_name, pixdims=_pixdims
+        )
         if polygon is None:
             continue
         frame_annotations[i] = polygon
@@ -193,7 +217,9 @@ def nifti_to_video_annotation(volume, class_name, class_idxs, slot_names, view_i
     return [video_annotation]
 
 
-def mask_to_polygon(mask: np.ndarray, class_name: str, pixdims: List[float]) -> Optional[dt.Annotation]:
+def mask_to_polygon(
+    mask: np.ndarray, class_name: str, pixdims: List[float]
+) -> Optional[dt.Annotation]:
     def adjust_for_pixdims(x, y, pixdims):
         if pixdims[1] > pixdims[0]:
             return {"x": y, "y": x * pixdims[1] / pixdims[0]}
@@ -209,7 +235,10 @@ def mask_to_polygon(mask: np.ndarray, class_name: str, pixdims: List[float]) -> 
             # skip paths with less than 2 points
             if len(external_path) // 2 <= 2:
                 continue
-            path = [adjust_for_pixdims(x, y, pixdims) for x, y in zip(external_path[0::2], external_path[1::2])]
+            path = [
+                adjust_for_pixdims(x, y, pixdims)
+                for x, y in zip(external_path[0::2], external_path[1::2])
+            ]
             paths.append(path)
         if len(paths) > 1:
             polygon = dt.make_complex_polygon(class_name, paths)
@@ -226,7 +255,10 @@ def mask_to_polygon(mask: np.ndarray, class_name: str, pixdims: List[float]) -> 
             return None
         polygon = dt.make_polygon(
             class_name,
-            point_path=[adjust_for_pixdims(x, y, pixdims) for x, y in zip(external_path[0::2], external_path[1::2])],
+            point_path=[
+                adjust_for_pixdims(x, y, pixdims)
+                for x, y in zip(external_path[0::2], external_path[1::2])
+            ],
         )
     else:
         return None
@@ -282,7 +314,9 @@ def rectify_header_sform_qform(img_nii):
     return img_nii
 
 
-def affine_to_spacing(affine: np.ndarray, r: int = 3, dtype=float, suppress_zeros: bool = True) -> np.ndarray:
+def affine_to_spacing(
+    affine: np.ndarray, r: int = 3, dtype=float, suppress_zeros: bool = True
+) -> np.ndarray:
     """
     Copied over from monai.data.utils - https://docs.monai.io/en/stable/_modules/monai/data/utils.html
 
@@ -326,7 +360,9 @@ def correct_nifti_header_if_necessary(img_nii):
     return img_nii
 
 
-def process_nifti(input_data: Union[Sequence[nib.nifti1.Nifti1Image], nib.nifti1.Nifti1Image]):
+def process_nifti(
+    input_data: Union[Sequence[nib.nifti1.Nifti1Image], nib.nifti1.Nifti1Image]
+):
     """
     Function which takes in a single nifti path or a list of nifti paths
     and returns the pixel_array, affine and pixdim
@@ -334,7 +370,7 @@ def process_nifti(input_data: Union[Sequence[nib.nifti1.Nifti1Image], nib.nifti1
     if isinstance(input_data, nib.nifti1.Nifti1Image):
         img = correct_nifti_header_if_necessary(input_data)
         img = nib.funcs.as_closest_canonical(img)
-        axcodes = nib.orientations.aff2axcodes(img.affine)
+        nib.orientations.aff2axcodes(img.affine)
         # TODO: Future feature to pass custom ornt could go here.
         ornt = [[0.0, -1.0], [1.0, -1.0], [1.0, -1.0]]
         data_array = nib.orientations.apply_orientation(img.get_fdata(), ornt)

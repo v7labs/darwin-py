@@ -15,12 +15,16 @@ def test_does_not_allow_directory_traversal() -> None:
         assert excinfo.value == "Cannot pass directory traversal to 'run_cli_command'."
 
     with pytest.raises(DarwinException) as excinfo:
-        run_cli_command("darwin --help", working_directory="/usr/bin/../", server_wait=0)
+        run_cli_command(
+            "darwin --help", working_directory="/usr/bin/../", server_wait=0
+        )
         assert excinfo.value == "Cannot pass directory traversal to 'run_cli_command'."
 
 
 @mock.patch("e2e_tests.helpers.run")
-def test_passes_working_directory_to_run_cli_command(mock_subprocess_run: mock.Mock) -> None:
+def test_passes_working_directory_to_run_cli_command(
+    mock_subprocess_run: mock.Mock,
+) -> None:
     mock_subprocess_run.reset_mock()
     run_cli_command("darwin --help", "/usr/bin", server_wait=0)
 
@@ -30,8 +34,12 @@ def test_passes_working_directory_to_run_cli_command(mock_subprocess_run: mock.M
 
 
 @mock.patch("e2e_tests.helpers.run")
-def test_passes_back_returncode_stdout_and_stderr(mock_subprocess_run: mock.Mock) -> None:
-    CompletedProcess = namedtuple("CompletedProcess", ["returncode", "stdout", "stderr"])
+def test_passes_back_returncode_stdout_and_stderr(
+    mock_subprocess_run: mock.Mock,
+) -> None:
+    CompletedProcess = namedtuple(
+        "CompletedProcess", ["returncode", "stdout", "stderr"]
+    )
     mocked_output = CompletedProcess(returncode=137, stdout=b"stdout", stderr=b"stderr")
 
     mock_subprocess_run.return_value = mocked_output
@@ -46,7 +54,9 @@ def test_passes_back_returncode_stdout_and_stderr(mock_subprocess_run: mock.Mock
 
 
 @mock.patch("e2e_tests.helpers.run")
-def test_does_not_pass_working_directory_to_run_cli_command(mock_subprocess_run: mock.Mock) -> None:
+def test_does_not_pass_working_directory_to_run_cli_command(
+    mock_subprocess_run: mock.Mock,
+) -> None:
     mock_subprocess_run.reset_mock()
     run_cli_command("darwin --help", server_wait=0)
 

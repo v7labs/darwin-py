@@ -9,7 +9,12 @@ from darwin.exporter.formats import coco
 class TestBuildAnnotations:
     @pytest.fixture
     def annotation_file(self) -> dt.AnnotationFile:
-        return dt.AnnotationFile(path=Path("test.json"), filename="test.json", annotation_classes=set(), annotations=[])
+        return dt.AnnotationFile(
+            path=Path("test.json"),
+            filename="test.json",
+            annotation_classes=set(),
+            annotations=[],
+        )
 
     def test_polygon_include_extras(self, annotation_file: dt.AnnotationFile):
         polygon = dt.Annotation(
@@ -20,7 +25,9 @@ class TestBuildAnnotations:
 
         categories = {"polygon_class": 1}
 
-        assert coco._build_annotation(annotation_file, "test-id", polygon, categories)["extra"] == {"instance_id": 1}
+        assert coco._build_annotation(annotation_file, "test-id", polygon, categories)[
+            "extra"
+        ] == {"instance_id": 1}
 
     def test_bounding_boxes_include_extras(self, annotation_file: dt.AnnotationFile):
         bbox = dt.Annotation(
@@ -31,4 +38,6 @@ class TestBuildAnnotations:
 
         categories = {"bbox_class": 1}
 
-        assert coco._build_annotation(annotation_file, "test-id", bbox, categories)["extra"] == {"instance_id": 1}
+        assert coco._build_annotation(annotation_file, "test-id", bbox, categories)[
+            "extra"
+        ] == {"instance_id": 1}

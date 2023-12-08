@@ -140,3 +140,9 @@ class DatasetNotFound(DarwinException):
     """Raised when the dataset endpoint returns a malformed response."""
 
     ...
+
+
+class MaxRetriesError(DarwinException):
+    """Raised when a certain API call is re-tried for {x} number of times."""
+
+    ...
