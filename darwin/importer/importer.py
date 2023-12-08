@@ -745,6 +745,8 @@ def _import_annotations(
     errors: dt.ErrorList = []
     success: dt.Success = dt.Success.SUCCESS
 
+    rl: Optional[dt.Annotation] = None
+    rl_dense_rle_ids: Optional[Set[str]] = None
     serialized_annotations = []
     for annotation in annotations:
         annotation_class = annotation.annotation_class
@@ -775,27 +777,30 @@ def _import_annotations(
 
         # check if the mask is empty (i.e. masks that do not have a corresponding raster layer) if so, skip import of the mask
         if annotation_type == "mask":
-            rl = next((a for a in annotations if a.annotation_class.annotation_type == "raster_layer"), None)
-
-            # check if the 'annotation_class_id' is in raster_layer's mask_annotation_ids_mapping dict
-            if rl is not None:
-                mask_annotation_ids_mapping = rl.data.get("mask_annotation_ids_mapping")
-                dense_rle = rl.data.get("dense_rle")
+            if rl is None:
+                rl = next(
+                    (
+                        a
+                        for a in annotations
+                        if a.annotation_class.annotation_type == "raster_layer"
+                    ),
+                    None,
+                )
+            if rl and rl_dense_rle_ids is None:
+                rl_dense_rle_ids = set(rl.data["dense_rle"][::2])
+            if rl is not None and rl_dense_rle_ids is not None:
+                # check if the 'annotation_class_id' is in raster_layer's mask_annotation_ids_mapping dict
                 _annotation_id = annotation.id
-                _annotation_mask_reference_i = mask_annotation_ids_mapping[_annotation_id]
-
-                if dense_rle is not None:
-                    for i in range(0, len(dense_rle), 2):
-                        if dense_rle[i] == _annotation_mask_reference_i:
-                            break
-                    else:
-                        logger.warning(
-                            f"Skipping import of mask annotation '{annotation_class.name}' as it does not have a corresponding raster layer"
-                        )
-
-                        # not found in dense_rle, so skip import of the mask, and remove it from mask_annotation_ids_mapping
-                        del rl.data["mask_annotation_ids_mapping"][_annotation_id]
-                        continue
+                if (
+                    rl.data["mask_annotation_ids_mapping"][_annotation_id]
+                    not in rl_dense_rle_ids
+                ):
+                    # skip import of the mask, and remove it from mask_annotation_ids_mapping
+                    logger.warning(
+                        f"Skipping import of mask annotation '{annotation_class.name}' as it does not have a corresponding raster layer"
+                    )
+                    del rl.data["mask_annotation_ids_mapping"][_annotation_id]
+                    continue
 
         actors: List[dt.DictFreeForm] = []
         actors.extend(_handle_annotators(annotation, import_annotators))
