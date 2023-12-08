@@ -81,7 +81,7 @@ class MetaDataClass(DefaultDarwin):
             if os.path.exists(path / ".v7" / "metadata.json"):
                 path = path / ".v7" / "metadata.json"
             else:
-                raise FileNotFoundError(f"File metadata.json does not exist in path")
+                raise FileNotFoundError("File metadata.json does not exist in path")
         if path.suffix != ".json":
             raise ValueError(f"File {path} must be a json file")
         with open(path, "r") as f:

@@ -1,4 +1,3 @@
-from os import path
 from pathlib import Path
 
 import pytest
@@ -9,6 +8,7 @@ from darwin.future.data_objects.properties import MetaDataClass
 @pytest.fixture
 def path_to_metadata_folder() -> Path:
     return Path("darwin/future/tests/data")
+
 
 @pytest.fixture
 def path_to_metadata(path_to_metadata_folder: Path) -> Path:
