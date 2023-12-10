@@ -428,6 +428,8 @@ def _write_to_file(
         for i in split_idx:
             # To deal with recursive search, we want to write the difference between the annotation path
             # and its parent, without the file extension
+
+            # This needs to change so that it's not writing stems, but full annotation filepaths instead
             stem = (
                 str(annotation_files[i])
                 .replace(f"{annotation_path}/", "")

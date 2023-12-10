@@ -132,6 +132,12 @@ class LocalDataset:
         split_type,
     ):
         # Find all the annotations and their corresponding images
+
+        # 1. Having changed the split function, open the .txt file
+        # 2. Read every row of the .txt file (which should now be a full image filepath)
+        # 3. Build stems with every image filepath
+        # 4. Check the image_path.exists() with each 'stem', but consider not calling them stems anymore
+
         for annotation_path in sorted(annotations_dir.glob("**/*.json")):
             darwin_json = stream_darwin_json(annotation_path)
             image_path = get_image_path_from_stream(darwin_json, images_dir)
