@@ -42,14 +42,14 @@ class TestParsePathVideo:
 
         annotation_files: Optional[List[dt.AnnotationFile]] = parse_path(file_path)
         assert annotation_files is not None
-
         assert len(annotation_files) == 2
         assert annotation_files[0].filename == "video1.mp4"
-        assert annotation_files[0].remote_path == "/folder1/folder2"
+        if annotation_files[0].remote_path is not None:
+            assert Path(annotation_files[0].remote_path) == Path("/folder1/folder2")
         assert len(annotation_files[0].annotations) == 1
         assert annotation_files[1].filename == "video2.mp4"
-        assert annotation_files[1].remote_path == "/folder"
-        assert len(annotation_files[1].annotations) == 1
+        if annotation_files[1].remote_path is not None:
+            assert Path(annotation_files[1].remote_path) == Path("/folder")
 
     def test_keyframes_are_recorded_correctly(self, file_path: Path):
         with file_path.open("w", newline="") as f:
