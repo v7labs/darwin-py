@@ -8,6 +8,7 @@ from PIL import Image as PILImage
 from darwin.dataset.utils import get_classes, get_release_path, load_pil_image
 from darwin.utils import (
     SUPPORTED_IMAGE_EXTENSIONS,
+    get_darwin_json_version,
     get_image_path_from_stream,
     parse_darwin_json,
     stream_darwin_json,
@@ -132,22 +133,26 @@ class LocalDataset:
         split_type,
     ):
         # Find all the annotations and their corresponding images
+        json_version = get_darwin_json_version(annotations_dir)
 
-        # 1. Having changed the split function, open the .txt file
-        # 2. Read every row of the .txt file (which should now be a full image filepath)
-        # 3. Build stems with every image filepath
-        # 4. Check the image_path.exists() with each 'stem', but consider not calling them stems anymore
+        with_folders = any([item.is_dir() for item in images_dir.iterdir()])
+        annotation_filepaths = get_annotation_filepaths(
+            release_path, annotations_dir, annotation_type, split, partition, split_type
+        )
 
-        for annotation_path in sorted(annotations_dir.glob("**/*.json")):
-            darwin_json = stream_darwin_json(annotation_path)
-            image_path = get_image_path_from_stream(darwin_json, images_dir)
+        for annotation_filepath in annotation_filepaths:
+            annotation_filepath = Path(annotation_filepath)
+            darwin_json = stream_darwin_json(annotation_filepath)
+            image_path = get_image_path_from_stream(
+                darwin_json, images_dir, with_folders, json_version, annotation_filepath
+            )
             if image_path.exists():
                 self.images_path.append(image_path)
-                self.annotations_path.append(annotation_path)
+                self.annotations_path.append(annotation_filepath)
                 continue
             else:
                 raise ValueError(
-                    f"Annotation ({annotation_path}) does not have a corresponding image"
+                    f"Annotation ({annotation_filepath}) does not have a corresponding image"
                 )
 
     def _initial_setup(self, dataset_path, release_name):
@@ -441,7 +446,7 @@ class LocalDataset:
         )
 
 
-def build_stems(
+def get_annotation_filepaths(
     release_path: Path,
     annotations_dir: Path,
     annotation_type: str,
@@ -491,10 +496,7 @@ def build_stems(
     """
 
     if partition is None:
-        return (
-            str(e.relative_to(annotations_dir).parent / e.stem)
-            for e in sorted(annotations_dir.glob("**/*.json"))
-        )
+        return [e for e in sorted(annotations_dir.glob("**/*.json"))]
 
     if split_type == "random":
         split_filename = f"{split_type}_{partition}.txt"
@@ -505,7 +507,7 @@ def build_stems(
 
     split_path = release_path / "lists" / split / split_filename
     if split_path.is_file():
-        return (e.strip("\n\r") for e in split_path.open())
+        return (line.strip("\n\r") for line in split_path.open())
 
     raise FileNotFoundError(
         "could not find a dataset partition. "

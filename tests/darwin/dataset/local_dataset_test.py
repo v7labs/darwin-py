@@ -3,7 +3,7 @@ from shutil import copyfile
 
 import pytest
 
-from darwin.dataset.local_dataset import build_stems
+from darwin.dataset.local_dataset import get_annotation_filepaths
 from tests.fixtures import *
 
 
@@ -17,7 +17,7 @@ class TestBuildStems:
         (annotations_path / "test" / "3" / "3.json").mkdir(parents=True)
 
         stems = list(
-            build_stems(
+            get_annotation_filepaths(
                 team_dataset_release_path, annotations_path, "tag", split_path.name
             )
         )
@@ -30,7 +30,7 @@ class TestBuildStems:
         self, team_dataset_release_path: Path, annotations_path: Path, split_path: Path
     ):
         with pytest.raises(ValueError) as e:
-            build_stems(
+            get_annotation_filepaths(
                 team_dataset_release_path,
                 annotations_path,
                 "tag",
@@ -50,7 +50,7 @@ class TestBuildStems:
         copyfile(resource_file, split_path / "random_train.txt")
 
         stems = list(
-            build_stems(
+            get_annotation_filepaths(
                 team_dataset_release_path,
                 annotations_path,
                 "tag",
@@ -67,7 +67,7 @@ class TestBuildStems:
         self, team_dataset_release_path: Path, annotations_path: Path, split_path: Path
     ):
         with pytest.raises(FileNotFoundError) as e:
-            build_stems(
+            get_annotation_filepaths(
                 team_dataset_release_path,
                 annotations_path,
                 "tag",

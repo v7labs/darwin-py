@@ -493,10 +493,15 @@ def stream_darwin_json(path: Path) -> PersistentStreamingJSONObject:
 
 
 def get_image_path_from_stream(
-    darwin_json: PersistentStreamingJSONObject, images_dir: Path
+    darwin_json: PersistentStreamingJSONObject,
+    images_dir: Path,
+    with_folders: bool,
+    json_version: str,
+    annotation_filepath: Path,
 ) -> Path:
     """
-    Returns the path to the image file associated with the given darwin json file (V1 or V2).
+    Returns the path to the image file associated with the given darwin json file.
+    Compatible with V1 & V2 Darwin JSON, as well as releases in folders and flat structures.
 
     Parameters
     ----------
@@ -504,6 +509,10 @@ def get_image_path_from_stream(
         A stream of the JSON file.
     images_dir : Path
         Path to the directory containing the images.
+    with_folders: bool
+        Flag to determine if the release was pulled with or without folders.
+    json_version: str
+        String representing the version of the Darwin JSON
 
     Returns
     -------
@@ -511,17 +520,51 @@ def get_image_path_from_stream(
         Path to the image file.
     """
     try:
-        return (
-            images_dir
-            / (Path(darwin_json["item"]["path"].lstrip("/\\")))
-            / Path(darwin_json["item"]["name"])
-        )
-    except KeyError:
-        return (
-            images_dir
-            / (Path(darwin_json["image"]["path"].lstrip("/\\")))
-            / Path(darwin_json["image"]["filename"])
-        )
+        if json_version == "2.0":
+            if not with_folders:
+                return images_dir / Path(darwin_json["item"]["name"])
+            else:
+                return (
+                    images_dir
+                    / (Path(darwin_json["item"]["path"].lstrip("/\\")))
+                    / Path(darwin_json["item"]["name"])
+                )
+        else:
+            if not with_folders:
+                return images_dir / Path(darwin_json["image"]["filename"])
+            else:
+                return (
+                    images_dir
+                    / (Path(darwin_json["image"]["path"].lstrip("/\\")))
+                    / Path(darwin_json["image"]["filename"])
+                )
+    except OSError as e:
+        # Load in the JSON as normal
+        darwin_json = parse_darwin_json(path=annotation_filepath)
+        if not with_folders:
+            return images_dir / Path(darwin_json.filename)
+        else:
+            return images_dir / Path(darwin_json.full_path.lstrip("/\\"))
+        
+
+def get_darwin_json_version(annotations_dir: Path) -> str:
+    """
+    Returns true is the input Darwin JSON file is 2.0, and False if 1.0.
+
+    Parameters
+    ----------
+    annotations_dir : Path
+        Path to the directory containing the annotation files.
+
+    Returns
+    -------
+    str
+        A str representing the Darwin JSON version.
+    """
+    with open(next(annotations_dir.glob("*.json")), "r") as file:
+        data_str = file.read()
+        data = json.loads(data_str)
+        return "2.0" if "version" in data and data["version"] == "2.0" else "1.0"
 
 
 def _parse_darwin_v2(path: Path, data: Dict[str, Any]) -> dt.AnnotationFile:

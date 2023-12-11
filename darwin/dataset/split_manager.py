@@ -426,16 +426,8 @@ def _write_to_file(
 ) -> None:
     with open(str(file_path), "w") as f:
         for i in split_idx:
-            # To deal with recursive search, we want to write the difference between the annotation path
-            # and its parent, without the file extension
-
-            # This needs to change so that it's not writing stems, but full annotation filepaths instead
-            stem = (
-                str(annotation_files[i])
-                .replace(f"{annotation_path}/", "")
-                .rsplit(".json", 1)[0]
-            )
-            f.write(f"{stem}\n")
+            annotation_filepath = annotation_files[i]
+            f.write(f"{annotation_filepath}\n")
 
 
 def _validate_split(val_percentage: float, test_percentage: float) -> None:
