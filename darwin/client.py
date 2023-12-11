@@ -908,7 +908,7 @@ class Client:
         dataset_slug: str,
         team_slug: str,
         filters: Dict[str, UnknownType],
-        stage_id: str,
+        stage_id: int,
     ) -> None:
         """
         Moves the given items to the specified stage
