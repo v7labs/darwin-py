@@ -22,6 +22,7 @@ class PropertyOption(DefaultDarwin):
     Validators:
         color (validator): Validates that the color is in rgba format
     """
+
     id: Optional[str]
     position: Optional[int]
     type: str
@@ -45,6 +46,7 @@ class FullProperty(DefaultDarwin):
         required (bool): If the property is required
         options (List[PropertyOption]): List of all options for the property
     """
+
     id: Optional[str]
     name: str
     type: str
