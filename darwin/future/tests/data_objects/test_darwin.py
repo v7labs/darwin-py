@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from darwin.future.data_objects.darwin import (
+from darwin.future.data_objects.darwinV2 import (
     BoundingBoxAnnotation,
     DarwinV2,
     EllipseAnnotation,

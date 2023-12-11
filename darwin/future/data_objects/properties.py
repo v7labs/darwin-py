@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
-from typing import List, Optional
+from typing import Dict, List, Optional, Union
 
 from pydantic import validator
 
@@ -22,10 +22,11 @@ class PropertyOption(DefaultDarwin):
     Validators:
         color (validator): Validates that the color is in rgba format
     """
-
-    value: str
-    color: str
+    id: Optional[str]
+    position: Optional[int]
     type: str
+    value: Union[Dict[str, str], str]
+    color: str
 
     @validator("color")
     def validate_rgba(cls, v: str) -> str:
@@ -44,11 +45,16 @@ class FullProperty(DefaultDarwin):
         required (bool): If the property is required
         options (List[PropertyOption]): List of all options for the property
     """
-
+    id: Optional[str]
     name: str
     type: str
+    description: Optional[str]
     required: bool
-    options: List[PropertyOption]
+    slug: Optional[str]
+    team_id: Optional[int]
+    annotation_class_id: Optional[int]
+    property_values: Optional[List[PropertyOption]]
+    options: Optional[List[PropertyOption]]
 
 
 class MetaDataClass(DefaultDarwin):
