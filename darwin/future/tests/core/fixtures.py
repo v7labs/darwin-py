@@ -24,6 +24,7 @@ def base_property_option() -> PropertyOption:
         color="rgba(0,0,0,0)",
     )
 
+
 @pytest.fixture
 def base_property_object(base_property_option: PropertyOption) -> FullProperty:
     return FullProperty(
@@ -38,6 +39,7 @@ def base_property_object(base_property_option: PropertyOption) -> FullProperty:
         property_values=[base_property_option],
         options=[base_property_option],
     )
+
 
 @pytest.fixture
 def base_config() -> DarwinConfig:

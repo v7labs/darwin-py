@@ -24,7 +24,7 @@ def test_get_team_properties(
         responses.GET,
         f"{base_client.config.base_url}api/v2/teams/{base_client.config.default_team}/properties",
         json=response_data,
-        status=200
+        status=200,
     )
 
     # Call the function being tested
@@ -49,7 +49,7 @@ def test_get_team_full_properties(
             query_param_matcher({"include_values": "True"}),
         ],
         json=response_data,
-        status=200
+        status=200,
     )
     params = QueryString({"include_values": True})
     # Call the function being tested
