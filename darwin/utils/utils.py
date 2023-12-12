@@ -10,6 +10,7 @@ from typing import (
     Any,
     Dict,
     Iterable,
+    Iterator,
     List,
     Optional,
     Set,
@@ -489,7 +490,7 @@ def stream_darwin_json(path: Path) -> PersistentStreamingJSONObject:
 
     with path.open() as infile:
         return json_stream.load(infile, persistent=True)
-      
+
 
 def get_image_path_from_stream(
     darwin_json: PersistentStreamingJSONObject,
@@ -564,7 +565,7 @@ def get_darwin_json_version(annotations_dir: Path) -> str:
         data_str = file.read()
         data = json.loads(data_str)
         return "2.0" if "version" in data and data["version"] == "2.0" else "1.0"
-      
+
 
 def is_stream_list_empty(json_list: PersistentStreamingJSONList) -> bool:
     try:
