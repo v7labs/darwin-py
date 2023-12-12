@@ -1,5 +1,5 @@
 from typing import List, Tuple
-from unittest.mock import MagicMock, Mock, _patch, patch
+from unittest.mock import Mock, _patch, patch
 
 import pytest
 from rich.theme import Theme
@@ -182,9 +182,7 @@ def test__get_annotation_data() -> None:
     video_annotation_class = dt.AnnotationClass("video_class", "video")
 
     annotation = dt.Annotation(annotation_class, {}, [], [])
-    video_annotation = dt.VideoAnnotation(
-        video_annotation_class, dict(), dict(), [], False
-    )
+    video_annotation = dt.VideoAnnotation(video_annotation_class, {}, {}, [], False)
 
     annotation.data = "TEST DATA"
 

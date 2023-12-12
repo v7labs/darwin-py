@@ -1,5 +1,4 @@
 from collections import namedtuple
-from http import server
 from unittest import mock
 
 import pytest
