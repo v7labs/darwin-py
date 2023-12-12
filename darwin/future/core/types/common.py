@@ -108,3 +108,6 @@ class QueryString:
 
     def __add__(self, other: QueryString) -> QueryString:
         return QueryString({**self.value, **other.value})
+
+    def get(self, key: str, default: str = "") -> List[str] | str:
+        return self.value.get(key, default)

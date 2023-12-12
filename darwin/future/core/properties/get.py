@@ -41,7 +41,7 @@ def get_team_full_properties(
 ) -> List[FullProperty]:
     params = (
         params + QueryString({"include_values": True})
-        if params
+        if params and not params.get("include_values")
         else QueryString({"include_values": True})
     )
     return get_team_properties(client, team_slug, params)
