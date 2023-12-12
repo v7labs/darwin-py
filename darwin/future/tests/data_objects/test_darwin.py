@@ -39,6 +39,7 @@ def test_polygon_annotation(raw_json: dict):
     polygon_annotation = raw_json["annotations"][2]
     PolygonAnnotation.parse_obj(polygon_annotation)
 
+
 def test_polygon_bbx_validator(raw_json: dict):
     polygon_annotation = raw_json["annotations"][2]
     without_bbx = polygon_annotation.copy()
@@ -49,5 +50,5 @@ def test_polygon_bbx_validator(raw_json: dict):
     assert without_bb_annotation.bounding_box is not None
     assert with_bb_annotation.bounding_box is not None
     assert without_bb_annotation == with_bb_annotation
-    bounds_annotation = raw_json['annotations'][0]
+    bounds_annotation = raw_json["annotations"][0]
     BoundingBoxAnnotation.parse_obj(bounds_annotation)
