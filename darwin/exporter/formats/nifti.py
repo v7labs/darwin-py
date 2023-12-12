@@ -154,11 +154,11 @@ def check_for_error_and_return_imageid(
 
     filename = Path(video_annotation.filename)
     if filename.name.lower().endswith(".nii.gz"):
-        image_id = str(filename).rstrip(".nii.gz")
+        image_id = str(filename).lower().rstrip(".nii.gz")
     elif filename.name.lower().endswith(".nii"):
-        image_id = str(filename).rstrip(".nii")
+        image_id = str(filename).lower().rstrip(".nii")
     elif filename.name.lower().endswith(".dcm"):
-        image_id = str(filename).rstrip(".dcm")
+        image_id = str(filename).lower().rstrip(".dcm")
     else:
         image_id = str(filename)
 
