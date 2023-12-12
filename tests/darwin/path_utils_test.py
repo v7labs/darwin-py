@@ -1,6 +1,15 @@
-from pathlib import PurePosixPath
+import shutil
+import tempfile
+from pathlib import Path, PurePosixPath
 
-from darwin.path_utils import construct_full_path, deconstruct_full_path
+import pytest
+
+from darwin.path_utils import (
+    construct_full_path,
+    deconstruct_full_path,
+    is_properties_enabled,
+    parse_metadata,
+)
 
 
 def test_path_construction():
@@ -34,3 +43,50 @@ def test_path_deconstruction():
     assert ("/a/b", "test.png") == deconstruct_full_path("/a/b/test.png")
     assert ("/", "test.png") == deconstruct_full_path("test.png")
     assert ("/", "test.png") == deconstruct_full_path("/test.png")
+
+
+def test_parse_metadata():
+    metadata_path = Path(__file__).parent / "data/metadata.json"
+    metadata = parse_metadata(metadata_path)
+
+    # check that the metadata is parsed correctly
+    assert len(metadata["classes"]) == 1
+    assert len(metadata["classes"][0]["properties"]) == 2
+
+
+@pytest.mark.parametrize(
+    ("filename", "expected_bool"),
+    (
+        ("annotation_with_properties.json", True),
+        ("annotation_without_properties.json", False),
+    ),
+)
+def test_is_properties_enabled(filename, expected_bool):
+    annotation_path = Path(__file__).parent / f"data/{filename}"
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmpdir = Path(tmpdir)
+        tmpdir_annotations = tmpdir / "annotations"
+        tmpdir_annotations.mkdir(exist_ok=True)
+        shutil.copy(annotation_path, tmpdir_annotations)
+
+        assert is_properties_enabled(tmpdir) == expected_bool
+
+
+@pytest.mark.parametrize(
+    ("filename", "expected_bool"),
+    (
+        ("metadata.json", True),
+        ("metadata_nested_properties.json", True),
+        ("metadata_empty_properties.json", False),
+    ),
+)
+def test_is_properties_enabled_v7(filename, expected_bool):
+    metadata_path = Path(__file__).parent / f"data/{filename}"
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmpdir = Path(tmpdir)
+        tmpdir_v7 = tmpdir / ".v7"
+        tmpdir_v7.mkdir(exist_ok=True)
+        shutil.copy(metadata_path, tmpdir_v7)
+
+        assert is_properties_enabled(tmpdir, filename=filename) == expected_bool

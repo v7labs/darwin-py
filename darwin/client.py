@@ -908,7 +908,7 @@ class Client:
         dataset_slug: str,
         team_slug: str,
         filters: Dict[str, UnknownType],
-        stage_id: int,
+        stage_id: str,
     ) -> None:
         """
         Moves the given items to the specified stage
@@ -921,7 +921,7 @@ class Client:
             The slug of the team.
         filters: Dict[str, UnknownType]
             A filter Dictionary that defines the items to have the new, selected stage.
-        stage_id: int
+        stage_id: str
             ID of the stage to set.
         """
         payload: Dict[str, UnknownType] = {

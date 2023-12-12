@@ -390,7 +390,6 @@ class TestSplitVideoAnnotations:
             / "test_video"
         )
         assert video_path.exists()
-
         assert (video_path / "0000000.json").exists()
         assert (video_path / "0000001.json").exists()
         assert (video_path / "0000002.json").exists()
