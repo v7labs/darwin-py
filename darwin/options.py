@@ -19,7 +19,10 @@ class Options:
         subparsers.add_parser("help", help="Show this help message and exit.")
 
         # AUTHENTICATE
-        subparsers.add_parser("authenticate", help="Authenticate the user. ")
+        auth = subparsers.add_parser("authenticate", help="Authenticate the user. ")
+        auth.add_argument("--api_key", type=str, help="API key to use.")
+        auth.add_argument("--default_team", type=str, help="Default team to use.")
+        auth.add_argument("--datasets_dir", type=str, help="Folder to store datasets.")
 
         # SET COMPRESSION LEVEL
         parser_compression = subparsers.add_parser(

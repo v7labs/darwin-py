@@ -1,7 +1,6 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-from jsonschema.exceptions import ValidationError
 from requests import Response
 
 import darwin.datatypes as dt
@@ -148,7 +147,7 @@ class TestParseDarwinJson:
 
         assert annotation_file.path == import_file
         assert annotation_file.filename == "P49-RediPad-ProPlayLEFTY_442.jpg"
-        assert annotation_file.dataset_name == None
+        assert annotation_file.dataset_name is None
         assert annotation_file.version == dt.AnnotationFileVersion(
             major=1, minor=0, suffix=""
         )
@@ -237,7 +236,7 @@ class TestParseDarwinJson:
 
         assert annotation_file.path == import_file
         assert annotation_file.filename == "above tractor.mp4"
-        assert annotation_file.dataset_name == None
+        assert annotation_file.dataset_name is None
         assert annotation_file.version == dt.AnnotationFileVersion(
             major=1, minor=0, suffix=""
         )
@@ -849,7 +848,7 @@ class TestParseDarwinMaskAnnotation:
         assert annotation.annotation_class.name == "my_raster_annotation"
         assert annotation.annotation_class.annotation_type == "mask"
 
-        assert annotation.data["sparse_rle"] == None
+        assert annotation.data["sparse_rle"] is None
 
     # Sad paths
     @pytest.mark.parametrize("parameter_name", ["id", "name", "mask", "slot_names"])

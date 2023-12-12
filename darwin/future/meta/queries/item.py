@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from functools import reduce
-from typing import Dict
+from typing import Dict, Protocol
 
 from darwin.future.core.items.archive_items import archive_list_of_items
 from darwin.future.core.items.delete_items import delete_list_of_items
@@ -8,13 +10,20 @@ from darwin.future.core.items.move_items_to_folder import move_list_of_items_to_
 from darwin.future.core.items.restore_items import restore_list_of_items
 from darwin.future.core.items.set_item_layout import set_item_layout
 from darwin.future.core.items.set_item_priority import set_item_priority
+from darwin.future.core.items.set_stage_to_items import set_stage_to_items
 from darwin.future.core.items.tag_items import tag_items
 from darwin.future.core.items.untag_items import untag_items
 from darwin.future.core.types.common import QueryString
 from darwin.future.core.types.query import PaginatedQuery
 from darwin.future.data_objects.item import ItemLayout
+from darwin.future.data_objects.workflow import WFStageCore
 from darwin.future.exceptions import BadRequest
 from darwin.future.meta.objects.item import Item
+
+
+class hasStage(Protocol):
+    # Using Protocol to avoid circular imports between item.py and stage.py
+    _element: WFStageCore
 
 
 class ItemQuery(PaginatedQuery[Item]):
@@ -224,3 +233,49 @@ class ItemQuery(PaginatedQuery[Item]):
         ids = [item.id for item in self]
         filters = {"item_ids": [str(item) for item in ids]}
         untag_items(self.client, team_slug, dataset_ids, tag_id, filters)
+
+    def set_stage(
+        self, stage_or_stage_id: hasStage | str, workflow_id: str | None = None
+    ) -> None:
+        if not stage_or_stage_id:
+            raise ValueError(
+                "Must specify stage (either Stage object or stage_id string) to set items to"
+            )
+
+        if "team_slug" not in self.meta_params:
+            raise ValueError("Must specify team_slug to query items")
+        if (
+            "dataset_ids" not in self.meta_params
+            and "dataset_id" not in self.meta_params
+        ):
+            raise ValueError("Must specify dataset_ids to query items")
+        if not workflow_id:
+            # if workflow_id is not specified, get it from the meta_params
+            # this will be present in the case of a workflow object
+            if "workflow_id" in self.meta_params:
+                workflow_id = str(self.meta_params["workflow_id"])
+            else:
+                raise ValueError("Must specify workflow_id to set items to")
+        assert isinstance(workflow_id, str)
+        if not stage_or_stage_id:
+            raise ValueError("Must specify stage to set stage for items")
+
+        # get stage_id from stage_or_stage_id
+        if isinstance(stage_or_stage_id, str):
+            stage_id = stage_or_stage_id
+        else:
+            stage_id = str(stage_or_stage_id._element.id)
+
+        dataset_ids = (
+            self.meta_params["dataset_ids"]
+            if "dataset_ids" in self.meta_params
+            else self.meta_params["dataset_id"]
+        )
+        team_slug = self.meta_params["team_slug"]
+        self.collect_all()
+        ids = [item.id for item in self]
+        filters = {"item_ids": [str(item) for item in ids]}
+
+        set_stage_to_items(
+            self.client, team_slug, dataset_ids, stage_id, workflow_id, filters
+        )

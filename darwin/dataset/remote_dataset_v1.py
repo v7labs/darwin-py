@@ -12,8 +12,9 @@ from darwin.dataset.upload_manager import (
     UploadHandlerV1,
 )
 from darwin.dataset.utils import is_relative_to
-from darwin.datatypes import ItemId, PathLike
+from darwin.datatypes import AnnotationFile, ItemId, PathLike
 from darwin.exceptions import NotFound, ValidationError
+from darwin.exporter.formats.darwin_1_0 import build_image_annotation
 from darwin.item import DatasetItem
 from darwin.item_sorter import ItemSorter
 from darwin.utils import find_files, urljoin
@@ -512,3 +513,8 @@ class RemoteDatasetV1(RemoteDataset):
         """
 
         self.client.import_annotation(item_id, payload=payload)
+
+    def _build_image_annotation(
+        self, annotation_file: AnnotationFile
+    ) -> Dict[str, Any]:
+        return build_image_annotation(annotation_file)

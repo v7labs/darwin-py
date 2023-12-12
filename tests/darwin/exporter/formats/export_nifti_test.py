@@ -73,9 +73,9 @@ def test_video_annotation_nifti_export_mpr(team_slug: str):
             )
             nifti.export(video_annotations, output_dir=tmpdir)
             export_im = nib.load(
-                annotations_dir / f"hippocampus_001_mpr_1_test_hippo.nii.gz"
+                annotations_dir / "hippocampus_001_mpr_1_test_hippo.nii.gz"
             ).get_fdata()
             expected_im = nib.load(
-                annotations_dir / f"hippocampus_001_mpr_1_test_hippo.nii.gz"
+                annotations_dir / "hippocampus_001_mpr_1_test_hippo.nii.gz"
             ).get_fdata()
             assert np.allclose(export_im, expected_im)
