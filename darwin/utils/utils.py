@@ -545,7 +545,7 @@ def get_image_path_from_stream(
             return images_dir / Path(darwin_json.filename)
         else:
             return images_dir / Path(darwin_json.full_path.lstrip("/\\"))
-        
+
 
 def get_darwin_json_version(annotations_dir: Path) -> str:
     """

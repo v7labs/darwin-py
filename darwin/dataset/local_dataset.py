@@ -455,7 +455,7 @@ def get_annotation_filepaths(
     split_type: str = "random",
 ) -> Iterator[str]:
     """
-    Builds the stems for the given release with the given annotations as base.
+    Returns a list of annotation filepaths for the given release & partition.
 
     Parameters
     ----------
@@ -496,7 +496,7 @@ def get_annotation_filepaths(
     """
 
     if partition is None:
-        return [e for e in sorted(annotations_dir.glob("**/*.json"))]
+        return (str(e) for e in sorted(annotations_dir.glob("**/*.json")))
 
     if split_type == "random":
         split_filename = f"{split_type}_{partition}.txt"
