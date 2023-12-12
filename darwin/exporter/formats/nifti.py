@@ -142,9 +142,9 @@ def check_for_error_and_return_imageid(
         for source_file in slot.source_files:
             filename = Path(source_file["file_name"])
             if not (
-                filename.name.endswith(".nii.gz")
-                or filename.name.endswith(".nii")
-                or filename.name.endswith(".dcm")
+                filename.name.lower().endswith(".nii.gz")
+                or filename.name.lower().endswith(".nii")
+                or filename.name.lower().endswith(".dcm")
             ):
                 return create_error_message_json(
                     "Misconfigured filename, not ending in .nii, .nii.gz or .dcm. Are you sure this is medical data?",
@@ -153,11 +153,11 @@ def check_for_error_and_return_imageid(
                 )
 
     filename = Path(video_annotation.filename)
-    if filename.name.endswith(".nii.gz"):
+    if filename.name.lower().endswith(".nii.gz"):
         image_id = str(filename).rstrip(".nii.gz")
-    elif filename.name.endswith(".nii"):
+    elif filename.name.lower().endswith(".nii"):
         image_id = str(filename).rstrip(".nii")
-    elif filename.name.endswith(".dcm"):
+    elif filename.name.lower().endswith(".dcm"):
         image_id = str(filename).rstrip(".dcm")
     else:
         image_id = str(filename)
