@@ -167,6 +167,7 @@ test_output_*
 
 
 !tests/darwin/data/*.png
+!darwin/future/tests/data
 # scripts
 test.py
 
