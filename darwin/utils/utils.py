@@ -974,7 +974,7 @@ def _parse_annotators(annotators: List[Dict[str, Any]]) -> List[dt.AnnotationAut
     ]
 
 
-def _parse_properties(properties: List[Dict[str, Any]]) -> List[dt.SelectedProperty]:
+def _parse_properties(properties: List[Dict[str, Any]]) -> Optional[List[dt.SelectedProperty]]:
     selected_properties = []
     for property in properties:
         selected_properties.append(
@@ -986,7 +986,7 @@ def _parse_properties(properties: List[Dict[str, Any]]) -> List[dt.SelectedPrope
             )
         )
 
-    return selected_properties
+    return selected_properties or None
 
 
 def split_video_annotation(annotation: dt.AnnotationFile) -> List[dt.AnnotationFile]:
