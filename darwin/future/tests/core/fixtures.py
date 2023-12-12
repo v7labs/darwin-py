@@ -11,6 +11,7 @@ from darwin.future.data_objects.item import ItemCore, ItemLayout, ItemSlot
 from darwin.future.data_objects.properties import FullProperty, PropertyOption
 from darwin.future.data_objects.team import TeamCore, TeamMemberCore
 from darwin.future.data_objects.team_member_role import TeamMemberRole
+from darwin.future.data_objects.workflow import WorkflowCore
 
 
 @pytest.fixture
@@ -113,8 +114,37 @@ def base_item_json() -> dict:
 
 
 @pytest.fixture
+def base_item_json_response() -> dict:
+    return {
+        "name": "test-item",
+        "id": "123e4567-e89b-12d3-a456-426655440000",
+        "slots": [
+            {"slot_name": "slot1", "file_name": "file1.jpg", "fps": 1},
+            {"slot_name": "slot2", "file_name": "file2.jpg", "fps": 1},
+        ],
+        "path": "/",
+        "archived": False,
+        "priority": None,
+        "tags": [],
+        "layout": None,
+        "dataset_id": 101,
+        "processing_status": "complete",
+    }
+
+
+@pytest.fixture
+def base_items_json_response(base_item_json_response) -> dict:
+    return {"items": [base_item_json_response]}
+
+
+@pytest.fixture
 def base_item(base_item_json: dict) -> ItemCore:
     return ItemCore.parse_obj(base_item_json)
+
+
+@pytest.fixture
+def base_workflow(base_single_workflow_object: dict) -> WorkflowCore:
+    return WorkflowCore.parse_obj(base_single_workflow_object)
 
 
 @pytest.fixture

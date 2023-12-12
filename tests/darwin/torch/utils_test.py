@@ -40,8 +40,8 @@ class TestFlattenMasks:
     ) -> None:
         masks, _ = basic_masks_with_cats
         cats = [0]
-        with pytest.raises(AssertionError) as error:
-            flattened = flatten_masks_by_category(masks, cats)
+        with pytest.raises(AssertionError):
+            flatten_masks_by_category(masks, cats)
 
     def test_should_correctly_set_overlap(self, basic_masks_with_cats: Tuple) -> None:
         masks, cats = basic_masks_with_cats
