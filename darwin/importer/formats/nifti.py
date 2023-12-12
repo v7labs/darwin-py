@@ -238,7 +238,9 @@ def get_mask_video_annotations(volume, processed_class_map, slot_names):
             np.uint8
         )  # Product requirement: We only support 255 classes!
         # We need to convert from nifti_idx to raster_idx
-        slice_mask = np.vectorize(map_from_nifti_idx_to_raster_idx.get)(slice_mask)
+        slice_mask = np.vectorize(
+            lambda key: map_from_nifti_idx_to_raster_idx.get(key, 0)
+        )(slice_mask)
         dense_rle = convert_to_dense_rle(slice_mask)
         raster_annotation = dt.make_raster_layer(
             class_name="__raster_layer__",
