@@ -68,7 +68,7 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
         default_team = os.getenv("DARWIN_TEAM") or args.default_team
         datasets_dir = os.getenv("DARWIN_DATASETS_DIR") or args.datasets_dir
         if api_key:
-            print("Using API key from DARWIN_API_KEY")
+            print("Using API key from args/env")
         else:
             api_key = getpass.getpass(prompt="API key: ", stream=None)
             api_key = api_key.strip()
@@ -78,8 +78,10 @@ def _run(args: Namespace, parser: ArgumentParser) -> None:
                 )
                 return
         if datasets_dir is not None:
-            print("Using datasets directory from DARWIN_DATASETS_DIR")
+            print("Using datasets directory from args/env")
             datasets_dir = Path(datasets_dir).resolve()
+        if default_team is not None:
+            print("Using default team from args/env")
         f.authenticate(api_key, default_team, datasets_dir)
         print("Authentication succeeded.")
     # Select / List team
