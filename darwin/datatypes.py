@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from pathlib import Path
@@ -20,7 +22,7 @@ try:
 except ImportError:
     NDArray = Any  # type:ignore
 
-from darwin.path_utils import construct_full_path
+from darwin.path_utils import construct_full_path, is_properties_enabled, parse_metadata
 
 # Utility types
 
@@ -384,6 +386,96 @@ class AnnotationFileVersion:
 
     def __str__(self) -> str:
         return f"{self.major}.{self.minor}{self.suffix}"
+
+
+@dataclass
+class Property:
+    """
+    Represents a property of an annotation file.
+    """
+
+    # Name of the property
+    name: str
+
+    # Type of the property
+    type: str
+
+    # Whether the property is required or not
+    required: bool
+
+    # Property options
+    options: list[dict[str, str]]
+
+
+@dataclass
+class PropertyClass:
+    name: str
+    type: str
+    description: Optional[str]
+    color: Optional[str] = None
+    sub_types: Optional[list[str]] = None
+    properties: Optional[list[Property]] = None
+
+
+def parse_property_classes(metadata: dict[str, Any]) -> list[PropertyClass]:
+    """
+    Parses the metadata file and returns a list of PropertyClass objects.
+
+    Parameters
+    ----------
+    metadata : dict[str, Any]
+        The metadata file.
+
+    Returns
+    -------
+    list[PropertyClass]
+        A list of PropertyClass objects.
+    """
+    assert "classes" in metadata, "Metadata does not contain classes"
+
+    classes = []
+    for metadata_cls in metadata["classes"]:
+        assert (
+            "properties" in metadata_cls
+        ), "Metadata class does not contain properties"
+        classes.append(
+            PropertyClass(
+                name=metadata_cls["name"],
+                type=metadata_cls["type"],
+                description=metadata_cls.get("description"),
+                color=metadata_cls.get("color"),
+                sub_types=metadata_cls.get("sub_types"),
+                properties=[Property(**p) for p in metadata_cls["properties"]],
+            )
+        )
+
+    return classes
+
+
+def split_paths_by_metadata(
+    path, dir: str = ".v7", filename: str = "metadata.json"
+) -> tuple[Path, Optional[list[PropertyClass]]]:
+    """
+    Splits the given path into two: the path to the metadata file and the path to the properties
+
+    Parameters
+    ----------
+    path : Path
+        The path to the export directory.
+
+    Returns
+    -------
+    tuple[Path, Optional[list[PropertyClass]]]
+        A tuple containing the path to the metadata file and the list of property classes.
+    """
+    if not is_properties_enabled(path, dir, filename):
+        return path, None
+
+    metadata_path = path / dir / filename
+    metadata = parse_metadata(metadata_path)
+    property_classes = parse_property_classes(metadata)
+
+    return metadata_path, property_classes
 
 
 @dataclass
