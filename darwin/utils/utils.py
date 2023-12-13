@@ -839,6 +839,9 @@ def _parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotati
     if annotation.get("reviewers") is not None:
         main_annotation.reviewers = _parse_annotators(annotation["reviewers"])
 
+    if "properties" in annotation:
+        main_annotation.properties = _parse_properties(annotation["properties"])
+
     return main_annotation
 
 
@@ -861,6 +864,7 @@ def _parse_darwin_video_annotation(annotation: dict) -> Optional[dt.VideoAnnotat
         annotation.get("ranges", annotation.get("segments", [])),
         annotation.get("interpolated", False),
         slot_names=parse_slot_names(annotation),
+        properties=_parse_properties(annotation.get("properties", [])),
     )
 
     if "id" in annotation:
@@ -939,6 +943,21 @@ def _parse_annotators(annotators: List[Dict[str, Any]]) -> List[dt.AnnotationAut
         raise AttributeError("JSON file must contain annotators with 'full_name' and 'email' fields")
 
     return [dt.AnnotationAuthor(annotator["full_name"], annotator["email"]) for annotator in annotators]
+
+
+def _parse_properties(properties: List[Dict[str, Any]]) -> Optional[List[dt.SelectedProperty]]:
+    selected_properties = []
+    for property in properties:
+        selected_properties.append(
+            dt.SelectedProperty(
+                frame_index=property.get("frame_index", None),
+                name=property.get("name", None),
+                type=property.get("type", None),
+                value=property.get("value", None),
+            )
+        )
+
+    return selected_properties or None
 
 
 def split_video_annotation(annotation: dt.AnnotationFile) -> List[dt.AnnotationFile]:
