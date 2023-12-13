@@ -51,9 +51,7 @@ def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
             file_annotation_map[filename].append(annotation)
     for filename in file_annotation_map:
         annotations = file_annotation_map[filename]
-        annotation_classes = {
-            annotation.annotation_class for annotation in annotations
-        }
+        annotation_classes = {annotation.annotation_class for annotation in annotations}
         filename_path = Path(filename)
         remote_path = str(filename_path.parent)
         if not remote_path.startswith("/"):
