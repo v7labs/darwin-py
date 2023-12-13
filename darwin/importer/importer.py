@@ -16,7 +16,8 @@ from typing import (
     Union,
 )
 
-from darwin.datatypes import AnnotationFile
+from darwin.datatypes import AnnotationFile, PropertyClass
+from darwin.future.data_objects.properties import FullProperty, SelectedProperty
 from darwin.item import DatasetItem
 
 Unknown = Any  # type: ignore
@@ -265,6 +266,50 @@ def _resolve_annotation_classes(
             local_classes_not_in_team.add(local_cls)
 
     return local_classes_not_in_dataset, local_classes_not_in_team
+
+
+def build_list_properties(annotations: List[dt.Annotation]) -> List[SelectedProperty]:
+    selected_properties: List[SelectedProperty] = []
+    for annotation in annotations:
+        for prop in annotation.properties or []:
+            selected_properties.append(prop)
+
+    return selected_properties
+
+
+def properties_missing(
+    team_properties: List[FullProperty], import_properties: List[SelectedProperty]
+) -> List[SelectedProperty]:
+    missing_properties: List[SelectedProperty] = []
+    team_properties_lookup = {prop.name: prop for prop in team_properties}
+    for prop in import_properties:
+        if prop.name not in team_properties_lookup:
+            missing_properties.append(prop)
+
+    return missing_properties
+
+
+def mismatched_properties(
+    team_properties: List[FullProperty], import_properties: List[SelectedProperty]
+) -> List[SelectedProperty]:
+    _mismatched_properties: List[SelectedProperty] = []
+    team_properties_lookup = {prop.name: prop for prop in team_properties}
+    for prop in import_properties:
+        if prop.name in team_properties_lookup:
+            # check if type is different
+            if prop.type != team_properties_lookup[prop.name].type:
+                _mismatched_properties.append(prop)
+
+            # check if value is missing for a property that requires a value
+            if team_properties_lookup[prop.name].required and not prop.value:
+                _mismatched_properties.append(prop)
+
+            # check if value is different
+            for option in team_properties_lookup[prop.name].options or []:
+                if option.value != prop.value:
+                    _mismatched_properties.append(prop)
+
+    return _mismatched_properties
 
 
 def import_annotations(  # noqa: C901
