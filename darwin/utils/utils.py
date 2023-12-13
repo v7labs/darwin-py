@@ -482,7 +482,7 @@ def stream_darwin_json(path: Path) -> PersistentStreamingJSONObject:
 
     with path.open() as infile:
         return json_stream.load(infile, persistent=True)
-      
+
 
 def get_image_path_from_stream(
     darwin_json: PersistentStreamingJSONObject,
@@ -517,9 +517,7 @@ def get_image_path_from_stream(
                 return images_dir / Path(darwin_json["item"]["name"])
             else:
                 return (
-                    images_dir
-                    / (Path(darwin_json["item"]["path"].lstrip("/\\")))
-                    / Path(darwin_json["item"]["name"])
+                    images_dir / (Path(darwin_json["item"]["path"].lstrip("/\\"))) / Path(darwin_json["item"]["name"])
                 )
         else:
             if not with_folders:
@@ -553,11 +551,16 @@ def get_darwin_json_version(annotations_dir: Path) -> str:
     str
         A str representing the Darwin JSON version.
     """
-    with open(next(annotations_dir.glob("*.json")), "r") as file:
+
+    # Search for JSON files both directly in the directory and in subdirectories
+    json_files = list(annotations_dir.glob("**/*.json"))
+
+    anno = json_files[0]
+    with open(anno, "r") as file:
         data_str = file.read()
         data = json.loads(data_str)
         return "2.0" if "version" in data and data["version"] == "2.0" else "1.0"
-      
+
 
 def is_stream_list_empty(json_list: PersistentStreamingJSONList) -> bool:
     try:
