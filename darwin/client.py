@@ -29,6 +29,14 @@ from darwin.exceptions import (
     Unauthorized,
     ValidationError,
 )
+from darwin.future.core.client import ClientCore, DarwinConfig
+from darwin.future.core.properties import (
+    get_team_full_properties as get_team_full_properties_future,
+)
+from darwin.future.core.properties import (
+    get_team_properties as get_team_properties_future,
+)
+from darwin.future.data_objects.properties import FullProperty
 from darwin.item import DatasetItem
 from darwin.utils import (
     get_response_content,
@@ -1474,3 +1482,19 @@ class Client:
         if not team:
             raise ValueError("No team was found.")
         return BackendV2(self, team.slug)
+
+    def get_team_properties(self, team_slug: Optional[str] = None, full: bool = False) -> List[FullProperty]:
+        future_config = self.config.create_future_config()
+        darwin_config = DarwinConfig(**future_config)
+        future_client = ClientCore(darwin_config)
+
+        if not full:
+            return get_team_properties_future(
+                client=future_client,
+                team_slug=team_slug or self.default_team,
+            )
+
+        return get_team_full_properties_future(
+            client=future_client,
+            team_slug=team_slug or self.default_team,
+        )
