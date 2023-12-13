@@ -488,8 +488,8 @@ def get_image_path_from_stream(
     darwin_json: PersistentStreamingJSONObject,
     images_dir: Path,
     with_folders: bool,
-    json_version: str,
     annotation_filepath: Path,
+    json_version: str = "2.0",
 ) -> Path:
     """
     Returns the path to the image file associated with the given darwin json file.
