@@ -101,9 +101,9 @@ class QueryString:
         for k, v in self.value.items():
             if isinstance(v, list):
                 for x in v:
-                    output += f"{k}={x}&"
+                    output += f"{k}={x.lower()}&"
             else:
-                output += f"{k}={v}&"
+                output += f"{k}={v.lower()}&"
         return output[:-1]  # remove trailing &
 
     def __add__(self, other: QueryString) -> QueryString:
