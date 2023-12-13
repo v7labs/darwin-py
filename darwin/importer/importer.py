@@ -16,7 +16,7 @@ from typing import (
     Union,
 )
 
-from darwin.datatypes import AnnotationFile, PropertyClass
+from darwin.datatypes import AnnotationFile
 from darwin.future.data_objects.properties import FullProperty, SelectedProperty
 from darwin.item import DatasetItem
 
@@ -269,12 +269,7 @@ def _resolve_annotation_classes(
 
 
 def build_list_properties(annotations: List[dt.Annotation]) -> List[SelectedProperty]:
-    selected_properties: List[SelectedProperty] = []
-    for annotation in annotations:
-        for prop in annotation.properties or []:
-            selected_properties.append(prop)
-
-    return selected_properties
+    return [prop for annotation in annotations for prop in annotation.properties or []]
 
 
 def properties_missing(
