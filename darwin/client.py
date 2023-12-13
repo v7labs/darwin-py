@@ -1483,12 +1483,13 @@ class Client:
             raise ValueError("No team was found.")
         return BackendV2(self, team.slug)
 
-    def get_team_properties(self, team_slug: Optional[str] = None, full: bool = False) -> List[FullProperty]:
-        future_config = self.config.create_future_config()
-        darwin_config = DarwinConfig(**future_config)
+    def get_team_properties(
+        self, team_slug: Optional[str] = None, include_options: bool = True
+    ) -> List[FullProperty]:
+        darwin_config = DarwinConfig.from_old(self.config)
         future_client = ClientCore(darwin_config)
 
-        if not full:
+        if not include_options:
             return get_team_properties_future(
                 client=future_client,
                 team_slug=team_slug or self.default_team,

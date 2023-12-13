@@ -263,27 +263,3 @@ class Config(object):
                 teams_data.append(the_team_data)
 
         return teams_data
-
-    def create_future_config(self) -> Dict[str, Any]:
-        """
-        Creates a dictionary with the configuration for the future client.
-
-        Returns
-        -------
-        Dict[str, Any]
-            The configuration for the future client.
-        """
-        teams = self.get("teams")
-        if not teams:
-            return {}
-        default_team = self.get("global/default_team")
-        if not default_team:
-            default_team = list(teams.keys())[0]
-        return {
-            "api_key": teams[default_team]["api_key"],
-            "datasets_dir": teams[default_team]["datasets_dir"],
-            "api_endpoint": self.get("global/api_endpoint"),
-            "base_url": self.get("global/base_url"),
-            "default_team": default_team,
-            "teams": teams,
-        }
