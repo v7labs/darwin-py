@@ -1,5 +1,6 @@
 import ast
 import json as native_json
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple, Union
@@ -154,11 +155,11 @@ def check_for_error_and_return_imageid(
 
     filename = Path(video_annotation.filename)
     if filename.name.lower().endswith(".nii.gz"):
-        image_id = str(filename).lower().rstrip(".nii.gz")
+        image_id = re.sub(r"(?i)\.nii\.gz$", "", str(filename))
     elif filename.name.lower().endswith(".nii"):
-        image_id = str(filename).lower().rstrip(".nii")
+        image_id = re.sub(r"(?i)\.nii$", "", str(filename))
     elif filename.name.lower().endswith(".dcm"):
-        image_id = str(filename).lower().rstrip(".dcm")
+        image_id = re.sub(r"(?i)\.dcm$", "", str(filename))
     else:
         image_id = str(filename)
 
