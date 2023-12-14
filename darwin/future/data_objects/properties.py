@@ -3,13 +3,13 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Literal, Optional, Union
 
-from pydantic import validator
+from pydantic import ValidationError, validator
 
 from darwin.future.data_objects.pydantic_base import DefaultDarwin
 
-
+PropertyType = Literal["multi_select", "single_select", "text", "attributes", "instance_id", "directional_vector"]
 class PropertyOption(DefaultDarwin):
     """
     Describes a single option for a property
@@ -27,12 +27,12 @@ class PropertyOption(DefaultDarwin):
     position: Optional[int]
     type: str
     value: Union[Dict[str, str], str]
-    color: str
+    color: str = "auto"
 
     @validator("color")
     def validate_rgba(cls, v: str) -> str:
-        if not v.startswith("rgba"):
-            raise ValueError("Color must be in rgba format")
+        if not v.startswith("rgba") and v != "auto":
+            raise ValueError("Color must be in rgba format or 'auto'")
         return v
 
 
@@ -49,7 +49,7 @@ class FullProperty(DefaultDarwin):
 
     id: Optional[str]
     name: str
-    type: str
+    type: PropertyType
     description: Optional[str]
     required: bool
     slug: Optional[str]
@@ -57,7 +57,20 @@ class FullProperty(DefaultDarwin):
     annotation_class_id: Optional[int]
     property_values: Optional[List[PropertyOption]]
     options: Optional[List[PropertyOption]]
+    
+    def to_create_endpoint(self) -> dict:
+        required_fields = ["slug", "team_id", "annotation_class_id"]
+        for field in required_fields:
+            if not getattr(self, field):
+                raise ValueError(f"{field} must be set")
+        return self.dict()
 
+    def to_update_endpoint(self) -> dict:
+        if not getattr(self, "id"):
+            raise ValueError(f"id must be set")
+        updated_base = self.to_create_endpoint()
+        updated_base["id"] = self.id
+        return updated_base
 
 class MetaDataClass(DefaultDarwin):
     """
