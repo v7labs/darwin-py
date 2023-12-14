@@ -1484,12 +1484,12 @@ class Client:
         return BackendV2(self, team.slug)
 
     def get_team_properties(
-        self, team_slug: Optional[str] = None, include_options: bool = True
+        self, team_slug: Optional[str] = None, include_property_values: bool = True
     ) -> List[FullProperty]:
         darwin_config = DarwinConfig.from_old(self.config)
         future_client = ClientCore(darwin_config)
 
-        if not include_options:
+        if not include_property_values:
             return get_team_properties_future(
                 client=future_client,
                 team_slug=team_slug or self.default_team,
