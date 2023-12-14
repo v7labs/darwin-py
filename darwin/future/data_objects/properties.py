@@ -9,7 +9,16 @@ from pydantic import ValidationError, validator
 
 from darwin.future.data_objects.pydantic_base import DefaultDarwin
 
-PropertyType = Literal["multi_select", "single_select", "text", "attributes", "instance_id", "directional_vector"]
+PropertyType = Literal[
+    "multi_select",
+    "single_select",
+    "text",
+    "attributes",
+    "instance_id",
+    "directional_vector",
+]
+
+
 class PropertyOption(DefaultDarwin):
     """
     Describes a single option for a property
@@ -57,7 +66,7 @@ class FullProperty(DefaultDarwin):
     annotation_class_id: Optional[int]
     property_values: Optional[List[PropertyOption]]
     options: Optional[List[PropertyOption]]
-    
+
     def to_create_endpoint(self) -> dict:
         required_fields = ["slug", "team_id", "annotation_class_id"]
         for field in required_fields:
@@ -71,6 +80,7 @@ class FullProperty(DefaultDarwin):
         updated_base = self.to_create_endpoint()
         updated_base["id"] = self.id
         return updated_base
+
 
 class MetaDataClass(DefaultDarwin):
     """

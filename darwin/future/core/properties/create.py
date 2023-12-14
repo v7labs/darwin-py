@@ -34,8 +34,11 @@ def get_team_properties(
     return parse_obj_as(List[FullProperty], response.get("properties"))
 
 
-
-def create_property(client: ClientCore, params: Union[FullProperty, JSONType], team_slug: Optional[str] = None) -> FullProperty:
+def create_property(
+    client: ClientCore,
+    params: Union[FullProperty, JSONType],
+    team_slug: Optional[str] = None,
+) -> FullProperty:
     """
     Creates a property for the specified team slug.
 
