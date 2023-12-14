@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 from typing import Dict, List, Literal, Optional, Union
 
-from pydantic import ValidationError, validator
+from pydantic import validator
 
 from darwin.future.data_objects.pydantic_base import DefaultDarwin
 
@@ -76,7 +76,7 @@ class FullProperty(DefaultDarwin):
 
     def to_update_endpoint(self) -> dict:
         if not getattr(self, "id"):
-            raise ValueError(f"id must be set")
+            raise ValueError("id must be set")
         updated_base = self.to_create_endpoint()
         updated_base["id"] = self.id
         return updated_base
