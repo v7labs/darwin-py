@@ -1,0 +1,60 @@
+{
+    "classes": [
+        {
+            "name": "Bottle",
+            "description": "Some additional text",
+            "type": "polygon",
+            "sub_types": [
+                "attributes",
+                "instance_id"
+            ],
+            "color": "rgba(255,0,85,1.0)",
+            "properties": []
+        },
+        {
+            "name": "Bottle1",
+            "description": "Some additional text",
+            "type": "polygon",
+            "sub_types": [
+                "attributes",
+                "instance_id"
+            ],
+            "color": "rgba(255,0,85,1.0)",
+            "properties": []
+        },
+        {
+            "name": "Bottle3",
+            "description": "Some additional text",
+            "type": "polygon",
+            "sub_types": [
+                "attributes",
+                "instance_id"
+            ],
+            "color": "rgba(255,0,85,1.0)",
+            "properties": [
+                {
+                    "name": "Colors",
+                    "type": "multi-select",
+                    "options": [
+                        {
+                            "value": "red",
+                            "color": "rgba(255, 0, 0, 0)",
+                            "type": "string"
+                        },
+                        {
+                            "value": "green",
+                            "color": "rgba(0, 255, 0, 0)",
+                            "type": "string"
+                        },
+                        {
+                            "value": "blue",
+                            "color": "rgba(0, 0, 255, 0)",
+                            "type": "string"
+                        }
+                    ],
+                    "required": true
+                }
+            ]
+        }
+    ]
+}

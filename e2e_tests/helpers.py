@@ -1,18 +1,10 @@
-import re
-import tempfile
-import uuid
-from pathlib import Path
 from subprocess import run
 from time import sleep
-from typing import Generator, Optional, Tuple
+from typing import Optional
 
-import pytest
 from attr import dataclass
-from cv2 import exp
 
 from darwin.exceptions import DarwinException
-from e2e_tests.objects import E2EDataset
-from e2e_tests.setup_tests import create_random_image
 
 
 @dataclass

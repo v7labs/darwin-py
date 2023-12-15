@@ -139,7 +139,7 @@ def test_image_annotation_nifti_import_incorrect_number_slot(team_slug: str):
                 json.dumps(input_dict, indent=4, sort_keys=True, default=str)
             )
             with pytest.raises(Exception):
-                annotation_files = parse_path(path=upload_json)
+                parse_path(path=upload_json)
 
 
 def test_image_annotation_nifti_import_single_slot_to_mask(team_slug: str):

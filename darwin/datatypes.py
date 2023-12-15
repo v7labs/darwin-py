@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from pathlib import Path
@@ -20,7 +22,8 @@ try:
 except ImportError:
     NDArray = Any  # type:ignore
 
-from darwin.path_utils import construct_full_path
+from darwin.future.data_objects.properties import SelectedProperty
+from darwin.path_utils import construct_full_path, is_properties_enabled, parse_metadata
 
 # Utility types
 
@@ -213,6 +216,9 @@ class Annotation:
     # The darwin ID of this annotation.
     id: Optional[str] = None
 
+    # Properties of this annotation.
+    properties: Optional[list[SelectedProperty]] = None
+
     def get_sub(self, annotation_type: str) -> Optional[SubAnnotation]:
         """
         Returns the first SubAnnotation that matches the given type.
@@ -266,6 +272,9 @@ class VideoAnnotation:
 
     # The darwin ID of this annotation.
     id: Optional[str] = None
+
+    # Properties of this annotation.
+    properties: Optional[list[SelectedProperty]] = None
 
     def get_data(
         self,
@@ -387,6 +396,96 @@ class AnnotationFileVersion:
 
 
 @dataclass
+class Property:
+    """
+    Represents a property of an annotation file.
+    """
+
+    # Name of the property
+    name: str
+
+    # Type of the property
+    type: str
+
+    # Whether the property is required or not
+    required: bool
+
+    # Property options
+    options: list[dict[str, str]]
+
+
+@dataclass
+class PropertyClass:
+    name: str
+    type: str
+    description: Optional[str]
+    color: Optional[str] = None
+    sub_types: Optional[list[str]] = None
+    properties: Optional[list[Property]] = None
+
+
+def parse_property_classes(metadata: dict[str, Any]) -> list[PropertyClass]:
+    """
+    Parses the metadata file and returns a list of PropertyClass objects.
+
+    Parameters
+    ----------
+    metadata : dict[str, Any]
+        The metadata file.
+
+    Returns
+    -------
+    list[PropertyClass]
+        A list of PropertyClass objects.
+    """
+    assert "classes" in metadata, "Metadata does not contain classes"
+
+    classes = []
+    for metadata_cls in metadata["classes"]:
+        assert (
+            "properties" in metadata_cls
+        ), "Metadata class does not contain properties"
+        classes.append(
+            PropertyClass(
+                name=metadata_cls["name"],
+                type=metadata_cls["type"],
+                description=metadata_cls.get("description"),
+                color=metadata_cls.get("color"),
+                sub_types=metadata_cls.get("sub_types"),
+                properties=[Property(**p) for p in metadata_cls["properties"]],
+            )
+        )
+
+    return classes
+
+
+def split_paths_by_metadata(
+    path, dir: str = ".v7", filename: str = "metadata.json"
+) -> tuple[Path, Optional[list[PropertyClass]]]:
+    """
+    Splits the given path into two: the path to the metadata file and the path to the properties
+
+    Parameters
+    ----------
+    path : Path
+        The path to the export directory.
+
+    Returns
+    -------
+    tuple[Path, Optional[list[PropertyClass]]]
+        A tuple containing the path to the metadata file and the list of property classes.
+    """
+    if not is_properties_enabled(path, dir, filename):
+        return path, None
+
+    metadata_path = path / dir / filename
+    metadata = parse_metadata(metadata_path)
+    property_classes = parse_property_classes(metadata)
+
+    return metadata_path, property_classes
+
+
+@dataclass
 class AnnotationFile:
     """
     Represents a file containing annotations. Mostly useful when trying to import or export
@@ -451,6 +550,9 @@ class AnnotationFile:
 
     # The darwin ID of the item that these annotations belong to.
     item_id: Optional[str] = None
+
+    # The Frame Count if this is a video annotation
+    frame_count: Optional[int] = None
 
     @property
     def full_path(self) -> str:
@@ -1177,6 +1279,7 @@ def make_video_annotation(
     segments: List[Segment],
     interpolated: bool,
     slot_names: List[str],
+    properties: Optional[list[SelectedProperty]] = None,
 ) -> VideoAnnotation:
     """
     Creates and returns a ``VideoAnnotation``.
@@ -1213,6 +1316,7 @@ def make_video_annotation(
         segments,
         interpolated,
         slot_names=slot_names or [],
+        properties=properties,
     )
 
 

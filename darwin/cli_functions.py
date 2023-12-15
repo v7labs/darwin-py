@@ -95,7 +95,7 @@ def validate_api_key(api_key: str) -> None:
 
 def authenticate(
     api_key: str,
-    default_team: Optional[bool] = None,
+    default_team: Optional[Union[str, bool]] = None,
     datasets_dir: Optional[Path] = None,
 ) -> Config:
     """
@@ -125,9 +125,18 @@ def authenticate(
         config_path.parent.mkdir(exist_ok=True)
 
         if default_team is None:
-            default_team = input(
-                f"Make {client.default_team} the default team? [y/N] "
-            ) in ["Y", "y"]
+            default_team_name = (
+                client.default_team
+                if input(f"Make {client.default_team} the default team? [y/N] ")
+                in ["Y", "y"]
+                else None
+            )
+        elif default_team is False:
+            default_team_name = None
+        elif default_team is True:
+            default_team_name = client.default_team
+        else:
+            default_team_name = default_team
         if datasets_dir is None:
             datasets_dir = Path(prompt("Datasets directory", "~/.darwin/datasets"))
 
@@ -136,7 +145,6 @@ def authenticate(
 
         client.set_datasets_dir(datasets_dir)
 
-        default_team_name: Optional[str] = client.default_team if default_team else None
         return persist_client_configuration(client, default_team=default_team_name)
 
     except InvalidLogin:
