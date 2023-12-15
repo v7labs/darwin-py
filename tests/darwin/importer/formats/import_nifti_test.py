@@ -142,6 +142,55 @@ def test_image_annotation_nifti_import_incorrect_number_slot(team_slug: str):
                 annotation_files = parse_path(path=upload_json)
 
 
+def test_image_annotation_nifti_import_single_slot_to_mask(team_slug: str):
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with ZipFile("tests/data.zip") as zfile:
+            zfile.extractall(tmpdir)
+            label_path = (
+                Path(tmpdir)
+                / team_slug
+                / "nifti"
+                / "releases"
+                / "latest"
+                / "annotations"
+                / "vol0_brain.nii.gz"
+            )
+            input_dict = {
+                "data": [
+                    {
+                        "image": "vol0 (1).nii",
+                        "label": str(label_path),
+                        "class_map": {"1": "brain"},
+                        "mode": "mask",
+                        "is_mpr": False,
+                        "slot_names": ["0.1"],
+                    }
+                ]
+            }
+            upload_json = Path(tmpdir) / "annotations.json"
+            upload_json.write_text(
+                json.dumps(input_dict, indent=4, sort_keys=True, default=str)
+            )
+            annotation_files = parse_path(path=upload_json)
+            annotation_file = annotation_files[0]
+            output_json_string = json.loads(
+                serialise_annotation_file(annotation_file, as_dict=False)
+            )
+            expected_json_string = json.load(
+                open(
+                    Path(tmpdir)
+                    / team_slug
+                    / "nifti"
+                    / "vol0_annotation_file_to_mask.json",
+                    "r",
+                )
+            )
+            assert (
+                output_json_string["annotations"][0]["frames"]
+                == expected_json_string["annotations"][0]["frames"]
+            )
+
+
 def serialise_annotation_file(
     annotation_file: AnnotationFile, as_dict
 ) -> Union[str, dict]:
