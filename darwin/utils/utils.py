@@ -38,6 +38,7 @@ from darwin.exceptions import (
     UnrecognizableFileEncoding,
     UnsupportedFileType,
 )
+from darwin.future.data_objects.properties import SelectedProperty
 from darwin.version import __version__
 
 if TYPE_CHECKING:
@@ -945,11 +946,11 @@ def _parse_annotators(annotators: List[Dict[str, Any]]) -> List[dt.AnnotationAut
     return [dt.AnnotationAuthor(annotator["full_name"], annotator["email"]) for annotator in annotators]
 
 
-def _parse_properties(properties: List[Dict[str, Any]]) -> Optional[List[dt.SelectedProperty]]:
+def _parse_properties(properties: List[Dict[str, Any]]) -> Optional[List[SelectedProperty]]:
     selected_properties = []
     for property in properties:
         selected_properties.append(
-            dt.SelectedProperty(
+            SelectedProperty(
                 frame_index=property.get("frame_index", None),
                 name=property.get("name", None),
                 type=property.get("type", None),

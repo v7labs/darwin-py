@@ -9,6 +9,7 @@ import yaml
 from pydantic import BaseModel, root_validator, validator
 from requests.adapters import HTTPAdapter, Retry
 
+from darwin.config import Config as OldConfig
 from darwin.future.core.types.common import JSONType, QueryString
 from darwin.future.exceptions import (
     BadRequest,
@@ -119,6 +120,25 @@ class DarwinConfig(BaseModel):
             default_team="default",
             teams={},
             datasets_dir=DarwinConfig._default_config_path(),
+        )
+
+    @staticmethod
+    def from_old(old_config: OldConfig) -> DarwinConfig:
+        teams = old_config.get("teams")
+        if not teams:
+            raise ValueError("No teams found in the old config")
+
+        default_team = old_config.get("global/default_team")
+        if not default_team:
+            default_team = list(teams.keys())[0]
+
+        return DarwinConfig(
+            api_key=teams[default_team]["api_key"],
+            api_endpoint=old_config.get("global/api_endpoint"),
+            base_url=old_config.get("global/base_url"),
+            default_team=default_team,
+            teams=teams,
+            datasets_dir=teams[default_team]["datasets_dir"],
         )
 
     class Config:

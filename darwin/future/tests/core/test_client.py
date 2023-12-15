@@ -5,10 +5,12 @@ import responses
 from pydantic import ValidationError
 from requests import HTTPError
 
-from darwin.future.core.client import ClientCore, DarwinConfig
+from darwin.config import Config as OldConfig
+from darwin.future.core.client import ClientCore, DarwinConfig, TeamsConfig
 from darwin.future.exceptions import DarwinException, NotFound, Unauthorized
 from darwin.future.tests.core.fixtures import *
 from darwin.future.tests.fixtures import *
+from tests.fixtures import *
 
 
 def test_create_config(base_config: DarwinConfig) -> None:
@@ -140,3 +142,37 @@ def test_client_raises_generic(base_client: ClientCore) -> None:
         rsps.add(responses.PATCH, endpoint, json={"test": "test"}, status=status_code)
         with pytest.raises(HTTPError):
             base_client.patch("test_endpoint", {"test": "test"})
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+def test_config_from_old_error(
+    base_config: DarwinConfig, darwin_config_path: Path
+) -> None:
+    old_config = OldConfig(darwin_config_path)
+    with pytest.raises(ValueError) as excinfo:
+        base_config.from_old(old_config)
+    (msg,) = excinfo.value.args
+    assert msg == "No teams found in the old config"
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+def test_config_from_old(
+    base_config: DarwinConfig, darwin_config_path: Path, darwin_datasets_path: Path
+) -> None:
+    old_config = OldConfig(darwin_config_path)
+    team_slug = "test-team"
+    old_config.put(["global", "api_endpoint"], "http://localhost/api")
+    old_config.put(["global", "base_url"], "http://localhost")
+    old_config.put(["teams", team_slug, "api_key"], "mock_api_key")
+    old_config.put(["teams", team_slug, "datasets_dir"], str(darwin_datasets_path))
+    darwin_config = base_config.from_old(old_config)
+
+    assert darwin_config.api_key == "mock_api_key"
+    assert darwin_config.base_url == "http://localhost/"
+    assert darwin_config.api_endpoint == "http://localhost/api"
+    assert darwin_config.default_team == team_slug
+    assert darwin_config.teams == {
+        team_slug: TeamsConfig(
+            api_key="mock_api_key", datasets_dir=darwin_datasets_path
+        )
+    }
