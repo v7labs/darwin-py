@@ -1499,3 +1499,15 @@ class Client:
             client=future_client,
             team_slug=team_slug or self.default_team,
         )
+
+    def create_property(self, property: FullProperty):
+        darwin_config = DarwinConfig.from_old(self.config)
+        future_client = ClientCore(darwin_config)
+
+        # TODO: call create_property_future with the right parameters
+
+    def update_property(self, property_id: str):
+        darwin_config = DarwinConfig.from_old(self.config)
+        future_client = ClientCore(darwin_config)
+
+        # TODO: call update_property_future with the right parameters

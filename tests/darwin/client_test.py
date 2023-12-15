@@ -11,6 +11,7 @@ from darwin.dataset.remote_dataset_v1 import RemoteDatasetV1
 from darwin.dataset.remote_dataset_v2 import RemoteDatasetV2
 from darwin.datatypes import Feature, JSONFreeForm
 from darwin.exceptions import NameTaken, NotFound
+from darwin.future.data_objects.properties import FullProperty, PropertyOption
 from tests.fixtures import *  # noqa: F401, F403
 
 
@@ -464,3 +465,59 @@ class TestGetTeamProperties:
             status=200,
         )
         assert len(darwin_client.get_team_properties()) == 1
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+class TestCreateProperty:
+    @responses.activate
+    def test_create_property(self, darwin_client: Client) -> None:
+
+        
+        responses.add(
+            responses.POST,
+            "http://localhost/apiv2/teams/v7-darwin-json-v1/properties",
+            json={},
+            status=200,
+        )
+        darwin_client.create_property(FullProperty(**{
+            "name": "property question",
+            "property_values": [
+                PropertyOption(**{
+                    "color": "rgba(143,255,0,1.0)",
+                    "position": 1,
+                    "type": "string",
+                    "value": {"value": "answer 1"},
+                }),
+                PropertyOption(**{
+                    "color": "rgba(173,255,0,1.0)",
+                    "position": 2,
+                    "type": "string",
+                    "value": {"value": "answer 2"},
+                }),
+                PropertyOption(**{
+                    "color": "rgba(82,255,0,1.0)",
+                    "position": 3,
+                    "type": "string",
+                    "value": {"value": "answer 3"},
+                }),
+            ],
+            "required": False,
+            "slug": "property-question",
+            "team_id": 128,
+            "type": "multi_select",
+        }))
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+class TestUpdateProperty:
+    @responses.activate
+    def test_update_property(self, darwin_client: Client) -> None:
+
+        property_id = "11"
+        responses.add(
+            responses.PUT,
+            f"http://localhost/apiv2/teams/v7-darwin-json-v1/properties/{property_id}",
+            json={},
+            status=200,
+        )
+        darwin_client.update_property(property_id)
