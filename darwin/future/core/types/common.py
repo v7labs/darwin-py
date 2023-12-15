@@ -2,12 +2,10 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Mapping, Protocol, Union
 
-from darwin.future.core.properties.create import JSONDict
 from darwin.future.data_objects import validators as darwin_validators
 
-JSONDict = Dict[str, Any]  # type: ignore
-# JSONType = Union[JSONDict, List[JSONDict]]  # type: ignore
-JSONType = Union[Dict[str, "JSONType"], List["JSONType"], str, int, float, bool, None]
+JSONType = Union[Dict[str, Any], List[Dict[str, Any]]]  # type: ignore
+JSONDict = Dict[str, Any] # type: ignore
 
 class Implements_str(Protocol):
     def __str__(self) -> str:

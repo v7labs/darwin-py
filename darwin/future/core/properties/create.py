@@ -1,15 +1,15 @@
-from typing import Optional, Union
+from typing import Dict, Optional, Union
 
 from pydantic import parse_obj_as
 
 from darwin.future.core.client import ClientCore
-from darwin.future.core.types.common import JSONType
+from darwin.future.core.types.common import JSONDict
 from darwin.future.data_objects.properties import FullProperty
 
 
 def create_property(
     client: ClientCore,
-    params: Union[FullProperty, JSONType],
+    params: Union[FullProperty, JSONDict],
     team_slug: Optional[str] = None,
 ) -> FullProperty:
     """
