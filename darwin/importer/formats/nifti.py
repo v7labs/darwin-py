@@ -196,7 +196,9 @@ def get_polygon_video_annotations(
         raise Exception("If is_mpr is True, slot_names must be of length 3")
 
 
-def get_mask_video_annotations(volume, processed_class_map, slot_names):
+def get_mask_video_annotations(
+    volume: np.ndarray, processed_class_map: Dict, slot_names: List[str]
+) -> Optional[List[dt.VideoAnnotation]]:
     """
     The function takes a volume and a class map and returns a list of video annotations
 
@@ -280,13 +282,13 @@ def get_mask_video_annotations(volume, processed_class_map, slot_names):
 
 
 def nifti_to_video_polygon_annotation(
-    volume,
-    class_name,
-    class_idxs,
-    slot_names,
-    view_idx=2,
-    pixdims=(1, 1, 1),
-):
+    volume: np.ndarray,
+    class_name: str,
+    class_idxs: List[int],
+    slot_names: List[str],
+    view_idx: int = 2,
+    pixdims: Tuple[int, int, int] = (1, 1, 1),
+) -> Optional[List[dt.VideoAnnotation]]:
     frame_annotations = OrderedDict()
     for i in range(volume.shape[view_idx]):
         if view_idx == 2:
@@ -485,7 +487,7 @@ def process_nifti(
         return data_array, pixdims
 
 
-def convert_to_dense_rle(raster):
+def convert_to_dense_rle(raster: np.ndarray) -> List[int]:
     dense_rle, prev_val, cnt = [], None, 0
     for val in raster.T.flat:
         if val == prev_val:
