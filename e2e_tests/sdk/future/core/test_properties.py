@@ -1,4 +1,3 @@
-from hmac import new
 from pathlib import Path
 from typing import Tuple
 
