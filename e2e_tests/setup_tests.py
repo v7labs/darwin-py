@@ -115,8 +115,10 @@ def create_dataset(prefix: str, config: ConfigValues) -> E2EDataset:
 
 
 def create_annotation_class(
-    name: str, annotation_type: str, config: ConfigValues, fixed_name: bool = False,
-
+    name: str,
+    annotation_type: str,
+    config: ConfigValues,
+    fixed_name: bool = False,
 ) -> E2EAnnotationClass:
     """
     Create a randomised new annotation class, and return its minimal info for reference
@@ -134,7 +136,7 @@ def create_annotation_class(
         The minimal info about the created annotation class
     """
     team_slug = config.team_slug
-    
+
     if not fixed_name:
         name = f"{name}_{generate_random_string(4)}_annotation_class"
     host, api_key = config.server, config.api_key
@@ -145,7 +147,7 @@ def create_annotation_class(
         {
             "name": name,
             "annotation_types": [annotation_type],
-            "metadata": {"_color": "auto"}
+            "metadata": {"_color": "auto"},
         },
         api_key,
     )
@@ -156,7 +158,7 @@ def create_annotation_class(
             id=annotation_class_info["id"],
             name=annotation_class_info["name"],
             type=annotation_class_info["annotation_types"][0],
-        ) 
+        )
     if response.status_code == 422 and "already exists" in response.text:
         raise DataAlreadyExists(
             f"Failed to create annotation class {name} - {response.status_code} - {response.text}"
@@ -193,6 +195,7 @@ def delete_annotation_class(id: str, config: ConfigValues) -> None:
     except Exception as e:
         print(f"Failed to delete annotation class {id} - {e}")
         pytest.exit("Test run failed in test setup stage")
+
 
 def create_item(
     dataset_slug: str, prefix: str, image: Path, config: ConfigValues
@@ -378,7 +381,10 @@ def setup_annotation_classes(config: ConfigValues) -> List[E2EAnnotationClass]:
         for annotation_type, annotation_type_name in set_types:
             try:
                 annotation_class = create_annotation_class(
-                    f"test_{annotation_type}", annotation_type_name, config, fixed_name=True
+                    f"test_{annotation_type}",
+                    annotation_type_name,
+                    config,
+                    fixed_name=True,
                 )
                 annotation_classes.append(annotation_class)
             except DataAlreadyExists:
@@ -392,6 +398,7 @@ def setup_annotation_classes(config: ConfigValues) -> List[E2EAnnotationClass]:
         pytest.exit("Setup failed - unknown error")
 
     return annotation_classes
+
 
 def teardown_tests(config: ConfigValues, datasets: List[E2EDataset]) -> None:
     """
@@ -410,10 +417,10 @@ def teardown_tests(config: ConfigValues, datasets: List[E2EDataset]) -> None:
 
     print("Tearing down workflows")
     failures.extend(delete_workflows(config))
-    
+
     print("Tearing down general datasets")
     failures.extend(delete_general_datasets(config))
-    
+
     if failures:
         for item in failures:
             print(item)
@@ -467,6 +474,7 @@ def delete_workflows(config: ConfigValues) -> List:
                 )
     return failures
 
+
 def delete_known_datasets(config: ConfigValues, datasets: List[E2EDataset]) -> List:
     """
     Delete all known datasets for the team
@@ -489,6 +497,7 @@ def delete_known_datasets(config: ConfigValues, datasets: List[E2EDataset]) -> L
             )
     return failures
 
+
 def delete_general_datasets(config: ConfigValues) -> List:
     host, api_key, _ = config.server, config.api_key, config.team_slug
     # teardown any other datasets of specific format
@@ -508,13 +517,18 @@ def delete_general_datasets(config: ConfigValues) -> List:
                 )
     return failures
 
-def teardown_annotation_classes(config: ConfigValues, annotation_classes: List[E2EAnnotationClass]) -> None:
+
+def teardown_annotation_classes(
+    config: ConfigValues, annotation_classes: List[E2EAnnotationClass]
+) -> None:
     for annotation_class in annotation_classes:
         delete_annotation_class(str(annotation_class.id), config)
     team_slug = config.team_slug
     host = config.server
-    response = api_call("get", f"{host}/api/teams/{team_slug}/annotation_classes", None, config.api_key)
-    all_annotations = response.json()['annotation_classes']
+    response = api_call(
+        "get", f"{host}/api/teams/{team_slug}/annotation_classes", None, config.api_key
+    )
+    all_annotations = response.json()["annotation_classes"]
     for annotation_class in all_annotations:
-        if annotation_class['name'].startswith('test_'):
-            delete_annotation_class(annotation_class['id'], config)
+        if annotation_class["name"].startswith("test_"):
+            delete_annotation_class(annotation_class["id"], config)

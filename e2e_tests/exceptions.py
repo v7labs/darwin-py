@@ -18,6 +18,7 @@ class E2EEnvironmentVariableNotSet(E2EException):
         super().__init__(*args, **kwargs)
         self.name = name
 
+
 class DataAlreadyExists(E2EException):
     """Raised when the teardown process fails and has left legacy data"""
 

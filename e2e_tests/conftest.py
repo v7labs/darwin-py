@@ -51,10 +51,10 @@ def pytest_sessionstart(session: pytest.Session) -> None:
     session.config.cache.set("team_slug", team_slug)
 
     config = ConfigValues(server=server, api_key=api_key, team_slug=team_slug)
-    datasets = setup_datasets(
-        config
-    )
-    teardown_annotation_classes(config, []) # Ensure that there are no annotation classes before running tests
+    datasets = setup_datasets(config)
+    teardown_annotation_classes(
+        config, []
+    )  # Ensure that there are no annotation classes before running tests
     annotation_classes = setup_annotation_classes(config)
     # pytest.datasets = datasets
     setattr(pytest, "datasets", datasets)
@@ -78,7 +78,9 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
         raise ValueError("Datasets were not created, so could not tear them down")
     annotation_classes = pytest.annotation_classes
     if annotation_classes is None:
-        raise ValueError("Annotation classes were not created, so could not tear them down")
+        raise ValueError(
+            "Annotation classes were not created, so could not tear them down"
+        )
 
     server = session.config.cache.get("server", None)
     api_key = session.config.cache.get("api_key", None)
