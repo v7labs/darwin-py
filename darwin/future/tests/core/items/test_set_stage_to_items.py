@@ -1,8 +1,11 @@
+from typing import Dict
+
 import pytest
 import responses
 
 from darwin.future.core.client import ClientCore
 from darwin.future.core.items.set_stage_to_items import set_stage_to_items
+from darwin.future.data_objects.typing import UnknownType
 from darwin.future.exceptions import BadRequest
 from darwin.future.tests.core.fixtures import *
 
@@ -44,7 +47,7 @@ def test_set_stage_to_items_filters_error(base_client: ClientCore) -> None:
     dataset_ids = [1, 2, 3]
     stage_id = "123456"
     workflow_id = "123456"
-    filters = {}
+    filters: Dict[str, UnknownType] = {}
 
     responses.add(
         responses.POST,

@@ -1,8 +1,11 @@
+from typing import Dict
+
 import pytest
 import responses
 
 from darwin.future.core.client import ClientCore
 from darwin.future.core.items.untag_items import untag_items
+from darwin.future.data_objects.typing import UnknownType
 from darwin.future.exceptions import BadRequest
 from darwin.future.tests.core.fixtures import *
 
@@ -42,7 +45,7 @@ def test_untag_items_empty_filters_error(base_client: ClientCore) -> None:
     dataset_ids = [1, 2, 3]
     tag_id = 123456
     # this should raise an error as no filters are provided
-    filters = {}
+    filters: Dict[str, UnknownType] = {}
 
     responses.add(
         responses.DELETE,
@@ -89,6 +92,6 @@ def test_untag_items_bad_request_error(base_client: ClientCore) -> None:
             client=base_client,
             team_slug=team_slug,
             dataset_ids=dataset_ids,
-            tag_id=tag_id,
+            tag_id=tag_id, # type: ignore
             filters=filters,
         )

@@ -135,7 +135,7 @@ def base_item_json_response() -> dict:
 
 
 @pytest.fixture
-def base_items_json_response(base_item_json_response) -> dict:
+def base_items_json_response(base_item_json_response: dict) -> dict:
     return {"items": [base_item_json_response]}
 
 
