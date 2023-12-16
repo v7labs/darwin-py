@@ -50,7 +50,7 @@ def helper_create_annotation(name: str) -> Tuple[ConfigValues, E2EAnnotationClas
     config = pytest.config_values
     assert config is not None
     assert isinstance(config, ConfigValues)
-    return config, create_annotation_class(name, "polygon", config, fixed_name=True)
+    return config, create_annotation_class(name, "polygon", config)
 
 def test_create_property(base_client: ClientCore, base_property_to_create: FullProperty) -> None:
     config, new_annotation_class = helper_create_annotation("test_for_create_property")

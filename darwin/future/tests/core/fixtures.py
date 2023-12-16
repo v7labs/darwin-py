@@ -19,7 +19,7 @@ def base_property_value() -> PropertyValue:
     return PropertyValue(
         id="0",
         position=0,
-        type="text",
+        type="string",
         value="test-value",
         color="rgba(0,0,0,0)",
     )

@@ -404,21 +404,41 @@ def teardown_tests(config: ConfigValues, datasets: List[E2EDataset]) -> None:
     datasets : List[E2EDataset]
         The minimal info about the created datasets
     """
+    failures = []
+    print("\nTearing down datasets")
+    failures.extend(delete_known_datasets(config, datasets))
+
+    print("Tearing down workflows")
+    failures.extend(delete_workflows(config))
+    
+    print("Tearing down general datasets")
+    failures.extend(delete_general_datasets(config))
+    
+    if failures:
+        for item in failures:
+            print(item)
+        pytest.exit("Test run failed in test teardown stage")
+
+    if failures:
+        for item in failures:
+            print(item)
+        pytest.exit("Test run failed in test teardown stage")
+
+    print("Tearing down data complete")
+
+
+def delete_workflows(config: ConfigValues) -> List:
+    """
+    Delete all workflows for the team
+
+    Parameters
+    ----------
+    config : ConfigValues
+        The config values to use
+    """
     host, api_key, team_slug = config.server, config.api_key, config.team_slug
 
-    print("\nTearing down datasets")
-
     failures = []
-    for dataset in datasets:
-        url = f"{host}/api/datasets/{dataset.id}/archive"
-        response = api_call("put", url, {}, api_key)
-
-        if not response.ok:
-            failures.append(
-                f"Failed to delete dataset {dataset.name} - {response.status_code} - {response.text}"
-            )
-
-    # Teardown workflows as they need to be disconnected before datasets can be deleted
     url = f"{host}/api/v2/teams/{team_slug}/workflows"
     response = api_call("get", url, {}, api_key)
     if response.ok:
@@ -445,9 +465,35 @@ def teardown_tests(config: ConfigValues, datasets: List[E2EDataset]) -> None:
                 failures.append(
                     f"Failed to delete workflow {item['name']} - {response.status_code} - {response.text}"
                 )
+    return failures
 
+def delete_known_datasets(config: ConfigValues, datasets: List[E2EDataset]) -> List:
+    """
+    Delete all known datasets for the team
+
+    Parameters
+    ----------
+    config : ConfigValues
+        The config values to use
+    """
+    host, api_key, _ = config.server, config.api_key, config.team_slug
+
+    failures = []
+    for dataset in datasets:
+        url = f"{host}/api/datasets/{dataset.id}/archive"
+        response = api_call("put", url, {}, api_key)
+
+        if not response.ok:
+            failures.append(
+                f"Failed to delete dataset {dataset.name} - {response.status_code} - {response.text}"
+            )
+    return failures
+
+def delete_general_datasets(config: ConfigValues) -> List:
+    host, api_key, _ = config.server, config.api_key, config.team_slug
     # teardown any other datasets of specific format
     url = f"{host}/api/datasets"
+    failures = []
     response = api_call("get", url, {}, api_key)
     if response.ok:
         items = response.json()
@@ -460,19 +506,7 @@ def teardown_tests(config: ConfigValues, datasets: List[E2EDataset]) -> None:
                 failures.append(
                     f"Failed to delete dataset {item['name']} - {response.status_code} - {response.text}"
                 )
-
-    if failures:
-        for item in failures:
-            print(item)
-        pytest.exit("Test run failed in test teardown stage")
-
-    if failures:
-        for item in failures:
-            print(item)
-        pytest.exit("Test run failed in test teardown stage")
-
-    print("Tearing down data complete")
-
+    return failures
 
 def teardown_annotation_classes(config: ConfigValues, annotation_classes: List[E2EAnnotationClass]) -> None:
     for annotation_class in annotation_classes:
