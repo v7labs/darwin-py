@@ -17,3 +17,10 @@ class E2EEnvironmentVariableNotSet(E2EException):
     def __init__(self, name: str, *args: List, **kwargs: Dict) -> None:
         super().__init__(*args, **kwargs)
         self.name = name
+
+class DataAlreadyExists(E2EException):
+    """Raised when the teardown process fails and has left legacy data"""
+
+    def __init__(self, name: str, *args: List, **kwargs: Dict) -> None:
+        super().__init__(*args, **kwargs)
+        self.name = name

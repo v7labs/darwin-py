@@ -67,6 +67,6 @@ def get_property_by_id(
     """
     if not team_slug:
         team_slug = client.config.default_team
-    response = client.get(f"/v2/teams/{team_slug}/properties/{property_id}")
+    response = client.get(f"/v2/teams/{team_slug}/properties/{str(property_id)}")
     assert isinstance(response, dict)
     return parse_obj_as(FullProperty, response)

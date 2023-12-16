@@ -8,15 +8,15 @@ import pytest
 from darwin.future.core.client import ClientCore, DarwinConfig
 from darwin.future.data_objects.dataset import DatasetCore
 from darwin.future.data_objects.item import ItemCore, ItemLayout, ItemSlot
-from darwin.future.data_objects.properties import FullProperty, PropertyOption
+from darwin.future.data_objects.properties import FullProperty, PropertyValue
 from darwin.future.data_objects.team import TeamCore, TeamMemberCore
 from darwin.future.data_objects.team_member_role import TeamMemberRole
 from darwin.future.data_objects.workflow import WorkflowCore
 
 
 @pytest.fixture
-def base_property_option() -> PropertyOption:
-    return PropertyOption(
+def base_property_value() -> PropertyValue:
+    return PropertyValue(
         id="0",
         position=0,
         type="text",
@@ -26,7 +26,7 @@ def base_property_option() -> PropertyOption:
 
 
 @pytest.fixture
-def base_property_object(base_property_option: PropertyOption) -> FullProperty:
+def base_property_object(base_property_value: PropertyValue) -> FullProperty:
     return FullProperty(
         id="0",
         name="test-property",
@@ -36,8 +36,8 @@ def base_property_object(base_property_option: PropertyOption) -> FullProperty:
         slug="test-property",
         team_id=0,
         annotation_class_id=0,
-        property_values=[base_property_option],
-        options=[base_property_option],
+        property_values=[base_property_value],
+        options=[base_property_value],
     )
 
 

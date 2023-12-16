@@ -10,7 +10,12 @@ import pytest
 from darwin.future.data_objects.typing import UnknownType
 from e2e_tests.exceptions import E2EEnvironmentVariableNotSet
 from e2e_tests.objects import ConfigValues
-from e2e_tests.setup_tests import setup_tests, teardown_tests
+from e2e_tests.setup_tests import (
+    setup_annotation_classes,
+    setup_datasets,
+    teardown_annotation_classes,
+    teardown_tests,
+)
 
 
 def pytest_configure(config: pytest.Config) -> None:
@@ -45,11 +50,16 @@ def pytest_sessionstart(session: pytest.Session) -> None:
     session.config.cache.set("api_key", api_key)
     session.config.cache.set("team_slug", team_slug)
 
-    datasets = setup_tests(
-        ConfigValues(server=server, api_key=api_key, team_slug=team_slug)
+    config = ConfigValues(server=server, api_key=api_key, team_slug=team_slug)
+    datasets = setup_datasets(
+        config
     )
+    teardown_annotation_classes(config, []) # Ensure that there are no annotation classes before running tests
+    annotation_classes = setup_annotation_classes(config)
     # pytest.datasets = datasets
     setattr(pytest, "datasets", datasets)
+    setattr(pytest, "annotation_classes", annotation_classes)
+    setattr(pytest, "config_values", config)
     # Set the environment variables for running CLI arguments
     environ["DARWIN_BASE_URL"] = server
     environ["DARWIN_TEAM"] = team_slug
@@ -66,6 +76,9 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
     datasets = pytest.datasets
     if datasets is None:
         raise ValueError("Datasets were not created, so could not tear them down")
+    annotation_classes = pytest.annotation_classes
+    if annotation_classes is None:
+        raise ValueError("Annotation classes were not created, so could not tear them down")
 
     server = session.config.cache.get("server", None)
     api_key = session.config.cache.get("api_key", None)
@@ -81,6 +94,8 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
     config = ConfigValues(server=server, api_key=api_key, team_slug=team)
     assert isinstance(datasets, List)
     teardown_tests(config, datasets)
+    assert isinstance(annotation_classes, List)
+    teardown_annotation_classes(config, annotation_classes)
 
 
 @pytest.fixture(

@@ -1,4 +1,4 @@
-from typing import Dict, Optional, Union
+from typing import Optional, Union
 
 from pydantic import parse_obj_as
 
@@ -33,4 +33,4 @@ def create_property(
         params = params.to_create_endpoint()
     response = client.post(f"/v2/teams/{team_slug}/properties", data=params)
     assert isinstance(response, dict)
-    return parse_obj_as(FullProperty, response.get("property"))
+    return parse_obj_as(FullProperty, response)

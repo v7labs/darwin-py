@@ -85,13 +85,13 @@
   ],
   "categories": [
     {
-      "id": 3961009249,
-      "name": "test_poly",
+      "id": 348813479,
+      "name": "test_bb",
       "supercategory": "root"
     },
     {
-      "id": 348813479,
-      "name": "test_bb",
+      "id": 3961009249,
+      "name": "test_poly",
       "supercategory": "root"
     }
   ],
