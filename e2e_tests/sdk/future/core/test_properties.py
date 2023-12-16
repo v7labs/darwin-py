@@ -47,8 +47,6 @@ def base_property_to_create() -> FullProperty:
     )
 
 def helper_create_annotation(name: str) -> Tuple[ConfigValues, E2EAnnotationClass]:
-    # TODO: Replace this with a call to create an annotation class when that is implemented in darwin.future
-    # Hacky method to create an annotation class to use for the property
     config = pytest.config_values
     assert config is not None
     assert isinstance(config, ConfigValues)
