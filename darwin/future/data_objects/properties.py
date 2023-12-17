@@ -52,7 +52,7 @@ class PropertyValue(DefaultDarwin):
         return v
 
     def to_update_endpoint(self) -> Tuple[str, dict]:
-        if not getattr(self, "id") or self.id is None:
+        if self.id is None:
             raise ValueError("id must be set")
         updated_base = self.dict(exclude={"id", "type"})
         return self.id, updated_base
@@ -83,7 +83,7 @@ class FullProperty(DefaultDarwin):
     def to_create_endpoint(
         self,
     ) -> dict:
-        if not getattr(self, "annotation_class_id") or self.annotation_class_id is None:
+        if self.annotation_class_id is None:
             raise ValueError("annotation_class_id must be set")
         return self.dict(
             include={
@@ -97,7 +97,7 @@ class FullProperty(DefaultDarwin):
         )
 
     def to_update_endpoint(self) -> Tuple[str, dict]:
-        if not getattr(self, "id") or self.id is None:
+        if self.id is None:
             raise ValueError("id must be set")
         updated_base = self.to_create_endpoint()
         del updated_base["annotation_class_id"]  # can't update this field
