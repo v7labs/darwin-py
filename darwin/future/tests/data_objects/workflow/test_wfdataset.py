@@ -44,7 +44,9 @@ def test_sad_paths() -> None:
             del working_dataset[key]
             WFDatasetCore.model_validate(working_dataset)
 
-        assert str(excinfo.value).startswith(f"1 validation error for WFDatasetCore\n{key}")
+        assert str(excinfo.value).startswith(
+            f"1 validation error for WFDatasetCore\n{key}"
+        )
 
     # Test invalid types
     for key in fields:

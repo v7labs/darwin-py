@@ -50,7 +50,7 @@ class QueryFilter(DefaultDarwin):
     @field_validator("param")
     def validate_param(cls, v: Stringable) -> str:
         return str(v)
-    
+
     def filter_attr(self, attr: Any) -> bool:  # type: ignore
         caster: Callable[[str], Any] = type(attr)  # type: ignore
         param = caster(

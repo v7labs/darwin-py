@@ -1,6 +1,5 @@
 from unittest.mock import MagicMock
 
-from pydantic import BaseModel, ValidationError
 from pytest import fixture
 from requests import HTTPError
 

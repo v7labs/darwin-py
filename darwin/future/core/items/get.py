@@ -110,6 +110,7 @@ def get_item(
     assert isinstance(response, dict)
     return ItemCore(**response)
 
+
 def list_items(
     api_client: ClientCore,
     team_slug: str,

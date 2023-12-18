@@ -95,6 +95,7 @@ class PolygonAnnotation(AnnotationBase):
             v = values.data["polygon"].bounding_box()
         return v
 
+
 class FrameAnnotation(AnnotationBase):
     frames: List
     interpolated: bool

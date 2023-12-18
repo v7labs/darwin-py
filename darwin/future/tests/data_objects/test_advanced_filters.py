@@ -100,6 +100,7 @@ def test_annotation_class() -> None:
         matcher=AF.AnyOf[int](values=[1, 2, 3])
     )
 
+
 def test_assignee() -> None:
     assert AF.Assignee.all_of([1, 2, 3]) == AF.Assignee(
         matcher=AF.AllOf[int](values=[1, 2, 3])

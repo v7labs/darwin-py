@@ -3,16 +3,13 @@ from pytest import raises
 
 from darwin.future.core.client import ClientCore
 from darwin.future.core.datasets import create_dataset
-from darwin.future.data_objects.dataset import DatasetCore
 from darwin.future.exceptions import BadRequest
 from darwin.future.tests.core.fixtures import *  # noqa: F401, F403
 
 from .fixtures import *  # noqa: F401, F403
 
 
-def test_it_creates_a_dataset(
-    basic_dataset: dict, base_client: ClientCore
-) -> None:
+def test_it_creates_a_dataset(basic_dataset: dict, base_client: ClientCore) -> None:
     with responses.RequestsMock() as rsps:
         rsps.add(
             rsps.POST,

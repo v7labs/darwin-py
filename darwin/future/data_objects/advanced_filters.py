@@ -104,11 +104,15 @@ class AnnotationClass(SubjectFilter):
 
     @classmethod
     def any_of(cls, values: list[int]) -> AnnotationClass:
-        return AnnotationClass(subject="annotation_class", matcher=AnyOf[int](values=values))
+        return AnnotationClass(
+            subject="annotation_class", matcher=AnyOf[int](values=values)
+        )
 
     @classmethod
     def all_of(cls, values: list[int]) -> AnnotationClass:
-        return AnnotationClass(subject="annotation_class", matcher=AllOf[int](values=values))
+        return AnnotationClass(
+            subject="annotation_class", matcher=AllOf[int](values=values)
+        )
 
     @classmethod
     def none_of(cls, values: list[int]) -> AnnotationClass:
@@ -166,7 +170,9 @@ class CurrentAssignee(SubjectFilter):
 
     @classmethod
     def any_of(cls, values: list[int]) -> CurrentAssignee:
-        return CurrentAssignee(subject="current_assignee", matcher=AnyOf[int](values=values))
+        return CurrentAssignee(
+            subject="current_assignee", matcher=AnyOf[int](values=values)
+        )
 
     @classmethod
     def none_of(cls, values: list[int]) -> CurrentAssignee:
@@ -183,15 +189,21 @@ class FileType(SubjectFilter):
 
     @classmethod
     def any_of(cls, values: list[AcceptedFileTypes]) -> FileType:
-        return FileType(subject="file_type", matcher=AnyOf[AcceptedFileTypes](values=values))
+        return FileType(
+            subject="file_type", matcher=AnyOf[AcceptedFileTypes](values=values)
+        )
 
     @classmethod
     def all_of(cls, values: list[AcceptedFileTypes]) -> FileType:
-        return FileType(subject="file_type", matcher=AllOf[AcceptedFileTypes](values=values))
+        return FileType(
+            subject="file_type", matcher=AllOf[AcceptedFileTypes](values=values)
+        )
 
     @classmethod
     def none_of(cls, values: list[AcceptedFileTypes]) -> FileType:
-        return FileType(subject="file_type", matcher=NoneOf[AcceptedFileTypes](values=values))
+        return FileType(
+            subject="file_type", matcher=NoneOf[AcceptedFileTypes](values=values)
+        )
 
 
 class FolderPath(SubjectFilter):
@@ -277,13 +289,15 @@ class ProcessingStatus(SubjectFilter):
     @classmethod
     def any_of(cls, values: list[ProcessingStatusType]) -> ProcessingStatus:
         return ProcessingStatus(
-            subject="processing_status", matcher=AnyOf[ProcessingStatusType](values=values)
+            subject="processing_status",
+            matcher=AnyOf[ProcessingStatusType](values=values),
         )
 
     @classmethod
     def none_of(cls, values: list[ProcessingStatusType]) -> ProcessingStatus:
         return ProcessingStatus(
-            subject="processing_status", matcher=NoneOf[ProcessingStatusType](values=values)
+            subject="processing_status",
+            matcher=NoneOf[ProcessingStatusType](values=values),
         )
 
 
@@ -310,11 +324,15 @@ class WorkflowStatus(SubjectFilter):
 
     @classmethod
     def any_of(cls, values: list[WorkflowStatusType]) -> WorkflowStatus:
-        return WorkflowStatus(subject="workflow_status", matcher=AnyOf[WorkflowStatusType](values=values))
+        return WorkflowStatus(
+            subject="workflow_status", matcher=AnyOf[WorkflowStatusType](values=values)
+        )
 
     @classmethod
     def none_of(cls, values: list[WorkflowStatusType]) -> WorkflowStatus:
-        return WorkflowStatus(subject="workflow_status", matcher=NoneOf[WorkflowStatusType](values=values))
+        return WorkflowStatus(
+            subject="workflow_status", matcher=NoneOf[WorkflowStatusType](values=values)
+        )
 
 
 class WorkflowStage(SubjectFilter):
@@ -323,11 +341,15 @@ class WorkflowStage(SubjectFilter):
 
     @classmethod
     def any_of(cls, values: list[str]) -> WorkflowStage:
-        return WorkflowStage(subject="workflow_stage", matcher=AnyOf[str](values=values))
+        return WorkflowStage(
+            subject="workflow_stage", matcher=AnyOf[str](values=values)
+        )
 
     @classmethod
     def none_of(cls, values: list[str]) -> WorkflowStage:
-        return WorkflowStage(subject="workflow_stage", matcher=NoneOf[str](values=values))
+        return WorkflowStage(
+            subject="workflow_stage", matcher=NoneOf[str](values=values)
+        )
 
 
 class GroupFilter(BaseModel):
@@ -365,5 +387,3 @@ class GroupFilter(BaseModel):
             if self.conjunction == "or":
                 return GroupFilter(conjunction="or", filters=[*self.filters, other])
             return GroupFilter(conjunction="or", filters=[self, other])
-
-

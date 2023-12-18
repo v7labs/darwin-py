@@ -2,7 +2,7 @@
 from typing import Dict, List, Literal, Optional, Union
 from uuid import UUID
 
-from pydantic import ConfigDict, ValidationInfo, field_validator, model_validator
+from pydantic import ValidationInfo, field_validator, model_validator
 
 from darwin.datatypes import NumberLike
 from darwin.future.data_objects.pydantic_base import DefaultDarwin

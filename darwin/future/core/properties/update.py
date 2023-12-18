@@ -36,6 +36,7 @@ def update_property(
     assert isinstance(response, dict)
     return FullProperty(**response)
 
+
 def update_property_value(
     client: ClientCore,
     params: Union[PropertyValue, JSONDict],

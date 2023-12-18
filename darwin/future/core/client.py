@@ -143,6 +143,7 @@ class DarwinConfig(BaseModel):
             teams=teams,
             datasets_dir=teams[default_team]["datasets_dir"],
         )
+
     model_config = ConfigDict(validate_assignment=True)
 
 
