@@ -95,7 +95,7 @@ def base_team_json() -> dict:
 
 @pytest.fixture
 def base_team(base_team_json: dict) -> TeamCore:
-    return TeamCore.parse_obj(base_team_json)
+    return TeamCore.model_validate(base_team_json)
 
 
 @pytest.fixture
@@ -141,12 +141,12 @@ def base_items_json_response(base_item_json_response) -> dict:
 
 @pytest.fixture
 def base_item(base_item_json: dict) -> ItemCore:
-    return ItemCore.parse_obj(base_item_json)
+    return ItemCore.model_validate(base_item_json)
 
 
 @pytest.fixture
 def base_workflow(base_single_workflow_object: dict) -> WorkflowCore:
-    return WorkflowCore.parse_obj(base_single_workflow_object)
+    return WorkflowCore.model_validate(base_single_workflow_object)
 
 
 @pytest.fixture
@@ -164,7 +164,7 @@ def base_team_member_json() -> dict:
 
 @pytest.fixture
 def base_team_member(base_team_member_json: dict) -> TeamMemberCore:
-    return TeamMemberCore.parse_obj(base_team_member_json)
+    return TeamMemberCore.model_validate(base_team_member_json)
 
 
 @pytest.fixture
@@ -179,7 +179,7 @@ def base_team_members_json(base_team_member_json: dict) -> List[dict]:
 
 @pytest.fixture
 def team_members(base_team_members_json: List[dict]) -> List[TeamMemberCore]:
-    return [TeamMemberCore.parse_obj(item) for item in base_team_members_json]
+    return [TeamMemberCore.model_validate(item) for item in base_team_members_json]
 
 
 @pytest.fixture

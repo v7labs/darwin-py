@@ -40,17 +40,16 @@ def test_sad_paths() -> None:
     # Test missing fields
     for key in fields:
         with pytest.raises(ValidationError) as excinfo:
-            working_dataset = dataset.copy().dict()
+            working_dataset = dataset.model_copy().model_dump()
             del working_dataset[key]
             WFDatasetCore.model_validate(working_dataset)
 
-        assert "value_error.missing" in (err_string := str(excinfo.value))
-        assert err_string.startswith(f"1 validation error for WFDatasetCore\n{key}")
+        assert str(excinfo.value).startswith(f"1 validation error for WFDatasetCore\n{key}")
 
     # Test invalid types
     for key in fields:
         with pytest.raises(ValidationError) as excinfo:
-            working_dataset = dataset.copy().dict()
+            working_dataset = dataset.model_copy().model_dump()
             working_dataset[key] = InvalidValueForTest()
             WFDatasetCore.model_validate(working_dataset)
 

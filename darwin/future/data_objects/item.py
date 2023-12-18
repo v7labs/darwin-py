@@ -2,7 +2,7 @@
 from typing import Dict, List, Literal, Optional, Union
 from uuid import UUID
 
-from pydantic import ConfigDict, field_validator, model_validator
+from pydantic import ConfigDict, ValidationInfo, field_validator, model_validator
 
 from darwin.datatypes import NumberLike
 from darwin.future.data_objects.pydantic_base import DefaultDarwin
@@ -33,8 +33,8 @@ class ItemLayout(DefaultDarwin):
     # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
     # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
     @field_validator("layout_shape")
-    def layout_validator(cls, value: UnknownType, values: Dict) -> Dict:
-        if not value and values.get("version") == 2:
+    def layout_validator(cls, value: Dict, values: ValidationInfo) -> Dict:
+        if not value and values.data.get("version") == 2:
             raise ValueError("layout_shape must be specified for version 2 layouts")
 
         return value
