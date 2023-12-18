@@ -14,7 +14,7 @@ def test_update_property(
     responses.add(
         responses.PUT,
         f"{base_client.config.base_url}api/v2/teams/{base_client.config.default_team}/properties/{base_property_object.id}",
-        json=base_property_object.dict(),
+        json=base_property_object.model_dump(),
         status=200,
     )
     # Call the function being tested
@@ -41,7 +41,7 @@ def test_update_property_value(
     responses.add(
         responses.PUT,
         f"{base_client.config.base_url}api/v2/teams/{base_client.config.default_team}/properties/{item_id}/property_values/{pv.id}",
-        json=pv.dict(),
+        json=pv.model_dump(),
         status=200,
     )
     # Call the function being tested

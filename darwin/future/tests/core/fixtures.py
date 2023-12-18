@@ -205,11 +205,11 @@ def base_dataset_json_with_releases() -> dict:
 
 @pytest.fixture
 def base_dataset(base_dataset_json: dict) -> DatasetCore:
-    return DatasetCore.parse_obj(base_dataset_json)
+    return DatasetCore.model_validate(base_dataset_json)
 
 
 def base_dataset_with_releases(base_dataset_json_with_releases: dict) -> DatasetCore:
-    return DatasetCore.parse_obj(base_dataset_json_with_releases)
+    return DatasetCore.model_validate(base_dataset_json_with_releases)
 
 
 @pytest.fixture

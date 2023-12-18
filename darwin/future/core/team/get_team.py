@@ -24,7 +24,7 @@ def get_team(client: ClientCore, team_slug: Optional[str] = None) -> TeamCore:
     if not team_slug:
         team_slug = client.config.default_team
     response = client.get(f"/teams/{team_slug}/")
-    return TeamCore.parse_obj(response)
+    return TeamCore.model_validate(response)
 
 
 def get_team_members(
@@ -51,7 +51,7 @@ def get_team_members(
     errors = []
     for item in response:
         try:
-            members.append(TeamMemberCore.parse_obj(item))
+            members.append(TeamMemberCore.model_validate(item))
         except ValidationError as e:
             errors.append(e)
     return members, errors

@@ -56,7 +56,7 @@ class PropertyValue(DefaultDarwin):
     def to_update_endpoint(self) -> Tuple[str, dict]:
         if self.id is None:
             raise ValueError("id must be set")
-        updated_base = self.dict(exclude={"id", "type"})
+        updated_base = self.model_dump(exclude={"id", "type"})
         return self.id, updated_base
 
 
@@ -87,7 +87,7 @@ class FullProperty(DefaultDarwin):
     ) -> dict:
         if self.annotation_class_id is None:
             raise ValueError("annotation_class_id must be set")
-        return self.dict(
+        return self.model_dump(
             include={
                 "name": True,
                 "type": True,
