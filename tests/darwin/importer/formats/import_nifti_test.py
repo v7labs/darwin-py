@@ -189,16 +189,12 @@ def test_image_annotation_nifti_import_single_slot_to_mask(team_slug: str):
             # This needs to not check for mask_annotation_ids_mapping as these
             # are randomly generated
             [
-                ast.literal_eval(frame)
-                .get("raster_layer", {})
-                .pop("mask_annotation_ids_mapping")
-                for frame in output_json_string["annotations"][0]["frames"]
+                frame.get("raster_layer", {}).pop("mask_annotation_ids_mapping")
+                for frame in output_json_string["annotations"][0]["frames"].values()
             ]
             [
-                ast.literal_eval(frame)
-                .get("raster_layer", {})
-                .pop("mask_annotation_ids_mapping")
-                for frame in expected_json_string["annotations"][0]["frames"]
+                frame.get("raster_layer", {}).pop("mask_annotation_ids_mapping")
+                for frame in expected_json_string["annotations"][0]["frames"].values()
             ]
             assert (
                 output_json_string["annotations"][0]["frames"]
