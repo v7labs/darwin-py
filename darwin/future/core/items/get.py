@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import List, Literal, Tuple, Union
 from uuid import UUID
 
-from pydantic import ValidationError, parse_obj_as
+from pydantic import ValidationError
 
 from darwin.future.core.client import ClientCore
 from darwin.future.core.types.common import QueryString
@@ -108,8 +108,7 @@ def get_item(
     """
     response = api_client.get(f"/v2/teams/{team_slug}/items/{item_id}", params)
     assert isinstance(response, dict)
-    return parse_obj_as(ItemCore, response)
-
+    return ItemCore(**response)
 
 def list_items(
     api_client: ClientCore,
@@ -149,7 +148,7 @@ def list_items(
     for item in response["items"]:
         assert isinstance(item, dict)
         try:
-            items.append(parse_obj_as(ItemCore, item))
+            items.append(ItemCore(**item))
         except ValidationError as e:
             exceptions.append(e)
     return items, exceptions
@@ -187,7 +186,7 @@ def list_folders(
     folders: List[Folder] = []
     for item in response["folders"]:
         try:
-            folders.append(parse_obj_as(Folder, item))
+            folders.append(Folder(**item))
         except ValidationError as e:
             exceptions.append(e)
     return folders, exceptions

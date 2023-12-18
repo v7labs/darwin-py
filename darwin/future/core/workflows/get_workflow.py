@@ -1,7 +1,5 @@
 from typing import Optional
 
-from pydantic import parse_obj_as
-
 from darwin.future.core.client import ClientCore
 from darwin.future.data_objects.workflow import WorkflowCore
 
@@ -36,7 +34,5 @@ def get_workflow(
     """
     team_slug = team_slug or client.config.default_team
     response = client.get(f"/v2/teams/{team_slug}/workflows/{workflow_id}")
-
-    workflow = parse_obj_as(WorkflowCore, response)
-
-    return workflow
+    assert isinstance(response, dict)
+    return WorkflowCore(**response)

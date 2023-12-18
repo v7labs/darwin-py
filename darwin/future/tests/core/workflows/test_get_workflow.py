@@ -62,7 +62,7 @@ def test_get_workflows_with_invalid_response(base_client: ClientCore) -> None:
     responses.add(
         responses.GET,
         f"{base_client.config.base_url}api/v2/teams/{base_client.config.default_team}/workflows/{NON_EXISTENT_ID}",
-        json="{}",
+        json={'invalid': 'response'},
         status=200
     )
     # fmt: on

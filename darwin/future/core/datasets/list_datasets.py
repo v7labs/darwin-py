@@ -1,6 +1,6 @@
 from typing import List, Tuple
 
-from pydantic import ValidationError, parse_obj_as
+from pydantic import ValidationError
 
 from darwin.future.core.client import ClientCore
 from darwin.future.data_objects.dataset import DatasetCore
@@ -32,7 +32,8 @@ def list_datasets(
     response = api_client.get("/datasets")
     try:
         for item in response:
-            datasets.append(parse_obj_as(DatasetCore, item))
+            assert isinstance(item, dict)
+            datasets.append(DatasetCore(**item))
     except ValidationError as e:
         errors.append(e)
 

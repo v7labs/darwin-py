@@ -70,7 +70,7 @@ def test_get_property_by_id(
     responses.add(
         responses.GET,
         f"{base_client.config.base_url}api/v2/teams/{base_client.config.default_team}/properties/{property_id}",
-        json=base_property_object.dict(),
+        json=base_property_object.model_dump(),
         status=200,
     )
 

@@ -1,8 +1,6 @@
 from typing import List, Optional, Union
 from uuid import UUID
 
-from pydantic import parse_obj_as
-
 from darwin.future.core.client import ClientCore
 from darwin.future.core.types.common import QueryString
 from darwin.future.data_objects.properties import FullProperty
@@ -31,7 +29,7 @@ def get_team_properties(
         team_slug = client.config.default_team
     response = client.get(f"/v2/teams/{team_slug}/properties", query_string=params)
     assert isinstance(response, dict)
-    return parse_obj_as(List[FullProperty], response.get("properties"))
+    return [FullProperty(**item) for item in response["properties"]]
 
 
 def get_team_full_properties(
@@ -69,4 +67,4 @@ def get_property_by_id(
         team_slug = client.config.default_team
     response = client.get(f"/v2/teams/{team_slug}/properties/{str(property_id)}")
     assert isinstance(response, dict)
-    return parse_obj_as(FullProperty, response)
+    return FullProperty(**response)

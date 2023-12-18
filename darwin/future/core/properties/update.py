@@ -1,7 +1,5 @@
 from typing import Optional, Union
 
-from pydantic import parse_obj_as
-
 from darwin.future.core.client import ClientCore
 from darwin.future.core.types.common import JSONDict
 from darwin.future.data_objects.properties import FullProperty, PropertyValue
@@ -36,8 +34,7 @@ def update_property(
         del params["id"]
     response = client.put(f"/v2/teams/{team_slug}/properties/{id}", data=params)
     assert isinstance(response, dict)
-    return parse_obj_as(FullProperty, response)
-
+    return FullProperty(**response)
 
 def update_property_value(
     client: ClientCore,
@@ -71,4 +68,4 @@ def update_property_value(
         f"/v2/teams/{team_slug}/properties/{item_id}/property_values/{id}", data=params
     )
     assert isinstance(response, dict)
-    return parse_obj_as(PropertyValue, response)
+    return PropertyValue(**response)
