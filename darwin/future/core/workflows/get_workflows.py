@@ -12,4 +12,4 @@ def get_workflows(
     assert isinstance(response, list)
     assert all(isinstance(workflow, dict) for workflow in response)
     assert len(response) > 0, "No workflows found"
-    return [WorkflowCore(**workflow) for workflow in response]
+    return [WorkflowCore.model_validate(workflow) for workflow in response]

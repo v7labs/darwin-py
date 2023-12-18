@@ -35,4 +35,4 @@ def get_workflow(
     team_slug = team_slug or client.config.default_team
     response = client.get(f"/v2/teams/{team_slug}/workflows/{workflow_id}")
     assert isinstance(response, dict)
-    return WorkflowCore(**response)
+    return WorkflowCore.model_validate(response)

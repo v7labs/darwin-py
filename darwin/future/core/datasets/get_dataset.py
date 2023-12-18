@@ -28,4 +28,4 @@ def get_dataset(api_client: ClientCore, dataset_id: str) -> DatasetCore:
 
     response = api_client.get("/datasets", QueryString({"id": str(dataset_id)}))
     assert isinstance(response, dict)
-    return DatasetCore(**response)
+    return DatasetCore.model_validate(response)

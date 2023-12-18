@@ -34,7 +34,7 @@ def update_property(
         del params["id"]
     response = client.put(f"/v2/teams/{team_slug}/properties/{id}", data=params)
     assert isinstance(response, dict)
-    return FullProperty(**response)
+    return FullProperty.model_validate(response)
 
 
 def update_property_value(
@@ -69,4 +69,4 @@ def update_property_value(
         f"/v2/teams/{team_slug}/properties/{item_id}/property_values/{id}", data=params
     )
     assert isinstance(response, dict)
-    return PropertyValue(**response)
+    return PropertyValue.model_validate(response)

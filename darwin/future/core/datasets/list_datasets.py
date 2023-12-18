@@ -33,7 +33,7 @@ def list_datasets(
     try:
         for item in response:
             assert isinstance(item, dict)
-            datasets.append(DatasetCore(**item))
+            datasets.append(DatasetCore.model_validate(item))
     except ValidationError as e:
         errors.append(e)
 

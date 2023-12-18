@@ -31,4 +31,4 @@ def create_property(
         params = params.to_create_endpoint()
     response = client.post(f"/v2/teams/{team_slug}/properties", data=params)
     assert isinstance(response, dict)
-    return FullProperty(**response)
+    return FullProperty.model_validate(response)

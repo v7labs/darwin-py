@@ -108,7 +108,7 @@ def get_item(
     """
     response = api_client.get(f"/v2/teams/{team_slug}/items/{item_id}", params)
     assert isinstance(response, dict)
-    return ItemCore(**response)
+    return ItemCore.model_validate(response)
 
 
 def list_items(
@@ -149,7 +149,7 @@ def list_items(
     for item in response["items"]:
         assert isinstance(item, dict)
         try:
-            items.append(ItemCore(**item))
+            items.append(ItemCore.model_validate(item))
         except ValidationError as e:
             exceptions.append(e)
     return items, exceptions
@@ -187,7 +187,7 @@ def list_folders(
     folders: List[Folder] = []
     for item in response["folders"]:
         try:
-            folders.append(Folder(**item))
+            folders.append(Folder.model_validate(item))
         except ValidationError as e:
             exceptions.append(e)
     return folders, exceptions

@@ -141,7 +141,7 @@ class MetaDataClass(DefaultDarwin):
             raise ValueError(f"File {path} must be a json file")
         with open(path, "r") as f:
             data = json.load(f)
-        return [cls(**d) for d in data["classes"]]
+        return [cls.model_validate(d) for d in data["classes"]]
 
 
 class SelectedProperty(DefaultDarwin):

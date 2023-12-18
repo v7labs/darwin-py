@@ -29,7 +29,7 @@ def get_team_properties(
         team_slug = client.config.default_team
     response = client.get(f"/v2/teams/{team_slug}/properties", query_string=params)
     assert isinstance(response, dict)
-    return [FullProperty(**item) for item in response["properties"]]
+    return [FullProperty.model_validate(item) for item in response["properties"]]
 
 
 def get_team_full_properties(
@@ -67,4 +67,4 @@ def get_property_by_id(
         team_slug = client.config.default_team
     response = client.get(f"/v2/teams/{team_slug}/properties/{str(property_id)}")
     assert isinstance(response, dict)
-    return FullProperty(**response)
+    return FullProperty.model_validate(response)
