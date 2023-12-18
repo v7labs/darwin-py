@@ -104,16 +104,16 @@ class AnnotationClass(SubjectFilter):
 
     @classmethod
     def any_of(cls, values: list[int]) -> AnnotationClass:
-        return AnnotationClass(subject="annotation_class", matcher=AnyOf(values=values))
+        return AnnotationClass(subject="annotation_class", matcher=AnyOf[int](values=values))
 
     @classmethod
     def all_of(cls, values: list[int]) -> AnnotationClass:
-        return AnnotationClass(subject="annotation_class", matcher=AllOf(values=values))
+        return AnnotationClass(subject="annotation_class", matcher=AllOf[int](values=values))
 
     @classmethod
     def none_of(cls, values: list[int]) -> AnnotationClass:
         return AnnotationClass(
-            subject="annotation_class", matcher=NoneOf(values=values)
+            subject="annotation_class", matcher=NoneOf[int](values=values)
         )
 
 
@@ -132,15 +132,15 @@ class Assignee(SubjectFilter):
 
     @classmethod
     def any_of(cls, values: list[int]) -> Assignee:
-        return Assignee(subject="assignee", matcher=AnyOf(values=values))
+        return Assignee(subject="assignee", matcher=AnyOf[int](values=values))
 
     @classmethod
     def all_of(cls, values: list[int]) -> Assignee:
-        return Assignee(subject="assignee", matcher=AllOf(values=values))
+        return Assignee(subject="assignee", matcher=AllOf[int](values=values))
 
     @classmethod
     def none_of(cls, values: list[int]) -> Assignee:
-        return Assignee(subject="assignee", matcher=NoneOf(values=values))
+        return Assignee(subject="assignee", matcher=NoneOf[int](values=values))
 
 
 class CreatedAt(SubjectFilter):
@@ -166,12 +166,12 @@ class CurrentAssignee(SubjectFilter):
 
     @classmethod
     def any_of(cls, values: list[int]) -> CurrentAssignee:
-        return CurrentAssignee(subject="current_assignee", matcher=AnyOf(values=values))
+        return CurrentAssignee(subject="current_assignee", matcher=AnyOf[int](values=values))
 
     @classmethod
     def none_of(cls, values: list[int]) -> CurrentAssignee:
         return CurrentAssignee(
-            subject="current_assignee", matcher=NoneOf(values=values)
+            subject="current_assignee", matcher=NoneOf[int](values=values)
         )
 
 
@@ -183,15 +183,15 @@ class FileType(SubjectFilter):
 
     @classmethod
     def any_of(cls, values: list[AcceptedFileTypes]) -> FileType:
-        return FileType(subject="file_type", matcher=AnyOf(values=values))
+        return FileType(subject="file_type", matcher=AnyOf[AcceptedFileTypes](values=values))
 
     @classmethod
     def all_of(cls, values: list[AcceptedFileTypes]) -> FileType:
-        return FileType(subject="file_type", matcher=AllOf(values=values))
+        return FileType(subject="file_type", matcher=AllOf[AcceptedFileTypes](values=values))
 
     @classmethod
     def none_of(cls, values: list[AcceptedFileTypes]) -> FileType:
-        return FileType(subject="file_type", matcher=NoneOf(values=values))
+        return FileType(subject="file_type", matcher=NoneOf[AcceptedFileTypes](values=values))
 
 
 class FolderPath(SubjectFilter):
@@ -200,19 +200,19 @@ class FolderPath(SubjectFilter):
 
     @classmethod
     def any_of(cls, values: list[str]) -> FolderPath:
-        return FolderPath(subject="folder_path", matcher=AnyOf(values=values))
+        return FolderPath(subject="folder_path", matcher=AnyOf[str](values=values))
 
     @classmethod
     def none_of(cls, values: list[str]) -> FolderPath:
-        return FolderPath(subject="folder_path", matcher=NoneOf(values=values))
+        return FolderPath(subject="folder_path", matcher=NoneOf[str](values=values))
 
     @classmethod
     def prefix(cls, value: str) -> FolderPath:
-        return FolderPath(subject="folder_path", matcher=Prefix(value=value))
+        return FolderPath(subject="folder_path", matcher=Prefix[str](value=value))
 
     @classmethod
     def suffix(cls, value: str) -> FolderPath:
-        return FolderPath(subject="folder_path", matcher=Suffix(value=value))
+        return FolderPath(subject="folder_path", matcher=Suffix[str](value=value))
 
 
 class ID(SubjectFilter):
@@ -221,11 +221,11 @@ class ID(SubjectFilter):
 
     @classmethod
     def any_of(cls, values: list[str]) -> ID:
-        return ID(subject="id", matcher=AnyOf(values=values))
+        return ID(subject="id", matcher=AnyOf[str](values=values))
 
     @classmethod
     def none_of(cls, values: list[str]) -> ID:
-        return ID(subject="id", matcher=NoneOf(values=values))
+        return ID(subject="id", matcher=NoneOf[str](values=values))
 
 
 class Issue(SubjectFilter):
@@ -234,11 +234,11 @@ class Issue(SubjectFilter):
 
     @classmethod
     def any_of(cls, values: list[IssueType]) -> Issue:
-        return Issue(subject="issue", matcher=AnyOf(values=values))
+        return Issue(subject="issue", matcher=AnyOf[IssueType](values=values))
 
     @classmethod
     def none_of(cls, values: list[IssueType]) -> Issue:
-        return Issue(subject="issue", matcher=NoneOf(values=values))
+        return Issue(subject="issue", matcher=NoneOf[IssueType](values=values))
 
 
 class ItemName(SubjectFilter):
@@ -247,11 +247,11 @@ class ItemName(SubjectFilter):
 
     @classmethod
     def any_of(cls, values: list[str]) -> ItemName:
-        return ItemName(subject="item_name", matcher=AnyOf(values=values))
+        return ItemName(subject="item_name", matcher=AnyOf[str](values=values))
 
     @classmethod
     def none_of(cls, values: list[str]) -> ItemName:
-        return ItemName(subject="item_name", matcher=NoneOf(values=values))
+        return ItemName(subject="item_name", matcher=NoneOf[str](values=values))
 
     @classmethod
     def prefix(cls, value: str) -> ItemName:
@@ -277,13 +277,13 @@ class ProcessingStatus(SubjectFilter):
     @classmethod
     def any_of(cls, values: list[ProcessingStatusType]) -> ProcessingStatus:
         return ProcessingStatus(
-            subject="processing_status", matcher=AnyOf(values=values)
+            subject="processing_status", matcher=AnyOf[ProcessingStatusType](values=values)
         )
 
     @classmethod
     def none_of(cls, values: list[ProcessingStatusType]) -> ProcessingStatus:
         return ProcessingStatus(
-            subject="processing_status", matcher=NoneOf(values=values)
+            subject="processing_status", matcher=NoneOf[ProcessingStatusType](values=values)
         )
 
 
@@ -310,11 +310,11 @@ class WorkflowStatus(SubjectFilter):
 
     @classmethod
     def any_of(cls, values: list[WorkflowStatusType]) -> WorkflowStatus:
-        return WorkflowStatus(subject="workflow_status", matcher=AnyOf(values=values))
+        return WorkflowStatus(subject="workflow_status", matcher=AnyOf[WorkflowStatusType](values=values))
 
     @classmethod
     def none_of(cls, values: list[WorkflowStatusType]) -> WorkflowStatus:
-        return WorkflowStatus(subject="workflow_status", matcher=NoneOf(values=values))
+        return WorkflowStatus(subject="workflow_status", matcher=NoneOf[WorkflowStatusType](values=values))
 
 
 class WorkflowStage(SubjectFilter):
@@ -323,11 +323,11 @@ class WorkflowStage(SubjectFilter):
 
     @classmethod
     def any_of(cls, values: list[str]) -> WorkflowStage:
-        return WorkflowStage(subject="workflow_stage", matcher=AnyOf(values=values))
+        return WorkflowStage(subject="workflow_stage", matcher=AnyOf[str](values=values))
 
     @classmethod
     def none_of(cls, values: list[str]) -> WorkflowStage:
-        return WorkflowStage(subject="workflow_stage", matcher=NoneOf(values=values))
+        return WorkflowStage(subject="workflow_stage", matcher=NoneOf[str](values=values))
 
 
 class GroupFilter(BaseModel):
@@ -365,3 +365,5 @@ class GroupFilter(BaseModel):
             if self.conjunction == "or":
                 return GroupFilter(conjunction="or", filters=[*self.filters, other])
             return GroupFilter(conjunction="or", filters=[self, other])
+
+
