@@ -45,7 +45,6 @@ def test_set_item_priority_raises_on_incorrect_parameters(
 ) -> None:
     dataset_ids = [1, 2, 3]
     team_slug = "test-team"
-    filters = {}
     priority = 100
 
     with pytest.raises(AssertionError):
@@ -53,7 +52,6 @@ def test_set_item_priority_raises_on_incorrect_parameters(
             client=base_client,
             team_slug=team_slug,
             dataset_ids=dataset_ids,
-            filters=filters,
             priority=priority,
         )
 

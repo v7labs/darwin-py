@@ -43,14 +43,12 @@ def test_archive_items_raises_on_incorrect_parameters(
 ) -> None:
     dataset_ids = [1, 2, 3]
     team_slug = "test-team"
-    filters = {}
 
     with pytest.raises(AssertionError):
         archive_list_of_items(
             client=base_client,
             team_slug=team_slug,
             dataset_ids=dataset_ids,
-            filters=filters,
         )
 
 

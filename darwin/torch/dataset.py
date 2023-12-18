@@ -318,6 +318,11 @@ class InstanceSegmentationDataset(LocalDataset):
         for annotation in target["annotations"]:
             annotation_type: str = annotation.annotation_class.annotation_type
             path_key = "paths" if annotation_type == "complex_polygon" else "path"
+
+            # Darwin V2 only has paths (TODO it might be more robust fixes)
+            if "paths" in annotation.data:
+                path_key = "paths"
+
             if path_key not in annotation.data:
                 print(f"Warning: missing polygon in annotation {self.annotations_path[index]}")
             # Extract the sequences of coordinates from the polygon annotation
@@ -402,7 +407,7 @@ class SemanticSegmentationDataset(LocalDataset):
 
     def __init__(self, transform: Optional[Union[List[Callable], Callable]] = None, **kwargs):
         super().__init__(annotation_type="polygon", **kwargs)
-        if not "__background__" in self.classes:
+        if "__background__" not in self.classes:
             self.classes.insert(0, "__background__")
             self.num_classes += 1
         if transform is not None and isinstance(transform, list):
@@ -470,7 +475,6 @@ class SemanticSegmentationDataset(LocalDataset):
                 paths = obj.data["paths"]
             else:
                 paths = [obj.data["path"]]
-
             for path in paths:
                 sequences = convert_polygons_to_sequences(
                     path,
@@ -615,6 +619,7 @@ class ObjectDetectionDataset(LocalDataset):
 
             targets.append(ann)
         # following https://pytorch.org/tutorials/intermediate/torchvision_tutorial.html
+
         stacked_targets = {
             "boxes": torch.stack([v["bbox"] for v in targets]),
             "area": torch.stack([v["area"] for v in targets]),

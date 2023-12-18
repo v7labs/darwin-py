@@ -30,7 +30,7 @@ def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
         reader = csv.reader(f)
         for row in reader:
             try:
-                filename, tag, start_frame, end_frame = map(lambda s: s.strip(), row)
+                filename, tag, start_frame, end_frame = (s.strip() for s in row)
             except ValueError:
                 continue
             if filename == "":
@@ -43,12 +43,30 @@ def parse_path(path: Path) -> Optional[List[dt.AnnotationFile]]:
             frames = {i: annotation for i in range(start_frame, end_frame + 1)}
             keyframes = {i: i == start_frame for i in range(start_frame, end_frame + 1)}
 
-            annotation = dt.make_video_annotation(frames, keyframes, [[start_frame, end_frame]], False, slot_names=[])
+            annotation = dt.make_video_annotation(
+                frames, keyframes, [[start_frame, end_frame]], False, slot_names=[]
+            )
             if filename not in file_annotation_map:
                 file_annotation_map[filename] = []
             file_annotation_map[filename].append(annotation)
     for filename in file_annotation_map:
         annotations = file_annotation_map[filename]
-        annotation_classes = set([annotation.annotation_class for annotation in annotations])
-        files.append(dt.AnnotationFile(path, filename, annotation_classes, annotations, is_video=True, remote_path="/"))
+        annotation_classes = {
+            annotation.annotation_class for annotation in annotations
+        }
+        filename_path = Path(filename)
+        remote_path = str(filename_path.parent)
+        if not remote_path.startswith("/"):
+            remote_path = "/" + remote_path
+        filename = filename_path.name
+        files.append(
+            dt.AnnotationFile(
+                path,
+                filename,
+                annotation_classes,
+                annotations,
+                is_video=True,
+                remote_path=remote_path,
+            )
+        )
     return files

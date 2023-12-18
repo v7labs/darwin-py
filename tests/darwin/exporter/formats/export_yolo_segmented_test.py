@@ -76,7 +76,9 @@ def annotations(annotation_classes: List[AnnotationClass]) -> List[Annotation]:
 
 
 @pytest.fixture
-def annotation_files(annotation_classes: List[AnnotationClass], annotations: List[Annotation]) -> List[AnnotationFile]:
+def annotation_files(
+    annotation_classes: List[AnnotationClass], annotations: List[Annotation]
+) -> List[AnnotationFile]:
     return [
         # fmt: off
         AnnotationFile(
@@ -91,7 +93,9 @@ def annotation_files(annotation_classes: List[AnnotationClass], annotations: Lis
     ]
 
 
-def test_export_yolo_segmented(annotation_files: List[AnnotationFile], tmp_path: Path) -> None:
+def test_export_yolo_segmented(
+    annotation_files: List[AnnotationFile], tmp_path: Path
+) -> None:
     export(annotation_files, tmp_path)
     assert (tmp_path / "darknet.labels").exists()
     assert (tmp_path / "file1.txt").exists()
@@ -99,8 +103,14 @@ def test_export_yolo_segmented(annotation_files: List[AnnotationFile], tmp_path:
     output_lines = (tmp_path / "file1.txt").read_text().splitlines()
     if CLOSE_VERTICES:
         assert output_lines[0] == "0 0.02 0.03 0.27 0.03 0.27 0.16 0.02 0.16 0.02 0.03"
-        assert output_lines[1] == "1 0.0 0.0 0.0 0.1 0.05 0.15 0.1 0.1 0.0 0.1 0.0 0.0 0.0 0.0"
-        assert output_lines[2] == "2 0.0 0.0 0.0 0.1 0.05 0.15 0.1 0.1 0.0 0.1 0.0 0.0 0.0 0.0"
+        assert (
+            output_lines[1]
+            == "1 0.0 0.0 0.0 0.1 0.05 0.15 0.1 0.1 0.0 0.1 0.0 0.0 0.0 0.0"
+        )
+        assert (
+            output_lines[2]
+            == "2 0.0 0.0 0.0 0.1 0.05 0.15 0.1 0.1 0.0 0.1 0.0 0.0 0.0 0.0"
+        )
     else:
         assert output_lines[0] == "0 0.02 0.03 0.27 0.03 0.27 0.16 0.02 0.16"
         assert output_lines[1] == "1 0.0 0.0 0.0 0.1 0.05 0.15 0.1 0.1 0.0 0.1 0.0 0.0"

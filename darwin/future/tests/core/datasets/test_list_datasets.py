@@ -45,4 +45,4 @@ def test_it_returns_an_error_if_the_client_returns_an_http_error(
         with pytest.raises(BadRequest) as execinfo:
             list_datasets(base_client)
 
-        assert execinfo.value.args[0].status_code == 400 
+        assert execinfo.value.args[0].status_code == 400

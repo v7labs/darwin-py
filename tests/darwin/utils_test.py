@@ -1,7 +1,6 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-from jsonschema.exceptions import ValidationError
 from requests import Response
 
 import darwin.datatypes as dt
@@ -148,8 +147,10 @@ class TestParseDarwinJson:
 
         assert annotation_file.path == import_file
         assert annotation_file.filename == "P49-RediPad-ProPlayLEFTY_442.jpg"
-        assert annotation_file.dataset_name == None
-        assert annotation_file.version == dt.AnnotationFileVersion(major=1, minor=0, suffix="")
+        assert annotation_file.dataset_name is None
+        assert annotation_file.version == dt.AnnotationFileVersion(
+            major=1, minor=0, suffix=""
+        )
 
         assert len(annotation_file.annotations) == 2
         assert len(annotation_file.annotation_classes) == 2
@@ -235,35 +236,60 @@ class TestParseDarwinJson:
 
         assert annotation_file.path == import_file
         assert annotation_file.filename == "above tractor.mp4"
-        assert annotation_file.dataset_name == None
-        assert annotation_file.version == dt.AnnotationFileVersion(major=1, minor=0, suffix="")
+        assert annotation_file.dataset_name is None
+        assert annotation_file.version == dt.AnnotationFileVersion(
+            major=1, minor=0, suffix=""
+        )
 
         assert len(annotation_file.annotations) == 1
         assert len(annotation_file.annotation_classes) == 1
         assert annotation_file.is_video
         assert annotation_file.image_width == 3840
         assert annotation_file.image_height == 2160
-        assert annotation_file.image_url == "https://my-website.com/api/videos/209/original"
-        assert annotation_file.workview_url == "https://my-website.com/workview?dataset=102&image=530"
+        assert (
+            annotation_file.image_url
+            == "https://my-website.com/api/videos/209/original"
+        )
+        assert (
+            annotation_file.workview_url
+            == "https://my-website.com/workview?dataset=102&image=530"
+        )
         assert not annotation_file.seq
-        assert annotation_file.frame_urls == ["https://my-website.com/api/videos/209/frames/0"]
+        assert annotation_file.frame_urls == [
+            "https://my-website.com/api/videos/209/frames/0"
+        ]
         assert annotation_file.remote_path == "/"
 
         assert annotation_file.annotations == [
             dt.VideoAnnotation(
                 annotation_class=dt.AnnotationClass(
-                    name="Hand", annotation_type="polygon", annotation_internal_type=None
+                    name="Hand",
+                    annotation_type="polygon",
+                    annotation_internal_type=None,
                 ),
                 frames={
                     3: dt.Annotation(
                         annotation_class=dt.AnnotationClass(
-                            name="Hand", annotation_type="polygon", annotation_internal_type=None
+                            name="Hand",
+                            annotation_type="polygon",
+                            annotation_internal_type=None,
                         ),
                         data={
-                            "path": [{"x": 748.0, "y": 732.0}, {"x": 751.0, "y": 735.0}, {"x": 748.0, "y": 733.0}],
-                            "bounding_box": {"x": 363.0, "y": 701.0, "w": 400.0, "h": 547.0},
+                            "path": [
+                                {"x": 748.0, "y": 732.0},
+                                {"x": 751.0, "y": 735.0},
+                                {"x": 748.0, "y": 733.0},
+                            ],
+                            "bounding_box": {
+                                "x": 363.0,
+                                "y": 701.0,
+                                "w": 400.0,
+                                "h": 547.0,
+                            },
                         },
-                        subs=[dt.SubAnnotation(annotation_type="instance_id", data=119)],
+                        subs=[
+                            dt.SubAnnotation(annotation_type="instance_id", data=119)
+                        ],
                     )
                 },
                 keyframes={3: True},
@@ -356,11 +382,15 @@ class TestParseDarwinJson:
         assert annotation_file.filename == "item-0.jpg"
         assert annotation_file.dataset_name == "Dataset 0"
         assert annotation_file.item_id == "0185c280-bbad-6117-71a7-a6853a6e3f2e"
-        assert annotation_file.version == dt.AnnotationFileVersion(major=2, minor=0, suffix="")
+        assert annotation_file.version == dt.AnnotationFileVersion(
+            major=2, minor=0, suffix=""
+        )
 
         assert len(annotation_file.annotations) == 1
         assert len(annotation_file.annotation_classes) == 1
-        assert annotation_file.annotations[0].id == "f8f5f235-bd47-47be-b4fe-07d49e0177a7"
+        assert (
+            annotation_file.annotations[0].id == "f8f5f235-bd47-47be-b4fe-07d49e0177a7"
+        )
         assert not annotation_file.is_video
         assert annotation_file.image_width == 123
         assert annotation_file.image_height == 456
@@ -463,13 +493,20 @@ class TestParseDarwinJson:
         assert annotation_file.filename == "item-0.mp4"
         assert annotation_file.dataset_name == "Dataset 0"
         assert annotation_file.item_id == "0185c280-bbad-6117-71a7-a6853a6e3f2e"
-        assert annotation_file.version == dt.AnnotationFileVersion(major=2, minor=0, suffix="")
+        assert annotation_file.version == dt.AnnotationFileVersion(
+            major=2, minor=0, suffix=""
+        )
 
         assert len(annotation_file.annotations) == 1
         assert len(annotation_file.annotation_classes) == 1
-        assert annotation_file.annotations[0].id == "f8f5f235-bd47-47be-b4fe-07d49e0177a7"
+        assert (
+            annotation_file.annotations[0].id == "f8f5f235-bd47-47be-b4fe-07d49e0177a7"
+        )
         assert list(annotation_file.annotations[0].frames.keys()) == [3]
-        assert annotation_file.annotations[0].frames[3].id == "f8f5f235-bd47-47be-b4fe-07d49e0177a7"
+        assert (
+            annotation_file.annotations[0].frames[3].id
+            == "f8f5f235-bd47-47be-b4fe-07d49e0177a7"
+        )
         assert annotation_file.is_video
         assert annotation_file.image_width == 123
         assert annotation_file.image_height == 456
@@ -599,8 +636,13 @@ class TestParseDarwinJson:
 
         annotation_file: dt.AnnotationFile = parse_darwin_json(import_file, None)
 
-        assert annotation_file.annotations[0].annotation_class.annotation_type == "polygon"
-        assert annotation_file.annotations[1].annotation_class.annotation_type == "skeleton"
+        assert (
+            annotation_file.annotations[0].annotation_class.annotation_type == "polygon"
+        )
+        assert (
+            annotation_file.annotations[1].annotation_class.annotation_type
+            == "skeleton"
+        )
 
     def test_imports_multiple_skeletetons(self, tmp_path):
         content = """
@@ -696,9 +738,17 @@ class TestParseDarwinJson:
 
         annotation_file: dt.AnnotationFile = parse_darwin_json(import_file, None)
 
-        assert annotation_file.annotations[0].annotation_class.annotation_type == "polygon"
-        assert annotation_file.annotations[1].annotation_class.annotation_type == "skeleton"
-        assert annotation_file.annotations[2].annotation_class.annotation_type == "skeleton"
+        assert (
+            annotation_file.annotations[0].annotation_class.annotation_type == "polygon"
+        )
+        assert (
+            annotation_file.annotations[1].annotation_class.annotation_type
+            == "skeleton"
+        )
+        assert (
+            annotation_file.annotations[2].annotation_class.annotation_type
+            == "skeleton"
+        )
 
     def test_returns_true_w_json_content_type(self):
         response: Response = Response()
@@ -737,7 +787,9 @@ class TestParseDarwinRasterAnnotation:
             "slot_names": ["0"],
         }
 
-    def test_parses_a_raster_annotation(self, good_raster_annotation: dt.JSONFreeForm) -> None:
+    def test_parses_a_raster_annotation(
+        self, good_raster_annotation: dt.JSONFreeForm
+    ) -> None:
         annotation = _parse_darwin_raster_annotation(good_raster_annotation)
 
         assert annotation is not None
@@ -761,7 +813,9 @@ class TestParseDarwinRasterAnnotation:
         with pytest.raises(ValueError):
             _parse_darwin_raster_annotation(annotation)
 
-    @pytest.mark.parametrize("parameter_name", ["dense_rle", "mask_annotation_ids_mapping", "total_pixels"])
+    @pytest.mark.parametrize(
+        "parameter_name", ["dense_rle", "mask_annotation_ids_mapping", "total_pixels"]
+    )
     def test_raises_value_error_for_missing_raster_layer_fields(
         self, good_raster_annotation: dt.JSONFreeForm, parameter_name: str
     ) -> None:
@@ -783,7 +837,9 @@ class TestParseDarwinMaskAnnotation:
             "slot_names": ["0"],
         }
 
-    def test_parses_a_raster_annotation(self, good_mask_annotation: dt.JSONFreeForm) -> None:
+    def test_parses_a_raster_annotation(
+        self, good_mask_annotation: dt.JSONFreeForm
+    ) -> None:
         annotation = _parse_darwin_mask_annotation(good_mask_annotation)
 
         assert annotation is not None
@@ -792,7 +848,7 @@ class TestParseDarwinMaskAnnotation:
         assert annotation.annotation_class.name == "my_raster_annotation"
         assert annotation.annotation_class.annotation_type == "mask"
 
-        assert annotation.data["sparse_rle"] == None
+        assert annotation.data["sparse_rle"] is None
 
     # Sad paths
     @pytest.mark.parametrize("parameter_name", ["id", "name", "mask", "slot_names"])
@@ -804,13 +860,17 @@ class TestParseDarwinMaskAnnotation:
         with pytest.raises(ValueError):
             _parse_darwin_raster_annotation(annotation)
 
-    def test_raises_value_error_for_missing_mask_fields(self, good_mask_annotation: dt.JSONFreeForm) -> None:
+    def test_raises_value_error_for_missing_mask_fields(
+        self, good_mask_annotation: dt.JSONFreeForm
+    ) -> None:
         annotation = good_mask_annotation
         del annotation["mask"]["sparse_rle"]
         with pytest.raises(ValueError):
             _parse_darwin_raster_annotation(annotation)
 
-    def test_raises_value_error_for_invalid_mask_fields(self, good_mask_annotation: dt.JSONFreeForm) -> None:
+    def test_raises_value_error_for_invalid_mask_fields(
+        self, good_mask_annotation: dt.JSONFreeForm
+    ) -> None:
         annotation = good_mask_annotation
         annotation["mask"]["sparse_rle"] = "invalid"
         with pytest.raises(ValueError):

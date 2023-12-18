@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 from dataclasses import dataclass, field
-from email.policy import default
 from enum import Enum, auto
 from pathlib import Path
 from typing import (
@@ -21,11 +22,14 @@ try:
 except ImportError:
     NDArray = Any  # type:ignore
 
-from darwin.path_utils import construct_full_path
+from darwin.future.data_objects.properties import SelectedProperty
+from darwin.path_utils import construct_full_path, is_properties_enabled, parse_metadata
 
 # Utility types
 
-NumberLike = Union[int, float]  # Used for functions that can take either an int or a float
+NumberLike = Union[
+    int, float
+]  # Used for functions that can take either an int or a float
 # Used for functions that _genuinely_ don't know what type they're dealing with, such as those that test if something is of a certain type.
 UnknownType = Any  # type:ignore
 
@@ -212,6 +216,9 @@ class Annotation:
     # The darwin ID of this annotation.
     id: Optional[str] = None
 
+    # Properties of this annotation.
+    properties: Optional[list[SelectedProperty]] = None
+
     def get_sub(self, annotation_type: str) -> Optional[SubAnnotation]:
         """
         Returns the first SubAnnotation that matches the given type.
@@ -266,10 +273,15 @@ class VideoAnnotation:
     # The darwin ID of this annotation.
     id: Optional[str] = None
 
+    # Properties of this annotation.
+    properties: Optional[list[SelectedProperty]] = None
+
     def get_data(
         self,
         only_keyframes: bool = True,
-        post_processing: Optional[Callable[[Annotation, UnknownType], UnknownType]] = None,
+        post_processing: Optional[
+            Callable[[Annotation, UnknownType], UnknownType]
+        ] = None,
     ) -> Dict:
         """
         Return the post-processed frames and the additional information from this
@@ -303,7 +315,9 @@ class VideoAnnotation:
         """
         if not post_processing:
 
-            def post_processing(annotation: Annotation, data: UnknownType) -> UnknownType:
+            def post_processing(
+                annotation: Annotation, data: UnknownType
+            ) -> UnknownType:
                 return data  # type: ignore
 
         output = {
@@ -382,6 +396,96 @@ class AnnotationFileVersion:
 
 
 @dataclass
+class Property:
+    """
+    Represents a property of an annotation file.
+    """
+
+    # Name of the property
+    name: str
+
+    # Type of the property
+    type: str
+
+    # Whether the property is required or not
+    required: bool
+
+    # Property options
+    options: list[dict[str, str]]
+
+
+@dataclass
+class PropertyClass:
+    name: str
+    type: str
+    description: Optional[str]
+    color: Optional[str] = None
+    sub_types: Optional[list[str]] = None
+    properties: Optional[list[Property]] = None
+
+
+def parse_property_classes(metadata: dict[str, Any]) -> list[PropertyClass]:
+    """
+    Parses the metadata file and returns a list of PropertyClass objects.
+
+    Parameters
+    ----------
+    metadata : dict[str, Any]
+        The metadata file.
+
+    Returns
+    -------
+    list[PropertyClass]
+        A list of PropertyClass objects.
+    """
+    assert "classes" in metadata, "Metadata does not contain classes"
+
+    classes = []
+    for metadata_cls in metadata["classes"]:
+        assert (
+            "properties" in metadata_cls
+        ), "Metadata class does not contain properties"
+        classes.append(
+            PropertyClass(
+                name=metadata_cls["name"],
+                type=metadata_cls["type"],
+                description=metadata_cls.get("description"),
+                color=metadata_cls.get("color"),
+                sub_types=metadata_cls.get("sub_types"),
+                properties=[Property(**p) for p in metadata_cls["properties"]],
+            )
+        )
+
+    return classes
+
+
+def split_paths_by_metadata(
+    path, dir: str = ".v7", filename: str = "metadata.json"
+) -> tuple[Path, Optional[list[PropertyClass]]]:
+    """
+    Splits the given path into two: the path to the metadata file and the path to the properties
+
+    Parameters
+    ----------
+    path : Path
+        The path to the export directory.
+
+    Returns
+    -------
+    tuple[Path, Optional[list[PropertyClass]]]
+        A tuple containing the path to the metadata file and the list of property classes.
+    """
+    if not is_properties_enabled(path, dir, filename):
+        return path, None
+
+    metadata_path = path / dir / filename
+    metadata = parse_metadata(metadata_path)
+    property_classes = parse_property_classes(metadata)
+
+    return metadata_path, property_classes
+
+
+@dataclass
 class AnnotationFile:
     """
     Represents a file containing annotations. Mostly useful when trying to import or export
@@ -447,6 +551,9 @@ class AnnotationFile:
     # The darwin ID of the item that these annotations belong to.
     item_id: Optional[str] = None
 
+    # The Frame Count if this is a video annotation
+    frame_count: Optional[int] = None
+
     @property
     def full_path(self) -> str:
         """
@@ -502,7 +609,9 @@ def make_bounding_box(
 
 
 def make_tag(
-    class_name: str, subs: Optional[List[SubAnnotation]] = None, slot_names: Optional[List[str]] = None
+    class_name: str,
+    subs: Optional[List[SubAnnotation]] = None,
+    slot_names: Optional[List[str]] = None,
 ) -> Annotation:
     """
     Creates and returns a tag annotation.
@@ -519,7 +628,9 @@ def make_tag(
     Annotation
         A tag ``Annotation``.
     """
-    return Annotation(AnnotationClass(class_name, "tag"), {}, subs or [], slot_names=slot_names or [])
+    return Annotation(
+        AnnotationClass(class_name, "tag"), {}, subs or [], slot_names=slot_names or []
+    )
 
 
 def make_polygon(
@@ -643,7 +754,10 @@ def make_keypoint(
         A point ``Annotation``.
     """
     return Annotation(
-        AnnotationClass(class_name, "keypoint"), {"x": x, "y": y}, subs or [], slot_names=slot_names or []
+        AnnotationClass(class_name, "keypoint"),
+        {"x": x, "y": y},
+        subs or [],
+        slot_names=slot_names or [],
     )
 
 
@@ -678,7 +792,12 @@ def make_line(
     Annotation
         A line ``Annotation``.
     """
-    return Annotation(AnnotationClass(class_name, "line"), {"path": path}, subs or [], slot_names=slot_names or [])
+    return Annotation(
+        AnnotationClass(class_name, "line"),
+        {"path": path},
+        subs or [],
+        slot_names=slot_names or [],
+    )
 
 
 def make_skeleton(
@@ -715,7 +834,10 @@ def make_skeleton(
         A skeleton ``Annotation``.
     """
     return Annotation(
-        AnnotationClass(class_name, "skeleton"), {"nodes": nodes}, subs or [], slot_names=slot_names or []
+        AnnotationClass(class_name, "skeleton"),
+        {"nodes": nodes},
+        subs or [],
+        slot_names=slot_names or [],
     )
 
 
@@ -764,7 +886,12 @@ def make_ellipse(
     Annotation
         An ellipse ``Annotation``.
     """
-    return Annotation(AnnotationClass(class_name, "ellipse"), parameters, subs or [], slot_names=slot_names or [])
+    return Annotation(
+        AnnotationClass(class_name, "ellipse"),
+        parameters,
+        subs or [],
+        slot_names=slot_names or [],
+    )
 
 
 def make_cuboid(
@@ -804,7 +931,12 @@ def make_cuboid(
     Annotation
         A cuboid ``Annotation``.
     """
-    return Annotation(AnnotationClass(class_name, "cuboid"), cuboid, subs or [], slot_names=slot_names or [])
+    return Annotation(
+        AnnotationClass(class_name, "cuboid"),
+        cuboid,
+        subs or [],
+        slot_names=slot_names or [],
+    )
 
 
 def make_table(
@@ -902,7 +1034,10 @@ def make_string(
         A string ``Annotation``.
     """
     return Annotation(
-        AnnotationClass(class_name, "string"), {"sources": sources}, subs or [], slot_names=slot_names or []
+        AnnotationClass(class_name, "string"),
+        {"sources": sources},
+        subs or [],
+        slot_names=slot_names or [],
     )
 
 
@@ -956,12 +1091,17 @@ def make_graph(
         A graph ``Annotation``.
     """
     return Annotation(
-        AnnotationClass(class_name, "graph"), {"nodes": nodes, "edges": edges}, subs or [], slot_names=slot_names or []
+        AnnotationClass(class_name, "graph"),
+        {"nodes": nodes, "edges": edges},
+        subs or [],
+        slot_names=slot_names or [],
     )
 
 
 def make_mask(
-    class_name: str, subs: Optional[List[SubAnnotation]] = None, slot_names: Optional[List[str]] = None
+    class_name: str,
+    subs: Optional[List[SubAnnotation]] = None,
+    slot_names: Optional[List[str]] = None,
 ) -> Annotation:
     """
     Creates and returns a mask annotation.
@@ -978,7 +1118,9 @@ def make_mask(
     Annotation
         A mask ``Annotation``.
     """
-    return Annotation(AnnotationClass(class_name, "mask"), {}, subs or [], slot_names=slot_names or [])
+    return Annotation(
+        AnnotationClass(class_name, "mask"), {}, subs or [], slot_names=slot_names or []
+    )
 
 
 def make_raster_layer(
@@ -1137,6 +1279,7 @@ def make_video_annotation(
     segments: List[Segment],
     interpolated: bool,
     slot_names: List[str],
+    properties: Optional[list[SelectedProperty]] = None,
 ) -> VideoAnnotation:
     """
     Creates and returns a ``VideoAnnotation``.
@@ -1167,11 +1310,19 @@ def make_video_annotation(
         raise ValueError("invalid argument to make_video_annotation")
 
     return VideoAnnotation(
-        first_annotation.annotation_class, frames, keyframes, segments, interpolated, slot_names=slot_names or []
+        first_annotation.annotation_class,
+        frames,
+        keyframes,
+        segments,
+        interpolated,
+        slot_names=slot_names or [],
+        properties=properties,
     )
 
 
-def _maybe_add_bounding_box_data(data: Dict[str, UnknownType], bounding_box: Optional[Dict]) -> Dict[str, UnknownType]:
+def _maybe_add_bounding_box_data(
+    data: Dict[str, UnknownType], bounding_box: Optional[Dict]
+) -> Dict[str, UnknownType]:
     if bounding_box:
         data["bounding_box"] = {
             "x": bounding_box["x"],

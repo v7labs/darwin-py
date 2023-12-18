@@ -24,22 +24,21 @@ import json_stream
 import numpy as np
 import orjson as json
 import requests
-from json_stream.base import PersistentStreamingJSONObject
-from jsonschema import exceptions, validators
-from requests import Response, request
+from json_stream.base import PersistentStreamingJSONList, PersistentStreamingJSONObject
+from jsonschema import validators
+from requests import Response
 from rich.progress import ProgressType, track
 from upolygon import draw_polygon
 
 import darwin.datatypes as dt
 from darwin.config import Config
 from darwin.exceptions import (
-    AnnotationFileValidationError,
     MissingSchema,
     OutdatedDarwinJSONFormat,
-    UnknownAnnotationFileSchema,
     UnrecognizableFileEncoding,
     UnsupportedFileType,
 )
+from darwin.future.data_objects.properties import SelectedProperty
 from darwin.version import __version__
 
 if TYPE_CHECKING:
@@ -89,7 +88,7 @@ def is_extension_allowed_by_filename(filename: str) -> bool:
     bool
         Whether or not the given extension of the filename is allowed.
     """
-    return any([filename.lower().endswith(ext) for ext in SUPPORTED_EXTENSIONS])
+    return any(filename.lower().endswith(ext) for ext in SUPPORTED_EXTENSIONS)
 
 
 @deprecation.deprecated(deprecated_in="0.8.4", current_version=__version__)
@@ -126,7 +125,7 @@ def is_image_extension_allowed_by_filename(filename: str) -> bool:
     bool
         Whether or not the given extension is allowed.
     """
-    return any([filename.lower().endswith(ext) for ext in SUPPORTED_IMAGE_EXTENSIONS])
+    return any(filename.lower().endswith(ext) for ext in SUPPORTED_IMAGE_EXTENSIONS)
 
 
 @deprecation.deprecated(deprecated_in="0.8.4", current_version=__version__)
@@ -161,7 +160,7 @@ def is_video_extension_allowed_by_filename(extension: str) -> bool:
     bool
         Whether or not the given extension is allowed.
     """
-    return any([extension.lower().endswith(ext) for ext in SUPPORTED_VIDEO_EXTENSIONS])
+    return any(extension.lower().endswith(ext) for ext in SUPPORTED_VIDEO_EXTENSIONS)
 
 
 @deprecation.deprecated(deprecated_in="0.8.4", current_version=__version__)
@@ -265,7 +264,10 @@ def prompt(msg: str, default: Optional[str] = None) -> str:
 
 
 def find_files(
-    files: List[dt.PathLike], *, files_to_exclude: List[dt.PathLike] = [], recursive: bool = True
+    files: List[dt.PathLike],
+    *,
+    files_to_exclude: List[dt.PathLike] = [],
+    recursive: bool = True,
 ) -> List[Path]:
     """
     Retrieve a list of all files belonging to supported extensions. The exploration can be made
@@ -322,7 +324,9 @@ def secure_continue_request() -> bool:
 
 
 def persist_client_configuration(
-    client: "Client", default_team: Optional[str] = None, config_path: Optional[Path] = None
+    client: "Client",
+    default_team: Optional[str] = None,
+    config_path: Optional[Path] = None,
 ) -> Config:
     """
     Authenticate user against the server and creates a configuration file for him/her.
@@ -350,7 +354,11 @@ def persist_client_configuration(
         raise ValueError("Unable to get default team.")
 
     config: Config = Config(config_path)
-    config.set_team(team=team_config.slug, api_key=team_config.api_key, datasets_dir=team_config.datasets_dir)
+    config.set_team(
+        team=team_config.slug,
+        api_key=team_config.api_key,
+        datasets_dir=team_config.datasets_dir,
+    )
     config.set_global(api_endpoint=client.url, base_url=client.base_url, default_team=default_team)
 
     return config
@@ -456,6 +464,7 @@ def parse_darwin_json(path: Path, count: Optional[int] = None) -> Optional[dt.An
         else:
             return _parse_darwin_image(path, data, count)
 
+
 def stream_darwin_json(path: Path) -> PersistentStreamingJSONObject:
     """
     Returns a Darwin JSON file as a persistent stream. This allows for parsing large files without
@@ -474,10 +483,18 @@ def stream_darwin_json(path: Path) -> PersistentStreamingJSONObject:
 
     with path.open() as infile:
         return json_stream.load(infile, persistent=True)
-    
-def get_image_path_from_stream(darwin_json: PersistentStreamingJSONObject, images_dir: Path) -> Path:
+      
+
+def get_image_path_from_stream(
+    darwin_json: PersistentStreamingJSONObject,
+    images_dir: Path,
+    with_folders: bool,
+    json_version: str,
+    annotation_filepath: Path,
+) -> Path:
     """
-    Returns the path to the image file associated with the given darwin json file (V1 or V2).
+    Returns the path to the image file associated with the given darwin json file.
+    Compatible with V1 & V2 Darwin JSON, as well as releases in folders and flat structures.
 
     Parameters
     ----------
@@ -485,6 +502,10 @@ def get_image_path_from_stream(darwin_json: PersistentStreamingJSONObject, image
         A stream of the JSON file.
     images_dir : Path
         Path to the directory containing the images.
+    with_folders: bool
+        Flag to determine if the release was pulled with or without folders.
+    json_version: str
+        String representing the version of the Darwin JSON
 
     Returns
     -------
@@ -492,16 +513,68 @@ def get_image_path_from_stream(darwin_json: PersistentStreamingJSONObject, image
         Path to the image file.
     """
     try:
-        return images_dir / (Path(darwin_json['item']['path'].lstrip('/\\'))) / Path(darwin_json['item']['name'])
-    except KeyError:
-        return images_dir / (Path(darwin_json['image']['path'].lstrip('/\\'))) / Path(darwin_json['image']['filename'])
+        if json_version == "2.0":
+            if not with_folders:
+                return images_dir / Path(darwin_json["item"]["name"])
+            else:
+                return (
+                    images_dir
+                    / (Path(darwin_json["item"]["path"].lstrip("/\\")))
+                    / Path(darwin_json["item"]["name"])
+                )
+        else:
+            if not with_folders:
+                return images_dir / Path(darwin_json["image"]["filename"])
+            else:
+                return (
+                    images_dir
+                    / (Path(darwin_json["image"]["path"].lstrip("/\\")))
+                    / Path(darwin_json["image"]["filename"])
+                )
+    except OSError as e:
+        # Load in the JSON as normal
+        darwin_json = parse_darwin_json(path=annotation_filepath)
+        if not with_folders:
+            return images_dir / Path(darwin_json.filename)
+        else:
+            return images_dir / Path(darwin_json.full_path.lstrip("/\\"))
+
+
+def get_darwin_json_version(annotations_dir: Path) -> str:
+    """
+    Returns true is the input Darwin JSON file is 2.0, and False if 1.0.
+
+    Parameters
+    ----------
+    annotations_dir : Path
+        Path to the directory containing the annotation files.
+
+    Returns
+    -------
+    str
+        A str representing the Darwin JSON version.
+    """
+    with open(next(annotations_dir.glob("*.json")), "r") as file:
+        data_str = file.read()
+        data = json.loads(data_str)
+        return "2.0" if "version" in data and data["version"] == "2.0" else "1.0"
+      
+
+def is_stream_list_empty(json_list: PersistentStreamingJSONList) -> bool:
+    try:
+        json_list[0]
+    except IndexError:
+        return True
+
+    return False
+
 
 def _parse_darwin_v2(path: Path, data: Dict[str, Any]) -> dt.AnnotationFile:
     item = data["item"]
     item_source = item.get("source_info", {})
     slots: List[dt.Slot] = list(filter(None, map(_parse_darwin_slot, item.get("slots", []))))
     annotations: List[Union[dt.Annotation, dt.VideoAnnotation]] = _data_to_annotations(data)
-    annotation_classes: Set[dt.AnnotationClass] = set([annotation.annotation_class for annotation in annotations])
+    annotation_classes: Set[dt.AnnotationClass] = {annotation.annotation_class for annotation in annotations}
 
     if len(slots) == 0:
         annotation_file = dt.AnnotationFile(
@@ -533,7 +606,7 @@ def _parse_darwin_v2(path: Path, data: Dict[str, Any]) -> dt.AnnotationFile:
             dataset_name=item.get("source_info", {}).get("dataset", {}).get("name", None),
             annotation_classes=annotation_classes,
             annotations=annotations,
-            is_video=slot.frame_urls is not None,
+            is_video=slot.frame_urls is not None or slot.frame_manifest is not None,
             image_width=slot.width,
             image_height=slot.height,
             image_url=None if len(slot.source_files or []) == 0 else slot.source_files[0]["url"],
@@ -543,6 +616,7 @@ def _parse_darwin_v2(path: Path, data: Dict[str, Any]) -> dt.AnnotationFile:
             frame_urls=slot.frame_urls,
             remote_path=item["path"],
             slots=slots,
+            frame_count=slot.frame_count,
         )
 
     return annotation_file
@@ -567,12 +641,17 @@ def _parse_darwin_slot(data: Dict[str, Any]) -> dt.Slot:
 
 def _parse_darwin_image(path: Path, data: Dict[str, Any], count: Optional[int]) -> dt.AnnotationFile:
     annotations: List[Union[dt.Annotation, dt.VideoAnnotation]] = _data_to_annotations(data)
-    annotation_classes: Set[dt.AnnotationClass] = set([annotation.annotation_class for annotation in annotations])
+    annotation_classes: Set[dt.AnnotationClass] = {annotation.annotation_class for annotation in annotations}
 
     slot = dt.Slot(
         name=None,
         type="image",
-        source_files=[{"url": data["image"].get("url"), "file_name": _get_local_filename(data["image"])}],
+        source_files=[
+            {
+                "url": data["image"].get("url"),
+                "file_name": _get_local_filename(data["image"]),
+            }
+        ],
         thumbnail_url=data["image"].get("thumbnail_url"),
         width=data["image"].get("width"),
         height=data["image"].get("height"),
@@ -601,7 +680,7 @@ def _parse_darwin_image(path: Path, data: Dict[str, Any], count: Optional[int]) 
 
 def _parse_darwin_video(path: Path, data: Dict[str, Any], count: Optional[int]) -> dt.AnnotationFile:
     annotations: List[Union[dt.Annotation, dt.VideoAnnotation]] = _data_to_annotations(data)
-    annotation_classes: Set[dt.AnnotationClass] = set([annotation.annotation_class for annotation in annotations])
+    annotation_classes: Set[dt.AnnotationClass] = {annotation.annotation_class for annotation in annotations}
 
     if "width" not in data["image"] or "height" not in data["image"]:
         raise OutdatedDarwinJSONFormat("Missing width/height in video, please re-export")
@@ -609,7 +688,12 @@ def _parse_darwin_video(path: Path, data: Dict[str, Any], count: Optional[int]) 
     slot = dt.Slot(
         name=None,
         type="video",
-        source_files=[{"url": data["image"].get("url"), "file_name": _get_local_filename(data["image"])}],
+        source_files=[
+            {
+                "url": data["image"].get("url"),
+                "file_name": _get_local_filename(data["image"]),
+            }
+        ],
         thumbnail_url=data["image"].get("thumbnail_url"),
         width=data["image"].get("width"),
         height=data["image"].get("height"),
@@ -677,7 +761,12 @@ def _parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotati
     elif "bounding_box" in annotation:
         bounding_box = annotation["bounding_box"]
         main_annotation = dt.make_bounding_box(
-            name, bounding_box["x"], bounding_box["y"], bounding_box["w"], bounding_box["h"], slot_names=slot_names
+            name,
+            bounding_box["x"],
+            bounding_box["y"],
+            bounding_box["w"],
+            bounding_box["h"],
+            slot_names=slot_names,
         )
     elif "tag" in annotation:
         main_annotation = dt.make_tag(name, slot_names=slot_names)
@@ -685,7 +774,10 @@ def _parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotati
         main_annotation = dt.make_line(name, annotation["line"]["path"], slot_names=slot_names)
     elif "keypoint" in annotation:
         main_annotation = dt.make_keypoint(
-            name, annotation["keypoint"]["x"], annotation["keypoint"]["y"], slot_names=slot_names
+            name,
+            annotation["keypoint"]["x"],
+            annotation["keypoint"]["y"],
+            slot_names=slot_names,
         )
     elif "ellipse" in annotation:
         main_annotation = dt.make_ellipse(name, annotation["ellipse"], slot_names=slot_names)
@@ -695,20 +787,30 @@ def _parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotati
         main_annotation = dt.make_skeleton(name, annotation["skeleton"]["nodes"], slot_names=slot_names)
     elif "table" in annotation:
         main_annotation = dt.make_table(
-            name, annotation["table"]["bounding_box"], annotation["table"]["cells"], slot_names=slot_names
+            name,
+            annotation["table"]["bounding_box"],
+            annotation["table"]["cells"],
+            slot_names=slot_names,
         )
     elif "string" in annotation:
         main_annotation = dt.make_string(name, annotation["string"]["sources"], slot_names=slot_names)
     elif "graph" in annotation:
         main_annotation = dt.make_graph(
-            name, annotation["graph"]["nodes"], annotation["graph"]["edges"], slot_names=slot_names
+            name,
+            annotation["graph"]["nodes"],
+            annotation["graph"]["edges"],
+            slot_names=slot_names,
         )
     elif "mask" in annotation:
         main_annotation = dt.make_mask(name, slot_names=slot_names)
     elif "raster_layer" in annotation:
         raster_layer = annotation["raster_layer"]
         main_annotation = dt.make_raster_layer(
-            name, raster_layer["mask_annotation_ids_mapping"], raster_layer["total_pixels"], raster_layer["dense_rle"], slot_names=slot_names
+            name,
+            raster_layer["mask_annotation_ids_mapping"],
+            raster_layer["total_pixels"],
+            raster_layer["dense_rle"],
+            slot_names=slot_names,
         )
 
     if not main_annotation:
@@ -738,6 +840,9 @@ def _parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotati
     if annotation.get("reviewers") is not None:
         main_annotation.reviewers = _parse_annotators(annotation["reviewers"])
 
+    if "properties" in annotation:
+        main_annotation.properties = _parse_properties(annotation["properties"])
+
     return main_annotation
 
 
@@ -760,6 +865,7 @@ def _parse_darwin_video_annotation(annotation: dict) -> Optional[dt.VideoAnnotat
         annotation.get("ranges", annotation.get("segments", [])),
         annotation.get("interpolated", False),
         slot_names=parse_slot_names(annotation),
+        properties=_parse_properties(annotation.get("properties", [])),
     )
 
     if "id" in annotation:
@@ -840,6 +946,21 @@ def _parse_annotators(annotators: List[Dict[str, Any]]) -> List[dt.AnnotationAut
     return [dt.AnnotationAuthor(annotator["full_name"], annotator["email"]) for annotator in annotators]
 
 
+def _parse_properties(properties: List[Dict[str, Any]]) -> Optional[List[SelectedProperty]]:
+    selected_properties = []
+    for property in properties:
+        selected_properties.append(
+            SelectedProperty(
+                frame_index=property.get("frame_index", None),
+                name=property.get("name", None),
+                type=property.get("type", None),
+                value=property.get("value", None),
+            )
+        )
+
+    return selected_properties or None
+
+
 def split_video_annotation(annotation: dt.AnnotationFile) -> List[dt.AnnotationFile]:
     """
     Splits the given video ``AnnotationFile`` into several video ``AnnotationFile``s, one for each
@@ -862,17 +983,20 @@ def split_video_annotation(annotation: dt.AnnotationFile) -> List[dt.AnnotationF
         no ``frame_url`` attribute.
     """
     if not annotation.is_video:
-        raise AttributeError("this is not a video annotation")
+        raise AttributeError("This is not a video annotation")
 
-    if not annotation.frame_urls:
-        raise AttributeError("This Annotation has no frame urls")
-
+    # changes here from annotation.frame_urls to annotation.frame_count with frame_urls as backup
+    # due to addition of long videos feature, where frame_urls is no longer available.
+    # frame_count should be available for both, however existing annotations will not have this
+    if not annotation.frame_count and not annotation.frame_urls:
+        raise AttributeError("This Annotation has no frames")
+    urls = annotation.frame_urls or [None] * (annotation.frame_count or 1)
     frame_annotations = []
-    for i, frame_url in enumerate(annotation.frame_urls):
+    for i, frame_url in enumerate(urls):
         annotations = [
             a.frames[i] for a in annotation.annotations if isinstance(a, dt.VideoAnnotation) and i in a.frames
         ]
-        annotation_classes: Set[dt.AnnotationClass] = set([annotation.annotation_class for annotation in annotations])
+        annotation_classes: Set[dt.AnnotationClass] = {annotation.annotation_class for annotation in annotations}
         filename: str = f"{Path(annotation.filename).stem}/{i:07d}.png"
         frame_annotations.append(
             dt.AnnotationFile(
@@ -888,8 +1012,10 @@ def split_video_annotation(annotation: dt.AnnotationFile) -> List[dt.AnnotationF
                 annotation.seq,
                 item_id=annotation.item_id,
                 slots=annotation.slots,
+                remote_path=annotation.remote_path,
             )
         )
+
     return frame_annotations
 
 
@@ -964,8 +1090,8 @@ def convert_polygons_to_sequences(
         path: List[Union[int, float]] = []
         for point in polygon:
             # Clip coordinates to the image size
-            x = max(min(point["x"], width -1) if width else point["x"], 0)
-            y = max(min(point["y"], height -1) if height else point["y"], 0)
+            x = max(min(point["x"], width - 1) if width else point["x"], 0)
+            y = max(min(point["y"], height - 1) if height else point["y"], 0)
             if rounding:
                 path.append(round(x))
                 path.append(round(y))
@@ -983,7 +1109,9 @@ def convert_polygons_to_sequences(
     details="Do not use.",
 )
 def convert_sequences_to_polygons(
-    sequences: List[Union[List[int], List[float]]], height: Optional[int] = None, width: Optional[int] = None
+    sequences: List[Union[List[int], List[float]]],
+    height: Optional[int] = None,
+    width: Optional[int] = None,
 ) -> Dict[str, List[dt.Polygon]]:
     """
     Converts a list of polygons, encoded as a list of dictionaries of into a list of nd.arrays
@@ -1139,7 +1267,7 @@ def chunk(items: List[Any], size: int) -> Iterator[Any]:
         A chunk of the of the given size.
     """
     for i in range(0, len(items), size):
-        yield items[i:i + size]
+        yield items[i : i + size]
 
 
 def is_unix_like_os() -> bool:
@@ -1208,11 +1336,22 @@ def _data_to_annotations(data: Dict[str, Any]) -> List[Union[dt.Annotation, dt.V
     )
     mask_annotations: List[dt.Annotation] = list(filter(None, map(_parse_darwin_mask_annotation, raw_mask_annotations)))
 
-    return [*image_annotations, *video_annotations, *raster_annotations, *mask_annotations]
+    return [
+        *image_annotations,
+        *video_annotations,
+        *raster_annotations,
+        *mask_annotations,
+    ]
 
 
 def _supported_schema_versions() -> Dict[Tuple[int, int, str], str]:
-    return {(2, 0, ""): "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json"}
+    return {
+        (
+            2,
+            0,
+            "",
+        ): "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json"
+    }
 
 
 def _default_schema(version: dt.AnnotationFileVersion) -> Optional[str]:

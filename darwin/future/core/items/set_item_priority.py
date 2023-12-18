@@ -42,7 +42,8 @@ def set_item_priority(
             if isinstance(dataset_ids, list)
             else [dataset_ids],
             **filters,
-        }
+        },
+        "priority": priority,
     }
 
     return client.post(

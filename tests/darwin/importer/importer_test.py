@@ -1,5 +1,5 @@
 from typing import List, Tuple
-from unittest.mock import MagicMock, Mock, _patch, patch
+from unittest.mock import Mock, _patch, patch
 
 import pytest
 from rich.theme import Theme
@@ -106,13 +106,22 @@ def test_handle_subs() -> None:
 def test__handle_complex_polygon() -> None:
     from darwin.importer.importer import _handle_complex_polygon
 
-    assert _handle_complex_polygon({}, {"example": "data", "example2": "data2", "example3": "data3",},) == {  # type: ignore
+    assert _handle_complex_polygon(
+        {},
+        {
+            "example": "data",
+            "example2": "data2",
+            "example3": "data3",
+        },
+    ) == {  # type: ignore
         "example": "data",
         "example2": "data2",
         "example3": "data3",
     }
     assert _handle_complex_polygon(
-        dt.Annotation(dt.AnnotationClass("Class", "bbox"), {"paths": [1, 2, 3, 4, 5]}, [], []),
+        dt.Annotation(
+            dt.AnnotationClass("Class", "bbox"), {"paths": [1, 2, 3, 4, 5]}, [], []
+        ),
         {"complex_polygon": "test_data"},
     ) == {
         "polygon": {"path": 1, "additional_paths": [2, 3, 4, 5]},
@@ -127,12 +136,16 @@ def test__annotators_or_reviewers_to_payload() -> None:
         dt.AnnotationAuthor("Jane Doe", "jane@doe.com"),
     ]
 
-    assert _annotators_or_reviewers_to_payload(authors, dt.AnnotationAuthorRole.ANNOTATOR) == [
+    assert _annotators_or_reviewers_to_payload(
+        authors, dt.AnnotationAuthorRole.ANNOTATOR
+    ) == [
         {"email": "john@doe.com", "role": "annotator"},
         {"email": "jane@doe.com", "role": "annotator"},
     ]
 
-    assert _annotators_or_reviewers_to_payload(authors, dt.AnnotationAuthorRole.REVIEWER) == [
+    assert _annotators_or_reviewers_to_payload(
+        authors, dt.AnnotationAuthorRole.REVIEWER
+    ) == [
         {"email": "john@doe.com", "role": "reviewer"},
         {"email": "jane@doe.com", "role": "reviewer"},
     ]
@@ -169,11 +182,13 @@ def test__get_annotation_data() -> None:
     video_annotation_class = dt.AnnotationClass("video_class", "video")
 
     annotation = dt.Annotation(annotation_class, {}, [], [])
-    video_annotation = dt.VideoAnnotation(video_annotation_class, dict(), dict(), [], False)
+    video_annotation = dt.VideoAnnotation(video_annotation_class, {}, {}, [], False)
 
     annotation.data = "TEST DATA"
 
-    with patch_factory("_handle_complex_polygon") as mock_hcp, patch_factory("_handle_subs") as mock_hs, patch.object(
+    with patch_factory("_handle_complex_polygon") as mock_hcp, patch_factory(
+        "_handle_subs"
+    ) as mock_hs, patch.object(
         dt.VideoAnnotation, "get_data", return_value="TEST VIDEO DATA"
     ):
         from darwin.importer.importer import _get_annotation_data
@@ -181,32 +196,46 @@ def test__get_annotation_data() -> None:
         mock_hcp.return_value = "TEST DATA_HCP"
         mock_hs.return_value = "TEST DATA_HS"
 
-        assert _get_annotation_data(video_annotation, "video_class_id", {}) == "TEST VIDEO DATA"
+        assert (
+            _get_annotation_data(video_annotation, "video_class_id", {})
+            == "TEST VIDEO DATA"
+        )
         assert _get_annotation_data(annotation, "class_id", {}) == "TEST DATA_HS"
 
         assert mock_hcp.call_count == 1
         assert mock_hs.call_count == 1
 
-    with patch_factory("_handle_complex_polygon") as mock_hcp, patch_factory("_handle_subs") as mock_hs:
+    with patch_factory("_handle_complex_polygon") as mock_hcp, patch_factory(
+        "_handle_subs"
+    ) as mock_hs:
         from darwin.importer.importer import _get_annotation_data
 
         mock_hs.return_value = {"TEST_TYPE": "TEST DATA"}
 
-        assert _get_annotation_data(annotation, "class_id", {}) == {"TEST_TYPE": "TEST DATA"}
+        assert _get_annotation_data(annotation, "class_id", {}) == {
+            "TEST_TYPE": "TEST DATA"
+        }
 
         assert mock_hcp.call_args_list[0][0][0] == annotation
         assert mock_hcp.call_args_list[0][0][1] == {"TEST_TYPE": "TEST DATA"}
 
 
 def __expectation_factory(i: int, slot_names: List[str]) -> dt.Annotation:
-    annotation = dt.Annotation(dt.AnnotationClass(f"class_{i}", f"TEST_TYPE_{i}"), {}, [], [])
+    annotation = dt.Annotation(
+        dt.AnnotationClass(f"class_{i}", f"TEST_TYPE_{i}"), {}, [], []
+    )
     annotation.slot_names.extend(slot_names)
 
     return annotation
 
 
 expectations_hsr: List[Tuple[dt.Annotation, int, str, dt.Annotation]] = [
-    (__expectation_factory(0, []), 1, "default_slot_name", __expectation_factory(0, [])),
+    (
+        __expectation_factory(0, []),
+        1,
+        "default_slot_name",
+        __expectation_factory(0, []),
+    ),
     (
         __expectation_factory(1, ["slot", "names"]),
         1,
@@ -219,13 +248,23 @@ expectations_hsr: List[Tuple[dt.Annotation, int, str, dt.Annotation]] = [
         "default_slot_name",
         __expectation_factory(2, ["default_slot_name"]),
     ),
-    (__expectation_factory(3, ["slot", "names"]), 2, "default_slot_name", __expectation_factory(3, ["slot", "names"])),
+    (
+        __expectation_factory(3, ["slot", "names"]),
+        2,
+        "default_slot_name",
+        __expectation_factory(3, ["slot", "names"]),
+    ),
 ]
 
 
-@pytest.mark.parametrize("annotation, version, default_slot_name, expected", expectations_hsr)
+@pytest.mark.parametrize(
+    "annotation, version, default_slot_name, expected", expectations_hsr
+)
 def test__handle_slot_names(
-    annotation: dt.Annotation, version: int, default_slot_name: str, expected: dt.Annotation
+    annotation: dt.Annotation,
+    version: int,
+    default_slot_name: str,
+    expected: dt.Annotation,
 ) -> None:
     from darwin.importer.importer import _handle_slot_names
 
@@ -243,7 +282,6 @@ def test_get_overwrite_value() -> None:
 
 
 def test__import_annotations() -> None:
-
     with patch_factory("_handle_complex_polygon") as mock_hcp, patch_factory(
         "_handle_reviewers"
     ) as mock_hr, patch_factory("_handle_annotators") as mock_ha, patch_factory(
@@ -272,10 +310,15 @@ def test__import_annotations() -> None:
         mock_gov.return_value = "test_append_out"
         mock_hs.return_value = "test_sub"
         mock_hsn.return_value = dt.Annotation(
-            dt.AnnotationClass("test_class", "bbox"), {"paths": [1, 2, 3, 4, 5]}, [], ["test_slot_name"]
+            dt.AnnotationClass("test_class", "bbox"),
+            {"paths": [1, 2, 3, 4, 5]},
+            [],
+            ["test_slot_name"],
         )
 
-        annotation = dt.Annotation(dt.AnnotationClass("test_class", "bbox"), {"paths": [1, 2, 3, 4, 5]}, [], [])
+        annotation = dt.Annotation(
+            dt.AnnotationClass("test_class", "bbox"), {"paths": [1, 2, 3, 4, 5]}, [], []
+        )
 
         _import_annotations(
             mock_client,

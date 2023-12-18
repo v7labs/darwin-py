@@ -30,7 +30,9 @@ def export_file(
     # do it manually.
 
     filename = annotation_file.path.name
-    filename_to_write = filename.replace(".json", ".txt") if ".json" in filename else filename + ".txt"
+    filename_to_write = (
+        filename.replace(".json", ".txt") if ".json" in filename else filename + ".txt"
+    )
     output_file_path = output_dir / filename_to_write
 
     output_file_path.parent.mkdir(parents=True, exist_ok=True)

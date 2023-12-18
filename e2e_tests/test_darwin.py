@@ -4,7 +4,6 @@ import re
 import tempfile
 import uuid
 from pathlib import Path
-from time import sleep
 from typing import Generator
 
 import pytest
@@ -42,7 +41,9 @@ def local_dataset(new_dataset: E2EDataset) -> Generator[E2EDataset, None, None]:
 def local_dataset_with_images(local_dataset: E2EDataset) -> E2EDataset:
     assert local_dataset.directory is not None
     for x in range(3):
-        path = create_random_image(str(x), Path(local_dataset.directory), fixed_name=True)
+        path = create_random_image(
+            str(x), Path(local_dataset.directory), fixed_name=True
+        )
         local_dataset.add_item(
             E2EItem(
                 name=path.name,
@@ -116,7 +117,9 @@ def test_darwin_import(local_dataset_with_annotations: E2EDataset) -> None:
     assert_cli(result, 0)
 
 
-def test_darwin_export(local_dataset_with_annotations: E2EDataset, config_values: ConfigValues) -> None:
+def test_darwin_export(
+    local_dataset_with_annotations: E2EDataset, config_values: ConfigValues
+) -> None:
     """
     Test exporting a dataset via the darwin cli, dataset created via fixture with annotations added to objects
     """
@@ -146,8 +149,12 @@ def test_darwin_export(local_dataset_with_annotations: E2EDataset, config_values
         f"darwin dataset export {local_dataset_with_annotations.name} test_darwin_export --class-ids {class_str}"
     )
     assert_cli(result, 0, in_stdout="successfully exported")
-    result = run_cli_command(f"darwin dataset releases {local_dataset_with_annotations.name}")
-    assert_cli(result, 0, in_stdout="No available releases, export one first", inverse=True)
+    result = run_cli_command(
+        f"darwin dataset releases {local_dataset_with_annotations.name}"
+    )
+    assert_cli(
+        result, 0, in_stdout="No available releases, export one first", inverse=True
+    )
     # Check that a release is there via inverse, the CLI will truncate outputs and pass/fail is not clear
     # if we check for release name
 
