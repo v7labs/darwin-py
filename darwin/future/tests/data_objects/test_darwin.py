@@ -44,11 +44,11 @@ def test_polygon_bbx_validator(raw_json: dict):
     polygon_annotation = raw_json["annotations"][2]
     without_bbx = polygon_annotation.copy()
     del without_bbx["bounding_box"]
-    without_bb_annotation = PolygonAnnotation.parse_obj(without_bbx)
-    with_bb_annotation = PolygonAnnotation.parse_obj(polygon_annotation)
+    without_bb_annotation = PolygonAnnotation.model_validate(without_bbx)
+    with_bb_annotation = PolygonAnnotation.model_validate(polygon_annotation)
 
     assert without_bb_annotation.bounding_box is not None
     assert with_bb_annotation.bounding_box is not None
     assert without_bb_annotation == with_bb_annotation
     bounds_annotation = raw_json["annotations"][0]
-    BoundingBoxAnnotation.parse_obj(bounds_annotation)
+    BoundingBoxAnnotation.model_validate(bounds_annotation)

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import List, Literal, Optional, Union
 
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, Field, ValidationInfo, field_validator
 
 from darwin.future.data_objects.properties import SelectedProperty
 
@@ -49,7 +49,7 @@ class AnnotationBase(BaseModel):
     properties: Optional[SelectedProperty] = None
     slot_names: Optional[List[str]] = None
 
-    @validator("id", always=True)
+    @field_validator("id")
     def validate_id_is_UUID(cls, v: str) -> str:
         assert len(v) == 36
         assert "-" in v
@@ -83,18 +83,17 @@ class EllipseAnnotation(AnnotationBase):
 
 class PolygonAnnotation(AnnotationBase):
     polygon: Polygon
-    bounding_box: Optional[BoundingBox] = None
+    bounding_box: Optional[BoundingBox] = Field(default=None, validate_default=True)
 
-    @validator("bounding_box", pre=False, always=True)
+    @field_validator("bounding_box")
     def validate_bounding_box(
-        cls, v: Optional[BoundingBox], values: dict
+        cls, v: Optional[BoundingBox], values: ValidationInfo
     ) -> BoundingBox:
         if v is None:
-            assert "polygon" in values
-            assert isinstance(values["polygon"], Polygon)
-            v = values["polygon"].bounding_box()
+            assert "polygon" in values.data
+            assert isinstance(values.data["polygon"], Polygon)
+            v = values.data["polygon"].bounding_box()
         return v
-
 
 class FrameAnnotation(AnnotationBase):
     frames: List
@@ -119,7 +118,7 @@ class DarwinV2(BaseModel):
     item: dict
     annotations: List[AllowedAnnotation]
 
-    @validator("schema_ref", always=True)
+    @field_validator("schema_ref")
     def validate_schema_ref(cls, v: str) -> str:
         assert v.startswith("http")
         return v

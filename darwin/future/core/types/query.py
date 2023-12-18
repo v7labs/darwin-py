@@ -4,7 +4,10 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Any, Callable, Dict, Generic, List, Optional, TypeVar
 
+from pydantic import field_validator
+
 from darwin.future.core.client import ClientCore
+from darwin.future.core.types.common import Stringable
 from darwin.future.data_objects.page import Page
 from darwin.future.exceptions import (
     InvalidQueryFilter,
@@ -44,6 +47,10 @@ class QueryFilter(DefaultDarwin):
     param: str
     modifier: Optional[Modifier] = None
 
+    @field_validator("param")
+    def validate_param(cls, v: Stringable) -> str:
+        return str(v)
+    
     def filter_attr(self, attr: Any) -> bool:  # type: ignore
         caster: Callable[[str], Any] = type(attr)  # type: ignore
         param = caster(

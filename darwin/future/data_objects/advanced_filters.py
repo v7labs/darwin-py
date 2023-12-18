@@ -3,8 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Generic, List, Literal, Optional, TypeVar, Union
 
-from pydantic import BaseModel, root_validator, validator
-from pydantic.generics import GenericModel
+from pydantic import BaseModel, field_validator, model_validator
 
 T = TypeVar("T")
 
@@ -26,28 +25,28 @@ class BaseMatcher(BaseModel):
     name: str
 
 
-class AnyOf(BaseMatcher, GenericModel, Generic[T]):
+class AnyOf(BaseMatcher, Generic[T]):
     name: Literal["any_of"] = "any_of"
     values: List[T]
 
-    _normalize_values = validator("values", allow_reuse=True)(validate_at_least_one)
+    _normalize_values = field_validator("values")(validate_at_least_one)
 
 
-class AllOf(BaseMatcher, GenericModel, Generic[T]):
+class AllOf(BaseMatcher, Generic[T]):
     name: Literal["all_of"] = "all_of"
     values: List[T]
 
-    _normalize_values = validator("values", allow_reuse=True)(validate_at_least_one)
+    _normalize_values = field_validator("values")(validate_at_least_one)
 
 
-class NoneOf(BaseMatcher, GenericModel, Generic[T]):
+class NoneOf(BaseMatcher, Generic[T]):
     name: Literal["none_of"] = "none_of"
     values: List[T]
 
-    _normalize_values = validator("values", allow_reuse=True)(validate_at_least_one)
+    _normalize_values = field_validator("values")(validate_at_least_one)
 
 
-class Equals(BaseMatcher, GenericModel, Generic[T]):
+class Equals(BaseMatcher, Generic[T]):
     name: Literal["equals"] = "equals"
     value: T
 
@@ -57,7 +56,7 @@ class DateRange(BaseMatcher):
     start: Optional[datetime] = None
     end: Optional[datetime] = None
 
-    @root_validator(pre=True)
+    @model_validator(mode="before")
     def validate_date_range(cls, values: dict) -> dict:
         if not values.get("start") and not values.get("end"):
             raise ValueError("At least one of 'start' or 'end' must be provided.")
@@ -335,7 +334,7 @@ class GroupFilter(BaseModel):
     conjunction: Literal["and", "or"] = "and"
     filters: List[Union[GroupFilter, SubjectFilter]]
 
-    @validator("filters")
+    @field_validator("filters")
     def validate_filters(
         cls, value: List[GroupFilter | SubjectFilter]
     ) -> List[GroupFilter | SubjectFilter]:

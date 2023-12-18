@@ -11,7 +11,7 @@ from .fixtures import *  # noqa: F401, F403
 
 
 def test_it_creates_a_dataset(
-    basic_dataset: DatasetCore, base_client: ClientCore
+    basic_dataset: dict, base_client: ClientCore
 ) -> None:
     with responses.RequestsMock() as rsps:
         rsps.add(
@@ -27,7 +27,7 @@ def test_it_creates_a_dataset(
 
 
 def test_it_raises_an_error_on_http_error(
-    basic_dataset: DatasetCore, base_client: ClientCore
+    basic_dataset: dict, base_client: ClientCore
 ) -> None:
     with raises(BadRequest):
         with responses.RequestsMock() as rsps:

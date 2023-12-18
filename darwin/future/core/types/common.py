@@ -41,10 +41,6 @@ class TeamSlug(str):
     max_length = 256
 
     @classmethod
-    def __get_validators__(cls):  # type: ignore
-        yield cls.validate
-
-    @classmethod
     def validate(cls, v: str) -> "TeamSlug":
         assert (
             len(v) < cls.max_length
