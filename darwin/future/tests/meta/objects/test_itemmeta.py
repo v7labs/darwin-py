@@ -102,7 +102,7 @@ def test_move_to_folder_raises_on_incorrect_parameters(item: Item) -> None:
             json={},
         )
         with pytest.raises(BadRequest):
-            item.move_to_folder(path) # type: ignore
+            item.move_to_folder(path)  # type: ignore
 
 
 def test_move_to_folder_with_bad_team_slug(item: Item) -> None:
@@ -160,7 +160,7 @@ def test_set_priority_raises_on_incorrect_parameters(item: Item) -> None:
             json={},
         )
         with pytest.raises(BadRequest):
-            item.set_priority(priority) # type: ignore
+            item.set_priority(priority)  # type: ignore
 
 
 def test_set_priority_with_bad_team_slug(item: Item) -> None:
@@ -259,7 +259,7 @@ def test_set_layout_raises_on_incorrect_parameters(item: Item) -> None:
         item.meta_params["dataset_id"]
         layout = "invalid_layout"
         with pytest.raises(AssertionError):
-            item.set_layout(layout) # type: ignore
+            item.set_layout(layout)  # type: ignore
 
 
 def test_set_layout_with_bad_team_slug(item: Item) -> None:
@@ -298,7 +298,7 @@ def test_tag_bad_input(item: Item) -> None:
     with responses.RequestsMock():
         tag_id = "123456"
         with pytest.raises(BadRequest) as excinfo:
-            item.tag(tag_id) # type: ignore
+            item.tag(tag_id)  # type: ignore
         (msg,) = excinfo.value.args
         assert msg == "tag_id must be an integer, got <class 'str'>"
 
@@ -332,7 +332,7 @@ def test_untag_bad_input(item: Item) -> None:
     with responses.RequestsMock():
         tag_id = "123456"
         with pytest.raises(BadRequest) as excinfo:
-            item.untag(tag_id) # type: ignore
+            item.untag(tag_id)  # type: ignore
         (msg,) = excinfo.value.args
         assert msg == "tag_id must be an integer, got <class 'str'>"
 

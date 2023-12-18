@@ -92,6 +92,6 @@ def test_tag_items_bad_request_error(base_client: ClientCore) -> None:
             client=base_client,
             team_slug=team_slug,
             dataset_ids=dataset_ids,
-            tag_id=tag_id, # type: ignore
+            tag_id=tag_id,  # type: ignore
             filters=filters,
         )

@@ -7,7 +7,9 @@ from darwin.future.tests.meta.objects.fixtures import *
 
 
 def test_item_set_stage_with_stage_object(
-    workflow: Workflow, base_single_workflow_object: list, base_items_json_response: dict
+    workflow: Workflow,
+    base_single_workflow_object: list,
+    base_items_json_response: dict,
 ) -> None:
     with responses.RequestsMock() as rsps:
         rsps.add(

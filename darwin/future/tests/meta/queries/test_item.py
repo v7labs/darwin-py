@@ -146,7 +146,7 @@ def test_move_to_folder_raises_on_incorrect_parameters(
             json={},
         )
         with pytest.raises(BadRequest):
-            item_query.move_to_folder(path) # type: ignore
+            item_query.move_to_folder(path)  # type: ignore
 
 
 def test_set_priority(
@@ -223,7 +223,7 @@ def test_set_priority_raises_on_incorrect_parameters(
             json={},
         )
         with pytest.raises(BadRequest):
-            item_query.set_priority(priority) # type: ignore
+            item_query.set_priority(priority)  # type: ignore
 
 
 def test_restore(
@@ -341,7 +341,7 @@ def test_set_layout_raises_on_incorrect_parameters(
         items[0].meta_params["dataset_id"]
         layout = "invalid_layout"
         with pytest.raises(AssertionError):
-            item_query.set_layout(layout) # type: ignore
+            item_query.set_layout(layout)  # type: ignore
 
 
 def test_tag(item_query: ItemQuery, items_json: List[dict], items: List[Item]) -> None:
@@ -386,7 +386,7 @@ def test_tag_bad_request(
     with responses.RequestsMock():
         tag_id = "123456"
         with pytest.raises(BadRequest) as excinfo:
-            item_query.tag(tag_id) # type: ignore
+            item_query.tag(tag_id)  # type: ignore
         (msg,) = excinfo.value.args
         assert msg == "tag_id must be an integer, got <class 'str'>"
 
@@ -435,6 +435,6 @@ def test_untag_bad_request(
     with responses.RequestsMock():
         tag_id = "123456"
         with pytest.raises(BadRequest) as excinfo:
-            item_query.untag(tag_id) # type: ignore
+            item_query.untag(tag_id)  # type: ignore
         (msg,) = excinfo.value.args
         assert msg == "tag_id must be an integer, got <class 'str'>"
