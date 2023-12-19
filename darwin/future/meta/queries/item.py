@@ -80,7 +80,7 @@ class ItemQuery(PaginatedQuery[Item]):
         filters = {"item_ids": [str(item) for item in ids]}
         delete_list_of_items(self.client, team_slug, dataset_ids, filters)
 
-    def move_to_folder(self, path) -> None:
+    def move_to_folder(self, path: str) -> None:
         if "team_slug" not in self.meta_params:
             raise ValueError("Must specify team_slug to query items")
 
