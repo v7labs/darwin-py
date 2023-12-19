@@ -11,6 +11,8 @@ from darwin.dataset.remote_dataset_v1 import RemoteDatasetV1
 from darwin.dataset.remote_dataset_v2 import RemoteDatasetV2
 from darwin.datatypes import Feature, JSONFreeForm
 from darwin.exceptions import NameTaken, NotFound
+from darwin.future.data_objects.properties import FullProperty
+from darwin.future.tests.core.fixtures import *  # noqa: F401, F403
 from tests.fixtures import *  # noqa: F401, F403
 
 
@@ -414,3 +416,121 @@ def test__get_item_count_should_tolerate_missing_members() -> None:
         )
         == 2
     )
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+class TestGetTeamProperties:
+    @responses.activate
+    def test_get_team_properties(self, darwin_client: Client) -> None:
+
+        responses.add(
+            responses.GET,
+            "http://localhost/apiv2/teams/v7-darwin-json-v1/properties?include_values=true",
+            json={
+                "properties": [
+                    {
+                        "annotation_class_id": 2558,
+                        "description": "test question",
+                        "id": "d7368686-d087-4d92-bfd9-8ae776c3ed3a",
+                        "name": "property question",
+                        "property_values": [
+                            {
+                                "color": "rgba(143,255,0,1.0)",
+                                "id": "3e40c575-41dc-43c9-87f9-7dc2b625650d",
+                                "position": 1,
+                                "type": "string",
+                                "value": {"value": "answer 1"},
+                            },
+                            {
+                                "color": "rgba(173,255,0,1.0)",
+                                "id": "18ebaad0-c22a-49db-b6c5-1de0da986f4e",
+                                "position": 2,
+                                "type": "string",
+                                "value": {"value": "answer 2"},
+                            },
+                            {
+                                "color": "rgba(82,255,0,1.0)",
+                                "id": "b67ae529-f612-4c9a-a175-5b98f1d81a6e",
+                                "position": 3,
+                                "type": "string",
+                                "value": {"value": "answer 3"},
+                            },
+                        ],
+                        "required": False,
+                        "slug": "property-question",
+                        "team_id": 128,
+                        "type": "multi_select",
+                    },
+                ]
+            },
+            status=200,
+        )
+        assert len(darwin_client.get_team_properties()) == 1
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+class TestCreateProperty:
+    @responses.activate
+    def test_create_property(self, darwin_client: Client, base_property_object: FullProperty) -> None:
+        responses.add(
+            responses.POST,
+            "http://localhost/apiv2/teams/v7-darwin-json-v1/properties",
+            json=base_property_object.dict(),
+            status=200,
+        )
+        _property = darwin_client.create_property(
+            team_slug="v7-darwin-json-v1",
+            params=base_property_object
+        )
+        assert isinstance(_property, FullProperty)
+        assert _property == base_property_object
+
+    @responses.activate
+    def test_create_property_from_json(self, darwin_client: Client, base_property_object: FullProperty) -> None:
+        responses.add(
+            responses.POST,
+            "http://localhost/apiv2/teams/v7-darwin-json-v1/properties",
+            json=base_property_object.dict(),
+            status=200,
+        )
+        _property = darwin_client.create_property(
+            team_slug="v7-darwin-json-v1",
+            params=base_property_object.dict()
+        )
+        assert isinstance(_property, FullProperty)
+        assert _property == base_property_object
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+class TestUpdateProperty:
+    @responses.activate
+    def test_update_property(self, darwin_client: Client, base_property_object: FullProperty) -> None:
+        property_id = base_property_object.id
+        responses.add(
+            responses.PUT,
+            f"http://localhost/apiv2/teams/v7-darwin-json-v1/properties/{property_id}",
+            json=base_property_object.dict(),
+            status=200,
+        )
+        _property = darwin_client.update_property(
+            team_slug="v7-darwin-json-v1",
+            params=base_property_object
+        )
+        assert isinstance(_property, FullProperty)
+        assert _property == base_property_object
+
+    @responses.activate
+    def test_update_property_from_json(self, darwin_client: Client, base_property_object: FullProperty) -> None:
+        property_id = base_property_object.id
+        responses.add(
+            responses.PUT,
+            f"http://localhost/apiv2/teams/v7-darwin-json-v1/properties/{property_id}",
+            json=base_property_object.dict(),
+            status=200,
+        )
+        _property = darwin_client.update_property(
+            team_slug="v7-darwin-json-v1",
+            params=base_property_object.dict()
+        )
+        assert isinstance(_property, FullProperty)
+        assert _property == base_property_object

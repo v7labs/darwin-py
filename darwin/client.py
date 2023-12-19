@@ -29,6 +29,17 @@ from darwin.exceptions import (
     Unauthorized,
     ValidationError,
 )
+from darwin.future.core.client import ClientCore, DarwinConfig
+from darwin.future.core.properties import create_property as create_property_future
+from darwin.future.core.properties import (
+    get_team_full_properties as get_team_full_properties_future,
+)
+from darwin.future.core.properties import (
+    get_team_properties as get_team_properties_future,
+)
+from darwin.future.core.properties import update_property as update_property_future
+from darwin.future.core.types.common import JSONDict
+from darwin.future.data_objects.properties import FullProperty
 from darwin.item import DatasetItem
 from darwin.utils import (
     get_response_content,
@@ -1474,3 +1485,40 @@ class Client:
         if not team:
             raise ValueError("No team was found.")
         return BackendV2(self, team.slug)
+
+    def get_team_properties(
+        self, team_slug: Optional[str] = None, include_property_values: bool = True
+    ) -> List[FullProperty]:
+        darwin_config = DarwinConfig.from_old(self.config)
+        future_client = ClientCore(darwin_config)
+
+        if not include_property_values:
+            return get_team_properties_future(
+                client=future_client,
+                team_slug=team_slug or self.default_team,
+            )
+
+        return get_team_full_properties_future(
+            client=future_client,
+            team_slug=team_slug or self.default_team,
+        )
+
+    def create_property(self, team_slug: Optional[str], params: Union[FullProperty, JSONDict]) -> FullProperty:
+        darwin_config = DarwinConfig.from_old(self.config)
+        future_client = ClientCore(darwin_config)
+
+        return create_property_future(
+            client=future_client,
+            team_slug=team_slug or self.default_team,
+            params=params,
+        )
+
+    def update_property(self, team_slug: Optional[str], params: Union[FullProperty, JSONDict]) -> FullProperty:
+        darwin_config = DarwinConfig.from_old(self.config)
+        future_client = ClientCore(darwin_config)
+
+        return update_property_future(
+            client=future_client,
+            team_slug=team_slug or self.default_team,
+            params=params,
+        )

@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Mapping, Protocol, Union
 from darwin.future.data_objects import validators as darwin_validators
 
 JSONType = Union[Dict[str, Any], List[Dict[str, Any]]]  # type: ignore
+JSONDict = Dict[str, Any]  # type: ignore
 
 
 class Implements_str(Protocol):

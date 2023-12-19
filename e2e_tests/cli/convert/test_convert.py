@@ -87,7 +87,6 @@ class TestExportCli:
         assert_cli(result, 0)
         self.compare_directories(expectation_path, tmp_path)
 
-
     def patch_coco(self, path: Path) -> None:
         """
         Patch coco file to match the expected output, includes changes to year and date_created,
@@ -100,10 +99,13 @@ class TestExportCli:
                 temp["info"]["year"] = 2023
                 temp["info"]["date_created"] = "2023/12/05"
             with open(path, "w") as f:
-                op = json.dumps(temp, option=json.OPT_INDENT_2 | json.OPT_SERIALIZE_NUMPY).decode("utf-8")
+                op = json.dumps(
+                    temp, option=json.OPT_INDENT_2 | json.OPT_SERIALIZE_NUMPY
+                ).decode("utf-8")
                 f.write(op)
         except Exception:
             print(f"Error patching {path}")
+
 
 if __name__ == "__main__":
     pytest.main(["-vv", "-s", __file__])
