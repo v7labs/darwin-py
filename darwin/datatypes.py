@@ -66,6 +66,11 @@ JSONFreeForm = Dict[str, UnknownType]
 DictFreeForm = JSONFreeForm
 KeyValuePairDict = Dict[str, UnknownType]
 
+PropertyMismatch = Literal["type", "value_required"]
+PropertyMissing = Literal[
+    "annotation_missing", "property_missing_in_metadata", "property_missing_in_team"
+]
+
 
 class JSONType:
     def __init__(self, **kwargs: JSONFreeForm):
@@ -475,10 +480,10 @@ def split_paths_by_metadata(
     tuple[Path, Optional[list[PropertyClass]]]
         A tuple containing the path to the metadata file and the list of property classes.
     """
-    if not is_properties_enabled(path, dir, filename):
+    metadata_path = is_properties_enabled(path, dir, filename)
+    if isinstance(metadata_path, bool):
         return path, None
 
-    metadata_path = path / dir / filename
     metadata = parse_metadata(metadata_path)
     property_classes = parse_property_classes(metadata)
 
