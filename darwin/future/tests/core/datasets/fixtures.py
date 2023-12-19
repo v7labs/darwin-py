@@ -1,6 +1,5 @@
 from unittest.mock import MagicMock
 
-from pydantic import BaseModel, ValidationError
 from pytest import fixture
 from requests import HTTPError
 
@@ -77,11 +76,3 @@ def happy_get_client() -> ClientCore:
     ]
 
     return mock_client
-
-
-@fixture
-def sad_client_pydantic() -> ClientCore:
-    return MagicMock(
-        ClientCore,
-        side_effect=ValidationError(["error1", "error2", "error3"], model=BaseModel),
-    )

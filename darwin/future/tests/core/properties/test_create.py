@@ -14,7 +14,7 @@ def test_create_property(
     responses.add(
         responses.POST,
         f"{base_client.config.base_url}api/v2/teams/{base_client.config.default_team}/properties",
-        json=base_property_object.dict(),
+        json=base_property_object.model_dump(),
         status=200,
     )
     # Call the function being tested
@@ -38,7 +38,7 @@ def test_create_property_from_json(
     responses.add(
         responses.POST,
         f"{base_client.config.base_url}api/v2/teams/{base_client.config.default_team}/properties",
-        json=base_property_object.dict(),
+        json=base_property_object.model_dump(),
         status=200,
     )
     # Call the function being tested

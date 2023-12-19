@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class DefaultDarwin(BaseModel):
@@ -9,7 +9,4 @@ class DefaultDarwin(BaseModel):
         - objects are passed by reference to prevent unnecesary data copying
     """
 
-    class Config:
-        validate_assignment = True
-        underscore_attrs_are_private = True
-        copy_on_model_validation = "none"
+    model_config = ConfigDict(validate_assignment=True)

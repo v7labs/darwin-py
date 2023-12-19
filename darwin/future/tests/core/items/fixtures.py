@@ -44,7 +44,7 @@ def base_folders() -> List[Folder]:
 
 @pytest.fixture
 def base_items_json(base_items: List[ItemCore]) -> List[dict]:
-    items = [item.dict() for item in base_items]
+    items = [item.model_dump() for item in base_items]
     # json library doesn't support UUIDs so need to be str'd
     for item in items:
         item["id"] = str(item["id"])
@@ -53,7 +53,7 @@ def base_items_json(base_items: List[ItemCore]) -> List[dict]:
 
 @pytest.fixture
 def base_folders_json(base_folders: List[Folder]) -> List[dict]:
-    return [folder.dict() for folder in base_folders]
+    return [folder.model_dump() for folder in base_folders]
 
 
 @pytest.fixture
