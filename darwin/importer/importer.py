@@ -722,7 +722,6 @@ def import_annotations(  # noqa: C901
                 if parsed_file.slots and parsed_file.slots[0].name:
                     default_slot_name = parsed_file.slots[0].name
 
-                console.print(f"Importing {parsed_file.filename}", style="info")
                 metadata_path = is_properties_enabled(parsed_file.path)
 
                 errors, _ = _import_annotations(
