@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from functools import reduce
-from typing import Dict, Protocol
+from typing import Dict, List, Protocol, Union
 
+from darwin.future.core.client import ClientCore
 from darwin.future.core.items.archive_items import archive_list_of_items
 from darwin.future.core.items.delete_items import delete_list_of_items
 from darwin.future.core.items.get import list_items
@@ -14,7 +15,8 @@ from darwin.future.core.items.set_stage_to_items import set_stage_to_items
 from darwin.future.core.items.tag_items import tag_items
 from darwin.future.core.items.untag_items import untag_items
 from darwin.future.core.types.common import QueryString
-from darwin.future.core.types.query import PaginatedQuery
+from darwin.future.core.types.query import PaginatedQuery, QueryFilter
+from darwin.future.data_objects.advanced_filters import GroupFilter, SubjectFilter
 from darwin.future.data_objects.item import ItemLayout
 from darwin.future.data_objects.workflow import WFStageCore
 from darwin.future.exceptions import BadRequest
@@ -24,7 +26,6 @@ from darwin.future.meta.objects.item import Item
 class hasStage(Protocol):
     # Using Protocol to avoid circular imports between item.py and stage.py
     _element: WFStageCore
-
 
 class ItemQuery(PaginatedQuery[Item]):
     def _collect(self) -> Dict[int, Item]:
@@ -279,3 +280,13 @@ class ItemQuery(PaginatedQuery[Item]):
         set_stage_to_items(
             self.client, team_slug, dataset_ids, stage_id, workflow_id, filters
         )
+
+    def where(self, **kwargs: Union[str, GroupFilter, List[SubjectFilter]]) -> ItemQuery:
+        for key, value in kwargs.items():
+            if isinstance(value, str):
+                return super().where(**{key: value})
+            elif isinstance(value, SubjectFilter):
+                self.filters.append(QueryFilter(key, value.to_dict()))
+            elif isinstance(value, list):
+                self.filters.append(QueryFilter(key, [v.to_dict() for v in value]))
+        return self

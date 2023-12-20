@@ -5,9 +5,11 @@ from enum import Enum
 from typing import Any, Callable, Dict, Generic, List, Optional, TypeVar
 
 from pydantic import field_validator
+from typing_extensions import Self
 
 from darwin.future.core.client import ClientCore
 from darwin.future.core.types.common import Stringable
+from darwin.future.data_objects.advanced_filters import GroupFilter, SubjectFilter
 from darwin.future.data_objects.page import Page
 from darwin.future.exceptions import (
     InvalidQueryFilter,
@@ -136,9 +138,9 @@ class Query(Generic[T], ABC):
         _changed_since_last (bool): A boolean indicating whether the query has changed since the last execution.
 
     Methods:
-        filter(name: str, param: str, modifier: Optional[Modifier] = None) -> Query[T]:
+        filter(name: str, param: str, modifier: Optional[Modifier] = None) -> Self:
             Adds a filter to the query object and returns a new query object.
-        where(name: str, param: str, modifier: Optional[Modifier] = None) -> Query[T]:
+        where(name: str, param: str, modifier: Optional[Modifier] = None) -> Self:
             Applies a filter on the query object and returns a new query object.
         first() -> Optional[T]:
             Returns the first result of the query. Raises an exception if no results are found.
@@ -172,15 +174,15 @@ class Query(Generic[T], ABC):
         self.results: dict[int, T] = {}
         self._changed_since_last: bool = False
 
-    def filter(self, filter: QueryFilter) -> Query[T]:
+    def filter(self, filter: QueryFilter) -> Self:
         return self + filter
 
-    def __add__(self, filter: QueryFilter) -> Query[T]:
+    def __add__(self, filter: QueryFilter) -> Self:
         self._changed_since_last = True
         self.filters.append(filter)
         return self
 
-    def __sub__(self, filter: QueryFilter) -> Query[T]:
+    def __sub__(self, filter: QueryFilter) -> Self:
         self._changed_since_last = True
         return self.__class__(
             self.client,
@@ -188,12 +190,12 @@ class Query(Generic[T], ABC):
             meta_params=self.meta_params,
         )
 
-    def __iadd__(self, filter: QueryFilter) -> Query[T]:
+    def __iadd__(self, filter: QueryFilter) -> Self:
         self.filters.append(filter)
         self._changed_since_last = True
         return self
 
-    def __isub__(self, filter: QueryFilter) -> Query[T]:
+    def __isub__(self, filter: QueryFilter) -> Self:
         self.filters = [f for f in self.filters if f != filter]
         self._changed_since_last = True
         return self
@@ -203,7 +205,7 @@ class Query(Generic[T], ABC):
             self.results = {**self.results, **self._collect()}
         return len(self.results)
 
-    def __iter__(self) -> Query[T]:
+    def __iter__(self) -> Self:
         self.n = 0
         return self
 
@@ -227,7 +229,7 @@ class Query(Generic[T], ABC):
             self.results = {**self.results, **self._collect()}
         self.results[index] = value
 
-    def where(self, *args: object, **kwargs: str) -> Query[T]:
+    def where(self, *args: object, **kwargs: str) -> Self:
         filters = QueryFilter._from_args(*args, **kwargs)
         for item in filters:
             self += item
@@ -280,6 +282,7 @@ class PaginatedQuery(Query[T]):
         page: Page | None = None,
     ):
         super().__init__(client, filters, meta_params)
+        self._advanced_filters: GroupFilter | List[SubjectFilter] | None = None
         self.page = page or Page()
         self.completed = False
 

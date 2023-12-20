@@ -330,6 +330,7 @@ class PropertyValueID(SubjectFilter):
     @classmethod
     def none_of(cls, values: list[str]) -> PropertyValueID:
         return PropertyValueID(subject="property_value", matcher=NoneOf[str](values=values))
+
 class UpdatedAt(SubjectFilter):
     subject: Literal["updated_at"] = "updated_at"
     matcher: DateRange
