@@ -500,6 +500,30 @@ class Options:
             help="Comment box height in pixels",
         )
 
+        parser_config = subparsers.add_parser("config", help="Manage configurations")
+        config_subparsers = parser_config.add_subparsers(dest="config_command")
+
+        # new
+        config_subparsers.add_parser("new", help="Create a new configuration")
+
+        # list
+        config_subparsers.add_parser("list", help="List all configurations")
+
+        # add
+        config_subparsers.add_parser("add", help="Add a configuration")
+
+        # swap
+        config_swap = config_subparsers.add_parser("swap", help="Swap configurations")
+        config_swap.add_argument("name", type=str, help="Name of the configuration to swap to")
+
+        # team
+        config_team = config_subparsers.add_parser("team", help="Set team for configuration")
+        config_team.add_argument("name", type=str, help="Name of the team")
+
+        # validate
+        config_validate = config_subparsers.add_parser("validate", help="Validate a configuration")
+        config_validate.add_argument("name", type=str, help="Name of the configuration to validate")
+
         # Help
         dataset_action.add_parser("help", help="Show this help message and exit.")
 
