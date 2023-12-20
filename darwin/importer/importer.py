@@ -393,7 +393,6 @@ def _import_properties(
                 if option.value == {"value": a_prop.value} and option.type == a_prop.type:
                     break
             else:
-                breakpoint()
                 full_property = FullProperty(
                     id=t_prop.id,
                     name=a_prop.name,
