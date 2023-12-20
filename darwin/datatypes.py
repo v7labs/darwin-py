@@ -22,7 +22,7 @@ try:
 except ImportError:
     NDArray = Any  # type:ignore
 
-from darwin.future.data_objects.properties import SelectedProperty
+from darwin.future.data_objects.properties import PropertyType, SelectedProperty
 from darwin.path_utils import construct_full_path, is_properties_enabled, parse_metadata
 
 # Utility types
@@ -65,11 +65,6 @@ ItemId = Union[str, int]
 JSONFreeForm = Dict[str, UnknownType]
 DictFreeForm = JSONFreeForm
 KeyValuePairDict = Dict[str, UnknownType]
-
-PropertyMismatch = Literal["type", "value_required", "value_missing"]
-PropertyMissing = Literal[
-    "annotation_missing", "property_missing_in_metadata", "property_missing_in_team"
-]
 
 
 class JSONType:
@@ -410,13 +405,13 @@ class Property:
     name: str
 
     # Type of the property
-    type: str
+    type: PropertyType
 
     # Whether the property is required or not
     required: bool
 
     # Property options
-    options: list[dict[str, str]]
+    options: list[dict[str, Any]]
 
 
 @dataclass
