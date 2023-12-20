@@ -66,7 +66,7 @@ JSONFreeForm = Dict[str, UnknownType]
 DictFreeForm = JSONFreeForm
 KeyValuePairDict = Dict[str, UnknownType]
 
-PropertyMismatch = Literal["type", "value_required"]
+PropertyMismatch = Literal["type", "value_required", "value_missing"]
 PropertyMissing = Literal[
     "annotation_missing", "property_missing_in_metadata", "property_missing_in_team"
 ]

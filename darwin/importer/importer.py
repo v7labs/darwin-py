@@ -1,3 +1,5 @@
+import uuid
+from collections import Counter
 from logging import getLogger
 from multiprocessing import cpu_count
 from pathlib import Path
@@ -16,13 +18,19 @@ from typing import (
     Union,
 )
 
+from darwin import dataset
 from darwin.datatypes import (
     AnnotationFile,
     Property,
     PropertyClass,
     parse_property_classes,
 )
-from darwin.future.data_objects.properties import FullProperty, SelectedProperty
+from darwin.future.data_objects.properties import (
+    FullProperty,
+    PropertyType,
+    PropertyValue,
+    SelectedProperty,
+)
 from darwin.item import DatasetItem
 from darwin.path_utils import is_properties_enabled, parse_metadata
 
@@ -275,7 +283,10 @@ def _resolve_annotation_classes(
 
 
 def _import_properties(
-    metadata_path: Union[Path, bool], client: "Client", annotations: List[dt.Annotation]
+    metadata_path: Union[Path, bool],
+    client: "Client",
+    annotations: List[dt.Annotation],
+    annotation_class_ids_map: Dict[str, str],
 ):
     if not metadata_path:
         # No properties to import
@@ -291,61 +302,62 @@ def _import_properties(
     team_properties = client.get_team_properties()
 
     team_properties_lookup = {prop.name: prop for prop in team_properties}
-    metadata_classes_lookup = {_cls.name: _cls for _cls in metadata_property_classes}
+    team_properties_annotation_lookup: dict[tuple[str, int | None], FullProperty] = {(prop.name, prop.annotation_class_id): prop for prop in team_properties}
+    metadata_classes_lookup = {(_cls.name, _cls.type): _cls for _cls in metadata_property_classes}
 
     mismatched_properties: List[
         Tuple[SelectedProperty, Union[Property, FullProperty], PropertyMismatch]
     ] = []
-    missing_properties: List[Tuple[SelectedProperty, PropertyMissing]] = []
+    missing_properties: List[Tuple[SelectedProperty, PropertyMissing, FullProperty]] = []
     for annotation in annotations:
-        for a_prop in annotation.properties or []:
+        annotation_properties = annotation.properties or []
+        annotation_properties_counter = Counter(
+            [a_prop.name for a_prop in annotation_properties]
+        )
+
+        for a_prop in annotation_properties:
             a_prop: SelectedProperty
-
-            ## check Annotation (Annotation) exists in metadata (PropertyClass)
-            if annotation.annotation_class.name not in metadata_classes_lookup:
-                missing_properties.append((a_prop, "annotation_missing"))
-                continue
-
-            m_cls: PropertyClass = metadata_classes_lookup[
-                annotation.annotation_class.name
-            ]
-            m_props: List[Property] = m_cls.properties or []
-            m_props_lookup = {prop.name: prop for prop in m_props}
-
-            ## compare property (Annotation) w/ metadata class properties (PropertyClass -> Property)
-            if a_prop.name not in m_props_lookup:
-                missing_properties.append((a_prop, "property_missing_in_metadata"))
-                continue
-
-            m_prop: Property = m_props_lookup[a_prop.name]
-
-            # check if value is missing for a property that requires a value
-            if m_prop.required and not a_prop.value:
-                _msg = f"Annotation: '{annotation.annotation_class.name}' -> Property '{a_prop.name}' requires a value."
-                raise ValueError(_msg)
-
-            # check if value is different
-            for option in m_prop.options or []:
-                if option["value"] == a_prop.value:
-                    break
-            else:
-                mismatched_properties.append((a_prop, m_prop, "value_missing"))
-                continue
-
-            # check if type is different
-            for option in m_prop.options or []:
-                if option["type"] == a_prop.type:
-                    break
-            else:
-                mismatched_properties.append((a_prop, m_prop, "type"))
-                continue
+            annotation_name = annotation.annotation_class.name
+            annotation_class_id = int(annotation_class_ids_map[annotation_name])
 
             ## compare property (Annotation) w/ property (Team)
             if a_prop.name not in team_properties_lookup:
-                missing_properties.append((a_prop, "property_missing_in_team"))
+                # if it dosen't exist in team properties, create it
+                property_type = "multi_select" if annotation_properties_counter[a_prop.name] > 1 else "single_select"
+                full_property = FullProperty(
+                    name=a_prop.name,
+                    type=property_type,
+                    required=False,
+                    description="property-imported-during-annotation-import",
+                    slug=client.default_team,
+                    annotation_class_id=int(annotation_class_id),
+                    property_values=[PropertyValue(
+                        value=a_prop.value,
+                        color="rgba(0,0,0,0)",  # TODO: Hardcoded until 'auto' is supported
+                    )],
+                )
+                missing_properties.append((a_prop, "property_missing_in_team", full_property))
                 continue
 
-            t_prop: FullProperty = team_properties_lookup[a_prop.name]
+            if (a_prop.name, annotation_class_id) not in team_properties_annotation_lookup:
+                # if it exists, but not for this annotation class, create it
+                property_type = "multi_select" if annotation_properties_counter[a_prop.name] > 1 else "single_select"
+                full_property = FullProperty(
+                    name=a_prop.name,
+                    type=property_type,
+                    required=False,
+                    description="property-imported-during-annotation-import",
+                    slug=client.default_team,
+                    annotation_class_id=int(annotation_class_id),
+                    property_values=[PropertyValue(
+                        value=a_prop.value,
+                        color="rgba(0,0,0,0)",  # TODO: Hardcoded until 'auto' is supported
+                    )],
+                )
+                missing_properties.append((a_prop, "property_missing_in_team", full_property))
+                continue
+
+            t_prop: FullProperty = team_properties_annotation_lookup[(a_prop.name, annotation_class_id)]
 
             # check if type is different
             for property_value in t_prop.property_values or []:
@@ -357,7 +369,7 @@ def _import_properties(
 
             # check if value is missing for a property that requires a value
             if t_prop.required and not a_prop.value:
-                _msg = f"Annotation: '{annotation.annotation_class.name}' -> Property '{a_prop.name}' requires a value!"
+                _msg = f"Annotation: '{annotation_name}' -> Property '{a_prop.name}' requires a value!"
                 raise ValueError(_msg)
 
             # check if value is different
@@ -372,15 +384,103 @@ def _import_properties(
                 mismatched_properties.append((a_prop, t_prop, "value_missing"))
                 continue
 
+            # TODO: do we need to check if the property is in the metadata?
+            # ## check Annotation (Annotation) exists in metadata (PropertyClass)
+            # if (annotation_name, ) not in metadata_classes_lookup:
+            #     annotation_class_id = annotation_class_ids_map[annotation_name]
+            #     full_property = FullProperty(
+            #         name=a_prop.name,
+            #         type="text",
+            #         required=False,
+            #         description="property-imported-during-annotation-import",
+            #         slug=client.default_team,
+            #         annotation_class_id=int(annotation_class_id),
+            #         property_values=[PropertyValue(
+            #             value=a_prop.value,
+            #             color="rgba(0,0,0,0)",
+            #         )],
+            #     )
+            #     missing_properties.append((a_prop, "annotation_missing", full_property))
+            #     continue
+
+            # m_cls: PropertyClass = metadata_classes_lookup[annotation_name]
+            # m_props: List[Property] = m_cls.properties or []
+            # m_props_lookup = {prop.name: prop for prop in m_props}
+
+            # ## compare property (Annotation) w/ metadata class properties (PropertyClass -> Property)
+            # if a_prop.name not in m_props_lookup:
+            #     annotation_class_id = annotation_class_ids_map[annotation_name]
+            #     full_property = FullProperty(
+            #         name=a_prop.name,
+            #         type="text",
+            #         required=False,
+            #         description="property-imported-during-annotation-import",
+            #         slug=client.default_team,
+            #         annotation_class_id=int(annotation_class_id),
+            #         property_values=[PropertyValue(
+            #             value=a_prop.value,
+            #             color="rgba(0,0,0,0)",
+            #         )],
+            #     )
+            #     missing_properties.append((a_prop, "property_missing_in_metadata", full_property))
+            #     continue
+
+            # m_prop: Property = m_props_lookup[a_prop.name]
+
+            # # check if value is missing for a property that requires a value
+            # if m_prop.required and not a_prop.value:
+            #     _msg = f"Annotation: '{annotation_name}' -> Property '{a_prop.name}' requires a value."
+            #     raise ValueError(_msg)
+
+            # # check if value is different
+            # for option in m_prop.options or []:
+            #     if option["value"] == a_prop.value:
+            #         break
+            # else:
+            #     mismatched_properties.append((a_prop, m_prop, "value_missing"))
+            #     continue
+
+            # # check if type is different
+            # for option in m_prop.options or []:
+            #     if option["type"] == a_prop.type:
+            #         break
+            # else:
+            #     mismatched_properties.append((a_prop, m_prop, "type"))
+            #     continue
+
+    console = Console(theme=_console_theme())
+    if missing_properties:
+        for a_prop, missing, full_property in missing_properties:
+            _msg = f"Property missing: {a_prop.name} ({missing})"
+            console.print(_msg, style="warning")
+
+            if missing not in (
+                "annotation_missing",
+                "property_missing_in_metadata",
+                "property_missing_in_team"
+            ):
+                _msg = f"Unknown missing type: {missing}"
+                raise NotImplementedError(_msg)
+
+            breakpoint()
+            response = client.create_property(team_slug=full_property.slug, params=full_property)
+            breakpoint()
+
     if mismatched_properties:
         for a_prop, prop, mismatch in mismatched_properties:
-            print(f"Property mismatch: {a_prop.name} -> {prop.name} ({mismatch})")
+            _msg = f"Property mismatch: {a_prop.name} -> {prop.name} ({mismatch})"
+            console.print(_msg, style="warning")
+            if mismatch == "type":
+                ...
+            elif mismatch == "value_required":
+                ...
+            elif mismatch == "value_missing":
+                ...
+            else:
+                _msg = f"Unknown mismatch type: {mismatch}"
+                raise NotImplementedError(_msg)
 
-    if missing_properties:
-        for a_prop, missing in missing_properties:
-            print(f"Property missing: {a_prop.name} ({missing})")
-
-    breakpoint()
+    return missing_properties, mismatched_properties
 
 
 def import_annotations(  # noqa: C901
@@ -677,12 +777,8 @@ def import_annotations(  # noqa: C901
                 if parsed_file.slots and parsed_file.slots[0].name:
                     default_slot_name = parsed_file.slots[0].name
 
+                console.print(f"Importing {parsed_file.filename}", style="info")
                 metadata_path = is_properties_enabled(parsed_file.path)
-                _import_properties(
-                    metadata_path,
-                    dataset.client,
-                    parsed_file.annotations,  # type: ignore
-                )
 
                 errors, _ = _import_annotations(
                     dataset.client,
@@ -696,6 +792,7 @@ def import_annotations(  # noqa: C901
                     delete_for_empty,
                     import_annotators,
                     import_reviewers,
+                    metadata_path,
                 )
 
                 if errors:
@@ -864,6 +961,7 @@ def _import_annotations(
     delete_for_empty: bool,  # TODO: This is unused, should it be?
     import_annotators: bool,
     import_reviewers: bool,
+    metadata_path: Union[Path, bool] = False,
 ) -> Tuple[dt.ErrorList, dt.Success]:
     errors: dt.ErrorList = []
     success: dt.Success = dt.Success.SUCCESS
@@ -871,6 +969,7 @@ def _import_annotations(
     rl: Optional[dt.Annotation] = None
     rl_dense_rle_ids: Optional[Set[str]] = None
     serialized_annotations = []
+    annotation_class_ids_map: Dict[str, str] = {}
     for annotation in annotations:
         annotation_class = annotation.annotation_class
         annotation_type = (
@@ -934,6 +1033,7 @@ def _import_annotations(
         # Insert the default slot name if not available in the import source
         annotation = _handle_slot_names(annotation, dataset.version, default_slot_name)
 
+        annotation_class_ids_map[annotation_class.name] = annotation_class_id
         serial_obj = {
             "annotation_class_id": annotation_class_id,
             "data": data,
@@ -956,6 +1056,15 @@ def _import_annotations(
     except Exception as e:
         errors.append(e)
         success = dt.Success.FAILURE
+
+    _import_properties(
+        metadata_path,
+        dataset.client,
+        annotations,  # type: ignore
+        annotation_class_ids_map,
+    )
+
+    breakpoint()
 
     return errors, success
 
