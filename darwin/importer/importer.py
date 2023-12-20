@@ -1004,7 +1004,7 @@ def _import_annotations(
 
     _import_properties(
         metadata_path,
-        dataset.client,
+        client,
         annotations,  # type: ignore
         annotation_class_ids_map,
     )
