@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 from typing import Dict, List, Literal, Optional, Tuple, Union
 
-from pydantic import validator
+from pydantic import field_validator
 
 from darwin.future.data_objects.pydantic_base import DefaultDarwin
 
@@ -32,19 +32,21 @@ class PropertyValue(DefaultDarwin):
         color (validator): Validates that the color is in rgba format
     """
 
-    id: Optional[str]
-    position: Optional[int]
+    id: Optional[str] = None
+    position: Optional[int] = None
     type: Literal["string"] = "string"
     value: Union[Dict[str, str], str]
     color: str = "auto"
 
-    @validator("color")
+    @field_validator("color")
+    @classmethod
     def validate_rgba(cls, v: str) -> str:
         if not v.startswith("rgba") and v != "auto":
             raise ValueError("Color must be in rgba format or 'auto'")
         return v
 
-    @validator("value")
+    @field_validator("value")
+    @classmethod
     def validate_value(cls, v: Union[Dict[str, str], str]) -> Dict[str, str]:
         """TODO: Replace once the value.value bug is fixed in the API"""
         if isinstance(v, str):
@@ -54,7 +56,7 @@ class PropertyValue(DefaultDarwin):
     def to_update_endpoint(self) -> Tuple[str, dict]:
         if self.id is None:
             raise ValueError("id must be set")
-        updated_base = self.dict(exclude={"id", "type"})
+        updated_base = self.model_dump(exclude={"id", "type"})
         return self.id, updated_base
 
 
@@ -69,23 +71,23 @@ class FullProperty(DefaultDarwin):
         options (List[PropertyOption]): List of all options for the property
     """
 
-    id: Optional[str]
+    id: Optional[str] = None
     name: str
     type: PropertyType
-    description: Optional[str]
+    description: Optional[str] = None
     required: bool
-    slug: Optional[str]
-    team_id: Optional[int]
-    annotation_class_id: Optional[int]
-    property_values: Optional[List[PropertyValue]]
-    options: Optional[List[PropertyValue]]
+    slug: Optional[str] = None
+    team_id: Optional[int] = None
+    annotation_class_id: Optional[int] = None
+    property_values: Optional[List[PropertyValue]] = None
+    options: Optional[List[PropertyValue]] = None
 
     def to_create_endpoint(
         self,
     ) -> dict:
         if self.annotation_class_id is None:
             raise ValueError("annotation_class_id must be set")
-        return self.dict(
+        return self.model_dump(
             include={
                 "name": True,
                 "type": True,
@@ -121,9 +123,9 @@ class MetaDataClass(DefaultDarwin):
 
     name: str
     type: str
-    description: Optional[str]
-    color: Optional[str]
-    sub_types: Optional[List[str]]
+    description: Optional[str] = None
+    color: Optional[str] = None
+    sub_types: Optional[List[str]] = None
     properties: List[FullProperty]
 
     @classmethod
@@ -139,7 +141,7 @@ class MetaDataClass(DefaultDarwin):
             raise ValueError(f"File {path} must be a json file")
         with open(path, "r") as f:
             data = json.load(f)
-        return [cls(**d) for d in data["classes"]]
+        return [cls.model_validate(d) for d in data["classes"]]
 
 
 class SelectedProperty(DefaultDarwin):

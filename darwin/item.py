@@ -42,7 +42,7 @@ class DatasetItem(BaseModel):
 
     #: The id of this ``DatasetItem``'s workflow. A ``None`` value means this ``DatasetItem`` is
     #: new and was never worked on, or was reset to the new state.
-    current_workflow_id: Optional[int]
+    current_workflow_id: Optional[int] = None
 
     #: The darwin path to this ``DatasetItem``.
     path: str
@@ -53,7 +53,7 @@ class DatasetItem(BaseModel):
 
     #: Metadata of this ``DatasetItem``'s workflow. A ``None`` value means this ``DatasetItem`` is
     #: new and was never worked on, or was reset to the new state.
-    current_workflow: Optional[Dict[str, Any]]
+    current_workflow: Optional[Dict[str, Any]] = None
 
     @property
     def full_path(self) -> str:
@@ -137,16 +137,16 @@ def parse_dataset_item(raw: Dict[str, Any]) -> DatasetItem:
         A dataset item with the parsed information.
     """
     return DatasetItem(
-        raw["id"],
-        raw["filename"],
-        raw["status"],
-        raw["archived"],
-        raw["file_size"],
-        raw["dataset_id"],
-        "n/a",
-        raw["seq"],
-        raw.get("current_workflow_id"),
-        raw["path"],
-        [],
-        raw.get("current_workflow"),
+        id=raw["id"],
+        filename=raw["filename"],
+        status=raw["status"],
+        archived=raw["archived"],
+        filesize=raw["file_size"],
+        dataset_id=raw["dataset_id"],
+        dataset_slug="n/a",
+        seq=raw["seq"],
+        current_workflow_id=raw.get("current_workflow_id"),
+        path=raw["path"],
+        slots=[],
+        current_workflow=raw.get("current_workflow"),
     )

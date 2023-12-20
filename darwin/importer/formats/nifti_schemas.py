@@ -10,7 +10,7 @@ nifti_image_label_pair = {
         "image": {"type": "string"},
         "label": {"type": "string"},
         "class_map": class_map,
-        "mode": {"type": "string", "enum": ["video", "instances"]},
+        "mode": {"type": "string", "enum": ["video", "instances", "mask"]},
         "is_mpr": {"type": "boolean"},
         "slot_names": {"type": "array", "items": {"type": "string"}},
     },

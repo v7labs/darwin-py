@@ -18,7 +18,7 @@ def raw_json() -> dict:
 
 
 def test_loads_base_darwin_v2(raw_json: dict):
-    test = DarwinV2.parse_obj(raw_json)
+    test = DarwinV2.model_validate(raw_json)
     assert len(test.annotations) == 3
     assert isinstance(test.annotations[0], BoundingBoxAnnotation)
     assert isinstance(test.annotations[1], EllipseAnnotation)
@@ -27,28 +27,28 @@ def test_loads_base_darwin_v2(raw_json: dict):
 
 def test_bbox_annotation(raw_json: dict):
     bounds_annotation = raw_json["annotations"][0]
-    BoundingBoxAnnotation.parse_obj(bounds_annotation)
+    BoundingBoxAnnotation.model_validate(bounds_annotation)
 
 
 def test_ellipse_annotation(raw_json: dict):
     ellipse_annotation = raw_json["annotations"][1]
-    EllipseAnnotation.parse_obj(ellipse_annotation)
+    EllipseAnnotation.model_validate(ellipse_annotation)
 
 
 def test_polygon_annotation(raw_json: dict):
     polygon_annotation = raw_json["annotations"][2]
-    PolygonAnnotation.parse_obj(polygon_annotation)
+    PolygonAnnotation.model_validate(polygon_annotation)
 
 
 def test_polygon_bbx_validator(raw_json: dict):
     polygon_annotation = raw_json["annotations"][2]
     without_bbx = polygon_annotation.copy()
     del without_bbx["bounding_box"]
-    without_bb_annotation = PolygonAnnotation.parse_obj(without_bbx)
-    with_bb_annotation = PolygonAnnotation.parse_obj(polygon_annotation)
+    without_bb_annotation = PolygonAnnotation.model_validate(without_bbx)
+    with_bb_annotation = PolygonAnnotation.model_validate(polygon_annotation)
 
     assert without_bb_annotation.bounding_box is not None
     assert with_bb_annotation.bounding_box is not None
     assert without_bb_annotation == with_bb_annotation
     bounds_annotation = raw_json["annotations"][0]
-    BoundingBoxAnnotation.parse_obj(bounds_annotation)
+    BoundingBoxAnnotation.model_validate(bounds_annotation)

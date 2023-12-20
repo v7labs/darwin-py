@@ -33,7 +33,7 @@ def set_item_layout(
     """
     if not isinstance(layout, ItemLayout):
         try:
-            layout = ItemLayout(**layout)
+            layout = ItemLayout.model_validate(layout)
         except (ValueError, ValidationError):
             raise BadRequest("Invalid layout provided")
 

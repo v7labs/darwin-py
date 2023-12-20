@@ -91,25 +91,25 @@ def test_bitwise_syntax() -> None:
 # test instantiatiors and factories
 def test_annotation_class() -> None:
     assert AF.AnnotationClass.all_of([1, 2, 3]) == AF.AnnotationClass(
-        matcher=AF.AllOf(values=[1, 2, 3])
+        matcher=AF.AllOf[int](values=[1, 2, 3])
     )
     assert AF.AnnotationClass.none_of([1, 2, 3]) == AF.AnnotationClass(
-        matcher=AF.NoneOf(values=[1, 2, 3])
+        matcher=AF.NoneOf[int](values=[1, 2, 3])
     )
     assert AF.AnnotationClass.any_of([1, 2, 3]) == AF.AnnotationClass(
-        matcher=AF.AnyOf(values=[1, 2, 3])
+        matcher=AF.AnyOf[int](values=[1, 2, 3])
     )
 
 
 def test_assignee() -> None:
     assert AF.Assignee.all_of([1, 2, 3]) == AF.Assignee(
-        matcher=AF.AllOf(values=[1, 2, 3])
+        matcher=AF.AllOf[int](values=[1, 2, 3])
     )
     assert AF.Assignee.none_of([1, 2, 3]) == AF.Assignee(
-        matcher=AF.NoneOf(values=[1, 2, 3])
+        matcher=AF.NoneOf[int](values=[1, 2, 3])
     )
     assert AF.Assignee.any_of([1, 2, 3]) == AF.Assignee(
-        matcher=AF.AnyOf(values=[1, 2, 3])
+        matcher=AF.AnyOf[int](values=[1, 2, 3])
     )
 
 
@@ -131,23 +131,23 @@ def test_created_at() -> None:
 
 def test_current_assignee() -> None:
     assert AF.CurrentAssignee.none_of([1, 2, 3]) == AF.CurrentAssignee(
-        matcher=AF.NoneOf(values=[1, 2, 3])
+        matcher=AF.NoneOf[int](values=[1, 2, 3])
     )
     assert AF.CurrentAssignee.any_of([1, 2, 3]) == AF.CurrentAssignee(
-        matcher=AF.AnyOf(values=[1, 2, 3])
+        matcher=AF.AnyOf[int](values=[1, 2, 3])
     )
 
 
 @pytest.mark.parametrize("file_type", FileTypesParameters)
 def test_file_type(file_type: AF.AcceptedFileTypes) -> None:
     assert AF.FileType.any_of([file_type]) == AF.FileType(
-        matcher=AF.AnyOf(values=[file_type])
+        matcher=AF.AnyOf[AF.AcceptedFileTypes](values=[file_type])
     )
     assert AF.FileType.none_of([file_type]) == AF.FileType(
-        matcher=AF.NoneOf(values=[file_type])
+        matcher=AF.NoneOf[AF.AcceptedFileTypes](values=[file_type])
     )
     assert AF.FileType.any_of([file_type]) == AF.FileType(
-        matcher=AF.AnyOf(values=[file_type])
+        matcher=AF.AnyOf[AF.AcceptedFileTypes](values=[file_type])
     )
 
 
@@ -158,28 +158,28 @@ def test_file_type_breaks() -> None:
 
 def test_folder_path() -> None:
     assert AF.FolderPath.any_of(["test"]) == AF.FolderPath(
-        matcher=AF.AnyOf(values=["test"])
+        matcher=AF.AnyOf[str](values=["test"])
     )
     assert AF.FolderPath.none_of(["test"]) == AF.FolderPath(
-        matcher=AF.NoneOf(values=["test"])
+        matcher=AF.NoneOf[str](values=["test"])
     )
     assert AF.FolderPath.any_of(["test"]) == AF.FolderPath(
-        matcher=AF.AnyOf(values=["test"])
+        matcher=AF.AnyOf[str](values=["test"])
     )
 
 
 def test_id() -> None:
-    assert AF.ID.any_of(["test"]) == AF.ID(matcher=AF.AnyOf(values=["test"]))
-    assert AF.ID.none_of(["test"]) == AF.ID(matcher=AF.NoneOf(values=["test"]))
+    assert AF.ID.any_of(["test"]) == AF.ID(matcher=AF.AnyOf[str](values=["test"]))
+    assert AF.ID.none_of(["test"]) == AF.ID(matcher=AF.NoneOf[str](values=["test"]))
 
 
 @pytest.mark.parametrize("issue_type", IssueTypes)
 def test_issue(issue_type: AF.IssueType) -> None:
     assert AF.Issue.any_of([issue_type]) == AF.Issue(
-        matcher=AF.AnyOf(values=[issue_type])
+        matcher=AF.AnyOf[AF.IssueType](values=[issue_type])
     )
     assert AF.Issue.none_of([issue_type]) == AF.Issue(
-        matcher=AF.NoneOf(values=[issue_type])
+        matcher=AF.NoneOf[AF.IssueType](values=[issue_type])
     )
 
 
@@ -190,10 +190,10 @@ def test_issue_breaks() -> None:
 
 def test_item_name() -> None:
     assert AF.ItemName.any_of(["test"]) == AF.ItemName(
-        matcher=AF.AnyOf(values=["test"])
+        matcher=AF.AnyOf[str](values=["test"])
     )
     assert AF.ItemName.none_of(["test"]) == AF.ItemName(
-        matcher=AF.NoneOf(values=["test"])
+        matcher=AF.NoneOf[str](values=["test"])
     )
     assert AF.ItemName.prefix("test") == AF.ItemName(matcher=AF.Prefix(value="test"))
     assert AF.ItemName.suffix("test") == AF.ItemName(matcher=AF.Suffix(value="test"))
@@ -208,10 +208,10 @@ def test_item_name() -> None:
 @pytest.mark.parametrize("processing_status", ProcessingStatusTypes)
 def test_processing_status(processing_status: AF.ProcessingStatusType) -> None:
     assert AF.ProcessingStatus.any_of([processing_status]) == AF.ProcessingStatus(
-        matcher=AF.AnyOf(values=[processing_status])
+        matcher=AF.AnyOf[AF.ProcessingStatusType](values=[processing_status])
     )
     assert AF.ProcessingStatus.none_of([processing_status]) == AF.ProcessingStatus(
-        matcher=AF.NoneOf(values=[processing_status])
+        matcher=AF.NoneOf[AF.ProcessingStatusType](values=[processing_status])
     )
 
 
@@ -239,10 +239,10 @@ def test_updated_at() -> None:
 @pytest.mark.parametrize("workflow_status", WorkflowStatusTypes)
 def test_workflow_status(workflow_status: AF.WorkflowStatusType) -> None:
     assert AF.WorkflowStatus.any_of([workflow_status]) == AF.WorkflowStatus(
-        matcher=AF.AnyOf(values=[workflow_status])
+        matcher=AF.AnyOf[AF.WorkflowStatusType](values=[workflow_status])
     )
     assert AF.WorkflowStatus.none_of([workflow_status]) == AF.WorkflowStatus(
-        matcher=AF.NoneOf(values=[workflow_status])
+        matcher=AF.NoneOf[AF.WorkflowStatusType](values=[workflow_status])
     )
 
 
@@ -253,10 +253,10 @@ def test_workflow_status_breaks() -> None:
 
 def test_workflow_stage() -> None:
     assert AF.WorkflowStage.any_of(["test"]) == AF.WorkflowStage(
-        matcher=AF.AnyOf(values=["test"])
+        matcher=AF.AnyOf[str](values=["test"])
     )
     assert AF.WorkflowStage.none_of(["test"]) == AF.WorkflowStage(
-        matcher=AF.NoneOf(values=["test"])
+        matcher=AF.NoneOf[str](values=["test"])
     )
 
 

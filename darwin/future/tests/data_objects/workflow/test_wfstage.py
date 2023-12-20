@@ -2,6 +2,7 @@ from json import loads
 from uuid import UUID
 
 import pytest
+from pydantic import ValidationError
 
 from darwin.future.data_objects.workflow import WFStageCore
 from darwin.future.tests.data_objects.fixtures import test_data_path
@@ -30,8 +31,7 @@ def test_raises_with_invalid_uuid() -> None:
     dict_from_json = loads(validate_json.read_text())
     dict_from_json["id"] = "not-a-uuid"
 
-    with pytest.raises(ValueError) as excinfo:
-        WFStageCore.parse_obj(dict_from_json)
+    with pytest.raises(ValidationError) as excinfo:
+        WFStageCore.model_validate(dict_from_json)
 
-    assert "not a valid uuid" in str(excinfo.value)
     assert str(excinfo.value).startswith("1 validation error for WFStageCore\nid")
