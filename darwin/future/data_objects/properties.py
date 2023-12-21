@@ -157,5 +157,5 @@ class SelectedProperty(DefaultDarwin):
 
     frame_index: int
     name: str
-    type: str
+    type: Literal["string"] = "string"
     value: str

@@ -345,10 +345,9 @@ def _import_properties(
                 raise ValueError(_msg)
 
             # check if property and annotation class exists in team
-            if (
-                a_prop.name,
-                annotation_class_id,
-            ) not in team_properties_annotation_lookup:
+            if (a_prop.name, annotation_class_id) \
+                not in team_properties_annotation_lookup:
+
                 # if it doesn't exist, create it
                 full_property = FullProperty(
                     name=a_prop.name,
@@ -371,17 +370,14 @@ def _import_properties(
                 continue
 
             # check if property value/type is different in m_prop (.v7/metadata.json) options
-            for option in m_prop.options:
-                if (
-                    option.get("value") == a_prop.value
-                    and option.get("type") == a_prop.type
-                ):
+            for m_prop_option in m_prop_options:
+                if m_prop_option.get("value") == a_prop.value:
                     break
             else:
                 _msg = f"Annotation: '{annotation_name}' -> Property '{a_prop.value}' ({a_prop.type}) not found in .v7/metadata.json, found: {m_prop.options}"
                 raise ValueError(_msg)
 
-            # get team propertyproperty_values
+            # get team property
             t_prop: FullProperty = team_properties_annotation_lookup[
                 (a_prop.name, annotation_class_id)
             ]
@@ -391,14 +387,12 @@ def _import_properties(
                 _msg = f"Annotation: '{annotation_name}' -> Property '{a_prop.name}' requires a value!"
                 raise ValueError(_msg)
 
-            # check if property value/type is different
-            for option in t_prop.property_values or []:
-                if (
-                    option.value == {"value": a_prop.value}
-                    and option.type == a_prop.type
-                ):
+            # check if property value/type is different in t_prop (team) options
+            for t_prop_val in t_prop.property_values or []:
+                if t_prop_val.value == {"value": a_prop.value} and t_prop_val.type == a_prop.type:
                     break
             else:
+                # if it is, update it
                 full_property = FullProperty(
                     id=t_prop.id,
                     name=a_prop.name,
@@ -409,12 +403,10 @@ def _import_properties(
                     annotation_class_id=int(annotation_class_id),
                     property_values=[
                         PropertyValue(
-                            position=m_prop_option.get("position"),  # type: ignore
                             type=m_prop_option.get("type"),  # type: ignore
-                            value=m_prop_option.get("value"),  # type: ignore
+                            value={"value": m_prop_option.get("value")},  # type: ignore
                             color=m_prop_option.get("color"),  # type: ignore
                         )
-                        for m_prop_option in m_prop_options
                     ],
                 )
                 update_properties.append(full_property)
