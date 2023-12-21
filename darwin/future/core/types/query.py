@@ -282,7 +282,7 @@ class PaginatedQuery(Query[T]):
         page: Page | None = None,
     ):
         super().__init__(client, filters, meta_params)
-        self._advanced_filters: GroupFilter | List[SubjectFilter] | None = None
+        self._advanced_filters: GroupFilter | SubjectFilter | None = None
         self.page = page or Page()
         self.completed = False
 

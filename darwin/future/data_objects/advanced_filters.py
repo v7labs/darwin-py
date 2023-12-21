@@ -90,10 +90,14 @@ class SubjectFilter(BaseModel):
     subject: str
     matcher: BaseMatcher
 
-    def __and__(self, other: SubjectFilter) -> GroupFilter:
+    def __and__(self, other: SubjectFilter | GroupFilter) -> GroupFilter:
+        if isinstance(other, GroupFilter):
+            return GroupFilter(conjunction="and", filters=[self, other])
         return GroupFilter(conjunction="and", filters=[self, other])
 
-    def __or__(self, other: SubjectFilter) -> GroupFilter:
+    def __or__(self, other: SubjectFilter | GroupFilter) -> GroupFilter:
+        if isinstance(other, GroupFilter):
+            return GroupFilter(conjunction="or", filters=[self, other])
         return GroupFilter(conjunction="or", filters=[self, other])
 
 

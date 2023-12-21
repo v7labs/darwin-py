@@ -281,12 +281,14 @@ class ItemQuery(PaginatedQuery[Item]):
             self.client, team_slug, dataset_ids, stage_id, workflow_id, filters
         )
 
-    def where(self, **kwargs: Union[str, GroupFilter, List[SubjectFilter]]) -> ItemQuery:
-        for key, value in kwargs.items():
-            if isinstance(value, str):
-                return super().where(**{key: value})
-            elif isinstance(value, SubjectFilter):
-                self.filters.append(QueryFilter(key, value.to_dict()))
-            elif isinstance(value, list):
-                self.filters.append(QueryFilter(key, [v.to_dict() for v in value]))
+    def where(self, *args: GroupFilter | SubjectFilter, **kwargs: str) -> ItemQuery:
+        if len(args) > 0 and len(kwargs) > 0:
+            raise ValueError("Cannot specify both args and kwargs")
+        if len(kwargs) > 1:
+            return super().where(**kwargs)
+        arg_list = list(args)
+        if self._advanced_filters is None:
+            self._advanced_filters = arg_list.pop(0)
+        for arg in arg_list:
+            self._advanced_filters = self._advanced_filters & arg
         return self
