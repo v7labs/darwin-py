@@ -747,6 +747,7 @@ def _import_annotations(
 
     rl: Optional[dt.Annotation] = None
     rl_dense_rle_ids: Optional[Set[str]] = None
+    rl_dense_rle_ids_frames: Optional[Dict[int, Set[str]]] = None
     serialized_annotations = []
     for annotation in annotations:
         annotation_class = annotation.annotation_class
@@ -788,21 +789,45 @@ def _import_annotations(
                     ),
                     None,
                 )
-            if rl and rl_dense_rle_ids is None:
-                rl_dense_rle_ids = set(rl.data["dense_rle"][::2])
-            if rl is not None and rl_dense_rle_ids is not None:
-                # check if the 'annotation_class_id' is in raster_layer's mask_annotation_ids_mapping dict
-                _annotation_id = annotation.id
-                if (
-                    rl.data["mask_annotation_ids_mapping"][_annotation_id]
-                    not in rl_dense_rle_ids
-                ):
-                    # skip import of the mask, and remove it from mask_annotation_ids_mapping
-                    logger.warning(
-                        f"Skipping import of mask annotation '{annotation_class.name}' as it does not have a corresponding raster layer"
-                    )
-                    del rl.data["mask_annotation_ids_mapping"][_annotation_id]
-                    continue
+            if rl:
+                if rl_dense_rle_ids_frames is None and isinstance(annotation, dt.VideoAnnotation):
+                    assert isinstance(rl, dt.VideoAnnotation)
+                    for frame_index, _rl in rl.frames.items():
+                        rl_dense_rle_ids_frames = {}
+                        rl_dense_rle_ids_frames[frame_index] = set(_rl.data["dense_rle"][::2])
+                if rl_dense_rle_ids is None and isinstance(annotation, dt.Annotation):
+                    assert isinstance(rl, dt.Annotation)
+                    rl_dense_rle_ids = set(rl.data["dense_rle"][::2])
+            if rl is not None:
+                if rl_dense_rle_ids is not None and isinstance(annotation, dt.Annotation):
+                    assert isinstance(rl, dt.Annotation)
+                    # check if the 'annotation_class_id' is in raster_layer's mask_annotation_ids_mapping dict
+                    _annotation_id = annotation.id
+                    if (
+                        rl.data["mask_annotation_ids_mapping"][_annotation_id]
+                        not in rl_dense_rle_ids
+                    ):
+                        # skip import of the mask, and remove it from mask_annotation_ids_mapping
+                        logger.warning(
+                            f"Skipping import of mask annotation '{annotation_class.name}' as it does not have a corresponding raster layer"
+                        )
+                        del rl.data["mask_annotation_ids_mapping"][_annotation_id]
+                        continue
+                if rl_dense_rle_ids_frames is not None and isinstance(annotation, dt.VideoAnnotation):
+                    assert isinstance(rl, dt.VideoAnnotation)
+                    for frame_index, _annotation in annotation.frames.items():
+                        # check if the 'annotation_class_id' is in raster_layer's mask_annotation_ids_mapping dict
+                        _annotation_id = _annotation.id
+                        if (
+                            rl.frames[frame_index].data["mask_annotation_ids_mapping"][_annotation_id]
+                            not in rl_dense_rle_ids_frames[frame_index]
+                        ):
+                            # skip import of the mask, and remove it from mask_annotation_ids_mapping
+                            logger.warning(
+                                f"Skipping import of mask annotation '{_annotation.annotation_class.name}' as it does not have a corresponding raster layer"
+                            )
+                            del rl.frames[frame_index]["mask_annotation_ids_mapping"][_annotation_id]
+                            continue
 
         actors: List[dt.DictFreeForm] = []
         actors.extend(_handle_annotators(annotation, import_annotators))
