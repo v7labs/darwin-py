@@ -290,18 +290,17 @@ def _import_properties(
 
     # get team properties -> List[FullProperty]
     team_properties = client.get_team_properties()
-
     # (property-name, annotation_class_id): FullProperty object
     team_properties_annotation_lookup: Dict[
-        tuple[str, Union[int, None]], FullProperty
+        Tuple[str, Optional[int]], FullProperty
     ] = {}
     for prop in team_properties:
         team_properties_annotation_lookup[(prop.name, prop.annotation_class_id)] = prop
 
     # (annotation-cls-name, annotation-cls-name): PropertyClass object
-    # (annotation-cls-name, property-name): Property object
     metadata_classes_lookup: List[Tuple[str, str]] = []
-    metadata_cls_prop_lookup: Dict[tuple[str, str], Property] = {}
+    # (annotation-cls-name, property-name): Property object
+    metadata_cls_prop_lookup: Dict[Tuple[str, str], Property] = {}
     for _cls in metadata_property_classes:
         metadata_classes_lookup += [(_cls.name, _cls.type)]
         for _prop in _cls.properties or []:
@@ -311,22 +310,25 @@ def _import_properties(
     update_properties: List[FullProperty] = []
     for annotation in annotations:
         annotation_name = annotation.annotation_class.name
+        annotation_type = annotation_type = (
+            annotation.annotation_class.annotation_internal_type
+            or annotation.annotation_class.annotation_type
+        )
         annotation_class_id = int(annotation_class_ids_map[annotation_name])
 
-        # raise error if annotation not present in metadata
-        if (annotation_name, annotation.annotation_class.annotation_type) not in metadata_classes_lookup:
-            raise ValueError(
-                f"Annotation: '{annotation_name}' not found in .v7/metadata.json"
-            )
+        # raise error if annotation class not present in metadata
+        if (annotation_name, annotation_type) not in metadata_classes_lookup:
+            _msg = f"Annotation: '{annotation_name}' not found in {metadata_path}"
+            raise ValueError(_msg)
 
+        # loop on annotation properties and check if they exist in metadata & team
         for a_prop in annotation.properties or []:
             a_prop: SelectedProperty
 
             # raise error if annotation-property not present in metadata
             if (annotation_name, a_prop.name) not in metadata_cls_prop_lookup:
-                raise ValueError(
-                    f"Annotation: '{annotation_name}' -> Property '{a_prop.name}' not found in .v7/metadata.json"
-                )
+                _msg = f"Annotation: '{annotation_name}' -> Property '{a_prop.name}' not found in {metadata_path}"
+                raise ValueError(_msg)
 
             # get metadata property
             m_prop: Property = metadata_cls_prop_lookup[(annotation_name, a_prop.name)]
@@ -335,13 +337,12 @@ def _import_properties(
             m_prop_type: PropertyType = m_prop.type
 
             # get metadata property options
-            m_prop_options: List[dict[str, str]] = m_prop.options or []
+            m_prop_options: List[Dict[str, str]] = m_prop.options or []
 
             # check if property value is missing for a property that requires a value
             if m_prop.required and not a_prop.value:
-                raise ValueError(
-                    f"Annotation: '{annotation_name}' -> Property '{a_prop.name}' requires a value!"
-                )
+                _msg = f"Annotation: '{annotation_name}' -> Property '{a_prop.name}' requires a value!"
+                raise ValueError(_msg)
 
             # check if property and annotation class exists in team
             if (
@@ -351,8 +352,8 @@ def _import_properties(
                 # if it doesn't exist, create it
                 full_property = FullProperty(
                     name=a_prop.name,
-                    type=m_prop_type,
-                    required=m_prop.required,
+                    type=m_prop_type,  # type from .v7/metadata.json
+                    required=m_prop.required,  # required from .v7/metadata.json
                     description="property-created-during-annotation-import",
                     slug=client.default_team,
                     annotation_class_id=int(annotation_class_id),
@@ -363,15 +364,18 @@ def _import_properties(
                             value=m_prop_option.get("value"),  # type: ignore
                             color=m_prop_option.get("color"),  # type: ignore
                         )
-                        for m_prop_option in m_prop_options
+                        for m_prop_option in m_prop_options  # options from .v7/metadata.json
                     ],
                 )
                 create_properties.append(full_property)
                 continue
 
-            # check if property value/type is different in m_prop
+            # check if property value/type is different in m_prop (.v7/metadata.json) options
             for option in m_prop.options:
-                if option.get("value") == a_prop.value and option.get("type") == a_prop.type:
+                if (
+                    option.get("value") == a_prop.value
+                    and option.get("type") == a_prop.type
+                ):
                     break
             else:
                 _msg = f"Annotation: '{annotation_name}' -> Property '{a_prop.value}' ({a_prop.type}) not found in .v7/metadata.json, found: {m_prop.options}"
@@ -384,13 +388,15 @@ def _import_properties(
 
             # check if property value is missing for a property that requires a value
             if t_prop.required and not a_prop.value:
-                raise ValueError(
-                    f"Annotation: '{annotation_name}' -> Property '{a_prop.name}' requires a value!"
-                )
+                _msg = f"Annotation: '{annotation_name}' -> Property '{a_prop.name}' requires a value!"
+                raise ValueError(_msg)
 
             # check if property value/type is different
             for option in t_prop.property_values or []:
-                if option.value == {"value": a_prop.value} and option.type == a_prop.type:
+                if (
+                    option.value == {"value": a_prop.value}
+                    and option.type == a_prop.type
+                ):
                     break
             else:
                 full_property = FullProperty(
@@ -411,17 +417,18 @@ def _import_properties(
                         for m_prop_option in m_prop_options
                     ],
                 )
-                print(f"updating property: {full_property}")
                 update_properties.append(full_property)
                 continue
 
     console = Console(theme=_console_theme())
     if create_properties:
+        console.print(f"Creating {len(create_properties)} properties", style="info")
         for full_property in create_properties:
             _msg = f"Creating property {full_property.name} ({full_property.type})"
             console.print(_msg, style="info")
             client.create_property(team_slug=full_property.slug, params=full_property)
     if update_properties:
+        console.print(f"Updating {len(update_properties)} properties", style="info")
         for full_property in update_properties:
             _msg = f"Updating property {full_property.name} ({full_property.type})"
             console.print(_msg, style="info")
