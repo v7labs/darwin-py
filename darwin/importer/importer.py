@@ -280,7 +280,7 @@ def _import_properties(
     annotations: List[dt.Annotation],
     annotation_class_ids_map: Dict[str, str],
 ):
-    if not metadata_path or not isinstance(metadata_path, Path):
+    if not isinstance(metadata_path, Path):
         # No properties to import
         return
 
