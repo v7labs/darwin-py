@@ -303,10 +303,12 @@ class ProcessingStatus(SubjectFilter):
             subject="processing_status",
             matcher=NoneOf[ProcessingStatusType](values=values),
         )
+
+
 class PropertyID(SubjectFilter):
     subject: Literal["property_id"] = "property_id"
     matcher: Union[AnyOf[str], AllOf[str], NoneOf[str]]
-    
+
     @classmethod
     def any_of(cls, values: list[str]) -> PropertyID:
         return PropertyID(subject="property_id", matcher=AnyOf[str](values=values))
@@ -319,21 +321,29 @@ class PropertyID(SubjectFilter):
     def none_of(cls, values: list[str]) -> PropertyID:
         return PropertyID(subject="property_id", matcher=NoneOf[str](values=values))
 
+
 class PropertyValueID(SubjectFilter):
     subject: Literal["property_value"] = "property_value"
     matcher: Union[AnyOf[str], AllOf[str], NoneOf[str]]
-    
+
     @classmethod
     def any_of(cls, values: list[str]) -> PropertyValueID:
-        return PropertyValueID(subject="property_value", matcher=AnyOf[str](values=values))
+        return PropertyValueID(
+            subject="property_value", matcher=AnyOf[str](values=values)
+        )
 
     @classmethod
     def all_of(cls, values: list[str]) -> PropertyValueID:
-        return PropertyValueID(subject="property_value", matcher=AllOf[str](values=values))
+        return PropertyValueID(
+            subject="property_value", matcher=AllOf[str](values=values)
+        )
 
     @classmethod
     def none_of(cls, values: list[str]) -> PropertyValueID:
-        return PropertyValueID(subject="property_value", matcher=NoneOf[str](values=values))
+        return PropertyValueID(
+            subject="property_value", matcher=NoneOf[str](values=values)
+        )
+
 
 class UpdatedAt(SubjectFilter):
     subject: Literal["updated_at"] = "updated_at"

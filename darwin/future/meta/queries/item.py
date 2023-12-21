@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 from functools import reduce
-from typing import Dict, List, Protocol, Union
+from typing import Dict, Literal, Protocol
 
-from darwin.future.core.client import ClientCore
 from darwin.future.core.items.archive_items import archive_list_of_items
 from darwin.future.core.items.delete_items import delete_list_of_items
 from darwin.future.core.items.get import list_items
@@ -15,7 +14,7 @@ from darwin.future.core.items.set_stage_to_items import set_stage_to_items
 from darwin.future.core.items.tag_items import tag_items
 from darwin.future.core.items.untag_items import untag_items
 from darwin.future.core.types.common import QueryString
-from darwin.future.core.types.query import PaginatedQuery, QueryFilter
+from darwin.future.core.types.query import PaginatedQuery
 from darwin.future.data_objects.advanced_filters import GroupFilter, SubjectFilter
 from darwin.future.data_objects.item import ItemLayout
 from darwin.future.data_objects.workflow import WFStageCore
@@ -26,6 +25,7 @@ from darwin.future.meta.objects.item import Item
 class hasStage(Protocol):
     # Using Protocol to avoid circular imports between item.py and stage.py
     _element: WFStageCore
+
 
 class ItemQuery(PaginatedQuery[Item]):
     def _collect(self) -> Dict[int, Item]:
@@ -281,7 +281,12 @@ class ItemQuery(PaginatedQuery[Item]):
             self.client, team_slug, dataset_ids, stage_id, workflow_id, filters
         )
 
-    def where(self, *args: GroupFilter | SubjectFilter, **kwargs: str) -> ItemQuery:
+    def where(
+        self,
+        *args: GroupFilter | SubjectFilter,
+        _operator: Literal["and", "or"] = "and",
+        **kwargs: str,
+    ) -> ItemQuery:
         if len(args) > 0 and len(kwargs) > 0:
             raise ValueError("Cannot specify both args and kwargs")
         if len(kwargs) > 1:
@@ -290,5 +295,8 @@ class ItemQuery(PaginatedQuery[Item]):
         if self._advanced_filters is None:
             self._advanced_filters = arg_list.pop(0)
         for arg in arg_list:
-            self._advanced_filters = self._advanced_filters & arg
+            if _operator == "and":
+                self._advanced_filters = self._advanced_filters & arg
+            if _operator == "or":
+                self._advanced_filters = self._advanced_filters | arg
         return self

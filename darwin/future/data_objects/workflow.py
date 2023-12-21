@@ -134,8 +134,10 @@ class WFStageConfigCore(DefaultDarwin):
     iou_thresholds: UnknownType
     model_id: UnknownType
     threshold: UnknownType
-    
-    model_config = ConfigDict(protected_namespaces=()) # due to `model_type` field conflicts with a pydantic field
+
+    model_config = ConfigDict(
+        protected_namespaces=()
+    )  # due to `model_type` field conflicts with a pydantic field
 
 
 class WFStageCore(DefaultDarwin):
