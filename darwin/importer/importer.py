@@ -729,6 +729,53 @@ def _get_overwrite_value(append: bool) -> str:
     return "false" if append else "true"
 
 
+def _parse_empty_masks(annotation, rl, rl_dense_rle_ids, rl_dense_rle_ids_frames):
+    if rl_dense_rle_ids_frames is None and isinstance(annotation, dt.VideoAnnotation):
+        # build a dict of frame_index: set of dense_rle_ids (for each frame in VideoAnnotation object)
+        assert isinstance(rl, dt.VideoAnnotation)
+        for frame_index, _rl in rl.frames.items():
+            rl_dense_rle_ids_frames = {}
+            rl_dense_rle_ids_frames[frame_index] = set(_rl.data["dense_rle"][::2])
+
+    if rl_dense_rle_ids is None and isinstance(annotation, dt.Annotation):
+        # build a set of dense_rle_ids (for each frame in Annotation object)
+        assert isinstance(rl, dt.Annotation)
+        rl_dense_rle_ids = set(rl.data["dense_rle"][::2])
+
+    if rl_dense_rle_ids is not None and isinstance(annotation, dt.Annotation):
+        # check if the 'annotation_class_id' is in raster_layer's mask_annotation_ids_mapping dict
+        assert isinstance(rl, dt.Annotation)
+        _annotation_id = annotation.id
+        if (
+            rl.data["mask_annotation_ids_mapping"][_annotation_id]
+            not in rl_dense_rle_ids
+        ):
+            # skip import of the mask, and remove it from mask_annotation_ids_mapping
+            logger.warning(
+                f"Skipping import of mask annotation '{annotation.annotation_class.name}' as it does not have a corresponding raster layer"
+            )
+            del rl.data["mask_annotation_ids_mapping"][_annotation_id]
+            return rl_dense_rle_ids, rl_dense_rle_ids_frames
+
+    if rl_dense_rle_ids_frames is not None and isinstance(annotation, dt.VideoAnnotation):
+        # check every frame - if the 'annotation_class_id' is in raster_layer's mask_annotation_ids_mapping dict
+        assert isinstance(rl, dt.VideoAnnotation)
+        for frame_index, _annotation in annotation.frames.items():
+            _annotation_id = _annotation.id
+            if (
+                frame_index in rl_dense_rle_ids_frames and
+                rl.frames[frame_index].data["mask_annotation_ids_mapping"][_annotation_id]
+                not in rl_dense_rle_ids_frames[frame_index]
+            ):
+                # skip import of the mask, and remove it from mask_annotation_ids_mapping
+                logger.warning(
+                    f"Skipping import of mask annotation '{_annotation.annotation_class.name}' as it does not have a corresponding raster layer"
+                )
+                del rl.frames[frame_index]["mask_annotation_ids_mapping"][_annotation_id]
+                return rl_dense_rle_ids, rl_dense_rle_ids_frames
+
+    return rl_dense_rle_ids, rl_dense_rle_ids_frames
+
 def _import_annotations(
     client: "Client",  # TODO: This is unused, should it be?
     id: Union[str, int],
@@ -790,44 +837,12 @@ def _import_annotations(
                     None,
                 )
             if rl:
-                if rl_dense_rle_ids_frames is None and isinstance(annotation, dt.VideoAnnotation):
-                    assert isinstance(rl, dt.VideoAnnotation)
-                    for frame_index, _rl in rl.frames.items():
-                        rl_dense_rle_ids_frames = {}
-                        rl_dense_rle_ids_frames[frame_index] = set(_rl.data["dense_rle"][::2])
-                if rl_dense_rle_ids is None and isinstance(annotation, dt.Annotation):
-                    assert isinstance(rl, dt.Annotation)
-                    rl_dense_rle_ids = set(rl.data["dense_rle"][::2])
-            if rl is not None:
-                if rl_dense_rle_ids is not None and isinstance(annotation, dt.Annotation):
-                    assert isinstance(rl, dt.Annotation)
-                    # check if the 'annotation_class_id' is in raster_layer's mask_annotation_ids_mapping dict
-                    _annotation_id = annotation.id
-                    if (
-                        rl.data["mask_annotation_ids_mapping"][_annotation_id]
-                        not in rl_dense_rle_ids
-                    ):
-                        # skip import of the mask, and remove it from mask_annotation_ids_mapping
-                        logger.warning(
-                            f"Skipping import of mask annotation '{annotation_class.name}' as it does not have a corresponding raster layer"
-                        )
-                        del rl.data["mask_annotation_ids_mapping"][_annotation_id]
-                        continue
-                if rl_dense_rle_ids_frames is not None and isinstance(annotation, dt.VideoAnnotation):
-                    assert isinstance(rl, dt.VideoAnnotation)
-                    for frame_index, _annotation in annotation.frames.items():
-                        # check if the 'annotation_class_id' is in raster_layer's mask_annotation_ids_mapping dict
-                        _annotation_id = _annotation.id
-                        if (
-                            rl.frames[frame_index].data["mask_annotation_ids_mapping"][_annotation_id]
-                            not in rl_dense_rle_ids_frames[frame_index]
-                        ):
-                            # skip import of the mask, and remove it from mask_annotation_ids_mapping
-                            logger.warning(
-                                f"Skipping import of mask annotation '{_annotation.annotation_class.name}' as it does not have a corresponding raster layer"
-                            )
-                            del rl.frames[frame_index]["mask_annotation_ids_mapping"][_annotation_id]
-                            continue
+                rl_dense_rle_ids, rl_dense_rle_ids_frames = _parse_empty_masks(
+                    annotation,
+                    rl,
+                    rl_dense_rle_ids,
+                    rl_dense_rle_ids_frames
+                )
 
         actors: List[dt.DictFreeForm] = []
         actors.extend(_handle_annotators(annotation, import_annotators))
