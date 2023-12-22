@@ -829,6 +829,24 @@ def _handle_complex_polygon(
     return data
 
 
+def _handle_properties(
+        annotation: dt.Annotation, data: dt.DictFreeForm
+    ) -> dt.DictFreeForm:
+    data["properties"] = [
+        p.model_dump()
+        for p in annotation.properties or []
+    ]
+    return data
+
+
+def _handle_annotation_data(
+        annotation: dt.Annotation, data: dt.DictFreeForm
+    ) -> dt.DictFreeForm:
+    data = _handle_complex_polygon(annotation, data)
+    data = _handle_properties(annotation, data)
+    return data
+
+
 def _annotators_or_reviewers_to_payload(
     actors: List[dt.AnnotationAuthor], role: dt.AnnotationAuthorRole
 ) -> List[dt.DictFreeForm]:
@@ -864,16 +882,17 @@ def _get_annotation_data(
     if isinstance(annotation, dt.VideoAnnotation):
         data = annotation.get_data(
             only_keyframes=True,
-            post_processing=lambda annotation, data: _handle_subs(
-                annotation,
-                _handle_complex_polygon(annotation, data),
-                annotation_class_id,
-                attributes,
-            ),
+            post_processing=lambda annotation, data: \
+                _handle_subs(
+                    annotation,
+                    _handle_annotation_data(annotation, data),
+                    annotation_class_id,
+                    attributes,
+                ),
         )
     else:
         data = {annotation_class.annotation_type: annotation.data}
-        data = _handle_complex_polygon(annotation, data)
+        data = _handle_annotation_data(annotation, data)
         data = _handle_subs(annotation, data, annotation_class_id, attributes)
 
     return data
