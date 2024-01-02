@@ -517,13 +517,10 @@ def export(
         writer.writerow(["class_name", "class_color"])
 
         for class_key in categories:
-            print(f"[debug] class_key: {class_key}")
             if mode == "rgb":
                 col = palette_rgb[class_key]
-                print(f"[debug] {col[0]} {col[1]} {col[2]}")
                 writer.writerow([class_key, f"{col[0]} {col[1]} {col[2]}"])
             else:
-                print(f"[debug] {palette[class_key]}")
                 writer.writerow([class_key, f"{palette[class_key]}"])
 
 
