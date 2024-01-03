@@ -907,13 +907,12 @@ def _get_annotation_data(
     if isinstance(annotation, dt.VideoAnnotation):
         data = annotation.get_data(
             only_keyframes=True,
-            post_processing=lambda annotation, data: \
-                _handle_subs(
-                    annotation,
-                    _handle_complex_polygon(annotation, data),
-                    annotation_class_id,
-                    attributes,
-                ),
+            post_processing=lambda annotation, data: _handle_subs(
+                annotation,
+                _handle_complex_polygon(annotation, data),
+                annotation_class_id,
+                attributes,
+            ),
         )
     else:
         data = {annotation_class.annotation_type: annotation.data}
