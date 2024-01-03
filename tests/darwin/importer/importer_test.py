@@ -189,9 +189,7 @@ def test__get_annotation_data() -> None:
     with patch_factory("_handle_complex_polygon") as mock_hcp, patch_factory(
         "_handle_subs"
     ) as mock_hs, patch.object(
-        dt.VideoAnnotation,
-        "get_data",
-        return_value="TEST VIDEO DATA"
+        dt.VideoAnnotation, "get_data", return_value="TEST VIDEO DATA"
     ):
         from darwin.importer.importer import _get_annotation_data
 
