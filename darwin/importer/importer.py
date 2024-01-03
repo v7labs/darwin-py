@@ -282,6 +282,9 @@ def _update_payload_with_properties(
     """
     Updates the annotations with the properties that were created/updated during the import.
     """
+    if not annotation_id_property_map:
+        return
+
     for annotation in annotations:
         annotation_id = annotation["annotation_class_id"]
         if annotation_id_property_map.get(annotation_id):
