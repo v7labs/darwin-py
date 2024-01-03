@@ -188,8 +188,7 @@ def test__get_annotation_data() -> None:
 
     with patch_factory("_handle_complex_polygon") as mock_hcp, patch_factory(
         "_handle_subs"
-    ) as mock_hs, patch_factory("_handle_properties"
-    ) as mock_hp, patch_factory("_handle_annotation_data"
+    ) as mock_hs, patch_factory("_handle_annotation_data"
     ) as mock_ad, patch.object(
         dt.VideoAnnotation,
         "get_data",
@@ -197,7 +196,7 @@ def test__get_annotation_data() -> None:
     ):
         from darwin.importer.importer import _get_annotation_data
 
-        mock_ad.return_value = "TEST DATA_AD"
+        mock_hcp.return_value = "TEST DATA_HCP"
         mock_hs.return_value = "TEST DATA_HS"
 
         assert (
@@ -206,7 +205,7 @@ def test__get_annotation_data() -> None:
         )
         assert _get_annotation_data(annotation, "class_id", {}) == "TEST DATA_HS"
 
-        assert mock_ad.call_count == 1
+        assert mock_hcp.call_count == 1
         assert mock_hs.call_count == 1
 
     with patch_factory("_handle_complex_polygon") as mock_hcp, patch_factory(

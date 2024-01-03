@@ -430,7 +430,6 @@ def _import_properties(
             assert t_prop.id is not None
             assert t_prop_val.id is not None
             annotation_id_property_map[annotation_class_id][t_prop.id].append(t_prop_val.id)
-            print(f"adding {t_prop_val.id} to {t_prop.id} for {annotation_class_id}, annotation prop is: {a_prop}")
 
     console = Console(theme=_console_theme())
     if create_properties:
@@ -870,24 +869,6 @@ def _handle_complex_polygon(
     return data
 
 
-def _handle_properties(
-        annotation: dt.Annotation, data: dt.DictFreeForm
-    ) -> dt.DictFreeForm:
-    data["properties"] = [
-        p.model_dump()
-        for p in annotation.properties or []
-    ]
-    return data
-
-
-def _handle_annotation_data(
-        annotation: dt.Annotation, data: dt.DictFreeForm
-    ) -> dt.DictFreeForm:
-    data = _handle_complex_polygon(annotation, data)
-    # data = _handle_properties(annotation, data)
-    return data
-
-
 def _annotators_or_reviewers_to_payload(
     actors: List[dt.AnnotationAuthor], role: dt.AnnotationAuthorRole
 ) -> List[dt.DictFreeForm]:
@@ -926,14 +907,14 @@ def _get_annotation_data(
             post_processing=lambda annotation, data: \
                 _handle_subs(
                     annotation,
-                    _handle_annotation_data(annotation, data),
+                    _handle_complex_polygon(annotation, data),
                     annotation_class_id,
                     attributes,
                 ),
         )
     else:
         data = {annotation_class.annotation_type: annotation.data}
-        data = _handle_annotation_data(annotation, data)
+        data = _handle_complex_polygon(annotation, data)
         data = _handle_subs(annotation, data, annotation_class_id, attributes)
 
     return data
