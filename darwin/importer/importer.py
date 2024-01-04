@@ -366,25 +366,54 @@ def _import_properties(
             if (a_prop.name, annotation_class_id) \
                 not in team_properties_annotation_lookup:
 
-                # if it doesn't exist, create it
-                full_property = FullProperty(
-                    name=a_prop.name,
-                    type=m_prop_type,  # type from .v7/metadata.json
-                    required=m_prop.required,  # required from .v7/metadata.json
-                    description="property-created-during-annotation-import",
-                    slug=client.default_team,
-                    annotation_class_id=int(annotation_class_id),
-                    property_values=[
-                        PropertyValue(
-                            position=m_prop_option.get("position"),  # type: ignore
-                            type=m_prop_option.get("type"),  # type: ignore
-                            value=m_prop_option.get("value"),  # type: ignore
-                            color=m_prop_option.get("color"),  # type: ignore
-                        )
-                        for m_prop_option in m_prop_options  # options from .v7/metadata.json
-                    ],
-                )
-                create_properties.append(full_property)
+                # check if fullproperty exists in create_properties
+                for full_property in create_properties:
+                    if full_property.name == a_prop.name and \
+                        full_property.annotation_class_id == annotation_class_id:
+                        # make sure property_values is not None
+                        if full_property.property_values is None:
+                            full_property.property_values = []
+
+                        property_values = full_property.property_values
+                        # find property value in m_prop (.v7/metadata.json) options
+                        for m_prop_option in m_prop_options:
+                            if m_prop_option.get("value") == a_prop.value:
+                                # update property_values with new value
+                                full_property.property_values.append(
+                                    PropertyValue(
+                                        position=m_prop_option.get("position"),  # type: ignore
+                                        type=m_prop_option.get("type"),  # type: ignore
+                                        value={"value": m_prop_option.get("value")},  # type: ignore
+                                        color=m_prop_option.get("color"),  # type: ignore
+                                    )
+                                )
+                                break
+                        break
+                else:
+                    property_values = []
+                    # find property value in m_prop (.v7/metadata.json) options
+                    for m_prop_option in m_prop_options:
+                        if m_prop_option.get("value") == a_prop.value:
+                            property_values.append(
+                                PropertyValue(
+                                    position=m_prop_option.get("position"),  # type: ignore
+                                    type=m_prop_option.get("type"),  # type: ignore
+                                    value={"value": m_prop_option.get("value")},  # type: ignore
+                                    color=m_prop_option.get("color"),  # type: ignore
+                                )
+                            )
+                            break
+                    # if it doesn't exist, create it
+                    full_property = FullProperty(
+                        name=a_prop.name,
+                        type=m_prop_type,  # type from .v7/metadata.json
+                        required=m_prop.required,  # required from .v7/metadata.json
+                        description="property-created-during-annotation-import",
+                        slug=client.default_team,
+                        annotation_class_id=int(annotation_class_id),
+                        property_values=property_values,
+                    )
+                    create_properties.append(full_property)
                 continue
 
             # check if property value/type is different in m_prop (.v7/metadata.json) options
@@ -456,15 +485,22 @@ def _import_properties(
         for full_property in update_properties:
             _msg = f"Updating property {full_property.name} ({full_property.type})"
             console.print(_msg, style="info")
-            client.update_property(team_slug=full_property.slug, params=full_property)
+            prop = client.update_property(team_slug=full_property.slug, params=full_property)
 
             assert full_property.annotation_class_id is not None
             assert full_property.id is not None
-            annotation_id_property_map[full_property.annotation_class_id][full_property.id] = []
+            if not annotation_id_property_map[full_property.annotation_class_id][full_property.id]:
+                annotation_id_property_map[full_property.annotation_class_id][full_property.id] = []
             for prop_val in full_property.property_values or []:
-                assert prop_val.id is not None
+                # find the property value id in the response
+                prop_val_id = None
+                for prop_val_response in prop.property_values or []:
+                    if prop_val_response.value == prop_val.value:
+                        prop_val_id = prop_val_response.id
+                        break
+                assert prop_val_id is not None
                 annotation_id_property_map[full_property.annotation_class_id][full_property.id].append(
-                    prop_val.id
+                    prop_val_id
                 )
 
     return annotation_id_property_map
