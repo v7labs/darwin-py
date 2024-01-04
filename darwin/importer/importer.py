@@ -299,7 +299,7 @@ def _import_properties(
     annotation_id_property_map: Dict[int, Dict[str, List[str]]] = {}
     if not isinstance(metadata_path, Path):
         # No properties to import
-        return
+        return {}
 
     # parse metadata.json file -> list[PropertyClass]
     metadata = parse_metadata(metadata_path)
