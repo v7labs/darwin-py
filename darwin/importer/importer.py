@@ -733,8 +733,8 @@ def _parse_empty_masks(annotation, rl, rl_dense_rle_ids, rl_dense_rle_ids_frames
     if rl_dense_rle_ids_frames is None and isinstance(annotation, dt.VideoAnnotation):
         # build a dict of frame_index: set of dense_rle_ids (for each frame in VideoAnnotation object)
         assert isinstance(rl, dt.VideoAnnotation)
+        rl_dense_rle_ids_frames = {}
         for frame_index, _rl in rl.frames.items():
-            rl_dense_rle_ids_frames = {}
             rl_dense_rle_ids_frames[frame_index] = set(_rl.data["dense_rle"][::2])
 
     if rl_dense_rle_ids is None and isinstance(annotation, dt.Annotation):
