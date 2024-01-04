@@ -729,7 +729,12 @@ def _get_overwrite_value(append: bool) -> str:
     return "false" if append else "true"
 
 
-def _parse_empty_masks(annotation, rl, rl_dense_rle_ids, rl_dense_rle_ids_frames):
+def _parse_empty_masks(
+        annotation: dt.Annotation,
+        rl: dt.Annotation,
+        rl_dense_rle_ids: Optional[Set[str]] = None,
+        rl_dense_rle_ids_frames: Optional[Dict[int, Set[str]]] = None,
+    ):
     if rl_dense_rle_ids_frames is None and isinstance(annotation, dt.VideoAnnotation):
         # build a dict of frame_index: set of dense_rle_ids (for each frame in VideoAnnotation object)
         assert isinstance(rl, dt.VideoAnnotation)
