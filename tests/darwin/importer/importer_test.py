@@ -287,7 +287,6 @@ def test_get_overwrite_value() -> None:
 @pytest.fixture
 def raster_layer_annotations():
     annotation_raster_layer_data = Path(__file__).parent.parent / f"data/annotation_raster_layer_data.json"
-    # read json file
     with open(annotation_raster_layer_data) as f:
         data = json.load(f)
 
