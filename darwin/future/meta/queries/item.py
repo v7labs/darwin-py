@@ -61,7 +61,7 @@ class ItemQuery(PaginatedQuery[Item]):
         }
         return items
 
-    def sort(self, **kwargs: str) -> None:
+    def sort(self, **kwargs: str) -> ItemQuery:
         sorting_methods = SortingMethods(**kwargs)
         for key, value in sorting_methods.dict().items():
             if value is not None:

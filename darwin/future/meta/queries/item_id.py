@@ -41,7 +41,7 @@ class ItemIDQuery(PaginatedQuery[V7ID]):
         }
         return results
 
-    def sort(self, **kwargs: str) -> None:
+    def sort(self, **kwargs: str) -> "ItemIDQuery":
         sorting_methods = SortingMethods(**kwargs)
         for key, value in sorting_methods.dict().items():
             if value is not None:
