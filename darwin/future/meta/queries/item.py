@@ -14,8 +14,9 @@ from darwin.future.core.items.set_stage_to_items import set_stage_to_items
 from darwin.future.core.items.tag_items import tag_items
 from darwin.future.core.items.untag_items import untag_items
 from darwin.future.core.types.common import QueryString
-from darwin.future.core.types.query import PaginatedQuery
+from darwin.future.core.types.query import PaginatedQuery, QueryFilter
 from darwin.future.data_objects.item import ItemLayout
+from darwin.future.data_objects.sorting import SortingMethods
 from darwin.future.data_objects.workflow import WFStageCore
 from darwin.future.exceptions import BadRequest
 from darwin.future.meta.objects.item import Item
@@ -59,6 +60,14 @@ class ItemQuery(PaginatedQuery[Item]):
             for i, item in enumerate(items_core)
         }
         return items
+
+    def sort(self, **kwargs: str) -> None:
+        sorting_methods = SortingMethods(**kwargs)
+        for key, value in sorting_methods.dict().items():
+            if value is not None:
+                filter = QueryFilter(name=f"sort[{key}]", param=value)
+                self.filters.append(filter)
+        return self
 
     def delete(self) -> None:
         if "team_slug" not in self.meta_params:
