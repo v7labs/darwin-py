@@ -62,7 +62,13 @@ class ItemQuery(PaginatedQuery[Item]):
         return items
 
     def sort(self, **kwargs: str) -> ItemQuery:
-        sorting_methods = SortingMethods(**kwargs)
+        valid_values = {"asc", "desc"}
+        for value in kwargs.values():
+            if value not in valid_values:
+                raise ValueError(
+                    f"Invalid sort value: {value}. Must be one of {valid_values}."
+                )
+        sorting_methods = SortingMethods(**kwargs)  # type: ignore
         for key, value in sorting_methods.dict().items():
             if value is not None:
                 filter = QueryFilter(name=f"sort[{key}]", param=value)
