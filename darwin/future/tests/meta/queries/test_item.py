@@ -438,3 +438,15 @@ def test_untag_bad_request(
             item_query.untag(tag_id)
         (msg,) = excinfo.value.args
         assert msg == "tag_id must be an integer, got <class 'str'>"
+
+
+def test_sort_method(base_client: ClientCore):
+    item_query = ItemQuery(
+        base_client, meta_params={"dataset_id": 0000, "team_slug": "test_team"}
+    )
+
+    item_query.sort(accuracy="desc", byte_size="asc")
+
+    assert len(item_query.filters) == 2
+    assert item_query.filters[0].name == "sort[accuracy]"
+    assert item_query.filters[0].param == "desc"
