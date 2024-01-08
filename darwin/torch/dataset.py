@@ -342,6 +342,7 @@ class InstanceSegmentationDataset(LocalDataset):
                 annotation.data[path_key],
                 height=target["height"],
                 width=target["width"],
+                rounding=False,
             )
             # Compute the bbox of the polygon
             x_coords = [s[0::2] for s in sequences]
