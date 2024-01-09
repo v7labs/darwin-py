@@ -280,7 +280,9 @@ class ItemQuery(PaginatedQuery[Item]):
         ids = [item.id for item in self]
         filters = {"item_ids": [str(item) for item in ids]}
 
-        assign(self.client, team_slug, dataset_ids, assignee_id, workflow_id, filters)
+        assign_items(
+            self.client, team_slug, dataset_ids, assignee_id, workflow_id, filters
+        )
 
     def set_stage(
         self, stage_or_stage_id: hasStage | str, workflow_id: str | None = None

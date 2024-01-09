@@ -57,23 +57,19 @@ class DarwinConfig(BaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def remove_global(cls, values: dict) -> dict:
+    def validate_defaults(cls, values: Any) -> Any:
         if "global" not in values:
             return values
         global_conf = values["global"]
         del values["global"]
         values.update(global_conf)
-        return values
 
-    @model_validator(mode="before")
-    @classmethod
-    def validate_defaults(cls, values: Any) -> Any:
-        if values["api_key"]:
+        if "api_key" in values and values["api_key"]:
             return values
         assert values["default_team"] in values["teams"]
         team = values["default_team"]
-        values["api_key"] = values["teams"][team].api_key
-        values["datasets_dir"] = values["teams"][team].datasets_dir
+        values["api_key"] = values["teams"][team]["api_key"]
+        values["datasets_dir"] = values["teams"][team]["datasets_dir"]
         return values
 
     @staticmethod
