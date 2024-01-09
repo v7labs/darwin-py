@@ -68,6 +68,7 @@ class DarwinConfig(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def validate_defaults(cls, values: Any) -> Any:
+        print(values)
         if values["api_key"]:
             return values
         assert values["default_team"] in values["teams"]
