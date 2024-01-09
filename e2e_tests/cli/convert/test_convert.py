@@ -61,6 +61,7 @@ class TestExportCli:
                     reason="File paths are different on Windows, leading to test failure",
                 ),
             ),
+            ("semantic_mask", data_path / "semantic_mask/from", data_path / "semantic_mask/to"),
         ],
     )
     def test_darwin_convert(
