@@ -31,4 +31,4 @@ def create_dataset(api_client: ClientCore, name: str) -> DatasetCore:
         },
     )
     assert isinstance(response, dict)
-    return DatasetCore(**response)
+    return DatasetCore.model_validate(response)

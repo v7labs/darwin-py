@@ -9,4 +9,4 @@ class DefaultDarwin(BaseModel):
         - objects are passed by reference to prevent unnecesary data copying
     """
 
-    model_config = ConfigDict(validate_assignment=True)
+    model_config = ConfigDict(validate_assignment=True, protected_namespaces=())
