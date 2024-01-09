@@ -3,7 +3,7 @@ from enum import Enum
 from typing import List, Optional
 from uuid import UUID
 
-from pydantic import Field, root_validator
+from pydantic import Field, model_validator
 
 from darwin.future.data_objects.typing import UnknownType
 from darwin.future.pydantic_base import DefaultDarwin
@@ -53,10 +53,11 @@ class WFEdgeCore(DefaultDarwin):
 
     id: UUID
     name: str
-    source_stage_id: Optional[UUID]
-    target_stage_id: Optional[UUID]
+    source_stage_id: Optional[UUID] = None
+    target_stage_id: Optional[UUID] = None
 
-    @root_validator(pre=True)
+    @model_validator(mode="before")
+    @classmethod
     def _one_or_both_must_exist(cls, values: dict) -> dict:
         if not values["source_stage_id"] and not values["target_stage_id"]:
             raise ValueError(
@@ -103,14 +104,14 @@ class WFUserCore(DefaultDarwin):
 
 class WFStageConfigCore(DefaultDarwin):
     # ! NB: We may be able to remove many of these attributes
-    url: Optional[str]
-    x: Optional[int]
-    y: Optional[int]
+    url: Optional[str] = None
+    x: Optional[int] = None
+    y: Optional[int] = None
 
-    dataset_id: Optional[int]
-    model_type: Optional[str]
+    dataset_id: Optional[int] = None
+    model_type: Optional[str] = None
 
-    parallel_stage_ids: Optional[List[UUID]]
+    parallel_stage_ids: Optional[List[UUID]] = None
     readonly: bool
 
     # Included, and type known, but potentially not involved in backend
@@ -120,7 +121,7 @@ class WFStageConfigCore(DefaultDarwin):
     retry_if_fails: bool
     rules: List
     skippable: bool
-    test_stage_id: Optional[UUID]
+    test_stage_id: Optional[UUID] = None
 
     # unsure of needs for these, so they here for future proofing
     allowed_class_ids: UnknownType
@@ -186,7 +187,7 @@ class WorkflowCore(DefaultDarwin):
     inserted_at: datetime
     updated_at: datetime
 
-    dataset: Optional[WFDatasetCore]
+    dataset: Optional[WFDatasetCore] = None
     stages: List[WFStageCore]
 
     thumbnails: List[str]

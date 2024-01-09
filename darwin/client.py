@@ -29,6 +29,17 @@ from darwin.exceptions import (
     Unauthorized,
     ValidationError,
 )
+from darwin.future.core.client import ClientCore, DarwinConfig
+from darwin.future.core.properties import create_property as create_property_future
+from darwin.future.core.properties import (
+    get_team_full_properties as get_team_full_properties_future,
+)
+from darwin.future.core.properties import (
+    get_team_properties as get_team_properties_future,
+)
+from darwin.future.core.properties import update_property as update_property_future
+from darwin.future.core.types.common import JSONDict
+from darwin.future.data_objects.properties import FullProperty
 from darwin.item import DatasetItem
 from darwin.utils import (
     get_response_content,
@@ -40,7 +51,12 @@ from darwin.utils.get_item_count import get_item_count
 
 
 class Client:
-    def __init__(self, config: Config, default_team: Optional[str] = None, log: Optional[Logger] = None):
+    def __init__(
+        self,
+        config: Config,
+        default_team: Optional[str] = None,
+        log: Optional[Logger] = None,
+    ):
         self.config: Config = config
         self.url: str = config.get("global/api_endpoint")
         self.base_url: str = config.get("global/base_url")
@@ -110,7 +126,9 @@ class Client:
                 if project_path.is_dir() and is_project_dir(project_path):
                     yield Path(project_path)
 
-    def list_remote_datasets(self, team_slug: Optional[str] = None) -> Iterator[RemoteDataset]:
+    def list_remote_datasets(
+        self, team_slug: Optional[str] = None
+    ) -> Iterator[RemoteDataset]:
         """
         Returns a list of all available datasets with the team currently authenticated against.
 
@@ -150,7 +168,9 @@ class Client:
                     client=self,
                 )
 
-    def get_remote_dataset(self, dataset_identifier: Union[str, DatasetIdentifier]) -> RemoteDataset:
+    def get_remote_dataset(
+        self, dataset_identifier: Union[str, DatasetIdentifier]
+    ) -> RemoteDataset:
         """
         Get a remote dataset based on its identifier.
 
@@ -169,7 +189,9 @@ class Client:
         NotFound
             If no dataset with the given identifier was found.
         """
-        parsed_dataset_identifier: DatasetIdentifier = DatasetIdentifier.parse(dataset_identifier)
+        parsed_dataset_identifier: DatasetIdentifier = DatasetIdentifier.parse(
+            dataset_identifier
+        )
 
         if not parsed_dataset_identifier.team_slug:
             parsed_dataset_identifier.team_slug = self.default_team
@@ -177,21 +199,29 @@ class Client:
         try:
             matching_datasets: List[RemoteDataset] = [
                 dataset
-                for dataset in self.list_remote_datasets(team_slug=parsed_dataset_identifier.team_slug)
+                for dataset in self.list_remote_datasets(
+                    team_slug=parsed_dataset_identifier.team_slug
+                )
                 if dataset.slug == parsed_dataset_identifier.dataset_slug
             ]
         except Unauthorized:
             # There is a chance that we tried to access an open dataset
             dataset: Dict[str, UnknownType] = cast(
                 Dict[str, UnknownType],
-                self._get(f"{parsed_dataset_identifier.team_slug}/{parsed_dataset_identifier.dataset_slug}"),
+                self._get(
+                    f"{parsed_dataset_identifier.team_slug}/{parsed_dataset_identifier.dataset_slug}"
+                ),
             )
 
             # If there isn't a record of this team, create one.
-            if not self.config.get_team(parsed_dataset_identifier.team_slug, raise_on_invalid_team=False):
+            if not self.config.get_team(
+                parsed_dataset_identifier.team_slug, raise_on_invalid_team=False
+            ):
                 datasets_dir: Path = Path.home() / ".darwin" / "datasets"
                 self.config.set_team(
-                    team=parsed_dataset_identifier.team_slug, api_key="", datasets_dir=str(datasets_dir)
+                    team=parsed_dataset_identifier.team_slug,
+                    api_key="",
+                    datasets_dir=str(datasets_dir),
                 )
 
             if dataset.get("version", 1) == 2:
@@ -220,7 +250,9 @@ class Client:
             matching_datasets[0].release = parsed_dataset_identifier.version
         return matching_datasets[0]
 
-    def create_dataset(self, name: str, team_slug: Optional[str] = None) -> RemoteDataset:
+    def create_dataset(
+        self, name: str, team_slug: Optional[str] = None
+    ) -> RemoteDataset:
         """
         Create a remote dataset.
 
@@ -237,7 +269,8 @@ class Client:
             The created dataset.
         """
         dataset: Dict[str, UnknownType] = cast(
-            Dict[str, UnknownType], self._post("/datasets", {"name": name}, team_slug=team_slug)
+            Dict[str, UnknownType],
+            self._post("/datasets", {"name": name}, team_slug=team_slug),
         )
 
         if dataset.get("version", 1) == 2:
@@ -275,7 +308,11 @@ class Client:
         self._put(f"datasets/{dataset_id}/archive", payload={}, team_slug=team_slug)
 
     def fetch_remote_files(
-        self, dataset_id: int, cursor: Dict[str, UnknownType], payload: Dict[str, UnknownType], team_slug: str
+        self,
+        dataset_id: int,
+        cursor: Dict[str, UnknownType],
+        payload: Dict[str, UnknownType],
+        team_slug: str,
     ) -> Dict[str, UnknownType]:
         """
         Download the remote files from the given dataset.
@@ -298,11 +335,17 @@ class Client:
         """
         response: Dict[str, UnknownType] = cast(
             Dict[str, UnknownType],
-            self._post(f"/datasets/{dataset_id}/items?{parse.urlencode(cursor)}", payload, team_slug),
+            self._post(
+                f"/datasets/{dataset_id}/items?{parse.urlencode(cursor)}",
+                payload,
+                team_slug,
+            ),
         )
         return response
 
-    def fetch_remote_classes(self, team_slug: Optional[str] = None) -> List[Dict[str, UnknownType]]:
+    def fetch_remote_classes(
+        self, team_slug: Optional[str] = None
+    ) -> List[Dict[str, UnknownType]]:
         """
         Fetches all remote classes on the remote dataset.
 
@@ -328,12 +371,15 @@ class Client:
 
         the_team_slug: str = the_team.slug
         response: Dict[str, UnknownType] = cast(
-            Dict[str, UnknownType], self._get(f"/teams/{the_team_slug}/annotation_classes?include_tags=true")
+            Dict[str, UnknownType],
+            self._get(f"/teams/{the_team_slug}/annotation_classes?include_tags=true"),
         )
 
         return response["annotation_classes"]
 
-    def update_annotation_class(self, class_id: int, payload: Dict[str, UnknownType]) -> Dict[str, UnknownType]:
+    def update_annotation_class(
+        self, class_id: int, payload: Dict[str, UnknownType]
+    ) -> Dict[str, UnknownType]:
         """
         Updates the AnnotationClass with the given id.
 
@@ -350,11 +396,14 @@ class Client:
             A dictionary with the result of the operation.
         """
         response: Dict[str, UnknownType] = cast(
-            Dict[str, UnknownType], self._put(f"/annotation_classes/{class_id}", payload)
+            Dict[str, UnknownType],
+            self._put(f"/annotation_classes/{class_id}", payload),
         )
         return response
 
-    def create_annotation_class(self, dataset_id: int, type_ids: List[int], name: str) -> Dict[str, UnknownType]:
+    def create_annotation_class(
+        self, dataset_id: int, type_ids: List[int], name: str
+    ) -> Dict[str, UnknownType]:
         """
         Creates an AnnotationClass.
 
@@ -387,7 +436,9 @@ class Client:
         )
         return response
 
-    def import_annotation(self, item_id: ItemId, payload: Dict[str, UnknownType]) -> None:
+    def import_annotation(
+        self, item_id: ItemId, payload: Dict[str, UnknownType]
+    ) -> None:
         """
         Imports the annotation for the item with the given id.
 
@@ -418,7 +469,8 @@ class Client:
             A List with the attributes, where each attribute is a dictionary.
         """
         response: List[Dict[str, UnknownType]] = cast(
-            List[Dict[str, UnknownType]], self._get(f"/datasets/{dataset_id}/attributes")
+            List[Dict[str, UnknownType]],
+            self._get(f"/datasets/{dataset_id}/attributes"),
         )
         return response
 
@@ -460,11 +512,15 @@ class Client:
 
         features: List[Feature] = []
         for feature in response:
-            features.append(Feature(name=str(feature["name"]), enabled=bool(feature["enabled"])))
+            features.append(
+                Feature(name=str(feature["name"]), enabled=bool(feature["enabled"]))
+            )
 
         return features
 
-    def feature_enabled(self, feature_name: str, team_slug: Optional[str] = None) -> bool:
+    def feature_enabled(
+        self, feature_name: str, team_slug: Optional[str] = None
+    ) -> bool:
         """
         Returns whether or not a given feature is enabled for a team.
 
@@ -524,7 +580,9 @@ class Client:
 
         return the_team.datasets_dir
 
-    def set_datasets_dir(self, datasets_dir: Path, team_slug: Optional[str] = None) -> None:
+    def set_datasets_dir(
+        self, datasets_dir: Path, team_slug: Optional[str] = None
+    ) -> None:
         """
         Sets the dataset directory of the specified team or the default one.
 
@@ -535,9 +593,13 @@ class Client:
         team_slug: Optional[str]
             Team slug of the team the dataset will belong to. Defaults to None.
         """
-        self.config.put(f"teams/{team_slug or self.default_team}/datasets_dir", datasets_dir)
+        self.config.put(
+            f"teams/{team_slug or self.default_team}/datasets_dir", datasets_dir
+        )
 
-    def confirm_upload(self, dataset_item_id: int, team_slug: Optional[str] = None) -> None:
+    def confirm_upload(
+        self, dataset_item_id: int, team_slug: Optional[str] = None
+    ) -> None:
         """
         Confirms that the item was uploaded.
 
@@ -555,9 +617,15 @@ class Client:
 
         the_team_slug: str = the_team.slug
 
-        self._put_raw(endpoint=f"/dataset_items/{dataset_item_id}/confirm_upload", payload={}, team_slug=the_team_slug)
+        self._put_raw(
+            endpoint=f"/dataset_items/{dataset_item_id}/confirm_upload",
+            payload={},
+            team_slug=the_team_slug,
+        )
 
-    def sign_upload(self, dataset_item_id: int, team_slug: Optional[str] = None) -> Dict[str, UnknownType]:
+    def sign_upload(
+        self, dataset_item_id: int, team_slug: Optional[str] = None
+    ) -> Dict[str, UnknownType]:
         """
         Signs the upload of the given DatasetItem.
 
@@ -586,12 +654,18 @@ class Client:
         the_team_slug: str = the_team.slug
 
         response: Dict[str, UnknownType] = cast(
-            Dict[str, UnknownType], self._get(f"/dataset_items/{dataset_item_id}/sign_upload", team_slug=the_team_slug)
+            Dict[str, UnknownType],
+            self._get(
+                f"/dataset_items/{dataset_item_id}/sign_upload", team_slug=the_team_slug
+            ),
         )
         return response
 
     def upload_data(
-        self, dataset_slug: str, payload: Dict[str, UnknownType], team_slug: Optional[str] = None
+        self,
+        dataset_slug: str,
+        payload: Dict[str, UnknownType],
+        team_slug: Optional[str] = None,
     ) -> Dict[str, UnknownType]:
         """
         Uploads the given data to the given dataset.
@@ -642,10 +716,14 @@ class Client:
         List[Dict[str, UnknownType]]
             A list with the annotation types as dictionaries.
         """
-        response: List[Dict[str, UnknownType]] = cast(List[Dict[str, UnknownType]], self._get("/annotation_types"))
+        response: List[Dict[str, UnknownType]] = cast(
+            List[Dict[str, UnknownType]], self._get("/annotation_types")
+        )
         return response
 
-    def get_exports(self, dataset_id: int, team_slug: Optional[str] = None) -> List[Dict[str, UnknownType]]:
+    def get_exports(
+        self, dataset_id: int, team_slug: Optional[str] = None
+    ) -> List[Dict[str, UnknownType]]:
         """
         Get all the exports from the given dataset.
 
@@ -674,11 +752,14 @@ class Client:
         the_team_slug: str = the_team.slug
 
         response: List[Dict[str, UnknownType]] = cast(
-            List[Dict[str, UnknownType]], self._get(f"/datasets/{dataset_id}/exports", team_slug=the_team_slug)
+            List[Dict[str, UnknownType]],
+            self._get(f"/datasets/{dataset_id}/exports", team_slug=the_team_slug),
         )
         return response
 
-    def create_export(self, dataset_id: int, payload: Dict[str, UnknownType], team_slug: str) -> None:
+    def create_export(
+        self, dataset_id: int, payload: Dict[str, UnknownType], team_slug: str
+    ) -> None:
         """
         Create an export for the given dataset.
 
@@ -691,9 +772,13 @@ class Client:
         team_slug: Optional[str]
             Team slug of the team the dataset will belong to. Defaults to None.
         """
-        self._post(f"/datasets/{dataset_id}/exports", payload=payload, team_slug=team_slug)
+        self._post(
+            f"/datasets/{dataset_id}/exports", payload=payload, team_slug=team_slug
+        )
 
-    def get_report(self, dataset_id: int, granularity: str, team_slug: Optional[str] = None) -> Response:
+    def get_report(
+        self, dataset_id: int, granularity: str, team_slug: Optional[str] = None
+    ) -> Response:
         """
         Gets the report for the given dataset.
 
@@ -728,7 +813,9 @@ class Client:
             the_team_slug,
         )
 
-    def delete_item(self, dataset_slug: str, team_slug: str, payload: Dict[str, UnknownType]) -> None:
+    def delete_item(
+        self, dataset_slug: str, team_slug: str, payload: Dict[str, UnknownType]
+    ) -> None:
         """
         Gets the report for the given dataset.
 
@@ -741,9 +828,13 @@ class Client:
         payload: Dict[str, UnknownType]
             A filter Dictionary that defines the items to be deleted.
         """
-        self._delete(f"teams/{team_slug}/datasets/{dataset_slug}/items", payload, team_slug)
+        self._delete(
+            f"teams/{team_slug}/datasets/{dataset_slug}/items", payload, team_slug
+        )
 
-    def archive_item(self, dataset_slug: str, team_slug: str, payload: Dict[str, UnknownType]) -> None:
+    def archive_item(
+        self, dataset_slug: str, team_slug: str, payload: Dict[str, UnknownType]
+    ) -> None:
         """
         Archives the item from the given dataset.
 
@@ -756,9 +847,15 @@ class Client:
         payload: Dict[str, UnknownType]
             A filter Dictionary that defines the items to be archived.
         """
-        self._put_raw(f"teams/{team_slug}/datasets/{dataset_slug}/items/archive", payload, team_slug)
+        self._put_raw(
+            f"teams/{team_slug}/datasets/{dataset_slug}/items/archive",
+            payload,
+            team_slug,
+        )
 
-    def restore_archived_item(self, dataset_slug: str, team_slug: str, payload: Dict[str, UnknownType]) -> None:
+    def restore_archived_item(
+        self, dataset_slug: str, team_slug: str, payload: Dict[str, UnknownType]
+    ) -> None:
         """
         Restores the archived item from the given dataset.
 
@@ -771,9 +868,15 @@ class Client:
         payload: Dict[str, UnknownType]
             A filter Dictionary that defines the items to be restored.
         """
-        self._put_raw(f"teams/{team_slug}/datasets/{dataset_slug}/items/restore", payload, team_slug)
+        self._put_raw(
+            f"teams/{team_slug}/datasets/{dataset_slug}/items/restore",
+            payload,
+            team_slug,
+        )
 
-    def move_item_to_new(self, dataset_slug: str, team_slug: str, payload: Dict[str, UnknownType]) -> None:
+    def move_item_to_new(
+        self, dataset_slug: str, team_slug: str, payload: Dict[str, UnknownType]
+    ) -> None:
         """
         Moves the given item's status to new.
 
@@ -786,9 +889,15 @@ class Client:
         payload: Dict[str, UnknownType]
             A filter Dictionary that defines the items to have the 'new' status.
         """
-        self._put_raw(f"teams/{team_slug}/datasets/{dataset_slug}/items/move_to_new", payload, team_slug)
+        self._put_raw(
+            f"teams/{team_slug}/datasets/{dataset_slug}/items/move_to_new",
+            payload,
+            team_slug,
+        )
 
-    def reset_item(self, dataset_slug: str, team_slug: str, payload: Dict[str, UnknownType]) -> None:
+    def reset_item(
+        self, dataset_slug: str, team_slug: str, payload: Dict[str, UnknownType]
+    ) -> None:
         """
         Resets the given item.
 
@@ -801,9 +910,17 @@ class Client:
         payload: Dict[str, UnknownType]
             A filter Dictionary that defines the items to be reset.
         """
-        self._put_raw(f"teams/{team_slug}/datasets/{dataset_slug}/items/reset", payload, team_slug)
+        self._put_raw(
+            f"teams/{team_slug}/datasets/{dataset_slug}/items/reset", payload, team_slug
+        )
 
-    def move_to_stage(self, dataset_slug: str, team_slug: str, filters: Dict[str, UnknownType], stage_id: int) -> None:
+    def move_to_stage(
+        self,
+        dataset_slug: str,
+        team_slug: str,
+        filters: Dict[str, UnknownType],
+        stage_id: str,
+    ) -> None:
         """
         Moves the given items to the specified stage
 
@@ -815,17 +932,25 @@ class Client:
             The slug of the team.
         filters: Dict[str, UnknownType]
             A filter Dictionary that defines the items to have the new, selected stage.
-        stage_id: int
+        stage_id: str
             ID of the stage to set.
         """
         payload: Dict[str, UnknownType] = {
             "filter": filters,
             "workflow_stage_template_id": stage_id,
         }
-        self._put_raw(f"teams/{team_slug}/datasets/{dataset_slug}/set_stage", payload, team_slug)
+        self._put_raw(
+            f"teams/{team_slug}/datasets/{dataset_slug}/set_stage", payload, team_slug
+        )
 
     def post_workflow_comment(
-        self, workflow_id: int, text: str, x: float = 1, y: float = 1, w: float = 1, h: float = 1
+        self,
+        workflow_id: int,
+        text: str,
+        x: float = 1,
+        y: float = 1,
+        w: float = 1,
+        h: float = 1,
     ) -> int:
         """
         Creates a comment box with the given text for the given workflow.
@@ -854,17 +979,24 @@ class Client:
             Dict[str, UnknownType],
             self._post(
                 f"workflows/{workflow_id}/workflow_comment_threads",
-                {"bounding_box": {"x": x, "y": y, "w": w, "h": h}, "workflow_comments": [{"body": text}]},
+                {
+                    "bounding_box": {"x": x, "y": y, "w": w, "h": h},
+                    "workflow_comments": [{"body": text}],
+                },
             ),
         )
 
         comment_id: Optional[int] = response.get("id")
         if comment_id is None:
-            raise ValueError(f"Unable to retrieve comment id for workflow: {workflow_id}.")
+            raise ValueError(
+                f"Unable to retrieve comment id for workflow: {workflow_id}."
+            )
 
         return comment_id
 
-    def instantiate_item(self, item_id: int, include_metadata: bool = False) -> Union[int, Tuple[int, DatasetItem]]:
+    def instantiate_item(
+        self, item_id: int, include_metadata: bool = False
+    ) -> Union[int, Tuple[int, DatasetItem]]:
         """
         Instantiates the given item with a workflow.
 
@@ -886,7 +1018,9 @@ class Client:
         ValueError
             If due to an error, no workflow was instantiated for this item an therefore no workflow id can be returned.
         """
-        response: Dict[str, UnknownType] = cast(Dict[str, UnknownType], self._post(f"dataset_items/{item_id}/workflow"))
+        response: Dict[str, UnknownType] = cast(
+            Dict[str, UnknownType], self._post(f"dataset_items/{item_id}/workflow")
+        )
         id: Optional[int] = response.get("current_workflow_id")
 
         if id is None:
@@ -933,7 +1067,9 @@ class Client:
         return Client.from_config(config_path, team_slug=team_slug)
 
     @classmethod
-    def from_config(cls, config_path: Path, team_slug: Optional[str] = None) -> "Client":
+    def from_config(
+        cls, config_path: Path, team_slug: Optional[str] = None
+    ) -> "Client":
         """
         Factory method to create a client from the configuration file passed as parameter
 
@@ -975,12 +1111,16 @@ class Client:
             datasets_dir = Path.home() / ".darwin" / "datasets"
 
         config: Config = Config(path=None)
-        config.set_global(api_endpoint=Client.default_api_url(), base_url=Client.default_base_url())
+        config.set_global(
+            api_endpoint=Client.default_api_url(), base_url=Client.default_base_url()
+        )
 
         return cls(config=config)
 
     @classmethod
-    def from_api_key(cls, api_key: str, datasets_dir: Optional[Path] = None) -> "Client":
+    def from_api_key(
+        cls, api_key: str, datasets_dir: Optional[Path] = None
+    ) -> "Client":
         """
         Factory method to create a client given an API key.
 
@@ -999,9 +1139,14 @@ class Client:
         if not datasets_dir:
             datasets_dir = Path.home() / ".darwin" / "datasets"
 
-        headers: Dict[str, str] = {"Content-Type": "application/json", "Authorization": f"ApiKey {api_key}"}
+        headers: Dict[str, str] = {
+            "Content-Type": "application/json",
+            "Authorization": f"ApiKey {api_key}",
+        }
         api_url: str = Client.default_api_url()
-        response: requests.Response = requests.get(urljoin(api_url, "/users/token_info"), headers=headers)
+        response: requests.Response = requests.get(
+            urljoin(api_url, "/users/token_info"), headers=headers
+        )
 
         if not response.ok:
             raise InvalidLogin()
@@ -1039,11 +1184,15 @@ class Client:
         """
         return os.getenv("DARWIN_BASE_URL", "https://darwin.v7labs.com")
 
-    def _get_headers(self, team_slug: Optional[str] = None, compressed: bool = False) -> Dict[str, str]:
+    def _get_headers(
+        self, team_slug: Optional[str] = None, compressed: bool = False
+    ) -> Dict[str, str]:
         headers: Dict[str, str] = {"Content-Type": "application/json"}
 
         api_key: Optional[str] = None
-        team_config: Optional[Team] = self.config.get_team(team_slug or self.default_team, raise_on_invalid_team=False)
+        team_config: Optional[Team] = self.config.get_team(
+            team_slug or self.default_team, raise_on_invalid_team=False
+        )
 
         if team_config:
             api_key = team_config.api_key
@@ -1060,9 +1209,15 @@ class Client:
         return headers
 
     def _get_raw_from_full_url(
-        self, url: str, team_slug: Optional[str] = None, retry: bool = False, stream: bool = False
+        self,
+        url: str,
+        team_slug: Optional[str] = None,
+        retry: bool = False,
+        stream: bool = False,
     ) -> Response:
-        response: Response = self.session.get(url, headers=self._get_headers(team_slug), stream=stream)
+        response: Response = self.session.get(
+            url, headers=self._get_headers(team_slug), stream=stream
+        )
 
         self.log.debug(
             f"Client GET request response ({get_response_content(response)}) with status "
@@ -1075,16 +1230,24 @@ class Client:
 
         if not response.ok and retry:
             time.sleep(10)
-            return self._get_raw_from_full_url(url=url, team_slug=team_slug, retry=False, stream=stream)
+            return self._get_raw_from_full_url(
+                url=url, team_slug=team_slug, retry=False, stream=stream
+            )
 
         response.raise_for_status()
 
         return response
 
     def _get_raw(
-        self, endpoint: str, team_slug: Optional[str] = None, retry: bool = False, stream: bool = False
+        self,
+        endpoint: str,
+        team_slug: Optional[str] = None,
+        retry: bool = False,
+        stream: bool = False,
     ) -> Response:
-        return self._get_raw_from_full_url(urljoin(self.url, endpoint), team_slug, retry=retry, stream=stream)
+        return self._get_raw_from_full_url(
+            urljoin(self.url, endpoint), team_slug, retry=retry, stream=stream
+        )
 
     def _get(
         self, endpoint: str, team_slug: Optional[str] = None, retry: bool = False
@@ -1093,10 +1256,16 @@ class Client:
         return self._decode_response(response)
 
     def _put_raw(
-        self, endpoint: str, payload: Dict[str, UnknownType], team_slug: Optional[str] = None, retry: bool = False
+        self,
+        endpoint: str,
+        payload: Dict[str, UnknownType],
+        team_slug: Optional[str] = None,
+        retry: bool = False,
     ) -> Response:
         response: requests.Response = self.session.put(
-            urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team_slug)
+            urljoin(self.url, endpoint),
+            json=payload,
+            headers=self._get_headers(team_slug),
         )
 
         self.log.debug(
@@ -1117,7 +1286,11 @@ class Client:
         return response
 
     def _put(
-        self, endpoint: str, payload: Dict[str, UnknownType], team_slug: Optional[str] = None, retry: bool = False
+        self,
+        endpoint: str,
+        payload: Dict[str, UnknownType],
+        team_slug: Optional[str] = None,
+        retry: bool = False,
     ) -> Union[Dict[str, UnknownType], List[Dict[str, UnknownType]]]:
         response: Response = self._put_raw(endpoint, payload, team_slug, retry)
         return self._decode_response(response)
@@ -1132,10 +1305,14 @@ class Client:
         if payload is None:
             payload = {}
 
-        compression_level = int(self.config.get("global/payload_compression_level", "0"))
+        compression_level = int(
+            self.config.get("global/payload_compression_level", "0")
+        )
 
         if compression_level > 0:
-            compressed_payload = zlib.compress(json.dumps(payload).encode("utf-8"), level=compression_level)
+            compressed_payload = zlib.compress(
+                json.dumps(payload).encode("utf-8"), level=compression_level
+            )
 
             response: Response = requests.post(
                 urljoin(self.url, endpoint),
@@ -1144,7 +1321,9 @@ class Client:
             )
         else:
             response: Response = requests.post(
-                urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team_slug)
+                urljoin(self.url, endpoint),
+                json=payload,
+                headers=self._get_headers(team_slug),
             )
 
         self.log.debug(
@@ -1185,7 +1364,9 @@ class Client:
             payload = {}
 
         response: requests.Response = self.session.delete(
-            urljoin(self.url, endpoint), json=payload, headers=self._get_headers(team_slug)
+            urljoin(self.url, endpoint),
+            json=payload,
+            headers=self._get_headers(team_slug),
         )
 
         self.log.debug(
@@ -1268,7 +1449,11 @@ class Client:
         except ValueError:
             self.log.error(f"[ERROR {response.status_code}] {response.text}")
             response.close()
-            return {"error": "Response is not JSON encoded", "status_code": response.status_code, "text": response.text}
+            return {
+                "error": "Response is not JSON encoded",
+                "status_code": response.status_code,
+                "text": response.text,
+            }
 
     def _handle_latest_darwin_py(self, server_latest_version: str) -> None:
         try:
@@ -1300,3 +1485,44 @@ class Client:
         if not team:
             raise ValueError("No team was found.")
         return BackendV2(self, team.slug)
+
+    def get_team_properties(
+        self, team_slug: Optional[str] = None, include_property_values: bool = True
+    ) -> List[FullProperty]:
+        darwin_config = DarwinConfig.from_old(self.config)
+        future_client = ClientCore(darwin_config)
+
+        if not include_property_values:
+            return get_team_properties_future(
+                client=future_client,
+                team_slug=team_slug or self.default_team,
+            )
+
+        return get_team_full_properties_future(
+            client=future_client,
+            team_slug=team_slug or self.default_team,
+        )
+
+    def create_property(
+        self, team_slug: Optional[str], params: Union[FullProperty, JSONDict]
+    ) -> FullProperty:
+        darwin_config = DarwinConfig.from_old(self.config)
+        future_client = ClientCore(darwin_config)
+
+        return create_property_future(
+            client=future_client,
+            team_slug=team_slug or self.default_team,
+            params=params,
+        )
+
+    def update_property(
+        self, team_slug: Optional[str], params: Union[FullProperty, JSONDict]
+    ) -> FullProperty:
+        darwin_config = DarwinConfig.from_old(self.config)
+        future_client = ClientCore(darwin_config)
+
+        return update_property_future(
+            client=future_client,
+            team_slug=team_slug or self.default_team,
+            params=params,
+        )

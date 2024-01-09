@@ -1,6 +1,5 @@
 import itertools
 from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, Sequence, Union
-from xml.dom import ValidationErr
 
 from requests.models import Response
 
@@ -13,8 +12,9 @@ from darwin.dataset.upload_manager import (
     UploadHandlerV1,
 )
 from darwin.dataset.utils import is_relative_to
-from darwin.datatypes import ItemId, PathLike
+from darwin.datatypes import AnnotationFile, ItemId, PathLike
 from darwin.exceptions import NotFound, ValidationError
+from darwin.exporter.formats.darwin_1_0 import build_image_annotation
 from darwin.item import DatasetItem
 from darwin.item_sorter import ItemSorter
 from darwin.utils import find_files, urljoin
@@ -101,12 +101,21 @@ class RemoteDatasetV1(RemoteDataset):
             Returns a sorted list of available ``Release``\\s with the most recent first.
         """
         try:
-            releases_json: List[Dict[str, Any]] = self.client.get_exports(self.dataset_id, self.team)
+            releases_json: List[Dict[str, Any]] = self.client.get_exports(
+                self.dataset_id, self.team
+            )
         except NotFound:
             return []
 
-        releases = [Release.parse_json(self.slug, self.team, payload) for payload in releases_json]
-        return sorted(filter(lambda x: x.available, releases), key=lambda x: x.version, reverse=True)
+        releases = [
+            Release.parse_json(self.slug, self.team, payload)
+            for payload in releases_json
+        ]
+        return sorted(
+            filter(lambda x: x.available, releases),
+            key=lambda x: x.version,
+            reverse=True,
+        )
 
     def push(
         self,
@@ -172,23 +181,37 @@ class RemoteDatasetV1(RemoteDataset):
         if files_to_upload is None:
             raise ValueError("No files or directory specified.")
 
-        uploading_files = [item for item in files_to_upload if isinstance(item, LocalFile)]
-        search_files = [item for item in files_to_upload if not isinstance(item, LocalFile)]
+        uploading_files = [
+            item for item in files_to_upload if isinstance(item, LocalFile)
+        ]
+        search_files = [
+            item for item in files_to_upload if not isinstance(item, LocalFile)
+        ]
 
-        generic_parameters_specified = path is not None or fps != 0 or as_frames is not False
+        generic_parameters_specified = (
+            path is not None or fps != 0 or as_frames is not False
+        )
         if uploading_files and generic_parameters_specified:
             raise ValueError("Cannot specify a path when uploading a LocalFile object.")
 
         for found_file in find_files(search_files, files_to_exclude=files_to_exclude):
             local_path = path
             if preserve_folders:
-                source_files = [source_file for source_file in search_files if is_relative_to(found_file, source_file)]
+                source_files = [
+                    source_file
+                    for source_file in search_files
+                    if is_relative_to(found_file, source_file)
+                ]
                 if source_files:
                     local_path = str(found_file.relative_to(source_files[0]).parent)
-            uploading_files.append(LocalFile(found_file, fps=fps, as_frames=as_frames, path=local_path))
+            uploading_files.append(
+                LocalFile(found_file, fps=fps, as_frames=as_frames, path=local_path)
+            )
 
         if not uploading_files:
-            raise ValueError("No files to upload, check your path, exclusion filters and resume flag")
+            raise ValueError(
+                "No files to upload, check your path, exclusion filters and resume flag"
+            )
 
         handler = UploadHandlerV1(self, uploading_files)
         if blocking:
@@ -204,7 +227,9 @@ class RemoteDatasetV1(RemoteDataset):
         return handler
 
     def fetch_remote_files(
-        self, filters: Optional[Dict[str, Union[str, List[str]]]] = None, sort: Optional[Union[str, ItemSorter]] = None
+        self,
+        filters: Optional[Dict[str, Union[str, List[str]]]] = None,
+        sort: Optional[Union[str, ItemSorter]] = None,
     ) -> Iterator[DatasetItem]:
         """
         Fetch and lists all files on the remote dataset.
@@ -245,7 +270,9 @@ class RemoteDatasetV1(RemoteDataset):
         cursor = {"page[size]": 500}
         while True:
             payload = {"filter": post_filters, "sort": post_sort}
-            response = self.client.fetch_remote_files(self.dataset_id, cursor, payload, self.team)
+            response = self.client.fetch_remote_files(
+                self.dataset_id, cursor, payload, self.team
+            )
 
             yield from [DatasetItem.parse(item) for item in response["items"]]
 
@@ -263,7 +290,9 @@ class RemoteDatasetV1(RemoteDataset):
         items : Iterator[DatasetItem]
             The ``DatasetItem``\\s to be archived.
         """
-        payload: Dict[str, Any] = {"filter": {"dataset_item_ids": [item.id for item in items]}}
+        payload: Dict[str, Any] = {
+            "filter": {"dataset_item_ids": [item.id for item in items]}
+        }
         self.client.archive_item(self.slug, self.team, payload)
 
     def restore_archived(self, items: Iterator[DatasetItem]) -> None:
@@ -275,7 +304,9 @@ class RemoteDatasetV1(RemoteDataset):
         items : Iterator[DatasetItem]
             The ``DatasetItem``\\s to be restored.
         """
-        payload: Dict[str, Any] = {"filter": {"dataset_item_ids": [item.id for item in items]}}
+        payload: Dict[str, Any] = {
+            "filter": {"dataset_item_ids": [item.id for item in items]}
+        }
         self.client.restore_archived_item(self.slug, self.team, payload)
 
     def move_to_new(self, items: Iterator[DatasetItem]) -> None:
@@ -287,7 +318,9 @@ class RemoteDatasetV1(RemoteDataset):
         items : Iterator[DatasetItem]
             The ``DatasetItem``\\s whose status will change.
         """
-        payload: Dict[str, Any] = {"filter": {"dataset_item_ids": [item.id for item in items]}}
+        payload: Dict[str, Any] = {
+            "filter": {"dataset_item_ids": [item.id for item in items]}
+        }
         self.client.move_item_to_new(self.slug, self.team, payload)
 
     def reset(self, items: Iterator[DatasetItem]) -> None:
@@ -299,7 +332,9 @@ class RemoteDatasetV1(RemoteDataset):
         items : Iterator[DatasetItem]
             The ``DatasetItem``\\s to be resetted.
         """
-        payload: Dict[str, Any] = {"filter": {"dataset_item_ids": [item.id for item in items]}}
+        payload: Dict[str, Any] = {
+            "filter": {"dataset_item_ids": [item.id for item in items]}
+        }
         self.client.reset_item(self.slug, self.team, payload)
 
     def complete(self, items: Iterator[DatasetItem]) -> None:
@@ -311,7 +346,10 @@ class RemoteDatasetV1(RemoteDataset):
         items : Iterator[DatasetItem]
             The ``DatasetItem``\\s to be completed.
         """
-        wf_template_id_mapper = lambda item: item.current_workflow["workflow_template_id"]
+
+        def wf_template_id_mapper(item):
+            return item.current_workflow["workflow_template_id"]
+
         input_items: List[DatasetItem] = list(items)
 
         # We split into items with and without workflow
@@ -339,13 +377,22 @@ class RemoteDatasetV1(RemoteDataset):
             sample_item = current_items[0]
             deep_sample_stages = sample_item.current_workflow["stages"].values()
             sample_stages = [item for sublist in deep_sample_stages for item in sublist]
-            complete_stage = list(filter(lambda stage: stage["type"] == "complete", sample_stages))[0]
+            complete_stage = list(
+                filter(lambda stage: stage["type"] == "complete", sample_stages)
+            )[0]
 
             filters = {"dataset_item_ids": [item.id for item in current_items]}
             try:
-                self.client.move_to_stage(self.slug, self.team, filters, complete_stage["workflow_stage_template_id"])
+                self.client.move_to_stage(
+                    self.slug,
+                    self.team,
+                    filters,
+                    complete_stage["workflow_stage_template_id"],
+                )
             except ValidationError:
-                raise ValueError("Unable to complete some of provided items. Make sure to assign them to a user first.")
+                raise ValueError(
+                    "Unable to complete some of provided items. Make sure to assign them to a user first."
+                )
 
     def delete_items(self, items: Iterator[DatasetItem]) -> None:
         """
@@ -356,7 +403,9 @@ class RemoteDatasetV1(RemoteDataset):
         items : Iterator[DatasetItem]
             The ``DatasetItem``\\s to be deleted.
         """
-        payload: Dict[str, Any] = {"filter": {"dataset_item_ids": [item.id for item in items]}}
+        payload: Dict[str, Any] = {
+            "filter": {"dataset_item_ids": [item.id for item in items]}
+        }
         self.client.delete_item(self.slug, self.team, payload)
 
     def export(
@@ -410,7 +459,9 @@ class RemoteDatasetV1(RemoteDataset):
         str
             A CSV report.
         """
-        response: Response = self.client.get_report(self.dataset_id, granularity, self.team)
+        response: Response = self.client.get_report(
+            self.dataset_id, granularity, self.team
+        )
         return response.text
 
     def workview_url_for_item(self, item: DatasetItem) -> str:
@@ -427,9 +478,14 @@ class RemoteDatasetV1(RemoteDataset):
         str
             The url.
         """
-        return urljoin(self.client.base_url, f"/workview?dataset={self.dataset_id}&image={item.seq}")
+        return urljoin(
+            self.client.base_url,
+            f"/workview?dataset={self.dataset_id}&image={item.seq}",
+        )
 
-    def post_comment(self, item: DatasetItem, text: str, x: float, y: float, w: float, h: float):
+    def post_comment(
+        self, item: DatasetItem, text: str, x: float, y: float, w: float, h: float
+    ):
         """
         Adds a comment to an item in this dataset
         Instantiates a workflow if needed
@@ -457,3 +513,8 @@ class RemoteDatasetV1(RemoteDataset):
         """
 
         self.client.import_annotation(item_id, payload=payload)
+
+    def _build_image_annotation(
+        self, annotation_file: AnnotationFile
+    ) -> Dict[str, Any]:
+        return build_image_annotation(annotation_file)

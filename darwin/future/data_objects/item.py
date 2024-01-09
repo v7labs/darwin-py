@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Callable, Dict, List, Literal, Optional, Sequence, Union
 from uuid import UUID
 
-from pydantic import root_validator, validator
+from pydantic import ValidationInfo, field_validator, model_validator
 
 from darwin.future.data_objects import NumberLike
 from darwin.future.data_objects.pydantic_base import DefaultDarwin
@@ -32,9 +32,11 @@ class ItemLayout(DefaultDarwin):
     # Required only in version 2
     layout_shape: Optional[List[int]] = None
 
-    @validator("layout_shape", always=True)
-    def layout_validator(cls, value: UnknownType, values: Dict) -> Dict:
-        if not value and values.get("version") == 2:
+    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
+    @field_validator("layout_shape")
+    def layout_validator(cls, value: Dict, values: ValidationInfo) -> Dict:
+        if not value and values.data.get("version") == 2:
             raise ValueError("layout_shape must be specified for version 2 layouts")
 
         return value
@@ -57,7 +59,8 @@ class ItemSlot(DefaultDarwin):
     type: Optional[Literal["image", "video", "pdf", "dicom"]] = None
     upload_id: Optional[UUID] = None
 
-    @validator("slot_name")
+    @field_validator("slot_name")
+    @classmethod
     def validate_slot_name(cls, v: UnknownType) -> str:
         assert isinstance(v, str), "slot_name must be a string"
         assert len(v) > 0, "slot_name cannot be empty"
@@ -100,10 +103,7 @@ class ItemSlot(DefaultDarwin):
 
         return values
 
-    class Config:
-        smart_union = True
-
-    @root_validator
+    @model_validator(mode="before")
     def root(cls, values: Dict) -> Dict:
         values = cls.infer_type(values)
         values = cls.validate_fps(values)
@@ -124,7 +124,8 @@ class UploadItem(DefaultDarwin):
     tags: Optional[Union[List[str], Dict[str, str]]] = []
     layout: Optional[ItemLayout] = None
 
-    @validator("name")
+    @field_validator("name")
+    @classmethod
     def validate_name(cls, v: UnknownType) -> str:
         return validate_no_slashes(v)
 
@@ -146,7 +147,8 @@ class ItemCore(DefaultDarwin):
     tags: Optional[Union[List[str], Dict[str, str]]] = []
     layout: Optional[ItemLayout] = None
 
-    @validator("name")
+    @field_validator("name")
+    @classmethod
     def validate_name(cls, v: UnknownType) -> str:
         return validate_no_slashes(v)
 

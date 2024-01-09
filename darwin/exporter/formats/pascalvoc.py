@@ -3,7 +3,6 @@ from typing import Any, Dict, Iterable
 from xml.etree.ElementTree import Element, SubElement, tostring
 
 import deprecation
-import orjson as json
 
 import darwin.datatypes as dt
 from darwin.utils import attempt_decode
@@ -145,7 +144,9 @@ def save_xml(xml: Element, path: Path) -> None:
     current_version=__version__,
     details=REMOVAL_MESSAGE,
 )
-def build_voc(metadata: Dict[str, Any], annotations: Iterable[Dict[str, Any]]) -> Element:
+def build_voc(
+    metadata: Dict[str, Any], annotations: Iterable[Dict[str, Any]]
+) -> Element:
     print(metadata)
     root: Element = Element("annotation")
     add_subelement_text(root, "folder", "images")

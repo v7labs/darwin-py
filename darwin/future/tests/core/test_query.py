@@ -98,7 +98,7 @@ def test_query_filter_filters(  # type: ignore
         modifier = Query.Modifier(mod)
     else:
         modifier = None
-    QF = Query.QueryFilter(name="test", param=param, modifier=modifier)
+    QF = Query.QueryFilter(name="test", param=str(param), modifier=modifier)
     assert QF.filter_attr(check) == expected
 
 

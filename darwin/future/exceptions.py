@@ -46,9 +46,7 @@ class DarwinException(Exception):
         return instance
 
     @classmethod
-    def from_multiple_exceptions(
-        cls, exceptions: Sequence[Exception]
-    ) -> DarwinException:
+    def from_multiple_exceptions(cls, exceptions: Sequence[Exception]) -> DarwinException:
         """
         Creates a new exception from a list of exceptions.
 
@@ -151,3 +149,9 @@ class UploadFailed(DarwinException):
     """Raised when a dataset upload fails."""
 
     errors: Optional[Dict[str, UnknownType]] = None
+
+
+class MaxRetriesError(DarwinException):
+    """Raised when a certain API call is re-tried for {x} number of times."""
+
+    ...

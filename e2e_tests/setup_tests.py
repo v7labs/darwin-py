@@ -10,11 +10,16 @@ import pytest
 import requests
 from PIL import Image
 
-from e2e_tests.exceptions import E2EException
-from e2e_tests.objects import ConfigValues, E2EDataset, E2EItem
+from e2e_tests.exceptions import DataAlreadyExists, E2EException
+from e2e_tests.objects import ConfigValues, E2EAnnotationClass, E2EDataset, E2EItem
 
 
-def api_call(verb: Literal["get", "post", "put", "delete"], url: str, payload: Optional[dict], api_key: str) -> requests.Response:
+def api_call(
+    verb: Literal["get", "post", "put", "delete"],
+    url: str,
+    payload: Optional[dict],
+    api_key: str,
+) -> requests.Response:
     """
     Make an API call to the server
     (Written independently of the client library to avoid relying on tested items)
@@ -44,7 +49,9 @@ def api_call(verb: Literal["get", "post", "put", "delete"], url: str, payload: O
     return response
 
 
-def generate_random_string(length: int = 6, alphabet: str = (string.ascii_lowercase + string.digits)) -> str:
+def generate_random_string(
+    length: int = 6, alphabet: str = (string.ascii_lowercase + string.digits)
+) -> str:
     """
     A random-enough to avoid collision on test runs prefix generator
 
@@ -82,7 +89,9 @@ def create_dataset(prefix: str, config: ConfigValues) -> E2EDataset:
     url = f"{host}/api/datasets"
 
     if not url.startswith("http"):
-        raise E2EException(f"Invalid server URL {host} - need to specify protocol in var E2E_ENVIRONMENT")
+        raise E2EException(
+            f"Invalid server URL {host} - need to specify protocol in var E2E_ENVIRONMENT"
+        )
 
     try:
         response = api_call("post", url, {"name": name}, api_key)
@@ -97,13 +106,100 @@ def create_dataset(prefix: str, config: ConfigValues) -> E2EDataset:
                 # fmt: on
             )
 
-        raise E2EException(f"Failed to create dataset {name} - {response.status_code} - {response.text}")
+        raise E2EException(
+            f"Failed to create dataset {name} - {response.status_code} - {response.text}"
+        )
     except Exception as e:
         print(f"Failed to create dataset {name} - {e}")
         pytest.exit("Test run failed in test setup stage")
 
 
-def create_item(dataset_slug: str, prefix: str, image: Path, config: ConfigValues) -> E2EItem:
+def create_annotation_class(
+    name: str,
+    annotation_type: str,
+    config: ConfigValues,
+    fixed_name: bool = False,
+) -> E2EAnnotationClass:
+    """
+    Create a randomised new annotation class, and return its minimal info for reference
+
+    Parameters
+    ----------
+    name : str
+        The name of the annotation class
+    annotation_type : str
+        The type of the annotation class
+
+    Returns
+    -------
+    E2EAnnotationClass
+        The minimal info about the created annotation class
+    """
+    team_slug = config.team_slug
+
+    if not fixed_name:
+        name = f"{name}_{generate_random_string(4)}_annotation_class"
+    host, api_key = config.server, config.api_key
+    url = f"{host}/api/teams/{team_slug}/annotation_classes"
+    response = api_call(
+        "post",
+        url,
+        {
+            "name": name,
+            "annotation_types": [annotation_type],
+            "metadata": {"_color": "auto"},
+        },
+        api_key,
+    )
+
+    if response.ok:
+        annotation_class_info = response.json()
+        return E2EAnnotationClass(
+            id=annotation_class_info["id"],
+            name=annotation_class_info["name"],
+            type=annotation_class_info["annotation_types"][0],
+        )
+    if response.status_code == 422 and "already exists" in response.text:
+        raise DataAlreadyExists(
+            f"Failed to create annotation class {name} - {response.status_code} - {response.text}"
+        )
+    raise E2EException(
+        f"Failed to create annotation class {name} - {response.status_code} - {response.text}"
+    )
+
+
+def delete_annotation_class(id: str, config: ConfigValues) -> None:
+    """
+    Delete an annotation class on the server
+
+    Parameters
+    ----------
+    id : str
+        The id of the annotation class to delete
+    config : ConfigValues
+        The config values to use
+    """
+    host, api_key = config.server, config.api_key
+    url = f"{host}/api/annotation_classes/{id}"
+    try:
+        response = api_call(
+            "delete",
+            url,
+            None,
+            api_key,
+        )
+        if not response.ok:
+            raise E2EException(
+                f"Failed to delete annotation class {id} - {response.status_code} - {response.text}"
+            )
+    except Exception as e:
+        print(f"Failed to delete annotation class {id} - {e}")
+        pytest.exit("Test run failed in test setup stage")
+
+
+def create_item(
+    dataset_slug: str, prefix: str, image: Path, config: ConfigValues
+) -> E2EItem:
     """
     Creates a randomised new item, and return its minimal info for reference
 
@@ -168,7 +264,9 @@ def create_item(dataset_slug: str, prefix: str, image: Path, config: ConfigValue
                 annotations=[],
             )
 
-        raise E2EException(f"Failed to create item {name} - {response.status_code} - {response.text}")
+        raise E2EException(
+            f"Failed to create item {name} - {response.status_code} - {response.text}"
+        )
 
     except E2EException as e:
         print(f"Failed to create item {name} - {e}")
@@ -179,7 +277,13 @@ def create_item(dataset_slug: str, prefix: str, image: Path, config: ConfigValue
         pytest.exit("Test run failed in test setup stage")
 
 
-def create_random_image(prefix: str, directory: Path, height: int = 100, width: int = 100, fixed_name: bool=False) -> Path:
+def create_random_image(
+    prefix: str,
+    directory: Path,
+    height: int = 100,
+    width: int = 100,
+    fixed_name: bool = False,
+) -> Path:
     """
     Create a random image file in the given directory
 
@@ -206,7 +310,7 @@ def create_random_image(prefix: str, directory: Path, height: int = 100, width: 
     return directory / image_name
 
 
-def setup_tests(config: ConfigValues) -> List[E2EDataset]:
+def setup_datasets(config: ConfigValues) -> List[E2EDataset]:
     """
     Setup data for End to end test runs
 
@@ -254,6 +358,48 @@ def setup_tests(config: ConfigValues) -> List[E2EDataset]:
         return datasets
 
 
+def setup_annotation_classes(config: ConfigValues) -> List[E2EAnnotationClass]:
+    """
+    Setup data for End to end test runs
+
+    Parameters
+    ----------
+    config : ConfigValues
+        The config values to use
+
+    Returns
+    -------
+    List[E2EAnnotationClass]
+        The minimal info about the created annotation classes
+    """
+
+    annotation_classes: List[E2EAnnotationClass] = []
+
+    print("Setting up annotation classes")
+    set_types = [("bb", "bounding_box"), ("poly", "polygon"), ("ellipse", "ellipse")]
+    try:
+        for annotation_type, annotation_type_name in set_types:
+            try:
+                annotation_class = create_annotation_class(
+                    f"test_{annotation_type}",
+                    annotation_type_name,
+                    config,
+                    fixed_name=True,
+                )
+                annotation_classes.append(annotation_class)
+            except DataAlreadyExists:
+                pass
+    except E2EException as e:
+        print(e)
+        pytest.exit("Test run failed in test setup stage")
+
+    except Exception as e:
+        print(e)
+        pytest.exit("Setup failed - unknown error")
+
+    return annotation_classes
+
+
 def teardown_tests(config: ConfigValues, datasets: List[E2EDataset]) -> None:
     """
     Teardown data for End to end test runs
@@ -265,20 +411,41 @@ def teardown_tests(config: ConfigValues, datasets: List[E2EDataset]) -> None:
     datasets : List[E2EDataset]
         The minimal info about the created datasets
     """
+    failures = []
+    print("\nTearing down datasets")
+    failures.extend(delete_known_datasets(config, datasets))
+
+    print("Tearing down workflows")
+    failures.extend(delete_workflows(config))
+
+    print("Tearing down general datasets")
+    failures.extend(delete_general_datasets(config))
+
+    if failures:
+        for item in failures:
+            print(item)
+        pytest.exit("Test run failed in test teardown stage")
+
+    if failures:
+        for item in failures:
+            print(item)
+        pytest.exit("Test run failed in test teardown stage")
+
+    print("Tearing down data complete")
+
+
+def delete_workflows(config: ConfigValues) -> List:
+    """
+    Delete all workflows for the team
+
+    Parameters
+    ----------
+    config : ConfigValues
+        The config values to use
+    """
     host, api_key, team_slug = config.server, config.api_key, config.team_slug
 
-    print("\nTearing down datasets")
-
     failures = []
-    for dataset in datasets:
-        url = f"{host}/api/datasets/{dataset.id}/archive"
-        response = api_call("put", url, {}, api_key)
-
-        if not response.ok:
-            failures.append(f"Failed to delete dataset {dataset.name} - {response.status_code} - {response.text}")
-
-
-    # Teardown workflows as they need to be disconnected before datasets can be deleted
     url = f"{host}/api/v2/teams/{team_slug}/workflows"
     response = api_call("get", url, {}, api_key)
     if response.ok:
@@ -286,27 +453,56 @@ def teardown_tests(config: ConfigValues, datasets: List[E2EDataset]) -> None:
         for item in items:
             if not item["dataset"]:
                 continue
-            if not item['dataset']['name'].startswith("test_dataset_"):
+            if not item["dataset"]["name"].startswith("test_dataset_"):
                 continue
-            new_item = {
-                "name": item['name'],
-                "stages": item['stages']
-            }
-            for stage in new_item['stages']:
-                if stage['type'] == 'dataset':
+            new_item = {"name": item["name"], "stages": item["stages"]}
+            for stage in new_item["stages"]:
+                if stage["type"] == "dataset":
                     stage["config"]["dataset_id"] = None
             url = f"{host}/api/v2/teams/{team_slug}/workflows/{item['id']}"
             response = api_call("put", url, new_item, api_key)
             if not response.ok:
-                failures.append(f"Failed to delete workflow {item['name']} - {response.status_code} - {response.text}")
-                
+                failures.append(
+                    f"Failed to delete workflow {item['name']} - {response.status_code} - {response.text}"
+                )
+
             # Now Delete the workflow once dataset is disconnected
             response = api_call("delete", url, None, api_key)
             if not response.ok:
-                failures.append(f"Failed to delete workflow {item['name']} - {response.status_code} - {response.text}")
-                
+                failures.append(
+                    f"Failed to delete workflow {item['name']} - {response.status_code} - {response.text}"
+                )
+    return failures
+
+
+def delete_known_datasets(config: ConfigValues, datasets: List[E2EDataset]) -> List:
+    """
+    Delete all known datasets for the team
+
+    Parameters
+    ----------
+    config : ConfigValues
+        The config values to use
+    """
+    host, api_key, _ = config.server, config.api_key, config.team_slug
+
+    failures = []
+    for dataset in datasets:
+        url = f"{host}/api/datasets/{dataset.id}/archive"
+        response = api_call("put", url, {}, api_key)
+
+        if not response.ok:
+            failures.append(
+                f"Failed to delete dataset {dataset.name} - {response.status_code} - {response.text}"
+            )
+    return failures
+
+
+def delete_general_datasets(config: ConfigValues) -> List:
+    host, api_key, _ = config.server, config.api_key, config.team_slug
     # teardown any other datasets of specific format
     url = f"{host}/api/datasets"
+    failures = []
     response = api_call("get", url, {}, api_key)
     if response.ok:
         items = response.json()
@@ -316,11 +512,23 @@ def teardown_tests(config: ConfigValues, datasets: List[E2EDataset]) -> None:
             url = f"{host}/api/datasets/{item['id']}/archive"
             response = api_call("put", url, None, api_key)
             if not response.ok:
-                failures.append(f"Failed to delete dataset {item['name']} - {response.status_code} - {response.text}")
-    
-    if failures:
-        for item in failures:
-            print(item)
-        pytest.exit("Test run failed in test teardown stage")
+                failures.append(
+                    f"Failed to delete dataset {item['name']} - {response.status_code} - {response.text}"
+                )
+    return failures
 
-    print("Tearing down data complete")
+
+def teardown_annotation_classes(
+    config: ConfigValues, annotation_classes: List[E2EAnnotationClass]
+) -> None:
+    for annotation_class in annotation_classes:
+        delete_annotation_class(str(annotation_class.id), config)
+    team_slug = config.team_slug
+    host = config.server
+    response = api_call(
+        "get", f"{host}/api/teams/{team_slug}/annotation_classes", None, config.api_key
+    )
+    all_annotations = response.json()["annotation_classes"]
+    for annotation_class in all_annotations:
+        if annotation_class["name"].startswith("test_"):
+            delete_annotation_class(annotation_class["id"], config)

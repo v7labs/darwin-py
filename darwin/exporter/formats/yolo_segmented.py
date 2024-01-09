@@ -1,11 +1,10 @@
 from collections import namedtuple
 from enum import Enum, auto
 from logging import getLogger
-from multiprocessing.pool import CLOSE
 from pathlib import Path
 from typing import Iterable, List
 
-from darwin.datatypes import Annotation, AnnotationFile, JSONType, VideoAnnotation
+from darwin.datatypes import Annotation, AnnotationFile, VideoAnnotation
 from darwin.exceptions import DarwinException
 from darwin.exporter.formats.helpers.yolo_class_builder import (
     ClassIndex,
@@ -103,7 +102,9 @@ def _determine_annotation_type(annotation: Annotation) -> YoloSegmentedAnnotatio
         return YoloSegmentedAnnotationType.UNKNOWN
 
 
-def _handle_bounding_box(data: dict, im_w: int, im_h: int, annotation_index: int, points: List[Point]) -> bool:
+def _handle_bounding_box(
+    data: dict, im_w: int, im_h: int, annotation_index: int, points: List[Point]
+) -> bool:
     logger.debug(f"Exporting bounding box at index {annotation_index}.")
 
     try:
@@ -163,7 +164,8 @@ def _handle_bounding_box(data: dict, im_w: int, im_h: int, annotation_index: int
 
     except KeyError as exc:
         logger.warn(
-            f"Skipped annotation at index {annotation_index} because an" "expected key was not found in the data.",
+            f"Skipped annotation at index {annotation_index} because an"
+            "expected key was not found in the data.",
             exc_info=exc,
         )
         return False
@@ -171,7 +173,9 @@ def _handle_bounding_box(data: dict, im_w: int, im_h: int, annotation_index: int
     return True
 
 
-def _handle_polygon(data: dict, im_w: int, im_h: int, annotation_index: int, points: List[Point]) -> bool:
+def _handle_polygon(
+    data: dict, im_w: int, im_h: int, annotation_index: int, points: List[Point]
+) -> bool:
     logger.debug(f"Exporting polygon at index {annotation_index}.")
 
     last_point = None
@@ -203,8 +207,10 @@ def _handle_polygon(data: dict, im_w: int, im_h: int, annotation_index: int, poi
         )
         return False
 
-    except Exception as exc:
-        logger.error(f"An unexpected error occured while exporting annotation at index {annotation_index}.")
+    except Exception:
+        logger.error(
+            f"An unexpected error occured while exporting annotation at index {annotation_index}."
+        )
 
     return True
 
@@ -246,7 +252,9 @@ def _build_text(annotation_file: AnnotationFile, class_index: ClassIndex) -> str
             continue
 
         if annotation.data is None:
-            logger.warn(f"Skipped annotation at index {annotation_index} because it's data fields are empty.'")
+            logger.warn(
+                f"Skipped annotation at index {annotation_index} because it's data fields are empty.'"
+            )
             continue
 
         # Process annotations
@@ -259,11 +267,15 @@ def _build_text(annotation_file: AnnotationFile, class_index: ClassIndex) -> str
         points: List[Point] = []
 
         if annotation_type == YoloSegmentedAnnotationType.BOUNDING_BOX:
-            bb_success = _handle_bounding_box(data, im_w, im_h, annotation_index, points)
+            bb_success = _handle_bounding_box(
+                data, im_w, im_h, annotation_index, points
+            )
             if not bb_success:
                 continue
         elif annotation_type == YoloSegmentedAnnotationType.POLYGON:
-            polygon_success = _handle_polygon(data, im_w, im_h, annotation_index, points)
+            polygon_success = _handle_polygon(
+                data, im_w, im_h, annotation_index, points
+            )
             if not polygon_success:
                 continue
         else:

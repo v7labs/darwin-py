@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Iterable, List, Union
+from typing import Any, Dict, Iterable, List, Union
 
 import orjson as json
 
@@ -38,19 +38,30 @@ def _export_file(annotation_file: AnnotationFile, _: int, output_dir: Path) -> N
         filename = annotation_file.path.parts[-1]
         output_file_path = (output_dir / filename).with_suffix(".json")
     except Exception as e:
-        raise ExportException_CouldNotAssembleOutputPath(f"Could not export file {annotation_file.path} to {output_dir}") from e
+        raise ExportException_CouldNotAssembleOutputPath(
+            f"Could not export file {annotation_file.path} to {output_dir}"
+        ) from e
 
     try:
         output: DictFreeForm = _build_json(annotation_file)
     except Exception as e:
-        raise ExportException_CouldNotBuildOutput(f"Could not build output for {annotation_file.path}") from e
+        raise ExportException_CouldNotBuildOutput(
+            f"Could not build output for {annotation_file.path}"
+        ) from e
 
     try:
         with open(output_file_path, "w") as f:
-            op = json.dumps(output, option=json.OPT_INDENT_2 | json.OPT_SERIALIZE_NUMPY | json.OPT_NON_STR_KEYS).decode("utf-8")
+            op = json.dumps(
+                output,
+                option=json.OPT_INDENT_2
+                | json.OPT_SERIALIZE_NUMPY
+                | json.OPT_NON_STR_KEYS,
+            ).decode("utf-8")
             f.write(op)
     except Exception as e:
-        raise ExportException_CouldNotWriteFile(f"Could not write output for {annotation_file.path}") from e
+        raise ExportException_CouldNotWriteFile(
+            f"Could not write output for {annotation_file.path}"
+        ) from e
 
 
 def _build_json(annotation_file: AnnotationFile) -> DictFreeForm:
@@ -125,11 +136,17 @@ def _build_sub_annotation(sub: SubAnnotation) -> DictFreeForm:
 def _build_authorship(annotation: Union[VideoAnnotation, Annotation]) -> DictFreeForm:
     annotators = {}
     if annotation.annotators:
-        annotators = {"annotators": [_build_author(annotator) for annotator in annotation.annotators]}
+        annotators = {
+            "annotators": [
+                _build_author(annotator) for annotator in annotation.annotators
+            ]
+        }
 
     reviewers = {}
     if annotation.reviewers:
-        reviewers = {"annotators": [_build_author(reviewer) for reviewer in annotation.reviewers]}
+        reviewers = {
+            "annotators": [_build_author(reviewer) for reviewer in annotation.reviewers]
+        }
 
     return {**annotators, **reviewers}
 
@@ -138,7 +155,9 @@ def _build_video_annotation(annotation: VideoAnnotation) -> DictFreeForm:
     return {
         **annotation.get_data(
             only_keyframes=False,
-            post_processing=lambda annotation, _: _build_image_annotation(annotation, skip_slots=True),
+            post_processing=lambda annotation, _: _build_image_annotation(
+                annotation, skip_slots=True
+            ),
         ),
         "name": annotation.annotation_class.name,
         "slot_names": annotation.slot_names,
@@ -146,7 +165,9 @@ def _build_video_annotation(annotation: VideoAnnotation) -> DictFreeForm:
     }
 
 
-def _build_image_annotation(annotation: Annotation, skip_slots: bool = False) -> DictFreeForm:
+def _build_image_annotation(
+    annotation: Annotation, skip_slots: bool = False
+) -> DictFreeForm:
     json_subs = {}
     for sub in annotation.subs:
         json_subs.update(_build_sub_annotation(sub))
@@ -164,7 +185,9 @@ def _build_image_annotation(annotation: Annotation, skip_slots: bool = False) ->
         return {**base_json, "slot_names": annotation.slot_names}
 
 
-def _build_legacy_annotation_data(annotation_class: AnnotationClass, data: DictFreeForm) -> DictFreeForm:
+def _build_legacy_annotation_data(
+    annotation_class: AnnotationClass, data: DictFreeForm
+) -> DictFreeForm:
     v1_data = {}
     polygon_annotation_mappings = {"complex_polygon": "paths", "polygon": "path"}
 
@@ -190,3 +213,75 @@ def _build_metadata(annotation_file: AnnotationFile) -> DictFreeForm:
         return {"metadata": annotation_file.slots[0].metadata}
     else:
         return {}
+
+
+def build_image_annotation(annotation_file: AnnotationFile) -> Dict[str, Any]:
+    """
+    Builds and returns a dictionary with the annotations present in the given file.
+
+    Parameters
+    ----------
+    annotation_file: dt.AnnotationFile
+        File with the image annotations to extract.
+
+    Returns
+    -------
+    Dict[str, Any]
+        A dictionary with the annotation from the given file. Has the following structure:
+
+        .. code-block:: python
+
+            {
+                "annotations": [
+                    {
+                        "annotation_type": { ... }, # annotation_data
+                        "name": "annotation class name",
+                        "bounding_box": { ... } # Optional parameter, only present if the file has a bounding box as well
+                    }
+                ],
+                "image": {
+                    "filename": "a_file_name.json",
+                    "height": 1000,
+                    "width": 2000,
+                    "url": "https://www.darwin.v7labs.com/..."
+                }
+            }
+    """
+    annotations: List[Dict[str, Any]] = []
+    for annotation in annotation_file.annotations:
+        payload = {
+            annotation.annotation_class.annotation_type: _build_annotation_data(
+                annotation
+            ),
+            "name": annotation.annotation_class.name,
+        }
+
+        if (
+            annotation.annotation_class.annotation_type == "complex_polygon"
+            or annotation.annotation_class.annotation_type == "polygon"
+        ) and "bounding_box" in annotation.data:
+            payload["bounding_box"] = annotation.data["bounding_box"]
+
+        annotations.append(payload)
+
+    return {
+        "annotations": annotations,
+        "image": {
+            "filename": annotation_file.filename,
+            "height": annotation_file.image_height,
+            "width": annotation_file.image_width,
+            "url": annotation_file.image_url,
+        },
+    }
+
+
+def _build_annotation_data(annotation: Annotation) -> Dict[str, Any]:
+    if annotation.annotation_class.annotation_type == "complex_polygon":
+        return {"path": annotation.data["paths"]}
+
+    if annotation.annotation_class.annotation_type == "polygon":
+        return dict(
+            filter(lambda item: item[0] != "bounding_box", annotation.data.items())
+        )
+
+    return dict(annotation.data)

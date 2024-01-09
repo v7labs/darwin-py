@@ -8,7 +8,7 @@ from darwin.future.tests.data_objects.fixtures import *
 
 
 def test_integrated_parsing_works_with_raw(basic_combined: dict) -> None:
-    team = TeamCore.parse_obj(basic_combined)
+    team = TeamCore.model_validate(basic_combined)
     assert team.slug == "test-team"
     assert team.datasets is not None
     assert team.datasets[0].name == "test-dataset"
@@ -18,10 +18,10 @@ def test_integrated_parsing_works_with_raw(basic_combined: dict) -> None:
 
 def test_broken_obj_raises(broken_combined: dict) -> None:
     with pytest.raises(ValidationError):
-        TeamCore.parse_obj(broken_combined)
+        TeamCore.model_validate(broken_combined)
 
 
 @pytest.mark.parametrize("test_object", [TeamCore, DatasetCore, ReleaseCore])
 def test_empty_obj_raises(test_object: BaseModel) -> None:
     with pytest.raises(ValidationError):
-        test_object.parse_obj({})
+        test_object.model_validate({})

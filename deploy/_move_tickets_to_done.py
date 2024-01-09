@@ -8,8 +8,16 @@ import re
 from confirm_main_branch_deployability import ExitCodes, _exit, _run_command
 
 parser = argparse.ArgumentParser(description="Move tickets in release to done.")
-parser.add_argument("--release-tag", "--tag", "-t", help="The release tag to move tickets from", required=True)
-parser.add_argument("--dry-run", action="store_true", help="Don't actually move tickets to done")
+parser.add_argument(
+    "--release-tag",
+    "--tag",
+    "-t",
+    help="The release tag to move tickets from",
+    required=True,
+)
+parser.add_argument(
+    "--dry-run", action="store_true", help="Don't actually move tickets to done"
+)
 
 args = parser.parse_args()
 release_tag = args.release_tag
@@ -23,14 +31,18 @@ if dry_run := args.dry_run:
 
 # get details
 body, error = _run_command("gh", "release", "view", release_tag, "--json", "body")
-assert error == 0, _exit("Failed to get last release body", ExitCodes.GETTING_RELEASE_METADATA_THREW_EXITCODE)
+assert error == 0, _exit(
+    "Failed to get last release body", ExitCodes.GETTING_RELEASE_METADATA_THREW_EXITCODE
+)
 
 body_parsed = json.loads(body)
 body = body_parsed["body"].split("\n")
 
 TICKET_MATCHER = re.compile(r"^\* \[([A-z]+-[0-9]+)\]")
 
-wrong_lines = [line for line in body if line.startswith("* ") and not TICKET_MATCHER.match(line)]
+wrong_lines = [
+    line for line in body if line.startswith("* ") and not TICKET_MATCHER.match(line)
+]
 body_lines = [line.upper() for line in body if TICKET_MATCHER.match(line)]
 
 unmoved_tickets = len(wrong_lines) - len(body_lines)

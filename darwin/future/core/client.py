@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Callable, Dict, Optional
+from typing import Any, Callable, Dict, Optional
 from urllib.parse import urlparse
 
 import requests
 import yaml
-from pydantic import BaseModel, root_validator, validator
+from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 from requests.adapters import HTTPAdapter, Retry
 
+from darwin.config import Config as OldConfig
 from darwin.future.core.types.common import JSONType, QueryString
 from darwin.future.exceptions import (
     BadRequest,
@@ -33,14 +34,15 @@ class DarwinConfig(BaseModel):
     default_team: Optional[Team], default team to make requests to
     """
 
-    api_key: Optional[str]
-    datasets_dir: Optional[Path]
+    api_key: Optional[str] = None
+    datasets_dir: Optional[Path] = None
     api_endpoint: str
     base_url: str
     default_team: str
     teams: Dict[str, TeamsConfig]
 
-    @validator("base_url")
+    @field_validator("base_url")
+    @classmethod
     def validate_base_url(cls, v: str) -> str:
         v = v.strip()
         if not v.endswith("/"):
@@ -53,7 +55,8 @@ class DarwinConfig(BaseModel):
         assert check.netloc, "base_url must contain a domain"
         return v
 
-    @root_validator(pre=True)
+    @model_validator(mode="before")
+    @classmethod
     def remove_global(cls, values: dict) -> dict:
         if "global" not in values:
             return values
@@ -62,8 +65,9 @@ class DarwinConfig(BaseModel):
         values.update(global_conf)
         return values
 
-    @root_validator()
-    def validate_defaults(cls, values: dict) -> dict:
+    @model_validator(mode="before")
+    @classmethod
+    def validate_defaults(cls, values: Any) -> Any:
         if values["api_key"]:
             return values
         assert values["default_team"] in values["teams"]
@@ -100,7 +104,7 @@ class DarwinConfig(BaseModel):
     def from_file(path: Path) -> DarwinConfig:
         if path.suffix.lower() == ".yaml":
             data = DarwinConfig._parse_yaml(path)
-            return DarwinConfig.parse_obj(data)
+            return DarwinConfig.model_validate(data)
         else:
             return DarwinConfig.parse_file(path)
 
@@ -121,8 +125,26 @@ class DarwinConfig(BaseModel):
             datasets_dir=DarwinConfig._default_config_path(),
         )
 
-    class Config:
-        validate_assignment = True
+    @staticmethod
+    def from_old(old_config: OldConfig) -> DarwinConfig:
+        teams = old_config.get("teams")
+        if not teams:
+            raise ValueError("No teams found in the old config")
+
+        default_team = old_config.get("global/default_team")
+        if not default_team:
+            default_team = list(teams.keys())[0]
+
+        return DarwinConfig(
+            api_key=teams[default_team]["api_key"],
+            api_endpoint=old_config.get("global/api_endpoint"),
+            base_url=old_config.get("global/base_url"),
+            default_team=default_team,
+            teams=teams,
+            datasets_dir=teams[default_team]["datasets_dir"],
+        )
+
+    model_config = ConfigDict(validate_assignment=True)
 
 
 class Result(BaseModel):

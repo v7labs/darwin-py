@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import List, Optional, Sequence, Union
 
-
 from darwin.cli_functions import upload_data
 from darwin.dataset.upload_manager import LocalFile
 from darwin.datatypes import PathLike

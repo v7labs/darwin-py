@@ -8,8 +8,37 @@ import pytest
 from darwin.future.core.client import ClientCore, DarwinConfig
 from darwin.future.data_objects.dataset import DatasetCore
 from darwin.future.data_objects.item import ItemCore, ItemLayout, ItemSlot
+from darwin.future.data_objects.properties import FullProperty, PropertyValue
 from darwin.future.data_objects.team import TeamCore, TeamMemberCore
 from darwin.future.data_objects.team_member_role import TeamMemberRole
+from darwin.future.data_objects.workflow import WorkflowCore
+
+
+@pytest.fixture
+def base_property_value() -> PropertyValue:
+    return PropertyValue(
+        id="0",
+        position=0,
+        type="string",
+        value="test-value",
+        color="rgba(0,0,0,0)",
+    )
+
+
+@pytest.fixture
+def base_property_object(base_property_value: PropertyValue) -> FullProperty:
+    return FullProperty(
+        id="0",
+        name="test-property",
+        type="text",
+        description="test-description",
+        required=False,
+        slug="test-property",
+        team_id=0,
+        annotation_class_id=0,
+        property_values=[base_property_value],
+        options=[base_property_value],
+    )
 
 
 @pytest.fixture
@@ -66,7 +95,7 @@ def base_team_json() -> dict:
 
 @pytest.fixture
 def base_team(base_team_json: dict) -> TeamCore:
-    return TeamCore.parse_obj(base_team_json)
+    return TeamCore.model_validate(base_team_json)
 
 
 @pytest.fixture
@@ -87,8 +116,37 @@ def base_item_json() -> dict:
 
 
 @pytest.fixture
+def base_item_json_response() -> dict:
+    return {
+        "name": "test-item",
+        "id": "123e4567-e89b-12d3-a456-426655440000",
+        "slots": [
+            {"slot_name": "slot1", "file_name": "file1.jpg", "fps": 1},
+            {"slot_name": "slot2", "file_name": "file2.jpg", "fps": 1},
+        ],
+        "path": "/",
+        "archived": False,
+        "priority": None,
+        "tags": [],
+        "layout": None,
+        "dataset_id": 101,
+        "processing_status": "complete",
+    }
+
+
+@pytest.fixture
+def base_items_json_response(base_item_json_response) -> dict:
+    return {"items": [base_item_json_response]}
+
+
+@pytest.fixture
 def base_item(base_item_json: dict) -> ItemCore:
-    return ItemCore.parse_obj(base_item_json)
+    return ItemCore.model_validate(base_item_json)
+
+
+@pytest.fixture
+def base_workflow(base_single_workflow_object: dict) -> WorkflowCore:
+    return WorkflowCore.model_validate(base_single_workflow_object)
 
 
 @pytest.fixture
@@ -106,7 +164,7 @@ def base_team_member_json() -> dict:
 
 @pytest.fixture
 def base_team_member(base_team_member_json: dict) -> TeamMemberCore:
-    return TeamMemberCore.parse_obj(base_team_member_json)
+    return TeamMemberCore.model_validate(base_team_member_json)
 
 
 @pytest.fixture
@@ -121,7 +179,7 @@ def base_team_members_json(base_team_member_json: dict) -> List[dict]:
 
 @pytest.fixture
 def team_members(base_team_members_json: List[dict]) -> List[TeamMemberCore]:
-    return [TeamMemberCore.parse_obj(item) for item in base_team_members_json]
+    return [TeamMemberCore.model_validate(item) for item in base_team_members_json]
 
 
 @pytest.fixture
@@ -147,11 +205,11 @@ def base_dataset_json_with_releases() -> dict:
 
 @pytest.fixture
 def base_dataset(base_dataset_json: dict) -> DatasetCore:
-    return DatasetCore.parse_obj(base_dataset_json)
+    return DatasetCore.model_validate(base_dataset_json)
 
 
 def base_dataset_with_releases(base_dataset_json_with_releases: dict) -> DatasetCore:
-    return DatasetCore.parse_obj(base_dataset_json_with_releases)
+    return DatasetCore.model_validate(base_dataset_json_with_releases)
 
 
 @pytest.fixture

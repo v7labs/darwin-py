@@ -1,0 +1,99 @@
+{
+  "info": {
+    "description": "Exported from Darwin",
+    "url": "n/a",
+    "version": "n/a",
+    "year": 2023,
+    "contributor": "n/a",
+    "date_created": "2023/12/05"
+  },
+  "licenses": [
+    {
+      "url": "n/a",
+      "id": 0,
+      "name": "placeholder license"
+    }
+  ],
+  "images": [
+    {
+      "license": 0,
+      "file_name": "",
+      "coco_url": "n/a",
+      "height": null,
+      "width": null,
+      "date_captured": "",
+      "flickr_url": "n/a",
+      "darwin_url": null,
+      "darwin_workview_url": null,
+      "id": 2043925204,
+      "tag_ids": []
+    }
+  ],
+  "annotations": [
+    {
+      "id": 1,
+      "image_id": 2043925204,
+      "category_id": 348813479,
+      "segmentation": [
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.0,
+          1.0,
+          1.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "area": 1.0,
+      "bbox": [
+        0.0,
+        0.0,
+        1.0,
+        1.0
+      ],
+      "iscrowd": 0,
+      "extra": {}
+    },
+    {
+      "id": 3,
+      "image_id": 2043925204,
+      "category_id": 3961009249,
+      "segmentation": [
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.0,
+          1.0,
+          1.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "area": 1.0,
+      "bbox": [
+        0.0,
+        0.0,
+        1.0,
+        1.0
+      ],
+      "iscrowd": 0,
+      "extra": {}
+    }
+  ],
+  "categories": [
+    {
+      "id": 3961009249,
+      "name": "test_poly",
+      "supercategory": "root"
+    },
+    {
+      "id": 348813479,
+      "name": "test_bb",
+      "supercategory": "root"
+    }
+  ],
+  "tag_categories": []
+}

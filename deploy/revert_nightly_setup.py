@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from datetime import datetime
-from os import path
 from pathlib import Path
 
 
@@ -29,7 +27,7 @@ def main() -> None:
         if line.startswith("name ="):
             line = f'name = "{new_package_name}"\n'
         if line.startswith("version ="):
-            line = f'version = {new_version}\n'
+            line = f"version = {new_version}\n"
         lines_to_write.append(line)
 
     path_to_pyproject.write_text("\n".join(lines_to_write))

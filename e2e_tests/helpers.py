@@ -1,18 +1,10 @@
-import re
-import tempfile
-import uuid
-from pathlib import Path
 from subprocess import run
 from time import sleep
-from typing import Generator, Optional, Tuple
+from typing import Optional
 
-import pytest
 from attr import dataclass
-from cv2 import exp
 
 from darwin.exceptions import DarwinException
-from e2e_tests.objects import E2EDataset
-from e2e_tests.setup_tests import create_random_image
 
 
 @dataclass
@@ -28,7 +20,10 @@ SERVER_WAIT_TIME = 10
 
 
 def run_cli_command(
-    command: str, working_directory: Optional[str] = None, yes: bool = False, server_wait: int = SERVER_WAIT_TIME
+    command: str,
+    working_directory: Optional[str] = None,
+    yes: bool = False,
+    server_wait: int = SERVER_WAIT_TIME,
 ) -> CLIResult:
     """
     Run a CLI command and return the return code, stdout, and stderr.
@@ -68,9 +63,17 @@ def run_cli_command(
         )
     sleep(server_wait)  # wait for server to catch up
     try:
-        return CLIResult(result.returncode, result.stdout.decode("utf-8"), result.stderr.decode("utf-8"))
+        return CLIResult(
+            result.returncode,
+            result.stdout.decode("utf-8"),
+            result.stderr.decode("utf-8"),
+        )
     except UnicodeDecodeError:
-        return CLIResult(result.returncode, result.stdout.decode("cp437"), result.stderr.decode("cp437"))
+        return CLIResult(
+            result.returncode,
+            result.stdout.decode("cp437"),
+            result.stderr.decode("cp437"),
+        )
 
 
 def format_cli_output(result: CLIResult) -> str:

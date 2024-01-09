@@ -65,4 +65,7 @@ class TestSortDirection:
         with pytest.raises(ValueError) as error:
             SortDirection.parse(direction)
 
-        assert f"Invalid direction '{direction}', use 'asc' or 'ascending', 'desc' or 'descending'." in str(error.value)
+        assert (
+            f"Invalid direction '{direction}', use 'asc' or 'ascending', 'desc' or 'descending'."
+            in str(error.value)
+        )
