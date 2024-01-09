@@ -55,16 +55,20 @@ class DarwinConfig(BaseModel):
         assert check.netloc, "base_url must contain a domain"
         return v
 
-    @model_validator(mode="before")
     @classmethod
-    def validate_defaults(cls, values: Any) -> Any:
+    def _remove_global(cls, values: dict) -> dict:
         if "global" not in values:
             return values
         global_conf = values["global"]
         del values["global"]
         values.update(global_conf)
+        return values
 
-        if "api_key" in values and values["api_key"]:
+    @model_validator(mode="before")
+    @classmethod
+    def validate_defaults(cls, values: Any) -> Any:
+        values = cls._remove_global(values)
+        if "api_key" in values:
             return values
         assert values["default_team"] in values["teams"]
         team = values["default_team"]
