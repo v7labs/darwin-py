@@ -72,8 +72,8 @@ class DarwinConfig(BaseModel):
             return values
         assert values["default_team"] in values["teams"]
         team = values["default_team"]
-        values["api_key"] = values["teams"][team]['api_key']
-        values["datasets_dir"] = values["teams"][team]['datasets_dir']
+        values["api_key"] = values["teams"][team]["api_key"]
+        values["datasets_dir"] = values["teams"][team]["datasets_dir"]
         return values
 
     @staticmethod
