@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from functools import reduce
-from typing import Dict, Protocol, Union
+from typing import Dict, Literal, Protocol, Union
 
 from darwin.future.core.items.archive_items import archive_list_of_items
 from darwin.future.core.items.delete_items import delete_list_of_items
@@ -15,6 +15,7 @@ from darwin.future.core.items.tag_items import tag_items
 from darwin.future.core.items.untag_items import untag_items
 from darwin.future.core.types.common import JSONDict, QueryString
 from darwin.future.core.types.query import PaginatedQuery, QueryFilter
+from darwin.future.data_objects.advanced_filters import GroupFilter, SubjectFilter
 from darwin.future.data_objects.item import ItemLayout
 from darwin.future.data_objects.sorting import SortingMethods
 from darwin.future.data_objects.workflow import WFStageCore
@@ -128,11 +129,11 @@ class ItemQuery(PaginatedQuery[Item]):
             )
         if not self.meta_params["dataset_ids"] and not self.meta_params["dataset_id"]:
             raise ValueError("Must specify dataset_ids to query items")
-
+        dataset_id = self.meta_params["dataset_ids"] if "dataset_ids" in self.meta_params else self.meta_params["dataset_id"]
         return {
-            "dataset_ids": self.meta_params["dataset_ids"],
-            "page": self.page.to_query_string(),
-            "filters": self._advanced_filters.model_dump_json(),
+            "dataset_ids": [dataset_id],
+            "page": self.page.model_dump(),
+            "filter": self._advanced_filters.model_dump(),
         }
 
     def set_priority(self, priority: int) -> None:
@@ -311,3 +312,23 @@ class ItemQuery(PaginatedQuery[Item]):
         set_stage_to_items(
             self.client, team_slug, dataset_ids, stage_id, workflow_id, filters
         )
+    
+    def where(
+        self,
+        *args: GroupFilter | SubjectFilter,
+        _operator: Literal["and", "or"] = "and",
+        **kwargs: str,
+    ) -> ItemQuery:
+        if len(args) > 0 and len(kwargs) > 0:
+            raise ValueError("Cannot specify both args and kwargs")
+        if len(kwargs) > 1:
+            return super().where(**kwargs)
+        arg_list = list(args)
+        if self._advanced_filters is None:
+            self._advanced_filters = arg_list.pop(0)
+        for arg in arg_list:
+            if _operator == "and":
+                self._advanced_filters = self._advanced_filters & arg
+            if _operator == "or":
+                self._advanced_filters = self._advanced_filters | arg
+        return self

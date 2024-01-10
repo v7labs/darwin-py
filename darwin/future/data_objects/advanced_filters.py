@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Generic, List, Literal, Optional, TypeVar, Union
 
-from pydantic import BaseModel, field_validator, model_validator
+from pydantic import BaseModel, SerializeAsAny, field_validator, model_validator
 
 T = TypeVar("T")
 
@@ -30,7 +30,6 @@ class AnyOf(BaseMatcher, Generic[T]):
     values: List[T]
 
     _normalize_values = field_validator("values")(validate_at_least_one)
-
 
 class AllOf(BaseMatcher, Generic[T]):
     name: Literal["all_of"] = "all_of"
@@ -88,7 +87,7 @@ class NotContains(BaseMatcher):
 
 class SubjectFilter(BaseModel):
     subject: str
-    matcher: BaseMatcher
+    matcher: SerializeAsAny[BaseMatcher]
 
     def __and__(self, other: SubjectFilter | GroupFilter) -> GroupFilter:
         if isinstance(other, GroupFilter):
