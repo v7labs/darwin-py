@@ -731,55 +731,74 @@ def _get_overwrite_value(append: bool) -> str:
 
 def _parse_empty_masks(
         annotation: dt.Annotation,
-        rl: dt.Annotation,
-        rl_dense_rle_ids: Optional[Set[str]] = None,
-        rl_dense_rle_ids_frames: Optional[Dict[int, Set[str]]] = None,
+        raster_layer: dt.Annotation,
+        raster_layer_dense_rle_ids: Optional[Set[str]] = None,
+        raster_layer_dense_rle_ids_frames: Optional[Dict[int, Set[str]]] = None,
     ):
-    if rl_dense_rle_ids_frames is None and isinstance(annotation, dt.VideoAnnotation):
+    """
+    Check if the mask is empty (i.e. masks that do not have a corresponding raster layer) if so, skip import of the mask.
+    This function is used for both dt.Annotation and dt.VideoAnnotation objects.
+
+    Args:
+        annotation (dt.Annotation or dt.VideoAnnotation): annotation object to be imported
+        raster_layer (dt.Annotation or dt.VideoAnnotation): raster layer object to be imported
+        raster_layer_dense_rle_ids (Optional[Set[str]], optional): raster-layer dense_rle_ids. Defaults to None.
+        raster_layer_dense_rle_ids_frames (Optional[Dict[int, Set[str]]], optional): raster-layer dense_rle_ids for each frame. Defaults to None.
+
+    Returns:
+        tuple[Optional[Set[str]], Optional[Dict[int, Set[str]]]]: raster_layer_dense_rle_ids, raster_layer_dense_rle_ids_frames
+    """
+    # For dt.VideoAnnotation, create dense_rle ids for each frame.
+    if raster_layer_dense_rle_ids_frames is None and isinstance(annotation, dt.VideoAnnotation):
+        assert isinstance(raster_layer, dt.VideoAnnotation)
+
         # build a dict of frame_index: set of dense_rle_ids (for each frame in VideoAnnotation object)
-        assert isinstance(rl, dt.VideoAnnotation)
-        rl_dense_rle_ids_frames = {}
-        for frame_index, _rl in rl.frames.items():
-            rl_dense_rle_ids_frames[frame_index] = set(_rl.data["dense_rle"][::2])
+        raster_layer_dense_rle_ids_frames = {}
+        for frame_index, _rl in raster_layer.frames.items():
+            raster_layer_dense_rle_ids_frames[frame_index] = set(_rl.data["dense_rle"][::2])
 
-    if rl_dense_rle_ids is None and isinstance(annotation, dt.Annotation):
-        # build a set of dense_rle_ids (for each frame in Annotation object)
-        assert isinstance(rl, dt.Annotation)
-        rl_dense_rle_ids = set(rl.data["dense_rle"][::2])
-
-    if rl_dense_rle_ids is not None and isinstance(annotation, dt.Annotation):
-        # check if the 'annotation_class_id' is in raster_layer's mask_annotation_ids_mapping dict
-        assert isinstance(rl, dt.Annotation)
-        _annotation_id = annotation.id
-        if (
-            rl.data["mask_annotation_ids_mapping"][_annotation_id]
-            not in rl_dense_rle_ids
-        ):
-            # skip import of the mask, and remove it from mask_annotation_ids_mapping
-            logger.warning(
-                f"Skipping import of mask annotation '{annotation.annotation_class.name}' as it does not have a corresponding raster layer"
-            )
-            del rl.data["mask_annotation_ids_mapping"][_annotation_id]
-            return rl_dense_rle_ids, rl_dense_rle_ids_frames
-
-    if rl_dense_rle_ids_frames is not None and isinstance(annotation, dt.VideoAnnotation):
-        # check every frame - if the 'annotation_class_id' is in raster_layer's mask_annotation_ids_mapping dict
-        assert isinstance(rl, dt.VideoAnnotation)
+        # check every frame
+        # - if the 'annotation_class_id' is in raster_layer's mask_annotation_ids_mapping dict
+        # - if the 'dense_rle_id' is in raster_layer's dense_rle_ids_frames dict
+        # if not, skip import of the mask, and remove it from mask_annotation_ids_mapping
         for frame_index, _annotation in annotation.frames.items():
             _annotation_id = _annotation.id
             if (
-                frame_index in rl_dense_rle_ids_frames and
-                rl.frames[frame_index].data["mask_annotation_ids_mapping"][_annotation_id]
-                not in rl_dense_rle_ids_frames[frame_index]
+                frame_index in raster_layer_dense_rle_ids_frames and
+                raster_layer.frames[frame_index].data["mask_annotation_ids_mapping"][_annotation_id]
+                not in raster_layer_dense_rle_ids_frames[frame_index]
             ):
                 # skip import of the mask, and remove it from mask_annotation_ids_mapping
                 logger.warning(
                     f"Skipping import of mask annotation '{_annotation.annotation_class.name}' as it does not have a corresponding raster layer"
                 )
-                del rl.frames[frame_index]["mask_annotation_ids_mapping"][_annotation_id]
-                return rl_dense_rle_ids, rl_dense_rle_ids_frames
+                del raster_layer.frames[frame_index]["mask_annotation_ids_mapping"][_annotation_id]
+                return raster_layer_dense_rle_ids, raster_layer_dense_rle_ids_frames
 
-    return rl_dense_rle_ids, rl_dense_rle_ids_frames
+    # For dt.Annotation, create dense_rle ids.
+    elif raster_layer_dense_rle_ids is None and isinstance(annotation, dt.Annotation):
+        assert isinstance(raster_layer, dt.Annotation)
+
+        # build a set of dense_rle_ids (for the Annotation object)
+        raster_layer_dense_rle_ids = set(raster_layer.data["dense_rle"][::2])
+
+        # check the annotation (i.e. mask)
+        # - if the 'annotation_class_id' is in raster_layer's mask_annotation_ids_mapping dict
+        # - if the 'dense_rle_id' is in raster_layer's dense_rle_ids dict
+        # if not, skip import of the mask, and remove it from mask_annotation_ids_mapping
+        _annotation_id = annotation.id
+        if (
+            raster_layer.data["mask_annotation_ids_mapping"][_annotation_id]
+            not in raster_layer_dense_rle_ids
+        ):
+            # skip import of the mask, and remove it from mask_annotation_ids_mapping
+            logger.warning(
+                f"Skipping import of mask annotation '{annotation.annotation_class.name}' as it does not have a corresponding raster layer"
+            )
+            del raster_layer.data["mask_annotation_ids_mapping"][_annotation_id]
+            return raster_layer_dense_rle_ids, raster_layer_dense_rle_ids_frames
+
+    return raster_layer_dense_rle_ids, raster_layer_dense_rle_ids_frames
 
 def _import_annotations(
     client: "Client",  # TODO: This is unused, should it be?
@@ -797,9 +816,9 @@ def _import_annotations(
     errors: dt.ErrorList = []
     success: dt.Success = dt.Success.SUCCESS
 
-    rl: Optional[dt.Annotation] = None
-    rl_dense_rle_ids: Optional[Set[str]] = None
-    rl_dense_rle_ids_frames: Optional[Dict[int, Set[str]]] = None
+    raster_layer: Optional[dt.Annotation] = None
+    raster_layer_dense_rle_ids: Optional[Set[str]] = None
+    raster_layer_dense_rle_ids_frames: Optional[Dict[int, Set[str]]] = None
     serialized_annotations = []
     for annotation in annotations:
         annotation_class = annotation.annotation_class
@@ -832,8 +851,8 @@ def _import_annotations(
 
         # check if the mask is empty (i.e. masks that do not have a corresponding raster layer) if so, skip import of the mask
         if annotation_type == "mask":
-            if rl is None:
-                rl = next(
+            if raster_layer is None:
+                raster_layer = next(
                     (
                         a
                         for a in annotations
@@ -841,12 +860,12 @@ def _import_annotations(
                     ),
                     None,
                 )
-            if rl:
-                rl_dense_rle_ids, rl_dense_rle_ids_frames = _parse_empty_masks(
+            if raster_layer:
+                raster_layer_dense_rle_ids, raster_layer_dense_rle_ids_frames = _parse_empty_masks(
                     annotation,
-                    rl,
-                    rl_dense_rle_ids,
-                    rl_dense_rle_ids_frames
+                    raster_layer,
+                    raster_layer_dense_rle_ids,
+                    raster_layer_dense_rle_ids_frames
                 )
 
         actors: List[dt.DictFreeForm] = []
