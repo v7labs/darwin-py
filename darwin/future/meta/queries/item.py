@@ -323,7 +323,7 @@ class ItemQuery(PaginatedQuery[Item]):
         _operator: Literal["and", "or"] = "and",
         **kwargs: str,
     ) -> ItemQuery:
-        """ Adds a filter to the query
+        """Adds a filter to the query
         This can be used with simple filters via a keyword argument
         or with advanced filters via a GroupFilter or SubjectFilter object as args.
 
