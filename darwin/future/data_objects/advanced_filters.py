@@ -305,42 +305,48 @@ class ProcessingStatus(SubjectFilter):
         )
 
 
-class PropertyID(SubjectFilter):
+class ClassProperty(SubjectFilter):
     subject: Literal["class_property"] = "class_property"
     matcher: Union[AnyOf[str], AllOf[str], NoneOf[str]]
 
     @classmethod
-    def any_of(cls, values: list[str]) -> PropertyID:
-        return PropertyID(subject="class_property", matcher=AnyOf[str](values=values))
+    def any_of(cls, values: list[str]) -> ClassProperty:
+        return ClassProperty(
+            subject="class_property", matcher=AnyOf[str](values=values)
+        )
 
     @classmethod
-    def all_of(cls, values: list[str]) -> PropertyID:
-        return PropertyID(subject="class_property", matcher=AllOf[str](values=values))
+    def all_of(cls, values: list[str]) -> ClassProperty:
+        return ClassProperty(
+            subject="class_property", matcher=AllOf[str](values=values)
+        )
 
     @classmethod
-    def none_of(cls, values: list[str]) -> PropertyID:
-        return PropertyID(subject="class_property", matcher=NoneOf[str](values=values))
+    def none_of(cls, values: list[str]) -> ClassProperty:
+        return ClassProperty(
+            subject="class_property", matcher=NoneOf[str](values=values)
+        )
 
 
-class PropertyValueID(SubjectFilter):
+class ClassPropertyValue(SubjectFilter):
     subject: Literal["class_property_value"] = "class_property_value"
     matcher: Union[AnyOf[str], AllOf[str], NoneOf[str]]
 
     @classmethod
-    def any_of(cls, values: list[str]) -> PropertyValueID:
-        return PropertyValueID(
+    def any_of(cls, values: list[str]) -> ClassPropertyValue:
+        return ClassPropertyValue(
             subject="class_property_value", matcher=AnyOf[str](values=values)
         )
 
     @classmethod
-    def all_of(cls, values: list[str]) -> PropertyValueID:
-        return PropertyValueID(
+    def all_of(cls, values: list[str]) -> ClassPropertyValue:
+        return ClassPropertyValue(
             subject="class_property_value", matcher=AllOf[str](values=values)
         )
 
     @classmethod
-    def none_of(cls, values: list[str]) -> PropertyValueID:
-        return PropertyValueID(
+    def none_of(cls, values: list[str]) -> ClassPropertyValue:
+        return ClassPropertyValue(
             subject="class_property_value", matcher=NoneOf[str](values=values)
         )
 
