@@ -526,7 +526,7 @@ def get_image_path_from_stream(
             else:
                 return (
                     images_dir
-                    / (Path(darwin_json["item"]["path"].lstrip("/\\")))
+                    / (Path(darwin_json["image"]["path"].lstrip("/\\")))
                     / Path(darwin_json["image"]["filename"])
                 )
     except OSError as e:
