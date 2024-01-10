@@ -94,7 +94,9 @@ def download_all_images_from_annotations(
 
     # Verify that there is not already image in the images folder
     unfiltered_files = images_path.rglob("*") if use_folders else images_path.glob("*")
-    existing_images = {image for image in unfiltered_files if is_image_extension_allowed(image.suffix)}
+    existing_images = {
+        image for image in unfiltered_files if is_image_extension_allowed(image.suffix)
+    }
 
     annotations_to_download_path = []
     for annotation_path in annotations_path.glob(f"*.{annotation_format}"):
@@ -122,10 +124,14 @@ def download_all_images_from_annotations(
 
     if remove_extra:
         # Removes existing images for which there is not corresponding annotation
-        annotations_downloaded_stem = [a.stem for a in annotations_path.glob(f"*.{annotation_format}")]
+        annotations_downloaded_stem = [
+            a.stem for a in annotations_path.glob(f"*.{annotation_format}")
+        ]
         for existing_image in existing_images:
             if existing_image.stem not in annotations_downloaded_stem:
-                print(f"Removing {existing_image} as there is no corresponding annotation")
+                print(
+                    f"Removing {existing_image} as there is no corresponding annotation"
+                )
                 existing_image.unlink()
 
     # Create the generator with the partial functions
@@ -293,7 +299,9 @@ def _download_image_from_json_annotation(
                 use_folders,
             )
         if force_slots:
-            return _download_all_slots_from_json_annotation(annotation, api_key, parent_path, video_frames)
+            return _download_all_slots_from_json_annotation(
+                annotation, api_key, parent_path, video_frames
+            )
         else:
             return _download_single_slot_from_json_annotation(
                 annotation,
@@ -314,7 +322,11 @@ def _download_all_slots_from_json_annotation(
     for slot in annotation.slots:
         if not slot.name:
             raise ValueError("Slot name is required to download all slots")
-        slot_path = parent_path / sanitize_filename(annotation.filename) / sanitize_filename(slot.name)
+        slot_path = (
+            parent_path
+            / sanitize_filename(annotation.filename)
+            / sanitize_filename(slot.name)
+        )
         slot_path.mkdir(exist_ok=True, parents=True)
 
         if video_frames and slot.type != "image":
@@ -339,7 +351,11 @@ def _download_all_slots_from_json_annotation(
             else:
                 for i, frame_url in enumerate(slot.frame_urls or []):
                     path = video_path / f"{i:07d}.png"
-                    generator.append(functools.partial(_download_image, frame_url, path, api_key, slot))
+                    generator.append(
+                        functools.partial(
+                            _download_image, frame_url, path, api_key, slot
+                        )
+                    )
         else:
             for upload in slot.source_files:
                 file_path = slot_path / sanitize_filename(upload["file_name"])
@@ -390,7 +406,9 @@ def _download_single_slot_from_json_annotation(
         else:
             for i, frame_url in enumerate(slot.frame_urls):
                 path = video_path / f"{i:07d}.png"
-                generator.append(functools.partial(_download_image, frame_url, path, api_key, slot))
+                generator.append(
+                    functools.partial(_download_image, frame_url, path, api_key, slot)
+                )
     else:
         if len(slot.source_files) > 0:
             image = slot.source_files[0]
@@ -402,7 +420,9 @@ def _download_single_slot_from_json_annotation(
                 filename = str(Path(stem + suffix))
             else:
                 filename = slot.source_files[0]["file_name"]
-            image_path = parent_path / sanitize_filename(filename or annotation.filename)
+            image_path = parent_path / sanitize_filename(
+                filename or annotation.filename
+            )
 
             generator.append(
                 functools.partial(
@@ -512,7 +532,9 @@ def download_image(url: str, path: Path, api_key: str) -> None:
         if "token" in url:
             response: requests.Response = requests.get(url, stream=True)
         else:
-            response = requests.get(url, headers={"Authorization": f"ApiKey {api_key}"}, stream=True)
+            response = requests.get(
+                url, headers={"Authorization": f"ApiKey {api_key}"}, stream=True
+            )
         # Correct status: download image
         if response.ok:
             with open(str(path), "wb") as file:
@@ -528,7 +550,9 @@ def download_image(url: str, path: Path, api_key: str) -> None:
         time.sleep(1)
 
 
-def _download_image(url: str, path: Path, api_key: str, slot: Optional[dt.Slot] = None) -> None:
+def _download_image(
+    url: str, path: Path, api_key: str, slot: Optional[dt.Slot] = None
+) -> None:
     if path.exists():
         return
     TIMEOUT: int = 60
@@ -541,7 +565,9 @@ def _download_image(url: str, path: Path, api_key: str, slot: Optional[dt.Slot] 
         if "token" in url:
             response: requests.Response = requests.get(url, stream=True)
         else:
-            response = requests.get(url, headers={"Authorization": f"ApiKey {api_key}"}, stream=True)
+            response = requests.get(
+                url, headers={"Authorization": f"ApiKey {api_key}"}, stream=True
+            )
         # Correct status: download image
         if response.ok and has_json_content_type(response):
             # this branch is a workaround for edge case in V1 when video file from external storage could be registered
@@ -567,7 +593,9 @@ def _download_image_with_trace(annotation, image_url, image_path, api_key):
     _update_local_path(annotation, image_url, image_path)
 
 
-def _fetch_multiple_files(path: Path, response: requests.Response, transform_file_function=None) -> None:
+def _fetch_multiple_files(
+    path: Path, response: requests.Response, transform_file_function=None
+) -> None:
     obj = response.json()
     if "urls" not in obj:
         raise Exception(f"Malformed response: {obj}")
@@ -589,7 +617,9 @@ def _fetch_multiple_files(path: Path, response: requests.Response, transform_fil
             )
 
 
-def _write_file(path: Path, response: requests.Response, transform_file_function=None) -> None:
+def _write_file(
+    path: Path, response: requests.Response, transform_file_function=None
+) -> None:
     with open(str(path), "wb") as file:
         for chunk in response:
             file.write(chunk)
@@ -614,7 +644,9 @@ def _rg16_to_grayscale(path):
     new_image.save(path)
 
 
-def _download_and_extract_video_segment(url: str, api_key: str, path: Path, manifest: dt.SegmentManifest) -> None:
+def _download_and_extract_video_segment(
+    url: str, api_key: str, path: Path, manifest: dt.SegmentManifest
+) -> None:
     _download_video_segment_file(url, api_key, path)
     _extract_frames_from_segment(path, manifest)
     path.unlink()
@@ -631,14 +663,18 @@ def _extract_frames_from_segment(path: Path, manifest: dt.SegmentManifest) -> No
     cap = VideoCapture(str(path))
 
     # Read and save frames. Iterates over every frame because frame seeking in OCV is not reliable or guaranteed.
-    frames_to_extract = {item.frame: item.visible_frame for item in manifest.items if item.visibility}
+    frames_to_extract = {
+        item.frame: item.visible_frame for item in manifest.items if item.visibility
+    }
     frame_index = 0
     while cap.isOpened():
         success, frame = cap.read()
         if frame is None:
             break
         if not success:
-            raise ValueError(f"Failed to read frame {frame_index} from video segment {path}")
+            raise ValueError(
+                f"Failed to read frame {frame_index} from video segment {path}"
+            )
         if frame_index in frames_to_extract:
             visible_frame = frames_to_extract.pop(frame_index)
             frame_path = path.parent / f"{visible_frame:07d}.png"
@@ -651,7 +687,9 @@ def _extract_frames_from_segment(path: Path, manifest: dt.SegmentManifest) -> No
 
 def _download_video_segment_file(url: str, api_key: str, path: Path) -> None:
     with requests.Session() as session:
-        retries = Retry(total=5, backoff_factor=0.5, status_forcelist=[500, 502, 503, 504])
+        retries = Retry(
+            total=5, backoff_factor=0.5, status_forcelist=[500, 502, 503, 504]
+        )
         session.mount("https://", HTTPAdapter(max_retries=retries))
         if "token" in url:
             response = session.get(url)
@@ -671,7 +709,9 @@ def _download_video_segment_file(url: str, api_key: str, path: Path) -> None:
 def download_manifest_txts(urls: List[str], api_key: str, folder: Path) -> List[Path]:
     paths = []
     with requests.Session() as session:
-        retries = Retry(total=5, backoff_factor=0.5, status_forcelist=[500, 502, 503, 504])
+        retries = Retry(
+            total=5, backoff_factor=0.5, status_forcelist=[500, 502, 503, 504]
+        )
         session.mount("https://", HTTPAdapter(max_retries=retries))
         for index, url in enumerate(urls):
             if "token" in url:
@@ -692,7 +732,9 @@ def download_manifest_txts(urls: List[str], api_key: str, folder: Path) -> List[
     return paths
 
 
-def get_segment_manifests(slot: dt.Slot, parent_path: Path, api_key: str) -> List[dt.SegmentManifest]:
+def get_segment_manifests(
+    slot: dt.Slot, parent_path: Path, api_key: str
+) -> List[dt.SegmentManifest]:
     with TemporaryDirectory(dir=parent_path) as tmpdirname:
         tmpdir = Path(tmpdirname)
         if slot.frame_manifest is None:
@@ -727,7 +769,9 @@ def _parse_manifests(paths: List[Path], slot: str) -> List[dt.SegmentManifest]:
                     visible_frame_index += 1
                 else:
                     all_manifests[segment_int].append(
-                        dt.ManifestItem(int(frame), None, segment_int, False, float(timestamp), None)
+                        dt.ManifestItem(
+                            int(frame), None, segment_int, False, float(timestamp), None
+                        )
                     )
     # Create a list of segments, sorted by segment number and all items sorted by frame number
     segments = []
