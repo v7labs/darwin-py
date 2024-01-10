@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from functools import reduce
-from typing import Dict, Protocol
+from typing import Dict, Literal, Protocol, Union
 
 from darwin.future.core.items.archive_items import archive_list_of_items
 from darwin.future.core.items.delete_items import delete_list_of_items
-from darwin.future.core.items.get import list_items
+from darwin.future.core.items.get import list_items, list_items_unstable
 from darwin.future.core.items.move_items_to_folder import move_list_of_items_to_folder
 from darwin.future.core.items.restore_items import restore_list_of_items
 from darwin.future.core.items.set_item_layout import set_item_layout
@@ -13,7 +13,7 @@ from darwin.future.core.items.set_item_priority import set_item_priority
 from darwin.future.core.items.set_stage_to_items import set_stage_to_items
 from darwin.future.core.items.tag_items import tag_items
 from darwin.future.core.items.untag_items import untag_items
-from darwin.future.core.types.common import QueryString
+from darwin.future.core.types.common import JSONDict, QueryString
 from darwin.future.core.types.query import PaginatedQuery, QueryFilter
 from darwin.future.data_objects.item import ItemLayout
 from darwin.future.data_objects.sorting import SortingMethods
@@ -43,14 +43,11 @@ class ItemQuery(PaginatedQuery[Item]):
             else self.meta_params["dataset_id"]
         )
         team_slug = self.meta_params["team_slug"]
-        params: QueryString = reduce(
-            lambda s1, s2: s1 + s2,
-            [
-                self.page.to_query_string(),
-                *[QueryString(f.to_dict()) for f in self.filters],
-            ],
-        )
-        items_core, errors = list_items(self.client, team_slug, dataset_ids, params)
+        params = self._build_params()
+        if isinstance(params, QueryString):
+            items_core, errors = list_items(self.client, team_slug, dataset_ids, params)
+        else:
+            items_core, errors = list_items_unstable(api_client=self.client, team_slug=team_slug, params=params)
         offset = self.page.offset
         items = {
             i
@@ -117,6 +114,24 @@ class ItemQuery(PaginatedQuery[Item]):
         ids = [item.id for item in self]
         filters = {"item_ids": [str(item) for item in ids]}
         move_list_of_items_to_folder(self.client, team_slug, dataset_ids, path, filters)
+
+    def _build_params(self) -> Union[QueryString, JSONDict]:
+        if self._advanced_filters is None:
+            return reduce(
+                lambda s1, s2: s1 + s2,
+                [
+                    self.page.to_query_string(),
+                    *[QueryString(f.to_dict()) for f in self.filters],
+                ],
+            )
+        if not self.meta_params['dataset_ids'] and not self.meta_params['dataset_id']:
+            raise ValueError("Must specify dataset_ids to query items")
+        
+        return {
+            'dataset_ids': self.meta_params['dataset_ids'],
+            'page': self.page.to_query_string(),
+            'filters': self._advanced_filters.model_dump_json()
+        }
 
     def set_priority(self, priority: int) -> None:
         if "team_slug" not in self.meta_params:
