@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from functools import reduce
-from typing import Dict, Literal, Protocol, Union
+from typing import Dict, Protocol, Union
 
 from darwin.future.core.items.archive_items import archive_list_of_items
 from darwin.future.core.items.delete_items import delete_list_of_items
@@ -47,7 +47,9 @@ class ItemQuery(PaginatedQuery[Item]):
         if isinstance(params, QueryString):
             items_core, errors = list_items(self.client, team_slug, dataset_ids, params)
         else:
-            items_core, errors = list_items_unstable(api_client=self.client, team_slug=team_slug, params=params)
+            items_core, errors = list_items_unstable(
+                api_client=self.client, team_slug=team_slug, params=params
+            )
         offset = self.page.offset
         items = {
             i
@@ -124,13 +126,13 @@ class ItemQuery(PaginatedQuery[Item]):
                     *[QueryString(f.to_dict()) for f in self.filters],
                 ],
             )
-        if not self.meta_params['dataset_ids'] and not self.meta_params['dataset_id']:
+        if not self.meta_params["dataset_ids"] and not self.meta_params["dataset_id"]:
             raise ValueError("Must specify dataset_ids to query items")
-        
+
         return {
-            'dataset_ids': self.meta_params['dataset_ids'],
-            'page': self.page.to_query_string(),
-            'filters': self._advanced_filters.model_dump_json()
+            "dataset_ids": self.meta_params["dataset_ids"],
+            "page": self.page.to_query_string(),
+            "filters": self._advanced_filters.model_dump_json(),
         }
 
     def set_priority(self, priority: int) -> None:

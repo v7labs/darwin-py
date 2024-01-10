@@ -6,7 +6,7 @@ from uuid import UUID
 from pydantic import ValidationError
 
 from darwin.future.core.client import ClientCore
-from darwin.future.core.types.common import JSONDict, JSONType, QueryString
+from darwin.future.core.types.common import JSONDict, QueryString
 from darwin.future.data_objects.item import Folder, ItemCore
 
 
