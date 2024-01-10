@@ -3,14 +3,23 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Literal, Optional, Tuple, Union
 
-from pydantic import validator
+from pydantic import field_validator
 
 from darwin.future.data_objects.pydantic_base import DefaultDarwin
 
+PropertyType = Literal[
+    "multi_select",
+    "single_select",
+    "text",
+    "attributes",
+    "instance_id",
+    "directional_vector",
+]
 
-class PropertyOption(DefaultDarwin):
+
+class PropertyValue(DefaultDarwin):
     """
     Describes a single option for a property
 
@@ -23,17 +32,32 @@ class PropertyOption(DefaultDarwin):
         color (validator): Validates that the color is in rgba format
     """
 
-    id: Optional[str]
-    position: Optional[int]
-    type: str
+    id: Optional[str] = None
+    position: Optional[int] = None
+    type: Literal["string"] = "string"
     value: Union[Dict[str, str], str]
-    color: str
+    color: str = "auto"
 
-    @validator("color")
+    @field_validator("color")
+    @classmethod
     def validate_rgba(cls, v: str) -> str:
-        if not v.startswith("rgba"):
-            raise ValueError("Color must be in rgba format")
+        if not v.startswith("rgba") and v != "auto":
+            raise ValueError("Color must be in rgba format or 'auto'")
         return v
+
+    @field_validator("value")
+    @classmethod
+    def validate_value(cls, v: Union[Dict[str, str], str]) -> Dict[str, str]:
+        """TODO: Replace once the value.value bug is fixed in the API"""
+        if isinstance(v, str):
+            return {"value": v}
+        return v
+
+    def to_update_endpoint(self) -> Tuple[str, dict]:
+        if self.id is None:
+            raise ValueError("id must be set")
+        updated_base = self.model_dump(exclude={"id", "type"})
+        return self.id, updated_base
 
 
 class FullProperty(DefaultDarwin):
@@ -47,16 +71,39 @@ class FullProperty(DefaultDarwin):
         options (List[PropertyOption]): List of all options for the property
     """
 
-    id: Optional[str]
+    id: Optional[str] = None
     name: str
-    type: str
-    description: Optional[str]
+    type: PropertyType
+    description: Optional[str] = None
     required: bool
-    slug: Optional[str]
-    team_id: Optional[int]
-    annotation_class_id: Optional[int]
-    property_values: Optional[List[PropertyOption]]
-    options: Optional[List[PropertyOption]]
+    slug: Optional[str] = None
+    team_id: Optional[int] = None
+    annotation_class_id: Optional[int] = None
+    property_values: Optional[List[PropertyValue]] = None
+    options: Optional[List[PropertyValue]] = None
+
+    def to_create_endpoint(
+        self,
+    ) -> dict:
+        if self.annotation_class_id is None:
+            raise ValueError("annotation_class_id must be set")
+        return self.model_dump(
+            include={
+                "name": True,
+                "type": True,
+                "required": True,
+                "annotation_class_id": True,
+                "property_values": {"__all__": {"type", "value", "color"}},
+                "description": True,
+            }
+        )
+
+    def to_update_endpoint(self) -> Tuple[str, dict]:
+        if self.id is None:
+            raise ValueError("id must be set")
+        updated_base = self.to_create_endpoint()
+        del updated_base["annotation_class_id"]  # can't update this field
+        return self.id, updated_base
 
 
 class MetaDataClass(DefaultDarwin):
@@ -76,9 +123,9 @@ class MetaDataClass(DefaultDarwin):
 
     name: str
     type: str
-    description: Optional[str]
-    color: Optional[str]
-    sub_types: Optional[List[str]]
+    description: Optional[str] = None
+    color: Optional[str] = None
+    sub_types: Optional[List[str]] = None
     properties: List[FullProperty]
 
     @classmethod
@@ -94,7 +141,7 @@ class MetaDataClass(DefaultDarwin):
             raise ValueError(f"File {path} must be a json file")
         with open(path, "r") as f:
             data = json.load(f)
-        return [cls(**d) for d in data["classes"]]
+        return [cls.model_validate(d) for d in data["classes"]]
 
 
 class SelectedProperty(DefaultDarwin):

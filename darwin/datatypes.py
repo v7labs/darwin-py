@@ -22,6 +22,7 @@ try:
 except ImportError:
     NDArray = Any  # type:ignore
 
+from darwin.future.data_objects.properties import SelectedProperty
 from darwin.path_utils import construct_full_path, is_properties_enabled, parse_metadata
 
 # Utility types
@@ -215,6 +216,9 @@ class Annotation:
     # The darwin ID of this annotation.
     id: Optional[str] = None
 
+    # Properties of this annotation.
+    properties: Optional[list[SelectedProperty]] = None
+
     def get_sub(self, annotation_type: str) -> Optional[SubAnnotation]:
         """
         Returns the first SubAnnotation that matches the given type.
@@ -268,6 +272,9 @@ class VideoAnnotation:
 
     # The darwin ID of this annotation.
     id: Optional[str] = None
+
+    # Properties of this annotation.
+    properties: Optional[list[SelectedProperty]] = None
 
     def get_data(
         self,
@@ -1272,6 +1279,7 @@ def make_video_annotation(
     segments: List[Segment],
     interpolated: bool,
     slot_names: List[str],
+    properties: Optional[list[SelectedProperty]] = None,
 ) -> VideoAnnotation:
     """
     Creates and returns a ``VideoAnnotation``.
@@ -1308,6 +1316,7 @@ def make_video_annotation(
         segments,
         interpolated,
         slot_names=slot_names or [],
+        properties=properties,
     )
 
 

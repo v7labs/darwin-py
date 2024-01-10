@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Mapping, Protocol, Union
 from darwin.future.data_objects import validators as darwin_validators
 
 JSONType = Union[Dict[str, Any], List[Dict[str, Any]]]  # type: ignore
+JSONDict = Dict[str, Any]  # type: ignore
 
 
 class Implements_str(Protocol):
@@ -38,10 +39,6 @@ class TeamSlug(str):
 
     min_length = 1
     max_length = 256
-
-    @classmethod
-    def __get_validators__(cls):  # type: ignore
-        yield cls.validate
 
     @classmethod
     def validate(cls, v: str) -> "TeamSlug":
@@ -101,10 +98,13 @@ class QueryString:
         for k, v in self.value.items():
             if isinstance(v, list):
                 for x in v:
-                    output += f"{k}={x}&"
+                    output += f"{k}={x.lower()}&"
             else:
-                output += f"{k}={v}&"
+                output += f"{k}={v.lower()}&"
         return output[:-1]  # remove trailing &
 
     def __add__(self, other: QueryString) -> QueryString:
         return QueryString({**self.value, **other.value})
+
+    def get(self, key: str, default: str = "") -> List[str] | str:
+        return self.value.get(key, default)

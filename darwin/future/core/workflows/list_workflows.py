@@ -29,7 +29,7 @@ def list_workflows(
         response = client.get(f"/v2/teams/{team_slug}/workflows?worker=false")
         list_of_workflows = WorkflowListValidator(list=response)  # type: ignore
         workflows = [
-            WorkflowCore.parse_obj(workflow) for workflow in list_of_workflows.list
+            WorkflowCore.model_validate(workflow) for workflow in list_of_workflows.list
         ]
     except Exception as e:
         exceptions.append(e)

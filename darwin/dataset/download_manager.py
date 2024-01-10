@@ -656,7 +656,7 @@ def _download_and_extract_video_segment(
 def _extract_frames_from_segment(path: Path, manifest: dt.SegmentManifest) -> None:
     # import cv2 here to avoid dependency on OpenCV when not needed if not installed as optional extra
     try:
-        from cv2 import VideoCapture  # pylint: disable=import-outside-toplevel
+        from cv2 import VideoCapture, imwrite  # pylint: disable=import-outside-toplevel
     except ImportError as e:
         raise MissingDependency(
             "Missing Dependency: OpenCV required for Video Extraction. Install with `pip install darwin-py\[ocv]`"
@@ -679,7 +679,7 @@ def _extract_frames_from_segment(path: Path, manifest: dt.SegmentManifest) -> No
         if frame_index in frames_to_extract:
             visible_frame = frames_to_extract.pop(frame_index)
             frame_path = path.parent / f"{visible_frame:07d}.png"
-            cv2.imwrite(str(frame_path), frame)
+            imwrite(str(frame_path), frame)
             if not frames_to_extract:
                 break
         frame_index += 1

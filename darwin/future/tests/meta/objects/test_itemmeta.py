@@ -244,7 +244,7 @@ def test_set_layout(item: Item) -> None:
                             "item_ids": [str(item.id)],
                             "dataset_ids": [dataset_id],
                         },
-                        "layout": layout,
+                        "layout": layout.model_dump(),
                     }
                 )
             ],
