@@ -296,6 +296,26 @@ def _import_properties(
     annotations: List[dt.Annotation],
     annotation_class_ids_map: Dict[Tuple[str, str], str],
 ) -> Dict[int, Dict[str, List[str]]]:
+    """
+    Creates/Updates missing/mismatched properties from annotation & metadata.json file to team-properties.
+    As the properties are created/updated, the annotation_id_property_map is updated with the new/old property ids.
+    ^ This is used in the import-annotations payload later on.
+
+    Args:
+        metadata_path (Union[Path, bool]): Path object to .v7/metadata.json file
+        client (Client): Darwin Client object
+        annotations (List[dt.Annotation]): List of annotations
+        annotation_class_ids_map (Dict[Tuple[str, str], str]): Dict of annotation class names/types to annotation class ids
+
+    Raises:
+        ValueError: raise error if annotation class not present in metadata
+        ValueError: raise error if annotation-property not present in metadata
+        ValueError: raise error if property value is missing for a property that requires a value
+        ValueError: raise error if property value/type is different in m_prop (.v7/metadata.json) options
+
+    Returns:
+        Dict[int, Dict[str, List[str]]]: Dict of annotation class ids to property ids
+    """
     annotation_id_property_map: Dict[int, Dict[str, List[str]]] = {}
     if not isinstance(metadata_path, Path):
         # No properties to import
@@ -432,12 +452,6 @@ def _import_properties(
             t_prop: FullProperty = team_properties_annotation_lookup[
                 (a_prop.name, annotation_class_id)
             ]
-
-            # check if property value is missing for a property that requires a value
-            if t_prop.required and not a_prop.value:
-                raise ValueError(
-                    f"Annotation: '{annotation_name}' -> Property '{a_prop.name}' requires a value!"
-                )
 
             # check if property value/type is different in t_prop (team) options
             for t_prop_val in t_prop.property_values or []:
