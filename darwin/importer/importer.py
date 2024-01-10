@@ -336,8 +336,9 @@ def _import_properties(
 
         # raise error if annotation class not present in metadata
         if (annotation_name, annotation_type) not in metadata_classes_lookup:
-            _msg = f"Annotation: '{annotation_name}' not found in {metadata_path}"
-            raise ValueError(_msg)
+            raise ValueError(
+                f"Annotation: '{annotation_name}' not found in {metadata_path}"
+            )
 
         # loop on annotation properties and check if they exist in metadata & team
         for a_prop in annotation.properties or []:
@@ -345,8 +346,9 @@ def _import_properties(
 
             # raise error if annotation-property not present in metadata
             if (annotation_name, a_prop.name) not in metadata_cls_prop_lookup:
-                _msg = f"Annotation: '{annotation_name}' -> Property '{a_prop.name}' not found in {metadata_path}"
-                raise ValueError(_msg)
+                raise ValueError(
+                    f"Annotation: '{annotation_name}' -> Property '{a_prop.name}' not found in {metadata_path}"
+                )
 
             # get metadata property
             m_prop: Property = metadata_cls_prop_lookup[(annotation_name, a_prop.name)]
@@ -359,8 +361,9 @@ def _import_properties(
 
             # check if property value is missing for a property that requires a value
             if m_prop.required and not a_prop.value:
-                _msg = f"Annotation: '{annotation_name}' -> Property '{a_prop.name}' requires a value!"
-                raise ValueError(_msg)
+                raise ValueError(
+                    f"Annotation: '{annotation_name}' -> Property '{a_prop.name}' requires a value!"
+                )
 
             # check if property and annotation class exists in team
             if (a_prop.name, annotation_class_id) \
@@ -421,8 +424,9 @@ def _import_properties(
                 if m_prop_option.get("value") == a_prop.value and m_prop_option.get("type") == a_prop.type:
                     break
             else:
-                _msg = f"Annotation: '{annotation_name}' -> Property '{a_prop.value}' ({a_prop.type}) not found in .v7/metadata.json, found: {m_prop.options}"
-                raise ValueError(_msg)
+                raise ValueError(
+                    f"Annotation: '{annotation_name}' -> Property '{a_prop.value}' ({a_prop.type}) not found in .v7/metadata.json, found: {m_prop.options}"
+                )
 
             # get team property
             t_prop: FullProperty = team_properties_annotation_lookup[
@@ -431,8 +435,9 @@ def _import_properties(
 
             # check if property value is missing for a property that requires a value
             if t_prop.required and not a_prop.value:
-                _msg = f"Annotation: '{annotation_name}' -> Property '{a_prop.name}' requires a value!"
-                raise ValueError(_msg)
+                raise ValueError(
+                    f"Annotation: '{annotation_name}' -> Property '{a_prop.name}' requires a value!"
+                )
 
             # check if property value/type is different in t_prop (team) options
             for t_prop_val in t_prop.property_values or []:
@@ -467,8 +472,10 @@ def _import_properties(
     if create_properties:
         console.print(f"Creating {len(create_properties)} properties", style="info")
         for full_property in create_properties:
-            _msg = f"Creating property {full_property.name} ({full_property.type})"
-            console.print(_msg, style="info")
+            console.print(
+                f"Creating property {full_property.name} ({full_property.type})",
+                style="info"
+            )
             prop = client.create_property(team_slug=full_property.slug, params=full_property)
 
             assert full_property.annotation_class_id is not None
@@ -483,8 +490,10 @@ def _import_properties(
     if update_properties:
         console.print(f"Updating {len(update_properties)} properties", style="info")
         for full_property in update_properties:
-            _msg = f"Updating property {full_property.name} ({full_property.type})"
-            console.print(_msg, style="info")
+            console.print(
+                f"Updating property {full_property.name} ({full_property.type})",
+                style="info"
+            )
             prop = client.update_property(team_slug=full_property.slug, params=full_property)
 
             assert full_property.annotation_class_id is not None
