@@ -323,25 +323,25 @@ class PropertyID(SubjectFilter):
 
 
 class PropertyValueID(SubjectFilter):
-    subject: Literal["property_value"] = "property_value"
+    subject: Literal["class_property_value"] = "class_property_value"
     matcher: Union[AnyOf[str], AllOf[str], NoneOf[str]]
 
     @classmethod
     def any_of(cls, values: list[str]) -> PropertyValueID:
         return PropertyValueID(
-            subject="property_value", matcher=AnyOf[str](values=values)
+            subject="class_property_value", matcher=AnyOf[str](values=values)
         )
 
     @classmethod
     def all_of(cls, values: list[str]) -> PropertyValueID:
         return PropertyValueID(
-            subject="property_value", matcher=AllOf[str](values=values)
+            subject="class_property_value", matcher=AllOf[str](values=values)
         )
 
     @classmethod
     def none_of(cls, values: list[str]) -> PropertyValueID:
         return PropertyValueID(
-            subject="property_value", matcher=NoneOf[str](values=values)
+            subject="class_property_value", matcher=NoneOf[str](values=values)
         )
 
 

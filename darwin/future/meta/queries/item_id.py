@@ -3,7 +3,8 @@ from typing import Dict
 
 from darwin.future.core.items.get import get_item_ids
 from darwin.future.core.types.common import QueryString
-from darwin.future.core.types.query import PaginatedQuery
+from darwin.future.core.types.query import PaginatedQuery, QueryFilter
+from darwin.future.data_objects.sorting import SortingMethods
 from darwin.future.meta.objects.v7_id import V7ID
 
 
@@ -39,3 +40,17 @@ class ItemIDQuery(PaginatedQuery[V7ID]):
             for i, uuid in enumerate(uuids)
         }
         return results
+
+    def sort(self, **kwargs: str) -> "ItemIDQuery":
+        valid_values = {"asc", "desc"}
+        for value in kwargs.values():
+            if value not in valid_values:
+                raise ValueError(
+                    f"Invalid sort value: {value}. Must be one of {valid_values}."
+                )
+        sorting_methods = SortingMethods(**kwargs)  # type: ignore
+        for key, value in sorting_methods.dict().items():
+            if value is not None:
+                filter = QueryFilter(name=f"sort[{key}]", param=value)
+                self.filters.append(filter)
+        return self

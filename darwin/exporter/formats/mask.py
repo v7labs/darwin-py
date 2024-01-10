@@ -512,7 +512,7 @@ def export(
             image = Image.fromarray(mask)
         image.save(outfile)
 
-    with open(output_dir / "class_mapping.csv", "w") as f:
+    with open(output_dir / "class_mapping.csv", "w", newline="") as f:
         writer = csv_writer(f)
         writer.writerow(["class_name", "class_color"])
 

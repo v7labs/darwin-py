@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from functools import reduce
-from typing import Dict, Literal, Protocol
+from typing import Dict, Protocol
 
 from darwin.future.core.items.archive_items import archive_list_of_items
 from darwin.future.core.items.delete_items import delete_list_of_items
@@ -14,9 +14,9 @@ from darwin.future.core.items.set_stage_to_items import set_stage_to_items
 from darwin.future.core.items.tag_items import tag_items
 from darwin.future.core.items.untag_items import untag_items
 from darwin.future.core.types.common import QueryString
-from darwin.future.core.types.query import PaginatedQuery
-from darwin.future.data_objects.advanced_filters import GroupFilter, SubjectFilter
+from darwin.future.core.types.query import PaginatedQuery, QueryFilter
 from darwin.future.data_objects.item import ItemLayout
+from darwin.future.data_objects.sorting import SortingMethods
 from darwin.future.data_objects.workflow import WFStageCore
 from darwin.future.exceptions import BadRequest
 from darwin.future.meta.objects.item import Item
@@ -60,6 +60,20 @@ class ItemQuery(PaginatedQuery[Item]):
             for i, item in enumerate(items_core)
         }
         return items
+
+    def sort(self, **kwargs: str) -> ItemQuery:
+        valid_values = {"asc", "desc"}
+        for value in kwargs.values():
+            if value not in valid_values:
+                raise ValueError(
+                    f"Invalid sort value: {value}. Must be one of {valid_values}."
+                )
+        sorting_methods = SortingMethods(**kwargs)  # type: ignore
+        for key, value in sorting_methods.dict().items():
+            if value is not None:
+                filter = QueryFilter(name=f"sort[{key}]", param=value)
+                self.filters.append(filter)
+        return self
 
     def delete(self) -> None:
         if "team_slug" not in self.meta_params:
@@ -280,23 +294,3 @@ class ItemQuery(PaginatedQuery[Item]):
         set_stage_to_items(
             self.client, team_slug, dataset_ids, stage_id, workflow_id, filters
         )
-
-    def where(
-        self,
-        *args: GroupFilter | SubjectFilter,
-        _operator: Literal["and", "or"] = "and",
-        **kwargs: str,
-    ) -> ItemQuery:
-        if len(args) > 0 and len(kwargs) > 0:
-            raise ValueError("Cannot specify both args and kwargs")
-        if len(kwargs) > 1:
-            return super().where(**kwargs)
-        arg_list = list(args)
-        if self._advanced_filters is None:
-            self._advanced_filters = arg_list.pop(0)
-        for arg in arg_list:
-            if _operator == "and":
-                self._advanced_filters = self._advanced_filters & arg
-            if _operator == "or":
-                self._advanced_filters = self._advanced_filters | arg
-        return self

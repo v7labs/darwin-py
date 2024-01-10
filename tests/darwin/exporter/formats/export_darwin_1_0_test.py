@@ -7,7 +7,10 @@ from darwin.exporter.formats.darwin_1_0 import _build_json
 class TestBuildJson:
     def test_empty_annotation_file(self):
         annotation_file = dt.AnnotationFile(
-            path=Path("test.json"), filename="test.json", annotation_classes=[], annotations=[]
+            path=Path("test.json"),
+            filename="test.json",
+            annotation_classes=[],
+            annotations=[],
         )
 
         assert _build_json(annotation_file) == {
@@ -119,8 +122,12 @@ class TestBuildJson:
             ],
         ]
 
-        annotation_class = dt.AnnotationClass(name="test", annotation_type="complex_polygon")
-        annotation = dt.Annotation(annotation_class=annotation_class, data={"paths": polygon_path}, subs=[])
+        annotation_class = dt.AnnotationClass(
+            name="test", annotation_type="complex_polygon"
+        )
+        annotation = dt.Annotation(
+            annotation_class=annotation_class, data={"paths": polygon_path}, subs=[]
+        )
 
         annotation_file = dt.AnnotationFile(
             path=Path("test.json"),
@@ -225,7 +232,9 @@ class TestBuildJson:
 
         bounding_box = {"x": 557.66, "y": 428.98, "w": 160.76, "h": 315.3}
 
-        annotation_class = dt.AnnotationClass(name="test", annotation_type="complex_polygon")
+        annotation_class = dt.AnnotationClass(
+            name="test", annotation_type="complex_polygon"
+        )
         annotation = dt.Annotation(
             annotation_class=annotation_class,
             data={"paths": polygon_path, "bounding_box": bounding_box},
@@ -267,8 +276,12 @@ class TestBuildJson:
 
     def test_bounding_box(self):
         bounding_box_data = {"x": 100, "y": 150, "w": 50, "h": 30}
-        annotation_class = dt.AnnotationClass(name="bbox_test", annotation_type="bounding_box")
-        annotation = dt.Annotation(annotation_class=annotation_class, data=bounding_box_data, subs=[])
+        annotation_class = dt.AnnotationClass(
+            name="bbox_test", annotation_type="bounding_box"
+        )
+        annotation = dt.Annotation(
+            annotation_class=annotation_class, data=bounding_box_data, subs=[]
+        )
 
         annotation_file = dt.AnnotationFile(
             path=Path("test.json"),
@@ -305,7 +318,9 @@ class TestBuildJson:
     def test_tags(self):
         tag_data = "sample_tag"
         annotation_class = dt.AnnotationClass(name="tag_test", annotation_type="tag")
-        annotation = dt.Annotation(annotation_class=annotation_class, data=tag_data, subs=[])
+        annotation = dt.Annotation(
+            annotation_class=annotation_class, data=tag_data, subs=[]
+        )
 
         annotation_file = dt.AnnotationFile(
             path=Path("test.json"),
@@ -343,7 +358,9 @@ class TestBuildJson:
 
         annotation_class = dt.AnnotationClass(name="test", annotation_type="polygon")
         annotation = dt.Annotation(
-            annotation_class=annotation_class, data={"path": polygon_path, "bounding_box": bounding_box}, subs=[]
+            annotation_class=annotation_class,
+            data={"path": polygon_path, "bounding_box": bounding_box},
+            subs=[],
         )
 
         annotation_file = dt.AnnotationFile(
@@ -369,7 +386,12 @@ class TestBuildJson:
                 "workview_url": None,
             },
             "annotations": [
-                {"polygon": {"path": polygon_path}, "name": "test", "slot_names": [], "bounding_box": bounding_box}
+                {
+                    "polygon": {"path": polygon_path},
+                    "name": "test",
+                    "slot_names": [],
+                    "bounding_box": bounding_box,
+                }
             ],
             "dataset": "None",
         }
@@ -396,9 +418,13 @@ class TestBuildJson:
 
         bounding_box = {"x": 557.66, "y": 428.98, "w": 160.76, "h": 315.3}
 
-        annotation_class = dt.AnnotationClass(name="test", annotation_type="complex_polygon")
+        annotation_class = dt.AnnotationClass(
+            name="test", annotation_type="complex_polygon"
+        )
         annotation = dt.Annotation(
-            annotation_class=annotation_class, data={"paths": polygon_path, "bounding_box": bounding_box}, subs=[]
+            annotation_class=annotation_class,
+            data={"paths": polygon_path, "bounding_box": bounding_box},
+            subs=[],
         )
 
         annotation_file = dt.AnnotationFile(
@@ -436,8 +462,12 @@ class TestBuildJson:
 
     def test_bounding_box(self):
         bounding_box_data = {"x": 100, "y": 150, "w": 50, "h": 30}
-        annotation_class = dt.AnnotationClass(name="bbox_test", annotation_type="bounding_box")
-        annotation = dt.Annotation(annotation_class=annotation_class, data=bounding_box_data, subs=[])
+        annotation_class = dt.AnnotationClass(
+            name="bbox_test", annotation_type="bounding_box"
+        )
+        annotation = dt.Annotation(
+            annotation_class=annotation_class, data=bounding_box_data, subs=[]
+        )
 
         annotation_file = dt.AnnotationFile(
             path=Path("test.json"),
@@ -474,7 +504,9 @@ class TestBuildJson:
     def test_tags(self):
         tag_data = "sample_tag"
         annotation_class = dt.AnnotationClass(name="tag_test", annotation_type="tag")
-        annotation = dt.Annotation(annotation_class=annotation_class, data=tag_data, subs=[])
+        annotation = dt.Annotation(
+            annotation_class=annotation_class, data=tag_data, subs=[]
+        )
 
         annotation_file = dt.AnnotationFile(
             path=Path("test.json"),

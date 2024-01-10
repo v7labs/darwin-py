@@ -1027,7 +1027,9 @@ def _parse_annotators(annotators: List[Dict[str, Any]]) -> List[dt.AnnotationAut
     ]
 
 
-def _parse_properties(properties: List[Dict[str, Any]]) -> Optional[List[SelectedProperty]]:
+def _parse_properties(
+    properties: List[Dict[str, Any]]
+) -> Optional[List[SelectedProperty]]:
     selected_properties = []
     for property in properties:
         selected_properties.append(

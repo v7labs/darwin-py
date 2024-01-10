@@ -1503,7 +1503,9 @@ class Client:
             team_slug=team_slug or self.default_team,
         )
 
-    def create_property(self, team_slug: Optional[str], params: Union[FullProperty, JSONDict]) -> FullProperty:
+    def create_property(
+        self, team_slug: Optional[str], params: Union[FullProperty, JSONDict]
+    ) -> FullProperty:
         darwin_config = DarwinConfig.from_old(self.config)
         future_client = ClientCore(darwin_config)
 
@@ -1513,7 +1515,9 @@ class Client:
             params=params,
         )
 
-    def update_property(self, team_slug: Optional[str], params: Union[FullProperty, JSONDict]) -> FullProperty:
+    def update_property(
+        self, team_slug: Optional[str], params: Union[FullProperty, JSONDict]
+    ) -> FullProperty:
         darwin_config = DarwinConfig.from_old(self.config)
         future_client = ClientCore(darwin_config)
 
