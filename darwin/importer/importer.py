@@ -315,11 +315,11 @@ def _import_properties(
         team_properties_annotation_lookup[(prop.name, prop.annotation_class_id)] = prop
 
     # (annotation-cls-name, annotation-cls-name): PropertyClass object
-    metadata_classes_lookup: List[Tuple[str, str]] = []
+    metadata_classes_lookup: Set[Tuple[str, str]] = set()
     # (annotation-cls-name, property-name): Property object
     metadata_cls_prop_lookup: Dict[Tuple[str, str], Property] = {}
     for _cls in metadata_property_classes:
-        metadata_classes_lookup += [(_cls.name, _cls.type)]
+        metadata_classes_lookup.add((_cls.name, _cls.type))
         for _prop in _cls.properties or []:
             metadata_cls_prop_lookup[(_cls.name, _prop.name)] = _prop
 
