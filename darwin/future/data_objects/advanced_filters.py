@@ -31,6 +31,7 @@ class AnyOf(BaseMatcher, Generic[T]):
 
     _normalize_values = field_validator("values")(validate_at_least_one)
 
+
 class AllOf(BaseMatcher, Generic[T]):
     name: Literal["all_of"] = "all_of"
     values: List[T]

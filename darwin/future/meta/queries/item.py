@@ -129,7 +129,11 @@ class ItemQuery(PaginatedQuery[Item]):
             )
         if not self.meta_params["dataset_ids"] and not self.meta_params["dataset_id"]:
             raise ValueError("Must specify dataset_ids to query items")
-        dataset_id = self.meta_params["dataset_ids"] if "dataset_ids" in self.meta_params else self.meta_params["dataset_id"]
+        dataset_id = (
+            self.meta_params["dataset_ids"]
+            if "dataset_ids" in self.meta_params
+            else self.meta_params["dataset_id"]
+        )
         return {
             "dataset_ids": [dataset_id],
             "page": self.page.model_dump(),
@@ -312,7 +316,7 @@ class ItemQuery(PaginatedQuery[Item]):
         set_stage_to_items(
             self.client, team_slug, dataset_ids, stage_id, workflow_id, filters
         )
-    
+
     def where(
         self,
         *args: GroupFilter | SubjectFilter,
