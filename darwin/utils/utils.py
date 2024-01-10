@@ -214,9 +214,7 @@ def is_project_dir(project_path: Path) -> bool:
     return (project_path / "releases").exists() and (project_path / "images").exists()
 
 
-def get_progress_bar(
-    array: List[dt.AnnotationFile], description: Optional[str] = None
-) -> Iterable[ProgressType]:
+def get_progress_bar(array: List[dt.AnnotationFile], description: Optional[str] = None) -> Iterable[ProgressType]:
     """
     Get a rich a progress bar for the given list of annotation files.
 
@@ -360,9 +358,7 @@ def persist_client_configuration(
         api_key=team_config.api_key,
         datasets_dir=team_config.datasets_dir,
     )
-    config.set_global(
-        api_endpoint=client.url, base_url=client.base_url, default_team=default_team
-    )
+    config.set_global(api_endpoint=client.url, base_url=client.base_url, default_team=default_team)
 
     return config
 
@@ -419,9 +415,7 @@ def attempt_decode(path: Path) -> dict:
             return data
         except Exception:
             continue
-    raise UnrecognizableFileEncoding(
-        f"Unable to load file {path} with any encodings: {encodings}"
-    )
+    raise UnrecognizableFileEncoding(f"Unable to load file {path} with any encodings: {encodings}")
 
 
 def load_data_from_file(path: Path) -> Tuple[dict, dt.AnnotationFileVersion]:
@@ -430,9 +424,7 @@ def load_data_from_file(path: Path) -> Tuple[dict, dt.AnnotationFileVersion]:
     return data, version
 
 
-def parse_darwin_json(
-    path: Path, count: Optional[int] = None
-) -> Optional[dt.AnnotationFile]:
+def parse_darwin_json(path: Path, count: Optional[int] = None) -> Optional[dt.AnnotationFile]:
     """
     Parses the given JSON file in v7's darwin proprietary format. Works for images, split frame
     videos (treated as images) and playback videos.
@@ -521,14 +513,11 @@ def get_image_path_from_stream(
     """
     try:
         if json_version == "2.0":
+            filename = Path(darwin_json["item"]["slots"][0]["source_files"][0]["file_name"])
             if not with_folders:
-                return images_dir / Path(darwin_json["item"]["name"])
+                return images_dir / filename
             else:
-                return (
-                    images_dir
-                    / (Path(darwin_json["item"]["path"].lstrip("/\\")))
-                    / Path(darwin_json["item"]["name"])
-                )
+                return images_dir / (Path(darwin_json["item"]["path"].lstrip("/\\"))) / filename
         else:
             if not with_folders:
                 return images_dir / Path(darwin_json["image"]["filename"])
@@ -584,15 +573,9 @@ def is_stream_list_empty(json_list: PersistentStreamingJSONList) -> bool:
 def _parse_darwin_v2(path: Path, data: Dict[str, Any]) -> dt.AnnotationFile:
     item = data["item"]
     item_source = item.get("source_info", {})
-    slots: List[dt.Slot] = list(
-        filter(None, map(_parse_darwin_slot, item.get("slots", [])))
-    )
-    annotations: List[Union[dt.Annotation, dt.VideoAnnotation]] = _data_to_annotations(
-        data
-    )
-    annotation_classes: Set[dt.AnnotationClass] = {
-        annotation.annotation_class for annotation in annotations
-    }
+    slots: List[dt.Slot] = list(filter(None, map(_parse_darwin_slot, item.get("slots", []))))
+    annotations: List[Union[dt.Annotation, dt.VideoAnnotation]] = _data_to_annotations(data)
+    annotation_classes: Set[dt.AnnotationClass] = {annotation.annotation_class for annotation in annotations}
 
     if len(slots) == 0:
         annotation_file = dt.AnnotationFile(
@@ -600,9 +583,7 @@ def _parse_darwin_v2(path: Path, data: Dict[str, Any]) -> dt.AnnotationFile:
             path=path,
             filename=item["name"],
             item_id=item.get("source_info", {}).get("item_id", None),
-            dataset_name=item.get("source_info", {})
-            .get("dataset", {})
-            .get("name", None),
+            dataset_name=item.get("source_info", {}).get("dataset", {}).get("name", None),
             annotation_classes=annotation_classes,
             annotations=annotations,
             is_video=False,
@@ -623,17 +604,13 @@ def _parse_darwin_v2(path: Path, data: Dict[str, Any]) -> dt.AnnotationFile:
             path=path,
             filename=item["name"],
             item_id=item.get("source_info", {}).get("item_id", None),
-            dataset_name=item.get("source_info", {})
-            .get("dataset", {})
-            .get("name", None),
+            dataset_name=item.get("source_info", {}).get("dataset", {}).get("name", None),
             annotation_classes=annotation_classes,
             annotations=annotations,
             is_video=slot.frame_urls is not None or slot.frame_manifest is not None,
             image_width=slot.width,
             image_height=slot.height,
-            image_url=None
-            if len(slot.source_files or []) == 0
-            else slot.source_files[0]["url"],
+            image_url=None if len(slot.source_files or []) == 0 else slot.source_files[0]["url"],
             image_thumbnail_url=slot.thumbnail_url,
             workview_url=item_source.get("workview_url", None),
             seq=0,
@@ -663,15 +640,9 @@ def _parse_darwin_slot(data: Dict[str, Any]) -> dt.Slot:
     )
 
 
-def _parse_darwin_image(
-    path: Path, data: Dict[str, Any], count: Optional[int]
-) -> dt.AnnotationFile:
-    annotations: List[Union[dt.Annotation, dt.VideoAnnotation]] = _data_to_annotations(
-        data
-    )
-    annotation_classes: Set[dt.AnnotationClass] = {
-        annotation.annotation_class for annotation in annotations
-    }
+def _parse_darwin_image(path: Path, data: Dict[str, Any], count: Optional[int]) -> dt.AnnotationFile:
+    annotations: List[Union[dt.Annotation, dt.VideoAnnotation]] = _data_to_annotations(data)
+    annotation_classes: Set[dt.AnnotationClass] = {annotation.annotation_class for annotation in annotations}
 
     slot = dt.Slot(
         name=None,
@@ -708,20 +679,12 @@ def _parse_darwin_image(
     return annotation_file
 
 
-def _parse_darwin_video(
-    path: Path, data: Dict[str, Any], count: Optional[int]
-) -> dt.AnnotationFile:
-    annotations: List[Union[dt.Annotation, dt.VideoAnnotation]] = _data_to_annotations(
-        data
-    )
-    annotation_classes: Set[dt.AnnotationClass] = {
-        annotation.annotation_class for annotation in annotations
-    }
+def _parse_darwin_video(path: Path, data: Dict[str, Any], count: Optional[int]) -> dt.AnnotationFile:
+    annotations: List[Union[dt.Annotation, dt.VideoAnnotation]] = _data_to_annotations(data)
+    annotation_classes: Set[dt.AnnotationClass] = {annotation.annotation_class for annotation in annotations}
 
     if "width" not in data["image"] or "height" not in data["image"]:
-        raise OutdatedDarwinJSONFormat(
-            "Missing width/height in video, please re-export"
-        )
+        raise OutdatedDarwinJSONFormat("Missing width/height in video, please re-export")
 
     slot = dt.Slot(
         name=None,
@@ -767,41 +730,23 @@ def _parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotati
     main_annotation: Optional[dt.Annotation] = None
 
     # Darwin JSON 2.0 representation of complex polygons
-    if (
-        "polygon" in annotation
-        and "paths" in annotation["polygon"]
-        and len(annotation["polygon"]["paths"]) > 1
-    ):
+    if "polygon" in annotation and "paths" in annotation["polygon"] and len(annotation["polygon"]["paths"]) > 1:
         bounding_box = annotation.get("bounding_box")
         paths = annotation["polygon"]["paths"]
-        main_annotation = dt.make_complex_polygon(
-            name, paths, bounding_box, slot_names=slot_names
-        )
+        main_annotation = dt.make_complex_polygon(name, paths, bounding_box, slot_names=slot_names)
     # Darwin JSON 2.0 representation of simple polygons
-    elif (
-        "polygon" in annotation
-        and "paths" in annotation["polygon"]
-        and len(annotation["polygon"]["paths"]) == 1
-    ):
+    elif "polygon" in annotation and "paths" in annotation["polygon"] and len(annotation["polygon"]["paths"]) == 1:
         bounding_box = annotation.get("bounding_box")
         paths = annotation["polygon"]["paths"]
-        main_annotation = dt.make_polygon(
-            name, paths[0], bounding_box, slot_names=slot_names
-        )
+        main_annotation = dt.make_polygon(name, paths[0], bounding_box, slot_names=slot_names)
     # Darwin JSON 1.0 representation of complex and simple polygons
     elif "polygon" in annotation:
         bounding_box = annotation.get("bounding_box")
         if "additional_paths" in annotation["polygon"]:
-            paths = [annotation["polygon"]["path"]] + annotation["polygon"][
-                "additional_paths"
-            ]
-            main_annotation = dt.make_complex_polygon(
-                name, paths, bounding_box, slot_names=slot_names
-            )
+            paths = [annotation["polygon"]["path"]] + annotation["polygon"]["additional_paths"]
+            main_annotation = dt.make_complex_polygon(name, paths, bounding_box, slot_names=slot_names)
         else:
-            main_annotation = dt.make_polygon(
-                name, annotation["polygon"]["path"], bounding_box, slot_names=slot_names
-            )
+            main_annotation = dt.make_polygon(name, annotation["polygon"]["path"], bounding_box, slot_names=slot_names)
     # Darwin JSON 1.0 representation of complex polygons
     elif "complex_polygon" in annotation:
         bounding_box = annotation.get("bounding_box")
@@ -813,9 +758,7 @@ def _parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotati
         if "additional_paths" in annotation["complex_polygon"]:
             paths.extend(annotation["complex_polygon"]["additional_paths"])
 
-        main_annotation = dt.make_complex_polygon(
-            name, paths, bounding_box, slot_names=slot_names
-        )
+        main_annotation = dt.make_complex_polygon(name, paths, bounding_box, slot_names=slot_names)
     elif "bounding_box" in annotation:
         bounding_box = annotation["bounding_box"]
         main_annotation = dt.make_bounding_box(
@@ -829,9 +772,7 @@ def _parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotati
     elif "tag" in annotation:
         main_annotation = dt.make_tag(name, slot_names=slot_names)
     elif "line" in annotation:
-        main_annotation = dt.make_line(
-            name, annotation["line"]["path"], slot_names=slot_names
-        )
+        main_annotation = dt.make_line(name, annotation["line"]["path"], slot_names=slot_names)
     elif "keypoint" in annotation:
         main_annotation = dt.make_keypoint(
             name,
@@ -840,17 +781,11 @@ def _parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotati
             slot_names=slot_names,
         )
     elif "ellipse" in annotation:
-        main_annotation = dt.make_ellipse(
-            name, annotation["ellipse"], slot_names=slot_names
-        )
+        main_annotation = dt.make_ellipse(name, annotation["ellipse"], slot_names=slot_names)
     elif "cuboid" in annotation:
-        main_annotation = dt.make_cuboid(
-            name, annotation["cuboid"], slot_names=slot_names
-        )
+        main_annotation = dt.make_cuboid(name, annotation["cuboid"], slot_names=slot_names)
     elif "skeleton" in annotation:
-        main_annotation = dt.make_skeleton(
-            name, annotation["skeleton"]["nodes"], slot_names=slot_names
-        )
+        main_annotation = dt.make_skeleton(name, annotation["skeleton"]["nodes"], slot_names=slot_names)
     elif "table" in annotation:
         main_annotation = dt.make_table(
             name,
@@ -859,9 +794,7 @@ def _parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotati
             slot_names=slot_names,
         )
     elif "string" in annotation:
-        main_annotation = dt.make_string(
-            name, annotation["string"]["sources"], slot_names=slot_names
-        )
+        main_annotation = dt.make_string(name, annotation["string"]["sources"], slot_names=slot_names)
     elif "graph" in annotation:
         main_annotation = dt.make_graph(
             name,
@@ -888,29 +821,19 @@ def _parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotati
     if "id" in annotation:
         main_annotation.id = annotation["id"]
     if "instance_id" in annotation:
-        main_annotation.subs.append(
-            dt.make_instance_id(annotation["instance_id"]["value"])
-        )
+        main_annotation.subs.append(dt.make_instance_id(annotation["instance_id"]["value"]))
     if "attributes" in annotation:
         main_annotation.subs.append(dt.make_attributes(annotation["attributes"]))
     if "text" in annotation:
         main_annotation.subs.append(dt.make_text(annotation["text"]["text"]))
     if "inference" in annotation:
-        main_annotation.subs.append(
-            dt.make_opaque_sub("inference", annotation["inference"])
-        )
+        main_annotation.subs.append(dt.make_opaque_sub("inference", annotation["inference"]))
     if "directional_vector" in annotation:
-        main_annotation.subs.append(
-            dt.make_opaque_sub("directional_vector", annotation["directional_vector"])
-        )
+        main_annotation.subs.append(dt.make_opaque_sub("directional_vector", annotation["directional_vector"]))
     if "measures" in annotation:
-        main_annotation.subs.append(
-            dt.make_opaque_sub("measures", annotation["measures"])
-        )
+        main_annotation.subs.append(dt.make_opaque_sub("measures", annotation["measures"]))
     if "auto_annotate" in annotation:
-        main_annotation.subs.append(
-            dt.make_opaque_sub("auto_annotate", annotation["auto_annotate"])
-        )
+        main_annotation.subs.append(dt.make_opaque_sub("auto_annotate", annotation["auto_annotate"]))
 
     if annotation.get("annotators") is not None:
         main_annotation.annotators = _parse_annotators(annotation["annotators"])
@@ -964,9 +887,7 @@ def _parse_darwin_raster_annotation(annotation: dict) -> Optional[dt.Annotation]
     slot_names: Optional[List[str]] = parse_slot_names(annotation)
 
     if not id or not name or not raster_layer:
-        raise ValueError(
-            "Raster annotation must have an 'id', 'name' and 'raster_layer' field"
-        )
+        raise ValueError("Raster annotation must have an 'id', 'name' and 'raster_layer' field")
 
     dense_rle, mask_annotation_ids_mapping, total_pixels = (
         raster_layer.get("dense_rle", None),
@@ -1017,14 +938,9 @@ def _parse_darwin_mask_annotation(annotation: dict) -> Optional[dt.Annotation]:
 
 def _parse_annotators(annotators: List[Dict[str, Any]]) -> List[dt.AnnotationAuthor]:
     if not (hasattr(annotators, "full_name") or not hasattr(annotators, "email")):
-        raise AttributeError(
-            "JSON file must contain annotators with 'full_name' and 'email' fields"
-        )
+        raise AttributeError("JSON file must contain annotators with 'full_name' and 'email' fields")
 
-    return [
-        dt.AnnotationAuthor(annotator["full_name"], annotator["email"])
-        for annotator in annotators
-    ]
+    return [dt.AnnotationAuthor(annotator["full_name"], annotator["email"]) for annotator in annotators]
 
 
 def split_video_annotation(annotation: dt.AnnotationFile) -> List[dt.AnnotationFile]:
@@ -1060,13 +976,9 @@ def split_video_annotation(annotation: dt.AnnotationFile) -> List[dt.AnnotationF
     frame_annotations = []
     for i, frame_url in enumerate(urls):
         annotations = [
-            a.frames[i]
-            for a in annotation.annotations
-            if isinstance(a, dt.VideoAnnotation) and i in a.frames
+            a.frames[i] for a in annotation.annotations if isinstance(a, dt.VideoAnnotation) and i in a.frames
         ]
-        annotation_classes: Set[dt.AnnotationClass] = {
-            annotation.annotation_class for annotation in annotations
-        }
+        annotation_classes: Set[dt.AnnotationClass] = {annotation.annotation_class for annotation in annotations}
         filename: str = f"{Path(annotation.filename).stem}/{i:07d}.png"
         frame_annotations.append(
             dt.AnnotationFile(
@@ -1152,9 +1064,7 @@ def convert_polygons_to_sequences(
     else:
         list_polygons = cast(List[dt.Polygon], [polygons])
 
-    if not isinstance(list_polygons[0], list) or not isinstance(
-        list_polygons[0][0], dict
-    ):
+    if not isinstance(list_polygons[0], list) or not isinstance(list_polygons[0][0], dict):
         raise ValueError("Unknown input format")
 
     sequences: List[List[Union[int, float]]] = []
@@ -1295,9 +1205,7 @@ def convert_bounding_box_to_xyxy(box: dt.BoundingBox) -> List[float]:
     return [box["x"], box["y"], x2, y2]
 
 
-def convert_polygons_to_mask(
-    polygons: List, height: int, width: int, value: Optional[int] = 1
-) -> np.ndarray:
+def convert_polygons_to_mask(polygons: List, height: int, width: int, value: Optional[int] = 1) -> np.ndarray:
     """
     Converts a list of polygons, encoded as a list of dictionaries into an ``nd.array`` mask.
 
@@ -1391,38 +1299,24 @@ def _parse_version(data: dict) -> dt.AnnotationFileVersion:
     return dt.AnnotationFileVersion(int(major), int(minor), suffix)
 
 
-def _data_to_annotations(
-    data: Dict[str, Any]
-) -> List[Union[dt.Annotation, dt.VideoAnnotation]]:
+def _data_to_annotations(data: Dict[str, Any]) -> List[Union[dt.Annotation, dt.VideoAnnotation]]:
     raw_image_annotations = filter(
         lambda annotation: (
-            ("frames" not in annotation)
-            and ("raster_layer" not in annotation)
-            and ("mask" not in annotation)
+            ("frames" not in annotation) and ("raster_layer" not in annotation) and ("mask" not in annotation)
         ),
         data["annotations"],
     )
-    raw_video_annotations = filter(
-        lambda annotation: "frames" in annotation, data["annotations"]
-    )
-    raw_raster_annotations = filter(
-        lambda annotation: "raster_layer" in annotation, data["annotations"]
-    )
-    raw_mask_annotations = filter(
-        lambda annotation: "mask" in annotation, data["annotations"]
-    )
-    image_annotations: List[dt.Annotation] = list(
-        filter(None, map(_parse_darwin_annotation, raw_image_annotations))
-    )
+    raw_video_annotations = filter(lambda annotation: "frames" in annotation, data["annotations"])
+    raw_raster_annotations = filter(lambda annotation: "raster_layer" in annotation, data["annotations"])
+    raw_mask_annotations = filter(lambda annotation: "mask" in annotation, data["annotations"])
+    image_annotations: List[dt.Annotation] = list(filter(None, map(_parse_darwin_annotation, raw_image_annotations)))
     video_annotations: List[dt.VideoAnnotation] = list(
         filter(None, map(_parse_darwin_video_annotation, raw_video_annotations))
     )
     raster_annotations: List[dt.Annotation] = list(
         filter(None, map(_parse_darwin_raster_annotation, raw_raster_annotations))
     )
-    mask_annotations: List[dt.Annotation] = list(
-        filter(None, map(_parse_darwin_mask_annotation, raw_mask_annotations))
-    )
+    mask_annotations: List[dt.Annotation] = list(filter(None, map(_parse_darwin_mask_annotation, raw_mask_annotations)))
 
     return [
         *image_annotations,
@@ -1443,6 +1337,4 @@ def _supported_schema_versions() -> Dict[Tuple[int, int, str], str]:
 
 
 def _default_schema(version: dt.AnnotationFileVersion) -> Optional[str]:
-    return _supported_schema_versions().get(
-        (version.major, version.minor, version.suffix)
-    )
+    return _supported_schema_versions().get((version.major, version.minor, version.suffix))
