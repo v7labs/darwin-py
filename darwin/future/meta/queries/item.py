@@ -323,6 +323,19 @@ class ItemQuery(PaginatedQuery[Item]):
         _operator: Literal["and", "or"] = "and",
         **kwargs: str,
     ) -> ItemQuery:
+        """ Adds a filter to the query
+        This can be used with simple filters via a keyword argument
+        or with advanced filters via a GroupFilter or SubjectFilter object as args.
+
+        Args:
+            _operator (Literal["and", "or"], optional): The operator to use when combining
+
+        Raises:
+            ValueError: Raises if trying to use both simple and advanced filters
+
+        Returns:
+            ItemQuery: Self
+        """
         if len(args) > 0 and len(kwargs) > 0:
             raise ValueError("Cannot specify both args and kwargs")
         if len(kwargs) > 1:
