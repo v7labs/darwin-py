@@ -32,7 +32,6 @@ def list_datasets(
     response = api_client.get("/datasets")
     try:
         for item in response:
-            print(item)
             assert isinstance(item, dict)
             datasets.append(DatasetCore.model_validate(item))
     except ValidationError as e:
