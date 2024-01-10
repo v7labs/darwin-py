@@ -294,7 +294,7 @@ def _import_properties(
     metadata_path: Union[Path, bool],
     client: "Client",
     annotations: List[dt.Annotation],
-    annotation_class_ids_map: Dict[str, str],
+    annotation_class_ids_map: Dict[Tuple[str, str], str],
 ) -> Dict[int, Dict[str, List[str]]]:
     annotation_id_property_map: Dict[int, Dict[str, List[str]]] = {}
     if not isinstance(metadata_path, Path):
@@ -331,7 +331,7 @@ def _import_properties(
             annotation.annotation_class.annotation_internal_type
             or annotation.annotation_class.annotation_type
         )
-        annotation_class_id = int(annotation_class_ids_map[annotation_name])
+        annotation_class_id = int(annotation_class_ids_map[(annotation_name, annotation_type)])
         annotation_id_property_map[annotation_class_id] = defaultdict(list)
 
         # raise error if annotation class not present in metadata
@@ -1000,7 +1000,7 @@ def _import_annotations(
     rl: Optional[dt.Annotation] = None
     rl_dense_rle_ids: Optional[Set[str]] = None
     serialized_annotations = []
-    annotation_class_ids_map: Dict[str, str] = {}
+    annotation_class_ids_map: Dict[Tuple[str, str], str] = {}
     for annotation in annotations:
         annotation_class = annotation.annotation_class
         annotation_type = (
@@ -1064,7 +1064,7 @@ def _import_annotations(
         # Insert the default slot name if not available in the import source
         annotation = _handle_slot_names(annotation, dataset.version, default_slot_name)
 
-        annotation_class_ids_map[annotation_class.name] = annotation_class_id
+        annotation_class_ids_map[(annotation_class.name, annotation_type)] = annotation_class_id
         serial_obj = {
             "annotation_class_id": annotation_class_id,
             "data": data,
