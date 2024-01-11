@@ -35,7 +35,7 @@ class PropertyValue(DefaultDarwin):
     id: Optional[str] = None
     position: Optional[int] = None
     type: Literal["string"] = "string"
-    value: Union[Dict[str, str], str]
+    value: str
     color: str = "auto"
 
     @field_validator("color")
@@ -43,14 +43,6 @@ class PropertyValue(DefaultDarwin):
     def validate_rgba(cls, v: str) -> str:
         if not v.startswith("rgba") and v != "auto":
             raise ValueError("Color must be in rgba format or 'auto'")
-        return v
-
-    @field_validator("value")
-    @classmethod
-    def validate_value(cls, v: Union[Dict[str, str], str]) -> Dict[str, str]:
-        """TODO: Replace once the value.value bug is fixed in the API"""
-        if isinstance(v, str):
-            return {"value": v}
         return v
 
     def to_update_endpoint(self) -> Tuple[str, dict]:
