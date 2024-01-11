@@ -362,3 +362,30 @@ def test_set_stage(item: Item) -> None:
             json={},
         )
         item.set_stage(stage_id, workflow_id)
+
+
+def test_assign(item: Item) -> None:
+    with responses.RequestsMock() as rsps:
+        team_slug = item.meta_params["team_slug"]
+        dataset_id = item.meta_params["dataset_id"]
+        assignee_id = 123456
+        workflow_id = "123456"
+        rsps.add(
+            rsps.POST,
+            item.client.config.api_endpoint + f"v2/teams/{team_slug}/items/assign",
+            status=200,
+            match=[
+                json_params_matcher(
+                    {
+                        "filters": {
+                            "item_ids": [str(item.id)],
+                            "dataset_ids": [dataset_id],
+                        },
+                        "assignee_id": assignee_id,
+                        "workflow_id": workflow_id,
+                    }
+                )
+            ],
+            json={},
+        )
+        item.assign(assignee_id, workflow_id)
