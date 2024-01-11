@@ -557,6 +557,7 @@ def _map_annotations_to_images(stems, annotations_dir, images_dir, ignore_incons
         else:
             if ignore_inconsistent_examples:
                 invalid_annotation_paths.append(annotation_path)
+                print(f"Could not find image : {image_path}")
                 continue
             else:
                 raise ValueError(f"Annotation ({annotation_path}) does not have a corresponding image")
