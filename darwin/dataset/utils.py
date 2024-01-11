@@ -5,13 +5,15 @@ from pathlib import Path
 from typing import Any, Dict, Generator, Iterator, List, Optional, Set, Tuple, Union
 
 import numpy as np
+from matplotlib.dates import TU
 from PIL import Image as PILImage
 from rich.live import Live
 from rich.progress import ProgressBar, track
+from sympy import O
 
 import darwin.datatypes as dt
 from darwin.datatypes import PathLike
-from darwin.exceptions import NotFound
+from darwin.exceptions import DarwinException, NotFound
 from darwin.importer.formats.darwin import parse_path
 from darwin.utils import (
     SUPPORTED_EXTENSIONS,
@@ -286,7 +288,7 @@ def exhaust_generator(
 
 def get_coco_format_record(
     annotation_path: Path,
-    annotation_type: str = "polygon",
+    annotation_type: Union[str, None] = "polygon",
     image_path: Optional[Path] = None,
     image_id: Optional[Union[str, int]] = None,
     classes: Optional[List[str]] = None,
@@ -461,7 +463,7 @@ def get_annotations(
         print(p)
 
     if len(images_paths) == 0:
-        raise ValueError(f"Could not find any {SUPPORTED_EXTENSIONS} file" f" in {dataset_path / 'images'}")
+        raise DarwinException(f"Could not find any {SUPPORTED_EXTENSIONS} file" f" in {dataset_path / 'images'}")
 
     assert len(images_paths) == len(annotations_paths)
 
@@ -470,7 +472,7 @@ def get_annotations(
     )
 
 
-def _validate_inputs(partition, split_type, annotation_type):
+def _validate_inputs(partition: Union[str, None], split_type: Union[str, None], annotation_type: str) -> None:
     """
     Validates the input parameters for partition, split_type, and annotation_type.
 
@@ -487,10 +489,16 @@ def _validate_inputs(partition, split_type, annotation_type):
     if split_type not in ["random", "stratified", None]:
         raise ValueError("split_type should be either 'random', 'stratified', or None")
     if annotation_type not in ["tag", "polygon", "bounding_box"]:
-        raise ValueError("annotation_type should be either 'tag', 'bounding_box', or 'polygon'")
+        raise DarwinException("annotation_type should be either 'tag', 'bounding_box', or 'polygon'")
 
 
-def _get_stems_from_split(release_path, split, split_type, annotation_type, partition):
+def _get_stems_from_split(
+    release_path: Path,
+    split: str,
+    split_type: Union[str, None],
+    annotation_type: str,
+    partition: Union[str, None],
+) -> Generator:
     """
     Determines the file stems based on the dataset split and other parameters.
 
@@ -528,7 +536,12 @@ def _get_stems_from_split(release_path, split, split_type, annotation_type, part
         )
 
 
-def _map_annotations_to_images(stems, annotations_dir, images_dir, ignore_inconsistent_examples):
+def _map_annotations_to_images(
+    stems: List[str],
+    annotations_dir: Path,
+    images_dir: Path,
+    ignore_inconsistent_examples: bool,
+) -> Tuple[List[Path], List[Path], List[Path]]:
     """
     Maps annotations to their corresponding images based on the file stems.
 
@@ -557,7 +570,6 @@ def _map_annotations_to_images(stems, annotations_dir, images_dir, ignore_incons
         else:
             if ignore_inconsistent_examples:
                 invalid_annotation_paths.append(annotation_path)
-                print(f"Could not find image : {image_path}")
                 continue
             else:
                 raise ValueError(f"Annotation ({annotation_path}) does not have a corresponding image")
@@ -565,7 +577,13 @@ def _map_annotations_to_images(stems, annotations_dir, images_dir, ignore_incons
     return images_paths, annotations_paths, invalid_annotation_paths
 
 
-def _load_and_format_annotations(images_paths, annotations_paths, annotation_format, annotation_type, classes):
+def _load_and_format_annotations(
+    images_paths: List[Path],
+    annotations_paths: List[Path],
+    annotation_format: str,
+    annotation_type: Union[str, None],
+    classes: List[str],
+) -> Generator:
     """
     Loads and formats annotations based on the specified format and type.
 
