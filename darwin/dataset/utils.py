@@ -5,11 +5,9 @@ from pathlib import Path
 from typing import Any, Dict, Generator, Iterator, List, Optional, Set, Tuple, Union
 
 import numpy as np
-from matplotlib.dates import TU
 from PIL import Image as PILImage
 from rich.live import Live
 from rich.progress import ProgressBar, track
-from sympy import O
 
 import darwin.datatypes as dt
 from darwin.datatypes import PathLike
