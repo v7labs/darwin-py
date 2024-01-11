@@ -286,7 +286,7 @@ def exhaust_generator(
 
 def get_coco_format_record(
     annotation_path: Path,
-    annotation_type: Union[str, None] = "polygon",
+    annotation_type: str = "polygon",
     image_path: Optional[Path] = None,
     image_id: Optional[Union[str, int]] = None,
     classes: Optional[List[str]] = None,
@@ -383,7 +383,7 @@ def get_annotations(
     split_type: Optional[str] = None,
     annotation_type: str = "polygon",
     release_name: Optional[str] = None,
-    annotation_format: Optional[str] = "coco",
+    annotation_format: str = "coco",
     ignore_inconsistent_examples: bool = False,
 ) -> Iterator[Dict[str, Any]]:
     """
@@ -579,7 +579,7 @@ def _load_and_format_annotations(
     images_paths: List[Path],
     annotations_paths: List[Path],
     annotation_format: str,
-    annotation_type: Union[str, None],
+    annotation_type: str,
     classes: List[str],
 ) -> Generator:
     """
