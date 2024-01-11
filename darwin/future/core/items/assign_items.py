@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 from darwin.future.core.client import ClientCore
-from darwin.future.core.types.common import JSONType
-from darwin.future.data_objects.typing import UnknownType
+from darwin.future.core.types.common import JSONDict, JSONType
 
 
 def assign_items(
@@ -11,7 +10,7 @@ def assign_items(
     dataset_ids: int | list[int],
     assignee_id: int,
     workflow_id: str,
-    filters: dict[str, UnknownType],
+    filters: JSONDict,
 ) -> JSONType:
     """
     Assign a user to all items matched by filters.
