@@ -350,14 +350,14 @@ class LocalDataset:
             )
 
     def measure_mean_std(
-        self, multi_threaded: bool = True
+        self, multi_processed: bool = True
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Computes mean and std of trained images, given the train loader.
 
         Parameters
         ----------
-        multi_threaded : bool, default: True
+        multi_processed : bool, default: True
             Uses multiprocessing to download the dataset in parallel.
 
         Returns
@@ -367,7 +367,7 @@ class LocalDataset:
         std : ndarray[double]
             Standard deviation (for each channel) of all pixels of the images in the input folder.
         """
-        if multi_threaded:
+        if multi_processed:
             # Set up a pool of workers
             with mp.Pool(mp.cpu_count()) as pool:
                 # Online mean
