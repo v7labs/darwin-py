@@ -1,3 +1,5 @@
+import json
+from pathlib import Path
 from typing import List, Tuple
 from unittest.mock import Mock, _patch, patch
 
@@ -5,6 +7,7 @@ import pytest
 from rich.theme import Theme
 
 from darwin import datatypes as dt
+from darwin.importer.importer import _parse_empty_masks
 
 
 def root_path(x: str) -> str:
@@ -279,6 +282,191 @@ def test_get_overwrite_value() -> None:
 
     # Scenario 2: append value
     assert _get_overwrite_value(False) == "true"
+
+
+@pytest.fixture
+def raster_layer_annotations():
+    annotation_raster_layer_data = Path(__file__).parent.parent / f"data/annotation_raster_layer_data.json"
+    with open(annotation_raster_layer_data) as f:
+        data = json.load(f)
+
+    return [
+        dt.Annotation(
+            annotation_class=dt.AnnotationClass(
+                name="__raster_layer__",
+                annotation_type="raster_layer",
+            ),
+            data=data,
+            subs=[],
+            slot_names=['0'],
+            annotators=None,
+            reviewers=None,
+            id='2ef45c58-9556-4a08-b561-61680fd3ba8e',
+            properties=None
+        ),
+        dt.Annotation(
+            annotation_class=dt.AnnotationClass(
+                name='CROP:CORN',
+                annotation_type='mask',
+            ),
+            data={'sparse_rle': None},
+            subs=[],
+            slot_names=['0'],
+            annotators=None,
+            reviewers=None,
+            id='8236a56f-f51b-405e-be02-5c23e0954037',
+            properties=None
+        ),
+        dt.Annotation(
+            annotation_class=dt.AnnotationClass(
+                name='CROP:SOYBEAN',
+                annotation_type='mask',
+            ),
+            data={'sparse_rle': None},
+            subs=[],
+            slot_names=['0'],
+            annotators=None,
+            reviewers=None,
+            id='0835d3c0-2c79-4066-8bd7-41de8bdb695b',
+            properties=None),
+        dt.Annotation(
+            annotation_class=dt.AnnotationClass(
+                name='WEED:UNKNOWN',
+                annotation_type='mask',
+            ),
+            data={'sparse_rle': None},
+            subs=[],
+            slot_names=['0'],
+            annotators=None,
+            reviewers=None,
+            id='e1beb46e-1343-41ee-a856-6659b89ccd46',
+            properties=None
+        ),
+        dt.Annotation(
+            annotation_class=dt.AnnotationClass(
+                name='WEED:GRASS',
+                annotation_type='mask',
+            ),
+            data={'sparse_rle': None},
+            subs=[],
+            slot_names=['0'],
+            annotators=None,
+            reviewers=None,
+            id='954bbd3e-743f-49b8-b9db-f27e6f7b4ba7',
+            properties=None
+        ),
+        dt.Annotation(
+            annotation_class=dt.AnnotationClass(
+                name='WEED:BROADLEAF',
+                annotation_type='mask',
+            ),
+            data={'sparse_rle': None},
+            subs=[],
+            slot_names=['0'],
+            annotators=None,
+            reviewers=None,
+            id='1a32e512-b135-4307-8aff-46e1ba50f421',
+            properties=None
+        ),
+        dt.Annotation(
+            annotation_class=dt.AnnotationClass(
+                name='OBSCURITY:DIRTY_LENS',
+                annotation_type='mask'),
+            data={'sparse_rle': None},
+            subs=[],
+            slot_names=['0'],
+            annotators=None,
+            reviewers=None,
+            id='20679c9a-4c6e-4ff5-8e41-e4b2e3437c3d',
+            properties=None
+        ),
+    ]
+
+
+@pytest.fixture
+def raster_layer_video_annotations():
+    annotation_raster_layer_data = Path(__file__).parent.parent / f"data/video_annotation_raster_layer_data.json"
+    with open(annotation_raster_layer_data) as f:
+        data = json.load(f)
+
+    return [
+        dt.VideoAnnotation(
+            annotation_class=dt.AnnotationClass(
+                name="__raster_layer__",
+                annotation_type="raster_layer",
+            ),
+            frames={
+                0: dt.Annotation(
+                    annotation_class=dt.AnnotationClass(
+                        name='__raster_layer__',
+                        annotation_type='raster_layer',
+                    ),
+                    data=data,
+                    subs=[],
+                    slot_names=['0'],
+                    annotators=None,
+                    reviewers=None,
+                    id='220588d7-559d-4797-a465-c0b03fe44a5e',
+                    properties=None,
+                ),
+            },
+            keyframes={0: True},
+            segments=[[0, 1]],
+            interpolated=False,
+            slot_names=['0'],
+            annotators=None,
+            reviewers=None, 
+            id='220588d7-559d-4797-a465-c0b03fe44a5e',
+            properties=None,
+        ),
+        dt.VideoAnnotation(
+            annotation_class=dt.AnnotationClass(
+                name='BAC_mask',
+                annotation_type='mask',
+            ),
+            frames={
+                0: dt.Annotation(
+                    annotation_class=dt.AnnotationClass(
+                        name='BAC_mask',
+                        annotation_type='mask',
+                    ),
+                    data={},
+                    subs=[],
+                    slot_names=[],
+                    annotators=None,
+                    reviewers=None,
+                    id='ef002bce-99cc-4d9e-bab0-5ef72634ce75',
+                    properties=None
+                )
+            },
+            keyframes={0: True},
+            segments=[[0, 1]],
+            interpolated=False,
+            slot_names=['0'],
+            annotators=None,
+            reviewers=None,
+            id='ef002bce-99cc-4d9e-bab0-5ef72634ce75',
+            properties=None
+        ),
+    ]
+
+
+def test__parse_empty_masks(raster_layer_annotations) -> None:
+    rl, annotations = raster_layer_annotations[0], raster_layer_annotations[1:]
+    rl_dense_rle_ids = None
+    rl_dense_rle_ids_frames = None
+    for annotation in annotations:
+        _parse_empty_masks(annotation, rl, rl_dense_rle_ids, rl_dense_rle_ids_frames)
+    assert rl.data['mask_annotation_ids_mapping'] == {'0835d3c0-2c79-4066-8bd7-41de8bdb695b': 2}
+
+
+def test__parse_empty_masks_video(raster_layer_video_annotations) -> None:
+    rl, annotations = raster_layer_video_annotations[0], raster_layer_video_annotations[1:]
+    rl_dense_rle_ids = None
+    rl_dense_rle_ids_frames = None
+    for annotation in annotations:
+        _parse_empty_masks(annotation, rl, rl_dense_rle_ids, rl_dense_rle_ids_frames)
+    assert rl.frames[0].data['mask_annotation_ids_mapping'] == {'ef002bce-99cc-4d9e-bab0-5ef72634ce75': 1}
 
 
 def test__import_annotations() -> None:
