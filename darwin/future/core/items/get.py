@@ -6,7 +6,7 @@ from uuid import UUID
 from pydantic import ValidationError
 
 from darwin.future.core.client import ClientCore
-from darwin.future.core.types.common import QueryString
+from darwin.future.core.types.common import JSONDict, QueryString
 from darwin.future.data_objects.item import Folder, ItemCore
 
 
@@ -191,3 +191,42 @@ def list_folders(
         except ValidationError as e:
             exceptions.append(e)
     return folders, exceptions
+
+
+def list_items_unstable(
+    api_client: ClientCore,
+    team_slug: str,
+    params: JSONDict,
+) -> Tuple[List[ItemCore], List[ValidationError]]:
+    """
+    Returns a list of items for the dataset from the advanced filters 'unstable' endpoint
+
+    Parameters
+    ----------
+    client: Client
+        The client to use for the request
+    team_slug: str
+        The slug of the team to get items for
+    params: JSONType
+        Must include at least dataset_ids
+
+    Returns
+    -------
+    List[Item]
+        A list of items
+    List[ValidationError]
+        A list of ValidationError on failed objects
+    """
+    if "dataset_ids" not in params:
+        raise ValueError("dataset_ids must be provided")
+    response = api_client.post(f"/unstable/teams/{team_slug}/items/list", params)
+    assert isinstance(response, dict)
+    items: List[ItemCore] = []
+    exceptions: List[ValidationError] = []
+    for item in response["items"]:
+        assert isinstance(item, dict)
+        try:
+            items.append(ItemCore.model_validate(item))
+        except ValidationError as e:
+            exceptions.append(e)
+    return items, exceptions

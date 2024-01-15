@@ -3,7 +3,7 @@ from enum import Enum
 from typing import List, Optional
 from uuid import UUID
 
-from pydantic import Field, model_validator
+from pydantic import ConfigDict, Field, model_validator
 
 from darwin.future.data_objects.typing import UnknownType
 from darwin.future.pydantic_base import DefaultDarwin
@@ -134,6 +134,10 @@ class WFStageConfigCore(DefaultDarwin):
     iou_thresholds: UnknownType
     model_id: UnknownType
     threshold: UnknownType
+
+    model_config = ConfigDict(
+        protected_namespaces=()
+    )  # due to `model_type` field conflicts with a pydantic field
 
 
 class WFStageCore(DefaultDarwin):

@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Generic, List, Literal, Optional, TypeVar, Union
 
-from pydantic import BaseModel, field_validator, model_validator
+from pydantic import BaseModel, SerializeAsAny, field_validator, model_validator
 
 T = TypeVar("T")
 
@@ -88,12 +88,16 @@ class NotContains(BaseMatcher):
 
 class SubjectFilter(BaseModel):
     subject: str
-    matcher: BaseMatcher
+    matcher: SerializeAsAny[BaseMatcher]
 
-    def __and__(self, other: SubjectFilter) -> GroupFilter:
+    def __and__(self, other: SubjectFilter | GroupFilter) -> GroupFilter:
+        if isinstance(other, GroupFilter):
+            return GroupFilter(conjunction="and", filters=[self, other])
         return GroupFilter(conjunction="and", filters=[self, other])
 
-    def __or__(self, other: SubjectFilter) -> GroupFilter:
+    def __or__(self, other: SubjectFilter | GroupFilter) -> GroupFilter:
+        if isinstance(other, GroupFilter):
+            return GroupFilter(conjunction="or", filters=[self, other])
         return GroupFilter(conjunction="or", filters=[self, other])
 
 
@@ -298,6 +302,52 @@ class ProcessingStatus(SubjectFilter):
         return ProcessingStatus(
             subject="processing_status",
             matcher=NoneOf[ProcessingStatusType](values=values),
+        )
+
+
+class ClassProperty(SubjectFilter):
+    subject: Literal["class_property"] = "class_property"
+    matcher: Union[AnyOf[str], AllOf[str], NoneOf[str]]
+
+    @classmethod
+    def any_of(cls, values: list[str]) -> ClassProperty:
+        return ClassProperty(
+            subject="class_property", matcher=AnyOf[str](values=values)
+        )
+
+    @classmethod
+    def all_of(cls, values: list[str]) -> ClassProperty:
+        return ClassProperty(
+            subject="class_property", matcher=AllOf[str](values=values)
+        )
+
+    @classmethod
+    def none_of(cls, values: list[str]) -> ClassProperty:
+        return ClassProperty(
+            subject="class_property", matcher=NoneOf[str](values=values)
+        )
+
+
+class ClassPropertyValue(SubjectFilter):
+    subject: Literal["class_property_value"] = "class_property_value"
+    matcher: Union[AnyOf[str], AllOf[str], NoneOf[str]]
+
+    @classmethod
+    def any_of(cls, values: list[str]) -> ClassPropertyValue:
+        return ClassPropertyValue(
+            subject="class_property_value", matcher=AnyOf[str](values=values)
+        )
+
+    @classmethod
+    def all_of(cls, values: list[str]) -> ClassPropertyValue:
+        return ClassPropertyValue(
+            subject="class_property_value", matcher=AllOf[str](values=values)
+        )
+
+    @classmethod
+    def none_of(cls, values: list[str]) -> ClassPropertyValue:
+        return ClassPropertyValue(
+            subject="class_property_value", matcher=NoneOf[str](values=values)
         )
 
 
