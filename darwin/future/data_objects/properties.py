@@ -33,7 +33,6 @@ class PropertyValue(DefaultDarwin):
     """
 
     id: Optional[str] = None
-    position: Optional[int] = None
     type: Literal["string"] = "string"
     value: str
     color: str = "auto"

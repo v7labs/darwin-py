@@ -437,21 +437,18 @@ class TestGetTeamProperties:
                             {
                                 "color": "rgba(143,255,0,1.0)",
                                 "id": "3e40c575-41dc-43c9-87f9-7dc2b625650d",
-                                "position": 1,
                                 "type": "string",
                                 "value": "answer 1",
                             },
                             {
                                 "color": "rgba(173,255,0,1.0)",
                                 "id": "18ebaad0-c22a-49db-b6c5-1de0da986f4e",
-                                "position": 2,
                                 "type": "string",
                                 "value": "answer 2",
                             },
                             {
                                 "color": "rgba(82,255,0,1.0)",
                                 "id": "b67ae529-f612-4c9a-a175-5b98f1d81a6e",
-                                "position": 3,
                                 "type": "string",
                                 "value": "answer 3",
                             },

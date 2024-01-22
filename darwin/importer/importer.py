@@ -404,7 +404,6 @@ def _import_properties(
                                 # update property_values with new value
                                 full_property.property_values.append(
                                     PropertyValue(
-                                        position=m_prop_option.get("position"),  # type: ignore
                                         type=m_prop_option.get("type"),  # type: ignore
                                         value=m_prop_option.get("value"),  # type: ignore
                                         color=m_prop_option.get("color"),  # type: ignore
@@ -419,7 +418,6 @@ def _import_properties(
                         if m_prop_option.get("value") == a_prop.value:
                             property_values.append(
                                 PropertyValue(
-                                    position=m_prop_option.get("position"),  # type: ignore
                                     type=m_prop_option.get("type"),  # type: ignore
                                     value=m_prop_option.get("value"),  # type: ignore
                                     color=m_prop_option.get("color"),  # type: ignore
