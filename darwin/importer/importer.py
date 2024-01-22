@@ -406,7 +406,7 @@ def _import_properties(
                                     PropertyValue(
                                         position=m_prop_option.get("position"),  # type: ignore
                                         type=m_prop_option.get("type"),  # type: ignore
-                                        value={"value": m_prop_option.get("value")},  # type: ignore
+                                        value=m_prop_option.get("value"),  # type: ignore
                                         color=m_prop_option.get("color"),  # type: ignore
                                     )
                                 )
@@ -421,7 +421,7 @@ def _import_properties(
                                 PropertyValue(
                                     position=m_prop_option.get("position"),  # type: ignore
                                     type=m_prop_option.get("type"),  # type: ignore
-                                    value={"value": m_prop_option.get("value")},  # type: ignore
+                                    value=m_prop_option.get("value"),  # type: ignore
                                     color=m_prop_option.get("color"),  # type: ignore
                                 )
                             )
@@ -455,7 +455,7 @@ def _import_properties(
 
             # check if property value/type is different in t_prop (team) options
             for t_prop_val in t_prop.property_values or []:
-                if t_prop_val.value == {"value": a_prop.value} and t_prop_val.type == a_prop.type:
+                if t_prop_val.value == a_prop.value and t_prop_val.type == a_prop.type:
                     break
             else:
                 # if it is, update it
@@ -470,7 +470,7 @@ def _import_properties(
                     property_values=[
                         PropertyValue(
                             type=m_prop_option.get("type"),  # type: ignore
-                            value={"value": m_prop_option.get("value")},  # type: ignore
+                            value=m_prop_option.get("value"),  # type: ignore
                             color=m_prop_option.get("color"),  # type: ignore
                         )
                     ],
