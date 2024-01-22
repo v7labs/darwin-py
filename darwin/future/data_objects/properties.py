@@ -63,6 +63,7 @@ class FullProperty(DefaultDarwin):
     """
 
     id: Optional[str] = None
+    position: Optional[int] = None
     name: str
     type: PropertyType
     description: Optional[str] = None
@@ -84,7 +85,7 @@ class FullProperty(DefaultDarwin):
                 "type": True,
                 "required": True,
                 "annotation_class_id": True,
-                "property_values": {"__all__": {"type", "value", "color"}},
+                "property_values": {"__all__": {"value", "color"}},
                 "description": True,
             }
         )

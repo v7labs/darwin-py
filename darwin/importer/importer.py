@@ -404,7 +404,6 @@ def _import_properties(
                                 # update property_values with new value
                                 full_property.property_values.append(
                                     PropertyValue(
-                                        type=m_prop_option.get("type"),  # type: ignore
                                         value=m_prop_option.get("value"),  # type: ignore
                                         color=m_prop_option.get("color"),  # type: ignore
                                     )
@@ -418,7 +417,6 @@ def _import_properties(
                         if m_prop_option.get("value") == a_prop.value:
                             property_values.append(
                                 PropertyValue(
-                                    type=m_prop_option.get("type"),  # type: ignore
                                     value=m_prop_option.get("value"),  # type: ignore
                                     color=m_prop_option.get("color"),  # type: ignore
                                 )
@@ -429,7 +427,7 @@ def _import_properties(
                         name=a_prop.name,
                         type=m_prop_type,  # type from .v7/metadata.json
                         required=m_prop.required,  # required from .v7/metadata.json
-                        description="property-created-during-annotation-import",
+                        description=m_prop.description or "property-created-during-annotation-import",
                         slug=client.default_team,
                         annotation_class_id=int(annotation_class_id),
                         property_values=property_values,
@@ -462,12 +460,11 @@ def _import_properties(
                     name=a_prop.name,
                     type=m_prop_type,
                     required=m_prop.required,
-                    description="property-updated-during-annotation-import",
+                    description=m_prop.description or "property-updated-during-annotation-import",
                     slug=client.default_team,
                     annotation_class_id=int(annotation_class_id),
                     property_values=[
                         PropertyValue(
-                            type=m_prop_option.get("type"),  # type: ignore
                             value=m_prop_option.get("value"),  # type: ignore
                             color=m_prop_option.get("color"),  # type: ignore
                         )
