@@ -205,6 +205,9 @@ def _build_legacy_annotation_data(
         # Poygons and complex polygons usually have attached bounding_box annotations
         v1_data["bounding_box"] = data["bounding_box"]
 
+    if not v1_data:
+        v1_data[annotation_class.annotation_type] = data
+
     return v1_data
 
 
