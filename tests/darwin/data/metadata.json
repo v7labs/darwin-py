@@ -4,44 +4,44 @@
             "name": "Bottle",
             "description": "Some additional text",
             "type": "polygon",
-            "sub_types": ["attributes", "instance_id"],
+            "sub_types": [
+                "attributes",
+                "instance_id"
+            ],
             "color": "rgba(255,0,85,1.0)",
             "properties": [
                 {
                     "name": "Colors",
                     "type": "multi-select",
+                    "description": "Some additional description",
                     "options": [
                         {
                             "value": "red",
-                            "color": "rgba(255, 0, 0, 0)",
-                            "type": "string"
+                            "color": "rgba(255, 0, 0, 0)"
                         },
                         {
                             "value": "green",
-                            "color": "rgba(0, 255, 0, 0)",
-                            "type": "string"
+                            "color": "rgba(0, 255, 0, 0)"
                         },
                         {
                             "value": "blue",
-                            "color": "rgba(0, 0, 255, 0)",
-                            "type": "string"
+                            "color": "rgba(0, 0, 255, 0)"
                         }
                     ],
                     "required": true
                 },
                 {
                     "name": "Shape (expanded format)",
+                    "description": "Some additional description",
                     "type": "single-select",
                     "options": [
                         {
                             "value": "Star",
-                            "color": "rgba(0, 0, 0, 0)",
-                            "type": "string"
+                            "color": "rgba(0, 0, 0, 0)"
                         },
                         {
                             "value": "Circle",
-                            "color": "rgba(150, 150, 150, 0)",
-                            "type": "string"
+                            "color": "rgba(150, 150, 150, 0)"
                         }
                     ],
                     "required": false

@@ -35,6 +35,7 @@
                 {
                     "name": "Colors",
                     "type": "multi-select",
+                    "description": "Some additional description",
                     "options": [
                         {
                             "value": "red",

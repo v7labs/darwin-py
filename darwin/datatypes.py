@@ -22,7 +22,7 @@ try:
 except ImportError:
     NDArray = Any  # type:ignore
 
-from darwin.future.data_objects.properties import SelectedProperty
+from darwin.future.data_objects.properties import PropertyType, SelectedProperty
 from darwin.path_utils import construct_full_path, is_properties_enabled, parse_metadata
 
 # Utility types
@@ -405,13 +405,16 @@ class Property:
     name: str
 
     # Type of the property
-    type: str
+    type: PropertyType
 
     # Whether the property is required or not
     required: bool
 
+    # Description of the property
+    description: Optional[str]
+
     # Property options
-    options: list[dict[str, str]]
+    options: list[dict[str, Any]]
 
 
 @dataclass
@@ -475,10 +478,10 @@ def split_paths_by_metadata(
     tuple[Path, Optional[list[PropertyClass]]]
         A tuple containing the path to the metadata file and the list of property classes.
     """
-    if not is_properties_enabled(path, dir, filename):
+    metadata_path = is_properties_enabled(path, dir, filename)
+    if isinstance(metadata_path, bool):
         return path, None
 
-    metadata_path = path / dir / filename
     metadata = parse_metadata(metadata_path)
     property_classes = parse_property_classes(metadata)
 

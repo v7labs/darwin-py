@@ -520,6 +520,7 @@ def test__import_annotations() -> None:
             False,
             "test_import_annotators",  # type: ignore
             "test_import_reviewers",  # type: ignore
+            False,
         )
 
         assert mock_dataset.import_annotation.call_count == 1
