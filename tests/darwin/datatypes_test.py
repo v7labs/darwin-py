@@ -88,12 +88,12 @@ def assert_annotation_class(annotation, name, type, internal_type=None) -> None:
     ),
 )
 def test_parse_properties(filename, property_class_n, properties_n):
-    manifest_path = Path(__file__).parent / f"data/{filename}"
+    metadata_path = Path(__file__).parent / f"data/{filename}"
 
-    with open(manifest_path) as f:
-        manifest = json.load(f)
+    with open(metadata_path) as f:
+        metadata = json.load(f)
 
-    property_classes = parse_property_classes(manifest)
+    property_classes = parse_property_classes(metadata)
     assert len(property_classes) == property_class_n
     assert [
         len(property_class.properties or []) for property_class in property_classes

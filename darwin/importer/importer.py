@@ -377,7 +377,7 @@ def _import_properties(
             m_prop_type: PropertyType = m_prop.type
 
             # get metadata property options
-            m_prop_options: List[Dict[str, str]] = m_prop.options or []
+            m_prop_options: List[Dict[str, str]] = m_prop.property_values or []
 
             # check if property value is missing for a property that requires a value
             if m_prop.required and not a_prop.value:
@@ -435,13 +435,13 @@ def _import_properties(
                     create_properties.append(full_property)
                 continue
 
-            # check if property value/type is different in m_prop (.v7/metadata.json) options
+            # check if property value is different in m_prop (.v7/metadata.json) options
             for m_prop_option in m_prop_options:
-                if m_prop_option.get("value") == a_prop.value and m_prop_option.get("type") == a_prop.type:
+                if m_prop_option.get("value") == a_prop.value:
                     break
             else:
                 raise ValueError(
-                    f"Annotation: '{annotation_name}' -> Property '{a_prop.value}' ({a_prop.type}) not found in .v7/metadata.json, found: {m_prop.options}"
+                    f"Annotation: '{annotation_name}' -> Property '{a_prop.value}' not found in .v7/metadata.json, found: {m_prop.property_values}"
                 )
 
             # get team property
@@ -449,9 +449,9 @@ def _import_properties(
                 (a_prop.name, annotation_class_id)
             ]
 
-            # check if property value/type is different in t_prop (team) options
+            # check if property value is different in t_prop (team) options
             for t_prop_val in t_prop.property_values or []:
-                if t_prop_val.value == a_prop.value and t_prop_val.type == a_prop.type:
+                if t_prop_val.value == a_prop.value:
                     break
             else:
                 # if it is, update it

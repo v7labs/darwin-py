@@ -14,7 +14,7 @@
                     "name": "Colors",
                     "type": "multi-select",
                     "description": "Some additional description",
-                    "options": [
+                    "property_values": [
                         {
                             "value": "red",
                             "color": "rgba(255, 0, 0, 0)"
@@ -34,7 +34,7 @@
                     "name": "Shape (expanded format)",
                     "description": "Some additional description",
                     "type": "single-select",
-                    "options": [
+                    "property_values": [
                         {
                             "value": "Star",
                             "color": "rgba(0, 0, 0, 0)"
