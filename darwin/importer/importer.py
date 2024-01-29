@@ -418,15 +418,21 @@ def _import_properties(
                         # find property value in m_prop (.v7/metadata.json) options
                         for m_prop_option in m_prop_options:
                             if m_prop_option.get("value") == a_prop.value:
-                                # update property_values with new value
-                                full_property.property_values.append(
-                                    PropertyValue(
-                                        value=m_prop_option.get("value"),  # type: ignore
-                                        color=m_prop_option.get("color"),  # type: ignore
+                                # check if property value exists in property_values
+                                for prop_val in property_values:
+                                    if prop_val.value == a_prop.value:
+                                        break
+                                else:
+                                    # update property_values with new value
+                                    full_property.property_values.append(
+                                        PropertyValue(
+                                            value=m_prop_option.get("value"),  # type: ignore
+                                            color=m_prop_option.get("color"),  # type: ignore
+                                        )
                                     )
-                                )
-                                break
-                        break
+                                    break
+                        else:
+                            break
                 else:
                     property_values = []
                     # find property value in m_prop (.v7/metadata.json) options
