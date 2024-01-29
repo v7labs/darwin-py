@@ -521,7 +521,9 @@ def _import_properties(
     # update annotation_property_map with property ids from created_properties & updated_properties
     for annotation_id, annotation_props in annotation_property_map.items():
         if not annotation_props:
-            annotation = annotation_id_map[annotation_id]
+            annotation = annotation_id_map.get(annotation_id)
+            if not annotation:
+                continue
             frame_index = str(annotation.frame_index)
 
             for prop in (created_properties + updated_properties):
