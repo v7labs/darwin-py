@@ -1036,7 +1036,6 @@ def _parse_properties(
             SelectedProperty(
                 frame_index=property.get("frame_index", None),
                 name=property.get("name", None),
-                type=property.get("type", None),
                 value=property.get("value", None),
             )
         )

@@ -410,11 +410,11 @@ class Property:
     # Whether the property is required or not
     required: bool
 
-    # Description of the property
-    description: Optional[str]
-
     # Property options
-    options: list[dict[str, Any]]
+    property_values: list[dict[str, Any]]
+
+    # Description of the property
+    description: Optional[str] = None
 
 
 @dataclass

@@ -34,7 +34,7 @@ class PropertyValue(DefaultDarwin):
 
     id: Optional[str] = None
     type: Literal["string"] = "string"
-    value: str
+    value: Optional[str] = None
     color: str = "auto"
 
     @field_validator("color")
@@ -143,11 +143,11 @@ class SelectedProperty(DefaultDarwin):
     Attributes:
         frame_index (int): Frame index of the annotation
         name (str): Name of the property
-        type (str): Type of the property
+        type (str | None): Type of the property (if it exists)
         value (str): Value of the property
     """
 
     frame_index: int
     name: str
-    type: Literal["string"] = "string"
-    value: str
+    type: Optional[str] = None
+    value: Optional[str] = None
