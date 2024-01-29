@@ -34,7 +34,7 @@ class PropertyValue(DefaultDarwin):
 
     id: Optional[str] = None
     type: Literal["string"] = "string"
-    value: str
+    value: Optional[str] = None
     color: str = "auto"
 
     @field_validator("color")
@@ -150,4 +150,4 @@ class SelectedProperty(DefaultDarwin):
     frame_index: int
     name: str
     type: Optional[str] = None
-    value: str
+    value: Optional[str] = None

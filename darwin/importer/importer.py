@@ -351,8 +351,8 @@ def _import_properties(
         for _prop in _cls.properties or []:
             metadata_cls_prop_lookup[(_cls.name, _prop.name)] = _prop
 
-    # (annotation-id): SelectedProperty object
-    annotation_id_map: Dict[str, SelectedProperty] = {}
+    # (annotation-id): dt.Annotation object
+    annotation_id_map: Dict[str, dt.Annotation] = {}
 
     create_properties: List[FullProperty] = []
     update_properties: List[FullProperty] = []
@@ -371,6 +371,7 @@ def _import_properties(
         annotation_id = annotation.id
         if annotation_id not in annotation_property_map:
             annotation_property_map[annotation_id] = defaultdict(lambda: defaultdict(set))
+        annotation_id_map[annotation_id] = annotation
 
         # raise error if annotation class not present in metadata
         if annotation_name_type not in metadata_classes_lookup:
@@ -381,7 +382,6 @@ def _import_properties(
         # loop on annotation properties and check if they exist in metadata & team
         for a_prop in annotation.properties or []:
             a_prop: SelectedProperty
-            annotation_id_map[annotation_id] = a_prop
 
             # raise error if annotation-property not present in metadata
             if (annotation_name, a_prop.name) not in metadata_cls_prop_lookup:
@@ -464,9 +464,10 @@ def _import_properties(
                 if m_prop_option.get("value") == a_prop.value:
                     break
             else:
-                raise ValueError(
-                    f"Annotation: '{annotation_name}' -> Property '{a_prop.value}' not found in .v7/metadata.json, found: {m_prop.property_values}"
-                )
+                if a_prop.value:
+                    raise ValueError(
+                        f"Annotation: '{annotation_name}' -> Property '{a_prop.value}' not found in .v7/metadata.json, found: {m_prop.property_values}"
+                    )
 
             # get team property
             t_prop: FullProperty = team_properties_annotation_lookup[
@@ -526,19 +527,24 @@ def _import_properties(
             updated_properties.append(prop)
 
     # update annotation_property_map with property ids from created_properties & updated_properties
-    for annotation_id, annotation_props in annotation_property_map.items():
-        if not annotation_props:
-            annotation = annotation_id_map.get(annotation_id)
-            if not annotation:
-                continue
-            frame_index = str(annotation.frame_index)
+    for annotation_id, _ in annotation_property_map.items():
+        if not annotation_id_map.get(annotation_id):
+            continue
+        annotation = annotation_id_map[annotation_id]
+
+        for a_prop in annotation.properties or []:
+            frame_index = str(a_prop.frame_index)
 
             for prop in (created_properties + updated_properties):
-                # find the property id in the response
-                if prop.name == annotation.name:
-                    # find the property value id in the response
+                if prop.name == a_prop.name:
+                    if a_prop.value is None:
+                        if not annotation_property_map[annotation_id][frame_index][prop.id]:
+                            annotation_property_map[annotation_id][frame_index][prop.id] = set()
+                            break
+
+                    # find the property-id and property-value-id in the response
                     for prop_val in prop.property_values or []:
-                        if prop_val.value == annotation.value:
+                        if prop_val.value == a_prop.value:
                             annotation_property_map[annotation_id][frame_index][prop.id].add(
                                 prop_val.id
                             )
