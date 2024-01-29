@@ -432,9 +432,8 @@ def _import_properties(
                                             color=m_prop_option.get("color"),  # type: ignore
                                         )
                                     )
-                                    break
-                        else:
-                            break
+                                break
+                        break
                 else:
                     property_values = []
                     # find property value in m_prop (.v7/metadata.json) options
