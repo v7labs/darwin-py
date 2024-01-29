@@ -363,6 +363,8 @@ def _import_properties(
             or annotation.annotation_class.annotation_type
         )
         annotation_name_type = (annotation_name, annotation_type)
+        if annotation_name_type not in annotation_class_ids_map:
+            continue
         annotation_class_id = int(annotation_class_ids_map[annotation_name_type])
         if not annotation.id:
             continue
