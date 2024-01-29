@@ -474,6 +474,12 @@ def _import_properties(
                 (a_prop.name, annotation_class_id)
             ]
 
+            if a_prop.value is None:
+                # if property value is None, update annotation_property_map with empty set
+                assert t_prop.id is not None
+                annotation_property_map[annotation_id][str(a_prop.frame_index)][t_prop.id] = set()
+                continue
+
             # check if property value is different in t_prop (team) options
             for t_prop_val in t_prop.property_values or []:
                 if t_prop_val.value == a_prop.value:
