@@ -417,6 +417,9 @@ def _import_properties(
                             full_property.property_values = []
 
                         property_values = full_property.property_values
+                        if a_prop.value is None:
+                            # skip creating property if property value is None
+                            continue
                         # find property value in m_prop (.v7/metadata.json) options
                         for m_prop_option in m_prop_options:
                             if m_prop_option.get("value") == a_prop.value:
@@ -436,6 +439,9 @@ def _import_properties(
                         break
                 else:
                     property_values = []
+                    if a_prop.value is None:
+                        # skip creating property if property value is None
+                        continue
                     # find property value in m_prop (.v7/metadata.json) options
                     for m_prop_option in m_prop_options:
                         if m_prop_option.get("value") == a_prop.value:
@@ -496,7 +502,7 @@ def _import_properties(
                     annotation_class_id=int(annotation_class_id),
                     property_values=[
                         PropertyValue(
-                            value=m_prop_option.get("value"),  # type: ignore
+                            value=a_prop.value,
                             color=m_prop_option.get("color"),  # type: ignore
                         )
                     ],
