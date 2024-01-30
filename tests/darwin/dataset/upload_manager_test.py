@@ -8,7 +8,7 @@ from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset import RemoteDataset
 from darwin.dataset.identifier import DatasetIdentifier
-from darwin.dataset.remote_dataset_v1 import RemoteDatasetV1
+from darwin.dataset.remote_dataset_v2 import RemoteDatasetV2
 from darwin.dataset.upload_manager import (
     LocalFile,
     UploadHandler,
@@ -20,13 +20,15 @@ from tests.fixtures import *
 
 @pytest.fixture
 def darwin_client(
-    darwin_config_path: Path, darwin_datasets_path: Path, team_slug: str
+    darwin_config_path: Path, darwin_datasets_path: Path, team_slug_darwin_json_v2: str
 ) -> Client:
     config = Config(darwin_config_path)
     config.put(["global", "api_endpoint"], "http://localhost/api")
     config.put(["global", "base_url"], "http://localhost")
-    config.put(["teams", team_slug, "api_key"], "mock_api_key")
-    config.put(["teams", team_slug, "datasets_dir"], str(darwin_datasets_path))
+    config.put(["teams", team_slug_darwin_json_v2, "api_key"], "mock_api_key")
+    config.put(
+        ["teams", team_slug_darwin_json_v2, "datasets_dir"], str(darwin_datasets_path)
+    )
     return Client(config=config)
 
 
@@ -36,15 +38,17 @@ def dataset_identifier(team_slug: str, dataset_slug: str) -> DatasetIdentifier:
 
 
 @pytest.fixture
-def request_upload_endpoint(team_slug: str, dataset_slug: str):
-    return f"http://localhost/api/teams/{team_slug}/datasets/{dataset_slug}/data"
+def request_upload_endpoint(team_slug_darwin_json_v2: str):
+    return f"http://localhost/api/v2/teams/{team_slug_darwin_json_v2}/items/register_upload"
 
 
 @pytest.fixture
-def dataset(darwin_client: Client, team_slug: str, dataset_slug: str) -> RemoteDataset:
-    return RemoteDatasetV1(
+def dataset(
+    darwin_client: Client, team_slug_darwin_json_v2: str, dataset_slug: str
+) -> RemoteDataset:
+    return RemoteDatasetV2(
         client=darwin_client,
-        team=team_slug,
+        team=team_slug_darwin_json_v2,
         name=dataset_slug,
         slug=dataset_slug,
         dataset_id=1,
@@ -273,7 +277,10 @@ def test_upload_files(dataset: RemoteDataset, request_upload_endpoint: str):
     sign_upload_response = {"upload_url": upload_to_s3_endpoint}
 
     responses.add(
-        responses.PUT, request_upload_endpoint, json=request_upload_response, status=200
+        responses.POST,
+        request_upload_endpoint,
+        json=request_upload_response,
+        status=200,
     )
     responses.add(
         responses.GET, sign_upload_endpoint, json=sign_upload_response, status=200

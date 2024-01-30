@@ -16,7 +16,6 @@ from darwin.backend_v2 import BackendV2
 from darwin.config import Config
 from darwin.dataset.identifier import DatasetIdentifier
 from darwin.dataset.remote_dataset import RemoteDataset
-from darwin.dataset.remote_dataset_v1 import RemoteDatasetV1
 from darwin.dataset.remote_dataset_v2 import RemoteDatasetV2
 from darwin.datatypes import DarwinVersionNumber, Feature, ItemId, Team, UnknownType
 from darwin.exceptions import (
@@ -147,26 +146,15 @@ class Client:
         )
 
         for dataset in response:
-            if dataset.get("version", 1) == 2:
-                yield RemoteDatasetV2(
-                    name=dataset["name"],
-                    slug=dataset["slug"],
-                    team=team_slug or self.default_team,
-                    dataset_id=dataset["id"],
-                    item_count=get_item_count(dataset),
-                    progress=dataset["progress"],
-                    client=self,
-                )
-            else:
-                yield RemoteDatasetV1(
-                    name=dataset["name"],
-                    slug=dataset["slug"],
-                    team=team_slug or self.default_team,
-                    dataset_id=dataset["id"],
-                    item_count=get_item_count(dataset),
-                    progress=dataset["progress"],
-                    client=self,
-                )
+            yield RemoteDatasetV2(
+                name=dataset["name"],
+                slug=dataset["slug"],
+                team=team_slug or self.default_team,
+                dataset_id=dataset["id"],
+                item_count=get_item_count(dataset),
+                progress=dataset["progress"],
+                client=self,
+            )
 
     def get_remote_dataset(
         self, dataset_identifier: Union[str, DatasetIdentifier]
@@ -224,26 +212,15 @@ class Client:
                     datasets_dir=str(datasets_dir),
                 )
 
-            if dataset.get("version", 1) == 2:
-                return RemoteDatasetV2(
-                    name=dataset["name"],
-                    slug=dataset["slug"],
-                    team=parsed_dataset_identifier.team_slug,
-                    dataset_id=dataset["id"],
-                    item_count=get_item_count(dataset),
-                    progress=0,
-                    client=self,
-                )
-            else:
-                return RemoteDatasetV1(
-                    name=dataset["name"],
-                    slug=dataset["slug"],
-                    team=parsed_dataset_identifier.team_slug,
-                    dataset_id=dataset["id"],
-                    item_count=get_item_count(dataset),
-                    progress=0,
-                    client=self,
-                )
+            return RemoteDatasetV2(
+                name=dataset["name"],
+                slug=dataset["slug"],
+                team=parsed_dataset_identifier.team_slug,
+                dataset_id=dataset["id"],
+                item_count=get_item_count(dataset),
+                progress=0,
+                client=self,
+            )
         if not matching_datasets:
             raise NotFound(str(parsed_dataset_identifier))
         if parsed_dataset_identifier.version:
@@ -273,26 +250,15 @@ class Client:
             self._post("/datasets", {"name": name}, team_slug=team_slug),
         )
 
-        if dataset.get("version", 1) == 2:
-            return RemoteDatasetV2(
-                name=dataset["name"],
-                team=team_slug or self.default_team,
-                slug=dataset["slug"],
-                dataset_id=dataset["id"],
-                item_count=get_item_count(dataset),
-                progress=0,
-                client=self,
-            )
-        else:
-            return RemoteDatasetV1(
-                name=dataset["name"],
-                team=team_slug or self.default_team,
-                slug=dataset["slug"],
-                dataset_id=dataset["id"],
-                item_count=get_item_count(dataset),
-                progress=0,
-                client=self,
-            )
+        return RemoteDatasetV2(
+            name=dataset["name"],
+            team=team_slug or self.default_team,
+            slug=dataset["slug"],
+            dataset_id=dataset["id"],
+            item_count=get_item_count(dataset),
+            progress=0,
+            client=self,
+        )
 
     def archive_remote_dataset(self, dataset_id: int, team_slug: str) -> None:
         """

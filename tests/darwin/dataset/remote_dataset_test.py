@@ -12,7 +12,7 @@ from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset import RemoteDataset
 from darwin.dataset.release import Release
-from darwin.dataset.remote_dataset_v1 import RemoteDatasetV1
+from darwin.dataset.remote_dataset_v2 import RemoteDatasetV2
 from darwin.dataset.upload_manager import LocalFile, UploadHandlerV1
 from darwin.exceptions import UnsupportedExportFormat, UnsupportedFileType
 from darwin.item import DatasetItem
@@ -74,20 +74,24 @@ def annotation_content() -> Dict[str, Any]:
 
 @pytest.fixture
 def darwin_client(
-    darwin_config_path: Path, darwin_datasets_path: Path, team_slug: str
+    darwin_config_path: Path,
+    darwin_datasets_path: Path,
+    team_slug_darwin_json_v2: str,
 ) -> Client:
     config = Config(darwin_config_path)
     config.put(["global", "api_endpoint"], "http://localhost/api")
     config.put(["global", "base_url"], "http://localhost")
-    config.put(["teams", team_slug, "api_key"], "mock_api_key")
-    config.put(["teams", team_slug, "datasets_dir"], str(darwin_datasets_path))
+    config.put(["teams", team_slug_darwin_json_v2, "api_key"], "mock_api_key")
+    config.put(
+        ["teams", team_slug_darwin_json_v2, "datasets_dir"], str(darwin_datasets_path)
+    )
     return Client(config)
 
 
 @pytest.fixture
 def create_annotation_file(
     darwin_datasets_path: Path,
-    team_slug: str,
+    team_slug_darwin_json_v2: str,
     dataset_slug: str,
     release_name: str,
     annotation_name: str,
@@ -95,7 +99,7 @@ def create_annotation_file(
 ):
     annotations: Path = (
         darwin_datasets_path
-        / team_slug
+        / team_slug_darwin_json_v2
         / dataset_slug
         / "releases"
         / release_name
@@ -368,11 +372,11 @@ class TestSplitVideoAnnotations:
         dataset_name: str,
         dataset_slug: str,
         release_name: str,
-        team_slug: str,
+        team_slug_darwin_json_v2: str,
     ):
-        remote_dataset = RemoteDatasetV1(
+        remote_dataset = RemoteDatasetV2(
             client=darwin_client,
-            team=team_slug,
+            team=team_slug_darwin_json_v2,
             name=dataset_name,
             slug=dataset_slug,
             dataset_id=1,
@@ -382,7 +386,7 @@ class TestSplitVideoAnnotations:
 
         video_path = (
             darwin_datasets_path
-            / team_slug
+            / team_slug_darwin_json_v2
             / dataset_slug
             / "releases"
             / release_name
@@ -459,10 +463,10 @@ class TestFetchRemoteFiles:
         darwin_client: Client,
         dataset_name: str,
         dataset_slug: str,
-        team_slug: str,
+        team_slug_darwin_json_v2: str,
         files_content: dict,
     ):
-        remote_dataset = RemoteDatasetV1(
+        remote_dataset = RemoteDatasetV2(
             client=darwin_client,
             team=team_slug,
             name=dataset_name,
@@ -497,7 +501,7 @@ class TestFetchRemoteFiles:
         team_slug: str,
         files_content: dict,
     ):
-        remote_dataset = RemoteDatasetV1(
+        remote_dataset = RemoteDatasetV2(
             client=darwin_client,
             team=team_slug,
             name=dataset_name,
@@ -525,11 +529,14 @@ class TestFetchRemoteFiles:
 
 @pytest.fixture
 def remote_dataset(
-    darwin_client: Client, dataset_name: str, dataset_slug: str, team_slug: str
+    darwin_client: Client,
+    dataset_name: str,
+    dataset_slug: str,
+    team_slug_darwin_json_v2: str,
 ):
-    return RemoteDatasetV1(
+    return RemoteDatasetV2(
         client=darwin_client,
-        team=team_slug,
+        team=team_slug_darwin_json_v2,
         name=dataset_name,
         slug=dataset_slug,
         dataset_id=1,
@@ -741,13 +748,15 @@ class TestArchive:
         self,
         remote_dataset: RemoteDataset,
         dataset_item: DatasetItem,
-        team_slug: str,
+        team_slug_darwin_json_v2: str,
         dataset_slug: str,
     ):
         with patch.object(Client, "archive_item", return_value={}) as stub:
             remote_dataset.archive([dataset_item])
             stub.assert_called_once_with(
-                dataset_slug, team_slug, {"filter": {"dataset_item_ids": [1]}}
+                dataset_slug,
+                team_slug_darwin_json_v2,
+                {"filter": {"dataset_item_ids": [1]}},
             )
 
 
@@ -757,29 +766,15 @@ class TestMoveToNew:
         self,
         remote_dataset: RemoteDataset,
         dataset_item: DatasetItem,
-        team_slug: str,
+        team_slug_darwin_json_v2: str,
         dataset_slug: str,
     ):
         with patch.object(Client, "move_item_to_new", return_value={}) as stub:
             remote_dataset.move_to_new([dataset_item])
             stub.assert_called_once_with(
-                dataset_slug, team_slug, {"filter": {"dataset_item_ids": [1]}}
-            )
-
-
-@pytest.mark.usefixtures("file_read_write_test")
-class TestReset:
-    def test_calls_client_put(
-        self,
-        remote_dataset: RemoteDataset,
-        dataset_item: DatasetItem,
-        team_slug: str,
-        dataset_slug: str,
-    ):
-        with patch.object(Client, "reset_item", return_value={}) as stub:
-            remote_dataset.reset([dataset_item])
-            stub.assert_called_once_with(
-                dataset_slug, team_slug, {"filter": {"dataset_item_ids": [1]}}
+                dataset_slug,
+                team_slug_darwin_json_v2,
+                {"filter": {"dataset_item_ids": [1]}},
             )
 
 
@@ -789,13 +784,15 @@ class TestRestoreArchived:
         self,
         remote_dataset: RemoteDataset,
         dataset_item: DatasetItem,
-        team_slug: str,
+        team_slug_darwin_json_v2: str,
         dataset_slug: str,
     ):
         with patch.object(Client, "restore_archived_item", return_value={}) as stub:
             remote_dataset.restore_archived([dataset_item])
             stub.assert_called_once_with(
-                dataset_slug, team_slug, {"filter": {"dataset_item_ids": [1]}}
+                dataset_slug,
+                team_slug_darwin_json_v2,
+                {"filter": {"dataset_item_ids": [1]}},
             )
 
 
@@ -805,13 +802,13 @@ class TestDeleteItems:
         self,
         remote_dataset: RemoteDataset,
         dataset_item: DatasetItem,
-        team_slug: str,
+        team_slug_darwin_json_v2: str,
         dataset_slug: str,
     ):
         with patch.object(Client, "delete_item", return_value={}) as stub:
             remote_dataset.delete_items([dataset_item])
             stub.assert_called_once_with(
-                "test-dataset", team_slug, {"filter": {"dataset_item_ids": [1]}}
+                "test-dataset", team_slug_darwin_json_v2, {"filter": {"dataset_item_ids": [1]}}
             )
 
 
