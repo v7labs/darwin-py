@@ -223,12 +223,12 @@ def _f(x: Any) -> Any:
 def exhaust_generator(
     progress: Generator,
     count: int,
-    multi_threaded: bool,
+    multi_processed: bool,
     worker_count: Optional[int] = None,
 ) -> Tuple[List[Dict[str, Any]], List[Exception]]:
     """
 
-    Exhausts the generator passed as parameter. Can be done multi threaded if desired.
+    Exhausts the generator passed as parameter. Can be done multi processed if desired.
     Creates and returns a coco record from the given annotation.
 
     Uses ``BoxMode.XYXY_ABS`` from ``detectron2.structures`` if available, defaults to ``box_mode = 0``
@@ -260,7 +260,7 @@ def exhaust_generator(
     """
     successes = []
     errors = []
-    if multi_threaded:
+    if multi_processed:
         progress_bar: ProgressBar = ProgressBar(total=count)
         responses = []
 

@@ -183,7 +183,7 @@ class RemoteDataset(ABC):
         *,
         release: Optional[Release] = None,
         blocking: bool = True,
-        multi_threaded: bool = True,
+        multi_processed: bool = True,
         only_annotations: bool = False,
         force_replace: bool = False,
         remove_extra: bool = False,
@@ -203,7 +203,7 @@ class RemoteDataset(ABC):
             The release to pull.
         blocking : bool, default: True
             If False, the dataset is not downloaded and a generator function is returned instead.
-        multi_threaded : bool, default: True
+        multi_processed : bool, default: True
             Uses multiprocessing to download the dataset in parallel. If blocking is False this has no effect.
         only_annotations : bool, default: False
             Download only the annotations and no corresponding images.
@@ -364,7 +364,7 @@ class RemoteDataset(ABC):
             successes, errors = exhaust_generator(
                 progress=progress(),
                 count=count,
-                multi_threaded=multi_threaded,
+                multi_processed=multi_processed,
                 worker_count=max_workers,
             )
             if errors:
