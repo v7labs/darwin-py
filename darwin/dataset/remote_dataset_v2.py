@@ -272,7 +272,13 @@ class RemoteDatasetV2(RemoteDataset):
                 filters["item_names"] = filters["filenames"]
                 del filters["filenames"]
 
-            for list_type in ["item_names", "statuses", "item_ids", "slot_types"]:
+            for list_type in [
+                "item_names",
+                "statuses",
+                "item_ids",
+                "slot_types",
+                "item_paths",
+            ]:
                 if list_type in filters:
                     if type(filters[list_type]) is list:
                         for value in filters[list_type]:
