@@ -532,3 +532,50 @@ class TestBuildJson:
             "annotations": [{"tag": {}, "name": "tag_test", "slot_names": []}],
             "dataset": "None",
         }
+
+    def test_other_annotation_types(self):
+        line_path = [
+            {"x": 230.06, "y": 174.04},
+            {"x": 226.39, "y": 170.36},
+            {"x": 224.61, "y": 166.81},
+        ]
+
+        annotation_class = dt.AnnotationClass(annotation_type="line", name="line_class")
+
+        annotation = dt.Annotation(
+            annotation_class=annotation_class,
+            data={"path": line_path},
+            subs=[],
+        )
+
+        annotation_file = dt.AnnotationFile(
+            path=Path("test.json"),
+            filename="test.json",
+            annotation_classes=[annotation_class],
+            annotations=[annotation],
+            image_height=1080,
+            image_width=1920,
+            image_url="https://darwin.v7labs.com/image.jpg",
+        )
+
+        assert _build_json(annotation_file) == {
+            "image": {
+                "seq": None,
+                "width": 1920,
+                "height": 1080,
+                "filename": "test.json",
+                "original_filename": "test.json",
+                "url": "https://darwin.v7labs.com/image.jpg",
+                "thumbnail_url": None,
+                "path": None,
+                "workview_url": None,
+            },
+            "annotations": [
+                {
+                    "line": {"path": line_path},
+                    "name": "line_class",
+                    "slot_names": [],
+                }
+            ],
+            "dataset": "None",
+        }
