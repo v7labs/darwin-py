@@ -535,26 +535,6 @@ def get_image_path_from_stream(
             return images_dir / Path(darwin_json.full_path.lstrip("/\\"))
 
 
-def get_darwin_json_version(annotations_dir: Path) -> str:
-    """
-    Returns true is the input Darwin JSON file is 2.0, and False if 1.0.
-
-    Parameters
-    ----------
-    annotations_dir : Path
-        Path to the directory containing the annotation files.
-
-    Returns
-    -------
-    str
-        A str representing the Darwin JSON version.
-    """
-    with open(next(annotations_dir.glob("*.json")), "r") as file:
-        data_str = file.read()
-        data = json.loads(data_str)
-        return "2.0" if "version" in data and data["version"] == "2.0" else "1.0"
-
-
 def is_stream_list_empty(json_list: PersistentStreamingJSONList) -> bool:
     try:
         json_list[0]
