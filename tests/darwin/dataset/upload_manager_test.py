@@ -73,11 +73,28 @@ def test_request_upload_is_not_called_on_init(
 @responses.activate
 def test_pending_count_is_correct(dataset: RemoteDataset, request_upload_endpoint: str):
     response = {
-        "blocked_items": [],
-        "items": [{"dataset_item_id": 1, "filename": "test.jpg", "path": "/"}],
+        "blocked_items": [
+            {
+                "id": "3b241101-e2bb-4255-8caf-4136c566a964",
+                "name": "test.jpg",
+                "path": "/",
+                "slots": [
+                    {
+                        "type": "image",
+                        "file_name": "test.jpg",
+                        "reason": "ALREADY_EXISTS",
+                        "slot_name": "0",
+                        "upload_id": "123e4567-e89b-12d3-a456-426614174000",
+                        "as_frames": False,
+                        "extract_views": False,
+                    }
+                ],
+            }
+        ],
+        "items": [],
     }
 
-    responses.add(responses.PUT, request_upload_endpoint, json=response, status=200)
+    responses.add(responses.POST, request_upload_endpoint, json=response, status=200)
 
     local_file = LocalFile(local_path=Path("test.jpg"))
     upload_handler = UploadHandler.build(dataset, [local_file])
@@ -100,16 +117,26 @@ def test_blocked_count_is_correct(dataset: RemoteDataset, request_upload_endpoin
     response = {
         "blocked_items": [
             {
-                "dataset_item_id": 1,
-                "filename": "test.jpg",
+                "id": "3b241101-e2bb-4255-8caf-4136c566a964",
+                "name": "test.jpg",
                 "path": "/",
-                "reason": "ALREADY_EXISTS",
+                "slots": [
+                    {
+                        "type": "image",
+                        "file_name": "test.jpg",
+                        "reason": "ALREADY_EXISTS",
+                        "slot_name": "0",
+                        "upload_id": "123e4567-e89b-12d3-a456-426614174000",
+                        "as_frames": False,
+                        "extract_views": False,
+                    }
+                ],
             }
         ],
         "items": [],
     }
 
-    responses.add(responses.PUT, request_upload_endpoint, json=response, status=200)
+    responses.add(responses.POST, request_upload_endpoint, json=response, status=200)
 
     local_file = LocalFile(local_path=Path("test.jpg"))
     upload_handler = UploadHandler.build(dataset, [local_file])
@@ -120,7 +147,7 @@ def test_blocked_count_is_correct(dataset: RemoteDataset, request_upload_endpoin
 
     blocked_item = upload_handler.blocked_items[0]
 
-    assert blocked_item.dataset_item_id == 1
+    assert blocked_item.dataset_item_id == "3b241101-e2bb-4255-8caf-4136c566a964"
     assert blocked_item.filename == "test.jpg"
     assert blocked_item.path == "/"
     assert blocked_item.reason == "ALREADY_EXISTS"
@@ -128,21 +155,41 @@ def test_blocked_count_is_correct(dataset: RemoteDataset, request_upload_endpoin
 
 @pytest.mark.usefixtures("file_read_write_test")
 @responses.activate
-def test_error_count_is_correct(dataset: RemoteDataset, request_upload_endpoint: str):
+def test_error_count_is_correct_on_signature_request(
+    dataset: RemoteDataset, request_upload_endpoint: str
+):
     request_upload_response = {
-        "blocked_items": [],
-        "items": [{"dataset_item_id": 1, "filename": "test.jpg", "path": "/"}],
+        "blocked_items": [
+            {
+                "id": "3b241101-e2bb-4255-8caf-4136c566a964",
+                "name": "test.jpg",
+                "path": "/",
+                "slots": [
+                    {
+                        "type": "image",
+                        "file_name": "test.jpg",
+                        "reason": "ALREADY_EXISTS",
+                        "slot_name": "0",
+                        "upload_id": "123e4567-e89b-12d3-a456-426614174000",
+                        "as_frames": False,
+                        "extract_views": False,
+                    }
+                ],
+            }
+        ],
+        "items": [],
     }
-
-    sign_upload_endpoint = "http://localhost/api/dataset_items/1/sign_upload"
     upload_to_s3_endpoint = (
         "https://darwin-data.s3.eu-west-1.amazonaws.com/test.jpg?X-Amz-Signature=abc"
     )
-
-    confirm_upload_endpoint = "http://localhost/api/dataset_items/1/confirm_upload"
+    confirm_upload_endpoint = "http://localhost/api/v2/teams/v7-darwin-json-v2/items/uploads/123e4567-e89b-12d3-a456-426614174000/confirm"
+    sign_upload_endpoint = "http://localhost/api/v2/teams/v7-darwin-json-v2/items/uploads/123e4567-e89b-12d3-a456-426614174000/sign"
 
     responses.add(
-        responses.PUT, request_upload_endpoint, json=request_upload_response, status=200
+        responses.POST,
+        request_upload_endpoint,
+        json=request_upload_response,
+        status=200,
     )
     responses.add(responses.GET, sign_upload_endpoint, status=500)
 
@@ -169,22 +216,42 @@ def test_error_count_is_correct(dataset: RemoteDataset, request_upload_endpoint:
 
 @pytest.mark.usefixtures("file_read_write_test")
 @responses.activate
-def test_error_count_is_correct(dataset: RemoteDataset, request_upload_endpoint: str):
+def test_error_count_is_correct_on_upload_to_s3(
+    dataset: RemoteDataset, request_upload_endpoint: str
+):
     request_upload_response = {
         "blocked_items": [],
-        "items": [{"dataset_item_id": 1, "filename": "test.jpg", "path": "/"}],
+        "items": [
+            {
+                "id": "3b241101-e2bb-4255-8caf-4136c566a964",
+                "name": "test.jpg",
+                "path": "/",
+                "slots": [
+                    {
+                        "type": "image",
+                        "file_name": "test.jpg",
+                        "slot_name": "0",
+                        "upload_id": "123e4567-e89b-12d3-a456-426614174000",
+                        "as_frames": False,
+                        "extract_views": False,
+                    }
+                ],
+            }
+        ],
     }
 
     upload_to_s3_endpoint = (
         "https://darwin-data.s3.eu-west-1.amazonaws.com/test.jpg?X-Amz-Signature=abc"
     )
-    confirm_upload_endpoint = "http://localhost/api/dataset_items/1/confirm_upload"
-
-    sign_upload_endpoint = "http://localhost/api/dataset_items/1/sign_upload"
+    confirm_upload_endpoint = "http://localhost/api/v2/teams/v7-darwin-json-v2/items/uploads/123e4567-e89b-12d3-a456-426614174000/confirm"
+    sign_upload_endpoint = "http://localhost/api/v2/teams/v7-darwin-json-v2/items/uploads/123e4567-e89b-12d3-a456-426614174000/sign"
     sign_upload_response = {"upload_url": upload_to_s3_endpoint}
 
     responses.add(
-        responses.PUT, request_upload_endpoint, json=request_upload_response, status=200
+        responses.POST,
+        request_upload_endpoint,
+        json=request_upload_response,
+        status=200,
     )
     responses.add(
         responses.GET, sign_upload_endpoint, json=sign_upload_response, status=200
@@ -215,22 +282,42 @@ def test_error_count_is_correct(dataset: RemoteDataset, request_upload_endpoint:
 
 @pytest.mark.usefixtures("file_read_write_test")
 @responses.activate
-def test_error_count_is_correct(dataset: RemoteDataset, request_upload_endpoint: str):
+def test_error_count_is_correct_on_confirm_upload(
+    dataset: RemoteDataset, request_upload_endpoint: str
+):
     request_upload_response = {
         "blocked_items": [],
-        "items": [{"dataset_item_id": 1, "filename": "test.jpg", "path": "/"}],
+        "items": [
+            {
+                "id": "3b241101-e2bb-4255-8caf-4136c566a964",
+                "name": "test.jpg",
+                "path": "/",
+                "slots": [
+                    {
+                        "type": "image",
+                        "file_name": "test.jpg",
+                        "slot_name": "0",
+                        "upload_id": "123e4567-e89b-12d3-a456-426614174000",
+                        "as_frames": False,
+                        "extract_views": False,
+                    }
+                ],
+            }
+        ],
     }
 
     upload_to_s3_endpoint = (
         "https://darwin-data.s3.eu-west-1.amazonaws.com/test.jpg?X-Amz-Signature=abc"
     )
-    confirm_upload_endpoint = "http://localhost/api/dataset_items/1/confirm_upload"
-
-    sign_upload_endpoint = "http://localhost/api/dataset_items/1/sign_upload"
+    confirm_upload_endpoint = "http://localhost/api/v2/teams/v7-darwin-json-v2/items/uploads/123e4567-e89b-12d3-a456-426614174000/confirm"
+    sign_upload_endpoint = "http://localhost/api/v2/teams/v7-darwin-json-v2/items/uploads/123e4567-e89b-12d3-a456-426614174000/sign"
     sign_upload_response = {"upload_url": upload_to_s3_endpoint}
 
     responses.add(
-        responses.PUT, request_upload_endpoint, json=request_upload_response, status=200
+        responses.POST,
+        request_upload_endpoint,
+        json=request_upload_response,
+        status=200,
     )
     responses.add(
         responses.GET, sign_upload_endpoint, json=sign_upload_response, status=200

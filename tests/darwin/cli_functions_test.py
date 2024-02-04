@@ -36,7 +36,7 @@ def request_upload_endpoint(team_slug_darwin_json_v2: str, dataset_slug: str):
 class TestUploadData:
     @pytest.fixture
     def request_upload_endpoint(self, team_slug_darwin_json_v2: str, dataset_slug: str):
-        return f"http://localhost/api/teams/{team_slug_darwin_json_v2}/datasets/{dataset_slug}/data"
+        return f"http://localhost/api/v2/teams/{team_slug_darwin_json_v2}/items/register_upload"
 
     @pytest.mark.usefixtures("file_read_write_test")
     @responses.activate
@@ -47,26 +47,62 @@ class TestUploadData:
         remote_dataset: RemoteDataset,
         request_upload_endpoint: str,
     ):
-        request_upload_response = {
+        request_upload_response = response = {
             "blocked_items": [
                 {
-                    "dataset_item_id": 1,
-                    "filename": "test_1.jpg",
+                    "id": "3b241101-e2bb-4255-8caf-4136c566a964",
+                    "name": "test_1.jpg",
                     "path": "/",
-                    "reason": "ALREADY_EXISTS",
+                    "slots": [
+                        {
+                            "type": "image",
+                            "file_name": "test_1.jpg",
+                            "reason": "ALREADY_EXISTS",
+                            "slot_name": "0",
+                            "upload_id": "123e4567-e89b-12d3-a456-426614174000",
+                            "as_frames": False,
+                            "extract_views": False,
+                        }
+                    ],
                 },
                 {
-                    "dataset_item_id": 2,
-                    "filename": "test_2.jpg",
+                    "id": "4b351102-f3cc-4356-9daf-5237d567b965",
+                    "name": "test_2.jpg",
                     "path": "/",
-                    "reason": "UNKNOWN_TAGS",
+                    "slots": [
+                        {
+                            "type": "image",
+                            "file_name": "test_2.jpg",
+                            "reason": "UNKNOWN_TAGS",
+                            "slot_name": "0",
+                            "upload_id": "223f5678-f90c-23e4-b567-527725185001",
+                            "as_frames": False,
+                            "extract_views": False,
+                        }
+                    ],
                 },
             ],
-            "items": [{"dataset_item_id": 3, "filename": "test_3.jpg", "path": "/"}],
+            "items": [
+                {
+                    "id": "5b461103-g4dd-4457-0eaf-6338e568c966",
+                    "name": "test_3.jpg",
+                    "path": "/",
+                    "slots": [
+                        {
+                            "type": "image",
+                            "file_name": "test_3.jpg",
+                            "slot_name": "0",
+                            "upload_id": "323g6789-g01d-34f5-c678-628836196002",
+                            "as_frames": False,
+                            "extract_views": False,
+                        }
+                    ],
+                }
+            ],
         }
 
         responses.add(
-            responses.PUT,
+            responses.POST,
             request_upload_endpoint,
             json=request_upload_response,
             status=200,
@@ -114,26 +150,62 @@ class TestUploadData:
         remote_dataset: RemoteDataset,
         request_upload_endpoint: str,
     ):
-        request_upload_response = {
+        request_upload_response = response = {
             "blocked_items": [
                 {
-                    "dataset_item_id": 1,
-                    "filename": "test_1.jpg",
+                    "id": "3b241101-e2bb-4255-8caf-4136c566a964",
+                    "name": "test_1.jpg",
                     "path": "/",
-                    "reason": "ALREADY_EXISTS",
+                    "slots": [
+                        {
+                            "type": "image",
+                            "file_name": "test_1.jpg",
+                            "reason": "ALREADY_EXISTS",
+                            "slot_name": "0",
+                            "upload_id": "123e4567-e89b-12d3-a456-426614174000",
+                            "as_frames": False,
+                            "extract_views": False,
+                        }
+                    ],
                 },
                 {
-                    "dataset_item_id": 2,
-                    "filename": "test_2.jpg",
+                    "id": "4b351102-f3cc-4356-9daf-5237d567b965",
+                    "name": "test_2.jpg",
                     "path": "/",
-                    "reason": "UNKNOWN_TAGS",
+                    "slots": [
+                        {
+                            "type": "image",
+                            "file_name": "test_2.jpg",
+                            "reason": "UNKNOWN_TAGS",
+                            "slot_name": "0",
+                            "upload_id": "223f5678-f90c-23e4-b567-527725185001",
+                            "as_frames": False,
+                            "extract_views": False,
+                        }
+                    ],
                 },
             ],
-            "items": [{"dataset_item_id": 3, "filename": "test_3.jpg", "path": "/"}],
+            "items": [
+                {
+                    "id": "5b461103-g4dd-4457-0eaf-6338e568c966",
+                    "name": "test_3.jpg",
+                    "path": "/",
+                    "slots": [
+                        {
+                            "type": "image",
+                            "file_name": "test_3.jpg",
+                            "slot_name": "0",
+                            "upload_id": "323g6789-g01d-34f5-c678-628836196002",
+                            "as_frames": False,
+                            "extract_views": False,
+                        }
+                    ],
+                }
+            ],
         }
 
         responses.add(
-            responses.PUT,
+            responses.POST,
             request_upload_endpoint,
             json=request_upload_response,
             status=200,

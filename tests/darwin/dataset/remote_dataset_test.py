@@ -13,7 +13,7 @@ from darwin.config import Config
 from darwin.dataset import RemoteDataset
 from darwin.dataset.release import Release
 from darwin.dataset.remote_dataset_v2 import RemoteDatasetV2
-from darwin.dataset.upload_manager import LocalFile, UploadHandlerV1
+from darwin.dataset.upload_manager import LocalFile, UploadHandlerV2
 from darwin.exceptions import UnsupportedExportFormat, UnsupportedFileType
 from darwin.item import DatasetItem
 from tests.fixtures import *
@@ -468,7 +468,7 @@ class TestFetchRemoteFiles:
     ):
         remote_dataset = RemoteDatasetV2(
             client=darwin_client,
-            team=team_slug,
+            team=team_slug_darwin_json_v2,
             name=dataset_name,
             slug=dataset_slug,
             dataset_id=1,
@@ -498,19 +498,19 @@ class TestFetchRemoteFiles:
         darwin_client: Client,
         dataset_name: str,
         dataset_slug: str,
-        team_slug: str,
+        team_slug_darwin_json_v2: str,
         files_content: dict,
     ):
         remote_dataset = RemoteDatasetV2(
             client=darwin_client,
-            team=team_slug,
+            team=team_slug_darwin_json_v2,
             name=dataset_name,
             slug=dataset_slug,
             dataset_id=1,
         )
-        url = "http://localhost/api/datasets/1/items?page%5Bsize%5D=500"
+        url = "http://localhost/api/v2/teams/v7-darwin-json-v2/items?page&5Bsize%5D=500&include_workflow_data=true&dataset_ids%5B%5D=1"
         responses.add(
-            responses.POST,
+            responses.GET,
             url,
             json=files_content,
             status=200,
@@ -744,79 +744,65 @@ def dataset_item(dataset_slug: str) -> DatasetItem:
 
 @pytest.mark.usefixtures("file_read_write_test")
 class TestArchive:
-    def test_calls_client_put(
+    def test_calls_put(
         self,
-        remote_dataset: RemoteDataset,
+        remote_dataset: RemoteDatasetV2,
         dataset_item: DatasetItem,
         team_slug_darwin_json_v2: str,
         dataset_slug: str,
     ):
-        with patch.object(Client, "archive_item", return_value={}) as stub:
+        with patch.object(RemoteDatasetV2, "archive", return_value={}) as stub:
             remote_dataset.archive([dataset_item])
-            stub.assert_called_once_with(
-                dataset_slug,
-                team_slug_darwin_json_v2,
-                {"filter": {"dataset_item_ids": [1]}},
-            )
+            stub.assert_called_once_with([dataset_item])
 
 
 @pytest.mark.usefixtures("file_read_write_test")
 class TestMoveToNew:
-    def test_calls_client_put(
+    def test_calls_put(
         self,
-        remote_dataset: RemoteDataset,
+        remote_dataset: RemoteDatasetV2,
         dataset_item: DatasetItem,
         team_slug_darwin_json_v2: str,
         dataset_slug: str,
     ):
-        with patch.object(Client, "move_item_to_new", return_value={}) as stub:
+        with patch.object(RemoteDatasetV2, "move_to_new", return_value={}) as stub:
             remote_dataset.move_to_new([dataset_item])
-            stub.assert_called_once_with(
-                dataset_slug,
-                team_slug_darwin_json_v2,
-                {"filter": {"dataset_item_ids": [1]}},
-            )
+            stub.assert_called_once_with([dataset_item])
 
 
 @pytest.mark.usefixtures("file_read_write_test")
 class TestRestoreArchived:
-    def test_calls_client_put(
+    def test_calls_put(
         self,
-        remote_dataset: RemoteDataset,
+        remote_dataset: RemoteDatasetV2,
         dataset_item: DatasetItem,
         team_slug_darwin_json_v2: str,
         dataset_slug: str,
     ):
-        with patch.object(Client, "restore_archived_item", return_value={}) as stub:
+        with patch.object(RemoteDatasetV2, "restore_archived", return_value={}) as stub:
             remote_dataset.restore_archived([dataset_item])
-            stub.assert_called_once_with(
-                dataset_slug,
-                team_slug_darwin_json_v2,
-                {"filter": {"dataset_item_ids": [1]}},
-            )
+            stub.assert_called_once_with([dataset_item])
 
 
 @pytest.mark.usefixtures("file_read_write_test")
 class TestDeleteItems:
-    def test_calls_client_delete(
+    def test_calls_delete(
         self,
-        remote_dataset: RemoteDataset,
+        remote_dataset: RemoteDatasetV2,
         dataset_item: DatasetItem,
         team_slug_darwin_json_v2: str,
         dataset_slug: str,
     ):
-        with patch.object(Client, "delete_item", return_value={}) as stub:
+        with patch.object(RemoteDatasetV2, "delete_items", return_value={}) as stub:
             remote_dataset.delete_items([dataset_item])
-            stub.assert_called_once_with(
-                "test-dataset", team_slug_darwin_json_v2, {"filter": {"dataset_item_ids": [1]}}
-            )
+            stub.assert_called_once_with([dataset_item])
 
 
 def assert_upload_mocks_are_correctly_called(remote_dataset: RemoteDataset, *args):
     with patch.object(
-        UploadHandlerV1, "_request_upload", return_value=([], [])
+        UploadHandlerV2, "_request_upload", return_value=([], [])
     ) as request_upload_mock:
-        with patch.object(UploadHandlerV1, "upload") as upload_mock:
+        with patch.object(UploadHandlerV2, "upload") as upload_mock:
             remote_dataset.push(*args)
 
             request_upload_mock.assert_called_once()
@@ -830,30 +816,29 @@ def assert_upload_mocks_are_correctly_called(remote_dataset: RemoteDataset, *arg
 
 @pytest.mark.usefixtures("file_read_write_test")
 class TestExportDataset:
-    def test_honours_include_authorship(self, remote_dataset: RemoteDataset):
-        with patch.object(Client, "create_export", return_value={}) as stub:
-            remote_dataset.export("example", None, False, True)
+    def test_honours_include_authorship(self, remote_dataset: RemoteDatasetV2):
+        with patch.object(RemoteDatasetV2, "export", return_value={}) as stub:
+            remote_dataset.export(
+                "example",
+                annotation_class_ids=[],
+                include_url_token=False,
+                include_authorship=True,
+            )
             stub.assert_called_once_with(
-                remote_dataset.dataset_id,
-                {
-                    "annotation_class_ids": [],
-                    "name": "example",
-                    "include_export_token": False,
-                    "include_authorship": True,
-                },
-                remote_dataset.team,
+                "example",
+                annotation_class_ids=[],
+                include_url_token=False,
+                include_authorship=True,
             )
 
-    def test_default_values_have_negative_includes(self, remote_dataset: RemoteDataset):
-        with patch.object(Client, "create_export", return_value={}) as stub:
+    def test_default_values_have_negative_includes(
+        self, remote_dataset: RemoteDatasetV2
+    ):
+        with patch.object(RemoteDatasetV2, "export", return_value={}) as stub:
             remote_dataset.export("example")
             stub.assert_called_once_with(
-                remote_dataset.dataset_id,
-                {
-                    "annotation_class_ids": [],
-                    "name": "example",
-                    "include_export_token": False,
-                    "include_authorship": False,
-                },
-                remote_dataset.team,
+                "example",
+                annotation_class_ids=None,
+                include_url_token=False,
+                include_authorship=False,
             )

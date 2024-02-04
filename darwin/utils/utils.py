@@ -502,7 +502,7 @@ def get_image_path_from_stream(
 ) -> Path:
     """
     Returns the path to the image file associated with the given darwin json file.
-    Compatible with V1 & V2 Darwin JSON, as well as releases in folders and flat structures.
+    Compatible with Darwin JSON V2, as well as releases in folders and flat structures.
 
     Parameters
     ----------
@@ -627,9 +627,11 @@ def _parse_darwin_v2(path: Path, data: Dict[str, Any]) -> dt.AnnotationFile:
             is_video=slot.frame_urls is not None or slot.frame_manifest is not None,
             image_width=slot.width,
             image_height=slot.height,
-            image_url=None
-            if len(slot.source_files or []) == 0
-            else slot.source_files[0]["url"],
+            image_url=(
+                None
+                if len(slot.source_files or []) == 0
+                else slot.source_files[0]["url"]
+            ),
             image_thumbnail_url=slot.thumbnail_url,
             workview_url=item_source.get("workview_url", None),
             seq=0,

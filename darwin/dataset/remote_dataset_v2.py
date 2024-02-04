@@ -267,11 +267,6 @@ class RemoteDatasetV2(RemoteDataset):
         post_sort: Dict[str, str] = {}
 
         if filters:
-            if "filenames" in filters:
-                # compability layer with v1
-                filters["item_names"] = filters["filenames"]
-                del filters["filenames"]
-
             for list_type in [
                 "item_names",
                 "statuses",
