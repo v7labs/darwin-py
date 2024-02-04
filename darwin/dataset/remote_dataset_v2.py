@@ -547,6 +547,6 @@ class RemoteDatasetV2(RemoteDataset):
         )
 
     def _build_image_annotation(
-        self, annotation_file: AnnotationFile
+        self, annotation_file: AnnotationFile, team_name: str
     ) -> Dict[str, Any]:
-        return build_image_annotation(annotation_file)
+        return build_image_annotation(annotation_file, team_name)

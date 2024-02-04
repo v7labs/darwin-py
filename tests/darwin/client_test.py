@@ -227,21 +227,6 @@ class TestCreateDataset:
 
 
 @pytest.mark.usefixtures("file_read_write_test")
-class TestFetchRemoteFiles:
-    @responses.activate
-    def test_returns_remote_files(self, darwin_client: Client) -> None:
-        dataset_id = 1
-        endpoint: str = (
-            f"/datasets/{dataset_id}/items?page%5Bsize%5D=500&page%5Bfrom%5D=0"
-        )
-        responses.add(responses.POST, darwin_client.url + endpoint, json={}, status=200)
-
-        darwin_client.fetch_remote_files(
-            dataset_id, {"page[size]": 500, "page[from]": 0}, {}, "v7"
-        )
-
-
-@pytest.mark.usefixtures("file_read_write_test")
 class TestFetchRemoteClasses:
     @responses.activate
     def test_returns_remote_classes(
@@ -305,72 +290,6 @@ class TestGetTeamFeatures:
             Feature(name="WORKFLOW_V2", enabled=False),
             Feature(name="BLIND_STAGE", enabled=True),
         ]
-
-
-@pytest.mark.usefixtures("file_read_write_test")
-class TestInstantiateItem:
-    @responses.activate
-    def test_raises_if_workflow_id_is_not_found(self, darwin_client: Client) -> None:
-        item_id: int = 1234
-        endpoint: str = f"/dataset_items/{item_id}/workflow"
-        json_response: JSONFreeForm = {}
-
-        responses.add(
-            responses.POST, darwin_client.url + endpoint, json=json_response, status=200
-        )
-
-        with pytest.raises(ValueError) as exception:
-            darwin_client.instantiate_item(item_id)
-
-        assert str(exception.value) == f"No Workflow Id found for item_id: {item_id}"
-
-    @responses.activate
-    def test_returns_workflow_id(self, darwin_client: Client) -> None:
-        item_id: int = 1234
-        workflow_id: int = 1
-        endpoint: str = f"/dataset_items/{item_id}/workflow"
-        json_response: JSONFreeForm = {"current_workflow_id": workflow_id}
-
-        responses.add(
-            responses.POST, darwin_client.url + endpoint, json=json_response, status=200
-        )
-        assert darwin_client.instantiate_item(item_id) == workflow_id
-
-
-@pytest.mark.usefixtures("file_read_write_test")
-class TestWorkflowComment:
-    @responses.activate
-    def test_raises_if_comment_id_is_not_found(self, darwin_client: Client) -> None:
-        workflow_id = 1234
-        endpoint: str = f"/workflows/{workflow_id}/workflow_comment_threads"
-        json_response: JSONFreeForm = {}
-
-        responses.add(
-            responses.POST, darwin_client.url + endpoint, json=json_response, status=200
-        )
-
-        with pytest.raises(ValueError) as exception:
-            darwin_client.post_workflow_comment(workflow_id, "My comment.")
-
-        assert (
-            str(exception.value)
-            == f"Unable to retrieve comment id for workflow: {workflow_id}."
-        )
-
-    @responses.activate
-    def test_returns_comment_id(self, darwin_client: Client) -> None:
-        comment_id: int = 1234
-        workflow_id: int = 1
-        endpoint: str = f"/workflows/{workflow_id}/workflow_comment_threads"
-        json_response: JSONFreeForm = {"id": comment_id}
-
-        responses.add(
-            responses.POST, darwin_client.url + endpoint, json=json_response, status=200
-        )
-        assert (
-            darwin_client.post_workflow_comment(workflow_id, "My comment.")
-            == comment_id
-        )
 
 
 def assert_dataset(dataset_1: RemoteDataset, dataset_2: RemoteDataset) -> None:

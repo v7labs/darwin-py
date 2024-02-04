@@ -26,47 +26,115 @@ def annotation_name() -> str:
 
 @pytest.fixture
 def annotation_content() -> Dict[str, Any]:
+    # return {
+    #     "image": {
+    #         "width": 1920,
+    #         "height": 1080,
+    #         "filename": "test_video.mp4",
+    #         "fps": 20.0,
+    #         "frame_urls": ["frame_1.jpg", "frame_2.jpg", "frame_3.jpg"],
+    #     },
+    #     "annotations": [
+    #         {
+    #             "frames": {
+    #                 "0": {
+    #                     "polygon": {
+    #                         "path": [
+    #                             {"x": 0, "y": 0},
+    #                             {"x": 1, "y": 1},
+    #                             {"x": 1, "y": 0},
+    #                         ]
+    #                     }
+    #                 },
+    #                 "2": {
+    #                     "polygon": {
+    #                         "path": [
+    #                             {"x": 5, "y": 5},
+    #                             {"x": 6, "y": 6},
+    #                             {"x": 6, "y": 5},
+    #                         ]
+    #                     }
+    #                 },
+    #                 "4": {
+    #                     "polygon": {
+    #                         "path": [
+    #                             {"x": 9, "y": 9},
+    #                             {"x": 8, "y": 8},
+    #                             {"x": 8, "y": 9},
+    #                         ]
+    #                     }
+    #                 },
+    #             },
+    #             "name": "test_class",
+    #             "segments": [[0, 3]],
+    #         }
+    #     ],
+    # }
     return {
-        "image": {
-            "width": 1920,
-            "height": 1080,
-            "filename": "test_video.mp4",
-            "fps": 20.0,
-            "frame_urls": ["frame_1.jpg", "frame_2.jpg", "frame_3.jpg"],
+        "version": "2.0",
+        "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
+        "item": {
+            "name": "test_video.mp4",
+            "path": "/",
+            "source_info": {
+                "dataset": {
+                    "name": "v7-darwin-json-v2",
+                    "slug": "v7-darwin-json-v2",
+                    "dataset_management_url": "test_url",
+                },
+                "item_id": "test_item_id",
+                "team": {"name": "Test team", "slug": "test-team"},
+                "workview_url": "test_url",
+            },
+            "slots": [
+                {
+                    "type": "video",
+                    "slot_name": "0",
+                    "width": 1920,
+                    "height": 1080,
+                    "fps": 20.0,
+                    "thumbnail_url": "",
+                    "source_files": [{"file_name": "test_video.mp4", "url": ""}],
+                    "frame_count": 3,
+                    "frame_urls": ["frame_1.jpg", "frame_2.jpg", "frame_3.jpg"],
+                }
+            ],
         },
         "annotations": [
             {
+                "name": "test_class",
+                "slot_names": ["0"],
+                "ranges": [[0, 3]],
+                "id": "test_id",
                 "frames": {
                     "0": {
+                        "bounding_box": {"x": 0, "y": 0, "w": 1, "h": 1},
                         "polygon": {
-                            "path": [
-                                {"x": 0, "y": 0},
-                                {"x": 1, "y": 1},
-                                {"x": 1, "y": 0},
-                            ]
-                        }
+                            "paths": [
+                                [{"x": 0, "y": 0}, {"x": 1, "y": 1}, {"x": 1, "y": 0}]
+                            ],
+                        },
+                        "keyframe": True,
                     },
                     "2": {
+                        "bounding_box": {"x": 5, "y": 5, "w": 1, "h": 1},
                         "polygon": {
-                            "path": [
-                                {"x": 5, "y": 5},
-                                {"x": 6, "y": 6},
-                                {"x": 6, "y": 5},
-                            ]
-                        }
+                            "paths": [
+                                [{"x": 5, "y": 5}, {"x": 6, "y": 6}, {"x": 6, "y": 5}]
+                            ],
+                        },
+                        "keyframe": True,
                     },
                     "4": {
+                        "bounding_box": {"x": 8, "y": 8, "w": 1, "h": 1},
                         "polygon": {
-                            "path": [
-                                {"x": 9, "y": 9},
-                                {"x": 8, "y": 8},
-                                {"x": 8, "y": 9},
-                            ]
-                        }
+                            "paths": [
+                                [{"x": 9, "y": 9}, {"x": 8, "y": 8}, {"x": 8, "y": 9}]
+                            ],
+                        },
+                        "keyframe": True,
                     },
                 },
-                "name": "test_class",
-                "segments": [[0, 3]],
             }
         ],
     }
@@ -302,57 +370,129 @@ class TestSplitVideoAnnotations:
 
         with (video_path / "0000000.json").open() as f:
             assert json.loads(f.read()) == {
+                "version": "2.0",
+                "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
+                "item": {
+                    "name": "test_video/0000000.png",
+                    "path": "/",
+                    "source_info": {
+                        "dataset": {
+                            "name": "v7-darwin-json-v2",
+                            "slug": "v7-darwin-json-v2",
+                        },
+                        "item_id": "test_item_id",
+                        "team": {
+                            "name": "v7-darwin-json-v2",
+                            "slug": "v7-darwin-json-v2",
+                        },
+                        "workview_url": "test_url",
+                    },
+                    "slots": [
+                        {
+                            "type": "video",
+                            "slot_name": "0",
+                            "width": 1920,
+                            "height": 1080,
+                            "thumbnail_url": "",
+                            "source_files": [
+                                {"file_name": "test_video.mp4", "url": ""}
+                            ],
+                        }
+                    ],
+                },
                 "annotations": [
                     {
+                        "id": "test_id",
                         "name": "test_class",
                         "polygon": {
-                            "path": [
-                                {"x": 0, "y": 0},
-                                {"x": 1, "y": 1},
-                                {"x": 1, "y": 0},
+                            "paths": [
+                                [{"x": 0, "y": 0}, {"x": 1, "y": 1}, {"x": 1, "y": 0}]
                             ]
                         },
+                        "bounding_box": {"h": 1, "w": 1, "x": 0, "y": 0},
                     }
                 ],
-                "image": {
-                    "filename": "test_video/0000000.png",
-                    "height": 1080,
-                    "url": "frame_1.jpg",
-                    "width": 1920,
-                },
             }
 
         with (video_path / "0000001.json").open() as f:
             assert json.loads(f.read()) == {
-                "annotations": [],
-                "image": {
-                    "filename": "test_video/0000001.png",
-                    "height": 1080,
-                    "url": "frame_2.jpg",
-                    "width": 1920,
+                "version": "2.0",
+                "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
+                "item": {
+                    "name": "test_video/0000001.png",
+                    "path": "/",
+                    "source_info": {
+                        "dataset": {
+                            "name": "v7-darwin-json-v2",
+                            "slug": "v7-darwin-json-v2",
+                        },
+                        "item_id": "test_item_id",
+                        "team": {
+                            "name": "v7-darwin-json-v2",
+                            "slug": "v7-darwin-json-v2",
+                        },
+                        "workview_url": "test_url",
+                    },
+                    "slots": [
+                        {
+                            "type": "video",
+                            "slot_name": "0",
+                            "width": 1920,
+                            "height": 1080,
+                            "thumbnail_url": "",
+                            "source_files": [
+                                {"file_name": "test_video.mp4", "url": ""}
+                            ],
+                        }
+                    ],
                 },
+                "annotations": [],
             }
 
         with (video_path / "0000002.json").open() as f:
             assert json.loads(f.read()) == {
+                "version": "2.0",
+                "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
+                "item": {
+                    "name": "test_video/0000002.png",
+                    "path": "/",
+                    "source_info": {
+                        "dataset": {
+                            "name": "v7-darwin-json-v2",
+                            "slug": "v7-darwin-json-v2",
+                        },
+                        "item_id": "test_item_id",
+                        "team": {
+                            "name": "v7-darwin-json-v2",
+                            "slug": "v7-darwin-json-v2",
+                        },
+                        "workview_url": "test_url",
+                    },
+                    "slots": [
+                        {
+                            "type": "video",
+                            "slot_name": "0",
+                            "width": 1920,
+                            "height": 1080,
+                            "thumbnail_url": "",
+                            "source_files": [
+                                {"file_name": "test_video.mp4", "url": ""}
+                            ],
+                        }
+                    ],
+                },
                 "annotations": [
                     {
+                        "id": "test_id",
                         "name": "test_class",
                         "polygon": {
-                            "path": [
-                                {"x": 5, "y": 5},
-                                {"x": 6, "y": 6},
-                                {"x": 6, "y": 5},
+                            "paths": [
+                                [{"x": 5, "y": 5}, {"x": 6, "y": 6}, {"x": 6, "y": 5}]
                             ]
                         },
+                        "bounding_box": {"h": 1, "w": 1, "x": 5, "y": 5},
                     }
                 ],
-                "image": {
-                    "filename": "test_video/0000002.png",
-                    "height": 1080,
-                    "url": "frame_3.jpg",
-                    "width": 1920,
-                },
             }
 
 
@@ -417,15 +557,14 @@ class TestFetchRemoteFiles:
             status=200,
         )
 
-        list(
-            remote_dataset.fetch_remote_files(
-                {"item_names": ["example,with, comma.mp4"]}
-            )
+        filters = {"item_names": ["example,with, comma.mp4"]}
+
+        list(remote_dataset.fetch_remote_files(filters))
+
+        assert (
+            responses.calls[0].request.params["item_names[]"]
+            == "example,with, comma.mp4"
         )
-
-        request_body = json.loads(responses.calls[0].request.body)
-
-        assert request_body["filter"]["filenames"] == ["example,with, comma.mp4"]
 
 
 @pytest.fixture

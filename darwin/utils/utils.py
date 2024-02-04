@@ -539,7 +539,7 @@ def get_image_path_from_stream(
                     / (Path(darwin_json["image"]["path"].lstrip("/\\")))
                     / Path(darwin_json["image"]["filename"])
                 )
-    except OSError as e:
+    except OSError:
         # Load in the JSON as normal
         darwin_json = parse_darwin_json(path=annotation_filepath)
         if not with_folders:
@@ -1098,6 +1098,7 @@ def split_video_annotation(annotation: dt.AnnotationFile) -> List[dt.AnnotationF
                 frame_url,
                 annotation.workview_url,
                 annotation.seq,
+                dataset_name=annotation.dataset_name,
                 item_id=annotation.item_id,
                 slots=annotation.slots,
                 remote_path=annotation.remote_path,

@@ -16,7 +16,9 @@ instead of calling this low-level function directly.
 """
 
 
-def build_image_annotation(annotation_file: dt.AnnotationFile) -> Dict[str, Any]:
+def build_image_annotation(
+    annotation_file: dt.AnnotationFile, team_name: str
+) -> Dict[str, Any]:
     """
     Builds and returns a dictionary with the annotations present in the given file in Darwin v2 format.
 
@@ -38,7 +40,7 @@ def build_image_annotation(annotation_file: dt.AnnotationFile) -> Dict[str, Any]
         annotations_list.append(annotation_data)
 
     slots_data = _build_slots_data(annotation_file.slots)
-    item = _build_item_data(annotation_file)
+    item = _build_item_data(annotation_file, team_name)
     item["slots"] = slots_data
 
     return {
@@ -100,7 +102,9 @@ def _build_polygon_data(data: Dict[str, Any]) -> Dict[str, Any]:
         return {"paths": [data["path"]]}
 
 
-def _build_item_data(annotation_file: dt.AnnotationFile) -> Dict[str, Any]:
+def _build_item_data(
+    annotation_file: dt.AnnotationFile, team_name: str
+) -> Dict[str, Any]:
     """
     Constructs the 'item' section of the Darwin v2 format annotation.
 
@@ -120,14 +124,16 @@ def _build_item_data(annotation_file: dt.AnnotationFile) -> Dict[str, Any]:
         "source_info": {
             "dataset": {
                 "name": annotation_file.dataset_name,
-                "slug": annotation_file.dataset_name.lower().replace(" ", "-")
-                if annotation_file.dataset_name
-                else None,
+                "slug": (
+                    annotation_file.dataset_name.lower().replace(" ", "-")
+                    if annotation_file.dataset_name
+                    else None
+                ),
             },
             "item_id": annotation_file.item_id,
             "team": {
-                "name": None,  # TODO Replace with actual team name
-                "slug": None,  # TODO Replace with actual team slug
+                "name": team_name,
+                "slug": team_name.lower().replace(" ", "-"),
             },
             "workview_url": annotation_file.workview_url,
         },
