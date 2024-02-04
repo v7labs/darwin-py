@@ -497,7 +497,6 @@ def get_image_path_from_stream(
     darwin_json: PersistentStreamingJSONObject,
     images_dir: Path,
     with_folders: bool,
-    json_version: str,
     annotation_filepath: Path,
 ) -> Path:
     """
@@ -512,8 +511,6 @@ def get_image_path_from_stream(
         Path to the directory containing the images.
     with_folders: bool
         Flag to determine if the release was pulled with or without folders.
-    json_version: str
-        String representing the version of the Darwin JSON
 
     Returns
     -------
@@ -521,24 +518,14 @@ def get_image_path_from_stream(
         Path to the image file.
     """
     try:
-        if json_version == "2.0":
-            if not with_folders:
-                return images_dir / Path(darwin_json["item"]["name"])
-            else:
-                return (
-                    images_dir
-                    / (Path(darwin_json["item"]["path"].lstrip("/\\")))
-                    / Path(darwin_json["item"]["name"])
-                )
+        if not with_folders:
+            return images_dir / Path(darwin_json["item"]["name"])
         else:
-            if not with_folders:
-                return images_dir / Path(darwin_json["image"]["filename"])
-            else:
-                return (
-                    images_dir
-                    / (Path(darwin_json["image"]["path"].lstrip("/\\")))
-                    / Path(darwin_json["image"]["filename"])
-                )
+            return (
+                images_dir
+                / (Path(darwin_json["item"]["path"].lstrip("/\\")))
+                / Path(darwin_json["item"]["name"])
+            )
     except OSError:
         # Load in the JSON as normal
         darwin_json = parse_darwin_json(path=annotation_filepath)
