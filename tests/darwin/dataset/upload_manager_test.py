@@ -73,7 +73,8 @@ def test_request_upload_is_not_called_on_init(
 @responses.activate
 def test_pending_count_is_correct(dataset: RemoteDataset, request_upload_endpoint: str):
     response = {
-        "blocked_items": [
+        "blocked_items": [],
+        "items": [
             {
                 "id": "3b241101-e2bb-4255-8caf-4136c566a964",
                 "name": "test.jpg",
@@ -82,7 +83,6 @@ def test_pending_count_is_correct(dataset: RemoteDataset, request_upload_endpoin
                     {
                         "type": "image",
                         "file_name": "test.jpg",
-                        "reason": "ALREADY_EXISTS",
                         "slot_name": "0",
                         "upload_id": "123e4567-e89b-12d3-a456-426614174000",
                         "as_frames": False,
@@ -91,7 +91,6 @@ def test_pending_count_is_correct(dataset: RemoteDataset, request_upload_endpoin
                 ],
             }
         ],
-        "items": [],
     }
 
     responses.add(responses.POST, request_upload_endpoint, json=response, status=200)
@@ -105,7 +104,7 @@ def test_pending_count_is_correct(dataset: RemoteDataset, request_upload_endpoin
 
     pending_item = upload_handler.pending_items[0]
 
-    assert pending_item.dataset_item_id == 1
+    assert pending_item.dataset_item_id == "3b241101-e2bb-4255-8caf-4136c566a964"
     assert pending_item.filename == "test.jpg"
     assert pending_item.path == "/"
     assert pending_item.reason is None
@@ -159,7 +158,8 @@ def test_error_count_is_correct_on_signature_request(
     dataset: RemoteDataset, request_upload_endpoint: str
 ):
     request_upload_response = {
-        "blocked_items": [
+        "blocked_items": [],
+        "items": [
             {
                 "id": "3b241101-e2bb-4255-8caf-4136c566a964",
                 "name": "test.jpg",
@@ -168,7 +168,6 @@ def test_error_count_is_correct_on_signature_request(
                     {
                         "type": "image",
                         "file_name": "test.jpg",
-                        "reason": "ALREADY_EXISTS",
                         "slot_name": "0",
                         "upload_id": "123e4567-e89b-12d3-a456-426614174000",
                         "as_frames": False,
@@ -177,7 +176,6 @@ def test_error_count_is_correct_on_signature_request(
                 ],
             }
         ],
-        "items": [],
     }
     upload_to_s3_endpoint = (
         "https://darwin-data.s3.eu-west-1.amazonaws.com/test.jpg?X-Amz-Signature=abc"
@@ -352,15 +350,30 @@ def test_error_count_is_correct_on_confirm_upload(
 def test_upload_files(dataset: RemoteDataset, request_upload_endpoint: str):
     request_upload_response = {
         "blocked_items": [],
-        "items": [{"dataset_item_id": 1, "filename": "test.jpg", "path": "/"}],
+        "items": [
+            {
+                "id": "3b241101-e2bb-4255-8caf-4136c566a964",
+                "name": "test.jpg",
+                "path": "/",
+                "slots": [
+                    {
+                        "type": "image",
+                        "file_name": "test.jpg",
+                        "slot_name": "0",
+                        "upload_id": "123e4567-e89b-12d3-a456-426614174000",
+                        "as_frames": False,
+                        "extract_views": False,
+                    }
+                ],
+            }
+        ],
     }
 
     upload_to_s3_endpoint = (
         "https://darwin-data.s3.eu-west-1.amazonaws.com/test.jpg?X-Amz-Signature=abc"
     )
-    confirm_upload_endpoint = "http://localhost/api/dataset_items/1/confirm_upload"
-
-    sign_upload_endpoint = "http://localhost/api/dataset_items/1/sign_upload"
+    confirm_upload_endpoint = "http://localhost/api/v2/teams/v7-darwin-json-v2/items/uploads/123e4567-e89b-12d3-a456-426614174000/confirm"
+    sign_upload_endpoint = "http://localhost/api/v2/teams/v7-darwin-json-v2/items/uploads/123e4567-e89b-12d3-a456-426614174000/sign"
     sign_upload_response = {"upload_url": upload_to_s3_endpoint}
 
     responses.add(
@@ -373,7 +386,7 @@ def test_upload_files(dataset: RemoteDataset, request_upload_endpoint: str):
         responses.GET, sign_upload_endpoint, json=sign_upload_response, status=200
     )
     responses.add(responses.PUT, upload_to_s3_endpoint, status=201)
-    responses.add(responses.PUT, confirm_upload_endpoint, status=200)
+    responses.add(responses.POST, confirm_upload_endpoint, status=200)
 
     Path("test.jpg").touch()
     local_file = LocalFile(local_path=Path("test.jpg"))
