@@ -627,9 +627,11 @@ def _parse_darwin_v2(path: Path, data: Dict[str, Any]) -> dt.AnnotationFile:
             is_video=slot.frame_urls is not None or slot.frame_manifest is not None,
             image_width=slot.width,
             image_height=slot.height,
-            image_url=None
-            if len(slot.source_files or []) == 0
-            else slot.source_files[0]["url"],
+            image_url=(
+                None
+                if len(slot.source_files or []) == 0
+                else slot.source_files[0]["url"]
+            ),
             image_thumbnail_url=slot.thumbnail_url,
             workview_url=item_source.get("workview_url", None),
             seq=0,
@@ -757,7 +759,12 @@ def _parse_darwin_video(
     return annotation_file
 
 
-def _parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotation]:
+def _parse_darwin_annotation(
+    annotation: Dict[str, Any],
+    only_keyframes: bool = False,
+    annotation_type: Optional[str] = None,
+    annotation_data: Optional[Dict] = None,
+) -> Optional[dt.Annotation]:
     slot_names = parse_slot_names(annotation)
     name: str = annotation["name"]
     main_annotation: Optional[dt.Annotation] = None
@@ -783,34 +790,6 @@ def _parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotati
         paths = annotation["polygon"]["paths"]
         main_annotation = dt.make_polygon(
             name, paths[0], bounding_box, slot_names=slot_names
-        )
-    # Darwin JSON 1.0 representation of complex and simple polygons
-    elif "polygon" in annotation:
-        bounding_box = annotation.get("bounding_box")
-        if "additional_paths" in annotation["polygon"]:
-            paths = [annotation["polygon"]["path"]] + annotation["polygon"][
-                "additional_paths"
-            ]
-            main_annotation = dt.make_complex_polygon(
-                name, paths, bounding_box, slot_names=slot_names
-            )
-        else:
-            main_annotation = dt.make_polygon(
-                name, annotation["polygon"]["path"], bounding_box, slot_names=slot_names
-            )
-    # Darwin JSON 1.0 representation of complex polygons
-    elif "complex_polygon" in annotation:
-        bounding_box = annotation.get("bounding_box")
-        if isinstance(annotation["complex_polygon"]["path"][0], list):
-            paths = annotation["complex_polygon"]["path"]
-        else:
-            paths = [annotation["complex_polygon"]["path"]]
-
-        if "additional_paths" in annotation["complex_polygon"]:
-            paths.extend(annotation["complex_polygon"]["additional_paths"])
-
-        main_annotation = dt.make_complex_polygon(
-            name, paths, bounding_box, slot_names=slot_names
         )
     elif "bounding_box" in annotation:
         bounding_box = annotation["bounding_box"]
@@ -876,6 +855,11 @@ def _parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotati
             raster_layer["dense_rle"],
             slot_names=slot_names,
         )
+    elif only_keyframes:
+        main_annotaiton = make_keyframe_annotation(
+            annotation_type, annotation_data, name, slot_names
+        )
+        annotation_type, annotation_data = get_annotation_type_and_data(main_annotation, annotation_type, annotation_data)
 
     if not main_annotation:
         print(f"[WARNING] Unsupported annotation type: '{annotation.keys()}'")
@@ -917,7 +901,58 @@ def _parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotati
     if "properties" in annotation:
         main_annotation.properties = _parse_properties(annotation["properties"])
 
-    return main_annotation
+    return main_annotation, annotation_data
+
+
+def make_keyframe_annotation(
+    annotation_type: Optional[str],
+    annotation_data: Optional[Dict],
+    name: str,
+    slot_names: List[str],
+) -> dt.Annotation:
+    if annotation_type == "polygon":
+        return dt.make_polygon(
+            name, annotation_data["paths"], annotation_data["bounding_box"]
+        )
+    elif annotation_type == "bounding_box":
+        return dt.make_bounding_box(
+            name,
+            annotation_data["x"],
+            annotation_data["y"],
+            annotation_data["w"],
+            annotation_data["h"],
+        )
+    elif annotation_type == "tag":
+        return dt.make_tag(name)
+    elif annotation_type == "line":
+        return dt.make_line(name, annotation_data["path"])
+    elif annotation_type == "keypoint":
+        return dt.make_keypoint(name, annotation_data["x"], annotation_data["y"])
+    elif annotation_type == "ellipse":
+        return dt.make_ellipse(name, annotation_data)
+    elif annotation_type == "cuboid":
+        return dt.make_cuboid(name, annotation_data)
+    elif annotation_type == "skeleton":
+        return dt.make_skeleton(name, annotation_data["nodes"])
+    elif annotation_type == "table":
+        return dt.make_table(
+            name, annotation_data["bounding_box"], annotation_data["cells"]
+        )
+    elif annotation_type == "string":
+        return dt.make_string(name, annotation_data["sources"])
+    elif annotation_type == "graph":
+        return dt.make_graph(name, annotation_data["nodes"], annotation_data["edges"])
+    elif annotation_type == "mask":
+        return dt.make_mask(name)
+    elif annotation_type == "raster_layer":
+        return dt.make_raster_layer(
+            name,
+            annotation_data["mask_annotation_ids_mapping"],
+            annotation_data["total_pixels"],
+            annotation_data["dense_rle"],
+        )
+    else:
+        raise ValueError(f"Unsupported annotation type: '{annotation_type}'")
 
 
 def _parse_darwin_video_annotation(annotation: dict) -> Optional[dt.VideoAnnotation]:
@@ -925,9 +960,22 @@ def _parse_darwin_video_annotation(annotation: dict) -> Optional[dt.VideoAnnotat
     frame_annotations = {}
     keyframes: Dict[int, bool] = {}
     frames = {**annotation.get("frames", {}), **annotation.get("sections", {})}
+    only_keyframes = annotation["only_keyframes"]
+    annotation_type, annotation_data = None, None
+    if only_keyframes:
+        for f, frame in frames.items():
+            annotation_type, annotation_data = get_annotation_type_and_data(
+                frame, annotation_type, annotation_data
+            )
+            if annotation_type:
+                break
     for f, frame in frames.items():
-        frame_annotations[int(f)] = _parse_darwin_annotation(
-            {**frame, **{"name": name, "id": annotation.get("id", None)}}
+        print(f)
+        frame_annotations[int(f)], annotation_data = _parse_darwin_annotation(
+            {**frame, **{"name": name, "id": annotation.get("id", None)}},
+            only_keyframes,
+            annotation_type,
+            annotation_data,
         )
         keyframes[int(f)] = frame.get("keyframe", False)
 
@@ -952,6 +1000,82 @@ def _parse_darwin_video_annotation(annotation: dict) -> Optional[dt.VideoAnnotat
         main_annotation.reviewers = _parse_annotators(annotation["reviewers"])
 
     return main_annotation
+
+
+def get_annotation_type_and_data(
+    frame: Dict,
+    annotation_type: str,
+    annotation_data: Dict
+) -> Tuple[Optional[str], Optional[Dict]]:
+    """
+    Returns the type of a given video annotation and its data.
+    """
+    if "polygon" in frame and "paths" in frame["polygon"]:
+        bounding_box = frame.get("bounding_box")
+        paths = frame["polygon"]["paths"]
+        annotation_type = "polygon"
+        annotation_data = {
+            "paths": paths,
+            "bounding_box": bounding_box,
+        }
+    elif "bounding_box" in frame:
+        bounding_box = frame["bounding_box"]
+        annotation_type = "bounding_box"
+        annotation_data = {
+            "x": bounding_box["x"],
+            "y": bounding_box["y"],
+            "w": bounding_box["w"],
+            "h": bounding_box["h"],
+        }
+    elif "tag" in frame:
+        annotation_type = "tag"
+        annotation_data = {}
+    elif "line" in frame:
+        annotation_type = "line"
+        annotation_data = {"path": frame["line"]["path"]}
+    elif "keypoint" in frame:
+        annotation_type = "keypoint"
+        annotation_data = {
+            "x": frame["keypoint"]["x"],
+            "y": frame["keypoint"]["y"],
+        }
+    elif "ellipse" in frame:
+        annotation_type = "ellipse"
+        annotation_data = frame["ellipse"]
+    elif "cuboid" in frame:
+        annotation_type = "cuboid"
+        annotation_data = frame["cuboid"]
+    elif "skeleton" in frame:
+        annotation_type = "skeleton"
+        annotation_data = {"nodes": frame["skeleton"]["nodes"]}
+    elif "table" in frame:
+        annotation_type = "table"
+        annotation_data = {
+            "bounding_box": frame["table"]["bounding_box"],
+            "cells": frame["table"]["cells"],
+        }
+    elif "string" in frame:
+        annotation_type = "string"
+        annotation_data = {"sources": frame["string"]["sources"]}
+    elif "graph" in frame:
+        annotation_type = "graph"
+        annotation_type = {
+            "nodes": frame["graph"]["nodes"],
+            "edges": frame["graph"]["edges"],
+        }
+    elif "mask" in frame:
+        annotation_type = "mask"
+        annotation_data = {}
+    elif "raster_layer" in frame:
+        raster_layer = frame["raster_layer"]
+        annotation_type = "raster_layer"
+        annotation_data = {
+            "dense_rle": raster_layer["dense_rle"],
+            "mask_annotation_ids_mapping": raster_layer["mask_annotation_ids_mapping"],
+            "total_pixels": raster_layer["total_pixels"],
+        }
+
+    return annotation_type, annotation_data
 
 
 def _parse_darwin_raster_annotation(annotation: dict) -> Optional[dt.Annotation]:
