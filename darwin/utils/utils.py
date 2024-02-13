@@ -856,10 +856,14 @@ def _parse_darwin_annotation(
             slot_names=slot_names,
         )
     elif only_keyframes:
-        main_annotaiton = make_keyframe_annotation(
+        main_annotation = make_keyframe_annotation(
             annotation_type, annotation_data, name, slot_names
         )
-        annotation_type, annotation_data = get_annotation_type_and_data(main_annotation, annotation_type, annotation_data)
+
+        # If we hit a keyframe, we need to update annotation_data for frames later on that may be missing a main type
+        annotation_type, annotation_data = update_annotation_data(
+            main_annotation.data, annotation_type, annotation_data
+        )
 
     if not main_annotation:
         print(f"[WARNING] Unsupported annotation type: '{annotation.keys()}'")
@@ -911,7 +915,7 @@ def make_keyframe_annotation(
     slot_names: List[str],
 ) -> dt.Annotation:
     if annotation_type == "polygon":
-        return dt.make_polygon(
+        return dt.make_complex_polygon(
             name, annotation_data["paths"], annotation_data["bounding_box"]
         )
     elif annotation_type == "bounding_box":
@@ -955,6 +959,76 @@ def make_keyframe_annotation(
         raise ValueError(f"Unsupported annotation type: '{annotation_type}'")
 
 
+def update_annotation_data(
+    main_annotation_data: Dict[str, Any],
+    annotation_type: Optional[str],
+    annotation_data: Optional[Dict],
+) -> Tuple[Optional[str], Optional[Dict]]:
+    if annotation_type == "polygon":
+        bounding_box = main_annotation_data.get("bounding_box")
+        paths = main_annotation_data["paths"]
+        annotation_type = "polygon"
+        annotation_data = {"paths": paths, "bounding_box": bounding_box}
+    elif annotation_type == "bounding_box":
+        bounding_box = main_annotation_data.get("bounding_box")
+        annotation_type = "bounding_box"
+        annotation_data = {
+            "x": bounding_box["x"],
+            "y": bounding_box["y"],
+            "w": bounding_box["w"],
+            "h": bounding_box["h"],
+        }
+    elif annotation_type == "tag":
+        annotation_type = "tag"
+        annotation_data = {}
+    elif annotation_type == "line":
+        annotation_type = "line"
+        annotation_data = {"path": main_annotation_data["line"]["path"]}
+    elif annotation_type == "keypoint":
+        annotation_type = "keypoint"
+        annotation_data = {
+            "x": main_annotation_data["keypoint"]["x"],
+            "y": main_annotation_data["keypoint"]["y"],
+        }
+    elif annotation_type == "ellipse":
+        annotation_type = "ellipse"
+        annotation_data = main_annotation_data["ellipse"]
+    elif annotation_type == "cuboid":
+        annotation_type = "cuboid"
+        annotation_data = main_annotation_data["cuboid"]
+    elif annotation_type == "skeleton":
+        annotation_type = "skeleton"
+        annotation_data = {"nodes": main_annotation_data["skeleton"]["nodes"]}
+    elif annotation_type == "table":
+        annotation_type = "table"
+        annotation_data = {
+            "bounding_box": main_annotation_data["table"]["bounding_box"],
+            "cells": main_annotation_data["table"]["cells"],
+        }
+    elif annotation_type == "string":
+        annotation_type = "string"
+        annotation_data = {"sources": main_annotation_data["string"]["sources"]}
+    elif annotation_type == "graph":
+        annotation_type = "graph"
+        annotation_data = {
+            "nodes": main_annotation_data["graph"]["nodes"],
+            "edges": main_annotation_data["graph"]["edges"],
+        }
+    elif annotation_type == "mask":
+        annotation_type = "mask"
+        annotation_data = {}
+    elif annotation_type == "raster_layer":
+        raster_layer = main_annotation_data["raster_layer"]
+        annotation_type = "raster_layer"
+        annotation_data = {
+            "dense_rle": raster_layer["dense_rle"],
+            "mask_annotation_ids_mapping": raster_layer["mask_annotation_ids_mapping"],
+            "total_pixels": raster_layer["total_pixels"],
+        }
+
+    return annotation_type, annotation_data
+
+
 def _parse_darwin_video_annotation(annotation: dict) -> Optional[dt.VideoAnnotation]:
     name = annotation["name"]
     frame_annotations = {}
@@ -971,6 +1045,7 @@ def _parse_darwin_video_annotation(annotation: dict) -> Optional[dt.VideoAnnotat
                 break
     for f, frame in frames.items():
         print(f)
+        print(annotation["id"])
         frame_annotations[int(f)], annotation_data = _parse_darwin_annotation(
             {**frame, **{"name": name, "id": annotation.get("id", None)}},
             only_keyframes,
@@ -1003,21 +1078,23 @@ def _parse_darwin_video_annotation(annotation: dict) -> Optional[dt.VideoAnnotat
 
 
 def get_annotation_type_and_data(
-    frame: Dict,
-    annotation_type: str,
-    annotation_data: Dict
+    frame: Dict, annotation_type: str, annotation_data: Dict
 ) -> Tuple[Optional[str], Optional[Dict]]:
     """
     Returns the type of a given video annotation and its data.
     """
-    if "polygon" in frame and "paths" in frame["polygon"]:
-        bounding_box = frame.get("bounding_box")
-        paths = frame["polygon"]["paths"]
-        annotation_type = "polygon"
-        annotation_data = {
-            "paths": paths,
-            "bounding_box": bounding_box,
-        }
+
+    if "polygon" in frame:
+        if frame["polygon"]["paths"]:
+            bounding_box = frame.get("bounding_box")
+            paths = frame["polygon"]["paths"]
+            annotation_type = "polygon"
+            annotation_data = {"paths": paths, "bounding_box": bounding_box}
+        else:
+            bounding_box = frame.get("bounding_box")
+            path = frame["polygon"]["path"]
+            annotation_type = "polygon"
+            annotation_data = {"path": path, "bounding_box": bounding_box}
     elif "bounding_box" in frame:
         bounding_box = frame["bounding_box"]
         annotation_type = "bounding_box"
