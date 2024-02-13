@@ -414,7 +414,6 @@ def _download_single_slot_from_json_annotation(
             image = slot.source_files[0]
             image_url = image["url"]
             image_filename = image["file_name"]
-
             if not use_folders:
                 suffix = Path(image_filename).suffix
                 stem = annotation_path.stem

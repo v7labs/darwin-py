@@ -17,9 +17,7 @@ from tests.fixtures import *
 
 
 def open_resource_file():
-    resource_file = (
-        Path("tests") / "darwin" / "dataset" / "resources" / "stratified_polygon_train"
-    )
+    resource_file = Path("tests") / "darwin" / "dataset" / "resources" / "stratified_polygon_train"
     return resource_file.open()
 
 
@@ -153,9 +151,7 @@ class TestExtractClasses:
         )
 
         # Extracting classes for both bounding_box and polygon annotations
-        class_dict, index_dict = extract_classes(
-            annotations_path, ["polygon", "bounding_box"]
-        )
+        class_dict, index_dict = extract_classes(annotations_path, ["polygon", "bounding_box"])
 
         # Assertions
         assert set(class_dict.keys()) == {
@@ -181,53 +177,23 @@ class TestSanitizeFilename:
         assert sanitize_filename("test.jpg") == "test.jpg"
 
     def test_special_characters_are_replaced_with_underscores(self):
-        assert (
-            sanitize_filename("2020-06-18T08<50<13.14815Z.json")
-            == "2020-06-18T08_50_13.14815Z.json"
-        )
-        assert (
-            sanitize_filename("2020-06-18T08>50>13.14815Z.json")
-            == "2020-06-18T08_50_13.14815Z.json"
-        )
-        assert (
-            sanitize_filename('2020-06-18T08"50"13.14815Z.json')
-            == "2020-06-18T08_50_13.14815Z.json"
-        )
-        assert (
-            sanitize_filename("2020-06-18T08/50/13.14815Z.json")
-            == "2020-06-18T08_50_13.14815Z.json"
-        )
-        assert (
-            sanitize_filename("2020-06-18T08\\50\\13.14815Z.json")
-            == "2020-06-18T08_50_13.14815Z.json"
-        )
-        assert (
-            sanitize_filename("2020-06-18T08|50|13.14815Z.json")
-            == "2020-06-18T08_50_13.14815Z.json"
-        )
-        assert (
-            sanitize_filename("2020-06-18T08?50?13.14815Z.json")
-            == "2020-06-18T08_50_13.14815Z.json"
-        )
-        assert (
-            sanitize_filename("2020-06-18T08*50*13.14815Z.json")
-            == "2020-06-18T08_50_13.14815Z.json"
-        )
+        assert sanitize_filename("2020-06-18T08<50<13.14815Z.json") == "2020-06-18T08_50_13.14815Z.json"
+        assert sanitize_filename("2020-06-18T08>50>13.14815Z.json") == "2020-06-18T08_50_13.14815Z.json"
+        assert sanitize_filename('2020-06-18T08"50"13.14815Z.json') == "2020-06-18T08_50_13.14815Z.json"
+        assert sanitize_filename("2020-06-18T08/50/13.14815Z.json") == "2020-06-18T08_50_13.14815Z.json"
+        assert sanitize_filename("2020-06-18T08\\50\\13.14815Z.json") == "2020-06-18T08_50_13.14815Z.json"
+        assert sanitize_filename("2020-06-18T08|50|13.14815Z.json") == "2020-06-18T08_50_13.14815Z.json"
+        assert sanitize_filename("2020-06-18T08?50?13.14815Z.json") == "2020-06-18T08_50_13.14815Z.json"
+        assert sanitize_filename("2020-06-18T08*50*13.14815Z.json") == "2020-06-18T08_50_13.14815Z.json"
 
     @patch("platform.system", return_value="Windows")
     def test_replace_columns_on_windows(self, mock: MagicMock):
-        assert (
-            sanitize_filename("2020-06-18T08:50:13.14815Z.json")
-            == "2020-06-18T08_50_13.14815Z.json"
-        )
+        assert sanitize_filename("2020-06-18T08:50:13.14815Z.json") == "2020-06-18T08_50_13.14815Z.json"
         mock.assert_called_once()
 
     @patch("platform.system", return_value="Linux")
     def test_avoid_replacing_columns_on_non_windows(self, mock: MagicMock):
-        assert (
-            sanitize_filename("2020-06-18T08:50:13.14815Z.json")
-            == "2020-06-18T08:50:13.14815Z.json"
-        )
+        assert sanitize_filename("2020-06-18T08:50:13.14815Z.json") == "2020-06-18T08:50:13.14815Z.json"
         mock.assert_called_once()
 
 
@@ -238,9 +204,7 @@ def _create_annotation_file(annotation_path: Path, filename: str, payload: Dict)
 
 
 class TestGetReleasePath:
-    def test_defaults_to_latest_version_if_no_version_provided(
-        self, team_dataset_path: Path
-    ):
+    def test_defaults_to_latest_version_if_no_version_provided(self, team_dataset_path: Path):
         latest_release_path = team_dataset_path / "releases" / "latest"
         latest_release_path.mkdir(parents=True)
         assert get_release_path(team_dataset_path) == latest_release_path

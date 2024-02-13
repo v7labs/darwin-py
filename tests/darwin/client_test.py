@@ -422,7 +422,6 @@ def test__get_item_count_should_tolerate_missing_members() -> None:
 class TestGetTeamProperties:
     @responses.activate
     def test_get_team_properties(self, darwin_client: Client) -> None:
-
         responses.add(
             responses.GET,
             "http://localhost/apiv2/teams/v7-darwin-json-v1/properties?include_values=true",
