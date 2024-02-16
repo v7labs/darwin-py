@@ -996,11 +996,31 @@ def _handle_annotators(
     return []
 
 
+def _handle_video_annotation_subs(annotation: dt.VideoAnnotation):
+    """
+    Remove duplicate sub-annotations from the VideoAnnotation.annotation(s) to be imported.
+    """
+    last_sub_type, last_sub_data = None, None
+    for _, _annotation in annotation.frames.items():
+        _annotation: dt.Annotation
+        subs = []
+        for sub in _annotation.subs:
+            if last_sub_type == sub.annotation_type and last_sub_data == sub.data:
+                # drop sub-annotation whenever we know it didn't change since last one
+                # which likely wouldn't create on backend side sub-annotation keyframe.
+                # this is a workaround for the backend not handling duplicate sub-annotations.
+                continue
+            last_sub_type, last_sub_data = sub.annotation_type, sub.data
+            subs.append(sub)
+        _annotation.subs = subs
+
+
 def _get_annotation_data(
     annotation: dt.AnnotationLike, annotation_class_id: str, attributes: dt.DictFreeForm
 ) -> dt.DictFreeForm:
     annotation_class = annotation.annotation_class
     if isinstance(annotation, dt.VideoAnnotation):
+        _handle_video_annotation_subs(annotation)
         data = annotation.get_data(
             only_keyframes=True,
             post_processing=lambda annotation, data: _handle_subs(
