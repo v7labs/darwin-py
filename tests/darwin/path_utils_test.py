@@ -90,6 +90,8 @@ def test_is_properties_enabled_v7(filename, expected_bool):
         shutil.copy(metadata_path, tmpdir_v7)
 
         if expected_bool:
-            assert is_properties_enabled(tmpdir, filename=filename) == tmpdir_v7 / filename
+            assert (
+                is_properties_enabled(tmpdir, filename=filename) == tmpdir_v7 / filename
+            )
         else:
             assert is_properties_enabled(tmpdir, filename=filename) == expected_bool

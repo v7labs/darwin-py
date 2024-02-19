@@ -277,7 +277,7 @@ def _resolve_annotation_classes(
 
 def _update_payload_with_properties(
     annotations: List[Dict[str, Unknown]],
-    annotation_id_property_map: Dict[str, Dict[str, Dict[str, Set[str]]]]
+    annotation_id_property_map: Dict[str, Dict[str, Dict[str, Set[str]]]],
 ) -> None:
     """
     Updates the annotations with the properties that were created/updated during the import.
@@ -290,13 +290,16 @@ def _update_payload_with_properties(
 
         if annotation_id_property_map.get(annotation_id):
             _map = {}
-            for _frame_index, _property_map in annotation_id_property_map[annotation_id].items():
+            for _frame_index, _property_map in annotation_id_property_map[
+                annotation_id
+            ].items():
                 _map[_frame_index] = {}
                 for prop_id, prop_val_set in dict(_property_map).items():
                     prop_val_list = list(prop_val_set)
                     _map[_frame_index][prop_id] = prop_val_list
 
             annotation["annotation_properties"] = dict(_map)
+
 
 def _import_properties(
     metadata_path: Union[Path, bool],
@@ -336,9 +339,9 @@ def _import_properties(
     # get team properties -> List[FullProperty]
     team_properties = client.get_team_properties()
     # (property-name, annotation_class_id): FullProperty object
-    team_properties_annotation_lookup: Dict[
-        Tuple[str, Optional[int]], FullProperty
-    ] = {}
+    team_properties_annotation_lookup: Dict[Tuple[str, Optional[int]], FullProperty] = (
+        {}
+    )
     for prop in team_properties:
         team_properties_annotation_lookup[(prop.name, prop.annotation_class_id)] = prop
 
@@ -370,7 +373,9 @@ def _import_properties(
             continue
         annotation_id = annotation.id
         if annotation_id not in annotation_property_map:
-            annotation_property_map[annotation_id] = defaultdict(lambda: defaultdict(set))
+            annotation_property_map[annotation_id] = defaultdict(
+                lambda: defaultdict(set)
+            )
         annotation_id_map[annotation_id] = annotation
 
         # raise error if annotation class not present in metadata
@@ -379,7 +384,7 @@ def _import_properties(
                 f"Annotation: '{annotation_name}' not found in {metadata_path}"
             )
 
-        # loop on annotation properties and check if they exist in metadata & team
+        # loop on annotation properties and check if they exist in metadata & team
         for a_prop in annotation.properties or []:
             a_prop: SelectedProperty
 
@@ -405,13 +410,17 @@ def _import_properties(
                 )
 
             # check if property and annotation class exists in team
-            if (a_prop.name, annotation_class_id) \
-                not in team_properties_annotation_lookup:
+            if (
+                a_prop.name,
+                annotation_class_id,
+            ) not in team_properties_annotation_lookup:
 
                 # check if fullproperty exists in create_properties
                 for full_property in create_properties:
-                    if full_property.name == a_prop.name and \
-                        full_property.annotation_class_id == annotation_class_id:
+                    if (
+                        full_property.name == a_prop.name
+                        and full_property.annotation_class_id == annotation_class_id
+                    ):
                         # make sure property_values is not None
                         if full_property.property_values is None:
                             full_property.property_values = []
@@ -457,7 +466,8 @@ def _import_properties(
                         name=a_prop.name,
                         type=m_prop_type,  # type from .v7/metadata.json
                         required=m_prop.required,  # required from .v7/metadata.json
-                        description=m_prop.description or "property-created-during-annotation-import",
+                        description=m_prop.description
+                        or "property-created-during-annotation-import",
                         slug=client.default_team,
                         annotation_class_id=int(annotation_class_id),
                         property_values=property_values,
@@ -483,7 +493,9 @@ def _import_properties(
             if a_prop.value is None:
                 # if property value is None, update annotation_property_map with empty set
                 assert t_prop.id is not None
-                annotation_property_map[annotation_id][str(a_prop.frame_index)][t_prop.id] = set()
+                annotation_property_map[annotation_id][str(a_prop.frame_index)][
+                    t_prop.id
+                ] = set()
                 continue
 
             # check if property value is different in t_prop (team) options
@@ -497,7 +509,8 @@ def _import_properties(
                     name=a_prop.name,
                     type=m_prop_type,
                     required=m_prop.required,
-                    description=m_prop.description or "property-updated-during-annotation-import",
+                    description=m_prop.description
+                    or "property-updated-during-annotation-import",
                     slug=client.default_team,
                     annotation_class_id=int(annotation_class_id),
                     property_values=[
@@ -512,7 +525,9 @@ def _import_properties(
 
             assert t_prop.id is not None
             assert t_prop_val.id is not None
-            annotation_property_map[annotation_id][str(a_prop.frame_index)][t_prop.id].add(t_prop_val.id)
+            annotation_property_map[annotation_id][str(a_prop.frame_index)][
+                t_prop.id
+            ].add(t_prop_val.id)
 
     console = Console(theme=_console_theme())
 
@@ -522,9 +537,11 @@ def _import_properties(
         for full_property in create_properties:
             console.print(
                 f"Creating property {full_property.name} ({full_property.type})",
-                style="info"
+                style="info",
             )
-            prop = client.create_property(team_slug=full_property.slug, params=full_property)
+            prop = client.create_property(
+                team_slug=full_property.slug, params=full_property
+            )
             created_properties.append(prop)
 
     updated_properties = []
@@ -533,9 +550,11 @@ def _import_properties(
         for full_property in update_properties:
             console.print(
                 f"Updating property {full_property.name} ({full_property.type})",
-                style="info"
+                style="info",
             )
-            prop = client.update_property(team_slug=full_property.slug, params=full_property)
+            prop = client.update_property(
+                team_slug=full_property.slug, params=full_property
+            )
             updated_properties.append(prop)
 
     # update annotation_property_map with property ids from created_properties & updated_properties
@@ -547,19 +566,23 @@ def _import_properties(
         for a_prop in annotation.properties or []:
             frame_index = str(a_prop.frame_index)
 
-            for prop in (created_properties + updated_properties):
+            for prop in created_properties + updated_properties:
                 if prop.name == a_prop.name:
                     if a_prop.value is None:
-                        if not annotation_property_map[annotation_id][frame_index][prop.id]:
-                            annotation_property_map[annotation_id][frame_index][prop.id] = set()
+                        if not annotation_property_map[annotation_id][frame_index][
+                            prop.id
+                        ]:
+                            annotation_property_map[annotation_id][frame_index][
+                                prop.id
+                            ] = set()
                             break
 
                     # find the property-id and property-value-id in the response
                     for prop_val in prop.property_values or []:
                         if prop_val.value == a_prop.value:
-                            annotation_property_map[annotation_id][frame_index][prop.id].add(
-                                prop_val.id
-                            )
+                            annotation_property_map[annotation_id][frame_index][
+                                prop.id
+                            ].add(prop_val.id)
                             break
                     break
 
@@ -815,9 +838,9 @@ def import_annotations(  # noqa: C901
 
     # Need to re parse the files since we didn't save the annotations in memory
     for local_path in set(local_file.path for local_file in local_files):  # noqa: C401
-        imported_files: Union[
-            List[dt.AnnotationFile], dt.AnnotationFile, None
-        ] = importer(local_path)
+        imported_files: Union[List[dt.AnnotationFile], dt.AnnotationFile, None] = (
+            importer(local_path)
+        )
         if imported_files is None:
             parsed_files = []
         elif not isinstance(imported_files, List):
@@ -996,11 +1019,38 @@ def _handle_annotators(
     return []
 
 
+def _handle_video_annotation_subs(annotation: dt.VideoAnnotation):
+    """
+    Remove duplicate sub-annotations from the VideoAnnotation.annotation(s) to be imported.
+    """
+    last_subs = None
+    for _, _annotation in annotation.frames.items():
+        _annotation: dt.Annotation
+        subs = []
+        for sub in _annotation.subs:
+            if last_subs is not None and all(
+                any(
+                    last_sub.annotation_type == sub.annotation_type
+                    and last_sub.data == sub.data
+                    for last_sub in last_subs
+                )
+                for sub in _annotation.subs
+            ):
+                # drop sub-annotation whenever we know it didn't change since last one
+                # which likely wouldn't create on backend side sub-annotation keyframe.
+                # this is a workaround for the backend not handling duplicate sub-annotations.
+                continue
+            subs.append(sub)
+        last_subs = _annotation.subs
+        _annotation.subs = subs
+
+
 def _get_annotation_data(
     annotation: dt.AnnotationLike, annotation_class_id: str, attributes: dt.DictFreeForm
 ) -> dt.DictFreeForm:
     annotation_class = annotation.annotation_class
     if isinstance(annotation, dt.VideoAnnotation):
+        _handle_video_annotation_subs(annotation)
         data = annotation.get_data(
             only_keyframes=True,
             post_processing=lambda annotation, data: _handle_subs(
@@ -1191,7 +1241,9 @@ def _import_annotations(
         # Insert the default slot name if not available in the import source
         annotation = _handle_slot_names(annotation, dataset.version, default_slot_name)
 
-        annotation_class_ids_map[(annotation_class.name, annotation_type)] = annotation_class_id
+        annotation_class_ids_map[(annotation_class.name, annotation_type)] = (
+            annotation_class_id
+        )
         serial_obj = {
             "annotation_class_id": annotation_class_id,
             "data": data,
@@ -1212,10 +1264,7 @@ def _import_annotations(
         annotations,  # type: ignore
         annotation_class_ids_map,
     )
-    _update_payload_with_properties(
-        serialized_annotations,
-        annotation_id_property_map
-    )
+    _update_payload_with_properties(serialized_annotations, annotation_id_property_map)
 
     payload: dt.DictFreeForm = {"annotations": serialized_annotations}
     payload["overwrite"] = _get_overwrite_value(append)
