@@ -166,19 +166,43 @@ class TestParseDarwinJson:
     def test_parses_darwin_videos_correctly(self, tmp_path):
         content = """
         {
-            "dataset": "my-dataset",
-            "image": {
-                "width": 3840,
-                "height": 2160,
-                "fps": 0.0,
-                "original_filename": "above tractor.mp4",
-                "filename": "above tractor.mp4",
-                "url": "https://my-website.com/api/videos/209/original",
+            "version": "2.0",
+            "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json_2_0.schema.json",
+            "item": {
+                "name": "above tractor.mp4",
                 "path": "/",
-                "workview_url": "https://my-website.com/workview?dataset=102&image=530",
-                "frame_count": 343,
-                "frame_urls": [
-                "https://my-website.com/api/videos/209/frames/0"
+                "source_info": {
+                    "item_id": "018a4ad2-41cb-5b6a-8141-fe1afeb65746",
+                    "team": {
+                        "name": "Test Team",
+                        "slug": "test-team"
+                    },
+                    "dataset": {
+                        "name": "My dataset",
+                        "slug": "my-dataset",
+                        "dataset_management_url": "https://my-website.com/datasets/018a4ad2-41cb-5b6a-8141-fe1afeb65746/dataset-management"
+                    },
+                    "workview_url": "https://my-website.com/workview?dataset=102&image=530"
+                },
+                "slots": [
+                    {
+                        "type": "video",
+                        "slot_name": "0",
+                        "width": 3840,
+                        "height": 2160,
+                        "fps": 0.0,
+                        "thumbnail_url": "https://my-website.com/api/videos/209/thumbnail",
+                        "source_files": [
+                            {
+                                "file_name": "above tractor.mp4",
+                                "url": "https://my-website.com/api/videos/209/original"
+                            }
+                        ],
+                        "frame_count": 343,
+                        "frame_urls": [
+                            "https://my-website.com/api/videos/209/frames/0"
+                        ]
+                    }
                 ]
             },
             "annotations": [
@@ -196,7 +220,7 @@ class TestParseDarwinJson:
                             },
                             "keyframe": true,
                             "polygon": {
-                                "path": [
+                                "paths": [
                                     {
                                         "x": 748.0,
                                         "y": 732.0
@@ -213,14 +237,18 @@ class TestParseDarwinJson:
                             }
                         }
                     },
+                    "id": "f8f5f235-bd47-47be-b4fe-07d49e0177a7",
                     "interpolate_algorithm": "linear-1.1",
                     "interpolated": true,
                     "name": "Hand",
-                    "segments": [
+                    "ranges": [
                         [
                             3,
                             46
                         ]
+                    ],
+                    "slot_names": [
+                        "0"
                     ]
                 }
             ]
@@ -232,13 +260,13 @@ class TestParseDarwinJson:
         import_file = directory / "darwin-file.json"
         import_file.write_text(content)
 
-        annotation_file: dt.AnnotationFile = parse_darwin_json(import_file, None)
+        annotation_file: dt.AnnotationFile = parse_darwin_json(import_file)
 
         assert annotation_file.path == import_file
         assert annotation_file.filename == "above tractor.mp4"
-        assert annotation_file.dataset_name is None
+        assert annotation_file.dataset_name == "My dataset"
         assert annotation_file.version == dt.AnnotationFileVersion(
-            major=1, minor=0, suffix=""
+            major=2, minor=0, suffix=""
         )
 
         assert len(annotation_file.annotations) == 1
@@ -264,18 +292,18 @@ class TestParseDarwinJson:
             dt.VideoAnnotation(
                 annotation_class=dt.AnnotationClass(
                     name="Hand",
-                    annotation_type="polygon",
-                    annotation_internal_type=None,
+                    annotation_type="complex_polygon",
+                    annotation_internal_type="polygon",
                 ),
                 frames={
                     3: dt.Annotation(
                         annotation_class=dt.AnnotationClass(
                             name="Hand",
-                            annotation_type="polygon",
-                            annotation_internal_type=None,
+                            annotation_type="complex_polygon",
+                            annotation_internal_type="polygon",
                         ),
                         data={
-                            "path": [
+                            "paths": [
                                 {"x": 748.0, "y": 732.0},
                                 {"x": 751.0, "y": 735.0},
                                 {"x": 748.0, "y": 733.0},
@@ -290,6 +318,11 @@ class TestParseDarwinJson:
                         subs=[
                             dt.SubAnnotation(annotation_type="instance_id", data=119)
                         ],
+                        slot_names=[],
+                        annotators=None,
+                        reviewers=None,
+                        id="f8f5f235-bd47-47be-b4fe-07d49e0177a7",
+                        properties=None,
                     )
                 },
                 keyframes={3: True},
