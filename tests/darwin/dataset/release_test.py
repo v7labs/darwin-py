@@ -8,10 +8,10 @@ from tests.fixtures import *
 
 
 @pytest.fixture
-def release(dataset_slug: str, team_slug: str) -> Release:
+def release(dataset_slug: str, team_slug_darwin_json_v2: str) -> Release:
     return Release(
         dataset_slug=dataset_slug,
-        team_slug=team_slug,
+        team_slug=team_slug_darwin_json_v2,
         version="latest",
         name="test",
         url="http://test.v7labs.com/",

@@ -10,12 +10,14 @@ from darwin.exporter.formats import nifti
 from tests.fixtures import *
 
 
-def test_video_annotation_nifti_export_single_slot(team_slug: str):
+def test_video_annotation_nifti_export_single_slot(team_slug_darwin_json_v2: str):
     with tempfile.TemporaryDirectory() as tmpdir:
         with ZipFile("tests/data.zip") as zfile:
             zfile.extractall(tmpdir)
             annotations_dir = (
-                Path(tmpdir) / team_slug / "nifti/releases/latest/annotations"
+                Path(tmpdir)
+                / team_slug_darwin_json_v2
+                / "nifti/releases/latest/annotations"
             )
             video_annotation_filepaths = [annotations_dir / "hippocampus_001.nii.json"]
             video_annotations = list(
@@ -31,12 +33,14 @@ def test_video_annotation_nifti_export_single_slot(team_slug: str):
             assert np.allclose(export_im, expected_im)
 
 
-def test_video_annotation_nifti_export_multi_slot(team_slug: str):
+def test_video_annotation_nifti_export_multi_slot(team_slug_darwin_json_v2: str):
     with tempfile.TemporaryDirectory() as tmpdir:
         with ZipFile("tests/data.zip") as zfile:
             zfile.extractall(tmpdir)
             annotations_dir = (
-                Path(tmpdir) / team_slug / "nifti/releases/latest/annotations"
+                Path(tmpdir)
+                / team_slug_darwin_json_v2
+                / "nifti/releases/latest/annotations"
             )
             video_annotation_filepaths = [
                 annotations_dir / "hippocampus_multislot.nii.json"
@@ -58,12 +62,14 @@ def test_video_annotation_nifti_export_multi_slot(team_slug: str):
                 assert np.allclose(export_im, expected_im)
 
 
-def test_video_annotation_nifti_export_mpr(team_slug: str):
+def test_video_annotation_nifti_export_mpr(team_slug_darwin_json_v2: str):
     with tempfile.TemporaryDirectory() as tmpdir:
         with ZipFile("tests/data.zip") as zfile:
             zfile.extractall(tmpdir)
             annotations_dir = (
-                Path(tmpdir) / team_slug / "nifti/releases/latest/annotations"
+                Path(tmpdir)
+                / team_slug_darwin_json_v2
+                / "nifti/releases/latest/annotations"
             )
             video_annotation_filepaths = [
                 annotations_dir / "hippocampus_multislot_001_mpr.json"

@@ -269,11 +269,6 @@ class RemoteDatasetV2(RemoteDataset):
         post_sort: Dict[str, str] = {}
 
         if filters:
-            if "filenames" in filters:
-                # compability layer with v1
-                filters["item_names"] = filters["filenames"]
-                del filters["filenames"]
-
             for list_type in [
                 "item_names",
                 "statuses",
@@ -554,6 +549,6 @@ class RemoteDatasetV2(RemoteDataset):
         )
 
     def _build_image_annotation(
-        self, annotation_file: AnnotationFile
+        self, annotation_file: AnnotationFile, team_name: str
     ) -> Dict[str, Any]:
-        return build_image_annotation(annotation_file)
+        return build_image_annotation(annotation_file, team_name)

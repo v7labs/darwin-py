@@ -212,7 +212,7 @@ def get_remote_files(
 
     The output is a two-element tuple of:
     - file ID
-    - the name of the first slot for V2 items, or '0' for V1 items
+    - the name of the first slot of the item
 
     Fetching slot name is necessary here to avoid double-trip to Api downstream for remote files.
     """
@@ -678,12 +678,6 @@ def import_annotations(  # noqa: C901
     if not team_classes:
         raise ValueError("Unable to fetch remote class list.")
 
-    if delete_for_empty and dataset.version == 1:
-        console.print(
-            f"The '--delete-for-empty' flag only works for V2 datasets. '{dataset.name}' is a V1 dataset. Ignoring flag.",
-            style="warning",
-        )
-
     classes_in_dataset: dt.DictFreeForm = build_main_annotations_lookup_table(
         [
             cls
@@ -821,11 +815,7 @@ def import_annotations(  # noqa: C901
     else:
         remote_classes = build_main_annotations_lookup_table(team_classes)
 
-    if dataset.version == 1:
-        console.print(
-            "Importing annotations...\nEmpty annotations will be skipped.", style="info"
-        )
-    elif dataset.version == 2 and delete_for_empty:
+    if delete_for_empty:
         console.print(
             "Importing annotations...\nEmpty annotation file(s) will clear all existing annotations in matching remote files.",
             style="info",
@@ -861,8 +851,7 @@ def import_annotations(  # noqa: C901
         files_to_not_track = [
             file_to_track
             for file_to_track in parsed_files
-            if not file_to_track.annotations
-            and (not delete_for_empty or dataset.version == 1)
+            if not file_to_track.annotations and (not delete_for_empty)
         ]
 
         for file in files_to_not_track:
@@ -1019,11 +1008,38 @@ def _handle_annotators(
     return []
 
 
+def _handle_video_annotation_subs(annotation: dt.VideoAnnotation):
+    """
+    Remove duplicate sub-annotations from the VideoAnnotation.annotation(s) to be imported.
+    """
+    last_subs = None
+    for _, _annotation in annotation.frames.items():
+        _annotation: dt.Annotation
+        subs = []
+        for sub in _annotation.subs:
+            if last_subs is not None and all(
+                any(
+                    last_sub.annotation_type == sub.annotation_type
+                    and last_sub.data == sub.data
+                    for last_sub in last_subs
+                )
+                for sub in _annotation.subs
+            ):
+                # drop sub-annotation whenever we know it didn't change since last one
+                # which likely wouldn't create on backend side sub-annotation keyframe.
+                # this is a workaround for the backend not handling duplicate sub-annotations.
+                continue
+            subs.append(sub)
+        last_subs = _annotation.subs
+        _annotation.subs = subs
+
+
 def _get_annotation_data(
     annotation: dt.AnnotationLike, annotation_class_id: str, attributes: dt.DictFreeForm
 ) -> dt.DictFreeForm:
     annotation_class = annotation.annotation_class
     if isinstance(annotation, dt.VideoAnnotation):
+        _handle_video_annotation_subs(annotation)
         data = annotation.get_data(
             only_keyframes=True,
             post_processing=lambda annotation, data: _handle_subs(

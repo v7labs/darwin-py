@@ -344,7 +344,7 @@ AnnotationLike = Union[Annotation, VideoAnnotation]
 
 @dataclass
 class Slot:
-    #: Unique slot name in the item. Will be `None` when loading V1 exports.
+    #: Unique slot name in the item.
     name: Optional[str]
 
     #: Type of slot, e.g. image or dicom
