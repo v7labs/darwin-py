@@ -169,7 +169,7 @@ def parse_annotation(
                 except StopIteration:
                     break
             paths.append(path)
-        return dt.make_complex_polygon(category["name"], paths)
+        return dt.make_polygon(category["name"], paths)
     elif isinstance(segmentation, list):
         path = []
         points = iter(

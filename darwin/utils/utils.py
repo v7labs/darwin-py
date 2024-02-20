@@ -773,8 +773,15 @@ def _parse_darwin_annotation(
     if "polygon" in annotation and "paths" in annotation["polygon"]:
         bounding_box = annotation.get("bounding_box")
         paths = annotation["polygon"]["paths"]
-        main_annotation = dt.make_complex_polygon(
+        main_annotation = dt.make_polygon(
             name, paths, bounding_box, slot_names=slot_names
+        )
+
+    elif "polygon" in annotation and "path" in annotation["polygon"]:
+        bounding_box = annotation.get("bounding_box")
+        path = annotation["polygon"]["path"]
+        main_annotation = dt.make_polygon(
+            name, path, bounding_box, slot_names=slot_names
         )
 
     elif "bounding_box" in annotation:
@@ -896,7 +903,7 @@ def make_keyframe_annotation(
     slot_names: List[str],
 ) -> dt.Annotation:
     if annotation_type == "polygon":
-        return dt.make_complex_polygon(
+        return dt.make_polygon(
             name, annotation_data["paths"], annotation_data["bounding_box"]
         )
     elif annotation_type == "bounding_box":
@@ -1254,6 +1261,7 @@ def split_video_annotation(annotation: dt.AnnotationFile) -> List[dt.AnnotationF
     urls = annotation.frame_urls or [None] * (annotation.frame_count or 1)
     frame_annotations = []
     for i, frame_url in enumerate(urls):
+        print(i)
         annotations = [
             a.frames[i]
             for a in annotation.annotations

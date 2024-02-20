@@ -72,14 +72,14 @@ class TestExtractClasses:
     def test_builds_correct_mapping_dictionaries(self, annotations_path: Path):
         payload = {
             "annotations": [
-                {"name": "class_1", "polygon": {"path": []}},
+                {"name": "class_1", "polygon": {"paths": [[]]}},
                 {
                     "name": "class_2",
                     "bounding_box": {"x": 0, "y": 0, "w": 100, "h": 100},
                 },
-                {"name": "class_3", "polygon": {"path": []}},
+                {"name": "class_3", "polygon": {"paths": [[]]}},
                 {"name": "class_4", "tag": {}},
-                {"name": "class_1", "polygon": {"path": []}},
+                {"name": "class_1", "polygon": {"paths": [[]]}},
             ],
             "image": {"filename": "0.jpg"},
         }
@@ -87,14 +87,14 @@ class TestExtractClasses:
 
         payload = {
             "annotations": [
-                {"name": "class_5", "polygon": {"path": []}},
+                {"name": "class_5", "polygon": {"paths": [[]]}},
                 {
                     "name": "class_6",
                     "bounding_box": {"x": 0, "y": 0, "w": 100, "h": 100},
                 },
-                {"name": "class_1", "polygon": {"path": []}},
+                {"name": "class_1", "polygon": {"paths": [[]]}},
                 {"name": "class_4", "tag": {}},
-                {"name": "class_1", "polygon": {"path": []}},
+                {"name": "class_1", "polygon": {"paths": [[]]}},
             ],
             "image": {"filename": "1.jpg"},
         }
@@ -122,14 +122,14 @@ class TestExtractClasses:
             "0.json",
             {
                 "annotations": [
-                    {"name": "class_1", "polygon": {"path": []}},
+                    {"name": "class_1", "polygon": {"paths": [[]]}},
                     {
                         "name": "class_2",
                         "bounding_box": {"x": 0, "y": 0, "w": 100, "h": 100},
                     },
-                    {"name": "class_3", "polygon": {"path": []}},
+                    {"name": "class_3", "polygon": {"paths": [[]]}},
                     {"name": "class_4", "tag": {}},
-                    {"name": "class_1", "polygon": {"path": []}},
+                    {"name": "class_1", "polygon": {"paths": [[]]}},
                 ],
                 "image": {"filename": "0.jpg"},
             },
@@ -139,14 +139,14 @@ class TestExtractClasses:
             "1.json",
             {
                 "annotations": [
-                    {"name": "class_5", "polygon": {"path": []}},
+                    {"name": "class_5", "polygon": {"paths": [[]]}},
                     {
                         "name": "class_6",
                         "bounding_box": {"x": 0, "y": 0, "w": 100, "h": 100},
                     },
-                    {"name": "class_1", "polygon": {"path": []}},
+                    {"name": "class_1", "polygon": {"paths": [[]]}},
                     {"name": "class_4", "tag": {}},
-                    {"name": "class_1", "polygon": {"path": []}},
+                    {"name": "class_1", "polygon": {"paths": [[]]}},
                 ],
                 "image": {"filename": "1.jpg"},
             },

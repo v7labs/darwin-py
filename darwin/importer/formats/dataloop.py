@@ -1,7 +1,6 @@
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
-
 import darwin.datatypes as dt
 from darwin.exceptions import (
     DataloopComplexPolygonsNotYetSupported,
@@ -76,6 +75,6 @@ def _parse_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotation]:
             raise DataloopComplexPolygonsNotYetSupported()
 
         points: List[dt.Point] = [{"x": c["x"], "y": c["y"]} for c in coords[0]]
-        return dt.make_polygon(annotation_label, point_path=points)
+        return dt.make_polygon(annotation_label, point_paths=points)
 
     return None

@@ -623,7 +623,7 @@ class TestParseDarwinJson:
                         },
                         "name": "car",
                         "polygon": {
-                            "path": [
+                            "paths": [
                                 {
                                     "x": 1805.0,
                                     "y": 586.0
@@ -670,7 +670,8 @@ class TestParseDarwinJson:
         annotation_file: dt.AnnotationFile = parse_darwin_json(import_file, None)
 
         assert (
-            annotation_file.annotations[0].annotation_class.annotation_type == "polygon"
+            annotation_file.annotations[0].annotation_class.annotation_type
+            == "complex_polygon"
         )
         assert (
             annotation_file.annotations[1].annotation_class.annotation_type
@@ -694,7 +695,7 @@ class TestParseDarwinJson:
                         },
                         "name":"car",
                         "polygon":{
-                            "path":[
+                            "paths":[
                                 {
                                     "x":1805.0,
                                     "y":586.0

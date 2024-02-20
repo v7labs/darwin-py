@@ -638,49 +638,7 @@ def make_tag(
 
 def make_polygon(
     class_name: str,
-    point_path: List[Point],
-    bounding_box: Optional[Dict] = None,
-    subs: Optional[List[SubAnnotation]] = None,
-    slot_names: Optional[List[str]] = None,
-) -> Annotation:
-    """
-    Creates and returns a polygon annotation.
-
-    Parameters
-    ----------
-    class_name : str
-        The name of the class for this ``Annotation``.
-    point_path : List[Point]
-        A list of points that comprises the polygon. The list should have a format similar to:
-
-        .. code-block:: python
-
-            [
-                {"x": 1, "y": 0},
-                {"x": 2, "y": 1}
-            ]
-
-    bounding_box : Optional[Dict], default: None
-        The bounding box that encompasses the polyong.
-    subs : Optional[List[SubAnnotation]], default: None
-        List of ``SubAnnotation``s for this ``Annotation``.
-
-    Returns
-    -------
-    Annotation
-        A polygon ``Annotation``.
-    """
-    return Annotation(
-        AnnotationClass(class_name, "polygon"),
-        _maybe_add_bounding_box_data({"path": point_path}, bounding_box),
-        subs or [],
-        slot_names=slot_names or [],
-    )
-
-
-def make_complex_polygon(
-    class_name: str,
-    point_paths: List[List[Point]],
+    point_paths: List[List[Point]] | List[Point],
     bounding_box: Optional[Dict] = None,
     subs: Optional[List[SubAnnotation]] = None,
     slot_names: Optional[List[str]] = None,
@@ -723,7 +681,7 @@ def make_complex_polygon(
         A complex polygon ``Annotation``.
     """
     return Annotation(
-        AnnotationClass(class_name, "complex_polygon", "polygon"),
+        AnnotationClass(class_name, "polygon", "polygon"),
         _maybe_add_bounding_box_data({"paths": point_paths}, bounding_box),
         subs or [],
         slot_names=slot_names or [],
