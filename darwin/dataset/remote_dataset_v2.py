@@ -213,7 +213,9 @@ class RemoteDatasetV2(RemoteDataset):
                     if is_relative_to(found_file, source_file)
                 ]
                 if source_files:
-                    local_path = str(found_file.relative_to(source_files[0]).parent)
+                    local_path = str(
+                        found_file.relative_to(source_files[0]).parent.as_posix()
+                    )
             uploading_files.append(
                 LocalFile(
                     found_file,

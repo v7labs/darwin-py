@@ -339,9 +339,9 @@ def _import_properties(
     # get team properties -> List[FullProperty]
     team_properties = client.get_team_properties()
     # (property-name, annotation_class_id): FullProperty object
-    team_properties_annotation_lookup: Dict[
-        Tuple[str, Optional[int]], FullProperty
-    ] = {}
+    team_properties_annotation_lookup: Dict[Tuple[str, Optional[int]], FullProperty] = (
+        {}
+    )
     for prop in team_properties:
         team_properties_annotation_lookup[(prop.name, prop.annotation_class_id)] = prop
 
@@ -414,6 +414,7 @@ def _import_properties(
                 a_prop.name,
                 annotation_class_id,
             ) not in team_properties_annotation_lookup:
+
                 # check if fullproperty exists in create_properties
                 for full_property in create_properties:
                     if (
@@ -827,9 +828,9 @@ def import_annotations(  # noqa: C901
 
     # Need to re parse the files since we didn't save the annotations in memory
     for local_path in set(local_file.path for local_file in local_files):  # noqa: C401
-        imported_files: Union[
-            List[dt.AnnotationFile], dt.AnnotationFile, None
-        ] = importer(local_path)
+        imported_files: Union[List[dt.AnnotationFile], dt.AnnotationFile, None] = (
+            importer(local_path)
+        )
         if imported_files is None:
             parsed_files = []
         elif not isinstance(imported_files, List):
@@ -1007,11 +1008,38 @@ def _handle_annotators(
     return []
 
 
+def _handle_video_annotation_subs(annotation: dt.VideoAnnotation):
+    """
+    Remove duplicate sub-annotations from the VideoAnnotation.annotation(s) to be imported.
+    """
+    last_subs = None
+    for _, _annotation in annotation.frames.items():
+        _annotation: dt.Annotation
+        subs = []
+        for sub in _annotation.subs:
+            if last_subs is not None and all(
+                any(
+                    last_sub.annotation_type == sub.annotation_type
+                    and last_sub.data == sub.data
+                    for last_sub in last_subs
+                )
+                for sub in _annotation.subs
+            ):
+                # drop sub-annotation whenever we know it didn't change since last one
+                # which likely wouldn't create on backend side sub-annotation keyframe.
+                # this is a workaround for the backend not handling duplicate sub-annotations.
+                continue
+            subs.append(sub)
+        last_subs = _annotation.subs
+        _annotation.subs = subs
+
+
 def _get_annotation_data(
     annotation: dt.AnnotationLike, annotation_class_id: str, attributes: dt.DictFreeForm
 ) -> dt.DictFreeForm:
     annotation_class = annotation.annotation_class
     if isinstance(annotation, dt.VideoAnnotation):
+        _handle_video_annotation_subs(annotation)
         data = annotation.get_data(
             only_keyframes=True,
             post_processing=lambda annotation, data: _handle_subs(
