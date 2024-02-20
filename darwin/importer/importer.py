@@ -815,7 +815,7 @@ def import_annotations(  # noqa: C901
     else:
         remote_classes = build_main_annotations_lookup_table(team_classes)
 
-    if dataset.version == 2 and delete_for_empty:
+    if delete_for_empty:
         console.print(
             "Importing annotations...\nEmpty annotation file(s) will clear all existing annotations in matching remote files.",
             style="info",
