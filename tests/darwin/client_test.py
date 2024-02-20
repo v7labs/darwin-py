@@ -7,7 +7,6 @@ import responses
 from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset.remote_dataset import RemoteDataset
-from darwin.dataset.remote_dataset_v1 import RemoteDatasetV1
 from darwin.dataset.remote_dataset_v2 import RemoteDatasetV2
 from darwin.datatypes import Feature, JSONFreeForm
 from darwin.exceptions import NameTaken, NotFound
@@ -18,13 +17,15 @@ from tests.fixtures import *  # noqa: F401, F403
 
 @pytest.fixture
 def darwin_client(
-    darwin_config_path: Path, darwin_datasets_path: Path, team_slug: str
+    darwin_config_path: Path, darwin_datasets_path: Path, team_slug_darwin_json_v2: str
 ) -> Client:
     config = Config(darwin_config_path)
     config.put(["global", "api_endpoint"], "http://localhost/api")
     config.put(["global", "base_url"], "http://localhost")
-    config.put(["teams", team_slug, "api_key"], "mock_api_key")
-    config.put(["teams", team_slug, "datasets_dir"], str(darwin_datasets_path))
+    config.put(["teams", team_slug_darwin_json_v2, "api_key"], "mock_api_key")
+    config.put(
+        ["teams", team_slug_darwin_json_v2, "datasets_dir"], str(darwin_datasets_path)
+    )
     return Client(config)
 
 
@@ -59,26 +60,25 @@ class TestListRemoteDatasets:
 
         remote_datasets = list(darwin_client.list_remote_datasets(team_slug))
 
-        for version in [RemoteDatasetV1, RemoteDatasetV2]:
-            expected_dataset_1 = version(
-                team=team_slug,
-                name="dataset-name-1",
-                slug="dataset-slug-1",
-                dataset_id=1,
-                item_count=1,
-                client=darwin_client,
-            )
-            expected_dataset_2 = version(
-                team=team_slug,
-                name="dataset-name-2",
-                slug="dataset-slug-2",
-                dataset_id=2,
-                item_count=2,
-                client=darwin_client,
-            )
+        expected_dataset_1 = RemoteDatasetV2(
+            team=team_slug,
+            name="dataset-name-1",
+            slug="dataset-slug-1",
+            dataset_id=1,
+            item_count=1,
+            client=darwin_client,
+        )
+        expected_dataset_2 = RemoteDatasetV2(
+            team=team_slug,
+            name="dataset-name-2",
+            slug="dataset-slug-2",
+            dataset_id=2,
+            item_count=2,
+            client=darwin_client,
+        )
 
-            assert_dataset(remote_datasets[0], expected_dataset_1)
-            assert_dataset(remote_datasets[1], expected_dataset_2)
+        assert_dataset(remote_datasets[0], expected_dataset_1)
+        assert_dataset(remote_datasets[1], expected_dataset_2)
 
     @responses.activate
     def test_coalesces_null_item_counts_to_zeroes(self, darwin_client: Client) -> None:
@@ -167,17 +167,16 @@ class TestGetRemoteDataset:
         )
 
         actual_dataset = darwin_client.get_remote_dataset("v7/dataset-slug-1")
-        for version in [RemoteDatasetV1, RemoteDatasetV2]:
-            expected_dataset = version(
-                team="v7",
-                name="dataset-name-1",
-                slug="dataset-slug-1",
-                dataset_id=1,
-                item_count=1,
-                client=darwin_client,
-            )
+        expected_dataset = RemoteDatasetV2(
+            team="v7",
+            name="dataset-name-1",
+            slug="dataset-slug-1",
+            dataset_id=1,
+            item_count=1,
+            client=darwin_client,
+        )
 
-            assert_dataset(actual_dataset, expected_dataset)
+        assert_dataset(actual_dataset, expected_dataset)
 
 
 @pytest.mark.usefixtures("file_read_write_test")
@@ -199,7 +198,7 @@ class TestCreateDataset:
         )
 
         actual_dataset = darwin_client.create_dataset("my-dataset", "v7")
-        expected_dataset = RemoteDatasetV1(
+        expected_dataset = RemoteDatasetV2(
             team="v7",
             name="my-dataset",
             slug="my-dataset",
@@ -228,27 +227,14 @@ class TestCreateDataset:
 
 
 @pytest.mark.usefixtures("file_read_write_test")
-class TestFetchRemoteFiles:
-    @responses.activate
-    def test_returns_remote_files(self, darwin_client: Client) -> None:
-        dataset_id = 1
-        endpoint: str = (
-            f"/datasets/{dataset_id}/items?page%5Bsize%5D=500&page%5Bfrom%5D=0"
-        )
-        responses.add(responses.POST, darwin_client.url + endpoint, json={}, status=200)
-
-        darwin_client.fetch_remote_files(
-            dataset_id, {"page[size]": 500, "page[from]": 0}, {}, "v7"
-        )
-
-
-@pytest.mark.usefixtures("file_read_write_test")
 class TestFetchRemoteClasses:
     @responses.activate
     def test_returns_remote_classes(
-        self, team_slug: str, darwin_client: Client
+        self, team_slug_darwin_json_v2: str, darwin_client: Client
     ) -> None:
-        endpoint: str = f"/teams/{team_slug}/annotation_classes?include_tags=true"
+        endpoint: str = (
+            f"/teams/{team_slug_darwin_json_v2}/annotation_classes?include_tags=true"
+        )
         response: JSONFreeForm = {
             "annotation_classes": [
                 {
@@ -272,7 +258,9 @@ class TestFetchRemoteClasses:
             responses.GET, darwin_client.url + endpoint, json=response, status=200
         )
 
-        result: List[JSONFreeForm] = darwin_client.fetch_remote_classes(team_slug)
+        result: List[JSONFreeForm] = darwin_client.fetch_remote_classes(
+            team_slug_darwin_json_v2
+        )
         annotation_class: JSONFreeForm = result[0]
 
         assert annotation_class["annotation_class_image_url"] is None
@@ -286,9 +274,9 @@ class TestFetchRemoteClasses:
 class TestGetTeamFeatures:
     @responses.activate
     def test_returns_list_of_features(
-        self, team_slug: str, darwin_client: Client
+        self, team_slug_darwin_json_v2: str, darwin_client: Client
     ) -> None:
-        endpoint: str = f"/teams/{team_slug}/features"
+        endpoint: str = f"/teams/{team_slug_darwin_json_v2}/features"
         json_response = [
             {"enabled": False, "name": "WORKFLOW_V2"},
             {"enabled": True, "name": "BLIND_STAGE"},
@@ -298,76 +286,10 @@ class TestGetTeamFeatures:
             responses.GET, darwin_client.url + endpoint, json=json_response, status=200
         )
 
-        assert darwin_client.get_team_features(team_slug) == [
+        assert darwin_client.get_team_features(team_slug_darwin_json_v2) == [
             Feature(name="WORKFLOW_V2", enabled=False),
             Feature(name="BLIND_STAGE", enabled=True),
         ]
-
-
-@pytest.mark.usefixtures("file_read_write_test")
-class TestInstantiateItem:
-    @responses.activate
-    def test_raises_if_workflow_id_is_not_found(self, darwin_client: Client) -> None:
-        item_id: int = 1234
-        endpoint: str = f"/dataset_items/{item_id}/workflow"
-        json_response: JSONFreeForm = {}
-
-        responses.add(
-            responses.POST, darwin_client.url + endpoint, json=json_response, status=200
-        )
-
-        with pytest.raises(ValueError) as exception:
-            darwin_client.instantiate_item(item_id)
-
-        assert str(exception.value) == f"No Workflow Id found for item_id: {item_id}"
-
-    @responses.activate
-    def test_returns_workflow_id(self, darwin_client: Client) -> None:
-        item_id: int = 1234
-        workflow_id: int = 1
-        endpoint: str = f"/dataset_items/{item_id}/workflow"
-        json_response: JSONFreeForm = {"current_workflow_id": workflow_id}
-
-        responses.add(
-            responses.POST, darwin_client.url + endpoint, json=json_response, status=200
-        )
-        assert darwin_client.instantiate_item(item_id) == workflow_id
-
-
-@pytest.mark.usefixtures("file_read_write_test")
-class TestWorkflowComment:
-    @responses.activate
-    def test_raises_if_comment_id_is_not_found(self, darwin_client: Client) -> None:
-        workflow_id = 1234
-        endpoint: str = f"/workflows/{workflow_id}/workflow_comment_threads"
-        json_response: JSONFreeForm = {}
-
-        responses.add(
-            responses.POST, darwin_client.url + endpoint, json=json_response, status=200
-        )
-
-        with pytest.raises(ValueError) as exception:
-            darwin_client.post_workflow_comment(workflow_id, "My comment.")
-
-        assert (
-            str(exception.value)
-            == f"Unable to retrieve comment id for workflow: {workflow_id}."
-        )
-
-    @responses.activate
-    def test_returns_comment_id(self, darwin_client: Client) -> None:
-        comment_id: int = 1234
-        workflow_id: int = 1
-        endpoint: str = f"/workflows/{workflow_id}/workflow_comment_threads"
-        json_response: JSONFreeForm = {"id": comment_id}
-
-        responses.add(
-            responses.POST, darwin_client.url + endpoint, json=json_response, status=200
-        )
-        assert (
-            darwin_client.post_workflow_comment(workflow_id, "My comment.")
-            == comment_id
-        )
 
 
 def assert_dataset(dataset_1: RemoteDataset, dataset_2: RemoteDataset) -> None:
@@ -422,10 +344,9 @@ def test__get_item_count_should_tolerate_missing_members() -> None:
 class TestGetTeamProperties:
     @responses.activate
     def test_get_team_properties(self, darwin_client: Client) -> None:
-
         responses.add(
             responses.GET,
-            "http://localhost/apiv2/teams/v7-darwin-json-v1/properties?include_values=true",
+            "http://localhost/apiv2/teams/v7-darwin-json-v2/properties?include_values=true",
             json={
                 "properties": [
                     {
@@ -473,12 +394,12 @@ class TestCreateProperty:
     ) -> None:
         responses.add(
             responses.POST,
-            "http://localhost/apiv2/teams/v7-darwin-json-v1/properties",
+            "http://localhost/apiv2/teams/v7-darwin-json-v2/properties",
             json=base_property_object.dict(),
             status=200,
         )
         _property = darwin_client.create_property(
-            team_slug="v7-darwin-json-v1", params=base_property_object
+            team_slug="v7-darwin-json-v2", params=base_property_object
         )
         assert isinstance(_property, FullProperty)
         assert _property == base_property_object
@@ -489,12 +410,12 @@ class TestCreateProperty:
     ) -> None:
         responses.add(
             responses.POST,
-            "http://localhost/apiv2/teams/v7-darwin-json-v1/properties",
+            "http://localhost/apiv2/teams/v7-darwin-json-v2/properties",
             json=base_property_object.dict(),
             status=200,
         )
         _property = darwin_client.create_property(
-            team_slug="v7-darwin-json-v1", params=base_property_object.dict()
+            team_slug="v7-darwin-json-v2", params=base_property_object.dict()
         )
         assert isinstance(_property, FullProperty)
         assert _property == base_property_object
@@ -509,12 +430,12 @@ class TestUpdateProperty:
         property_id = base_property_object.id
         responses.add(
             responses.PUT,
-            f"http://localhost/apiv2/teams/v7-darwin-json-v1/properties/{property_id}",
+            f"http://localhost/apiv2/teams/v7-darwin-json-v2/properties/{property_id}",
             json=base_property_object.dict(),
             status=200,
         )
         _property = darwin_client.update_property(
-            team_slug="v7-darwin-json-v1", params=base_property_object
+            team_slug="v7-darwin-json-v2", params=base_property_object
         )
         assert isinstance(_property, FullProperty)
         assert _property == base_property_object
@@ -526,12 +447,12 @@ class TestUpdateProperty:
         property_id = base_property_object.id
         responses.add(
             responses.PUT,
-            f"http://localhost/apiv2/teams/v7-darwin-json-v1/properties/{property_id}",
+            f"http://localhost/apiv2/teams/v7-darwin-json-v2/properties/{property_id}",
             json=base_property_object.dict(),
             status=200,
         )
         _property = darwin_client.update_property(
-            team_slug="v7-darwin-json-v1", params=base_property_object.dict()
+            team_slug="v7-darwin-json-v2", params=base_property_object.dict()
         )
         assert isinstance(_property, FullProperty)
         assert _property == base_property_object

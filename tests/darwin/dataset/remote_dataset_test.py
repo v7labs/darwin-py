@@ -12,8 +12,8 @@ from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset import RemoteDataset
 from darwin.dataset.release import Release
-from darwin.dataset.remote_dataset_v1 import RemoteDatasetV1
-from darwin.dataset.upload_manager import LocalFile, UploadHandlerV1
+from darwin.dataset.remote_dataset_v2 import RemoteDatasetV2
+from darwin.dataset.upload_manager import LocalFile, UploadHandlerV2
 from darwin.exceptions import UnsupportedExportFormat, UnsupportedFileType
 from darwin.item import DatasetItem
 from tests.fixtures import *
@@ -26,47 +26,115 @@ def annotation_name() -> str:
 
 @pytest.fixture
 def annotation_content() -> Dict[str, Any]:
+    # return {
+    #     "image": {
+    #         "width": 1920,
+    #         "height": 1080,
+    #         "filename": "test_video.mp4",
+    #         "fps": 20.0,
+    #         "frame_urls": ["frame_1.jpg", "frame_2.jpg", "frame_3.jpg"],
+    #     },
+    #     "annotations": [
+    #         {
+    #             "frames": {
+    #                 "0": {
+    #                     "polygon": {
+    #                         "path": [
+    #                             {"x": 0, "y": 0},
+    #                             {"x": 1, "y": 1},
+    #                             {"x": 1, "y": 0},
+    #                         ]
+    #                     }
+    #                 },
+    #                 "2": {
+    #                     "polygon": {
+    #                         "path": [
+    #                             {"x": 5, "y": 5},
+    #                             {"x": 6, "y": 6},
+    #                             {"x": 6, "y": 5},
+    #                         ]
+    #                     }
+    #                 },
+    #                 "4": {
+    #                     "polygon": {
+    #                         "path": [
+    #                             {"x": 9, "y": 9},
+    #                             {"x": 8, "y": 8},
+    #                             {"x": 8, "y": 9},
+    #                         ]
+    #                     }
+    #                 },
+    #             },
+    #             "name": "test_class",
+    #             "segments": [[0, 3]],
+    #         }
+    #     ],
+    # }
     return {
-        "image": {
-            "width": 1920,
-            "height": 1080,
-            "filename": "test_video.mp4",
-            "fps": 20.0,
-            "frame_urls": ["frame_1.jpg", "frame_2.jpg", "frame_3.jpg"],
+        "version": "2.0",
+        "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
+        "item": {
+            "name": "test_video.mp4",
+            "path": "/",
+            "source_info": {
+                "dataset": {
+                    "name": "v7-darwin-json-v2",
+                    "slug": "v7-darwin-json-v2",
+                    "dataset_management_url": "test_url",
+                },
+                "item_id": "test_item_id",
+                "team": {"name": "Test team", "slug": "test-team"},
+                "workview_url": "test_url",
+            },
+            "slots": [
+                {
+                    "type": "video",
+                    "slot_name": "0",
+                    "width": 1920,
+                    "height": 1080,
+                    "fps": 20.0,
+                    "thumbnail_url": "",
+                    "source_files": [{"file_name": "test_video.mp4", "url": ""}],
+                    "frame_count": 3,
+                    "frame_urls": ["frame_1.jpg", "frame_2.jpg", "frame_3.jpg"],
+                }
+            ],
         },
         "annotations": [
             {
+                "name": "test_class",
+                "slot_names": ["0"],
+                "ranges": [[0, 3]],
+                "id": "test_id",
                 "frames": {
                     "0": {
+                        "bounding_box": {"x": 0, "y": 0, "w": 1, "h": 1},
                         "polygon": {
-                            "path": [
-                                {"x": 0, "y": 0},
-                                {"x": 1, "y": 1},
-                                {"x": 1, "y": 0},
-                            ]
-                        }
+                            "paths": [
+                                [{"x": 0, "y": 0}, {"x": 1, "y": 1}, {"x": 1, "y": 0}]
+                            ],
+                        },
+                        "keyframe": True,
                     },
                     "2": {
+                        "bounding_box": {"x": 5, "y": 5, "w": 1, "h": 1},
                         "polygon": {
-                            "path": [
-                                {"x": 5, "y": 5},
-                                {"x": 6, "y": 6},
-                                {"x": 6, "y": 5},
-                            ]
-                        }
+                            "paths": [
+                                [{"x": 5, "y": 5}, {"x": 6, "y": 6}, {"x": 6, "y": 5}]
+                            ],
+                        },
+                        "keyframe": True,
                     },
                     "4": {
+                        "bounding_box": {"x": 8, "y": 8, "w": 1, "h": 1},
                         "polygon": {
-                            "path": [
-                                {"x": 9, "y": 9},
-                                {"x": 8, "y": 8},
-                                {"x": 8, "y": 9},
-                            ]
-                        }
+                            "paths": [
+                                [{"x": 9, "y": 9}, {"x": 8, "y": 8}, {"x": 8, "y": 9}]
+                            ],
+                        },
+                        "keyframe": True,
                     },
                 },
-                "name": "test_class",
-                "segments": [[0, 3]],
             }
         ],
     }
@@ -74,20 +142,24 @@ def annotation_content() -> Dict[str, Any]:
 
 @pytest.fixture
 def darwin_client(
-    darwin_config_path: Path, darwin_datasets_path: Path, team_slug: str
+    darwin_config_path: Path,
+    darwin_datasets_path: Path,
+    team_slug_darwin_json_v2: str,
 ) -> Client:
     config = Config(darwin_config_path)
     config.put(["global", "api_endpoint"], "http://localhost/api")
     config.put(["global", "base_url"], "http://localhost")
-    config.put(["teams", team_slug, "api_key"], "mock_api_key")
-    config.put(["teams", team_slug, "datasets_dir"], str(darwin_datasets_path))
+    config.put(["teams", team_slug_darwin_json_v2, "api_key"], "mock_api_key")
+    config.put(
+        ["teams", team_slug_darwin_json_v2, "datasets_dir"], str(darwin_datasets_path)
+    )
     return Client(config)
 
 
 @pytest.fixture
 def create_annotation_file(
     darwin_datasets_path: Path,
-    team_slug: str,
+    team_slug_darwin_json_v2: str,
     dataset_slug: str,
     release_name: str,
     annotation_name: str,
@@ -95,7 +167,7 @@ def create_annotation_file(
 ):
     annotations: Path = (
         darwin_datasets_path
-        / team_slug
+        / team_slug_darwin_json_v2
         / dataset_slug
         / "releases"
         / release_name
@@ -113,229 +185,130 @@ def files_content() -> Dict[str, Any]:
     return {
         "items": [
             {
-                "archived": False,
-                "archived_reason": None,
-                "current_workflow": {
-                    "current_stage_number": 1,
-                    "current_workflow_stage_template_id": 1258,
-                    "dataset_item_id": 386074,
-                    "id": 34533,
-                    "stages": {
-                        "1": [
-                            {
-                                "assignee_id": 172,
-                                "completed": False,
-                                "completes_at": None,
-                                "dataset_item_id": 386074,
-                                "id": 106630,
-                                "metadata": {},
-                                "number": 1,
-                                "skipped": False,
-                                "skipped_reason": None,
-                                "template_metadata": {
-                                    "assignable_to": "manual",
-                                    "base_sampling_rate": 1.0,
-                                    "user_sampling_rate": 1.0,
-                                },
-                                "type": "annotate",
-                                "workflow_id": 34533,
-                                "workflow_stage_template_id": 1258,
-                            }
-                        ],
-                        "2": [
-                            {
-                                "assignee_id": None,
-                                "completed": False,
-                                "completes_at": None,
-                                "dataset_item_id": 386074,
-                                "id": 106631,
-                                "metadata": {},
-                                "number": 2,
-                                "skipped": False,
-                                "skipped_reason": None,
-                                "template_metadata": {
-                                    "assignable_to": "any_user",
-                                    "base_sampling_rate": 1.0,
-                                    "readonly": False,
-                                    "user_sampling_rate": 1.0,
-                                },
-                                "type": "review",
-                                "workflow_id": 34533,
-                                "workflow_stage_template_id": 1259,
-                            }
-                        ],
-                        "3": [
-                            {
-                                "assignee_id": None,
-                                "completed": False,
-                                "completes_at": None,
-                                "dataset_item_id": 386074,
-                                "id": 106632,
-                                "metadata": {},
-                                "number": 3,
-                                "skipped": False,
-                                "skipped_reason": None,
-                                "template_metadata": {},
-                                "type": "complete",
-                                "workflow_id": 34533,
-                                "workflow_stage_template_id": 1260,
-                            }
-                        ],
-                    },
-                    "status": "annotate",
-                    "workflow_template_id": 455,
-                },
-                "current_workflow_id": 34533,
-                "dataset_id": 312,
-                "dataset_image": {
-                    "dataset_id": 312,
-                    "dataset_video_id": None,
-                    "id": 192905,
-                    "image": {
-                        "external": False,
-                        "height": 3024,
-                        "id": 171674,
-                        "key": "data/datasets/312/originals/00000006.jpg",
-                        "original_filename": "dan-gold-Q_2p94h8rjI-unsplash.jpg",
-                        "thumbnail_url": "https://localhost/data/datasets/312/thumbnails/00000006.jpg?Policy=eyJTdGF0ZW1lbnQiOlt7IkNvbmRpdGlvbiI6eyJEYXRlTGVzc1RoYW4iOnsiQVdTOkVwb2NoVGltZSI6MTYyNjUxMDE5Mn19LCJSZXNvdXJjZSI6Imh0dHBzOi8vc3RhZ2luZy52N2xhYnMuY29tL2RhdGEvZGF0YXNldHMvMzEyL3RodW1ibmFpbHMvMDAwMDAwMDYuanBnIn1dfQ==&Signature=iVrFk5qiDohQnr5UUgBAFsJtXC3G8rBSNmQTFeIjP2M4HE5QASII/rikRLDbMvRtG2QopWIpohclGp8tFEi2W1moo5LOQ69S+wmEulfr38ZWz4BHinzVesmC/oNeU0hGNeFKkkKlezDE2kOZADWx5fbgRBmRcsqXWM5aTpxn97G7GhmhQtzgKJB3uY4HSpMLw+/6R3m5g86c5mlzogBa6wdisN8AWNs8ftyQrFQiucHKfV0NyHgsFr8+zzSDbh6qp1A62d++IvDn3NWMMZju3bJMvmHGsuW2BqL4JbXHICQsIQSnpkLvCuqNsxqSrMzkeBgpjrT3E0YX7RVAseLAPA==&Key-Pair-Id=APKAIQLX6XUIH32V3QKA",
-                        "uploaded": True,
-                        "url": "https://localhost/data/datasets/312/originals/00000006.jpg?Policy=eyJTdGF0ZW1lbnQiOlt7IkNvbmRpdGlvbiI6eyJEYXRlTGVzc1RoYW4iOnsiQVdTOkVwb2NoVGltZSI6MTYyNjUxMDE5Mn19LCJSZXNvdXJjZSI6Imh0dHBzOi8vc3RhZ2luZy52N2xhYnMuY29tL2RhdGEvZGF0YXNldHMvMzEyL29yaWdpbmFscy8wMDAwMDAwNi5qcGcifV19&Signature=TYxoSOGeANEgjiGsG2krf4m0D3Xev/1w47pvwXL3kVhP50xTkgg7Zhy3XUg6bxQCWaJwsBgwxf6txqUzKUQxCzUHw131bZ4+il6tu9d8xUmoVcx/GpviNDbOmdTxJlPqqggR5xxgFTFj6EQ+kvR02MNbhLstHJpNJNf00TzYeQLhTTa/8XC99keuJ3wlZVuVz3yny3zTlAfYWd9t5SkTkeqQtn7T0Vm8IYrk3khOdJbI4kp65iHGu/3uuNsDKZI57D2A3jRMGOIiAKXNP4ZZfL3oBkYf3nn8oCdiOQ/dik5SBYutgif0QcJWH/dZ9wziKEV1k+tnlX+dZ1NiUwT2hQ==&Key-Pair-Id=APKAIQLX6XUIH32V3QKA",
-                        "width": 4032,
-                    },
-                    "seq": 6,
-                    "set": 1625492879,
-                },
-                "dataset_image_id": 192905,
-                "dataset_video": None,
-                "dataset_video_id": None,
-                "file_size": 2911814,
-                "filename": "dan-gold-Q_2p94h8rjI-unsplash.jpg",
-                "height": 3024,
-                "id": 386074,
-                "inserted_at": "2021-07-05T13:47:59",
-                "labels": [875],
-                "path": "/",
+                "id": "018c6826-766c-d596-44b3-46159c7c23bc",
+                "name": "segment_1.mp4",
                 "priority": 0,
-                "seq": 6,
-                "set": 1625492879,
-                "status": "annotate",
-                "type": "image",
-                "updated_at": "2021-07-06T14:07:24",
-                "width": 4032,
+                "status": "new",
+                "path": "/",
+                "tags": [],
+                "cursor": "018c6826-766c-d596-44b3-46159c7c23bc",
+                "layout": {"type": "simple", "version": 1, "slots": ["0"]},
+                "uploads": [],
+                "slots": [
+                    {
+                        "id": "daf0b44e-b328-4d6b-8148-e7f348cd16f5",
+                        "type": "video",
+                        "metadata": {
+                            "height": 1920,
+                            "native_fps": 30,
+                            "segment_index": [
+                                "#EXTM3U",
+                                "#EXT-X-VERSION:3",
+                                "#EXT-X-TARGETDURATION:11",
+                                "#EXT-X-MEDIA-SEQUENCE:0",
+                                "#EXTINF:11.500000,",
+                                "data/teams/3961/partition_53/018c6826-766c-d596-44b3-46159c7c23bc/uploads/dc647e0e-917f-4586-8b51-2ebc37613884.mp4/segments/000000000.ts",
+                                "#EXT-X-ENDLIST",
+                                "",
+                            ],
+                            "width": 1080,
+                        },
+                        "file_name": "segment_1.mp4",
+                        "fps": 0.58,
+                        "slot_name": "0",
+                        "total_sections": 7,
+                        "sectionless": False,
+                        "upload_id": "dc647e0e-917f-4586-8b51-2ebc37613884",
+                        "size_bytes": 12220902,
+                        "is_external": False,
+                        "streamable": True,
+                    }
+                ],
+                "inserted_at": "2023-12-14T11:46:40Z",
+                "updated_at": "2023-12-14T11:46:40Z",
+                "dataset_id": 611387,
+                "archived": False,
+                "processing_status": "complete",
+                "workflow_status": "new",
+                "slot_types": ["video"],
             },
             {
-                "archived": False,
-                "archived_reason": None,
-                "current_workflow": {
-                    "current_stage_number": 2,
-                    "current_workflow_stage_template_id": 1259,
-                    "dataset_item_id": 386073,
-                    "id": 34532,
-                    "stages": {
-                        "1": [
-                            {
-                                "assignee_id": 172,
-                                "completed": True,
-                                "completes_at": None,
-                                "dataset_item_id": 386073,
-                                "id": 106627,
-                                "metadata": {},
-                                "number": 1,
-                                "skipped": False,
-                                "skipped_reason": None,
-                                "template_metadata": {
-                                    "assignable_to": "manual",
-                                    "base_sampling_rate": 1.0,
-                                    "user_sampling_rate": 1.0,
-                                },
-                                "type": "annotate",
-                                "workflow_id": 34532,
-                                "workflow_stage_template_id": 1258,
-                            }
-                        ],
-                        "2": [
-                            {
-                                "assignee_id": 172,
-                                "completed": False,
-                                "completes_at": None,
-                                "dataset_item_id": 386073,
-                                "id": 106628,
-                                "metadata": {"previous_stage_number": 1},
-                                "number": 2,
-                                "skipped": False,
-                                "skipped_reason": None,
-                                "template_metadata": {
-                                    "assignable_to": "any_user",
-                                    "base_sampling_rate": 1.0,
-                                    "readonly": False,
-                                    "user_sampling_rate": 1.0,
-                                },
-                                "type": "review",
-                                "workflow_id": 34532,
-                                "workflow_stage_template_id": 1259,
-                            }
-                        ],
-                        "3": [
-                            {
-                                "assignee_id": None,
-                                "completed": False,
-                                "completes_at": None,
-                                "dataset_item_id": 386073,
-                                "id": 106629,
-                                "metadata": {},
-                                "number": 3,
-                                "skipped": False,
-                                "skipped_reason": None,
-                                "template_metadata": {},
-                                "type": "complete",
-                                "workflow_id": 34532,
-                                "workflow_stage_template_id": 1260,
-                            }
-                        ],
-                    },
-                    "status": "review",
-                    "workflow_template_id": 455,
-                },
-                "current_workflow_id": 34532,
-                "dataset_id": 312,
-                "dataset_image": {
-                    "dataset_id": 312,
-                    "dataset_video_id": None,
-                    "id": 192904,
-                    "image": {
-                        "external": False,
-                        "height": 3344,
-                        "id": 171673,
-                        "key": "data/datasets/312/originals/00000005.jpg",
-                        "original_filename": "dan-gold-N7RiDzfF2iw-unsplash.jpg",
-                        "thumbnail_url": "https://localhost/data/datasets/312/thumbnails/00000005.jpg?Policy=eyJTdGF0ZW1lbnQiOlt7IkNvbmRpdGlvbiI6eyJEYXRlTGVzc1RoYW4iOnsiQVdTOkVwb2NoVGltZSI6MTYyNjUxMDE5Mn19LCJSZXNvdXJjZSI6Imh0dHBzOi8vc3RhZ2luZy52N2xhYnMuY29tL2RhdGEvZGF0YXNldHMvMzEyL3RodW1ibmFpbHMvMDAwMDAwMDUuanBnIn1dfQ==&Signature=issN9nvtEYfIQWiK5K1o+zOOOPkUb6aIbehuI/JqG/Yytq5UxGsnWzot880FlFF2yIQ6nsbRexvWCc7EO41oJGVx8qMRISbDMvbDkmj//uGlh1bjE7W6GntcBVmNh71JWgzDyNKUq8H8sScQpv1DQ9B6LOs1bPmPor3nfm3RFmobAJo5Yh5qeGJ0nSlpNH1+DUqI3fnLC7vV/w+tFdQVyswHIIKYKNEUk1indVbsLazLjpUpr5E9Vv7yUjq1adw2uXyGrPbWobxgvMkFK7lpHJVtTq3FTCpwMso7xbkb6VppSEkKnH+FLfa661U35rUKnH1DYBOnv3Q7HGDUGeKEDQ==&Key-Pair-Id=APKAIQLX6XUIH32V3QKA",
-                        "uploaded": True,
-                        "url": "https://localhost/data/datasets/312/originals/00000005.jpg?Policy=eyJTdGF0ZW1lbnQiOlt7IkNvbmRpdGlvbiI6eyJEYXRlTGVzc1RoYW4iOnsiQVdTOkVwb2NoVGltZSI6MTYyNjUxMDE5Mn19LCJSZXNvdXJjZSI6Imh0dHBzOi8vc3RhZ2luZy52N2xhYnMuY29tL2RhdGEvZGF0YXNldHMvMzEyL29yaWdpbmFscy8wMDAwMDAwNS5qcGcifV19&Signature=HgKTEtl7nK2dKCf5jzECx+p/TdiICQkXw8sTGiLUFotn9iI5e46PCF+ShTvBXrVG9uhvIv0ifrmGmjSapA9vOXGHvyFRo/+RkcVjvQGhvg5B7JCS6ii3nolLZraqr5kHR4otNKwxs0+oynsliJSmffK+o7EPpYlrZ4Xqx/nXG5W9qSk4ndvSrC822VulzbARjPupC4lGMoHA+AUALnC8y9JXPmouexGeRBcQ+y8Bg7WD0hEbbPe20JvzGDc8JwJ6mu9wCZfbFC/RS3AWCudUXvXbl1X3PWt9DQveTO60zO9/xB+ubKu6Cj9np9ol45TJUGEfrLsdT5CkFL2+J8ZgTg==&Key-Pair-Id=APKAIQLX6XUIH32V3QKA",
-                        "width": 5943,
-                    },
-                    "seq": 5,
-                    "set": 1625492879,
-                },
-                "dataset_image_id": 192904,
-                "dataset_video": None,
-                "dataset_video_id": None,
-                "file_size": 2613529,
-                "filename": "dan-gold-N7RiDzfF2iw-unsplash.jpg",
-                "height": 3344,
-                "id": 386073,
-                "inserted_at": "2021-07-05T13:47:59",
-                "labels": [875],
-                "path": "/",
+                "id": "018cf7e3-a43d-8d2b-cc04-375004360f51",
+                "name": "hang_-_30902 (540p).mp4",
                 "priority": 0,
-                "seq": 5,
-                "set": 1625492879,
-                "status": "review",
-                "type": "image",
-                "updated_at": "2021-07-06T14:06:02",
-                "width": 5943,
+                "status": "new",
+                "path": "/",
+                "tags": [],
+                "cursor": "018cf7e3-a43d-8d2b-cc04-375004360f51",
+                "layout": {"type": "simple", "version": 1, "slots": ["0"]},
+                "uploads": [],
+                "slots": [
+                    {
+                        "id": "8d8ebdd0-e405-4ff4-9899-ecc91f39322c",
+                        "type": "video",
+                        "metadata": {
+                            "frames_manifests": [
+                                {
+                                    "total_frames": 611,
+                                    "url": "https://darwin.v7labs.com/s/data/teams/3961/partition_53/018cf7e3-a43d-8d2b-cc04-375004360f51/uploads/fc994bd0-61a7-4c1f-b9d2-0715b3c51e13.mp4/frames_manifest.txt?token=SFMyNTY.eyJleHAiOjE3MDcwNjkxOTcsImtleV9wcmVmaXgiOiJkYXRhL3RlYW1zLzM5NjEvcGFydGl0aW9uXzUzLzAxOGNmN2UzLWE0M2QtOGQyYi1jYzA0LTM3NTAwNDM2MGY1MS8ifQ.A5lUGz5VFnzEs6NUi4vYw9mw17kqGSzu0FVoBBt1oXE",
+                                    "visible_frames": 25,
+                                }
+                            ],
+                            "height": 540,
+                            "native_fps": 25,
+                            "segment_index": [
+                                "#EXTM3U",
+                                "#EXT-X-VERSION:3",
+                                "#EXT-X-TARGETDURATION:3",
+                                "#EXT-X-MEDIA-SEQUENCE:0",
+                                "#EXTINF:3.040000,",
+                                "data/teams/3961/partition_53/018cf7e3-a43d-8d2b-cc04-375004360f51/uploads/fc994bd0-61a7-4c1f-b9d2-0715b3c51e13.mp4/segments/000000000.ts",
+                                "#EXTINF:3.040000,",
+                                "data/teams/3961/partition_53/018cf7e3-a43d-8d2b-cc04-375004360f51/uploads/fc994bd0-61a7-4c1f-b9d2-0715b3c51e13.mp4/segments/000000001.ts",
+                                "#EXTINF:3.040000,",
+                                "data/teams/3961/partition_53/018cf7e3-a43d-8d2b-cc04-375004360f51/uploads/fc994bd0-61a7-4c1f-b9d2-0715b3c51e13.mp4/segments/000000002.ts",
+                                "#EXTINF:3.040000,",
+                                "data/teams/3961/partition_53/018cf7e3-a43d-8d2b-cc04-375004360f51/uploads/fc994bd0-61a7-4c1f-b9d2-0715b3c51e13.mp4/segments/000000003.ts",
+                                "#EXTINF:3.040000,",
+                                "data/teams/3961/partition_53/018cf7e3-a43d-8d2b-cc04-375004360f51/uploads/fc994bd0-61a7-4c1f-b9d2-0715b3c51e13.mp4/segments/000000004.ts",
+                                "#EXTINF:3.040000,",
+                                "data/teams/3961/partition_53/018cf7e3-a43d-8d2b-cc04-375004360f51/uploads/fc994bd0-61a7-4c1f-b9d2-0715b3c51e13.mp4/segments/000000005.ts",
+                                "#EXTINF:3.040000,",
+                                "data/teams/3961/partition_53/018cf7e3-a43d-8d2b-cc04-375004360f51/uploads/fc994bd0-61a7-4c1f-b9d2-0715b3c51e13.mp4/segments/000000006.ts",
+                                "#EXTINF:3.040000,",
+                                "data/teams/3961/partition_53/018cf7e3-a43d-8d2b-cc04-375004360f51/uploads/fc994bd0-61a7-4c1f-b9d2-0715b3c51e13.mp4/segments/000000007.ts",
+                                "#EXTINF:0.120000,",
+                                "data/teams/3961/partition_53/018cf7e3-a43d-8d2b-cc04-375004360f51/uploads/fc994bd0-61a7-4c1f-b9d2-0715b3c51e13.mp4/segments/000000008.ts",
+                                "#EXT-X-ENDLIST",
+                                "",
+                            ],
+                            "width": 960,
+                        },
+                        "file_name": "hang_-_30902 (540p).mp4",
+                        "fps": 1,
+                        "slot_name": "0",
+                        "total_sections": 25,
+                        "sectionless": True,
+                        "upload_id": "fc994bd0-61a7-4c1f-b9d2-0715b3c51e13",
+                        "size_bytes": 5754208,
+                        "is_external": False,
+                        "streamable": True,
+                    }
+                ],
+                "inserted_at": "2024-01-11T09:39:00Z",
+                "updated_at": "2024-01-25T23:05:35.454727Z",
+                "dataset_id": 611387,
+                "archived": False,
+                "processing_status": "complete",
+                "workflow_status": "new",
+                "slot_types": ["video"],
             },
         ],
-        "metadata": {"next": None, "previous": "2021-07-06 14:07:24,6"},
+        "page": {
+            "count": 2,
+            "next": None,
+            "previous": "018c6826-766c-d596-44b3-46159c7c23bc",
+        },
     }
 
 
@@ -368,11 +341,11 @@ class TestSplitVideoAnnotations:
         dataset_name: str,
         dataset_slug: str,
         release_name: str,
-        team_slug: str,
+        team_slug_darwin_json_v2: str,
     ):
-        remote_dataset = RemoteDatasetV1(
+        remote_dataset = RemoteDatasetV2(
             client=darwin_client,
-            team=team_slug,
+            team=team_slug_darwin_json_v2,
             name=dataset_name,
             slug=dataset_slug,
             dataset_id=1,
@@ -382,7 +355,7 @@ class TestSplitVideoAnnotations:
 
         video_path = (
             darwin_datasets_path
-            / team_slug
+            / team_slug_darwin_json_v2
             / dataset_slug
             / "releases"
             / release_name
@@ -397,57 +370,129 @@ class TestSplitVideoAnnotations:
 
         with (video_path / "0000000.json").open() as f:
             assert json.loads(f.read()) == {
+                "version": "2.0",
+                "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
+                "item": {
+                    "name": "test_video/0000000.png",
+                    "path": "/",
+                    "source_info": {
+                        "dataset": {
+                            "name": "v7-darwin-json-v2",
+                            "slug": "v7-darwin-json-v2",
+                        },
+                        "item_id": "test_item_id",
+                        "team": {
+                            "name": "v7-darwin-json-v2",
+                            "slug": "v7-darwin-json-v2",
+                        },
+                        "workview_url": "test_url",
+                    },
+                    "slots": [
+                        {
+                            "type": "video",
+                            "slot_name": "0",
+                            "width": 1920,
+                            "height": 1080,
+                            "thumbnail_url": "",
+                            "source_files": [
+                                {"file_name": "test_video.mp4", "url": ""}
+                            ],
+                        }
+                    ],
+                },
                 "annotations": [
                     {
+                        "id": "test_id",
                         "name": "test_class",
                         "polygon": {
-                            "path": [
-                                {"x": 0, "y": 0},
-                                {"x": 1, "y": 1},
-                                {"x": 1, "y": 0},
+                            "paths": [
+                                [{"x": 0, "y": 0}, {"x": 1, "y": 1}, {"x": 1, "y": 0}]
                             ]
                         },
+                        "bounding_box": {"h": 1, "w": 1, "x": 0, "y": 0},
                     }
                 ],
-                "image": {
-                    "filename": "test_video/0000000.png",
-                    "height": 1080,
-                    "url": "frame_1.jpg",
-                    "width": 1920,
-                },
             }
 
         with (video_path / "0000001.json").open() as f:
             assert json.loads(f.read()) == {
-                "annotations": [],
-                "image": {
-                    "filename": "test_video/0000001.png",
-                    "height": 1080,
-                    "url": "frame_2.jpg",
-                    "width": 1920,
+                "version": "2.0",
+                "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
+                "item": {
+                    "name": "test_video/0000001.png",
+                    "path": "/",
+                    "source_info": {
+                        "dataset": {
+                            "name": "v7-darwin-json-v2",
+                            "slug": "v7-darwin-json-v2",
+                        },
+                        "item_id": "test_item_id",
+                        "team": {
+                            "name": "v7-darwin-json-v2",
+                            "slug": "v7-darwin-json-v2",
+                        },
+                        "workview_url": "test_url",
+                    },
+                    "slots": [
+                        {
+                            "type": "video",
+                            "slot_name": "0",
+                            "width": 1920,
+                            "height": 1080,
+                            "thumbnail_url": "",
+                            "source_files": [
+                                {"file_name": "test_video.mp4", "url": ""}
+                            ],
+                        }
+                    ],
                 },
+                "annotations": [],
             }
 
         with (video_path / "0000002.json").open() as f:
             assert json.loads(f.read()) == {
+                "version": "2.0",
+                "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
+                "item": {
+                    "name": "test_video/0000002.png",
+                    "path": "/",
+                    "source_info": {
+                        "dataset": {
+                            "name": "v7-darwin-json-v2",
+                            "slug": "v7-darwin-json-v2",
+                        },
+                        "item_id": "test_item_id",
+                        "team": {
+                            "name": "v7-darwin-json-v2",
+                            "slug": "v7-darwin-json-v2",
+                        },
+                        "workview_url": "test_url",
+                    },
+                    "slots": [
+                        {
+                            "type": "video",
+                            "slot_name": "0",
+                            "width": 1920,
+                            "height": 1080,
+                            "thumbnail_url": "",
+                            "source_files": [
+                                {"file_name": "test_video.mp4", "url": ""}
+                            ],
+                        }
+                    ],
+                },
                 "annotations": [
                     {
+                        "id": "test_id",
                         "name": "test_class",
                         "polygon": {
-                            "path": [
-                                {"x": 5, "y": 5},
-                                {"x": 6, "y": 6},
-                                {"x": 6, "y": 5},
+                            "paths": [
+                                [{"x": 5, "y": 5}, {"x": 6, "y": 6}, {"x": 6, "y": 5}]
                             ]
                         },
+                        "bounding_box": {"h": 1, "w": 1, "x": 5, "y": 5},
                     }
                 ],
-                "image": {
-                    "filename": "test_video/0000002.png",
-                    "height": 1080,
-                    "url": "frame_3.jpg",
-                    "width": 1920,
-                },
             }
 
 
@@ -459,19 +504,19 @@ class TestFetchRemoteFiles:
         darwin_client: Client,
         dataset_name: str,
         dataset_slug: str,
-        team_slug: str,
+        team_slug_darwin_json_v2: str,
         files_content: dict,
     ):
-        remote_dataset = RemoteDatasetV1(
+        remote_dataset = RemoteDatasetV2(
             client=darwin_client,
-            team=team_slug,
+            team=team_slug_darwin_json_v2,
             name=dataset_name,
             slug=dataset_slug,
             dataset_id=1,
         )
-        url = "http://localhost/api/datasets/1/items?page%5Bsize%5D=500"
+        url = "http://localhost/api/v2/teams/v7-darwin-json-v2/items?page%5Bsize%5D=500&include_workflow_data=true&dataset_ids%5B%5D=1"
         responses.add(
-            responses.POST,
+            responses.GET,
             url,
             json=files_content,
             status=200,
@@ -485,8 +530,8 @@ class TestFetchRemoteFiles:
 
         assert responses.assert_call_count(url, 1) is True
 
-        assert item_1.id == 386074
-        assert item_2.id == 386073
+        assert item_1.id == "018c6826-766c-d596-44b3-46159c7c23bc"
+        assert item_2.id == "018cf7e3-a43d-8d2b-cc04-375004360f51"
 
     @responses.activate
     def test_fetches_files_with_commas(
@@ -494,42 +539,44 @@ class TestFetchRemoteFiles:
         darwin_client: Client,
         dataset_name: str,
         dataset_slug: str,
-        team_slug: str,
+        team_slug_darwin_json_v2: str,
         files_content: dict,
     ):
-        remote_dataset = RemoteDatasetV1(
+        remote_dataset = RemoteDatasetV2(
             client=darwin_client,
-            team=team_slug,
+            team=team_slug_darwin_json_v2,
             name=dataset_name,
             slug=dataset_slug,
             dataset_id=1,
         )
-        url = "http://localhost/api/datasets/1/items?page%5Bsize%5D=500"
+        url = "http://localhost/api/v2/teams/v7-darwin-json-v2/items?item_names%5B%5D=example%2Cwith%2C+comma.mp4&page%5Bsize%5D=500&include_workflow_data=true&dataset_ids%5B%5D=1"
         responses.add(
-            responses.POST,
+            responses.GET,
             url,
             json=files_content,
             status=200,
         )
 
-        list(
-            remote_dataset.fetch_remote_files(
-                {"filenames": ["example,with, comma.mp4"]}
-            )
+        filters = {"item_names": ["example,with, comma.mp4"]}
+
+        list(remote_dataset.fetch_remote_files(filters))
+
+        assert (
+            responses.calls[0].request.params["item_names[]"]
+            == "example,with, comma.mp4"
         )
-
-        request_body = json.loads(responses.calls[0].request.body)
-
-        assert request_body["filter"]["filenames"] == ["example,with, comma.mp4"]
 
 
 @pytest.fixture
 def remote_dataset(
-    darwin_client: Client, dataset_name: str, dataset_slug: str, team_slug: str
+    darwin_client: Client,
+    dataset_name: str,
+    dataset_slug: str,
+    team_slug_darwin_json_v2: str,
 ):
-    return RemoteDatasetV1(
+    return RemoteDatasetV2(
         client=darwin_client,
-        team=team_slug,
+        team=team_slug_darwin_json_v2,
         name=dataset_name,
         slug=dataset_slug,
         dataset_id=1,
@@ -737,89 +784,65 @@ def dataset_item(dataset_slug: str) -> DatasetItem:
 
 @pytest.mark.usefixtures("file_read_write_test")
 class TestArchive:
-    def test_calls_client_put(
+    def test_calls_put(
         self,
-        remote_dataset: RemoteDataset,
+        remote_dataset: RemoteDatasetV2,
         dataset_item: DatasetItem,
-        team_slug: str,
+        team_slug_darwin_json_v2: str,
         dataset_slug: str,
     ):
-        with patch.object(Client, "archive_item", return_value={}) as stub:
+        with patch.object(RemoteDatasetV2, "archive", return_value={}) as stub:
             remote_dataset.archive([dataset_item])
-            stub.assert_called_once_with(
-                dataset_slug, team_slug, {"filter": {"dataset_item_ids": [1]}}
-            )
+            stub.assert_called_once_with([dataset_item])
 
 
 @pytest.mark.usefixtures("file_read_write_test")
 class TestMoveToNew:
-    def test_calls_client_put(
+    def test_calls_put(
         self,
-        remote_dataset: RemoteDataset,
+        remote_dataset: RemoteDatasetV2,
         dataset_item: DatasetItem,
-        team_slug: str,
+        team_slug_darwin_json_v2: str,
         dataset_slug: str,
     ):
-        with patch.object(Client, "move_item_to_new", return_value={}) as stub:
+        with patch.object(RemoteDatasetV2, "move_to_new", return_value={}) as stub:
             remote_dataset.move_to_new([dataset_item])
-            stub.assert_called_once_with(
-                dataset_slug, team_slug, {"filter": {"dataset_item_ids": [1]}}
-            )
-
-
-@pytest.mark.usefixtures("file_read_write_test")
-class TestReset:
-    def test_calls_client_put(
-        self,
-        remote_dataset: RemoteDataset,
-        dataset_item: DatasetItem,
-        team_slug: str,
-        dataset_slug: str,
-    ):
-        with patch.object(Client, "reset_item", return_value={}) as stub:
-            remote_dataset.reset([dataset_item])
-            stub.assert_called_once_with(
-                dataset_slug, team_slug, {"filter": {"dataset_item_ids": [1]}}
-            )
+            stub.assert_called_once_with([dataset_item])
 
 
 @pytest.mark.usefixtures("file_read_write_test")
 class TestRestoreArchived:
-    def test_calls_client_put(
+    def test_calls_put(
         self,
-        remote_dataset: RemoteDataset,
+        remote_dataset: RemoteDatasetV2,
         dataset_item: DatasetItem,
-        team_slug: str,
+        team_slug_darwin_json_v2: str,
         dataset_slug: str,
     ):
-        with patch.object(Client, "restore_archived_item", return_value={}) as stub:
+        with patch.object(RemoteDatasetV2, "restore_archived", return_value={}) as stub:
             remote_dataset.restore_archived([dataset_item])
-            stub.assert_called_once_with(
-                dataset_slug, team_slug, {"filter": {"dataset_item_ids": [1]}}
-            )
+            stub.assert_called_once_with([dataset_item])
 
 
 @pytest.mark.usefixtures("file_read_write_test")
 class TestDeleteItems:
-    def test_calls_client_delete(
+    def test_calls_delete(
         self,
-        remote_dataset: RemoteDataset,
+        remote_dataset: RemoteDatasetV2,
         dataset_item: DatasetItem,
-        team_slug: str,
+        team_slug_darwin_json_v2: str,
         dataset_slug: str,
     ):
-        with patch.object(Client, "delete_item", return_value={}) as stub:
+        with patch.object(RemoteDatasetV2, "delete_items", return_value={}) as stub:
             remote_dataset.delete_items([dataset_item])
-            stub.assert_called_once_with(
-                "test-dataset", team_slug, {"filter": {"dataset_item_ids": [1]}}
-            )
+            stub.assert_called_once_with([dataset_item])
 
 
 def assert_upload_mocks_are_correctly_called(remote_dataset: RemoteDataset, *args):
     with patch.object(
-        UploadHandlerV1, "_request_upload", return_value=([], [])
+        UploadHandlerV2, "_request_upload", return_value=([], [])
     ) as request_upload_mock:
-        with patch.object(UploadHandlerV1, "upload") as upload_mock:
+        with patch.object(UploadHandlerV2, "upload") as upload_mock:
             remote_dataset.push(*args)
 
             request_upload_mock.assert_called_once()
@@ -833,30 +856,17 @@ def assert_upload_mocks_are_correctly_called(remote_dataset: RemoteDataset, *arg
 
 @pytest.mark.usefixtures("file_read_write_test")
 class TestExportDataset:
-    def test_honours_include_authorship(self, remote_dataset: RemoteDataset):
-        with patch.object(Client, "create_export", return_value={}) as stub:
-            remote_dataset.export("example", None, False, True)
-            stub.assert_called_once_with(
-                remote_dataset.dataset_id,
-                {
-                    "annotation_class_ids": [],
-                    "name": "example",
-                    "include_export_token": False,
-                    "include_authorship": True,
-                },
-                remote_dataset.team,
+    def test_honours_include_authorship(self, remote_dataset: RemoteDatasetV2):
+        with patch.object(RemoteDatasetV2, "export", return_value={}) as stub:
+            remote_dataset.export(
+                "example",
+                annotation_class_ids=[],
+                include_url_token=False,
+                include_authorship=True,
             )
-
-    def test_default_values_have_negative_includes(self, remote_dataset: RemoteDataset):
-        with patch.object(Client, "create_export", return_value={}) as stub:
-            remote_dataset.export("example")
             stub.assert_called_once_with(
-                remote_dataset.dataset_id,
-                {
-                    "annotation_class_ids": [],
-                    "name": "example",
-                    "include_export_token": False,
-                    "include_authorship": False,
-                },
-                remote_dataset.team,
+                "example",
+                annotation_class_ids=[],
+                include_url_token=False,
+                include_authorship=True,
             )

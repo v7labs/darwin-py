@@ -16,13 +16,13 @@ from darwin.importer.formats.nifti import parse_path
 from tests.fixtures import *
 
 
-def test_image_annotation_nifti_import_single_slot(team_slug: str):
+def test_image_annotation_nifti_import_single_slot(team_slug_darwin_json_v2: str):
     with tempfile.TemporaryDirectory() as tmpdir:
         with ZipFile("tests/data.zip") as zfile:
             zfile.extractall(tmpdir)
             label_path = (
                 Path(tmpdir)
-                / team_slug
+                / team_slug_darwin_json_v2
                 / "nifti"
                 / "releases"
                 / "latest"
@@ -50,7 +50,10 @@ def test_image_annotation_nifti_import_single_slot(team_slug: str):
             )
             expected_json_string = json.load(
                 open(
-                    Path(tmpdir) / team_slug / "nifti" / "vol0_annotation_file.json",
+                    Path(tmpdir)
+                    / team_slug_darwin_json_v2
+                    / "nifti"
+                    / "vol0_annotation_file.json",
                     "r",
                 )
             )
@@ -60,13 +63,13 @@ def test_image_annotation_nifti_import_single_slot(team_slug: str):
             )
 
 
-def test_image_annotation_nifti_import_multi_slot(team_slug: str):
+def test_image_annotation_nifti_import_multi_slot(team_slug_darwin_json_v2: str):
     with tempfile.TemporaryDirectory() as tmpdir:
         with ZipFile("tests/data.zip") as zfile:
             zfile.extractall(tmpdir)
             label_path = (
                 Path(tmpdir)
-                / team_slug
+                / team_slug_darwin_json_v2
                 / "nifti"
                 / "releases"
                 / "latest"
@@ -97,7 +100,7 @@ def test_image_annotation_nifti_import_multi_slot(team_slug: str):
             expected_json_string = json.load(
                 open(
                     Path(tmpdir)
-                    / team_slug
+                    / team_slug_darwin_json_v2
                     / "nifti"
                     / "vol0_annotation_file_multi_slot.json",
                     "r",
@@ -109,13 +112,15 @@ def test_image_annotation_nifti_import_multi_slot(team_slug: str):
             )
 
 
-def test_image_annotation_nifti_import_incorrect_number_slot(team_slug: str):
+def test_image_annotation_nifti_import_incorrect_number_slot(
+    team_slug_darwin_json_v2: str,
+):
     with tempfile.TemporaryDirectory() as tmpdir:
         with ZipFile("tests/data.zip") as zfile:
             zfile.extractall(tmpdir)
             label_path = (
                 Path(tmpdir)
-                / team_slug
+                / team_slug_darwin_json_v2
                 / "nifti"
                 / "releases"
                 / "latest"
@@ -142,13 +147,15 @@ def test_image_annotation_nifti_import_incorrect_number_slot(team_slug: str):
                 parse_path(path=upload_json)
 
 
-def test_image_annotation_nifti_import_single_slot_to_mask(team_slug: str):
+def test_image_annotation_nifti_import_single_slot_to_mask(
+    team_slug_darwin_json_v2: str,
+):
     with tempfile.TemporaryDirectory() as tmpdir:
         with ZipFile("tests/data.zip") as zfile:
             zfile.extractall(tmpdir)
             label_path = (
                 Path(tmpdir)
-                / team_slug
+                / team_slug_darwin_json_v2
                 / "nifti"
                 / "releases"
                 / "latest"
@@ -179,7 +186,7 @@ def test_image_annotation_nifti_import_single_slot_to_mask(team_slug: str):
             expected_json_string = json.load(
                 open(
                     Path(tmpdir)
-                    / team_slug
+                    / team_slug_darwin_json_v2
                     / "nifti"
                     / "vol0_annotation_file_to_mask.json",
                     "r",
@@ -325,7 +332,7 @@ if __name__ == "__main__":
         "data": [
             {
                 "image": "vol0 (1).nii",
-                "label": "tests/v7/v7-darwin-json-v1/nifti/releases/latest/annotations/vol0_brain.nii.gz",
+                "label": "tests/v7/v7-darwin-json-v2/nifti/releases/latest/annotations/vol0_brain.nii.gz",
                 "class_map": {
                     "1": "brain"
                 },
@@ -346,7 +353,7 @@ if __name__ == "__main__":
         with open(
             Path("tests")
             / "v7"
-            / "v7-darwin-json-v1"
+            / "v7-darwin-json-v2"
             / "nifti"
             / "vol0_annotation_file_multi_slot.json",
             "w",

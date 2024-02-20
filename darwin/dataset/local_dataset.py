@@ -8,7 +8,6 @@ from PIL import Image as PILImage
 from darwin.dataset.utils import get_classes, get_release_path, load_pil_image
 from darwin.utils import (
     SUPPORTED_IMAGE_EXTENSIONS,
-    get_darwin_json_version,
     get_image_path_from_stream,
     is_stream_list_empty,
     parse_darwin_json,
@@ -138,8 +137,6 @@ class LocalDataset:
         keep_empty_annotations: bool = False,
     ):
         # Find all the annotations and their corresponding images
-        json_version = get_darwin_json_version(annotations_dir)
-
         with_folders = any([item.is_dir() for item in images_dir.iterdir()])
         annotation_filepaths = get_annotation_filepaths(
             release_path, annotations_dir, annotation_type, split, partition, split_type
@@ -149,7 +146,7 @@ class LocalDataset:
             annotation_filepath = Path(annotation_filepath)
             darwin_json = stream_darwin_json(annotation_filepath)
             image_path = get_image_path_from_stream(
-                darwin_json, images_dir, with_folders, json_version, annotation_filepath
+                darwin_json, images_dir, with_folders, annotation_filepath
             )
             if image_path.exists():
                 if not keep_empty_annotations and is_stream_list_empty(

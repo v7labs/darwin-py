@@ -25,7 +25,7 @@ def test_empty_annotation_file_v2():
             "source_info": {
                 "dataset": {"name": "Test Dataset", "slug": "test-dataset"},
                 "item_id": None,
-                "team": {"name": None, "slug": None},
+                "team": {"name": "Test team", "slug": "test-team"},
                 "workview_url": None,
             },
             "slots": [],  # Include an empty slots list as per Darwin v2 format
@@ -33,7 +33,7 @@ def test_empty_annotation_file_v2():
         "annotations": [],
     }
 
-    assert build_image_annotation(annotation_file) == expected_output
+    assert build_image_annotation(annotation_file, "Test team") == expected_output
 
 
 def test_complete_annotation_file_v2():
@@ -59,7 +59,7 @@ def test_complete_annotation_file_v2():
             "source_info": {
                 "dataset": {"name": "Test Dataset", "slug": "test-dataset"},
                 "item_id": None,
-                "team": {"name": None, "slug": None},
+                "team": {"name": "Test team", "slug": "test-team"},
                 "workview_url": None,
             },
             "slots": [],  # Include an empty slots list as per Darwin v2 format
@@ -67,7 +67,7 @@ def test_complete_annotation_file_v2():
         "annotations": [_build_v2_annotation_data(annotation)],
     }
 
-    assert build_image_annotation(annotation_file) == expected_output
+    assert build_image_annotation(annotation_file, "Test team") == expected_output
 
 
 def test_complete_annotation_file_with_bounding_box_and_tag_v2():
@@ -115,7 +115,7 @@ def test_complete_annotation_file_with_bounding_box_and_tag_v2():
             "source_info": {
                 "dataset": {"name": "Test Dataset", "slug": "test-dataset"},
                 "item_id": None,
-                "team": {"name": None, "slug": None},
+                "team": {"name": "Test team", "slug": "test-team"},
                 "workview_url": None,
             },
             "slots": [],  # Include an empty slots list as per Darwin v2 format
@@ -127,4 +127,4 @@ def test_complete_annotation_file_with_bounding_box_and_tag_v2():
         ],
     }
 
-    assert build_image_annotation(annotation_file) == expected_output
+    assert build_image_annotation(annotation_file, "Test team") == expected_output

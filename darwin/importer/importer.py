@@ -212,7 +212,7 @@ def get_remote_files(
 
     The output is a two-element tuple of:
     - file ID
-    - the name of the first slot for V2 items, or '0' for V1 items
+    - the name of the first slot of the item
 
     Fetching slot name is necessary here to avoid double-trip to Api downstream for remote files.
     """
@@ -678,12 +678,6 @@ def import_annotations(  # noqa: C901
     if not team_classes:
         raise ValueError("Unable to fetch remote class list.")
 
-    if delete_for_empty and dataset.version == 1:
-        console.print(
-            f"The '--delete-for-empty' flag only works for V2 datasets. '{dataset.name}' is a V1 dataset. Ignoring flag.",
-            style="warning",
-        )
-
     classes_in_dataset: dt.DictFreeForm = build_main_annotations_lookup_table(
         [
             cls
@@ -821,11 +815,7 @@ def import_annotations(  # noqa: C901
     else:
         remote_classes = build_main_annotations_lookup_table(team_classes)
 
-    if dataset.version == 1:
-        console.print(
-            "Importing annotations...\nEmpty annotations will be skipped.", style="info"
-        )
-    elif dataset.version == 2 and delete_for_empty:
+    if delete_for_empty:
         console.print(
             "Importing annotations...\nEmpty annotation file(s) will clear all existing annotations in matching remote files.",
             style="info",
@@ -861,8 +851,7 @@ def import_annotations(  # noqa: C901
         files_to_not_track = [
             file_to_track
             for file_to_track in parsed_files
-            if not file_to_track.annotations
-            and (not delete_for_empty or dataset.version == 1)
+            if not file_to_track.annotations and (not delete_for_empty)
         ]
 
         for file in files_to_not_track:
@@ -1241,9 +1230,9 @@ def _import_annotations(
         # Insert the default slot name if not available in the import source
         annotation = _handle_slot_names(annotation, dataset.version, default_slot_name)
 
-        annotation_class_ids_map[(annotation_class.name, annotation_type)] = (
-            annotation_class_id
-        )
+        annotation_class_ids_map[
+            (annotation_class.name, annotation_type)
+        ] = annotation_class_id
         serial_obj = {
             "annotation_class_id": annotation_class_id,
             "data": data,

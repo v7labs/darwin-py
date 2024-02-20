@@ -454,8 +454,6 @@ def pull_dataset(
             ignore_slots=ignore_slots,
         )
         print_new_version_info(client)
-        if release.format == "darwin_json_2":
-            _print_new_json_format_warning(dataset)
     except NotFound:
         _error(
             f"Version '{dataset.identifier}:{version}' does not exist "
@@ -1236,7 +1234,7 @@ def convert(format: str, files: List[PathLike], output_dir: Path) -> None:
         parser,
         files,
         output_dir,
-        split_sequences=(format not in ["darwin_1.0", "nifti"]),
+        split_sequences=(format != "nifti"),
     )
 
 
@@ -1419,16 +1417,3 @@ def _console_theme() -> Theme:
 
 def _has_valid_status(status: str) -> bool:
     return status in ["new", "annotate", "review", "complete", "archived"]
-
-
-def _print_new_json_format_warning(dataset: RemoteDataset) -> None:
-    console = Console(theme=_console_theme(), stderr=True)
-    console.print(
-        "NOTE: Your dataset has been exported using new Darwin JSON 2.0 format.",
-        "    If you wish to use the legacy Darwin format, please use the following to convert: ",
-        "",
-        f"    darwin convert darwin_1.0 {dataset.local_path} OUTPUT_DIR",
-        "",
-        sep="\n",
-        style="warning",
-    )

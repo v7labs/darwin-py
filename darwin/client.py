@@ -5,8 +5,7 @@ import time
 import zlib
 from logging import Logger
 from pathlib import Path
-from typing import Dict, Iterator, List, Optional, Tuple, Union, cast
-from urllib import parse
+from typing import Dict, Iterator, List, Optional, Union, cast
 
 import requests
 from requests import Response
@@ -16,9 +15,8 @@ from darwin.backend_v2 import BackendV2
 from darwin.config import Config
 from darwin.dataset.identifier import DatasetIdentifier
 from darwin.dataset.remote_dataset import RemoteDataset
-from darwin.dataset.remote_dataset_v1 import RemoteDatasetV1
 from darwin.dataset.remote_dataset_v2 import RemoteDatasetV2
-from darwin.datatypes import DarwinVersionNumber, Feature, ItemId, Team, UnknownType
+from darwin.datatypes import DarwinVersionNumber, Feature, Team, UnknownType
 from darwin.exceptions import (
     InsufficientStorage,
     InvalidLogin,
@@ -40,7 +38,6 @@ from darwin.future.core.properties import (
 from darwin.future.core.properties import update_property as update_property_future
 from darwin.future.core.types.common import JSONDict
 from darwin.future.data_objects.properties import FullProperty
-from darwin.item import DatasetItem
 from darwin.utils import (
     get_response_content,
     has_json_content_type,
@@ -147,26 +144,15 @@ class Client:
         )
 
         for dataset in response:
-            if dataset.get("version", 1) == 2:
-                yield RemoteDatasetV2(
-                    name=dataset["name"],
-                    slug=dataset["slug"],
-                    team=team_slug or self.default_team,
-                    dataset_id=dataset["id"],
-                    item_count=get_item_count(dataset),
-                    progress=dataset["progress"],
-                    client=self,
-                )
-            else:
-                yield RemoteDatasetV1(
-                    name=dataset["name"],
-                    slug=dataset["slug"],
-                    team=team_slug or self.default_team,
-                    dataset_id=dataset["id"],
-                    item_count=get_item_count(dataset),
-                    progress=dataset["progress"],
-                    client=self,
-                )
+            yield RemoteDatasetV2(
+                name=dataset["name"],
+                slug=dataset["slug"],
+                team=team_slug or self.default_team,
+                dataset_id=dataset["id"],
+                item_count=get_item_count(dataset),
+                progress=dataset["progress"],
+                client=self,
+            )
 
     def get_remote_dataset(
         self, dataset_identifier: Union[str, DatasetIdentifier]
@@ -224,26 +210,15 @@ class Client:
                     datasets_dir=str(datasets_dir),
                 )
 
-            if dataset.get("version", 1) == 2:
-                return RemoteDatasetV2(
-                    name=dataset["name"],
-                    slug=dataset["slug"],
-                    team=parsed_dataset_identifier.team_slug,
-                    dataset_id=dataset["id"],
-                    item_count=get_item_count(dataset),
-                    progress=0,
-                    client=self,
-                )
-            else:
-                return RemoteDatasetV1(
-                    name=dataset["name"],
-                    slug=dataset["slug"],
-                    team=parsed_dataset_identifier.team_slug,
-                    dataset_id=dataset["id"],
-                    item_count=get_item_count(dataset),
-                    progress=0,
-                    client=self,
-                )
+            return RemoteDatasetV2(
+                name=dataset["name"],
+                slug=dataset["slug"],
+                team=parsed_dataset_identifier.team_slug,
+                dataset_id=dataset["id"],
+                item_count=get_item_count(dataset),
+                progress=0,
+                client=self,
+            )
         if not matching_datasets:
             raise NotFound(str(parsed_dataset_identifier))
         if parsed_dataset_identifier.version:
@@ -273,26 +248,15 @@ class Client:
             self._post("/datasets", {"name": name}, team_slug=team_slug),
         )
 
-        if dataset.get("version", 1) == 2:
-            return RemoteDatasetV2(
-                name=dataset["name"],
-                team=team_slug or self.default_team,
-                slug=dataset["slug"],
-                dataset_id=dataset["id"],
-                item_count=get_item_count(dataset),
-                progress=0,
-                client=self,
-            )
-        else:
-            return RemoteDatasetV1(
-                name=dataset["name"],
-                team=team_slug or self.default_team,
-                slug=dataset["slug"],
-                dataset_id=dataset["id"],
-                item_count=get_item_count(dataset),
-                progress=0,
-                client=self,
-            )
+        return RemoteDatasetV2(
+            name=dataset["name"],
+            team=team_slug or self.default_team,
+            slug=dataset["slug"],
+            dataset_id=dataset["id"],
+            item_count=get_item_count(dataset),
+            progress=0,
+            client=self,
+        )
 
     def archive_remote_dataset(self, dataset_id: int, team_slug: str) -> None:
         """
@@ -306,42 +270,6 @@ class Client:
             Team slug of the dataset.
         """
         self._put(f"datasets/{dataset_id}/archive", payload={}, team_slug=team_slug)
-
-    def fetch_remote_files(
-        self,
-        dataset_id: int,
-        cursor: Dict[str, UnknownType],
-        payload: Dict[str, UnknownType],
-        team_slug: str,
-    ) -> Dict[str, UnknownType]:
-        """
-        Download the remote files from the given dataset.
-
-        Parameters
-        ----------
-        dataset_id: int
-            Id of the dataset the file belong to.
-        cursor: Dict[str, UnknownType]
-            Number of items per page and page number. Defaults to {"page[size]": 500, "page[from]": 0}.
-        payload: Dict[str, UnknownType]
-            Filter and sort parameters.
-        team_slug: str
-            The team slug of the dataset.
-
-        Returns
-        -------
-         Dict[str, UnknownType]
-            A response dictionary with the file information.
-        """
-        response: Dict[str, UnknownType] = cast(
-            Dict[str, UnknownType],
-            self._post(
-                f"/datasets/{dataset_id}/items?{parse.urlencode(cursor)}",
-                payload,
-                team_slug,
-            ),
-        )
-        return response
 
     def fetch_remote_classes(
         self, team_slug: Optional[str] = None
@@ -435,23 +363,6 @@ class Client:
             ),
         )
         return response
-
-    def import_annotation(
-        self, item_id: ItemId, payload: Dict[str, UnknownType]
-    ) -> None:
-        """
-        Imports the annotation for the item with the given id.
-
-        Parameters
-        ----------
-        item_id: ItemId
-            Identifier of the Image or Video that we are import the annotation to.
-        payload: Dict[str, UnknownType]
-            A dictionary with the annotation to import. The default format is:
-            `{"annotations": serialized_annotations, "overwrite": "false"}`
-        """
-
-        self._post_raw(f"/dataset_items/{item_id}/import", payload=payload)
 
     def fetch_remote_attributes(self, dataset_id: int) -> List[Dict[str, UnknownType]]:
         """
@@ -597,116 +508,6 @@ class Client:
             f"teams/{team_slug or self.default_team}/datasets_dir", datasets_dir
         )
 
-    def confirm_upload(
-        self, dataset_item_id: int, team_slug: Optional[str] = None
-    ) -> None:
-        """
-        Confirms that the item was uploaded.
-
-        Parameters
-        ----------
-        dataset_item_id: int
-            The id of the DatasetItem that was uploaded.
-        team_slug: Optional[str]
-            Team slug of the team the dataset will belong to. Defaults to None.
-        """
-        the_team: Optional[Team] = self.config.get_team(team_slug or self.default_team)
-
-        if not the_team:
-            return None
-
-        the_team_slug: str = the_team.slug
-
-        self._put_raw(
-            endpoint=f"/dataset_items/{dataset_item_id}/confirm_upload",
-            payload={},
-            team_slug=the_team_slug,
-        )
-
-    def sign_upload(
-        self, dataset_item_id: int, team_slug: Optional[str] = None
-    ) -> Dict[str, UnknownType]:
-        """
-        Signs the upload of the given DatasetItem.
-
-        Parameters
-        ----------
-        dataset_item_id: int
-            The id of the DatasetItem that was uploaded.
-        team_slug: Optional[str]
-            Team slug of the team the dataset will belong to. Defaults to None.
-
-        Returns
-        ------
-        Dict[str, UnknownType]
-            A dictionary with the signed response, or None if the Team was not found.
-
-        Raises
-        ------
-        ValueError
-            If no team was found.
-        """
-        the_team: Optional[Team] = self.config.get_team(team_slug or self.default_team)
-
-        if not the_team:
-            raise ValueError("No team was found.")
-
-        the_team_slug: str = the_team.slug
-
-        response: Dict[str, UnknownType] = cast(
-            Dict[str, UnknownType],
-            self._get(
-                f"/dataset_items/{dataset_item_id}/sign_upload", team_slug=the_team_slug
-            ),
-        )
-        return response
-
-    def upload_data(
-        self,
-        dataset_slug: str,
-        payload: Dict[str, UnknownType],
-        team_slug: Optional[str] = None,
-    ) -> Dict[str, UnknownType]:
-        """
-        Uploads the given data to the given dataset.
-
-        Parameters
-        ----------
-        dataset_slug: str
-            The slug of the dataset.
-        payload: Dict[str, UnknownType]
-            The data we want to upload. Usually a Dictionary with an `items` key containing a list
-            of items to upload.
-        team_slug: Optional[str]
-            Team slug of the team the dataset will belong to. Defaults to None.
-
-        Returns
-        ------
-        Dict[str, UnknownType]
-            A dictionary with the result of the operation, or None if the Team was not found.
-
-        Raises
-        ------
-        ValueError
-            If no team was found.
-        """
-        the_team: Optional[Team] = self.config.get_team(team_slug or self.default_team)
-
-        if not the_team:
-            raise ValueError("No team was found.")
-
-        the_team_slug: str = the_team.slug
-
-        response: Dict[str, UnknownType] = cast(
-            Dict[str, UnknownType],
-            self._put(
-                endpoint=f"/teams/{the_team_slug}/datasets/{dataset_slug}/data",
-                payload=payload,
-                team_slug=the_team_slug,
-            ),
-        )
-        return response
-
     def annotation_types(self) -> List[Dict[str, UnknownType]]:
         """
         Returns a list of annotation types.
@@ -720,61 +521,6 @@ class Client:
             List[Dict[str, UnknownType]], self._get("/annotation_types")
         )
         return response
-
-    def get_exports(
-        self, dataset_id: int, team_slug: Optional[str] = None
-    ) -> List[Dict[str, UnknownType]]:
-        """
-        Get all the exports from the given dataset.
-
-        Parameters
-        ----------
-        dataset_id: int
-            The id of the dataset.
-        team_slug: Optional[str]
-            Team slug of the team the dataset will belong to. Defaults to None.
-
-        Returns
-        ------
-        List[Dict[str, UnknownType]]
-            A list with all the exports (as dictionaries) or None if the Team was not found.
-
-        Raises
-        ------
-        ValueError
-            If no team was found.
-        """
-        the_team: Optional[Team] = self.config.get_team(team_slug or self.default_team)
-
-        if not the_team:
-            raise ValueError("No team was found.")
-
-        the_team_slug: str = the_team.slug
-
-        response: List[Dict[str, UnknownType]] = cast(
-            List[Dict[str, UnknownType]],
-            self._get(f"/datasets/{dataset_id}/exports", team_slug=the_team_slug),
-        )
-        return response
-
-    def create_export(
-        self, dataset_id: int, payload: Dict[str, UnknownType], team_slug: str
-    ) -> None:
-        """
-        Create an export for the given dataset.
-
-        Parameters
-        ----------
-        dataset_id: int
-            The id of the dataset.
-        payload: Dict[str, UnknownType]
-            The export infomation as a Dictionary.
-        team_slug: Optional[str]
-            Team slug of the team the dataset will belong to. Defaults to None.
-        """
-        self._post(
-            f"/datasets/{dataset_id}/exports", payload=payload, team_slug=team_slug
-        )
 
     def get_report(
         self, dataset_id: int, granularity: str, team_slug: Optional[str] = None
@@ -812,224 +558,6 @@ class Client:
             f"/reports/{the_team_slug}/annotation?group_by=dataset,user&dataset_ids={dataset_id}&granularity={granularity}&format=csv&include=dataset.name,user.first_name,user.last_name,user.email",
             the_team_slug,
         )
-
-    def delete_item(
-        self, dataset_slug: str, team_slug: str, payload: Dict[str, UnknownType]
-    ) -> None:
-        """
-        Gets the report for the given dataset.
-
-        Parameters
-        ----------
-        dataset_slug: str
-            The slug of the dataset.
-        team_slug: str
-            The slug of the team.
-        payload: Dict[str, UnknownType]
-            A filter Dictionary that defines the items to be deleted.
-        """
-        self._delete(
-            f"teams/{team_slug}/datasets/{dataset_slug}/items", payload, team_slug
-        )
-
-    def archive_item(
-        self, dataset_slug: str, team_slug: str, payload: Dict[str, UnknownType]
-    ) -> None:
-        """
-        Archives the item from the given dataset.
-
-        Parameters
-        ----------
-        dataset_slug: str
-            The slug of the dataset.
-        team_slug: str
-            The slug of the team.
-        payload: Dict[str, UnknownType]
-            A filter Dictionary that defines the items to be archived.
-        """
-        self._put_raw(
-            f"teams/{team_slug}/datasets/{dataset_slug}/items/archive",
-            payload,
-            team_slug,
-        )
-
-    def restore_archived_item(
-        self, dataset_slug: str, team_slug: str, payload: Dict[str, UnknownType]
-    ) -> None:
-        """
-        Restores the archived item from the given dataset.
-
-        Parameters
-        ----------
-        dataset_slug: str
-            The slug of the dataset.
-        team_slug: str
-            The slug of the team.
-        payload: Dict[str, UnknownType]
-            A filter Dictionary that defines the items to be restored.
-        """
-        self._put_raw(
-            f"teams/{team_slug}/datasets/{dataset_slug}/items/restore",
-            payload,
-            team_slug,
-        )
-
-    def move_item_to_new(
-        self, dataset_slug: str, team_slug: str, payload: Dict[str, UnknownType]
-    ) -> None:
-        """
-        Moves the given item's status to new.
-
-        Parameters
-        ----------
-        dataset_slug: str
-            The slug of the dataset.
-        team_slug: str
-            The slug of the team.
-        payload: Dict[str, UnknownType]
-            A filter Dictionary that defines the items to have the 'new' status.
-        """
-        self._put_raw(
-            f"teams/{team_slug}/datasets/{dataset_slug}/items/move_to_new",
-            payload,
-            team_slug,
-        )
-
-    def reset_item(
-        self, dataset_slug: str, team_slug: str, payload: Dict[str, UnknownType]
-    ) -> None:
-        """
-        Resets the given item.
-
-        Parameters
-        ----------
-        dataset_slug: str
-            The slug of the dataset.
-        team_slug: str
-            The slug of the team.
-        payload: Dict[str, UnknownType]
-            A filter Dictionary that defines the items to be reset.
-        """
-        self._put_raw(
-            f"teams/{team_slug}/datasets/{dataset_slug}/items/reset", payload, team_slug
-        )
-
-    def move_to_stage(
-        self,
-        dataset_slug: str,
-        team_slug: str,
-        filters: Dict[str, UnknownType],
-        stage_id: str,
-    ) -> None:
-        """
-        Moves the given items to the specified stage
-
-        Parameters
-        ----------
-        dataset_slug: str
-            The slug of the dataset.
-        team_slug: str
-            The slug of the team.
-        filters: Dict[str, UnknownType]
-            A filter Dictionary that defines the items to have the new, selected stage.
-        stage_id: str
-            ID of the stage to set.
-        """
-        payload: Dict[str, UnknownType] = {
-            "filter": filters,
-            "workflow_stage_template_id": stage_id,
-        }
-        self._put_raw(
-            f"teams/{team_slug}/datasets/{dataset_slug}/set_stage", payload, team_slug
-        )
-
-    def post_workflow_comment(
-        self,
-        workflow_id: int,
-        text: str,
-        x: float = 1,
-        y: float = 1,
-        w: float = 1,
-        h: float = 1,
-    ) -> int:
-        """
-        Creates a comment box with the given text for the given workflow.
-
-        Parameters
-        ----------
-        workflow_id: int
-            The id of the workflow that will receive the comment.
-        text: str
-            The comment itself.
-        x: float, default: 1
-            The top left X coordinate value of the comment box.
-        y: float, default: 1
-            The top left Y coordinate value of the comment box.
-        w: float, default: 1
-            The width of the comment box.
-        h: float, default: 1
-            The height of the comment box.
-
-        Returns
-        -------
-        int
-            The id of the created comment.
-        """
-        response: Dict[str, UnknownType] = cast(
-            Dict[str, UnknownType],
-            self._post(
-                f"workflows/{workflow_id}/workflow_comment_threads",
-                {
-                    "bounding_box": {"x": x, "y": y, "w": w, "h": h},
-                    "workflow_comments": [{"body": text}],
-                },
-            ),
-        )
-
-        comment_id: Optional[int] = response.get("id")
-        if comment_id is None:
-            raise ValueError(
-                f"Unable to retrieve comment id for workflow: {workflow_id}."
-            )
-
-        return comment_id
-
-    def instantiate_item(
-        self, item_id: int, include_metadata: bool = False
-    ) -> Union[int, Tuple[int, DatasetItem]]:
-        """
-        Instantiates the given item with a workflow.
-
-        Parameters
-        ----------
-        item_id: int
-            The id of the item to be instantiated.
-
-        include_metadata: bool
-            If set to True, this method returns a tuple instead, with 2nd element being DatasetItem.
-
-        Returns
-        -------
-        int
-            The id of the workflow for the given item.
-
-        Raises
-        ------
-        ValueError
-            If due to an error, no workflow was instantiated for this item an therefore no workflow id can be returned.
-        """
-        response: Dict[str, UnknownType] = cast(
-            Dict[str, UnknownType], self._post(f"dataset_items/{item_id}/workflow")
-        )
-        id: Optional[int] = response.get("current_workflow_id")
-
-        if id is None:
-            raise ValueError(f"No Workflow Id found for item_id: {item_id}")
-
-        if include_metadata:
-            return (id, DatasetItem.parse(response))
-        else:
-            return id
 
     def fetch_binary(self, url: str) -> Response:
         """
