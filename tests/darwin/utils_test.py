@@ -671,7 +671,7 @@ class TestParseDarwinJson:
 
         assert (
             annotation_file.annotations[0].annotation_class.annotation_type
-            == "complex_polygon"
+            == "polygon"
         )
         assert (
             annotation_file.annotations[1].annotation_class.annotation_type
