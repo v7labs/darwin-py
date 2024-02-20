@@ -385,7 +385,7 @@ def _calculate_categories(annotation_files: List[dt.AnnotationFile]) -> Dict[str
                 categories[annotation_class.name] = _calculate_category_id(
                     annotation_class
                 )
-    return categories
+    return {k: v for k, v in sorted(categories.items(), key=lambda item: item[1])}
 
 
 def _calculate_tag_categories(
@@ -401,7 +401,7 @@ def _calculate_tag_categories(
                 categories[annotation_class.name] = _calculate_category_id(
                     annotation_class
                 )
-    return categories
+    return {k: v for k, v in sorted(categories.items(), key=lambda item: item[1])}
 
 
 def _calculate_category_id(annotation_class: dt.AnnotationClass) -> int:
