@@ -138,7 +138,7 @@ def get_render_mode(annotations: List[dt.AnnotationLike]) -> dt.MaskTypes.TypeOf
     types: Set[str] = set(list_of_types)
 
     is_raster_mask = ("mask" in types) and ("raster_layer" in types)
-    is_polygon = ("polygon" in types) or ("complex_polygon" in types)
+    is_polygon = "polygon" in types
 
     raster_layer_count = len([a for a in types if a == "raster_layer"])
 
@@ -294,8 +294,6 @@ def render_polygons(
                 categories.append(cat)
 
             if a.annotation_class.annotation_type == "polygon":
-                polygon = a.data["path"]
-            elif a.annotation_class.annotation_type == "complex_polygon":
                 polygon = a.data["paths"]
             else:
                 raise ValueError(
@@ -437,7 +435,7 @@ def export(
     masks_dir: Path = output_dir / "masks"
     masks_dir.mkdir(exist_ok=True, parents=True)
     annotation_files = list(annotation_files)
-    accepted_types = ["polygon", "complex_polygon", "raster_layer", "mask"]
+    accepted_types = ["polygon", "raster_layer", "mask"]
     all_classes_sets: List[Set[dt.AnnotationClass]] = [
         a.annotation_classes for a in annotation_files
     ]
@@ -589,13 +587,10 @@ def offset_polygon(polygon: List, offset_x: int, offset_y: int) -> List:
     Returns:
         List: polygon with offset applied
     """
-    if isinstance(polygon[0], list):
-        return offset_complex_polygon(polygon, offset_x, offset_y)
-    else:
-        return offset_simple_polygon(polygon, offset_x, offset_y)
+    return offset_polygon_paths(polygon, offset_x, offset_y)
 
 
-def offset_complex_polygon(polygons: List, offset_x: int, offset_y: int) -> List:
+def offset_polygon_paths(polygons: List, offset_x: int, offset_y: int) -> List:
     new_polygons = []
     for polygon in polygons:
         new_polygons.append(offset_simple_polygon(polygon, offset_x, offset_y))

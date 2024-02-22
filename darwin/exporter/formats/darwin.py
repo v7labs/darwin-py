@@ -58,10 +58,7 @@ def _build_v2_annotation_data(annotation: dt.Annotation) -> Dict[str, Any]:
         annotation_data["bounding_box"] = _build_bounding_box_data(annotation.data)
     elif annotation.annotation_class.annotation_type == "tag":
         annotation_data["tag"] = {}
-    elif (
-        annotation.annotation_class.annotation_type == "polygon"
-        or annotation.annotation_class.annotation_type == "complex_polygon"
-    ):
+    elif annotation.annotation_class.annotation_type == "polygon":
         polygon_data = _build_polygon_data(annotation.data)
         annotation_data["polygon"] = polygon_data
         annotation_data["bounding_box"] = _build_bounding_box_data(annotation.data)
@@ -167,33 +164,3 @@ def _build_slots_data(slots: List[dt.Slot]) -> List[Dict[str, Any]]:
         slots_data.append(slot_data)
 
     return slots_data
-
-
-@deprecation.deprecated(
-    deprecated_in="0.7.8",
-    removed_in="0.8.0",
-    current_version=__version__,
-    details=DEPRECATION_MESSAGE,
-)
-def build_annotation_data(annotation: dt.Annotation) -> Dict[str, Any]:
-    if annotation.annotation_class.annotation_type == "complex_polygon":
-        return {"path": annotation.data["paths"]}
-
-    if annotation.annotation_class.annotation_type == "polygon":
-        return dict(
-            filter(lambda item: item[0] != "bounding_box", annotation.data.items())
-        )
-
-    return dict(annotation.data)
-
-
-def _build_annotation_data(annotation: dt.Annotation) -> Dict[str, Any]:
-    if annotation.annotation_class.annotation_type == "complex_polygon":
-        return {"path": annotation.data["paths"]}
-
-    if annotation.annotation_class.annotation_type == "polygon":
-        return dict(
-            filter(lambda item: item[0] != "bounding_box", annotation.data.items())
-        )
-
-    return dict(annotation.data)

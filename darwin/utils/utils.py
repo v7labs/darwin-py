@@ -91,26 +91,6 @@ def is_extension_allowed_by_filename(filename: str) -> bool:
     return any(filename.lower().endswith(ext) for ext in SUPPORTED_EXTENSIONS)
 
 
-@deprecation.deprecated(deprecated_in="0.8.4", current_version=__version__)
-def is_extension_allowed(extension: str) -> bool:
-    """
-    Returns whether or not the given extension is allowed.
-    @Deprecated. Use is_extension_allowed_by_filename instead, and pass full filename.
-    This is due to the fact that some extensions now include multiple dots, e.g. .nii.gz
-
-    Parameters
-    ----------
-    extension : str
-        The extension.
-
-    Returns
-    -------
-    bool
-        Whether or not the given extension is allowed.
-    """
-    return extension.lower() in SUPPORTED_EXTENSIONS
-
-
 def is_image_extension_allowed_by_filename(filename: str) -> bool:
     """
     Returns whether or not the given image extension is allowed.
@@ -144,41 +124,6 @@ def is_image_extension_allowed(extension: str) -> bool:
         Whether or not the given extension is allowed.
     """
     return extension.lower() in SUPPORTED_IMAGE_EXTENSIONS
-
-
-def is_video_extension_allowed_by_filename(extension: str) -> bool:
-    """
-    Returns whether or not the given image extension is allowed.
-
-    Parameters
-    ----------
-    extension : str
-        The image extension.
-
-    Returns
-    -------
-    bool
-        Whether or not the given extension is allowed.
-    """
-    return any(extension.lower().endswith(ext) for ext in SUPPORTED_VIDEO_EXTENSIONS)
-
-
-@deprecation.deprecated(deprecated_in="0.8.4", current_version=__version__)
-def is_video_extension_allowed(extension: str) -> bool:
-    """
-    Returns whether or not the given video extension is allowed.
-
-    Parameters
-    ----------
-    extension : str
-        The video extension.
-
-    Returns
-    -------
-    bool
-        Whether or not the given extension is allowed.
-    """
-    return extension.lower() in SUPPORTED_VIDEO_EXTENSIONS
 
 
 def urljoin(*parts: str) -> str:
@@ -1343,127 +1288,6 @@ def convert_polygons_to_sequences(
                 path.append(y)
         sequences.append(path)
     return sequences
-
-
-@deprecation.deprecated(
-    deprecated_in="0.7.5",
-    removed_in="0.8.0",
-    current_version=__version__,
-    details="Do not use.",
-)
-def convert_sequences_to_polygons(
-    sequences: List[Union[List[int], List[float]]],
-    height: Optional[int] = None,
-    width: Optional[int] = None,
-) -> Dict[str, List[dt.Polygon]]:
-    """
-    Converts a list of polygons, encoded as a list of dictionaries of into a list of nd.arrays
-    of coordinates.
-
-    Parameters
-    ----------
-    sequences : List[Union[List[int], List[float]]]
-        List of arrays of coordinates in the format ``[x1, y1, x2, y2, ..., xn, yn]`` or as a list
-        of them as ``[[x1, y1, x2, y2, ..., xn, yn], ..., [x1, y1, x2, y2, ..., xn, yn]]``.
-    height : Optional[int], default: None
-        Maximum height for a polygon coordinate.
-    width : Optional[int], default: None
-        Maximum width for a polygon coordinate.
-
-    Returns
-    -------
-    Dict[str, List[dt.Polygon]]
-        Dictionary with the key ``path`` containing a list of coordinates in the format of
-        ``[[{x: x1, y:y1}, ..., {x: xn, y:yn}], ..., [{x: x1, y:y1}, ..., {x: xn, y:yn}]]``.
-
-    Raises
-    ------
-    ValueError
-        If sequences is a falsy value (such as ``[]``) or if it is in an incorrect format.
-    """
-    if not sequences:
-        raise ValueError("No sequences provided")
-    # If there is a single sequences composing the instance then this is
-    # transformed to polygons = [[x1, y1, ..., xn, yn]]
-    if not isinstance(sequences[0], list):
-        sequences = [sequences]
-
-    if not isinstance(sequences[0][0], (int, float)):
-        raise ValueError("Unknown input format")
-
-    def grouped(iterable, n):
-        return zip(*[iter(iterable)] * n)
-
-    polygons = []
-    for sequence in sequences:
-        path = []
-        for x, y in grouped(sequence, 2):
-            # Clip coordinates to the image size
-            x = max(min(x, width - 1) if width else x, 0)
-            y = max(min(y, height - 1) if height else y, 0)
-            path.append({"x": x, "y": y})
-        polygons.append(path)
-    return {"path": polygons}
-
-
-@deprecation.deprecated(
-    deprecated_in="0.7.5",
-    removed_in="0.8.0",
-    current_version=__version__,
-    details="Do not use.",
-)
-def convert_xyxy_to_bounding_box(box: List[Union[int, float]]) -> dt.BoundingBox:
-    """
-    Converts a list of xy coordinates representing a bounding box into a dictionary.
-
-    Parameters
-    ----------
-    box : List[Union[int, float]]
-        List of arrays of coordinates in the format [x1, y1, x2, y2]
-
-    Returns
-    -------
-    BoundingBox
-        Bounding box in the format ``{x: x1, y: y1, h: height, w: width}``.
-
-    Raises
-    ------
-    ValueError
-        If ``box`` has an incorrect format.
-    """
-    if not isinstance(box[0], float) and not isinstance(box[0], int):
-        raise ValueError("Unknown input format")
-
-    x1, y1, x2, y2 = box
-    width = x2 - x1
-    height = y2 - y1
-    return {"x": x1, "y": y1, "w": width, "h": height}
-
-
-@deprecation.deprecated(
-    deprecated_in="0.7.5",
-    removed_in="0.8.0",
-    current_version=__version__,
-    details="Do not use.",
-)
-def convert_bounding_box_to_xyxy(box: dt.BoundingBox) -> List[float]:
-    """
-    Converts dictionary representing a bounding box into a list of xy coordinates.
-
-    Parameters
-    ----------
-    box : BoundingBox
-        Bounding box in the format ``{x: x1, y: y1, h: height, w: width}``.
-
-    Returns
-    -------
-    List[float]
-        List of arrays of coordinates in the format ``[x1, y1, x2, y2]``.
-    """
-
-    x2 = box["x"] + box["width"]
-    y2 = box["y"] + box["height"]
-    return [box["x"], box["y"], x2, y2]
 
 
 def convert_polygons_to_mask(

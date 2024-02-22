@@ -71,12 +71,6 @@ instead of calling this low-level function directly.
 """
 
 
-@deprecation.deprecated(  # type:ignore
-    deprecated_in="0.7.12",
-    removed_in="0.8.0",
-    current_version=__version__,
-    details=DEPRECATION_MESSAGE,
-)
 def build_main_annotations_lookup_table(
     annotation_classes: List[Dict[str, Unknown]]
 ) -> Dict[str, Unknown]:
@@ -107,12 +101,6 @@ def build_main_annotations_lookup_table(
     return lookup
 
 
-@deprecation.deprecated(  # type:ignore
-    deprecated_in="0.7.12",
-    removed_in="0.8.0",
-    current_version=__version__,
-    details=DEPRECATION_MESSAGE,
-)
 def find_and_parse(  # noqa: C901
     importer: Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]],
     file_paths: List[PathLike],
@@ -181,12 +169,6 @@ def _get_files_for_parsing(file_paths: List[PathLike]) -> List[Path]:
     return [file for files in packed_files for file in files]
 
 
-@deprecation.deprecated(  # type:ignore
-    deprecated_in="0.7.12",
-    removed_in="0.8.0",
-    current_version=__version__,
-    details=DEPRECATION_MESSAGE,
-)
 def build_attribute_lookup(dataset: "RemoteDataset") -> Dict[str, Unknown]:
     attributes: List[Dict[str, Unknown]] = dataset.fetch_remote_attributes()
     lookup: Dict[str, Unknown] = {}
@@ -198,12 +180,6 @@ def build_attribute_lookup(dataset: "RemoteDataset") -> Dict[str, Unknown]:
     return lookup
 
 
-@deprecation.deprecated(  # type:ignore
-    deprecated_in="0.7.12",
-    removed_in="0.8.0",
-    current_version=__version__,
-    details=DEPRECATION_MESSAGE,
-)
 def get_remote_files(
     dataset: "RemoteDataset", filenames: List[str], chunk_size: int = 100
 ) -> Dict[str, Tuple[int, str]]:
@@ -339,9 +315,9 @@ def _import_properties(
     # get team properties -> List[FullProperty]
     team_properties = client.get_team_properties()
     # (property-name, annotation_class_id): FullProperty object
-    team_properties_annotation_lookup: Dict[
-        Tuple[str, Optional[int]], FullProperty
-    ] = {}
+    team_properties_annotation_lookup: Dict[Tuple[str, Optional[int]], FullProperty] = (
+        {}
+    )
     for prop in team_properties:
         team_properties_annotation_lookup[(prop.name, prop.annotation_class_id)] = prop
 
@@ -828,9 +804,9 @@ def import_annotations(  # noqa: C901
 
     # Need to re parse the files since we didn't save the annotations in memory
     for local_path in set(local_file.path for local_file in local_files):  # noqa: C401
-        imported_files: Union[
-            List[dt.AnnotationFile], dt.AnnotationFile, None
-        ] = importer(local_path)
+        imported_files: Union[List[dt.AnnotationFile], dt.AnnotationFile, None] = (
+            importer(local_path)
+        )
         if imported_files is None:
             parsed_files = []
         elif not isinstance(imported_files, List):
@@ -1230,9 +1206,9 @@ def _import_annotations(
         # Insert the default slot name if not available in the import source
         annotation = _handle_slot_names(annotation, dataset.version, default_slot_name)
 
-        annotation_class_ids_map[
-            (annotation_class.name, annotation_type)
-        ] = annotation_class_id
+        annotation_class_ids_map[(annotation_class.name, annotation_type)] = (
+            annotation_class_id
+        )
         serial_obj = {
             "annotation_class_id": annotation_class_id,
             "data": data,

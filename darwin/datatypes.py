@@ -679,6 +679,15 @@ def make_polygon(
     Annotation
         A complex polygon ``Annotation``.
     """
+
+    # Check if point_paths is List[Point] and convert to List[List[Point]]
+    if (
+        isinstance(point_paths[0], dict)
+        and "x" in point_paths[0]
+        and "y" in point_paths[0]
+    ):
+        point_paths = [point_paths]
+
     return Annotation(
         AnnotationClass(class_name, "polygon", "polygon"),
         _maybe_add_bounding_box_data({"paths": point_paths}, bounding_box),

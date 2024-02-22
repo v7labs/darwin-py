@@ -114,39 +114,3 @@ class DatasetItem(BaseModel):
                 "slots": [],
             }
         return DatasetItem(**data)
-
-
-@deprecation.deprecated(
-    deprecated_in="0.7.5",
-    removed_in="0.8.0",
-    current_version=__version__,
-    details="Use the ``DatasetItem.parse`` instead.",
-)
-def parse_dataset_item(raw: Dict[str, Any]) -> DatasetItem:
-    """
-    Parses the given dictionary into a ``DatasetItem``. Performs no validations.
-
-    Parameters
-    ----------
-    raw : Dict[str, Any]
-        The dictionary to parse.
-
-    Returns
-    -------
-    DatasetItem
-        A dataset item with the parsed information.
-    """
-    return DatasetItem(
-        id=raw["id"],
-        filename=raw["filename"],
-        status=raw["status"],
-        archived=raw["archived"],
-        filesize=raw["file_size"],
-        dataset_id=raw["dataset_id"],
-        dataset_slug="n/a",
-        seq=raw["seq"],
-        current_workflow_id=raw.get("current_workflow_id"),
-        path=raw["path"],
-        slots=[],
-        current_workflow=raw.get("current_workflow"),
-    )

@@ -339,7 +339,7 @@ class LocalDataset:
             )
             return is_bounding_box or is_supported_polygon
         elif self.annotation_type == "polygon":
-            return annotation_type in ["polygon", "complex_polygon"]
+            return annotation_type == "polygon"
         else:
             raise ValueError(
                 "annotation_type should be either 'tag', 'bounding_box', or 'polygon'"

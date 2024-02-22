@@ -196,12 +196,6 @@ def _decode_file(current_encoding: str, path: Path):
     return list(parse_json(path, data))
 
 
-@deprecation.deprecated(
-    deprecated_in="0.7.12",
-    removed_in="0.8.0",
-    current_version=__version__,
-    details=DEPRECATION_MESSAGE,
-)
 def decode_binary_rle(data: str) -> List[int]:
     """
     Decodes binary rle to integer list rle.
