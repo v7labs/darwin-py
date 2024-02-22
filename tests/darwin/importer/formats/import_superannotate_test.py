@@ -891,7 +891,7 @@ def assert_bbox(annotation: Annotation, x: float, y: float, h: float, w: float) 
 
 
 def assert_polygon(annotation: Annotation, points: List[Point]) -> None:
-    actual_points = annotation.data.get("path")
+    actual_points = annotation.data.get("paths")
     assert actual_points
     assert actual_points == points
 

@@ -335,8 +335,7 @@ class LocalDataset:
         elif self.annotation_type == "bounding_box":
             is_bounding_box = annotation_type == "bounding_box"
             is_supported_polygon = (
-                annotation_type in ["polygon", "complex_polygon"]
-                and "bounding_box" in annotation.data
+                annotation_type == "polygon" and "bounding_box" in annotation.data
             )
             return is_bounding_box or is_supported_polygon
         elif self.annotation_type == "polygon":

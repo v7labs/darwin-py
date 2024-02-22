@@ -86,7 +86,6 @@ class JSONType:
 AnnotationType = Literal[  # NB: Some of these are not supported yet
     "bounding_box",
     "polygon",
-    "complex_polygon",
     "ellipse",
     "cuboid",
     "segmentation",
