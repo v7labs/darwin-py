@@ -31,12 +31,6 @@ from darwin.utils import (
 from darwin.version import __version__
 
 
-@deprecation.deprecated(
-    deprecated_in="0.7.5",
-    removed_in="0.8.0",
-    current_version=__version__,
-    details="The api_url parameter will be removed.",
-)
 def download_all_images_from_annotations(
     api_key: str,
     api_url: str,
@@ -152,12 +146,6 @@ def download_all_images_from_annotations(
     return lambda: download_functions, len(download_functions)
 
 
-@deprecation.deprecated(
-    deprecated_in="0.7.5",
-    removed_in="0.8.0",
-    current_version=__version__,
-    details="The api_url parameter will be removed.",
-)
 def download_image_from_annotation(
     api_key: str,
     api_url: str,
@@ -454,12 +442,6 @@ def _update_local_path(annotation: AnnotationFile, url, local_path):
         file.write(op)
 
 
-@deprecation.deprecated(
-    deprecated_in="0.7.5",
-    removed_in="0.8.0",
-    current_version=__version__,
-    details="Use the ``download_image_from_annotation`` instead.",
-)
 def download_image_from_json_annotation(
     api_key: str,
     api_url: str,
@@ -504,51 +486,6 @@ def download_image_from_json_annotation(
         image_url = annotation["image"]["url"]
         image_path = parent_path / sanitize_filename(annotation["image"]["filename"])
         _download_image(image_url, image_path, api_key)
-
-
-@deprecation.deprecated(
-    deprecated_in="0.7.5",
-    removed_in="0.8.0",
-    current_version=__version__,
-    details="Use the ``download_image_from_annotation`` instead.",
-)
-def download_image(url: str, path: Path, api_key: str) -> None:
-    """
-    Helper function: downloads one image from url.
-
-    Parameters
-    ----------
-    url : str
-        Url of the image to download
-    path : Path
-        Path where to download the image, with filename
-    api_key : str
-        API Key of the current team
-    """
-    if path.exists():
-        return
-    TIMEOUT: int = 60
-    start: float = time.time()
-    while True:
-        if "token" in url:
-            response: requests.Response = requests.get(url, stream=True)
-        else:
-            response = requests.get(
-                url, headers={"Authorization": f"ApiKey {api_key}"}, stream=True
-            )
-        # Correct status: download image
-        if response.ok:
-            with open(str(path), "wb") as file:
-                for chunk in response:
-                    file.write(chunk)
-            return
-        # Fatal-error status: fail
-        if 400 <= response.status_code <= 499:
-            raise Exception(response.status_code, response.json())
-        # Timeout
-        if time.time() - start > TIMEOUT:
-            raise Exception(f"Timeout url request ({url}) after {TIMEOUT} seconds.")
-        time.sleep(1)
 
 
 def _download_image(

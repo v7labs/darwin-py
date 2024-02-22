@@ -108,7 +108,6 @@ def is_image_extension_allowed_by_filename(filename: str) -> bool:
     return any(filename.lower().endswith(ext) for ext in SUPPORTED_IMAGE_EXTENSIONS)
 
 
-@deprecation.deprecated(deprecated_in="0.8.4", current_version=__version__)
 def is_image_extension_allowed(extension: str) -> bool:
     """
     Returns whether or not the given image extension is allowed.

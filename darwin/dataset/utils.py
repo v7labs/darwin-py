@@ -366,9 +366,11 @@ def create_polygon_object(obj, box_mode, classes=None):
         "segmentation": segmentation,
         "bbox": [np.min(all_px), np.min(all_py), np.max(all_px), np.max(all_py)],
         "bbox_mode": box_mode,
-        "category_id": classes.index(obj.annotation_class.name)
-        if classes
-        else obj.annotation_class.name,
+        "category_id": (
+            classes.index(obj.annotation_class.name)
+            if classes
+            else obj.annotation_class.name
+        ),
         "iscrowd": 0,
     }
 
@@ -380,9 +382,11 @@ def create_bbox_object(obj, box_mode, classes=None):
     new_obj = {
         "bbox": [bbox["x"], bbox["y"], bbox["x"] + bbox["w"], bbox["y"] + bbox["h"]],
         "bbox_mode": box_mode,
-        "category_id": classes.index(obj.annotation_class.name)
-        if classes
-        else obj.annotation_class.name,
+        "category_id": (
+            classes.index(obj.annotation_class.name)
+            if classes
+            else obj.annotation_class.name
+        ),
         "iscrowd": 0,
     }
 
@@ -698,7 +702,7 @@ def convert_to_rgb(pic: PILImage.Image) -> PILImage.Image:
 def compute_max_density(annotations_dir: Path) -> int:
     """
     Calculates the maximum density of all of the annotations in the given folder.
-    Density is calculated as the number of polygons / complex_polygons present in an annotation
+    Density is calculated as the number of polygons present in an annotation
     file.
 
     Parameters

@@ -8,11 +8,9 @@ import darwin.exceptions as de
 from darwin.utils import (
     get_response_content,
     has_json_content_type,
-    is_extension_allowed,
     is_image_extension_allowed,
     is_project_dir,
     is_unix_like_os,
-    is_video_extension_allowed,
     parse_darwin_json,
     urljoin,
     validate_data_against_schema,
@@ -46,23 +44,11 @@ class TestValidation:
 
 
 class TestExtensions:
-    def test_returns_true_for_allowed_extensions(self):
-        assert is_extension_allowed(".png")
-
-    def test_returns_false_for_unknown_extensions(self):
-        assert not is_extension_allowed(".mkv")
-
     def test_returns_true_for_allowed_image_extensions(self):
         assert is_image_extension_allowed(".png")
 
     def test_returns_false_for_unknown_image_extensions(self):
         assert not is_image_extension_allowed(".not_an_image")
-
-    def test_returns_true_for_allowed_video_extensions(self):
-        assert is_video_extension_allowed(".mp4")
-
-    def test_returns_false_for_unknown_video_extensions(self):
-        assert not is_video_extension_allowed(".not_video")
 
 
 class TestUrlJoin:
@@ -670,8 +656,7 @@ class TestParseDarwinJson:
         annotation_file: dt.AnnotationFile = parse_darwin_json(import_file, None)
 
         assert (
-            annotation_file.annotations[0].annotation_class.annotation_type
-            == "polygon"
+            annotation_file.annotations[0].annotation_class.annotation_type == "polygon"
         )
         assert (
             annotation_file.annotations[1].annotation_class.annotation_type
