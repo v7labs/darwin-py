@@ -17,24 +17,24 @@ from darwin.datatypes import (
 class TestMakePolygon:
     def test_it_returns_annotation_with_default_params(self):
         class_name: str = "class_name"
-        points: List[Point] = [{"x": 1, "y": 2}, {"x": 3, "y": 4}, {"x": 1, "y": 2}]
+        points: List[Point] = [[{"x": 1, "y": 2}, {"x": 3, "y": 4}, {"x": 1, "y": 2}]]
         annotation = make_polygon(class_name, points)
 
-        assert_annotation_class(annotation, class_name, "polygon")
+        assert_annotation_class(annotation, class_name, "polygon", "polygon")
 
-        path = annotation.data.get("path")
-        assert path == points
+        paths = annotation.data.get("paths")
+        assert paths == points
 
     def test_it_returns_annotation_with_bounding_box(self):
         class_name: str = "class_name"
-        points: List[Point] = [{"x": 1, "y": 2}, {"x": 3, "y": 4}, {"x": 1, "y": 2}]
+        points: List[Point] = [[{"x": 1, "y": 2}, {"x": 3, "y": 4}, {"x": 1, "y": 2}]]
         bbox: Dict[str, float] = {"x": 1, "y": 2, "w": 2, "h": 2}
         annotation = make_polygon(class_name, points, bbox)
 
-        assert_annotation_class(annotation, class_name, "polygon")
+        assert_annotation_class(annotation, class_name, "polygon", "polygon")
 
-        path = annotation.data.get("path")
-        assert path == points
+        paths = annotation.data.get("paths")
+        assert paths == points
 
         class_bbox = annotation.data.get("bounding_box")
         assert class_bbox == bbox
@@ -49,7 +49,7 @@ class TestMakeComplexPolygon:
         ]
         annotation = make_polygon(class_name, points)
 
-        assert_annotation_class(annotation, class_name, "complex_polygon", "polygon")
+        assert_annotation_class(annotation, class_name, "polygon", "polygon")
 
         paths = annotation.data.get("paths")
         assert paths == points
@@ -63,7 +63,7 @@ class TestMakeComplexPolygon:
         bbox: Dict[str, float] = {"x": 1, "y": 2, "w": 2, "h": 2}
         annotation = make_polygon(class_name, points, bbox)
 
-        assert_annotation_class(annotation, class_name, "complex_polygon", "polygon")
+        assert_annotation_class(annotation, class_name, "polygon", "polygon")
 
         paths = annotation.data.get("paths")
         assert paths == points

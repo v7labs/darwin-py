@@ -174,9 +174,7 @@ def annotations() -> List[dt.Annotation]:
         ),
         dt.Annotation(dt.AnnotationClass("class_2", "mask"), data={"sparse_rle": []}),
         dt.Annotation(dt.AnnotationClass("class_3", "polygon"), data={"path": "data"}),
-        dt.Annotation(
-            dt.AnnotationClass("class_4", "complex_polygon"), data={"paths": "data"}
-        ),
+        dt.Annotation(dt.AnnotationClass("class_4", "polygon"), data={"paths": "data"}),
     ]
 
 
@@ -277,12 +275,14 @@ def test_beyond_polygon_beyond_window() -> None:
         dt.Annotation(
             dt.AnnotationClass("cat1", "polygon"),
             {
-                "path": [
-                    {"x": -1, "y": -1},
-                    {"x": -1, "y": 1},
-                    {"x": 1, "y": 1},
-                    {"x": 1, "y": -1},
-                    {"x": -1, "y": -1},
+                "paths": [
+                    [
+                        {"x": -1, "y": -1},
+                        {"x": -1, "y": 1},
+                        {"x": 1, "y": 1},
+                        {"x": 1, "y": -1},
+                        {"x": -1, "y": -1},
+                    ]
                 ],
                 "bounding_box": {"x": -1, "y": -1, "w": 2, "h": 2},
             },
@@ -319,7 +319,7 @@ def test_beyond_complex_polygon() -> None:
     categories: dt.MaskTypes.CategoryList = ["__background__"]
     annotations: List[dt.AnnotationLike] = [
         dt.Annotation(
-            dt.AnnotationClass("cat3", "complex_polygon"),
+            dt.AnnotationClass("cat3", "polygon"),
             {
                 "paths": [
                     [
@@ -378,7 +378,7 @@ def test_render_polygons() -> None:
         dt.Annotation(
             dt.AnnotationClass("cat1", "polygon"),
             {
-                "path": [
+                "paths": [
                     {"x": 10, "y": 10},
                     {"x": 20, "y": 10},
                     {"x": 20, "y": 20},
@@ -390,7 +390,7 @@ def test_render_polygons() -> None:
         dt.Annotation(
             dt.AnnotationClass("cat2", "polygon"),
             {
-                "path": [
+                "paths": [
                     {"x": 30, "y": 30},
                     {"x": 40, "y": 30},
                     {"x": 40, "y": 40},
@@ -402,7 +402,7 @@ def test_render_polygons() -> None:
         dt.Annotation(
             dt.AnnotationClass("cat1", "polygon"),
             {
-                "path": [
+                "paths": [
                     {"x": 50, "y": 50},
                     {"x": 60, "y": 50},
                     {"x": 60, "y": 60},
@@ -414,12 +414,12 @@ def test_render_polygons() -> None:
         dt.Annotation(
             dt.AnnotationClass("cat1", "polygon"),
             {
-                "path": [{"x": 10, "y": 80}, {"x": 20, "y": 80}, {"x": 20, "y": 60}],
+                "paths": [{"x": 10, "y": 80}, {"x": 20, "y": 80}, {"x": 20, "y": 60}],
                 "bounding_box": base_bb,
             },
         ),
         dt.Annotation(
-            dt.AnnotationClass("cat3", "complex_polygon"),
+            dt.AnnotationClass("cat3", "polygon"),
             {
                 "paths": [
                     [
@@ -785,7 +785,7 @@ def test_class_mappings_preserved_on_large_export(tmpdir) -> None:
         dt.Annotation(
             dt.AnnotationClass("cat1", "polygon"),
             {
-                "path": [
+                "paths": [
                     {"x": 0, "y": 0},
                     {"x": 1, "y": 0},
                     {"x": 1, "y": 1},
@@ -797,7 +797,7 @@ def test_class_mappings_preserved_on_large_export(tmpdir) -> None:
         dt.Annotation(
             dt.AnnotationClass("cat2", "polygon"),
             {
-                "path": [
+                "paths": [
                     {"x": 2, "y": 2},
                     {"x": 4, "y": 2},
                     {"x": 4, "y": 4},
@@ -809,7 +809,7 @@ def test_class_mappings_preserved_on_large_export(tmpdir) -> None:
         dt.Annotation(
             dt.AnnotationClass("cat3", "polygon"),
             {
-                "path": [
+                "paths": [
                     {"x": 5, "y": 5},
                     {"x": 8, "y": 5},
                     {"x": 8, "y": 8},
@@ -821,7 +821,7 @@ def test_class_mappings_preserved_on_large_export(tmpdir) -> None:
         dt.Annotation(
             dt.AnnotationClass("cat1", "polygon"),
             {
-                "path": [
+                "paths": [
                     {"x": 4, "y": 0},
                     {"x": 5, "y": 0},
                     {"x": 5, "y": 1},
@@ -831,7 +831,7 @@ def test_class_mappings_preserved_on_large_export(tmpdir) -> None:
             },
         ),
         dt.Annotation(
-            dt.AnnotationClass("cat4", "complex_polygon"),
+            dt.AnnotationClass("cat4", "polygon"),
             {
                 "paths": [
                     [

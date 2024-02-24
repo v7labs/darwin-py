@@ -26,12 +26,12 @@ def open_resource_file():
 def parsed_annotation_file():
     return {
         "annotations": [
-            {"name": "class_1", "polygon": {"path": []}},
-            {"name": "class_1", "polygon": {"path": []}},
-            {"name": "class_2", "polygon": {"path": []}},
-            {"name": "class_2", "polygon": {"path": []}},
-            {"name": "class_2", "polygon": {"path": []}},
-            {"name": "class_3", "polygon": {"path": []}},
+            {"name": "class_1", "polygon": {"paths": [{"x": 0, "y": 0}]}},
+            {"name": "class_1", "polygon": {"paths": [{"x": 0, "y": 0}]}},
+            {"name": "class_2", "polygon": {"paths": [{"x": 0, "y": 0}]}},
+            {"name": "class_2", "polygon": {"paths": [{"x": 0, "y": 0}]}},
+            {"name": "class_2", "polygon": {"paths": [{"x": 0, "y": 0}]}},
+            {"name": "class_3", "polygon": {"paths": [{"x": 0, "y": 0}]}},
         ],
         "image": {
             "filename": "test.jpg",

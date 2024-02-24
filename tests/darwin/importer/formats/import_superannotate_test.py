@@ -471,14 +471,18 @@ class TestParsePath:
         assert_polygon(
             polygon_annotation,
             [
-                {"x": 1053, "y": 587.2},
-                {"x": 1053.1, "y": 586},
-                {"x": 1053.8, "y": 585.4},
+                [
+                    {"x": 1053, "y": 587.2},
+                    {"x": 1053.1, "y": 586},
+                    {"x": 1053.8, "y": 585.4},
+                ],
             ],
         )
 
         annotation_class = polygon_annotation.annotation_class
-        assert_annotation_class(annotation_class, "Person-polygon", "polygon")
+        assert_annotation_class(
+            annotation_class, "Person-polygon", "polygon", "polygon"
+        )
 
     def test_raises_if_polyline_has_missing_points(
         self, annotations_file_path: Path, classes_file_path: Path
@@ -890,7 +894,7 @@ def assert_bbox(annotation: Annotation, x: float, y: float, h: float, w: float) 
     assert data.get("h") == h
 
 
-def assert_polygon(annotation: Annotation, points: List[Point]) -> None:
+def assert_polygon(annotation: Annotation, points: List[List[Point]]) -> None:
     actual_points = annotation.data.get("paths")
     assert actual_points
     assert actual_points == points
