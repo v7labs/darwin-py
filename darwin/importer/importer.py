@@ -557,6 +557,44 @@ def _import_properties(
             )
             updated_properties.append(prop)
 
+    for fp in created_properties + updated_properties:
+        m_prop = metadata_cls_prop_lookup[(fp.name, str(fp.annotation_class_id))]
+
+        m_prop_values = {}
+        for m_prop_val in m_prop.property_values or []:
+            if m_prop_val["value"]:
+                m_prop_values[m_prop_val["value"]] = m_prop_val
+
+        fp_values = [prop_val.value for prop_val in fp.property_values or []]
+
+        extra_values = set(m_prop_values.keys()) - set(fp_values)
+        if extra_values:
+            # if there are extra values in metadata, create a new FullProperty with the extra values
+            extra_property_values = [
+                PropertyValue(
+                    value=m_prop_values[extra_value]["value"],
+                    color=m_prop_values[extra_value].get("color"),
+                )
+                for extra_value in extra_values
+            ]
+            full_property = FullProperty(
+                id=fp.id,
+                name=fp.name,
+                type=fp.type,
+                required=fp.required,
+                description=fp.description,
+                slug=fp.slug,
+                annotation_class_id=fp.annotation_class_id,
+                property_values=extra_property_values,
+            )
+            console.print(
+                f"Updating property {full_property.name} ({full_property.type}) with extra values",
+                style="info",
+            )
+            prop = client.update_property(
+                team_slug=full_property.slug, params=full_property
+            )
+
     # update annotation_property_map with property ids from created_properties & updated_properties
     for annotation_id, _ in annotation_property_map.items():
         if not annotation_id_map.get(annotation_id):
