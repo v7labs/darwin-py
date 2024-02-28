@@ -275,6 +275,18 @@ def _resolve_annotation_classes(
     return local_classes_not_in_dataset, local_classes_not_in_team
 
 
+def _get_team_properties_annotation_lookup(client):
+    # get team properties -> List[FullProperty]
+    team_properties = client.get_team_properties()
+
+    # (property-name, annotation_class_id): FullProperty object
+    team_properties_annotation_lookup: Dict[Tuple[str, Optional[int]], FullProperty] = {}
+    for prop in team_properties:
+        team_properties_annotation_lookup[(prop.name, prop.annotation_class_id)] = prop
+
+    return team_properties_annotation_lookup
+
+
 def _update_payload_with_properties(
     annotations: List[Dict[str, Unknown]],
     annotation_id_property_map: Dict[str, Dict[str, Dict[str, Set[str]]]],
@@ -336,19 +348,15 @@ def _import_properties(
     metadata = parse_metadata(metadata_path)
     metadata_property_classes = parse_property_classes(metadata)
 
-    # get team properties -> List[FullProperty]
-    team_properties = client.get_team_properties()
-    # (property-name, annotation_class_id): FullProperty object
-    team_properties_annotation_lookup: Dict[Tuple[str, Optional[int]], FullProperty] = (
-        {}
-    )
-    for prop in team_properties:
-        team_properties_annotation_lookup[(prop.name, prop.annotation_class_id)] = prop
+    # get team properties
+    team_properties_annotation_lookup = _get_team_properties_annotation_lookup(client)
 
     # (annotation-cls-name, annotation-cls-name): PropertyClass object
     metadata_classes_lookup: Set[Tuple[str, str]] = set()
     # (annotation-cls-name, property-name): Property object
     metadata_cls_prop_lookup: Dict[Tuple[str, str], Property] = {}
+    # (annotation-cls-id, property-name): Property object
+    metadata_cls_id_prop_lookup: Dict[Tuple[int, str], Property] = {}
     for _cls in metadata_property_classes:
         metadata_classes_lookup.add((_cls.name, _cls.type))
         for _prop in _cls.properties or []:
@@ -396,6 +404,9 @@ def _import_properties(
 
             # get metadata property
             m_prop: Property = metadata_cls_prop_lookup[(annotation_name, a_prop.name)]
+
+            # update metadata-property lookup
+            metadata_cls_id_prop_lookup[(annotation_class_id, a_prop.name)] = m_prop
 
             # get metadata property type
             m_prop_type: PropertyType = m_prop.type
@@ -556,6 +567,60 @@ def _import_properties(
                 team_slug=full_property.slug, params=full_property
             )
             updated_properties.append(prop)
+
+    # get latest team properties
+    team_properties_annotation_lookup = _get_team_properties_annotation_lookup(client)
+
+    # loop over metadata_cls_id_prop_lookup, and update additional metadata property values
+    for (annotation_class_id, prop_name), m_prop in metadata_cls_id_prop_lookup.items():
+        # does the annotation-property exist in the team? if not, skip
+        if (prop_name, annotation_class_id) not in team_properties_annotation_lookup:
+            continue
+
+        # get metadata property values
+        m_prop_values = {
+            m_prop_val["value"]: m_prop_val
+            for m_prop_val in m_prop.property_values or []
+            if m_prop_val["value"]
+        }
+
+        # get team property
+        t_prop: FullProperty = team_properties_annotation_lookup[
+            (prop_name, annotation_class_id)
+        ]
+
+        # get team property values
+        t_prop_values = [prop_val.value for prop_val in t_prop.property_values or []]
+
+        # get diff of metadata property values and team property values
+        extra_values = set(m_prop_values.keys()) - set(t_prop_values)
+
+        # if there are extra values in metadata, create a new FullProperty with the extra values
+        if extra_values:
+            extra_property_values = [
+                PropertyValue(
+                    value=m_prop_values[extra_value].get("value"),  # type: ignore
+                    color=m_prop_values[extra_value].get("color"),  # type: ignore
+                )
+                for extra_value in extra_values
+            ]
+            full_property = FullProperty(
+                id=t_prop.id,
+                name=t_prop.name,
+                type=t_prop.type,
+                required=t_prop.required,
+                description=t_prop.description,
+                slug=client.default_team,
+                annotation_class_id=t_prop.annotation_class_id,
+                property_values=extra_property_values,
+            )
+            console.print(
+                f"Updating property {full_property.name} ({full_property.type}) with extra metadata values {extra_values}",
+                style="info",
+            )
+            prop = client.update_property(
+                team_slug=full_property.slug, params=full_property
+            )
 
     # update annotation_property_map with property ids from created_properties & updated_properties
     for annotation_id, _ in annotation_property_map.items():
