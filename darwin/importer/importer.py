@@ -275,6 +275,18 @@ def _resolve_annotation_classes(
     return local_classes_not_in_dataset, local_classes_not_in_team
 
 
+def _get_team_properties_annotation_lookup(client):
+    # get team properties -> List[FullProperty]
+    team_properties = client.get_team_properties()
+
+    # (property-name, annotation_class_id): FullProperty object
+    team_properties_annotation_lookup: Dict[Tuple[str, Optional[int]], FullProperty] = {}
+    for prop in team_properties:
+        team_properties_annotation_lookup[(prop.name, prop.annotation_class_id)] = prop
+
+    return team_properties_annotation_lookup
+
+
 def _update_payload_with_properties(
     annotations: List[Dict[str, Unknown]],
     annotation_id_property_map: Dict[str, Dict[str, Dict[str, Set[str]]]],
@@ -336,14 +348,8 @@ def _import_properties(
     metadata = parse_metadata(metadata_path)
     metadata_property_classes = parse_property_classes(metadata)
 
-    # get team properties -> List[FullProperty]
-    team_properties = client.get_team_properties()
-    # (property-name, annotation_class_id): FullProperty object
-    team_properties_annotation_lookup: Dict[Tuple[str, Optional[int]], FullProperty] = (
-        {}
-    )
-    for prop in team_properties:
-        team_properties_annotation_lookup[(prop.name, prop.annotation_class_id)] = prop
+    # get team properties
+    team_properties_annotation_lookup = _get_team_properties_annotation_lookup(client)
 
     # (annotation-cls-name, annotation-cls-name): PropertyClass object
     metadata_classes_lookup: Set[Tuple[str, str]] = set()
@@ -562,15 +568,10 @@ def _import_properties(
             )
             updated_properties.append(prop)
 
-    # get team properties -> List[FullProperty]
-    team_properties = client.get_team_properties()
-    # (property-name, annotation_class_id): FullProperty object
-    team_properties_annotation_lookup: Dict[Tuple[str, Optional[int]], FullProperty] = {
-        (prop.name, prop.annotation_class_id): prop
-        for prop in team_properties
-    }
+    # get latest team properties
+    team_properties_annotation_lookup = _get_team_properties_annotation_lookup(client)
 
-    # loop over metadata_cls_id_prop_lookup
+    # loop over metadata_cls_id_prop_lookup, and update additional metadata property values
     for (annotation_class_id, prop_name), m_prop in metadata_cls_id_prop_lookup.items():
         # does the annotation-property exist in the team? if not, skip
         if (prop_name, annotation_class_id) not in team_properties_annotation_lookup:
