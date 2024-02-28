@@ -578,10 +578,11 @@ def _import_properties(
             continue
 
         # get metadata property values
-        m_prop_values = {}
-        for m_prop_val in m_prop.property_values or []:
-            if m_prop_val["value"]:
-                m_prop_values[m_prop_val["value"]] = m_prop_val
+        m_prop_values = {
+            m_prop_val["value"]: m_prop_val
+            for m_prop_val in m_prop.property_values or []
+            if m_prop_val["value"]
+        }
 
         # get team property
         t_prop: FullProperty = team_properties_annotation_lookup[
@@ -598,8 +599,8 @@ def _import_properties(
         if extra_values:
             extra_property_values = [
                 PropertyValue(
-                    value=m_prop_values[extra_value]["value"],
-                    color=m_prop_values[extra_value].get("color"),
+                    value=m_prop_values[extra_value].get("value"),  # type: ignore
+                    color=m_prop_values[extra_value].get("color"),  # type: ignore
                 )
                 for extra_value in extra_values
             ]
