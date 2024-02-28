@@ -349,6 +349,8 @@ def _import_properties(
     metadata_classes_lookup: Set[Tuple[str, str]] = set()
     # (annotation-cls-name, property-name): Property object
     metadata_cls_prop_lookup: Dict[Tuple[str, str], Property] = {}
+    # (annotation-cls-id, property-name): Property object
+    metadata_cls_id_prop_lookup: Dict[Tuple[int, str], Property] = {}
     for _cls in metadata_property_classes:
         metadata_classes_lookup.add((_cls.name, _cls.type))
         for _prop in _cls.properties or []:
@@ -396,6 +398,9 @@ def _import_properties(
 
             # get metadata property
             m_prop: Property = metadata_cls_prop_lookup[(annotation_name, a_prop.name)]
+
+            # update metadata-property lookup
+            metadata_cls_id_prop_lookup[(annotation_class_id, a_prop.name)] = m_prop
 
             # get metadata property type
             m_prop_type: PropertyType = m_prop.type
@@ -557,19 +562,25 @@ def _import_properties(
             )
             updated_properties.append(prop)
 
+    # update extra property-values in metadata
     for fp in created_properties + updated_properties:
-        m_prop = metadata_cls_prop_lookup[(fp.name, str(fp.annotation_class_id))]
+        # get metadata property from metadata_cls_prop_lookup
+        m_prop: Property = metadata_cls_id_prop_lookup[(fp.annotation_class_id, fp.name)]
 
+        # get metadata property values
         m_prop_values = {}
         for m_prop_val in m_prop.property_values or []:
             if m_prop_val["value"]:
                 m_prop_values[m_prop_val["value"]] = m_prop_val
 
+        # get created/updated property values
         fp_values = [prop_val.value for prop_val in fp.property_values or []]
 
+        # get diff of metadata property values and created/updated property values
         extra_values = set(m_prop_values.keys()) - set(fp_values)
+
+        # if there are extra values in metadata, create a new FullProperty with the extra values
         if extra_values:
-            # if there are extra values in metadata, create a new FullProperty with the extra values
             extra_property_values = [
                 PropertyValue(
                     value=m_prop_values[extra_value]["value"],
@@ -583,12 +594,12 @@ def _import_properties(
                 type=fp.type,
                 required=fp.required,
                 description=fp.description,
-                slug=fp.slug,
+                slug=client.default_team,
                 annotation_class_id=fp.annotation_class_id,
                 property_values=extra_property_values,
             )
             console.print(
-                f"Updating property {full_property.name} ({full_property.type}) with extra values",
+                f"Updating property {full_property.name} ({full_property.type}) with extra values {extra_values}",
                 style="info",
             )
             prop = client.update_property(
