@@ -562,10 +562,19 @@ def _import_properties(
             )
             updated_properties.append(prop)
 
-    # update extra property-values in metadata
-    for fp in created_properties + updated_properties:
-        # get metadata property from metadata_cls_prop_lookup
-        m_prop: Property = metadata_cls_id_prop_lookup[(fp.annotation_class_id, fp.name)]
+    # get team properties -> List[FullProperty]
+    team_properties = client.get_team_properties()
+    # (property-name, annotation_class_id): FullProperty object
+    team_properties_annotation_lookup: Dict[Tuple[str, Optional[int]], FullProperty] = {
+        (prop.name, prop.annotation_class_id): prop
+        for prop in team_properties
+    }
+
+    # loop over metadata_cls_id_prop_lookup
+    for (annotation_class_id, prop_name), m_prop in metadata_cls_id_prop_lookup.items():
+        # does the annotation-property exist in the team? if not, skip
+        if (prop_name, annotation_class_id) not in team_properties_annotation_lookup:
+            continue
 
         # get metadata property values
         m_prop_values = {}
@@ -573,11 +582,16 @@ def _import_properties(
             if m_prop_val["value"]:
                 m_prop_values[m_prop_val["value"]] = m_prop_val
 
-        # get created/updated property values
-        fp_values = [prop_val.value for prop_val in fp.property_values or []]
+        # get team property
+        t_prop: FullProperty = team_properties_annotation_lookup[
+            (prop_name, annotation_class_id)
+        ]
 
-        # get diff of metadata property values and created/updated property values
-        extra_values = set(m_prop_values.keys()) - set(fp_values)
+        # get team property values
+        t_prop_values = [prop_val.value for prop_val in t_prop.property_values or []]
+
+        # get diff of metadata property values and team property values
+        extra_values = set(m_prop_values.keys()) - set(t_prop_values)
 
         # if there are extra values in metadata, create a new FullProperty with the extra values
         if extra_values:
@@ -589,17 +603,17 @@ def _import_properties(
                 for extra_value in extra_values
             ]
             full_property = FullProperty(
-                id=fp.id,
-                name=fp.name,
-                type=fp.type,
-                required=fp.required,
-                description=fp.description,
+                id=t_prop.id,
+                name=t_prop.name,
+                type=t_prop.type,
+                required=t_prop.required,
+                description=t_prop.description,
                 slug=client.default_team,
-                annotation_class_id=fp.annotation_class_id,
+                annotation_class_id=t_prop.annotation_class_id,
                 property_values=extra_property_values,
             )
             console.print(
-                f"Updating property {full_property.name} ({full_property.type}) with extra values {extra_values}",
+                f"Updating property {full_property.name} ({full_property.type}) with extra metadata values {extra_values}",
                 style="info",
             )
             prop = client.update_property(
