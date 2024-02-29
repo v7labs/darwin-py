@@ -823,6 +823,14 @@ def _parse_darwin_annotation(annotation: Dict[str, Any]) -> Optional[dt.Annotati
             annotation["table"]["cells"],
             slot_names=slot_names,
         )
+    elif "simple_table" in annotation:
+        main_annotation = dt.make_simple_table(
+            name,
+            annotation["simple_table"]["bounding_box"],
+            annotation["simple_table"]["col_offsets"],
+            annotation["simple_table"]["row_offsets"],
+            slot_names=slot_names,
+        )
     elif "string" in annotation:
         main_annotation = dt.make_string(
             name, annotation["string"]["sources"], slot_names=slot_names

@@ -92,6 +92,7 @@ def build_main_annotations_lookup_table(
         "tag",
         "string",
         "table",
+        "simple_table",
         "graph",
         "mask",
         "raster_layer",
@@ -280,7 +281,9 @@ def _get_team_properties_annotation_lookup(client):
     team_properties = client.get_team_properties()
 
     # (property-name, annotation_class_id): FullProperty object
-    team_properties_annotation_lookup: Dict[Tuple[str, Optional[int]], FullProperty] = {}
+    team_properties_annotation_lookup: Dict[Tuple[str, Optional[int]], FullProperty] = (
+        {}
+    )
     for prop in team_properties:
         team_properties_annotation_lookup[(prop.name, prop.annotation_class_id)] = prop
 
@@ -1295,9 +1298,9 @@ def _import_annotations(
         # Insert the default slot name if not available in the import source
         annotation = _handle_slot_names(annotation, dataset.version, default_slot_name)
 
-        annotation_class_ids_map[
-            (annotation_class.name, annotation_type)
-        ] = annotation_class_id
+        annotation_class_ids_map[(annotation_class.name, annotation_type)] = (
+            annotation_class_id
+        )
         serial_obj = {
             "annotation_class_id": annotation_class_id,
             "data": data,
