@@ -105,6 +105,7 @@ def annotation_content() -> Dict[str, Any]:
                 "name": "test_class",
                 "slot_names": ["0"],
                 "ranges": [[0, 3]],
+                "hidden_areas": [[1, 2]],
                 "id": "test_id",
                 "frames": {
                     "0": {
