@@ -1003,6 +1003,51 @@ def make_table(
     )
 
 
+def make_simple_table(
+    class_name: str,
+    bounding_box: BoundingBox,
+    col_offsets: List[float],
+    row_offsets: List[float],
+    subs: Optional[List[SubAnnotation]] = None,
+    slot_names: Optional[List[str]] = None,
+) -> Annotation:
+    """
+    Creates and returns a simple table annotation.
+
+    Parameters
+    ----------
+    class_name : str
+        The name of the class for this ``Annotation``.
+
+    bounding_box : BoundingBox
+        Bounding box that wraps around the table.
+
+    col_offsets : List[float]
+        List of floats representing the column offsets.
+
+    row_offsets : List[float]
+        List of floats representing the row offsets.
+
+    subs : Optional[List[SubAnnotation]], default: None
+        List of ``SubAnnotation``\\s for this ``Annotation``.
+
+    Returns
+    -------
+    Annotation
+        A simple table ``Annotation``.
+    """
+    return Annotation(
+        AnnotationClass(class_name, "simple_table"),
+        {
+            "bounding_box": bounding_box,
+            "col_offsets": col_offsets,
+            "row_offsets": row_offsets,
+        },
+        subs or [],
+        slot_names=slot_names or [],
+    )
+
+
 def make_string(
     class_name: str,
     sources: List[Dict[str, UnknownType]],

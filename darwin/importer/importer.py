@@ -92,6 +92,7 @@ def build_main_annotations_lookup_table(
         "tag",
         "string",
         "table",
+        "simple_table",
         "graph",
         "mask",
         "raster_layer",
@@ -280,7 +281,9 @@ def _get_team_properties_annotation_lookup(client):
     team_properties = client.get_team_properties()
 
     # (property-name, annotation_class_id): FullProperty object
-    team_properties_annotation_lookup: Dict[Tuple[str, Optional[int]], FullProperty] = {}
+    team_properties_annotation_lookup: Dict[
+        Tuple[str, Optional[int]], FullProperty
+    ] = {}
     for prop in team_properties:
         team_properties_annotation_lookup[(prop.name, prop.annotation_class_id)] = prop
 
@@ -425,7 +428,6 @@ def _import_properties(
                 a_prop.name,
                 annotation_class_id,
             ) not in team_properties_annotation_lookup:
-
                 # check if fullproperty exists in create_properties
                 for full_property in create_properties:
                     if (
@@ -893,9 +895,9 @@ def import_annotations(  # noqa: C901
 
     # Need to re parse the files since we didn't save the annotations in memory
     for local_path in set(local_file.path for local_file in local_files):  # noqa: C401
-        imported_files: Union[List[dt.AnnotationFile], dt.AnnotationFile, None] = (
-            importer(local_path)
-        )
+        imported_files: Union[
+            List[dt.AnnotationFile], dt.AnnotationFile, None
+        ] = importer(local_path)
         if imported_files is None:
             parsed_files = []
         elif not isinstance(imported_files, List):
