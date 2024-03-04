@@ -233,6 +233,12 @@ class TestParseDarwinJson:
                             46
                         ]
                     ],
+                    "hidden_areas": [
+                        [
+                            5,
+                            8
+                        ]
+                    ],
                     "slot_names": [
                         "0"
                     ]
@@ -313,6 +319,7 @@ class TestParseDarwinJson:
                 },
                 keyframes={3: True},
                 segments=[[3, 46]],
+                hidden_areas=[[5, 8]],
                 interpolated=True,
             )
         ]

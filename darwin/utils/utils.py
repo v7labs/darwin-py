@@ -959,6 +959,7 @@ def _parse_darwin_video_annotation(annotation: dict) -> Optional[dt.VideoAnnotat
         annotation.get("interpolated", False),
         slot_names=parse_slot_names(annotation),
         properties=_parse_properties(annotation.get("properties", [])),
+        hidden_areas=annotation.get("hidden_areas", []),
     )
 
     if "id" in annotation:
