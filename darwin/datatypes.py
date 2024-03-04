@@ -53,6 +53,7 @@ Node = Dict[str, UnknownType]
 EllipseData = Dict[str, Union[float, Point]]
 CuboidData = Dict[str, Dict[str, float]]
 Segment = List[int]
+HiddenArea = List[int]
 
 DarwinVersionNumber = Tuple[int, int, int]
 
@@ -276,6 +277,9 @@ class VideoAnnotation:
     # Properties of this annotation.
     properties: Optional[list[SelectedProperty]] = None
 
+    #: A list of ``HiddenArea``\'s.
+    hidden_areas: List[HiddenArea] = field(default_factory=list)
+
     def get_data(
         self,
         only_keyframes: bool = True,
@@ -334,6 +338,7 @@ class VideoAnnotation:
             },
             "segments": self.segments,
             "interpolated": self.interpolated,
+            "hidden_areas": self.hidden_areas,
         }
 
         return output
@@ -1283,6 +1288,7 @@ def make_video_annotation(
     interpolated: bool,
     slot_names: List[str],
     properties: Optional[list[SelectedProperty]] = None,
+    hidden_areas: Optional[List[HiddenArea]] = None,
 ) -> VideoAnnotation:
     """
     Creates and returns a ``VideoAnnotation``.
@@ -1320,6 +1326,7 @@ def make_video_annotation(
         interpolated,
         slot_names=slot_names or [],
         properties=properties,
+        hidden_areas=hidden_areas or [],
     )
 
 

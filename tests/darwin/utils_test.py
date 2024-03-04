@@ -221,6 +221,12 @@ class TestParseDarwinJson:
                             3,
                             46
                         ]
+                    ],
+                    "hidden_areas": [
+                        [
+                            5,
+                            8
+                        ]
                     ]
                 }
             ]
@@ -294,6 +300,7 @@ class TestParseDarwinJson:
                 },
                 keyframes={3: True},
                 segments=[[3, 46]],
+                hidden_areas=[[5, 8]],
                 interpolated=True,
             )
         ]
