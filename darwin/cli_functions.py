@@ -881,7 +881,7 @@ def dataset_import(
     import_reviewers : bool, default: False
         If ``True`` it will import the reviewers from the files to the dataset, if .
         If ``False`` it will not import the reviewers.
-    use_multi_cpu : bool, default: True
+    use_multi_cpu : bool, default: False
         If ``True`` it will use all multiple CPUs to speed up the import process.
     cpu_limit : Optional[int], default: Core count - 2
         The maximum number of CPUs to use for the import process.
