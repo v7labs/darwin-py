@@ -12,6 +12,7 @@ from darwin.datatypes import Feature, JSONFreeForm
 from darwin.exceptions import NameTaken, NotFound
 from darwin.future.data_objects.properties import FullProperty
 from darwin.future.tests.core.fixtures import *  # noqa: F401, F403
+from darwin.objectstore import ObjectStore
 from tests.fixtures import *  # noqa: F401, F403
 
 
@@ -456,3 +457,100 @@ class TestUpdateProperty:
         )
         assert isinstance(_property, FullProperty)
         assert _property == base_property_object
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+class TestGetExternalStorage:
+    @responses.activate
+    def test_returns_external_storage(self, darwin_client: Client) -> None:
+        team_slug: str = "v7"
+        endpoint: str = f"/teams/{team_slug}/storage"
+        response: List[JSONFreeForm] = [
+            {
+                "name": "storage-name-1",
+                "prefix": "storage-prefix-1",
+                "readonly": False,
+                "provider": "aws",
+                "default": True,
+            }
+        ]
+
+        responses.add(
+            responses.GET, darwin_client.url + endpoint, json=response, status=200
+        )
+
+        actual_storage = darwin_client.get_external_storage(team_slug, "storage-name-1")
+        expected_storage = ObjectStore(
+            name="storage-name-1",
+            prefix="storage-prefix-1",
+            readonly=False,
+            provider="aws",
+            default=True,
+        )
+
+        assert actual_storage.name == expected_storage.name
+        assert actual_storage.prefix == expected_storage.prefix
+        assert actual_storage.readonly == expected_storage.readonly
+        assert actual_storage.provider == expected_storage.provider
+        assert actual_storage.default == expected_storage.default
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+class TestListExternalStorageConnections:
+    @responses.activate
+    def test_returns_list_of_external_storage_connections(
+        self, darwin_client: Client
+    ) -> None:
+        team_slug: str = "v7"
+        endpoint: str = f"/teams/{team_slug}/storage"
+        json_response: List[JSONFreeForm] = [
+            {
+                "name": "storage-name-1",
+                "prefix": "storage-prefix-1",
+                "readonly": False,
+                "provider": "aws",
+                "default": True,
+            },
+            {
+                "name": "storage-name-2",
+                "prefix": "storage-prefix-2",
+                "readonly": True,
+                "provider": "gcp",
+                "default": False,
+            },
+        ]
+
+        responses.add(
+            responses.GET, darwin_client.url + endpoint, json=json_response, status=200
+        )
+
+        actual_storages = list(
+            darwin_client.list_external_storage_connections(team_slug)
+        )
+
+        expected_storage_1 = ObjectStore(
+            name="storage-name-1",
+            prefix="storage-prefix-1",
+            readonly=False,
+            provider="aws",
+            default=True,
+        )
+        expected_storage_2 = ObjectStore(
+            name="storage-name-2",
+            prefix="storage-prefix-2",
+            readonly=True,
+            provider="gcp",
+            default=False,
+        )
+
+        assert actual_storages[0].name == expected_storage_1.name
+        assert actual_storages[0].prefix == expected_storage_1.prefix
+        assert actual_storages[0].readonly == expected_storage_1.readonly
+        assert actual_storages[0].provider == expected_storage_1.provider
+        assert actual_storages[0].default == expected_storage_1.default
+
+        assert actual_storages[1].name == expected_storage_2.name
+        assert actual_storages[1].prefix == expected_storage_2.prefix
+        assert actual_storages[1].readonly == expected_storage_2.readonly
+        assert actual_storages[1].provider == expected_storage_2.provider
+        assert actual_storages[1].default == expected_storage_2.default
