@@ -9,14 +9,22 @@ class ObjectStore:
         self.provider (str): The cloud provider (aws, azure, or gcp)
     """
 
-    def __init__(self, name: str, prefix: str, readonly: bool, provider: str):
+    def __init__(
+        self,
+        name: str,
+        prefix: str,
+        readonly: bool,
+        provider: str,
+        default: bool,
+    ) -> None:
         self.name = name
         self.prefix = prefix
         self.readonly = readonly
         self.provider = provider
+        self.default = default
 
     def __str__(self) -> str:
-        return f"A {'read-only' if self.readonly else 'read-write'} {self.provider} storage connection named {self.name} with prefix {self.prefix}"
+        return f"A {'read-only' if self.readonly else 'read-write'} {self.provider} storage connection named {self.name} with prefix: {self.prefix}"
 
     def __repr__(self) -> str:
         return f"ObjectStore(name={self.name}, prefix={self.prefix}, readonly={self.readonly}, provider={self.provider})"

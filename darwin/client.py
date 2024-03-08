@@ -38,6 +38,7 @@ from darwin.future.core.properties import (
 from darwin.future.core.properties import update_property as update_property_future
 from darwin.future.core.types.common import JSONDict
 from darwin.future.data_objects.properties import FullProperty
+from darwin.objectstore import ObjectStore
 from darwin.utils import (
     get_response_content,
     has_json_content_type,
@@ -1054,3 +1055,80 @@ class Client:
             team_slug=team_slug or self.default_team,
             params=params,
         )
+
+    def get_external_storage(
+        self, team_slug: str, name: Optional[str] = None
+    ) -> Optional[ObjectStore]:
+        """
+        Get an external storage connection by name.
+
+        If no name is provided, the default team's external storage connection will be returned.
+
+        Parameters
+        ----------
+        team_slug: str
+            The team slug.
+        name: Optional[str]
+            The name of the external storage connection.
+
+        Returns
+        -------
+        Optional[ObjectStore]
+            The external storage connection with the given name.
+        """
+        connections = self.list_external_storage_connections(team_slug)
+        if not connections:
+            raise ValueError(
+                f"No external storage connections found in the team: {team_slug}. Please configure one.\n\nGuidelines can be found here: https://docs.v7labs.com/docs/external-storage-configuration"
+            )
+
+        if name is None:
+            for connection in connections:
+                if connection.default:
+                    if connection.readonly:
+                        raise ValueError(
+                            "The default external storage connection is read-only. darwin-py only supports read-write configuration.\n\nPlease use the REST API to register items from read-only storage: https://docs.v7labs.com/docs/registering-items-from-external-storage#read-only-registration"
+                        )
+                    return connection
+
+        for connection in connections:
+            if connection.name == name:
+                if connection.readonly:
+                    raise ValueError(
+                        "The selected external storage connection is read-only. darwin-py only supports read-write configuraiton.\n\nPlease use the REST API to register items from read-only storage: https://docs.v7labs.com/docs/registering-items-from-external-storage#read-only-registration"
+                    )
+                return connection
+
+        raise ValueError(
+            f"No external storage connection found with the name: {name} in the team {team_slug}. Please configure one.\n\nGuidelines can be found at https://docs.v7labs.com/docs/external-storage-configuration"
+        )
+
+    def list_external_storage_connections(self, team_slug: str) -> List[ObjectStore]:
+        """
+        Returns a list of all available external storage connections.
+
+        Parameters
+        ----------
+        team_slug: str
+            The team slug.
+
+        Returns
+        -------
+        List[ObjectStore]
+            A list of all available external storage connections.
+        """
+        response: List[Dict[str, UnknownType]] = cast(
+            List[Dict[str, UnknownType]],
+            self._get(f"/teams/{team_slug}/storage"),
+        )
+
+        return [
+            ObjectStore(
+                name=connection["name"],
+                prefix=connection["prefix"],
+                readonly=connection["readonly"],
+                provider=connection["provider"],
+                default=connection["default"],
+            )
+            for connection in response
+        ]
