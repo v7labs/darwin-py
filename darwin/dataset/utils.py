@@ -15,6 +15,7 @@ from darwin.exceptions import NotFound
 from darwin.importer.formats.darwin import parse_path
 from darwin.utils import (
     SUPPORTED_EXTENSIONS,
+    SUPPORTED_IMAGE_EXTENSIONS,
     SUPPORTED_VIDEO_EXTENSIONS,
     attempt_decode,
     get_image_path_from_stream,
@@ -366,9 +367,11 @@ def create_polygon_object(obj, box_mode, classes=None):
         "segmentation": segmentation,
         "bbox": [np.min(all_px), np.min(all_py), np.max(all_px), np.max(all_py)],
         "bbox_mode": box_mode,
-        "category_id": classes.index(obj.annotation_class.name)
-        if classes
-        else obj.annotation_class.name,
+        "category_id": (
+            classes.index(obj.annotation_class.name)
+            if classes
+            else obj.annotation_class.name
+        ),
         "iscrowd": 0,
     }
 
@@ -380,9 +383,11 @@ def create_bbox_object(obj, box_mode, classes=None):
     new_obj = {
         "bbox": [bbox["x"], bbox["y"], bbox["x"] + bbox["w"], bbox["y"] + bbox["h"]],
         "bbox_mode": box_mode,
-        "category_id": classes.index(obj.annotation_class.name)
-        if classes
-        else obj.annotation_class.name,
+        "category_id": (
+            classes.index(obj.annotation_class.name)
+            if classes
+            else obj.annotation_class.name
+        ),
         "iscrowd": 0,
     }
 
@@ -840,3 +845,51 @@ def sanitize_filename(filename: str) -> str:
         filename = filename.replace(char, "_")
 
     return filename
+
+
+def get_external_file_type(storage_key: str) -> str or None:
+    """
+    Returns the type of file given a storage key.
+
+    Parameters
+    ----------
+    storage_key : str
+        The storage key to get the type of file from.
+
+    Returns
+    -------
+    str
+        The type of file.
+    """
+    for extension in SUPPORTED_IMAGE_EXTENSIONS:
+        if storage_key.endswith(extension):
+            return "image"
+    if storage_key.endswith(".pdf"):
+        return "pdf"
+    if storage_key.endswith(".dcm"):
+        return "dicom"
+    for extension in SUPPORTED_VIDEO_EXTENSIONS:
+        if storage_key.endswith(extension):
+            return "video"
+    return None
+
+
+def parse_external_file_path(storage_key: str, preserve_folders: bool) -> str:
+    """
+    Returns the Darwin dataset path given a storage key.
+
+    Parameters
+    ----------
+    storage_key : str
+        The storage key to parse.
+    preserve_folders : bool
+        Whether to preserve folders or place the file in the Dataset root.
+
+    Returns
+    -------
+    str
+        The parsed external file path.
+    """
+    if not preserve_folders:
+        return "/"
+    return "/" + "/".join(storage_key.split("/")[:-1])
