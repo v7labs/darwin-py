@@ -33,11 +33,7 @@ from darwin.exporter.formats.darwin import build_image_annotation
 from darwin.item import DatasetItem
 from darwin.item_sorter import ItemSorter
 from darwin.objectstore import ObjectStore
-from darwin.utils import (
-    SUPPORTED_EXTENSIONS,
-    find_files,
-    urljoin,
-)
+from darwin.utils import SUPPORTED_EXTENSIONS, find_files, urljoin
 
 if TYPE_CHECKING:
     from darwin.client import Client
@@ -568,9 +564,9 @@ class RemoteDatasetV2(RemoteDataset):
         object_store: ObjectStore,
         storage_keys: List[str],
         fps: Optional[str] = None,
-        multi_planar_view: Optional[bool] = False,
-        preserve_folders: Optional[bool] = False,
-    ) -> Dict[str, str]:
+        multi_planar_view: bool = False,
+        preserve_folders: bool = False,
+    ) -> Dict[str, List[str]]:
         items = []
         for storage_key in storage_keys:
             file_type = get_external_file_type(storage_key)
@@ -599,6 +595,7 @@ class RemoteDatasetV2(RemoteDataset):
             "registered": [],
             "blocked": [],
         }
+
         for chunk in chunked_items:
             payload = {
                 "items": chunk,
