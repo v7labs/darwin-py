@@ -602,7 +602,7 @@ class RemoteDatasetV2(RemoteDataset):
                 "dataset_slug": self.slug,
                 "storage_slug": object_store.name,
             }
-            print(f"Registering {len(chunk)} items")
+            print(f"Registering {len(chunk)} items...")
             response = self.client.api_v2.register_items(payload, team_slug=self.team)
             for item in json.loads(response.text)["items"]:
                 item_info = f"Item {item['name']} registered with item ID {item['id']}"
@@ -617,4 +617,5 @@ class RemoteDatasetV2(RemoteDataset):
             print("The following items were blocked:")
             for item in results["blocked"]:
                 print(f"  - {item}")
+        print(f"Reistration complete. Check your items in the dataset: {self.slug}")
         return results

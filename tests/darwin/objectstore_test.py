@@ -55,7 +55,7 @@ class TestObjectStore:
     def test_str(self, object_store):
         assert (
             str(object_store)
-            == "A read-write aws storage connection named test with prefix: test_prefix"
+            == "Storage configuration:\n- Name: test\n- Prefix: test_prefix\n- Readonly: False\n- Provider: aws\n- Default: True"
         )
 
     def test_repr(self, object_store):
