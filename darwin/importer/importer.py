@@ -197,7 +197,7 @@ def get_remote_files(
     for i in range(0, len(filenames), chunk_size):
         chunk = filenames[i : i + chunk_size]
         for remote_file in dataset.fetch_remote_files(
-            {"types": "image,playback_video,video_frame", "filenames": chunk}
+            {"types": "image,playback_video,video_frame", "item_names": chunk}
         ):
             slot_name = _get_slot_name(remote_file)
             remote_files[remote_file.full_path] = (remote_file.id, slot_name)

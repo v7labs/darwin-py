@@ -171,3 +171,17 @@ class TestParsePath:
         assert annotation.subs == []
 
         assert annotation_file.remote_path == "/"
+
+    def test_deconstructs_filepath_properly_if_folder_included_in_filename(
+        self, annotation_path: Path
+    ):
+        annotation_path.write_text(
+            "<root><filename>folder/image.jpg</filename><object><name>Class</name><bndbox><xmin>10</xmin><xmax>10</xmax><ymin>10</ymin><ymax>10</ymax></bndbox></object></root>"
+        )
+
+        annotation_file = parse_path(annotation_path)
+
+        assert annotation_file is not None
+        assert annotation_file.path == annotation_path
+        assert annotation_file.filename == "image.jpg"
+        assert annotation_file.remote_path == "/folder"
