@@ -1057,7 +1057,7 @@ class Client:
         )
 
     def get_external_storage(
-        self, team_slug: str, name: Optional[str] = None
+        self, team_slug: Optional[str] = None, name: Optional[str] = None
     ) -> Optional[ObjectStore]:
         """
         Get an external storage connection by name.
@@ -1066,7 +1066,7 @@ class Client:
 
         Parameters
         ----------
-        team_slug: str
+        team_slug: Optional[str]
             The team slug.
         name: Optional[str]
             The name of the external storage connection.
@@ -1076,6 +1076,9 @@ class Client:
         Optional[ObjectStore]
             The external storage connection with the given name.
         """
+        if not team_slug:
+            team_slug = self.default_team
+
         connections = self.list_external_storage_connections(team_slug)
         if not connections:
             raise ValueError(
