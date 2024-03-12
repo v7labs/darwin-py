@@ -1075,6 +1075,17 @@ class Client:
         -------
         Optional[ObjectStore]
             The external storage connection with the given name.
+
+        Raises
+        ------
+        ValueError
+            If no external storage connection is found in the team.
+
+        ValueError
+            If no name is provided and the default external storage connection is read-only.
+
+        ValueError
+            If provided connection name is read-only.
         """
         if not team_slug:
             team_slug = self.default_team
