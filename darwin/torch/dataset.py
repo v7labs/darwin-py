@@ -326,8 +326,6 @@ class InstanceSegmentationDataset(LocalDataset):
 
         annotations = []
         for annotation in target["annotations"]:
-            annotation_type: str = annotation.annotation_class.annotation_type
-            path_key = "paths" if annotation_type == "complex_polygon" else "path"
 
             # Darwin V2 only has paths (TODO it might be more robust fixes)
             if "paths" in annotation.data:

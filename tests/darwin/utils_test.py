@@ -97,31 +97,51 @@ class TestParseDarwinJson:
     def test_parses_darwin_images_correctly(self, tmp_path):
         content = """
         {
-            "image": {
-                "width": 497,
-                "height": 778,
-                "original_filename": "P49-RediPad-ProPlayLEFTY_442.jpg",
-                "filename": "P49-RediPad-ProPlayLEFTY_442.jpg",
-                "url": "",
-                "path": "/tmp_files"
+            "version": "2.0",
+            "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
+            "item": {
+                "name": "P49-RediPad-ProPlayLEFTY_442.jpg",
+                "path": "/tmp_files",
+                "slots": [
+                {
+                    "type": "image",
+                    "slot_name": "0",
+                    "width": 497,
+                    "height": 778,
+                    "source_files": [
+                    {
+                        "file_name": "P49-RediPad-ProPlayLEFTY_442.jpg",
+                        "url": ""
+                    }
+                    ]
+                }
+                ]
             },
             "annotations": [
                 {
-                    "keypoint": {
-                        "x": 207.97048950195312,
-                        "y": 449.39691162109375
-                    },
-                    "name": "left_knee"
+                "id": "unique_id_1",
+                "name": "left_knee",
+                "keypoint": {
+                    "x": 207.97048950195312,
+                    "y": 449.39691162109375
+                },
+                "slot_names": [
+                    "0"
+                ]
                 },
                 {
-                    "keypoint": {
-                        "x": 302.9606018066406,
-                        "y": 426.13946533203125
-                    },
-                    "name": "left_ankle"
+                "id": "unique_id_2",
+                "name": "left_ankle",
+                "keypoint": {
+                    "x": 302.9606018066406,
+                    "y": 426.13946533203125
+                },
+                "slot_names": [
+                    "0"
+                ]
                 }
             ]
-        }
+            }
         """
 
         directory = tmp_path / "imports"
@@ -135,7 +155,7 @@ class TestParseDarwinJson:
         assert annotation_file.filename == "P49-RediPad-ProPlayLEFTY_442.jpg"
         assert annotation_file.dataset_name is None
         assert annotation_file.version == dt.AnnotationFileVersion(
-            major=1, minor=0, suffix=""
+            major=2, minor=0, suffix=""
         )
 
         assert len(annotation_file.annotations) == 2
@@ -159,10 +179,7 @@ class TestParseDarwinJson:
                 "path": "/",
                 "source_info": {
                     "item_id": "018a4ad2-41cb-5b6a-8141-fe1afeb65746",
-                    "team": {
-                        "name": "Test Team",
-                        "slug": "test-team"
-                    },
+                    "team": {"name": "Test Team", "slug": "test-team"},
                     "dataset": {
                         "name": "My dataset",
                         "slug": "my-dataset",
@@ -185,9 +202,7 @@ class TestParseDarwinJson:
                             }
                         ],
                         "frame_count": 343,
-                        "frame_urls": [
-                            "https://my-website.com/api/videos/209/frames/0"
-                        ]
+                        "frame_urls": ["https://my-website.com/api/videos/209/frames/0"]
                     }
                 ]
             },
@@ -195,30 +210,16 @@ class TestParseDarwinJson:
                 {
                     "frames": {
                         "3": {
-                            "bounding_box": {
-                                "h": 547.0,
-                                "w": 400.0,
-                                "x": 363.0,
-                                "y": 701.0
-                            },
-                            "instance_id": {
-                                "value": 119
-                            },
+                            "bounding_box": {"h": 547.0, "w": 400.0, "x": 363.0, "y": 701.0},
+                            "instance_id": {"value": 119},
                             "keyframe": true,
                             "polygon": {
                                 "paths": [
-                                    {
-                                        "x": 748.0,
-                                        "y": 732.0
-                                    },
-                                    {
-                                        "x": 751.0,
-                                        "y": 735.0
-                                    },
-                                    {
-                                        "x": 748.0,
-                                        "y": 733.0
-                                    }
+                                    [
+                                        {"x": 748.0, "y": 732.0},
+                                        {"x": 751.0, "y": 735.0},
+                                        {"x": 748.0, "y": 733.0}
+                                    ]
                                 ]
                             }
                         }
@@ -227,21 +228,9 @@ class TestParseDarwinJson:
                     "interpolate_algorithm": "linear-1.1",
                     "interpolated": true,
                     "name": "Hand",
-                    "ranges": [
-                        [
-                            3,
-                            46
-                        ]
-                    ],
-                    "hidden_areas": [
-                        [
-                            5,
-                            8
-                        ]
-                    ],
-                    "slot_names": [
-                        "0"
-                    ]
+                    "ranges": [[3, 46]],
+                    "hidden_areas": [[5, 8]],
+                    "slot_names": ["0"]
                 }
             ]
         }
@@ -284,21 +273,23 @@ class TestParseDarwinJson:
             dt.VideoAnnotation(
                 annotation_class=dt.AnnotationClass(
                     name="Hand",
-                    annotation_type="complex_polygon",
+                    annotation_type="polygon",
                     annotation_internal_type="polygon",
                 ),
                 frames={
                     3: dt.Annotation(
                         annotation_class=dt.AnnotationClass(
                             name="Hand",
-                            annotation_type="complex_polygon",
+                            annotation_type="polygon",
                             annotation_internal_type="polygon",
                         ),
                         data={
                             "paths": [
-                                {"x": 748.0, "y": 732.0},
-                                {"x": 751.0, "y": 735.0},
-                                {"x": 748.0, "y": 733.0},
+                                [
+                                    {"x": 748.0, "y": 732.0},
+                                    {"x": 751.0, "y": 735.0},
+                                    {"x": 748.0, "y": 733.0},
+                                ]
                             ],
                             "bounding_box": {
                                 "x": 363.0,
@@ -573,21 +564,56 @@ class TestParseDarwinJson:
 
     def test_uses_a_default_path_if_one_is_missing(self, tmp_path):
         content = """
+        {
+        "version": "2.0",
+        "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
+        "item": {
+            "name": "P49-RediPad-ProPlayLEFTY_442.jpg",
+            "path": "/",
+            "source_info": {
+            "item_id": "unknown",
+            "dataset": {
+                "name": "unknown",
+                "slug": "unknown",
+                "dataset_management_url": "unknown"
+            },
+            "team": {
+                "name": "unknown",
+                "slug": "unknown"
+            },
+            "workview_url": "unknown"
+            },
+            "slots": [
             {
-                "image": {
-                    "original_filename": "P49-RediPad-ProPlayLEFTY_442.jpg",
-                    "filename": "P49-RediPad-ProPlayLEFTY_442.jpg"
-                },
-                "annotations": [
-                    {
-                        "keypoint": {
-                            "x": 207.97048950195312,
-                            "y": 449.39691162109375
-                        },
-                        "name": "left_knee"
-                    }
+                "type": "image",
+                "slot_name": "0",
+                "width": 640,
+                "height": 425,
+                "thumbnail_url": "unknown",
+                "source_files": [
+                {
+                    "file_name": "P49-RediPad-ProPlayLEFTY_442.jpg",
+                    "url": "unknown"
+                }
                 ]
             }
+            ]
+        },
+        "annotations": [
+            {
+            "id": "unknown",
+            "name": "left_knee",
+            "properties": [],
+            "keypoint": {
+                "x": 207.97048950195312,
+                "y": 449.39691162109375
+            },
+            "slot_names": [
+                "0"
+            ]
+            }
+        ]
+        }
             """
 
         directory = tmp_path / "imports"
@@ -601,58 +627,148 @@ class TestParseDarwinJson:
 
     def test_imports_a_skeleton(self, tmp_path):
         content = """
+        {
+        "version": "2.0",
+        "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
+        "item": {
+            "name": "ferrari-laferrari.jpg",
+            "path": "/",
+            "source_info": {
+            "item_id": "018c4450-d91d-ff3e-b226-60d48b66f86e",
+            "dataset": {
+                "name": "bbox",
+                "slug": "bbox",
+                "dataset_management_url": "https://darwin.v7labs.com/datasets/623079/dataset-management"
+            },
+            "team": {
+                "name": "V7 John",
+                "slug": "v7-john"
+            },
+            "workview_url": "https://darwin.v7labs.com/workview?dataset=623079&item=018c4450-d91d-ff3e-b226-60d48b66f86e"
+            },
+            "slots": [
             {
-                "dataset": "cars",
-                "image": {
-                    "filename": "ferrari-laferrari.jpg"
-                },
-                "annotations": [
-                    {
-                        "bounding_box": {
-                            "h": 547.0,
-                            "w": 1709.0,
-                            "x": 96.0,
-                            "y": 437.0
-                        },
-                        "name": "car",
-                        "polygon": {
-                            "paths": [
-                                {
-                                    "x": 1805.0,
-                                    "y": 586.0
-                                },
-                                {
-                                    "x": 1802.0,
-                                    "y": 586.0
-                                },
-                                {
-                                    "x": 1805.0,
-                                    "y": 588.0
-                                }
-                            ]
-                        }
-                    },
-                    {
-                        "name": "wheels",
-                        "skeleton": {
-                            "nodes": [
-                                {
-                                    "name": "1",
-                                    "occluded": false,
-                                    "x": 829.56,
-                                    "y": 824.5
-                                },
-                                {
-                                    "name": "2",
-                                    "occluded": false,
-                                    "x": 1670.5,
-                                    "y": 741.76
-                                }
-                            ]
-                        }
-                    }
+                "type": "image",
+                "slot_name": "0",
+                "width": 640,
+                "height": 425,
+                "thumbnail_url": "https://darwin.v7labs.com/api/v2/teams/v7-john/files/ddc5cbc2-8438-4e36-8ab6-43e2f3746bf1/thumbnail",
+                "source_files": [
+                {
+                    "file_name": "000000007751.jpg",
+                    "url": "https://darwin.v7labs.com/api/v2/teams/v7-john/uploads/3395d29a-7539-4a51-a3ca-c7a95f460345"
+                }
                 ]
             }
+            ]
+        },
+        "annotations": [
+            {
+            "bounding_box": {
+                "h": 53.963699999999996,
+                "w": 83.7195,
+                "x": 32.7817,
+                "y": 53.9638
+            },
+            "id": "8940a690-d8a9-4c83-9f59-38f0ef780246",
+            "name": "new-class-2",
+            "polygon": {
+                "paths": [
+                [
+                    {
+                    "x": 65.0591,
+                    "y": 53.9638
+                    },
+                    {
+                    "x": 32.7817,
+                    "y": 107.9275
+                    },
+                    {
+                    "x": 116.5012,
+                    "y": 104.9015
+                    }
+                ]
+                ]
+            },
+            "properties": [],
+            "slot_names": [
+                "0"
+            ]
+            },
+            {
+            "id": "782618fb-4c69-436e-80cb-71765d255dbf",
+            "name": "skeleton-test",
+            "properties": [],
+            "skeleton": {
+                "nodes": [
+                {
+                    "name": "node",
+                    "occluded": false,
+                    "x": 264.7754,
+                    "y": 121.5445
+                },
+                {
+                    "name": "2",
+                    "occluded": false,
+                    "x": 245.1335,
+                    "y": 107.3425
+                },
+                {
+                    "name": "3",
+                    "occluded": false,
+                    "x": 240.4646,
+                    "y": 125.4178
+                },
+                {
+                    "name": "4",
+                    "occluded": false,
+                    "x": 280.3923,
+                    "y": 137.468
+                }
+                ]
+            },
+            "slot_names": [
+                "0"
+            ]
+            },
+            {
+            "id": "b6bea00c-c8a4-4d34-b72f-88567d9e8cd5",
+            "name": "skeleton-test",
+            "properties": [],
+            "skeleton": {
+                "nodes": [
+                {
+                    "name": "node",
+                    "occluded": false,
+                    "x": 136.1702,
+                    "y": 306.1308
+                },
+                {
+                    "name": "2",
+                    "occluded": false,
+                    "x": 145.1629,
+                    "y": 291.263
+                },
+                {
+                    "name": "3",
+                    "occluded": false,
+                    "x": 147.3005,
+                    "y": 310.1857
+                },
+                {
+                    "name": "4",
+                    "occluded": false,
+                    "x": 129.0203,
+                    "y": 322.8007
+                }
+                ]
+            },
+            "slot_names": [
+                "0"
+            ]
+            }
+        ]
+        }
             """
 
         directory = tmp_path / "imports"
@@ -672,89 +788,148 @@ class TestParseDarwinJson:
 
     def test_imports_multiple_skeletetons(self, tmp_path):
         content = """
+        {
+        "version": "2.0",
+        "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
+        "item": {
+            "name": "ferrari-laferrari.jpg",
+            "path": "/",
+            "source_info": {
+            "item_id": "018c4450-d91d-ff3e-b226-60d48b66f86e",
+            "dataset": {
+                "name": "bbox",
+                "slug": "bbox",
+                "dataset_management_url": "https://darwin.v7labs.com/datasets/623079/dataset-management"
+            },
+            "team": {
+                "name": "V7 John",
+                "slug": "v7-john"
+            },
+            "workview_url": "https://darwin.v7labs.com/workview?dataset=623079&item=018c4450-d91d-ff3e-b226-60d48b66f86e"
+            },
+            "slots": [
             {
-                "dataset":"cars",
-                "image":{
-                    "filename":"ferrari-laferrari.jpg"
-                },
-                "annotations":[
-                    {
-                        "bounding_box":{
-                            "h":547.0,
-                            "w":1709.0,
-                            "x":96.0,
-                            "y":437.0
-                        },
-                        "name":"car",
-                        "polygon":{
-                            "paths":[
-                                {
-                                    "x":1805.0,
-                                    "y":586.0
-                                },
-                                {
-                                    "x":1802.0,
-                                    "y":586.0
-                                },
-                                {
-                                    "x":1805.0,
-                                    "y":588.0
-                                }
-                            ]
-                        }
-                    },
-                    {
-                        "name":"wheels",
-                        "skeleton":{
-                            "nodes":[
-                                {
-                                    "name":"1",
-                                    "occluded":false,
-                                    "x":829.56,
-                                    "y":824.5
-                                },
-                                {
-                                    "name":"2",
-                                    "occluded":false,
-                                    "x":1670.5,
-                                    "y":741.76
-                                }
-                            ]
-                        }
-                    },
-                    {
-                        "name":"door",
-                        "skeleton":{
-                            "nodes":[
-                                {
-                                    "name":"1",
-                                    "occluded":false,
-                                    "x":867.86,
-                                    "y":637.16
-                                },
-                                {
-                                    "name":"2",
-                                    "occluded":false,
-                                    "x":1100.21,
-                                    "y":810.09
-                                },
-                                {
-                                    "name":"3",
-                                    "occluded":false,
-                                    "x":1298.45,
-                                    "y":856.56
-                                },
-                                {
-                                    "name":"4",
-                                    "occluded":false,
-                                    "x":1234.63,
-                                    "y":492.12
-                                }
-                            ]
-                        }
-                    }
+                "type": "image",
+                "slot_name": "0",
+                "width": 640,
+                "height": 425,
+                "thumbnail_url": "https://darwin.v7labs.com/api/v2/teams/v7-john/files/ddc5cbc2-8438-4e36-8ab6-43e2f3746bf1/thumbnail",
+                "source_files": [
+                {
+                    "file_name": "000000007751.jpg",
+                    "url": "https://darwin.v7labs.com/api/v2/teams/v7-john/uploads/3395d29a-7539-4a51-a3ca-c7a95f460345"
+                }
                 ]
             }
+            ]
+        },
+        "annotations": [
+            {
+            "bounding_box": {
+                "h": 53.963699999999996,
+                "w": 83.7195,
+                "x": 32.7817,
+                "y": 53.9638
+            },
+            "id": "8940a690-d8a9-4c83-9f59-38f0ef780246",
+            "name": "new-class-2",
+            "polygon": {
+                "paths": [
+                [
+                    {
+                    "x": 65.0591,
+                    "y": 53.9638
+                    },
+                    {
+                    "x": 32.7817,
+                    "y": 107.9275
+                    },
+                    {
+                    "x": 116.5012,
+                    "y": 104.9015
+                    }
+                ]
+                ]
+            },
+            "properties": [],
+            "slot_names": [
+                "0"
+            ]
+            },
+            {
+            "id": "782618fb-4c69-436e-80cb-71765d255dbf",
+            "name": "skeleton-test",
+            "properties": [],
+            "skeleton": {
+                "nodes": [
+                {
+                    "name": "node",
+                    "occluded": false,
+                    "x": 264.7754,
+                    "y": 121.5445
+                },
+                {
+                    "name": "2",
+                    "occluded": false,
+                    "x": 245.1335,
+                    "y": 107.3425
+                },
+                {
+                    "name": "3",
+                    "occluded": false,
+                    "x": 240.4646,
+                    "y": 125.4178
+                },
+                {
+                    "name": "4",
+                    "occluded": false,
+                    "x": 280.3923,
+                    "y": 137.468
+                }
+                ]
+            },
+            "slot_names": [
+                "0"
+            ]
+            },
+            {
+            "id": "b6bea00c-c8a4-4d34-b72f-88567d9e8cd5",
+            "name": "skeleton-test",
+            "properties": [],
+            "skeleton": {
+                "nodes": [
+                {
+                    "name": "node",
+                    "occluded": false,
+                    "x": 136.1702,
+                    "y": 306.1308
+                },
+                {
+                    "name": "2",
+                    "occluded": false,
+                    "x": 145.1629,
+                    "y": 291.263
+                },
+                {
+                    "name": "3",
+                    "occluded": false,
+                    "x": 147.3005,
+                    "y": 310.1857
+                },
+                {
+                    "name": "4",
+                    "occluded": false,
+                    "x": 129.0203,
+                    "y": 322.8007
+                }
+                ]
+            },
+            "slot_names": [
+                "0"
+            ]
+            }
+        ]
+        }
         """
 
         directory = tmp_path / "imports"

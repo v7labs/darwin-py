@@ -3,14 +3,11 @@ from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional
 from zlib import crc32
 
-import deprecation
 import numpy as np
 import orjson as json
-from upolygon import draw_polygon, rle_encode
 
 import darwin.datatypes as dt
 from darwin.utils import convert_polygons_to_sequences
-from darwin.version import __version__
 
 DEPRECATION_MESSAGE = """
 
@@ -69,7 +66,7 @@ def _calculate_categories(annotation_files: List[dt.AnnotationFile]) -> Dict[str
                 categories[annotation_class.name] = _calculate_category_id(
                     annotation_class
                 )
-    return {k: v for k, v in sorted(categories.items(), key=lambda item: item[1])}
+    return dict(sorted(categories.items(), key=lambda item: item[1]))
 
 
 def _calculate_tag_categories(
@@ -85,7 +82,7 @@ def _calculate_tag_categories(
                 categories[annotation_class.name] = _calculate_category_id(
                     annotation_class
                 )
-    return {k: v for k, v in sorted(categories.items(), key=lambda item: item[1])}
+    return dict(sorted(categories.items(), key=lambda item: item[1]))
 
 
 def _calculate_category_id(annotation_class: dt.AnnotationClass) -> int:

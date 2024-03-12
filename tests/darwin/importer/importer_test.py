@@ -106,29 +106,35 @@ def test_handle_subs() -> None:
     assert result == expected_result
 
 
-def test__handle_complex_polygon() -> None:
-    from darwin.importer.importer import _handle_complex_polygon
+def test__format_polygon_for_import() -> None:
+    from darwin.importer.importer import _format_polygon_for_import
 
-    assert _handle_complex_polygon(
-        {},
-        {
-            "example": "data",
-            "example2": "data2",
-            "example3": "data3",
-        },
-    ) == {  # type: ignore
-        "example": "data",
-        "example2": "data2",
-        "example3": "data3",
-    }
-    assert _handle_complex_polygon(
+    # Test case when "polygon" key is not in data
+    assert _format_polygon_for_import(
         dt.Annotation(
-            dt.AnnotationClass("Class", "bbox"), {"paths": [1, 2, 3, 4, 5]}, [], []
+            dt.AnnotationClass("Class", "polygon"), {"paths": [1, 2, 3, 4, 5]}, [], []
         ),
-        {"complex_polygon": "test_data"},
-    ) == {
-        "polygon": {"path": 1, "additional_paths": [2, 3, 4, 5]},
-    }
+        {"example": "data"},
+    ) == {"example": "data"}
+
+    # Test case when "polygon" key is in data and there is more than one path
+    assert _format_polygon_for_import(
+        dt.Annotation(
+            dt.AnnotationClass("Class", "polygon"),
+            {"paths": [[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]]},
+            [],
+            [],
+        ),
+        {"polygon": {"paths": [[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]]}},
+    ) == {"polygon": {"path": [1, 2, 3, 4, 5], "additional_paths": [[6, 7, 8, 9, 10]]}}
+
+    # Test case when "polygon" key is in data and there is only one path
+    assert _format_polygon_for_import(
+        dt.Annotation(
+            dt.AnnotationClass("Class", "polygon"), {"paths": [[1, 2, 3, 4, 5]]}, [], []
+        ),
+        {"polygon": {"paths": [[1, 2, 3, 4, 5]]}},
+    ) == {"polygon": {"path": [1, 2, 3, 4, 5]}}
 
 
 def test__annotators_or_reviewers_to_payload() -> None:
@@ -189,7 +195,7 @@ def test__get_annotation_data() -> None:
 
     annotation.data = "TEST DATA"
 
-    with patch_factory("_handle_complex_polygon") as mock_hcp, patch_factory(
+    with patch_factory("_format_polygon_for_import") as mock_hcp, patch_factory(
         "_handle_subs"
     ) as mock_hs, patch.object(
         dt.VideoAnnotation, "get_data", return_value="TEST VIDEO DATA"
@@ -208,7 +214,7 @@ def test__get_annotation_data() -> None:
         assert mock_hcp.call_count == 1
         assert mock_hs.call_count == 1
 
-    with patch_factory("_handle_complex_polygon") as mock_hcp, patch_factory(
+    with patch_factory("_format_polygon_for_import") as mock_hcp, patch_factory(
         "_handle_subs"
     ) as mock_hs:
         from darwin.importer.importer import _get_annotation_data
@@ -287,7 +293,7 @@ def test_get_overwrite_value() -> None:
 @pytest.fixture
 def raster_layer_annotations():
     annotation_raster_layer_data = (
-        Path(__file__).parent.parent / f"data/annotation_raster_layer_data.json"
+        Path(__file__).parent.parent / "data/annotation_raster_layer_data.json"
     )
     with open(annotation_raster_layer_data) as f:
         data = json.load(f)
@@ -389,7 +395,7 @@ def raster_layer_annotations():
 @pytest.fixture
 def raster_layer_video_annotations():
     annotation_raster_layer_data = (
-        Path(__file__).parent.parent / f"data/video_annotation_raster_layer_data.json"
+        Path(__file__).parent.parent / "data/video_annotation_raster_layer_data.json"
     )
     with open(annotation_raster_layer_data) as f:
         data = json.load(f)
@@ -482,7 +488,7 @@ def test__parse_empty_masks_video(raster_layer_video_annotations) -> None:
 
 
 def test__import_annotations() -> None:
-    with patch_factory("_handle_complex_polygon") as mock_hcp, patch_factory(
+    with patch_factory("_format_polygon_for_import") as mock_hcp, patch_factory(
         "_handle_reviewers"
     ) as mock_hr, patch_factory("_handle_annotators") as mock_ha, patch_factory(
         "_handle_subs"

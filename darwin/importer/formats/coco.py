@@ -2,14 +2,12 @@ from logging import getLogger
 from pathlib import Path
 from typing import Dict, Iterator, List, Optional
 
-import deprecation
 import orjson as json
 from upolygon import find_contours, rle_decode
 
 import darwin.datatypes as dt
 from darwin.path_utils import deconstruct_full_path
 from darwin.utils import attempt_decode
-from darwin.version import __version__
 
 DEPRECATION_MESSAGE = """
 

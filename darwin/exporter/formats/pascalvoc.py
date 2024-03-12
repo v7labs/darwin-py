@@ -1,12 +1,9 @@
 from pathlib import Path
-from typing import Any, Dict, Iterable
+from typing import Any, Iterable
 from xml.etree.ElementTree import Element, SubElement, tostring
 
-import deprecation
 
 import darwin.datatypes as dt
-from darwin.utils import attempt_decode
-from darwin.version import __version__
 
 DEPRECATION_MESSAGE = """
 
@@ -66,7 +63,7 @@ def _build_xml(annotation_file: dt.AnnotationFile) -> Element:
 
     for annotation in annotation_file.annotations:
         annotation_type = annotation.annotation_class.annotation_type
-        if annotation_type not in ["bounding_box", "polygon", "complex_polygon"]:
+        if annotation_type not in ["bounding_box", "polygon"]:
             continue
 
         data = annotation.data
@@ -77,7 +74,7 @@ def _build_xml(annotation_file: dt.AnnotationFile) -> Element:
         _add_subelement_text(sub_annotation, "difficult", "0")
         bndbox = SubElement(sub_annotation, "bndbox")
 
-        if annotation_type == "polygon" or annotation_type == "complex_polygon":
+        if annotation_type == "polygon":
             data = data.get("bounding_box")
 
         xmin = data.get("x")

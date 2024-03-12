@@ -19,7 +19,6 @@ from typing import (
     cast,
 )
 
-import deprecation
 import json_stream
 import numpy as np
 import orjson as json
@@ -39,7 +38,6 @@ from darwin.exceptions import (
     UnsupportedFileType,
 )
 from darwin.future.data_objects.properties import SelectedProperty
-from darwin.version import __version__
 
 if TYPE_CHECKING:
     from darwin.client import Client
@@ -408,13 +406,7 @@ def parse_darwin_json(
     if "annotations" not in data:
         return None
 
-    if version.major == 2:
-        return _parse_darwin_v2(path, data)
-    else:
-        if "fps" in data["image"] or "frame_count" in data["image"]:
-            return _parse_darwin_video(path, data, count)
-        else:
-            return _parse_darwin_image(path, data, count)
+    return _parse_darwin_v2(path, data)
 
 
 def stream_darwin_json(path: Path) -> PersistentStreamingJSONObject:
@@ -1230,7 +1222,7 @@ def ispolygon(annotation: dt.AnnotationClass) -> bool:
     -------
     ``True`` is the given ``AnnotationClass`` is a polygon, ``False`` otherwise.
     """
-    return annotation.annotation_type in ["polygon", "complex_polygon"]
+    return annotation.annotation_type == "polygon"
 
 
 def convert_polygons_to_sequences(

@@ -35,7 +35,6 @@ if TYPE_CHECKING:
     from darwin.client import Client
     from darwin.dataset.remote_dataset import RemoteDataset
 
-import deprecation
 from rich.console import Console
 from rich.progress import track
 from rich.theme import Theme
@@ -45,7 +44,6 @@ from darwin.datatypes import PathLike
 from darwin.exceptions import IncompatibleOptions, RequestEntitySizeExceeded
 from darwin.utils import secure_continue_request
 from darwin.utils.flatten_list import flatten_list
-from darwin.version import __version__
 
 logger = getLogger(__name__)
 
@@ -1011,15 +1009,17 @@ def _handle_subs(
     return data
 
 
-def _handle_complex_polygon(
+def _format_polygon_for_import(
     annotation: dt.Annotation, data: dt.DictFreeForm
 ) -> dt.DictFreeForm:
-    if "complex_polygon" in data:
-        del data["complex_polygon"]
-        data["polygon"] = {
-            "path": annotation.data["paths"][0],
-            "additional_paths": annotation.data["paths"][1:],
-        }
+    if "polygon" in data:
+        if len(annotation.data["paths"]) > 1:
+            data["polygon"] = {
+                "path": annotation.data["paths"][0],
+                "additional_paths": annotation.data["paths"][1:],
+            }
+        elif len(annotation.data["paths"]) == 1:
+            data["polygon"] = {"path": annotation.data["paths"][0]}
     return data
 
 
@@ -1087,14 +1087,14 @@ def _get_annotation_data(
             only_keyframes=True,
             post_processing=lambda annotation, data: _handle_subs(
                 annotation,
-                _handle_complex_polygon(annotation, data),
+                _format_polygon_for_import(annotation, data),
                 annotation_class_id,
                 attributes,
             ),
         )
     else:
         data = {annotation_class.annotation_type: annotation.data}
-        data = _handle_complex_polygon(annotation, data)
+        data = _format_polygon_for_import(annotation, data)
         data = _handle_subs(annotation, data, annotation_class_id, attributes)
 
     return data
@@ -1273,9 +1273,9 @@ def _import_annotations(
         # Insert the default slot name if not available in the import source
         annotation = _handle_slot_names(annotation, dataset.version, default_slot_name)
 
-        annotation_class_ids_map[(annotation_class.name, annotation_type)] = (
-            annotation_class_id
-        )
+        annotation_class_ids_map[
+            (annotation_class.name, annotation_type)
+        ] = annotation_class_id
         serial_obj = {
             "annotation_class_id": annotation_class_id,
             "data": data,

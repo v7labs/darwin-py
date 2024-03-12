@@ -313,7 +313,7 @@ def test_beyond_polygon_beyond_window() -> None:
     assert not errors
 
 
-def test_beyond_complex_polygon() -> None:
+def test_beyond_multi_path_polygons() -> None:
     mask = np.zeros((5, 5), dtype=np.uint8)
     colours: dt.MaskTypes.ColoursDict = {}
     categories: dt.MaskTypes.CategoryList = ["__background__"]

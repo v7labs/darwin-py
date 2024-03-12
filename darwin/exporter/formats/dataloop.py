@@ -1,11 +1,9 @@
 from pathlib import Path
 from typing import Any, Dict, Iterable
 
-import deprecation
 import orjson as json
 
 import darwin.datatypes as dt
-from darwin.version import __version__
 
 DEPRECATION_MESSAGE = """
 

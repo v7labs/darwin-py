@@ -4,7 +4,6 @@ from typing import Any
 from unittest.mock import patch
 
 import numpy as np
-import pytest
 import torch
 
 from darwin.config import Config
@@ -182,7 +181,7 @@ class TestGetDataset:
             "iscrowd": [0],
         }
 
-    def test_loads_object_detection_dataset_from_complex_polygon_annotations(
+    def test_loads_object_detection_dataset_from_multi_path_polygon_annotations(
         self,
         team_slug_darwin_json_v2: str,
         local_config_file: Config,
@@ -261,7 +260,7 @@ class TestGetDataset:
         assert label["image_path"] == str(dataset.dataset_path / "images" / "0.png")
         assert label["width"] == 50
 
-    def test_loads_instance_segmentation_dataset_from_complex_polygon_annotations(
+    def test_loads_instance_segmentation_dataset_from_multi_path_polygon_annotations(
         self,
         team_slug_darwin_json_v2: str,
         local_config_file: Config,

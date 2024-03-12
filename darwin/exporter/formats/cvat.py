@@ -3,10 +3,8 @@ from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional
 from xml.etree.ElementTree import Element, SubElement, tostring
 
-import deprecation
 
 import darwin.datatypes as dt
-from darwin.version import __version__
 
 DEPRECATION_MESSAGE = """
 

@@ -137,7 +137,7 @@ class LocalDataset:
         keep_empty_annotations: bool = False,
     ):
         # Find all the annotations and their corresponding images
-        with_folders = any([item.is_dir() for item in images_dir.iterdir()])
+        with_folders = any(item.is_dir() for item in images_dir.iterdir())
         annotation_filepaths = get_annotation_filepaths(
             release_path, annotations_dir, annotation_type, split, partition, split_type
         )

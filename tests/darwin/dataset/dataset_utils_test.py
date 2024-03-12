@@ -25,20 +25,58 @@ def open_resource_file():
 
 def parsed_annotation_file():
     return {
-        "annotations": [
-            {"name": "class_1", "polygon": {"paths": [{"x": 0, "y": 0}]}},
-            {"name": "class_1", "polygon": {"paths": [{"x": 0, "y": 0}]}},
-            {"name": "class_2", "polygon": {"paths": [{"x": 0, "y": 0}]}},
-            {"name": "class_2", "polygon": {"paths": [{"x": 0, "y": 0}]}},
-            {"name": "class_2", "polygon": {"paths": [{"x": 0, "y": 0}]}},
-            {"name": "class_3", "polygon": {"paths": [{"x": 0, "y": 0}]}},
-        ],
-        "image": {
-            "filename": "test.jpg",
-            "height": 1080,
-            "url": "https://darwin.v7labs.com/test.jpg",
-            "width": 1920,
+        "version": "2.0",
+        "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
+        "item": {
+            "name": "test.jpg",
+            "path": "/",
+            "slots": [
+                {
+                    "type": "image",
+                    "slot_name": "0",
+                    "width": 1920,
+                    "height": 1080,
+                    "source_files": [
+                        {
+                            "file_name": "test.jpg",
+                            "url": "https://darwin.v7labs.com/test.jpg",
+                        }
+                    ],
+                }
+            ],
         },
+        "annotations": [
+            {
+                "name": "class_1",
+                "polygon": {"paths": [[{"x": 0, "y": 0}]]},
+                "slot_names": ["0"],
+            },
+            {
+                "name": "class_1",
+                "polygon": {"paths": [[{"x": 0, "y": 0}]]},
+                "slot_names": ["0"],
+            },
+            {
+                "name": "class_2",
+                "polygon": {"paths": [[{"x": 0, "y": 0}]]},
+                "slot_names": ["0"],
+            },
+            {
+                "name": "class_2",
+                "polygon": {"paths": [[{"x": 0, "y": 0}]]},
+                "slot_names": ["0"],
+            },
+            {
+                "name": "class_2",
+                "polygon": {"paths": [[{"x": 0, "y": 0}]]},
+                "slot_names": ["0"],
+            },
+            {
+                "name": "class_3",
+                "polygon": {"paths": [[{"x": 0, "y": 0}]]},
+                "slot_names": ["0"],
+            },
+        ],
     }
 
 
@@ -71,6 +109,21 @@ class TestExtractClasses:
 
     def test_builds_correct_mapping_dictionaries(self, annotations_path: Path):
         payload = {
+            "version": "2.0",
+            "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
+            "item": {
+                "name": "0.jpg",
+                "path": "/",
+                "slots": [
+                    {
+                        "type": "image",
+                        "slot_name": "0",
+                        "source_files": [
+                            {"file_name": "0.jpg", "url": "https://example.com/0.jpg"}
+                        ],
+                    }
+                ],
+            },
             "annotations": [
                 {"name": "class_1", "polygon": {"paths": [[]]}},
                 {
@@ -81,11 +134,25 @@ class TestExtractClasses:
                 {"name": "class_4", "tag": {}},
                 {"name": "class_1", "polygon": {"paths": [[]]}},
             ],
-            "image": {"filename": "0.jpg"},
         }
         _create_annotation_file(annotations_path, "0.json", payload)
 
         payload = {
+            "version": "2.0",
+            "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
+            "item": {
+                "name": "1.jpg",
+                "path": "/",
+                "slots": [
+                    {
+                        "type": "image",
+                        "slot_name": "0",
+                        "source_files": [
+                            {"file_name": "1.jpg", "url": "https://example.com/1.jpg"}
+                        ],
+                    }
+                ],
+            },
             "annotations": [
                 {"name": "class_5", "polygon": {"paths": [[]]}},
                 {
@@ -96,7 +163,6 @@ class TestExtractClasses:
                 {"name": "class_4", "tag": {}},
                 {"name": "class_1", "polygon": {"paths": [[]]}},
             ],
-            "image": {"filename": "1.jpg"},
         }
         _create_annotation_file(annotations_path, "1.json", payload)
         class_dict, index_dict = extract_classes(annotations_path, "polygon")
@@ -121,34 +187,94 @@ class TestExtractClasses:
             annotations_path,
             "0.json",
             {
+                "version": "2.0",
+                "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
+                "item": {
+                    "name": "0.jpg",
+                    "path": "/",
+                    "slots": [
+                        {
+                            "type": "image",
+                            "slot_name": "0",
+                            "source_files": [
+                                {
+                                    "file_name": "0.jpg",
+                                    "url": "https://example.com/0.jpg",
+                                }
+                            ],
+                        }
+                    ],
+                },
                 "annotations": [
-                    {"name": "class_1", "polygon": {"paths": [[]]}},
+                    {
+                        "name": "class_1",
+                        "polygon": {"paths": [[]]},
+                        "slot_names": ["0"],
+                    },
                     {
                         "name": "class_2",
                         "bounding_box": {"x": 0, "y": 0, "w": 100, "h": 100},
+                        "slot_names": ["0"],
                     },
-                    {"name": "class_3", "polygon": {"paths": [[]]}},
-                    {"name": "class_4", "tag": {}},
-                    {"name": "class_1", "polygon": {"paths": [[]]}},
+                    {
+                        "name": "class_3",
+                        "polygon": {"paths": [[]]},
+                        "slot_names": ["0"],
+                    },
+                    {"name": "class_4", "slot_names": ["0"]},
+                    {
+                        "name": "class_1",
+                        "polygon": {"paths": [[]]},
+                        "slot_names": ["0"],
+                    },
                 ],
-                "image": {"filename": "0.jpg"},
             },
         )
         _create_annotation_file(
             annotations_path,
             "1.json",
             {
+                "version": "2.0",
+                "schema_ref": "https://darwin-public.s3.eu-west-1.amazonaws.com/darwin_json/2.0/schema.json",
+                "item": {
+                    "name": "1.jpg",
+                    "path": "/",
+                    "slots": [
+                        {
+                            "type": "image",
+                            "slot_name": "0",
+                            "source_files": [
+                                {
+                                    "file_name": "1.jpg",
+                                    "url": "https://example.com/1.jpg",
+                                }
+                            ],
+                        }
+                    ],
+                },
                 "annotations": [
-                    {"name": "class_5", "polygon": {"paths": [[]]}},
+                    {
+                        "name": "class_5",
+                        "polygon": {"paths": [[]]},
+                        "slot_names": ["0"],
+                    },
                     {
                         "name": "class_6",
                         "bounding_box": {"x": 0, "y": 0, "w": 100, "h": 100},
+                        "slot_names": ["0"],
                     },
-                    {"name": "class_1", "polygon": {"paths": [[]]}},
-                    {"name": "class_4", "tag": {}},
-                    {"name": "class_1", "polygon": {"paths": [[]]}},
+                    {
+                        "name": "class_1",
+                        "polygon": {"paths": [[]]},
+                        "slot_names": ["0"],
+                    },
+                    {"name": "class_4", "slot_names": ["0"]},
+                    {
+                        "name": "class_1",
+                        "polygon": {"paths": [[]]},
+                        "slot_names": ["0"],
+                    },
                 ],
-                "image": {"filename": "1.jpg"},
             },
         )
 

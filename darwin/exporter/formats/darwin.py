@@ -1,11 +1,9 @@
 from typing import Any, Dict, List
 
-import deprecation
 
 import darwin.datatypes as dt
 
 # from darwin.datatypes import PolygonPath, PolygonPaths
-from darwin.version import __version__
 
 DEPRECATION_MESSAGE = """
 
@@ -91,12 +89,7 @@ def _build_polygon_data(data: Dict[str, Any]) -> Dict[str, Any]:
     Dict[str, List[List[Dict[str, float]]]]
         The polygon data in the format required for Darwin v2 annotations.
     """
-
-    # Complex polygon
-    if "paths" in data:
-        return {"paths": data["paths"]}
-    else:
-        return {"paths": [data["path"]]}
+    return {"paths": data["paths"]}
 
 
 def _build_item_data(

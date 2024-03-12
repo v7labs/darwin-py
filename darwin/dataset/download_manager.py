@@ -9,7 +9,6 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
-import deprecation
 import numpy as np
 import orjson as json
 import requests
@@ -28,7 +27,6 @@ from darwin.utils import (
     is_image_extension_allowed,
     parse_darwin_json,
 )
-from darwin.version import __version__
 
 
 def download_all_images_from_annotations(

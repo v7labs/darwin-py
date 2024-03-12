@@ -47,7 +47,7 @@ class TestUploadData:
         remote_dataset: RemoteDataset,
         request_upload_endpoint: str,
     ):
-        request_upload_response = response = {
+        request_upload_response = {
             "blocked_items": [
                 {
                     "id": "3b241101-e2bb-4255-8caf-4136c566a964",
@@ -150,7 +150,7 @@ class TestUploadData:
         remote_dataset: RemoteDataset,
         request_upload_endpoint: str,
     ):
-        request_upload_response = response = {
+        request_upload_response = {
             "blocked_items": [
                 {
                     "id": "3b241101-e2bb-4255-8caf-4136c566a964",

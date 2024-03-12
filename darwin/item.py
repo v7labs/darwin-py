@@ -1,11 +1,9 @@
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
-import deprecation
 from pydantic import BaseModel
 
 from darwin.path_utils import construct_full_path
-from darwin.version import __version__
 
 
 @dataclass(frozen=True, eq=True)
