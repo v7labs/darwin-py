@@ -10,7 +10,9 @@ from darwin.dataset.utils import (
     compute_distributions,
     exhaust_generator,
     extract_classes,
+    get_external_file_type,
     get_release_path,
+    parse_external_file_path,
     sanitize_filename,
 )
 from tests.fixtures import *
@@ -289,6 +291,44 @@ class TestExhaustGenerator:
         assert len(successes) == 1
         assert isinstance(errors[0], Exception)
         assert errors[0].args[0] == "Test"
+
+
+class TestGetExternalFileType:
+    def test_get_external_file_types(self):
+        assert get_external_file_type("/path/to/file/my_dicom.dcm") == "dicom"
+        assert get_external_file_type("/path/to/file/my_pdf.pdf") == "pdf"
+
+        assert get_external_file_type("/path/to/file/my_image.png") == "image"
+        assert get_external_file_type("/path/to/file/my_image.jpeg") == "image"
+        assert get_external_file_type("/path/to/file/my_image.jpg") == "image"
+        assert get_external_file_type("/path/to/file/my_image.jfif") == "image"
+        assert get_external_file_type("/path/to/file/my_image.tif") == "image"
+        assert get_external_file_type("/path/to/file/my_image.tiff") == "image"
+        assert get_external_file_type("/path/to/file/my_image.bmp") == "image"
+        assert get_external_file_type("/path/to/file/my_image.svs") == "image"
+        assert get_external_file_type("/path/to/file/my_image.webp") == "image"
+        assert get_external_file_type("/path/to/file/my_image.JPEG") == "image"
+        assert get_external_file_type("/path/to/file/my_image.JPG") == "image"
+
+        assert get_external_file_type("/path/to/file/my_video.avi") == "video"
+        assert get_external_file_type("/path/to/file/my_video.bpm") == "video"
+        assert get_external_file_type("/path/to/file/my_video.mov") == "video"
+        assert get_external_file_type("/path/to/file/my_video.mp4") == "video"
+
+
+class TestParseExternalFilePath:
+    def test_parse_external_file_paths(self):
+        assert parse_external_file_path("my_image.png", preserve_folders=True) == "/"
+        assert parse_external_file_path("my_image.png", preserve_folders=False) == "/"
+
+        assert (
+            parse_external_file_path("path/to/my_image.png", preserve_folders=True)
+            == "/path/to"
+        )
+        assert (
+            parse_external_file_path("path/to/my_image.png", preserve_folders=False)
+            == "/"
+        )
 
 
 '''

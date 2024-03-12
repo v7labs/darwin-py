@@ -1,3 +1,4 @@
+import json
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -21,13 +22,17 @@ from darwin.dataset.upload_manager import (
     UploadHandler,
     UploadHandlerV2,
 )
-from darwin.dataset.utils import is_relative_to
-from darwin.datatypes import AnnotationFile, ItemId, PathLike
+from darwin.dataset.utils import (
+    get_external_file_type,
+    is_relative_to,
+    parse_external_file_path,
+)
+from darwin.datatypes import AnnotationFile, ItemId, ObjectStore, PathLike
 from darwin.exceptions import NotFound, UnknownExportVersion
 from darwin.exporter.formats.darwin import build_image_annotation
 from darwin.item import DatasetItem
 from darwin.item_sorter import ItemSorter
-from darwin.utils import find_files, urljoin
+from darwin.utils import SUPPORTED_EXTENSIONS, find_files, urljoin
 
 if TYPE_CHECKING:
     from darwin.client import Client
@@ -552,3 +557,88 @@ class RemoteDatasetV2(RemoteDataset):
         self, annotation_file: AnnotationFile, team_name: str
     ) -> Dict[str, Any]:
         return build_image_annotation(annotation_file, team_name)
+
+    def register(
+        self,
+        object_store: ObjectStore,
+        storage_keys: List[str],
+        fps: Optional[str] = None,
+        multi_planar_view: bool = False,
+        preserve_folders: bool = False,
+    ) -> Dict[str, List[str]]:
+        """
+        Register files in the dataset.
+
+        Parameters
+        ----------
+        object_store : ObjectStore
+            Object store to use for the registration.
+        storage_keys : List[str]
+            List of storage keys to register.
+        fps : Optional[str], default: None
+            When the uploading file is a video, specify its framerate.
+        multi_planar_view : bool, default: False
+            Uses multiplanar view when uploading files.
+        preserve_folders : bool, default: False
+            Specify whether or not to preserve folder paths when uploading
+
+        Returns
+        -------
+        Dict[str, List[str]]
+            A dictionary with the list of registered files.
+        """
+        items = []
+        for storage_key in storage_keys:
+            file_type = get_external_file_type(storage_key)
+            if not file_type:
+                raise TypeError(
+                    f"Unsupported file type for the following storage key: {storage_key}.\nPlease make sure your storage key ends with one of the supported extensions:\n{SUPPORTED_EXTENSIONS}"
+                )
+            item = {
+                "path": parse_external_file_path(storage_key, preserve_folders),
+                "type": file_type,
+                "storage_key": storage_key,
+                "name": (
+                    storage_key.split("/")[-1] if "/" in storage_key else storage_key
+                ),
+            }
+            if fps and file_type == "video":
+                item["fps"] = fps
+            if multi_planar_view and file_type == "dicom":
+                item["extract_views"] = "true"
+            items.append(item)
+
+        # Do not register more than 500 items in a single request
+        chunk_size = 500
+        chunked_items = (
+            items[i : i + chunk_size] for i in range(0, len(items), chunk_size)
+        )
+        print(f"Registering {len(items)} items in chunks of {chunk_size} items...")
+        results = {
+            "registered": [],
+            "blocked": [],
+        }
+
+        for chunk in chunked_items:
+            payload = {
+                "items": chunk,
+                "dataset_slug": self.slug,
+                "storage_slug": object_store.name,
+            }
+            print(f"Registering {len(chunk)} items...")
+            response = self.client.api_v2.register_items(payload, team_slug=self.team)
+            for item in json.loads(response.text)["items"]:
+                item_info = f"Item {item['name']} registered with item ID {item['id']}"
+                results["registered"].append(item_info)
+            for item in json.loads(response.text)["blocked_items"]:
+                item_info = f"Item {item['name']} was blocked for the reason: {item['slots'][0]['reason']}"
+                results["blocked"].append(item_info)
+        print(
+            f"{len(results['registered'])} of {len(storage_keys)} items registered successfully"
+        )
+        if results["blocked"]:
+            print("The following items were blocked:")
+            for item in results["blocked"]:
+                print(f"  - {item}")
+        print(f"Reistration complete. Check your items in the dataset: {self.slug}")
+        return results

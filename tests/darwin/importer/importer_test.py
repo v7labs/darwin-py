@@ -287,7 +287,7 @@ def test_get_overwrite_value() -> None:
 @pytest.fixture
 def raster_layer_annotations():
     annotation_raster_layer_data = (
-        Path(__file__).parent.parent / f"data/annotation_raster_layer_data.json"
+        Path(__file__).parent.parent / "data/annotation_raster_layer_data.json"
     )
     with open(annotation_raster_layer_data) as f:
         data = json.load(f)
@@ -389,7 +389,7 @@ def raster_layer_annotations():
 @pytest.fixture
 def raster_layer_video_annotations():
     annotation_raster_layer_data = (
-        Path(__file__).parent.parent / f"data/video_annotation_raster_layer_data.json"
+        Path(__file__).parent.parent / "data/video_annotation_raster_layer_data.json"
     )
     with open(annotation_raster_layer_data) as f:
         data = json.load(f)

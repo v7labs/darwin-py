@@ -16,7 +16,13 @@ from darwin.config import Config
 from darwin.dataset.identifier import DatasetIdentifier
 from darwin.dataset.remote_dataset import RemoteDataset
 from darwin.dataset.remote_dataset_v2 import RemoteDatasetV2
-from darwin.datatypes import DarwinVersionNumber, Feature, Team, UnknownType
+from darwin.datatypes import (
+    DarwinVersionNumber,
+    Feature,
+    ObjectStore,
+    Team,
+    UnknownType,
+)
 from darwin.exceptions import (
     InsufficientStorage,
     InvalidLogin,
@@ -1054,3 +1060,96 @@ class Client:
             team_slug=team_slug or self.default_team,
             params=params,
         )
+
+    def get_external_storage(
+        self, team_slug: Optional[str] = None, name: Optional[str] = None
+    ) -> Optional[ObjectStore]:
+        """
+        Get an external storage connection by name.
+
+        If no name is provided, the default team's external storage connection will be returned.
+
+        Parameters
+        ----------
+        team_slug: Optional[str]
+            The team slug.
+        name: Optional[str]
+            The name of the external storage connection.
+
+        Returns
+        -------
+        Optional[ObjectStore]
+            The external storage connection with the given name.
+
+        Raises
+        ------
+        ValueError
+            If no external storage connection is found in the team.
+
+        ValueError
+            If no name is provided and the default external storage connection is read-only.
+
+        ValueError
+            If provided connection name is read-only.
+        """
+        if not team_slug:
+            team_slug = self.default_team
+
+        connections = self.list_external_storage_connections(team_slug)
+        if not connections:
+            raise ValueError(
+                f"No external storage connections found in the team: {team_slug}. Please configure one.\n\nGuidelines can be found here: https://docs.v7labs.com/docs/external-storage-configuration"
+            )
+
+        # If no name is provided, return the default connection
+        if name is None:
+            for connection in connections:
+                if connection.default:
+                    if connection.readonly:
+                        raise ValueError(
+                            "The default external storage connection is read-only. darwin-py only supports read-write configuration.\n\nPlease use the REST API to register items from read-only storage: https://docs.v7labs.com/docs/registering-items-from-external-storage#read-only-registration"
+                        )
+                    return connection
+
+        # If a name is provided, return the connection with the given name
+        for connection in connections:
+            if connection.name == name:
+                if connection.readonly:
+                    raise ValueError(
+                        "The selected external storage connection is read-only. darwin-py only supports read-write configuraiton.\n\nPlease use the REST API to register items from read-only storage: https://docs.v7labs.com/docs/registering-items-from-external-storage#read-only-registration"
+                    )
+                return connection
+
+        raise ValueError(
+            f"No external storage connection found with the name: {name} in the team {team_slug}. Please configure one.\n\nGuidelines can be found at https://docs.v7labs.com/docs/external-storage-configuration"
+        )
+
+    def list_external_storage_connections(self, team_slug: str) -> List[ObjectStore]:
+        """
+        Returns a list of all available external storage connections.
+
+        Parameters
+        ----------
+        team_slug: str
+            The team slug.
+
+        Returns
+        -------
+        List[ObjectStore]
+            A list of all available external storage connections.
+        """
+        response: List[Dict[str, UnknownType]] = cast(
+            List[Dict[str, UnknownType]],
+            self._get(f"/teams/{team_slug}/storage"),
+        )
+
+        return [
+            ObjectStore(
+                name=connection["name"],
+                prefix=connection["prefix"],
+                readonly=connection["readonly"],
+                provider=connection["provider"],
+                default=connection["default"],
+            )
+            for connection in response
+        ]
