@@ -1106,6 +1106,7 @@ class Client:
                         )
                     return connection
 
+        # If a name is provided, return the connection with the given name
         for connection in connections:
             if connection.name == name:
                 if connection.readonly:
