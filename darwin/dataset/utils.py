@@ -858,8 +858,8 @@ def get_external_file_type(storage_key: str) -> str or None:
 
     Returns
     -------
-    str
-        The type of file.
+    Optional[str]
+        The type of file, or ``None`` if the file type is not supported.
     """
     for extension in SUPPORTED_IMAGE_EXTENSIONS:
         if storage_key.endswith(extension):
