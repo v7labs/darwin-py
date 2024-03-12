@@ -847,7 +847,7 @@ def sanitize_filename(filename: str) -> str:
     return filename
 
 
-def get_external_file_type(storage_key: str) -> str or None:
+def get_external_file_type(storage_key: str) -> Optional[str]:
     """
     Returns the type of file given a storage key.
 
