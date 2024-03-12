@@ -16,7 +16,13 @@ from darwin.config import Config
 from darwin.dataset.identifier import DatasetIdentifier
 from darwin.dataset.remote_dataset import RemoteDataset
 from darwin.dataset.remote_dataset_v2 import RemoteDatasetV2
-from darwin.datatypes import DarwinVersionNumber, Feature, Team, UnknownType
+from darwin.datatypes import (
+    DarwinVersionNumber,
+    Feature,
+    ObjectStore,
+    Team,
+    UnknownType,
+)
 from darwin.exceptions import (
     InsufficientStorage,
     InvalidLogin,
@@ -38,7 +44,6 @@ from darwin.future.core.properties import (
 from darwin.future.core.properties import update_property as update_property_future
 from darwin.future.core.types.common import JSONDict
 from darwin.future.data_objects.properties import FullProperty
-from darwin.objectstore import ObjectStore
 from darwin.utils import (
     get_response_content,
     has_json_content_type,
@@ -1096,7 +1101,7 @@ class Client:
                 f"No external storage connections found in the team: {team_slug}. Please configure one.\n\nGuidelines can be found here: https://docs.v7labs.com/docs/external-storage-configuration"
             )
 
-        # If no name is provided, return the default connection
+        # If no name is provided, return the default connection
         if name is None:
             for connection in connections:
                 if connection.default:
@@ -1106,7 +1111,7 @@ class Client:
                         )
                     return connection
 
-        # If a name is provided, return the connection with the given name
+        # If a name is provided, return the connection with the given name
         for connection in connections:
             if connection.name == name:
                 if connection.readonly:

@@ -8,11 +8,10 @@ from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset.remote_dataset import RemoteDataset
 from darwin.dataset.remote_dataset_v2 import RemoteDatasetV2
-from darwin.datatypes import Feature, JSONFreeForm
+from darwin.datatypes import Feature, JSONFreeForm, ObjectStore
 from darwin.exceptions import NameTaken, NotFound
 from darwin.future.data_objects.properties import FullProperty
 from darwin.future.tests.core.fixtures import *  # noqa: F401, F403
-from darwin.objectstore import ObjectStore
 from tests.fixtures import *  # noqa: F401, F403
 
 

@@ -27,12 +27,11 @@ from darwin.dataset.utils import (
     is_relative_to,
     parse_external_file_path,
 )
-from darwin.datatypes import AnnotationFile, ItemId, PathLike
+from darwin.datatypes import AnnotationFile, ItemId, ObjectStore, PathLike
 from darwin.exceptions import NotFound, UnknownExportVersion
 from darwin.exporter.formats.darwin import build_image_annotation
 from darwin.item import DatasetItem
 from darwin.item_sorter import ItemSorter
-from darwin.objectstore import ObjectStore
 from darwin.utils import SUPPORTED_EXTENSIONS, find_files, urljoin
 
 if TYPE_CHECKING:
@@ -567,6 +566,27 @@ class RemoteDatasetV2(RemoteDataset):
         multi_planar_view: bool = False,
         preserve_folders: bool = False,
     ) -> Dict[str, List[str]]:
+        """
+        Register files in the dataset.
+
+        Parameters
+        ----------
+        object_store : ObjectStore
+            Object store to use for the registration.
+        storage_keys : List[str]
+            List of storage keys to register.
+        fps : Optional[str], default: None
+            When the uploading file is a video, specify its framerate.
+        multi_planar_view : bool, default: False
+            Uses multiplanar view when uploading files.
+        preserve_folders : bool, default: False
+            Specify whether or not to preserve folder paths when uploading
+
+        Returns
+        -------
+        Dict[str, List[str]]
+            A dictionary with the list of registered files.
+        """
         items = []
         for storage_key in storage_keys:
             file_type = get_external_file_type(storage_key)

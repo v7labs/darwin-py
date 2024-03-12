@@ -5,7 +5,7 @@ import pytest
 from darwin.client import Client
 from darwin.config import Config
 from darwin.dataset.remote_dataset_v2 import RemoteDatasetV2
-from darwin.objectstore import ObjectStore
+from darwin.datatypes import ObjectStore
 
 
 class TestObjectStore:
