@@ -1096,6 +1096,7 @@ class Client:
                 f"No external storage connections found in the team: {team_slug}. Please configure one.\n\nGuidelines can be found here: https://docs.v7labs.com/docs/external-storage-configuration"
             )
 
+        # If no name is provided, return the default connection
         if name is None:
             for connection in connections:
                 if connection.default:
