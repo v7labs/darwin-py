@@ -237,3 +237,19 @@ class BackendV2:
         return self._client._post_raw(
             f"v2/teams/{team_slug}/items/{item_id}/import", payload=payload
         )
+
+    @inject_default_team_slug
+    def register_items(self, payload: Dict[str, Any], team_slug: str) -> None:
+        """
+        Register items from external storage.
+
+        Parameters
+        ----------
+        payload: JSONDict
+            The payload to register items from external storage.
+        team_slug: str
+            The team slug.
+        """
+        return self._client._post_raw(
+            f"/v2/teams/{team_slug}/items/register_existing", payload
+        )
