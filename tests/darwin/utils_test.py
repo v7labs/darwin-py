@@ -312,6 +312,11 @@ class TestParseDarwinJson:
                 segments=[[3, 46]],
                 hidden_areas=[[5, 8]],
                 interpolated=True,
+                slot_names=["0"],
+                annotators=None,
+                reviewers=None,
+                id="f8f5f235-bd47-47be-b4fe-07d49e0177a7",
+                properties=None,
             )
         ]
 
