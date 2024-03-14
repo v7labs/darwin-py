@@ -1400,7 +1400,6 @@ class MaskTypes:
     CategoryList = List[str]
     ExceptionList = List[Exception]
     UndecodedRLE = List[int]
-    DecodedRLE = List[List[int]]
     ColoursDict = Dict[str, int]
     RgbColors = List[int]
     HsvColors = List[Tuple[float, float, float]]
@@ -1428,7 +1427,6 @@ class AnnotationMask:
 @dataclass
 class RasterLayer:
     rle: MaskTypes.UndecodedRLE
-    decoded: MaskTypes.DecodedRLE
     mask_annotation_ids_mapping: Dict[str, int]
     slot_names: List[str] = field(default_factory=list)
     total_pixels: int = 0
@@ -1436,8 +1434,6 @@ class RasterLayer:
     def validate(self) -> None:
         if not self.rle:
             raise ValueError("RasterLayer rle cannot be empty")
-        if not self.decoded:
-            raise ValueError("RasterLayer decoded cannot be empty")
         if not self.mask_annotation_ids_mapping:
             raise ValueError("RasterLayer mask_annotation_ids_mapping cannot be empty")
         if not self.slot_names:
