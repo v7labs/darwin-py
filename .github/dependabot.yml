@@ -10,10 +10,16 @@ updates:
     open-pull-requests-limit: 5
     labels:
       - "github-actions-updates"
+
   - package-ecosystem: "pip"
     directory: "/"
     schedule:
-      interval: "daily"
+      interval: "weekly"
+    ignore:
+      # For all packages, ignore all major updates
+      - dependency-name: "*"
+        update-types:
+          - "version-update:semver-major"
     reviewers:
       - "saurbhc"
       - "JBWilkie"
