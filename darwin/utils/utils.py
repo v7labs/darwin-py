@@ -919,11 +919,12 @@ def update_annotation_data(
     elif annotation_type == "mask":
         annotation_data = {}
     elif annotation_type == "raster_layer":
-        raster_layer = main_annotation_data["raster_layer"]
         annotation_data = {
-            "dense_rle": raster_layer["dense_rle"],
-            "mask_annotation_ids_mapping": raster_layer["mask_annotation_ids_mapping"],
-            "total_pixels": raster_layer["total_pixels"],
+            "dense_rle": main_annotation_data["dense_rle"],
+            "mask_annotation_ids_mapping": main_annotation_data[
+                "mask_annotation_ids_mapping"
+            ],
+            "total_pixels": main_annotation_data["total_pixels"],
         }
 
     return annotation_data
