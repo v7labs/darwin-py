@@ -841,6 +841,13 @@ def make_keyframe_annotation(
         return dt.make_table(
             name, annotation_data["bounding_box"], annotation_data["cells"]
         )
+    elif annotation_type == "simple_table":
+        return dt.make_simple_table(
+            name,
+            annotation_data["bounding_box"],
+            annotation_data["col_offsets"],
+            annotation_data["row_offsets"],
+        )
     elif annotation_type == "string":
         return dt.make_string(name, annotation_data["sources"])
     elif annotation_type == "graph":
