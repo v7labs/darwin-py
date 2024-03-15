@@ -490,7 +490,9 @@ def test__import_annotations() -> None:
         "_get_overwrite_value"
     ) as mock_gov, patch_factory(
         "_handle_slot_names"
-    ) as mock_hsn:
+    ) as mock_hsn, patch_factory(
+        "_import_properties",
+    ) as mock_ip:
         from darwin.client import Client
         from darwin.dataset import RemoteDataset
         from darwin.importer.importer import _import_annotations
@@ -515,6 +517,7 @@ def test__import_annotations() -> None:
             [],
             ["test_slot_name"],
         )
+        mock_ip.return_value = {}
 
         annotation = dt.Annotation(
             dt.AnnotationClass("test_class", "bbox"), {"paths": [1, 2, 3, 4, 5]}, [], []

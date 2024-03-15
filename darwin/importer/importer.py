@@ -334,8 +334,8 @@ def _import_properties(
         annotation_class_ids_map (Dict[Tuple[str, str], str]): Dict of annotation class names/types to annotation class ids
 
     Raises:
-        ValueError: raise error if annotation class not present in metadata
-        ValueError: raise error if annotation-property not present in metadata
+        ValueError: raise error if annotation class not present in metadata and in team-properties
+        ValueError: raise error if annotation-property not present in metadata and in team-properties
         ValueError: raise error if property value is missing for a property that requires a value
         ValueError: raise error if property value/type is different in m_prop (.v7/metadata.json) options
 
