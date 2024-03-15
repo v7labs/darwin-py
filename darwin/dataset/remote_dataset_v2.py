@@ -563,7 +563,7 @@ class RemoteDatasetV2(RemoteDataset):
         self,
         object_store: ObjectStore,
         storage_keys: List[str],
-        fps: Optional[str] = None,
+        fps: Optional[Union[str, float]] = None,
         multi_planar_view: bool = False,
         preserve_folders: bool = False,
     ) -> Dict[str, List[str]]:
@@ -652,7 +652,7 @@ class RemoteDatasetV2(RemoteDataset):
         self,
         object_store: ObjectStore,
         storage_keys: Dict[str, List[str]],
-        fps: Optional[str] = None,
+        fps: Optional[Union[str, float]] = None,
         multi_planar_view: bool = False,
         preserve_folders: bool = False,
     ) -> Dict[str, List[str]]:
@@ -707,7 +707,9 @@ class RemoteDatasetV2(RemoteDataset):
                 {
                     "slots": slots,
                     "name": item,
-                    "path": parse_external_file_path(storage_key, preserve_folders),
+                    "path": parse_external_file_path(
+                        storage_keys[item][0], preserve_folders
+                    ),
                 }
             )
 
@@ -728,7 +730,6 @@ class RemoteDatasetV2(RemoteDataset):
                 "dataset_slug": self.slug,
                 "storage_slug": object_store.name,
             }
-            print(payload)
             print(f"Registering {len(chunk)} items...")
             response = self.client.api_v2.register_items(payload, team_slug=self.team)
             for item in json.loads(response.text)["items"]:
