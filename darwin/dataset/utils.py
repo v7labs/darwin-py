@@ -893,3 +893,22 @@ def parse_external_file_path(storage_key: str, preserve_folders: bool) -> str:
     if not preserve_folders:
         return "/"
     return "/" + "/".join(storage_key.split("/")[:-1])
+
+
+def get_external_file_name(storage_key: str) -> str:
+    """
+    Returns the name of the file given a storage key.
+
+    Parameters
+    ----------
+    storage_key : str
+        The storage key to get the file name from.
+
+    Returns
+    -------
+    str
+        The name of the file.
+    """
+    if "/" not in storage_key:
+        return storage_key
+    return storage_key.split("/")[-1]

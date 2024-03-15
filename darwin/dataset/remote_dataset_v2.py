@@ -23,6 +23,7 @@ from darwin.dataset.upload_manager import (
     UploadHandlerV2,
 )
 from darwin.dataset.utils import (
+    get_external_file_name,
     get_external_file_type,
     is_relative_to,
     parse_external_file_path,
@@ -567,7 +568,7 @@ class RemoteDatasetV2(RemoteDataset):
         preserve_folders: bool = False,
     ) -> Dict[str, List[str]]:
         """
-        Register files in the dataset.
+        Register files in the dataset in a single slot.
 
         Parameters
         ----------
@@ -587,6 +588,10 @@ class RemoteDatasetV2(RemoteDataset):
         Dict[str, List[str]]
             A dictionary with the list of registered files.
         """
+        if not isinstance(storage_keys, list) or not all(
+            isinstance(item, str) for item in storage_keys
+        ):
+            raise ValueError("storage_keys must be a list of strings")
         items = []
         for storage_key in storage_keys:
             file_type = get_external_file_type(storage_key)
@@ -625,6 +630,105 @@ class RemoteDatasetV2(RemoteDataset):
                 "dataset_slug": self.slug,
                 "storage_slug": object_store.name,
             }
+            print(f"Registering {len(chunk)} items...")
+            response = self.client.api_v2.register_items(payload, team_slug=self.team)
+            for item in json.loads(response.text)["items"]:
+                item_info = f"Item {item['name']} registered with item ID {item['id']}"
+                results["registered"].append(item_info)
+            for item in json.loads(response.text)["blocked_items"]:
+                item_info = f"Item {item['name']} was blocked for the reason: {item['slots'][0]['reason']}"
+                results["blocked"].append(item_info)
+        print(
+            f"{len(results['registered'])} of {len(storage_keys)} items registered successfully"
+        )
+        if results["blocked"]:
+            print("The following items were blocked:")
+            for item in results["blocked"]:
+                print(f"  - {item}")
+        print(f"Reistration complete. Check your items in the dataset: {self.slug}")
+        return results
+
+    def register_multi_slotted(
+        self,
+        object_store: ObjectStore,
+        storage_keys: Dict[str, List[str]],
+        fps: Optional[str] = None,
+        multi_planar_view: bool = False,
+        preserve_folders: bool = False,
+    ) -> Dict[str, List[str]]:
+        """
+        Register files in the dataset in multiple slots.
+
+        Parameters
+        ----------
+        object_store : ObjectStore
+            Object store to use for the registration.
+        storage_keys : Dict[str, List[str]
+            Storage keys to register. The keys are the item names and the values are lists of storage keys.
+        fps : Optional[str], default: None
+            When the uploading file is a video, specify its framerate.
+        multi_planar_view : bool, default: False
+            Uses multiplanar view when uploading files.
+        preserve_folders : bool, default: False
+            Specify whether or not to preserve folder paths when uploading
+
+        Returns
+        -------
+        Dict[str, List[str]]
+            A dictionary with the list of registered files.
+        """
+        if not isinstance(storage_keys, Dict) or not all(
+            isinstance(storage_keys[item], list) for item in storage_keys
+        ):
+            raise ValueError("storage_keys must be a list of lists of strings")
+        items = []
+
+        for item in storage_keys:
+            slots = []
+            for storage_key in storage_keys[item]:
+                file_name = get_external_file_name(storage_key)
+                file_type = get_external_file_type(storage_key)
+                if not file_type:
+                    raise TypeError(
+                        f"Unsupported file type for the following storage key: {storage_key}.\nPlease make sure your storage key ends with one of the supported extensions:\n{SUPPORTED_EXTENSIONS}"
+                    )
+                slot = {
+                    "slot_name": file_name,
+                    "type": file_type,
+                    "storage_key": storage_key,
+                    "file_name": file_name,
+                }
+                if fps and file_type == "video":
+                    slot["fps"] = fps
+                if multi_planar_view and file_type == "dicom":
+                    slot["extract_views"] = "true"
+                slots.append(slot)
+            items.append(
+                {
+                    "slots": slots,
+                    "name": item,
+                    "path": parse_external_file_path(storage_key, preserve_folders),
+                }
+            )
+
+        # Do not register more than 500 items in a single request
+        chunk_size = 500
+        chunked_items = (
+            items[i : i + chunk_size] for i in range(0, len(items), chunk_size)
+        )
+        print(f"Registering {len(items)} items in chunks of {chunk_size} items...")
+        results = {
+            "registered": [],
+            "blocked": [],
+        }
+
+        for chunk in chunked_items:
+            payload = {
+                "items": chunk,
+                "dataset_slug": self.slug,
+                "storage_slug": object_store.name,
+            }
+            print(payload)
             print(f"Registering {len(chunk)} items...")
             response = self.client.api_v2.register_items(payload, team_slug=self.team)
             for item in json.loads(response.text)["items"]:

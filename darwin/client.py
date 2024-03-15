@@ -131,7 +131,7 @@ class Client:
 
     def list_remote_datasets(
         self, team_slug: Optional[str] = None
-    ) -> Iterator[RemoteDataset]:
+    ) -> Iterator[RemoteDatasetV2]:
         """
         Returns a list of all available datasets with the team currently authenticated against.
 
@@ -162,7 +162,7 @@ class Client:
 
     def get_remote_dataset(
         self, dataset_identifier: Union[str, DatasetIdentifier]
-    ) -> RemoteDataset:
+    ) -> RemoteDatasetV2:
         """
         Get a remote dataset based on its identifier.
 
@@ -189,7 +189,7 @@ class Client:
             parsed_dataset_identifier.team_slug = self.default_team
 
         try:
-            matching_datasets: List[RemoteDataset] = [
+            matching_datasets: List[RemoteDatasetV2] = [
                 dataset
                 for dataset in self.list_remote_datasets(
                     team_slug=parsed_dataset_identifier.team_slug
