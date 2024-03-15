@@ -326,7 +326,6 @@ def render_raster(
     """
     errors: List[Exception] = []
 
-    mask_annotations: List[dt.AnnotationMask] = []
     raster_layer: dt.RasterLayer
 
     mask_colours: Dict[str, int] = {}
@@ -348,13 +347,11 @@ def render_raster(
                 errors.append(e)
                 continue
 
-            mask_annotations.append(new_mask)
-
             # Add the category to the list of categories
             if new_mask.name not in categories:
                 categories.append(new_mask.name)
 
-            colour_to_draw = categories.index(new_mask.name) + 1
+            colour_to_draw = categories.index(new_mask.name)
             
             if new_mask.id not in mask_colours:
                 mask_colours[new_mask.id] = colour_to_draw

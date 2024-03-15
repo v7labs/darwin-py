@@ -431,7 +431,7 @@ def test_render_raster() -> None:
     ]
     mask = np.zeros((100, 100), dtype=np.uint8)
     colours: dt.MaskTypes.ColoursDict = {}
-    categories: dt.MaskTypes.CategoryList = []
+    categories: dt.MaskTypes.CategoryList = ["__background__"]
     annotations: List[dt.AnnotationLike] = [
         dt.Annotation(
             dt.AnnotationClass("mask1", "mask"),
@@ -496,7 +496,7 @@ def test_render_raster() -> None:
 
         assert_array_equal(result_mask, np.array(rle_code, dtype=np.uint8).reshape((100, 100)))  # type: ignore
 
-        assert result_categories == ["mask1", "mask2", "mask3"]
+        assert result_categories == ["__background__", "mask1", "mask2", "mask3"]
         assert result_colours == {"mask1": 1, "mask2": 2, "mask3": 3}
 
 
