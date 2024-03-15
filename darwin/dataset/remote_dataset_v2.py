@@ -587,6 +587,13 @@ class RemoteDatasetV2(RemoteDataset):
         -------
         Dict[str, List[str]]
             A dictionary with the list of registered files.
+
+        Raises
+        ------
+        ValueError
+            If ``storage_keys`` is not a list of strings.
+        TypeError
+            If the file type is not supported.
         """
         if not isinstance(storage_keys, list) or not all(
             isinstance(item, str) for item in storage_keys
@@ -676,11 +683,21 @@ class RemoteDatasetV2(RemoteDataset):
         -------
         Dict[str, List[str]]
             A dictionary with the list of registered files.
+
+        Raises
+        ------
+        ValueError
+            If ``storage_keys`` is not a dictionary with keys as item names and values as lists of storage keys.
+        TypeError
+            If the file type is not supported.
         """
-        if not isinstance(storage_keys, Dict) or not all(
-            isinstance(storage_keys[item], list) for item in storage_keys
+        if not isinstance(storage_keys, dict) or not all(
+            isinstance(v, list) and all(isinstance(i, str) for i in v)
+            for v in storage_keys.values()
         ):
-            raise ValueError("storage_keys must be a list of lists of strings")
+            raise ValueError(
+                "storage_keys must be a dictionary with keys as item names and values as lists of storage keys."
+            )
         items = []
 
         for item in storage_keys:
