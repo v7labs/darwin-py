@@ -30,7 +30,7 @@ jobs:
       yaml_changed_files: ${{ steps.changed_yaml_files.outputs.yaml_changed_files }}
       json_changed_files: ${{ steps.changed_json_files.outputs.json_changed_files }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.head_ref || github.ref }}
       - name: Get changed files
