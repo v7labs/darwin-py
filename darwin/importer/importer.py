@@ -1,3 +1,4 @@
+import uuid
 from collections import defaultdict
 from logging import getLogger
 from multiprocessing import cpu_count
@@ -281,9 +282,9 @@ def _get_team_properties_annotation_lookup(client):
     team_properties = client.get_team_properties()
 
     # (property-name, annotation_class_id): FullProperty object
-    team_properties_annotation_lookup: Dict[
-        Tuple[str, Optional[int]], FullProperty
-    ] = {}
+    team_properties_annotation_lookup: Dict[Tuple[str, Optional[int]], FullProperty] = (
+        {}
+    )
     for prop in team_properties:
         team_properties_annotation_lookup[(prop.name, prop.annotation_class_id)] = prop
 
@@ -920,9 +921,9 @@ def import_annotations(  # noqa: C901
 
     # Need to re parse the files since we didn't save the annotations in memory
     for local_path in set(local_file.path for local_file in local_files):  # noqa: C401
-        imported_files: Union[
-            List[dt.AnnotationFile], dt.AnnotationFile, None
-        ] = importer(local_path)
+        imported_files: Union[List[dt.AnnotationFile], dt.AnnotationFile, None] = (
+            importer(local_path)
+        )
         if imported_files is None:
             parsed_files = []
         elif not isinstance(imported_files, List):
@@ -1322,17 +1323,17 @@ def _import_annotations(
         # Insert the default slot name if not available in the import source
         annotation = _handle_slot_names(annotation, dataset.version, default_slot_name)
 
-        annotation_class_ids_map[
-            (annotation_class.name, annotation_type)
-        ] = annotation_class_id
+        annotation_class_ids_map[(annotation_class.name, annotation_type)] = (
+            annotation_class_id
+        )
         serial_obj = {
             "annotation_class_id": annotation_class_id,
             "data": data,
             "context_keys": {"slot_names": annotation.slot_names},
         }
 
-        if annotation.id:
-            serial_obj["id"] = annotation.id
+        annotation.id = annotation.id or str(uuid.uuid4())
+        serial_obj["id"] = annotation.id
 
         if actors:
             serial_obj["actors"] = actors  # type: ignore
