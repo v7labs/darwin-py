@@ -19,7 +19,7 @@ jobs:
           ref: ${{ github.head_ref || github.ref }}
 
       - name: Install Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
