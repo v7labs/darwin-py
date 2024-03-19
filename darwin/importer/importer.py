@@ -334,8 +334,8 @@ def _import_properties(
         annotation_class_ids_map (Dict[Tuple[str, str], str]): Dict of annotation class names/types to annotation class ids
 
     Raises:
-        ValueError: raise error if annotation class not present in metadata
-        ValueError: raise error if annotation-property not present in metadata
+        ValueError: raise error if annotation class not present in metadata and in team-properties
+        ValueError: raise error if annotation-property not present in metadata and in team-properties
         ValueError: raise error if property value is missing for a property that requires a value
         ValueError: raise error if property value/type is different in m_prop (.v7/metadata.json) options
 
@@ -343,13 +343,12 @@ def _import_properties(
         Dict[str, Dict[str, Dict[str, Set[str]]]]: Dict of annotation.id to frame_index -> property id -> property val ids
     """
     annotation_property_map: Dict[str, Dict[str, Dict[str, Set[str]]]] = {}
-    if not isinstance(metadata_path, Path):
-        # No properties to import
-        return {}
 
-    # parse metadata.json file -> list[PropertyClass]
-    metadata = parse_metadata(metadata_path)
-    metadata_property_classes = parse_property_classes(metadata)
+    metadata_property_classes = []
+    if isinstance(metadata_path, Path):
+        # parse metadata.json file -> list[PropertyClass]
+        metadata = parse_metadata(metadata_path)
+        metadata_property_classes = parse_property_classes(metadata)
 
     # get team properties
     team_properties_annotation_lookup = _get_team_properties_annotation_lookup(client)
@@ -389,18 +388,44 @@ def _import_properties(
             )
         annotation_id_map[annotation_id] = annotation
 
-        # raise error if annotation class not present in metadata
-        if annotation_name_type not in metadata_classes_lookup:
-            raise ValueError(
-                f"Annotation: '{annotation_name}' not found in {metadata_path}"
-            )
-
         # loop on annotation properties and check if they exist in metadata & team
         for a_prop in annotation.properties or []:
             a_prop: SelectedProperty
 
             # raise error if annotation-property not present in metadata
             if (annotation_name, a_prop.name) not in metadata_cls_prop_lookup:
+
+                # check if they are present in team properties
+                if (a_prop.name, annotation_class_id) in team_properties_annotation_lookup:
+                    # get team property
+                    t_prop: FullProperty = team_properties_annotation_lookup[
+                        (a_prop.name, annotation_class_id)
+                    ]
+
+                    # if property value is None, update annotation_property_map with empty set
+                    if a_prop.value is None:
+                        assert t_prop.id is not None
+                        annotation_property_map[annotation_id][str(a_prop.frame_index)][
+                            t_prop.id
+                        ] = set()
+                        continue
+
+                    # get team property value
+                    t_prop_val = None
+                    for prop_val in t_prop.property_values or []:
+                        if prop_val.value == a_prop.value:
+                            t_prop_val = prop_val
+                            break
+
+                    # if property value exists in team properties, update annotation_property_map
+                    if t_prop_val:
+                        assert t_prop.id is not None
+                        assert t_prop_val.id is not None
+                        annotation_property_map[annotation_id][str(a_prop.frame_index)][
+                            t_prop.id
+                        ].add(t_prop_val.id)
+                        continue
+
                 raise ValueError(
                     f"Annotation: '{annotation_name}' -> Property '{a_prop.name}' not found in {metadata_path}"
                 )
