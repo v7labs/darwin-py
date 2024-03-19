@@ -53,7 +53,7 @@ jobs:
           sphinx-build -b html source/ docs/
       - name: Setup access to AWS
         id: aws_assume_role
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.DARWIN_PY_AWS_GITHUB_CICD_ROLE }}
           role-session-name: ${{ env.AWS_SESSION_NAME }}
