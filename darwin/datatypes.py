@@ -1468,7 +1468,8 @@ class ObjectStore:
         name (str): The alias of the storage connection
         prefix (str): The directory that files are written back to in the storage location
         readonly (bool): Whether the storage configuration is read-only or not
-        self.provider (str): The cloud provider (aws, azure, or gcp)
+        provider (str): The cloud provider (aws, azure, or gcp)
+        default (bool): Whether the storage connection is the default one
     """
 
     def __init__(

@@ -3,7 +3,7 @@ import math
 import os
 from csv import writer as csv_writer
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Set, Tuple, get_args
+from typing import Dict, Iterable, List, Set, Tuple, get_args
 
 import numpy as np
 
@@ -162,8 +162,10 @@ def get_render_mode(annotations: List[dt.AnnotationLike]) -> dt.MaskTypes.TypeOf
     )
 
 
-def rle_decode(rle: dt.MaskTypes.UndecodedRLE, label_colours: Dict[int, int]) -> List[int]:
-    """Decodes a run-length encoded list of integers and substitutes labels by colours. 
+def rle_decode(
+    rle: dt.MaskTypes.UndecodedRLE, label_colours: Dict[int, int]
+) -> List[int]:
+    """Decodes a run-length encoded list of integers and substitutes labels by colours.
 
     Args:
         rle (List[int]): A run-length encoded list of integers.
@@ -352,30 +354,35 @@ def render_raster(
                 categories.append(new_mask.name)
 
             colour_to_draw = categories.index(new_mask.name)
-            
+
             if new_mask.id not in mask_colours:
                 mask_colours[new_mask.id] = colour_to_draw
 
             if new_mask.name not in colours:
-                colours[new_mask.name] = colour_to_draw    
-            
+                colours[new_mask.name] = colour_to_draw
 
-    raster_layer_list = [a for a in annotations if a.annotation_class.annotation_type == "raster_layer"]
+    raster_layer_list = [
+        a for a in annotations if a.annotation_class.annotation_type == "raster_layer"
+    ]
 
     if len(raster_layer_list) == 0:
-        errors.append(ValueError(f"File {annotation_file.filename} has no raster layer"))
+        errors.append(
+            ValueError(f"File {annotation_file.filename} has no raster layer")
+        )
         return errors, mask, categories, colours
 
     if len(raster_layer_list) > 1:
         errors.append(
-            ValueError(f"File {annotation_file.filename} has more than one raster layer")
+            ValueError(
+                f"File {annotation_file.filename} has more than one raster layer"
+            )
         )
         return errors, mask, categories, colours
-    
+
     rl = raster_layer_list[0]
     if isinstance(rl, dt.VideoAnnotation):
         return errors, mask, categories, colours
-    
+
     raster_layer = dt.RasterLayer(
         rle=rl.data["dense_rle"],
         slot_names=a.slot_names,
@@ -389,13 +396,15 @@ def render_raster(
 
         if colour_to_draw is None:
             errors.append(
-                ValueError(f"Could not find mask with uuid {uuid} among masks in the file {annotation_file.filename}.")
+                ValueError(
+                    f"Could not find mask with uuid {uuid} among masks in the file {annotation_file.filename}."
+                )
             )
             return errors, mask, categories, colours
-        
+
         label_colours[label] = colour_to_draw
 
-    decoded = rle_decode(raster_layer.rle, label_colours) 
+    decoded = rle_decode(raster_layer.rle, label_colours)
     mask = np.array(decoded, dtype=np.uint8).reshape(height, width)
 
     return errors, mask, categories, colours

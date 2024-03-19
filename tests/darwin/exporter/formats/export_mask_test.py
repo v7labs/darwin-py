@@ -2,7 +2,7 @@ import csv
 import platform
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Dict, List, Optional
+from typing import List, Optional
 from unittest.mock import patch
 
 import numpy as np
