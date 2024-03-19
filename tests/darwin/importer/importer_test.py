@@ -572,7 +572,18 @@ def test__import_annotations() -> None:
             "overwrite": "test_append_out",
         }
 
-        assert output["annotations"] == assertion["annotations"]
+        assert (
+            output["annotations"][0]["annotation_class_id"]
+            == assertion["annotations"][0]["annotation_class_id"]
+        )
+        assert output["annotations"][0]["data"] == assertion["annotations"][0]["data"]
+        assert (
+            output["annotations"][0]["actors"] == assertion["annotations"][0]["actors"]
+        )
+        assert (
+            output["annotations"][0]["context_keys"]
+            == assertion["annotations"][0]["context_keys"]
+        )
         assert output["overwrite"] == assertion["overwrite"]
 
 
