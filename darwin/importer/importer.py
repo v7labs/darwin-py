@@ -1307,12 +1307,8 @@ def _import_annotations(
             "context_keys": {"slot_names": annotation.slot_names},
         }
 
-        if annotation.id:
-            serial_obj["id"] = annotation.id
-        else:
-            annotation_id = str(uuid.uuid4())
-            annotation.id = annotation_id
-            serial_obj["id"] = annotation_id
+        annotation.id = annotation.id or str(uuid.uuid4())
+        serial_obj["id"] = annotation.id
 
         if actors:
             serial_obj["actors"] = actors  # type: ignore
