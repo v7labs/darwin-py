@@ -11,7 +11,7 @@ jobs:
     name: Update Linear
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - uses: v7labs/update-linear-labels-action@v1
         with:
