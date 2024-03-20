@@ -384,14 +384,16 @@ class TestParsePath:
         assert_polygon(
             polygon_annotation,
             [
-                {"x": 3665.814, "y": 351.628},
-                {"x": 3762.93, "y": 810.419},
-                {"x": 3042.93, "y": 914.233},
+                [
+                    {"x": 3665.814, "y": 351.628},
+                    {"x": 3762.93, "y": 810.419},
+                    {"x": 3042.93, "y": 914.233},
+                ],
             ],
         )
 
         annotation_class = polygon_annotation.annotation_class
-        assert_annotation_class(annotation_class, "Fish", "polygon")
+        assert_annotation_class(annotation_class, "Fish", "polygon", "polygon")
 
     def test_it_imports_point_images(self, file_path: Path):
         json: str = """
@@ -728,8 +730,8 @@ def assert_bbox(annotation: Annotation, x: float, y: float, h: float, w: float) 
     assert data.get("h") == h
 
 
-def assert_polygon(annotation: Annotation, points: List[Point]) -> None:
-    actual_points = annotation.data.get("path")
+def assert_polygon(annotation: Annotation, points: List[List[Point]]) -> None:
+    actual_points = annotation.data.get("paths")
     assert actual_points
     assert actual_points == points
 

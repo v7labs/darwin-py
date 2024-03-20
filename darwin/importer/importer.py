@@ -36,7 +36,6 @@ if TYPE_CHECKING:
     from darwin.client import Client
     from darwin.dataset.remote_dataset import RemoteDataset
 
-import deprecation
 from rich.console import Console
 from rich.progress import track
 from rich.theme import Theme
@@ -46,7 +45,6 @@ from darwin.datatypes import PathLike
 from darwin.exceptions import IncompatibleOptions, RequestEntitySizeExceeded
 from darwin.utils import secure_continue_request
 from darwin.utils.flatten_list import flatten_list
-from darwin.version import __version__
 
 logger = getLogger(__name__)
 
@@ -72,12 +70,6 @@ instead of calling this low-level function directly.
 """
 
 
-@deprecation.deprecated(  # type:ignore
-    deprecated_in="0.7.12",
-    removed_in="0.8.0",
-    current_version=__version__,
-    details=DEPRECATION_MESSAGE,
-)
 def build_main_annotations_lookup_table(
     annotation_classes: List[Dict[str, Unknown]]
 ) -> Dict[str, Unknown]:
@@ -109,12 +101,6 @@ def build_main_annotations_lookup_table(
     return lookup
 
 
-@deprecation.deprecated(  # type:ignore
-    deprecated_in="0.7.12",
-    removed_in="0.8.0",
-    current_version=__version__,
-    details=DEPRECATION_MESSAGE,
-)
 def find_and_parse(  # noqa: C901
     importer: Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]],
     file_paths: List[PathLike],
@@ -183,12 +169,6 @@ def _get_files_for_parsing(file_paths: List[PathLike]) -> List[Path]:
     return [file for files in packed_files for file in files]
 
 
-@deprecation.deprecated(  # type:ignore
-    deprecated_in="0.7.12",
-    removed_in="0.8.0",
-    current_version=__version__,
-    details=DEPRECATION_MESSAGE,
-)
 def build_attribute_lookup(dataset: "RemoteDataset") -> Dict[str, Unknown]:
     attributes: List[Dict[str, Unknown]] = dataset.fetch_remote_attributes()
     lookup: Dict[str, Unknown] = {}
@@ -200,12 +180,6 @@ def build_attribute_lookup(dataset: "RemoteDataset") -> Dict[str, Unknown]:
     return lookup
 
 
-@deprecation.deprecated(  # type:ignore
-    deprecated_in="0.7.12",
-    removed_in="0.8.0",
-    current_version=__version__,
-    details=DEPRECATION_MESSAGE,
-)
 def get_remote_files(
     dataset: "RemoteDataset", filenames: List[str], chunk_size: int = 100
 ) -> Dict[str, Tuple[int, str]]:
@@ -1061,15 +1035,17 @@ def _handle_subs(
     return data
 
 
-def _handle_complex_polygon(
+def _format_polygon_for_import(
     annotation: dt.Annotation, data: dt.DictFreeForm
 ) -> dt.DictFreeForm:
-    if "complex_polygon" in data:
-        del data["complex_polygon"]
-        data["polygon"] = {
-            "path": annotation.data["paths"][0],
-            "additional_paths": annotation.data["paths"][1:],
-        }
+    if "polygon" in data:
+        if len(annotation.data["paths"]) > 1:
+            data["polygon"] = {
+                "path": annotation.data["paths"][0],
+                "additional_paths": annotation.data["paths"][1:],
+            }
+        elif len(annotation.data["paths"]) == 1:
+            data["polygon"] = {"path": annotation.data["paths"][0]}
     return data
 
 
@@ -1137,14 +1113,14 @@ def _get_annotation_data(
             only_keyframes=True,
             post_processing=lambda annotation, data: _handle_subs(
                 annotation,
-                _handle_complex_polygon(annotation, data),
+                _format_polygon_for_import(annotation, data),
                 annotation_class_id,
                 attributes,
             ),
         )
     else:
         data = {annotation_class.annotation_type: annotation.data}
-        data = _handle_complex_polygon(annotation, data)
+        data = _format_polygon_for_import(annotation, data)
         data = _handle_subs(annotation, data, annotation_class_id, attributes)
 
     return data

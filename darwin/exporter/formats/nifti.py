@@ -340,12 +340,6 @@ def populate_output_volumes_from_polygons(
                     shift_polygon_coords(polygon_path, pixdims)
                     for polygon_path in frame_data["paths"]
                 ]
-            elif "path" in frame_data:
-                # Dealing with a simple polygon
-                polygons = shift_polygon_coords(
-                    frame_data["path"],
-                    pixdims,
-                )
             else:
                 continue
             im_mask = convert_polygons_to_mask(polygons, height=height, width=width)

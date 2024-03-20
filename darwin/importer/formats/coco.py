@@ -2,14 +2,12 @@ from logging import getLogger
 from pathlib import Path
 from typing import Dict, Iterator, List, Optional
 
-import deprecation
 import orjson as json
 from upolygon import find_contours, rle_decode
 
 import darwin.datatypes as dt
 from darwin.path_utils import deconstruct_full_path
 from darwin.utils import attempt_decode
-from darwin.version import __version__
 
 DEPRECATION_MESSAGE = """
 
@@ -169,7 +167,7 @@ def parse_annotation(
                 except StopIteration:
                     break
             paths.append(path)
-        return dt.make_complex_polygon(category["name"], paths)
+        return dt.make_polygon(category["name"], paths)
     elif isinstance(segmentation, list):
         path = []
         points = iter(
@@ -196,12 +194,6 @@ def _decode_file(current_encoding: str, path: Path):
     return list(parse_json(path, data))
 
 
-@deprecation.deprecated(
-    deprecated_in="0.7.12",
-    removed_in="0.8.0",
-    current_version=__version__,
-    details=DEPRECATION_MESSAGE,
-)
 def decode_binary_rle(data: str) -> List[int]:
     """
     Decodes binary rle to integer list rle.

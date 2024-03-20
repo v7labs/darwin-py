@@ -36,6 +36,7 @@ def darwin_to_dt_gen(
                     for d in split_video_annotation(data):
                         d.seq = count
                         count += 1
+                        print(count)
                         yield d
                 else:
                     yield data
