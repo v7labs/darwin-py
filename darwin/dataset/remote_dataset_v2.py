@@ -11,6 +11,7 @@ from typing import (
     Union,
 )
 
+from pydantic import ValidationError
 from requests.models import Response
 
 from darwin.dataset import RemoteDataset
@@ -29,7 +30,14 @@ from darwin.dataset.utils import (
     is_relative_to,
     parse_external_file_path,
 )
-from darwin.datatypes import AnnotationFile, ItemId, ObjectStore, PathLike
+from darwin.datatypes import (
+    AnnotationFile,
+    ItemId,
+    ObjectStore,
+    PathLike,
+    StorageKeyDictModel,
+    StorageKeyListModel,
+)
 from darwin.exceptions import NotFound, UnknownExportVersion
 from darwin.exporter.formats.darwin import build_image_annotation
 from darwin.item import DatasetItem
@@ -596,10 +604,13 @@ class RemoteDatasetV2(RemoteDataset):
         TypeError
             If the file type is not supported.
         """
-        if not isinstance(storage_keys, list) or not all(
-            isinstance(item, str) for item in storage_keys
-        ):
-            raise ValueError("storage_keys must be a list of strings")
+        try:
+            StorageKeyListModel(storage_keys=storage_keys)
+        except ValidationError as e:
+            print(
+                f"Error validating storage keys: {e}\n\nPlease make sure your storage keys are a list of strings"
+            )
+            raise e
         items = []
         for storage_key in storage_keys:
             file_type = get_external_file_type(storage_key)
@@ -690,15 +701,15 @@ class RemoteDatasetV2(RemoteDataset):
         TypeError
             If the file type is not supported.
         """
-        if not isinstance(storage_keys, dict) or not all(
-            isinstance(v, list) and all(isinstance(i, str) for i in v)
-            for v in storage_keys.values()
-        ):
-            raise ValueError(
-                "storage_keys must be a dictionary with keys as item names and values as lists of storage keys."
-            )
-        items = []
 
+        try:
+            StorageKeyDictModel(storage_keys=storage_keys)
+        except ValidationError as e:
+            print(
+                f"Error validating storage keys: {e}\n\nPlease make sure your storage keys are a dictionary with keys as item names and values as lists of storage keys"
+            )
+            raise e
+        items = []
         for item in storage_keys:
             slots = []
             for storage_key in storage_keys[item]:

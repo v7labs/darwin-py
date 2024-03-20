@@ -17,6 +17,8 @@ from typing import (
     Union,
 )
 
+from pydantic import BaseModel
+
 try:
     from numpy.typing import NDArray
 except ImportError:
@@ -1494,3 +1496,11 @@ class ObjectStore:
 
     def __repr__(self) -> str:
         return f"ObjectStore(name={self.name}, prefix={self.prefix}, readonly={self.readonly}, provider={self.provider})"
+
+
+class StorageKeyDictModel(BaseModel):
+    storage_keys: Dict[str, List[str]]
+
+
+class StorageKeyListModel(BaseModel):
+    storage_keys: List[str]
