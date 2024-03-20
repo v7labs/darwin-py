@@ -23,6 +23,7 @@ from darwin.dataset.upload_manager import (
     UploadHandlerV2,
 )
 from darwin.dataset.utils import (
+    chunk_items,
     get_external_file_name,
     get_external_file_type,
     is_relative_to,
@@ -622,9 +623,7 @@ class RemoteDatasetV2(RemoteDataset):
 
         # Do not register more than 500 items in a single request
         chunk_size = 500
-        chunked_items = (
-            items[i : i + chunk_size] for i in range(0, len(items), chunk_size)
-        )
+        chunked_items = chunk_items(items, chunk_size)
         print(f"Registering {len(items)} items in chunks of {chunk_size} items...")
         results = {
             "registered": [],
@@ -732,9 +731,7 @@ class RemoteDatasetV2(RemoteDataset):
 
         # Do not register more than 500 items in a single request
         chunk_size = 500
-        chunked_items = (
-            items[i : i + chunk_size] for i in range(0, len(items), chunk_size)
-        )
+        chunked_items = chunk_items(items, chunk_size)
         print(f"Registering {len(items)} items in chunks of {chunk_size} items...")
         results = {
             "registered": [],
