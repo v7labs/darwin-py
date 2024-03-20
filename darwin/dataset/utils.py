@@ -893,3 +893,41 @@ def parse_external_file_path(storage_key: str, preserve_folders: bool) -> str:
     if not preserve_folders:
         return "/"
     return "/" + "/".join(storage_key.split("/")[:-1])
+
+
+def get_external_file_name(storage_key: str) -> str:
+    """
+    Returns the name of the file given a storage key.
+
+    Parameters
+    ----------
+    storage_key : str
+        The storage key to get the file name from.
+
+    Returns
+    -------
+    str
+        The name of the file.
+    """
+    if "/" not in storage_key:
+        return storage_key
+    return storage_key.split("/")[-1]
+
+
+def chunk_items(items: List[Any], chunk_size: int = 500) -> Iterator[List[Any]]:
+    """
+    Splits the list of items into chunks of specified size.
+
+    Parameters
+    ----------
+    items : List[Any]
+        The list of items to split.
+    chunk_size : int, default: 500
+        The size of each chunk.
+
+    Returns
+    -------
+    Iterator[List[Any]]
+        An iterator that yields lists of items, each of length ``chunk_size``.
+    """
+    return (items[i : i + chunk_size] for i in range(0, len(items), chunk_size))
