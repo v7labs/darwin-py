@@ -1063,7 +1063,7 @@ class Client:
 
     def get_external_storage(
         self, team_slug: Optional[str] = None, name: Optional[str] = None
-    ) -> Optional[ObjectStore]:
+    ) -> ObjectStore:
         """
         Get an external storage connection by name.
 
