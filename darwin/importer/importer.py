@@ -282,9 +282,9 @@ def _get_team_properties_annotation_lookup(client):
     team_properties = client.get_team_properties()
 
     # (property-name, annotation_class_id): FullProperty object
-    team_properties_annotation_lookup: Dict[Tuple[str, Optional[int]], FullProperty] = (
-        {}
-    )
+    team_properties_annotation_lookup: Dict[
+        Tuple[str, Optional[int]], FullProperty
+    ] = {}
     for prop in team_properties:
         team_properties_annotation_lookup[(prop.name, prop.annotation_class_id)] = prop
 
@@ -395,9 +395,11 @@ def _import_properties(
 
             # raise error if annotation-property not present in metadata
             if (annotation_name, a_prop.name) not in metadata_cls_prop_lookup:
-
                 # check if they are present in team properties
-                if (a_prop.name, annotation_class_id) in team_properties_annotation_lookup:
+                if (
+                    a_prop.name,
+                    annotation_class_id,
+                ) in team_properties_annotation_lookup:
                     # get team property
                     t_prop: FullProperty = team_properties_annotation_lookup[
                         (a_prop.name, annotation_class_id)
@@ -411,7 +413,7 @@ def _import_properties(
                         ] = set()
                         continue
 
-                    # get team property value
+                    # get team property value
                     t_prop_val = None
                     for prop_val in t_prop.property_values or []:
                         if prop_val.value == a_prop.value:
@@ -921,9 +923,9 @@ def import_annotations(  # noqa: C901
 
     # Need to re parse the files since we didn't save the annotations in memory
     for local_path in set(local_file.path for local_file in local_files):  # noqa: C401
-        imported_files: Union[List[dt.AnnotationFile], dt.AnnotationFile, None] = (
-            importer(local_path)
-        )
+        imported_files: Union[
+            List[dt.AnnotationFile], dt.AnnotationFile, None
+        ] = importer(local_path)
         if imported_files is None:
             parsed_files = []
         elif not isinstance(imported_files, List):
@@ -1323,9 +1325,9 @@ def _import_annotations(
         # Insert the default slot name if not available in the import source
         annotation = _handle_slot_names(annotation, dataset.version, default_slot_name)
 
-        annotation_class_ids_map[(annotation_class.name, annotation_type)] = (
-            annotation_class_id
-        )
+        annotation_class_ids_map[
+            (annotation_class.name, annotation_type)
+        ] = annotation_class_id
         serial_obj = {
             "annotation_class_id": annotation_class_id,
             "data": data,
