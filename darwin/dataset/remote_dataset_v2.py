@@ -571,6 +571,80 @@ class RemoteDatasetV2(RemoteDataset):
     def register(
         self,
         object_store: ObjectStore,
+        storage_keys: Union[List[str], Dict[str, List[str]]],
+        fps: Optional[Union[str, float]] = None,
+        multi_planar_view: bool = False,
+        preserve_folders: bool = False,
+        multi_slotted: bool = False,
+    ) -> Dict[str, List[str]]:
+        """
+        Register files from external storage in a Darwin dataset.
+
+        Parameters
+        ----------
+        object_store : ObjectStore
+            Object store to use for the registration.
+        storage_keys : List[str] | Dict[str, List[str]]
+            Either:
+            - Single-slotted items: A list of storage keys
+            - Multi-slotted items: A dictionary with keys as item names and values as lists of storage keys
+        fps : Optional[str], default: None
+            When the uploading file is a video, specify its framerate.
+        multi_planar_view : bool, default: False
+            Uses multiplanar view when uploading files.
+        preserve_folders : bool, default: False
+            Specify whether or not to preserve folder paths when uploading.
+        multi_slotted : bool, default: False
+            Specify whether the items are multi-slotted or not.
+
+        Returns
+        -------
+        Dict[str, List[str]]
+            A dictionary with the list of registered files.
+
+        Raises
+        ------
+        ValueError
+            If the type of ``storage_keys``:
+            - Isn't List[str] when ``multi_slotted`` is False.
+            - Isn't Dict[str, List[str]] when ``multi_slotted`` is True.
+        """
+        if multi_slotted:
+            try:
+                StorageKeyDictModel(storage_keys=storage_keys)  # type: ignore
+                results = self.register_multi_slotted(
+                    object_store,
+                    storage_keys,  # type: ignore
+                    fps,
+                    multi_planar_view,
+                    preserve_folders,
+                )
+                return results
+            except ValidationError as e:
+                print(
+                    f"Error validating storage keys: {e}\n\nPlease make sure your storage keys are a list of strings"
+                )
+                raise e
+        else:
+            try:
+                StorageKeyListModel(storage_keys=storage_keys)  # type: ignore
+                results = self.register_single_slotted(
+                    object_store,
+                    storage_keys,  # type: ignore
+                    fps,
+                    multi_planar_view,
+                    preserve_folders,
+                )
+                return results
+            except ValidationError as e:
+                print(
+                    f"Error validating storage keys: {e}\n\nPlease make sure your storage keys are a dictionary with keys as item names and values as lists of storage keys"
+                )
+                raise e
+
+    def register_single_slotted(
+        self,
+        object_store: ObjectStore,
         storage_keys: List[str],
         fps: Optional[Union[str, float]] = None,
         multi_planar_view: bool = False,
@@ -599,18 +673,9 @@ class RemoteDatasetV2(RemoteDataset):
 
         Raises
         ------
-        ValueError
-            If ``storage_keys`` is not a list of strings.
         TypeError
-            If the file type is not supported.
+            If the file type of any storage keyis not supported.
         """
-        try:
-            StorageKeyListModel(storage_keys=storage_keys)
-        except ValidationError as e:
-            print(
-                f"Error validating storage keys: {e}\n\nPlease make sure your storage keys are a list of strings"
-            )
-            raise e
         items = []
         for storage_key in storage_keys:
             file_type = get_external_file_type(storage_key)
@@ -696,19 +761,9 @@ class RemoteDatasetV2(RemoteDataset):
 
         Raises
         ------
-        ValueError
-            If ``storage_keys`` is not a dictionary with keys as item names and values as lists of storage keys.
         TypeError
-            If the file type is not supported.
+            If the file type of any storage key is not supported.
         """
-
-        try:
-            StorageKeyDictModel(storage_keys=storage_keys)
-        except ValidationError as e:
-            print(
-                f"Error validating storage keys: {e}\n\nPlease make sure your storage keys are a dictionary with keys as item names and values as lists of storage keys"
-            )
-            raise e
         items = []
         for item in storage_keys:
             slots = []
