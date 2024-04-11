@@ -501,6 +501,7 @@ def test__import_annotations() -> None:
         mock_dataset = Mock(RemoteDataset)
 
         mock_dataset.version = 2
+        mock_dataset.team = "test_team"
         mock_hr.return_value = [
             {"email": "reviewer1@example.com", "role": "reviewer"},
             {"email": "reviewer2@example.com", "role": "reviewer"},

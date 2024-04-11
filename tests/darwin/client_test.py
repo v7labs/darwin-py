@@ -383,7 +383,8 @@ class TestGetTeamProperties:
             },
             status=200,
         )
-        assert len(darwin_client.get_team_properties()) == 1
+        team_slug = "v7-darwin-json-v2"
+        assert len(darwin_client.get_team_properties(team_slug)) == 1
 
 
 @pytest.mark.usefixtures("file_read_write_test")
