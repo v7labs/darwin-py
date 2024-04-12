@@ -399,7 +399,6 @@ def _import_properties(
 
             # raise error if annotation-property not present in metadata
             if (annotation_name, a_prop.name) not in metadata_cls_prop_lookup:
-
                 # check if they are present in team properties
                 if (
                     a_prop.name,
