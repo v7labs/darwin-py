@@ -612,35 +612,35 @@ class RemoteDatasetV2(RemoteDataset):
         if multi_slotted:
             try:
                 StorageKeyDictModel(storage_keys=storage_keys)  # type: ignore
-                results = self.register_multi_slotted(
-                    object_store,
-                    storage_keys,  # type: ignore
-                    fps,
-                    multi_planar_view,
-                    preserve_folders,
-                )
-                return results
             except ValidationError as e:
                 print(
                     f"Error validating storage keys: {e}\n\nPlease make sure your storage keys are a list of strings"
                 )
                 raise e
+            results = self.register_multi_slotted(
+                object_store,
+                storage_keys,  # type: ignore
+                fps,
+                multi_planar_view,
+                preserve_folders,
+            )
+            return results
         else:
             try:
                 StorageKeyListModel(storage_keys=storage_keys)  # type: ignore
-                results = self.register_single_slotted(
-                    object_store,
-                    storage_keys,  # type: ignore
-                    fps,
-                    multi_planar_view,
-                    preserve_folders,
-                )
-                return results
             except ValidationError as e:
                 print(
                     f"Error validating storage keys: {e}\n\nPlease make sure your storage keys are a dictionary with keys as item names and values as lists of storage keys"
                 )
                 raise e
+            results = self.register_single_slotted(
+                object_store,
+                storage_keys,  # type: ignore
+                fps,
+                multi_planar_view,
+                preserve_folders,
+            )
+            return results
 
     def register_single_slotted(
         self,
