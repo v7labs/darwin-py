@@ -1023,7 +1023,7 @@ class Client:
     def get_team_properties(
         self, team_slug: Optional[str] = None, include_property_values: bool = True
     ) -> List[FullProperty]:
-        darwin_config = DarwinConfig.from_old(self.config)
+        darwin_config = DarwinConfig.from_old(self.config, team_slug)
         future_client = ClientCore(darwin_config)
 
         if not include_property_values:
@@ -1040,7 +1040,7 @@ class Client:
     def create_property(
         self, team_slug: Optional[str], params: Union[FullProperty, JSONDict]
     ) -> FullProperty:
-        darwin_config = DarwinConfig.from_old(self.config)
+        darwin_config = DarwinConfig.from_old(self.config, team_slug)
         future_client = ClientCore(darwin_config)
 
         return create_property_future(
@@ -1052,7 +1052,7 @@ class Client:
     def update_property(
         self, team_slug: Optional[str], params: Union[FullProperty, JSONDict]
     ) -> FullProperty:
-        darwin_config = DarwinConfig.from_old(self.config)
+        darwin_config = DarwinConfig.from_old(self.config, team_slug)
         future_client = ClientCore(darwin_config)
 
         return update_property_future(
