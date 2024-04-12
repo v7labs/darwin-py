@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 import orjson as json
 import pytest
 import responses
+from pydantic import ValidationError
 
 from darwin.client import Client
 from darwin.config import Config
@@ -960,8 +961,8 @@ class TestRegisterMultiSlotted:
     def test_raises_if_storage_keys_not_dictionary(
         self, remote_dataset: RemoteDatasetV2
     ):
-        with pytest.raises(ValueError):
-            remote_dataset.register_multi_slotted(
+        with pytest.raises(ValidationError):
+            remote_dataset.register(
                 ObjectStore(
                     name="test",
                     prefix="test_prefix",
@@ -970,11 +971,12 @@ class TestRegisterMultiSlotted:
                     default=True,
                 ),
                 {"item1": [1, 2, 3]},
+                multi_slotted=True,
             )
 
     def test_raises_if_unsupported_file_type(self, remote_dataset: RemoteDatasetV2):
         with pytest.raises(TypeError):
-            remote_dataset.register_multi_slotted(
+            remote_dataset.register(
                 ObjectStore(
                     name="test",
                     prefix="test_prefix",
@@ -983,6 +985,7 @@ class TestRegisterMultiSlotted:
                     default=True,
                 ),
                 {"item1": ["unsupported_file.xyz"]},
+                multi_slotted=True,
             )
 
     @responses.activate
@@ -996,7 +999,7 @@ class TestRegisterMultiSlotted:
             },
             status=200,
         )
-        result = remote_dataset.register_multi_slotted(
+        result = remote_dataset.register(
             ObjectStore(
                 name="test",
                 prefix="test_prefix",
@@ -1005,6 +1008,7 @@ class TestRegisterMultiSlotted:
                 default=True,
             ),
             {"item1": ["test.jpg"]},
+            multi_slotted=True,
         )
         assert len(result["registered"]) == 1
         assert len(result["blocked"]) == 0
@@ -1022,7 +1026,7 @@ class TestRegisterMultiSlotted:
             },
             status=200,
         )
-        remote_dataset.register_multi_slotted(
+        remote_dataset.register(
             ObjectStore(
                 name="test",
                 prefix="test_prefix",
@@ -1031,4 +1035,5 @@ class TestRegisterMultiSlotted:
                 default=True,
             ),
             {"item1": ["test.jpg"]},
+            multi_slotted=True,
         )
