@@ -282,7 +282,7 @@ class RemoteDataset(ABC):
                 if (tmp_dir / ".v7").exists():
                     metadata_file = tmp_dir / ".v7" / "metadata.json"
                     metadata_dir = annotations_dir / ".v7"
-                    metadata_dir.mkdir(parents=True, exist_ok=True)
+                    metadata_dir.mkdir(parents=True, exist_ok=False)
                     shutil.move(str(metadata_file), str(metadata_dir / "metadata.json"))
 
                 # Move the annotations into the right folder and rename them to have the image
