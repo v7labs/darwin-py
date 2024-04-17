@@ -255,9 +255,9 @@ def _get_team_properties_annotation_lookup(client):
     team_properties = client.get_team_properties()
 
     # (property-name, annotation_class_id): FullProperty object
-    team_properties_annotation_lookup: Dict[
-        Tuple[str, Optional[int]], FullProperty
-    ] = {}
+    team_properties_annotation_lookup: Dict[Tuple[str, Optional[int]], FullProperty] = (
+        {}
+    )
     for prop in team_properties:
         team_properties_annotation_lookup[(prop.name, prop.annotation_class_id)] = prop
 
@@ -719,28 +719,28 @@ def import_annotations(  # noqa: C901
     if not team_classes:
         raise ValueError("Unable to fetch remote class list.")
 
-    classes_in_dataset: dt.DictFreeForm = build_main_annotations_lookup_table(
+    classes_in_dataset: dt.DictFreeForm = _build_main_annotations_lookup_table(
         [
             cls
             for cls in team_classes
             if cls["available"] or cls["name"] in GLOBAL_CLASSES
         ]
     )
-    classes_in_team: dt.DictFreeForm = build_main_annotations_lookup_table(
+    classes_in_team: dt.DictFreeForm = _build_main_annotations_lookup_table(
         [
             cls
             for cls in team_classes
             if not cls["available"] and cls["name"] not in GLOBAL_CLASSES
         ]
     )
-    attributes = build_attribute_lookup(dataset)
+    attributes = _build_attribute_lookup(dataset)
 
     console.print("Retrieving local annotations ...", style="info")
     local_files = []
     local_files_missing_remotely = []
 
     # ! Other place we can use multiprocessing - hard to pass in the importer though
-    maybe_parsed_files: Optional[Iterable[dt.AnnotationFile]] = find_and_parse(
+    maybe_parsed_files: Optional[Iterable[dt.AnnotationFile]] = _find_and_parse(
         importer, file_paths, console, use_multi_cpu, cpu_limit
     )
 
@@ -763,7 +763,7 @@ def import_annotations(  # noqa: C901
     chunk_size = 100
     while chunk_size > 0:
         try:
-            remote_files = get_remote_files(dataset, filenames, chunk_size)
+            remote_files = _get_remote_files(dataset, filenames, chunk_size)
             break
         except RequestEntitySizeExceeded:
             chunk_size -= 8
@@ -852,9 +852,9 @@ def import_annotations(  # noqa: C901
         if not maybe_remote_classes:
             raise ValueError("Unable to fetch remote classes.")
 
-        remote_classes = build_main_annotations_lookup_table(maybe_remote_classes)
+        remote_classes = _build_main_annotations_lookup_table(maybe_remote_classes)
     else:
-        remote_classes = build_main_annotations_lookup_table(team_classes)
+        remote_classes = _build_main_annotations_lookup_table(team_classes)
 
     if delete_for_empty:
         console.print(
@@ -869,9 +869,9 @@ def import_annotations(  # noqa: C901
 
     # Need to re parse the files since we didn't save the annotations in memory
     for local_path in set(local_file.path for local_file in local_files):  # noqa: C401
-        imported_files: Union[
-            List[dt.AnnotationFile], dt.AnnotationFile, None
-        ] = importer(local_path)
+        imported_files: Union[List[dt.AnnotationFile], dt.AnnotationFile, None] = (
+            importer(local_path)
+        )
         if imported_files is None:
             parsed_files = []
         elif not isinstance(imported_files, List):
@@ -1273,9 +1273,9 @@ def _import_annotations(
         # Insert the default slot name if not available in the import source
         annotation = _handle_slot_names(annotation, dataset.version, default_slot_name)
 
-        annotation_class_ids_map[
-            (annotation_class.name, annotation_type)
-        ] = annotation_class_id
+        annotation_class_ids_map[(annotation_class.name, annotation_type)] = (
+            annotation_class_id
+        )
         serial_obj = {
             "annotation_class_id": annotation_class_id,
             "data": data,
