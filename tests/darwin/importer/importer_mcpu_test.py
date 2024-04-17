@@ -99,7 +99,7 @@ class Test_find_and_parse(TestCaseImporter):
     def test_uses_mpire_if_use_multi_cpu_true(
         self, mock_wp: MagicMock, mock_gffp: MagicMock, mock_gmcus: MagicMock
     ) -> None:
-        from darwin.importer.importer import find_and_parse
+        from darwin.importer.importer import _find_and_parse
 
         mock_gmcus.return_value = (2, True)
         mock_gffp.return_value = [
@@ -123,7 +123,7 @@ class Test_find_and_parse(TestCaseImporter):
         mock_wp.return_value = MockWorkerPool()
         mock_map.return_value = ["1", "2"]
 
-        result = find_and_parse(
+        result = _find_and_parse(
             mock_importer, [Path("example_dir")], self.mock_console, True, 2
         )
 
@@ -138,7 +138,7 @@ class Test_find_and_parse(TestCaseImporter):
     def test_runs_single_threaded_if_use_multi_cpu_false(
         self, mock_wp: MagicMock, mock_gffp: MagicMock
     ) -> None:
-        from darwin.importer.importer import find_and_parse
+        from darwin.importer.importer import _find_and_parse
 
         mock_gffp.return_value = [
             Path("example_dir/file1.txt"),
@@ -148,7 +148,7 @@ class Test_find_and_parse(TestCaseImporter):
         mock_importer = MagicMock()
         mock_importer.side_effect = ["1", "2"]
 
-        result = find_and_parse(
+        result = _find_and_parse(
             mock_importer, [Path("example_dir")], self.mock_console, False
         )
 
@@ -163,7 +163,7 @@ class Test_find_and_parse(TestCaseImporter):
     def test_returns_list_if_solo_value(
         self, mock_wp: MagicMock, mock_gffp: MagicMock, mock_gmcus: MagicMock
     ) -> None:
-        from darwin.importer.importer import find_and_parse
+        from darwin.importer.importer import _find_and_parse
 
         mock_gmcus.return_value = (2, True)
         mock_gffp.return_value = [
@@ -187,7 +187,7 @@ class Test_find_and_parse(TestCaseImporter):
         mock_wp.return_value = MockWorkerPool()
         mock_map.return_value = "1"
 
-        result = find_and_parse(
+        result = _find_and_parse(
             mock_importer, [Path("example_dir")], self.mock_console, True, 2
         )
 
@@ -203,7 +203,7 @@ class Test_find_and_parse(TestCaseImporter):
     def test_returns_none_if_pool_raises_error(
         self, mock_wp: MagicMock, mock_gffp: MagicMock, mock_gmcus: MagicMock
     ) -> None:
-        from darwin.importer.importer import find_and_parse
+        from darwin.importer.importer import _find_and_parse
 
         mock_gmcus.return_value = (2, True)
         mock_gffp.return_value = [
@@ -227,7 +227,7 @@ class Test_find_and_parse(TestCaseImporter):
         mock_wp.return_value = MockWorkerPool()
         mock_map.side_effect = Exception("Test")
 
-        result = find_and_parse(
+        result = _find_and_parse(
             mock_importer, [Path("example_dir")], self.mock_console, True, 2
         )
 

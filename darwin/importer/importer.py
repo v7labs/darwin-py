@@ -69,7 +69,7 @@ instead of calling this low-level function directly.
 """
 
 
-def build_main_annotations_lookup_table(
+def _build_main_annotations_lookup_table(
     annotation_classes: List[Dict[str, Unknown]]
 ) -> Dict[str, Unknown]:
     MAIN_ANNOTATION_TYPES = [
@@ -100,7 +100,7 @@ def build_main_annotations_lookup_table(
     return lookup
 
 
-def find_and_parse(  # noqa: C901
+def _find_and_parse(  # noqa: C901
     importer: Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]],
     file_paths: List[PathLike],
     console: Optional[Console] = None,
@@ -168,7 +168,7 @@ def _get_files_for_parsing(file_paths: List[PathLike]) -> List[Path]:
     return [file for files in packed_files for file in files]
 
 
-def build_attribute_lookup(dataset: "RemoteDataset") -> Dict[str, Unknown]:
+def _build_attribute_lookup(dataset: "RemoteDataset") -> Dict[str, Unknown]:
     attributes: List[Dict[str, Unknown]] = dataset.fetch_remote_attributes()
     lookup: Dict[str, Unknown] = {}
     for attribute in attributes:
@@ -179,7 +179,7 @@ def build_attribute_lookup(dataset: "RemoteDataset") -> Dict[str, Unknown]:
     return lookup
 
 
-def get_remote_files(
+def _get_remote_files(
     dataset: "RemoteDataset", filenames: List[str], chunk_size: int = 100
 ) -> Dict[str, Tuple[int, str]]:
     """
