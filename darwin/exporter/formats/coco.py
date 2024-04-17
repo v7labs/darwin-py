@@ -158,7 +158,6 @@ def _build_annotations(
 ) -> Iterator[Optional[Dict[str, Any]]]:
     annotation_id = 0
     for annotation_file in annotation_files:
-        print(annotation_file.filename)
         for annotation in annotation_file.annotations:
             annotation_id += 1
             annotation_data = _build_annotation(
