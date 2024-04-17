@@ -278,7 +278,7 @@ class RemoteDataset(ABC):
                 annotations_dir.mkdir(parents=True, exist_ok=False)
                 stems: dict = {}
 
-                # If properties were exported, move the manifest file to the annotations folder
+                # If properties were exported, move the metadata.json file to the annotations folder
                 if (tmp_dir / ".v7").exists():
                     metadata_file = tmp_dir / ".v7" / "metadata.json"
                     metadata_dir = annotations_dir / ".v7"
