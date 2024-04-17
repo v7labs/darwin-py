@@ -1026,7 +1026,7 @@ def set_file_status(dataset_slug: str, status: str, files: List[str]) -> None:
             dataset_identifier=dataset_slug
         )
         items: Iterator[DatasetItem] = dataset.fetch_remote_files(
-            {"filenames": ",".join(files)}
+            {"item_names": ",".join(files)}
         )
         if status == "archived":
             dataset.archive(items)
@@ -1066,7 +1066,7 @@ def delete_files(
         dataset: RemoteDataset = client.get_remote_dataset(
             dataset_identifier=dataset_slug
         )
-        items, items_2 = tee(dataset.fetch_remote_files({"filenames": files}))
+        items, items_2 = tee(dataset.fetch_remote_files({"item_names": files}))
         if not skip_user_confirmation and not secure_continue_request():
             console.print("Cancelled.")
             return
@@ -1281,7 +1281,7 @@ def post_comment(
         _error(f"unable to find dataset: {dataset_slug}")
 
     items: List[DatasetItem] = list(
-        dataset.fetch_remote_files(filters={"filenames": [filename]})
+        dataset.fetch_remote_files(filters={"item_names": [filename]})
     )
 
     if len(items) == 0:

@@ -131,7 +131,7 @@ class Client:
 
     def list_remote_datasets(
         self, team_slug: Optional[str] = None
-    ) -> Iterator[RemoteDataset]:
+    ) -> Iterator[RemoteDatasetV2]:
         """
         Returns a list of all available datasets with the team currently authenticated against.
 
@@ -162,7 +162,7 @@ class Client:
 
     def get_remote_dataset(
         self, dataset_identifier: Union[str, DatasetIdentifier]
-    ) -> RemoteDataset:
+    ) -> RemoteDatasetV2:
         """
         Get a remote dataset based on its identifier.
 
@@ -189,7 +189,7 @@ class Client:
             parsed_dataset_identifier.team_slug = self.default_team
 
         try:
-            matching_datasets: List[RemoteDataset] = [
+            matching_datasets: List[RemoteDatasetV2] = [
                 dataset
                 for dataset in self.list_remote_datasets(
                     team_slug=parsed_dataset_identifier.team_slug
@@ -1023,7 +1023,7 @@ class Client:
     def get_team_properties(
         self, team_slug: Optional[str] = None, include_property_values: bool = True
     ) -> List[FullProperty]:
-        darwin_config = DarwinConfig.from_old(self.config)
+        darwin_config = DarwinConfig.from_old(self.config, team_slug)
         future_client = ClientCore(darwin_config)
 
         if not include_property_values:
@@ -1040,7 +1040,7 @@ class Client:
     def create_property(
         self, team_slug: Optional[str], params: Union[FullProperty, JSONDict]
     ) -> FullProperty:
-        darwin_config = DarwinConfig.from_old(self.config)
+        darwin_config = DarwinConfig.from_old(self.config, team_slug)
         future_client = ClientCore(darwin_config)
 
         return create_property_future(
@@ -1052,7 +1052,7 @@ class Client:
     def update_property(
         self, team_slug: Optional[str], params: Union[FullProperty, JSONDict]
     ) -> FullProperty:
-        darwin_config = DarwinConfig.from_old(self.config)
+        darwin_config = DarwinConfig.from_old(self.config, team_slug)
         future_client = ClientCore(darwin_config)
 
         return update_property_future(
@@ -1063,7 +1063,7 @@ class Client:
 
     def get_external_storage(
         self, team_slug: Optional[str] = None, name: Optional[str] = None
-    ) -> Optional[ObjectStore]:
+    ) -> ObjectStore:
         """
         Get an external storage connection by name.
 

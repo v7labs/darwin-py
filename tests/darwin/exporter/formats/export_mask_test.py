@@ -2,7 +2,7 @@ import csv
 import platform
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Dict, List, Optional
+from typing import List, Optional
 from unittest.mock import patch
 
 import numpy as np
@@ -18,7 +18,6 @@ from PIL import Image
 
 from darwin import datatypes as dt
 from darwin.exporter.formats.mask import (
-    colours_in_rle,
     export,
     get_or_generate_colour,
     get_palette,
@@ -210,61 +209,17 @@ def test_get_render_mode_raises_value_error_when_no_renderable_annotations_found
         get_render_mode([dt.Annotation(dt.AnnotationClass("class_3", "invalid"), data={"line": "data"})])  # type: ignore
 
 
-# Test colours_in_rle
-@pytest.fixture
-def colours() -> dt.MaskTypes.ColoursDict:
-    return {"mask1": 1, "mask2": 2}
-
-
-@pytest.fixture
-def raster_layer() -> dt.RasterLayer:
-    return dt.RasterLayer([], [], mask_annotation_ids_mapping={"uuid1": 3, "uuid2": 4})
-
-
-@pytest.fixture
-def mask_lookup() -> Dict[str, dt.AnnotationMask]:
-    return {
-        "uuid1": dt.AnnotationMask("mask3", name="mask3"),
-        "uuid2": dt.AnnotationMask("mask3", name="mask4"),
-    }
-
-
-def test_colours_in_rle_returns_expected_dict(
-    colours: dt.MaskTypes.ColoursDict,
-    raster_layer: dt.RasterLayer,
-    mask_lookup: Dict[str, dt.AnnotationMask],
-) -> None:
-    expected_dict = {"mask1": 1, "mask2": 2, "mask3": 3, "mask4": 4}
-    assert colours_in_rle(colours, raster_layer, mask_lookup) == expected_dict
-
-
-def test_colours_in_rle_raises_value_error_when_mask_not_in_lookup(
-    colours: dt.MaskTypes.ColoursDict,
-    raster_layer: dt.RasterLayer,
-    mask_lookup: Dict[str, dt.AnnotationMask],
-) -> None:
-    with pytest.raises(ValueError):
-        colours_in_rle(
-            colours,
-            raster_layer,
-            {
-                "uuid9": dt.AnnotationMask("9", name="mask9"),
-                "uuid10": dt.AnnotationMask("10", name="mask10"),
-                "uuid11": dt.AnnotationMask("11", name="mask11"),
-            },
-        )
-
-
 # Test RLE decoder
 def test_rle_decoder() -> None:
     predication = [1, 2, 3, 4, 5, 6]
-    expectation = [1, 1, 3, 3, 3, 3, 5, 5, 5, 5, 5, 5]
+    label_colours = {1: 1, 3: 2, 5: 3}
+    expectation = [1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3]
 
-    assert rle_decode(predication) == expectation
+    assert rle_decode(predication, label_colours) == expectation
 
     odd_number_of_integers = [1, 2, 3, 4, 5, 6, 7]
     with pytest.raises(ValueError):
-        rle_decode(odd_number_of_integers)
+        rle_decode(odd_number_of_integers, label_colours)
 
 
 def test_beyond_polygon_beyond_window() -> None:
@@ -476,7 +431,7 @@ def test_render_raster() -> None:
     ]
     mask = np.zeros((100, 100), dtype=np.uint8)
     colours: dt.MaskTypes.ColoursDict = {}
-    categories: dt.MaskTypes.CategoryList = []
+    categories: dt.MaskTypes.CategoryList = ["__background__"]
     annotations: List[dt.AnnotationLike] = [
         dt.Annotation(
             dt.AnnotationClass("mask1", "mask"),
@@ -503,8 +458,7 @@ def test_render_raster() -> None:
             dt.AnnotationClass("__raster_layer__", "raster_layer"),
             {
                 "dense_rle": "my_rle_data",
-                "decoded": rle_code,
-                "mask_annotation_ids_mapping": {"mask1": 0, "mask2": 1, "mask3": 2},
+                "mask_annotation_ids_mapping": {"mask1": 5, "mask2": 6, "mask3": 7},
                 "total_pixels": 10000,
             },
             slot_names=["slot1"],
@@ -518,11 +472,8 @@ def test_render_raster() -> None:
         filename="test.txt",
     )
 
-    with patch("darwin.exporter.formats.mask.rle_decode") as mock_rle_decode, patch(
-        "darwin.exporter.formats.mask.colours_in_rle"
-    ) as mock_colours_in_rle:
+    with patch("darwin.exporter.formats.mask.rle_decode") as mock_rle_decode:
         mock_rle_decode.return_value = rle_code
-        mock_colours_in_rle.return_value = {"mask1": 1, "mask2": 2, "mask3": 3}
 
         errors, result_mask, result_categories, result_colours = render_raster(
             mask, colours, categories, annotations, annotation_file, 100, 100
@@ -545,7 +496,7 @@ def test_render_raster() -> None:
 
         assert_array_equal(result_mask, np.array(rle_code, dtype=np.uint8).reshape((100, 100)))  # type: ignore
 
-        assert result_categories == ["mask1", "mask2", "mask3"]
+        assert result_categories == ["__background__", "mask1", "mask2", "mask3"]
         assert result_colours == {"mask1": 1, "mask2": 2, "mask3": 3}
 
 

@@ -17,6 +17,8 @@ from typing import (
     Union,
 )
 
+from pydantic import BaseModel
+
 try:
     from numpy.typing import NDArray
 except ImportError:
@@ -1376,7 +1378,6 @@ class MaskTypes:
     CategoryList = List[str]
     ExceptionList = List[Exception]
     UndecodedRLE = List[int]
-    DecodedRLE = List[List[int]]
     ColoursDict = Dict[str, int]
     RgbColors = List[int]
     HsvColors = List[Tuple[float, float, float]]
@@ -1404,7 +1405,6 @@ class AnnotationMask:
 @dataclass
 class RasterLayer:
     rle: MaskTypes.UndecodedRLE
-    decoded: MaskTypes.DecodedRLE
     mask_annotation_ids_mapping: Dict[str, int]
     slot_names: List[str] = field(default_factory=list)
     total_pixels: int = 0
@@ -1412,8 +1412,6 @@ class RasterLayer:
     def validate(self) -> None:
         if not self.rle:
             raise ValueError("RasterLayer rle cannot be empty")
-        if not self.decoded:
-            raise ValueError("RasterLayer decoded cannot be empty")
         if not self.mask_annotation_ids_mapping:
             raise ValueError("RasterLayer mask_annotation_ids_mapping cannot be empty")
         if not self.slot_names:
@@ -1448,7 +1446,8 @@ class ObjectStore:
         name (str): The alias of the storage connection
         prefix (str): The directory that files are written back to in the storage location
         readonly (bool): Whether the storage configuration is read-only or not
-        self.provider (str): The cloud provider (aws, azure, or gcp)
+        provider (str): The cloud provider (aws, azure, or gcp)
+        default (bool): Whether the storage connection is the default one
     """
 
     def __init__(
@@ -1470,3 +1469,11 @@ class ObjectStore:
 
     def __repr__(self) -> str:
         return f"ObjectStore(name={self.name}, prefix={self.prefix}, readonly={self.readonly}, provider={self.provider})"
+
+
+class StorageKeyDictModel(BaseModel):
+    storage_keys: Dict[str, List[str]]
+
+
+class StorageKeyListModel(BaseModel):
+    storage_keys: List[str]

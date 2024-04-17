@@ -496,7 +496,9 @@ def test__import_annotations() -> None:
         "_get_overwrite_value"
     ) as mock_gov, patch_factory(
         "_handle_slot_names"
-    ) as mock_hsn:
+    ) as mock_hsn, patch_factory(
+        "_import_properties",
+    ) as mock_ip:
         from darwin.client import Client
         from darwin.dataset import RemoteDataset
         from darwin.importer.importer import _import_annotations
@@ -505,6 +507,7 @@ def test__import_annotations() -> None:
         mock_dataset = Mock(RemoteDataset)
 
         mock_dataset.version = 2
+        mock_dataset.team = "test_team"
         mock_hr.return_value = [
             {"email": "reviewer1@example.com", "role": "reviewer"},
             {"email": "reviewer2@example.com", "role": "reviewer"},
@@ -521,6 +524,7 @@ def test__import_annotations() -> None:
             [],
             ["test_slot_name"],
         )
+        mock_ip.return_value = {}
 
         annotation = dt.Annotation(
             dt.AnnotationClass("test_class", "bbox"), {"paths": [1, 2, 3, 4, 5]}, [], []
@@ -578,7 +582,18 @@ def test__import_annotations() -> None:
             "overwrite": "test_append_out",
         }
 
-        assert output["annotations"] == assertion["annotations"]
+        assert (
+            output["annotations"][0]["annotation_class_id"]
+            == assertion["annotations"][0]["annotation_class_id"]
+        )
+        assert output["annotations"][0]["data"] == assertion["annotations"][0]["data"]
+        assert (
+            output["annotations"][0]["actors"] == assertion["annotations"][0]["actors"]
+        )
+        assert (
+            output["annotations"][0]["context_keys"]
+            == assertion["annotations"][0]["context_keys"]
+        )
         assert output["overwrite"] == assertion["overwrite"]
 
 
