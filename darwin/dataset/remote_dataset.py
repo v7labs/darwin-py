@@ -278,6 +278,13 @@ class RemoteDataset(ABC):
                 annotations_dir.mkdir(parents=True, exist_ok=False)
                 stems: dict = {}
 
+                # If properties were exported, move the metadata.json file to the annotations folder
+                if (tmp_dir / ".v7").exists():
+                    metadata_file = tmp_dir / ".v7" / "metadata.json"
+                    metadata_dir = annotations_dir / ".v7"
+                    metadata_dir.mkdir(parents=True, exist_ok=True)
+                    shutil.move(str(metadata_file), str(metadata_dir / "metadata.json"))
+
                 # Move the annotations into the right folder and rename them to have the image
                 # original filename as contained in the json
                 for annotation_path in tmp_dir.glob("*.json"):

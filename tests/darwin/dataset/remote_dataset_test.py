@@ -766,6 +766,44 @@ class TestPull:
         with pytest.raises(UnsupportedExportFormat):
             remote_dataset.pull(release=a_release)
 
+    @patch("platform.system", return_value="Linux")
+    def test_moves_properties_metadata_file(
+        self, system_mock: MagicMock, remote_dataset: RemoteDataset
+    ):
+        stub_release_response = Release(
+            "dataset-slug",
+            "team-slug",
+            "0.1.0",
+            "release-name",
+            "http://darwin-fake-url.com",
+            datetime.now(),
+            None,
+            None,
+            True,
+            True,
+            "json",
+        )
+
+        def fake_download_zip(self, path):
+            zip: Path = Path("tests/dataset_with_properties.zip")
+            shutil.copy(zip, path)
+            return path
+
+        with patch.object(
+            RemoteDataset, "get_release", return_value=stub_release_response
+        ) as get_release_stub:
+            with patch.object(Release, "download_zip", new=fake_download_zip):
+                remote_dataset.pull(only_annotations=True)
+                metadata_path = (
+                    remote_dataset.local_path
+                    / "releases"
+                    / "latest"
+                    / "annotations"
+                    / ".v7"
+                    / "metadata.json"
+                )
+                assert metadata_path.exists()
+
 
 @pytest.fixture
 def dataset_item(dataset_slug: str) -> DatasetItem:
