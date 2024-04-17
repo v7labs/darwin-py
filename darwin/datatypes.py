@@ -648,17 +648,26 @@ def make_polygon(
     slot_names: Optional[List[str]] = None,
 ) -> Annotation:
     """
-    Creates and returns a complex polygon annotation. Complex polygons are those who have holes
-    and/or disform shapes.
+    Creates and returns a polygon annotation.
 
     Parameters
     ----------
     class_name: str
         The name of the class for this ``Annotation``.
-    point_paths: List[List[Point]]
-        A list of lists points that comprises the complex polygon. This is needed as a complex
-        polygon can be effectively seen as a sum of multiple simple polygons. The list should have
-        a format similar to:
+    point_paths: List[List[Point]] | List[Point]
+        Either a list of points that comprises a polygon or a list of lists of points that comprises a complex polygon.
+        A complex polygon is a polygon that is defined by >1 path.
+
+        A polygon should be defined by a List[Point] and have a format similar to:
+
+        ... code-block:: python
+
+            [
+                {"x": 1, "y": 0},
+                {"x": 2, "y": 1}
+            ]
+
+        A complex polygon should be defined by a List[List[Point]] and have a format similar to:
 
         .. code-block:: python
 
@@ -682,7 +691,7 @@ def make_polygon(
     Returns
     -------
     Annotation
-        A complex polygon ``Annotation``.
+        A polygon ``Annotation``.
     """
 
     # Check if point_paths is List[Point] and convert to List[List[Point]]
