@@ -31,7 +31,6 @@ from darwin.utils import (
 
 def download_all_images_from_annotations(
     api_key: str,
-    api_url: str,
     annotations_path: Path,
     images_path: Path,
     force_replace: bool = False,
@@ -49,8 +48,6 @@ def download_all_images_from_annotations(
     ----------
     api_key : str
         API Key of the current team
-    api_url : str
-        Url of the darwin API (e.g. 'https://darwin.v7labs.com/api/')
     annotations_path : Path
         Path where the annotations are located
     images_path : Path
