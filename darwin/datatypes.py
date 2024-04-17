@@ -687,7 +687,8 @@ def make_polygon(
 
     # Check if point_paths is List[Point] and convert to List[List[Point]]
     if (
-        isinstance(point_paths[0], dict)
+        len(point_paths) > 1
+        and isinstance(point_paths[0], dict)
         and "x" in point_paths[0]
         and "y" in point_paths[0]
     ):
