@@ -1,4 +1,5 @@
 from datetime import date
+from operator import itemgetter
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional
 from zlib import crc32
@@ -66,7 +67,7 @@ def _calculate_categories(annotation_files: List[dt.AnnotationFile]) -> Dict[str
                 categories[annotation_class.name] = _calculate_category_id(
                     annotation_class
                 )
-    return dict(sorted(categories.items(), key=lambda item: item[1]))
+    return dict(sorted(categories.items(), key=itemgetter(1)))
 
 
 def _calculate_tag_categories(
@@ -82,7 +83,7 @@ def _calculate_tag_categories(
                 categories[annotation_class.name] = _calculate_category_id(
                     annotation_class
                 )
-    return dict(sorted(categories.items(), key=lambda item: item[1]))
+    return dict(sorted(categories.items(), key=itemgetter(1)))
 
 
 def _calculate_category_id(annotation_class: dt.AnnotationClass) -> int:
