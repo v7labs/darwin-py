@@ -470,21 +470,18 @@ def correct_nifti_header_if_necessary(img_nii):
 
 
 def process_nifti(
-    input_data: Union[Sequence[nib.nifti1.Nifti1Image], nib.nifti1.Nifti1Image]
+    input_data: nib.nifti1.Nifti1Image,
+    ornt: Optional[List[List[float]]] = [[0.0, -1.0], [1.0, -1.0], [2.0, -1.0]]
 ):
     """
-    Function which takes in a single nifti path or a list of nifti paths
-    and returns the pixel_array, affine and pixdim
+    Function which takes in a single nibabel nifti object 
+    and returns the pixel_array and pixdims
     """
-    if isinstance(input_data, nib.nifti1.Nifti1Image):
-        img = correct_nifti_header_if_necessary(input_data)
-        img = nib.funcs.as_closest_canonical(img)
-        nib.orientations.aff2axcodes(img.affine)
-        # TODO: Future feature to pass custom ornt could go here.
-        ornt = [[0.0, -1.0], [1.0, -1.0], [1.0, -1.0]]
-        data_array = nib.orientations.apply_orientation(img.get_fdata(), ornt)
-        pixdims = img.header.get_zooms()
-        return data_array, pixdims
+    img = correct_nifti_header_if_necessary(input_data)
+    img = nib.funcs.as_closest_canonical(img)
+    data_array = nib.orientations.apply_orientation(img.get_fdata(), ornt)
+    pixdims = img.header.get_zooms()
+    return data_array, pixdims
 
 
 def convert_to_dense_rle(raster: np.ndarray) -> List[int]:
