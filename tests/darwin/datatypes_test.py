@@ -6,9 +6,12 @@ from typing import Dict, List
 
 import pytest
 
+from darwin.client import Client
+from darwin.config import Config
+from darwin.dataset.remote_dataset_v2 import RemoteDatasetV2
 from darwin.datatypes import (
+    ObjectStore,
     Point,
-    make_complex_polygon,
     make_polygon,
     parse_property_classes,
     split_paths_by_metadata,
@@ -18,24 +21,24 @@ from darwin.datatypes import (
 class TestMakePolygon:
     def test_it_returns_annotation_with_default_params(self):
         class_name: str = "class_name"
-        points: List[Point] = [{"x": 1, "y": 2}, {"x": 3, "y": 4}, {"x": 1, "y": 2}]
+        points: List[Point] = [[{"x": 1, "y": 2}, {"x": 3, "y": 4}, {"x": 1, "y": 2}]]
         annotation = make_polygon(class_name, points)
 
-        assert_annotation_class(annotation, class_name, "polygon")
+        assert_annotation_class(annotation, class_name, "polygon", "polygon")
 
-        path = annotation.data.get("path")
-        assert path == points
+        paths = annotation.data.get("paths")
+        assert paths == points
 
     def test_it_returns_annotation_with_bounding_box(self):
         class_name: str = "class_name"
-        points: List[Point] = [{"x": 1, "y": 2}, {"x": 3, "y": 4}, {"x": 1, "y": 2}]
+        points: List[Point] = [[{"x": 1, "y": 2}, {"x": 3, "y": 4}, {"x": 1, "y": 2}]]
         bbox: Dict[str, float] = {"x": 1, "y": 2, "w": 2, "h": 2}
         annotation = make_polygon(class_name, points, bbox)
 
-        assert_annotation_class(annotation, class_name, "polygon")
+        assert_annotation_class(annotation, class_name, "polygon", "polygon")
 
-        path = annotation.data.get("path")
-        assert path == points
+        paths = annotation.data.get("paths")
+        assert paths == points
 
         class_bbox = annotation.data.get("bounding_box")
         assert class_bbox == bbox
@@ -48,9 +51,9 @@ class TestMakeComplexPolygon:
             [{"x": 1, "y": 2}, {"x": 3, "y": 4}, {"x": 1, "y": 2}],
             [{"x": 4, "y": 5}, {"x": 6, "y": 7}, {"x": 4, "y": 5}],
         ]
-        annotation = make_complex_polygon(class_name, points)
+        annotation = make_polygon(class_name, points)
 
-        assert_annotation_class(annotation, class_name, "complex_polygon", "polygon")
+        assert_annotation_class(annotation, class_name, "polygon", "polygon")
 
         paths = annotation.data.get("paths")
         assert paths == points
@@ -62,9 +65,9 @@ class TestMakeComplexPolygon:
             [{"x": 4, "y": 5}, {"x": 6, "y": 7}, {"x": 4, "y": 5}],
         ]
         bbox: Dict[str, float] = {"x": 1, "y": 2, "w": 2, "h": 2}
-        annotation = make_complex_polygon(class_name, points, bbox)
+        annotation = make_polygon(class_name, points, bbox)
 
-        assert_annotation_class(annotation, class_name, "complex_polygon", "polygon")
+        assert_annotation_class(annotation, class_name, "polygon", "polygon")
 
         paths = annotation.data.get("paths")
         assert paths == points
@@ -128,3 +131,60 @@ def test_split_paths_by_manifest(
             len(property_class.properties or [])
             for property_class in property_classes or []
         ] == properties_n
+
+
+class TestObjectStore:
+    @pytest.fixture
+    def object_store(self):
+        return ObjectStore(
+            name="test",
+            prefix="test_prefix",
+            readonly=False,
+            provider="aws",
+            default=True,
+        )
+
+    @pytest.fixture
+    def darwin_client(
+        darwin_config_path: Path,
+        darwin_datasets_path: Path,
+        team_slug_darwin_json_v2: str,
+    ) -> Client:
+        config = Config(darwin_config_path)
+        config.put(["global", "api_endpoint"], "http://localhost/api")
+        config.put(["global", "base_url"], "http://localhost")
+        config.put(["teams", team_slug_darwin_json_v2, "api_key"], "mock_api_key")
+        config.put(
+            ["teams", team_slug_darwin_json_v2, "datasets_dir"],
+            str(darwin_datasets_path),
+        )
+        return Client(config)
+
+    @pytest.fixture
+    def remote_dataset_v2(self):
+        return RemoteDatasetV2(
+            client=self.darwin_client,
+            team="test_team",
+            name="Test dataset",
+            slug="test-dataset",
+            dataset_id=1,
+        )
+
+    def test_init(self, object_store):
+        assert object_store.name == "test"
+        assert object_store.prefix == "test_prefix"
+        assert object_store.readonly is False
+        assert object_store.provider == "aws"
+        assert object_store.default is True
+
+    def test_str(self, object_store):
+        assert (
+            str(object_store)
+            == "Storage configuration:\n- Name: test\n- Prefix: test_prefix\n- Readonly: False\n- Provider: aws\n- Default: True"
+        )
+
+    def test_repr(self, object_store):
+        assert (
+            repr(object_store)
+            == "ObjectStore(name=test, prefix=test_prefix, readonly=False, provider=aws)"
+        )

@@ -40,8 +40,6 @@ def export(annotation_files: Iterable[dt.AnnotationFile], output_dir: Path) -> N
             for i, annotation in enumerate(annotations):
                 cat = annotation.annotation_class.name
                 if annotation.annotation_class.annotation_type == "polygon":
-                    polygon = annotation.data["path"]
-                elif annotation.annotation_class.annotation_type == "complex_polygon":
                     polygon = annotation.data["paths"]
                 else:
                     continue

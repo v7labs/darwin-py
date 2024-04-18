@@ -17,6 +17,8 @@ from typing import (
     Union,
 )
 
+from pydantic import BaseModel
+
 try:
     from numpy.typing import NDArray
 except ImportError:
@@ -87,7 +89,6 @@ class JSONType:
 AnnotationType = Literal[  # NB: Some of these are not supported yet
     "bounding_box",
     "polygon",
-    "complex_polygon",
     "ellipse",
     "cuboid",
     "segmentation",
@@ -643,7 +644,7 @@ def make_tag(
 
 def make_polygon(
     class_name: str,
-    point_path: List[Point],
+    point_paths: List[List[Point]] | List[Point],
     bounding_box: Optional[Dict] = None,
     subs: Optional[List[SubAnnotation]] = None,
     slot_names: Optional[List[str]] = None,
@@ -653,55 +654,22 @@ def make_polygon(
 
     Parameters
     ----------
-    class_name : str
+    class_name: str
         The name of the class for this ``Annotation``.
-    point_path : List[Point]
-        A list of points that comprises the polygon. The list should have a format similar to:
+    point_paths: List[List[Point]] | List[Point]
+        Either a list of points that comprises a polygon or a list of lists of points that comprises a complex polygon.
+        A complex polygon is a polygon that is defined by >1 path.
 
-        .. code-block:: python
+        A polygon should be defined by a List[Point] and have a format similar to:
+
+        ... code-block:: python
 
             [
                 {"x": 1, "y": 0},
                 {"x": 2, "y": 1}
             ]
 
-    bounding_box : Optional[Dict], default: None
-        The bounding box that encompasses the polyong.
-    subs : Optional[List[SubAnnotation]], default: None
-        List of ``SubAnnotation``s for this ``Annotation``.
-
-    Returns
-    -------
-    Annotation
-        A polygon ``Annotation``.
-    """
-    return Annotation(
-        AnnotationClass(class_name, "polygon"),
-        _maybe_add_bounding_box_data({"path": point_path}, bounding_box),
-        subs or [],
-        slot_names=slot_names or [],
-    )
-
-
-def make_complex_polygon(
-    class_name: str,
-    point_paths: List[List[Point]],
-    bounding_box: Optional[Dict] = None,
-    subs: Optional[List[SubAnnotation]] = None,
-    slot_names: Optional[List[str]] = None,
-) -> Annotation:
-    """
-    Creates and returns a complex polygon annotation. Complex polygons are those who have holes
-    and/or disform shapes.
-
-    Parameters
-    ----------
-    class_name: str
-        The name of the class for this ``Annotation``.
-    point_paths: List[List[Point]]
-        A list of lists points that comprises the complex polygon. This is needed as a complex
-        polygon can be effectively seen as a sum of multiple simple polygons. The list should have
-        a format similar to:
+        A complex polygon should be defined by a List[List[Point]] and have a format similar to:
 
         .. code-block:: python
 
@@ -725,10 +693,20 @@ def make_complex_polygon(
     Returns
     -------
     Annotation
-        A complex polygon ``Annotation``.
+        A polygon ``Annotation``.
     """
+
+    # Check if point_paths is List[Point] and convert to List[List[Point]]
+    if (
+        len(point_paths) > 1
+        and isinstance(point_paths[0], dict)
+        and "x" in point_paths[0]
+        and "y" in point_paths[0]
+    ):
+        point_paths = [point_paths]
+
     return Annotation(
-        AnnotationClass(class_name, "complex_polygon", "polygon"),
+        AnnotationClass(class_name, "polygon", "polygon"),
         _maybe_add_bounding_box_data({"paths": point_paths}, bounding_box),
         subs or [],
         slot_names=slot_names or [],
@@ -1468,7 +1446,8 @@ class ObjectStore:
         name (str): The alias of the storage connection
         prefix (str): The directory that files are written back to in the storage location
         readonly (bool): Whether the storage configuration is read-only or not
-        self.provider (str): The cloud provider (aws, azure, or gcp)
+        provider (str): The cloud provider (aws, azure, or gcp)
+        default (bool): Whether the storage connection is the default one
     """
 
     def __init__(
@@ -1490,3 +1469,11 @@ class ObjectStore:
 
     def __repr__(self) -> str:
         return f"ObjectStore(name={self.name}, prefix={self.prefix}, readonly={self.readonly}, provider={self.provider})"
+
+
+class StorageKeyDictModel(BaseModel):
+    storage_keys: Dict[str, List[str]]
+
+
+class StorageKeyListModel(BaseModel):
+    storage_keys: List[str]

@@ -10,6 +10,8 @@ from rich.live import Live
 from rich.progress import ProgressBar, track
 
 import darwin.datatypes as dt
+
+# from darwin.dataset.remote_dataset_v2 import RemoteDatasetV2
 from darwin.datatypes import PathLike
 from darwin.exceptions import NotFound
 from darwin.importer.formats.darwin import parse_path
@@ -703,7 +705,7 @@ def convert_to_rgb(pic: PILImage.Image) -> PILImage.Image:
 def compute_max_density(annotations_dir: Path) -> int:
     """
     Calculates the maximum density of all of the annotations in the given folder.
-    Density is calculated as the number of polygons / complex_polygons present in an annotation
+    Density is calculated as the number of polygons present in an annotation
     file.
 
     Parameters
@@ -893,3 +895,41 @@ def parse_external_file_path(storage_key: str, preserve_folders: bool) -> str:
     if not preserve_folders:
         return "/"
     return "/" + "/".join(storage_key.split("/")[:-1])
+
+
+def get_external_file_name(storage_key: str) -> str:
+    """
+    Returns the name of the file given a storage key.
+
+    Parameters
+    ----------
+    storage_key : str
+        The storage key to get the file name from.
+
+    Returns
+    -------
+    str
+        The name of the file.
+    """
+    if "/" not in storage_key:
+        return storage_key
+    return storage_key.split("/")[-1]
+
+
+def chunk_items(items: List[Any], chunk_size: int = 500) -> Iterator[List[Any]]:
+    """
+    Splits the list of items into chunks of specified size.
+
+    Parameters
+    ----------
+    items : List[Any]
+        The list of items to split.
+    chunk_size : int, default: 500
+        The size of each chunk.
+
+    Returns
+    -------
+    Iterator[List[Any]]
+        An iterator that yields lists of items, each of length ``chunk_size``.
+    """
+    return (items[i : i + chunk_size] for i in range(0, len(items), chunk_size))

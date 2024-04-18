@@ -149,8 +149,9 @@ def test_config_from_old_error(
     base_config: DarwinConfig, darwin_config_path: Path
 ) -> None:
     old_config = OldConfig(darwin_config_path)
+    team_slug = "test-team"
     with pytest.raises(ValueError) as excinfo:
-        base_config.from_old(old_config)
+        base_config.from_old(old_config, team_slug)
     (msg,) = excinfo.value.args
     assert msg == "No teams found in the old config"
 
@@ -165,7 +166,7 @@ def test_config_from_old(
     old_config.put(["global", "base_url"], "http://localhost")
     old_config.put(["teams", team_slug, "api_key"], "mock_api_key")
     old_config.put(["teams", team_slug, "datasets_dir"], str(darwin_datasets_path))
-    darwin_config = base_config.from_old(old_config)
+    darwin_config = base_config.from_old(old_config, team_slug)
 
     assert darwin_config.api_key == "mock_api_key"
     assert darwin_config.base_url == "http://localhost/"

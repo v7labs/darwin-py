@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 import orjson as json
 import pytest
 import responses
+from pydantic import ValidationError
 
 from darwin.client import Client
 from darwin.config import Config
@@ -14,6 +15,7 @@ from darwin.dataset import RemoteDataset
 from darwin.dataset.release import Release
 from darwin.dataset.remote_dataset_v2 import RemoteDatasetV2
 from darwin.dataset.upload_manager import LocalFile, UploadHandlerV2
+from darwin.datatypes import ObjectStore
 from darwin.exceptions import UnsupportedExportFormat, UnsupportedFileType
 from darwin.item import DatasetItem
 from tests.fixtures import *
@@ -764,6 +766,44 @@ class TestPull:
         with pytest.raises(UnsupportedExportFormat):
             remote_dataset.pull(release=a_release)
 
+    @patch("platform.system", return_value="Linux")
+    def test_moves_properties_metadata_file(
+        self, system_mock: MagicMock, remote_dataset: RemoteDataset
+    ):
+        stub_release_response = Release(
+            "dataset-slug",
+            "team-slug",
+            "0.1.0",
+            "release-name",
+            "http://darwin-fake-url.com",
+            datetime.now(),
+            None,
+            None,
+            True,
+            True,
+            "json",
+        )
+
+        def fake_download_zip(self, path):
+            zip: Path = Path("tests/dataset_with_properties.zip")
+            shutil.copy(zip, path)
+            return path
+
+        with patch.object(
+            RemoteDataset, "get_release", return_value=stub_release_response
+        ):
+            with patch.object(Release, "download_zip", new=fake_download_zip):
+                remote_dataset.pull(only_annotations=True)
+                metadata_path = (
+                    remote_dataset.local_path
+                    / "releases"
+                    / "latest"
+                    / "annotations"
+                    / ".v7"
+                    / "metadata.json"
+                )
+                assert metadata_path.exists()
+
 
 @pytest.fixture
 def dataset_item(dataset_slug: str) -> DatasetItem:
@@ -871,3 +911,167 @@ class TestExportDataset:
                 include_url_token=False,
                 include_authorship=True,
             )
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+class TestRegister:
+    def test_raises_if_storage_keys_not_list_of_strings(
+        self, remote_dataset: RemoteDatasetV2
+    ):
+        with pytest.raises(ValueError):
+            remote_dataset.register(
+                ObjectStore(
+                    name="test",
+                    prefix="test_prefix",
+                    readonly=False,
+                    provider="aws",
+                    default=True,
+                ),
+                [1, 2, 3],
+            )
+
+    def test_raises_if_unsupported_file_type(self, remote_dataset: RemoteDatasetV2):
+        with pytest.raises(TypeError):
+            remote_dataset.register(
+                ObjectStore(
+                    name="test",
+                    prefix="test_prefix",
+                    readonly=False,
+                    provider="aws",
+                    default=True,
+                ),
+                ["unsupported_file.xyz"],
+            )
+
+    @responses.activate
+    def test_register_files(self, remote_dataset: RemoteDatasetV2):
+        responses.add(
+            responses.POST,
+            "http://localhost/api/v2/teams/v7-darwin-json-v2/items/register_existing",
+            json={
+                "items": [{"id": "1", "name": "test.jpg"}],
+                "blocked_items": [],
+            },
+            status=200,
+        )
+        result = remote_dataset.register(
+            ObjectStore(
+                name="test",
+                prefix="test_prefix",
+                readonly=False,
+                provider="aws",
+                default=True,
+            ),
+            ["test.jpg"],
+        )
+        assert len(result["registered"]) == 1
+        assert len(result["blocked"]) == 0
+
+    @responses.activate
+    def test_register_files_with_blocked_items(self, remote_dataset: RemoteDatasetV2):
+        responses.add(
+            responses.POST,
+            "http://localhost/api/v2/teams/v7-darwin-json-v2/items/register_existing",
+            json={
+                "items": [],
+                "blocked_items": [
+                    {"name": "test.jpg", "slots": [{"reason": "test reason"}]}
+                ],
+            },
+            status=200,
+        )
+        result = remote_dataset.register(
+            ObjectStore(
+                name="test",
+                prefix="test_prefix",
+                readonly=False,
+                provider="aws",
+                default=True,
+            ),
+            ["test.jpg"],
+        )
+        assert len(result["registered"]) == 0
+        assert len(result["blocked"]) == 1
+
+
+@pytest.mark.usefixtures("file_read_write_test")
+class TestRegisterMultiSlotted:
+    def test_raises_if_storage_keys_not_dictionary(
+        self, remote_dataset: RemoteDatasetV2
+    ):
+        with pytest.raises(ValidationError):
+            remote_dataset.register(
+                ObjectStore(
+                    name="test",
+                    prefix="test_prefix",
+                    readonly=False,
+                    provider="aws",
+                    default=True,
+                ),
+                {"item1": [1, 2, 3]},
+                multi_slotted=True,
+            )
+
+    def test_raises_if_unsupported_file_type(self, remote_dataset: RemoteDatasetV2):
+        with pytest.raises(TypeError):
+            remote_dataset.register(
+                ObjectStore(
+                    name="test",
+                    prefix="test_prefix",
+                    readonly=False,
+                    provider="aws",
+                    default=True,
+                ),
+                {"item1": ["unsupported_file.xyz"]},
+                multi_slotted=True,
+            )
+
+    @responses.activate
+    def test_register_files(self, remote_dataset: RemoteDatasetV2):
+        responses.add(
+            responses.POST,
+            "http://localhost/api/v2/teams/v7-darwin-json-v2/items/register_existing",
+            json={
+                "items": [{"id": "1", "name": "test.jpg"}],
+                "blocked_items": [],
+            },
+            status=200,
+        )
+        result = remote_dataset.register(
+            ObjectStore(
+                name="test",
+                prefix="test_prefix",
+                readonly=False,
+                provider="aws",
+                default=True,
+            ),
+            {"item1": ["test.jpg"]},
+            multi_slotted=True,
+        )
+        assert len(result["registered"]) == 1
+        assert len(result["blocked"]) == 0
+
+    @responses.activate
+    def test_register_files_with_blocked_items(self, remote_dataset: RemoteDatasetV2):
+        responses.add(
+            responses.POST,
+            "http://localhost/api/v2/teams/v7-darwin-json-v2/items/register_existing",
+            json={
+                "items": [],
+                "blocked_items": [
+                    {"name": "test.jpg", "slots": [{"reason": "test reason"}]}
+                ],
+            },
+            status=200,
+        )
+        remote_dataset.register(
+            ObjectStore(
+                name="test",
+                prefix="test_prefix",
+                readonly=False,
+                provider="aws",
+                default=True,
+            ),
+            {"item1": ["test.jpg"]},
+            multi_slotted=True,
+        )

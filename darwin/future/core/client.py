@@ -126,7 +126,7 @@ class DarwinConfig(BaseModel):
         )
 
     @staticmethod
-    def from_old(old_config: OldConfig) -> DarwinConfig:
+    def from_old(old_config: OldConfig, team_slug: str) -> DarwinConfig:
         teams = old_config.get("teams")
         if not teams:
             raise ValueError("No teams found in the old config")
@@ -136,12 +136,12 @@ class DarwinConfig(BaseModel):
             default_team = list(teams.keys())[0]
 
         return DarwinConfig(
-            api_key=teams[default_team]["api_key"],
+            api_key=teams[team_slug]["api_key"],
             api_endpoint=old_config.get("global/api_endpoint"),
             base_url=old_config.get("global/base_url"),
             default_team=default_team,
             teams=teams,
-            datasets_dir=teams[default_team]["datasets_dir"],
+            datasets_dir=teams[team_slug]["datasets_dir"],
         )
 
     model_config = ConfigDict(validate_assignment=True)

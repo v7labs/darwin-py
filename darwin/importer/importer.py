@@ -1,3 +1,4 @@
+import uuid
 from collections import defaultdict
 from logging import getLogger
 from multiprocessing import cpu_count
@@ -35,7 +36,6 @@ if TYPE_CHECKING:
     from darwin.client import Client
     from darwin.dataset.remote_dataset import RemoteDataset
 
-import deprecation
 from rich.console import Console
 from rich.progress import track
 from rich.theme import Theme
@@ -45,7 +45,6 @@ from darwin.datatypes import PathLike
 from darwin.exceptions import IncompatibleOptions, RequestEntitySizeExceeded
 from darwin.utils import secure_continue_request
 from darwin.utils.flatten_list import flatten_list
-from darwin.version import __version__
 
 logger = getLogger(__name__)
 
@@ -71,13 +70,7 @@ instead of calling this low-level function directly.
 """
 
 
-@deprecation.deprecated(  # type:ignore
-    deprecated_in="0.7.12",
-    removed_in="0.8.0",
-    current_version=__version__,
-    details=DEPRECATION_MESSAGE,
-)
-def build_main_annotations_lookup_table(
+def _build_main_annotations_lookup_table(
     annotation_classes: List[Dict[str, Unknown]]
 ) -> Dict[str, Unknown]:
     MAIN_ANNOTATION_TYPES = [
@@ -108,13 +101,7 @@ def build_main_annotations_lookup_table(
     return lookup
 
 
-@deprecation.deprecated(  # type:ignore
-    deprecated_in="0.7.12",
-    removed_in="0.8.0",
-    current_version=__version__,
-    details=DEPRECATION_MESSAGE,
-)
-def find_and_parse(  # noqa: C901
+def _find_and_parse(  # noqa: C901
     importer: Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]],
     file_paths: List[PathLike],
     console: Optional[Console] = None,
@@ -182,13 +169,7 @@ def _get_files_for_parsing(file_paths: List[PathLike]) -> List[Path]:
     return [file for files in packed_files for file in files]
 
 
-@deprecation.deprecated(  # type:ignore
-    deprecated_in="0.7.12",
-    removed_in="0.8.0",
-    current_version=__version__,
-    details=DEPRECATION_MESSAGE,
-)
-def build_attribute_lookup(dataset: "RemoteDataset") -> Dict[str, Unknown]:
+def _build_attribute_lookup(dataset: "RemoteDataset") -> Dict[str, Unknown]:
     attributes: List[Dict[str, Unknown]] = dataset.fetch_remote_attributes()
     lookup: Dict[str, Unknown] = {}
     for attribute in attributes:
@@ -199,13 +180,7 @@ def build_attribute_lookup(dataset: "RemoteDataset") -> Dict[str, Unknown]:
     return lookup
 
 
-@deprecation.deprecated(  # type:ignore
-    deprecated_in="0.7.12",
-    removed_in="0.8.0",
-    current_version=__version__,
-    details=DEPRECATION_MESSAGE,
-)
-def get_remote_files(
+def _get_remote_files(
     dataset: "RemoteDataset", filenames: List[str], chunk_size: int = 100
 ) -> Dict[str, Tuple[int, str]]:
     """
@@ -276,9 +251,9 @@ def _resolve_annotation_classes(
     return local_classes_not_in_dataset, local_classes_not_in_team
 
 
-def _get_team_properties_annotation_lookup(client):
+def _get_team_properties_annotation_lookup(client, team_slug):
     # get team properties -> List[FullProperty]
-    team_properties = client.get_team_properties()
+    team_properties = client.get_team_properties(team_slug)
 
     # (property-name, annotation_class_id): FullProperty object
     team_properties_annotation_lookup: Dict[
@@ -321,6 +296,7 @@ def _import_properties(
     client: "Client",
     annotations: List[dt.Annotation],
     annotation_class_ids_map: Dict[Tuple[str, str], str],
+    team_slug: str,
 ) -> Dict[str, Dict[str, Dict[str, Set[str]]]]:
     """
     Creates/Updates missing/mismatched properties from annotation & metadata.json file to team-properties.
@@ -332,10 +308,11 @@ def _import_properties(
         client (Client): Darwin Client object
         annotations (List[dt.Annotation]): List of annotations
         annotation_class_ids_map (Dict[Tuple[str, str], str]): Dict of annotation class names/types to annotation class ids
+        team_slug (str): Team slug
 
     Raises:
-        ValueError: raise error if annotation class not present in metadata
-        ValueError: raise error if annotation-property not present in metadata
+        ValueError: raise error if annotation class not present in metadata and in team-properties
+        ValueError: raise error if annotation-property not present in metadata and in team-properties
         ValueError: raise error if property value is missing for a property that requires a value
         ValueError: raise error if property value/type is different in m_prop (.v7/metadata.json) options
 
@@ -343,16 +320,17 @@ def _import_properties(
         Dict[str, Dict[str, Dict[str, Set[str]]]]: Dict of annotation.id to frame_index -> property id -> property val ids
     """
     annotation_property_map: Dict[str, Dict[str, Dict[str, Set[str]]]] = {}
-    if not isinstance(metadata_path, Path):
-        # No properties to import
-        return {}
 
-    # parse metadata.json file -> list[PropertyClass]
-    metadata = parse_metadata(metadata_path)
-    metadata_property_classes = parse_property_classes(metadata)
+    metadata_property_classes = []
+    if isinstance(metadata_path, Path):
+        # parse metadata.json file -> list[PropertyClass]
+        metadata = parse_metadata(metadata_path)
+        metadata_property_classes = parse_property_classes(metadata)
 
     # get team properties
-    team_properties_annotation_lookup = _get_team_properties_annotation_lookup(client)
+    team_properties_annotation_lookup = _get_team_properties_annotation_lookup(
+        client, team_slug
+    )
 
     # (annotation-cls-name, annotation-cls-name): PropertyClass object
     metadata_classes_lookup: Set[Tuple[str, str]] = set()
@@ -389,18 +367,46 @@ def _import_properties(
             )
         annotation_id_map[annotation_id] = annotation
 
-        # raise error if annotation class not present in metadata
-        if annotation_name_type not in metadata_classes_lookup:
-            raise ValueError(
-                f"Annotation: '{annotation_name}' not found in {metadata_path}"
-            )
-
         # loop on annotation properties and check if they exist in metadata & team
         for a_prop in annotation.properties or []:
             a_prop: SelectedProperty
 
             # raise error if annotation-property not present in metadata
             if (annotation_name, a_prop.name) not in metadata_cls_prop_lookup:
+                # check if they are present in team properties
+                if (
+                    a_prop.name,
+                    annotation_class_id,
+                ) in team_properties_annotation_lookup:
+                    # get team property
+                    t_prop: FullProperty = team_properties_annotation_lookup[
+                        (a_prop.name, annotation_class_id)
+                    ]
+
+                    # if property value is None, update annotation_property_map with empty set
+                    if a_prop.value is None:
+                        assert t_prop.id is not None
+                        annotation_property_map[annotation_id][str(a_prop.frame_index)][
+                            t_prop.id
+                        ] = set()
+                        continue
+
+                    # get team property value
+                    t_prop_val = None
+                    for prop_val in t_prop.property_values or []:
+                        if prop_val.value == a_prop.value:
+                            t_prop_val = prop_val
+                            break
+
+                    # if property value exists in team properties, update annotation_property_map
+                    if t_prop_val:
+                        assert t_prop.id is not None
+                        assert t_prop_val.id is not None
+                        annotation_property_map[annotation_id][str(a_prop.frame_index)][
+                            t_prop.id
+                        ].add(t_prop_val.id)
+                        continue
+
                 raise ValueError(
                     f"Annotation: '{annotation_name}' -> Property '{a_prop.name}' not found in {metadata_path}"
                 )
@@ -571,7 +577,9 @@ def _import_properties(
             updated_properties.append(prop)
 
     # get latest team properties
-    team_properties_annotation_lookup = _get_team_properties_annotation_lookup(client)
+    team_properties_annotation_lookup = _get_team_properties_annotation_lookup(
+        client, team_slug
+    )
 
     # loop over metadata_cls_id_prop_lookup, and update additional metadata property values
     for (annotation_class_id, prop_name), m_prop in metadata_cls_id_prop_lookup.items():
@@ -745,28 +753,28 @@ def import_annotations(  # noqa: C901
     if not team_classes:
         raise ValueError("Unable to fetch remote class list.")
 
-    classes_in_dataset: dt.DictFreeForm = build_main_annotations_lookup_table(
+    classes_in_dataset: dt.DictFreeForm = _build_main_annotations_lookup_table(
         [
             cls
             for cls in team_classes
             if cls["available"] or cls["name"] in GLOBAL_CLASSES
         ]
     )
-    classes_in_team: dt.DictFreeForm = build_main_annotations_lookup_table(
+    classes_in_team: dt.DictFreeForm = _build_main_annotations_lookup_table(
         [
             cls
             for cls in team_classes
             if not cls["available"] and cls["name"] not in GLOBAL_CLASSES
         ]
     )
-    attributes = build_attribute_lookup(dataset)
+    attributes = _build_attribute_lookup(dataset)
 
     console.print("Retrieving local annotations ...", style="info")
     local_files = []
     local_files_missing_remotely = []
 
     # ! Other place we can use multiprocessing - hard to pass in the importer though
-    maybe_parsed_files: Optional[Iterable[dt.AnnotationFile]] = find_and_parse(
+    maybe_parsed_files: Optional[Iterable[dt.AnnotationFile]] = _find_and_parse(
         importer, file_paths, console, use_multi_cpu, cpu_limit
     )
 
@@ -789,7 +797,7 @@ def import_annotations(  # noqa: C901
     chunk_size = 100
     while chunk_size > 0:
         try:
-            remote_files = get_remote_files(dataset, filenames, chunk_size)
+            remote_files = _get_remote_files(dataset, filenames, chunk_size)
             break
         except RequestEntitySizeExceeded:
             chunk_size -= 8
@@ -878,9 +886,9 @@ def import_annotations(  # noqa: C901
         if not maybe_remote_classes:
             raise ValueError("Unable to fetch remote classes.")
 
-        remote_classes = build_main_annotations_lookup_table(maybe_remote_classes)
+        remote_classes = _build_main_annotations_lookup_table(maybe_remote_classes)
     else:
-        remote_classes = build_main_annotations_lookup_table(team_classes)
+        remote_classes = _build_main_annotations_lookup_table(team_classes)
 
     if delete_for_empty:
         console.print(
@@ -1035,15 +1043,17 @@ def _handle_subs(
     return data
 
 
-def _handle_complex_polygon(
+def _format_polygon_for_import(
     annotation: dt.Annotation, data: dt.DictFreeForm
 ) -> dt.DictFreeForm:
-    if "complex_polygon" in data:
-        del data["complex_polygon"]
-        data["polygon"] = {
-            "path": annotation.data["paths"][0],
-            "additional_paths": annotation.data["paths"][1:],
-        }
+    if "polygon" in data:
+        if len(annotation.data["paths"]) > 1:
+            data["polygon"] = {
+                "path": annotation.data["paths"][0],
+                "additional_paths": annotation.data["paths"][1:],
+            }
+        elif len(annotation.data["paths"]) == 1:
+            data["polygon"] = {"path": annotation.data["paths"][0]}
     return data
 
 
@@ -1111,14 +1121,14 @@ def _get_annotation_data(
             only_keyframes=True,
             post_processing=lambda annotation, data: _handle_subs(
                 annotation,
-                _handle_complex_polygon(annotation, data),
+                _format_polygon_for_import(annotation, data),
                 annotation_class_id,
                 attributes,
             ),
         )
     else:
         data = {annotation_class.annotation_type: annotation.data}
-        data = _handle_complex_polygon(annotation, data)
+        data = _format_polygon_for_import(annotation, data)
         data = _handle_subs(annotation, data, annotation_class_id, attributes)
 
     return data
@@ -1306,8 +1316,8 @@ def _import_annotations(
             "context_keys": {"slot_names": annotation.slot_names},
         }
 
-        if annotation.id:
-            serial_obj["id"] = annotation.id
+        annotation.id = annotation.id or str(uuid.uuid4())
+        serial_obj["id"] = annotation.id
 
         if actors:
             serial_obj["actors"] = actors  # type: ignore
@@ -1319,6 +1329,7 @@ def _import_annotations(
         client,
         annotations,  # type: ignore
         annotation_class_ids_map,
+        dataset.team,
     )
     _update_payload_with_properties(serialized_annotations, annotation_id_property_map)
 

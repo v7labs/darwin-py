@@ -272,7 +272,7 @@ class TestSetFileStatus:
                         dataset_identifier=dataset_identifier
                     )
                     fetch_remote_files_mock.assert_called_once_with(
-                        {"filenames": "one.jpg,two.jpg"}
+                        {"item_names": "one.jpg,two.jpg"}
                     )
                     mock.assert_called_once_with(fetch_remote_files_mock.return_value)
 
@@ -291,7 +291,7 @@ class TestSetFileStatus:
                         dataset_identifier=dataset_identifier
                     )
                     fetch_remote_files_mock.assert_called_once_with(
-                        {"filenames": "one.jpg,two.jpg"}
+                        {"item_names": "one.jpg,two.jpg"}
                     )
                     mock.assert_called_once_with(fetch_remote_files_mock.return_value)
 
@@ -310,7 +310,7 @@ class TestSetFileStatus:
                         dataset_identifier=dataset_identifier
                     )
                     fetch_remote_files_mock.assert_called_once_with(
-                        {"filenames": "one.jpg,two.jpg"}
+                        {"item_names": "one.jpg,two.jpg"}
                     )
                     mock.assert_called_once_with(fetch_remote_files_mock.return_value)
 
@@ -331,7 +331,7 @@ class TestSetFileStatus:
                         dataset_identifier=dataset_identifier
                     )
                     fetch_remote_files_mock.assert_called_once_with(
-                        {"filenames": "one.jpg,two.jpg"}
+                        {"item_names": "one.jpg,two.jpg"}
                     )
                     mock.assert_called_once_with(fetch_remote_files_mock.return_value)
 
@@ -356,7 +356,7 @@ class TestDeleteFiles:
                         dataset_identifier=dataset_identifier
                     )
                     fetch_remote_files_mock.assert_called_once_with(
-                        {"filenames": ["one.jpg", "two.jpg"]}
+                        {"item_names": ["one.jpg", "two.jpg"]}
                     )
                     mock.assert_called_once()
 
@@ -376,7 +376,7 @@ class TestDeleteFiles:
                             dataset_identifier=dataset_identifier
                         )
                         fetch_remote_files_mock.assert_called_once_with(
-                            {"filenames": ["one.jpg", "two.jpg"]}
+                            {"item_names": ["one.jpg", "two.jpg"]}
                         )
                         mock.assert_called_once()
 
@@ -396,7 +396,7 @@ class TestDeleteFiles:
                             dataset_identifier=dataset_identifier
                         )
                         fetch_remote_files_mock.assert_called_once_with(
-                            {"filenames": ["one.jpg", "two.jpg"]}
+                            {"item_names": ["one.jpg", "two.jpg"]}
                         )
                         mock.assert_not_called()
 
@@ -422,7 +422,7 @@ class TestDeleteFiles:
                             dataset_identifier=dataset_identifier
                         )
                         fetch_remote_files_mock.assert_called_once_with(
-                            {"filenames": ["one.jpg", "two.jpg"]}
+                            {"item_names": ["one.jpg", "two.jpg"]}
                         )
                         mock.assert_called_once()
                         exception.assert_called_once_with(1)

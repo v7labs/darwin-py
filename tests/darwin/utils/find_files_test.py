@@ -8,7 +8,6 @@ from darwin.exceptions import UnsupportedFileType
 from darwin.utils import (
     SUPPORTED_EXTENSIONS,
     SUPPORTED_IMAGE_EXTENSIONS,
-    SUPPORTED_VIDEO_EXTENSIONS,
     find_files,
 )
 
@@ -132,9 +131,8 @@ class TestIsExtensionAllowedByFilenameFunctions(FindFileTestCase):
         """
         from darwin.utils import is_extension_allowed_by_filename as ieabf
         from darwin.utils import is_image_extension_allowed_by_filename as iieabf
-        from darwin.utils import is_video_extension_allowed_by_filename as iveabf
 
-        return self.Dependencies(ieabf=ieabf, iveabf=iveabf, iieabf=iieabf)
+        return self.Dependencies(ieabf=ieabf, iieabf=iieabf)
 
     def test_ieabf_returns_true_for_a_valid_extension(self):
         valid_extensions = [
@@ -148,21 +146,6 @@ class TestIsExtensionAllowedByFilenameFunctions(FindFileTestCase):
     def test_ieabf_returns_false_for_an_invalid_extension(self):
         results = [
             self.dependency_factory().ieabf(file) for file in self.fake_invalid_files
-        ]
-
-        self.assertFalse(all(results))
-
-    def test_iveabf_returns_true_for_a_valid_extension(self):
-        results = [
-            self.dependency_factory().iveabf(file)
-            for file in SUPPORTED_VIDEO_EXTENSIONS
-        ]
-
-        self.assertTrue(all(results))
-
-    def test_iveabf_returns_false_for_an_invalid_extension(self):
-        results = [
-            self.dependency_factory().iveabf(file) for file in self.fake_invalid_files
         ]
 
         self.assertFalse(all(results))

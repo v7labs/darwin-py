@@ -350,11 +350,11 @@ def mask_to_polygon(
             ]
             paths.append(path)
         if len(paths) > 1:
-            polygon = dt.make_complex_polygon(class_name, paths)
+            polygon = dt.make_polygon(class_name, paths)
         elif len(paths) == 1:
             polygon = dt.make_polygon(
                 class_name,
-                point_path=paths[0],
+                point_paths=paths[0],
             )
         else:
             return None
@@ -364,7 +364,7 @@ def mask_to_polygon(
             return None
         polygon = dt.make_polygon(
             class_name,
-            point_path=[
+            point_paths=[
                 adjust_for_pixdims(x, y, pixdims)
                 for x, y in zip(external_path[0::2], external_path[1::2])
             ],

@@ -106,29 +106,35 @@ def test_handle_subs() -> None:
     assert result == expected_result
 
 
-def test__handle_complex_polygon() -> None:
-    from darwin.importer.importer import _handle_complex_polygon
+def test__format_polygon_for_import() -> None:
+    from darwin.importer.importer import _format_polygon_for_import
 
-    assert _handle_complex_polygon(
-        {},
-        {
-            "example": "data",
-            "example2": "data2",
-            "example3": "data3",
-        },
-    ) == {  # type: ignore
-        "example": "data",
-        "example2": "data2",
-        "example3": "data3",
-    }
-    assert _handle_complex_polygon(
+    # Test case when "polygon" key is not in data
+    assert _format_polygon_for_import(
         dt.Annotation(
-            dt.AnnotationClass("Class", "bbox"), {"paths": [1, 2, 3, 4, 5]}, [], []
+            dt.AnnotationClass("Class", "polygon"), {"paths": [1, 2, 3, 4, 5]}, [], []
         ),
-        {"complex_polygon": "test_data"},
-    ) == {
-        "polygon": {"path": 1, "additional_paths": [2, 3, 4, 5]},
-    }
+        {"example": "data"},
+    ) == {"example": "data"}
+
+    # Test case when "polygon" key is in data and there is more than one path
+    assert _format_polygon_for_import(
+        dt.Annotation(
+            dt.AnnotationClass("Class", "polygon"),
+            {"paths": [[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]]},
+            [],
+            [],
+        ),
+        {"polygon": {"paths": [[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]]}},
+    ) == {"polygon": {"path": [1, 2, 3, 4, 5], "additional_paths": [[6, 7, 8, 9, 10]]}}
+
+    # Test case when "polygon" key is in data and there is only one path
+    assert _format_polygon_for_import(
+        dt.Annotation(
+            dt.AnnotationClass("Class", "polygon"), {"paths": [[1, 2, 3, 4, 5]]}, [], []
+        ),
+        {"polygon": {"paths": [[1, 2, 3, 4, 5]]}},
+    ) == {"polygon": {"path": [1, 2, 3, 4, 5]}}
 
 
 def test__annotators_or_reviewers_to_payload() -> None:
@@ -189,7 +195,7 @@ def test__get_annotation_data() -> None:
 
     annotation.data = "TEST DATA"
 
-    with patch_factory("_handle_complex_polygon") as mock_hcp, patch_factory(
+    with patch_factory("_format_polygon_for_import") as mock_hcp, patch_factory(
         "_handle_subs"
     ) as mock_hs, patch.object(
         dt.VideoAnnotation, "get_data", return_value="TEST VIDEO DATA"
@@ -208,7 +214,7 @@ def test__get_annotation_data() -> None:
         assert mock_hcp.call_count == 1
         assert mock_hs.call_count == 1
 
-    with patch_factory("_handle_complex_polygon") as mock_hcp, patch_factory(
+    with patch_factory("_format_polygon_for_import") as mock_hcp, patch_factory(
         "_handle_subs"
     ) as mock_hs:
         from darwin.importer.importer import _get_annotation_data
@@ -482,7 +488,7 @@ def test__parse_empty_masks_video(raster_layer_video_annotations) -> None:
 
 
 def test__import_annotations() -> None:
-    with patch_factory("_handle_complex_polygon") as mock_hcp, patch_factory(
+    with patch_factory("_format_polygon_for_import") as mock_hcp, patch_factory(
         "_handle_reviewers"
     ) as mock_hr, patch_factory("_handle_annotators") as mock_ha, patch_factory(
         "_handle_subs"
@@ -490,7 +496,9 @@ def test__import_annotations() -> None:
         "_get_overwrite_value"
     ) as mock_gov, patch_factory(
         "_handle_slot_names"
-    ) as mock_hsn:
+    ) as mock_hsn, patch_factory(
+        "_import_properties",
+    ) as mock_ip:
         from darwin.client import Client
         from darwin.dataset import RemoteDataset
         from darwin.importer.importer import _import_annotations
@@ -499,6 +507,7 @@ def test__import_annotations() -> None:
         mock_dataset = Mock(RemoteDataset)
 
         mock_dataset.version = 2
+        mock_dataset.team = "test_team"
         mock_hr.return_value = [
             {"email": "reviewer1@example.com", "role": "reviewer"},
             {"email": "reviewer2@example.com", "role": "reviewer"},
@@ -515,6 +524,7 @@ def test__import_annotations() -> None:
             [],
             ["test_slot_name"],
         )
+        mock_ip.return_value = {}
 
         annotation = dt.Annotation(
             dt.AnnotationClass("test_class", "bbox"), {"paths": [1, 2, 3, 4, 5]}, [], []
@@ -572,7 +582,18 @@ def test__import_annotations() -> None:
             "overwrite": "test_append_out",
         }
 
-        assert output["annotations"] == assertion["annotations"]
+        assert (
+            output["annotations"][0]["annotation_class_id"]
+            == assertion["annotations"][0]["annotation_class_id"]
+        )
+        assert output["annotations"][0]["data"] == assertion["annotations"][0]["data"]
+        assert (
+            output["annotations"][0]["actors"] == assertion["annotations"][0]["actors"]
+        )
+        assert (
+            output["annotations"][0]["context_keys"]
+            == assertion["annotations"][0]["context_keys"]
+        )
         assert output["overwrite"] == assertion["overwrite"]
 
 

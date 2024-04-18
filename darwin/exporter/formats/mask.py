@@ -3,7 +3,7 @@ import math
 import os
 from csv import writer as csv_writer
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Set, Tuple, get_args
+from typing import Dict, Iterable, List, Set, Tuple, get_args
 
 import numpy as np
 
@@ -138,7 +138,7 @@ def get_render_mode(annotations: List[dt.AnnotationLike]) -> dt.MaskTypes.TypeOf
     types: Set[str] = set(list_of_types)
 
     is_raster_mask = ("mask" in types) and ("raster_layer" in types)
-    is_polygon = ("polygon" in types) or ("complex_polygon" in types)
+    is_polygon = "polygon" in types
 
     raster_layer_count = len([a for a in types if a == "raster_layer"])
 
@@ -162,8 +162,10 @@ def get_render_mode(annotations: List[dt.AnnotationLike]) -> dt.MaskTypes.TypeOf
     )
 
 
-def rle_decode(rle: dt.MaskTypes.UndecodedRLE, label_colours: Dict[int, int]) -> List[int]:
-    """Decodes a run-length encoded list of integers and substitutes labels by colours. 
+def rle_decode(
+    rle: dt.MaskTypes.UndecodedRLE, label_colours: Dict[int, int]
+) -> List[int]:
+    """Decodes a run-length encoded list of integers and substitutes labels by colours.
 
     Args:
         rle (List[int]): A run-length encoded list of integers.
@@ -258,8 +260,6 @@ def render_polygons(
                 categories.append(cat)
 
             if a.annotation_class.annotation_type == "polygon":
-                polygon = a.data["path"]
-            elif a.annotation_class.annotation_type == "complex_polygon":
                 polygon = a.data["paths"]
             else:
                 raise ValueError(
@@ -352,30 +352,35 @@ def render_raster(
                 categories.append(new_mask.name)
 
             colour_to_draw = categories.index(new_mask.name)
-            
+
             if new_mask.id not in mask_colours:
                 mask_colours[new_mask.id] = colour_to_draw
 
             if new_mask.name not in colours:
-                colours[new_mask.name] = colour_to_draw    
-            
+                colours[new_mask.name] = colour_to_draw
 
-    raster_layer_list = [a for a in annotations if a.annotation_class.annotation_type == "raster_layer"]
+    raster_layer_list = [
+        a for a in annotations if a.annotation_class.annotation_type == "raster_layer"
+    ]
 
     if len(raster_layer_list) == 0:
-        errors.append(ValueError(f"File {annotation_file.filename} has no raster layer"))
+        errors.append(
+            ValueError(f"File {annotation_file.filename} has no raster layer")
+        )
         return errors, mask, categories, colours
 
     if len(raster_layer_list) > 1:
         errors.append(
-            ValueError(f"File {annotation_file.filename} has more than one raster layer")
+            ValueError(
+                f"File {annotation_file.filename} has more than one raster layer"
+            )
         )
         return errors, mask, categories, colours
-    
+
     rl = raster_layer_list[0]
     if isinstance(rl, dt.VideoAnnotation):
         return errors, mask, categories, colours
-    
+
     raster_layer = dt.RasterLayer(
         rle=rl.data["dense_rle"],
         slot_names=a.slot_names,
@@ -389,13 +394,15 @@ def render_raster(
 
         if colour_to_draw is None:
             errors.append(
-                ValueError(f"Could not find mask with uuid {uuid} among masks in the file {annotation_file.filename}.")
+                ValueError(
+                    f"Could not find mask with uuid {uuid} among masks in the file {annotation_file.filename}."
+                )
             )
             return errors, mask, categories, colours
-        
+
         label_colours[label] = colour_to_draw
 
-    decoded = rle_decode(raster_layer.rle, label_colours) 
+    decoded = rle_decode(raster_layer.rle, label_colours)
     mask = np.array(decoded, dtype=np.uint8).reshape(height, width)
 
     return errors, mask, categories, colours
@@ -409,7 +416,7 @@ def export(
     masks_dir: Path = output_dir / "masks"
     masks_dir.mkdir(exist_ok=True, parents=True)
     annotation_files = list(annotation_files)
-    accepted_types = ["polygon", "complex_polygon", "raster_layer", "mask"]
+    accepted_types = ["polygon", "raster_layer", "mask"]
     all_classes_sets: List[Set[dt.AnnotationClass]] = [
         a.annotation_classes for a in annotation_files
     ]
@@ -561,13 +568,10 @@ def offset_polygon(polygon: List, offset_x: int, offset_y: int) -> List:
     Returns:
         List: polygon with offset applied
     """
-    if isinstance(polygon[0], list):
-        return offset_complex_polygon(polygon, offset_x, offset_y)
-    else:
-        return offset_simple_polygon(polygon, offset_x, offset_y)
+    return offset_polygon_paths(polygon, offset_x, offset_y)
 
 
-def offset_complex_polygon(polygons: List, offset_x: int, offset_y: int) -> List:
+def offset_polygon_paths(polygons: List, offset_x: int, offset_y: int) -> List:
     new_polygons = []
     for polygon in polygons:
         new_polygons.append(offset_simple_polygon(polygon, offset_x, offset_y))
