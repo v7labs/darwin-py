@@ -345,7 +345,6 @@ class RemoteDataset(ABC):
         # Create the generator with the download instructions
         progress, count = download_all_images_from_annotations(
             api_key=api_key,
-            api_url=self.client.url,
             annotations_path=annotations_dir,
             images_path=self.local_images_path,
             force_replace=force_replace,

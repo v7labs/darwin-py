@@ -36,7 +36,6 @@ if TYPE_CHECKING:
     from darwin.client import Client
     from darwin.dataset.remote_dataset import RemoteDataset
 
-import deprecation
 from rich.console import Console
 from rich.progress import track
 from rich.theme import Theme
@@ -46,7 +45,6 @@ from darwin.datatypes import PathLike
 from darwin.exceptions import IncompatibleOptions, RequestEntitySizeExceeded
 from darwin.utils import secure_continue_request
 from darwin.utils.flatten_list import flatten_list
-from darwin.version import __version__
 
 logger = getLogger(__name__)
 
@@ -72,13 +70,7 @@ instead of calling this low-level function directly.
 """
 
 
-@deprecation.deprecated(  # type:ignore
-    deprecated_in="0.7.12",
-    removed_in="0.8.0",
-    current_version=__version__,
-    details=DEPRECATION_MESSAGE,
-)
-def build_main_annotations_lookup_table(
+def _build_main_annotations_lookup_table(
     annotation_classes: List[Dict[str, Unknown]]
 ) -> Dict[str, Unknown]:
     MAIN_ANNOTATION_TYPES = [
@@ -109,13 +101,7 @@ def build_main_annotations_lookup_table(
     return lookup
 
 
-@deprecation.deprecated(  # type:ignore
-    deprecated_in="0.7.12",
-    removed_in="0.8.0",
-    current_version=__version__,
-    details=DEPRECATION_MESSAGE,
-)
-def find_and_parse(  # noqa: C901
+def _find_and_parse(  # noqa: C901
     importer: Callable[[Path], Union[List[dt.AnnotationFile], dt.AnnotationFile, None]],
     file_paths: List[PathLike],
     console: Optional[Console] = None,
@@ -183,13 +169,7 @@ def _get_files_for_parsing(file_paths: List[PathLike]) -> List[Path]:
     return [file for files in packed_files for file in files]
 
 
-@deprecation.deprecated(  # type:ignore
-    deprecated_in="0.7.12",
-    removed_in="0.8.0",
-    current_version=__version__,
-    details=DEPRECATION_MESSAGE,
-)
-def build_attribute_lookup(dataset: "RemoteDataset") -> Dict[str, Unknown]:
+def _build_attribute_lookup(dataset: "RemoteDataset") -> Dict[str, Unknown]:
     attributes: List[Dict[str, Unknown]] = dataset.fetch_remote_attributes()
     lookup: Dict[str, Unknown] = {}
     for attribute in attributes:
@@ -200,13 +180,7 @@ def build_attribute_lookup(dataset: "RemoteDataset") -> Dict[str, Unknown]:
     return lookup
 
 
-@deprecation.deprecated(  # type:ignore
-    deprecated_in="0.7.12",
-    removed_in="0.8.0",
-    current_version=__version__,
-    details=DEPRECATION_MESSAGE,
-)
-def get_remote_files(
+def _get_remote_files(
     dataset: "RemoteDataset", filenames: List[str], chunk_size: int = 100
 ) -> Dict[str, Tuple[int, str]]:
     """
@@ -779,28 +753,28 @@ def import_annotations(  # noqa: C901
     if not team_classes:
         raise ValueError("Unable to fetch remote class list.")
 
-    classes_in_dataset: dt.DictFreeForm = build_main_annotations_lookup_table(
+    classes_in_dataset: dt.DictFreeForm = _build_main_annotations_lookup_table(
         [
             cls
             for cls in team_classes
             if cls["available"] or cls["name"] in GLOBAL_CLASSES
         ]
     )
-    classes_in_team: dt.DictFreeForm = build_main_annotations_lookup_table(
+    classes_in_team: dt.DictFreeForm = _build_main_annotations_lookup_table(
         [
             cls
             for cls in team_classes
             if not cls["available"] and cls["name"] not in GLOBAL_CLASSES
         ]
     )
-    attributes = build_attribute_lookup(dataset)
+    attributes = _build_attribute_lookup(dataset)
 
     console.print("Retrieving local annotations ...", style="info")
     local_files = []
     local_files_missing_remotely = []
 
     # ! Other place we can use multiprocessing - hard to pass in the importer though
-    maybe_parsed_files: Optional[Iterable[dt.AnnotationFile]] = find_and_parse(
+    maybe_parsed_files: Optional[Iterable[dt.AnnotationFile]] = _find_and_parse(
         importer, file_paths, console, use_multi_cpu, cpu_limit
     )
 
@@ -823,7 +797,7 @@ def import_annotations(  # noqa: C901
     chunk_size = 100
     while chunk_size > 0:
         try:
-            remote_files = get_remote_files(dataset, filenames, chunk_size)
+            remote_files = _get_remote_files(dataset, filenames, chunk_size)
             break
         except RequestEntitySizeExceeded:
             chunk_size -= 8
@@ -912,9 +886,9 @@ def import_annotations(  # noqa: C901
         if not maybe_remote_classes:
             raise ValueError("Unable to fetch remote classes.")
 
-        remote_classes = build_main_annotations_lookup_table(maybe_remote_classes)
+        remote_classes = _build_main_annotations_lookup_table(maybe_remote_classes)
     else:
-        remote_classes = build_main_annotations_lookup_table(team_classes)
+        remote_classes = _build_main_annotations_lookup_table(team_classes)
 
     if delete_for_empty:
         console.print(
@@ -1069,15 +1043,17 @@ def _handle_subs(
     return data
 
 
-def _handle_complex_polygon(
+def _format_polygon_for_import(
     annotation: dt.Annotation, data: dt.DictFreeForm
 ) -> dt.DictFreeForm:
-    if "complex_polygon" in data:
-        del data["complex_polygon"]
-        data["polygon"] = {
-            "path": annotation.data["paths"][0],
-            "additional_paths": annotation.data["paths"][1:],
-        }
+    if "polygon" in data:
+        if len(annotation.data["paths"]) > 1:
+            data["polygon"] = {
+                "path": annotation.data["paths"][0],
+                "additional_paths": annotation.data["paths"][1:],
+            }
+        elif len(annotation.data["paths"]) == 1:
+            data["polygon"] = {"path": annotation.data["paths"][0]}
     return data
 
 
@@ -1145,14 +1121,14 @@ def _get_annotation_data(
             only_keyframes=True,
             post_processing=lambda annotation, data: _handle_subs(
                 annotation,
-                _handle_complex_polygon(annotation, data),
+                _format_polygon_for_import(annotation, data),
                 annotation_class_id,
                 attributes,
             ),
         )
     else:
         data = {annotation_class.annotation_type: annotation.data}
-        data = _handle_complex_polygon(annotation, data)
+        data = _format_polygon_for_import(annotation, data)
         data = _handle_subs(annotation, data, annotation_class_id, attributes)
 
     return data

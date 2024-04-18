@@ -705,7 +705,7 @@ def convert_to_rgb(pic: PILImage.Image) -> PILImage.Image:
 def compute_max_density(annotations_dir: Path) -> int:
     """
     Calculates the maximum density of all of the annotations in the given folder.
-    Density is calculated as the number of polygons / complex_polygons present in an annotation
+    Density is calculated as the number of polygons present in an annotation
     file.
 
     Parameters

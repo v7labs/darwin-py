@@ -80,10 +80,10 @@ class TestBuildXml:
         assert_xml_element_text(bndbox, "xmax", "1803")
         assert_xml_element_text(bndbox, "ymax", "983")
 
-    def test_xml_has_bounding_boxes_of_complex_polygons(self):
+    def test_xml_has_bounding_boxes_of_multi_path_polygons(self):
         annotation_class = AnnotationClass(
             name="rubber",
-            annotation_type="complex_polygon",
+            annotation_type="polygon",
             annotation_internal_type="polygon",
         )
         annotation = Annotation(

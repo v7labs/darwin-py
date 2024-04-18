@@ -791,7 +791,7 @@ class TestPull:
 
         with patch.object(
             RemoteDataset, "get_release", return_value=stub_release_response
-        ) as get_release_stub:
+        ):
             with patch.object(Release, "download_zip", new=fake_download_zip):
                 remote_dataset.pull(only_annotations=True)
                 metadata_path = (
