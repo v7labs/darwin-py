@@ -471,11 +471,21 @@ def correct_nifti_header_if_necessary(img_nii):
 
 def process_nifti(
     input_data: nib.nifti1.Nifti1Image,
-    ornt: Optional[List[List[float]]] = [[0.0, -1.0], [1.0, -1.0], [2.0, -1.0]]
-):
+    ornt: Optional[List[List[float]]] = [[0.0, -1.0], [1.0, -1.0], [2.0, -1.0]],
+) -> Tuple[np.ndarray, Tuple[float]]:
     """
-    Function which takes in a single nibabel nifti object 
-    and returns the pixel_array and pixdims
+    Function that converts a nifti object to RAS orientation, then converts to the passed ornt orientation.
+    The default ornt is for LPI.
+
+    Args:
+        input_data: nibabel nifti object.
+        ornt: (n,2) orientation array.
+            ornt[N,1] is a flip of axis N of the array, where 1 means no flip and -1 means flip.
+            ornt[:,0] is the transpose that needs to be done to the implied array, as in arr.transpose(ornt[:,0]).
+
+    Returns:
+        data_array: pixel array with orientation ornt.
+        pixdims: tuple of nifti header zoom values.
     """
     img = correct_nifti_header_if_necessary(input_data)
     img = nib.funcs.as_closest_canonical(img)
