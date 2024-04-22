@@ -3,7 +3,7 @@ import uuid
 import warnings
 from collections import OrderedDict, defaultdict
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence, Tuple, Union
+from typing import Dict, List, Optional, Tuple
 
 from rich.console import Console
 

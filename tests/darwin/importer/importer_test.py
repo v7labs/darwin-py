@@ -23,43 +23,35 @@ def patch_factory(module: str) -> _patch:
 
 
 @pytest.mark.skip("Not yet implemented.")
-def test_build_main_annotations_lookup_table() -> None:
-    ...  # TODO: Write this test
+def test_build_main_annotations_lookup_table() -> None: ...  # TODO: Write this test
 
 
 @pytest.mark.skip("Not yet implemented.")  # type: ignore
-def test_find_and_parse() -> None:
-    ...  # TODO: Write this test
+def test_find_and_parse() -> None: ...  # TODO: Write this test
 
 
 @pytest.mark.skip("Not yet implemented.")
-def test_build_attribute_lookup() -> None:
-    ...  # TODO: Write this test
+def test_build_attribute_lookup() -> None: ...  # TODO: Write this test
 
 
 @pytest.mark.skip("Not yet implemented.")
-def test_get_remote_files() -> None:
-    ...  # TODO: Write this test
+def test_get_remote_files() -> None: ...  # TODO: Write this test
 
 
 @pytest.mark.skip("Not yet implemented.")
-def test__get_slot_name() -> None:
-    ...  # TODO: Write this test
+def test__get_slot_name() -> None: ...  # TODO: Write this test
 
 
 @pytest.mark.skip("Not yet implemented.")
-def test__resolve_annotation_classes() -> None:
-    ...  # TODO: Write this test
+def test__resolve_annotation_classes() -> None: ...  # TODO: Write this test
 
 
 @pytest.mark.skip("Not yet implemented.")
-def test_import_annotations() -> None:
-    ...  # TODO: Write this test
+def test_import_annotations() -> None: ...  # TODO: Write this test
 
 
 @pytest.mark.skip("Not yet implemented.")
-def test__is_skeleton_class() -> None:
-    ...  # TODO: Write this test
+def test__is_skeleton_class() -> None: ...  # TODO: Write this test
 
 
 def test__get_skeleton_name() -> None:

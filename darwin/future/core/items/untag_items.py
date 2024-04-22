@@ -31,9 +31,9 @@ def untag_items(
     ), "No parameters provided, please provide at least one non-dataset id filter"
     payload = {
         "filters": {
-            "dataset_ids": dataset_ids
-            if isinstance(dataset_ids, list)
-            else [dataset_ids],
+            "dataset_ids": (
+                dataset_ids if isinstance(dataset_ids, list) else [dataset_ids]
+            ),
             **filters,
         },
         "annotation_class_id": tag_id,
