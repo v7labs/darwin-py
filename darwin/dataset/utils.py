@@ -99,8 +99,14 @@ def extract_classes(
     classes: Dict[str, Set[int]] = defaultdict(set)
     indices_to_classes: Dict[int, Set[str]] = defaultdict(set)
 
-    for i, file_name in enumerate(sorted(annotations_path.glob("**/*.json"))):
-        annotation_file = parse_path(file_name)
+    for i, file_name in enumerate(
+        (
+            str(e)
+            for e in sorted(annotations_path.glob("**/*.json"))
+            if "/.v7/" not in str(e)
+        )
+    ):
+        annotation_file = parse_path(Path(file_name))
         if not annotation_file:
             continue
 
@@ -470,7 +476,9 @@ def get_annotations(
             release_path, split, split_type, annotation_type, partition
         )
     else:
-        stems = (e.stem for e in annotations_dir.glob("**/*.json"))
+        stems = (
+            e.stem for e in annotations_dir.glob("**/*.json") if "/.v7" not in str(e)
+        )
 
     (
         images_paths,
@@ -578,7 +586,9 @@ def _map_annotations_to_images(
     images_paths = []
     annotations_paths = []
     invalid_annotation_paths = []
-    for annotation_path in annotations_dir.glob("**/*.json"):
+    for annotation_path in (
+        e for e in annotations_dir.glob("**/*.json") if "/.v7/" not in str(e)
+    ):
         darwin_json = stream_darwin_json(annotation_path)
         image_path = get_image_path_from_stream(darwin_json, images_dir)
         if image_path.exists():
@@ -719,7 +729,9 @@ def compute_max_density(annotations_dir: Path) -> int:
         The maximum density.
     """
     max_density = 0
-    for annotation_path in annotations_dir.glob("**/*.json"):
+    for annotation_path in (
+        e for e in annotations_dir.glob("**/*.json") if "/.v7/" not in str(e)
+    ):
         annotation_density = 0
         darwin_json = parse_darwin_json(annotation_path)
         for annotation in darwin_json.annotations:

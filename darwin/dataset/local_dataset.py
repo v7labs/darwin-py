@@ -501,7 +501,11 @@ def get_annotation_filepaths(
     """
 
     if partition is None:
-        return (str(e) for e in sorted(annotations_dir.glob("**/*.json")))
+        return (
+            str(e)
+            for e in sorted(annotations_dir.glob("**/*.json"))
+            if "/.v7/" not in str(e)
+        )
     if split_type == "random":
         split_filename = f"{split_type}_{partition}.txt"
     elif split_type == "stratified":

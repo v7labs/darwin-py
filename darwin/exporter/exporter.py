@@ -26,7 +26,11 @@ def darwin_to_dt_gen(
     """
     count = 0
     for file_path in map(Path, file_paths):
-        files = file_path.glob("**/*") if file_path.is_dir() else [file_path]
+        files = (
+            [f for f in file_path.glob("**/*") if "/.v7/" not in str(f)]
+            if file_path.is_dir()
+            else [file_path]
+        )
         for f in files:
             if f.suffix != ".json":
                 continue

@@ -133,7 +133,11 @@ def split_dataset(
     # List all annotation files in release
     annotation_path = release_path / "annotations"
     assert annotation_path.exists()
-    annotation_files = list(annotation_path.glob("**/*.json"))
+    annotation_files = [
+        str(e)
+        for e in sorted(annotation_path.glob("**/*.json"))
+        if "/.v7/" not in str(e)
+    ]
 
     # Prepare the "lists" folder, which is where we are going to save the split files
     lists_path = release_path / "lists"
