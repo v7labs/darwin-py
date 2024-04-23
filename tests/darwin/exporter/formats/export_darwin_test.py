@@ -5,6 +5,7 @@ from darwin.exporter.formats.darwin import (
     _build_v2_annotation_data,
     build_image_annotation,
 )
+from darwin.utils.utils import parse_darwin_json
 
 
 def test_empty_annotation_file_v2():
@@ -128,3 +129,8 @@ def test_complete_annotation_file_with_bounding_box_and_tag_v2():
     }
 
     assert build_image_annotation(annotation_file, "Test team") == expected_output
+
+
+def test_parse_annotations_with_missing_required_properties():
+    path = Path("tests/darwin/data/annotation_with_missing_required_properties.json")
+    annotaions = parse_darwin_json(path=path)
