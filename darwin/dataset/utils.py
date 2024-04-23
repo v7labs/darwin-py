@@ -20,6 +20,7 @@ from darwin.utils import (
     SUPPORTED_IMAGE_EXTENSIONS,
     SUPPORTED_VIDEO_EXTENSIONS,
     attempt_decode,
+    get_annotation_files_from_dir,
     get_image_path_from_stream,
     is_unix_like_os,
     parse_darwin_json,
@@ -99,13 +100,7 @@ def extract_classes(
     classes: Dict[str, Set[int]] = defaultdict(set)
     indices_to_classes: Dict[int, Set[str]] = defaultdict(set)
 
-    for i, file_name in enumerate(
-        (
-            str(e)
-            for e in sorted(annotations_path.glob("**/*.json"))
-            if "/.v7/" not in str(e)
-        )
-    ):
+    for i, file_name in enumerate(get_annotation_files_from_dir(annotations_path)):
         annotation_file = parse_path(Path(file_name))
         if not annotation_file:
             continue
@@ -476,9 +471,7 @@ def get_annotations(
             release_path, split, split_type, annotation_type, partition
         )
     else:
-        stems = (
-            e.stem for e in annotations_dir.glob("**/*.json") if "/.v7" not in str(e)
-        )
+        stems = get_annotation_files_from_dir(annotations_dir)
 
     (
         images_paths,
@@ -586,9 +579,7 @@ def _map_annotations_to_images(
     images_paths = []
     annotations_paths = []
     invalid_annotation_paths = []
-    for annotation_path in (
-        e for e in annotations_dir.glob("**/*.json") if "/.v7/" not in str(e)
-    ):
+    for annotation_path in get_annotation_files_from_dir(annotations_dir):
         darwin_json = stream_darwin_json(annotation_path)
         image_path = get_image_path_from_stream(darwin_json, images_dir)
         if image_path.exists():
@@ -729,11 +720,9 @@ def compute_max_density(annotations_dir: Path) -> int:
         The maximum density.
     """
     max_density = 0
-    for annotation_path in (
-        e for e in annotations_dir.glob("**/*.json") if "/.v7/" not in str(e)
-    ):
+    for annotation_path in get_annotation_files_from_dir(annotations_dir):
         annotation_density = 0
-        darwin_json = parse_darwin_json(annotation_path)
+        darwin_json = parse_darwin_json(Path(annotation_path))
         for annotation in darwin_json.annotations:
             if "path" not in annotation.data and "paths" not in annotation.data:
                 continue

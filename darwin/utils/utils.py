@@ -1449,3 +1449,25 @@ def _default_schema(version: dt.AnnotationFileVersion) -> Optional[str]:
     return _supported_schema_versions().get(
         (version.major, version.minor, version.suffix)
     )
+
+
+def get_annotation_files_from_dir(path: Path) -> Iterator[str]:
+    """
+    Returns an iterator of all the JSON annotation files in the given directory.
+    Ignores the .v7/metadata.json properties manifest file if present.
+
+    Parameters
+    ----------
+    path : Path
+        The directory to search for JSON annotation files.
+
+    Returns
+    -------
+    Iterator[str]
+        An iterator of all the JSON annotation files in the given directory.
+    """
+    return (
+        str(filepath)
+        for filepath in sorted(path.glob("**/*.json"))
+        if "/.v7/" not in str(filepath)
+    )
