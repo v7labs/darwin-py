@@ -14,14 +14,14 @@ jobs:
         python-version: ["3.8", "3.9", "3.10", "3.11"]
         exclude:
           - os: macos-latest
-            version: "3.8"
+            python-version: "3.8"
           - os: macos-latest
-            version: "3.9"
+            python-version: "3.9"
         include:
           - os: macos-13
-            version: "3.8"
+            python-version: "3.8"
           - os: macos-13
-            version: "3.9"
+            python-version: "3.9"
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
