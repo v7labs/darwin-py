@@ -3,7 +3,7 @@ import uuid
 import warnings
 from collections import OrderedDict, defaultdict
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence, Tuple, Union
+from typing import Dict, List, Optional, Tuple
 
 from rich.console import Console
 
@@ -13,6 +13,7 @@ console = Console()
 try:
     import cc3d
     import nibabel as nib
+    from scipy.ndimage import zoom
 except ImportError:
     import_fail_string = """
     You must install darwin-py with pip install nibabel connected-components-3d
@@ -133,6 +134,7 @@ def _parse_nifti(
             img,
             processed_class_map,
             slot_names,
+            pixdims=pixdims,
         )
     if mode in ["video", "instances"]:
         annotation_classes = {
@@ -197,13 +199,21 @@ def get_polygon_video_annotations(
 
 
 def get_mask_video_annotations(
-    volume: np.ndarray, processed_class_map: Dict, slot_names: List[str]
+    volume: np.ndarray,
+    processed_class_map: Dict,
+    slot_names: List[str],
+    pixdims: Tuple[int, int, int] = (1, 1, 1),
 ) -> Optional[List[dt.VideoAnnotation]]:
     """
     The function takes a volume and a class map and returns a list of video annotations
 
     We write a single raster layer for the volume but K mask annotations, where K is the number of classes.
+
+    Assumptions:
+    - Importing annotation from Axial view only (view_idx=2)
     """
+    new_size = get_new_axial_size(volume, pixdims)
+
     frame_annotations = OrderedDict()
     all_mask_annotations = defaultdict(lambda: OrderedDict())
     # This is a dictionary of class_names to generated mask_annotation_ids
@@ -239,6 +249,10 @@ def get_mask_video_annotations(
         slice_mask = volume[:, :, i].astype(
             np.uint8
         )  # Product requirement: We only support 255 classes!
+        slice_mask = zoom(
+            slice_mask, (new_size[0] / volume.shape[0], new_size[1] / volume.shape[1])
+        )
+
         # We need to convert from nifti_idx to raster_idx
         slice_mask = np.vectorize(
             lambda key: map_from_nifti_idx_to_raster_idx.get(key, 0)
@@ -247,7 +261,7 @@ def get_mask_video_annotations(
         raster_annotation = dt.make_raster_layer(
             class_name="__raster_layer__",
             mask_annotation_ids_mapping=mask_annotation_ids_mapping,
-            total_pixels=class_mask.size,
+            total_pixels=slice_mask.size,
             dense_rle=dense_rle,
             slot_names=slot_names,
         )
@@ -505,3 +519,24 @@ def convert_to_dense_rle(raster: np.ndarray) -> List[int]:
             prev_val, cnt = val, 1
     dense_rle.extend([int(prev_val), int(cnt)])
     return dense_rle
+
+
+def get_new_axial_size(
+    volume: np.ndarray, pixdims: Tuple[int, int, int]
+) -> Tuple[int, int]:
+    """Get the new size of the Axial plane after resizing to isotropic pixel dimensions.
+
+    Args:
+        volume: Input volume.
+        pixdims: The pixel dimensions / spacings of the volume.
+
+    Returns:
+        Tuple[int, int]: The new size of the Axial plane.
+    """
+    original_size = volume.shape
+    original_spacing = pixdims
+    min_spacing = min(pixdims[0], pixdims[1])
+    return (
+        int(round(original_size[0] * (original_spacing[0] / min_spacing))),
+        int(round(original_size[1] * (original_spacing[1] / min_spacing))),
+    )
