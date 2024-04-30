@@ -85,7 +85,7 @@ upolygon = "0.1.10"
 [tool.poetry.extras]
 dev = ["black", "isort", "flake8", "mypy", "debugpy", "responses", "pytest", "flake8-pyproject", "pytest-rerunfailures", "ruff", "validate-pyproject"]
 medical = ["nibabel", "connected-components-3d", "scipy"]
-ml = ["torch", "torchvision", "scikit-learn", "albumentations"]
+ml = ["torch", "torchvision", "scikit-learn", "albumentations", "scipy"]
 ocv = ["opencv-python-headless"]
 test = ["responses", "pytest", "flake8-pyproject"]
 
