@@ -14,7 +14,6 @@ try:
     from numpy.typing import NDArray
 except ImportError:
     NDArray = Any  # type:ignore
-from PIL import Image
 
 from darwin import datatypes as dt
 from darwin.exporter.formats.mask import (
