@@ -722,7 +722,7 @@ def make_complex_polygon(
 ) -> Annotation:
     """
     Creates and returns a complex polygon annotation. Complex polygons are those who have holes
-    and/or disform shapes.
+    and/or disform shapes. This is used by the backend.
 
     Parameters
     ----------

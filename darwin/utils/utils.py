@@ -1458,7 +1458,7 @@ def convert_sequences_to_polygons(
 ) -> Dict[str, List[dt.Polygon]]:
     """
     Converts a list of polygons, encoded as a list of dictionaries of into a list of nd.arrays
-    of coordinates.
+    of coordinates. This is used by the backend.
 
     Parameters
     ----------
