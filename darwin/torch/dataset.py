@@ -326,7 +326,6 @@ class InstanceSegmentationDataset(LocalDataset):
 
         annotations = []
         for annotation in target["annotations"]:
-
             # Darwin V2 only has paths (TODO it might be more robust fixes)
             if "paths" in annotation.data:
                 path_key = "paths"
