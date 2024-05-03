@@ -350,7 +350,7 @@ def populate_output_volumes_from_polygons(
                 plane,
                 frame_idx,
             )
-        return volume
+    return volume
 
 
 def populate_output_volumes_from_raster_layer(

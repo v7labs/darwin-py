@@ -1471,3 +1471,58 @@ def get_annotation_files_from_dir(path: Path) -> Iterator[str]:
         for filepath in sorted(path.glob("**/*.json"))
         if "/.v7/" not in str(filepath)
     )
+
+
+def convert_sequences_to_polygons(
+    sequences: List[Union[List[int], List[float]]],
+    height: Optional[int] = None,
+    width: Optional[int] = None,
+) -> Dict[str, List[dt.Polygon]]:
+    """
+    Converts a list of polygons, encoded as a list of dictionaries of into a list of nd.arrays
+    of coordinates. This is used by the backend.
+
+    Parameters
+    ----------
+    sequences : List[Union[List[int], List[float]]]
+        List of arrays of coordinates in the format ``[x1, y1, x2, y2, ..., xn, yn]`` or as a list
+        of them as ``[[x1, y1, x2, y2, ..., xn, yn], ..., [x1, y1, x2, y2, ..., xn, yn]]``.
+    height : Optional[int], default: None
+        Maximum height for a polygon coordinate.
+    width : Optional[int], default: None
+        Maximum width for a polygon coordinate.
+
+    Returns
+    -------
+    Dict[str, List[dt.Polygon]]
+        Dictionary with the key ``path`` containing a list of coordinates in the format of
+        ``[[{x: x1, y:y1}, ..., {x: xn, y:yn}], ..., [{x: x1, y:y1}, ..., {x: xn, y:yn}]]``.
+
+    Raises
+    ------
+    ValueError
+        If sequences is a falsy value (such as ``[]``) or if it is in an incorrect format.
+    """
+    if not sequences:
+        raise ValueError("No sequences provided")
+    # If there is a single sequences composing the instance then this is
+    # transformed to polygons = [[x1, y1, ..., xn, yn]]
+    if not isinstance(sequences[0], list):
+        sequences = [sequences]
+
+    if not isinstance(sequences[0][0], (int, float)):
+        raise ValueError("Unknown input format")
+
+    def grouped(iterable, n):
+        return zip(*[iter(iterable)] * n)
+
+    polygons = []
+    for sequence in sequences:
+        path = []
+        for x, y in grouped(sequence, 2):
+            # Clip coordinates to the image size
+            x = max(min(x, width - 1) if width else x, 0)
+            y = max(min(y, height - 1) if height else y, 0)
+            path.append({"x": x, "y": y})
+        polygons.append(path)
+    return {"path": polygons}

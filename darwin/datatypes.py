@@ -713,6 +713,58 @@ def make_polygon(
     )
 
 
+def make_complex_polygon(
+    class_name: str,
+    point_paths: List[List[Point]],
+    bounding_box: Optional[Dict] = None,
+    subs: Optional[List[SubAnnotation]] = None,
+    slot_names: Optional[List[str]] = None,
+) -> Annotation:
+    """
+    Creates and returns a complex polygon annotation. Complex polygons are those who have holes
+    and/or disform shapes. This is used by the backend.
+
+    Parameters
+    ----------
+    class_name: str
+        The name of the class for this ``Annotation``.
+    point_paths: List[List[Point]]
+        A list of lists points that comprises the complex polygon. This is needed as a complex
+        polygon can be effectively seen as a sum of multiple simple polygons. The list should have
+        a format similar to:
+
+        .. code-block:: python
+
+            [
+                [
+                    {"x": 1, "y": 0},
+                    {"x": 2, "y": 1}
+                ],
+                [
+                    {"x": 3, "y": 4},
+                    {"x": 5, "y": 6}
+                ]
+                # ... and so on ...
+            ]
+
+    bounding_box : Optional[Dict], default: None
+        The bounding box that encompasses the polyong.
+    subs : Optional[List[SubAnnotation]], default: None
+        List of ``SubAnnotation``s for this ``Annotation``.
+
+    Returns
+    -------
+    Annotation
+        A complex polygon ``Annotation``.
+    """
+    return Annotation(
+        AnnotationClass(class_name, "complex_polygon", "polygon"),
+        _maybe_add_bounding_box_data({"paths": point_paths}, bounding_box),
+        subs or [],
+        slot_names=slot_names or [],
+    )
+
+
 def make_keypoint(
     class_name: str,
     x: float,
