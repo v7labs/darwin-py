@@ -136,8 +136,6 @@ def split_dataset(
     assert annotation_path.exists()
     annotation_files = list(get_annotation_files_from_dir(annotation_path))
 
-    print(list(annotation_files))
-
     # Prepare the "lists" folder, which is where we are going to save the split files
     lists_path = release_path / "lists"
     lists_path.mkdir(parents=True, exist_ok=True)
