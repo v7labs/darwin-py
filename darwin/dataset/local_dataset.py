@@ -8,6 +8,7 @@ from PIL import Image as PILImage
 from darwin.dataset.utils import get_classes, get_release_path, load_pil_image
 from darwin.utils import (
     SUPPORTED_IMAGE_EXTENSIONS,
+    get_annotation_files_from_dir,
     get_image_path_from_stream,
     is_stream_list_empty,
     parse_darwin_json,
@@ -501,7 +502,7 @@ def get_annotation_filepaths(
     """
 
     if partition is None:
-        return (str(e) for e in sorted(annotations_dir.glob("**/*.json")))
+        return get_annotation_files_from_dir(annotations_dir)
     if split_type == "random":
         split_filename = f"{split_type}_{partition}.txt"
     elif split_type == "stratified":

@@ -2,7 +2,11 @@ from pathlib import Path
 from typing import Iterator, List
 
 from darwin.datatypes import AnnotationFile, ExportParser, PathLike
-from darwin.utils import parse_darwin_json, split_video_annotation
+from darwin.utils import (
+    get_annotation_files_from_dir,
+    parse_darwin_json,
+    split_video_annotation,
+)
 
 
 def darwin_to_dt_gen(
@@ -26,7 +30,11 @@ def darwin_to_dt_gen(
     """
     count = 0
     for file_path in map(Path, file_paths):
-        files = file_path.glob("**/*") if file_path.is_dir() else [file_path]
+        files = (
+            list(get_annotation_files_from_dir(file_path))
+            if file_path.is_dir()
+            else [file_path]
+        )
         for f in files:
             if f.suffix != ".json":
                 continue

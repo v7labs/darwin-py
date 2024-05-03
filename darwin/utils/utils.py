@@ -1451,6 +1451,28 @@ def _default_schema(version: dt.AnnotationFileVersion) -> Optional[str]:
     )
 
 
+def get_annotation_files_from_dir(path: Path) -> Iterator[str]:
+    """
+    Returns an iterator of all the JSON annotation files in the given directory.
+    Ignores the .v7/metadata.json properties manifest file if present.
+
+    Parameters
+    ----------
+    path : Path
+        The directory to search for JSON annotation files.
+
+    Returns
+    -------
+    Iterator[str]
+        An iterator of all the JSON annotation files in the given directory.
+    """
+    return (
+        str(filepath)
+        for filepath in sorted(path.glob("**/*.json"))
+        if "/.v7/" not in str(filepath)
+    )
+
+
 def convert_sequences_to_polygons(
     sequences: List[Union[List[int], List[float]]],
     height: Optional[int] = None,

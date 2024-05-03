@@ -1,3 +1,5 @@
+import tempfile
+import zipfile
 from pathlib import Path
 
 from darwin.datatypes import Annotation, AnnotationClass, AnnotationFile
@@ -5,6 +7,7 @@ from darwin.exporter.formats.darwin import (
     _build_v2_annotation_data,
     build_image_annotation,
 )
+from darwin.utils import get_annotation_files_from_dir
 
 
 def test_empty_annotation_file_v2():
@@ -128,3 +131,13 @@ def test_complete_annotation_file_with_bounding_box_and_tag_v2():
     }
 
     assert build_image_annotation(annotation_file, "Test team") == expected_output
+
+
+def test_properties_metadata_is_ignored_when_reading_annotations_directory():
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        with zipfile.ZipFile("tests/dataset_with_properties.zip", "r") as zip_ref:
+            zip_ref.extractall(tmpdirname)
+
+        annotation_filepaths = list(get_annotation_files_from_dir(Path(tmpdirname)))
+        for annotation_filepath in annotation_filepaths:
+            assert "./v7/" not in annotation_filepath
