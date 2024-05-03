@@ -198,11 +198,13 @@ def _handle_polygon(
 
     except KeyError as exc:
         logger.warn(
-            f"Skipped annotation at index {annotation_index} because an"
-            "expected key was not found in the data."
-            f"Error occured while calculating point at index {last_point}."
-            if last_point
-            else "Error occured while enumerating points.",
+            (
+                f"Skipped annotation at index {annotation_index} because an"
+                "expected key was not found in the data."
+                f"Error occured while calculating point at index {last_point}."
+                if last_point
+                else "Error occured while enumerating points."
+            ),
             exc_info=exc,
         )
         return False
