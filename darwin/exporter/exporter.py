@@ -31,7 +31,7 @@ def darwin_to_dt_gen(
     count = 0
     for file_path in map(Path, file_paths):
         files = (
-            list(get_annotation_files_from_dir(file_path))
+            list(map(Path, get_annotation_files_from_dir(file_path)))
             if file_path.is_dir()
             else [file_path]
         )
