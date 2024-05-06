@@ -707,7 +707,7 @@ def import_annotations(  # noqa: C901
         If ``False`` it will not import the reviewers.
     overwrite : bool, default: False
         If ``True`` it will bypass a warning that the import will overwrite the current annotations if any are present.
-        If ``False`` this warning will be skipped and the import will overwrite the current annotations.
+        If ``False`` this warning will be skipped and the import will overwrite the current annotations without warning.
     use_multi_cpu : bool, default: True
         If ``True`` will use multiple available CPU cores to parse the annotation files.
         If ``False`` will use only the current Python process, which runs in one core.

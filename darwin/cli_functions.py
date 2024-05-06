@@ -884,7 +884,7 @@ def dataset_import(
         If ``False`` it will not import the reviewers.
     overwrite : bool, default: False
         If ``True`` it will bypass a warning that the import will overwrite the current annotations if any are present.
-        If ``False`` this warning will be skipped and the import will overwrite the current annotations.
+        If ``False`` this warning will be skipped and the import will overwrite the current annotations without warning.
     use_multi_cpu : bool, default: False
         If ``True`` it will use all multiple CPUs to speed up the import process.
     cpu_limit : Optional[int], default: Core count - 2
