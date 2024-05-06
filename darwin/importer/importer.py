@@ -905,6 +905,13 @@ def import_annotations(  # noqa: C901
             style="info",
         )
 
+    if not append and not overwrite:
+        continue_to_overwrite = _overwrite_warning(
+            dataset.client, dataset, local_files, remote_files, console
+        )
+        if not continue_to_overwrite:
+            return
+
     # Need to re parse the files since we didn't save the annotations in memory
     for local_path in set(local_file.path for local_file in local_files):  # noqa: C401
         imported_files: Union[List[dt.AnnotationFile], dt.AnnotationFile, None] = (
@@ -943,12 +950,6 @@ def import_annotations(  # noqa: C901
             file for file in parsed_files if file not in files_to_not_track
         ]
         if files_to_track:
-            if not append and not overwrite:
-                continue_to_overwrite = _overwrite_warning(
-                    dataset.client, dataset, files_to_track, remote_files, console
-                )
-                if not continue_to_overwrite:
-                    return
             _warn_unsupported_annotations(files_to_track)
             for parsed_file in track(files_to_track):
                 image_id, default_slot_name = remote_files[parsed_file.full_path]
@@ -1370,7 +1371,7 @@ def _console_theme() -> Theme:
 def _overwrite_warning(
     client: "Client",
     dataset: "RemoteDataset",
-    files: List[dt.AnnotationFile],
+    local_files: List[dt.AnnotationFile],
     remote_files: Dict[str, Tuple[str, str]],
     console: Console,
 ) -> bool:
@@ -1385,7 +1386,7 @@ def _overwrite_warning(
     dataset : RemoteDataset
         The dataset where the annotations will be imported.
     files : List[dt.AnnotationFile]
-        The list of annotation files that will be imported.
+        The list of local annotation files to will be imported.
     remote_files : Dict[str, Tuple[str, str]]
         A dictionary of the remote files in the dataset.
     console : Console
@@ -1397,14 +1398,13 @@ def _overwrite_warning(
         True if the user wants to proceed with the import, False otherwise.
     """
     files_to_overwrite = []
-    for file in files:
-        item_id = remote_files[file.full_path][0]
+    for local_file in local_files:
         remote_annotations = client.api_v2._get_remote_annotations(
-            item_id,
+            local_file.item_id,
             dataset.team,
         )
-        if remote_annotations and file.full_path not in files_to_overwrite:
-            files_to_overwrite.append(file.full_path)
+        if remote_annotations and local_file.full_path not in files_to_overwrite:
+            files_to_overwrite.append(local_file.full_path)
     if files_to_overwrite:
         console.print(
             f"The following {len(files_to_overwrite)} dataset items already have annotations that will be overwritten by this import:",
